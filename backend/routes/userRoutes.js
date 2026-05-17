@@ -1,10 +1,20 @@
 const express = require('express');
 const { registerUser, authUser, saveFcmToken, getUserProfile, updateUserProfile } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
 
-router.post('/register', registerUser);
-router.post('/login', authUser);
+// ── Strict Auth Shield (Brute-Force Protection) ──────────────────────
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 login/register requests per window
+  message: { message: 'Too many authentication attempts, please try again after 15 minutes.' }
+});
+
+router.post('/register', authLimiter, registerUser);
+router.post('/login', authLimiter, authUser);
+router.post('/google-login', authLimiter, require('../controllers/userController').googleLogin);
+router.post('/reset-password', authLimiter, require('../controllers/userController').resetPassword);
 router.post('/fcm-token', saveFcmToken);
 router.get('/profile', protect, getUserProfile);
 router.put('/profile', protect, updateUserProfile);

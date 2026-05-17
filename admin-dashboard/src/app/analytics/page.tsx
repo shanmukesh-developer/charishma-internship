@@ -26,7 +26,32 @@ export default function AnalyticsIntel() {
   const [rewards, setRewards] = useState<RewardStats | null>(null);
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
 
+   const [volume, setVolume] = useState<{ hour: string; count: number }[]>([]);
+   const [health, setHealth] = useState<any>(null);
+
   useEffect(() => {
+      const fetchVolume = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const res = await fetch(`${API_URL}/api/admin/stats/volume`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+          setVolume(data);
+        } catch (err) { console.error('Volume fetch failed', err); }
+      };
+
+      const fetchHealth = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const res = await fetch(`${API_URL}/api/admin/health`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+          setHealth(data);
+        } catch (err) { console.error('Health fetch failed', err); }
+      };
+
      const fetchStats = async () => {
        try {
          const token = localStorage.getItem('token');
@@ -38,9 +63,11 @@ export default function AnalyticsIntel() {
          setMetrics([
            { label: 'Market Revenue', value: data.revenue, subtext: 'Total Validated Revenue', percent: 100 },
            { label: 'Order Velocity', value: data.orderActivity, subtext: 'Total Orders Processed', percent: Math.min(100, parseInt(data.orderActivity) * 2) },
-           { label: 'Active Nodes', value: data.activeFleet, subtext: 'Verified Delivery Partners', percent: Math.min(100, parseInt(data.activeFleet) * 10) },
-           { label: 'Live Transmission', value: data.activeOrders, subtext: 'Ongoing Logistics Tasks', percent: Math.min(100, parseInt(data.activeOrders) * 5) },
+           { label: 'Fleet Saturation', value: data.activeFleet, subtext: 'Verified Delivery Partners', percent: Math.min(100, parseInt(data.activeFleet) * 10) },
+           { label: 'Tactical Backlog', value: data.activeOrders, subtext: 'Ongoing Logistics Tasks', percent: Math.min(100, parseInt(data.activeOrders) * 5) },
          ]);
+         fetchVolume();
+         fetchHealth();
          setLoading(false);
        } catch (error) {
          console.error('Failed to fetch stats:', error);
@@ -111,42 +138,48 @@ export default function AnalyticsIntel() {
              <div className="glass-card p-10 space-y-6">
                 <h3 className="text-xl font-black tracking-tighter uppercase text-white">Node response <span className="text-blue-500">Frequency</span></h3>
                 <p className="text-xs text-gray-500 leading-relaxed max-w-lg">Continuous telemetry ping analysis from local SRM-Alpha hubs to visual interface pipeline routing.</p>
-                {/* Simulated Chart via SVGs */}
-                <div className="h-48 flex items-end gap-2 pt-10">
-                   {[40, 60, 45, 80, 50, 90, 75, 40, 85, 60, 95, 30].map((h, i) => (
-                      <div key={i} className="flex-1 bg-white/5 rounded-t-lg relative group overflow-hidden" style={{ height: `${h}%` }}>
-                         <div className="absolute inset-x-0 bottom-0 bg-blue-500/30 group-hover:bg-blue-500/60 transition-all duration-500" style={{ height: '100%' }} />
-                         <div className="absolute inset-0 bg-blue-500 shadow-[0_0_15px_rgba(37,99,235,0.4)] opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                   ))}
-                </div>
-                 <div className="flex justify-between text-[8px] font-black text-gray-600 uppercase tracking-widest px-2">
-                    <span>12:00</span><span>13:00</span><span>14:00</span><span>15:00</span><span>16:00</span><span>17:00</span>
+                 <div className="h-48 flex items-end gap-2 pt-10">
+                    {(volume.length > 0 ? volume : [{count:0},{count:0},{count:0},{count:0},{count:0},{count:0}]).map((v, i) => {
+                       const max = Math.max(...volume.map(x => x.count), 1);
+                       const h = (v.count / max) * 100;
+                       return (
+                        <div key={i} className="flex-1 bg-white/5 rounded-t-lg relative group overflow-hidden" style={{ height: `${Math.max(5, h)}%` }}>
+                           <div className="absolute inset-x-0 bottom-0 bg-blue-500/30 group-hover:bg-blue-500/60 transition-all duration-500" style={{ height: '100%' }} />
+                           <div className="absolute inset-0 bg-blue-500 shadow-[0_0_15px_rgba(37,99,235,0.4)] opacity-0 group-hover:opacity-100 transition-opacity" />
+                           <div className="absolute top-2 left-1/2 -translate-x-1/2 text-[8px] font-black text-white opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                             {v.count}
+                           </div>
+                        </div>
+                       );
+                    })}
                  </div>
+                  <div className="flex justify-between text-[8px] font-black text-gray-600 uppercase tracking-widest px-2">
+                     {volume.slice(0, 6).map((v, i) => <span key={i}>{v.hour}</span>)}
+                  </div>
              </div>
 
              <div className="glass-card p-10 space-y-6 flex flex-col justify-center">
                 <h3 className="text-xl font-black tracking-tighter uppercase text-white">Interlink <span className="text-emerald-500">Integrity</span></h3>
-                <div className="space-y-4">
-                   {[
-                     { name: 'SRM_ALPHA_01', type: 'Core Server', status: 'Operational', latency: '12ms' },
-                     { name: 'FRONTEND_M1', type: 'Node Frame', status: 'Operational', latency: '4ms' },
-                     { name: 'RIDER_HUB_01', type: 'Broadband', status: 'Slight Lag', latency: '120ms' },
-                   ].map((node, i) => (
-                      <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
-                         <div>
-                            <p className="text-sm font-bold text-white tracking-wide">{node.name}</p>
-                            <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{node.type}</p>
-                         </div>
-                         <div className="text-right">
-                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-md border ${
-                               node.status === 'Slight Lag' ? 'text-amber-500 bg-amber-500/10 border-amber-500/20' : 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20'
-                            }`}>{node.status}</span>
-                            <p className="text-[9px] text-gray-600 font-bold mt-1">{node.latency}</p>
-                         </div>
-                      </div>
-                   ))}
-                </div>
+                 <div className="space-y-4">
+                    {[
+                      { name: 'SRM_ALPHA_01', type: 'Database Node', status: health?.database === 'POSTGRES' ? 'Operational' : 'Volatile', latency: health?.persistence === 'PERSISTENT' ? 'Ultra-Stable' : 'Unstable' },
+                      { name: 'API_NODE_01', type: 'Core Server', status: health ? 'Connected' : 'Syncing...', latency: 'Live' },
+                      { name: 'RIDER_HUB_01', type: 'Fleet Broadband', status: 'Operational', latency: '4ms' },
+                    ].map((node, i) => (
+                       <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                          <div>
+                             <p className="text-sm font-bold text-white tracking-wide">{node.name}</p>
+                             <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{node.type}</p>
+                          </div>
+                          <div className="text-right">
+                             <span className={`text-[9px] font-black px-2 py-0.5 rounded-md border ${
+                                node.status === 'Operational' || node.status === 'Connected' ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-500 bg-amber-500/10 border-amber-500/20'
+                             }`}>{node.status}</span>
+                             <p className="text-[9px] text-gray-600 font-bold mt-1">{node.latency}</p>
+                          </div>
+                       </div>
+                    ))}
+                 </div>
              </div>
           </div>
 

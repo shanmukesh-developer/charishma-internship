@@ -6,15 +6,40 @@ const { sendPushToTokens } = require('../utils/push');
 const { updateStreak, calculateBadgePerks } = require('../middleware/rewardEngine');
 const { getMenuItemModel } = require('../models/MenuItem');
 const { sendWhatsAppMessage, formatOrderMessage } = require('../utils/whatsappUtil');
+const { calculateCustomizationCost } = require('../utils/pricingSchema');
 const { Op } = require('sequelize');
 
 // @desc    Create a new order
 // @route   POST /api/orders
 const createOrder = async (req, res) => {
-  const { restaurantId, items, totalPrice: _totalPrice, deliverySlot, deliveryAddress, paymentMethod, upiUTR, upiScreenshot } = req.body;
+  const { restaurantId, items, totalPrice: _totalPrice, deliverySlot, deliveryAddress, coordinates, paymentMethod, upiUTR, upiScreenshot } = req.body;
 
   if (!items || items.length === 0) {
     return res.status(400).json({ message: 'No order items' });
+  }
+
+  // --- Geo-Fencing Validation (40 KM Radius) ---
+  if (coordinates && coordinates.lat && coordinates.lng) {
+    const toRad = (value) => (value * Math.PI) / 180;
+    const baseLat = 16.4632; // Central Hub Latitude (SRM AP)
+    const baseLng = 80.5064; // Central Hub Longitude (SRM AP)
+    const R = 6371; // Earth's radius in km
+    
+    const dLat = toRad(coordinates.lat - baseLat);
+    const dLon = toRad(coordinates.lng - baseLng);
+    
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(toRad(baseLat)) * Math.cos(toRad(coordinates.lat)) * 
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+              
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const calculatedDistanceKm = R * c;
+    
+    if (calculatedDistanceKm > 40) {
+      return res.status(400).json({ 
+        message: `DELIVERY REJECTED: Location is ${calculatedDistanceKm.toFixed(1)} km away. Maximum allowed range is 40 km.` 
+      });
+    }
   }
 
   try {
@@ -114,12 +139,26 @@ const createOrder = async (req, res) => {
       // Hard cap quantity to prevent overflows and absurd orders
       const qty = Math.min(20, Math.max(1, i.quantity || 1));
       
-      const price = dbItem.price;
-      backendTotalPrice += price * qty;
+      const basePrice = dbItem.price;
+      const addOnPrice = calculateCustomizationCost(basePrice, dbItem, i.customizations);
+      
+      // Server-Side Verification: Calculate the true cost
+      const secureItemPrice = basePrice + addOnPrice;
+      
+      // Prevent frontend from sending forged lower prices
+      const frontendPrice = i.priceAtOrder || i.price || basePrice;
+      if (frontendPrice < secureItemPrice) {
+         console.warn(`[SECURITY_WARN] Forged price detected for ${dbItem.name}. Expected: ${secureItemPrice}, Got: ${frontendPrice}`);
+         // Force the secure price to prevent revenue loss
+      }
+
+      backendTotalPrice += secureItemPrice * qty;
       validatedItems.push({
         ...i,
         quantity: qty,
-        price,
+        price: secureItemPrice,
+        basePrice: basePrice,
+        customizations: i.customizations,
         name: dbItem.name,
         image: dbItem.image || dbItem.imageUrl
       });
@@ -133,14 +172,18 @@ const createOrder = async (req, res) => {
     if (couponCode) {
       const { getCouponModel } = require('../models/Coupon');
       const Coupon = getCouponModel();
-      appliedCoupon = await Coupon.findOne({
-        where: { code: couponCode, userId: req.user.id, isUsed: false }
-      });
-
-      if (!appliedCoupon) {
-        return res.status(400).json({ message: 'Invalid or expired reward code.' });
+      
+      // Atomic Coupon Claim to prevent concurrent use
+      const [updatedRows] = await Coupon.update(
+        { isUsed: true },
+        { where: { code: couponCode, userId: req.user.id, isUsed: false } }
+      );
+      
+      if (updatedRows === 0) {
+        return res.status(400).json({ message: 'Invalid or already used reward code.' });
       }
-
+      
+      appliedCoupon = await Coupon.findOne({ where: { code: couponCode, userId: req.user.id } });
       if (appliedCoupon.type === 'FREEDEL') {
         couponDiscount = calculatedFee; // 100% Delivery discount
       }
@@ -150,46 +193,70 @@ const createOrder = async (req, res) => {
 
     // ── Wallet Payment Engine (Atomic Deduction) ──────────
     if (paymentMethod === 'Wallet') {
-      if (!currentUser || (currentUser.walletBalance || 0) < finalPrice) {
+      const User = getUserModel();
+      const { getSequelize } = require('../config/db');
+      
+      // Atomic Update: Prevents negative balances and race conditions
+      const [updatedRows] = await User.update(
+        { walletBalance: getSequelize().literal(`walletBalance - ${finalPrice}`) },
+        { 
+          where: { 
+            id: req.user.id, 
+            walletBalance: { [Op.gte]: finalPrice } 
+          } 
+        }
+      );
+
+      if (updatedRows === 0) {
+        // Rollback coupon if wallet fails
+        if (appliedCoupon) {
+          await appliedCoupon.update({ isUsed: false });
+        }
         return res.status(400).json({ 
-          message: `Insufficient Wallet Balance. Needed: ₹${finalPrice}, Current: ₹${currentUser?.walletBalance || 0}` 
+          message: `Insufficient Wallet Balance. Needed: ₹${finalPrice}.` 
         });
       }
-
-      // Atomically decrement balance to prevent race condition/overdraft
-      await currentUser.decrement('walletBalance', { by: finalPrice });
-      console.log(`[WALLET_ENGINE] User ${req.user.id} balance deducted by ₹${finalPrice}.`);
+      console.log(`[WALLET_ENGINE] User ${req.user.id} balance deducted securely by ₹${finalPrice}.`);
     }
 
-    const createdOrder = await Order.create({
-      userId: req.user.id,
-      restaurantId: targetRid,
-      items: validatedItems,
-      totalPrice: backendTotalPrice,
-      deliveryFee: calculatedFee,
-      distance: distanceKm,
-      estDuration,
-      batchDiscount,
-      gateDiscount: perkDiscount, // Reusing gateDiscount for Badge Perks
-      finalPrice,
-      deliverySlot: (deliverySlot || 'ASAP').replace(/[<>]/g, ''), // Basic XSS Sanitization
-      deliveryAddress: deliveryAddress || 'Amaravathi Center',
-      hostelGateDelivery: false,
-      isSurge: isSurge,
-      paymentMethod,
-      upiUTR: paymentMethod === 'UPI' ? upiUTR : null,
-      upiScreenshot: paymentMethod === 'UPI' ? upiScreenshot : null,
-      upiStatus: paymentMethod === 'UPI' ? 'Pending' : 'Verified', // Default to Verified for COD/Card for now
-      status: restaurant.isOffline ? 'Accepted' : 'Pending',
-      deliveryPin: Math.floor(1000 + Math.random() * 9000).toString()
-    });
+    let createdOrder;
+    try {
+      createdOrder = await Order.create({
+        userId: req.user.id,
+        restaurantId: targetRid,
+        items: validatedItems,
+        totalPrice: backendTotalPrice,
+        deliveryFee: calculatedFee,
+        distance: distanceKm,
+        estDuration,
+        batchDiscount,
+        gateDiscount: perkDiscount, // Reusing gateDiscount for Badge Perks
+        finalPrice,
+        deliverySlot: (deliverySlot || 'ASAP').replace(/[<>]/g, ''), // Basic XSS Sanitization
+        deliveryAddress: (deliveryAddress || 'Amaravathi Center').replace(/[<>]/g, ''), // Sanitize Address
+        hostelGateDelivery: false,
+        isSurge: isSurge,
+        paymentMethod,
+        upiUTR: paymentMethod === 'UPI' ? upiUTR : null,
+        upiScreenshot: paymentMethod === 'UPI' ? upiScreenshot : null,
+        upiStatus: paymentMethod === 'UPI' ? 'Pending' : 'Verified', // Default to Verified for COD/Card for now
+        status: restaurant.isOffline ? 'Accepted' : 'Pending',
+        deliveryPin: Math.floor(1000 + Math.random() * 9000).toString()
+      });
+    } catch (orderCreateErr) {
+      // ── Manual Rollback if Order fails ──────────────────────
+      console.error('[ORDER_CREATE_ERROR] Rolling back deductions...', orderCreateErr);
+      if (paymentMethod === 'Wallet') {
+        const User = getUserModel();
+        await User.increment('walletBalance', { by: finalPrice, where: { id: req.user.id } });
+      }
+      if (appliedCoupon) {
+        await appliedCoupon.update({ isUsed: false });
+      }
+      return res.status(500).json({ message: 'Failed to create order. Deductions rolled back.' });
+    }
 
     try {
-      if (appliedCoupon) {
-        appliedCoupon.isUsed = true;
-        await appliedCoupon.save();
-        console.log(`[REWARD_ENGINE] One-time coupon ${appliedCoupon.code} consumed.`);
-      }
       await updateStreak(req.user.id);
       const User = getUserModel();
       const user = await User.findByPk(req.user.id);
@@ -438,6 +505,17 @@ const getOrderById = async (req, res) => {
     });
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
+    // ── IDOR Protection (Access Control Guard) ──────────────────────
+    // Ensure the requester is either the owner of the order, an Admin, or the assigned Rider
+    const isOwner = order.userId === req.user.id;
+    const isAdmin = req.user.role && req.user.role.toLowerCase() === 'admin';
+    const isAssignedRider = req.user.role && req.user.role.toLowerCase() === 'rider' && order.deliveryPartnerId === req.user.id;
+    
+    if (!isOwner && !isAdmin && !isAssignedRider) {
+      console.warn(`[SECURITY_WARN] User ${req.user.id} attempted to access Order ${id} without permission.`);
+      return res.status(403).json({ message: 'Access denied: You do not have permission to view this order.' });
+    }
+
     const orderData = order.toJSON();
     // Map associations for legacy frontend compatibility (+ _id)
     if (orderData.deliveryPartner) {
@@ -514,22 +592,35 @@ const getAllOrders = async (req, res) => {
     const Order = getOrderModel();
     const User = getUserModel();
     const Restaurant = getRestaurantModel();
-    const orders = await Order.findAll({ 
+    const { page = 1, limit = 50, status } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    const where = {};
+    if (status && status !== 'All') where.status = status;
+
+    const { count, rows: orders } = await Order.findAndCountAll({ 
+      where,
       order: [['createdAt', 'DESC']], 
-      limit: 50,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
       include: [
         { model: User, as: 'user', attributes: ['name', 'phone'] },
         { model: Restaurant, as: 'restaurant', attributes: ['name'] }
       ]
     });
-    res.json(orders.map(o => {
-      const oJson = o.toJSON();
-      return { 
-        ...oJson, 
-        _id: o.id, 
-        userId: oJson.user // Map to userId for frontend compatibility
-      };
-    }));
+
+    res.json({
+      orders: orders.map(o => {
+        const oJson = o.toJSON();
+        return { 
+          ...oJson, 
+          _id: o.id, 
+          userId: oJson.user 
+        };
+      }),
+      total: count,
+      pages: Math.ceil(count / limit)
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -542,19 +633,30 @@ const cancelOrder = async (req, res) => {
     const order = await Order.findByPk(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
-    // Allow cancellation if: (a) you are the order owner, or (b) order is still Pending (restaurant reject)
+    // ── Global Sabotage (BOLA/IDOR) Patch ──────────────────────
     const isOwner = order.userId === req.user.id;
+    const isAdmin = req.user.role && req.user.role.toLowerCase() === 'admin';
     const isStillPending = order.status === 'Pending';
-    if (!isOwner && !isStillPending) {
+    
+    // Only Owners and Admins can cancel orders. 
+    // And Owners can ONLY cancel if it is still Pending (or within 120 seconds).
+    if (!isOwner && !isAdmin) {
+      console.warn(`[SECURITY_WARN] User ${req.user.id} attempted to cancel Order ${order.id} owned by ${order.userId}`);
       return res.status(403).json({ message: 'Not authorized to cancel this order' });
     }
 
     // Customer cancellation window: 120 seconds after placement (unless still Pending)
-    if (isOwner && !isStillPending) {
+    if (isOwner && !isAdmin && !isStillPending) {
       const elapsed = (Date.now() - new Date(order.createdAt).getTime()) / 1000;
       if (elapsed > 120) {
         return res.status(400).json({ message: 'Cancellation window closed' });
       }
+    }
+
+    // ── Infinite Refund Exploit Patch ──────────────────────
+    if (order.status === 'Cancelled') {
+      console.warn(`[SECURITY_WARN] User ${req.user.id} attempted double-cancel on Order ${order.id}`);
+      return res.status(400).json({ message: 'Order is already cancelled' });
     }
 
     order.status = 'Cancelled';

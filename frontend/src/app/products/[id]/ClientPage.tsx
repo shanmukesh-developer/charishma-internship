@@ -2,9 +2,10 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCart } from '@/context/CartContext';
+import { useCart, Customizations } from '@/context/CartContext';
 import SafeImage from '@/components/SafeImage';
 import SuccessOverlay from '@/components/SuccessOverlay';
+import CustomizeDrawer, { summarizeCustomizations } from '@/components/CustomizeDrawer';
 import { MenuItem } from '@/types';
 import Tilt from '@/components/Tilt';
 import Magnetic from '@/components/Magnetic';
@@ -24,6 +25,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
     message: '',
   });
 
+  const [showCustomize, setShowCustomize] = useState(false);
   const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
@@ -86,19 +88,26 @@ export default function ProductDetailClient({ productId }: { productId: string }
   const currentQty = cartItem ? cartItem.quantity : 0;
 
   const handleInstantAdd = () => {
+    setShowCustomize(true);
+  };
+
+  const handleCustomizeConfirm = (customizations: Customizations, finalPrice: number) => {
+    setShowCustomize(false);
     addToCart({
       id: product.id || product._id || "",
       name: product.name,
-      price: product.price,
+      price: finalPrice,
+      basePrice: product.price,
       quantity: 1,
       image: product.image || product.imageUrl || "",
       restaurantId: product.restaurantId || 'unknown',
-      restaurantName: product.restaurantName || 'Zenvy Kitchen'
+      restaurantName: product.restaurantName || 'Zenvy Kitchen',
+      customizations,
     });
     setOverlay({
       isOpen: true,
       title: 'Added to Basket',
-      message: `${product.name} seamlessly added to cart.`,
+      message: `${product.name} (${summarizeCustomizations(customizations) || 'default'}) added to cart.`,
       type: 'success'
     });
   };
@@ -109,7 +118,6 @@ export default function ProductDetailClient({ productId }: { productId: string }
       <div className="relative h-[480px] w-full shrink-0 overflow-hidden">
          <div 
            className="absolute inset-0 w-full h-full"
-           style={{ transform: `translateY(${scrollY * 0.4}px) scale(1.05)` }}
          >
            <SafeImage 
              src={product.image || product.imageUrl || "/assets/placeholder_premium.png"} 
@@ -243,6 +251,16 @@ export default function ProductDetailClient({ productId }: { productId: string }
            </Link>
         </div>
       </div>
+
+      <CustomizeDrawer
+        isOpen={showCustomize}
+        onClose={() => setShowCustomize(false)}
+        onConfirm={handleCustomizeConfirm}
+        itemName={product.name}
+        basePrice={product.price}
+        tags={product.tags}
+        category={product.category}
+      />
 
       <SuccessOverlay 
         isOpen={overlay.isOpen}

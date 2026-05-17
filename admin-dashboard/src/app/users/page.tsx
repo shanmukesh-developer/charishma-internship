@@ -65,37 +65,55 @@ UserCard.displayName = 'UserCard';
 export default function UserManagement() {
   const isAuthed = useAdminAuth();
   const [users, setUsers] = useState<User[]>([]);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [userPages, setUserPages] = useState(1);
+  const [userPage, setUserPage] = useState(1);
+
   const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [totalLogs, setTotalLogs] = useState(0);
+  const [logPages, setLogPages] = useState(1);
+  const [logPage, setLogPage] = useState(1);
+
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'roster' | 'audit'>('roster');
 
   useEffect(() => {
-    fetchUsers();
-    fetchLogs();
+    fetchUsers(1);
+    fetchLogs(1);
   }, []);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (page = 1) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/admin/users`, {
+      const res = await fetch(`${API_URL}/api/admin/users?page=${page}`, {
         headers: { 'Authorization': `Bearer ${token}` },
         cache: 'no-store'
       });
       const data = await res.json();
-      if (res.ok) setUsers(data);
+      if (res.ok) {
+        setUsers(data.users || []);
+        setTotalUsers(data.total || 0);
+        setUserPages(data.pages || 1);
+        setUserPage(page);
+      }
     } catch (err) { console.error('[USER_FETCH_ERROR]', err); } finally { setLoading(false); }
   };
 
-  const fetchLogs = async () => {
+  const fetchLogs = async (page = 1) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/admin/audit`, {
+      const res = await fetch(`${API_URL}/api/admin/audit?page=${page}`, {
         headers: { 'Authorization': `Bearer ${token}` },
         cache: 'no-store'
       });
       const data = await res.json();
-      if (res.ok) setLogs(data);
+      if (res.ok) {
+        setLogs(data.logs || []);
+        setTotalLogs(data.total || 0);
+        setLogPages(data.pages || 1);
+        setLogPage(page);
+      }
     } catch (err) { console.error('[AUDIT_FETCH_ERROR]', err); }
   };
 
@@ -107,7 +125,7 @@ export default function UserManagement() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ isElite: !currentStatus })
       });
-      if (res.ok) { fetchUsers(); fetchLogs(); }
+      if (res.ok) { fetchUsers(userPage); fetchLogs(logPage); }
     } catch (err) { console.error('[ELITE_TOGGLE_ERROR]', err); }
   };
 
@@ -121,8 +139,8 @@ export default function UserManagement() {
         body: JSON.stringify({ amount })
       });
       if (res.ok) {
-        fetchUsers();
-        fetchLogs();
+        fetchUsers(userPage);
+        fetchLogs(logPage);
       }
     } catch (err) { console.error('[WALLET_ERROR]', err); }
   };
@@ -165,6 +183,17 @@ export default function UserManagement() {
                />
              ))}
           </div>
+
+          {/* User Pagination */}
+          {userPages > 1 && (
+            <div className="mt-10 flex items-center justify-between bg-white/5 p-6 rounded-3xl border border-white/5">
+               <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Resident Roster - Page {userPage} / {userPages} ({totalUsers} total)</span>
+               <div className="flex gap-2">
+                  <button disabled={userPage === 1} onClick={() => fetchUsers(userPage - 1)} className="px-5 py-2 bg-black/40 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-400 hover:text-white disabled:opacity-30">Prev</button>
+                  <button disabled={userPage === userPages} onClick={() => fetchUsers(userPage + 1)} className="px-5 py-2 bg-black/40 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-400 hover:text-white disabled:opacity-30">Next</button>
+               </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="glass-card overflow-hidden">
@@ -186,9 +215,19 @@ export default function UserManagement() {
                  ))}
               </tbody>
            </table>
+
+           {/* Audit Pagination */}
+           {logPages > 1 && (
+             <div className="p-6 bg-white/[0.03] border-t border-white/5 flex items-center justify-between">
+               <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Protocol Audit - Page {logPage} / {logPages} ({totalLogs} entries)</span>
+               <div className="flex gap-2">
+                  <button disabled={logPage === 1} onClick={() => fetchLogs(logPage - 1)} className="px-5 py-2 bg-black/40 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-400 hover:text-white disabled:opacity-30">Back</button>
+                  <button disabled={logPage === logPages} onClick={() => fetchLogs(logPage + 1)} className="px-5 py-2 bg-black/40 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-400 hover:text-white disabled:opacity-30">Ahead</button>
+               </div>
+             </div>
+           )}
         </div>
       )}
     </div>
   );
 }
-

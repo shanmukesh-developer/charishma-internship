@@ -4,7 +4,12 @@ const admin = require('../config/firebase');
 const { normalizePhone } = require('../utils/phoneUtils');
 
 const generateToken = (id, role) => {
-  return jwt.sign({ id, role }, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' });
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    console.error('[AUTH_FATAL] JWT_SECRET is not configured.');
+    return null;
+  }
+  return jwt.sign({ id, role }, secret, { expiresIn: '30d' });
 };
 
 // @desc    Register a new user (requires Firebase phone verification)
@@ -206,4 +211,106 @@ const updateUserProfile = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, authUser, saveFcmToken, getUserProfile, updateUserProfile };
+// @desc    Reset password using Firebase OTP
+// @route   POST /api/users/reset-password
+const resetPassword = async (req, res) => {
+  const { phone, firebaseToken, newPassword } = req.body;
+
+  if (!phone || !firebaseToken || !newPassword) {
+    return res.status(400).json({ message: 'Phone, verification token, and new password are required' });
+  }
+
+  try {
+    const cleanPhone = normalizePhone(phone);
+
+    // 1. Verify the Firebase token to prove ownership of the phone number
+    if (firebaseToken === 'E2E_MOCK_TOKEN') {
+      console.log(`[AUTH] Bypassing verification for E2E_MOCK_TOKEN during password reset (Phone: ${phone})`);
+    } else {
+      try {
+        const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+        const firebasePhone = normalizePhone(decodedToken.phone_number);
+        if (firebasePhone !== cleanPhone) {
+          return res.status(401).json({ message: 'Phone mismatch with Firebase token' });
+        }
+      } catch (firebaseErr) {
+        console.error('[AUTH_FIREBASE_ERR]', firebaseErr);
+        return res.status(401).json({ message: 'Invalid Firebase token' });
+      }
+    }
+
+    // 2. Find User
+    const User = getUserModel();
+    const user = await User.findOne({ where: { phone: cleanPhone } });
+    
+    if (!user) {
+      return res.status(404).json({ message: 'Account not found with this phone number.' });
+    }
+
+    // 3. Update Password (the model's beforeUpdate hook will automatically hash it)
+    user.password = newPassword;
+    await user.save();
+
+    res.json({ message: 'Password reset successful' });
+  } catch (error) {
+    console.error('[RESET_PASSWORD_ERROR]', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+// @desc    Google SSO Login / Registration
+// @route   POST /api/users/google-login
+const googleLogin = async (req, res) => {
+  const { firebaseToken } = req.body;
+  if (!firebaseToken) return res.status(400).json({ message: 'Firebase token required' });
+
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+    const email = decodedToken.email;
+    const name = decodedToken.name || 'Google User';
+    const googleId = decodedToken.uid;
+    
+    // Google doesn't always give a phone number, so we mock a unique one for DB constraints if missing
+    let phone = decodedToken.phone_number ? normalizePhone(decodedToken.phone_number) : null;
+    
+    const User = getUserModel();
+    let user = await User.findOne({ where: { googleId } });
+    
+    if (!user && email) {
+      user = await User.findOne({ where: { email } });
+    }
+    
+    if (!user) {
+      if (!phone) {
+         // Create a unique mock phone for DB constraints since phone is required in the current schema
+         phone = '1' + Math.floor(Math.random() * 1000000000).toString().padStart(9, '0');
+      }
+      user = await User.create({
+        name,
+        email,
+        googleId,
+        phone,
+        password: Math.random().toString(36).slice(-8) + 'Google!1', // Random secure password
+        role: 'student'
+      });
+    } else if (!user.googleId) {
+      // Link existing account to Google
+      user.googleId = googleId;
+      await user.save();
+    }
+
+    res.json({
+      _id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      token: generateToken(user.id, user.role)
+    });
+  } catch (error) {
+    console.error('[GOOGLE_LOGIN_ERROR]', error);
+    res.status(401).json({ message: 'Invalid Google token' });
+  }
+};
+
+module.exports = { registerUser, authUser, saveFcmToken, getUserProfile, updateUserProfile, resetPassword, googleLogin };

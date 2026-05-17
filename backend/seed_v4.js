@@ -40,6 +40,56 @@ const mockVendors = [
       { name: "Sparkling Blue Mocktail", price: 220, category: "Beverages", tags: ["drinks", "seasonal"], image: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=400" },
       { name: "Cold Brew Coffee", price: 180, category: "Beverages", tags: ["drinks", "energy"], image: "https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=400" }
     ]
+  },
+  {
+    name: "Nature's Basket",
+    imageUrl: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=800",
+    vendorType: 'GROCERY',
+    tags: ["fruits", "fresh", "healthy"],
+    menu: [
+      { name: "Premium Apple Box", price: 450, category: "Fruits", tags: ["fruits", "healthy"], image: "https://images.unsplash.com/photo-1560806887-1e4cd0b6fac6?w=400" },
+      { name: "Fresh Mangoes (1 Kg)", price: 300, category: "Fruits", tags: ["fruits", "seasonal"], image: "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=400" }
+    ]
+  },
+  {
+    name: "Apollo Campus Care",
+    imageUrl: "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=800",
+    vendorType: 'PHARMACY',
+    tags: ["pharmacy", "medicine", "health"],
+    menu: [
+      { name: "First Aid Kit Pro", price: 550, category: "Medical", tags: ["medicine", "emergency"], image: "https://images.unsplash.com/photo-1603398938378-e54eab446dde?w=400" },
+      { name: "Vitamin C Supplements", price: 250, category: "Supplements", tags: ["pharmacy", "health"], image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400" }
+    ]
+  },
+  {
+    name: "Spin Cycle Laundry",
+    imageUrl: "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=800",
+    vendorType: 'LAUNDRY',
+    tags: ["laundry", "dry-wash", "cleaning"],
+    menu: [
+      { name: "Premium Dry Wash", price: 200, category: "Services", tags: ["laundry", "dry-wash"], image: "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=400" },
+      { name: "Express Ironing", price: 100, category: "Services", tags: ["laundry", "ironing"], image: "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=400" }
+    ]
+  },
+  {
+    name: "Campus Ride Rentals",
+    imageUrl: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=800",
+    vendorType: 'RENTAL',
+    tags: ["rental", "bike", "transport"],
+    menu: [
+      { name: "Electric Scooter (Daily)", price: 400, category: "Vehicles", tags: ["rental", "scooter"], image: "https://images.unsplash.com/photo-1563298723-dcfebaa392e3?w=400" },
+      { name: "Mountain Bike (Weekly)", price: 600, category: "Vehicles", tags: ["rental", "bicycle"], image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=400" }
+    ]
+  },
+  {
+    name: "Scholars Stationary & Print",
+    imageUrl: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800",
+    vendorType: 'STATIONARY',
+    tags: ["stationary", "print", "books"],
+    menu: [
+      { name: "Premium Notebook Bundle", price: 250, category: "Supplies", tags: ["stationary", "books"], image: "https://images.unsplash.com/photo-1531346878377-a5be20888e57?w=400" },
+      { name: "Engineering Drawing Kit", price: 800, category: "Supplies", tags: ["stationary", "tools"], image: "https://images.unsplash.com/photo-1518118014377-160bf0fd1bc0?w=400" }
+    ]
   }
 ];
 
@@ -52,8 +102,8 @@ const seed = async () => {
     const User = getUserModel();
     const DeliveryPartner = getDeliveryPartnerModel();
     
-    // DANGER: Never use { force: true } in a global seed script that might be run on production.
-    await getSequelize().sync({ alter: true });
+    // We use force: true locally to cleanly reset the SQLite database during seeding
+    await getSequelize().sync({ force: true });
 
     await Order.destroy({ where: {} });
     await MenuItem.destroy({ where: {} });

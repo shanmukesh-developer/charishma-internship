@@ -25,7 +25,12 @@ const initCommunityPostModel = (sequelize) => {
         this.setDataValue('likedBy', JSON.stringify(val));
       }
     },
-    replyCount: { type: DataTypes.INTEGER, defaultValue: 0 }
+    replyCount: { type: DataTypes.INTEGER, defaultValue: 0 },
+    expiresAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: () => new Date(Date.now() + 48 * 60 * 60 * 1000) // 48 hours from now
+    }
   }, { timestamps: true });
 
   // No self-referencing associations — threading is handled manually in routes

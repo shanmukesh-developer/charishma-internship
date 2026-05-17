@@ -22,27 +22,22 @@ const {
   getFinanceReport,
   getAuditLogs,
   getRewardsAnalytics,
-  getSystemHealth
+  getSystemHealth,
+  getOrderVolumeStats,
+  batchUpdateOrders
 } = require('../controllers/adminController');
 const { getAllOrders } = require('../controllers/orderController');
-const { protect } = require('../middleware/authMiddleware');
-
-// Middleware to ensure the user is an admin
-const adminOnly = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
-    next();
-  } else {
-    res.status(403).json({ message: 'Administrative access required' });
-  }
-};
+const { protect, admin } = require('../middleware/authMiddleware');
 
 // ─── Protected Admin Routes ──────────────────────────────────
 router.use(protect);
-router.use(adminOnly);
+router.use(admin);
 
 // Live Orders Intelligence
 router.get('/orders', getAllOrders);
 router.get('/stats', getDashboardStats);
+router.get('/stats/volume', getOrderVolumeStats);
+router.put('/orders/batch-update', batchUpdateOrders);
 
 // Restaurant & Menu Control
 router.get('/restaurants', getAllRestaurants);
@@ -56,6 +51,10 @@ router.delete('/restaurants/:id', deleteRestaurant);
 // Fleet Management
 router.get('/riders', getAllRiders);
 router.put('/riders/:id/approve', approveRider);
+router.post('/riders/:id', (req, res, next) => {
+  const { updateRider } = require('../controllers/adminController');
+  updateRider(req, res, next);
+});
 router.post('/riders/:id/reset-sos', (req, res, next) => {
   const { resetRiderSos } = require('../controllers/adminController');
   resetRiderSos(req, res, next);

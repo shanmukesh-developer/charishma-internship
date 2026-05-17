@@ -50,40 +50,32 @@ export default function NexusLayoutClient({
           <p className="text-[12px] font-black text-blue-500 uppercase tracking-[0.3em] px-1">SRM AP Command</p>
         </div>
 
-        <nav className="flex-1 space-y-2">
-          <Link href="/" className="sidebar-link">
-            <span>🏠</span> Dashboard
-          </Link>
-          <Link href="/fleet" className="sidebar-link">
-            <span>🛵</span> Fleet Management
-          </Link>
-          <Link href="/restaurants" className="sidebar-link">
-            <span>🍕</span> Gourmet Terminal
-          </Link>
-          <Link href="/orders" className="sidebar-link">
-            <span>📦</span> Live Orders
-          </Link>
-          <Link href="/vault" className="sidebar-link">
-            <span>🕯️</span> Zenvy Vault
-          </Link>
-          <Link href="/finance" className="sidebar-link">
-            <span>💰</span> Finance Trace
-          </Link>
-          <Link href="/users" className="sidebar-link">
-            <span>👥</span> Elite Residents
-          </Link>
-          <Link href="/analytics" className="sidebar-link">
-            <span>📈</span> Performance Intel
-          </Link>
-          <Link href="/analytics/rewards" className="sidebar-link">
-            <span>🎡</span> Rewards Intel
-          </Link>
-          <Link href="/audit" className="sidebar-link">
-            <span>📋</span> Audit Logs
-          </Link>
-          <Link href="/config" className="sidebar-link">
-            <span>⚙️</span> Nexus Config
-          </Link>
+        <nav className="flex-1 space-y-1.5">
+          {[
+            { href: '/', icon: '🏠', label: 'Dashboard' },
+            { href: '/fleet', icon: '🛵', label: 'Fleet Management' },
+            { href: '/restaurants', icon: '🍕', label: 'Gourmet Terminal' },
+            { href: '/orders', icon: '📦', label: 'Live Orders' },
+            { href: '/vault', icon: '🕯️', label: 'Zenvy Vault' },
+            { href: '/finance', icon: '💰', label: 'Finance Trace' },
+            { href: '/users', icon: '👥', label: 'Elite Residents' },
+            { href: '/analytics', icon: '📈', label: 'Performance Intel' },
+            { href: '/analytics/rewards', icon: '🎡', label: 'Rewards Intel' },
+            { href: '/audit', icon: '📋', label: 'Audit Logs' },
+            { href: '/config', icon: '⚙️', label: 'Nexus Config' },
+          ].map(({ href, icon, label }) => {
+            const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href) && (href !== '/analytics' || pathname === '/analytics');
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`sidebar-link ${isActive ? 'sidebar-active' : ''}`}
+              >
+                <span>{icon}</span> {label}
+                {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.6)]" />}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* System Status */}

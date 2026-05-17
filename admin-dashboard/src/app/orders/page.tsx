@@ -119,6 +119,9 @@ OrderRow.displayName = 'OrderRow';
 export default function OrdersPage() {
   const isAuthed = useAdminAuth();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -141,15 +144,19 @@ export default function OrdersPage() {
     }
   };
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (page = 1) => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/admin/orders`, {
+      const res = await fetch(`${API_URL}/api/admin/orders?page=${page}&status=${filterStatus}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
       if (res.ok) {
-         setOrders(data);
+         setOrders(data.orders || []);
+         setTotalOrders(data.total || 0);
+         setTotalPages(data.pages || 1);
+         setCurrentPage(page);
       }
     } catch (err) {
       console.error('[ORDERS_FETCH_ERROR]', err);
@@ -171,7 +178,7 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
-    fetchOrders();
+    fetchOrders(1);
 
     const socket = io(SOCKET_URL, {
       transports: ['websocket']
@@ -183,7 +190,7 @@ export default function OrdersPage() {
           ...order,
           _id: order.id,
           createdAt: new Date().toISOString()
-       }, ...prev]); 
+       }, ...prev].slice(0, 50)); 
     });
     socket.on('statusUpdated', (data: { id: string, status: string }) => { 
        setOrders(prev => prev.map(o => o._id === data.id ? { ...o, status: data.status } : o));
@@ -193,7 +200,7 @@ export default function OrdersPage() {
     });
 
     return () => { socket.disconnect(); };
-  }, []);
+  }, [filterStatus]);
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -225,9 +232,9 @@ export default function OrdersPage() {
               ))}
            </div>
          </div>
-         <button onClick={fetchOrders} className="nexus-badge bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20 transition-all flex items-center gap-2">
-            🔄 Refresh
-         </button>
+          <button onClick={() => fetchOrders(currentPage)} className="nexus-badge bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20 transition-all flex items-center gap-2">
+            🔄 Refresh ({totalOrders})
+          </button>
       </div>
 
       <div className="glass-card overflow-hidden border-white/10">
@@ -277,6 +284,31 @@ export default function OrdersPage() {
                </tbody>
             </table>
          </div>
+
+         {/* Pagination Interface */}
+         {totalPages > 1 && (
+           <div className="p-6 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
+              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                Showing Page {currentPage} of {totalPages}
+              </span>
+              <div className="flex gap-2">
+                 <button 
+                   disabled={currentPage === 1}
+                   onClick={() => fetchOrders(currentPage - 1)}
+                   className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-400 hover:text-white disabled:opacity-30"
+                 >
+                   Previous
+                 </button>
+                 <button 
+                   disabled={currentPage === totalPages}
+                   onClick={() => fetchOrders(currentPage + 1)}
+                   className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-400 hover:text-white disabled:opacity-30"
+                 >
+                   Next
+                 </button>
+              </div>
+           </div>
+         )}
       </div>
 
       {/* Order Manifest Modal */}

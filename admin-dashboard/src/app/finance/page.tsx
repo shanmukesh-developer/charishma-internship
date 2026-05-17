@@ -32,7 +32,8 @@ TransactionRow.displayName = 'TransactionRow';
 
 export default function FinanceConsole() {
   const isAuthed = useAdminAuth();
-  const [report, setReport] = useState<{ transactions: Transaction[], totalRevenue: number, totalCommission: number, totalDeliveryFees: number } | null>(null);
+  const [report, setReport] = useState<{ transactions: Transaction[], totalRevenue: number, totalCommission: number, totalDeliveryFees: number, total: number, pages: number } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
@@ -61,17 +62,21 @@ export default function FinanceConsole() {
   ) || [];
 
   useEffect(() => {
-    fetchFinanceData();
+    fetchFinanceData(1);
   }, []);
 
-  const fetchFinanceData = async () => {
+  const fetchFinanceData = async (page = 1) => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/admin/finance`, {
+      const res = await fetch(`${API_URL}/api/admin/finance?page=${page}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      if (res.ok) setReport(data);
+      if (res.ok) {
+        setReport(data);
+        setCurrentPage(page);
+      }
     } catch (err) {
       console.error('[FINANCE_FETCH_ERROR]', err);
     } finally {
@@ -133,7 +138,7 @@ export default function FinanceConsole() {
                 📥 EXPORT LEDGER
               </button>
               <button 
-                onClick={fetchFinanceData}
+                onClick={() => fetchFinanceData(currentPage)}
                 className="nexus-badge bg-blue-500/10 border-blue-500/20 text-blue-400 px-6 py-2 hover:bg-blue-500/20 transition-all font-black"
               >
                 RE-SCAN FLOWS
@@ -162,6 +167,31 @@ export default function FinanceConsole() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Interface */}
+        {report && report.pages > 1 && (
+          <div className="p-6 bg-white/[0.03] border-t border-white/5 flex items-center justify-between">
+            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+              Ledger Page {currentPage} / {report.pages} ({report.total} flows)
+            </span>
+            <div className="flex gap-2">
+               <button 
+                 disabled={currentPage === 1}
+                 onClick={() => fetchFinanceData(currentPage - 1)}
+                 className="px-5 py-2 bg-black/40 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-400 hover:text-white disabled:opacity-30"
+               >
+                 Prev
+               </button>
+               <button 
+                 disabled={currentPage === report.pages}
+                 onClick={() => fetchFinanceData(currentPage + 1)}
+                 className="px-5 py-2 bg-black/40 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-400 hover:text-white disabled:opacity-30"
+               >
+                 Next
+               </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

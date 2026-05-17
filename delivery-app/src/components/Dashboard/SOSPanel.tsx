@@ -14,7 +14,19 @@ export default function SOSPanel({ riderName, riderId, socket }: SOSPanelProps) 
   const [sosCountdown, setSosCountdown] = useState(0);
 
   const holdRef = useRef<NodeJS.Timeout | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    if (!socket) return;
+    const handleReset = (data: { riderId: string }) => {
+      if (data.riderId === riderId) {
+        setSosActive(false);
+        setIsConfirming(false);
+      }
+    };
+    socket.on('RIDER_SOS_RESET', handleReset);
+    return () => { socket.off('RIDER_SOS_RESET', handleReset); };
+  }, [socket, riderId]);
 
   const handleSosStart = () => {
     let count = 3;

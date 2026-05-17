@@ -2,9 +2,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import Link from 'next/link';
-import { useCart } from '@/context/CartContext';
+import { useCart, Customizations } from '@/context/CartContext';
 import SafeImage from '@/components/SafeImage';
 import SuccessOverlay from '@/components/SuccessOverlay';
+import CustomizeDrawer, { summarizeCustomizations } from '@/components/CustomizeDrawer';
 import { Restaurant, MenuItem } from '@/types';
 import Tilt from '@/components/Tilt';
 import Magnetic from '@/components/Magnetic';
@@ -36,7 +37,12 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
   });
   const [addedId, setAddedId] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('All');
+  const [dietMode, setDietMode] = useState<'all' | 'veg' | 'non-veg' | 'egg'>('all');
+  const [isUserElite, setIsUserElite] = useState(false);
+  const [surgeMultiplier, setSurgeMultiplier] = useState(1.0);
+  const [isMaintenance, setIsMaintenance] = useState(false);
   const mainRef = useRef<HTMLDivElement>(null);
+  const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
 
   useEffect(() => {
     fetch(`${API_URL}/api/users/restaurants/${effectiveId}`)
@@ -61,6 +67,29 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
         console.error('[FETCH_ERROR]', _err);
         setLoading(false);
       });
+    const diet = localStorage.getItem('zenvy_diet_prefs');
+    if (diet) {
+      const parsed = JSON.parse(diet);
+      setDietMode(parsed.mode || 'all');
+    }
+
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const parsed = JSON.parse(userData);
+      setIsUserElite(parsed.isElite || false);
+    }
+
+    // Fetch Global Config for Initial State
+    fetch(`${API_URL}/api/users/config`)
+      .then(res => res.json())
+      .then(data => {
+        const surge = data.find((c: any) => c.key === 'surge_multiplier')?.value;
+        if (surge) setSurgeMultiplier(Number(surge));
+        
+        const maintenance = data.find((c: any) => c.key === 'maintenance_mode')?.value;
+        if (maintenance === true) setIsMaintenance(true);
+      })
+      .catch(() => {});
   }, [effectiveId]);
 
   const [isSurge, setIsSurge] = useState(false);
@@ -80,7 +109,13 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
 
     socket.on('surge_active', (data: { multiplier: number }) => {
       setIsSurge(true);
+      setSurgeMultiplier(data.multiplier);
       console.log(`[SURGE] Pricing active: ${data.multiplier}x`);
+    });
+
+    socket.on('config_updated', (data: { key: string; value: any }) => {
+      if (data.key === 'surge_multiplier') setSurgeMultiplier(Number(data.value));
+      if (data.key === 'maintenance_mode') setIsMaintenance(data.value === true);
     });
 
     socket.on('surge_ended', () => {
@@ -101,25 +136,44 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
   if (loading) return <div className="p-8 text-white min-h-screen text-center animate-pulse pt-20">Loading Menu...</div>;
   if (!restaurant) return <div className="p-8 text-white min-h-screen pt-20 text-center font-bold">Restaurant not found.</div>;
 
-  const filteredMenu = activeCategory === 'All' 
-    ? (restaurant.menu || [])
-    : (restaurant.menu || []).filter((item) => item.category === activeCategory);
+  const filteredMenu = (restaurant.menu || []).filter(item => {
+    // Category Filter
+    if (activeCategory !== 'All' && item.category !== activeCategory) return false;
+
+    // Diet Filter
+    if (dietMode === 'veg' && item.isVegetarian !== true) return false;
+    if (dietMode === 'egg' && item.category?.toLowerCase() !== 'egg' && item.isVegetarian !== true) {
+       // Simple check: if not veg and doesn't mention egg in category, hide it
+       if (!item.name.toLowerCase().includes('egg')) return false;
+    }
+
+    return true;
+  });
 
   const handleAddToCart = (item: MenuItem) => {
+    setCustomizingItem(item);
+  };
+
+  const handleCustomizeConfirm = (customizations: Customizations, finalPrice: number) => {
+    const item = customizingItem;
+    if (!item) return;
+    setCustomizingItem(null);
     try {
       addToCart({
         id: item.id || item._id || "",
         name: item.name,
-        price: item.price,
+        price: finalPrice,
+        basePrice: item.price,
         image: item.image || item.imageUrl || "",
         restaurantId: restaurant.id || restaurant._id,
         restaurantName: restaurant.name,
+        customizations,
       });
       setAddedId(item.id || item._id || null);
       setOverlay({
         isOpen: true,
         title: 'Added to Basket',
-        message: `${item.name} is waiting for you!`,
+        message: `${item.name} (${summarizeCustomizations(customizations) || 'default'}) added!`,
         type: 'success'
       });
       setTimeout(() => setAddedId(null), 800);
@@ -133,7 +187,7 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
           actionLabel: 'Clear \u0026 Add',
           onAction: () => {
             clearCart();
-            setTimeout(() => handleAddToCart(item), 100);
+            setCustomizingItem(item);
           }
         });
       }
@@ -142,6 +196,14 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
 
   return (
     <main ref={mainRef} className="min-h-screen bg-background text-white overflow-y-auto overflow-x-hidden relative">
+      {isMaintenance && (
+        <div className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center animate-fade-in">
+          <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center text-3xl mb-6 animate-pulse">🛠️</div>
+          <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-4">Nexus Maintenance <br /><span className="text-amber-500">Protocol Active</span></h2>
+          <p className="text-gray-400 text-sm font-bold uppercase tracking-widest leading-relaxed max-w-xs">We are currently optimizing the delivery matrix. Order placement is temporarily frozen.</p>
+          <Link href="/" className="mt-10 px-8 py-3 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Return to Lobby</Link>
+        </div>
+      )}
       <SuccessOverlay 
         isOpen={overlay.isOpen}
         onClose={() => setOverlay(prev => ({ ...prev, isOpen: false }))}
@@ -151,11 +213,10 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
         actionLabel={overlay.actionLabel}
         onAction={overlay.onAction}
       />
-      {/* ── Parallax Hero Image ── */}
+      {/* ── Hero Image ── */}
       <div className="relative h-[320px] overflow-hidden">
         <div
-          className="absolute inset-0 scale-110"
-          style={{ transform: `translateY(${scrollY * 0.4}px) scale(1.1)` }}
+          className="absolute inset-0"
         >
           <SafeImage
             src={restaurant.imageUrl || ""} 
@@ -227,9 +288,11 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
           {filteredMenu.map((item) => {
             const itemId = item.id || item._id || '';
             const isSoldOut = soldOutItems.has(itemId);
+            const isEliteRestricted = item.isEliteOnly && !isUserElite;
+            
             return (
             <Tilt key={itemId} scale={1.01}>
-              <Link href={`/products/${itemId}`} className={`flex gap-4 md:gap-5 items-center bg-black/40 backdrop-blur-xl p-3.5 md:p-5 rounded-[24px] md:rounded-[32px] border border-white/5 hover:border-[#C9A84C]/25 transition-all duration-500 group cursor-pointer active:scale-[0.98] relative overflow-hidden ${isSoldOut ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
+              <Link href={`/products/${itemId}`} className={`flex gap-4 md:gap-5 items-center bg-black/40 backdrop-blur-xl p-3.5 md:p-5 rounded-[24px] md:rounded-[32px] border border-white/5 hover:border-[#C9A84C]/25 transition-all duration-500 group cursor-pointer active:scale-[0.98] relative overflow-hidden ${isSoldOut || isEliteRestricted ? 'opacity-50 grayscale' : ''} ${isEliteRestricted ? 'pointer-events-none' : ''}`}>
                 {/* Glow Layer */}
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_var(--mouse-x,50%)_var(--mouse-y,50%),rgba(201,168,76,0.05)_0%,transparent_80%)] pointer-events-none" />
                 
@@ -241,25 +304,38 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
                      style={{ objectFit: 'cover' }}
                    />
                    <div className="absolute inset-0 bg-gradient-to-tr from-[#C9A84C]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                   {isEliteRestricted && <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-2 text-center"><span className="text-xl mb-1">💎</span><span className="text-[7px] font-black text-[#C9A84C] uppercase tracking-tighter">Elite Required</span></div>}
                 </div>
                 <div className="flex-1">
-                   <h3 className="font-black text-[14px] md:text-[15px] mb-1 text-white/95 group-hover:text-primary-yellow transition-colors tracking-tight line-clamp-1">{item.name}</h3>
+                   <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-black text-[14px] md:text-[15px] text-white/95 group-hover:text-primary-yellow transition-colors tracking-tight line-clamp-1">{item.name}</h3>
+                      {item.isVegetarian && (
+                        <div className="w-2.5 h-2.5 border border-emerald-500/50 flex items-center justify-center p-[0.5px] rounded-[1px] shrink-0">
+                          <div className="w-full h-full bg-emerald-500 rounded-full" />
+                        </div>
+                      )}
+                   </div>
                    {isSoldOut && <span className="text-[9px] font-black text-red-500 uppercase tracking-widest bg-red-500/10 px-2 py-0.5 rounded">Sold Out</span>}
+                   {isEliteRestricted && <span className="text-[9px] font-black text-[#C9A84C] uppercase tracking-widest bg-[#C9A84C]/10 px-2 py-0.5 rounded">Locked Asset</span>}
                    <p className="text-[10px] md:text-[11px] text-white/40 line-clamp-1 mb-2 font-medium">{item.description || `Exquisitely crafted by ${restaurant.name}`}</p>
                    <div className="flex justify-between items-center">
-                      <span className="font-black text-primary-yellow text-sm md:text-base tracking-tighter shadow-sm">₹{item.price}</span>
+                      <span className="font-black text-primary-yellow text-sm md:text-base tracking-tighter shadow-sm">
+                        ₹{Math.round(item.price * surgeMultiplier)}
+                        {surgeMultiplier > 1 && <span className="text-[7px] text-red-500 ml-1 opacity-60">SURGE</span>}
+                      </span>
                       <Magnetic>
                         <button
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); if(!isSoldOut) handleAddToCart(item); }}
-                          disabled={isSoldOut}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); if(!isSoldOut && !isEliteRestricted) handleAddToCart(item); }}
+                          disabled={isSoldOut || isEliteRestricted}
                           className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center text-base md:text-lg font-black transition-all duration-500 z-10 ${
                             isSoldOut ? 'bg-red-500/10 text-red-500 cursor-not-allowed' :
+                            isEliteRestricted ? 'bg-white/5 text-white/20 cursor-not-allowed border-white/5' :
                             addedId === itemId
                               ? 'bg-primary-yellow text-black animate-gold-pulse scale-110 shadow-[0_0_20px_rgba(250,204,21,0.4)]'
                               : 'bg-white/5 border border-white/10 text-white hover:border-[#C9A84C]/40 hover:bg-[#C9A84C]/15 hover:text-primary-yellow'
                           }`}
                         >
-                          {isSoldOut ? '✕' : addedId === itemId ? '✓' : '+'}
+                          {isSoldOut ? '✕' : isEliteRestricted ? '🔒' : addedId === itemId ? '✓' : '+'}
                         </button>
                       </Magnetic>
                    </div>
@@ -280,6 +356,18 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
            </div>
            <span className="font-black text-sm">Proceed →</span>
         </Link>
+      )}
+      {/* Customize Drawer */}
+      {customizingItem && (
+        <CustomizeDrawer
+          isOpen={!!customizingItem}
+          onClose={() => setCustomizingItem(null)}
+          onConfirm={handleCustomizeConfirm}
+          itemName={customizingItem.name}
+          basePrice={customizingItem.price}
+          tags={customizingItem.tags}
+          category={customizingItem.category}
+        />
       )}
 
     </main>

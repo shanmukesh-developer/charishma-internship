@@ -1,6 +1,7 @@
 "use client";
 import { useState } from 'react';
 import { useCart } from '@/context/CartContext';
+import { summarizeCustomizations } from '@/components/CustomizeDrawer';
 import Link from 'next/link';
 import SafeImage from '@/components/SafeImage';
 import Tilt from '@/components/Tilt';
@@ -8,33 +9,39 @@ import Magnetic from '@/components/Magnetic';
 
 interface CartItem {
   id: string;
+  cartKey: string;
   name: string;
   price: number;
+  basePrice?: number;
   image?: string;
   imageUrl?: string;
   restaurantName?: string;
+  restaurantId: string;
   quantity: number;
   isCake?: boolean;
   customName?: string;
+  customizations?: Record<string, any>;
 }
 
 interface BasketItemProps {
   item: CartItem;
-  updateQuantity: (id: string, q: number) => void;
-  removeFromCart: (id: string) => void;
-  updateCustomName: (id: string, name: string) => void;
+  updateQuantity: (cartKey: string, q: number) => void;
+  removeFromCart: (cartKey: string) => void;
+  updateCustomName: (cartKey: string, name: string) => void;
 }
 
 function BasketItem({ item, updateQuantity, removeFromCart, updateCustomName }: BasketItemProps) {
-  const [localName, setLocalName] = useState(item.customName || '');
+  const [localName, setLocalName] = useState(item.customizations?.cakeMessage || item.customName || '');
+  const key = item.cartKey || item.id;
+  const summary = summarizeCustomizations(item.customizations);
 
   const handleNameChange = (val: string) => {
     setLocalName(val);
-    updateCustomName(item.id, val);
+    updateCustomName(key, val);
   };
 
   return (
-    <div key={item.id} className="flex flex-col bg-card-bg p-4 md:p-6 rounded-[28px] md:rounded-[35px] border border-white/5 transition-all hover:border-white/10 group premium-tilt">
+    <div className="flex flex-col bg-card-bg p-4 md:p-6 rounded-[28px] md:rounded-[35px] border border-white/5 transition-all hover:border-white/10 group">
       <div className="flex gap-4 md:gap-6 items-center">
         <div className="w-24 h-24 relative flex-shrink-0">
           <SafeImage 
@@ -43,30 +50,45 @@ function BasketItem({ item, updateQuantity, removeFromCart, updateCustomName }: 
             fill
             className="rounded-full border-2 border-primary-yellow shadow-2xl" 
           />
-          {item.isCake && (
-            <div className="absolute -top-2 -right-2 bg-primary-yellow text-black text-[8px] font-black px-2 py-1 rounded-full uppercase tracking-tighter">Personalizable</div>
-          )}
         </div>
         <div className="flex-1">
           <h3 className="font-black text-base text-white group-hover:text-primary-yellow transition-colors">{item.name}</h3>
-          <p className="text-secondary-text text-xs mt-1 mb-3">from {item.restaurantName || "Zenvy Elite"}</p>
+          <p className="text-secondary-text text-xs mt-0.5 mb-1">from {item.restaurantName || "Zenvy Elite"}</p>
+
+          {/* Customization summary */}
+          {summary && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {summary.split(' • ').map((part, i) => (
+                <span key={i} className="text-[9px] font-bold bg-[#38BDF8]/10 text-[#38BDF8]/70 px-2 py-0.5 rounded-lg border border-[#38BDF8]/10">
+                  {part}
+                </span>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
-            <p className="text-primary-yellow font-black text-lg">₹{item.price}</p>
+            <div>
+              <p className="text-primary-yellow font-black text-lg">₹{item.price}</p>
+              {item.basePrice && item.price !== item.basePrice && (
+                <p className="text-[10px] text-white/20 line-through">₹{item.basePrice}</p>
+              )}
+            </div>
             <div className="flex items-center gap-4 bg-white/5 px-4 py-2 rounded-full border border-white/5">
-              <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-6 h-6 flex items-center justify-center font-bold text-secondary-text hover:text-white">-</button>
+              <button onClick={() => updateQuantity(key, item.quantity - 1)} className="w-6 h-6 flex items-center justify-center font-bold text-secondary-text hover:text-white">-</button>
               <span className="font-black text-sm w-4 text-center">{item.quantity}</span>
-              <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="w-6 h-6 flex items-center justify-center font-bold text-secondary-text hover:text-white">+</button>
+              <button onClick={() => updateQuantity(key, item.quantity + 1)} className="w-6 h-6 flex items-center justify-center font-bold text-secondary-text hover:text-white">+</button>
             </div>
           </div>
         </div>
-        <button onClick={() => removeFromCart(item.id)} className="p-2 opacity-20 hover:opacity-100 hover:text-red-500 transition-all">
+        <button onClick={() => removeFromCart(key)} className="p-2 opacity-20 hover:opacity-100 hover:text-red-500 transition-all">
           <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
         </button>
       </div>
 
-      {item.isCake && (
-        <div className="mt-6 pt-6 border-t border-white/5">
-          <label className="text-[10px] font-black uppercase tracking-widest text-primary-yellow/60 block mb-3">Name/Message on Cake</label>
+      {/* Cake message input */}
+      {item.customizations?.cakeMessage !== undefined && (
+        <div className="mt-5 pt-5 border-t border-white/5">
+          <label className="text-[10px] font-black uppercase tracking-widest text-primary-yellow/60 block mb-3">Message on Cake</label>
           <div className="relative">
             <input 
               type="text"
@@ -84,7 +106,17 @@ function BasketItem({ item, updateQuantity, removeFromCart, updateCustomName }: 
 }
 
 export default function BasketPage() {
-  const { cart, updateQuantity, removeFromCart, updateCustomName, totalPrice } = useCart();
+  const { cart, updateQuantity, removeFromCart, updateCustomName, totalPrice, uniqueRestaurants, deliveryFee } = useCart();
+
+  // Group items by restaurant for display
+  const groupedByRestaurant = cart.reduce<Record<string, { name: string; items: CartItem[] }>>((acc, item) => {
+    const rId = item.restaurantId;
+    if (!acc[rId]) acc[rId] = { name: item.restaurantName || 'Unknown', items: [] };
+    acc[rId].items.push(item as CartItem);
+    return acc;
+  }, {});
+
+  const grandTotal = totalPrice + deliveryFee;
 
   return (
     <main className="min-h-screen bg-[#0A0A0B] text-white p-4 md:p-8 relative overflow-x-hidden">
@@ -118,27 +150,51 @@ export default function BasketPage() {
         ) : (
           <div className="space-y-6">
             <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-              {cart.map((item) => (
-                <Tilt key={item.id} scale={1.01} className="mb-4">
-                  <BasketItem 
-                    item={item} 
-                    updateQuantity={updateQuantity} 
-                    removeFromCart={removeFromCart} 
-                    updateCustomName={updateCustomName} 
-                  />
-                </Tilt>
+              {/* Group by restaurant */}
+              {Object.entries(groupedByRestaurant).map(([rId, group]) => (
+                <div key={rId} className="mb-6">
+                  {uniqueRestaurants > 1 && (
+                    <div className="flex items-center gap-2 mb-3 px-1">
+                      <div className="w-2 h-2 bg-[#38BDF8] rounded-full" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-[#38BDF8]/60">{group.name}</span>
+                      <div className="flex-1 h-px bg-white/5" />
+                      <span className="text-[9px] font-bold text-white/20">₹30 delivery</span>
+                    </div>
+                  )}
+                  {group.items.map((item) => (
+                    <Tilt key={item.cartKey || item.id} scale={1.01} className="mb-4">
+                      <BasketItem 
+                        item={item} 
+                        updateQuantity={updateQuantity} 
+                        removeFromCart={removeFromCart} 
+                        updateCustomName={updateCustomName} 
+                      />
+                    </Tilt>
+                  ))}
+                </div>
               ))}
             </div>
 
-            <div className="pt-12 space-y-5 animate-in fade-in duration-1000 delay-300">
+            <div className="pt-12 space-y-4 animate-in fade-in duration-1000 delay-300">
                <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest text-white/30">
-                 <span>Vault Subtotal</span>
+                 <span>Items Subtotal</span>
                  <span>₹{totalPrice}</span>
+               </div>
+               <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest text-white/30">
+                 <span className="flex items-center gap-2">
+                   Delivery Fee
+                   {uniqueRestaurants > 1 && (
+                     <span className="text-[9px] normal-case tracking-normal text-[#38BDF8]/40 font-bold">
+                       ({uniqueRestaurants} restaurants × ₹30)
+                     </span>
+                   )}
+                 </span>
+                 <span>₹{deliveryFee}</span>
                </div>
                <div className="h-[1px] bg-white/5" />
                <div className="flex justify-between items-center text-white text-2xl md:text-3xl font-black tracking-tighter">
                  <span className="text-gold-shimmer uppercase text-[10px] md:text-base tracking-widest">Grand Total</span>
-                 <span className="text-primary-yellow">₹{totalPrice}</span>
+                 <span className="text-primary-yellow">₹{grandTotal}</span>
                </div>
             </div>
 

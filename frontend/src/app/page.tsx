@@ -102,6 +102,7 @@ export default function Home() {
   const [favSort, setFavSort] = useState<'default' | 'price-asc' | 'price-desc' | 'name'>('default');
   const [restaurantSearch, setRestaurantSearch] = useState('');
   const [showConcierge, setShowConcierge] = useState(false);
+  const [systemStatus, setSystemStatus] = useState<{ maintenance: boolean; campusOpen: boolean }>({ maintenance: false, campusOpen: true });
   const gymMode = false;
   
   const [modalConfig, setModalConfig] = useState<{
@@ -226,6 +227,20 @@ export default function Home() {
     // Simulate loading for UX polish
 
 
+    // Fetch Global Configuration
+    const fetchConfig = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/admin/config`);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          const maintenance = data.find(c => c.key === 'maintenance_mode')?.value === true;
+          const campusOpen = data.find(c => c.key === 'campus_open')?.value !== false;
+          setSystemStatus({ maintenance, campusOpen });
+        }
+      } catch (err) { console.error('[CONFIG_SYNC_ERROR]', err); }
+    };
+    fetchConfig();
+
     return () => {
 
     };
@@ -291,8 +306,20 @@ export default function Home() {
       }
     };
 
+    const handleGlobalConfigUpdate = (payload: { key: string; value: any }) => {
+      if (payload.key === 'maintenance_mode') {
+        setSystemStatus(prev => ({ ...prev, maintenance: payload.value === true }));
+      } else if (payload.key === 'campus_open') {
+        setSystemStatus(prev => ({ ...prev, campusOpen: payload.value !== false }));
+      }
+    };
+
     socket.on('systemUpdate', handleSystemUpdate);
-    return () => { socket.off('systemUpdate', handleSystemUpdate); };
+    socket.on('GLOBAL_CONFIG_UPDATED', handleGlobalConfigUpdate);
+    return () => { 
+      socket.off('systemUpdate', handleSystemUpdate); 
+      socket.off('GLOBAL_CONFIG_UPDATED', handleGlobalConfigUpdate);
+    };
   }, [user]);
 
   // Tick down cancellation countdown removed from Home to avoid global re-renders
@@ -428,7 +455,8 @@ export default function Home() {
     });
   };
 
-  // --- Smart Market Engine: Unified Tag-Based Catalog ---
+  // --- Smart Market Engine: Unified Tag-Based Catalog (NO DIET FILTER here) ---
+  // This powers pharmacy, laundry, gym, drinks etc. — diet filter must NOT affect them.
   const allProducts = useMemo(() => {
     return liveRestaurants.flatMap(res => 
       (res.menu || []).map(item => {
@@ -446,13 +474,7 @@ export default function Home() {
         };
       })
     ).filter(p => {
-      // Apply Core Filters Globally
-      if (filter === 'veg' && !p.isVegetarian) return false;
-      if (filter === 'jain' && !p.tags?.includes('jain')) return false;
-      if (filter === 'eggless' && !p.tags?.includes('eggless')) return false;
-      if (filter === 'budget' && p.price > 150) return false;
-      if (filter === 'premium' && !p.isEliteOnly && p.price < 500) return false;
-      if (gymMode && !p.tags?.includes('healthy') && !p.tags?.includes('high-protein')) return false;
+      // Only remove unavailable items globally — dietary filter is NOT applied here
       if (p.isAvailable === false || String(p.isAvailable) === 'false') return false;
       return true;
     }).sort((a, b) => {
@@ -460,7 +482,7 @@ export default function Home() {
       if (sortBy === 'price-desc') return b.price - a.price;
       return 0;
     });
-  }, [liveRestaurants, filter, gymMode, sortBy]);
+  }, [liveRestaurants, sortBy]);
 
   // Grouped Collections Driven by Tags (Optimized Single-Pass Engine)
   const groupedCollections = useMemo(() => {
@@ -520,8 +542,11 @@ export default function Home() {
   }, [allProducts, activeCategory, sortBy]);
 
   const displayRestaurants = useMemo(() => {
-    // Exclude RENTAL vendors from the main restaurant feed
-    let list = liveRestaurants.filter(res => res.vendorType !== 'RENTAL');
+    // Strictly show ONLY food restaurants in the main feed
+    let list = liveRestaurants.filter(res => {
+      const type = res.vendorType?.toUpperCase() || '';
+      return type === 'FOOD' || type === 'RESTAURANT';
+    });
 
     // Apply Hard Filters (Dietary/Type)
     if (filter === 'veg') list = list.filter(res => (res.menu || []).some(item => item.isVegetarian));
@@ -611,8 +636,39 @@ export default function Home() {
       </div>
 
       <SurgeBanner />
-      <GlobalAnnouncement />
       {showIntro && <IntroOverlay onComplete={handleIntroComplete} />}
+      
+      {/* 🔒 System Lock Overlay (Maintenance/Closed) */}
+      <AnimatePresence>
+        {(systemStatus.maintenance || !systemStatus.campusOpen) && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] bg-[#0A0A0B]/90 backdrop-blur-2xl flex flex-col items-center justify-center p-8 text-center"
+          >
+            <div className="w-24 h-24 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-4xl mb-8 animate-pulse">
+              {systemStatus.maintenance ? '🛠️' : '🌙'}
+            </div>
+            <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-4" style={{ fontFamily: "'Syne', sans-serif" }}>
+              {systemStatus.maintenance ? 'Nexus Maintenance' : 'Campus Closed'}
+            </h2>
+            <p className="text-gray-400 text-sm font-bold uppercase tracking-widest max-w-sm leading-relaxed mb-10">
+              {systemStatus.maintenance 
+                ? 'We are currently upgrading the Nexus pipeline. Order transmission is temporarily suspended.' 
+                : 'Campus operations are currently offline. We will resume at 09:00 AM.'}
+            </p>
+            <div className="flex flex-col gap-4 w-full max-w-xs">
+              <button 
+                onClick={() => window.location.reload()}
+                className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-white hover:bg-white/10"
+              >
+                Retry Link Status
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* Container for main content - simple opacity transition */}
       <div className={`min-h-screen transition-opacity duration-700 ${showIntro === false ? 'opacity-100' : 'opacity-0'} ${isAfter9 ? 'midnight-portal' : ''}`}>

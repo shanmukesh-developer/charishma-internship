@@ -120,7 +120,23 @@ const OrderItem = memo(({ order, onVerify }: { order: LiveOrder, onVerify: (o: L
 ));
 OrderItem.displayName = 'OrderItem';
 
-const EventItem = memo(({ event }: { event: OperationalEvent }) => (
+const RiderStatusItem = memo(({ rider }: { rider: RiderPosition }) => (
+  <div className="flex items-center gap-4 p-3 bg-white/[0.02] border border-white/5 rounded-2xl">
+    <div className={`w-2 h-2 rounded-full ${rider.isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-gray-700'}`} />
+    <div className="flex-1">
+      <p className="text-[11px] font-black text-white uppercase tracking-tight">{rider.riderName}</p>
+      <p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">
+        {rider.isOnline ? `At ${rider.currentCheckpoint || 'Hub'}` : 'Disconnected'}
+      </p>
+    </div>
+    <div className="text-right">
+       <span className="text-[9px] font-black text-blue-500">{rider.activeOrderCount || 0} Tasks</span>
+    </div>
+  </div>
+));
+RiderStatusItem.displayName = 'RiderStatusItem';
+
+const EventItem = memo(({ event, onResolve }: { event: OperationalEvent, onResolve: (id: string) => void }) => (
   <div className={`p-4 rounded-3xl animate-pulse flex items-center gap-4 ${event.type === 'SOS' ? 'bg-red-600/20 border border-red-600' : 'bg-amber-600/20 border border-amber-600'}`}>
     <div className="text-2xl">{event.type === 'SOS' ? '🚨' : '⚠️'}</div>
     <div className="flex-1">
@@ -128,9 +144,17 @@ const EventItem = memo(({ event }: { event: OperationalEvent }) => (
       <p className="text-xs font-black text-white">{event.issueType || event.details}</p>
       {event.orderId && <p className="text-[10px] text-white/50 font-black uppercase mt-1 tracking-tighter">Order ID: <span className="text-[#C9A84C]">#{event.orderId.slice(-6).toUpperCase()}</span></p>}
     </div>
-    <span className="text-[10px] font-black text-white opacity-40">
-      {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-    </span>
+    <div className="flex flex-col items-end gap-2">
+      <span className="text-[10px] font-black text-white opacity-40">
+        {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      </span>
+      <button 
+        onClick={() => onResolve(event.id)}
+        className="text-[8px] font-black text-white/60 uppercase tracking-widest hover:text-white border border-white/10 px-2 py-1 rounded bg-white/5"
+      >
+        Resolve
+      </button>
+    </div>
   </div>
 ));
 EventItem.displayName = 'EventItem';
@@ -233,6 +257,31 @@ export default function AdminHome() {
         fetchStats();
       }
     } catch (err) { console.error('Verification failed', err); }
+  };
+
+  const handleOverrideGlobalBatch = async () => {
+    if (!confirm('OVERRIDE PROTOCOL: Force-accept all pending orders?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/admin/orders/batch-update`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ targetStatus: 'Pending', newStatus: 'Accepted' })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        alert(`SUCCESS: ${data.count} nodes transitioned to ACCEPTED state.`);
+        fetchOrders();
+      }
+    } catch (err) { console.error('[BATCH_OVERRIDE_ERROR]', err); }
+  };
+
+  const handlePrintReport = () => {
+    window.print();
+  };
+
+  const handleResolveEvent = (eventId: string) => {
+    setOperationalEvents(prev => prev.filter(e => e.id !== eventId));
   };
 
   useEffect(() => {
@@ -441,8 +490,26 @@ export default function AdminHome() {
               
               {/* Critical Alerts Priority */}
               {operationalEvents.map(event => (
-                <EventItem key={event.id} event={event} />
+                <EventItem key={event.id} event={event} onResolve={handleResolveEvent} />
               ))}
+
+              <div className="h-px bg-white/5 my-4" />
+
+              <div className="space-y-4">
+                 <div className="flex items-center justify-between">
+                    <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Live Fleet Status</h4>
+                    <span className="text-[9px] font-black text-emerald-500 uppercase px-2 py-0.5 bg-emerald-500/10 rounded-md">
+                       {Object.values(riders).filter(r => r.isOnline).length} Nodes Active
+                    </span>
+                 </div>
+                 <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    {Object.values(riders).length === 0 ? (
+                      <p className="text-[10px] text-gray-600 italic text-center py-10">No personnel data in grid...</p>
+                    ) : Object.values(riders).sort((a, b) => Number(b.isOnline) - Number(a.isOnline)).map(rider => (
+                       <RiderStatusItem key={rider.riderId} rider={rider} />
+                    ))}
+                 </div>
+              </div>
 
               <div className="h-px bg-white/5 my-4" />
 
@@ -472,14 +539,20 @@ export default function AdminHome() {
             <h3 className="text-2xl font-black text-white tracking-tight">Tactically Informed Management</h3>
             <p className="text-sm text-gray-500 max-w-lg leading-relaxed">The Nexus Terminal provides absolute transparency over all campus movement. Every byte of data is verified through our SRM-Alpha nodes.</p>
          </div>
-         <div className="flex gap-4">
-            <button className="px-8 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 hover:bg-white/10 hover:text-white transition-all">
+          <div className="flex gap-4 print:hidden">
+            <button 
+              onClick={handlePrintReport}
+              className="px-8 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 hover:bg-white/10 hover:text-white transition-all"
+            >
                Generate Intel PDF
             </button>
-            <button className="px-8 py-4 bg-[#C9A84C] shadow-[0_0_30px_rgba(201,168,76,0.3)] rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-black hover:scale-105 transition-all">
+            <button 
+              onClick={handleOverrideGlobalBatch}
+              className="px-8 py-4 bg-[#C9A84C] shadow-[0_0_30px_rgba(201,168,76,0.3)] rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-black hover:scale-105 transition-all"
+            >
                Override Global Batch
             </button>
-         </div>
+          </div>
       </div>
 
       {/* ─── Tactical Megaphone Broadcast ─── */}

@@ -1,3 +1,5 @@
+import { Customizations } from '@/context/CartContext';
+
 export interface MenuItem {
   _id?: string;
   id?: string;
@@ -13,6 +15,7 @@ export interface MenuItem {
    isVegetarian?: boolean;
    isAvailable?: boolean;
    isEliteOnly?: boolean;
+   customizations?: Customizations;
 }
 
 export interface Restaurant {
@@ -43,6 +46,7 @@ export interface User {
   zenPoints?: number;
   hostelBlock?: string;
   profileImage?: string | null;
+  walletBalance?: number;
 }
 
 export interface NexusItem {

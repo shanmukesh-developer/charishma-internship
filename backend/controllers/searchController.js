@@ -15,7 +15,7 @@ const globalSearch = async (req, res) => {
     const dialect = Restaurant.sequelize.getDialect();
     const likeOp = dialect === 'postgres' ? Op.iLike : Op.like;
 
-    if (!q || q.trim().length < 2) {
+    if (!q || q.trim().length < 3) {
       // Return Trending/Featured if no query
       const trendingRestaurants = await Restaurant.findAll({
         where: { isActive: true },

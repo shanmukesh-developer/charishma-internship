@@ -4621,3 +4621,11 @@
     at async model.save (C:\hostel-bite\backend\node_modules\sequelize\lib\model.js:2426:7)
     at async Order.create (C:\hostel-bite\backend\node_modules\sequelize\lib\model.js:1362:12)
     at async createOrder (C:\hostel-bite\backend\controllers\orderController.js:166:26)
+[2026-05-16T12:50:07.168Z] [RIDER ONLINE] Test Rider (test-rider-id-1778935807110)
+[2026-05-16T12:50:07.169Z] [RIDER STATUS] Test Rider → ONLINE
+[2026-05-16T12:51:28.532Z] [RIDER ONLINE] Test Rider (test-rider-id-1778935888457)
+[2026-05-16T12:51:28.533Z] [RIDER STATUS] Test Rider → ONLINE
+[2026-05-16T12:52:28.222Z] [RIDER ONLINE] Test Rider (test-rider-id-1778935948148)
+[2026-05-16T12:52:28.223Z] [RIDER STATUS] Test Rider → ONLINE
+[2026-05-16T12:52:43.695Z] [RIDER ONLINE] Test Rider (test-rider-id-1778935963669)
+[2026-05-16T12:52:43.695Z] [RIDER STATUS] Test Rider → ONLINE

@@ -9,16 +9,23 @@ router.get('/', async (req, res) => {
     const CommunityPost = getCommunityPostModel();
     if (!CommunityPost) return res.status(500).json({ message: 'DB disconnected.' });
 
+    const { Op } = require('sequelize');
+    const now = new Date();
+
     let rootPosts;
     try {
-      // Try threaded query (parentId column exists)
       rootPosts = await CommunityPost.findAll({
-        where: { parentId: null },
+        where: {
+          parentId: null,
+          [Op.or]: [
+            { expiresAt: null },
+            { expiresAt: { [Op.gt]: now } }
+          ]
+        },
         order: [['createdAt', 'DESC']],
         limit: 50
       });
     } catch {
-      // Fallback: parentId column may not exist yet — fetch all
       rootPosts = await CommunityPost.findAll({
         order: [['createdAt', 'DESC']],
         limit: 50
@@ -26,14 +33,15 @@ router.get('/', async (req, res) => {
       return res.json(rootPosts.map(p => ({ ...p.toJSON(), replies: [] })));
     }
 
-    // Fetch all replies in one query
     const rootIds = rootPosts.map(p => p.id);
     let allReplies = [];
     if (rootIds.length > 0) {
       try {
-        const { Op } = require('sequelize');
         allReplies = await CommunityPost.findAll({
-          where: { parentId: { [Op.in]: rootIds } },
+          where: {
+            parentId: { [Op.in]: rootIds },
+            [Op.or]: [{ expiresAt: null }, { expiresAt: { [Op.gt]: now } }]
+          },
           order: [['createdAt', 'ASC']]
         });
       } catch { /* parentId column missing, no replies */ }
@@ -58,10 +66,9 @@ router.post('/', protect, async (req, res) => {
     const CommunityPost = getCommunityPostModel();
     if (!CommunityPost) return res.status(500).json({ message: 'DB disconnected.' });
 
-    const { content, parentId, imageUrl } = req.body;
+    const { content, parentId, imageUrl, authorName } = req.body;
     if (!content && !imageUrl) return res.status(400).json({ message: 'Content or image is required.' });
 
-    // If reply, increment parent's replyCount
     if (parentId) {
       const parent = await CommunityPost.findByPk(parentId);
       if (!parent) return res.status(404).json({ message: 'Parent post not found.' });
@@ -69,21 +76,56 @@ router.post('/', protect, async (req, res) => {
       await parent.save();
     }
 
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+
     const newPost = await CommunityPost.create({
       userId: req.user.id,
-      userName: req.user.name || 'Anonymous Operative',
+      userName: authorName || req.user.name || 'Anonymous Operative',
       userAvatar: req.user.profileImage || null,
       content: content || '',
       imageUrl: imageUrl || null,
       parentId: parentId || null,
       likes: 0,
-      likedBy: []
+      likedBy: [],
+      expiresAt
     });
 
     res.status(201).json(newPost);
   } catch (error) {
     console.error('Create post error:', error);
     res.status(500).json({ message: 'Failed to post to nexus.' });
+  }
+});
+
+// DELETE /api/community/:id - Delete a post
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    const CommunityPost = getCommunityPostModel();
+    if (!CommunityPost) return res.status(500).json({ message: 'DB disconnected.' });
+
+    const post = await CommunityPost.findByPk(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found.' });
+
+    if (String(post.userId) !== String(req.user.id)) {
+      return res.status(403).json({ message: 'Not authorized to delete this post.' });
+    }
+
+    if (post.parentId) {
+      const parent = await CommunityPost.findByPk(post.parentId);
+      if (parent) {
+        parent.replyCount = Math.max((parent.replyCount || 1) - 1, 0);
+        await parent.save();
+      }
+    }
+
+    // Optional: Destroy children replies
+    await CommunityPost.destroy({ where: { parentId: post.id } });
+    await post.destroy();
+
+    res.json({ message: 'Post deleted successfully.' });
+  } catch (error) {
+    console.error('Delete post error:', error);
+    res.status(500).json({ message: 'Failed to delete post.' });
   }
 });
 

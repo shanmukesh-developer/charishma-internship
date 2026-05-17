@@ -15,14 +15,23 @@ export function useAdminAuth() {
       return;
     }
 
+    // OPTIMISTIC AUTH: Assume valid if token exists, verify in background
+    const user = JSON.parse(userData);
+    if (user.role === 'admin') {
+      setIsAuthed(true);
+    } else {
+      router.push('/login');
+      return;
+    }
+
     const MAX_RETRIES = 3;
-    const RETRY_DELAY_MS = 5000; // 5s between retries (server needs ~30-60s to wake)
+    const RETRY_DELAY_MS = 5000;
 
     const checkSession = async (attempt = 1): Promise<void> => {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout per attempt
+        const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
         const res = await fetch(`${apiUrl}/api/admin/config`, {
           headers: { 'Authorization': `Bearer ${token}` },
@@ -31,40 +40,26 @@ export function useAdminAuth() {
         clearTimeout(timeout);
 
         if (res.status === 401) {
-          console.warn('Admin session expired or invalid token. Clearing auth...');
-          // Only clear auth-specific keys, preserve cart/favorites/preferences
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           router.push('/login');
+          setIsAuthed(false);
           return;
         }
 
         if (!res.ok && attempt < MAX_RETRIES) {
-          console.warn(`[Auth] Server returned ${res.status}, retrying (${attempt}/${MAX_RETRIES})...`);
           await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
           return checkSession(attempt + 1);
-        }
-
-        const user = JSON.parse(userData);
-        if (user.role !== 'admin') {
-          router.push('/login');
-        } else {
-          setIsAuthed(true);
         }
       } catch (err: unknown) {
         const isAbort = err instanceof DOMException && err.name === 'AbortError';
         const isNetwork = err instanceof TypeError && err.message.includes('fetch');
 
         if ((isAbort || isNetwork) && attempt < MAX_RETRIES) {
-          console.warn(`[Auth] Server waking up, retry ${attempt}/${MAX_RETRIES} in ${RETRY_DELAY_MS / 1000}s...`);
           await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
           return checkSession(attempt + 1);
         }
-
-        console.error('Auth verify failed after retries:', err);
-        // On persistent network error, stay authed with cached credentials
-        // This prevents logout during temporary outages
-        setIsAuthed(true); 
+        // Persistent network error? Stay authed (cached mode)
       }
     };
 

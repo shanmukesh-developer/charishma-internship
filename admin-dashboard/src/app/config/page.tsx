@@ -148,6 +148,63 @@ export default function ConfigTerminal() {
               </div>
            </div>
         </div>
+        </div>
+
+        {/* 🛠️ System Resilience & Global Toggles */}
+        <div className="glass-card p-10 space-y-8 border-amber-500/20 bg-amber-500/[0.02]">
+           <div className="flex items-center gap-4 mb-2">
+              <div className="w-10 h-10 bg-amber-600/20 rounded-xl flex items-center justify-center text-xl">🛠️</div>
+              <div>
+                 <h4 className="text-lg font-black text-white uppercase tracking-tight">System Resilience</h4>
+                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Master overrides for emergency protocols</p>
+              </div>
+           </div>
+
+           <div className="space-y-6">
+              <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                 <div>
+                    <h5 className="text-xs font-black text-white uppercase tracking-wider">Maintenance Mode</h5>
+                    <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-1">Freezes all orders across student apps</p>
+                 </div>
+                 <button 
+                   onClick={() => handleUpdateConfig('maintenance_mode', !(configs.find(c => c.key === 'maintenance_mode')?.value === true))}
+                   className={`w-14 h-8 rounded-full relative transition-colors ${configs.find(c => c.key === 'maintenance_mode')?.value === true ? 'bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-white/10'}`}
+                 >
+                    <div className={`absolute top-1 w-6 h-6 rounded-full bg-white transition-all ${configs.find(c => c.key === 'maintenance_mode')?.value === true ? 'left-7' : 'left-1'}`} />
+                 </button>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                 <div>
+                    <h5 className="text-xs font-black text-white uppercase tracking-wider">Campus Operational Status</h5>
+                    <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-1">Master switch for campus delivery</p>
+                 </div>
+                 <button 
+                   onClick={() => handleUpdateConfig('campus_open', !(configs.find(c => c.key === 'campus_open')?.value !== false))}
+                   className={`w-14 h-8 rounded-full relative transition-colors ${configs.find(c => c.key === 'campus_open')?.value !== false ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]'}`}
+                 >
+                    <div className={`absolute top-1 w-6 h-6 rounded-full bg-white transition-all ${configs.find(c => c.key === 'campus_open')?.value !== false ? 'left-7' : 'left-1'}`} />
+                 </button>
+              </div>
+
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-4">
+                 <div className="flex justify-between items-center">
+                    <h5 className="text-xs font-black text-white uppercase tracking-wider">Minimum Order Value</h5>
+                    <span className="text-[10px] font-black text-[#C9A84C]">₹{configs.find(c => c.key === 'min_order_value')?.value || 0}</span>
+                 </div>
+                 <input 
+                   type="range" 
+                   min="0" 
+                   max="500" 
+                   step="10"
+                   className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#C9A84C]"
+                   defaultValue={Number(configs.find(c => c.key === 'min_order_value')?.value || 0)}
+                   onMouseUp={(e) => handleUpdateConfig('min_order_value', Number((e.target as HTMLInputElement).value))}
+                 />
+                 <p className="text-[8px] text-gray-600 font-bold uppercase tracking-widest text-center">Prevents sub-threshold low-margin orders</p>
+              </div>
+           </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

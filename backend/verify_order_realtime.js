@@ -10,13 +10,35 @@ async function verify() {
   console.log('--- Phase 1: Customer -> Delivery Portal Real-Time Verification ---');
 
   // 1. Create tokens
-  const userId = '1fa1f97f-901b-48c6-a358-ed7675a755a8';
-  const riderId = 'test-rider-id-' + Date.now();
+  const testPhone = '9000000000';
+  const testPassword = 'password123';
   
-  const userToken = jwt.sign({ id: userId, role: 'student' }, JWT_SECRET);
+  console.log('-> Preparing test user...');
+  let userToken;
+  try {
+     // Try to register (it might fail if already exists, that's fine)
+     await axios.post(`${API_URL}/api/users/register`, {
+       name: 'Test Customer',
+       phone: testPhone,
+       password: testPassword,
+       hostelBlock: 'A',
+       roomNumber: '101'
+     }).catch(() => {});
+
+     const loginRes = await axios.post(`${API_URL}/api/users/login`, {
+       phone: testPhone,
+       password: testPassword
+     });
+     userToken = loginRes.data.token;
+  } catch (err) {
+    console.error('Failed to setup test user:', err.message);
+    process.exit(1);
+  }
+
+  const riderId = 'test-rider-id-' + Date.now();
   const riderToken = jwt.sign({ id: riderId, role: 'delivery' }, JWT_SECRET);
 
-  console.log('-> Tokens generated.');
+  console.log('-> Tokens and User prepared.');
 
   // 2. Connect Rider Socket
   const riderSocket = io(API_URL, {
@@ -48,22 +70,28 @@ async function verify() {
     riderSocket.emit('rider_status_change', { riderId, name: 'Test Rider', isOnline: true });
   });
 
-  // 3. Place Order as Customer
+  // 3. Get Valid Restaurant & Item
   try {
+    console.log('-> Fetching valid restaurant data...');
+    const restRes = await axios.get(`${API_URL}/api/restaurants`);
+    const restaurants = restRes.data;
+    if (!restaurants || restaurants.length === 0) throw new Error('No restaurants in DB');
+    
+    const targetRest = restaurants[0];
+    const targetItem = targetRest.menu && targetRest.menu.length > 0 ? targetRest.menu[0] : null;
+    if (!targetItem) throw new Error('Selected restaurant has no menu items');
+
     // Wait for socket to connect before placing order
     await new Promise(r => setTimeout(r, 1000));
 
-    console.log('-> Placing order as Customer...');
+    console.log(`-> Placing order as Customer to ${targetRest.name}...`);
     const orderPayload = {
-      restaurantId: '86f8f0f3-aab2-4a8b-ae11-f028bfad4fd5', 
-      items: [{ menuItemId: 'a4212941-4ff3-4e60-8298-5ad950f786bf', name: 'Test Burger', quantity: 1, price: 100 }],
-      totalPrice: 100,
+      restaurantId: targetRest.id, 
+      items: [{ menuItemId: targetItem.id, name: targetItem.name, quantity: 1, price: targetItem.price }],
+      totalPrice: targetItem.price,
       deliveryAddress: 'Test Sector',
       paymentMethod: 'COD'
     };
-
-    // Note: We might need to ensure the restaurant exists in the DB if the API checks it.
-    // In our test environment, we'll assume the API has a fallback or we use a valid ID.
     
     const res = await axios.post(`${API_URL}/api/orders`, orderPayload, {
       headers: { Authorization: `Bearer ${userToken}` }

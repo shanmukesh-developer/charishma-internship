@@ -254,6 +254,10 @@ exports.upsertMenuItem = async (req, res) => {
       menuItem = await MenuItem.create(req.body);
     }
     broadcastSystemUpdate(req, 'MENU_UPDATED', menuItem);
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('inventory_updated', { itemId: menuItem.id, isAvailable: menuItem.isAvailable });
+    }
     await logAuditAction(req, menuItem.id, 'UPSERT_MENU_ITEM', { name: menuItem.name });
     res.json({ ...menuItem.toJSON(), _id: menuItem.id });
   } catch (error) {
@@ -279,8 +283,21 @@ exports.deleteMenuItem = async (req, res) => {
 exports.getAllRiders = async (req, res) => {
   try {
     const DeliveryPartner = getDeliveryPartnerModel();
-    const riders = await DeliveryPartner.findAll({ attributes: { exclude: ['password'] } });
-    res.json(riders.map(r => ({ ...r.toJSON(), _id: r.id })));
+    const { page = 1, limit = 50 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    const { count, rows: riders } = await DeliveryPartner.findAndCountAll({ 
+      attributes: { exclude: ['password'] },
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json({
+      riders: riders.map(r => ({ ...r.toJSON(), _id: r.id })),
+      total: count,
+      pages: Math.ceil(count / limit)
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -313,12 +330,38 @@ exports.resetRiderSos = async (req, res) => {
   }
 };
 
+exports.updateRider = async (req, res) => {
+  try {
+    const DeliveryPartner = getDeliveryPartnerModel();
+    const rider = await DeliveryPartner.findByPk(req.params.id);
+    if (!rider) return res.status(404).json({ message: 'Rider not found' });
+    await rider.update(req.body);
+    broadcastSystemUpdate(req, 'RIDER_UPDATED', rider);
+    res.json({ ...rider.toJSON(), _id: rider.id });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // ─── User & Elite Tiering ──────────────────────────────────────
 exports.getAllUsers = async (req, res) => {
   try {
     const User = getUserModel();
-    const users = await User.findAll({ attributes: { exclude: ['password'] } });
-    res.json(users.map(u => ({ ...u.toJSON(), _id: u.id })));
+    const { page = 1, limit = 50 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    const { count, rows: users } = await User.findAndCountAll({ 
+      attributes: { exclude: ['password'] },
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json({
+      users: users.map(u => ({ ...u.toJSON(), _id: u.id })),
+      total: count,
+      pages: Math.ceil(count / limit)
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -360,8 +403,20 @@ exports.updateUserWallet = async (req, res) => {
 exports.getAuditLogs = async (req, res) => {
   try {
     const VerificationLog = getVerificationLogModel();
-    const logs = await VerificationLog.findAll({ order: [['timestamp', 'DESC']], limit: 100 });
-    res.json(logs.map(l => ({ ...l.toJSON(), _id: l.id })));
+    const { page = 1, limit = 100 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    const { count, rows: logs } = await VerificationLog.findAndCountAll({ 
+      order: [['timestamp', 'DESC']], 
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+    res.json({
+      logs: logs.map(l => ({ ...l.toJSON(), _id: l.id })),
+      total: count,
+      pages: Math.ceil(count / limit)
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -372,6 +427,7 @@ exports.updateGlobalConfig = async (req, res) => {
     const GlobalConfig = getGlobalConfigModel();
     const { key, value, description } = req.body;
     const [_config, created] = await GlobalConfig.upsert({ key, value, description });
+    broadcastSystemUpdate(req, 'GLOBAL_CONFIG_UPDATED', { key, value });
     res.json({ key, value, description, created });
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -431,11 +487,34 @@ exports.getFinanceReport = async (req, res) => {
   try {
     const Order = getOrderModel();
     const Restaurant = getRestaurantModel();
-    const orders = await Order.findAll({ where: { status: 'Delivered' } });
+    const { page = 1, limit = 50 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get total stats (non-paginated)
+    const allDelivered = await Order.findAll({ 
+      where: { status: 'Delivered' },
+      attributes: ['totalPrice', 'finalPrice', 'restaurantId', 'deliveryFee']
+    });
+
     const restaurants = await Restaurant.findAll();
     const restaurantMap = restaurants.reduce((acc, r) => ({ ...acc, [r.id]: r }), {});
 
-    const report = orders.map(order => {
+    const totalRevenue = allDelivered.reduce((s, o) => s + (o.finalPrice || o.totalPrice), 0);
+    const totalDeliveryFees = allDelivered.reduce((s, o) => s + (o.deliveryFee || 30), 0);
+    const totalCommission = allDelivered.reduce((s, o) => {
+      const rest = restaurantMap[o.restaurantId];
+      return s + ((o.finalPrice || o.totalPrice) * ((rest?.commissionRate || 10) / 100));
+    }, 0);
+
+    // Get paginated transactions
+    const { count, rows: orders } = await Order.findAndCountAll({
+      where: { status: 'Delivered' },
+      order: [['createdAt', 'DESC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+    const transactions = orders.map(order => {
       const restaurant = restaurantMap[order.restaurantId] || { commissionRate: 10, name: 'Zenvy Kitchen' };
       const itemPrice = order.finalPrice || order.totalPrice;
       const commission = itemPrice * ((restaurant.commissionRate || 10) / 100);
@@ -445,16 +524,18 @@ exports.getFinanceReport = async (req, res) => {
         restaurantName: restaurant.name,
         totalAmount: itemPrice,
         commissionEarned: Math.round(commission),
-        deliveryFee: 30, // Updated to Flat ₹30 per order
+        deliveryFee: order.deliveryFee || 30,
         timestamp: order.createdAt
       };
     });
 
     res.json({
-      transactions: report.reverse(),
-      totalRevenue: report.reduce((s, r) => s + r.totalAmount, 0),
-      totalCommission: report.reduce((s, r) => s + r.commissionEarned, 0),
-      totalDeliveryFees: report.reduce((s, r) => s + r.deliveryFee, 0)
+      transactions,
+      totalRevenue: Math.round(totalRevenue),
+      totalCommission: Math.round(totalCommission),
+      totalDeliveryFees: Math.round(totalDeliveryFees),
+      total: count,
+      pages: Math.ceil(count / limit)
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -712,6 +793,56 @@ exports.deleteRestaurant = async (req, res) => {
     logAuditAction(req, id, 'RESTAURANT_DELETE', `Deleted restaurant "${restaurant.name}"`);
     
     res.json({ message: 'Restaurant successfully removed' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getOrderVolumeStats = async (req, res) => {
+  try {
+    const Order = getOrderModel();
+    const { getSequelize } = require('../config/db');
+    const sequelize = getSequelize();
+    
+    // Fetch last 12 hours of order counts
+    const stats = await Order.findAll({
+      attributes: [
+        [sequelize.fn('date_trunc', 'hour', sequelize.col('createdAt')), 'hour'],
+        [sequelize.fn('count', sequelize.col('id')), 'count']
+      ],
+      where: {
+        createdAt: { [Op.gte]: new Date(Date.now() - 12 * 60 * 60 * 1000) }
+      },
+      group: [sequelize.fn('date_trunc', 'hour', sequelize.col('createdAt'))],
+      order: [[sequelize.fn('date_trunc', 'hour', sequelize.col('createdAt')), 'ASC']]
+    });
+
+    res.json(stats.map(s => ({
+      hour: new Date(s.dataValues.hour).getHours() + ':00',
+      count: parseInt(s.dataValues.count)
+    })));
+  } catch (error) {
+    console.error('[VOLUME_STATS_ERROR]', error);
+    res.status(500).json({ message: 'Failed to aggregate volume telemetry' });
+  }
+};
+
+exports.batchUpdateOrders = async (req, res) => {
+  try {
+    const Order = getOrderModel();
+    const { targetStatus, newStatus } = req.body;
+    
+    if (!targetStatus || !newStatus) return res.status(400).json({ message: 'Missing parameters' });
+
+    const [updatedCount] = await Order.update(
+      { status: newStatus },
+      { where: { status: targetStatus } }
+    );
+
+    broadcastSystemUpdate(req, 'BATCH_ORDER_UPDATE', { targetStatus, newStatus, count: updatedCount });
+    await logAuditAction(req, 'global', 'BATCH_ORDER_UPDATE', `Updated ${updatedCount} orders from ${targetStatus} to ${newStatus}`);
+
+    res.json({ message: `Successfully updated ${updatedCount} orders.`, count: updatedCount });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -14,6 +14,7 @@ const { initGlobalConfigModel } = require('../models/GlobalConfig');
 const { initVerificationLogModel } = require('../models/VerificationLog');
 const { initCouponModel } = require('../models/Coupon');
 const { initCommunityPostModel } = require('../models/CommunityPost');
+const { initTicketModel } = require('../models/Ticket');
 
 const initializeAllModels = (instance) => {
   initUserModel(instance);
@@ -26,6 +27,7 @@ const initializeAllModels = (instance) => {
   initVerificationLogModel(instance);
   initCouponModel(instance);
   initCommunityPostModel(instance);
+  initTicketModel(instance);
 
   // Define Associations
   const Restaurant = instance.models.Restaurant;
@@ -57,6 +59,16 @@ const initializeAllModels = (instance) => {
   if (Coupon && User) {
     Coupon.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     User.hasMany(Coupon, { foreignKey: 'userId', as: 'coupons' });
+  }
+
+  const Ticket = instance.models.Ticket;
+  if (Ticket && User) {
+    Ticket.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    User.hasMany(Ticket, { foreignKey: 'userId', as: 'tickets' });
+  }
+  if (Ticket && Order) {
+    Ticket.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
+    Order.hasMany(Ticket, { foreignKey: 'orderId', as: 'tickets' });
   }
 };
 
@@ -141,11 +153,23 @@ const connectDB = async () => {
     
     if (!isProduction) {
       console.log('🔄 Development Sync: Running { alter: true }...');
-      await sequelize.sync({ alter: true });
+      try {
+        // SQLite + alter:true often fails on backup table constraints. 
+        // We try a normal sync first.
+        await sequelize.sync({ alter: true });
+      } catch (syncErr) {
+        if (dialect === 'sqlite') {
+          console.warn('⚠️ [DB_SYNC_WARN] SQLite alter failed. Attempting graceful recovery...');
+          // If alter fails in SQLite, it's often due to backup table leftover or complex FK changes.
+          // We'll fallback to a non-altering sync and log the need for manual migration if columns changed.
+          await sequelize.sync(); 
+        } else {
+          throw syncErr;
+        }
+      }
     } else {
       console.log('🔒 Production Sync: Running { alter: true } (Resilient Mode)');
-      // Changed to alter: true in production to ensure tables are created on fresh DBs, 
-      // but protected by the isProduction check in server.js to prevent auto-seeding.
+      // In production (PostgreSQL), alter:true is safer and necessary for fresh deploys.
       await sequelize.sync({ alter: true });
       
       // Auto-check for empty DB to help user identify missing data

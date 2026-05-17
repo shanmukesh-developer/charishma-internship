@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, memo } from 'react';
 import Image from 'next/image';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
@@ -25,7 +25,7 @@ interface LiveFleetMapProps {
   checkpoints: Checkpoint[];
 }
 
-export default function LiveFleetMap({ riders, checkpoints }: LiveFleetMapProps) {
+const LiveFleetMap = memo(({ riders, checkpoints }: LiveFleetMapProps) => {
   const [mounted, setMounted] = useState(false);
   const CAMPUS_CENTER: [number, number] = [16.4632, 80.5064];
 
@@ -67,7 +67,7 @@ export default function LiveFleetMap({ riders, checkpoints }: LiveFleetMapProps)
   return (
     <div className="w-full h-full relative group">
       <MapContainer 
-        key={mounted ? 'map-active' : 'map-loading'}
+        key="nexus-radar-stable"
         center={CAMPUS_CENTER} 
         zoom={14} 
         zoomControl={false}
@@ -171,4 +171,6 @@ export default function LiveFleetMap({ riders, checkpoints }: LiveFleetMapProps)
       `}</style>
     </div>
   );
-}
+});
+
+export default LiveFleetMap;

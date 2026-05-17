@@ -47,6 +47,13 @@ const restaurantLogin = async (req, res) => {
 // @route   GET /api/restaurants/:id/orders
 const getRestaurantOrders = async (req, res) => {
   try {
+    const isOwner = req.user.id === req.params.id;
+    const isAdmin = req.user.role?.toLowerCase() === 'admin';
+    if (!isOwner && !isAdmin) {
+      console.warn(`[SECURITY_WARN] User ${req.user.id} attempted to fetch orders for restaurant ${req.params.id}`);
+      return res.status(403).json({ message: 'Not authorized to view these orders' });
+    }
+
     const Order = getOrderModel();
     const orders = await Order.findAll({
       where: { restaurantId: req.params.id },
@@ -127,8 +134,11 @@ const toggleMenuItemAvailability = async (req, res) => {
     const item = await MenuItem.findByPk(req.params.itemId);
     if (!item) return res.status(401).json({ message: 'Menu data missing or session stale (Nexus Sync Required)' });
 
-    // Security: Only the restaurant that owns the item can toggle it
-    if (req.user.role === 'restaurant' && item.restaurantId !== req.user.id) {
+    // Security: Only the restaurant that owns the item or an admin can toggle it
+    const isOwner = item.restaurantId === req.user.id;
+    const isAdmin = req.user.role?.toLowerCase() === 'admin';
+    if (!isOwner && !isAdmin) {
+       console.warn(`[SECURITY_WARN] User ${req.user.id} attempted to modify menu item ${item.id}`);
        return res.status(403).json({ message: 'Not authorized to manage this asset' });
     }
 
@@ -154,7 +164,10 @@ const updateMenuItemTags = async (req, res) => {
     if (!item) return res.status(401).json({ message: 'Menu data missing or session stale (Nexus Sync Required)' });
 
     // Security check
-    if (req.user.role === 'restaurant' && item.restaurantId !== req.user.id) {
+    const isOwner = item.restaurantId === req.user.id;
+    const isAdmin = req.user.role?.toLowerCase() === 'admin';
+    if (!isOwner && !isAdmin) {
+       console.warn(`[SECURITY_WARN] User ${req.user.id} attempted to modify tags for menu item ${item.id}`);
        return res.status(403).json({ message: 'Not authorized to manage this asset' });
     }
 
@@ -174,8 +187,14 @@ const createMenuItem = async (req, res) => {
     const { name, price, description, imageUrl, category, isVegetarian } = req.body;
     const MenuItem = getMenuItemModel();
     
-    const restaurantId = req.user.role === 'restaurant' ? req.user.id : req.body.restaurantId;
+    const restaurantId = req.user.role?.toLowerCase() === 'restaurant' ? req.user.id : req.body.restaurantId;
     if (!restaurantId) return res.status(400).json({ message: 'Restaurant ID required' });
+    
+    const isOwner = restaurantId === req.user.id;
+    const isAdmin = req.user.role?.toLowerCase() === 'admin';
+    if (!isOwner && !isAdmin) {
+       return res.status(403).json({ message: 'Not authorized to create items for this restaurant' });
+    }
 
     const newItem = await MenuItem.create({
       restaurantId,
@@ -204,7 +223,10 @@ const updateMenuItem = async (req, res) => {
     if (!item) return res.status(404).json({ message: 'Menu item not found' });
 
     // Security check
-    if (req.user.role === 'restaurant' && item.restaurantId !== req.user.id) {
+    const isOwner = item.restaurantId === req.user.id;
+    const isAdmin = req.user.role?.toLowerCase() === 'admin';
+    if (!isOwner && !isAdmin) {
+       console.warn(`[SECURITY_WARN] User ${req.user.id} attempted to update menu item ${item.id}`);
        return res.status(403).json({ message: 'Not authorized to manage this asset' });
     }
 

@@ -95,6 +95,20 @@ const isAllowedOrigin = (origin) => {
 };
 
 const app = express();
+const rateLimit = require('express-rate-limit');
+
+// ── Global API Shield (DDoS Protection) ──────────────────────
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // Limit each IP to 300 requests per `window` (here, per 15 minutes)
+  message: { message: 'Too many requests from this IP, please try again after 15 minutes.' },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+// Apply the global rate limiting middleware to all requests starting with /api
+app.use('/api/', globalLimiter);
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { 
@@ -111,6 +125,31 @@ const io = new Server(server, {
   connectTimeout: 45000,
   pingTimeout: 20000,
   pingInterval: 25000
+});
+
+// 🛡️ Socket.io JWT Authentication Middleware
+const jwt = require('jsonwebtoken');
+io.use((socket, next) => {
+  try {
+    const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      return next(new Error('Authentication error: Token missing'));
+    }
+
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      console.error('[SOCKET_AUTH_FATAL] JWT_SECRET not configured. Rejecting all connections.');
+      return next(new Error('Server configuration error'));
+    }
+
+    const decoded = jwt.verify(token, secret);
+    socket.user = decoded; // { id, role }
+    next();
+  } catch (err) {
+    console.warn('[SOCKET_AUTH_WARN] Connection rejected:', err.message);
+    next(new Error('Authentication error: Invalid token'));
+  }
 });
 
 // Make io accessible to routes
@@ -214,10 +253,17 @@ const startServer = async () => {
       }
     }
 
-    // 🦾 Secure Manual Seed Trigger (Free Tier workaround)
+    // 🦾 Secure Manual Seed Trigger
     app.post('/api/seed', async (req, res) => {
       const { key } = req.body;
-      if (key === (process.env.JWT_SECRET || 'nexus_protocol_9')) {
+      const seedKey = process.env.SEED_KEY || process.env.JWT_SECRET;
+      
+      if (!seedKey || seedKey === 'nexus_protocol_9' || seedKey === 'secret') {
+        console.error('[SECURITY_ALERT] Attempted to seed with insecure or missing key.');
+        return res.status(500).json({ error: 'Server key not configured for seeding' });
+      }
+
+      if (key === seedKey) {
         console.log('📥 [MANUAL_SEED] Triggered via API');
         const { unifiedSeed: runSeed } = require('./scripts/unified_seed');
         await runSeed();
@@ -230,6 +276,24 @@ const startServer = async () => {
     app.use('/api/admin', require('./routes/adminRoutes'));
     app.use('/api/rewards', require('./routes/rewardRoutes'));
     app.use('/api/community', require('./routes/communityRoutes'));
+    app.use('/api/tickets', require('./routes/ticketRoutes'));
+
+    // ── Hourly Cleanup: Delete expired community posts ──────────────────────
+    const runExpiryCleanup = async () => {
+      try {
+        const { getCommunityPostModel } = require('./models/CommunityPost');
+        const { Op: CleanupOp } = require('sequelize');
+        const CommunityPost = getCommunityPostModel();
+        if (!CommunityPost) return;
+        const deleted = await CommunityPost.destroy({
+          where: { expiresAt: { [CleanupOp.lt]: new Date() } }
+        });
+        if (deleted > 0) console.log(`🗑️  [EXPIRY_CLEANUP] Deleted ${deleted} expired community post(s).`);
+      } catch (e) { console.warn('[EXPIRY_CLEANUP] Error:', e.message); }
+    };
+    // Run once on startup, then every hour
+    runExpiryCleanup();
+    setInterval(runExpiryCleanup, 60 * 60 * 1000);
     
     // Global Error Handler
     const { errorHandler } = require('./middleware/errorMiddleware');
@@ -244,7 +308,8 @@ const startServer = async () => {
     const storage = multer.memoryStorage();
     const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
     
-    app.post('/api/upload', upload.single('image'), async (req, res) => {
+    const { protect: protectUpload } = require('./middleware/authMiddleware');
+    app.post('/api/upload', protectUpload, upload.single('image'), async (req, res) => {
       if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
       
       const mimetype = req.file.mimetype;
@@ -276,25 +341,56 @@ const startServer = async () => {
 
     // Socket.io
     io.on('connection', (socket) => {
-      console.log(`[SOCKET CONNECT] ${socket.id}`);
+      console.log(`[SOCKET CONNECT] ${socket.id} (User: ${socket.user.id}, Role: ${socket.user.role})`);
+      
       socket.on('joinOrder', async (orderId) => {
         const room = String(orderId).trim();
-        await socket.join(room);
-        log(`[JOIN] ${socket.id} -> ${room}`);
+        
+        // 🛡️ Permission Check: Only the order creator, assigned rider, or admin can join the room
+        try {
+          const { getOrderModel } = require('./models/Order');
+          const Order = getOrderModel();
+          const order = await Order.findByPk(room);
+          
+          const isOwner = order && order.userId === socket.user.id;
+          const isRider = order && order.deliveryPartnerId === socket.user.id;
+          const isAdmin = socket.user.role === 'admin';
+
+          if (isOwner || isRider || isAdmin) {
+            await socket.join(room);
+            log(`[JOIN] ${socket.id} (${socket.user.role}) -> ${room}`);
+          } else {
+            console.warn(`[SOCKET_AUTH_DENIED] User ${socket.user.id} tried to join room ${room}`);
+          }
+        } catch (err) {
+          console.error('[JOIN_ORDER_ERROR]', err.message);
+        }
       });
+
       socket.on('joinRoom', async (roomName) => {
         const room = String(roomName).trim();
+        // Allow general rooms (surges, etc) but restrict sensitive ones if needed
         await socket.join(room);
         log(`[JOIN_ROOM] ${socket.id} -> ${room}`);
       });
+
       socket.on('joinAdmin', async () => {
-        await socket.join('admin-room');
-        log(`[JOIN_ADMIN] ${socket.id}`);
+        // 🛡️ Permission Check: Strictly Admin Only
+        if (socket.user && socket.user.role && socket.user.role.toLowerCase() === 'admin') {
+          await socket.join('admin-room');
+          log(`[JOIN_ADMIN] ${socket.id}`);
+        } else {
+          console.warn(`[SOCKET_ADMIN_DENIED] Unauthorized joinAdmin attempt by ${socket.user?.id}`);
+        }
       });
       socket.on('updateLocation', (data) => {
-        const room = String(data.orderId).trim();
-        io.to(room).emit('checkpointUpdated', { currentCheckpoint: data.currentCheckpoint });
-        log(`[CHECKPOINT] ${data.orderId} → ${data.currentCheckpoint}`);
+        if (socket.user && socket.user.role && socket.user.role.toLowerCase() === 'rider') {
+          const room = String(data.orderId).trim();
+          io.to(room).emit('checkpointUpdated', { currentCheckpoint: data.currentCheckpoint });
+          log(`[CHECKPOINT] ${data.orderId} → ${data.currentCheckpoint}`);
+        } else {
+          console.warn(`[SOCKET_DENIED] Unauthorized location update by ${socket.user?.id}`);
+        }
       });
       
       socket.on('sos_alert', (data) => {
@@ -303,8 +399,13 @@ const startServer = async () => {
       });
 
       socket.on('admin_broadcast', (data) => {
-        log(`[MEGAPHONE] Admin broadcast: "${data.message}" (type: ${data.type})`);
-        io.emit('global_announcement', data);
+        // 🛡️ Permission Check: Admin Only
+        if (socket.user && socket.user.role && socket.user.role.toLowerCase() === 'admin') {
+          log(`[MEGAPHONE] Admin broadcast: "${data.message}" (type: ${data.type})`);
+          io.emit('global_announcement', data);
+        } else {
+          console.warn(`[SOCKET_BROADCAST_DENIED] Unauthorized broadcast by ${socket.user?.id}`);
+        }
       });
 
       socket.on('inventory_update', (data) => {
@@ -367,10 +468,12 @@ const startServer = async () => {
 
       // Rider accepted → notify admin + join the broadcast room
       socket.on('rider_accepted', async (data) => {
-        const room = String(data.orderId).trim();
-        await socket.join(room);
-        log(`[RIDER ACCEPTED] ${data.riderName} accepted order ${data.orderId}`);
-        io.to('admin-room').emit('admin_order_accepted', { orderId: data.orderId, riderId: data.riderId, riderName: data.riderName });
+        if (socket.user && socket.user.role && socket.user.role.toLowerCase() === 'rider') {
+          const room = String(data.orderId).trim();
+          await socket.join(room);
+          log(`[RIDER ACCEPTED] ${data.riderName} accepted order ${data.orderId}`);
+          io.to('admin-room').emit('admin_order_accepted', { orderId: data.orderId, riderId: data.riderId, riderName: data.riderName });
+        }
       });
 
       // Rider live GPS → admin map + customer tracking (already via updateLocation, this is admin stream)

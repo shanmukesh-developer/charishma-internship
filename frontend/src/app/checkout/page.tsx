@@ -1,6 +1,6 @@
 "use client";
 import { useCart } from '@/context/CartContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import SafeImage from '@/components/SafeImage';
 import CheckoutProcessingModal from '@/components/CheckoutProcessingModal';
@@ -13,11 +13,166 @@ import { showToast } from '@/components/ToastProvider';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
 
+interface ExtraItem {
+  id: string;
+  name: string;
+  price: number;
+  emoji: string;
+}
+
+// Detect product type from name (same logic as CustomizeDrawer)
+function detectType(name: string): string {
+  const n = name.toLowerCase();
+  if (/cake|pastry|brownie|cupcake|cheesecake|gateau|truffle/.test(n)) return 'cake';
+  if (/pizza|calzone/.test(n)) return 'pizza';
+  if (/biryani|biriyani|pulao|rice bowl/.test(n)) return 'biryani';
+  if (/juice|shake|coffee|tea|chai|lassi|smoothie|lemonade|mojito|frappe|milkshake/.test(n)) return 'beverage';
+  if (/sweet|laddu|ladoo|barfi|halwa|jalebi|kaju|peda|mysore pak|mithai/.test(n)) return 'sweets';
+  if (/burger|sandwich|wrap|sub|roll|frank|hotdog/.test(n)) return 'burger';
+  if (/ice cream|kulfi|falooda|sundae|gelato/.test(n)) return 'dessert';
+  if (/chicken|tandoori|kebab|tikka|grilled/.test(n)) return 'chicken';
+  if (/noodle|chowmein|fried rice|manchurian|momos/.test(n)) return 'chinese';
+  if (/dosa|idli|uttapam|vada|sambar|upma/.test(n)) return 'south';
+  return 'meal';
+}
+
+// Curated extras per product type — only relevant items
+const TYPE_EXTRAS: Record<string, ExtraItem[]> = {
+  cake: [
+    { id: 'candles', name: 'Birthday Candles (10)', price: 15, emoji: '🕯️' },
+    { id: 'knife', name: 'Cake Cutting Knife', price: 10, emoji: '🔪' },
+    { id: 'gift-wrap', name: 'Gift Wrapping', price: 30, emoji: '🎁' },
+    { id: 'plates', name: 'Paper Plates (6 pcs)', price: 15, emoji: '🍽️' },
+    { id: 'icecream', name: 'Vanilla Ice Cream Cup', price: 30, emoji: '🍦' },
+    { id: 'forks', name: 'Dessert Forks (6 pcs)', price: 10, emoji: '🍴' },
+  ],
+  pizza: [
+    { id: 'garlic-bread', name: 'Garlic Bread (4 pcs)', price: 60, emoji: '🍞' },
+    { id: 'coke', name: 'Coca Cola (300ml)', price: 40, emoji: '🥤' },
+    { id: 'dip-cheese', name: 'Cheesy Dip Sauce', price: 20, emoji: '🧀' },
+    { id: 'fries', name: 'French Fries', price: 50, emoji: '🍟' },
+    { id: 'chili-flakes', name: 'Chili Flakes & Oregano', price: 5, emoji: '🌶️' },
+    { id: 'napkins', name: 'Extra Napkins (10 pcs)', price: 10, emoji: '🧻' },
+  ],
+  biryani: [
+    { id: 'raita', name: 'Raita (Cup)', price: 25, emoji: '🥣' },
+    { id: 'salan', name: 'Mirchi Ka Salan', price: 30, emoji: '🌶️' },
+    { id: 'boiled-egg', name: 'Boiled Egg (2 pcs)', price: 20, emoji: '🥚' },
+    { id: 'buttermilk', name: 'Buttermilk (Chaas)', price: 25, emoji: '🥛' },
+    { id: 'thumbsup', name: 'Thums Up (300ml)', price: 40, emoji: '🥤' },
+    { id: 'onion-salad', name: 'Onion Salad', price: 15, emoji: '🧅' },
+  ],
+  beverage: [
+    { id: 'cookie', name: 'Chocolate Cookie', price: 20, emoji: '🍪' },
+    { id: 'muffin', name: 'Blueberry Muffin', price: 40, emoji: '🧁' },
+    { id: 'sandwich', name: 'Club Sandwich', price: 60, emoji: '🥪' },
+    { id: 'straw', name: 'Paper Straw (2 pcs)', price: 5, emoji: '🥤' },
+  ],
+  sweets: [
+    { id: 'gift-box', name: 'Premium Gift Box', price: 50, emoji: '🎁' },
+    { id: 'dry-fruits', name: 'Mixed Dry Fruits (100g)', price: 80, emoji: '🥜' },
+    { id: 'saffron-milk', name: 'Kesar Milk', price: 35, emoji: '🥛' },
+    { id: 'plates', name: 'Paper Plates (6 pcs)', price: 15, emoji: '🍽️' },
+  ],
+  burger: [
+    { id: 'fries', name: 'French Fries', price: 50, emoji: '🍟' },
+    { id: 'coke', name: 'Coca Cola (300ml)', price: 40, emoji: '🥤' },
+    { id: 'coleslaw', name: 'Coleslaw', price: 25, emoji: '🥗' },
+    { id: 'ketchup', name: 'Extra Ketchup & Mayo', price: 10, emoji: '🍅' },
+    { id: 'onion-rings', name: 'Onion Rings', price: 45, emoji: '🧅' },
+    { id: 'napkins', name: 'Extra Napkins', price: 10, emoji: '🧻' },
+  ],
+  dessert: [
+    { id: 'chocolate-sauce', name: 'Chocolate Sauce', price: 15, emoji: '🍫' },
+    { id: 'wafer', name: 'Wafer Sticks', price: 20, emoji: '🍘' },
+    { id: 'nuts', name: 'Crushed Nuts Topping', price: 20, emoji: '🥜' },
+    { id: 'coffee', name: 'Hot Coffee', price: 30, emoji: '☕' },
+  ],
+  chicken: [
+    { id: 'naan', name: 'Butter Naan (2 pcs)', price: 40, emoji: '🫓' },
+    { id: 'coke', name: 'Coca Cola (300ml)', price: 40, emoji: '🥤' },
+    { id: 'salad', name: 'Green Salad', price: 20, emoji: '🥗' },
+    { id: 'raita', name: 'Onion Raita', price: 25, emoji: '🥣' },
+    { id: 'lemon', name: 'Lemon Wedges', price: 5, emoji: '🍋' },
+  ],
+  chinese: [
+    { id: 'spring-roll', name: 'Veg Spring Rolls (4)', price: 50, emoji: '🥟' },
+    { id: 'sweet-corn', name: 'Sweet Corn Soup', price: 35, emoji: '🍜' },
+    { id: 'chili-sauce', name: 'Schezwan Sauce', price: 10, emoji: '🌶️' },
+    { id: 'coke', name: 'Coca Cola (300ml)', price: 40, emoji: '🥤' },
+  ],
+  south: [
+    { id: 'sambar', name: 'Extra Sambar', price: 15, emoji: '🥘' },
+    { id: 'chutney', name: 'Coconut Chutney', price: 10, emoji: '🥥' },
+    { id: 'filter-coffee', name: 'Filter Coffee', price: 25, emoji: '☕' },
+    { id: 'curd', name: 'Fresh Curd', price: 15, emoji: '🥛' },
+  ],
+  meal: [
+    { id: 'coke', name: 'Coca Cola (300ml)', price: 40, emoji: '🥤' },
+    { id: 'water', name: 'Water Bottle (500ml)', price: 20, emoji: '💧' },
+    { id: 'lassi', name: 'Sweet Lassi', price: 35, emoji: '🥛' },
+    { id: 'salad', name: 'Fresh Salad', price: 25, emoji: '🥗' },
+  ],
+};
+
+function SuggestedExtras({ cart, onAdd }: { cart: { id: string; name: string }[]; onAdd: (extra: ExtraItem) => void }) {
+  const [addedExtras, setAddedExtras] = useState<Set<string>>(new Set());
+
+  const suggestions = useMemo(() => {
+    // Detect types of all cart items and collect relevant extras
+    const types = new Set(cart.map(i => detectType(i.name)));
+    const seen = new Set<string>();
+    const result: ExtraItem[] = [];
+
+    types.forEach(type => {
+      const extras = TYPE_EXTRAS[type] || TYPE_EXTRAS['meal'];
+      extras.forEach(e => {
+        if (!seen.has(e.id) && !addedExtras.has(e.id)) {
+          seen.add(e.id);
+          result.push(e);
+        }
+      });
+    });
+
+    return result.slice(0, 8);
+  }, [cart, addedExtras]);
+
+  if (suggestions.length === 0) return null;
+
+  return (
+    <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <h2 className="text-secondary-text font-black text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+        Pairs Well With Your Order
+      </h2>
+      <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 md:-mx-6 md:px-6 after:content-[''] after:w-4 after:shrink-0 md:after:w-6">
+        {suggestions.map(extra => (
+          <button
+            key={extra.id}
+            onClick={() => {
+              onAdd(extra);
+              setAddedExtras(prev => new Set([...prev, extra.id]));
+              showToast(`${extra.name} added!`, 'success', extra.emoji);
+            }}
+            className="shrink-0 min-w-[130px] p-4 rounded-[24px] border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:border-[#C9A84C]/20 transition-all flex flex-col items-center gap-2 text-center active:scale-95 group"
+          >
+            <span className="text-2xl group-hover:scale-110 transition-transform">{extra.emoji}</span>
+            <span className="text-[10px] font-bold text-white/60 leading-tight">{extra.name}</span>
+            <span className="text-[11px] font-black text-[#C9A84C]">₹{extra.price}</span>
+            <span className="text-[8px] font-black uppercase tracking-widest text-white/20 bg-white/5 px-3 py-1 rounded-full group-hover:bg-[#C9A84C]/10 group-hover:text-[#C9A84C]/60 transition-all">+ Add</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function CheckoutPage() {
-  const { cart, totalPrice, clearCart } = useCart();
+  const { cart, totalPrice, clearCart, addToCart, uniqueRestaurants, deliveryFee: cartDeliveryFee } = useCart();
   const router = useRouter();
 
+  const [locationType, setLocationType] = useState<'srmap' | 'vitap' | 'amrita' | 'other' | null>(null);
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [coordinates, setCoordinates] = useState<{lat: number, lng: number} | null>(null);
   const [landmark, setLandmark] = useState('');
   const [deliveryType, setDeliveryType] = useState<'asap' | 'scheduled'>('asap');
   const [scheduledTime, setScheduledTime] = useState('');
@@ -27,7 +182,7 @@ export default function CheckoutPage() {
   const [upiScreenshot, setUpiScreenshot] = useState<string | null>(null);
   const [isElite, setIsElite] = useState(false);
   const distance = 0;
-  const [deliveryFee, setDeliveryFee] = useState(30);
+  const [deliveryFee, setDeliveryFee] = useState(cartDeliveryFee || 30);
   const [surge, setSurge] = useState({ isSurge: false, multiplier: 1 });
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [isQrZoomed, setIsQrZoomed] = useState(false);
@@ -140,8 +295,8 @@ export default function CheckoutPage() {
 
   // Flat ₹30 delivery fee for all orders. Elite/ZenPoints users get free delivery.
   useEffect(() => {
-    setDeliveryFee(isElite || zenPoints >= 200 ? 0 : 30);
-  }, [isElite, zenPoints]);
+    setDeliveryFee(isElite || zenPoints >= 200 ? 0 : cartDeliveryFee || 30);
+  }, [isElite, zenPoints, cartDeliveryFee]);
 
   const [checkoutStatus, setCheckoutStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [modalConfig, setModalConfig] = useState<{
@@ -160,12 +315,19 @@ export default function CheckoutPage() {
   const finalTotal = Math.max(0, totalPrice + deliveryFee - currentCouponDiscount);
 
   const handlePlaceOrder = async () => {
-    if (checkoutStatus !== 'idle') return;
-    if (!deliveryAddress.trim()) {
-      setModalConfig({ isOpen: true, title: 'Address Required', message: 'Please enter your delivery address.', type: 'error' });
+    if (!locationType) {
+      setModalConfig({ isOpen: true, title: 'Campus Required', message: 'Please select your campus or location type.', type: 'error' });
       return;
     }
-
+    if (locationType === 'other' && (!deliveryAddress || deliveryAddress.trim().length < 5)) {
+      setModalConfig({ isOpen: true, title: 'Address Needed', message: 'Please enter a complete delivery address or select a campus.', type: 'error' });
+      return;
+    }
+    if (locationType !== 'other' && !landmark) {
+      setModalConfig({ isOpen: true, title: 'Room Details Needed', message: 'Please enter your hostel block and room number.', type: 'error' });
+      return;
+    }
+    if (checkoutStatus !== 'idle') return;
     if (!paymentMethod) {
       setModalConfig({ isOpen: true, title: 'Payment Required', message: 'Please select a payment method.', type: 'error' });
       return;
@@ -188,11 +350,14 @@ export default function CheckoutPage() {
 
       const orderData = {
         restaurantId: cart[0]?.restaurantId,
+        restaurantIds: [...new Set(cart.map(i => i.restaurantId))],
         items: cart.map(item => ({
           menuItemId: item.id,
           name: item.name,
           quantity: item.quantity,
-          priceAtOrder: item.price
+          priceAtOrder: item.price,
+          basePrice: (item as any).basePrice || item.price,
+          customizations: (item as any).customizations || null,
         })),
         totalPrice,
         deliveryFee,
@@ -202,6 +367,7 @@ export default function CheckoutPage() {
         upiScreenshot: paymentMethod === 'UPI' ? upiScreenshot : undefined,
         deliverySlot: deliveryType === 'asap' ? 'ASAP' : scheduledTime,
         deliveryAddress: `${deliveryAddress}${landmark ? ', ' + landmark : ''}`,
+        coordinates, // Send coordinates to backend for Haversine validation
         hostelGateDelivery: false,
         couponCode: selectedCoupon?.code
       };
@@ -294,38 +460,72 @@ export default function CheckoutPage() {
 
       <div className="space-y-8">
 
-        {/* Delivery Address */}
-        <div>
-          <h2 className="text-secondary-text font-black text-xs uppercase tracking-widest mb-4">Delivery Address</h2>
-          <div className="space-y-3">
-            <div className="relative flex items-center gap-2">
-              <div className="relative flex-1">
-                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-lg">📍</span>
+        {/* Campus Selection */}
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <h2 className="text-secondary-text font-black text-xs uppercase tracking-widest mb-4">Delivery Location</h2>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            {[
+              { id: 'srmap', name: 'SRM AP', icon: '🎓' },
+              { id: 'vitap', name: 'VIT AP', icon: '🏛️' },
+              { id: 'amrita', name: 'AMRITA', icon: '🏫' },
+              { id: 'other', name: 'OTHER', icon: '📍' },
+            ].map((campus) => (
+              <button
+                key={campus.id}
+                onClick={() => {
+                  setLocationType(campus.id as any);
+                  if (campus.id === 'srmap') setDeliveryAddress('SRM AP Campus');
+                  else if (campus.id === 'vitap') setDeliveryAddress('VIT AP Campus');
+                  else if (campus.id === 'amrita') setDeliveryAddress('Amrita University Campus');
+                  else setDeliveryAddress(''); // Clear for other
+                }}
+                className={`p-3 md:p-4 rounded-[20px] border flex flex-col items-center gap-2 transition-all ${locationType === campus.id ? 'border-[#C9A84C] bg-[#C9A84C]/10 shadow-[0_0_15px_rgba(201,168,76,0.15)]' : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20'}`}
+              >
+                <span className="text-2xl">{campus.icon}</span>
+                <span className="text-[10px] md:text-[11px] font-black uppercase tracking-widest">{campus.name}</span>
+              </button>
+            ))}
+          </div>
+
+          {locationType && (
+            <div className="space-y-3 animate-in fade-in zoom-in duration-300">
+              {locationType === 'other' && (
+                <div className="flex gap-3">
+                  <div className="relative flex-1">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl">📍</span>
+                    <input
+                      type="text"
+                      value={deliveryAddress}
+                      onChange={e => setDeliveryAddress(e.target.value)}
+                      placeholder="Street, area, locality..."
+                      className="w-full pl-12 pr-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 outline-none focus:border-primary-yellow/40 transition-all text-sm shadow-inner"
+                    />
+                  </div>
+                  <button
+                    onClick={() => setIsMapOpen(true)}
+                    className="h-[52px] px-5 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-2xl flex items-center gap-2 transition-all group"
+                  >
+                    <svg className="w-5 h-5 text-primary-yellow group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline-block">Map</span>
+                  </button>
+                </div>
+              )}
+              
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl">
+                  {locationType === 'other' ? '🏢' : '🛏️'}
+                </span>
                 <input
                   type="text"
-                  value={deliveryAddress}
-                  onChange={e => setDeliveryAddress(e.target.value)}
-                  placeholder="Street, area, locality..."
-                  className="w-full pl-12 pr-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 outline-none focus:border-primary-yellow/40 transition-all text-sm shadow-inner"
+                  value={landmark}
+                  onChange={e => setLandmark(e.target.value)}
+                  placeholder={locationType === 'other' ? "Landmark (optional)" : "Hostel Block & Room No. (Required)"}
+                  className={`w-full pl-12 pr-5 py-4 bg-white/5 border rounded-2xl text-white placeholder-gray-500 outline-none transition-all text-sm ${locationType !== 'other' && !landmark ? 'border-[#C9A84C]/50 bg-[#C9A84C]/5' : 'border-white/10 focus:border-primary-yellow/40'}`}
                 />
               </div>
-              <button
-                onClick={() => setIsMapOpen(true)}
-                className="h-[52px] px-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-2xl flex items-center gap-3 transition-all group"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <SafeImage src="/assets/gmaps_icon.png" alt="Maps" className="w-6 h-6 object-contain group-hover:scale-110 transition-transform" />
-                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline-block">Live Map</span>
-              </button>
             </div>
-            <input
-              type="text"
-              value={landmark}
-              onChange={e => setLandmark(e.target.value)}
-              placeholder="Landmark (optional)"
-              className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 outline-none focus:border-primary-yellow/40 transition-all text-sm"
-            />
-          </div>
+          )}
         </div>
 
         {/* Delivery Time */}
@@ -360,6 +560,21 @@ export default function CheckoutPage() {
           )}
         </div>
 
+        {/* ═══════ Suggested Extras ═══════ */}
+        <SuggestedExtras cart={cart} onAdd={(extra) => {
+          // Add extra as a cart item with a fixed ID
+          try {
+            addToCart({
+              id: `extra-${extra.id}`,
+              name: extra.name,
+              price: extra.price,
+              image: '',
+              restaurantId: cart[0]?.restaurantId || 'extras',
+              restaurantName: cart[0]?.restaurantName || 'Zenvy Extras',
+            });
+          } catch {}
+        }} />
+
         {/* Reward Coupons & Zen Points */}
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
            <div className="flex items-center justify-between mb-4">
@@ -370,7 +585,7 @@ export default function CheckoutPage() {
            </div>
            
            {coupons.length > 0 ? (
-             <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+             <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 md:-mx-6 md:px-6 after:content-[''] after:w-4 after:shrink-0 md:after:w-6">
                {coupons.map(cpn => (
                  <button
                    key={cpn.id}
@@ -397,27 +612,27 @@ export default function CheckoutPage() {
         {/* Payment Method */}
         <div>
           <h2 className="text-secondary-text font-black text-xs uppercase tracking-widest mb-4">Payment Method</h2>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2 md:gap-3">
             <button
               onClick={() => setPaymentMethod('COD')}
-              className={`p-4 rounded-[24px] border flex flex-col items-center gap-2 transition-all ${paymentMethod === 'COD' ? 'border-primary-yellow bg-primary-yellow/10' : 'border-white/10 bg-white/[0.02] hover:border-white/20'}`}
+              className={`p-3 md:p-4 rounded-[24px] border flex flex-col items-center gap-2 transition-all ${paymentMethod === 'COD' ? 'border-primary-yellow bg-primary-yellow/10' : 'border-white/10 bg-white/[0.02] hover:border-white/20'}`}
             >
               <span className="text-xl">💵</span>
-              <span className="text-[10px] font-black uppercase tracking-widest">Cash</span>
+              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">Cash</span>
             </button>
             <button
               onClick={() => setPaymentMethod('UPI')}
-              className={`p-4 rounded-[24px] border flex flex-col items-center gap-2 transition-all ${paymentMethod === 'UPI' ? 'border-primary-yellow bg-primary-yellow/10' : 'border-white/10 bg-white/[0.02] hover:border-white/20'}`}
+              className={`p-3 md:p-4 rounded-[24px] border flex flex-col items-center gap-2 transition-all ${paymentMethod === 'UPI' ? 'border-primary-yellow bg-primary-yellow/10' : 'border-white/10 bg-white/[0.02] hover:border-white/20'}`}
             >
               <span className="text-xl">📲</span>
-              <span className="text-[10px] font-black uppercase tracking-widest">UPI</span>
+              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">UPI</span>
             </button>
             <button
               onClick={() => setPaymentMethod('Card')}
-              className={`p-4 rounded-[24px] border flex flex-col items-center gap-2 transition-all ${paymentMethod === 'Card' ? 'border-primary-yellow bg-primary-yellow/10' : 'border-white/10 bg-white/[0.02] hover:border-white/20'}`}
+              className={`p-3 md:p-4 rounded-[24px] border flex flex-col items-center gap-2 transition-all ${paymentMethod === 'Card' ? 'border-primary-yellow bg-primary-yellow/10' : 'border-white/10 bg-white/[0.02] hover:border-white/20'}`}
             >
               <span className="text-xl">💳</span>
-              <span className="text-[10px] font-black uppercase tracking-widest">Card</span>
+              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">Card</span>
             </button>
           </div>
           {/* Card payment info */}
@@ -590,7 +805,12 @@ export default function CheckoutPage() {
               <span>₹{totalPrice}</span>
             </div>
             <div className="flex justify-between text-xs font-black uppercase tracking-widest text-white/30">
-              <span>Logistics Fee</span>
+              <span className="flex items-center gap-2">
+                Logistics Fee
+                {uniqueRestaurants > 1 && (
+                  <span className="text-[8px] normal-case tracking-normal text-[#38BDF8]/40 font-bold">({uniqueRestaurants} × ₹30)</span>
+                )}
+              </span>
               {isElite || zenPoints >= 200 ? (
                 <span className="text-primary-yellow">FREE BYPASS</span>
               ) : (
@@ -632,8 +852,9 @@ export default function CheckoutPage() {
       <MapLocationPicker
         isOpen={isMapOpen}
         onClose={() => setIsMapOpen(false)}
-        onConfirm={(address) => {
+        onConfirm={(address, coords) => {
           setDeliveryAddress(address);
+          setCoordinates(coords);
         }}
       />
 
