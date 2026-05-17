@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Magnetic from '@/components/Magnetic';
 import SuccessOverlay from '@/components/SuccessOverlay';
-import Navigation from '@/components/Navigation';
+import Navbar from '@/components/Navbar';
 
 export default function SupportPage() {
   const router = useRouter();
@@ -194,7 +194,7 @@ export default function SupportPage() {
         </div>
       </div>
 
-      <Navigation />
+      <Navbar />
       <SuccessOverlay 
         isOpen={overlay.isOpen} 
         onClose={() => setOverlay(prev => ({ ...prev, isOpen: false }))} 
