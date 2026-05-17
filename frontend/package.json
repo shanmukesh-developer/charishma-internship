@@ -27,7 +27,9 @@
     "@tootallnate/once": "^3.0.1",
     "micromatch": "^4.0.8",
     "cross-spawn": "^7.0.6",
-    "nanoid": "^3.3.8"
+    "nanoid": "^3.3.8",
+    "postcss": "^8.5.14",
+    "glob": "^10.5.0"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -35,7 +37,7 @@
     "@types/react-dom": "^18",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
-    "postcss": "^8",
+    "postcss": "^8.5.14",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }
