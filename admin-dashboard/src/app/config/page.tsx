@@ -148,7 +148,6 @@ export default function ConfigTerminal() {
               </div>
            </div>
         </div>
-        </div>
 
         {/* 🛠️ System Resilience & Global Toggles */}
         <div className="glass-card p-10 space-y-8 border-amber-500/20 bg-amber-500/[0.02]">
