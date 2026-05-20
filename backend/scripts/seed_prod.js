@@ -40,8 +40,8 @@ const MENUS = [
   // 🍔 BURGERS (→ Urban Bites 1)
   ['Classic Smash Burger',199,'Double beef patty with cheddar and secret sauce','Burgers',false,'1568901346375-23c9450c58cd',['Burgers']],
   ['Paneer Tikka Burger',169,'Spiced paneer patty with mint mayo','Burgers',true,'1550547660-d9450f859349',['Burgers']],
-  ['Crispy Chicken Burger',189,'Hand-breaded chicken breast with lettuce and mayo','Burgers',false,'1568901346375-23c9450c58cd',['Burgers']],
-  ['Veg Whopper',159,'Plant-based patty with pickles and tomatoes','Burgers',true,'1550547660-d9450f859349',['Burgers']],
+  ['Crispy Chicken Burger',189,'Hand-breaded chicken breast with lettuce and mayo','Burgers',false,'1586816001966-5f0a0b0b5c6e',['Burgers']],
+  ['Veg Whopper',159,'Plant-based patty with pickles and tomatoes','Burgers',true,'1562967560249-be0a4f07f9cf',['Burgers']],
 
   // 🥤 DRINKS (→ Chai & Chill 3 / Frozen Bliss 7)
   ['Filter Coffee',49,'Traditional South Indian filter coffee, hot and frothy','Drinks',true,'1509042239860-f550ce710b93',['drinks','Drinks']],
@@ -64,60 +64,60 @@ const MENUS = [
   // 💪 GYM & PROTEIN (→ Green Bowl 5)
   ['Grilled Chicken Bowl',219,'Grilled chicken with brown rice and broccoli','Bowls',false,'1490645935335-4b67fc5c0de5',['gym','high-protein','Bowls']],
   ['Egg White Omelette',99,'4-egg white omelette with spinach and mushrooms','Breakfast',false,'1525351484163-7529414344d8',['gym','high-protein','Breakfast']],
-  ['Tofu Stir Fry',169,'Pan-seared tofu with colorful veggies in soy glaze','Bowls',true,'1512621776951-a57141f2eefd',['gym','high-protein','Bowls']],
+  ['Tofu Stir Fry',169,'Pan-seared tofu with colorful veggies in soy glaze','Bowls',true,'1546069901-ba9af5f8ca40',['gym','high-protein','Bowls']],
   ['Quinoa Power Bowl',219,'Quinoa with roasted chickpeas, avocado and tahini','Bowls',true,'1512621776951-a57141f2eefd',['gym','high-protein','Bowls']],
   ['Peanut Butter Toast',89,'Whole wheat toast with peanut butter and banana slices','Breakfast',true,'1541519227354-08fa5d50c44d',['gym','high-protein','Breakfast']],
 
   // 🍰 SWEETS & DESSERTS (→ Frozen Bliss 7)
   ['Gulab Jamun (4pc)',99,'Soft milk dumplings in rose sugar syrup','Desserts',true,'1666190199099-db67a1a1e212',['sweets','Desserts']],
-  ['Rasgulla (4pc)',89,'Spongy cottage cheese balls in sugar syrup','Desserts',true,'1551024506-0bccd828d307',['sweets','Desserts']],
-  ['Kaju Katli (6pc)',149,'Premium cashew fudge with silver vark','Desserts',true,'1563805042-7684c019e1cb',['sweets','Desserts']],
-  ['Brownie Sundae',179,'Warm brownie with vanilla ice cream and chocolate','Desserts',true,'1551024506-0bccd828d307',['sweets','Desserts']],
+  ['Rasgulla (4pc)',89,'Spongy cottage cheese balls in sugar syrup','Desserts',true,'1587314984468-5c4f9a678a3e',['sweets','Desserts']],
+  ['Kaju Katli (6pc)',149,'Premium cashew fudge with silver vark','Desserts',true,'1578985545062-9e0a92a10261',['sweets','Desserts']],
+  ['Brownie Sundae',179,'Warm brownie with vanilla ice cream and chocolate','Desserts',true,'1564355808539-8abb72f7e3e5',['sweets','Desserts']],
   ['Strawberry Cheesecake',149,'Creamy cheesecake with strawberry compote','Desserts',true,'1565958011703-44f9829ba187',['sweets','Desserts']],
-  ['Belgian Chocolate Scoop',99,'Rich Belgian dark chocolate ice cream','Ice Cream',true,'1563805042-7684c019e1cb',['sweets','Desserts']],
+  ['Belgian Chocolate Scoop',99,'Rich Belgian dark chocolate ice cream','Ice Cream',true,'1488477304673-b2ec9e64591b',['sweets','Desserts']],
   ['Mango Sorbet',89,'Fresh Alphonso mango sorbet, dairy free','Ice Cream',true,'1501443762994-82bd5dace89a',['sweets','Desserts']],
   ['Fruit Waffle',139,'Belgian waffle with fresh fruits and maple syrup','Waffles',true,'1562376552-0d160a2f238d',['sweets','Desserts']],
 
   // 🌟 SEASON SPECIALS (→ various)
   ['Monsoon Kadhi Pakora',129,'Crispy pakoras in tangy gram flour kadhi','Seasonal',true,'1585937421612-70a008356fbe',['seasonal']],
-  ['Winter Gajar Halwa',119,'Slow-cooked carrot pudding with ghee and dry fruits','Seasonal',true,'1551024506-0bccd828d307',['seasonal','sweets']],
-  ['Summer Aam Panna',49,'Raw mango cooler with cumin and mint','Seasonal',true,'1556679343-c7306c1976bc',['seasonal','drinks']],
-  ['Corn Bhel Special',79,'Monsoon special boiled corn chaat with spices','Seasonal',true,'1601050690597-df0568f70950',['seasonal']],
+  ['Winter Gajar Halwa',119,'Slow-cooked carrot pudding with ghee and dry fruits','Seasonal',true,'1504674900247-0877df9cc836',['seasonal','sweets']],
+  ['Summer Aam Panna',49,'Raw mango cooler with cumin and mint','Seasonal',true,'1546173072-4e7b3da3e6d2',['seasonal','drinks']],
+  ['Corn Bhel Special',79,'Monsoon special boiled corn chaat with spices','Seasonal',true,'1601050690117-94f5f6fa8bd7',['seasonal']],
 
   // 🍎 FRESH FRUITS (→ Fresh Mart 9)
-  ['Mixed Fruit Bowl',89,'Seasonal mixed fruits: watermelon, grapes, papaya','Fruits',true,'1542838132-92c53300491e',['fruits']],
+  ['Mixed Fruit Bowl',89,'Seasonal mixed fruits: watermelon, grapes, papaya','Fruits',true,'1490474418585-ba9bad8fd0ea',['fruits']],
   ['Banana Bunch (6pc)',39,'Fresh ripe Cavendish bananas from local farms','Fruits',true,'1571771135-dbfb3761c08f',['fruits']],
   ['Watermelon Slice',49,'Chilled seedless watermelon cut and ready to eat','Fruits',true,'1587049352846-b452fe862888',['fruits']],
-  ['Papaya Bowl',59,'Fresh papaya cubes with lime and chaat masala','Fruits',true,'1598346762291-0bd22f247elf',['fruits']],
+  ['Papaya Bowl',59,'Fresh papaya cubes with lime and chaat masala','Fruits',true,'1519996409144-56c88f33e667',['fruits']],
   ['Apple Box (4pc)',79,'Fresh Red Delicious apples from Himachal Pradesh','Fruits',true,'1568702846914-96b305d2aaeb',['fruits']],
 
   // 💊 PHARMACY (→ Campus Pharmacy 8)
   ['Paracetamol 500mg (10pc)',29,'Fast-relief fever and pain tablets','Medicine',true,'1584308666744-24d55c2168ef',['pharmacy','medicine']],
-  ['Vitamin C Effervescent (10pc)',89,'Orange flavour Vitamin C 1000mg tablets','Supplement',true,'1584308666744-24d55c2168ef',['pharmacy','medicine']],
-  ['ORS Electrolyte Sachets (5pc)',49,'Oral rehydration salts for hydration and recovery','Medicine',true,'1584308666744-24d55c2168ef',['pharmacy','medicine']],
-  ['Antiseptic Cream 30g',59,'Dettol antiseptic cream for cuts and wounds','Medicine',true,'1584308666744-24d55c2168ef',['pharmacy','medicine']],
-  ['Digestion Relief Syrup 100ml',79,'Ayurvedic syrup for acidity and indigestion','Medicine',true,'1584308666744-24d55c2168ef',['pharmacy','medicine']],
+  ['Vitamin C Effervescent (10pc)',89,'Orange flavour Vitamin C 1000mg tablets','Supplement',true,'1471864190785-f26b28d47035',['pharmacy','medicine']],
+  ['ORS Electrolyte Sachets (5pc)',49,'Oral rehydration salts for hydration and recovery','Medicine',true,'1559839734-2b71ea197ec2',['pharmacy','medicine']],
+  ['Antiseptic Cream 30g',59,'Dettol antiseptic cream for cuts and wounds','Medicine',true,'1583947215259-0af27cab22c0',['pharmacy','medicine']],
+  ['Digestion Relief Syrup 100ml',79,'Ayurvedic syrup for acidity and indigestion','Medicine',true,'1571019613454-1cb2f99b2d8b',['pharmacy','medicine']],
 
   // 🧺 LAUNDRY (→ SpinClean 10)
   ['Express Wash (1kg)',49,'Clothes washed and dried within 4 hours','Laundry',true,'1582735689351-37b08f4c5f9c',['laundry','dry-wash']],
-  ['Dry Cleaning (per piece)',79,'Professional dry cleaning for delicate garments','Laundry',true,'1582735689351-37b08f4c5f9c',['laundry','dry-wash']],
-  ['Iron & Fold (5 items)',59,'Clothes ironed and neatly folded same day','Laundry',true,'1582735689351-37b08f4c5f9c',['laundry','dry-wash']],
-  ['Bulk Wash (3kg)',119,'Economy bulk wash for everyday campus clothes','Laundry',true,'1582735689351-37b08f4c5f9c',['laundry','dry-wash']],
-  ['Shoe Cleaning (pair)',89,'Deep clean and polish for sneakers and formals','Laundry',true,'1582735689351-37b08f4c5f9c',['laundry','dry-wash']],
+  ['Dry Cleaning (per piece)',79,'Professional dry cleaning for delicate garments','Laundry',true,'1558618666-fcd25c85cd64',['laundry','dry-wash']],
+  ['Iron & Fold (5 items)',59,'Clothes ironed and neatly folded same day','Laundry',true,'1523381210434-4ac3e85f1c31',['laundry','dry-wash']],
+  ['Bulk Wash (3kg)',119,'Economy bulk wash for everyday campus clothes','Laundry',true,'1545173168-9f1cba56e78b',['laundry','dry-wash']],
+  ['Shoe Cleaning (pair)',89,'Deep clean and polish for sneakers and formals','Laundry',true,'1542838132-92c53300491e',['laundry','dry-wash']],
 
   // 📚 STATIONARY (→ Campus Stationery Hub 11)
-  ['A4 Print (per page)',2,'Black & white laser print on 80gsm A4 paper','Print',true,'1497633762265-9d0213b5ec04',['stationary','print']],
-  ['Colour Print (per page)',8,'Vibrant colour print on premium gloss paper','Print',true,'1497633762265-9d0213b5ec04',['stationary','print']],
-  ['Spiral Notebook 200pg',79,'Premium spiral binding notebook for campus notes','Stationary',true,'1497633762265-9d0213b5ec04',['stationary','books']],
-  ['Blue Pen Set (5pc)',39,'Smooth-flow ballpoint pens — exam essential kit','Stationary',true,'1497633762265-9d0213b5ec04',['stationary']],
-  ['Geometry Box',99,'Complete geometry set with compass and protractor','Stationary',true,'1497633762265-9d0213b5ec04',['stationary']],
-  ['Highlighter Pack (4 colours)',59,'Pastel highlighters for notes and revision','Stationary',true,'1497633762265-9d0213b5ec04',['stationary']],
+  ['A4 Print (per page)',2,'Black & white laser print on 80gsm A4 paper','Print',true,'1524578271613-d3b8b5e26fb4',['stationary','print']],
+  ['Colour Print (per page)',8,'Vibrant colour print on premium gloss paper','Print',true,'1541961017774-22349e4a1262',['stationary','print']],
+  ['Spiral Notebook 200pg',79,'Premium spiral binding notebook for campus notes','Stationary',true,'1455390582262-e6bf2f4b3d6c',['stationary','books']],
+  ['Blue Pen Set (5pc)',39,'Smooth-flow ballpoint pens — exam essential kit','Stationary',true,'1471107191634-c93efea7bbba',['stationary']],
+  ['Geometry Box',99,'Complete geometry set with compass and protractor','Stationary',true,'1596495578065-6e0763fa1178',['stationary']],
+  ['Highlighter Pack (4 colours)',59,'Pastel highlighters for notes and revision','Stationary',true,'1585776583-0792eb2e2b37',['stationary']],
 
   // 🚲 CAMPUS RENTALS (→ Campus Rentals 12)
-  ['Bicycle Rental (per day)',99,'Atlas 21-speed bicycle for campus commute','Rental',true,'1558618666-fcd25c85cd64',['rental']],
-  ['Electric Scooter (per hour)',149,'Zero-emission scooter for quick campus trips','Rental',true,'1558618666-fcd25c85cd64',['rental']],
-  ['Umbrella Rental (per day)',19,'Heavy-duty monsoon umbrella rental','Rental',true,'1558618666-fcd25c85cd64',['rental']],
-  ['Laptop Charger Rental (per day)',49,'Universal laptop charger compatible with all brands','Rental',true,'1558618666-fcd25c85cd64',['rental']],
+  ['Bicycle Rental (per day)',99,'Atlas 21-speed bicycle for campus commute','Rental',true,'1507035895480-2b3156c31fc8',['rental']],
+  ['Electric Scooter (per hour)',149,'Zero-emission scooter for quick campus trips','Rental',true,'1571188648369-e48236c4a80a',['rental']],
+  ['Umbrella Rental (per day)',19,'Heavy-duty monsoon umbrella rental','Rental',true,'1523362628745-0c100150b504',['rental']],
+  ['Laptop Charger Rental (per day)',49,'Universal laptop charger compatible with all brands','Rental',true,'1496181133206-80ce9b88a853',['rental']],
   ['Power Bank Rental (per day)',39,'20000mAh fast-charge power bank rental','Rental',true,'1558618666-fcd25c85cd64',['rental']],
 ];
 
