@@ -114,8 +114,8 @@ const MENUS = [
   ['Highlighter Pack (4 colours)',59,'Pastel highlighters for notes and revision','Stationary',true,'1585776583-0792eb2e2b37',['stationary']],
 
   // 🚲 CAMPUS RENTALS (→ Campus Rentals 12)
-  ['Bicycle Rental (per day)',99,'Atlas 21-speed bicycle for campus commute','Rental',true,'1507035895480-2b3156c31fc8',['rental']],
-  ['Electric Scooter (per hour)',149,'Zero-emission scooter for quick campus trips','Rental',true,'1571188648369-e48236c4a80a',['rental']],
+  ['Bicycle Rental (per day)',99,'Atlas 21-speed bicycle for campus commute','Rental',true,'1485965120184-e220f721d03e',['rental']],
+  ['Electric Scooter (per hour)',149,'Zero-emission scooter for quick campus trips','Rental',true,'1569062019973-bc97e596bbce',['rental']],
   ['Umbrella Rental (per day)',19,'Heavy-duty monsoon umbrella rental','Rental',true,'1523362628745-0c100150b504',['rental']],
   ['Laptop Charger Rental (per day)',49,'Universal laptop charger compatible with all brands','Rental',true,'1496181133206-80ce9b88a853',['rental']],
   ['Power Bank Rental (per day)',39,'20000mAh fast-charge power bank rental','Rental',true,'1558618666-fcd25c85cd64',['rental']],
