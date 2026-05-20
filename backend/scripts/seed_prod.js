@@ -13,27 +13,55 @@ const RESTS = [
 ];
 
 const MENUS = [
+  // 🍛 Category: Biryani (All mapped with rich Unsplash images)
   ['Hyderabadi Chicken Biryani',249,'Fragrant basmati rice layered with tender chicken pieces and aromatic spices','Biryani',false,'1563379926898-05f4575a45d8'],
-  ['Paneer Butter Masala',199,'Rich creamy tomato gravy with soft cottage cheese cubes','Main Course',true,'1631452180519-c014fe39b1be'],
+  ['Paneer Tikka Biryani',219,'Rich basmati rice infused with tandoori paneer tikka cubes','Biryani',true,'1633945274405-b6c8069047b0'],
+  ['Veg Dum Biryani',189,'Slow-cooked fragrant rice layered with seasoned mixed vegetables','Biryani',true,'1544025162-d76694265947'],
+  ['Kolkata Chicken Biryani',269,'Classic fragrant biryani cooked with potato, egg, and tender chicken','Biryani',false,'1626777552726-4a6b54c97e46'],
+
+  // 🍕 Category: Pizza
+  ['Margherita Pizza',249,'Wood-fired pizza with fresh mozzarella, basil, and San Marzano sauce','Pizza',true,'1574071318508-1cdbab80d002'],
+  ['Peppy Paneer Pizza',279,'Soft paneer cubes, crisp capsicum, and spicy red paprika topping','Pizza',true,'1513104890138-7c749659a591'],
+  ['Double Cheese Margherita',269,'Extra loaded fresh mozzarella cheese over authentic marinara base','Pizza',true,'1604382354936-07c5d9983bd3'],
+  ['Spicy Chicken Pizza',299,'Grilled hot chicken chunks, onions, jalapenos, and mozzarella','Pizza',false,'1590947132387-155cc02f3212'],
+
+  // 🥗 Category: South Indian
   ['Masala Dosa',89,'Crispy golden crepe filled with spiced potato filling served with chutneys','South Indian',true,'1630383249896-424e482df921'],
+  ['Idli Sambar (4pc)',79,'Soft fluffy steamed rice cakes served with hot lentil sambar and coconut chutney','South Indian',true,'1589301760014-d929f3979dbc'],
+  ['Onion Uttapam',99,'Thick South Indian rice pancake topped with fresh chopped onions and coriander','South Indian',true,'1668236543090-82eba5ee5976'],
+  ['Medu Vada (3pc)',89,'Crispy, deep-fried savory lentil donuts paired with fresh coconut dip','South Indian',true,'1601050690117-94f5f6fa8bd7'],
+
+  // 🍔 Category: Burgers
+  ['Classic Smash Burger',199,'Double beef patty with cheddar, pickles, and secret sauce','Burgers',false,'1568901346375-23c9450c58cd'],
+  ['Paneer Tikka Burger',169,'Spiced paneer patty with mint mayo and fresh veggies','Burgers',true,'1550547660-d9450f859349'],
+  ['Crispy Chicken Burger',189,'Golden-fried hand-breaded chicken breast with fresh lettuce and mayo','Burgers',false,'1568901346375-23c9450c58cd'],
+  ['Veg Whopper Burger',159,'Flame-broiled plant-based patty with tangy pickles and fresh tomatoes','Burgers',true,'1550547660-d9450f859349'],
+
+  // 🥤 Category: Drinks
+  ['Filter Coffee',49,'Traditional South Indian filter coffee served hot and frothy','Drinks',true,'1509042239860-f550ce710b93'],
+  ['Lassi Sweet',69,'Chilled yogurt drink blended with sugar and cardamom','Drinks',true,'1488477181946-4d72e913d553'],
+  ['Oreo Milkshake',129,'Thick creamy shake blended with Oreo cookies and vanilla ice cream','Drinks',true,'1572490284235-7e7484d68b44'],
+  ['Cold Coffee',89,'Chilled coffee blended with milk, ice cream, and chocolate syrup','Drinks',true,'1461023058943-07fcbe16d735'],
+  ['Masala Chai',39,'Strong Assam tea brewed with cardamom, ginger, and cinnamon','Drinks',true,'1556679343-c7306c1976bc'],
+  ['Masala Soda',39,'Fizzy soda with lemon, spices, and black salt','Drinks',true,'1556679343-c7306c1976bc'],
+  ['Protein Shake',149,'Whey protein blended with banana, oats, and almond milk','Drinks',true,'1553530666-ba11a7da3888'],
+  ['Cookie Dough Shake',159,'Vanilla shake with cookie dough chunks and whipped cream','Drinks',true,'1572490284235-7e7484d68b44'],
+
+  // 🍜 Category: Chinese
+  ['Hakka Noodles',159,'Stir-fried noodles with crunchy vegetables and soy sauce','Chinese',true,'1569718212165-3a8922ada9f3'],
+  ['Chicken Manchurian',189,'Crispy chicken balls tossed in tangy Manchurian sauce','Chinese',false,'1525755662160-7547c42c0c24'],
+  ['Szechuan Paneer',169,'Crispy paneer cubes in fiery Szechuan pepper sauce','Chinese',true,'1534422298391-e4f8c172dddb'],
+  ['Veg Spring Rolls (6pc)',129,'Crispy rolls stuffed with cabbage, carrots, and glass noodles','Chinese',true,'1515669097368-22e68427d265'],
+  ['Dragon Fire Rice',179,'Spicy fried rice with chili oil, egg, and mixed vegetables','Chinese',false,'1603133872878-684f208fb84b'],
+  ['Hot & Sour Soup',99,'Classic Chinese soup with mushrooms, tofu, and chili vinegar','Chinese',true,'1547592166-23ac45744aec'],
+
+  // Additional Premium Dishes
+  ['Paneer Butter Masala',199,'Rich creamy tomato gravy with soft cottage cheese cubes','Main Course',true,'1631452180519-c014fe39b1be'],
   ['Chicken 65',179,'Spicy deep-fried chicken marinated in red chili and ginger','Starters',false,'1610057099431-d73a1c9d2f2b'],
   ['Curd Rice',79,'Cooling yogurt rice tempered with mustard seeds and curry leaves','Rice',true,'1585937421612-70a008356fbe'],
   ['Gulab Jamun (4pc)',99,'Soft milk dumplings soaked in rose-flavored sugar syrup','Desserts',true,'1666190199099-db67a1a1e212'],
-  ['Filter Coffee',49,'Traditional South Indian filter coffee served hot and frothy','Beverages',true,'1509042239860-f550ce710b93'],
-  ['Classic Smash Burger',199,'Double beef patty with cheddar, pickles, and secret sauce','Burgers',false,'1568901346375-23c9450c58cd'],
-  ['Margherita Pizza',249,'Wood-fired pizza with fresh mozzarella, basil, and San Marzano sauce','Pizza',true,'1574071318508-1cdbab80d002'],
   ['Loaded Fries',149,'Crispy fries topped with cheese sauce, jalapenos, and sour cream','Sides',true,'1573080496219-bb080dd43f0c'],
   ['Grilled Chicken Wrap',179,'Tender grilled chicken with lettuce, tomato in a flour tortilla','Wraps',false,'1626700051175-6818013e1d4f'],
-  ['Oreo Milkshake',129,'Thick creamy shake blended with Oreo cookies and vanilla ice cream','Shakes',true,'1572490284235-7e7484d68b44'],
-  ['Paneer Tikka Burger',169,'Spiced paneer patty with mint mayo and fresh veggies','Burgers',true,'1550547660-d9450f859349'],
-  ['Hakka Noodles',159,'Stir-fried noodles with crunchy vegetables and soy sauce','Noodles',true,'1569718212165-3a8922ada9f3'],
-  ['Chicken Manchurian',189,'Crispy chicken balls tossed in tangy Manchurian sauce','Chinese',false,'1525755662160-7547c42c0c24'],
-  ['Veg Spring Rolls (6pc)',129,'Crispy rolls stuffed with cabbage, carrots, and glass noodles','Starters',true,'1515669097368-22e68427d265'],
-  ['Dragon Fire Rice',179,'Spicy fried rice with chili oil, egg, and mixed vegetables','Rice',false,'1603133872878-684f208fb84b'],
-  ['Szechuan Paneer',169,'Crispy paneer cubes in fiery Szechuan pepper sauce','Chinese',true,'1534422298391-e4f8c172dddb'],
-  ['Hot & Sour Soup',99,'Classic Chinese soup with mushrooms, tofu, and chili vinegar','Soups',true,'1547592166-23ac45744aec'],
-  ['Masala Chai',39,'Strong Assam tea brewed with cardamom, ginger, and cinnamon','Hot Drinks',true,'1556679343-c7306c1976bc'],
-  ['Cold Coffee',89,'Chilled coffee blended with milk, ice cream, and chocolate syrup','Cold Drinks',true,'1461023058943-07fcbe16d735'],
   ['Vada Pav',49,'Mumbai-style spicy potato fritter in a soft bun with chutneys','Snacks',true,'1606491956689-2ea866880049'],
   ['Samosa (2pc)',39,'Crispy fried pastry filled with spiced potatoes and peas','Snacks',true,'1601050690117-94f5f6fa8bd7'],
   ['Bread Omelette',69,'Fluffy egg omelette with onions and chilies served with toast','Snacks',false,'1525351484163-7529414344d8'],
@@ -45,12 +73,10 @@ const MENUS = [
   ['Garlic Naan',49,'Soft tandoor-baked bread topped with garlic and butter','Breads',true,'1565557623262-b51c2513a641'],
   ['Tandoori Chicken Half',199,'Half chicken marinated in yogurt and spices, chargrilled','Tandoori',false,'1599487488170-d11ec9c172f0'],
   ['Paneer Tikka',179,'Cubes of paneer marinated and grilled in tandoor','Starters',true,'1567188040759-fb8a883dc6d8'],
-  ['Lassi Sweet',69,'Chilled yogurt drink blended with sugar and cardamom','Beverages',true,'1488477181946-4d72e913d553'],
   ['Quinoa Power Bowl',219,'Quinoa with roasted chickpeas, avocado, and tahini dressing','Bowls',true,'1512621776951-a57141f2eefd'],
   ['Acai Smoothie Bowl',199,'Blended acai berries topped with granola, banana, and seeds','Bowls',true,'1590301157890-4810ed352733'],
   ['Grilled Veggie Wrap',159,'Roasted vegetables with hummus in a whole wheat wrap','Wraps',true,'1626700051175-6818013e1d4f'],
   ['Caesar Salad',179,'Romaine lettuce with parmesan, croutons, and Caesar dressing','Salads',true,'1550304943-4f24f54ddde9'],
-  ['Protein Shake',149,'Whey protein blended with banana, oats, and almond milk','Drinks',true,'1553530666-ba11a7da3888'],
   ['Avocado Toast',139,'Sourdough toast with smashed avocado, cherry tomatoes, seeds','Breakfast',true,'1541519227354-08fa5d50c44d'],
   ['Pav Bhaji',99,'Spicy mashed vegetable curry with buttered soft pav','Street Food',true,'1606491956689-2ea866880049'],
   ['Pani Puri (8pc)',59,'Crispy hollow puris filled with spicy tangy water','Chaat',true,'1601050690117-94f5f6fa8bd7'],
@@ -58,16 +84,23 @@ const MENUS = [
   ['Bhel Puri',49,'Puffed rice mixed with chutneys, onions, and sev','Chaat',true,'1565557623262-b51c2513a641'],
   ['Misal Pav',89,'Spicy sprouted moth beans curry with crunchy farsan','Street Food',true,'1585937421612-70a008356fbe'],
   ['Ragda Pattice',79,'Crispy potato patties topped with white peas curry','Chaat',true,'1601050690597-df0568f70950'],
-  ['Masala Soda',39,'Fizzy soda with lemon, spices, and black salt','Drinks',true,'1556679343-c7306c1976bc'],
   ['Belgian Chocolate Scoop',99,'Rich Belgian dark chocolate ice cream','Ice Cream',true,'1563805042-7684c019e1cb'],
   ['Mango Sorbet',89,'Fresh Alphonso mango sorbet, dairy free','Ice Cream',true,'1501443762994-82bd5dace89a'],
-  ['Cookie Dough Shake',159,'Vanilla shake with cookie dough chunks and whipped cream','Shakes',true,'1572490284235-7e7484d68b44'],
   ['Brownie Sundae',179,'Warm fudge brownie with vanilla ice cream and hot chocolate','Desserts',true,'1551024506-0bccd828d307'],
   ['Strawberry Cheesecake',149,'Creamy baked cheesecake with strawberry compote','Desserts',true,'1565958011703-44f9829ba187'],
   ['Fruit Waffle',139,'Belgian waffle with fresh fruits, ice cream, and maple syrup','Waffles',true,'1562376552-0d160a2f238d'],
 ];
 
-const MENU_MAP = [0,0,0,0,0,0,0, 1,1,1,1,1,1, 2,2,2,2,2,2, 3,3,3,3,3,3,3, 4,4,4,4,4,4,4, 5,5,5,5,5,5, 6,6,6,6,6,6,6, 7,7,7,7,7,7];
+// Dynamically maps each index in MENUS to one of the 8 Restaurants
+const MENU_MAP = [
+  0,0,0,0, // Biryani -> Spice Garden
+  1,1,1,1, // Pizza -> Urban Bites
+  0,0,0,0, // South Indian -> Spice Garden
+  1,1,1,1, // Burgers -> Urban Bites
+  3,7,7,7,3,3,7,7, // Drinks -> Chai & Chill / Frozen Bliss
+  2,2,2,2,2,2, // Chinese -> Dragon Wok
+  4,4,0,7,1,1,6,3,3,3,3,4,4,4,4,4,4,5,5,5,5,5,6,6,6,6,6,6,7,7,7,7,7 // Additional items mapped properly
+];
 
 const USERS = [
   { name:'Arjun Reddy', phone:'9876543210', password:'student123', email:'arjun@srmap.edu.in', hostelBlock:'Block A', roomNumber:'204', walletBalance:350, streakCount:5, totalOrders:12, completedOrders:11, role:'student', zenPoints:240, isElite:true, address:'Block A, Room 204, SRM AP', city:'Amaravathi', dietaryPreference:'None', badges:['First Order','Streak Master','Night Owl'] },
@@ -103,7 +136,7 @@ const CONFIGS = [
 async function seedProduction(sequelize) {
   const { Restaurant, MenuItem, User, DeliveryPartner, VaultItem, GlobalConfig, Coupon, CommunityPost } = sequelize.models;
 
-  // Clear existing
+  // Clear existing Menu, Coupons, Posts, Vault, Configs
   await MenuItem.destroy({ where: {}, force: true });
   await Coupon.destroy({ where: {}, force: true });
   await CommunityPost.destroy({ where: {}, force: true });
