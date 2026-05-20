@@ -446,7 +446,7 @@ export default function Home() {
   };
 
   const toggleFavorite = (idOrItem: string | Record<string, unknown>) => {
-    const id = typeof idOrItem === 'string' ? idOrItem : (idOrItem?.id || idOrItem?._id);
+    const id = (typeof idOrItem === 'string' ? idOrItem : (idOrItem?.id || idOrItem?._id)) as string;
     if (!id) return;
     setFavorites(prev => {
       const next = prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id];
