@@ -237,7 +237,7 @@ const startServer = async () => {
         }
       }
     } else {
-      // Production: Just log the state, NEVER auto-seed
+      // Production: Auto-seed if database is completely empty (fresh deploy)
       const { getUserModel } = require('./models/User');
       const User = getUserModel();
       if (User) {
@@ -247,8 +247,19 @@ const startServer = async () => {
         const Restaurant = instance.models.Restaurant;
         const restCount = Restaurant ? await Restaurant.count() : 0;
         console.log(`📊 [PROD_STATUS] Users: ${userCount}, Restaurants: ${restCount}`);
-        if (userCount === 0 || restCount === 0) {
-          console.warn('⚠️ [PROD_WARN] Database appears empty. Use POST /api/seed with JWT_SECRET to manually seed.');
+        if (userCount === 0 && restCount === 0) {
+          console.log('🌱 [PROD_SEED] Empty database detected. Auto-seeding demo data...');
+          try {
+            const seedPath = require('path').join(__dirname, 'scripts', 'seed_full.js');
+            delete require.cache[seedPath]; // Clear cache
+            // Inline the seed logic instead of running the script (which calls connectDB again)
+            const { seedProduction } = require('./scripts/seed_prod');
+            await seedProduction(instance);
+            console.log('✅ [PROD_SEED] Database seeded successfully!');
+          } catch (seedErr) {
+            console.warn('⚠️ [PROD_SEED] Auto-seed failed:', seedErr.message);
+            console.warn('⚠️ Use POST /api/seed with JWT_SECRET to manually seed.');
+          }
         }
       }
     }
