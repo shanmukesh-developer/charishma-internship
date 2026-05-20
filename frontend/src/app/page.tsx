@@ -942,7 +942,7 @@ export default function Home() {
                             <h3 className="text-xs font-black text-white">{item.name}</h3>
                             <div className="flex justify-between items-start mt-1 gap-2 min-w-0 overflow-hidden">
                               <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate min-w-0 flex-1" title={item.restaurantName}>{item.restaurantName}</span>
-                              <span className="text-[13px] font-black shrink-0 text-primary-yellow">₹{item.price}</span>
+                              <span className="text-[13px] font-black shrink-0 pr-1 block text-primary-yellow">₹{item.price}</span>
                             </div>
                           </div>
                         </Link>
@@ -987,7 +987,7 @@ export default function Home() {
                           <h3 className="font-bold text-[15px] text-white mb-1">{item.name}</h3>
                           <div className="flex items-start justify-between gap-2 min-w-0 overflow-hidden mt-1">
                             <p className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate min-w-0 flex-1" title={item.restaurantName}>{item.restaurantName}</p>
-                            <span className="text-[13px] font-black shrink-0 text-primary-yellow">₹{item.price}</span>
+                            <span className="text-[13px] font-black shrink-0 pr-1 block text-primary-yellow">₹{item.price}</span>
                           </div>
                         </div>
                       </Tilt>
@@ -1041,7 +1041,7 @@ export default function Home() {
                            <h3 className="text-xs font-black text-white">{item.name}</h3>
                            <div className="flex justify-between items-start mt-1 gap-2 min-w-0 overflow-hidden">
                              <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate min-w-0 flex-1" title={item.restaurantName}>{item.restaurantName}</span>
-                              <span className="text-[13px] font-black shrink-0 text-violet-400">₹{item.price}</span>
+                              <span className="text-[13px] font-black shrink-0 pr-1 block text-violet-400">₹{item.price}</span>
                            </div>
                         </div>
                       </Link>
@@ -1088,7 +1088,7 @@ export default function Home() {
                        <h3 className="text-xs font-black text-white">{item.name}</h3>
                        <div className="flex justify-between items-start mt-1 gap-2 min-w-0 overflow-hidden">
                            <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate min-w-0 flex-1" title={item.restaurantName}>{item.restaurantName}</span>
-                          <span className="text-[13px] font-black shrink-0 text-cyan-400">₹{item.price}</span>
+                          <span className="text-[13px] font-black shrink-0 pr-1 block text-cyan-400">₹{item.price}</span>
                        </div>
                     </div>
                   </Link>
@@ -1128,7 +1128,7 @@ export default function Home() {
                        <h3 className="text-xs font-black text-white">{item.name}</h3>
                        <div className="flex justify-between items-start mt-1 gap-2 min-w-0 overflow-hidden">
                            <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate min-w-0 flex-1" title={item.restaurantName}>{item.restaurantName}</span>
-                          <span className="text-[13px] font-black shrink-0 text-rose-400">₹{item.price}</span>
+                          <span className="text-[13px] font-black shrink-0 pr-1 block text-rose-400">₹{item.price}</span>
                        </div>
                     </div>
                   </Link>
@@ -1166,7 +1166,7 @@ export default function Home() {
                        <h3 className="text-xs font-black text-white">{item.name}</h3>
                        <div className="flex justify-between items-start mt-1 gap-2 min-w-0 overflow-hidden">
                            <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate min-w-0 flex-1" title={item.restaurantName}>{item.restaurantName}</span>
-                          <span className="text-[13px] font-black shrink-0 text-[#A5B4FC]">₹{item.price}</span>
+                          <span className="text-[13px] font-black shrink-0 pr-1 block text-[#A5B4FC]">₹{item.price}</span>
                        </div>
                     </div>
                   </Link>
@@ -1204,7 +1204,7 @@ export default function Home() {
                        <h3 className="text-xs font-black text-white">{item.name}</h3>
                        <div className="flex justify-between items-start mt-1 gap-2 min-w-0 overflow-hidden">
                            <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate min-w-0 flex-1" title={item.restaurantName}>{item.restaurantName}</span>
-                          <span className="text-[13px] font-black shrink-0 text-[#C9A84C]">₹{item.price}</span>
+                          <span className="text-[13px] font-black shrink-0 pr-1 block text-[#C9A84C]">₹{item.price}</span>
                        </div>
                     </div>
                   </Link>
@@ -1249,7 +1249,7 @@ export default function Home() {
                            <h3 className="text-xs font-black text-white">{item.name}</h3>
                            <div className="flex justify-between items-start mt-1 gap-2">
                              <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate flex-1">{item.restaurantName}</span>
-                             <span className="text-[13px] font-black shrink-0 text-amber-500">₹{item.price}/day</span>
+                             <span className="text-[13px] font-black shrink-0 pr-1 block text-amber-500">₹{item.price}/day</span>
                            </div>
                         </div>
                       </div>
@@ -1297,7 +1297,7 @@ export default function Home() {
                            <h3 className="text-xs font-black text-white">{item.name}</h3>
                            <div className="flex justify-between items-start mt-1 gap-2">
                              <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate flex-1">{item.restaurantName}</span>
-                             <span className="text-[13px] font-black shrink-0 text-emerald-400">₹{item.price}</span>
+                             <span className="text-[13px] font-black shrink-0 pr-1 block text-emerald-400">₹{item.price}</span>
                            </div>
                         </div>
                       </Link>
@@ -1338,7 +1338,7 @@ export default function Home() {
                            <h3 className="text-xs font-black text-white">{item.name}</h3>
                            <div className="flex justify-between items-start mt-1 gap-2">
                              <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate flex-1">{item.restaurantName}</span>
-                             <span className="text-[13px] font-black shrink-0 text-rose-400">₹{item.price}</span>
+                             <span className="text-[13px] font-black shrink-0 pr-1 block text-rose-400">₹{item.price}</span>
                            </div>
                         </div>
                       </Link>
@@ -1379,7 +1379,7 @@ export default function Home() {
                            <h3 className="text-xs font-black text-white">{item.name}</h3>
                            <div className="flex justify-between items-start mt-1 gap-2">
                              <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate flex-1">{item.restaurantName}</span>
-                             <span className="text-[13px] font-black shrink-0 text-blue-400">₹{item.price}/kg</span>
+                             <span className="text-[13px] font-black shrink-0 pr-1 block text-blue-400">₹{item.price}/kg</span>
                            </div>
                         </div>
                       </Link>
