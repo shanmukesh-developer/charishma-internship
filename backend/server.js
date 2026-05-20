@@ -248,7 +248,7 @@ const startServer = async () => {
         const restCount = Restaurant ? await Restaurant.count() : 0;
         const MenuItem = instance.models.MenuItem;
         const menuCount = MenuItem ? await MenuItem.count() : 0;
-        if (restCount === 0 || menuCount < 50) {
+        if (restCount === 0 || menuCount < 80) {
           console.log(`🌱 [PROD_SEED] Catalog needs seeding (Restaurants: ${restCount}, MenuItems: ${menuCount}). Seeding...`);
           try {
             const seedPath = require('path').join(__dirname, 'scripts', 'seed_full.js');
