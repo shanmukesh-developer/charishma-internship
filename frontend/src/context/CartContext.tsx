@@ -35,6 +35,8 @@ export interface CartItem {
   isCake?: boolean;
   customName?: string;
   customizations?: Customizations;
+  addedBy?: string;
+  addedById?: string;
 }
 
 interface CartContextType {
@@ -181,15 +183,30 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [cart, isLoaded]);
 
-  const addToCart = (item: Omit<CartItem, 'quantity' | 'cartKey' | 'basePrice'> & { quantity?: number; basePrice?: number; imageUrl?: string }) => {
+  const addToCart = (item: Omit<CartItem, 'quantity' | 'cartKey' | 'basePrice' | 'addedBy' | 'addedById'> & { quantity?: number; basePrice?: number; imageUrl?: string; addedBy?: string; addedById?: string }) => {
     const cartKey = generateCartKey(item.id, item.customizations);
     const basePrice = item.basePrice || item.price;
+    
+    // Determine user info
+    let userName = 'Guest Roommate';
+    let userId = 'guest';
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.name) userName = parsed.name;
+        if (parsed._id) userId = parsed._id;
+      }
+    } catch {}
+
     const itemWithQty: CartItem = {
       ...item,
       cartKey,
       basePrice,
       quantity: item.quantity || 1,
       image: item.image || (item as any).imageUrl || '',
+      addedBy: item.addedBy || userName,
+      addedById: item.addedById || userId,
     };
 
     // Multi-restaurant is now allowed — delivery fee scales with restaurant count

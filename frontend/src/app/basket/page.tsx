@@ -22,6 +22,8 @@ interface CartItem {
   isCake?: boolean;
   customName?: string;
   customizations?: Record<string, any>;
+  addedBy?: string;
+  addedById?: string;
 }
 
 interface BasketItemProps {
@@ -64,6 +66,13 @@ function BasketItem({ item, updateQuantity, removeFromCart, updateCustomName }: 
                   {part}
                 </span>
               ))}
+            </div>
+          )}
+
+          {item.addedBy && (
+            <div className="flex items-center gap-1.5 mb-3">
+              <span className="w-4 h-4 bg-primary-yellow/20 text-primary-yellow rounded-full flex items-center justify-center text-[8px]">👤</span>
+              <span className="text-[10px] text-white/50 font-bold uppercase tracking-wider">Added by <span className="text-white">{item.addedBy}</span></span>
             </div>
           )}
 
@@ -127,11 +136,11 @@ export default function BasketPage() {
     setInputCode('');
   };
 
-  // Group items by restaurant for display
-  const groupedByRestaurant = cart.reduce<Record<string, { name: string; items: CartItem[] }>>((acc, item) => {
-    const rId = item.restaurantId;
-    if (!acc[rId]) acc[rId] = { name: item.restaurantName || 'Unknown', items: [] };
-    acc[rId].items.push(item as CartItem);
+  // Group items by user who added them
+  const groupedByUser = cart.reduce<Record<string, { items: CartItem[] }>>((acc, item) => {
+    const userKey = item.addedBy || 'Guest Roommate';
+    if (!acc[userKey]) acc[userKey] = { items: [] };
+    acc[userKey].items.push(item as CartItem);
     return acc;
   }, {});
 
@@ -246,26 +255,26 @@ export default function BasketPage() {
           <div className="space-y-6">
             <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
               {/* Group by restaurant */}
-              {Object.entries(groupedByRestaurant).map(([rId, group]) => (
-                <div key={rId} className="mb-6">
-                  {uniqueRestaurants > 1 && (
-                    <div className="flex items-center gap-2 mb-3 px-1">
-                      <div className="w-2 h-2 bg-[#38BDF8] rounded-full" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-[#38BDF8]/60">{group.name}</span>
-                      <div className="flex-1 h-px bg-white/5" />
-                      <span className="text-[9px] font-bold text-white/20">₹30 delivery</span>
-                    </div>
-                  )}
-                  {group.items.map((item) => (
-                    <Tilt key={item.cartKey || item.id} scale={1.01} className="mb-4">
-                      <BasketItem 
-                        item={item} 
-                        updateQuantity={updateQuantity} 
-                        removeFromCart={removeFromCart} 
-                        updateCustomName={updateCustomName} 
-                      />
-                    </Tilt>
-                  ))}
+              {/* Group by user */}
+              {Object.entries(groupedByUser).map(([userName, group]) => (
+                <div key={userName} className="mb-6">
+                  <h2 className="text-xs font-black uppercase tracking-[0.2em] text-white/40 mb-4 px-2 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-white/60">👤</span>
+                    {userName}'s Items
+                  </h2>
+                  <div className="space-y-4">
+                    {group.items.map((item) => (
+                      <Tilt key={item.cartKey || item.id} scale={1.01} className="mb-4">
+                        <BasketItem 
+                          key={item.cartKey || item.id} 
+                          item={item} 
+                          updateQuantity={updateQuantity}
+                          removeFromCart={removeFromCart}
+                          updateCustomName={updateCustomName}
+                        />
+                      </Tilt>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
