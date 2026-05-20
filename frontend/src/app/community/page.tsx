@@ -312,9 +312,9 @@ export default function CommunityPage() {
                 </p>
               )}
 
-              <div className="flex items-end justify-between mt-auto pt-2">
+              <div className="flex items-end justify-between mt-auto pt-2 gap-2">
                 {/* Author Info */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                   <div className="w-6 h-6 rounded-full overflow-hidden border border-black/10 bg-gray-200 shrink-0 shadow-sm">
                     {post.userAvatar ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -325,9 +325,9 @@ export default function CommunityPage() {
                       </div>
                     )}
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-black/90 uppercase tracking-tight">{post.userName}</span>
-                    <span className="text-[7px] font-bold text-black/40 uppercase tracking-widest">{formatTime(post.createdAt)}</span>
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-[10px] font-black text-black/90 uppercase tracking-tight truncate">{post.userName}</span>
+                    <span className="text-[7px] font-bold text-black/40 uppercase tracking-widest truncate">{formatTime(post.createdAt)}</span>
                   </div>
                 </div>
 
@@ -335,15 +335,15 @@ export default function CommunityPage() {
                 {!isReply && (() => {
                   const { label, urgent } = getTimeLeft(post.expiresAt);
                   return (
-                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest ${urgent ? 'text-orange-500 border-orange-300 bg-orange-50' : 'text-black/30 border-black/10 bg-white/60'}`}>
-                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <div className={`shrink-0 whitespace-nowrap flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest ${urgent ? 'text-orange-500 border-orange-300 bg-orange-50' : 'text-black/30 border-black/10 bg-white/60'}`}>
+                      <svg className="w-2.5 h-2.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       {label}
                     </div>
                   );
                 })()}
 
                 {/* Actions */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={(e) => { e.stopPropagation(); handleLike(post.id, post.likedBy || []); }}
                     className={`flex items-center gap-1 active:scale-90 transition-transform ${isLiked ? 'text-red-500' : 'text-black/30 hover:text-red-400'}`}
