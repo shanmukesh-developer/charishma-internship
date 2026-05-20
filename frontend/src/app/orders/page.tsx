@@ -131,13 +131,13 @@ export default function OrdersPage() {
                 🍽️
               </div>
             </div>
-            <h2 className="text-2xl font-black mb-3 tracking-tight text-white uppercase italic">Zero Missions</h2>
+            <h2 className="text-2xl font-black mb-3 tracking-tight text-white uppercase italic">No Orders Yet</h2>
             <p className="text-secondary-text text-xs mb-10 max-w-[280px] font-bold leading-relaxed uppercase tracking-widest opacity-60">
-              The Nexus data streams are quiet. <br/>
-              Initiate your first culinary objective today.
+              You haven't placed any orders yet. <br/>
+              Let's order some delicious campus food!
             </p>
             <Link href="/" className="btn-yellow px-10 py-4 text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(201,168,76,0.2)] hover:shadow-[0_15px_40px_rgba(201,168,76,0.3)] transition-all active:scale-95">
-              Browse Node Directory
+              Explore Canteens
             </Link>
           </div>
         ) : (
@@ -184,15 +184,15 @@ export default function OrdersPage() {
                   {isExpanded && (
                     <div className="mt-6 animate-in fade-in slide-in-from-top-2">
                        <div className="bg-black/20 rounded-2xl p-4 border border-white/5 mb-4">
-                          <p className="text-[8px] font-black uppercase text-secondary-text tracking-[0.2em] mb-3 text-center">Security Verification Details</p>
+                          <p className="text-[8px] font-black uppercase text-secondary-text tracking-[0.2em] mb-3 text-center">Order Delivery Details</p>
                           <div className="flex justify-between items-center bg-[#C9A84C]/10 p-4 rounded-xl border border-[#C9A84C]/20">
                              <div>
-                                <p className="text-[7px] font-black uppercase text-[#C9A84C] tracking-widest">Security Number</p>
+                                <p className="text-[7px] font-black uppercase text-[#C9A84C] tracking-widest">Delivery OTP PIN</p>
                                 <p className="text-xl font-black text-white tracking-[0.2em]">{order.deliveryPin || 'WAIT'}</p>
                              </div>
                              <div className="text-right">
-                                <p className="text-[7px] font-black uppercase text-secondary-text tracking-widest">Handshake Req.</p>
-                                <p className="text-[9px] font-bold text-white/50">Show to Rider</p>
+                                <p className="text-[7px] font-black uppercase text-secondary-text tracking-widest">Verification PIN</p>
+                                <p className="text-[9px] font-bold text-white/50">Show to Delivery Partner</p>
                              </div>
                           </div>
                           
@@ -209,7 +209,7 @@ export default function OrdersPage() {
                        <div className="space-y-2 mb-4">
                           {order.items.map((item, idx) => (
                              <div key={idx} className="flex justify-between text-[11px] font-bold text-secondary-text">
-                                <span><span className="text-primary-yellow mr-2">{item.quantity}x</span> {item.name || 'Nexus Item'}</span>
+                                <span><span className="text-primary-yellow mr-2">{item.quantity}x</span> {item.name || 'Menu Item'}</span>
                                 <span>₹{(item.priceAtOrder || 0) * item.quantity}</span>
                              </div>
                           ))}

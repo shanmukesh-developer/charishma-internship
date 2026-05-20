@@ -9,6 +9,7 @@ interface Props {
 
 export default function CheckoutProcessingModal({ isOpen, status, errorMessage }: Props) {
   const [step, setStep] = useState(0);
+  const [sparkles, setSparkles] = useState<{ id: number; x: number; y: number }[]>([]);
 
   useEffect(() => {
     if (!isOpen || status !== 'processing') return;
@@ -17,6 +18,24 @@ export default function CheckoutProcessingModal({ isOpen, status, errorMessage }
     const t2 = setTimeout(() => setStep(2), 1600);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [isOpen, status]);
+
+  useEffect(() => {
+    if (status === 'success') {
+      // Explode 12 golden star particles in a radial burst
+      const particles = Array.from({ length: 12 }).map((_, i) => {
+        const angle = (i * 2 * Math.PI) / 12;
+        const distance = 50 + Math.random() * 50;
+        return {
+          id: i,
+          x: Math.cos(angle) * distance,
+          y: Math.sin(angle) * distance
+        };
+      });
+      setSparkles(particles);
+    } else {
+      setSparkles([]);
+    }
+  }, [status]);
 
   if (!isOpen) return null;
 
@@ -47,8 +66,24 @@ export default function CheckoutProcessingModal({ isOpen, status, errorMessage }
         
         {status === 'success' && (
           <div className="animate-in zoom-in duration-500">
-            <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center text-5xl mx-auto mb-6 text-black shadow-[0_0_50px_rgba(16,185,129,0.5)]">
-              ✓
+            <div className="relative w-24 h-24 mx-auto mb-6">
+              <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center text-5xl text-black shadow-[0_0_50px_rgba(16,185,129,0.5)] relative z-10">
+                ✓
+              </div>
+              {sparkles.map(s => (
+                <div
+                  key={s.id}
+                  className="sparkle-particle"
+                  style={{
+                    left: '50%',
+                    top: '50%',
+                    marginLeft: '-3px',
+                    marginTop: '-3px',
+                    '--tw-sparkle-x': `${s.x}px`,
+                    '--tw-sparkle-y': `${s.y}px`
+                  } as React.CSSProperties}
+                />
+              ))}
             </div>
             <h2 className="text-2xl font-black text-white uppercase tracking-widest">Order Confirmed</h2>
             <p className="text-emerald-500 text-sm font-bold uppercase tracking-widest mt-2">Routing to Tracker...</p>

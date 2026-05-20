@@ -301,7 +301,7 @@ function TrackingContent() {
             </Link>
           </Magnetic>
           <div>
-            <h1 className="text-lg md:text-xl font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-gold-shimmer md:ml-4">Mission Tracking</h1>
+            <h1 className="text-lg md:text-xl font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-gold-shimmer md:ml-4">Order Tracking</h1>
             {orderId && (
               <p className="text-xs font-bold text-blue-400 uppercase tracking-widest md:ml-4 mt-1">Order #{orderId.slice(-6).toUpperCase()}</p>
             )}
@@ -314,7 +314,7 @@ function TrackingContent() {
                 onClick={() => setShowCancelConfirmation(true)}
                 className="px-5 py-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-black transition-all text-xs font-black uppercase tracking-wider rounded-full border border-red-500/20 shadow-lg shadow-red-500/10"
               >
-                Abort ({cancelSecondsLeft}s)
+                Cancel Order ({cancelSecondsLeft}s)
               </button>
             </Magnetic>
           )}
@@ -362,19 +362,19 @@ function TrackingContent() {
               homeCoord={homeCoord}
             />
             
-            {/* Mission HUD Overlays */}
+            {/* Delivery HUD Overlays */}
             <div className="absolute top-4 left-4 right-4 md:top-8 md:left-8 md:right-8 z-[1000] flex justify-between items-start pointer-events-none">
               <div className="bg-black/60 backdrop-blur-3xl px-4 py-3 md:px-6 md:py-4 rounded-2xl md:rounded-[32px] border border-white/10 shadow-2xl">
                 <h3 className="text-xs font-black text-primary-yellow uppercase tracking-wider mb-1 flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-                  Uplink: Active
+                  GPS Tracking: Active
                 </h3>
                 <p className="text-[10px] font-black text-white/50 uppercase tracking-wide">{currentCheckpoint?.toUpperCase()}</p>
               </div>
               
               {!isConnected && (
                 <div className="bg-red-500/10 backdrop-blur-xl px-4 py-2 border-red-500/30 rounded-2xl flex items-center gap-2">
-                  <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">Uplink Lost</span>
+                  <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">GPS Signal Lost</span>
                   <span className="animate-ping w-1.5 h-1.5 bg-red-500 rounded-full" />
                 </div>
               )}
@@ -444,7 +444,7 @@ function TrackingContent() {
           className={`flex-[2] glass-card p-4 md:p-6 border-[#C9A84C]/20 relative overflow-hidden transition-all ${orderInfo?.deliveryPartner ? 'cursor-pointer active:scale-95 hover:bg-white/[0.03]' : 'cursor-default'}`}
         >
            <div className="absolute top-0 right-0 p-2 opacity-5 pointer-events-none">
-              <span className="text-[40px] font-black italic">ELITE</span>
+              <span className="text-[40px] font-black italic">RIDER</span>
            </div>
            
            <div className="flex items-center gap-5 relative z-10">
@@ -464,20 +464,26 @@ function TrackingContent() {
                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                     <div>
                        <div className="flex items-center gap-1.5 mb-1">
-                         <p className="text-[11px] font-black uppercase tracking-wider text-primary-yellow">Delivery Captain</p>
+                         <p className="text-[11px] font-black uppercase tracking-wider text-primary-yellow">Delivery Rider</p>
                          <span className="bg-emerald-500/10 text-emerald-500 text-[10px] font-black px-1.5 py-0.5 rounded border border-emerald-500/20">VERIFIED</span>
                        </div>
                        <h3 className="text-sm font-black text-white">
-                         {orderInfo?.deliveryPartner?.name || 'Searching Captain...'} • {orderInfo?.deliveryPartner?.averageRating || '5.0'}⭐
+                         {orderInfo?.deliveryPartner?.name || 'Searching Rider...'} • {orderInfo?.deliveryPartner?.averageRating || '5.0'}⭐
                        </h3>
                        <p className="text-[11px] font-bold text-secondary-text uppercase tracking-wide mt-0.5">
                          {orderInfo?.deliveryPartner?.vehicleType || 'Zenvy Rider'} 
                          {orderInfo?.deliveryPartner?.vehicleNumber ? ` • ${orderInfo.deliveryPartner.vehicleNumber}` : ` # ${orderId?.slice(-4)}`}
                        </p>
                     </div>
-                    <div className="text-left sm:text-right w-full sm:w-auto">
+                    <div className="text-left sm:text-right w-full sm:w-auto flex flex-col items-start sm:items-end">
                         <p className="text-[11px] font-black text-secondary-text uppercase mb-1">{eta}</p>
                         <p className="text-xs font-black text-white italic">{status === 4 ? '0' : captainSpeed} km/h</p>
+                        <div className="w-20 h-1 bg-white/5 rounded-full overflow-hidden mt-1 relative shrink-0">
+                           <div 
+                             className="h-full bg-gradient-to-r from-[#D4A853] to-[#C9A84C] telemetry-bar-glow rounded-full"
+                             style={{ width: `${Math.min(100, Math.max(8, (Number(status === 4 ? 0 : captainSpeed) || 0) * 2.5))}%` }}
+                           />
+                         </div>
                        {roadEta !== null && (
                          <p className="text-[6px] font-bold text-primary-yellow mt-1">Road Distance Ready</p>
                        )}
@@ -499,12 +505,12 @@ function TrackingContent() {
         </div>
 
         <div className="flex-1 glass-card p-4 md:p-6 border-white/[0.05] flex flex-col justify-center items-center">
-           <p className="text-[11px] font-black uppercase tracking-wider text-primary-yellow mb-2 text-center">Security Status</p>
+           <p className="text-[11px] font-black uppercase tracking-wider text-primary-yellow mb-2 text-center">Delivery Status</p>
            <div className="flex items-center gap-2">
-              <span className="text-xl">{status === 4 ? '✅' : '🔒'}</span>
+              <span className="text-xl">{status === 4 ? '✅' : '🛵'}</span>
               <span className="text-sm font-black text-white">{status === 4 ? 'DELIVERED' : 'EN ROUTE'}</span>
            </div>
-           <p className="text-[10px] font-black text-secondary-text uppercase mt-2 text-center">End-to-End Encryption Active</p>
+           <p className="text-[10px] font-black text-secondary-text uppercase mt-2 text-center">Secure Delivery Active</p>
         </div>
       </div>
 
@@ -589,7 +595,7 @@ function TrackingContent() {
            <div className="bg-red-500/90 backdrop-blur-xl border border-white/20 rounded-3xl p-5 shadow-2xl flex items-center gap-5">
               <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl">⚠️</div>
               <div>
-                 <p className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-0.5">Tactical Alert: {activeIssue.senderRole}</p>
+                 <p className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-0.5">Delivery Alert: {activeIssue.senderRole}</p>
                  <p className="text-sm font-black text-white leading-tight">{activeIssue.issueType}</p>
                  <p className="text-[9px] text-white/50 mt-1 font-bold uppercase">{activeIssue.details || 'Immediate attention required'}</p>
               </div>

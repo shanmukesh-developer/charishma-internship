@@ -323,10 +323,6 @@ export default function CheckoutPage() {
       setModalConfig({ isOpen: true, title: 'Address Needed', message: 'Please enter a complete delivery address or select a campus.', type: 'error' });
       return;
     }
-    if (locationType !== 'other' && !landmark) {
-      setModalConfig({ isOpen: true, title: 'Room Details Needed', message: 'Please enter your hostel block and room number.', type: 'error' });
-      return;
-    }
     if (checkoutStatus !== 'idle') return;
     if (!paymentMethod) {
       setModalConfig({ isOpen: true, title: 'Payment Required', message: 'Please select a payment method.', type: 'error' });
@@ -520,8 +516,8 @@ export default function CheckoutPage() {
                   type="text"
                   value={landmark}
                   onChange={e => setLandmark(e.target.value)}
-                  placeholder={locationType === 'other' ? "Landmark (optional)" : "Hostel Block & Room No. (Required)"}
-                  className={`w-full pl-12 pr-5 py-4 bg-white/5 border rounded-2xl text-white placeholder-gray-500 outline-none transition-all text-sm ${locationType !== 'other' && !landmark ? 'border-[#C9A84C]/50 bg-[#C9A84C]/5' : 'border-white/10 focus:border-primary-yellow/40'}`}
+                  placeholder={locationType === 'other' ? "Landmark (optional)" : "Hostel Block & Room No. (Optional)"}
+                  className="w-full pl-12 pr-5 py-4 bg-white/5 border border-white/10 focus:border-primary-yellow/40 rounded-2xl text-white placeholder-gray-500 outline-none transition-all text-sm"
                 />
               </div>
             </div>

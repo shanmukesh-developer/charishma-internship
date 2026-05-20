@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -61,16 +61,47 @@ function LeafletTrackingMapSubContent({ currentCheckpoint, checkpoints, homeCoor
     });
   }, []);
 
-  useEffect(() => { setMounted(true); }, []);
-  if (!mounted) return null;
+  const [mapKey, setMapKey] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const cleanseDOM = () => {
+      if (typeof window !== 'undefined') {
+        if (containerRef.current) {
+          (containerRef.current as any)._leaflet_id = null;
+          const children = containerRef.current.getElementsByTagName('*');
+          for (let i = 0; i < children.length; i++) {
+            (children[i] as any)._leaflet_id = null;
+          }
+        }
+        const staleContainers = document.querySelectorAll('.leaflet-container');
+        staleContainers.forEach((el: any) => {
+          el._leaflet_id = null;
+          if (el.parentNode) (el.parentNode as any)._leaflet_id = null;
+        });
+      }
+    };
+
+    cleanseDOM();
+    setMounted(true);
+    setMapKey('leaflet-map-' + Math.random().toString(36).substring(7));
+
+    return () => {
+      cleanseDOM();
+    };
+  }, []);
+
+  if (!mounted || !mapKey) {
+    return <div className="w-full h-full bg-[#0B0B14]" />;
+  }
 
   const cpData = checkpoints.find(c => c.name === currentCheckpoint);
   const riderPos: [number, number] = cpData ? [cpData.lat, cpData.lng] : [checkpoints[0]?.lat || CAMPUS_CENTER[0], checkpoints[0]?.lng || CAMPUS_CENTER[1]];
 
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full relative" key={mapKey} ref={containerRef}>
       <MapContainer
-        key={mounted ? 'map-active' : 'map-loading'}
+        key={mapKey}
         center={riderPos}
         zoom={15}
         zoomControl={false}

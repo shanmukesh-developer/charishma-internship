@@ -43,6 +43,7 @@ interface CartContextType {
   updateQuantity: (cartKey: string, qty: number) => void;
   updateCustomName: (cartKey: string, name: string) => void;
   clearCart: () => void;
+  setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
   totalItems: number;
   totalPrice: number;
   uniqueRestaurants: number;
@@ -145,7 +146,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const deliveryFee = uniqueRestaurants * 30;
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, updateCustomName, clearCart, totalItems, totalPrice, uniqueRestaurants, deliveryFee }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, updateCustomName, clearCart, setCart, totalItems, totalPrice, uniqueRestaurants, deliveryFee }}>
       {children}
     </CartContext.Provider>
   );

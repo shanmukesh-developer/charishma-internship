@@ -694,8 +694,8 @@ export default function Home() {
 
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
                 <div className="flex flex-col">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-xl border border-white/10">
+                  <Link href="/profile" className="flex items-center gap-3 mb-2 group">
+                    <div className={`w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-xl border transition-all group-hover:scale-105 ${isElite ? 'vip-gold-halo border-transparent' : 'border-white/10'}`}>
                       👤
                     </div>
                     <div>
@@ -704,14 +704,14 @@ export default function Home() {
                       </h2>
                       <div className="flex items-center gap-2 pr-32 md:pr-0">
                         <h1 className="text-2xl font-black text-white tracking-widest uppercase truncate max-w-[200px] md:max-w-none" style={{ fontFamily: "'Syne', sans-serif" }}>
-                          {userName ? `OP_${userName.split(' ')[0]}` : 'OPERATIVE_UNIDENTIFIED'}
+                          {userName ? userName.replace(/^(OP_|op_|Op_)/g, '').split(' ')[0].toUpperCase() : 'GUEST'}
                         </h1>
                         {isElite && (
                           <span className="bg-primary-yellow/10 text-primary-yellow text-[8px] font-black px-2 py-0.5 rounded-full border border-primary-yellow/20 tracking-tighter shrink-0">ELITE</span>
                         )}
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 </div>
 
                 {/* 🎁 Rewards HUD */}
@@ -720,7 +720,7 @@ export default function Home() {
                    <div className="h-4 w-px bg-white/10" />
                    <div className="flex gap-4">
                       <div className="flex flex-col items-end">
-                         <span className="text-[7px] font-black text-[#C9A84C] uppercase tracking-widest mb-0.5 opacity-90">Nexus Credits</span>
+                         <span className="text-[7px] font-black text-[#C9A84C] uppercase tracking-widest mb-0.5 opacity-90">Zenvy Wallet</span>
                          <p className="text-[13px] font-black text-white tracking-tighter drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">₹{user?.walletBalance || 0}</p>
                       </div>
                       <div className="flex flex-col items-end">
@@ -756,12 +756,14 @@ export default function Home() {
                    <p className="text-[9px] font-bold text-secondary-text uppercase tracking-widest max-w-[280px] leading-relaxed mb-6">
                       Mission-critical speed. Zero friction. <br /> Delivering across Amaravathi.
                    </p>
-                   <button 
+                   <motion.button 
+                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.02 }}
                     onClick={() => document.getElementById('restaurant-feed')?.scrollIntoView({ behavior: 'smooth' })}
                     className="btn-yellow text-[10px] py-4 px-10 shadow-[0_0_30px_rgba(201,168,76,0.2)]"
                    >
                       IDENTIFY RESTAURANTS →
-                   </button>
+                   </motion.button>
                 </div>
                 {/* Stardust Aura Effect */}
                 <div className="absolute bottom-0 left-1/4 w-1/2 h-px bg-gradient-to-r from-transparent via-primary-yellow/40 to-transparent blur-sm" />
@@ -1004,12 +1006,6 @@ export default function Home() {
             className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-14 origin-left"
           />
 
-          <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-1 origin-left opacity-0" />
-
-         
-
-
-
           {/* 📚 Stationary & Printing */}
           <section className="mb-14">
             <div className="flex justify-between items-end mb-6">
@@ -1105,7 +1101,7 @@ export default function Home() {
           <section className="mb-14">
             <div className="flex justify-between items-end mb-6">
               <div>
-                <h2 className="text-[9px] font-black text-rose-400 uppercase tracking-[0.4em] mb-2">Artisanal Treats</h2>
+                <h2 className="text-[9px] font-black text-rose-400 uppercase tracking-[0.4em] mb-2">Delicious Desserts</h2>
                 <p className="text-xl font-black text-white uppercase">Sweets & Desserts</p>
               </div>
             </div>
@@ -1142,181 +1138,6 @@ export default function Home() {
           </section>
 
           {/* 🍹 Refreshing Drinks */}
-...
-          {/* 🚲 Campus Rentals: Explorer */}
-          <section className="mb-14">
-            <div className="flex justify-between items-end mb-6">
-              <div>
-                <h2 className="text-[9px] font-black text-amber-500 uppercase tracking-[0.4em] mb-2">Portal Mediator</h2>
-                <p className="text-xl font-black text-white">Campus Rentals</p>
-              </div>
-            </div>
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
-              {groupedCollections.rentals.length > 0 ? (
-                groupedCollections.rentals.map((item) => (
-                  <motion.div 
-                    key={item.id}
-                    style={{ perspective: 1000 }}
-                  >
-                    <Tilt>
-                      <div 
-                        onClick={() => setSelectedRental(item)}
-                        className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform premium-card-hover rounded-[30px] cursor-pointer"
-                      >
-                        <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-amber-500/30 transition-colors">
-                            <SafeImage src={item.image || item.imageUrl} alt={item.name} fill />
-                            <div className="absolute top-4 left-4 bg-amber-500 text-black text-[7px] font-black px-2 py-1 rounded-md uppercase tracking-widest shadow-lg">Rental</div>
-                        </div>
-                        <div className="mt-3">
-                           <h3 className="text-xs font-black text-white">{item.name}</h3>
-                           <div className="flex justify-between items-start mt-1 gap-2">
-                             <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate flex-1">{item.restaurantName}</span>
-                             <span className="text-[10px] font-black shrink-0 text-amber-500">₹{item.price}/day</span>
-                           </div>
-                        </div>
-                      </div>
-                    </Tilt>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="w-full flex flex-col items-center justify-center py-10 px-6 border border-white/5 rounded-[30px] bg-white/[0.02]">
-                   <span className="text-4xl mb-4 opacity-50">🚲</span>
-                   <p className="text-xs font-black text-secondary-text uppercase tracking-widest">No Active Rentals Currently</p>
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* 🍎 Fresh Fruits: Vitality */}
-          <section className="mb-14">
-            <div className="flex justify-between items-end mb-6">
-              <div>
-                <h2 className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.4em] mb-2">Nexus Vitality</h2>
-                <p className="text-xl font-black text-white">Fresh Fruits</p>
-              </div>
-            </div>
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
-              {groupedCollections.fruits.length > 0 ? (
-                groupedCollections.fruits.map((item) => (
-                  <motion.div 
-                    key={item.id}
-                    style={{ perspective: 1000 }}
-                  >
-                    <Tilt>
-                      <Link href={`/products/${item.id}`} className="relative shrink-0 w-[200px] block group active:scale-95 transition-transform premium-card-hover rounded-[30px]">
-                        <div className="aspect-square relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-emerald-500/30 transition-colors">
-                            <SafeImage src={item.image || item.imageUrl} alt={item.name} fill />
-                            <button 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.id!); }}
-                              className={`absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center transition-all z-20 ${(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? 'bg-primary-yellow text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-md hover:bg-black/60'}`}
-                            >
-                              <svg className="w-4.5 h-4.5" fill={(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                              </svg>
-                            </button>
-                        </div>
-                        <div className="mt-3">
-                           <h3 className="text-xs font-black text-white">{item.name}</h3>
-                           <div className="flex justify-between items-start mt-1 gap-2">
-                             <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate flex-1">{item.restaurantName}</span>
-                             <span className="text-[10px] font-black shrink-0 text-emerald-400">₹{item.price}</span>
-                           </div>
-                        </div>
-                      </Link>
-                    </Tilt>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="w-full flex flex-col items-center justify-center py-10 px-6 border border-white/5 rounded-[30px] bg-white/[0.02]">
-                   <span className="text-4xl mb-4 opacity-50">🍎</span>
-                   <p className="text-xs font-black text-secondary-text uppercase tracking-widest">Scanning Vitality Nodes...</p>
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* 💊 Pharmacy: Health Sync */}
-          <section className="mb-14">
-            <div className="flex justify-between items-end mb-6">
-              <div>
-                <h2 className="text-[9px] font-black text-rose-400 uppercase tracking-[0.4em] mb-2">Nexus Health Sync</h2>
-                <p className="text-xl font-black text-white">Pharmacy</p>
-              </div>
-            </div>
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
-              {groupedCollections.pharmacy.length > 0 ? (
-                groupedCollections.pharmacy.map((item) => (
-                  <motion.div 
-                    key={item.id}
-                    style={{ perspective: 1000 }}
-                  >
-                    <Tilt>
-                      <Link href={`/products/${item.id}`} className="relative shrink-0 w-[200px] block group active:scale-95 transition-transform premium-card-hover rounded-[30px]">
-                        <div className="aspect-square relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-rose-500/30 transition-colors">
-                            <SafeImage src={item.image || item.imageUrl} alt={item.name} fill />
-                            <div className="absolute top-4 left-4 bg-rose-500 text-white text-[7px] font-black px-2 py-1 rounded-md uppercase tracking-widest shadow-lg">Pharmacy</div>
-                        </div>
-                        <div className="mt-3">
-                           <h3 className="text-xs font-black text-white">{item.name}</h3>
-                           <div className="flex justify-between items-start mt-1 gap-2">
-                             <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate flex-1">{item.restaurantName}</span>
-                             <span className="text-[10px] font-black shrink-0 text-rose-400">₹{item.price}</span>
-                           </div>
-                        </div>
-                      </Link>
-                    </Tilt>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="w-full flex flex-col items-center justify-center py-10 px-6 border border-white/5 rounded-[30px] bg-white/[0.02]">
-                   <span className="text-4xl mb-4 opacity-50">💊</span>
-                   <p className="text-xs font-black text-secondary-text uppercase tracking-widest">Finding Pharmacy Nodes...</p>
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* 🧺 Dry Wash: Laundry Operations */}
-          <section className="mb-14">
-            <div className="flex justify-between items-end mb-6">
-              <div>
-                <h2 className="text-[9px] font-black text-blue-400 uppercase tracking-[0.4em] mb-2">Campus Logistics</h2>
-                <p className="text-xl font-black text-white">Dry Wash & Laundry</p>
-              </div>
-            </div>
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
-              {groupedCollections.laundry.length > 0 ? (
-                groupedCollections.laundry.map((item) => (
-                  <motion.div 
-                    key={item.id}
-                    style={{ perspective: 1000 }}
-                  >
-                    <Tilt>
-                      <Link href={`/products/${item.id}`} className="relative shrink-0 w-[200px] block group active:scale-95 transition-transform premium-card-hover rounded-[30px]">
-                        <div className="aspect-square relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-blue-500/30 transition-colors">
-                            <SafeImage src={item.image || item.imageUrl} alt={item.name} fill />
-                            <div className="absolute top-4 left-4 bg-blue-500 text-white text-[7px] font-black px-2 py-1 rounded-md uppercase tracking-widest shadow-lg">Dry Wash</div>
-                        </div>
-                        <div className="mt-3">
-                           <h3 className="text-xs font-black text-white">{item.name}</h3>
-                           <div className="flex justify-between items-start mt-1 gap-2">
-                             <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate flex-1">{item.restaurantName}</span>
-                             <span className="text-[10px] font-black shrink-0 text-blue-400">₹{item.price}/kg</span>
-                           </div>
-                        </div>
-                      </Link>
-                    </Tilt>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="w-full flex flex-col items-center justify-center py-10 px-6 border border-white/5 rounded-[30px] bg-white/[0.02]">
-                   <SafeImage src="/assets/placeholder_premium.png" alt="No laundry" width={60} height={60} className="mb-4 opacity-50 grayscale" />
-                   <p className="text-xs font-black text-secondary-text uppercase tracking-widest">Optimizing Logistics Path...</p>
-                </div>
-              )}
-            </div>
-          </section>
-
           <section className="mb-10">
             <div className="flex items-center justify-between mb-5">
                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#A5B4FC]">Drinks & Beverages</h2>
@@ -1399,6 +1220,180 @@ export default function Home() {
             transition={{ duration: 1, ease: "easeInOut" }}
             className="h-px bg-gradient-to-r from-transparent via-[#C9A84C]/30 to-transparent my-14 origin-left"
           />
+
+          {/* 🚲 Campus Rentals: Explorer */}
+          <section className="mb-14">
+            <div className="flex justify-between items-end mb-6">
+              <div>
+                <h2 className="text-[9px] font-black text-amber-500 uppercase tracking-[0.4em] mb-2">Campus Rides & Gear</h2>
+                <p className="text-xl font-black text-white">Campus Rentals</p>
+              </div>
+            </div>
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
+              {groupedCollections.rentals.length > 0 ? (
+                groupedCollections.rentals.map((item) => (
+                  <motion.div 
+                    key={item.id}
+                    style={{ perspective: 1000 }}
+                  >
+                    <Tilt>
+                      <div 
+                        onClick={() => setSelectedRental(item)}
+                        className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform premium-card-hover rounded-[30px] cursor-pointer"
+                      >
+                        <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-amber-500/30 transition-colors">
+                            <SafeImage src={item.image || item.imageUrl} alt={item.name} fill />
+                            <div className="absolute top-4 left-4 bg-amber-500 text-black text-[7px] font-black px-2 py-1 rounded-md uppercase tracking-widest shadow-lg">Rental</div>
+                        </div>
+                        <div className="mt-3">
+                           <h3 className="text-xs font-black text-white">{item.name}</h3>
+                           <div className="flex justify-between items-start mt-1 gap-2">
+                             <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate flex-1">{item.restaurantName}</span>
+                             <span className="text-[10px] font-black shrink-0 text-amber-500">₹{item.price}/day</span>
+                           </div>
+                        </div>
+                      </div>
+                    </Tilt>
+                  </motion.div>
+                ))
+              ) : (
+                <div className="w-full flex flex-col items-center justify-center py-10 px-6 border border-white/5 rounded-[30px] bg-white/[0.02]">
+                   <span className="text-4xl mb-4 opacity-50">🚲</span>
+                   <p className="text-xs font-black text-secondary-text uppercase tracking-widest">No Active Rentals Currently</p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* 🍎 Fresh Fruits: Vitality */}
+          <section className="mb-14">
+            <div className="flex justify-between items-end mb-6">
+              <div>
+                <h2 className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.4em] mb-2">Fresh Fruits & Salads</h2>
+                <p className="text-xl font-black text-white">Fresh Fruits</p>
+              </div>
+            </div>
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
+              {groupedCollections.fruits.length > 0 ? (
+                groupedCollections.fruits.map((item) => (
+                  <motion.div 
+                    key={item.id}
+                    style={{ perspective: 1000 }}
+                  >
+                    <Tilt>
+                      <Link href={`/products/${item.id}`} className="relative shrink-0 w-[200px] block group active:scale-95 transition-transform premium-card-hover rounded-[30px]">
+                        <div className="aspect-square relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-emerald-500/30 transition-colors">
+                            <SafeImage src={item.image || item.imageUrl} alt={item.name} fill />
+                            <button 
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.id!); }}
+                              className={`absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center transition-all z-20 ${(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? 'bg-primary-yellow text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-md hover:bg-black/60'}`}
+                            >
+                              <svg className="w-4.5 h-4.5" fill={(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                              </svg>
+                            </button>
+                        </div>
+                        <div className="mt-3">
+                           <h3 className="text-xs font-black text-white">{item.name}</h3>
+                           <div className="flex justify-between items-start mt-1 gap-2">
+                             <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate flex-1">{item.restaurantName}</span>
+                             <span className="text-[10px] font-black shrink-0 text-emerald-400">₹{item.price}</span>
+                           </div>
+                        </div>
+                      </Link>
+                    </Tilt>
+                  </motion.div>
+                ))
+              ) : (
+                <div className="w-full flex flex-col items-center justify-center py-10 px-6 border border-white/5 rounded-[30px] bg-white/[0.02]">
+                   <span className="text-4xl mb-4 opacity-50">🍎</span>
+                   <p className="text-xs font-black text-secondary-text uppercase tracking-widest">Finding Fresh Choices...</p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* 💊 Pharmacy: Health Sync */}
+          <section className="mb-14">
+            <div className="flex justify-between items-end mb-6">
+              <div>
+                <h2 className="text-[9px] font-black text-rose-400 uppercase tracking-[0.4em] mb-2">Pharmacy & Wellness</h2>
+                <p className="text-xl font-black text-white">Pharmacy</p>
+              </div>
+            </div>
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
+              {groupedCollections.pharmacy.length > 0 ? (
+                groupedCollections.pharmacy.map((item) => (
+                  <motion.div 
+                    key={item.id}
+                    style={{ perspective: 1000 }}
+                  >
+                    <Tilt>
+                      <Link href={`/products/${item.id}`} className="relative shrink-0 w-[200px] block group active:scale-95 transition-transform premium-card-hover rounded-[30px]">
+                        <div className="aspect-square relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-rose-500/30 transition-colors">
+                            <SafeImage src={item.image || item.imageUrl} alt={item.name} fill />
+                            <div className="absolute top-4 left-4 bg-rose-500 text-white text-[7px] font-black px-2 py-1 rounded-md uppercase tracking-widest shadow-lg">Pharmacy</div>
+                        </div>
+                        <div className="mt-3">
+                           <h3 className="text-xs font-black text-white">{item.name}</h3>
+                           <div className="flex justify-between items-start mt-1 gap-2">
+                             <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate flex-1">{item.restaurantName}</span>
+                             <span className="text-[10px] font-black shrink-0 text-rose-400">₹{item.price}</span>
+                           </div>
+                        </div>
+                      </Link>
+                    </Tilt>
+                  </motion.div>
+                ))
+              ) : (
+                <div className="w-full flex flex-col items-center justify-center py-10 px-6 border border-white/5 rounded-[30px] bg-white/[0.02]">
+                   <span className="text-4xl mb-4 opacity-50">💊</span>
+                   <p className="text-xs font-black text-secondary-text uppercase tracking-widest">Finding Pharmacy Stores...</p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* 🧺 Dry Wash: Laundry Operations */}
+          <section className="mb-14">
+            <div className="flex justify-between items-end mb-6">
+              <div>
+                <h2 className="text-[9px] font-black text-blue-400 uppercase tracking-[0.4em] mb-2">Campus Logistics</h2>
+                <p className="text-xl font-black text-white">Dry Wash & Laundry</p>
+              </div>
+            </div>
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
+              {groupedCollections.laundry.length > 0 ? (
+                groupedCollections.laundry.map((item) => (
+                  <motion.div 
+                    key={item.id}
+                    style={{ perspective: 1000 }}
+                  >
+                    <Tilt>
+                      <Link href={`/products/${item.id}`} className="relative shrink-0 w-[200px] block group active:scale-95 transition-transform premium-card-hover rounded-[30px]">
+                        <div className="aspect-square relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-blue-500/30 transition-colors">
+                            <SafeImage src={item.image || item.imageUrl} alt={item.name} fill />
+                            <div className="absolute top-4 left-4 bg-blue-500 text-white text-[7px] font-black px-2 py-1 rounded-md uppercase tracking-widest shadow-lg">Dry Wash</div>
+                        </div>
+                        <div className="mt-3">
+                           <h3 className="text-xs font-black text-white">{item.name}</h3>
+                           <div className="flex justify-between items-start mt-1 gap-2">
+                             <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate flex-1">{item.restaurantName}</span>
+                             <span className="text-[10px] font-black shrink-0 text-blue-400">₹{item.price}/kg</span>
+                           </div>
+                        </div>
+                      </Link>
+                    </Tilt>
+                  </motion.div>
+                ))
+              ) : (
+                <div className="w-full flex flex-col items-center justify-center py-10 px-6 border border-white/5 rounded-[30px] bg-white/[0.02]">
+                   <SafeImage src="/assets/placeholder_premium.png" alt="No laundry" width={60} height={60} className="mb-4 opacity-50 grayscale" />
+                   <p className="text-xs font-black text-secondary-text uppercase tracking-widest">Optimizing Logistics Path...</p>
+                </div>
+              )}
+            </div>
+          </section>
 
           {/* All Restaurants List & Advanced Filters */}
           <div className="mb-8 px-6 space-y-4">
@@ -1583,8 +1578,6 @@ export default function Home() {
           )}
         </AnimatePresence>
 
-        {/* 🎯 Mobile-only Rewards Panel - REMOVED for Minimal Header Integration */}
-
         </div> {/* End Main Feed Content (Opened at 456) */}
 
         {/* 🏷️ Desktop Sidebar: Game Panel */}
@@ -1630,7 +1623,7 @@ export default function Home() {
               <div className="flex justify-between items-start mb-4">
                 <div className="flex-1 pr-2">
                   <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                    <span className="text-[8px] font-black text-[#141416] bg-[#C9A84C] px-2 py-0.5 rounded uppercase tracking-widest leading-tight">Portal Mediator</span>
+                    <span className="text-[8px] font-black text-[#141416] bg-[#C9A84C] px-2 py-0.5 rounded uppercase tracking-widest leading-tight">Campus Rental</span>
                     <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-tight truncate">{selectedRental?.category || 'Rental'}</span>
                   </div>
                   <h3 className="text-lg md:text-xl font-black text-white leading-tight break-words">{selectedRental?.name}</h3>

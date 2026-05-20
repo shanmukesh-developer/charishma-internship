@@ -310,11 +310,16 @@ const startServer = async () => {
     
     const { protect: protectUpload } = require('./middleware/authMiddleware');
     app.post('/api/upload', protectUpload, upload.single('image'), async (req, res) => {
-      if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-      
-      const mimetype = req.file.mimetype;
-      const base64Data = req.file.buffer.toString('base64');
-      const imageUrl = `data:${mimetype};base64,${base64Data}`;
+      let imageUrl = '';
+      if (req.file) {
+        const mimetype = req.file.mimetype;
+        const base64Data = req.file.buffer.toString('base64');
+        imageUrl = `data:${mimetype};base64,${base64Data}`;
+      } else if (req.body.image) {
+        imageUrl = req.body.image.startsWith('data:') ? req.body.image : `data:image/jpeg;base64,${req.body.image}`;
+      } else {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
       
       // Persist to order if orderId is provided
       const { orderId } = req.body;
@@ -372,6 +377,12 @@ const startServer = async () => {
         // Allow general rooms (surges, etc) but restrict sensitive ones if needed
         await socket.join(room);
         log(`[JOIN_ROOM] ${socket.id} -> ${room}`);
+      });
+
+      socket.on('cart_change', (data) => {
+        const room = String(data.roomCode).trim();
+        socket.to(room).emit('cart_updated', data.cart);
+        log(`[CART_SYNC] Room ${room} sync: ${data.cart?.length || 0} items`);
       });
 
       socket.on('joinAdmin', async () => {

@@ -94,6 +94,8 @@ async function simulate() {
     const uploadRes = await axios.post(`${API_URL}/upload`, { 
       orderId,
       image: proofForm.image 
+    }, {
+      headers: { Authorization: `Bearer ${riderToken}` }
     });
     console.log(`✅ Proof Uploaded! URL length: ${uploadRes.data.imageUrl.length}`);
 

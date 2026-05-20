@@ -9,6 +9,7 @@ const Navbar = () => {
   const [location, setLocation] = useState('Amaravathi, AP');
   const [badgeCount, setBadgeCount] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isElite, setIsElite] = useState(false);
 
   const pathname = usePathname();
   const isHomePage = pathname === '/';
@@ -20,6 +21,7 @@ const Navbar = () => {
       if (stored) {
         const parsed = JSON.parse(stored);
         setUserName(parsed.name || '');
+        setIsElite(parsed.isElite || false);
         if (parsed.badges) setBadgeCount(parsed.badges.length || 0);
         if (parsed.address) setLocation(parsed.address.split(',')[0] || 'Amaravathi, AP');
       }
@@ -77,7 +79,7 @@ const Navbar = () => {
            </div>
         </div>
         <Link href="/profile" className="relative group block">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#C9A84C] to-[#8B7332] flex items-center justify-center text-black font-black text-lg shadow-[0_0_15px_rgba(201,168,76,0.3)] transition-all hover:scale-110 active:scale-95 cursor-pointer">
+          <div className={`w-9 h-9 rounded-xl bg-gradient-to-br from-[#C9A84C] to-[#8B7332] flex items-center justify-center text-black font-black text-lg shadow-[0_0_15px_rgba(201,168,76,0.3)] transition-all hover:scale-110 active:scale-95 cursor-pointer ${isElite ? 'vip-gold-halo' : ''}`}>
             <svg className="w-6 h-6 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                <path strokeLinecap="round" strokeLinejoin="round" d="M2 19h20M2 19l2-8 4 3 4-7 4 7 4-3 2 8" />
             </svg>

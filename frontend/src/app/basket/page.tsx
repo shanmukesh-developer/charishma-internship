@@ -1,11 +1,12 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/context/CartContext';
 import { summarizeCustomizations } from '@/components/CustomizeDrawer';
 import Link from 'next/link';
 import SafeImage from '@/components/SafeImage';
 import Tilt from '@/components/Tilt';
 import Magnetic from '@/components/Magnetic';
+import { io } from 'socket.io-client';
 
 interface CartItem {
   id: string;
@@ -106,7 +107,100 @@ function BasketItem({ item, updateQuantity, removeFromCart, updateCustomName }: 
 }
 
 export default function BasketPage() {
-  const { cart, updateQuantity, removeFromCart, updateCustomName, totalPrice, uniqueRestaurants, deliveryFee } = useCart();
+  const { cart, updateQuantity, removeFromCart, updateCustomName, totalPrice, uniqueRestaurants, deliveryFee, setCart } = useCart();
+
+  const [roomCode, setRoomCode] = useState('');
+  const [isHosting, setIsHosting] = useState(false);
+  const [isJoined, setIsJoined] = useState(false);
+  const [inputCode, setInputCode] = useState('');
+  const [isJoinOpen, setIsJoinOpen] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
+
+  const socketRef = useRef<any>(null);
+  const isIncomingUpdateRef = useRef(false);
+
+  // Sync state changes to roommate room
+  useEffect(() => {
+    if (roomCode && socketRef.current && !isIncomingUpdateRef.current) {
+      socketRef.current.emit('cart_change', { roomCode, cart });
+    }
+  }, [cart, roomCode]);
+
+  // Clean up socket on unmount
+  useEffect(() => {
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+    };
+  }, []);
+
+  const initializeSocket = (code: string) => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+    }
+    try {
+      const storedUser = localStorage.getItem('user');
+      let token = '';
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        token = parsed.token || '';
+      }
+
+      // Establish live WebSocket connection with the port 5005 backend
+      const socket = io('http://localhost:5005', {
+        auth: { token },
+        transports: ['websocket']
+      });
+
+      socketRef.current = socket;
+
+      socket.on('connect', () => {
+        socket.emit('joinRoom', code);
+      });
+
+      socket.on('cart_updated', (incomingCart: any) => {
+        isIncomingUpdateRef.current = true;
+        setCart(incomingCart);
+        // Temporary lock reset
+        setTimeout(() => {
+          isIncomingUpdateRef.current = false;
+        }, 100);
+      });
+    } catch (err) {
+      console.error('[COLLAB_CART_SOCKET_ERROR]', err);
+    }
+  };
+
+  const handleHostRoom = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = 'ZN-';
+    for (let i = 0; i < 4; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setRoomCode(code);
+    setIsHosting(true);
+    initializeSocket(code);
+  };
+
+  const handleJoinRoom = () => {
+    if (!inputCode) return;
+    const formatted = inputCode.trim().toUpperCase();
+    setRoomCode(formatted);
+    setIsJoined(true);
+    initializeSocket(formatted);
+    setIsJoinOpen(false);
+  };
+
+  const handleDisconnect = () => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+    }
+    setRoomCode('');
+    setIsHosting(false);
+    setIsJoined(false);
+    setInputCode('');
+  };
 
   // Group items by restaurant for display
   const groupedByRestaurant = cart.reduce<Record<string, { name: string; items: CartItem[] }>>((acc, item) => {
@@ -125,7 +219,7 @@ export default function BasketPage() {
       <div className="fixed inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none opacity-40" />
 
       <div className="relative z-10">
-        <div className="flex items-center justify-between mb-12">
+        <div className="flex items-center justify-between mb-8">
           <Magnetic>
             <Link href="/" className="w-12 h-12 bg-white/5 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/10 hover:bg-white/10 transition-all">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,8 +227,84 @@ export default function BasketPage() {
               </svg>
             </Link>
           </Magnetic>
-          <h1 className="text-xl font-black uppercase tracking-[0.3em] text-gold-shimmer">Strategic Vault</h1>
+          <h1 className="text-xl font-black uppercase tracking-[0.3em] text-gold-shimmer">My Basket</h1>
           <div className="w-12" />
+        </div>
+
+        {/* Roommate Multiplayer Cart Hub */}
+        <div className="mb-8 glass-card p-5 md:p-6 border-white/5 rounded-[30px] bg-black/40 backdrop-blur-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+            <span className="text-5xl font-black italic">ROOM</span>
+          </div>
+
+          {!roomCode ? (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-black text-primary-yellow uppercase tracking-widest mb-1">Roommate Group Cart</p>
+                <h4 className="text-xs font-black text-white uppercase tracking-wider">Order together with your roommates and split the bill</h4>
+              </div>
+              <div className="flex gap-3 w-full sm:w-auto">
+                <button
+                  onClick={handleHostRoom}
+                  className="flex-1 sm:flex-none px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-wider text-white transition-all"
+                >
+                  📡 Host Cart
+                </button>
+                <button
+                  onClick={() => setIsJoinOpen(!isJoinOpen)}
+                  className="flex-1 sm:flex-none px-5 py-2.5 bg-primary-yellow text-black hover:bg-primary-yellow/90 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                >
+                  👥 Join Cart
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center text-sm animate-pulse">
+                  🟢
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Live Room Active</p>
+                    <span className="text-[8px] px-2 py-0.5 bg-white/5 rounded-full text-white/50 uppercase font-black">
+                      {isHosting ? 'Host' : 'Joined'}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-black text-white uppercase tracking-widest mt-0.5">
+                    Room Code: <span className="text-primary-yellow font-black text-base">{roomCode}</span>
+                  </h4>
+                </div>
+              </div>
+              <button
+                onClick={handleDisconnect}
+                className="w-full sm:w-auto px-5 py-2.5 bg-red-500/10 hover:bg-red-500/25 border border-red-500/20 text-red-500 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+              >
+                🚫 Disconnect
+              </button>
+            </div>
+          )}
+
+          {isJoinOpen && !roomCode && (
+            <div className="mt-5 pt-5 border-t border-white/5 animate-in slide-in-from-top-3 duration-300">
+              <label className="text-[9px] font-black uppercase tracking-wider text-primary-yellow block mb-2">Enter Roommate Code</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="e.g. ZN-8B2A"
+                  value={inputCode}
+                  onChange={(e) => setInputCode(e.target.value)}
+                  className="flex-1 stardust-search rounded-xl px-4 py-3 text-xs font-black text-white placeholder:text-white/20 focus:outline-none transition-all uppercase"
+                />
+                <button
+                  onClick={handleJoinRoom}
+                  className="px-6 bg-white text-black hover:bg-white/90 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                >
+                  Connect
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {cart.length === 0 ? (
@@ -142,9 +312,9 @@ export default function BasketPage() {
             <div className="w-full flex justify-center mb-10">
                <div className="w-40 h-40 bg-white/5 rounded-full flex items-center justify-center text-6xl shadow-2xl border border-white/5">🛒</div>
             </div>
-            <p className="text-secondary-text font-black uppercase tracking-widest mb-12 opacity-40">Your strategic vault is empty</p>
+            <p className="text-secondary-text font-black uppercase tracking-widest mb-12 opacity-40">Your basket is currently empty</p>
             <Magnetic>
-              <Link href="/" className="px-12 py-4 bg-primary-yellow text-black rounded-2xl font-black uppercase tracking-widest text-xs shadow-[0_15px_30px_-10px_rgba(201,168,76,0.3)]">Explore The Nexus</Link>
+              <Link href="/" className="px-12 py-4 bg-primary-yellow text-black rounded-2xl font-black uppercase tracking-widest text-xs shadow-[0_15px_30px_-10px_rgba(201,168,76,0.3)]">Explore Canteens</Link>
             </Magnetic>
           </div>
         ) : (

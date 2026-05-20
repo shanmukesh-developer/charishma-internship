@@ -167,6 +167,30 @@ const connectDB = async () => {
           throw syncErr;
         }
       }
+
+      // Self-Healing SQLite Migration Guard: Ensure community post expiry column exists
+      if (dialect === 'sqlite') {
+        try {
+          await sequelize.query('ALTER TABLE "CommunityPosts" ADD COLUMN "expiresAt" DATETIME;');
+          console.log('✅ [SQLite_MIGRATION] Added expiresAt column to CommunityPosts.');
+        } catch (_err) {
+          // Suppress error if the column is already present or was created during normal sync
+        }
+
+        try {
+          await sequelize.query('ALTER TABLE "Users" ADD COLUMN "email" VARCHAR(255);');
+          console.log('✅ [SQLite_MIGRATION] Added email column to Users.');
+        } catch (_err) {
+          // Suppress error if already exists
+        }
+
+        try {
+          await sequelize.query('ALTER TABLE "Users" ADD COLUMN "googleId" VARCHAR(255);');
+          console.log('✅ [SQLite_MIGRATION] Added googleId column to Users.');
+        } catch (_err) {
+          // Suppress error if already exists
+        }
+      }
     } else {
       console.log('🔒 Production Sync: Running { alter: true } (Resilient Mode)');
       // In production (PostgreSQL), alter:true is safer and necessary for fresh deploys.

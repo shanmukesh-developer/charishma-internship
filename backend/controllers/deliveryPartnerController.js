@@ -10,7 +10,7 @@ const { Op } = require('sequelize');
 const { normalizePhone } = require('../utils/phoneUtils');
 
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' });
+  return jwt.sign({ id, role: 'rider' }, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' });
 };
 
 // @desc    Register a new delivery partner (requires Firebase phone verification)

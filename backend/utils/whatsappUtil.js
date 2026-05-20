@@ -16,10 +16,10 @@ const formatOrderMessage = (order, type = 'CUSTOMER_CONFIRMATION') => {
   const parsedItems = Array.isArray(order.items) ? order.items : JSON.parse(order.items || '[]');
   const items = parsedItems.map(i => `• ${i.name} x${i.quantity}`).join('\n');
   const restaurant = order.restaurant?.name || 'Zenvy Partner';
-  const trackUrl = `${process.env.FRONTEND_URL || 'https://zenvy.nexus'}/orders/${order._id || order.id}`;
+  const trackUrl = `${process.env.FRONTEND_URL || 'https://zenvy.app'}/orders/${order._id || order.id}`;
 
   if (type === 'CUSTOMER_CONFIRMATION') {
-    return `🛍️ *Order Confirmed!* #${orderId}\n\nHi! Your order from *${restaurant}* is now being prepared.\n\n*Items:*\n${items}\n\n*Total:* ₹${order.finalPrice || order.totalPrice}\n\n📍 *Tracking:* ${trackUrl}\n\n_Thank you for choosing Zenvy Nexus!_`;
+    return `🛍️ *Order Confirmed!* #${orderId}\n\nHi! Your order from *${restaurant}* is now being prepared.\n\n*Items:*\n${items}\n\n*Total:* ₹${order.finalPrice || order.totalPrice}\n\n📍 *Tracking:* ${trackUrl}\n\n_Thank you for choosing Zenvy!_`;
   }
 
   if (type === 'STATUS_UPDATE') {
@@ -34,7 +34,7 @@ const formatOrderMessage = (order, type = 'CUSTOMER_CONFIRMATION') => {
   }
 
   if (type === 'RIDER_ALERT') {
-    return `🛵 *New Rocket Mission!* #${orderId}\n\nPickup: *${restaurant}*\nDrop: *${order.deliveryAddress}*\n\n💰 *Earnings:* ₹${order.deliveryFee}\n\n_Open Zenvy Rider app to accept immediately!_`;
+    return `🛵 *New Delivery Request!* #${orderId}\n\nPickup: *${restaurant}*\nDrop: *${order.deliveryAddress}*\n\n💰 *Earnings:* ₹${order.deliveryFee}\n\n_Open Zenvy Rider app to accept immediately!_`;
   }
 
   return `🔔 *Zenvy Alert:* Order #${orderId} - ${order.status}`;

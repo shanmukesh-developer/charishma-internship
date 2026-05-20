@@ -10,6 +10,7 @@ import { Restaurant, MenuItem } from '@/types';
 import Tilt from '@/components/Tilt';
 import Magnetic from '@/components/Magnetic';
 import { saveRecentlyViewed } from '@/components/RecentlyViewed';
+import { motion } from 'framer-motion';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || API_URL;
@@ -319,12 +320,19 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
                    {isEliteRestricted && <span className="text-[9px] font-black text-[#C9A84C] uppercase tracking-widest bg-[#C9A84C]/10 px-2 py-0.5 rounded">Locked Asset</span>}
                    <p className="text-[10px] md:text-[11px] text-white/40 line-clamp-1 mb-2 font-medium">{item.description || `Exquisitely crafted by ${restaurant.name}`}</p>
                    <div className="flex justify-between items-center">
-                      <span className="font-black text-primary-yellow text-sm md:text-base tracking-tighter shadow-sm">
+                      <span className="font-black text-primary-yellow text-sm md:text-base tracking-tighter shadow-sm flex items-center gap-1.5">
                         ₹{Math.round(item.price * surgeMultiplier)}
-                        {surgeMultiplier > 1 && <span className="text-[7px] text-red-500 ml-1 opacity-60">SURGE</span>}
+                        {surgeMultiplier > 1 && (
+                          <span className="flex items-center gap-1.5 shrink-0">
+                            <span className="surge-ripple-beacon" />
+                            <span className="text-[7px] text-red-500 font-black tracking-widest uppercase opacity-80 animate-pulse">SURGE</span>
+                          </span>
+                        )}
                       </span>
                       <Magnetic>
-                        <button
+                        <motion.button
+                          whileTap={{ scale: 0.90 }}
+                          whileHover={{ scale: 1.10 }}
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); if(!isSoldOut && !isEliteRestricted) handleAddToCart(item); }}
                           disabled={isSoldOut || isEliteRestricted}
                           className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center text-base md:text-lg font-black transition-all duration-500 z-10 ${
@@ -336,7 +344,7 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
                           }`}
                         >
                           {isSoldOut ? '✕' : isEliteRestricted ? '🔒' : addedId === itemId ? '✓' : '+'}
-                        </button>
+                        </motion.button>
                       </Magnetic>
                    </div>
                 </div>
