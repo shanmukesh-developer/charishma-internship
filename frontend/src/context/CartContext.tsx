@@ -1,5 +1,6 @@
 "use client";
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
 
 export interface Customizations {
   size?: string;
@@ -48,6 +49,13 @@ interface CartContextType {
   totalPrice: number;
   uniqueRestaurants: number;
   deliveryFee: number;
+  // Live Basket Collaborative Sync
+  roomCode: string;
+  isHosting: boolean;
+  isJoined: boolean;
+  handleHostRoom: () => void;
+  handleJoinRoom: (code: string) => void;
+  handleDisconnect: () => void;
 }
 
 function generateCartKey(id: string, customizations?: Customizations): string {
@@ -67,6 +75,88 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // Live Basket Collaborative Sync state
+  const [roomCode, setRoomCode] = useState('');
+  const [isHosting, setIsHosting] = useState(false);
+  const [isJoined, setIsJoined] = useState(false);
+  
+  const socketRef = useRef<Socket | null>(null);
+  const isIncomingUpdateRef = useRef(false);
+
+  // Sync state changes to room
+  React.useEffect(() => {
+    if (roomCode && socketRef.current && !isIncomingUpdateRef.current) {
+      socketRef.current.emit('cart_change', { roomCode, cart });
+    }
+  }, [cart, roomCode]);
+
+  // Clean up socket on deep unmount
+  React.useEffect(() => {
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+    };
+  }, []);
+
+  const initializeSocket = (code: string) => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+    }
+    try {
+      // Establish live WebSocket connection with the port 5005 backend
+      const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005', {
+        withCredentials: true,
+        transports: ['websocket', 'polling'] 
+      });
+
+      socketRef.current = socket;
+
+      socket.on('connect', () => {
+        socket.emit('joinRoom', code);
+      });
+
+      socket.on('cart_updated', (incomingCart: any) => {
+        isIncomingUpdateRef.current = true;
+        setCart(incomingCart);
+        // Temporary lock reset
+        setTimeout(() => {
+          isIncomingUpdateRef.current = false;
+        }, 100);
+      });
+    } catch (err) {
+      console.error('[COLLAB_CART_SOCKET_ERROR]', err);
+    }
+  };
+
+  const handleHostRoom = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = 'ZN-';
+    for (let i = 0; i < 4; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setRoomCode(code);
+    setIsHosting(true);
+    initializeSocket(code);
+  };
+
+  const handleJoinRoom = (inputCode: string) => {
+    if (!inputCode) return;
+    const formatted = inputCode.trim().toUpperCase();
+    setRoomCode(formatted);
+    setIsJoined(true);
+    initializeSocket(formatted);
+  };
+
+  const handleDisconnect = () => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+    }
+    setRoomCode('');
+    setIsHosting(false);
+    setIsJoined(false);
+  };
 
   React.useEffect(() => {
     const saved = localStorage.getItem('zenvy_cart');
@@ -146,7 +236,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const deliveryFee = uniqueRestaurants * 30;
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, updateCustomName, clearCart, setCart, totalItems, totalPrice, uniqueRestaurants, deliveryFee }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, updateCustomName, clearCart, setCart, totalItems, totalPrice, uniqueRestaurants, deliveryFee, roomCode, isHosting, isJoined, handleHostRoom, handleJoinRoom, handleDisconnect }}>
       {children}
     </CartContext.Provider>
   );

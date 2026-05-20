@@ -107,99 +107,23 @@ function BasketItem({ item, updateQuantity, removeFromCart, updateCustomName }: 
 }
 
 export default function BasketPage() {
-  const { cart, updateQuantity, removeFromCart, updateCustomName, totalPrice, uniqueRestaurants, deliveryFee, setCart } = useCart();
+  const { 
+    cart, updateQuantity, removeFromCart, updateCustomName, 
+    totalPrice, uniqueRestaurants, deliveryFee, setCart,
+    roomCode, isHosting, isJoined, handleHostRoom, handleJoinRoom, handleDisconnect 
+  } = useCart();
 
-  const [roomCode, setRoomCode] = useState('');
-  const [isHosting, setIsHosting] = useState(false);
-  const [isJoined, setIsJoined] = useState(false);
   const [inputCode, setInputCode] = useState('');
   const [isJoinOpen, setIsJoinOpen] = useState(false);
   const [alertMsg, setAlertMsg] = useState('');
 
-  const socketRef = useRef<any>(null);
-  const isIncomingUpdateRef = useRef(false);
-
-  // Sync state changes to roommate room
-  useEffect(() => {
-    if (roomCode && socketRef.current && !isIncomingUpdateRef.current) {
-      socketRef.current.emit('cart_change', { roomCode, cart });
-    }
-  }, [cart, roomCode]);
-
-  // Clean up socket on unmount
-  useEffect(() => {
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
-    };
-  }, []);
-
-  const initializeSocket = (code: string) => {
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-    }
-    try {
-      const storedUser = localStorage.getItem('user');
-      let token = '';
-      if (storedUser) {
-        const parsed = JSON.parse(storedUser);
-        token = parsed.token || '';
-      }
-
-      // Establish live WebSocket connection with the port 5005 backend
-      const socket = io('http://localhost:5005', {
-        auth: { token },
-        withCredentials: true,
-        transports: ['websocket', 'polling'] // Add polling fallback in case websocket headers are restricted
-      });
-
-      socketRef.current = socket;
-
-      socket.on('connect', () => {
-        socket.emit('joinRoom', code);
-      });
-
-      socket.on('cart_updated', (incomingCart: any) => {
-        isIncomingUpdateRef.current = true;
-        setCart(incomingCart);
-        // Temporary lock reset
-        setTimeout(() => {
-          isIncomingUpdateRef.current = false;
-        }, 100);
-      });
-    } catch (err) {
-      console.error('[COLLAB_CART_SOCKET_ERROR]', err);
-    }
-  };
-
-  const handleHostRoom = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = 'ZN-';
-    for (let i = 0; i < 4; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    setRoomCode(code);
-    setIsHosting(true);
-    initializeSocket(code);
-  };
-
-  const handleJoinRoom = () => {
-    if (!inputCode) return;
-    const formatted = inputCode.trim().toUpperCase();
-    setRoomCode(formatted);
-    setIsJoined(true);
-    initializeSocket(formatted);
+  const onJoinSubmit = () => {
+    handleJoinRoom(inputCode);
     setIsJoinOpen(false);
   };
-
-  const handleDisconnect = () => {
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-    }
-    setRoomCode('');
-    setIsHosting(false);
-    setIsJoined(false);
+  
+  const onDisconnect = () => {
+    handleDisconnect();
     setInputCode('');
   };
 
@@ -252,7 +176,7 @@ export default function BasketPage() {
                   📡 Host Cart
                 </button>
                 <button
-                  onClick={() => setIsJoinOpen(!isJoinOpen)}
+                  onClick={() => setIsJoinOpen(true)}
                   className="flex-1 sm:flex-none px-5 py-2.5 bg-primary-yellow text-black hover:bg-primary-yellow/90 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
                 >
                   👥 Join Cart
@@ -278,7 +202,7 @@ export default function BasketPage() {
                 </div>
               </div>
               <button
-                onClick={handleDisconnect}
+                onClick={onDisconnect}
                 className="w-full sm:w-auto px-5 py-2.5 bg-red-500/10 hover:bg-red-500/25 border border-red-500/20 text-red-500 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
               >
                 🚫 Disconnect
@@ -298,7 +222,7 @@ export default function BasketPage() {
                   className="flex-1 stardust-search rounded-xl px-4 py-3 text-xs font-black text-white placeholder:text-white/20 focus:outline-none transition-all uppercase"
                 />
                 <button
-                  onClick={handleJoinRoom}
+                  onClick={onJoinSubmit}
                   className="px-6 bg-white text-black hover:bg-white/90 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
                 >
                   Connect
