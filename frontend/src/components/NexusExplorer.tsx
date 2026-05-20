@@ -84,14 +84,14 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
               <button
                 key={btn.id}
                 onClick={() => setActiveFilter(btn.id as 'all' | 'veg' | 'jain')}
-                className={`h-8 px-3 rounded-xl flex items-center gap-1.5 transition-all border whitespace-nowrap ${
+                className={`h-9 py-1 px-4 px-3 rounded-xl flex items-center gap-1.5 transition-all border whitespace-nowrap ${
                   activeFilter === btn.id 
                   ? 'bg-primary-yellow text-black border-primary-yellow font-black' 
                   : 'bg-white/5 border-white/10 text-white/40'
                 }`}
               >
                 <span className="text-[10px]">{btn.icon}</span>
-                <span className="text-[7px] uppercase tracking-widest">{btn.label}</span>
+                <span className="text-[9px] uppercase tracking-widest">{btn.label}</span>
               </button>
             ))}
           </div>
@@ -107,13 +107,13 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
               <button
                 key={btn.id}
                 onClick={() => setActiveSort(btn.id as 'recommended' | 'rating' | 'fastest')}
-                className={`h-8 px-3 rounded-xl flex items-center gap-1.5 transition-all border whitespace-nowrap ${
+                className={`h-9 py-1 px-4 px-3 rounded-xl flex items-center gap-1.5 transition-all border whitespace-nowrap ${
                   activeSort === btn.id 
                   ? 'bg-white text-black border-white font-black' 
                   : 'bg-white/5 border-white/10 text-white/40'
                 }`}
               >
-                <span className="text-[7px] uppercase tracking-widest">{btn.label}</span>
+                <span className="text-[9px] uppercase tracking-widest">{btn.label}</span>
               </button>
             ))}
           </div>
@@ -125,14 +125,14 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
             <button
               key={cat.label}
               onClick={() => setActiveCategory(cat.label)}
-              className={`h-8 px-4 rounded-xl flex items-center gap-2 transition-all border shrink-0 ${
+              className={`h-9 py-1 px-4 px-4 rounded-xl flex items-center gap-2 transition-all border shrink-0 ${
                 activeCategory === cat.label 
                 ? 'bg-primary-yellow/20 text-primary-yellow border-primary-yellow/40 font-black' 
                 : 'bg-white/5 border-white/10 text-white/40'
               }`}
             >
               <span className="text-xs">{cat.emoji}</span>
-              <span className="text-[7px] uppercase tracking-tighter">{cat.label}</span>
+              <span className="text-[9px] uppercase tracking-tighter">{cat.label}</span>
             </button>
           ))}
         </div>
