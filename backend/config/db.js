@@ -103,7 +103,11 @@ const connectDB = async () => {
   } else {
     // Generate self-healing database URL connection candidates for Render environments
     const candidates = [];
-    candidates.push(dbUrl);
+    
+    // Add internal connection attempts first to prioritize private network (free & fast)
+    candidates.push(dbUrl); // Attempt 1: Initial internal DNS attempt
+    candidates.push(dbUrl); // Attempt 2: Retry internal DNS after 3s sleep
+    candidates.push(dbUrl); // Attempt 3: Retry internal DNS after another 3s sleep
 
     try {
       const parsedUrl = new URL(dbUrl);
@@ -131,9 +135,13 @@ const connectDB = async () => {
 
     for (let i = 0; i < candidates.length; i++) {
       const currentUrl = candidates[i];
+      let urlInfo = null;
+      let isInternal = true;
+
       try {
-        const urlInfo = new URL(currentUrl);
-        console.log(`📡 Connecting to PostgreSQL at ${urlInfo.hostname.slice(0, 4)}***${urlInfo.hostname.slice(-4)} (Attempt ${i + 1}/${candidates.length})...`);
+        urlInfo = new URL(currentUrl);
+        isInternal = !urlInfo.hostname.includes('.');
+        console.log(`📡 Connecting to PostgreSQL at ${urlInfo.hostname.slice(0, 4)}***${urlInfo.hostname.slice(-4)} (Attempt ${i + 1}/${candidates.length}) [SSL: ${!isInternal}]...`);
         if (urlInfo.hostname === 'localhost' || urlInfo.hostname === '127.0.0.1') {
           console.warn('⚠️ [DB_WARNING] DATABASE_URL points to LOCALHOST. This will NOT persist data on Render!');
         }
@@ -141,14 +149,18 @@ const connectDB = async () => {
         console.log(`📡 Connecting to PostgreSQL (Attempt ${i + 1}/${candidates.length})...`);
       }
 
+      // Render internal database connections reject SSL. External connections require SSL.
+      const dialectOptions = {};
+      if (!isInternal) {
+        dialectOptions.ssl = {
+          require: true,
+          rejectUnauthorized: false
+        };
+      }
+
       sequelize = new Sequelize(currentUrl, {
         dialect: 'postgres',
-        dialectOptions: {
-          ssl: {
-            require: true,
-            rejectUnauthorized: false
-          }
-        },
+        dialectOptions: dialectOptions,
         pool: {
           max: 10,
           min: 2,
@@ -167,7 +179,7 @@ const connectDB = async () => {
             /ECONNRESET/,
             /TERMINATING/
           ],
-          max: 5
+          max: 3
         },
         logging: false
       });
@@ -180,6 +192,12 @@ const connectDB = async () => {
       } catch (err) {
         console.warn(`⚠️ [DB_CONNECT_WARN] Candidate ${i + 1} connection failed: ${err.message}`);
         lastError = err;
+        
+        // Wait 3 seconds before next candidate to allow DNS propagation and cool off socket
+        if (i < candidates.length - 1) {
+          console.log('🔄 Sleeping 3 seconds before attempting next database candidate...');
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
       }
     }
 
