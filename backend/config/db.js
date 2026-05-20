@@ -83,7 +83,6 @@ const connectDB = async () => {
       console.error('❌ [FATAL_ERROR] DATABASE_URL IS MISSING ON RENDER!');
       console.error('❌ All data (restaurants, items, users) WILL BE LOST on the next deploy if using SQLite.');
       console.error('❌ Please create a PostgreSQL database on Render and add the DATABASE_URL environment variable.');
-      // Exit strictly to force the user to fix the configuration rather than losing data silently
       process.exit(1);
     }
     const sqlitePath = path.join(__dirname, '..', 'local_dev.sqlite');
@@ -102,50 +101,94 @@ const connectDB = async () => {
       }
     });
   } else {
+    // Generate self-healing database URL connection candidates for Render environments
+    const candidates = [];
+    candidates.push(dbUrl);
+
     try {
-      const url = new URL(dbUrl);
-      console.log(`📡 Connecting to PostgreSQL at ${url.hostname.slice(0, 4)}***${url.hostname.slice(-4)}`);
-      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-        console.warn('⚠️ [DB_WARNING] DATABASE_URL points to LOCALHOST. This will NOT persist data on Render!');
+      const parsedUrl = new URL(dbUrl);
+      const hostname = parsedUrl.hostname;
+      if (hostname.startsWith('dpg-') && !hostname.includes('.')) {
+        // Automatically try to fall back to public/external hosts across major Render database regions
+        const regions = [
+          'oregon-postgres.render.com',
+          'frankfurt-postgres.render.com',
+          'singapore-postgres.render.com',
+          'ohio-postgres.render.com'
+        ];
+        regions.forEach(region => {
+          const altUrl = new URL(dbUrl);
+          altUrl.hostname = `${hostname}.${region}`;
+          candidates.push(altUrl.toString());
+        });
       }
     } catch {
-      console.log('📡 Connecting to PostgreSQL Nexus...');
+      // Ignore URL parsing errors and rely on original DATABASE_URL
     }
 
-    sequelize = new Sequelize(dbUrl, {
-      dialect: 'postgres',
-      dialectOptions: {
-        ssl: {
-          require: true,
-          rejectUnauthorized: false
+    let connected = false;
+    let lastError = null;
+
+    for (let i = 0; i < candidates.length; i++) {
+      const currentUrl = candidates[i];
+      try {
+        const urlInfo = new URL(currentUrl);
+        console.log(`📡 Connecting to PostgreSQL at ${urlInfo.hostname.slice(0, 4)}***${urlInfo.hostname.slice(-4)} (Attempt ${i + 1}/${candidates.length})...`);
+        if (urlInfo.hostname === 'localhost' || urlInfo.hostname === '127.0.0.1') {
+          console.warn('⚠️ [DB_WARNING] DATABASE_URL points to LOCALHOST. This will NOT persist data on Render!');
         }
-      },
-      pool: {
-        max: 10,
-        min: 2,
-        acquire: 60000,
-        idle: 20000
-      },
-      retry: {
-        match: [
-          /SequelizeConnectionError/,
-          /SequelizeConnectionRefusedError/,
-          /SequelizeHostNotFoundError/,
-          /SequelizeHostNotReachableError/,
-          /SequelizeInvalidConnectionError/,
-          /SequelizeConnectionTimedOutError/,
-          /TimeoutError/,
-          /ECONNRESET/,
-          /TERMINATING/
-        ],
-        max: 10
-      },
-      logging: false
-    });
+      } catch {
+        console.log(`📡 Connecting to PostgreSQL (Attempt ${i + 1}/${candidates.length})...`);
+      }
+
+      sequelize = new Sequelize(currentUrl, {
+        dialect: 'postgres',
+        dialectOptions: {
+          ssl: {
+            require: true,
+            rejectUnauthorized: false
+          }
+        },
+        pool: {
+          max: 10,
+          min: 2,
+          acquire: 60000,
+          idle: 20000
+        },
+        retry: {
+          match: [
+            /SequelizeConnectionError/,
+            /SequelizeConnectionRefusedError/,
+            /SequelizeHostNotFoundError/,
+            /SequelizeHostNotReachableError/,
+            /SequelizeInvalidConnectionError/,
+            /SequelizeConnectionTimedOutError/,
+            /TimeoutError/,
+            /ECONNRESET/,
+            /TERMINATING/
+          ],
+          max: 5
+        },
+        logging: false
+      });
+
+      try {
+        await sequelize.authenticate();
+        console.log(`✅ [DB_SUCCESS] Authenticated successfully with PostgreSQL candidate ${i + 1}.`);
+        connected = true;
+        break;
+      } catch (err) {
+        console.warn(`⚠️ [DB_CONNECT_WARN] Candidate ${i + 1} connection failed: ${err.message}`);
+        lastError = err;
+      }
+    }
+
+    if (!connected) {
+      throw lastError || new Error('All PostgreSQL connection candidates failed.');
+    }
   }
 
   try {
-    await sequelize.authenticate();
     const dialect = sequelize.getDialect();
     console.log(`✅ [DB_SUCCESS] Connected to ${dialect.toUpperCase()} database.`);
     

@@ -11,7 +11,7 @@ services:
     env: node
     plan: free
     rootDir: backend
-    buildCommand: npm install
+    buildCommand: npm install --legacy-peer-deps
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
@@ -37,7 +37,7 @@ services:
     env: node
     plan: free
     rootDir: frontend
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --legacy-peer-deps && npm run build
     startCommand: npm start
     envVars:
       - key: NEXT_PUBLIC_API_URL
@@ -51,7 +51,7 @@ services:
     env: node
     plan: free
     rootDir: delivery-app
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --legacy-peer-deps && npm run build
     startCommand: npm start
     envVars:
       - key: NEXT_PUBLIC_API_URL
@@ -65,7 +65,7 @@ services:
     env: node
     plan: free
     rootDir: restaurant-portal
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --legacy-peer-deps && npm run build
     startCommand: npm start
     envVars:
       - key: NEXT_PUBLIC_API_URL
@@ -79,7 +79,7 @@ services:
     env: node
     plan: free
     rootDir: admin-dashboard
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --legacy-peer-deps && npm run build
     startCommand: npm start
     envVars:
       - key: NEXT_PUBLIC_API_URL
