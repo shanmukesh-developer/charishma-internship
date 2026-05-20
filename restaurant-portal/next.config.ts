@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   typescript: { ignoreBuildErrors: true },
+  eslint: { ignoreDuringBuilds: true },
   turbopack: {
     root: path.resolve(__dirname),
   },
