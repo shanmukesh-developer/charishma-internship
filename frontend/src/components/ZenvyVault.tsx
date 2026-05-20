@@ -54,7 +54,7 @@ export default function ZenvyVault() {
   const fetchUserStreak = async () => {
     try {
       const res = await fetch(`${API_URL}/api/users/profile`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${'cookie-managed'}` }
       });
       const data = await res.json();
       setUserStreak(data.user?.streakCount || 0);
@@ -74,7 +74,7 @@ export default function ZenvyVault() {
       const res = await fetch(`${API_URL}/api/vault/claim/${itemId}`, {
         method: 'POST',
         headers: { 
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${'cookie-managed'}`,
           'Content-Type': 'application/json'
         }
       });

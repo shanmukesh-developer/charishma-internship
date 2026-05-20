@@ -3,6 +3,7 @@ import { Outfit } from "next/font/google";
 import "./globals.css";
 import SOSAlertModal from '@/components/SOSAlertModal';
 import NexusLayoutClient from '@/components/NexusLayoutClient';
+import FetchInterceptor from '@/components/FetchInterceptor';
 
 const outfit = Outfit({ subsets: ["latin"] });
 
@@ -19,6 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${outfit.className} antialiased bg-[#0A0A0F] text-slate-200 selection:bg-blue-500/30`}>
+        <FetchInterceptor />
         <SOSAlertModal />
         
         {/* Cinematic Backdrop */}

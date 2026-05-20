@@ -43,15 +43,14 @@ export default function OrdersPage() {
   const touchStartX = useRef(0);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = 'cookie-managed';
     if (!token) { router.push('/login'); return; }
     const fetchOrders = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = 'cookie-managed';
         const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
         const res = await fetch(`${API_URL}/api/orders/myorders`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+          });
         if (res.ok) {
           const data = await res.json();
           // Items may be stringified JSON in SQLite — parse them safely
@@ -61,7 +60,7 @@ export default function OrdersPage() {
           }));
           setOrders(parsed);
         } else if (res.status === 401) {
-          localStorage.removeItem('token');
+          
           router.push('/login');
         }
       } catch (err) {

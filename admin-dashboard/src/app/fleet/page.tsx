@@ -87,10 +87,9 @@ export default function FleetManagement() {
   const fetchRiders = async (page = 1) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/riders?page=${page}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        });
       const data = await res.json();
       if (res.ok) {
         setRiders(data.riders || []);
@@ -107,10 +106,10 @@ export default function FleetManagement() {
 
   const handleToggleApproval = async (id: string, currentStatus: boolean) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/riders/${id}/approve`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ isApproved: !currentStatus })
       });
       if (res.ok) fetchRiders();
@@ -120,11 +119,10 @@ export default function FleetManagement() {
   const handleResetSos = async (id: string) => {
     if (!confirm('Mark emergency as resolved and reset SOS?')) return;
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       await fetch(`${API_URL}/api/admin/riders/${id}/reset-sos`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        });
       fetchRiders();
     } catch (err) { console.error('[SOS_RESET_ERROR]', err); }
   };
@@ -141,11 +139,11 @@ export default function FleetManagement() {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const endpoint = editingRider ? `${API_URL}/api/admin/riders/${editingRider._id}` : `${API_URL}/api/delivery/register`;
       const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify(newRider)
       });
       if (res.ok) {

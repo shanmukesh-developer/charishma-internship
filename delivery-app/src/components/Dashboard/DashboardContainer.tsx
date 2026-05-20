@@ -93,8 +93,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
     const fetchPhoto = async () => {
       try {
         const res = await fetch(`${apiUrl}/api/delivery/profile`, {
-          headers: { 'Authorization': `Bearer ${driverToken}` }
-        });
+          });
         if (res.status === 401) return onLogout();
         if (res.ok) {
           const data = await res.json();
@@ -117,8 +116,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${driverToken}`
-          },
+            },
           body: JSON.stringify({ isOnline: status })
         });
       } catch (err) {
@@ -142,8 +140,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
   const fetchActiveOrders = useCallback(async () => {
     try {
       const res = await fetch(`${apiUrl}/api/delivery/orders/active`, {
-        headers: { 'Authorization': `Bearer ${driverToken}` }
-      });
+        });
       if (res.status === 401) return onLogout();
       if (res.ok) {
         const data = await res.json();
@@ -166,8 +163,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
     if (!isOnline) return;
     try {
       const res = await fetch(`${apiUrl}/api/delivery/orders/pending`, {
-        headers: { 'Authorization': `Bearer ${driverToken}` }
-      });
+        });
       if (res.status === 401) return onLogout();
       if (res.ok) {
         const data = await res.json();
@@ -213,8 +209,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
   const fetchHistory = useCallback(async () => {
     try {
       const res = await fetch(`${apiUrl}/api/delivery/orders/history`, {
-        headers: { 'Authorization': `Bearer ${driverToken}` }
-      });
+        });
       if (res.status === 401) return onLogout();
       if (res.ok) {
         const data = await res.json();
@@ -232,8 +227,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
   const fetchTodayStats = useCallback(async () => {
     try {
       const res = await fetch(`${apiUrl}/api/delivery/stats/today`, {
-        headers: { 'Authorization': `Bearer ${driverToken}` }
-      });
+        });
       if (res.status === 401) return onLogout();
       if (res.ok) {
         const data = await res.json();
@@ -247,8 +241,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
   const fetchProfile = useCallback(async () => {
     try {
       const res = await fetch(`${apiUrl}/api/delivery/profile`, {
-        headers: { 'Authorization': `Bearer ${driverToken}` }
-      });
+        });
       if (res.ok) {
         const data = await res.json();
         setCurrentDriver(prev => ({ ...prev, ...data }));
@@ -274,7 +267,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
   useEffect(() => {
     const socket = io(apiUrl.replace(/\/$/, ""), {
       auth: { token: driverToken, role: 'rider', driverId: currentDriver._id, name: currentDriver.name },
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'], withCredentials: true,
       withCredentials: true,
       autoConnect: true,
       reconnection: true,
@@ -368,7 +361,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
     try {
       const res = await fetch(`${apiUrl}/api/delivery/online`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${driverToken}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ isOnline: newStatus })
       });
       if (res.ok) {
@@ -390,8 +383,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
     try {
       const res = await fetch(`${apiUrl}/api/delivery/accept/${orderId}`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${driverToken}` }
-      });
+        });
       if (res.ok) {
         socketRef.current?.emit('joinOrder', orderId);
         socketRef.current?.emit('rider_accepted', {
@@ -415,7 +407,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
     try {
       const res = await fetch(`${apiUrl}/api/delivery/status/${orderId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${driverToken}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ status: 'PickedUp' })
       });
       if (res.ok) {
@@ -434,7 +426,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
     try {
       const res = await fetch(`${apiUrl}/api/delivery/status/${orderId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${driverToken}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ status: 'Delivered', pin })
       });
       if (res.ok) {
@@ -485,8 +477,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
     try {
       const res = await fetch(`${apiUrl}/api/delivery/cancel/${orderId}`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${driverToken}` }
-      });
+        });
       if (res.ok) {
         setActiveOrders(prev => prev.filter(o => o.id !== orderId));
         socketRef.current?.emit('rider_cancelled', { orderId, riderId: currentDriver._id });

@@ -130,10 +130,10 @@ export default function OrdersPage() {
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
       setActionLoading(orderId + status);
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ status })
       });
       if (res.ok) await fetchOrders();
@@ -147,10 +147,9 @@ export default function OrdersPage() {
   const fetchOrders = async (page = 1) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/orders?page=${page}&status=${filterStatus}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        });
       const data = await res.json();
       if (res.ok) {
          setOrders(data.orders || []);
@@ -168,11 +167,10 @@ export default function OrdersPage() {
   const handleAcceptOrder = async (orderId: string) => {
     try {
       setActionLoading(orderId + 'Accept');
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/orders/${orderId}/restaurant-accept`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        });
       if (res.ok) await fetchOrders();
     } catch { } finally { setActionLoading(null); }
   };
@@ -181,7 +179,7 @@ export default function OrdersPage() {
     fetchOrders(1);
 
     const socket = io(SOCKET_URL, {
-      transports: ['websocket']
+      transports: ['websocket', 'polling'], withCredentials: true
     });
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

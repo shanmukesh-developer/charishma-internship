@@ -85,9 +85,8 @@ export default function UserManagement() {
 
   const fetchUsers = async (page = 1) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/users?page=${page}`, {
-        headers: { 'Authorization': `Bearer ${token}` },
         cache: 'no-store'
       });
       const data = await res.json();
@@ -102,9 +101,8 @@ export default function UserManagement() {
 
   const fetchLogs = async (page = 1) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/audit?page=${page}`, {
-        headers: { 'Authorization': `Bearer ${token}` },
         cache: 'no-store'
       });
       const data = await res.json();
@@ -119,10 +117,10 @@ export default function UserManagement() {
 
   const toggleElite = async (userId: string, currentStatus: boolean) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/users/${userId}/elite`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ isElite: !currentStatus })
       });
       if (res.ok) { fetchUsers(userPage); fetchLogs(logPage); }
@@ -132,10 +130,10 @@ export default function UserManagement() {
   const addWalletBalance = async (userId: string, amount: number) => {
     if (!amount || isNaN(amount)) return;
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/users/${userId}/wallet`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ amount })
       });
       if (res.ok) {

@@ -42,7 +42,7 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('token', data.token);
+        
         localStorage.setItem('user', JSON.stringify({ id: data._id, name: data.name, phone: data.phone }));
         setOverlay({ isOpen: true, title: '🎉 Welcome to Zenvy!', message: 'Your account has been created successfully.', type: 'success' });
         setTimeout(() => router.push('/'), 2000);
@@ -79,7 +79,7 @@ export default function RegisterPage() {
       const data = await response.json();
       if (response.ok) {
         localStorage.removeItem('zenvy_cart');
-        localStorage.setItem('token', data.token);
+        
         localStorage.setItem('user', JSON.stringify({ 
           id: data._id, 
           name: data.name,

@@ -68,10 +68,9 @@ export default function FinanceConsole() {
   const fetchFinanceData = async (page = 1) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/finance?page=${page}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        });
       const data = await res.json();
       if (res.ok) {
         setReport(data);

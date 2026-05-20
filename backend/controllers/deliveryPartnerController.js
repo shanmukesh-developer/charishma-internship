@@ -26,7 +26,9 @@ const registerPartner = async (req, res) => {
     if (partnerExists) return res.status(400).json({ message: 'Partner already exists' });
 
     const partner = await DeliveryPartner.create({ name, phone: cleanPhone, password, vehicleType });
-    res.status(201).json({ _id: partner.id, name: partner.name, token: generateToken(partner.id) });
+    const token = generateToken(partner.id);
+    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
+    res.status(201).json({ _id: partner.id, name: partner.name, token });
   } catch (error) {
     console.error('[PARTNER_REGISTER_ERROR]', error);
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -57,13 +59,20 @@ const authPartner = async (req, res) => {
     }
 
     // ── 3. Return partner data and JWT token ────────────────────────────────
+    const token = generateToken(partner.id);
+    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
     res.json({ 
       _id: partner.id, 
       name: partner.name, 
       phone: partner.phone,
-      isOnline: partner.isOnline,
+      vehicleType: partner.vehicleType,
       isApproved: partner.isApproved,
-      token: generateToken(partner.id) 
+      isAvailable: partner.isAvailable,
+      walletBalance: partner.walletBalance,
+      zenPoints: partner.zenPoints,
+      completedDeliveries: partner.completedDeliveries,
+      rating: partner.rating,
+      token 
     });
   } catch (error) {
     console.error('[PARTNER_AUTH_ERROR]', error);

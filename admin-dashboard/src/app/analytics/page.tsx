@@ -32,10 +32,9 @@ export default function AnalyticsIntel() {
   useEffect(() => {
       const fetchVolume = async () => {
         try {
-          const token = localStorage.getItem('token');
+          const token = 'cookie-managed';
           const res = await fetch(`${API_URL}/api/admin/stats/volume`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+            });
           const data = await res.json();
           setVolume(data);
         } catch (err) { console.error('Volume fetch failed', err); }
@@ -43,10 +42,9 @@ export default function AnalyticsIntel() {
 
       const fetchHealth = async () => {
         try {
-          const token = localStorage.getItem('token');
+          const token = 'cookie-managed';
           const res = await fetch(`${API_URL}/api/admin/health`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+            });
           const data = await res.json();
           setHealth(data);
         } catch (err) { console.error('Health fetch failed', err); }
@@ -54,10 +52,9 @@ export default function AnalyticsIntel() {
 
      const fetchStats = async () => {
        try {
-         const token = localStorage.getItem('token');
+         const token = 'cookie-managed';
          const res = await fetch(`${API_URL}/api/admin/stats`, {
-           headers: { 'Authorization': `Bearer ${token}` }
-         });
+           });
          const data = await res.json();
          
          setMetrics([
@@ -77,10 +74,9 @@ export default function AnalyticsIntel() {
 
       const fetchRewards = async () => {
         try {
-          const token = localStorage.getItem('token');
+          const token = 'cookie-managed';
           const res = await fetch(`${API_URL}/api/admin/rewards-analytics`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+            });
           const data = await res.json();
           setRewards(data);
         } catch (error) {

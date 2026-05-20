@@ -92,12 +92,11 @@ export default function ProfilePage() {
 
     const fetchCoupons = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = 'cookie-managed';
         if (!token) return;
         const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
         const res = await fetch(`${API_URL}/api/rewards/coupons`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+          });
         if (res.ok) {
           const data = await res.json();
           setCoupons(data);
@@ -156,12 +155,12 @@ export default function ProfilePage() {
   // --- Profile Fetch ---
   const fetchProfile = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       if (!token) { router.push('/login'); return; }
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
-      const response = await fetch(`${API_URL}/api/users/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
+      const response = await fetch(`${API_URL}/api/users/profile`, { });
       if (response.status === 401) {
-        localStorage.removeItem('token');
+        
         router.push('/login');
         return;
       }
@@ -207,7 +206,7 @@ export default function ProfilePage() {
           });
         } else { 
           // Last resort: if no token and no local data, redirect
-          if (!localStorage.getItem('token')) {
+          if (false) {
              window.location.href = '/login'; 
           }
         }
@@ -248,9 +247,9 @@ export default function ProfilePage() {
 
   const handleUpdateProfile = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
-      const response = await fetch(`${API_URL}/api/users/profile`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(editData) });
+      const response = await fetch(`${API_URL}/api/users/profile`, { method: 'PUT', headers: { 'Content-Type': 'application/json', }, body: JSON.stringify(editData) });
       const updated = response.ok ? await response.json() : null;
       if (updated) { 
         const stored = localStorage.getItem('user');
@@ -337,7 +336,17 @@ export default function ProfilePage() {
     }
   };
 
-  const handleLogout = () => { localStorage.removeItem('token'); localStorage.removeItem('user'); localStorage.removeItem('zenvy_cart'); router.push('/login'); };
+  const handleLogout = async () => { 
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
+      await fetch(`${API_URL}/api/users/logout`, { method: 'POST' });
+    } catch (e) {
+      console.error('Logout error:', e);
+    }
+    localStorage.removeItem('user'); 
+    localStorage.removeItem('zenvy_cart'); 
+    router.push('/login'); 
+  };
 
   const handleEnablePush = async () => {
     if (!('Notification' in window)) {
@@ -352,12 +361,12 @@ export default function ProfilePage() {
         // For this demo environment without a configured service worker, we generate a secure token.
         const mockFcmToken = 'fcm_token_' + Math.random().toString(36).substr(2, 9);
         
-        const token = localStorage.getItem('token');
+        const token = 'cookie-managed';
         const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
         
         await fetch(`${API_URL}/api/users/fcm-token`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json', },
           body: JSON.stringify({ userId: user?.id || user?._id, fcmToken: mockFcmToken, appVersion: 'Zenvy Web 2.4.0' })
         });
         

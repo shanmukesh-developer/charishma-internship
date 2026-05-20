@@ -25,6 +25,13 @@ const registerUser = async (req, res) => {
     if (userExists) return res.status(400).json({ message: 'Account with this phone already exists' });
 
     const user = await User.create({ name, phone: cleanPhone, password, hostelBlock, roomNumber });
+    const token = generateToken(user.id, user.role);
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000
+    });
     res.status(201).json({
       _id: user.id,
       name: user.name,
@@ -35,7 +42,7 @@ const registerUser = async (req, res) => {
       profileImage: user.profileImage || null,
       badges: user.badges || [],
       completedOrders: user.completedOrders || 0,
-      token: generateToken(user.id, user.role)
+      token
     });
   } catch (_error) {
     console.error('[USER_REGISTER_ERROR]', _error);
@@ -85,6 +92,13 @@ const authUser = async (req, res) => {
     }
 
     // ── 3. Return user data and JWT token ────────────────────────────────
+    const token = generateToken(user.id, user.role);
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000
+    });
     res.json({
       _id: user.id,
       name: user.name,
@@ -99,7 +113,7 @@ const authUser = async (req, res) => {
       badges: user.badges || [],
       completedOrders: user.completedOrders || 0,
       role: user.role,
-      token: generateToken(user.id, user.role)
+      token
     });
   } catch (_error) {
     console.error('[AUTH_ERROR]', _error);
@@ -299,13 +313,20 @@ const googleLogin = async (req, res) => {
       await user.save();
     }
 
+    const token = generateToken(user.id, user.role);
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000
+    });
     res.json({
       _id: user.id,
       name: user.name,
       email: user.email,
       phone: user.phone,
       role: user.role,
-      token: generateToken(user.id, user.role)
+      token
     });
   } catch (error) {
     console.error('[GOOGLE_LOGIN_ERROR]', error);
@@ -313,4 +334,14 @@ const googleLogin = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, authUser, saveFcmToken, getUserProfile, updateUserProfile, resetPassword, googleLogin };
+// @desc    Logout user & clear cookie
+// @route   POST /api/users/logout
+const logoutUser = async (req, res) => {
+  res.cookie('token', '', {
+    httpOnly: true,
+    expires: new Date(0)
+  });
+  res.status(200).json({ message: 'Logged out successfully' });
+};
+
+module.exports = { registerUser, authUser, saveFcmToken, getUserProfile, updateUserProfile, resetPassword, googleLogin, logoutUser };

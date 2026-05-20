@@ -22,10 +22,9 @@ export default function ConfigTerminal() {
 
   const fetchConfigs = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/config`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        });
       const data = await res.json();
       if (res.ok) setConfigs(data);
     } catch {
@@ -37,13 +36,12 @@ export default function ConfigTerminal() {
 
   const handleUpdateConfig = async (key: string, value: string | number | boolean | string[]) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/config`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        },
+          },
         body: JSON.stringify({ key, value })
       });
       if (res.ok) fetchConfigs();
@@ -225,10 +223,10 @@ export default function ConfigTerminal() {
              onClick={async () => {
                 if(!confirm('Migrate all legacy campus data to Database? This cannot be undone.')) return;
                 try {
-                  const token = localStorage.getItem('token');
+                  const token = 'cookie-managed';
                   const res = await fetch(`${API_URL}/api/admin/seed`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    headers: {  'Content-Type': 'application/json' },
                     body: JSON.stringify({ restaurants: [] }) 
                   });
                   if(res.ok) alert('Nexus Synchronized Successfully!');

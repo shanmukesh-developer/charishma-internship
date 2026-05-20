@@ -185,10 +185,9 @@ export default function AdminHome() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const token = typeof window !== 'undefined' ? 'cookie-managed' : null;
       const res = await fetch(`${API_URL}/api/admin/stats`, {
-         headers: { 'Authorization': `Bearer ${token}` }
-      });
+         });
       if (!res.ok) return;
       const data = await res.json();
       setStats([
@@ -202,10 +201,9 @@ export default function AdminHome() {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const token = typeof window !== 'undefined' ? 'cookie-managed' : null;
       const res = await fetch(`${API_URL}/api/orders`, {
-         headers: { 'Authorization': `Bearer ${token}` }
-      });
+         });
       const data = await res.json();
       if (res.ok) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -243,13 +241,12 @@ export default function AdminHome() {
 
   const handleVerifyUPI = async (orderId: string, isVerified: boolean) => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const token = typeof window !== 'undefined' ? 'cookie-managed' : null;
       const res = await fetch(`${API_URL}/api/orders/${orderId}/verify-payment`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+          },
         body: JSON.stringify({ isVerified })
       });
       if (res.ok) {
@@ -262,10 +259,10 @@ export default function AdminHome() {
   const handleOverrideGlobalBatch = async () => {
     if (!confirm('OVERRIDE PROTOCOL: Force-accept all pending orders?')) return;
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/orders/batch-update`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ targetStatus: 'Pending', newStatus: 'Accepted' })
       });
       if (res.ok) {
@@ -289,7 +286,7 @@ export default function AdminHome() {
     fetchOrders();
 
     const socket = io(SOCKET_URL.replace(/\/$/, ""), {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'], withCredentials: true,
       withCredentials: true,
       autoConnect: true,
       reconnection: true,

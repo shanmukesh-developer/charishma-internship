@@ -91,12 +91,11 @@ export default function CommunityPage() {
   const handleImageUpload = async (file: File) => {
     setIsUploading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const formData = new FormData();
       formData.append('image', file);
       const res = await fetch(`${API_URL}/api/upload`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
       const data = await res.json();
@@ -107,11 +106,10 @@ export default function CommunityPage() {
 
   const handleDeletePost = async (id: string, parentId: string | null) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/community/${id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        });
       if (res.ok) {
         const removePost = (postsList: PostType[]): PostType[] => {
           return postsList.filter(p => p.id !== id).map(p => ({
@@ -130,7 +128,7 @@ export default function CommunityPage() {
     if (!draft.trim() && !draftImage) return;
     setIsPosting(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const body: Record<string, string> = { content: draft };
       if (draftImage) body.imageUrl = draftImage;
       if (replyingTo) body.parentId = replyingTo.id;
@@ -139,7 +137,7 @@ export default function CommunityPage() {
 
       const res = await fetch(`${API_URL}/api/community`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify(body)
       });
       if (res.ok) {
@@ -184,8 +182,8 @@ export default function CommunityPage() {
     setPosts(prev => prev.map(updateLike));
 
     try {
-      const token = localStorage.getItem('token');
-      await fetch(`${API_URL}/api/community/${id}/like`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
+      const token = 'cookie-managed';
+      await fetch(`${API_URL}/api/community/${id}/like`, { method: 'PUT', });
     } catch (e) { console.error('Like error:', e); }
   };
 

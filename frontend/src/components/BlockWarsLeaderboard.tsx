@@ -24,11 +24,11 @@ export default function BlockWarsLeaderboard({ userBlock }: { userBlock: string 
     
     const fetchActivity = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = 'cookie-managed';
         // Comfort Guard: Don't fetch if no token (prevents 401s if backend was protected)
         // Now that backend is public, we can fetch, but we might still want to skip for clean logs
         const res = await fetch(`${API_URL}/api/blocks/activity`, {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+          headers: token ? { } : {}
         });
         
         if (res.status === 401) {

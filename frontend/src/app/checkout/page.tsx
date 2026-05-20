@@ -193,7 +193,7 @@ export default function CheckoutPage() {
   const [selectedCoupon, setSelectedCoupon] = useState<{ id: string; code: string; type: string } | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = 'cookie-managed';
     if (!token) { router.push('/login'); return; }
 
     const fetchSurge = async () => {
@@ -232,11 +232,10 @@ export default function CheckoutPage() {
 
       // 2. Fetch LATEST profile from server to ensure synchronization
       try {
-        const token = localStorage.getItem('token');
+        const token = 'cookie-managed';
         if (token) {
           const res = await fetch(`${API_URL}/api/users/profile`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+            });
           if (res.ok) {
             const profile = await res.json();
             if (profile.address) {
@@ -250,7 +249,7 @@ export default function CheckoutPage() {
               }
             }
           } else if (res.status === 401) {
-            localStorage.removeItem('token');
+            
             router.push('/login');
           }
         }
@@ -279,11 +278,10 @@ export default function CheckoutPage() {
     // Fetch User Coupons
     const fetchCoupons = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = 'cookie-managed';
         if (!token) return;
         const res = await fetch(`${API_URL}/api/rewards/coupons`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+          });
         if (res.ok) {
           const data = await res.json();
           setCoupons(data);
@@ -336,7 +334,7 @@ export default function CheckoutPage() {
 
     setCheckoutStatus('processing');
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       if (!token) {
         setCheckoutStatus('error');
         setModalConfig({ isOpen: true, title: 'Login Required', message: 'Please login to complete your order.', type: 'error' });
@@ -370,7 +368,7 @@ export default function CheckoutPage() {
 
       const response = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify(orderData)
       });
 
@@ -387,7 +385,7 @@ export default function CheckoutPage() {
 
         // Handle Stale Session / Account Missing
         if (response.status === 401 && (err.message?.includes('Account not found') || err.message?.includes('token failed'))) {
-           localStorage.removeItem('token');
+           
            localStorage.removeItem('user');
            setModalConfig({ 
              isOpen: true, 

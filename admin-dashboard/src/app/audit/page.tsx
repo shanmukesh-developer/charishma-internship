@@ -22,10 +22,9 @@ export default function AuditPage() {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = 'cookie-managed';
         const res = await fetch(`${API_URL}/api/admin/audit`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+          });
         const data = await res.json();
         if (res.ok) setLogs(data);
       } catch (error) {

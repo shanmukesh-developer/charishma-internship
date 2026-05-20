@@ -124,10 +124,9 @@ function TrackingContent() {
 
     const fetchOrder = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = 'cookie-managed';
         const res = await fetch(`${API_URL}/api/orders/${orderId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+          });
         const data = await res.json();
         if (typeof data.items === 'string') {
           try { data.items = JSON.parse(data.items); } catch { data.items = []; }
@@ -223,10 +222,10 @@ function TrackingContent() {
 
   const cancelOrderAction = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       await fetch(`${API_URL}/api/orders/${orderId}/cancel`, {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        headers: {  'Content-Type': 'application/json' }
       });
       localStorage.removeItem('last_order');
       window.location.href = '/';
@@ -617,10 +616,10 @@ function TrackingContent() {
         isOpen={showRatingModal}
         onClose={() => setShowRatingModal(false)}
         onSubmit={async (rating, review) => {
-          const token = localStorage.getItem('token');
+          const token = 'cookie-managed';
           await fetch(`${API_URL}/api/orders/${orderId}/rate`, {
             method: 'PUT',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            headers: {  'Content-Type': 'application/json' },
             body: JSON.stringify({ rating, review })
           });
         }}

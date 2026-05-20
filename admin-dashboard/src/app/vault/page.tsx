@@ -37,10 +37,9 @@ export default function VaultTerminal() {
 
   const fetchVault = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/vault`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        });
       const data = await res.json();
       if (res.ok) setItems(data);
     } catch (_err) {
@@ -52,14 +51,13 @@ export default function VaultTerminal() {
 
   const handleUpsert = async (item: Partial<VaultItem>) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const id = item._id || 'new';
       const res = await fetch(`${API_URL}/api/admin/vault/${id}`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        },
+          },
         body: JSON.stringify(item)
       });
       if (res.ok) fetchVault();
@@ -70,11 +68,10 @@ export default function VaultTerminal() {
 
   const handleDelete = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/vault/${id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        });
       if (res.ok) fetchVault();
     } catch (_err) {
       console.error('[VAULT_DELETE_ERROR]', _err);

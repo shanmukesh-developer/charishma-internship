@@ -211,10 +211,9 @@ export default function GourmetManagement() {
 
   const fetchRestaurants = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/restaurants`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        });
       const data = await res.json();
       if (res.ok) setRestaurants(data);
     } catch {
@@ -227,10 +226,10 @@ export default function GourmetManagement() {
     if(!confirm('Import all current campus restaurants and items into the Nexus?')) return;
     setIsSyncing(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/seed`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ restaurants: LEGACY_DATA })
       });
       if (res.ok) fetchRestaurants();
@@ -242,7 +241,7 @@ export default function GourmetManagement() {
     if (isCreating) return;
     setIsCreating(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       let finalImageUrl = newRest.imageUrl;
       if (imageFile) {
         const formData = new FormData();
@@ -264,7 +263,7 @@ export default function GourmetManagement() {
       const endpoint = editingRestaurant ? `${API_URL}/api/admin/restaurants/${editingRestaurant._id}` : `${API_URL}/api/admin/restaurants`;
       const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify(payload)
       });
       
@@ -284,7 +283,7 @@ export default function GourmetManagement() {
     if(!selectedRestaurant || isCreatingItem) return;
     setIsCreatingItem(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       let finalImageUrl = newItem.image;
       if (imageFile) {
         const formData = new FormData();
@@ -299,7 +298,7 @@ export default function GourmetManagement() {
       const endpoint = editingItem ? `${API_URL}/api/admin/menu-items/${editingItem._id}` : `${API_URL}/api/admin/menu-items/new`;
       const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ 
           ...newItem, 
           image: finalImageUrl,
@@ -324,9 +323,8 @@ export default function GourmetManagement() {
 
   const fetchMenu = async (restaurantId: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/menu-items?restaurantId=${restaurantId}`, {
-         headers: { 'Authorization': `Bearer ${token}` },
          cache: 'no-store'
       });
       const data = await res.json();
@@ -336,10 +334,10 @@ export default function GourmetManagement() {
 
   const toggleEliteItem = async (menuItem: MenuItem) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/menu-items/${menuItem._id}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ ...menuItem, isEliteOnly: !menuItem.isEliteOnly })
       });
       if (res.ok && selectedRestaurant) fetchMenu(selectedRestaurant._id);
@@ -348,10 +346,10 @@ export default function GourmetManagement() {
 
   const toggleAvailability = async (menuItem: MenuItem) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/menu-items/${menuItem._id}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ ...menuItem, isAvailable: !menuItem.isAvailable })
       });
       if (res.ok && selectedRestaurant) fetchMenu(selectedRestaurant._id);
@@ -361,11 +359,10 @@ export default function GourmetManagement() {
   const deleteMenuItem = async (menuItemId: string) => {
     if (!confirm('Remove this menu item from the Nexus?')) return;
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       await fetch(`${API_URL}/api/admin/menu-items/${menuItemId}/delete`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        });
       setMenuItems(prev => prev.filter(i => i._id !== menuItemId));
     } catch { }
   };
@@ -373,11 +370,10 @@ export default function GourmetManagement() {
   const deleteRestaurant = async (restaurantId: string) => {
     if (!confirm('DANGER: This will permanently delete this restaurant node and ALL its menu items. Continue?')) return;
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/restaurants/${restaurantId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        });
       if (res.ok) {
         setRestaurants(prev => prev.filter(r => r._id !== restaurantId));
       }
@@ -386,10 +382,10 @@ export default function GourmetManagement() {
 
   const toggleRestaurantStatus = async (restaurant: Restaurant) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const res = await fetch(`${API_URL}/api/admin/restaurants/${restaurant._id}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ ...restaurant, isActive: !restaurant.isActive })
       });
       if (res.ok) fetchRestaurants();

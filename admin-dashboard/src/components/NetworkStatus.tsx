@@ -9,7 +9,7 @@ export default function NetworkStatus() {
 
   useEffect(() => {
     const socket = io(SOCKET_URL, {
-      transports: ['websocket']
+      transports: ['websocket', 'polling'], withCredentials: true
     });
     socket.on('connect', () => {
       console.log('[SOCKET_CONNECTED] Admin Terminal Link Established');

@@ -15,7 +15,7 @@ export default function SOSAlertModal() {
 
   useEffect(() => {
     const socket = io(SOCKET_URL, {
-      transports: ['websocket']
+      transports: ['websocket', 'polling'], withCredentials: true
     });
     socket.on('sos_received', (data: SOSData) => {
       setSosEvent(data);

@@ -7,7 +7,7 @@ export function useAdminAuth() {
   const [isAuthed, setIsAuthed] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = 'cookie-managed';
     const userData = localStorage.getItem('user');
     
     if (!token || !userData) {
@@ -34,13 +34,12 @@ export function useAdminAuth() {
         const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
         const res = await fetch(`${apiUrl}/api/admin/config`, {
-          headers: { 'Authorization': `Bearer ${token}` },
           signal: controller.signal
         });
         clearTimeout(timeout);
 
         if (res.status === 401) {
-          localStorage.removeItem('token');
+          
           localStorage.removeItem('user');
           router.push('/login');
           setIsAuthed(false);

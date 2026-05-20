@@ -24,11 +24,10 @@ export default function SpinWheel({ onWin }: { onWin: (prize: typeof PRIZES[0]) 
 
   const fetchEligibility = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
       const res = await fetch(`${API_URL}/api/rewards/spin-eligibility`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        });
       const data = await res.json();
       setEligibility(data);
     } catch (err) {
@@ -63,12 +62,12 @@ export default function SpinWheel({ onWin }: { onWin: (prize: typeof PRIZES[0]) 
       
       // Record spin in backend
       try {
-        const token = localStorage.getItem('token');
+        const token = 'cookie-managed';
         const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
         await fetch(`${API_URL}/api/rewards/use-spin`, {
           method: 'POST',
           headers: { 
-            'Authorization': `Bearer ${token}`,
+            
             'Type-Content': 'application/json',
             'Content-Type': 'application/json'
           },

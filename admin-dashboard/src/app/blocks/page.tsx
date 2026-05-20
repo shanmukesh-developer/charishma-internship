@@ -20,18 +20,15 @@ export default function BlockWarsHUD() {
 
     const fetchStats = async () => {
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        const token = typeof window !== 'undefined' ? 'cookie-managed' : null;
         console.log('[BLOCKS_FETCH_TOKEN]', token);
-        if (!token || token === 'null' || token === 'undefined') {
+        if (!token) {
            // If layout haven't set token yet, retry sets 
            if (mounted) fallbackTimer = setTimeout(fetchStats, 1000);
            return;
         }
         const res = await fetch(`${API_URL}/api/blocks/activity`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+          });
         const data = await res.json();
         if (res.ok && mounted) setStats(data);
       } catch (err) {

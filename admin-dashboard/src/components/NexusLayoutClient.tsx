@@ -21,7 +21,7 @@ export default function NexusLayoutClient({
     const fetchHealth = async () => {
       try {
         const res = await fetch(`${API_URL}/api/admin/health`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          headers: { 'Authorization': `Bearer ${'cookie-managed'}` }
         });
         const data = await res.json();
         setSystemHealth(data);

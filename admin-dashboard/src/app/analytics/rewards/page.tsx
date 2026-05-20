@@ -29,7 +29,7 @@ export default function RewardsAnalytics() {
 
   useEffect(() => {
     fetch('http://localhost:5005/api/admin/rewards-analytics', {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      headers: { 'Authorization': `Bearer ${'cookie-managed'}` }
     })
       .then(res => res.json())
       .then(d => {

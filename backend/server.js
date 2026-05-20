@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
+const cookieParser = require('cookie-parser');
 const http = require('http');
 const { Server } = require('socket.io');
 const { connectDB } = require('./config/db');
@@ -131,10 +132,30 @@ const io = new Server(server, {
 const jwt = require('jsonwebtoken');
 io.use((socket, next) => {
   try {
-    const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
+    let token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
+    
+    // Check for token in cookies if not found in auth payload or headers
+    if (!token && socket.handshake.headers.cookie) {
+      const cookieHeader = socket.handshake.headers.cookie;
+      const cookies = cookieHeader.split(';').reduce((res, c) => {
+        const parts = c.trim().split('=');
+        if (parts.length >= 2) {
+          try {
+            res[parts[0]] = decodeURIComponent(parts[1]);
+          } catch (e) {
+            res[parts[0]] = parts[1];
+          }
+        }
+        return res;
+      }, {});
+      token = cookies.token;
+    }
     
     if (!token) {
-      return next(new Error('Authentication error: Token missing'));
+      // Some public endpoints (like global announcements or open basket rooms) 
+      // might try to connect without a token. We should allow anonymous sockets but mark them.
+      socket.user = { id: 'anonymous', role: 'guest' };
+      return next();
     }
 
     const secret = process.env.JWT_SECRET;
@@ -167,6 +188,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(compression());
+app.use(cookieParser());
 app.use(express.json({ limit: '5mb' }));
 
 app.get('/api/health', async (req, res) => {

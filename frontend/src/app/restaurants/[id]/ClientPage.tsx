@@ -97,7 +97,8 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
 
   useEffect(() => {
     const socket = io(SOCKET_URL, {
-      transports: ['websocket']
+      transports: ['websocket', 'polling'],
+      withCredentials: true
     });
     socket.on('inventory_updated', (data: { itemId: string; isAvailable: boolean }) => {
       setSoldOutItems(prev => {

@@ -48,7 +48,7 @@ export default function AdminLoginPage() {
           setLoading(false);
           return;
         }
-        localStorage.setItem('token', data.token);
+        
         localStorage.setItem('user', JSON.stringify({ id: data._id, name: data.name, role: data.role }));
         router.push('/');
       } else {

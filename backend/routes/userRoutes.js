@@ -1,5 +1,5 @@
 const express = require('express');
-const { registerUser, authUser, saveFcmToken, getUserProfile, updateUserProfile } = require('../controllers/userController');
+const { registerUser, authUser, saveFcmToken, getUserProfile, updateUserProfile, logoutUser } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
@@ -15,6 +15,7 @@ router.post('/register', authLimiter, registerUser);
 router.post('/login', authLimiter, authUser);
 router.post('/google-login', authLimiter, require('../controllers/userController').googleLogin);
 router.post('/reset-password', authLimiter, require('../controllers/userController').resetPassword);
+router.post('/logout', logoutUser);
 router.post('/fcm-token', saveFcmToken);
 router.get('/profile', protect, getUserProfile);
 router.put('/profile', protect, updateUserProfile);

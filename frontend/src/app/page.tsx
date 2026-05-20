@@ -161,12 +161,11 @@ export default function Home() {
     // Check backend mode and active orders
     const checkStatus = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = 'cookie-managed';
         if (!token) return;
         
         const res = await fetch(`${API_URL}/api/users/profile`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+          });
 
         if (res.status === 401) {
           const data = await res.json();
@@ -176,11 +175,10 @@ export default function Home() {
             setTimeout(async () => {
               try {
                 const retry = await fetch(`${API_URL}/api/users/profile`, {
-                  headers: { Authorization: `Bearer ${token}` }
-                });
+                  });
                 if (retry.status === 401) {
                   console.error('[AUTH] Session confirmed invalid. Clearing.');
-                  localStorage.removeItem('token');
+                  
                   localStorage.removeItem('user');
                   window.location.href = '/login/?error=session_expired';
                 }
@@ -279,10 +277,9 @@ export default function Home() {
         const userId = user._id || user.id;
         if (payload.data.userId === userId) {
           // Re-fetch full profile to ensure data integrity and avoid "vanishing info"
-          const token = localStorage.getItem('token');
+          const token = 'cookie-managed';
           fetch(`${API_URL}/api/users/profile`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          }).then(res => res.json()).then(data => {
+            }).then(res => res.json()).then(data => {
             if (data && (data._id || data.id)) {
               // Ensure we have BOTH id and _id to prevent vanishing info in components
               const normalizedUser = { ...data, id: data.id || data._id, _id: data._id || data.id };
@@ -340,12 +337,12 @@ export default function Home() {
       'warning',
       async () => {
         try {
-          const token = localStorage.getItem('token');
+          const token = 'cookie-managed';
           const orderId = activeOrder?._id || activeOrder?.id;
           if (orderId) {
             await fetch(`${API_URL}/api/orders/${orderId}/cancel`, {
               method: 'PUT',
-              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+              headers: {  'Content-Type': 'application/json' }
             });
           }
         } catch (_err) {
@@ -362,14 +359,14 @@ export default function Home() {
 
   const handleRatingSubmit = async (rating: number, review: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const orderId = activeOrder?._id || activeOrder?.id;
       if (!orderId) return;
 
       await fetch(`${API_URL}/api/orders/${orderId}/rate`, {
         method: 'PUT',
         headers: { 
-          'Authorization': `Bearer ${token}`,
+          
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ rating, review })
@@ -388,7 +385,7 @@ export default function Home() {
 
   const handleJoinElite = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       if (!token) {
         alert('Please login to join Zenvy Elite!');
         return;
@@ -398,8 +395,7 @@ export default function Home() {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        },
+          },
         body: JSON.stringify({ isElite: true })
       });
       const data = await res.json();

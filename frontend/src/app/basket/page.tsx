@@ -150,7 +150,8 @@ export default function BasketPage() {
       // Establish live WebSocket connection with the port 5005 backend
       const socket = io('http://localhost:5005', {
         auth: { token },
-        transports: ['websocket']
+        withCredentials: true,
+        transports: ['websocket', 'polling'] // Add polling fallback in case websocket headers are restricted
       });
 
       socketRef.current = socket;

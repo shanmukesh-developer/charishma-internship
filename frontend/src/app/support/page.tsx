@@ -22,12 +22,11 @@ export default function SupportPage() {
 
   const fetchTickets = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       if (!token) return router.push('/login');
 
       const res = await fetch(`${API_URL}/api/tickets`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+        });
       if (res.ok) {
         const data = await res.json();
         setTickets(data);
@@ -52,10 +51,10 @@ export default function SupportPage() {
     
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = 'cookie-managed';
       const response = await fetch(`${API_URL}/api/tickets`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify(formData)
       });
       
