@@ -58,6 +58,7 @@ interface CartContextType {
   handleHostRoom: () => void;
   handleJoinRoom: (code: string) => void;
   handleDisconnect: () => void;
+  isRoomOrder: boolean;
 }
 
 function generateCartKey(id: string, customizations?: Customizations): string {
@@ -250,10 +251,11 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
   const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const uniqueRestaurants = new Set(cart.map(i => i.restaurantId)).size;
-  const deliveryFee = uniqueRestaurants * 30;
+  const isRoomOrder = !!(roomCode || isHosting || isJoined);
+  const deliveryFee = isRoomOrder ? 50 : (uniqueRestaurants * 30);
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, updateCustomName, clearCart, setCart, totalItems, totalPrice, uniqueRestaurants, deliveryFee, roomCode, isHosting, isJoined, handleHostRoom, handleJoinRoom, handleDisconnect }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, updateCustomName, clearCart, setCart, totalItems, totalPrice, uniqueRestaurants, deliveryFee, roomCode, isHosting, isJoined, handleHostRoom, handleJoinRoom, handleDisconnect, isRoomOrder }}>
       {children}
     </CartContext.Provider>
   );

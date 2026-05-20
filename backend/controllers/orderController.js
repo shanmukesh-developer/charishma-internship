@@ -59,10 +59,14 @@ const createOrder = async (req, res) => {
       }
     } catch { /* server module not ready — skip surge */ }
 
-    // ── Flat ₹30 Delivery Fee ──────────────────────
+    // ── Dynamic Delivery Fee Calculation ──────────────────────
     const distanceKm = 0;
     const estDuration = 30;
-    const calculatedFee = 30;
+    
+    // Delivery fee logic: ₹50 flat for room orders, else ₹30 per unique restaurant
+    const isRoomOrder = req.body.isRoomOrder || false;
+    const uniqueRestaurantIds = [...new Set(items.map(i => i.restaurantId || restaurantId))];
+    const calculatedFee = isRoomOrder ? 50 : (uniqueRestaurantIds.length * 30);
 
     // ── Multi-Order Batching (Efficiency Engine) ──────────
     const User = getUserModel();

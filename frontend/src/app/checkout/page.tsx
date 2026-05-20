@@ -167,7 +167,7 @@ function SuggestedExtras({ cart, onAdd }: { cart: { id: string; name: string }[]
 }
 
 export default function CheckoutPage() {
-  const { cart, totalPrice, clearCart, addToCart, uniqueRestaurants, deliveryFee: cartDeliveryFee } = useCart();
+  const { cart, totalPrice, clearCart, addToCart, uniqueRestaurants, deliveryFee: cartDeliveryFee, isRoomOrder } = useCart();
   const router = useRouter();
 
   const [locationType, setLocationType] = useState<'srmap' | 'vitap' | 'amrita' | 'other' | null>(null);
@@ -352,9 +352,11 @@ export default function CheckoutPage() {
           priceAtOrder: item.price,
           basePrice: (item as any).basePrice || item.price,
           customizations: (item as any).customizations || null,
+          restaurantId: item.restaurantId,
         })),
         totalPrice,
         deliveryFee,
+        isRoomOrder,
         distance,
         paymentMethod,
         upiUTR: paymentMethod === 'UPI' ? upiUTR : undefined,
@@ -801,9 +803,11 @@ export default function CheckoutPage() {
             <div className="flex justify-between text-xs font-black uppercase tracking-widest text-white/30">
               <span className="flex items-center gap-2">
                 Logistics Fee
-                {uniqueRestaurants > 1 && (
+                {isRoomOrder ? (
+                  <span className="text-[8px] normal-case tracking-normal text-emerald-400 font-bold">(Room Order)</span>
+                ) : uniqueRestaurants > 1 ? (
                   <span className="text-[8px] normal-case tracking-normal text-[#38BDF8]/40 font-bold">({uniqueRestaurants} × ₹30)</span>
-                )}
+                ) : null}
               </span>
               {isElite || zenPoints >= 200 ? (
                 <span className="text-primary-yellow">FREE BYPASS</span>
