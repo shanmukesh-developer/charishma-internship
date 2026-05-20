@@ -1459,37 +1459,37 @@ export default function Home() {
             </div>
           </section>
 
-        <footer className="fixed bottom-0 left-0 right-0 h-[4.4rem] bg-black/80 backdrop-blur-3xl border-t border-white/5 flex items-center justify-around sm:hidden z-[100] pb-safe">
+        <footer className="fixed bottom-0 left-0 right-0 h-[5.5rem] bg-black/90 backdrop-blur-3xl border-t border-white/10 flex items-center justify-around sm:hidden z-[100] pb-safe">
           <Magnetic>
             <Link href="/" className="flex flex-col items-center gap-1.5 nav-icon-active">
               <div className="tab-pill">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
               </div>
-              <span className="text-[9px] font-black uppercase tracking-widest">Home</span>
+              <span className="text-[11px] font-black uppercase tracking-widest">Home</span>
             </Link>
           </Magnetic>
           <Magnetic>
             <Link href="/orders" className="flex flex-col items-center gap-1.5 opacity-40">
-               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-               <span className="text-[9px] font-bold">Orders</span>
+               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+               <span className="text-[11px] font-bold">Orders</span>
             </Link>
           </Magnetic>
           <Magnetic>
             <Link href="/basket" className="flex flex-col items-center gap-1.5 opacity-40">
-               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-               <span className="text-[9px] font-bold">Basket</span>
+               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+               <span className="text-[11px] font-bold">Basket</span>
             </Link>
           </Magnetic>
           <Magnetic>
             <Link href="/community" className="flex flex-col items-center gap-1.5 opacity-40">
-               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg>
-               <span className="text-[9px] font-bold">Comms</span>
+               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg>
+               <span className="text-[11px] font-bold">Comms</span>
             </Link>
           </Magnetic>
           <Magnetic>
             <Link href="/profile" className="flex flex-col items-center gap-1.5 opacity-40">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                <span className="text-[9px] font-bold">Profile</span>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                <span className="text-[11px] font-bold">Profile</span>
             </Link>
           </Magnetic>
         </footer>

@@ -246,8 +246,10 @@ const startServer = async () => {
         const instance = getSequelize();
         const Restaurant = instance.models.Restaurant;
         const restCount = Restaurant ? await Restaurant.count() : 0;
-        if (restCount === 0) {
-          console.log('🌱 [PROD_SEED] Empty restaurant catalog detected. Auto-seeding demo data...');
+        const MenuItem = instance.models.MenuItem;
+        const menuCount = MenuItem ? await MenuItem.count() : 0;
+        if (restCount === 0 || menuCount < 50) {
+          console.log(`🌱 [PROD_SEED] Catalog needs seeding (Restaurants: ${restCount}, MenuItems: ${menuCount}). Seeding...`);
           try {
             const seedPath = require('path').join(__dirname, 'scripts', 'seed_full.js');
             delete require.cache[seedPath]; // Clear cache
