@@ -202,7 +202,23 @@ const connectDB = async () => {
     }
 
     if (!connected) {
-      throw lastError || new Error('All PostgreSQL connection candidates failed.');
+      console.error('❌ [DB_FATAL] All PostgreSQL connection candidates failed.');
+      console.warn('⚠️ [DB_FALLBACK] Falling back to local SQLite database in production to maintain service availability!');
+      const sqlitePath = path.join(__dirname, '..', 'local_prod.sqlite');
+      console.log(`📦 Using LOCAL SQLite: ${sqlitePath}`);
+      sequelize = new Sequelize({
+        dialect: 'sqlite',
+        storage: sqlitePath,
+        logging: false,
+        dialectOptions: {
+          pragmas: {
+            journal_mode: 'WAL',
+            busy_timeout: 5000,
+            synchronous: 'NORMAL',
+            cache_size: -10000
+          }
+        }
+      });
     }
   }
 
