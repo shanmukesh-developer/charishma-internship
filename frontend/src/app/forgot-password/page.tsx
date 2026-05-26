@@ -235,7 +235,7 @@ export default function ForgotPasswordPage() {
                 <label className="block text-sm font-semibold text-[#6B6B6B] mb-4 tracking-wider uppercase">
                   6-Digit Code
                 </label>
-                <div className="flex gap-3 justify-between" onPaste={handleOtpPaste}>
+                <div className="flex gap-2 sm:gap-3 justify-center" onPaste={handleOtpPaste}>
                   {otp.map((digit, i) => (
                     <input
                       key={i}
@@ -246,7 +246,7 @@ export default function ForgotPasswordPage() {
                       value={digit}
                       onChange={(e) => handleOtpChange(e.target.value, i)}
                       onKeyDown={(e) => handleOtpKeyDown(e, i)}
-                      className={`flex-1 h-16 rounded-2xl text-center text-2xl font-bold bg-[#0A0A0B] border-2 outline-none transition-all ${
+                      className={`w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl text-center text-2xl font-bold bg-[#0A0A0B] border-2 outline-none transition-all min-w-0 ${
                         digit
                           ? 'border-[#C9A84C] text-[#C9A84C] shadow-[0_0_12px_rgba(201,168,76,0.2)]'
                           : 'border-white/10 text-white focus:border-[#C9A84C]/50'
