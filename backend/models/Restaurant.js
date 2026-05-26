@@ -23,7 +23,10 @@ const initRestaurantModel = (sequelize) => {
     operatingHours: { type: DataTypes.JSON, defaultValue: { start: '09:00', end: '22:00' } },
     isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
     isOffline: { type: DataTypes.BOOLEAN, defaultValue: false }, // For shops without a smartphone
-    password: { type: DataTypes.STRING, allowNull: true } // For restaurant portal login
+    password: { type: DataTypes.STRING, allowNull: true }, // For restaurant portal login
+    isFeatured: { type: DataTypes.BOOLEAN, defaultValue: false },
+    featuredUntil: { type: DataTypes.DATE, allowNull: true },
+    featuredBadge: { type: DataTypes.STRING, allowNull: true, defaultValue: 'Sponsored' }
   }, { timestamps: true });
 
   const hashPassword = async (restaurant) => {

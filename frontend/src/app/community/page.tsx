@@ -32,6 +32,14 @@ export default function CommunityPage() {
   const [draft, setDraft] = useState('');
   const [draftImage, setDraftImage] = useState<string | null>(null);
   const [draftCategory, setDraftCategory] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'all' | 'reviews'>('all');
+  
+  // Review specific fields
+  const [isReviewDraft, setIsReviewDraft] = useState(false);
+  const [starRating, setStarRating] = useState(5);
+  const [restaurantName, setRestaurantName] = useState('');
+  const [productName, setProductName] = useState('');
+
 
   const [isPosting, setIsPosting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,17 +77,17 @@ export default function CommunityPage() {
 
   const fetchPosts = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/community`);
+      const endpoint = activeTab === 'reviews' ? `${API_URL}/api/community/reviews` : `${API_URL}/api/community`;
+      const res = await fetch(endpoint);
       if (res.ok) {
         const data = await res.json();
-        // Filter out system error strings that accidentally got posted to the feed
         const ERROR_PATTERNS = [
           /^INVALID\s/i, /^PAYMENT\s/i, /^ERROR:/i, /^FAILED:/i,
           /^DB\s/i, /^SQL/i, /^SEQUELIZE/i, /SequelizeValidation/i,
           /^TypeError/i, /^ReferenceError/i, /^UnhandledPromise/i
         ];
-        const cleanPosts = data.filter((p: PostType) => {
-          if (!p.content) return true; // image-only posts are fine
+        const cleanPosts = data.filter((p: any) => {
+          if (!p.content) return true;
           return !ERROR_PATTERNS.some(rx => rx.test(p.content.trim()));
         });
         setPosts(cleanPosts);
@@ -87,6 +95,11 @@ export default function CommunityPage() {
     } catch (e) { console.error('Fetch error:', e); }
     finally { setIsLoading(false); }
   };
+
+  useEffect(() => {
+    setIsLoading(true);
+    fetchPosts();
+  }, [activeTab]);
 
   const handleImageUpload = async (file: File) => {
     setIsUploading(true);
@@ -134,8 +147,15 @@ export default function CommunityPage() {
       if (replyingTo) body.parentId = replyingTo.id;
       if (draftCategory) body.category = draftCategory;
       if (customAuthorName) body.authorName = customAuthorName;
+      if (isReviewDraft) {
+        body.postType = 'review';
+        body.starRating = starRating.toString();
+        body.restaurantName = restaurantName;
+        body.productName = productName;
+      }
 
       const res = await fetch(`${API_URL}/api/community`, {
+
         method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify(body)
@@ -159,8 +179,13 @@ export default function CommunityPage() {
         setDraftImage(null);
         setDraftCategory('');
         setReplyingTo(null);
+        setIsReviewDraft(false);
+        setRestaurantName('');
+        setProductName('');
         setShowComposer(false);
+        fetchPosts(); // Refresh active tab
       } else if (res.status === 401) {
+
         router.push('/login');
       }
     } catch (error) { console.error('Post error:', error); }
@@ -310,7 +335,25 @@ export default function CommunityPage() {
                 </p>
               )}
 
+              {/* F5: Review Metadata */}
+              {(post as any).postType === 'review' && (
+                <div className="mb-3 p-2 bg-[#8b5a2b]/5 rounded-xl border border-[#8b5a2b]/10">
+                  <div className="flex items-center gap-1 mb-1">
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <span key={star} className={`text-xs ${(post as any).starRating >= star ? 'text-amber-500' : 'text-black/10'}`}>★</span>
+                    ))}
+                  </div>
+                  {(post as any).restaurantName && (
+                    <p className="text-[9px] font-black uppercase tracking-widest text-[#8b5a2b] truncate">📍 {(post as any).restaurantName}</p>
+                  )}
+                  {(post as any).productName && (
+                    <p className="text-[10px] font-bold text-black/60 truncate capitalize mt-0.5">🍽️ {(post as any).productName}</p>
+                  )}
+                </div>
+              )}
+
               <div className="flex items-end justify-between mt-auto pt-2 gap-2">
+
                 {/* Author Info */}
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <div className="w-6 h-6 rounded-full overflow-hidden border border-black/10 bg-gray-200 shrink-0 shadow-sm">
@@ -441,9 +484,26 @@ export default function CommunityPage() {
               <p className="text-[9px] font-black uppercase tracking-[0.25em] text-black/30">Community Memories</p>
             </div>
           </div>
+
+          {/* F5: Tabs */}
+          <div className="flex bg-white border border-black/10 p-1 rounded-2xl shadow-sm mt-4">
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'all' ? 'bg-[#3e2723] text-white shadow-md' : 'text-black/40 hover:bg-black/5'}`}
+            >
+              All Posts
+            </button>
+            <button
+              onClick={() => setActiveTab('reviews')}
+              className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'reviews' ? 'bg-[#8b5a2b] text-white shadow-md' : 'text-black/40 hover:bg-black/5'}`}
+            >
+              Food Reviews
+            </button>
+          </div>
         </div>
 
         {/* Search Bar */}
+
         <div className="relative mb-4">
           <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           <input
@@ -564,7 +624,36 @@ export default function CommunityPage() {
               />
             </div>
 
+            {/* F5: Review Toggle */}
+            {!replyingTo && (
+              <div className="mb-4 flex items-center justify-between p-3 bg-white border border-black/10 rounded-2xl shadow-sm">
+                <span className="text-xs font-black uppercase tracking-widest text-[#3e2723]">Post as Food Review?</span>
+                <input
+                  type="checkbox"
+                  checked={isReviewDraft}
+                  onChange={e => setIsReviewDraft(e.target.checked)}
+                  className="w-5 h-5 accent-[#8b5a2b]"
+                />
+              </div>
+            )}
+
+            {isReviewDraft && !replyingTo && (
+              <div className="mb-4 space-y-3 bg-[#8b5a2b]/5 p-3 rounded-2xl border border-[#8b5a2b]/20">
+                <div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-[#8b5a2b] mb-1 block">Star Rating</span>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <button key={star} onClick={() => setStarRating(star)} className={`text-2xl transition-all hover:scale-110 ${starRating >= star ? 'text-amber-500' : 'text-black/10'}`}>★</button>
+                    ))}
+                  </div>
+                </div>
+                <input type="text" placeholder="Restaurant Name" value={restaurantName} onChange={e => setRestaurantName(e.target.value)} className="w-full bg-white border border-black/10 rounded-xl px-4 py-2 text-xs text-[#3e2723] outline-none focus:border-[#8b5a2b]/40 shadow-sm" />
+                <input type="text" placeholder="Dish Name" value={productName} onChange={e => setProductName(e.target.value)} className="w-full bg-white border border-black/10 rounded-xl px-4 py-2 text-xs text-[#3e2723] outline-none focus:border-[#8b5a2b]/40 shadow-sm" />
+              </div>
+            )}
+
             {/* Textarea */}
+
             <textarea
               value={draft}
               onChange={e => setDraft(e.target.value.slice(0, 500))}

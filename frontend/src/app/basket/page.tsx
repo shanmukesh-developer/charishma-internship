@@ -6,7 +6,7 @@ import Link from 'next/link';
 import SafeImage from '@/components/SafeImage';
 import Tilt from '@/components/Tilt';
 import Magnetic from '@/components/Magnetic';
-import { io } from 'socket.io-client';
+import socket from '@/utils/socket';
 
 interface CartItem {
   id: string;
@@ -125,6 +125,72 @@ export default function BasketPage() {
   const [inputCode, setInputCode] = useState('');
   const [isJoinOpen, setIsJoinOpen] = useState(false);
   const [alertMsg, setAlertMsg] = useState('');
+  const [userName, setUserName] = useState('Someone');
+
+  // F6: Group Poll State
+  const [poll, setPoll] = useState<{
+    id: string; question: string; options: string[]; votes: Record<string, number>;
+    createdBy: string; winnerOption?: string; hasVoted?: boolean;
+  } | null>(null);
+  const [showPollCreator, setShowPollCreator] = useState(false);
+  const [newPollQuestion, setNewPollQuestion] = useState('Where should we order from?');
+  const [newPollOptions, setNewPollOptions] = useState('Zenvy Picks, Spicy Kitchen, Burger Hub');
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        setUserName(JSON.parse(stored).name || 'Someone');
+      }
+    } catch {}
+
+    socket.on('poll_started', (p) => {
+      setPoll({ ...p, hasVoted: false });
+      setShowPollCreator(false);
+    });
+
+    socket.on('poll_vote_update', (data) => {
+      setPoll((prev) => {
+        if (!prev || prev.id !== data.pollId) return prev;
+        const v = { ...prev.votes };
+        v[data.optionIndex] = (v[data.optionIndex] || 0) + 1;
+        return { ...prev, votes: v };
+      });
+    });
+
+    socket.on('poll_ended', (data) => {
+      setPoll((prev) => {
+        if (!prev || prev.id !== data.pollId) return prev;
+        return { ...prev, winnerOption: data.winnerOption };
+      });
+    });
+
+    return () => {
+      socket.off('poll_started');
+      socket.off('poll_vote_update');
+      socket.off('poll_ended');
+    };
+  }, []);
+
+  const handleCreatePoll = () => {
+    if (!roomCode) return;
+    socket.emit('poll_create', {
+      roomCode,
+      question: newPollQuestion,
+      options: newPollOptions.split(',').map(s => s.trim()).filter(Boolean)
+    });
+  };
+
+  const handleVote = (index: number) => {
+    if (!poll || poll.hasVoted || !roomCode) return;
+    socket.emit('poll_vote', {
+      roomCode,
+      pollId: poll.id,
+      optionIndex: index,
+      voterName: userName
+    });
+    setPoll({ ...poll, hasVoted: true });
+  };
 
   const onJoinSubmit = () => {
     handleJoinRoom(inputCode);
@@ -237,6 +303,69 @@ export default function BasketPage() {
                   Connect
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* ── F6: Group Poll UI ── */}
+          {roomCode && (
+            <div className="mt-5 pt-5 border-t border-white/5">
+              {!poll && !showPollCreator && (
+                <button
+                  onClick={() => setShowPollCreator(true)}
+                  className="w-full py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary-yellow hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                >
+                  <span>📊</span> Start a Group Poll
+                </button>
+              )}
+
+              {showPollCreator && !poll && (
+                <div className="animate-in slide-in-from-top-2">
+                  <input
+                    type="text"
+                    value={newPollQuestion}
+                    onChange={e => setNewPollQuestion(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 mb-2 text-sm text-white"
+                    placeholder="Question (e.g. What to eat?)"
+                  />
+                  <input
+                    type="text"
+                    value={newPollOptions}
+                    onChange={e => setNewPollOptions(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 mb-3 text-sm text-white"
+                    placeholder="Comma separated options"
+                  />
+                  <div className="flex gap-2">
+                    <button onClick={handleCreatePoll} className="flex-1 py-3 bg-primary-yellow text-black rounded-xl text-[10px] font-black uppercase tracking-widest">Post Poll</button>
+                    <button onClick={() => setShowPollCreator(false)} className="flex-1 py-3 bg-white/5 text-white rounded-xl text-[10px] font-black uppercase tracking-widest">Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {poll && (
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 animate-in fade-in">
+                  <h4 className="text-sm font-black text-white mb-3 flex items-center justify-between">
+                    <span>📊 {poll.question}</span>
+                    {poll.winnerOption && <span className="text-[9px] bg-primary-yellow text-black px-2 py-0.5 rounded-full uppercase tracking-widest">Finished</span>}
+                  </h4>
+                  <div className="space-y-2">
+                    {poll.options.map((opt, i) => {
+                      const votes = poll.votes[i] || 0;
+                      const isWinner = poll.winnerOption === opt;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handleVote(i)}
+                          disabled={poll.hasVoted || !!poll.winnerOption}
+                          className={`w-full relative overflow-hidden rounded-xl border p-3 flex justify-between items-center transition-all ${isWinner ? 'border-primary-yellow bg-primary-yellow/10' : 'border-white/10 bg-black/20 hover:bg-black/40'}`}
+                        >
+                          <span className="relative z-10 text-sm font-bold">{opt}</span>
+                          <span className="relative z-10 text-xs font-black">{votes} {votes === 1 ? 'vote' : 'votes'}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

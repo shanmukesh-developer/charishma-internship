@@ -22,13 +22,23 @@ const createTicket = async (req, res) => {
       }
     }
 
+    let slaHours = 12; // Default Medium
+    const prio = priority || 'Medium';
+    if (prio === 'Critical') slaHours = 2;
+    else if (prio === 'High') slaHours = 4;
+    else if (prio === 'Low') slaHours = 24;
+    
+    const breachTime = new Date();
+    breachTime.setHours(breachTime.getHours() + slaHours);
+
     const ticket = await Ticket.create({
       userId: req.user.id,
       orderId: orderId || null,
       subject,
       description,
-      priority: priority || 'Medium',
-      status: 'Open'
+      priority: prio,
+      status: 'Open',
+      slaBreachAt: breachTime
     });
 
     res.status(201).json(ticket);

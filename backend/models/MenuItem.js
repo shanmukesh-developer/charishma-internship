@@ -16,6 +16,7 @@ const initMenuItemModel = (sequelize) => {
     tags: { type: DataTypes.JSON, defaultValue: [] },
     isVegetarian: { type: DataTypes.BOOLEAN, defaultValue: true },
     isAvailable: { type: DataTypes.BOOLEAN, defaultValue: true },
+    outOfStockUntil: { type: DataTypes.DATE, allowNull: true },
     isEliteOnly: { type: DataTypes.BOOLEAN, defaultValue: false },
     customCommission: { type: DataTypes.FLOAT },
     specs: { type: DataTypes.JSON, defaultValue: {} },

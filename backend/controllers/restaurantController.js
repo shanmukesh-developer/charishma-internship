@@ -144,6 +144,11 @@ const toggleMenuItemAvailability = async (req, res) => {
     }
 
     item.isAvailable = !item.isAvailable;
+    if (req.body.outOfStockUntil && !item.isAvailable) {
+      item.outOfStockUntil = new Date(req.body.outOfStockUntil);
+    } else {
+      item.outOfStockUntil = null;
+    }
     await item.save();
 
     const io = req.app.get('io');

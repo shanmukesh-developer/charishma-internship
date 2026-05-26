@@ -50,8 +50,26 @@ const initUserModel = (sequelize) => {
       }
     },
     dietaryPreference: { type: DataTypes.STRING, defaultValue: 'None' }, // Veg, Jain, Eggless, etc.
-    lateNightOrders: { type: DataTypes.INTEGER, defaultValue: 0 }
+    lateNightOrders: { type: DataTypes.INTEGER, defaultValue: 0 },
+    // F1: Referral System
+    referralCode: { type: DataTypes.STRING(10), unique: true, allowNull: true },
+    referredBy: { type: DataTypes.STRING(10), allowNull: true },
+    referralCount: { type: DataTypes.INTEGER, defaultValue: 0 },
+    referralRewardClaimed: { type: DataTypes.BOOLEAN, defaultValue: false },
+    // F13: Elite Gifting
+    eliteGiftsUsedThisMonth: { type: DataTypes.INTEGER, defaultValue: 0 },
+    lastGiftResetDate: { type: DataTypes.DATE, allowNull: true }
   }, { timestamps: true });
+
+  // Auto-generate referral code
+  const generateReferralCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return 'ZV-' + code;
+  };
 
   const hashPassword = async (user) => {
     if (user.changed('password')) {
@@ -59,13 +77,22 @@ const initUserModel = (sequelize) => {
     }
   };
 
-  User.beforeCreate(hashPassword);
+  User.beforeCreate(async (user) => {
+    await hashPassword(user);
+    if (!user.referralCode) {
+      user.referralCode = generateReferralCode();
+    }
+  });
   User.beforeUpdate(hashPassword);
   User.beforeBulkCreate(async (users) => {
     for (const user of users) {
       user.password = await bcrypt.hash(user.password, 10);
+      if (!user.referralCode) {
+        user.referralCode = generateReferralCode();
+      }
     }
   });
+
 
   User.prototype.comparePassword = async function(candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.password);

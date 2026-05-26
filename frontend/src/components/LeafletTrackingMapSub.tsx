@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -16,92 +16,110 @@ interface LeafletTrackingMapSubProps {
   homeCoord: { lat: number; lng: number };
 }
 
-function LeafletTrackingMapSubContent({ currentCheckpoint, checkpoints, homeCoord }: LeafletTrackingMapSubProps) {
+// Smoothly pans the existing map instance — no remount needed
+function MapPanner({ center }: { center: [number, number] }) {
+  const map = useMap();
+  const prevCenter = useRef<[number, number] | null>(null);
+  useEffect(() => {
+    if (
+      prevCenter.current &&
+      prevCenter.current[0] === center[0] &&
+      prevCenter.current[1] === center[1]
+    ) return;
+    prevCenter.current = center;
+    map.setView(center, map.getZoom(), { animate: true });
+  }, [center, map]);
+  return null;
+}
+
+function LeafletTrackingMapSubContent({
+  currentCheckpoint,
+  checkpoints,
+  homeCoord,
+}: LeafletTrackingMapSubProps) {
   const [mounted, setMounted] = useState(false);
-  
+  // Track whether we've already destroyed a stale Leaflet instance from the same container
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
   const CAMPUS_CENTER: [number, number] = [16.4632, 80.5064];
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Destroy any stale Leaflet instance that may linger in the container (caused by
+  // Strict Mode double-invoke or Tilt wrapper re-parenting the DOM node)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    // Leaflet stamps "_leaflet_id" on the container div when it initialises.
+    // If a stale id is present but no live Leaflet map owns it, remove the stamp
+    // so the next MapContainer can initialise cleanly.
+    const leafletContainer = el.querySelector('.leaflet-container') as HTMLElement | null;
+    if (leafletContainer && (leafletContainer as any)._leaflet_id) {
+      try {
+        // Only clean up if there is no live map instance attached
+        if (!(leafletContainer as any)._leaflet_map) {
+          delete (leafletContainer as any)._leaflet_id;
+        }
+      } catch (_) { /* ignore */ }
+    }
+  });
 
   const riderIcon = useMemo(() => {
     if (typeof window === 'undefined') return null;
     return L.divIcon({
-      className: 'custom-div-icon',
-      html: `<div class="w-10 h-10 bg-blue-500/20 border-2 border-blue-500 rounded-full flex items-center justify-center text-lg shadow-[0_0_20px_rgba(59,130,246,0.3)] animate-pulse">🛸</div>`,
+      className: '',
+      html: `<div style="width:40px;height:40px;background:rgba(59,130,246,0.2);border:2px solid #3b82f6;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 0 20px rgba(59,130,246,0.3)">🛸</div>`,
       iconSize: [40, 40],
-      iconAnchor: [20, 20]
+      iconAnchor: [20, 20],
     });
   }, []);
 
-  const getNodeIcon = useMemo(() => {
-    if (typeof window === 'undefined') return () => undefined;
-    
-    const activeIcon = L.divIcon({
-      className: 'custom-div-icon',
-      html: `<div class="w-3 h-3 bg-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.8)] border border-white/40 rounded-full"></div>`,
+  const activeNodeIcon = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    return L.divIcon({
+      className: '',
+      html: `<div style="width:12px;height:12px;background:#60a5fa;border:1px solid rgba(255,255,255,0.4);border-radius:50%;box-shadow:0 0 10px rgba(59,130,246,0.8)"></div>`,
       iconSize: [12, 12],
-      iconAnchor: [6, 6]
+      iconAnchor: [6, 6],
     });
+  }, []);
 
-    const inactiveIcon = L.divIcon({
-      className: 'custom-div-icon',
-      html: `<div class="w-3 h-3 bg-white/20 border border-white/40 rounded-full"></div>`,
+  const inactiveNodeIcon = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    return L.divIcon({
+      className: '',
+      html: `<div style="width:12px;height:12px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:50%"></div>`,
       iconSize: [12, 12],
-      iconAnchor: [6, 6]
+      iconAnchor: [6, 6],
     });
-
-    return (isActive: boolean) => isActive ? activeIcon : inactiveIcon;
   }, []);
 
   const homeMarkerIcon = useMemo(() => {
     if (typeof window === 'undefined') return null;
     return L.divIcon({
-      className: 'home-icon',
-      html: `<div class="w-8 h-8 bg-emerald-500/10 border-2 border-emerald-500 rounded-lg flex items-center justify-center text-lg">🏠</div>`,
+      className: '',
+      html: `<div style="width:32px;height:32px;background:rgba(16,185,129,0.1);border:2px solid #10b981;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px">🏠</div>`,
       iconSize: [32, 32],
-      iconAnchor: [16, 16]
+      iconAnchor: [16, 16],
     });
   }, []);
 
-  const [mapKey, setMapKey] = useState('');
-  const containerRef = useRef<HTMLDivElement>(null);
+  const cpData = checkpoints.find((c) => c.name === currentCheckpoint);
+  const riderPos: [number, number] = cpData
+    ? [cpData.lat, cpData.lng]
+    : [checkpoints[0]?.lat ?? CAMPUS_CENTER[0], checkpoints[0]?.lng ?? CAMPUS_CENTER[1]];
 
-  useEffect(() => {
-    const cleanseDOM = () => {
-      if (typeof window !== 'undefined') {
-        if (containerRef.current) {
-          (containerRef.current as any)._leaflet_id = null;
-          const children = containerRef.current.getElementsByTagName('*');
-          for (let i = 0; i < children.length; i++) {
-            (children[i] as any)._leaflet_id = null;
-          }
-        }
-        const staleContainers = document.querySelectorAll('.leaflet-container');
-        staleContainers.forEach((el: any) => {
-          el._leaflet_id = null;
-          if (el.parentNode) (el.parentNode as any)._leaflet_id = null;
-        });
-      }
-    };
-
-    cleanseDOM();
-    setMounted(true);
-    setMapKey('leaflet-map-' + Math.random().toString(36).substring(7));
-
-    return () => {
-      cleanseDOM();
-    };
-  }, []);
-
-  if (!mounted || !mapKey) {
+  if (!mounted) {
     return <div className="w-full h-full bg-[#0B0B14]" />;
   }
 
-  const cpData = checkpoints.find(c => c.name === currentCheckpoint);
-  const riderPos: [number, number] = cpData ? [cpData.lat, cpData.lng] : [checkpoints[0]?.lat || CAMPUS_CENTER[0], checkpoints[0]?.lng || CAMPUS_CENTER[1]];
+  if (!activeNodeIcon || !inactiveNodeIcon || !homeMarkerIcon || !riderIcon) return null;
 
   return (
-    <div className="w-full h-full relative" key={mapKey} ref={containerRef}>
+    <div ref={containerRef} className="w-full h-full relative">
       <MapContainer
-        key={mapKey}
         center={riderPos}
         zoom={15}
         zoomControl={false}
@@ -109,37 +127,34 @@ function LeafletTrackingMapSubContent({ currentCheckpoint, checkpoints, homeCoor
         style={{ background: '#0B0B14' }}
       >
         <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
-        
-        {/* Route Line */}
-        <Polyline 
-          positions={checkpoints.map(cp => [cp.lat, cp.lng] as [number, number])}
+        <MapPanner center={riderPos} />
+
+        {/* Full route dashed line */}
+        <Polyline
+          positions={checkpoints.map((cp) => [cp.lat, cp.lng] as [number, number])}
           pathOptions={{ color: '#3b82f6', weight: 3, opacity: 0.2, dashArray: '10, 10' }}
         />
 
-        {/* Home Connector */}
-        <Polyline 
-          positions={[riderPos, [homeCoord.lat, homeCoord.lng]] as [number, number][]}
+        {/* Rider → Home connector */}
+        <Polyline
+          positions={[riderPos, [homeCoord.lat, homeCoord.lng]]}
           pathOptions={{ color: '#C9A84C', weight: 2, opacity: 0.4, dashArray: '5, 5' }}
         />
 
-        {/* Nodes */}
+        {/* Checkpoint nodes */}
         {checkpoints.map((cp) => (
-          <Marker 
-            key={cp.name} 
-            position={[cp.lat, cp.lng]} 
-            icon={getNodeIcon(currentCheckpoint === cp.name) as L.DivIcon} 
+          <Marker
+            key={cp.name}
+            position={[cp.lat, cp.lng]}
+            icon={currentCheckpoint === cp.name ? activeNodeIcon : inactiveNodeIcon}
           />
         ))}
 
-        {/* Home */}
-        {homeMarkerIcon && (
-          <Marker position={[homeCoord.lat, homeCoord.lng]} icon={homeMarkerIcon} />
-        )}
+        {/* Home marker */}
+        <Marker position={[homeCoord.lat, homeCoord.lng]} icon={homeMarkerIcon} />
 
-        {/* Rider */}
-        {riderIcon && (
-          <Marker position={riderPos} icon={riderIcon} />
-        )}
+        {/* Rider marker */}
+        <Marker position={riderPos} icon={riderIcon} />
       </MapContainer>
 
       <style>{`

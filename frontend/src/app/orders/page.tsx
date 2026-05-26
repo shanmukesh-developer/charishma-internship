@@ -2,6 +2,18 @@
 import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useCart } from '@/context/CartContext';
+import { showToast } from '@/components/ToastProvider';
+
+interface OrderItem {
+  name?: string;
+  quantity: number;
+  priceAtOrder: number;
+  menuItemId?: string;
+  basePrice?: number;
+  customizations?: Record<string, unknown>;
+  image?: string;
+}
 
 interface OrderRecord {
   _id: string;
@@ -9,7 +21,8 @@ interface OrderRecord {
   status: string;
   createdAt: string;
   restaurantId?: string;
-  items: { name?: string; quantity: number; priceAtOrder: number }[];
+  restaurantName?: string;
+  items: OrderItem[];
   deliveryPin?: string;
   paymentMethod?: string;
   upiStatus?: string;
@@ -37,10 +50,32 @@ function OrderSkeleton() {
 
 export default function OrdersPage() {
   const router = useRouter();
+  const { clearCart, addToCart } = useCart();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [swipedId, setSwipedId] = useState<string | null>(null);
+  const [reorderingId, setReorderingId] = useState<string | null>(null);
   const touchStartX = useRef(0);
+
+  const handleOneTabReorder = (order: OrderRecord) => {
+    setReorderingId(order._id);
+    clearCart();
+    order.items.forEach((item) => {
+      addToCart({
+        id: item.menuItemId || `legacy-${item.name}`,
+        name: item.name || 'Item',
+        price: item.priceAtOrder,
+        basePrice: item.basePrice || item.priceAtOrder,
+        image: item.image || '',
+        restaurantId: order.restaurantId || '',
+        restaurantName: order.restaurantName || '',
+        customizations: item.customizations as any,
+        quantity: item.quantity,
+      });
+    });
+    showToast('Cart loaded! ⚡', 'success', '🛒');
+    setTimeout(() => router.push('/basket'), 600);
+  };
 
   useEffect(() => {
     const token = 'cookie-managed';
@@ -148,10 +183,11 @@ export default function OrdersPage() {
               <div key={order._id} className="relative overflow-hidden rounded-[28px]">
                 {/* Reorder Action (behind card) */}
                 <div 
-                  className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#C9A84C] to-[#8B7332] flex items-center justify-center rounded-r-[28px] cursor-pointer active:opacity-80"
-                  onClick={() => router.push(`/restaurants/${order.restaurantId || ''}`)}
+                  className="absolute right-0 top-0 bottom-0 w-28 bg-gradient-to-l from-[#C9A84C] to-[#8B7332] flex flex-col items-center justify-center rounded-r-[28px] cursor-pointer active:opacity-80 gap-1"
+                  onClick={() => handleOneTabReorder(order)}
                 >
-                  <span className="text-[9px] font-black text-black uppercase tracking-wider">Reorder</span>
+                  <span className="text-lg">{reorderingId === order._id ? '⏳' : '⚡'}</span>
+                  <span className="text-[8px] font-black text-black uppercase tracking-wider">{reorderingId === order._id ? 'Adding...' : '1-Tap Reorder'}</span>
                 </div>
 
                 {/* Card */}
@@ -214,11 +250,18 @@ export default function OrdersPage() {
                           ))}
                        </div>
 
-                       {order.status !== 'Delivered' && order.status !== 'Cancelled' && (
-                        <Link href={`/tracking?id=${order._id}`} className="w-full btn-yellow py-3 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
-                          Track Live Location <span>→</span>
-                        </Link>
-                       )}
+                        {order.status !== 'Delivered' && order.status !== 'Cancelled' ? (
+                          <Link href={`/tracking?id=${order._id}`} className="w-full btn-yellow py-3 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 mb-2">
+                            Track Live Location <span>→</span>
+                          </Link>
+                        ) : (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleOneTabReorder(order); }}
+                            className="w-full bg-[#C9A84C]/10 border border-[#C9A84C]/30 hover:bg-[#C9A84C]/20 py-3 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 mb-2 text-[#C9A84C] rounded-xl transition-all"
+                          >
+                            ⚡ 1-Tap Reorder
+                          </button>
+                        )}
                     </div>
                   )}
 

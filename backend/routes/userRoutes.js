@@ -11,8 +11,33 @@ const authLimiter = rateLimit({
   message: { message: 'Too many authentication attempts, please try again after 15 minutes.' }
 });
 
-router.post('/register', authLimiter, registerUser);
-router.post('/login', authLimiter, authUser);
+const { body, validationResult } = require('express-validator');
+
+// Validation Error Handler
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  next();
+};
+
+const registerValidation = [
+  body('name').trim().notEmpty().withMessage('Name is required').escape(),
+  body('email').optional().isEmail().withMessage('Invalid email').normalizeEmail(),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('phone').notEmpty().withMessage('Phone is required').trim().escape(),
+  body('role').optional().isIn(['student', 'admin', 'restaurant', 'delivery']).withMessage('Invalid role'),
+  body('referralCode').optional().trim().escape()
+];
+
+const loginValidation = [
+  body('phone').notEmpty().withMessage('Phone is required').trim().escape(),
+  body('password').optional() // password might be optional if using firebaseToken
+];
+
+router.post('/register', authLimiter, registerValidation, validate, registerUser);
+router.post('/login', authLimiter, loginValidation, validate, authUser);
 router.post('/google-login', authLimiter, require('../controllers/userController').googleLogin);
 router.post('/reset-password', authLimiter, require('../controllers/userController').resetPassword);
 router.post('/logout', logoutUser);

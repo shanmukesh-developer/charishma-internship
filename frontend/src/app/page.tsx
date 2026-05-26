@@ -97,6 +97,7 @@ export default function Home() {
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [cancelSecondsLeft, setCancelSecondsLeft] = useState(0);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const [aiPicks, setAiPicks] = useState<any[]>([]);
   // favorites moved down for grouping
   const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'rating' | 'fastest'>('default');
   const [favSort, setFavSort] = useState<'default' | 'price-asc' | 'price-desc' | 'name'>('default');
@@ -206,6 +207,23 @@ export default function Home() {
       }
     };
     fetchLiveAssets();
+
+    // F11: Fetch AI Picks
+    const fetchAIPicks = async () => {
+      try {
+        const token = 'cookie-managed';
+        if (!token) return;
+        const res = await fetch(`${API_URL}/api/features/recommendations`, {
+        });
+        const data = await res.json();
+        if (data.picks && Array.isArray(data.picks)) {
+          setAiPicks(data.picks);
+        }
+      } catch (err) {
+        console.warn('[AI_PICKS_ERROR]', err);
+      }
+    };
+    fetchAIPicks();
     
     // Simulate finding an active order (for UX demo)
     const storedOrder = localStorage.getItem('last_order');
@@ -797,6 +815,40 @@ export default function Home() {
             />
           </div>
 
+          {/* ✨ F11: AI-Powered Zenvy Picks */}
+          {aiPicks.length > 0 && (
+            <section className="mb-10">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-400 mb-1">Zenvy AI</h2>
+                  <p className="text-xl font-black text-white italic tracking-tighter uppercase">Picked For You</p>
+                </div>
+                <span className="text-[9px] font-black text-secondary-text uppercase tracking-widest bg-white/5 border border-white/10 px-4 py-2 rounded-full">🤖 Smart</span>
+              </div>
+              <motion.div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
+                {aiPicks.map((item: any) => (
+                  <motion.div key={item.id || item._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                    <Link href={`/products/${item.id || item._id}`}>
+                      <Tilt className="chef-card bg-[#141416]">
+                        <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-emerald-500/20">
+                          <SafeImage src={item.image || item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} />
+                          <div className="absolute top-3 left-3 bg-emerald-500/80 backdrop-blur-md text-[7px] font-black uppercase text-white px-2 py-0.5 rounded-full">AI Pick</div>
+                        </div>
+                        <div className="mt-3">
+                          <h3 className="font-bold text-[15px] text-white mb-1">{item.name}</h3>
+                          <div className="flex items-start justify-between gap-2 min-w-0 overflow-hidden mt-1">
+                            <p className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate min-w-0 flex-1">{item.restaurantName || 'Zenvy Pick'}</p>
+                            <span className="text-[13px] font-black shrink-0 pr-1 block text-emerald-400">₹{item.price}</span>
+                          </div>
+                        </div>
+                      </Tilt>
+                    </Link>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </section>
+          )}
+
           {/* 🔒 The Zenvy Vault (Daily FOMO Scarcity) */}
           <motion.section 
             initial={{ opacity: 0, scale: 0.95 }}
@@ -808,7 +860,24 @@ export default function Home() {
              <ZenvyVault />
           </motion.section>
 
+          {/* F7: BlockWars Banner */}
+          <Tilt className="mb-8 group cursor-pointer overflow-hidden rounded-[30px] relative border shadow-xl transition-all duration-500 border-[#C9A84C]/30 hover:border-[#C9A84C]/60 bg-gradient-to-br from-black to-[#C9A84C]/10">
+            <Link href="/challenges">
+              <div className="p-6 relative z-10 flex items-center justify-between">
+                <div>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[#C9A84C] mb-1">Weekly Challenge</h3>
+                  <p className="text-2xl font-black italic tracking-tighter text-white">BlockWars 🏆</p>
+                  <p className="text-[9px] font-bold text-white/50 uppercase tracking-widest mt-1">Compete for campus discounts</p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-[#C9A84C]/20 border border-[#C9A84C]/40 flex items-center justify-center text-[#C9A84C] group-hover:scale-110 transition-transform">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" /></svg>
+                </div>
+              </div>
+            </Link>
+          </Tilt>
+
           <Tilt className={`mb-10 group cursor-pointer overflow-hidden rounded-[34px] relative border shadow-2xl transition-all duration-500 elite-card ${isElite ? 'border-[#C9A84C]/40' : 'border-[#C9A84C]/20'}`}>
+
             <motion.section 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -1439,7 +1508,9 @@ export default function Home() {
           <section id="restaurant-feed" className="pb-20 scroll-mt-24">
             <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary-text mb-6">Restaurants</h2>
             <div className="space-y-4">
-              {displayRestaurants.map((res, index) => (
+              {[...displayRestaurants]
+                .sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0))
+                .map((res, index) => (
                 <div key={res._id || res.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.05}s`, animationFillMode: 'both' }}>
                   <Link href={`/restaurants/${res._id || res.id}`}>
                     <RestaurantCard 
@@ -1447,13 +1518,16 @@ export default function Home() {
                       rating={String(res.rating || "4.5")} 
                       time={res.calculatedTime || res.time || "30-50 min"}
                       imageUrl={res.imageUrl || "/assets/placeholder_premium.png"} 
-                      imagePosition={index % 2 === 0 ? 'left' : 'right'} 
+                      imagePosition={index % 2 === 0 ? 'left' : 'right'}
+                      isFeatured={res.isFeatured}
+                      featuredBadge={res.featuredBadge}
                     />
                   </Link>
                 </div>
               ))}
             </div>
           </section>
+
 
         <footer className="fixed bottom-0 left-0 right-0 h-[5.5rem] bg-black/90 backdrop-blur-3xl border-t border-white/10 flex items-center justify-around sm:hidden z-[100] pb-safe">
           <Magnetic>

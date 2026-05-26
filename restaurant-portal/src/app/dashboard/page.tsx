@@ -394,7 +394,7 @@ export default function Dashboard() {
               {pastOrders.slice(0, 8).map(order => (
                 <div key={order.id} className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-5 hover:bg-zinc-900 transition-colors">
                   <div className="flex justify-between items-center mb-3">
-                    <span className="text-[11px] font-black text-[#C9A84C]/50 font-mono uppercase tracking-widest">#{order.id.slice(-6).toUpperCase()}</span>
+                     <span className="text-[11px] font-black text-[#C9A84C]/50 font-mono uppercase tracking-widest">#{String(order.id || order._id).slice(-6).toUpperCase()}</span>
                     <span className="text-[12px] text-zinc-600">{new Date(order.createdAt).toLocaleDateString()}</span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -447,7 +447,23 @@ export default function Dashboard() {
                     <Edit2 size={18} />
                   </button>
                   <button 
-                    onClick={() => toggleAvailability(item.id)}
+                    onClick={() => {
+                       if (item.isAvailable) {
+                          // Prompt for auto-restore
+                          const choice = window.prompt("Type '1' to disable until End of Day. Type '2' to disable indefinitely.");
+                          if (choice === '1') {
+                             const endOfDay = new Date();
+                             endOfDay.setHours(23, 59, 59, 999);
+                             api.put(`/restaurants/menu/${item.id}/toggle`, { outOfStockUntil: endOfDay.toISOString() })
+                              .then(res => setMenu(menu.map(m => m.id === item.id ? { ...m, isAvailable: res.data.isAvailable } : m)))
+                              .catch(() => alert('Failed to update'));
+                          } else if (choice === '2') {
+                             toggleAvailability(item.id);
+                          }
+                       } else {
+                          toggleAvailability(item.id);
+                       }
+                    }}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${item.isAvailable ? 'bg-orange-500' : 'bg-zinc-800'}`}
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${item.isAvailable ? 'translate-x-6' : 'translate-x-1'}`} />

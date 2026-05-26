@@ -546,15 +546,51 @@ export default function CheckoutPage() {
             </button>
           </div>
           {deliveryType === 'scheduled' && (
-            <input
-              type="datetime-local"
-              value={scheduledTime}
-              onChange={e => setScheduledTime(e.target.value)}
-              min={new Date(Date.now() + 30 * 60000).toISOString().slice(0, 16)}
-              className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none focus:border-primary-yellow/40 transition-all text-sm"
-            />
+            <div className="space-y-3">
+              {/* F8: Quick Pre-order Slots */}
+              <div className="grid grid-cols-3 gap-2">
+                {(() => {
+                  const tomorrow = new Date();
+                  tomorrow.setDate(tomorrow.getDate() + 1);
+                  return [
+                    { label: '🌅 Breakfast', time: '08:00', desc: 'Tomorrow 8 AM' },
+                    { label: '☀️ Lunch', time: '12:00', desc: 'Tomorrow 12 PM' },
+                    { label: '🌙 Dinner', time: '19:00', desc: 'Tomorrow 7 PM' },
+                  ].map(slot => {
+                    const dt = new Date(tomorrow);
+                    const [h, m] = slot.time.split(':');
+                    dt.setHours(parseInt(h), parseInt(m), 0, 0);
+                    const val = dt.toISOString().slice(0, 16);
+                    return (
+                      <button
+                        key={slot.time}
+                        type="button"
+                        onClick={() => setScheduledTime(val)}
+                        className={`p-3 rounded-2xl border text-center transition-all active:scale-95 ${
+                          scheduledTime === val
+                            ? 'border-[#C9A84C] bg-[#C9A84C]/10'
+                            : 'border-white/10 bg-white/[0.02]'
+                        }`}
+                      >
+                        <span className="text-sm block">{slot.label.split(' ')[0]}</span>
+                        <span className="text-[9px] font-black text-white/60 block">{slot.desc}</span>
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+              <p className="text-[8px] text-white/20 font-bold text-center uppercase tracking-widest">Or pick a custom time:</p>
+              <input
+                type="datetime-local"
+                value={scheduledTime}
+                onChange={e => setScheduledTime(e.target.value)}
+                min={new Date(Date.now() + 30 * 60000).toISOString().slice(0, 16)}
+                className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none focus:border-primary-yellow/40 transition-all text-sm"
+              />
+            </div>
           )}
         </div>
+
 
         {/* ═══════ Suggested Extras ═══════ */}
         <SuggestedExtras cart={cart} onAdd={(extra) => {

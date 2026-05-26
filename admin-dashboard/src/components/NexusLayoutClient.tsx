@@ -58,6 +58,7 @@ export default function NexusLayoutClient({
             { href: '/orders', icon: '📦', label: 'Live Orders' },
             { href: '/vault', icon: '🕯️', label: 'Zenvy Vault' },
             { href: '/finance', icon: '💰', label: 'Finance Trace' },
+            { href: '/tickets', icon: '🎫', label: 'Support Tickets' },
             { href: '/users', icon: '👥', label: 'Elite Residents' },
             { href: '/analytics', icon: '📈', label: 'Performance Intel' },
             { href: '/analytics/rewards', icon: '🎡', label: 'Rewards Intel' },

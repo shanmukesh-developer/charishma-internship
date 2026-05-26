@@ -11,6 +11,7 @@ import SupportModal from '@/components/SupportModal';
 import SafeImage from '@/components/SafeImage';
 import Tilt from '@/components/Tilt';
 import Magnetic from '@/components/Magnetic';
+import { showToast } from '@/components/ToastProvider';
 
 interface ProfileUser {
   id: string;
@@ -27,6 +28,7 @@ interface ProfileUser {
   badges?: string[];
   completedOrders?: number;
   zenPoints?: number;
+  referralCode?: string;
 }
 
 interface SavedAddress { label: string; address: string; city: string; }
@@ -44,6 +46,15 @@ export default function ProfilePage() {
   const [user, setUser] = useState<ProfileUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [spendStats, setSpendStats] = useState<{
+    monthlySpend: { month: string; total: number }[];
+    topItems: { name: string; count: number; spend: number }[];
+    avgOrderValue: number;
+    totalOrders: number;
+    favoriteRestaurant: string;
+    currentStreak: number;
+    zenPoints: number;
+  } | null>(null);
   // Real-Time Dynamic Telemetry State
   const [editData, setEditData] = useState({ 
     name: '', 
@@ -106,7 +117,21 @@ export default function ProfilePage() {
       }
     };
     fetchCoupons();
+
+    // F12: Spending Dashboard stats
+    const fetchSpendStats = async () => {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
+        const res = await fetch(`${API_URL}/api/orders/stats`);
+        if (res.ok) {
+          const data = await res.json();
+          setSpendStats(data);
+        }
+      } catch { /* non-critical, silent fail */ }
+    };
+    fetchSpendStats();
   }, []);
+
 
   const saveNotif = (updated: NotifPrefs) => {
     setNotifPrefs(updated);
@@ -416,7 +441,7 @@ export default function ProfilePage() {
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
           </button>
         </Magnetic>
-        <h1 className="text-xl font-black uppercase tracking-[0.3em] text-gold-shimmer">Identity Protocol</h1>
+        <h1 className="text-xl font-black uppercase tracking-[0.3em] text-gold-shimmer">My Profile</h1>
         <Magnetic>
           <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-[#C9A84C]/10 rounded-full text-[9px] font-black uppercase tracking-widest text-primary-yellow border border-[#C9A84C]/20">Update</button>
         </Magnetic>
@@ -490,7 +515,7 @@ export default function ProfilePage() {
               </div>
               
               <div className="flex justify-between items-center mb-5">
-                <p className="text-[10px] font-black text-[#C9A84C] uppercase tracking-[0.4em] opacity-60">ZENVY PROTOCOL • {user?.city || 'AMARAVATHI'}</p>
+                <p className="text-[10px] font-black text-[#C9A84C] uppercase tracking-[0.4em] opacity-60">ZENVY MEMBER • {user?.city || 'AMARAVATHI'}</p>
                 <div className="member-id-label px-3 py-1 bg-white/5 rounded-full border border-white/5">ZV-{(user?._id || user?.id || '0000').slice(-8).toUpperCase()}</div>
               </div>
 
@@ -504,18 +529,18 @@ export default function ProfilePage() {
             <div className="identity-telemetry-grid bg-white/[0.03] p-6 rounded-[32px] border border-white/5">
               <div className="flex gap-10">
                 <div>
-                  <p className="text-[8px] text-white/20 font-black uppercase tracking-[0.2em] mb-2">Deployments</p>
+                  <p className="text-[8px] text-white/20 font-black uppercase tracking-[0.2em] mb-2">Total Orders</p>
                   <p className="text-2xl font-black text-white">{user?.totalOrders || 0}</p>
                 </div>
                 <div className="w-[1px] bg-white/10 h-10" />
                 <div>
-                  <p className="text-[8px] text-white/20 font-black uppercase tracking-[0.2em] mb-2">Zen Asset Value</p>
+                  <p className="text-[8px] text-white/20 font-black uppercase tracking-[0.2em] mb-2">ZenPoints</p>
                   <p className="text-2xl font-black text-[#C9A84C]">{user?.zenPoints || 0}</p>
                 </div>
               </div>
 
               <div className="mt-4 flex items-center justify-between">
-                <span className="text-[10px] font-black text-[#C9A84C]/50 uppercase tracking-[0.1em]">Security Status: <span className="text-[#C9A84C]">{user?.isElite ? 'Nexus Elite' : 'Authenticated'}</span></span>
+                <span className="text-[10px] font-black text-[#C9A84C]/50 uppercase tracking-[0.1em]">Account Status: <span className="text-[#C9A84C]">{user?.isElite ? 'Elite Member' : 'Logged In'}</span></span>
               </div>
             </div>
           </div>
@@ -808,14 +833,162 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* ── F1: Referral Share ── */}
+      <div className="mb-8">
+        <h3 className="text-[9px] font-black text-secondary-text uppercase tracking-[0.3em] pl-4 mb-4">🔗 Invite Friends</h3>
+        <div className="glass-card p-5 rounded-[30px] border border-white/5">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Your Referral Code</p>
+              <p className="text-lg font-black text-[#C9A84C] tracking-widest mt-1">{user?.referralCode || 'Loading...'}</p>
+            </div>
+            <button
+              onClick={() => {
+                if (user?.referralCode) {
+                  navigator.clipboard.writeText(user.referralCode);
+                  showToast('Code copied!', 'success', '📋');
+                }
+              }}
+              className="bg-[#C9A84C]/10 border border-[#C9A84C]/30 px-4 py-2 rounded-2xl text-[9px] font-black text-[#C9A84C] uppercase tracking-widest active:scale-95 transition-transform"
+            >
+              Copy
+            </button>
+          </div>
+          <p className="text-[8px] font-bold text-white/30">Share this code — both of you earn <span className="text-emerald-400">50 ZenPoints</span> when they place their first order.</p>
+        </div>
+      </div>
+
+      {/* ── F13: Elite Gifting ── */}
+      {user?.isElite && (
+        <div className="mb-8">
+          <h3 className="text-[9px] font-black text-secondary-text uppercase tracking-[0.3em] pl-4 mb-4">🎁 Send a Gift</h3>
+          <div className="glass-card p-5 rounded-[30px] border border-white/5">
+            <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest mb-3">Gift a meal to a friend (Elite perk)</p>
+            <div className="flex gap-2 mb-3">
+              <input
+                type="tel"
+                placeholder="Friend's phone number"
+                className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white outline-none focus:border-[#C9A84C]/40 font-bold"
+                id="gift-phone"
+              />
+            </div>
+            <div className="flex gap-2 mb-3">
+              {[50, 100, 200].map(amt => (
+                <button
+                  key={amt}
+                  onClick={async () => {
+                    const phone = (document.getElementById('gift-phone') as HTMLInputElement)?.value;
+                    if (!phone) { showToast('Enter phone number', 'error', '📱'); return; }
+                    try {
+                      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
+                      const res = await fetch(`${API_URL}/api/features/gift`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ recipientPhone: phone, amount: amt })
+                      });
+                      const data = await res.json();
+                      if (res.ok) {
+                        showToast(data.message, 'success', '🎁');
+                      } else {
+                        showToast(data.message || 'Gift failed', 'error', '❌');
+                      }
+                    } catch { showToast('Network error', 'error', '⚠️'); }
+                  }}
+                  className="flex-1 py-3 rounded-2xl text-sm font-black border bg-white/5 border-white/10 text-white/60 active:scale-95 transition-all"
+                >
+                  ₹{amt}
+                </button>
+              ))}
+            </div>
+            <p className="text-[7px] text-white/20 font-bold text-center">3 gifts per month • Deducted from your wallet</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── My Spending Dashboard (F12) ── */}
+      <div className="mb-8">
+        <h3 className="text-[9px] font-black text-secondary-text uppercase tracking-[0.3em] pl-4 mb-4">📊 My Spending</h3>
+        {spendStats ? (
+          <div className="space-y-4">
+            {/* Monthly Bar Chart */}
+            <div className="glass-card p-5 rounded-[30px] border border-white/5">
+              <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-4">Last 6 Months</p>
+              <div className="flex items-end gap-2 h-24">
+                {(() => {
+                  const max = Math.max(...spendStats.monthlySpend.map(m => m.total), 1);
+                  return spendStats.monthlySpend.map((m, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <div
+                        className="w-full rounded-t-lg transition-all duration-700"
+                        style={{
+                          height: `${Math.max(4, (m.total / max) * 80)}px`,
+                          background: i === spendStats.monthlySpend.length - 1
+                            ? 'linear-gradient(to top, #C9A84C, #E8D48B)'
+                            : 'rgba(255,255,255,0.1)'
+                        }}
+                      />
+                      <span className="text-[7px] font-black text-white/30">{m.month.split(' ')[0]}</span>
+                      {m.total > 0 && (
+                        <span className="text-[6px] font-black text-white/50">₹{m.total}</span>
+                      )}
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+
+            {/* Top Items */}
+            {spendStats.topItems.length > 0 && (
+              <div className="glass-card p-5 rounded-[30px] border border-white/5">
+                <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-3">Most Ordered</p>
+                <div className="space-y-3">
+                  {spendStats.topItems.map((item, i) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm">{i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}</span>
+                        <div>
+                          <p className="text-xs font-black text-white">{item.name}</p>
+                          <p className="text-[9px] text-white/40 font-bold">{item.count}x ordered</p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-black text-[#C9A84C]">₹{item.spend}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'Avg Order', value: `₹${spendStats.avgOrderValue}`, icon: '📦' },
+                { label: 'Total Orders', value: spendStats.totalOrders, icon: '🧾' },
+                { label: 'Current Streak', value: `🔥 ${spendStats.currentStreak}d`, icon: '⚡' },
+                { label: 'Fav Restaurant', value: spendStats.favoriteRestaurant.split(' ')[0], icon: '🍽️' },
+              ].map((stat, i) => (
+                <div key={i} className="glass-card p-4 rounded-[24px] border border-white/5 flex flex-col gap-1">
+                  <span className="text-lg">{stat.icon}</span>
+                  <p className="text-xs font-black text-white truncate">{stat.value}</p>
+                  <p className="text-[8px] font-bold text-white/40 uppercase tracking-wider">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="glass-card p-6 rounded-[30px] border border-white/5 text-center opacity-50">
+            <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Place your first order to see stats</p>
+          </div>
+        )}
+      </div>
+
       <div className="mt-10 pt-10 border-t border-white/5 pb-20">
         <button 
           onClick={handleLogout} 
           className="w-full bg-red-500/5 hover:bg-red-500/10 text-red-500/60 hover:text-red-500 py-6 rounded-[32px] text-[11px] uppercase font-black tracking-[0.5em] transition-all border border-red-500/10 hover:border-red-500/30 shadow-lg active:scale-[0.98]"
         >
-          De-authorize Session
+          Logout
         </button>
-        <p className="text-center mt-6 text-[8px] font-bold text-white/10 uppercase tracking-[0.3em]">End active nexus uplink and clear local cache</p>
+        <p className="text-center mt-6 text-[8px] font-bold text-white/10 uppercase tracking-[0.3em]">Sign out of your account</p>
       </div>
 
 
@@ -842,7 +1015,7 @@ export default function ProfilePage() {
                   <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isUploading} />
                 </label>
               </div>
-              {isUploading && <p className="text-[8px] font-black uppercase tracking-widest animate-pulse text-primary-yellow">Uploading Identity Asset...</p>}
+              {isUploading && <p className="text-[8px] font-black uppercase tracking-widest animate-pulse text-primary-yellow">Uploading Profile Picture...</p>}
             </div>
             <div className="space-y-6">
               <div className="space-y-2">

@@ -8,9 +8,11 @@ interface RestaurantCardProps {
   time: string;
   imageUrl: string;
   imagePosition: 'left' | 'right';
+  isFeatured?: boolean;
+  featuredBadge?: string;
 }
 
-const RestaurantCard = ({ name, rating, time, imageUrl, imagePosition }: RestaurantCardProps) => {
+const RestaurantCard = ({ name, rating, time, imageUrl, imagePosition, isFeatured, featuredBadge }: RestaurantCardProps) => {
   // 3D Tilt Logic
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -35,6 +37,7 @@ const RestaurantCard = ({ name, rating, time, imageUrl, imagePosition }: Restaur
     x.set(0);
     y.set(0);
   };
+
   return (
     <motion.div 
       onMouseMove={handleMouseMove}
@@ -42,15 +45,32 @@ const RestaurantCard = ({ name, rating, time, imageUrl, imagePosition }: Restaur
       style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
       whileHover={{ scale: 1.04 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      className={`capsule-card mb-6 overflow-visible hover:z-30 group flex items-center ${imagePosition === 'right' ? 'flex-row-reverse text-right pl-6' : 'pr-6'}`}
+      className={`capsule-card mb-6 overflow-visible hover:z-30 group flex items-center relative ${
+        isFeatured ? 'border border-[#C9A84C]/30' : ''
+      } ${imagePosition === 'right' ? 'flex-row-reverse text-right pl-6' : 'pr-6'}`}
     >
+      {/* Sponsored Badge (F9) */}
+      {isFeatured && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+          <span className="bg-[#C9A84C] text-black text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">
+            ✦ {featuredBadge || 'Sponsored'}
+          </span>
+        </div>
+      )}
+
       {/* Premium Glow Layer */}
-      <div className="absolute inset-0 rounded-[60px] bg-gradient-to-br from-primary-yellow/10 via-transparent to-primary-yellow/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl -z-10" />
+      <div className={`absolute inset-0 rounded-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl -z-10 ${
+        isFeatured 
+          ? 'bg-gradient-to-br from-[#C9A84C]/20 via-transparent to-[#C9A84C]/10'
+          : 'bg-gradient-to-br from-primary-yellow/10 via-transparent to-primary-yellow/5'
+      }`} />
       
       {/* Image Circle with Enhanced Glow */}
       <motion.div 
         style={{ translateZ: 50 }}
-        className={`food-circle shadow-[0_0_30_px_rgba(201,168,76,0.15)] group-hover:shadow-[0_0_40px_rgba(201,168,76,0.3)] transition-all duration-500 ${imagePosition === 'left' ? '-ml-6' : '-mr-6'} relative z-20 overflow-hidden border-2 border-primary-yellow/40 group-hover:border-primary-yellow`}
+        className={`food-circle shadow-[0_0_30_px_rgba(201,168,76,0.15)] group-hover:shadow-[0_0_40px_rgba(201,168,76,0.3)] transition-all duration-500 ${imagePosition === 'left' ? '-ml-6' : '-mr-6'} relative z-20 overflow-hidden border-2 ${
+          isFeatured ? 'border-[#C9A84C]' : 'border-primary-yellow/40 group-hover:border-primary-yellow'
+        }`}
       >
         <SafeImage 
           src={imageUrl} 
@@ -85,7 +105,9 @@ const RestaurantCard = ({ name, rating, time, imageUrl, imagePosition }: Restaur
       </div>
       
       {/* Hover Internal Glow Border */}
-      <div className="absolute inset-0 rounded-[60px] border border-white/5 group-hover:border-primary-yellow/30 transition-colors pointer-events-none" />
+      <div className={`absolute inset-0 rounded-[60px] border transition-colors pointer-events-none ${
+        isFeatured ? 'border-[#C9A84C]/30' : 'border-white/5 group-hover:border-primary-yellow/30'
+      }`} />
     </motion.div>
   );
 };

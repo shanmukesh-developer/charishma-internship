@@ -19,6 +19,7 @@ const initTicketModel = (sequelize) => {
       type: DataTypes.ENUM('Low', 'Medium', 'High', 'Critical'),
       defaultValue: 'Medium'
     },
+    slaBreachAt: { type: DataTypes.DATE, allowNull: true },
     adminResponse: { type: DataTypes.TEXT, allowNull: true }
   }, {
     timestamps: true,

@@ -66,7 +66,7 @@ router.post('/', protect, async (req, res) => {
     const CommunityPost = getCommunityPostModel();
     if (!CommunityPost) return res.status(500).json({ message: 'DB disconnected.' });
 
-    const { content, parentId, imageUrl, authorName } = req.body;
+    const { content, parentId, imageUrl, authorName, postType, starRating, restaurantId, restaurantName, productName } = req.body;
     if (!content && !imageUrl) return res.status(400).json({ message: 'Content or image is required.' });
 
     if (parentId) {
@@ -76,7 +76,9 @@ router.post('/', protect, async (req, res) => {
       await parent.save();
     }
 
-    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+    // Reviews don't expire; regular posts expire in 48h
+    const isReview = postType === 'review';
+    const expiresAt = isReview ? null : new Date(Date.now() + 48 * 60 * 60 * 1000);
 
     const newPost = await CommunityPost.create({
       userId: req.user.id,
@@ -87,7 +89,12 @@ router.post('/', protect, async (req, res) => {
       parentId: parentId || null,
       likes: 0,
       likedBy: [],
-      expiresAt
+      expiresAt,
+      postType: postType || 'post',
+      starRating: isReview ? (starRating || null) : null,
+      restaurantId: isReview ? (restaurantId || null) : null,
+      restaurantName: isReview ? (restaurantName || null) : null,
+      productName: isReview ? (productName || null) : null
     });
 
     res.status(201).json(newPost);
@@ -96,6 +103,32 @@ router.post('/', protect, async (req, res) => {
     res.status(500).json({ message: 'Failed to post to nexus.' });
   }
 });
+
+// GET /api/community/reviews - Fetch food reviews only
+router.get('/reviews', async (req, res) => {
+  try {
+    const CommunityPost = getCommunityPostModel();
+    if (!CommunityPost) return res.status(500).json({ message: 'DB disconnected.' });
+
+    let reviews;
+    try {
+      reviews = await CommunityPost.findAll({
+        where: { postType: 'review', parentId: null },
+        order: [['createdAt', 'DESC']],
+        limit: 50
+      });
+    } catch {
+      // postType column may not exist yet
+      reviews = [];
+    }
+
+    res.json(reviews);
+  } catch (error) {
+    console.error('Fetch reviews error:', error);
+    res.status(500).json({ message: 'Failed to fetch reviews.' });
+  }
+});
+
 
 // DELETE /api/community/:id - Delete a post
 router.delete('/:id', protect, async (req, res) => {

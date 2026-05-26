@@ -101,15 +101,24 @@ const rateLimit = require('express-rate-limit');
 // ── Global API Shield (DDoS Protection) ──────────────────────
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300, // Limit each IP to 300 requests per `window` (here, per 15 minutes)
+  max: 300, // Limit each IP to 300 requests per `window`
   message: { message: 'Too many requests from this IP, please try again after 15 minutes.' },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// ── Order Spam Shield ─────────────────────────────────────────
+const orderRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5, // Limit each IP to 5 order creation attempts per minute
+  message: { message: 'Too many orders placed. Please wait a minute.' },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 // Apply the global rate limiting middleware to all requests starting with /api
 app.use('/api/', globalLimiter);
-
+app.post('/api/orders', orderRateLimiter);
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { 
@@ -311,6 +320,7 @@ const startServer = async () => {
     app.use('/api/rewards', require('./routes/rewardRoutes'));
     app.use('/api/community', require('./routes/communityRoutes'));
     app.use('/api/tickets', require('./routes/ticketRoutes'));
+    app.use('/api/features', require('./routes/featureRoutes'));
 
     // ── Hourly Cleanup: Delete expired community posts ──────────────────────
     const runExpiryCleanup = async () => {
@@ -491,6 +501,42 @@ const startServer = async () => {
         io.to('admin-room').emit('admin_issue_reported', data);
       });
 
+      // ── F6: Group Order Polls ────────────────────
+      socket.on('poll_create', (data) => {
+        const room = String(data.roomCode).trim();
+        const poll = {
+          id: `poll_${Date.now()}`,
+          question: data.question || 'Where should we order from?',
+          options: data.options || [],
+          votes: {},
+          createdBy: socket.user?.id || 'anonymous',
+          createdAt: new Date().toISOString()
+        };
+        io.to(room).emit('poll_started', poll);
+        log(`[POLL] Created in room ${room}: "${poll.question}"`);
+      });
+
+      socket.on('poll_vote', (data) => {
+        const room = String(data.roomCode).trim();
+        io.to(room).emit('poll_vote_update', {
+          pollId: data.pollId,
+          optionIndex: data.optionIndex,
+          voterId: socket.user?.id || 'anonymous',
+          voterName: data.voterName || 'Someone'
+        });
+        log(`[POLL_VOTE] ${data.voterName} voted option ${data.optionIndex} in ${room}`);
+      });
+
+      socket.on('poll_end', (data) => {
+        const room = String(data.roomCode).trim();
+        io.to(room).emit('poll_ended', {
+          pollId: data.pollId,
+          winnerIndex: data.winnerIndex,
+          winnerOption: data.winnerOption
+        });
+        log(`[POLL_END] Winner in ${room}: "${data.winnerOption}"`);
+      });
+
       // ── Cross-Portal: Rider ↔ Admin ↔ Customer ────────────────
 
       // Rider came online: broadcast to admin dashboard
@@ -598,6 +644,61 @@ const startServer = async () => {
 };
 
 startServer();
+
+// ── F2: Scheduled Push Campaigns (Daily abandoned cart nudge at 10 AM) ──
+try {
+  const cron = require('node-cron');
+  cron.schedule('0 10 * * *', async () => {
+    console.log('[CRON] Running daily abandoned cart nudge...');
+    try {
+      const http = require('http');
+      const port = process.env.PORT || 5005;
+      const options = { hostname: 'localhost', port, path: '/api/features/push/abandoned-cart', method: 'POST' };
+      const req = http.request(options, (res) => {
+        console.log(`[CRON] Abandoned cart nudge response: ${res.statusCode}`);
+      });
+      req.on('error', (e) => console.warn('[CRON] Nudge failed:', e.message));
+      req.end();
+    } catch (e) { console.warn('[CRON] Error:', e.message); }
+  });
+  console.log('⏰ [CRON] Daily abandoned cart nudge scheduled at 10:00 AM');
+} catch (e) {
+  console.warn('[CRON] node-cron not available, skipping scheduled jobs');
+}
+
+// ── Restaurant out-of-stock auto-restore periodic check ──
+setInterval(async () => {
+  try {
+    const { getMenuItemModel } = require('./models/MenuItem');
+    const MenuItem = getMenuItemModel();
+    const { Op } = require('sequelize');
+    
+    const expiredItems = await MenuItem.findAll({
+      where: {
+        isAvailable: false,
+        outOfStockUntil: {
+          [Op.ne]: null,
+          [Op.lte]: new Date()
+        }
+      }
+    });
+
+    if (expiredItems.length > 0) {
+      console.log(`[AUTO-RESTORE] Restoring ${expiredItems.length} menu items...`);
+      for (const item of expiredItems) {
+        item.isAvailable = true;
+        item.outOfStockUntil = null;
+        await item.save();
+
+        // Broadcast to clients via Socket.io
+        io.emit('inventory_updated', { itemId: item.id, isAvailable: true });
+        console.log(`[AUTO-RESTORE] Restored item: ${item.name} (${item.id})`);
+      }
+    }
+  } catch (err) {
+    console.warn('[AUTO-RESTORE_ERROR] Failed to run auto-restore:', err.message);
+  }
+}, 30000); // Check every 30 seconds
 
 module.exports = { 
   checkSurgeState, 

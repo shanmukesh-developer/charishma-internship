@@ -30,7 +30,13 @@ const initCommunityPostModel = (sequelize) => {
       type: DataTypes.DATE,
       allowNull: true,
       defaultValue: () => new Date(Date.now() + 48 * 60 * 60 * 1000) // 48 hours from now
-    }
+    },
+    // F5: Food Review Feed
+    postType: { type: DataTypes.ENUM('post', 'review'), defaultValue: 'post' },
+    starRating: { type: DataTypes.FLOAT, allowNull: true },
+    restaurantId: { type: DataTypes.STRING, allowNull: true },
+    restaurantName: { type: DataTypes.STRING, allowNull: true },
+    productName: { type: DataTypes.STRING, allowNull: true }
   }, { timestamps: true });
 
   // No self-referencing associations — threading is handled manually in routes

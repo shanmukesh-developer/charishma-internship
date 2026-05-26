@@ -24,7 +24,26 @@ const registerUser = async (req, res) => {
     const userExists = await User.findOne({ where: { phone: cleanPhone } });
     if (userExists) return res.status(400).json({ message: 'Account with this phone already exists' });
 
-    const user = await User.create({ name, phone: cleanPhone, password, hostelBlock, roomNumber });
+    const user = await User.create({ 
+      name, 
+      phone: cleanPhone, 
+      password, 
+      hostelBlock, 
+      roomNumber,
+      zenPoints: req.body.referralCode ? 50 : 0
+    });
+
+    if (req.body.referralCode) {
+      const referrer = await User.findOne({ where: { referralCode: req.body.referralCode } });
+      if (referrer) {
+        referrer.zenPoints = (referrer.zenPoints || 0) + 50;
+        referrer.referralCount = (referrer.referralCount || 0) + 1;
+        await referrer.save();
+        
+        user.referredBy = referrer.referralCode;
+        await user.save();
+      }
+    }
     const token = generateToken(user.id, user.role);
     res.cookie('token', token, {
       httpOnly: true,

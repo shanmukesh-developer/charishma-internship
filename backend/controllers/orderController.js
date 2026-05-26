@@ -123,15 +123,54 @@ const createOrder = async (req, res) => {
 
     // ── Backend Price Validation (Security Guard) ────────────
     const MenuItem = getMenuItemModel();
-    const itemIds = items.map(i => i.menuItemId || i.id || i._id);
-    const dbItems = await MenuItem.findAll({ where: { id: itemIds } });
+    
+    const dbItemIds = items
+      .map(i => i.menuItemId || i.id || i._id)
+      .filter(id => typeof id !== 'string' || !id.startsWith('extra-'));
+      
+    const dbItems = await MenuItem.findAll({ where: { id: dbItemIds } });
     const itemMap = Object.fromEntries(dbItems.map(i => [i.id, i]));
     
+    const EXTRA_PRICES = {
+      'candles': 15, 'knife': 10, 'gift-wrap': 30, 'plates': 15, 'icecream': 30, 'forks': 10,
+      'garlic-bread': 60, 'coke': 40, 'dip-cheese': 20, 'fries': 50, 'chili-flakes': 5, 'napkins': 10,
+      'raita': 25, 'salan': 30, 'boiled-egg': 20, 'buttermilk': 25, 'thumbsup': 40, 'onion-salad': 15,
+      'cookie': 20, 'muffin': 40, 'sandwich': 60, 'straw': 5, 'gift-box': 50, 'dry-fruits': 80,
+      'saffron-milk': 35, 'coleslaw': 25, 'ketchup': 10, 'onion-rings': 45, 'chocolate-sauce': 15,
+      'wafer': 20, 'nuts': 20, 'coffee': 30, 'naan': 40, 'salad': 20, 'lemon': 5, 'spring-roll': 50,
+      'sweet-corn': 35, 'chili-sauce': 10, 'sambar': 15, 'chutney': 10, 'filter-coffee': 25,
+      'curd': 15, 'water': 20, 'lassi': 35
+    };
+
     let backendTotalPrice = 0;
     const validatedItems = [];
     
     for (const i of items) {
-      const dbItem = itemMap[i.menuItemId || i.id || i._id];
+      const id = i.menuItemId || i.id || i._id;
+      const qty = Math.min(20, Math.max(1, i.quantity || 1));
+      
+      if (typeof id === 'string' && id.startsWith('extra-')) {
+         const extraKey = id.replace('extra-', '');
+         const secureExtraPrice = EXTRA_PRICES[extraKey];
+         
+         if (secureExtraPrice === undefined) {
+           return res.status(400).json({ message: `Invalid extra item: ${i.name || 'Unknown'}` });
+         }
+         
+         backendTotalPrice += secureExtraPrice * qty;
+         validatedItems.push({
+           ...i,
+           quantity: qty,
+           price: secureExtraPrice,
+           basePrice: secureExtraPrice,
+           customizations: null,
+           name: i.name,
+           image: ''
+         });
+         continue;
+      }
+
+      const dbItem = itemMap[id];
       if (!dbItem) {
         return res.status(400).json({ message: `Invalid menu item: ${i.name || 'Unknown'}` });
       }
@@ -139,9 +178,6 @@ const createOrder = async (req, res) => {
       if (!dbItem.isAvailable) {
         return res.status(400).json({ message: `Item just went out of stock: ${dbItem.name}` });
       }
-      
-      // Hard cap quantity to prevent overflows and absurd orders
-      const qty = Math.min(20, Math.max(1, i.quantity || 1));
       
       const basePrice = dbItem.price;
       const addOnPrice = calculateCustomizationCost(basePrice, dbItem, i.customizations);
@@ -562,7 +598,7 @@ const getMyOrders = async (req, res) => {
 
 // @desc    Rate an order
 const rateOrder = async (req, res) => {
-  const { rating, review } = req.body;
+  const { rating, review, tipAmount } = req.body;
   try {
     const Order = getOrderModel();
     const order = await Order.findByPk(req.params.id);
@@ -573,6 +609,19 @@ const rateOrder = async (req, res) => {
     order.review = review;
     await order.save();
 
+    // ── ZenPoints on Rating (+10 ZP) ──────────────────────
+    try {
+      const User = getUserModel();
+      const user = await User.findByPk(req.user.id);
+      if (user) {
+        user.zenPoints = (user.zenPoints || 0) + 10;
+        await user.save();
+      }
+    } catch (zpErr) {
+      console.warn('[RATING_ZP] ZenPoints award skipped:', zpErr.message);
+    }
+
+    // ── Rider Rating Update ──────────────────────
     if (order.deliveryPartnerId) {
       const DeliveryPartner = getDeliveryPartnerModel();
       const partner = await DeliveryPartner.findByPk(order.deliveryPartnerId);
@@ -581,6 +630,33 @@ const rateOrder = async (req, res) => {
         const count = (partner.totalRatings || 0) + 1;
         partner.averageRating = parseFloat((total / count).toFixed(1));
         partner.totalRatings = count;
+
+        // ── Rider Tip (F4) ──────────────────────
+        const tip = parseFloat(tipAmount) || 0;
+        if (tip > 0 && order.deliveryPartnerId) {
+          try {
+            const User = getUserModel();
+            const user = await User.findByPk(req.user.id);
+            if (user && (user.walletBalance || 0) >= tip) {
+              user.walletBalance = (user.walletBalance || 0) - tip;
+              await user.save();
+              partner.walletBalance = (partner.walletBalance || 0) + tip;
+              console.log(`[TIP] ₹${tip} tipped to rider ${partner.id} from user ${req.user.id}`);
+              // Notify rider via socket
+              const io = req.app.get('io');
+              if (io) {
+                io.to(`rider_${partner.id}`).emit('rider_tip_received', {
+                  amount: tip,
+                  from: user.name || 'A customer',
+                  orderId: order.id
+                });
+              }
+            }
+          } catch (tipErr) {
+            console.warn('[TIP_ERROR] Tip transfer failed:', tipErr.message);
+          }
+        }
+
         await partner.save();
       }
     }
@@ -589,6 +665,7 @@ const rateOrder = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
 
 // @desc    Get all orders (Admin)
 const getAllOrders = async (req, res) => {
@@ -772,6 +849,90 @@ const getSurgeStatus = async (req, res) => {
   res.json({ isSurge: isSurgeActive(), multiplier: SURGE_MULTIPLIER });
 };
 
+// @desc    Get spending stats for logged-in user (F12 - Spending Dashboard)
+// @route   GET /api/orders/stats
+const getOrderStats = async (req, res) => {
+  try {
+    const Order = getOrderModel();
+    const User = getUserModel();
+
+    const orders = await Order.findAll({
+      where: { userId: req.user.id, status: 'Delivered' },
+      order: [['createdAt', 'DESC']],
+      limit: 200
+    });
+
+    const user = await User.findByPk(req.user.id, {
+      attributes: ['streakCount', 'completedOrders', 'zenPoints']
+    });
+
+    // Monthly spend (last 6 months)
+    const monthlyMap = {};
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = d.toLocaleString('default', { month: 'short', year: 'numeric' });
+      monthlyMap[key] = 0;
+    }
+    orders.forEach(o => {
+      const d = new Date(o.createdAt);
+      const key = d.toLocaleString('default', { month: 'short', year: 'numeric' });
+      if (monthlyMap[key] !== undefined) {
+        monthlyMap[key] += (o.finalPrice || o.totalPrice || 0);
+      }
+    });
+    const monthlySpend = Object.entries(monthlyMap).map(([month, total]) => ({ month, total: Math.round(total) }));
+
+    // Top items
+    const itemMap = {};
+    orders.forEach(o => {
+      const items = Array.isArray(o.items) ? o.items : [];
+      items.forEach(item => {
+        const name = item.name || 'Unknown';
+        if (!itemMap[name]) itemMap[name] = { name, count: 0, spend: 0 };
+        itemMap[name].count += (item.quantity || 1);
+        itemMap[name].spend += (item.priceAtOrder || item.price || 0) * (item.quantity || 1);
+      });
+    });
+    const topItems = Object.values(itemMap)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3)
+      .map(i => ({ ...i, spend: Math.round(i.spend) }));
+
+    const totalSpend = orders.reduce((s, o) => s + (o.finalPrice || o.totalPrice || 0), 0);
+    const avgOrderValue = orders.length > 0 ? Math.round(totalSpend / orders.length) : 0;
+
+    // Favourite restaurant by order count
+    const restMap = {};
+    orders.forEach(o => {
+      if (o.restaurantId) {
+        restMap[o.restaurantId] = (restMap[o.restaurantId] || 0) + 1;
+      }
+    });
+    const topRestId = Object.entries(restMap).sort((a, b) => b[1] - a[1])[0]?.[0];
+    let favoriteRestaurant = 'N/A';
+    if (topRestId) {
+      const Restaurant = getRestaurantModel();
+      const rest = await Restaurant.findByPk(topRestId, { attributes: ['name'] });
+      if (rest) favoriteRestaurant = rest.name;
+    }
+
+    res.json({
+      monthlySpend,
+      topItems,
+      avgOrderValue,
+      totalOrders: orders.length,
+      favoriteRestaurant,
+      currentStreak: user?.streakCount || 0,
+      zenPoints: user?.zenPoints || 0
+    });
+  } catch (error) {
+    console.error('[ORDER_STATS_ERROR]', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+
 const verifyUPIPayment = async (req, res) => {
   const { isVerified } = req.body; // boolean
   try {
@@ -834,4 +995,4 @@ const restaurantReadyOrder = async (req, res) => {
   }
 };
 
-module.exports = { createOrder, getOrderById, getMyOrders, rateOrder, getAllOrders, cancelOrder, updateOrderStatus, getSurgeStatus, restaurantAcceptOrder, verifyUPIPayment, restaurantReadyOrder };
+module.exports = { createOrder, getOrderById, getMyOrders, rateOrder, getAllOrders, cancelOrder, updateOrderStatus, getSurgeStatus, restaurantAcceptOrder, verifyUPIPayment, restaurantReadyOrder, getOrderStats };

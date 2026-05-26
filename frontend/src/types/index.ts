@@ -34,6 +34,9 @@ export interface Restaurant {
   tags?: string[];
   vendorType?: string;
   categories?: string[];
+  isFeatured?: boolean;
+  featuredBadge?: string;
+  featuredUntil?: string;
 }
 
 export interface User {
