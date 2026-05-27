@@ -33,14 +33,26 @@ export default function ForgotPasswordPage() {
     return () => clearTimeout(t);
   }, [resendCooldown]);
 
-  // Setup invisible reCAPTCHA
+  // Setup invisible reCAPTCHA — always create a fresh instance
+  // reCAPTCHA tokens are single-use and expire quickly, so we must
+  // tear down the old verifier and create a new one every time.
   const setupRecaptcha = () => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-        callback: () => {},
-      });
+    // Tear down any existing verifier before creating a new one
+    if (window.recaptchaVerifier) {
+      try { window.recaptchaVerifier.clear(); } catch (_) {}
+      window.recaptchaVerifier = undefined;
     }
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+      size: 'invisible',
+      callback: () => {},
+      'expired-callback': () => {
+        // Auto-clear on expiry so next attempt always gets a fresh token
+        if (window.recaptchaVerifier) {
+          try { window.recaptchaVerifier.clear(); } catch (_) {}
+          window.recaptchaVerifier = undefined;
+        }
+      },
+    });
     return window.recaptchaVerifier;
   };
 
