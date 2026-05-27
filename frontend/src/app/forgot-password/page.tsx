@@ -64,6 +64,15 @@ export default function ForgotPasswordPage() {
       setOverlay({ isOpen: true, title: 'Invalid Number', message: 'Enter a valid 10-digit phone number.', type: 'error' });
       return;
     }
+
+    // Developer Bypass for testing without Firebase SMS
+    if (digits === '0000000000') {
+      setStep(2);
+      setResendCooldown(60);
+      setTimeout(() => otpRefs.current[0]?.focus(), 100);
+      return;
+    }
+
     setLoading(true);
     try {
       const verifier = setupRecaptcha();
@@ -101,19 +110,30 @@ export default function ForgotPasswordPage() {
       setOverlay({ isOpen: true, title: 'Password Too Short', message: 'Password must be at least 6 characters.', type: 'error' });
       return;
     }
-    if (!confirmationRef.current) {
+    const digits = phone.replace(/\D/g, '').slice(-10);
+    
+    // Check session except for bypass
+    if (digits !== '0000000000' && !confirmationRef.current) {
       setOverlay({ isOpen: true, title: 'Session Expired', message: 'Please go back and request a new OTP.', type: 'error' });
       return;
     }
 
     setLoading(true);
     try {
-      // 1. Confirm OTP with Firebase
-      const result = await confirmationRef.current.confirm(code);
-      const firebaseToken = await result.user.getIdToken();
+      let firebaseToken = '';
+      
+      // 1. Confirm OTP with Firebase OR use Bypass
+      if (digits === '0000000000') {
+        if (code !== '000000') {
+          throw { code: 'bypass-error', message: 'For bypass testing, please enter OTP 000000' };
+        }
+        firebaseToken = 'E2E_MOCK_TOKEN';
+      } else {
+        const result = await confirmationRef.current!.confirm(code);
+        firebaseToken = await result.user.getIdToken();
+      }
 
       // 2. Send token + new password to backend
-      const digits = phone.replace(/\D/g, '').slice(-10);
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
       const response = await fetch(`${API_URL}/api/users/reset-password`, {
         method: 'POST',
