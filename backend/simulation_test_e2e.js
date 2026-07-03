@@ -43,7 +43,8 @@ async function simulate() {
       }],
       totalPrice: targetItem.price,
       deliverySlot: 'ASAP',
-      deliveryAddress: 'L Block, Room 404',
+      deliveryAddress: 'L Block, Room 404, SRM AP',
+      coordinates: { lat: 16.4632, lng: 80.5064 },
       paymentMethod: 'COD'
     };
     
