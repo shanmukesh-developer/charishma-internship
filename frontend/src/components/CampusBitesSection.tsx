@@ -12,7 +12,7 @@ const CAMPUSES = [
   { code: 'ALL', label: 'All Campuses', emoji: '🌐' },
   { code: 'SRM', label: 'SRM University', emoji: '🏛️', lat: 16.4673, lon: 80.5002 },
   { code: 'VIT', label: 'VIT Vellore', emoji: '🎓', lat: 12.9692, lon: 79.1559 },
-  { code: 'KLU', label: 'KL University', emoji: '📚', lat: 16.4420, lon: 80.6220 },
+  { code: 'AMRITA', label: 'Amrita Vishwa Vidyapeetham', emoji: '📚', lat: 10.9035, lon: 76.9003 },
 ];
 
 interface CampusBitesSectionProps {
@@ -58,6 +58,22 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
       });
   }, [restaurants, selectedCampus, stallSearch]);
 
+  // Check if vendor is currently open based on operating hours
+  const isVendorOpen = (vendor: Restaurant): boolean => {
+    if (!vendor.operatingHours) return vendor.isOpenNow !== false;
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const [startH, startM] = (vendor.operatingHours.start || '00:00').split(':').map(Number);
+    const [endH, endM] = (vendor.operatingHours.end || '23:59').split(':').map(Number);
+    const startMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+    // Handle overnight hours (e.g. 18:00 - 02:00)
+    if (endMinutes < startMinutes) {
+      return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+    }
+    return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+  };
+
   // Track click analytics (fire-and-forget)
   const trackClick = (vendorId: string) => {
     fetch(`${API_URL}/api/restaurants/${vendorId}/click`, { method: 'POST' }).catch(() => {});
@@ -70,6 +86,12 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
     let msg = `Hi! I'd like to order from ${vendor.name} via CampusBites (Zenvy). My campus: ${campus}.`;
     if (itemName) msg += `\n\nItem: ${itemName}`;
     return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  };
+
+  // Generate tel: link for calling
+  const getCallLink = (vendor: Restaurant) => {
+    const phone = vendor.whatsappNumber || '919391955674';
+    return `tel:+${phone}`;
   };
 
   if (!hasAnyLocalVendors) return null;
@@ -96,7 +118,7 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
             Local <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-300">Vendor Stalls</span>
           </h2>
           <p className="text-[9px] font-bold text-secondary-text uppercase tracking-widest mt-1 max-w-[340px] leading-relaxed">
-            Discover roadside food stalls near your campus. Browse menus & order via WhatsApp.
+            Discover roadside food stalls near your campus. Browse menus & order via WhatsApp or Call.
           </p>
         </div>
 
@@ -145,7 +167,7 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
           <AnimatePresence mode="popLayout">
             {localVendors.map((vendor, index) => {
               const isPremium = vendor.subscriptionTier === 'premium';
-              const isOpen = vendor.isOpenNow !== false;
+              const isOpen = isVendorOpen(vendor);
 
               return (
                 <motion.div
@@ -252,6 +274,18 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
                           View Menu →
                         </button>
 
+                        {/* Call Button */}
+                        <a
+                          href={getCallLink(vendor)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            trackClick(vendor._id || vendor.id || '');
+                          }}
+                          className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+                        >
+                          📞
+                        </a>
+
                         {/* WhatsApp Order Button */}
                         <a
                           href={getWhatsAppLink(vendor)}
@@ -278,7 +312,7 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
       {/* Section Footer */}
       <div className="mt-6 text-center">
         <p className="text-[8px] font-bold text-secondary-text/50 uppercase tracking-widest">
-          Zenvy acts as a discovery platform. Orders are placed directly with vendors via WhatsApp.
+          Zenvy acts as a discovery platform. Orders are placed directly with vendors via WhatsApp or Call.
         </p>
       </div>
     </motion.section>
