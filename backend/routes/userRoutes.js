@@ -49,6 +49,7 @@ router.get('/profile', protect, getUserProfile);
 router.put('/profile', protect, updateUserProfile);
 
 // Public Asset Discovery
+router.get('/config', require('../controllers/adminController').getGlobalConfig);
 router.get('/restaurants', require('../controllers/adminController').getRestaurants);
 router.get('/restaurants/:id', require('../controllers/adminController').getRestaurantById);
 router.get('/search', require('../controllers/searchController').globalSearch);

@@ -252,7 +252,7 @@ export default function Home() {
     // Fetch Global Configuration
     const fetchConfig = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/admin/config`);
+        const res = await fetch(`${API_URL}/api/users/config`);
         const data = await res.json();
         if (Array.isArray(data)) {
           const maintenance = data.find(c => c.key === 'maintenance_mode')?.value === true;

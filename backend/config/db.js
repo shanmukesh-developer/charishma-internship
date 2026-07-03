@@ -264,8 +264,40 @@ const connectDB = async () => {
         try {
           await sequelize.query('ALTER TABLE "Users" ADD COLUMN "googleId" VARCHAR(255);');
           console.log('✅ [SQLite_MIGRATION] Added googleId column to Users.');
-        } catch (_err) {
-          // Suppress error if already exists
+        } catch (_err) {}
+
+        // Restaurant Local Vendor & new fields migration
+        const restCols = [
+          { name: 'vendorType', type: "VARCHAR(255) DEFAULT 'RESTAURANT'" },
+          { name: 'campus', type: 'VARCHAR(255)' },
+          { name: 'isOpenNow', type: 'BOOLEAN DEFAULT 1' },
+          { name: 'whatsappNumber', type: 'VARCHAR(255)' },
+          { name: 'subscriptionTier', type: "VARCHAR(255) DEFAULT 'free'" },
+          { name: 'stallDescription', type: 'TEXT' },
+          { name: 'promoOffer', type: 'VARCHAR(255)' },
+          { name: 'clickCount', type: 'INTEGER DEFAULT 0' },
+          { name: 'isOffline', type: 'BOOLEAN DEFAULT 0' }
+        ];
+        for (const col of restCols) {
+          try {
+            await sequelize.query(`ALTER TABLE "Restaurants" ADD COLUMN "${col.name}" ${col.type};`);
+            console.log(`✅ [SQLite_MIGRATION] Added ${col.name} column to Restaurants.`);
+          } catch (_err) {}
+        }
+
+        // MenuItem new fields migration
+        const itemCols = [
+          { name: 'isEliteOnly', type: 'BOOLEAN DEFAULT 0' },
+          { name: 'customCommission', type: 'FLOAT' },
+          { name: 'specs', type: 'TEXT' },
+          { name: 'ownerName', type: 'VARCHAR(255)' },
+          { name: 'ownerPhone', type: 'VARCHAR(255)' }
+        ];
+        for (const col of itemCols) {
+          try {
+            await sequelize.query(`ALTER TABLE "MenuItems" ADD COLUMN "${col.name}" ${col.type};`);
+            console.log(`✅ [SQLite_MIGRATION] Added ${col.name} column to MenuItems.`);
+          } catch (_err) {}
         }
       }
     } else {
