@@ -32,9 +32,14 @@ export default function LiveOrderStatusBar({ orderId, initialStatus = 'Pending',
   useEffect(() => {
     if (!orderId) return;
     socket.emit('joinOrder', orderId);
-    socket.on('statusUpdated', (newStatus: string) => {
-      setStatus(newStatus);
-      if (newStatus === 'Delivered' && onDelivered) {
+    socket.on('statusUpdated', (data: any) => {
+      const s = typeof data === 'string' ? data : data.status;
+      const targetId = typeof data === 'object' && data !== null ? data.id || data.orderId : null;
+      if (targetId && String(targetId) !== String(orderId)) {
+        return;
+      }
+      setStatus(s);
+      if (s === 'Delivered' && onDelivered) {
         onDelivered();
       }
     });

@@ -31,6 +31,7 @@ interface ActiveOrderCardProps {
   onPinChange: (value: string) => void;
   onPickUp: (id: string) => void;
   onDeliver: (id: string) => void;
+  onArriveAtGate: (id: string) => Promise<void>;
   onChatOpen: (id: string) => void;
   onReportIssue: (id: string, type: string) => void;
   onCancel: (id: string) => void;
@@ -46,12 +47,35 @@ export default function ActiveOrderCard({
   onPinChange, 
   onPickUp, 
   onDeliver,
+  onArriveAtGate,
   onChatOpen,
   onReportIssue,
   onCancel
 }: ActiveOrderCardProps) {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showIssuePicker, setShowIssuePicker] = useState(false);
+  const [gateLoading, setGateLoading] = useState(false);
+  const [gateNotified, setGateNotified] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(`gate_notified_${order.id}`) === 'true';
+    }
+    return false;
+  });
+
+  const handleArriveAtGate = async () => {
+    if (gateNotified || gateLoading) return;
+    setGateLoading(true);
+    try {
+      await onArriveAtGate(order.id);
+      setGateNotified(true);
+      localStorage.setItem(`gate_notified_${order.id}`, 'true');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setGateLoading(false);
+    }
+  };
+
   const earnings = 30;
   const isAtPickup = status === 'Accepted' || status === 'ReadyForPickup';
 
@@ -234,6 +258,31 @@ export default function ActiveOrderCard({
             </motion.button>
           ) : (
             <div className="space-y-4">
+              {/* Reached Gate Button */}
+              {!gateNotified ? (
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleArriveAtGate}
+                  disabled={gateLoading}
+                  className="w-full h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-black text-[11px] uppercase tracking-[0.2em] shadow-lg hover:bg-amber-500/20 transition-all flex items-center justify-center gap-2"
+                >
+                  {gateLoading ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-amber-400/20 border-t-amber-400 rounded-full animate-spin" />
+                      Sending Alert...
+                    </>
+                  ) : (
+                    <>
+                      <span>🛎️</span> Reached Gate (Notify Customer)
+                    </>
+                  )}
+                </motion.button>
+              ) : (
+                <div className="w-full h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-black text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-2">
+                  <span>✅</span> Customer Notified of Gate Arrival
+                </div>
+              )}
+
               {/* Delivery Proof Photo */}
               <DeliveryProof orderId={order.id} apiUrl={apiUrl} token={token} />
               <div className="bg-white/[0.03] p-5 rounded-2xl border border-white/5">

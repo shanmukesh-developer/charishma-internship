@@ -6,6 +6,7 @@ const { sendPushToTokens } = require('../utils/push');
 const { evaluateBadges } = require('../services/BadgeService');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
+const { sendWhatsAppMessage } = require('../utils/whatsappUtil');
 
 const { normalizePhone } = require('../utils/phoneUtils');
 
@@ -691,9 +692,60 @@ const changePassword = async (req, res) => {
   }
 };
 
+// @desc    Notify arrival at gate
+const notifyArrivalAtGate = async (req, res) => {
+  try {
+    const Order = getOrderModel();
+    const User = getUserModel();
+    const order = await Order.findByPk(req.params.orderId);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (order.deliveryPartnerId !== req.user.id) return res.status(403).json({ message: 'Unauthorized' });
+
+    // Send push notification to the customer
+    try {
+      const customer = await User.findByPk(order.userId);
+      if (customer && customer.fcmTokens && customer.fcmTokens.length > 0) {
+        await sendPushToTokens(
+          customer.fcmTokens,
+          'Rider Arrived at Gate! 🛎️',
+          'Your rider is waiting at the hostel gate. Please collect your order.',
+          { orderId: order.id, type: 'GATE_ARRIVAL' }
+        );
+      }
+    } catch (e) {
+      console.warn('[PUSH_NOTIFY_WARN] Failed to send gate arrival update:', e.message);
+    }
+
+    // Send WhatsApp notification
+    try {
+      const customer = await User.findByPk(order.userId);
+      if (customer && customer.phone) {
+        await sendWhatsAppMessage(
+          customer.phone,
+          `🛎️ *Rider Arrived at Gate!*\n\nYour Zenvy rider is waiting at your hostel gate. Please collect your order.\n\n📍 *Tracking:* ${process.env.FRONTEND_URL || 'https://zenvy.app'}/orders/${order.id}`,
+          'GATE_ARRIVAL'
+        );
+      }
+    } catch (e) {
+      console.warn('[WHATSAPP_NOTIFY_WARN] Failed to send WhatsApp gate arrival update:', e.message);
+    }
+
+    // Emit socket event to the order room
+    const io = req.app.get('io');
+    io.to(order.id.toString()).emit('driverAtGate', {
+      message: 'Your rider is waiting at the hostel gate!'
+    });
+
+    res.json({ message: 'Gate arrival notification sent successfully' });
+  } catch (error) {
+    console.error('[GATE_ARRIVAL_ERROR]', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 module.exports = { 
   registerPartner, authPartner, acceptOrder, getPendingOrders, getActiveOrders, 
   updateOrderStatus, toggleOnline, getOrderHistory, saveFcmToken, getLeaderboard,
   getRiderProfile, updateRiderProfile, getPublicRiderProfile, getTodayStats,
-  cancelOrderByRider, changePassword
+  cancelOrderByRider, changePassword, notifyArrivalAtGate
 };

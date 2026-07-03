@@ -691,6 +691,26 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
     setActionLoading(false);
   };
 
+  const arriveAtGate = async (orderId: string) => {
+    if (!isNetworkConnected) {
+      toast('Must be online to notify gate arrival.', 'warning');
+      return;
+    }
+    try {
+      const res = await fetch(`${apiUrl}/api/delivery/arrive/${orderId}`, {
+        method: 'PUT',
+      });
+      if (res.ok) {
+        toast('Customer notified of gate arrival!', 'success');
+      } else {
+        const data = await res.json();
+        toast(data.message || 'Failed to send gate alert.', 'error');
+      }
+    } catch {
+      toast('Network error while notifying gate arrival.', 'error');
+    }
+  };
+
   const reportIssue = (orderId: string, issueType: string) => {
     socketRef.current?.emit('report_issue', {
       orderId,
@@ -875,6 +895,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
                             onPinChange={(val) => setPinValues(prev => ({ ...prev, [order.id]: val }))}
                             onPickUp={pickUpOrder}
                             onDeliver={deliverOrder}
+                            onArriveAtGate={arriveAtGate}
                             onChatOpen={(id) => { setActiveChatOrderId(id); setIsChatOpen(true); }}
                             onReportIssue={reportIssue}
                             onCancel={cancelOrder}

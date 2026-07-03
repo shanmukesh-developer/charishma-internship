@@ -470,7 +470,6 @@ const restaurantAcceptOrder = async (req, res) => {
       id: order.id, 
       status: 'Accepted' 
     };
-    io.emit('statusUpdated', statusPayload);
     io.to(order.id.toString()).emit('statusUpdated', statusPayload);
 
     // Fetch Restaurant to broadcast details to riders
@@ -832,7 +831,6 @@ const updateOrderStatus = async (req, res) => {
       status,
       newBadges: status === 'Delivered' ? (order.newBadges || []) : []
     };
-    io.emit('statusUpdated', statusPayload);
     io.to(order.id.toString()).emit('statusUpdated', statusPayload);
 
     // 🟢 WhatsApp Integration: Status Update to Customer
@@ -969,7 +967,6 @@ const verifyUPIPayment = async (req, res) => {
     
     const io = req.app.get('io');
     const statusPayload = { id: order.id, status: order.status };
-    io.emit('statusUpdated', statusPayload);
     io.to(order.id.toString()).emit('statusUpdated', statusPayload);
 
     res.json({ message: `Payment ${isVerified ? 'Verified' : 'Rejected'}`, orderId: order.id, status: order.status });
@@ -993,7 +990,6 @@ const restaurantReadyOrder = async (req, res) => {
 
     const io = req.app.get('io');
     const statusPayload = { id: order.id, status: 'ReadyForPickup' };
-    io.emit('statusUpdated', statusPayload);
     io.to(order.id.toString()).emit('statusUpdated', statusPayload);
 
     // Also notify the delivery partner if assigned

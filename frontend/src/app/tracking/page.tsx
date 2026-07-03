@@ -94,7 +94,13 @@ function TrackingContent() {
       } catch { /* ignore */ }
     };
 
-    socket.on('statusUpdated', (data: { status: string; newBadges?: string[] } | string) => {
+    socket.on('statusUpdated', (data: { id?: string; orderId?: string; status: string; newBadges?: string[] } | string) => {
+      if (typeof data === 'object' && data !== null) {
+        const targetId = data.id || data.orderId;
+        if (targetId && String(targetId) !== String(orderId)) {
+          return;
+        }
+      }
       const s = typeof data === 'string' ? data : data.status;
       const badges = typeof data === 'object' && data !== null ? data.newBadges || [] : [];
       if (s === 'Pending') setStatus(1);
