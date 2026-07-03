@@ -56,6 +56,17 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
   const mainRef = useRef<HTMLDivElement>(null);
   const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
 
+  const isLocalVendor = restaurant?.vendorType === 'LOCAL_VENDOR';
+
+  const getWhatsAppLink = (itemName?: string) => {
+    if (!restaurant) return '';
+    const phone = restaurant.whatsappNumber || '919391955674';
+    const campus = restaurant.campus || 'Campus';
+    let msg = `Hi! I'd like to order from ${restaurant.name} via CampusBites (Zenvy). My campus: ${campus}.`;
+    if (itemName) msg += `\n\nItem: ${itemName}`;
+    return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  };
+
   useEffect(() => {
     fetch(`${API_URL}/api/users/restaurants/${effectiveId}`)
       .then(res => res.json())
@@ -266,13 +277,38 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
                 <span className="text-xs font-bold text-white/50">⭐ {restaurant.rating}</span>
               </div>
               <h1 className="text-2xl md:text-3xl font-black mb-1 text-gold-shimmer">{restaurant.name}</h1>
-              <p className="text-secondary-text text-[11px] font-medium leading-relaxed">{restaurant.description}</p>
-              <div className="flex gap-4 mt-4">
-                <div className="text-[9px] font-black uppercase tracking-widest text-secondary-text flex items-center gap-1 opacity-60">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                  {restaurant.time}
+              <p className="text-secondary-text text-[11px] font-medium leading-relaxed">{restaurant.description || restaurant.stallDescription}</p>
+              
+              {isLocalVendor && (
+                <div className="mt-2 inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 rounded-xl px-3 py-1">
+                  <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest">🏪 CampusBites Local Vendor</span>
                 </div>
-                <div className="text-[9px] font-black uppercase tracking-widest text-secondary-text opacity-60">Min ₹99</div>
+              )}
+
+              <div className="flex flex-wrap items-center justify-between gap-4 mt-4">
+                <div className="flex gap-4">
+                  <div className="text-[9px] font-black uppercase tracking-widest text-secondary-text flex items-center gap-1 opacity-60">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    {isLocalVendor ? (restaurant.operatingHours ? `${restaurant.operatingHours.start || '19:00'} - ${restaurant.operatingHours.end || '00:00'}` : 'Hours vary') : restaurant.time}
+                  </div>
+                  <div className="text-[9px] font-black uppercase tracking-widest text-secondary-text opacity-60">
+                    {isLocalVendor ? (restaurant.campus || 'Campus Stall') : 'Min ₹99'}
+                  </div>
+                </div>
+                
+                {isLocalVendor && (
+                  <a
+                    href={getWhatsAppLink()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => {
+                      fetch(`${API_URL}/api/restaurants/${restaurant.id || restaurant._id}/click`, { method: 'POST' }).catch(() => {});
+                    }}
+                    className="flex items-center gap-1.5 bg-emerald-500 text-black hover:bg-emerald-400 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20"
+                  >
+                    💬 Order via WhatsApp
+                  </a>
+                )}
               </div>
             </div>
           </Tilt>
@@ -303,9 +339,8 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
             const isSoldOut = soldOutItems.has(itemId);
             const isEliteRestricted = item.isEliteOnly && !isUserElite;
             
-            return (
-            <Tilt key={itemId} scale={1.01}>
-              <Link href={`/products/${itemId}`} className={`flex gap-4 md:gap-5 items-center bg-black/40 backdrop-blur-xl p-3.5 md:p-5 rounded-[24px] md:rounded-[32px] border border-white/5 hover:border-[#C9A84C]/25 transition-all duration-500 group cursor-pointer active:scale-[0.98] relative overflow-hidden ${isSoldOut || isEliteRestricted ? 'opacity-50 grayscale' : ''} ${isEliteRestricted ? 'pointer-events-none' : ''}`}>
+            const cardContent = (
+              <div className={`flex gap-4 md:gap-5 items-center bg-black/40 backdrop-blur-xl p-3.5 md:p-5 rounded-[24px] md:rounded-[32px] border border-white/5 hover:border-[#C9A84C]/25 transition-all duration-500 group relative overflow-hidden ${isSoldOut || isEliteRestricted ? 'opacity-50 grayscale' : ''} ${isEliteRestricted ? 'pointer-events-none' : ''}`}>
                 {/* Glow Layer */}
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_var(--mouse-x,50%)_var(--mouse-y,50%),rgba(201,168,76,0.05)_0%,transparent_80%)] pointer-events-none" />
                 
@@ -341,34 +376,71 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
                           </span>
                         )}
                       </span>
-                      <Magnetic>
-                        <motion.button
-                          whileTap={{ scale: 0.90 }}
-                          whileHover={{ scale: 1.10 }}
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); if(!isSoldOut && !isEliteRestricted) handleAddToCart(item); }}
-                          disabled={isSoldOut || isEliteRestricted}
-                          className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center text-base md:text-lg font-black transition-all duration-500 z-10 ${
-                            isSoldOut ? 'bg-red-500/10 text-red-500 cursor-not-allowed' :
-                            isEliteRestricted ? 'bg-white/5 text-white/20 cursor-not-allowed border-white/5' :
-                            addedId === itemId
-                              ? 'bg-primary-yellow text-black animate-gold-pulse scale-110 shadow-[0_0_20px_rgba(250,204,21,0.4)]'
-                              : 'bg-white/5 border border-white/10 text-white hover:border-[#C9A84C]/40 hover:bg-[#C9A84C]/15 hover:text-primary-yellow'
-                          }`}
+                      
+                      {isLocalVendor ? (
+                        <a
+                          href={getWhatsAppLink(item.name)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            fetch(`${API_URL}/api/restaurants/${restaurant.id || restaurant._id}/click`, { method: 'POST' }).catch(() => {});
+                          }}
+                          className="w-9 h-9 md:w-11 md:h-11 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 flex items-center justify-center text-lg transition-all"
                         >
-                          {isSoldOut ? '✕' : isEliteRestricted ? '🔒' : addedId === itemId ? '✓' : '+'}
-                        </motion.button>
-                      </Magnetic>
+                          💬
+                        </a>
+                      ) : (
+                        <Magnetic>
+                          <motion.button
+                            whileTap={{ scale: 0.90 }}
+                            whileHover={{ scale: 1.10 }}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); if(!isSoldOut && !isEliteRestricted) handleAddToCart(item); }}
+                            disabled={isSoldOut || isEliteRestricted}
+                            className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center text-base md:text-lg font-black transition-all duration-500 z-10 ${
+                              isSoldOut ? 'bg-red-500/10 text-red-500 cursor-not-allowed' :
+                              isEliteRestricted ? 'bg-white/5 text-white/20 cursor-not-allowed border-white/5' :
+                              addedId === itemId
+                                ? 'bg-primary-yellow text-black animate-gold-pulse scale-110 shadow-[0_0_20px_rgba(250,204,21,0.4)]'
+                                : 'bg-white/5 border border-white/10 text-white hover:border-[#C9A84C]/40 hover:bg-[#C9A84C]/15 hover:text-primary-yellow'
+                            }`}
+                          >
+                            {isSoldOut ? '✕' : isEliteRestricted ? '🔒' : addedId === itemId ? '✓' : '+'}
+                          </motion.button>
+                        </Magnetic>
+                      )}
                    </div>
                 </div>
-              </Link>
-            </Tilt>
+              </div>
+            );
+
+            return (
+              <Tilt key={itemId} scale={1.01}>
+                {isLocalVendor ? (
+                  <a
+                    href={getWhatsAppLink(item.name)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => {
+                      fetch(`${API_URL}/api/restaurants/${restaurant.id || restaurant._id}/click`, { method: 'POST' }).catch(() => {});
+                    }}
+                    className="block cursor-pointer animate-fade-in"
+                  >
+                    {cardContent}
+                  </a>
+                ) : (
+                  <Link href={`/products/${itemId}`}>
+                    {cardContent}
+                  </Link>
+                )}
+              </Tilt>
             );
           })}
         </div>
       </div>
 
       {/* Floating Cart */}
-      {totalItems > 0 && (
+      {totalItems > 0 && !isLocalVendor && (
         <Link href="/basket" className="fixed bottom-6 right-6 left-6 h-16 bg-gradient-to-r from-[#C9A84C] via-[#E8D18C] to-[#C9A84C] text-black rounded-full flex items-center justify-between px-8 z-50 shadow-2xl shadow-[#C9A84C]/30 active:scale-95 transition-all">
            <div className="flex items-center gap-3">
               <span className="w-7 h-7 rounded-full bg-black text-white text-[11px] font-black flex items-center justify-center">{totalItems}</span>

@@ -133,6 +133,11 @@ export default function Home() {
   };
 
   const hasFetchedRef = useRef(false);
+  const userRef = useRef<User | null>(user);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     if (hasFetchedRef.current) return;
@@ -278,11 +283,12 @@ export default function Home() {
     }
   }, [activeOrder, cancelSecondsLeft]);
   useEffect(() => {
-    if (!user) return;
-    
     const handleSystemUpdate = (payload: { type: string; data: any }) => {
+      const currentUser = userRef.current;
+      if (!currentUser) return;
+      
       if (payload.type === 'USER_ELITE_STATUS') {
-        const userId = user._id || user.id;
+        const userId = currentUser._id || currentUser.id;
         if (payload.data.userId === userId) {
           setIsElite(payload.data.isElite);
           const stored = localStorage.getItem('user');
@@ -293,12 +299,10 @@ export default function Home() {
           }
         }
       } else if (payload.type === 'USER_UPDATED') {
-        const userId = user._id || user.id;
+        const userId = currentUser._id || currentUser.id;
         if (payload.data.userId === userId) {
           // Re-fetch full profile to ensure data integrity and avoid "vanishing info"
-          const token = 'cookie-managed';
-          fetch(`${API_URL}/api/users/profile`, {
-            }).then(res => res.json()).then(data => {
+          fetch(`${API_URL}/api/users/profile`).then(res => res.json()).then(data => {
             if (data && (data._id || data.id)) {
               // Ensure we have BOTH id and _id to prevent vanishing info in components
               const normalizedUser = { ...data, id: data.id || data._id, _id: data._id || data.id };
@@ -336,7 +340,7 @@ export default function Home() {
       socket.off('systemUpdate', handleSystemUpdate); 
       socket.off('GLOBAL_CONFIG_UPDATED', handleGlobalConfigUpdate);
     };
-  }, [user]);
+  }, []);
 
   // Tick down cancellation countdown removed from Home to avoid global re-renders
 
@@ -829,7 +833,7 @@ export default function Home() {
               <motion.div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
                 {aiPicks.map((item: any) => (
                   <motion.div key={item.id || item._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                    <Link href={`/products/${item.id || item._id}`}>
+                    <Link href={`/products/${item.id || item._id}`} prefetch={false}>
                       <Tilt className="chef-card bg-[#141416]">
                         <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-emerald-500/20">
                           <SafeImage src={item.image || item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} />
@@ -948,6 +952,7 @@ export default function Home() {
                 </div>
                 <Link 
                   href={`/restaurants/${activeOrder.restaurantId || 'shakti-canteen'}`}
+                  prefetch={false}
                   className="bg-primary-yellow text-black text-[9px] font-black px-6 py-3 rounded-full uppercase tracking-tighter shadow-lg shadow-primary-yellow/20 hover:scale-105 transition-transform"
                 >
                   Quick Add
@@ -995,7 +1000,7 @@ export default function Home() {
                       style={{ perspective: 1000 }}
                     >
                       <Tilt>
-                        <Link href={`/products/${item.id}`} className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform premium-card-hover rounded-[30px]">
+                        <Link href={`/products/${item.id}`} prefetch={false} className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform premium-card-hover rounded-[30px]">
                           <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-primary-yellow/30 transition-colors">
                             <SafeImage src={item.image || item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} />
                             <button 
@@ -1141,7 +1146,7 @@ export default function Home() {
                   whileHover={{ scale: 1.05, rotateY: 10, rotateX: -5 }}
                   style={{ perspective: 1000 }}
                 >
-                  <Link href={`/products/${item.id}`} className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform">
+                  <Link href={`/products/${item.id}`} prefetch={false} className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform">
                     <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-cyan-500/30 transition-colors">
                         <SafeImage src={item.image || item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} />
                         <button 
@@ -1181,7 +1186,7 @@ export default function Home() {
                   whileHover={{ scale: 1.05, rotateY: 10, rotateX: -5 }}
                   style={{ perspective: 1000 }}
                 >
-                  <Link href={`/products/${item.id}`} className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform">
+                  <Link href={`/products/${item.id}`} prefetch={false} className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform">
                     <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-rose-500/30 transition-colors">
                         <SafeImage src={item.image || item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} />
                         <button 
@@ -1219,7 +1224,7 @@ export default function Home() {
                   whileHover={{ scale: 1.05, rotateY: 10, rotateX: -5 }}
                   style={{ perspective: 1000 }}
                 >
-                  <Link href={`/products/${item.id}`} className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform">
+                  <Link href={`/products/${item.id}`} prefetch={false} className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform">
                     <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-[#A5B4FC]/30 transition-colors">
                        <SafeImage src={item.image || item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} />
                        <button 
@@ -1257,7 +1262,7 @@ export default function Home() {
                   whileHover={{ scale: 1.05, rotateY: 10, rotateX: -5 }}
                   style={{ perspective: 1000 }}
                 >
-                  <Link href={`/products/${item.id}`} className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform">
+                  <Link href={`/products/${item.id}`} prefetch={false} className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform">
                     <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-[#C9A84C]/30 transition-colors">
                        <SafeImage src={item.image || item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} />
                        <button 
@@ -1516,7 +1521,7 @@ export default function Home() {
                 .sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0))
                 .map((res, index) => (
                 <div key={res._id || res.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.05}s`, animationFillMode: 'both' }}>
-                  <Link href={`/restaurants/${res._id || res.id}`}>
+                  <Link href={`/restaurants/${res._id || res.id}`} prefetch={false}>
                     <RestaurantCard 
                       name={res.name} 
                       rating={String(res.rating || "4.5")} 

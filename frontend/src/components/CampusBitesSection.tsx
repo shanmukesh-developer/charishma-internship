@@ -1,5 +1,6 @@
 "use client";
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import SafeImage from '@/components/SafeImage';
 import { Restaurant } from '@/types';
@@ -19,9 +20,14 @@ interface CampusBitesSectionProps {
 }
 
 export default function CampusBitesSection({ restaurants }: CampusBitesSectionProps) {
+  const router = useRouter();
   const [selectedCampus, setSelectedCampus] = useState('ALL');
   const [stallSearch, setStallSearch] = useState('');
-  const [expandedVendor, setExpandedVendor] = useState<string | null>(null);
+
+  // Check if there are any local vendors at all
+  const hasAnyLocalVendors = useMemo(() => {
+    return restaurants.some(r => (r.vendorType || '').toUpperCase() === 'LOCAL_VENDOR');
+  }, [restaurants]);
 
   // Filter local vendors from the restaurant list
   const localVendors = useMemo(() => {
@@ -66,7 +72,7 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
     return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
   };
 
-  if (localVendors.length === 0 && !stallSearch) return null;
+  if (!hasAnyLocalVendors) return null;
 
   return (
     <motion.section
@@ -128,17 +134,16 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
 
       {/* Vendor Cards Grid */}
       {localVendors.length === 0 ? (
-        <div className="w-full flex flex-col items-center justify-center py-12 px-6 border border-white/5 rounded-[30px] bg-white/[0.02]">
+        <div className="w-full flex flex-col items-center justify-center py-12 px-6 border border-white/5 rounded-[30px] bg-white/[0.02] animate-fade-in">
           <span className="text-4xl mb-4 opacity-50">🏪</span>
           <p className="text-xs font-black text-secondary-text uppercase tracking-widest">
-            {stallSearch ? 'No stalls match your search' : 'No local vendors available yet'}
+            {stallSearch ? 'No stalls match your search' : `No local vendors available for ${CAMPUSES.find(c => c.code === selectedCampus)?.label || 'this campus'} yet`}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <AnimatePresence mode="popLayout">
             {localVendors.map((vendor, index) => {
-              const isExpanded = expandedVendor === (vendor._id || vendor.id);
               const isPremium = vendor.subscriptionTier === 'premium';
               const isOpen = vendor.isOpenNow !== false;
 
@@ -150,9 +155,13 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className={`relative overflow-hidden rounded-[28px] border transition-all duration-500 group ${
+                  onClick={() => {
+                    trackClick(vendor._id || vendor.id || '');
+                    router.push(`/restaurants/${vendor._id || vendor.id}`);
+                  }}
+                  className={`relative overflow-hidden rounded-[28px] border transition-all duration-500 group cursor-pointer hover:border-orange-500/25 ${
                     isPremium
-                      ? 'border-orange-500/30 bg-gradient-to-br from-[#141416] to-orange-900/[0.06] shadow-[0_0_20px_rgba(249,115,22,0.08)]'
+                      ? 'border-orange-500/10 bg-gradient-to-br from-[#141416] to-orange-900/[0.06] shadow-[0_0_20px_rgba(249,115,22,0.08)]'
                       : 'border-white/[0.06] bg-[#141416]/80'
                   } ${!isOpen ? 'opacity-70' : ''}`}
                 >
@@ -189,7 +198,7 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
 
                       {/* Vendor Info */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-[15px] font-black text-white uppercase tracking-tight truncate">{vendor.name}</h3>
+                        <h3 className="text-[15px] font-black text-white uppercase tracking-tight truncate group-hover:text-orange-400 transition-colors">{vendor.name}</h3>
 
                         {/* Campus + Rating */}
                         <div className="flex items-center gap-2 mt-1">
@@ -220,7 +229,7 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
                       <div className="flex items-center gap-4">
                         <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest">
                           🕐 {vendor.operatingHours
-                            ? `${vendor.operatingHours.start || '?'} — ${vendor.operatingHours.end || '?'}`
+                            ? `${vendor.operatingHours.start || '19:00'} — ${vendor.operatingHours.end || '00:00'}`
                             : 'Hours vary'}
                         </span>
                         {vendor.menu && vendor.menu.length > 0 && (
@@ -231,15 +240,16 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {/* View Menu Toggle */}
+                        {/* View Menu Button */}
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             trackClick(vendor._id || vendor.id || '');
-                            setExpandedVendor(isExpanded ? null : (vendor._id || vendor.id || null));
+                            router.push(`/restaurants/${vendor._id || vendor.id}`);
                           }}
                           className="text-[8px] font-black uppercase tracking-widest text-orange-400 hover:text-orange-300 transition-colors"
                         >
-                          {isExpanded ? 'Hide Menu ▴' : 'View Menu ▾'}
+                          View Menu →
                         </button>
 
                         {/* WhatsApp Order Button */}
@@ -247,72 +257,16 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
                           href={getWhatsAppLink(vendor)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          onClick={() => trackClick(vendor._id || vendor.id || '')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            trackClick(vendor._id || vendor.id || '');
+                          }}
                           className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
                         >
                           💬 Order
                         </a>
                       </div>
                     </div>
-
-                    {/* Expanded Menu */}
-                    <AnimatePresence>
-                      {isExpanded && vendor.menu && vendor.menu.length > 0 && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.3, ease: 'easeInOut' }}
-                          className="overflow-hidden"
-                        >
-                          <div className="mt-4 pt-4 border-t border-white/[0.04] space-y-2">
-                            <p className="text-[8px] font-black text-orange-400 uppercase tracking-[0.3em] mb-3">📋 Menu</p>
-                            {vendor.menu.map((item, i) => (
-                              <div
-                                key={item._id || item.id || i}
-                                className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.02] border border-white/[0.04] hover:border-orange-500/20 transition-all group/item"
-                              >
-                                {/* Item Image */}
-                                <div className="w-12 h-12 rounded-xl overflow-hidden border border-white/10 shrink-0 relative">
-                                  <SafeImage
-                                    src={item.image || item.imageUrl || '/assets/placeholder_premium.png'}
-                                    alt={item.name}
-                                    fill
-                                    className="object-cover"
-                                  />
-                                  {item.isVegetarian && (
-                                    <div className="absolute top-0.5 left-0.5 w-3 h-3 border border-emerald-500/50 flex items-center justify-center rounded-[2px] bg-black/60">
-                                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Item Info */}
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="text-[11px] font-black text-white truncate">{item.name}</h4>
-                                  {item.description && (
-                                    <p className="text-[8px] text-secondary-text truncate mt-0.5">{item.description}</p>
-                                  )}
-                                </div>
-
-                                {/* Price + WhatsApp */}
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <span className="text-[13px] font-black text-orange-400">₹{item.price}</span>
-                                  <a
-                                    href={getWhatsAppLink(vendor, item.name)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-[10px] hover:bg-emerald-500/20 transition-all opacity-0 group-hover/item:opacity-100"
-                                  >
-                                    💬
-                                  </a>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
                 </motion.div>
               );
