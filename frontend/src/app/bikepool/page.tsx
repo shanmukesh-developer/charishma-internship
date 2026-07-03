@@ -6,8 +6,7 @@ import Navbar from '@/components/Navbar';
 import SafeImage from '@/components/SafeImage';
 import Tilt from '@/components/Tilt';
 import Magnetic from '@/components/Magnetic';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
+import { API_URL } from '@/utils/api';
 
 interface UserProfile {
   _id?: string;

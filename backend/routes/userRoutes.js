@@ -87,14 +87,18 @@ router.get('/rewards', protect, async (req, res) => {
   try {
     const { getUserModel } = require('../models/User');
     const User = getUserModel();
-    const user = await User.findByPk(req.user.id, { attributes: ['id', 'name', 'zenPoints', 'completedOrders', 'streakCount', 'badges'] });
+    const user = await User.findByPk(req.user.id, { attributes: ['id', 'name', 'zenPoints', 'completedOrders', 'streakCount', 'badges', 'spinsUsed'] });
     if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const spinsEarned = Math.floor((user.completedOrders || 0) / 2);
+    const spinsAvailable = Math.max(0, spinsEarned - (user.spinsUsed || 0));
+
     res.json({
       zenPoints: user.zenPoints || 0,
       completedOrders: user.completedOrders || 0,
       streakCount: user.streakCount || 0,
       badges: user.badges || [],
-      spinEligible: (user.completedOrders || 0) % 5 === 0 && (user.completedOrders || 0) > 0
+      spinEligible: spinsAvailable > 0
     });
   } catch (_err) {
     res.status(500).json({ message: 'Failed to fetch rewards', error: _err.message });

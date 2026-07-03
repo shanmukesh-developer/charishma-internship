@@ -12,6 +12,7 @@ import SafeImage from '@/components/SafeImage';
 import Tilt from '@/components/Tilt';
 import Magnetic from '@/components/Magnetic';
 import { showToast } from '@/components/ToastProvider';
+import { API_URL } from '@/utils/api';
 
 interface ProfileUser {
   id: string;
@@ -105,7 +106,6 @@ export default function ProfilePage() {
       try {
         const token = 'cookie-managed';
         if (!token) return;
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
         const res = await fetch(`${API_URL}/api/rewards/coupons`, {
           });
         if (res.ok) {
@@ -121,7 +121,6 @@ export default function ProfilePage() {
     // F12: Spending Dashboard stats
     const fetchSpendStats = async () => {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
         const res = await fetch(`${API_URL}/api/orders/stats`);
         if (res.ok) {
           const data = await res.json();
@@ -182,7 +181,6 @@ export default function ProfilePage() {
     try {
       const token = 'cookie-managed';
       if (!token) { router.push('/login'); return; }
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
       const response = await fetch(`${API_URL}/api/users/profile`, { });
       if (response.status === 401) {
         
@@ -273,7 +271,6 @@ export default function ProfilePage() {
   const handleUpdateProfile = async () => {
     try {
       const token = 'cookie-managed';
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
       const response = await fetch(`${API_URL}/api/users/profile`, { method: 'PUT', headers: { 'Content-Type': 'application/json', }, body: JSON.stringify(editData) });
       const updated = response.ok ? await response.json() : null;
       if (updated) { 
@@ -363,7 +360,6 @@ export default function ProfilePage() {
 
   const handleLogout = async () => { 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
       await fetch(`${API_URL}/api/users/logout`, { method: 'POST' });
     } catch (e) {
       console.error('Logout error:', e);
@@ -387,7 +383,6 @@ export default function ProfilePage() {
         const mockFcmToken = 'fcm_token_' + Math.random().toString(36).substr(2, 9);
         
         const token = 'cookie-managed';
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
         
         await fetch(`${API_URL}/api/users/fcm-token`, {
           method: 'POST',
@@ -880,7 +875,6 @@ export default function ProfilePage() {
                     const phone = (document.getElementById('gift-phone') as HTMLInputElement)?.value;
                     if (!phone) { showToast('Enter phone number', 'error', '📱'); return; }
                     try {
-                      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
                       const res = await fetch(`${API_URL}/api/features/gift`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },

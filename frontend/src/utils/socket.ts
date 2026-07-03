@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client';
+import { API_URL } from './api';
 
-const DEFAULT_SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5005';
+const DEFAULT_SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || API_URL;
 
 // Ensure we don't have trailing slashes for the socket connection if using standard path
 const socketUrl = DEFAULT_SOCKET_URL.replace(/\/$/, "");

@@ -3,8 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import SafeImage from './SafeImage';
 import { motion, AnimatePresence } from 'framer-motion';
 import VaultClaimModal from './VaultClaimModal';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
+import { API_URL } from '@/utils/api';
 
 interface VaultItem {
   id: string;

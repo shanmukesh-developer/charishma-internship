@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '@/utils/firebase';
 import SuccessOverlay from '@/components/SuccessOverlay';
+import { API_URL } from '@/utils/api';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -24,7 +25,6 @@ export default function RegisterPage() {
     setIsSubmitting(true);
     try {
       const last10 = /[a-zA-Z]/.test(formData.phone) ? formData.phone : formData.phone.replace(/\D/g, '').slice(-10);
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
       const response = await fetch(`${API_URL}/api/users/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -70,7 +70,6 @@ export default function RegisterPage() {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const firebaseToken = await result.user.getIdToken();
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
       const response = await fetch(`${API_URL}/api/users/google-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -3,8 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Magnetic from '@/components/Magnetic';
 import { useRouter } from 'next/navigation';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
+import { API_URL } from '@/utils/api';
 
 export default function ChallengesPage() {
   const router = useRouter();

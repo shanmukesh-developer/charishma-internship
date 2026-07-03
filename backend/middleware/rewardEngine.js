@@ -11,16 +11,30 @@ const updateStreak = async (userId) => {
   const now = new Date();
   const lastOrderDate = user.lastOrderDate ? new Date(user.lastOrderDate) : null;
 
-  if (lastOrderDate) {
-    const diffTime = Math.abs(now - lastOrderDate);
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const getLocalDateString = (date) => {
+    // Offset for IST (UTC +5.5 hours)
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istDate = new Date(date.getTime() + istOffset);
+    return istDate.toISOString().split('T')[0]; // YYYY-MM-DD
+  };
 
-    if (diffDays === 1) {
-      // Ordered exactly the next day
-      user.streakCount += 1;
-    } else if (diffDays > 1) {
-      // Streak broken
-      user.streakCount = 1;
+  if (lastOrderDate) {
+    const nowDateStr = getLocalDateString(now);
+    const lastDateStr = getLocalDateString(lastOrderDate);
+
+    if (nowDateStr !== lastDateStr) {
+      const nowParsed = new Date(nowDateStr);
+      const lastParsed = new Date(lastDateStr);
+      const diffTime = Math.abs(nowParsed - lastParsed);
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 1) {
+        // Ordered exactly the next calendar day
+        user.streakCount = (user.streakCount || 0) + 1;
+      } else if (diffDays > 1) {
+        // Streak broken
+        user.streakCount = 1;
+      }
     }
   } else {
     // First order

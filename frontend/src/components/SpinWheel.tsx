@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { API_URL } from '@/utils/api';
 
 const PRIZES = [
   { label: 'FREE DEL', color: '#C9A84C', value: 'FREEDEL', type: 'coupon' }, // Index 0
@@ -25,7 +26,6 @@ export default function SpinWheel({ onWin }: { onWin: (prize: typeof PRIZES[0]) 
   const fetchEligibility = async () => {
     try {
       const token = 'cookie-managed';
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
       const res = await fetch(`${API_URL}/api/rewards/spin-eligibility`, {
         });
       const data = await res.json();
@@ -63,7 +63,6 @@ export default function SpinWheel({ onWin }: { onWin: (prize: typeof PRIZES[0]) 
       // Record spin in backend
       try {
         const token = 'cookie-managed';
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
         await fetch(`${API_URL}/api/rewards/use-spin`, {
           method: 'POST',
           headers: { 

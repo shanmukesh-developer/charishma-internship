@@ -1,8 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
+import { API_URL } from '@/utils/api';
 
 interface BlockActivity {
   name: string;

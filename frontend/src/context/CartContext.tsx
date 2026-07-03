@@ -1,6 +1,7 @@
 "use client";
 import React, { createContext, useContext, useState, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { API_URL } from '@/utils/api';
 
 export interface Customizations {
   size?: string;
@@ -109,7 +110,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     }
     try {
       // Establish live WebSocket connection with the port 5005 backend
-      const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005', {
+      const socket = io(API_URL, {
         withCredentials: true,
         transports: ['websocket', 'polling'] 
       });
@@ -141,6 +142,9 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     }
     setRoomCode(code);
     setIsHosting(true);
+    try {
+      localStorage.setItem('zenvy_collab_session', JSON.stringify({ code, role: 'host' }));
+    } catch {}
     initializeSocket(code);
   };
 
@@ -149,6 +153,9 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     const formatted = inputCode.trim().toUpperCase();
     setRoomCode(formatted);
     setIsJoined(true);
+    try {
+      localStorage.setItem('zenvy_collab_session', JSON.stringify({ code: formatted, role: 'join' }));
+    } catch {}
     initializeSocket(formatted);
   };
 
@@ -159,6 +166,9 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     setRoomCode('');
     setIsHosting(false);
     setIsJoined(false);
+    try {
+      localStorage.removeItem('zenvy_collab_session');
+    } catch {}
   };
 
   React.useEffect(() => {
@@ -183,6 +193,26 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.setItem('zenvy_cart', JSON.stringify(cart));
     }
   }, [cart, isLoaded]);
+
+  React.useEffect(() => {
+    if (isLoaded) {
+      try {
+        const savedCollab = localStorage.getItem('zenvy_collab_session');
+        if (savedCollab) {
+          const { code, role } = JSON.parse(savedCollab);
+          if (code) {
+            setRoomCode(code);
+            if (role === 'host') {
+              setIsHosting(true);
+            } else {
+              setIsJoined(true);
+            }
+            initializeSocket(code);
+          }
+        }
+      } catch {}
+    }
+  }, [isLoaded]);
 
   const addToCart = (item: Omit<CartItem, 'quantity' | 'cartKey' | 'basePrice' | 'addedBy' | 'addedById'> & { quantity?: number; basePrice?: number; imageUrl?: string; addedBy?: string; addedById?: string }) => {
     const cartKey = generateCartKey(item.id, item.customizations);

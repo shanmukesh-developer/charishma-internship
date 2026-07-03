@@ -4,8 +4,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import SafeImage from '@/components/SafeImage';
 import { Restaurant } from '@/types';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
+import { API_URL } from '@/utils/api';
 
 // Campus presets with coordinates for auto-detection
 const CAMPUSES = [

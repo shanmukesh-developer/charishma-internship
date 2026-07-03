@@ -9,6 +9,7 @@ import ChatDrawer from '@/components/ChatDrawer';
 import RiderProfileModal from '@/components/RiderProfileModal';
 import Magnetic from '@/components/Magnetic';
 import { socket } from '@/utils/socket';
+import { API_URL } from '@/utils/api';
 
 const CHECKPOINTS = [
   { name: 'Mangalagiri Jn' },
@@ -17,8 +18,6 @@ const CHECKPOINTS = [
   { name: 'Academic Block' },
   { name: 'Hostel Sector' },
 ];
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
 
 interface OrderInfo {
   _id: string;

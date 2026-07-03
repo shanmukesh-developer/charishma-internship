@@ -10,8 +10,7 @@ import { MenuItem } from '@/types';
 import Tilt from '@/components/Tilt';
 import Magnetic from '@/components/Magnetic';
 import { saveRecentlyViewed } from '@/components/RecentlyViewed';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
+import { API_URL } from '@/utils/api';
 
 export default function ProductDetailClient({ productId }: { productId: string }) {
   const router = useRouter();

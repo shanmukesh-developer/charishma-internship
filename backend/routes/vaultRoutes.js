@@ -29,34 +29,48 @@ router.post('/claim/:id', protect, async (req, res) => {
     const VaultItem = getVaultItemModel();
     const User = getUserModel();
     
-    const item = await VaultItem.findByPk(req.params.id);
-    if (!item) return res.status(404).json({ message: 'Vault item not found' });
-    
-    if (item.remainingCount <= 0) {
-      return res.status(400).json({ message: 'Sequence terminated: Item out of stock' });
-    }
-    
-    const user = await User.findByPk(req.user.id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    
-    if (item.streakRequirement > 0 && (user.streakCount || 0) < item.streakRequirement) {
-      return res.status(403).json({ message: `Insufficient streak: ${item.streakRequirement} days required` });
-    }
-    
-    // Decrement stock
-    item.remainingCount -= 1;
-    await item.save();
-    
-    res.json({ 
-      message: 'ACCESS GRANTED: Item secured in your vault.',
-      item: {
+    const { getSequelize } = require('../config/db');
+    const sequelize = getSequelize();
+
+    let securedItem;
+
+    await sequelize.transaction(async (t) => {
+      // Re-fetch vault item with a row lock (FOR UPDATE)
+      const item = await VaultItem.findByPk(req.params.id, { transaction: t, lock: true });
+      if (!item) {
+        throw new Error('Vault item not found');
+      }
+
+      if (item.remainingCount <= 0) {
+        throw new Error('Sequence terminated: Item out of stock');
+      }
+
+      const user = await User.findByPk(req.user.id, { transaction: t, lock: true });
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (item.streakRequirement > 0 && (user.streakCount || 0) < item.streakRequirement) {
+        throw new Error(`Insufficient streak: ${item.streakRequirement} days required`);
+      }
+
+      // Decrement stock
+      item.remainingCount -= 1;
+      await item.save({ transaction: t });
+
+      securedItem = {
         id: item.id,
         name: item.name,
         remainingCount: item.remainingCount
-      }
+      };
+    });
+
+    res.json({ 
+      message: 'ACCESS GRANTED: Item secured in your vault.',
+      item: securedItem
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(400).json({ message: error.message || 'Claim failed.' });
   }
 });
 

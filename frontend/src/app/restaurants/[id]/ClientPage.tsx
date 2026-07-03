@@ -11,8 +11,8 @@ import Tilt from '@/components/Tilt';
 import Magnetic from '@/components/Magnetic';
 import { saveRecentlyViewed } from '@/components/RecentlyViewed';
 import { motion } from 'framer-motion';
+import { API_URL } from '@/utils/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || API_URL;
 
 export default function RestaurantMenuClient({ restaurantId }: { restaurantId: string }) {

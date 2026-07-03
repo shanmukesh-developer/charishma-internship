@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { showToast } from '@/components/ToastProvider';
+import { API_URL } from '@/utils/api';
 
 interface OrderItem {
   name?: string;
@@ -83,7 +84,6 @@ export default function OrdersPage() {
     const fetchOrders = async () => {
       try {
         const token = 'cookie-managed';
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
         const res = await fetch(`${API_URL}/api/orders/myorders`, {
           });
         if (res.ok) {

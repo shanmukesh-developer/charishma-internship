@@ -34,9 +34,8 @@ import SurgeBanner from '@/components/SurgeBanner';
 import GlobalAnnouncement from '@/components/GlobalAnnouncement';
 import Navbar from '@/components/Navbar';
 import RecentlyViewed from '@/components/RecentlyViewed';
+import { API_URL } from '@/utils/api';
 // QRCodeSVG removed to resolve linting errors
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -153,10 +152,6 @@ export default function Home() {
       const stored = localStorage.getItem('user');
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Runtime Port Migration Guard: Patch legacy 5005 references in session
-        if (parsed.profileImage && parsed.profileImage.includes(':5005')) {
-          localStorage.setItem('user', JSON.stringify(parsed));
-        }
         if (parsed.name) setUserName(parsed.name);
         setIsElite(parsed.isElite || false);
         setUser(parsed);

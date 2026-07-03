@@ -10,8 +10,7 @@ import ZenvyModal from '@/components/ZenvyModal';
 import Tilt from '@/components/Tilt';
 import Magnetic from '@/components/Magnetic';
 import { showToast } from '@/components/ToastProvider';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
+import { API_URL } from '@/utils/api';
 
 interface ExtraItem {
   id: string;
@@ -256,21 +255,45 @@ export default function CheckoutPage() {
       } catch (_err) { console.error('Profile sync failed', _err); }
 
       // 3. ONLY auto-geolocate if we STILL don't have an address from profile
-      if (!currentAddress && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(async (pos) => {
-          try {
-            const { latitude, longitude } = pos.coords;
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
-              headers: { 'Accept-Language': 'en' }
-            });
-            const data = await res.json();
-            if (data.display_name) {
-              setDeliveryAddress(data.display_name);
+      if (!currentAddress) {
+        try {
+          const cached = sessionStorage.getItem('zenvy_cached_geolocation');
+          if (cached) {
+            const { address, coords } = JSON.parse(cached);
+            if (address) {
+              setDeliveryAddress(address);
+              if (coords) {
+                setCoordinates(coords);
+              }
+              return;
             }
-          } catch (_e) { console.error('Auto-location error:', _e); }
-        }, (err) => {
-          console.warn('Geolocation access denied or failed.', err);
-        });
+          }
+        } catch {}
+
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(async (pos) => {
+            try {
+              const { latitude, longitude } = pos.coords;
+              const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
+                headers: { 
+                  'Accept-Language': 'en',
+                  'User-Agent': 'ZenvyCampusBites/1.0 (contact@zenvy.edu)'
+                }
+              });
+              const data = await res.json();
+              if (data.display_name) {
+                setDeliveryAddress(data.display_name);
+                const coords = { lat: latitude, lng: longitude };
+                setCoordinates(coords);
+                try {
+                  sessionStorage.setItem('zenvy_cached_geolocation', JSON.stringify({ address: data.display_name, coords }));
+                } catch {}
+              }
+            } catch (_e) { console.error('Auto-location error:', _e); }
+          }, (err) => {
+            console.warn('Geolocation access denied or failed.', err);
+          });
+        }
       }
     };
     initLocation();
@@ -319,6 +342,10 @@ export default function CheckoutPage() {
     }
     if (locationType === 'other' && (!deliveryAddress || deliveryAddress.trim().length < 5)) {
       setModalConfig({ isOpen: true, title: 'Address Needed', message: 'Please enter a complete delivery address or select a campus.', type: 'error' });
+      return;
+    }
+    if (locationType === 'other' && (!coordinates || !coordinates.lat || !coordinates.lng)) {
+      setModalConfig({ isOpen: true, title: 'Map Pin Required', message: 'Please pin your location on the map for precise rider routing.', type: 'error' });
       return;
     }
     if (checkoutStatus !== 'idle') return;
@@ -753,17 +780,19 @@ export default function CheckoutPage() {
                 </div>
 
                 {/* Simulation Button for Testing */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUpiUTR('SIM-' + Math.random().toString(36).substring(7).toUpperCase());
-                    setUpiScreenshot('https://picsum.photos/seed/payment/400/800');
-                    showToast('Payment Simulated!', 'success', '💎');
-                  }}
-                  className="mt-2 px-6 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-[0.2em] rounded-full hover:bg-emerald-500/20 transition-all active:scale-95"
-                >
-                  ⚡ Simulate Success (Dev Mode)
-                </button>
+                {process.env.NODE_ENV === 'development' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUpiUTR('SIM-' + Math.random().toString(36).substring(7).toUpperCase());
+                      setUpiScreenshot('https://picsum.photos/seed/payment/400/800');
+                      showToast('Payment Simulated!', 'success', '💎');
+                    }}
+                    className="mt-2 px-6 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-[0.2em] rounded-full hover:bg-emerald-500/20 transition-all active:scale-95"
+                  >
+                    ⚡ Simulate Success (Dev Mode)
+                  </button>
+                )}
               </div>
 
               <div className="space-y-4 pt-4 border-t border-white/5">
@@ -782,6 +811,11 @@ export default function CheckoutPage() {
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
+                    // Size validation: limit to 2MB (2097152 bytes)
+                    if (file.size > 2 * 1024 * 1024) {
+                      showToast('Screenshot must be smaller than 2MB', 'error', '⚠️');
+                      return;
+                    }
                     setIsUploading(true);
                     const formData = new FormData();
                     formData.append('image', file);
@@ -889,6 +923,9 @@ export default function CheckoutPage() {
         onConfirm={(address, coords) => {
           setDeliveryAddress(address);
           setCoordinates(coords);
+          try {
+            sessionStorage.setItem('zenvy_cached_geolocation', JSON.stringify({ address, coords }));
+          } catch {}
         }}
       />
 

@@ -19,6 +19,18 @@ const createOrder = async (req, res) => {
   }
 
   // --- Geo-Fencing Validation (40 KM Radius) ---
+  const isStandardCampus = deliveryAddress && (
+    deliveryAddress.includes('SRM AP') || 
+    deliveryAddress.includes('VIT AP') || 
+    deliveryAddress.includes('Amrita')
+  );
+
+  if (!isStandardCampus && (!coordinates || !coordinates.lat || !coordinates.lng)) {
+    return res.status(400).json({ 
+      message: 'DELIVERY REJECTED: Coordinates are required for custom locations.' 
+    });
+  }
+
   if (coordinates && coordinates.lat && coordinates.lng) {
     const toRad = (value) => (value * Math.PI) / 180;
     const baseLat = 16.4632; // Central Hub Latitude (SRM AP)

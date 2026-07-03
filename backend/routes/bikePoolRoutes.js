@@ -23,6 +23,9 @@ router.post('/posts', protect, async (req, res) => {
     }
 
     const fuelCost = parseFloat(estimatedFuelCost) || 0;
+    if (fuelCost < 0 || fuelCost > 500) {
+      return res.status(400).json({ message: 'Estimated fuel cost must be between ₹0 and ₹500.' });
+    }
     const splitAmount = fuelCost / 2;
 
     const newPost = await BikePool.create({
@@ -194,38 +197,50 @@ router.post('/posts/:id/complete', protect, async (req, res) => {
       passengerId = pool.creatorId;
     }
 
-    const rider = await User.findByPk(riderId);
-    const passenger = await User.findByPk(passengerId);
-
-    if (!rider || !passenger) {
-      return res.status(404).json({ message: 'Rider or passenger account not found.' });
-    }
-
     const splitCost = pool.splitAmount;
 
-    if (passenger.walletBalance < splitCost) {
-      return res.status(400).json({ 
-        message: `Insufficient wallet balance for Passenger (needs ₹${splitCost}, has ₹${passenger.walletBalance}).` 
+    try {
+      const { getSequelize } = require('../config/db');
+      const sequelize = getSequelize();
+
+      await sequelize.transaction(async (t) => {
+        // Re-fetch users inside transaction with a row lock (FOR UPDATE)
+        const freshPassenger = await User.findByPk(passengerId, { transaction: t, lock: true });
+        const freshRider = await User.findByPk(riderId, { transaction: t, lock: true });
+
+        if (!freshPassenger || !freshRider) {
+          throw new Error('Rider or passenger account not found.');
+        }
+
+        if (freshPassenger.walletBalance < splitCost) {
+          throw new Error(`Insufficient wallet balance for Passenger (needs ₹${splitCost}, has ₹${freshPassenger.walletBalance}).`);
+        }
+
+        // Perform updates atomically
+        freshPassenger.walletBalance = Math.max(0, freshPassenger.walletBalance - splitCost);
+        freshRider.walletBalance = (freshRider.walletBalance || 0) + splitCost;
+
+        await freshPassenger.save({ transaction: t });
+        await freshRider.save({ transaction: t });
+
+        // Mark completed
+        pool.status = 'Completed';
+        pool.paymentStatus = 'Paid';
+        await pool.save({ transaction: t });
       });
+
+      // Fetch fresh states to return in response
+      const updatedRider = await User.findByPk(riderId);
+      const updatedPassenger = await User.findByPk(passengerId);
+
+      res.json({
+        message: 'Ride completed successfully and petrol cost split completed!',
+        pool,
+        walletBalance: req.user.id === riderId ? updatedRider.walletBalance : updatedPassenger.walletBalance
+      });
+    } catch (txErr) {
+      return res.status(400).json({ message: txErr.message || 'Transaction failed.' });
     }
-
-    // Deduct Passenger & Credit Rider
-    passenger.walletBalance = Math.max(0, passenger.walletBalance - splitCost);
-    rider.walletBalance = (rider.walletBalance || 0) + splitCost;
-
-    await passenger.save();
-    await rider.save();
-
-    // Mark completed
-    pool.status = 'Completed';
-    pool.paymentStatus = 'Paid';
-    await pool.save();
-
-    res.json({
-      message: 'Ride completed successfully and petrol cost split completed!',
-      pool,
-      walletBalance: req.user.id === riderId ? rider.walletBalance : passenger.walletBalance
-    });
   } catch (err) {
     console.error('[BIKEPOOL_COMPLETE_ERROR]', err);
     res.status(500).json({ message: 'Failed to complete ride splitting.', error: err.message });

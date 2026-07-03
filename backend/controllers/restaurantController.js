@@ -236,7 +236,18 @@ const updateMenuItem = async (req, res) => {
        return res.status(403).json({ message: 'Not authorized to manage this asset' });
     }
 
-    await item.update(req.body);
+    const { name, price, description, imageUrl, category, isVegetarian, isAvailable, isEliteOnly } = req.body;
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (price !== undefined) updateData.price = price;
+    if (description !== undefined) updateData.description = description;
+    if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
+    if (category !== undefined) updateData.category = category;
+    if (isVegetarian !== undefined) updateData.isVegetarian = isVegetarian;
+    if (isAvailable !== undefined) updateData.isAvailable = isAvailable;
+    if (isEliteOnly !== undefined) updateData.isEliteOnly = isEliteOnly;
+
+    await item.update(updateData);
     res.json(item);
   } catch {
     res.status(500).json({ message: 'Server error' });

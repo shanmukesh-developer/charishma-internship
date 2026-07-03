@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
+import { API_URL } from '@/utils/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || API_URL;
 
 interface Announcement {

@@ -250,65 +250,76 @@ router.post('/gift', protect, async (req, res) => {
 
     const { getUserModel } = require('../models/User');
     const User = getUserModel();
+    const { getSequelize } = require('../config/db');
+    const sequelize = getSequelize();
 
-    const sender = await User.findByPk(req.user.id);
-    if (!sender) return res.status(404).json({ message: 'Sender not found' });
-    if (!sender.isElite) return res.status(403).json({ message: 'Only Elite members can send gifts' });
+    let updatedSender;
+    let recipientName;
 
-    // Monthly gift limit (3/month)
-    const now = new Date();
-    if (sender.lastGiftResetDate) {
-      const lastReset = new Date(sender.lastGiftResetDate);
-      if (lastReset.getMonth() !== now.getMonth() || lastReset.getFullYear() !== now.getFullYear()) {
-        sender.eliteGiftsUsedThisMonth = 0;
+    await sequelize.transaction(async (t) => {
+      // Re-fetch sender with row lock (FOR UPDATE)
+      const sender = await User.findByPk(req.user.id, { transaction: t, lock: true });
+      if (!sender) throw new Error('Sender not found');
+      if (!sender.isElite) throw new Error('Only Elite members can send gifts');
+
+      // Monthly gift limit (3/month)
+      const now = new Date();
+      if (sender.lastGiftResetDate) {
+        const lastReset = new Date(sender.lastGiftResetDate);
+        if (lastReset.getMonth() !== now.getMonth() || lastReset.getFullYear() !== now.getFullYear()) {
+          sender.eliteGiftsUsedThisMonth = 0;
+          sender.lastGiftResetDate = now;
+        }
+      } else {
         sender.lastGiftResetDate = now;
       }
-    } else {
-      sender.lastGiftResetDate = now;
-    }
 
-    if ((sender.eliteGiftsUsedThisMonth || 0) >= 3) {
-      return res.status(400).json({ message: 'Monthly gift limit reached (3/month)' });
-    }
+      if ((sender.eliteGiftsUsedThisMonth || 0) >= 3) {
+        throw new Error('Monthly gift limit reached (3/month)');
+      }
 
-    // Check wallet balance
-    if ((sender.walletBalance || 0) < amount) {
-      return res.status(400).json({ message: 'Insufficient wallet balance' });
-    }
+      // Check wallet balance
+      if ((sender.walletBalance || 0) < amount) {
+        throw new Error('Insufficient wallet balance');
+      }
 
-    // Find recipient
-    const recipient = await User.findOne({ where: { phone: recipientPhone } });
-    if (!recipient) return res.status(404).json({ message: 'Recipient not found on Zenvy' });
-    if (recipient.id === sender.id) return res.status(400).json({ message: 'Cannot gift yourself' });
+      // Find recipient with row lock to avoid concurrent balance collisions
+      const recipient = await User.findOne({ where: { phone: recipientPhone }, transaction: t, lock: true });
+      if (!recipient) throw new Error('Recipient not found on Zenvy');
+      if (recipient.id === sender.id) throw new Error('Cannot gift yourself');
 
-    // Transfer
-    sender.walletBalance = (sender.walletBalance || 0) - amount;
-    sender.eliteGiftsUsedThisMonth = (sender.eliteGiftsUsedThisMonth || 0) + 1;
-    await sender.save();
+      // Transfer
+      sender.walletBalance = (sender.walletBalance || 0) - amount;
+      sender.eliteGiftsUsedThisMonth = (sender.eliteGiftsUsedThisMonth || 0) + 1;
+      await sender.save({ transaction: t });
 
-    recipient.walletBalance = (recipient.walletBalance || 0) + amount;
-    await recipient.save();
+      recipient.walletBalance = (recipient.walletBalance || 0) + amount;
+      await recipient.save({ transaction: t });
 
-    // Emit socket notification
-    const io = req.app.get('io');
-    if (io) {
-      io.emit('gift_received', {
-        recipientId: recipient.id,
-        senderName: sender.name,
-        amount,
-        message: message || `${sender.name} sent you a meal gift! 🎁`
-      });
-    }
+      updatedSender = sender;
+      recipientName = recipient.name;
 
-    console.log(`[GIFT] ${sender.name} → ${recipient.name}: ₹${amount}`);
+      // Emit socket notification
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('gift_received', {
+          recipientId: recipient.id,
+          senderName: sender.name,
+          amount,
+          message: message || `${sender.name} sent you a meal gift! 🎁`
+        });
+      }
+    });
+
+    console.log(`[GIFT] ${updatedSender.name} → ${recipientName}: ₹${amount}`);
     res.json({
-      message: `₹${amount} gift sent to ${recipient.name}! 🎁`,
-      remainingGifts: 3 - sender.eliteGiftsUsedThisMonth,
-      newBalance: sender.walletBalance
+      message: `₹${amount} gift sent to ${recipientName}! 🎁`,
+      remainingGifts: 3 - updatedSender.eliteGiftsUsedThisMonth,
+      newBalance: updatedSender.walletBalance
     });
   } catch (error) {
     console.error('[GIFT_ERROR]', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(400).json({ message: error.message || 'Server error' });
   }
 });
 

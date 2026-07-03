@@ -274,7 +274,10 @@ const updateOrderStatus = async (req, res) => {
         customer.completedOrders = (customer.completedOrders || 0) + 1;
         
         // --- Achievements Logic (Multi-tier) ---
-        const hour = new Date().getHours();
+        const utcDate = new Date();
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istDate = new Date(utcDate.getTime() + istOffset);
+        const hour = istDate.getUTCHours();
         if (hour >= 22 || hour < 4) {
           customer.lateNightOrders = (customer.lateNightOrders || 0) + 1;
         }

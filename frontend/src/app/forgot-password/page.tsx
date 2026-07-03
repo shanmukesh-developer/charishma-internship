@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 import { auth } from '@/utils/firebase';
 import SuccessOverlay from '@/components/SuccessOverlay';
+import { API_URL } from '@/utils/api';
 
 declare global {
   interface Window { recaptchaVerifier?: RecaptchaVerifier; }
@@ -134,7 +135,6 @@ export default function ForgotPasswordPage() {
       }
 
       // 2. Send token + new password to backend
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
       const response = await fetch(`${API_URL}/api/users/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

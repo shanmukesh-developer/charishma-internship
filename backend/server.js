@@ -351,16 +351,38 @@ const startServer = async () => {
 
     // Persistent Base64 Image Storage (survives on Render)
     const storage = multer.memoryStorage();
-    const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+    const upload = multer({ 
+      storage, 
+      limits: { fileSize: 2 * 1024 * 1024 }, // Enforce 2MB size limit server-side
+      fileFilter: (req, file, cb) => {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (allowedTypes.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Only JPEG, PNG, and WEBP image formats are allowed.'));
+        }
+      }
+    });
     
     const { protect: protectUpload } = require('./middleware/authMiddleware');
-    app.post('/api/upload', protectUpload, upload.single('image'), async (req, res) => {
+    app.post('/api/upload', protectUpload, (req, res, next) => {
+      upload.single('image')(req, res, (err) => {
+        if (err) {
+          return res.status(400).json({ message: err.message });
+        }
+        next();
+      });
+    }, async (req, res) => {
       let imageUrl = '';
       if (req.file) {
         const mimetype = req.file.mimetype;
         const base64Data = req.file.buffer.toString('base64');
         imageUrl = `data:${mimetype};base64,${base64Data}`;
       } else if (req.body.image) {
+        // Enforce size check on direct base64 body uploads too
+        if (Buffer.byteLength(req.body.image, 'base64') > 2 * 1024 * 1024) {
+          return res.status(400).json({ message: 'Image size exceeds 2MB limit' });
+        }
         imageUrl = req.body.image.startsWith('data:') ? req.body.image : `data:image/jpeg;base64,${req.body.image}`;
       } else {
         return res.status(400).json({ message: 'No file uploaded' });
@@ -390,6 +412,8 @@ const startServer = async () => {
     });
 
     // Socket.io
+    const activeCartRooms = new Map(); // roomCode -> Set of userId
+
     io.on('connection', (socket) => {
       console.log(`[SOCKET CONNECT] ${socket.id} (User: ${socket.user.id}, Role: ${socket.user.role})`);
       
@@ -419,13 +443,31 @@ const startServer = async () => {
 
       socket.on('joinRoom', async (roomName) => {
         const room = String(roomName).trim();
-        // Allow general rooms (surges, etc) but restrict sensitive ones if needed
+        // 🛡️ Security Check: Prevent anonymous or arbitrary hijacking of cart rooms
+        if (room.startsWith('ZN-')) {
+          if (!socket.user || socket.user.id === 'anonymous') {
+            console.warn(`[SOCKET_DENIED] Anonymous user tried to join cart room ${room}`);
+            return;
+          }
+          if (!activeCartRooms.has(room)) {
+            activeCartRooms.set(room, new Set());
+          }
+          activeCartRooms.get(room).add(socket.user.id);
+        }
         await socket.join(room);
         log(`[JOIN_ROOM] ${socket.id} -> ${room}`);
       });
 
       socket.on('cart_change', (data) => {
         const room = String(data.roomCode).trim();
+        // 🛡️ Security Check: Validate that emitter belongs to the cart room
+        if (room.startsWith('ZN-')) {
+          const members = activeCartRooms.get(room);
+          if (!members || !members.has(socket.user.id)) {
+            console.warn(`[SOCKET_DENIED] User ${socket.user?.id} not authorized to broadcast to room ${room}`);
+            return;
+          }
+        }
         socket.to(room).emit('cart_updated', data.cart);
         log(`[CART_SYNC] Room ${room} sync: ${data.cart?.length || 0} items`);
       });
@@ -479,10 +521,17 @@ const startServer = async () => {
 
       socket.on('sendMessage', (data) => {
         const room = String(data.orderId).trim();
-        log(`[CHAT] ${data.senderRole} (${data.sender}) in room ${room}: ${data.message}`);
+        // 🛡️ Security Check: Force senderRole to match the socket's authenticated user role
+        let verifiedRole = 'customer';
+        if (socket.user && socket.user.role) {
+          const role = socket.user.role.toLowerCase();
+          if (role === 'rider') verifiedRole = 'rider';
+          else if (role === 'admin') verifiedRole = 'admin';
+        }
+        log(`[CHAT] ${verifiedRole} (${data.sender}) in room ${room}: ${data.message}`);
         io.to(room).emit('receiveMessage', {
           sender: data.sender,
-          senderRole: data.senderRole,
+          senderRole: verifiedRole,
           message: data.message,
           timestamp: new Date()
         });

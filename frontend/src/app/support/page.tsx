@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Magnetic from '@/components/Magnetic';
 import SuccessOverlay from '@/components/SuccessOverlay';
 import Navbar from '@/components/Navbar';
+import { API_URL } from '@/utils/api';
 
 export default function SupportPage() {
   const router = useRouter();
@@ -17,8 +18,6 @@ export default function SupportPage() {
   const [overlay, setOverlay] = useState<{ isOpen: boolean; title: string; message: string; type?: 'success' | 'error' }>({
     isOpen: false, title: '', message: '',
   });
-
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
 
   const fetchTickets = async () => {
     try {

@@ -3,8 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import SafeImage from './SafeImage';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
+import { API_URL } from '@/utils/api';
 
 interface SearchRestaurant {
   _id: string;

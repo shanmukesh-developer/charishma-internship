@@ -21,30 +21,42 @@ const registerUser = async (req, res) => {
     const cleanPhone = normalizePhone(phone);
     // ── 1. Create the user ────────────────────────────────────────────────
     const User = getUserModel();
-    const userExists = await User.findOne({ where: { phone: cleanPhone } });
-    if (userExists) return res.status(400).json({ message: 'Account with this phone already exists' });
+    const { getSequelize } = require('../config/db');
+    const sequelize = getSequelize();
 
-    const user = await User.create({ 
-      name, 
-      phone: cleanPhone, 
-      password, 
-      hostelBlock, 
-      roomNumber,
-      zenPoints: req.body.referralCode ? 50 : 0
+    let createdUser;
+
+    await sequelize.transaction(async (t) => {
+      const userExists = await User.findOne({ where: { phone: cleanPhone }, transaction: t, lock: true });
+      if (userExists) {
+        throw new Error('Account with this phone already exists');
+      }
+
+      const user = await User.create({ 
+        name, 
+        phone: cleanPhone, 
+        password, 
+        hostelBlock, 
+        roomNumber,
+        zenPoints: req.body.referralCode ? 50 : 0
+      }, { transaction: t });
+
+      if (req.body.referralCode) {
+        const referrer = await User.findOne({ where: { referralCode: req.body.referralCode }, transaction: t, lock: true });
+        if (referrer) {
+          referrer.zenPoints = (referrer.zenPoints || 0) + 50;
+          referrer.referralCount = (referrer.referralCount || 0) + 1;
+          await referrer.save({ transaction: t });
+          
+          user.referredBy = referrer.referralCode;
+          await user.save({ transaction: t });
+        }
+      }
+
+      createdUser = user;
     });
 
-    if (req.body.referralCode) {
-      const referrer = await User.findOne({ where: { referralCode: req.body.referralCode } });
-      if (referrer) {
-        referrer.zenPoints = (referrer.zenPoints || 0) + 50;
-        referrer.referralCount = (referrer.referralCount || 0) + 1;
-        await referrer.save();
-        
-        user.referredBy = referrer.referralCode;
-        await user.save();
-      }
-    }
-    const token = generateToken(user.id, user.role);
+    const token = generateToken(createdUser.id, createdUser.role);
     res.cookie('token', token, {
       httpOnly: true,
       secure: true,
@@ -52,17 +64,17 @@ const registerUser = async (req, res) => {
       maxAge: 30 * 24 * 60 * 60 * 1000
     });
     res.status(201).json({
-      _id: user.id,
-      name: user.name,
-      phone: user.phone,
+      _id: createdUser.id,
+      name: createdUser.name,
+      phone: createdUser.phone,
       isElite: false,
-      address: user.address || '',
-      city: user.city || 'Amaravathi',
-      profileImage: user.profileImage || null,
-      badges: user.badges || [],
-      completedOrders: user.completedOrders || 0,
-      gender: user.gender || 'Prefer not to say',
-      genderPreference: user.genderPreference || 'Any',
+      address: createdUser.address || '',
+      city: createdUser.city || 'Amaravathi',
+      profileImage: createdUser.profileImage || null,
+      badges: createdUser.badges || [],
+      completedOrders: createdUser.completedOrders || 0,
+      gender: createdUser.gender || 'Prefer not to say',
+      genderPreference: createdUser.genderPreference || 'Any',
       token
     });
   } catch (_error) {
