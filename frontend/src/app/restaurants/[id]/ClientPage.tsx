@@ -18,11 +18,22 @@ const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || API_URL;
 export default function RestaurantMenuClient({ restaurantId }: { restaurantId: string }) {
   // Legacy Redirect Map
   const legacyIdMap: Record<string, string> = {
-    'sweet-shop': 'boutique-sweets-elite',
-    'zenvy-bakery': 'boutique-bakery-elite',
-    'summer-specials': 'boutique-summer-elite',
-    'fruit-shop': 'boutique-fruits-elite',
-    'biryani-hub': '8467dbf0-1b1b-4ae5-88b6-0fccbfcb1cbb'
+    'sweet-shop': 'ca3f99e1-8f1f-4f3e-a209-ed78ff638cf5',
+    'boutique-sweets-elite': 'ca3f99e1-8f1f-4f3e-a209-ed78ff638cf5',
+    'zenvy-bakery': 'bef0fa4b-1c1d-4f22-ae74-d32df31e2d37',
+    'boutique-bakery-elite': 'bef0fa4b-1c1d-4f22-ae74-d32df31e2d37',
+    'summer-specials': 'e9eb9d54-3a51-422d-b070-e66975a6b68e',
+    'boutique-summer-elite': 'e9eb9d54-3a51-422d-b070-e66975a6b68e',
+    'fruit-shop': '296ec3cf-4eee-44e7-9454-1d4e563e1687',
+    'boutique-fruits-elite': '296ec3cf-4eee-44e7-9454-1d4e563e1687',
+    'biryani-hub': '8467dbf0-1b1b-4ae5-88b6-0fccbfcb1cbb',
+    'burger-club': '5beef15a-8b83-49cc-8514-6ef26db12345',
+    'pizza-paradise': '706822c4-2eb3-43b4-ad86-91a252ea9108',
+    'subway-fresh': 'a5124e4d-1768-45d2-b062-8178cd901234',
+    'la-pinoz': 'c6142c67-62f7-4148-963d-4952de123456',
+    'gym-1': '0c5de1a2-cb3d-4007-aaef-6789db123456',
+    'gym-2': '1d5de1b3-db4d-4008-bbfe-7890db123456',
+    'gym-gear': '2e5de1c4-ec5d-4009-ccff-8901db123456'
   };
 
   const effectiveId = (legacyIdMap[restaurantId] || restaurantId).replace(/\/$/, "");

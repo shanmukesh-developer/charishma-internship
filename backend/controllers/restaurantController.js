@@ -36,7 +36,7 @@ const restaurantLogin = async (req, res) => {
     }
 
     const token = jwt.sign({ id: restaurant.id, role: 'restaurant' }, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' });
-    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
+    res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 30 * 24 * 60 * 60 * 1000 });
     res.json({ restaurant, token });
   } catch (error) {
     console.error('[RESTAURANT_LOGIN_ERROR]', error);

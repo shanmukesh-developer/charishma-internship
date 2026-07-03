@@ -27,7 +27,7 @@ const registerPartner = async (req, res) => {
 
     const partner = await DeliveryPartner.create({ name, phone: cleanPhone, password, vehicleType });
     const token = generateToken(partner.id);
-    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
+    res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 30 * 24 * 60 * 60 * 1000 });
     res.status(201).json({ _id: partner.id, name: partner.name, token });
   } catch (error) {
     console.error('[PARTNER_REGISTER_ERROR]', error);
@@ -60,7 +60,7 @@ const authPartner = async (req, res) => {
 
     // ── 3. Return partner data and JWT token ────────────────────────────────
     const token = generateToken(partner.id);
-    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
+    res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 30 * 24 * 60 * 60 * 1000 });
     res.json({ 
       _id: partner.id, 
       name: partner.name, 

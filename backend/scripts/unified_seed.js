@@ -56,109 +56,264 @@ const unifiedSeed = async () => {
     }
   }
 
+  // Clear old tables to prevent duplicates and clean up legacy data
+  console.log('🧹 Clearing existing restaurants and menu items...');
+  await MenuItem.destroy({ where: {} });
+  await Restaurant.destroy({ where: {} });
+
   const mockData = [
     {
-      id: "e9eb9d54-3a51-422d-b070-e66975a6b68e",
-      name: "Summer Oasis: Elite",
-      imageUrl: "https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?auto=format&fit=crop&q=80&w=800",
-      categories: ["Coolants", "Traditional", "Ice Creams"],
+      id: "8467dbf0-1b1b-4ae5-88b6-0fccbfcb1cbb",
+      name: "Biryani Hub",
+      imageUrl: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?q=80&w=800",
+      categories: ["Biryani", "Kebabs", "Main Course"],
+      vendorType: "RESTAURANT",
+      rating: 4.8,
+      lat: 16.4632,
+      lon: 80.5064,
       menu: [
-        { name: "Chilled Tender Coconut", price: 60, description: "Freshly cut natural coconut water.", image: "https://images.unsplash.com/photo-1526318896980-cf78c088247c?w=400", category: "Coolants" },
-        { name: "Kesar Badam Milk", price: 90, description: "Saffron infused cold almond milk.", image: "https://images.unsplash.com/photo-1634832506443-4c570af4b680?w=400", category: "Coolants" },
-        { name: "Rose Petal Sorbet", price: 120, description: "Handcrafted cooling rose extract base.", image: "https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?w=400", category: "Ice Creams" }
+        { name: "Special Mutton Fry", price: 280, description: "Tender goat cooked in traditional spices.", image: "https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=800", category: "Biryani", isVegetarian: false, tags: ["biryani", "non-veg"] },
+        { name: "Royal Egg Biryani", price: 220, description: "Fragrant rice with double eggs.", image: "https://images.unsplash.com/photo-1589302168068-964664d93dc0?q=80&w=800", category: "Biryani", isVegetarian: true, tags: ["biryani", "veg"] },
+        { name: "Chicken Tikka Kebab", price: 180, description: "Juicy grilled chicken skewers.", image: "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?q=80&w=800", category: "Kebabs", isVegetarian: false, tags: ["kebabs", "non-veg"] },
+        { name: "Hyderabadi Dum Biryani", price: 250, description: "Classic slow-cooked chicken biryani.", image: "https://images.unsplash.com/photo-1633945274405-b6c8069047b0?q=80&w=800", category: "Biryani", isVegetarian: false, tags: ["biryani", "non-veg"] },
+        { name: "Paneer Tikka Kebab", price: 160, description: "Grilled cottage cheese with herbs.", image: "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?q=80&w=800", category: "Kebabs", isVegetarian: true, tags: ["kebabs", "veg"] },
+        { name: "Tandoori Roti", price: 40, description: "Freshly baked clay oven bread.", image: "https://images.unsplash.com/photo-1585238342024-78d387f4a707?q=80&w=800", category: "Main Course", isVegetarian: true, tags: ["bread", "veg"] },
+        { name: "Butter Chicken", price: 240, description: "Creamy tomato based chicken curry.", image: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?q=80&w=800", category: "Main Course", isVegetarian: false, tags: ["curry", "non-veg"] },
+        { name: "Dal Makhani", price: 190, description: "Rich black lentils cooked overnight.", image: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?q=80&w=800", category: "Main Course", isVegetarian: true, tags: ["curry", "veg"] },
+        { name: "Garlic Naan", price: 60, description: "Soft bread with toasted garlic.", image: "https://images.unsplash.com/photo-1601050690597-df056fb4ce78?q=80&w=800", category: "Main Course", isVegetarian: true, tags: ["bread", "veg"] },
+        { name: "Gulab Jamun", price: 80, description: "Sweet milk dumplings in syrup.", image: "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?q=80&w=800", category: "Dessert", isVegetarian: true, tags: ["dessert", "sweets"] }
       ]
     },
     {
-      id: "bef0fa4b-1c1d-4f22-ae74-d32df31e2d37",
-      name: "Boutique Bakery",
-      imageUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400",
-      categories: ["Artisanal Bakes", "Croissants"],
+      id: "5beef15a-8b83-49cc-8514-6ef26db12345",
+      name: "The Burger Club",
+      imageUrl: "https://images.unsplash.com/photo-1571091718767-18b5b1457add?q=80&w=800",
+      categories: ["Burgers", "Sides", "Shakes"],
+      vendorType: "RESTAURANT",
+      rating: 4.6,
+      lat: 16.4650,
+      lon: 80.5080,
       menu: [
-        { name: "Butter Croissant", price: 80, description: "Flaky french pastry.", image: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400", category: "Artisanal Bakes" },
-        { name: "Pain au Chocolat", price: 110, description: "Rich chocolate filled layered pastry.", image: "https://images.unsplash.com/photo-1530610476181-d83430b64dcd?w=400", category: "Artisanal Bakes" },
-        { name: "Blueberry Cheesecake", price: 180, description: "New York style with fresh berries.", image: "https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=400", category: "Artisanal Bakes" }
-      ]
-    },
-    {
-      id: "ca3f99e1-8f1f-4f3e-a209-ed78ff638cf5",
-      name: "Sweet Boutique",
-      imageUrl: "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400",
-      categories: ["Desserts", "Gourmet Treats"],
-      menu: [
-        { name: "Belgian Chocolate Truffle", price: 120, description: "Rich chocolate dessert.", image: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=400", category: "Desserts" },
-        { name: "Red Velvet Jar", price: 150, description: "Classic red velvet with cream cheese frosting.", image: "https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?w=400", category: "Gourmet Treats" },
-        { name: "Assorted Macarons (4pc)", price: 220, description: "Parisian style almond meringues.", image: "https://images.unsplash.com/photo-1569864358642-9d161970296d?w=400", category: "Desserts" }
-      ]
-    },
-    {
-      id: "296ec3cf-4eee-44e7-9454-1d4e563e1687",
-      name: "Fresh Harvest",
-      imageUrl: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400",
-      categories: ["Fruits", "Healthy"],
-      menu: [
-        { name: "Exotic Fruit Bowl", price: 150, description: "Fresh seasonal fruits cut daily.", image: "https://images.unsplash.com/photo-1490474418585-ba9dd8fd36ea?w=400", category: "Fruits" },
-        { name: "Avocado Power Toast", price: 240, description: "Mashed avocado on gluten-free bread.", image: "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=400", category: "Healthy" }
+        { name: "Classic Cheeseburger", price: 150, description: "Juicy patty with melted cheddar.", image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=800", category: "Burgers", isVegetarian: false, tags: ["burgers", "non-veg"] },
+        { name: "Bacon Blaze Burger", price: 220, description: "Crispy bacon with spicy aioli.", image: "https://images.unsplash.com/photo-1553979459-d2229ba7433b?q=80&w=800", category: "Burgers", isVegetarian: false, tags: ["burgers", "non-veg"] },
+        { name: "Mushroom Swiss", price: 190, description: "Sautéed mushrooms and swiss cheese.", image: "https://images.unsplash.com/photo-1586190848861-99aa4a171e90?q=80&w=800", category: "Burgers", isVegetarian: true, tags: ["burgers", "veg"] },
+        { name: "Peri Peri Chicken Burger", price: 180, description: "Flaming peri peri grilled chicken.", image: "https://images.unsplash.com/photo-1625813506062-0aeb1d7a094b?q=80&w=800", category: "Burgers", isVegetarian: false, tags: ["burgers", "non-veg"] },
+        { name: "Veggie Delight", price: 140, description: "Crispy veg patty with fresh greens.", image: "https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=800", category: "Burgers", isVegetarian: true, tags: ["burgers", "veg"] },
+        { name: "Peri Peri Fries", price: 80, description: "Spicy seasoned crinkle cut fries.", image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?q=80&w=800", category: "Sides", isVegetarian: true, tags: ["sides", "veg"] },
+        { name: "Onion Rings", price: 90, description: "Beer battered crispy onion rings.", image: "https://images.unsplash.com/photo-1639024471283-2bc7b3c6a267?q=80&w=800", category: "Sides", isVegetarian: true, tags: ["sides", "veg"] },
+        { name: "Chocolate Shake", price: 120, description: "Thick belgian chocolate shake.", image: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?q=80&w=800", category: "Shakes", isVegetarian: true, tags: ["shakes", "veg"] },
+        { name: "Strawberry Frost", price: 110, description: "Fresh strawberry creamy shake.", image: "https://images.unsplash.com/photo-1579954115545-a95591f28bfc?q=80&w=800", category: "Shakes", isVegetarian: true, tags: ["shakes", "veg"] },
+        { name: "Chicken Nuggets", price: 130, description: "Crispy golden chicken bites.", image: "https://images.unsplash.com/photo-1562967914-608f82629710?q=80&w=800", category: "Sides", isVegetarian: false, tags: ["sides", "non-veg"] }
       ]
     },
     {
       id: "706822c4-2eb3-43b4-ad86-91a252ea9108",
       name: "Pizza Paradise",
-      imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=400",
+      imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=800",
       categories: ["Pizza", "Pasta", "Sides"],
+      vendorType: "RESTAURANT",
+      rating: 4.7,
+      lat: 16.4610,
+      lon: 80.5040,
       menu: [
-        { name: "Margherita Classica", price: 280, description: "San Marzano tomatoes & fresh mozzarella.", image: "https://images.unsplash.com/photo-1574129656617-8be3bb2016eb?q=80&w=400", category: "Pizza" },
-        { name: "Garden Feast Pizza", price: 320, description: "Loaded with colorful bell peppers and olives.", image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400", category: "Pizza" }
+        { name: "Margherita Classica", price: 280, description: "San Marzano tomatoes & fresh mozzarella.", image: "https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?q=80&w=800", category: "Pizza", isVegetarian: true, tags: ["pizza", "veg"] },
+        { name: "Pepperoni Feast", price: 350, description: "Double pepperoni with herb blend.", image: "https://images.unsplash.com/photo-1628840042765-356cda07504e?q=80&w=800", category: "Pizza", isVegetarian: false, tags: ["pizza", "non-veg"] },
+        { name: "Farmhouse Special", price: 320, description: "Bell peppers, mushrooms, corn & onion.", image: "https://images.unsplash.com/photo-1571407970349-bc81e7e96d47?q=80&w=800", category: "Pizza", isVegetarian: true, tags: ["pizza", "veg"] },
+        { name: "Chicken Tikka Pizza", price: 340, description: "Indian fusion tikka with capsicum.", image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?q=80&w=800", category: "Pizza", isVegetarian: false, tags: ["pizza", "non-veg"] },
+        { name: "Arrabiata Pasta", price: 240, description: "Spicy tomato sauce with penne.", image: "https://images.unsplash.com/photo-1608897013039-887f21d8c804?q=80&w=800", category: "Pasta", isVegetarian: true, tags: ["pasta", "veg"] },
+        { name: "Creamy Alfredo", price: 260, description: "White sauce pasta with mushrooms.", image: "https://images.unsplash.com/photo-1645112411341-6c4fd023714a?q=80&w=800", category: "Pasta", isVegetarian: true, tags: ["pasta", "veg"] },
+        { name: "Garlic Breadsticks", price: 90, description: "Baked fresh with garlic butter.", image: "https://images.unsplash.com/photo-1544982503-9f984c14501a?q=80&w=800", category: "Sides", isVegetarian: true, tags: ["sides", "veg"] },
+        { name: "Stuffed Garlic Bread", price: 140, description: "Cheese & jalapeno stuffed bread.", image: "https://images.unsplash.com/photo-1607532941433-304659e8198a?q=80&w=800", category: "Sides", isVegetarian: true, tags: ["sides", "veg"] },
+        { name: "Garden Salad", price: 120, description: "Fresh seasonal greens with dressing.", image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=800", category: "Sides", isVegetarian: true, tags: ["sides", "veg"] },
+        { name: "Tiramisu Cup", price: 180, description: "Coffee-flavored Italian dessert.", image: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?q=80&w=800", category: "Dessert", isVegetarian: true, tags: ["dessert", "sweets"] }
       ]
     },
     {
-      id: "8467dbf0-1b1b-4ae5-88b6-0fccbfcb1cbb",
-      name: "Biryani Hub",
-      imageUrl: "https://images.unsplash.com/photo-1589302168068-964664d93dc0?q=80&w=400&auto=format&fit=crop",
-      categories: ["Biryani", "Kebabs", "Main Course"],
+      id: "a5124e4d-1768-45d2-b062-8178cd901234",
+      name: "Subway Fresh",
+      imageUrl: "https://images.unsplash.com/photo-1509722747041-616f39b57569?q=80&w=800",
+      categories: ["Subs", "Salads", "Cookies"],
+      vendorType: "RESTAURANT",
+      rating: 4.4,
+      lat: 16.4660,
+      lon: 80.5090,
       menu: [
-        { name: "Special Mutton Fry", price: 280, description: "Tender goat cooked in traditional spices.", imageUrl: "https://images.unsplash.com/photo-1601356616077-6957284f707c?q=80&w=800", category: "Biryani", isVegetarian: false }
+        { name: "Roasted Chicken Sub", price: 190, description: "Succulent chicken with fresh veggies.", image: "https://images.unsplash.com/photo-1553909489-cd47e0907980?q=80&w=800", category: "Subs", isVegetarian: false, tags: ["subs", "non-veg"] },
+        { name: "Paneer Tikka Sub", price: 170, description: "Spicy paneer in choice of bread.", image: "https://images.unsplash.com/photo-1626074353765-517a681e40be?q=80&w=800", category: "Subs", isVegetarian: true, tags: ["subs", "veg"] },
+        { name: "Italian B.M.T.", price: 220, description: "Genoa salami, pepperoni & ham.", image: "https://images.unsplash.com/photo-1539252554453-80ab65ce3586?q=80&w=800", category: "Subs", isVegetarian: false, tags: ["subs", "non-veg"] },
+        { name: "Vegi Delite", price: 140, description: "Loaded with fresh seasonal veggies.", image: "https://images.unsplash.com/photo-1540713434306-53f2c3d1a3be?q=80&w=800", category: "Subs", isVegetarian: true, tags: ["subs", "veg"] },
+        { name: "Chicken Kofta Sub", price: 200, description: "Spicy chicken meatballs with sauce.", image: "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?q=80&w=800", category: "Subs", isVegetarian: false, tags: ["subs", "non-veg"] },
+        { name: "Aloo Patty Wrap", price: 130, description: "Spiced potato patty in a soft wrap.", image: "https://images.unsplash.com/photo-1626700051175-6518c4793f0f?q=80&w=800", category: "Subs", isVegetarian: true, tags: ["subs", "veg"] },
+        { name: "Corn & Peas Salad", price: 160, description: "Sweet corn and peas mix.", image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800", category: "Salads", isVegetarian: true, tags: ["salads", "veg"] },
+        { name: "Dark Chocolate Cookie", price: 50, description: "Soft & chewy chocolate chip cookie.", image: "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?q=80&w=800", category: "Cookies", isVegetarian: true, tags: ["cookies", "veg"] },
+        { name: "Oatmeal Raisin Cookie", price: 50, description: "Healthy oats and raisin sweet.", image: "https://images.unsplash.com/photo-1558961309-db6f1a3068c3?q=80&w=800", category: "Cookies", isVegetarian: true, tags: ["cookies", "veg"] },
+        { name: "Coke Zero", price: 40, description: "Chilled sugar-free refreshment.", image: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=800", category: "Drinks", isVegetarian: true, tags: ["drinks", "veg"] }
+      ]
+    },
+    {
+      id: "c6142c67-62f7-4148-963d-4952de123456",
+      name: "La Pino'z",
+      imageUrl: "https://images.unsplash.com/photo-1590947132387-155cc02f3212?q=80&w=800",
+      categories: ["Pizza", "Sides", "Beverages"],
+      vendorType: "RESTAURANT",
+      rating: 4.5,
+      lat: 16.4670,
+      lon: 80.5100,
+      menu: [
+        { name: "7 Layer Pizza", price: 380, description: "Loaded with unique layers of toppings.", image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=800", category: "Pizza", isVegetarian: true, tags: ["pizza", "veg"] },
+        { name: "Cheesy Macaroni", price: 180, description: "Hot & cheesy classic macaroni.", image: "https://images.unsplash.com/photo-1543339494-b4cd4f7ba686?q=80&w=800", category: "Sides", isVegetarian: true, tags: ["sides", "veg"] },
+        { name: "Paneer Makhani Slice", price: 120, description: "Giant slice with makhani gravy.", image: "https://images.unsplash.com/photo-1628840042765-356cda07504e?q=80&w=800", category: "Pizza", isVegetarian: true, tags: ["pizza", "veg"] },
+        { name: "Peri Peri Garlic Bread", price: 110, description: "Spicy twist on garlic bread.", image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?q=80&w=800", category: "Sides", isVegetarian: true, tags: ["sides", "veg"] },
+        { name: "English Vinglish Pizza", price: 290, description: "Exotic vegetable pizza blend.", image: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?q=80&w=800", category: "Pizza", isVegetarian: true, tags: ["pizza", "veg"] },
+        { name: "Chicken Tikka Tacos", price: 150, description: "Fusion tacos with tikka filling.", image: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?q=80&w=800", category: "Sides", isVegetarian: false, tags: ["sides", "non-veg"] },
+        { name: "Fries Overloaded", price: 140, description: "Fries topped with cheese & jalapenos.", image: "https://images.unsplash.com/photo-1585109649139-366815a0d713?q=80&w=800", category: "Sides", isVegetarian: true, tags: ["sides", "veg"] },
+        { name: "Choco Lava Cake", price: 90, description: "Molten chocolate center cake.", image: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?q=80&w=800", category: "Dessert", isVegetarian: true, tags: ["dessert", "veg"] },
+        { name: "Cold Coffee", price: 100, description: "Creamy whipped cold coffee.", image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?q=80&w=800", category: "Beverages", isVegetarian: true, tags: ["beverages", "veg"] },
+        { name: "Mountain Dew", price: 40, description: "Chilled citrus refreshment.", image: "https://images.unsplash.com/photo-1534353436294-0dbd4bdac845?q=80&w=800", category: "Beverages", isVegetarian: true, tags: ["beverages", "veg"] }
+      ]
+    },
+    {
+      id: "0c5de1a2-cb3d-4007-aaef-6789db123456",
+      name: "Iron Kitchen: Pro Meals",
+      imageUrl: "https://images.unsplash.com/photo-1543353071-10c8ba85a904?q=80&w=800",
+      categories: ["Protein Bowls", "Lean Salads", "Keto"],
+      vendorType: "GYM",
+      rating: 4.9,
+      lat: 16.4632,
+      lon: 80.5064,
+      menu: [
+        { name: "Whey Protein Bowl", price: 250, description: "30g protein, quinoa, avocado and chicken.", image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800", category: "Protein Bowls", isVegetarian: false, tags: ["gym", "high-protein", "healthy"] },
+        { name: "Lean Muscle Salad", price: 220, description: "Grilled turkey with kale and almond flakes.", image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=800", category: "Lean Salads", isVegetarian: false, tags: ["gym", "healthy"] }
+      ]
+    },
+    {
+      id: "1d5de1b3-db4d-4008-bbfe-7890db123456",
+      name: "Zenvy Fuel: Protein Shakes",
+      imageUrl: "https://images.unsplash.com/photo-1579758629938-03607ccdbaba?q=80&w=800",
+      categories: ["Whey", "Vegan", "Mass Gainer"],
+      vendorType: "GYM",
+      rating: 5.0,
+      lat: 16.4632,
+      lon: 80.5064,
+      menu: [
+        { name: "Dark Gold Whey (30g)", price: 180, description: "Elite recovery with 100% whey isolate.", image: "https://images.unsplash.com/photo-1593095948071-474c5cc2989d?q=80&w=800", category: "Whey", isVegetarian: true, tags: ["gym", "high-protein"] },
+        { name: "Bulk Master Gainer", price: 210, description: "High calorie mass gainer for hard gainers.", image: "https://images.unsplash.com/photo-1579758629938-03607ccdbaba?q=80&w=800", category: "Mass Gainer", isVegetarian: true, tags: ["gym", "high-protein"] }
+      ]
+    },
+    {
+      id: "296ec3cf-4eee-44e7-9454-1d4e563e1687",
+      name: "Fresh Harvest: Elite",
+      imageUrl: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?q=80&w=800",
+      categories: ["Platters", "Bowls", "Juices"],
+      vendorType: "GROCERY",
+      rating: 4.9,
+      lat: 16.4632,
+      lon: 80.5064,
+      menu: [
+        { name: "Exotic Fruit Platter", price: 180, description: "Dragon fruit, Mango, Kiwi & Berries.", image: "https://images.unsplash.com/photo-1490474418585-ba9dd8fd36ea?q=80&w=800", category: "Platters", isVegetarian: true, tags: ["fruits", "healthy"] },
+        { name: "Power Citrus Bowl", price: 140, description: "Orange, Grapefruit & Pomegranate.", image: "https://images.unsplash.com/photo-1525351484163-7529414344d8?q=80&w=800", category: "Bowls", isVegetarian: true, tags: ["fruits", "healthy"] }
+      ]
+    },
+    {
+      id: "2e5de1c4-ec5d-4009-ccff-8901db123456",
+      name: "Zenvy Elite Gear",
+      imageUrl: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=800",
+      categories: ["Lifting Belts", "Straps", "Accessories"],
+      vendorType: "GYM",
+      rating: 5.0,
+      lat: 16.4632,
+      lon: 80.5064,
+      menu: [
+        { name: "Professional Lever Belt", price: 2500, description: "13mm thick genuine leather with steel lever.", image: "https://images.unsplash.com/photo-1620188467120-5042ed1eb5da?q=80&w=800", category: "Lifting Belts", isVegetarian: true, tags: ["gym", "rental"] },
+        { name: "Gold-Grip Lifting Straps", price: 450, description: "Heavy-duty cotton with anti-slip gold grip.", image: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=800", category: "Straps", isVegetarian: true, tags: ["gym", "rental"] },
+        { name: "Elite Matte Shaker", price: 800, description: "Stainless steel, 750ml with leak-proof lid.", image: "https://images.unsplash.com/photo-1579758629938-03607ccdbaba?q=80&w=800", category: "Accessories", isVegetarian: true, tags: ["gym", "rental"] }
+      ]
+    },
+    {
+      id: "e9eb9d54-3a51-422d-b070-e66975a6b68e",
+      name: "Summer Oasis: Elite",
+      imageUrl: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?q=80&w=800",
+      categories: ["Coolants", "Traditional", "Ice Creams"],
+      vendorType: "SEASONAL",
+      rating: 5.0,
+      lat: 16.4632,
+      lon: 80.5064,
+      menu: [
+        { name: "Chilled Tender Coconut", price: 60, description: "Freshly cut natural coconut water with pulp.", image: "https://images.unsplash.com/photo-1526318896980-cf78c088247c?q=80&w=800", category: "Coolants", isVegetarian: true, tags: ["seasonal", "drinks"] },
+        { name: "Golden Badam Palu", price: 90, description: "Authentic almond milk with saffron and nuts.", image: "https://images.unsplash.com/photo-1634832506443-4c570af4b680?q=80&w=800", category: "Traditional", isVegetarian: true, tags: ["seasonal", "drinks", "traditional"] },
+        { name: "Zesty Masala Soda", price: 50, description: "Refreshing lime soda with a secret spice blend.", image: "https://images.unsplash.com/photo-1551024709-8f23befc6f87?q=80&w=800", category: "Coolants", isVegetarian: true, tags: ["seasonal", "drinks"] },
+        { name: "Traditional Sugandhi", price: 70, description: "Natural Sarsaparilla coolant with lemon.", image: "https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?q=80&w=800", category: "Traditional", isVegetarian: true, tags: ["seasonal", "drinks", "traditional"] },
+        { name: "Artisanal Mango Gelato", price: 150, description: "House-made creamy mango ice cream.", image: "https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?q=80&w=800", category: "Ice Creams", isVegetarian: true, tags: ["seasonal", "sweets"] }
+      ]
+    },
+    {
+      id: "bef0fa4b-1c1d-4f22-ae74-d32df31e2d37",
+      name: "Zenvy Bakery: Elite",
+      imageUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=800",
+      categories: ["Pastries", "Sourdough", "Cookies"],
+      vendorType: "SWEETS",
+      rating: 5.0,
+      lat: 16.4632,
+      lon: 80.5064,
+      menu: [
+        { name: "Flaky Butter Croissant", price: 120, description: "Authentic French style, 24-layer buttery pastry.", image: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?q=80&w=800", category: "Pastries", isVegetarian: true, tags: ["sweets", "bakery"] },
+        { name: "Dark Chocolate Cookie", price: 80, description: "Sea salt and 70% dark Belgian chocolate.", image: "https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?q=80&w=800", category: "Cookies", isVegetarian: true, tags: ["sweets", "bakery"] },
+        { name: "Red Velvet Cupcake", price: 95, description: "Classic red velvet with cream cheese frosting.", image: "https://images.unsplash.com/photo-1576618148400-f54bed99fcfd?q=80&w=800", category: "Cupcakes", isVegetarian: true, tags: ["sweets", "bakery"] },
+        { name: "Zenvy Signature Cake", price: 1200, description: "Luxurious tiered Belgian chocolate cake.", image: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?q=80&w=800", category: "Cakes", isVegetarian: true, tags: ["sweets", "bakery"] }
+      ]
+    },
+    {
+      id: "ca3f99e1-8f1f-4f3e-a209-ed78ff638cf5",
+      name: "Royal Sweet Boutique: Elite",
+      imageUrl: "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?q=80&w=800",
+      categories: ["Traditional", "Gourmet", "Festive"],
+      vendorType: "SWEETS",
+      rating: 5.0,
+      lat: 16.4632,
+      lon: 80.5064,
+      menu: [
+        { name: "Saffron Gulab Jamun", price: 110, description: "Soft milk dumplings in infused saffron syrup.", image: "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?q=80&w=800", category: "Traditional", isVegetarian: true, tags: ["sweets", "traditional"] },
+        { name: "Pistachio Rasmalai", price: 130, description: "Kesar infused milk discs with crushed pistachios.", image: "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?q=80&w=800", category: "Traditional", isVegetarian: true, tags: ["sweets", "traditional"] },
+        { name: "Kaju Katli (Elite Edition)", price: 250, description: "Premium cashews with pure silver vark.", image: "https://images.unsplash.com/photo-1601356616077-6957284f707c?q=80&w=800", category: "Gourmet", isVegetarian: true, tags: ["sweets", "gourmet"] }
       ]
     }
   ];
 
   // 3. Seed Standard Restaurants (Gourmets)
   for (const restData of mockData) {
-    const [restaurant, created] = await Restaurant.findOrCreate({
-      where: { name: restData.name },
-      defaults: {
-        id: restData.id,
-        name: restData.name,
-        location: 'SRM AP Main Campus',
-        imageUrl: restData.imageUrl,
-        commissionRate: 15,
-        password: 'password123',
-        commissionType: 'percentage',
-        operatingHours: { start: '09:00', end: '22:00' },
-        isActive: true,
-        tags: restData.categories || []
-      }
+    const restaurant = await Restaurant.create({
+      id: restData.id,
+      name: restData.name,
+      location: 'SRM AP Main Campus',
+      imageUrl: restData.imageUrl,
+      vendorType: restData.vendorType || 'RESTAURANT',
+      rating: restData.rating || 4.0,
+      lat: restData.lat || 16.4632,
+      lon: restData.lon || 80.5064,
+      commissionRate: 15,
+      password: 'password123',
+      commissionType: 'percentage',
+      operatingHours: { start: '09:00', end: '22:00' },
+      isActive: true,
+      tags: restData.categories || []
     });
-    
-    // Always update password and trigger hooks to ensure hashing
-    await restaurant.update({ password: 'password123' }, { individualHooks: true });
 
-    if (created || ((await MenuItem.count({ where: { restaurantId: restaurant.id } })) === 0)) {
-      if (restData.menu && Array.isArray(restData.menu)) {
-        const menuItems = restData.menu.map(item => ({
-          restaurantId: restaurant.id,
-          name: item.name,
-          price: item.price,
-          description: item.description,
-          imageUrl: item.image || item.imageUrl,
-          category: item.category,
-          isVegetarian: item.isVegetarian !== undefined ? item.isVegetarian : true,
-          isAvailable: true,
-          isEliteOnly: false
-        }));
-        await MenuItem.bulkCreate(menuItems);
-      }
-      console.log(`✅ Seeded Restaurant & Menu: ${restaurant.name}`);
+    if (restData.menu && Array.isArray(restData.menu)) {
+      const menuItems = restData.menu.map(item => ({
+        restaurantId: restaurant.id,
+        name: item.name,
+        price: item.price,
+        description: item.description,
+        imageUrl: item.image || item.imageUrl,
+        category: item.category,
+        isVegetarian: item.isVegetarian !== undefined ? item.isVegetarian : true,
+        isAvailable: true,
+        isEliteOnly: false,
+        tags: item.tags || []
+      }));
+      await MenuItem.bulkCreate(menuItems);
     }
+    console.log(`✅ Seeded Restaurant & Menu: ${restaurant.name}`);
   }
   
   // 4. Seed Vault Items
