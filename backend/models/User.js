@@ -58,7 +58,10 @@ const initUserModel = (sequelize) => {
     referralRewardClaimed: { type: DataTypes.BOOLEAN, defaultValue: false },
     // F13: Elite Gifting
     eliteGiftsUsedThisMonth: { type: DataTypes.INTEGER, defaultValue: 0 },
-    lastGiftResetDate: { type: DataTypes.DATE, allowNull: true }
+    lastGiftResetDate: { type: DataTypes.DATE, allowNull: true },
+    // Co-Ride Bike Pooling
+    gender: { type: DataTypes.STRING, defaultValue: 'Prefer not to say' },
+    genderPreference: { type: DataTypes.STRING, defaultValue: 'Any' }
   }, { timestamps: true });
 
   // Auto-generate referral code

@@ -61,6 +61,8 @@ const registerUser = async (req, res) => {
       profileImage: user.profileImage || null,
       badges: user.badges || [],
       completedOrders: user.completedOrders || 0,
+      gender: user.gender || 'Prefer not to say',
+      genderPreference: user.genderPreference || 'Any',
       token
     });
   } catch (_error) {
@@ -132,6 +134,8 @@ const authUser = async (req, res) => {
       badges: user.badges || [],
       completedOrders: user.completedOrders || 0,
       role: user.role,
+      gender: user.gender || 'Prefer not to say',
+      genderPreference: user.genderPreference || 'Any',
       token
     });
   } catch (_error) {
@@ -188,7 +192,9 @@ const getUserProfile = async (req, res) => {
         city: user.city || 'Amaravathi',
         profileImage: user.profileImage || null,
         badges: user.badges || [],
-        completedOrders: user.completedOrders || 0
+        completedOrders: user.completedOrders || 0,
+        gender: user.gender || 'Prefer not to say',
+        genderPreference: user.genderPreference || 'Any'
       });
     } else {
       res.status(401).json({ message: 'Account not found (Nexus Session Expired)' });
@@ -212,6 +218,8 @@ const updateUserProfile = async (req, res) => {
       if (req.body.address) user.address = req.body.address;
       if (req.body.city) user.city = req.body.city;
       if (req.body.profileImage !== undefined) user.profileImage = req.body.profileImage;
+      if (req.body.gender !== undefined) user.gender = req.body.gender;
+      if (req.body.genderPreference !== undefined) user.genderPreference = req.body.genderPreference;
       
       // CRITICAL FIX: Removed insecure req.body.isElite assignment
       // Elite status must only be updated by a verified payment webhook or admin route.
@@ -233,6 +241,8 @@ const updateUserProfile = async (req, res) => {
         profileImage: user.profileImage || null,
         badges: user.badges || [],
         completedOrders: user.completedOrders || 0,
+        gender: user.gender,
+        genderPreference: user.genderPreference,
         token: generateToken(user.id, user.role)
       });
     } else {

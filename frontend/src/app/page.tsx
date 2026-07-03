@@ -884,6 +884,22 @@ export default function Home() {
             </Link>
           </Tilt>
 
+          {/* 🏍️ Zenvy Co-Ride: Bike Pooling Banner */}
+          <Tilt className="mb-8 group cursor-pointer overflow-hidden rounded-[30px] relative border shadow-xl transition-all duration-500 border-indigo-500/30 hover:border-indigo-500/60 bg-gradient-to-br from-black to-indigo-500/10">
+            <Link href="/bikepool">
+              <div className="p-6 relative z-10 flex items-center justify-between">
+                <div>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400 mb-1">Collaborative Commute</h3>
+                  <p className="text-2xl font-black italic tracking-tighter text-white">Zenvy Co-Ride 🏍️</p>
+                  <p className="text-[9px] font-bold text-white/50 uppercase tracking-widest mt-1">Share bike rides, split bills, safety gender filters.</p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" /></svg>
+                </div>
+              </div>
+            </Link>
+          </Tilt>
+
           <Tilt className={`mb-10 group cursor-pointer overflow-hidden rounded-[34px] relative border shadow-2xl transition-all duration-500 elite-card ${isElite ? 'border-[#C9A84C]/40' : 'border-[#C9A84C]/20'}`}>
 
             <motion.section 

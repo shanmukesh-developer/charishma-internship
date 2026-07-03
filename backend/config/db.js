@@ -15,6 +15,7 @@ const { initVerificationLogModel } = require('../models/VerificationLog');
 const { initCouponModel } = require('../models/Coupon');
 const { initCommunityPostModel } = require('../models/CommunityPost');
 const { initTicketModel } = require('../models/Ticket');
+const { initBikePoolModel } = require('../models/BikePool');
 
 const initializeAllModels = (instance) => {
   initUserModel(instance);
@@ -28,6 +29,7 @@ const initializeAllModels = (instance) => {
   initCouponModel(instance);
   initCommunityPostModel(instance);
   initTicketModel(instance);
+  initBikePoolModel(instance);
 
   // Define Associations
   const Restaurant = instance.models.Restaurant;
@@ -69,6 +71,12 @@ const initializeAllModels = (instance) => {
   if (Ticket && Order) {
     Ticket.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
     Order.hasMany(Ticket, { foreignKey: 'orderId', as: 'tickets' });
+  }
+
+  const BikePool = instance.models.BikePool;
+  if (BikePool && User) {
+    BikePool.belongsTo(User, { foreignKey: 'creatorId', as: 'creator' });
+    BikePool.belongsTo(User, { foreignKey: 'coRiderId', as: 'coRider' });
   }
 };
 
@@ -264,6 +272,16 @@ const connectDB = async () => {
         try {
           await sequelize.query('ALTER TABLE "Users" ADD COLUMN "googleId" VARCHAR(255);');
           console.log('✅ [SQLite_MIGRATION] Added googleId column to Users.');
+        } catch (_err) {}
+
+        try {
+          await sequelize.query('ALTER TABLE "Users" ADD COLUMN "gender" VARCHAR(255) DEFAULT \'Prefer not to say\';');
+          console.log('✅ [SQLite_MIGRATION] Added gender column to Users.');
+        } catch (_err) {}
+
+        try {
+          await sequelize.query('ALTER TABLE "Users" ADD COLUMN "genderPreference" VARCHAR(255) DEFAULT \'Any\';');
+          console.log('✅ [SQLite_MIGRATION] Added genderPreference column to Users.');
         } catch (_err) {}
 
         // Restaurant Local Vendor & new fields migration
