@@ -502,6 +502,61 @@ const unifiedSeed = async () => {
     console.log(`✅ Seeded Local Vendor & Menu: ${restaurant.name}`);
   }
 
+  // 3c. Seed Nexus Rentals
+  console.log('🚲 Seeding Nexus Rentals...');
+  const rentalVendor = {
+    name: 'Nexus Rentals',
+    location: 'SRM AP Central Hub',
+    imageUrl: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=800',
+    vendorType: 'RENTAL',
+    commissionRate: 10,
+    commissionType: 'percentage',
+    operatingHours: { start: '06:00', end: '22:00' },
+    isActive: true,
+    tags: ['rentals', 'mobility'],
+    rating: 4.8,
+    lat: 16.4632,
+    lon: 80.5064,
+    password: 'password123'
+  };
+
+  const rentalItems = [
+    {
+      name: "Electric Scooter S1",
+      price: 49,
+      description: "Premium electric scooter for campus mobility. High-speed, long-range.",
+      imageUrl: "https://images.unsplash.com/photo-1597075254133-7e4468f2372f?w=400",
+      category: "Rentals",
+      tags: ["rental", "electric", "eco"],
+      isVegetarian: false,
+      isAvailable: true,
+      isEliteOnly: false
+    },
+    {
+      name: "Mountain Cycle XR",
+      price: 25,
+      description: "Rugged mountain cycle for all terrains. 21-speed gears.",
+      imageUrl: "https://images.unsplash.com/photo-1532298229144-0ee0c9e9ad58?w=400",
+      category: "Rentals",
+      tags: ["rental", "fitness", "manual"],
+      isVegetarian: false,
+      isAvailable: true,
+      isEliteOnly: false
+    }
+  ];
+
+  try {
+    const restaurant = await Restaurant.create(rentalVendor);
+    const menuItems = rentalItems.map(item => ({
+      ...item,
+      restaurantId: restaurant.id
+    }));
+    await MenuItem.bulkCreate(menuItems);
+    console.log(`✅ Seeded Rental Vendor & Menu: ${restaurant.name}`);
+  } catch (err) {
+    console.error('❌ Error seeding Nexus Rentals:', err.message);
+  }
+
   // 4. Seed Vault Items
   console.log('💎 Synchronizing Vault Items...');
   const vaultItems = [
