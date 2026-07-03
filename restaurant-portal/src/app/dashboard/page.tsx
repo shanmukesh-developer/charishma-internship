@@ -74,17 +74,23 @@ export default function Dashboard() {
       .then(res => setMenu(res.data.map((m: any) => ({ ...m, id: m.id || m._id }))))
       .catch(err => console.error(err));
 
-    // Fetch Profile
-    api.get(`/restaurants/${restaurantId}/menu`) // The GET /menu endpoint usually returns restaurant info if joined, but let's assume we need a profile endpoint or use local storage
-      .then(() => {
-         // Fallback to local storage for profile if specific endpoint is missing
-         const stored = localStorage.getItem('restaurantId');
-         setRestaurant({ id: stored, name: 'Zenvy Partner' });
-      });
+    // Fetch Profile from localStorage (restaurantUser has name stored at login)
+    const storedUser = localStorage.getItem('restaurantUser');
+    if (storedUser) {
+      try { setRestaurant(JSON.parse(storedUser)); } catch {}
+    } else {
+      setRestaurant({ id: restaurantId, name: 'Zenvy Partner' });
+    }
 
-    // Connect socket
-    const s = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005', {
-      transports: ['websocket']
+    // Connect socket WITH auth token so backend accepts the connection
+    const token = localStorage.getItem('restaurantToken');
+    const s = io(process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005', {
+      transports: ['websocket', 'polling'],
+      auth: { token, role: 'restaurant' },
+      withCredentials: true,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
     });
     
     s.on('connect', () => {
