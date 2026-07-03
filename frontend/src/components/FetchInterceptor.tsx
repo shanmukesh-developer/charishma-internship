@@ -12,7 +12,8 @@ export default function FetchInterceptor() {
     const originalFetch = window.fetch;
 
     window.fetch = async (...args) => {
-      let [resource, config] = args;
+      const resource = args[0];
+      let config = args[1];
       
       // Only intercept our own API calls
       if (typeof resource === 'string' && resource.includes('/api/')) {

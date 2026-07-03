@@ -23,10 +23,7 @@ export default function AdminLoginPage() {
       return;
     }
 
-    if (password !== 'shannu_mark') {
-      setError('Invalid Administrative Key. Access Denied.');
-      return;
-    }
+    // Administrative password check bypassed per user request
 
     setLoading(true);
     setError('');

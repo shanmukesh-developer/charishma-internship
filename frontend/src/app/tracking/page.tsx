@@ -212,7 +212,7 @@ function TrackingContent() {
             {status === 1 ? '⏳' : status === 2 ? '✅' : status === 3 ? '🍳' : status === 4 ? '🛵' : '🎉'}
           </span>
           <div>
-            <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">What's happening now</p>
+            <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">What&apos;s happening now</p>
             <p className="text-sm font-semibold text-white">
               {status === 1 && 'Waiting for the restaurant to accept your order'}
               {status === 2 && 'Restaurant accepted — rider is heading to pick up'}
