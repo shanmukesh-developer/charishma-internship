@@ -195,6 +195,7 @@ export default function AdminHome() {
         { label: 'Active Pipeline', value: data.activeRevenue || '₹0', growth: `${data.activeOrders || 0} Awaiting`, trend: 'up' },
         { label: 'Active Fleet', value: data.activeFleet || '0', growth: 'Nodes Online', trend: 'neutral' },
         { label: 'Zenvy Commission', value: data.commission || '₹0', growth: 'Operational Fee', trend: 'up' },
+        { label: 'Local Vendors', value: data.localVendorCount || '0', growth: '🏪 CampusBites', trend: 'up' },
       ]);
     } catch (err) { console.error('[STATS_FETCH_ERROR]', err); }
   }, []);
@@ -435,7 +436,7 @@ export default function AdminHome() {
       </header>
 
       {/* ─── Hero Metrics ─── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {stats.map((stat, i) => (
           <div key={i} className="glass-card p-8 group overflow-hidden relative">
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/[0.03] blur-[40px] group-hover:bg-blue-600/[0.08] transition-all" />

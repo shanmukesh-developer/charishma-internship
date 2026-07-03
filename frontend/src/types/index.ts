@@ -37,6 +37,15 @@ export interface Restaurant {
   isFeatured?: boolean;
   featuredBadge?: string;
   featuredUntil?: string;
+  // CampusBites: Local Vendor Fields
+  campus?: string;
+  isOpenNow?: boolean;
+  whatsappNumber?: string;
+  subscriptionTier?: string;
+  stallDescription?: string;
+  promoOffer?: string;
+  clickCount?: number;
+  operatingHours?: { start?: string; end?: string };
 }
 
 export interface User {

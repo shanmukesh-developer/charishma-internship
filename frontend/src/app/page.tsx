@@ -15,6 +15,7 @@ const SearchOverlay = dynamic(() => import('@/components/SearchOverlay'), { ssr:
 const IntroOverlay = dynamic(() => import('@/components/IntroOverlay'), { ssr: false });
 const ZenvyVault = dynamic(() => import('@/components/ZenvyVault'), { ssr: false });
 const NexusExplorer = dynamic(() => import('@/components/NexusExplorer'), { ssr: false });
+const CampusBitesSection = dynamic(() => import('@/components/CampusBitesSection'), { ssr: false });
 
 import ZenvyPulse from '@/components/ZenvyPulse';
 import LiveOrderStatusBar from '@/components/LiveOrderStatusBar';
@@ -859,6 +860,9 @@ export default function Home() {
           >
              <ZenvyVault />
           </motion.section>
+
+          {/* 🏪 CampusBites: Local Vendor Stalls */}
+          <CampusBitesSection restaurants={liveRestaurants} />
 
           {/* F7: BlockWars Banner */}
           <Tilt className="mb-8 group cursor-pointer overflow-hidden rounded-[30px] relative border shadow-xl transition-all duration-500 border-[#C9A84C]/30 hover:border-[#C9A84C]/60 bg-gradient-to-br from-black to-[#C9A84C]/10">

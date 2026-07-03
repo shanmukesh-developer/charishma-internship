@@ -25,7 +25,13 @@ export function AddRestaurantForm({ onCancel, onSubmit, isCreating, initialData 
     isOffline: initialData?.isOffline ?? false, 
     password: '',
     ownerName: initialData?.ownerName || '',
-    ownerPhone: initialData?.ownerPhone || ''
+    ownerPhone: initialData?.ownerPhone || '',
+    // CampusBites: Local Vendor Fields
+    campus: initialData?.campus || '',
+    whatsappNumber: initialData?.whatsappNumber || '',
+    promoOffer: initialData?.promoOffer || '',
+    subscriptionTier: initialData?.subscriptionTier || 'free',
+    stallDescription: initialData?.stallDescription || ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -44,7 +50,7 @@ export function AddRestaurantForm({ onCancel, onSubmit, isCreating, initialData 
   };
 
   const vendorIcons: Record<string, string> = {
-    RESTAURANT: '🍽️', GROCERY: '🍎', SWEETS: '🍩', DRINKS: '🥤', RENTAL: '🚗',
+    RESTAURANT: '🍽️', LOCAL_VENDOR: '🏪', GROCERY: '🍎', SWEETS: '🍩', DRINKS: '🥤', RENTAL: '🚗',
     GYM: '💪', LAUNDRY: '👔', PHARMACY: '💊', STATIONARY: '📚', SEASONAL: '🎁', GLOBAL_MARKET: '🌐'
   };
 
@@ -140,6 +146,7 @@ export function AddRestaurantForm({ onCancel, onSubmit, isCreating, initialData 
               onChange={(e) => setFormData({...formData, vendorType: e.target.value})}
             >
                 <option value="RESTAURANT">🍽️ Restaurant (Food)</option>
+                <option value="LOCAL_VENDOR">🏪 Local Vendor (CampusBites)</option>
                 <option value="GROCERY">🍎 Grocery / Fresh Fruits</option>
                 <option value="SWEETS">🍩 Sweets & Bakery</option>
                 <option value="DRINKS">🥤 Drinks & Beverages</option>
@@ -224,6 +231,70 @@ export function AddRestaurantForm({ onCancel, onSubmit, isCreating, initialData 
                   className="nexus-input" 
                   value={formData.ownerPhone} 
                   onChange={(e) => setFormData({...formData, ownerPhone: e.target.value})} 
+                />
+              </div>
+            </>
+          )}
+
+          {/* CampusBites: Local Vendor Fields */}
+          {formData.vendorType === 'LOCAL_VENDOR' && (
+            <>
+              <div className="col-span-full mt-2 mb-1">
+                <div className="flex items-center gap-2">
+                  <div className="h-px flex-1 bg-orange-500/20" />
+                  <span className="text-[9px] font-black text-orange-400 uppercase tracking-[0.3em]">🏪 CampusBites Config</span>
+                  <div className="h-px flex-1 bg-orange-500/20" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-orange-400 ml-1">Campus</label>
+                <select
+                  className="nexus-select"
+                  value={formData.campus}
+                  onChange={(e) => setFormData({...formData, campus: e.target.value})}
+                >
+                  <option value="">Select Campus</option>
+                  <option value="SRM">🏛️ SRM University</option>
+                  <option value="VIT">🎓 VIT Vellore</option>
+                  <option value="KLU">📚 KL University</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-orange-400 ml-1">WhatsApp Number</label>
+                <input
+                  placeholder="e.g. 919876543210 (with country code)"
+                  className="nexus-input"
+                  value={formData.whatsappNumber}
+                  onChange={(e) => setFormData({...formData, whatsappNumber: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-orange-400 ml-1">Promotional Offer</label>
+                <input
+                  placeholder="e.g. Buy 2 Get 1 Free"
+                  className="nexus-input"
+                  value={formData.promoOffer}
+                  onChange={(e) => setFormData({...formData, promoOffer: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-orange-400 ml-1">Subscription Tier</label>
+                <select
+                  className="nexus-select"
+                  value={formData.subscriptionTier}
+                  onChange={(e) => setFormData({...formData, subscriptionTier: e.target.value})}
+                >
+                  <option value="free">🆓 Free Tier</option>
+                  <option value="premium">⭐ Premium (Featured)</option>
+                </select>
+              </div>
+              <div className="space-y-2 col-span-full">
+                <label className="text-[10px] font-black uppercase tracking-widest text-orange-400 ml-1">Stall Description</label>
+                <textarea
+                  placeholder="Describe the stall — what makes it special for students..."
+                  className="nexus-input h-20 resize-none"
+                  value={formData.stallDescription}
+                  onChange={(e) => setFormData({...formData, stallDescription: e.target.value})}
                 />
               </div>
             </>

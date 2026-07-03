@@ -449,11 +449,13 @@ exports.getDashboardStats = async (req, res) => {
   try {
     const Order = getOrderModel();
     const DeliveryPartner = getDeliveryPartnerModel();
+    const Restaurant = getRestaurantModel();
     
     // Optimized single-pass aggregation
-    const [totalOrders, activeFleet] = await Promise.all([
+    const [totalOrders, activeFleet, localVendorCount] = await Promise.all([
       Order.count(),
-      DeliveryPartner.count({ where: { isApproved: true } })
+      DeliveryPartner.count({ where: { isApproved: true } }),
+      Restaurant.count({ where: { vendorType: 'LOCAL_VENDOR', isActive: true } })
     ]);
 
     const deliveredStats = await Order.findAll({
@@ -476,7 +478,8 @@ exports.getDashboardStats = async (req, res) => {
       orderActivity: totalOrders.toString(),
       activeFleet: activeFleet.toString(),
       commission: `₹${Math.round(totalRevenue * 0.1).toLocaleString()}`,
-      activeOrders: activeOrdersCount.toString()
+      activeOrders: activeOrdersCount.toString(),
+      localVendorCount: localVendorCount.toString()
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

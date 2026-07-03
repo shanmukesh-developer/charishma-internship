@@ -243,6 +243,66 @@ const updateMenuItem = async (req, res) => {
   }
 };
 
+// ── CampusBites: Get Local Vendors ───────────────────────────
+// @desc    Get all LOCAL_VENDOR stalls, optionally filtered by campus
+// @route   GET /api/restaurants/local-vendors
+const getLocalVendors = async (req, res) => {
+  try {
+    const Restaurant = getRestaurantModel();
+    const MenuItem = getMenuItemModel();
+    const { campus } = req.query;
+
+    const where = { vendorType: 'LOCAL_VENDOR', isActive: true };
+    if (campus) where.campus = campus;
+
+    const vendors = await Restaurant.findAll({ where, order: [['subscriptionTier', 'DESC'], ['rating', 'DESC']] });
+    const vendorIds = vendors.map(v => v.id);
+
+    // Batch-fetch menu items for all local vendors
+    const { Op } = require('sequelize');
+    const allMenuItems = vendorIds.length > 0
+      ? await MenuItem.findAll({ where: { restaurantId: { [Op.in]: vendorIds } } })
+      : [];
+
+    const augmented = vendors.map(v => {
+      const vJson = v.toJSON();
+      vJson._id = vJson.id;
+      vJson.menu = allMenuItems
+        .filter(m => m.restaurantId === v.id)
+        .map(m => {
+          const item = m.toJSON();
+          if (typeof item.tags === 'string') {
+            try { item.tags = JSON.parse(item.tags); } catch { item.tags = []; }
+          }
+          return { ...item, _id: item.id };
+        });
+      return vJson;
+    });
+
+    res.json(augmented);
+  } catch (error) {
+    console.error('[LOCAL_VENDOR_ERROR]', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ── CampusBites: Increment Click Counter ─────────────────────
+// @desc    Increment visitor click analytics for a stall
+// @route   POST /api/restaurants/:id/click
+const incrementClickCount = async (req, res) => {
+  try {
+    const Restaurant = getRestaurantModel();
+    const restaurant = await Restaurant.findByPk(req.params.id);
+    if (!restaurant) return res.status(404).json({ message: 'Vendor not found' });
+
+    await restaurant.increment('clickCount');
+    res.json({ success: true, clickCount: restaurant.clickCount + 1 });
+  } catch (error) {
+    console.error('[CLICK_COUNT_ERROR]', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = { 
   getRestaurants, 
   getRestaurantMenu, 
@@ -252,5 +312,7 @@ module.exports = {
   toggleMenuItemAvailability,
   updateMenuItemTags,
   createMenuItem,
-  updateMenuItem
+  updateMenuItem,
+  getLocalVendors,
+  incrementClickCount
 };

@@ -26,7 +26,15 @@ const initRestaurantModel = (sequelize) => {
     password: { type: DataTypes.STRING, allowNull: true }, // For restaurant portal login
     isFeatured: { type: DataTypes.BOOLEAN, defaultValue: false },
     featuredUntil: { type: DataTypes.DATE, allowNull: true },
-    featuredBadge: { type: DataTypes.STRING, allowNull: true, defaultValue: 'Sponsored' }
+    featuredBadge: { type: DataTypes.STRING, allowNull: true, defaultValue: 'Sponsored' },
+    // ── CampusBites: Local Vendor Fields ──────────────────────
+    campus: { type: DataTypes.STRING, allowNull: true }, // e.g. 'SRM', 'VIT', 'KLU'
+    isOpenNow: { type: DataTypes.BOOLEAN, defaultValue: true },
+    whatsappNumber: { type: DataTypes.STRING, allowNull: true },
+    subscriptionTier: { type: DataTypes.STRING, defaultValue: 'free' }, // 'free' or 'premium'
+    stallDescription: { type: DataTypes.TEXT, allowNull: true },
+    promoOffer: { type: DataTypes.STRING, allowNull: true }, // e.g. 'Buy 2 Get 1 Free'
+    clickCount: { type: DataTypes.INTEGER, defaultValue: 0 }
   }, { timestamps: true });
 
   const hashPassword = async (restaurant) => {

@@ -180,9 +180,9 @@ import { AddRestaurantForm, AddMenuItemForm } from '@/components/GourmetForms';
 
 // ... (LEGACY_DATA unchanged)
 
-const VENDOR_TYPES = ['All', 'RESTAURANT', 'GROCERY', 'SWEETS', 'DRINKS', 'RENTAL', 'GYM', 'LAUNDRY', 'PHARMACY', 'STATIONARY', 'SEASONAL'];
+const VENDOR_TYPES = ['All', 'RESTAURANT', 'LOCAL_VENDOR', 'GROCERY', 'SWEETS', 'DRINKS', 'RENTAL', 'GYM', 'LAUNDRY', 'PHARMACY', 'STATIONARY', 'SEASONAL'];
 const VENDOR_ICONS: Record<string, string> = {
-  All: '🌐', RESTAURANT: '🍽️', GROCERY: '🍎', SWEETS: '🍩', DRINKS: '🥤', RENTAL: '🚗',
+  All: '🌐', RESTAURANT: '🍽️', LOCAL_VENDOR: '🏪', GROCERY: '🍎', SWEETS: '🍩', DRINKS: '🥤', RENTAL: '🚗',
   GYM: '💪', LAUNDRY: '👔', PHARMACY: '💊', STATIONARY: '📚', SEASONAL: '🎁'
 };
 
