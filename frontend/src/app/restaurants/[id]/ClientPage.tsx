@@ -67,6 +67,12 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
     return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
   };
 
+  const getCallLink = () => {
+    if (!restaurant) return '';
+    const phone = restaurant.whatsappNumber || '919391955674';
+    return `tel:+${phone}`;
+  };
+
   useEffect(() => {
     fetch(`${API_URL}/api/users/restaurants/${effectiveId}`)
       .then(res => res.json())
@@ -297,17 +303,28 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
                 </div>
                 
                 {isLocalVendor && (
-                  <a
-                    href={getWhatsAppLink()}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => {
-                      fetch(`${API_URL}/api/restaurants/${restaurant.id || restaurant._id}/click`, { method: 'POST' }).catch(() => {});
-                    }}
-                    className="flex items-center gap-1.5 bg-emerald-500 text-black hover:bg-emerald-400 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20"
-                  >
-                    💬 Order via WhatsApp
-                  </a>
+                  <div className="flex gap-2">
+                    <a
+                      href={getCallLink()}
+                      onClick={() => {
+                        fetch(`${API_URL}/api/restaurants/${restaurant.id || restaurant._id}/click`, { method: 'POST' }).catch(() => {});
+                      }}
+                      className="flex items-center gap-1.5 bg-blue-600 text-white hover:bg-blue-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-600/25"
+                    >
+                      📞 Call Stall
+                    </a>
+                    <a
+                      href={getWhatsAppLink()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => {
+                        fetch(`${API_URL}/api/restaurants/${restaurant.id || restaurant._id}/click`, { method: 'POST' }).catch(() => {});
+                      }}
+                      className="flex items-center gap-1.5 bg-emerald-500 text-black hover:bg-emerald-400 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20"
+                    >
+                      💬 Order via WhatsApp
+                    </a>
+                  </div>
                 )}
               </div>
             </div>

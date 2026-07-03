@@ -1072,64 +1072,60 @@ export default function Home() {
             </motion.div>
           </section>
 
-          <motion.div 
-            initial={{ scaleX: 0 }}
-            whileInView={{ scaleX: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 1, ease: "easeInOut" }}
-            className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-14 origin-left"
-          />
-
           {/* 📚 Stationary & Printing */}
-          <section className="mb-14">
-            <div className="flex justify-between items-end mb-6">
-              <div>
-                <h2 className="text-[9px] font-black text-violet-400 uppercase tracking-[0.4em] mb-2">Academic Essentials</h2>
-                <p className="text-xl font-black text-white">Stationary & Print</p>
-              </div>
-            </div>
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
-              {groupedCollections.stationary.length > 0 ? (
-                groupedCollections.stationary.map((item) => (
-                  <motion.div 
-                     initial={{ opacity: 0, y: 20 }}
-                     animate={{ opacity: 1, y: 0 }}
-                     transition={{ duration: 0.3 }}
-                     style={{ perspective: 1000 }}
-                     key={item.id} 
-                  >
-                    <Tilt>
-                      <Link href={`/products/${item.id}`} className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform premium-card-hover rounded-[30px]">
-                        <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-violet-500/30 transition-colors">
-                            <SafeImage src={item.image || item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} />
-                            <button 
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.id!); }}
-                                className={`absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center transition-all z-20 ${(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? 'bg-primary-yellow text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-md hover:bg-black/60'}`}
-                              >
-                                <svg className="w-4.5 h-4.5" fill={(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div className="mt-3">
-                           <h3 className="text-xs font-black text-white">{item.name}</h3>
-                           <div className="flex justify-between items-start mt-1 gap-2 min-w-0 overflow-hidden">
-                             <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate min-w-0 flex-1" title={item.restaurantName}>{item.restaurantName}</span>
-                              <span className="text-[13px] font-black shrink-0 pr-1 block text-violet-400">₹{item.price}</span>
-                           </div>
-                        </div>
-                      </Link>
-                    </Tilt>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="w-full flex flex-col items-center justify-center py-10 px-6 border border-white/5 rounded-[30px] bg-white/[0.02]">
-                   <SafeImage src="/assets/placeholder_premium.png" alt="No stationary" width={60} height={60} className="mb-4 opacity-50 grayscale" />
-                   <p className="text-xs font-black text-secondary-text uppercase tracking-widest">No Active Stationary Shops</p>
+          {groupedCollections.stationary.length > 0 && (
+            <>
+              <motion.div 
+                initial={{ scaleX: 0 }}
+                whileInView={{ scaleX: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1, ease: "easeInOut" }}
+                className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-14 origin-left"
+              />
+              <section className="mb-14">
+                <div className="flex justify-between items-end mb-6">
+                  <div>
+                    <h2 className="text-[9px] font-black text-violet-400 uppercase tracking-[0.4em] mb-2">Academic Essentials</h2>
+                    <p className="text-xl font-black text-white">Stationary & Print</p>
+                  </div>
                 </div>
-              )}
-            </div>
-          </section>
+                <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
+                  {groupedCollections.stationary.map((item) => (
+                    <motion.div 
+                       initial={{ opacity: 0, y: 20 }}
+                       animate={{ opacity: 1, y: 0 }}
+                       transition={{ duration: 0.3 }}
+                       style={{ perspective: 1000 }}
+                       key={item.id} 
+                    >
+                      <Tilt>
+                        <Link href={`/products/${item.id}`} className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform premium-card-hover rounded-[30px]">
+                          <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-violet-500/30 transition-colors">
+                              <SafeImage src={item.image || item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} />
+                              <button 
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.id!); }}
+                                  className={`absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center transition-all z-20 ${(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? 'bg-primary-yellow text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-md hover:bg-black/60'}`}
+                                >
+                                  <svg className="w-4.5 h-4.5" fill={(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                  </svg>
+                              </button>
+                          </div>
+                          <div className="mt-3">
+                             <h3 className="text-xs font-black text-white">{item.name}</h3>
+                             <div className="flex justify-between items-start mt-1 gap-2 min-w-0 overflow-hidden">
+                               <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate min-w-0 flex-1" title={item.restaurantName}>{item.restaurantName}</span>
+                                <span className="text-[13px] font-black shrink-0 pr-1 block text-violet-400">₹{item.price}</span>
+                             </div>
+                          </div>
+                        </Link>
+                      </Tilt>
+                    </motion.div>
+                  ))}
+                </div>
+              </section>
+            </>
+          )}
 
           {/* ❄️ Season Specials */}
           <section className="mb-10">
@@ -1388,16 +1384,16 @@ export default function Home() {
           </section>
 
           {/* 💊 Pharmacy: Health Sync */}
-          <section className="mb-14">
-            <div className="flex justify-between items-end mb-6">
-              <div>
-                <h2 className="text-[9px] font-black text-rose-400 uppercase tracking-[0.4em] mb-2">Pharmacy & Wellness</h2>
-                <p className="text-xl font-black text-white">Pharmacy</p>
+          {groupedCollections.pharmacy.length > 0 && (
+            <section className="mb-14">
+              <div className="flex justify-between items-end mb-6">
+                <div>
+                  <h2 className="text-[9px] font-black text-rose-400 uppercase tracking-[0.4em] mb-2">Pharmacy & Wellness</h2>
+                  <p className="text-xl font-black text-white">Pharmacy</p>
+                </div>
               </div>
-            </div>
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
-              {groupedCollections.pharmacy.length > 0 ? (
-                groupedCollections.pharmacy.map((item) => (
+              <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
+                {groupedCollections.pharmacy.map((item) => (
                   <motion.div 
                     key={item.id}
                     style={{ perspective: 1000 }}
@@ -1418,27 +1414,22 @@ export default function Home() {
                       </Link>
                     </Tilt>
                   </motion.div>
-                ))
-              ) : (
-                <div className="w-full flex flex-col items-center justify-center py-10 px-6 border border-white/5 rounded-[30px] bg-white/[0.02]">
-                   <span className="text-4xl mb-4 opacity-50">💊</span>
-                   <p className="text-xs font-black text-secondary-text uppercase tracking-widest">Finding Pharmacy Stores...</p>
-                </div>
-              )}
-            </div>
-          </section>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* 🧺 Dry Wash: Laundry Operations */}
-          <section className="mb-14">
-            <div className="flex justify-between items-end mb-6">
-              <div>
-                <h2 className="text-[9px] font-black text-blue-400 uppercase tracking-[0.4em] mb-2">Campus Logistics</h2>
-                <p className="text-xl font-black text-white">Dry Wash & Laundry</p>
+          {groupedCollections.laundry.length > 0 && (
+            <section className="mb-14">
+              <div className="flex justify-between items-end mb-6">
+                <div>
+                  <h2 className="text-[9px] font-black text-blue-400 uppercase tracking-[0.4em] mb-2">Campus Logistics</h2>
+                  <p className="text-xl font-black text-white">Dry Wash & Laundry</p>
+                </div>
               </div>
-            </div>
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
-              {groupedCollections.laundry.length > 0 ? (
-                groupedCollections.laundry.map((item) => (
+              <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
+                {groupedCollections.laundry.map((item) => (
                   <motion.div 
                     key={item.id}
                     style={{ perspective: 1000 }}
@@ -1459,15 +1450,10 @@ export default function Home() {
                       </Link>
                     </Tilt>
                   </motion.div>
-                ))
-              ) : (
-                <div className="w-full flex flex-col items-center justify-center py-10 px-6 border border-white/5 rounded-[30px] bg-white/[0.02]">
-                   <SafeImage src="/assets/placeholder_premium.png" alt="No laundry" width={60} height={60} className="mb-4 opacity-50 grayscale" />
-                   <p className="text-xs font-black text-secondary-text uppercase tracking-widest">Optimizing Logistics Path...</p>
-                </div>
-              )}
-            </div>
-          </section>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* All Restaurants List & Advanced Filters */}
           <div className="mb-8 px-6 space-y-4">

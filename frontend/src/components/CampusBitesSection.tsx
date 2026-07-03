@@ -281,9 +281,9 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
                             e.stopPropagation();
                             trackClick(vendor._id || vendor.id || '');
                           }}
-                          className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+                          className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
                         >
-                          📞
+                          📞 Call
                         </a>
 
                         {/* WhatsApp Order Button */}
