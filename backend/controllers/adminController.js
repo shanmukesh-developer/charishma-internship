@@ -47,32 +47,47 @@ exports.getRestaurants = async (req, res) => {
   try {
     const Restaurant = getRestaurantModel();
     const MenuItem = getMenuItemModel();
+    const { Op } = require('sequelize');
+
+    // Batch-fetch all restaurants and their menu items in 2 queries (eliminates N+1)
     const restaurants = await Restaurant.findAll({ where: { isActive: true } });
-    const result = await Promise.all(restaurants.map(async (r) => {
-      const menu = await MenuItem.findAll({ where: { restaurantId: r.id } });
+    const restaurantIds = restaurants.map(r => r.id);
+
+    const allMenuItems = restaurantIds.length > 0
+      ? await MenuItem.findAll({ where: { restaurantId: { [Op.in]: restaurantIds } } })
+      : [];
+
+    // Index menu items by restaurantId for O(1) lookup
+    const menuByRestaurant = {};
+    for (const m of allMenuItems) {
+      const mObj = m.toJSON();
+      let mTags = mObj.tags || [];
+      if (typeof mTags === 'string') {
+        try { mTags = JSON.parse(mTags); } catch { mTags = []; }
+      }
+      const item = { ...mObj, tags: mTags, _id: m.id, id: m.id, image: mObj.imageUrl || mObj.image };
+      if (!menuByRestaurant[m.restaurantId]) menuByRestaurant[m.restaurantId] = [];
+      menuByRestaurant[m.restaurantId].push(item);
+    }
+
+    const result = restaurants.map(r => {
       const rObj = r.toJSON();
-      
       let tags = rObj.tags || [];
       if (typeof tags === 'string') {
         try { tags = JSON.parse(tags); } catch { tags = []; }
       }
-
-      return { 
-        ...rObj, 
-        _id: r.id, 
+      return {
+        ...rObj,
+        _id: r.id,
         id: r.id,
         tags,
         categories: tags,
-        menu: menu.map(m => {
-          const mObj = m.toJSON();
-          let mTags = mObj.tags || [];
-          if (typeof mTags === 'string') {
-            try { mTags = JSON.parse(mTags); } catch { mTags = []; }
-          }
-          return { ...mObj, tags: mTags, _id: m.id, id: m.id, image: mObj.imageUrl || mObj.image };
-        })
+        // Map deliveryTime (integer minutes) to time string for frontend compatibility
+        time: rObj.deliveryTime ? `${rObj.deliveryTime} min` : (rObj.time || '30-50 min'),
+        menu: menuByRestaurant[r.id] || []
       };
-    }));
+    });
+
     res.json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -98,6 +113,7 @@ exports.getRestaurantById = async (req, res) => {
       id: restaurant.id,
       tags,
       categories: tags,
+      time: resObj.deliveryTime ? `${resObj.deliveryTime} min` : (resObj.time || '30-50 min'),
       menu: menu.map(m => {
         const mObj = m.toJSON();
         let mTags = mObj.tags || [];
