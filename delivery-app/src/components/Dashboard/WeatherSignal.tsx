@@ -8,17 +8,34 @@ interface NavigatorConnection {
 }
 
 const WMO_CODES: Record<number, { label: string; icon: string }> = {
-  0: { label: 'Clear', icon: '☀️' },
-  1: { label: 'Mostly Clear', icon: '🌤️' },
+  0: { label: 'Clear Sky', icon: '☀️' },
+  1: { label: 'Mainly Clear', icon: '🌤️' },
   2: { label: 'Partly Cloudy', icon: '⛅' },
   3: { label: 'Overcast', icon: '☁️' },
   45: { label: 'Foggy', icon: '🌫️' },
-  48: { label: 'Icy Fog', icon: '🌫️' },
-  51: { label: 'Drizzle', icon: '🌦️' },
-  61: { label: 'Rain', icon: '🌧️' },
-  71: { label: 'Snow', icon: '❄️' },
-  80: { label: 'Showers', icon: '🌦️' },
+  48: { label: 'Depositing Rime Fog', icon: '🌫️' },
+  51: { label: 'Light Drizzle', icon: '🌦️' },
+  53: { label: 'Moderate Drizzle', icon: '🌦️' },
+  55: { label: 'Dense Drizzle', icon: '🌦️' },
+  56: { label: 'Light Freezing Drizzle', icon: '🌦️' },
+  57: { label: 'Dense Freezing Drizzle', icon: '🌦️' },
+  61: { label: 'Slight Rain', icon: '🌧️' },
+  63: { label: 'Moderate Rain', icon: '🌧️' },
+  65: { label: 'Heavy Rain', icon: '🌧️' },
+  66: { label: 'Light Freezing Rain', icon: '🌧️' },
+  67: { label: 'Heavy Freezing Rain', icon: '🌧️' },
+  71: { label: 'Slight Snowfall', icon: '❄️' },
+  73: { label: 'Moderate Snowfall', icon: '❄️' },
+  75: { label: 'Heavy Snowfall', icon: '❄️' },
+  77: { label: 'Snow Grains', icon: '❄️' },
+  80: { label: 'Slight Rain Showers', icon: '🌦️' },
+  81: { label: 'Moderate Rain Showers', icon: '🌦️' },
+  82: { label: 'Violent Rain Showers', icon: '🌦️' },
+  85: { label: 'Slight Snow Showers', icon: '❄️' },
+  86: { label: 'Heavy Snow Showers', icon: '❄️' },
   95: { label: 'Thunderstorm', icon: '⛈️' },
+  96: { label: 'Thunderstorm with Slight Hail', icon: '⛈️' },
+  99: { label: 'Thunderstorm with Heavy Hail', icon: '⛈️' },
 };
 
 function getNetworkQuality(): { label: string; color: string; bars: number } {
@@ -36,10 +53,10 @@ export default function WeatherSignal() {
   const [network, setNetwork] = useState(getNetworkQuality());
 
   useEffect(() => {
-    navigator.geolocation.getCurrentPosition(async (pos) => {
+    const fetchWeatherForCoords = async (lat: number, lng: number) => {
       try {
         const r = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&current_weather=true`
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`
         );
         const d = await r.json();
         setWeather({
@@ -47,14 +64,42 @@ export default function WeatherSignal() {
           code: d.current_weather.weathercode
         });
       } catch {}
-    });
+    };
+
+    const refreshWeather = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            fetchWeatherForCoords(pos.coords.latitude, pos.coords.longitude);
+          },
+          () => {
+            // Fallback to SRM AP campus
+            fetchWeatherForCoords(16.4632, 80.5064);
+          }
+        );
+      } else {
+        fetchWeatherForCoords(16.4632, 80.5064);
+      }
+    };
+
+    // Fetch immediately on mount
+    refreshWeather();
+
+    // Re-fetch every 15 minutes to match the API's 900s update interval
+    const weatherInterval = setInterval(refreshWeather, 15 * 60 * 1000);
 
     const conn = (navigator as unknown as { connection?: NavigatorConnection }).connection;
+    let cleanupNetwork: (() => void) | undefined;
     if (conn) {
       const update = () => setNetwork(getNetworkQuality());
       conn.addEventListener('change', update);
-      return () => conn.removeEventListener('change', update);
+      cleanupNetwork = () => conn.removeEventListener('change', update);
     }
+
+    return () => {
+      clearInterval(weatherInterval);
+      cleanupNetwork?.();
+    };
   }, []);
 
   const wInfo = weather ? (WMO_CODES[weather.code] || { label: 'Unknown', icon: '🌡️' }) : null;

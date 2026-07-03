@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { OrderTimer } from './OrderUtils';
+import DeliveryProof from './DeliveryProof';
 
 interface Order {
   id: string;
@@ -25,6 +26,8 @@ interface ActiveOrderCardProps {
   status: string;
   actionLoading: boolean;
   pinValue: string;
+  apiUrl: string;
+  token: string;
   onPinChange: (value: string) => void;
   onPickUp: (id: string) => void;
   onDeliver: (id: string) => void;
@@ -38,6 +41,8 @@ export default function ActiveOrderCard({
   status, 
   actionLoading, 
   pinValue, 
+  apiUrl,
+  token,
   onPinChange, 
   onPickUp, 
   onDeliver,
@@ -46,8 +51,17 @@ export default function ActiveOrderCard({
   onCancel
 }: ActiveOrderCardProps) {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const earnings = 30; // Flat ₹30 per delivery
+  const [showIssuePicker, setShowIssuePicker] = useState(false);
+  const earnings = 30;
   const isAtPickup = status === 'Accepted' || status === 'ReadyForPickup';
+
+  const ISSUE_TYPES = [
+    { label: 'Delayed', icon: '⏱️' },
+    { label: 'Wrong Items', icon: '📦' },
+    { label: 'Customer Unreachable', icon: '📵' },
+    { label: 'Restaurant Not Ready', icon: '🍳' },
+    { label: 'Road Blocked', icon: '🚧' },
+  ];
 
   return (
     <motion.div 
@@ -123,6 +137,15 @@ export default function ActiveOrderCard({
               <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-0.5">Deliver To</p>
               <h3 className="text-white font-bold text-sm leading-tight">{order.customerName}</h3>
               <p className="text-xs text-slate-500 mt-0.5 leading-tight">{order.drop}</p>
+              {/* Call customer button — only shown when PickedUp */}
+              {!isAtPickup && order.customerPhone && !order.customerPhone.includes('Protected') && (
+                <a
+                  href={`tel:${order.customerPhone}`}
+                  className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/20 transition-all"
+                >
+                  📞 Call Customer
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -163,12 +186,34 @@ export default function ActiveOrderCard({
               💬 Chat
             </button>
             <button 
-              onClick={() => onReportIssue(order.id, 'Delayed')}
+              onClick={() => setShowIssuePicker(true)}
               className="h-12 flex items-center justify-center gap-2 rounded-xl bg-red-500/5 border border-red-500/10 hover:bg-red-500/10 text-[10px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-400 transition-all"
             >
               ⚠️ Issue
             </button>
           </div>
+
+          {/* Issue Type Picker */}
+          {showIssuePicker && (
+            <div className="bg-[#111113] border border-white/10 rounded-2xl p-4 space-y-2">
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-3">Select Issue Type</p>
+              {ISSUE_TYPES.map(({ label, icon }) => (
+                <button
+                  key={label}
+                  onClick={() => { onReportIssue(order.id, label); setShowIssuePicker(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/5 hover:border-red-500/30 hover:bg-red-500/5 text-sm text-slate-300 font-bold transition-all text-left"
+                >
+                  <span>{icon}</span> {label}
+                </button>
+              ))}
+              <button
+                onClick={() => setShowIssuePicker(false)}
+                className="w-full py-2 text-[9px] font-black uppercase tracking-widest text-slate-600 hover:text-slate-400 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Primary Action (Pickup / Deliver) */}
@@ -189,6 +234,8 @@ export default function ActiveOrderCard({
             </motion.button>
           ) : (
             <div className="space-y-4">
+              {/* Delivery Proof Photo */}
+              <DeliveryProof orderId={order.id} apiUrl={apiUrl} token={token} />
               <div className="bg-white/[0.03] p-5 rounded-2xl border border-white/5">
                 <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest text-center mb-3">
                   Ask customer for 4-digit PIN

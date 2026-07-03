@@ -32,6 +32,12 @@ export default function RiderProfilePage({ driver, apiUrl, onClose, onUpdate }: 
   const [form, setForm] = useState<Partial<ProfileData>>({});
   const photoRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -91,6 +97,42 @@ export default function RiderProfilePage({ driver, apiUrl, onClose, onUpdate }: 
       }
     } catch { toast('Network error.', 'error'); }
     setSaving(false);
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      toast('Passwords do not match.', 'error');
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast('Password must be at least 6 characters.', 'error');
+      return;
+    }
+    setUpdatingPassword(true);
+    try {
+      const res = await fetch(`${apiUrl}/api/delivery/profile/password`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${driver.token}`
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast('Password updated successfully!', 'success');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setShowPasswordSection(false);
+      } else {
+        toast(data.message || 'Password update failed.', 'error');
+      }
+    } catch {
+      toast('Network error updating password.', 'error');
+    }
+    setUpdatingPassword(false);
   };
 
   if (!profile) {
@@ -267,6 +309,66 @@ export default function RiderProfilePage({ driver, apiUrl, onClose, onUpdate }: 
               <p className="text-white font-bold text-sm tracking-widest">{profile.vehicleNumber || '—'}</p>
             )}
           </div>
+        </div>
+
+        {/* Security & Password */}
+        <div className="bg-[#111113] border border-white/5 rounded-[28px] p-5 space-y-4">
+          <button
+            type="button"
+            onClick={() => setShowPasswordSection(!showPasswordSection)}
+            className="w-full flex items-center justify-between text-left focus:outline-none"
+          >
+            <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">Security & Password</span>
+            <span className="text-xs text-gray-400">{showPasswordSection ? '▼' : '▶'}</span>
+          </button>
+
+          {showPasswordSection && (
+            <form onSubmit={handlePasswordChange} className="space-y-4 pt-2">
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-widest text-gray-500">Current Password</label>
+                <input
+                  type="password"
+                  required
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500/50 transition-all placeholder:text-gray-600"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-widest text-gray-500">New Password</label>
+                <input
+                  type="password"
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="•••••••• (Min 6 chars)"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500/50 transition-all placeholder:text-gray-600"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-widest text-gray-500">Confirm New Password</label>
+                <input
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500/50 transition-all placeholder:text-gray-600"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={updatingPassword}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-50 transition-all"
+              >
+                {updatingPassword ? 'Updating...' : 'Update Password'}
+              </button>
+            </form>
+          )}
         </div>
 
         {/* Identity Card Preview — shown to customers during tracking */}

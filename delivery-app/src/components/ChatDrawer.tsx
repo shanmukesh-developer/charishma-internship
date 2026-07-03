@@ -75,11 +75,13 @@ export default function ChatDrawer({ orderId, userName, userRole, socket, isOpen
     }, 1500);
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-lg bg-[#11111A] border-t border-white/10 rounded-t-[32px] h-[80vh] flex flex-col shadow-2xl animate-slide-up">
+    <div className={`fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm transition-all duration-300 ${
+      isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+    }`}>
+      <div className={`w-full max-w-lg bg-[#11111A] border-t border-white/10 rounded-t-[32px] h-[80vh] flex flex-col shadow-2xl transition-all duration-300 ${
+        isOpen ? 'translate-y-0' : 'translate-y-full'
+      }`}>
         {/* Header */}
         <div className="p-6 border-b border-white/5 flex items-center justify-between">
           <div className="flex items-center gap-3">

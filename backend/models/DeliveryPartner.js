@@ -26,7 +26,9 @@ const initDeliveryPartnerModel = (sequelize) => {
     fcmTokens: { type: DataTypes.JSON, defaultValue: [] },
     isFcmActive: { type: DataTypes.BOOLEAN, defaultValue: false },
     isSosActive: { type: DataTypes.BOOLEAN, defaultValue: false },
-    isApproved: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isApproved: { type: DataTypes.BOOLEAN, defaultValue: false },
+    loginStreak: { type: DataTypes.INTEGER, defaultValue: 0 },
+    lastLoginDate: { type: DataTypes.DATEONLY, defaultValue: null }
   }, { 
     timestamps: true,
     indexes: [

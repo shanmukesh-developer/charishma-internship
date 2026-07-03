@@ -6,10 +6,12 @@ interface RiderNavbarProps {
   driverName: string;
   driverPhoto?: string;
   isOnline: boolean;
+  unreadCount?: number;
   toggleOnline: () => void;
   onLogout: () => void;
   onOpenProfile: () => void;
   onOpenEarnings: () => void;
+  onOpenNotifications: () => void;
   currentEarnings?: number;
 }
 
@@ -17,10 +19,12 @@ export default function RiderNavbar({
   driverName, 
   driverPhoto, 
   isOnline, 
+  unreadCount = 0,
   toggleOnline, 
   onLogout, 
   onOpenProfile,
   onOpenEarnings,
+  onOpenNotifications,
   currentEarnings = 0,
 }: RiderNavbarProps) {
   return (
@@ -50,7 +54,7 @@ export default function RiderNavbar({
 
       {/* Right Controls */}
       <div className="flex items-center gap-3">
-        {/* Earnings Button (Clickable) */}
+        {/* Earnings Button */}
         {isOnline && (
           <button 
             onClick={onOpenEarnings}
@@ -60,7 +64,21 @@ export default function RiderNavbar({
           </button>
         )}
 
-        {/* Online Toggle + Logout */}
+        {/* Notification Bell */}
+        <button
+          onClick={onOpenNotifications}
+          className="relative w-10 h-10 flex items-center justify-center rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/8 transition-all"
+          title="Notifications"
+        >
+          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 shadow-lg shadow-red-500/30 animate-bounce">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </button>
         <div className="flex items-center gap-2 bg-surface border border-white/5 p-1.5 rounded-2xl shadow-lg">
           <button 
             onClick={toggleOnline}

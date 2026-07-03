@@ -61,6 +61,25 @@ const authPartner = async (req, res) => {
     // ── 3. Return partner data and JWT token ────────────────────────────────
     const token = generateToken(partner.id);
     res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 30 * 24 * 60 * 60 * 1000 });
+
+    // ── Streak Computation (IST) ───────────────────────────────────────
+    const nowUtc = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const todayIST = new Date(nowUtc.getTime() + istOffset).toISOString().slice(0, 10);
+    const lastLogin = partner.lastLoginDate ? String(partner.lastLoginDate) : null;
+
+    if (lastLogin !== todayIST) {
+      const yesterdayIST = new Date(nowUtc.getTime() + istOffset - 86400000).toISOString().slice(0, 10);
+      if (lastLogin === yesterdayIST) {
+        partner.loginStreak = (partner.loginStreak || 0) + 1;
+      } else if (lastLogin === null || lastLogin < yesterdayIST) {
+        partner.loginStreak = 1; // reset — missed a day
+      }
+      partner.lastLoginDate = todayIST;
+      await partner.save();
+    }
+    // ─────────────────────────────────────────────────────────────────
+
     res.json({ 
       _id: partner.id, 
       name: partner.name, 
@@ -72,6 +91,7 @@ const authPartner = async (req, res) => {
       zenPoints: partner.zenPoints,
       completedDeliveries: partner.completedDeliveries,
       rating: partner.rating,
+      loginStreak: partner.loginStreak || 1,
       token 
     });
   } catch (error) {
@@ -86,6 +106,10 @@ const acceptOrder = async (req, res) => {
     const DeliveryPartner = getDeliveryPartnerModel();
     const Order = getOrderModel();
     const partner = await DeliveryPartner.findByPk(req.user.id);
+    if (!partner) return res.status(401).json({ message: 'Rider account not found' });
+    if (!partner.isApproved) {
+      return res.status(403).json({ message: 'Your account is pending verification by the logistics admin.' });
+    }
     
     // 2. Atomic Claim: Use a conditional update to prevent race conditions (Rider A vs Rider B)
     const [updatedRows] = await Order.update(
@@ -144,6 +168,13 @@ const acceptOrder = async (req, res) => {
 // @desc    Get all pending orders
 const getPendingOrders = async (req, res) => {
   try {
+    const DeliveryPartner = getDeliveryPartnerModel();
+    const partner = await DeliveryPartner.findByPk(req.user.id);
+    if (!partner) return res.status(401).json({ message: 'Rider account not found' });
+    if (!partner.isApproved) {
+      return res.status(403).json({ message: 'Your account is pending verification by the logistics admin.' });
+    }
+
     const Order = getOrderModel();
     const User = getUserModel();
     const Restaurant = getRestaurantModel();
@@ -380,7 +411,13 @@ const cancelOrderByRider = async (req, res) => {
 const toggleOnline = async (req, res) => {
   try {
     const DeliveryPartner = getDeliveryPartnerModel();
-    await DeliveryPartner.update({ isOnline: req.body.isOnline }, { where: { id: req.user.id } });
+    const partner = await DeliveryPartner.findByPk(req.user.id);
+    if (!partner) return res.status(401).json({ message: 'Rider account not found' });
+    if (!partner.isApproved) {
+      return res.status(403).json({ message: 'Your account is pending verification by the logistics admin.' });
+    }
+    partner.isOnline = req.body.isOnline;
+    await partner.save();
     res.json({ isOnline: req.body.isOnline });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -412,6 +449,13 @@ const saveFcmToken = async (req, res) => {
 // @desc    Get all active orders for the logged in partner
 const getActiveOrders = async (req, res) => {
   try {
+    const DeliveryPartner = getDeliveryPartnerModel();
+    const partner = await DeliveryPartner.findByPk(req.user.id);
+    if (!partner) return res.status(401).json({ message: 'Rider account not found' });
+    if (!partner.isApproved) {
+      return res.status(403).json({ message: 'Your account is pending verification by the logistics admin.' });
+    }
+
     const Order = getOrderModel();
     const User = getUserModel();
     const Restaurant = getRestaurantModel();
@@ -552,8 +596,9 @@ const getTodayStats = async (req, res) => {
 
     const earnings = orders.length * 30; // Flat ₹30 per delivery
     const count = orders.length;
-
-    res.json({ earnings, orders: count, zenPoints: count * 5, streak: 1 });
+    const DeliveryPartner = getDeliveryPartnerModel();
+    const partner = await DeliveryPartner.findByPk(req.user.id, { attributes: ['loginStreak'] });
+    res.json({ earnings, orders: count, zenPoints: count * 5, streak: partner?.loginStreak || 1 });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -622,9 +667,33 @@ const getPublicRiderProfile = async (req, res) => {
   }
 };
 
+// @desc    Change rider's own password
+const changePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  try {
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required' });
+    }
+    const DeliveryPartner = getDeliveryPartnerModel();
+    const partner = await DeliveryPartner.findByPk(req.user.id);
+    if (!partner) {
+      return res.status(404).json({ message: 'Rider account not found' });
+    }
+    const isMatch = await partner.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid current password' });
+    }
+    partner.password = newPassword;
+    await partner.save();
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 module.exports = { 
   registerPartner, authPartner, acceptOrder, getPendingOrders, getActiveOrders, 
   updateOrderStatus, toggleOnline, getOrderHistory, saveFcmToken, getLeaderboard,
   getRiderProfile, updateRiderProfile, getPublicRiderProfile, getTodayStats,
-  cancelOrderByRider
+  cancelOrderByRider, changePassword
 };

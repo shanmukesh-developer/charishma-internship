@@ -46,7 +46,7 @@ export default function AdminLoginPage() {
           return;
         }
         
-        localStorage.setItem('user', JSON.stringify({ id: data._id, name: data.name, role: data.role }));
+        localStorage.setItem('user', JSON.stringify({ id: data._id, name: data.name, role: data.role, token: data.token }));
         router.push('/');
       } else {
         setError(data.message || 'Authentication failed.');

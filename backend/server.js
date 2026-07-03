@@ -96,12 +96,16 @@ const isAllowedOrigin = (origin) => {
 };
 
 const app = express();
+
+// Enable trust proxy to correctly identify client IPs behind reverse proxies (like Render, Nginx, or Cloudflare)
+app.set('trust proxy', 1);
+
 const rateLimit = require('express-rate-limit');
 
 // ── Global API Shield (DDoS Protection) ──────────────────────
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300, // Limit each IP to 300 requests per `window`
+  max: 5000, // Limit each IP to 5000 requests per `window` (scaled for 100+ concurrent users/shared Wi-Fi)
   message: { message: 'Too many requests from this IP, please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -481,19 +485,34 @@ const startServer = async () => {
           console.warn(`[SOCKET_ADMIN_DENIED] Unauthorized joinAdmin attempt by ${socket.user?.id}`);
         }
       });
-      socket.on('updateLocation', (data) => {
+      socket.on('updateLocation', async (data) => {
         if (socket.user && socket.user.role && socket.user.role.toLowerCase() === 'rider') {
           const room = String(data.orderId).trim();
-          io.to(room).emit('checkpointUpdated', { currentCheckpoint: data.currentCheckpoint });
-          log(`[CHECKPOINT] ${data.orderId} → ${data.currentCheckpoint}`);
+          try {
+            const { getOrderModel } = require('./models/Order');
+            const Order = getOrderModel();
+            const order = await Order.findByPk(room);
+            if (order && order.deliveryPartnerId === socket.user.id) {
+              io.to(room).emit('checkpointUpdated', { currentCheckpoint: data.currentCheckpoint });
+              log(`[CHECKPOINT] ${data.orderId} → ${data.currentCheckpoint}`);
+            } else {
+              console.warn(`[SOCKET_DENIED] Rider ${socket.user.id} not assigned to order ${room} for location update`);
+            }
+          } catch (err) {
+            console.error('[SOCKET_UPDATE_LOCATION_ERROR]', err.message);
+          }
         } else {
           console.warn(`[SOCKET_DENIED] Unauthorized location update by ${socket.user?.id}`);
         }
       });
       
       socket.on('sos_alert', (data) => {
-        log(`[CRITICAL SOS] Triggered by ${data.riderName} (ID: ${data.riderId}) at ${data.timestamp}`);
-        io.to('admin-room').emit('sos_received', data);
+        if (socket.user && socket.user.role && socket.user.role.toLowerCase() === 'rider' && data.riderId === socket.user.id) {
+          log(`[CRITICAL SOS] Triggered by ${data.riderName} (ID: ${data.riderId}) at ${data.timestamp}`);
+          io.to('admin-room').emit('sos_received', data);
+        } else {
+          console.warn(`[SOCKET_DENIED] Unauthorized sos_alert attempt by user ${socket.user?.id}`);
+        }
       });
 
       socket.on('admin_broadcast', (data) => {
@@ -591,60 +610,109 @@ const startServer = async () => {
 
       // Rider came online: broadcast to admin dashboard
       socket.on('rider_connected', (data) => {
-        log(`[RIDER ONLINE] ${data.name} (${data.driverId})`);
-        io.to('admin-room').emit('admin_rider_online', { riderId: data.driverId, name: data.name, timestamp: new Date().toISOString() });
+        if (socket.user && socket.user.role && socket.user.role.toLowerCase() === 'rider' && data.driverId === socket.user.id) {
+          log(`[RIDER ONLINE] ${data.name} (${data.driverId})`);
+          io.to('admin-room').emit('admin_rider_online', { riderId: data.driverId, name: data.name, timestamp: new Date().toISOString() });
+        } else {
+          console.warn(`[SOCKET_DENIED] Unauthorized rider_connected attempt by user ${socket.user?.id}`);
+        }
       });
 
       // Rider went offline
       socket.on('rider_disconnected', (data) => {
-        log(`[RIDER OFFLINE] ${data.driverId}`);
-        io.to('admin-room').emit('admin_rider_offline', { riderId: data.driverId, timestamp: new Date().toISOString() });
+        if (socket.user && socket.user.role && socket.user.role.toLowerCase() === 'rider' && data.driverId === socket.user.id) {
+          log(`[RIDER OFFLINE] ${data.driverId}`);
+          io.to('admin-room').emit('admin_rider_offline', { riderId: data.driverId, timestamp: new Date().toISOString() });
+        } else {
+          console.warn(`[SOCKET_DENIED] Unauthorized rider_disconnected attempt by user ${socket.user?.id}`);
+        }
       });
 
       // Rider toggled online/offline status
       socket.on('rider_status_change', (data) => {
-        log(`[RIDER STATUS] ${data.name} → ${data.isOnline ? 'ONLINE' : 'OFFLINE'}`);
-        io.to('admin-room').emit('admin_rider_status', { riderId: data.riderId, name: data.name, isOnline: data.isOnline });
+        if (socket.user && socket.user.role && socket.user.role.toLowerCase() === 'rider' && data.riderId === socket.user.id) {
+          log(`[RIDER STATUS] ${data.name} → ${data.isOnline ? 'ONLINE' : 'OFFLINE'}`);
+          io.to('admin-room').emit('admin_rider_status', { riderId: data.riderId, name: data.name, isOnline: data.isOnline });
+        } else {
+          console.warn(`[SOCKET_DENIED] Unauthorized rider_status_change attempt by user ${socket.user?.id}`);
+        }
       });
 
       // Rider accepted → notify admin + join the broadcast room
       socket.on('rider_accepted', async (data) => {
-        if (socket.user && socket.user.role && socket.user.role.toLowerCase() === 'rider') {
+        if (socket.user && socket.user.role && socket.user.role.toLowerCase() === 'rider' && data.riderId === socket.user.id) {
           const room = String(data.orderId).trim();
           await socket.join(room);
           log(`[RIDER ACCEPTED] ${data.riderName} accepted order ${data.orderId}`);
           io.to('admin-room').emit('admin_order_accepted', { orderId: data.orderId, riderId: data.riderId, riderName: data.riderName });
+        } else {
+          console.warn(`[SOCKET_DENIED] Unauthorized rider_accepted attempt by user ${socket.user?.id}`);
         }
       });
 
       // Rider live GPS → admin map + customer tracking (already via updateLocation, this is admin stream)
-      socket.on('rider_location_update', (data) => {
-        // Broadcast checkpoint to admin dashboard room ONLY
-        io.to('admin-room').emit('admin_rider_location', {
-          riderId: data.riderId,
-          riderName: data.riderName,
-          currentCheckpoint: data.currentCheckpoint,
-          activeOrderCount: data.activeOrderCount,
-          isOnline: data.isOnline,
-          timestamp: Date.now()
-        });
-        // Also emit to specific order room for customer tracking
-        if (data.activeOrderId) {
-            io.to(String(data.activeOrderId)).emit('checkpointUpdated', { currentCheckpoint: data.currentCheckpoint });
+      socket.on('rider_location_update', async (data) => {
+        if (socket.user && socket.user.role && socket.user.role.toLowerCase() === 'rider' && data.riderId === socket.user.id) {
+          // Verify activeOrderId if provided
+          if (data.activeOrderId) {
+            try {
+              const { getOrderModel } = require('./models/Order');
+              const Order = getOrderModel();
+              const order = await Order.findByPk(String(data.activeOrderId).trim());
+              if (!order || order.deliveryPartnerId !== socket.user.id) {
+                console.warn(`[SOCKET_DENIED] Rider ${socket.user.id} tried to update location for unauthorized order ${data.activeOrderId}`);
+                return;
+              }
+            } catch (err) {
+              console.error('[SOCKET_RIDER_LOCATION_UPDATE_ERROR]', err.message);
+              return;
+            }
+          }
+
+          // Broadcast checkpoint to admin dashboard room ONLY
+          io.to('admin-room').emit('admin_rider_location', {
+            riderId: data.riderId,
+            riderName: data.riderName,
+            currentCheckpoint: data.currentCheckpoint,
+            activeOrderCount: data.activeOrderCount,
+            isOnline: data.isOnline,
+            timestamp: Date.now()
+          });
+          // Also emit to specific order room for customer tracking
+          if (data.activeOrderId) {
+              io.to(String(data.activeOrderId)).emit('checkpointUpdated', { currentCheckpoint: data.currentCheckpoint });
+          }
+          log(`[GPS] Rider ${data.riderName} at ${data.currentCheckpoint}`);
+        } else {
+          console.warn(`[SOCKET_DENIED] Unauthorized rider_location_update by user ${socket.user?.id}`);
         }
-        log(`[GPS] Rider ${data.riderName} at ${data.currentCheckpoint}`);
       });
 
       // Rider completed a delivery
-      socket.on('rider_delivered', (data) => {
-        log(`[DELIVERED] ${data.riderName} completed order ${data.orderId} (+₹${data.earnings})`);
-        io.to('admin-room').emit('admin_delivery_complete', {
-          orderId: data.orderId,
-          riderId: data.riderId,
-          riderName: data.riderName,
-          earnings: data.earnings,
-          timestamp: new Date().toISOString()
-        });
+      socket.on('rider_delivered', async (data) => {
+        if (socket.user && socket.user.role && socket.user.role.toLowerCase() === 'rider' && data.riderId === socket.user.id) {
+          try {
+            const { getOrderModel } = require('./models/Order');
+            const Order = getOrderModel();
+            const order = await Order.findByPk(String(data.orderId).trim());
+            if (order && order.deliveryPartnerId === socket.user.id) {
+              log(`[DELIVERED] ${data.riderName} completed order ${data.orderId} (+₹${data.earnings})`);
+              io.to('admin-room').emit('admin_delivery_complete', {
+                orderId: data.orderId,
+                riderId: data.riderId,
+                riderName: data.riderName,
+                earnings: data.earnings,
+                timestamp: new Date().toISOString()
+              });
+            } else {
+              console.warn(`[SOCKET_DENIED] Rider ${socket.user.id} not assigned to order ${data.orderId} for delivery completion`);
+            }
+          } catch (err) {
+            console.error('[SOCKET_RIDER_DELIVERED_ERROR]', err.message);
+          }
+        } else {
+          console.warn(`[SOCKET_DENIED] Unauthorized rider_delivered attempt by user ${socket.user?.id}`);
+        }
       });
 
       socket.on('disconnect', () => {

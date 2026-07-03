@@ -52,20 +52,39 @@ export default function SOSPanel({ riderName, riderId, socket }: SOSPanelProps) 
     setSosActive(true);
     setIsConfirming(false);
     setSosCountdown(0);
+
+    const sendPayload = (lat: number, lng: number, coordsInaccurate = false) => {
+      const payload = {
+        riderName,
+        riderId,
+        lat,
+        lng,
+        coordsInaccurate,
+        timestamp: new Date().toISOString(),
+        message: coordsInaccurate 
+          ? 'Emergency SOS triggered. Location unavailable (fallback coordinates used).'
+          : 'Emergency SOS triggered by rider.'
+      };
+      if (socket?.connected) socket.emit('sos_alert', payload);
+      console.warn('[SOS] Payload emitted:', payload);
+    };
+
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((pos) => {
-        const payload = {
-          riderName,
-          riderId,
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          timestamp: new Date().toISOString(),
-          message: 'Emergency SOS triggered by rider.'
-        };
-        if (socket?.connected) socket.emit('sos_alert', payload);
-        console.warn('[SOS] Payload emitted:', payload);
-      });
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          sendPayload(pos.coords.latitude, pos.coords.longitude, false);
+        },
+        (err) => {
+          console.warn('[SOS] Geolocation failed. Using fallback coordinates. Error:', err.message);
+          sendPayload(16.4632, 80.5064, true);
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    } else {
+      console.warn('[SOS] Geolocation not supported. Using fallback.');
+      sendPayload(16.4632, 80.5064, true);
     }
+
     // Auto-deactivate after 30s
     setTimeout(() => setSosActive(false), 30000);
   };

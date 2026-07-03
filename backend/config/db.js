@@ -170,8 +170,8 @@ const connectDB = async () => {
         dialect: 'postgres',
         dialectOptions: dialectOptions,
         pool: {
-          max: 10,
-          min: 2,
+          max: 50, // Increased to 50 to support 100+ concurrent users
+          min: 5,  // Increased to 5 for warmer connections
           acquire: 60000,
           idle: 20000
         },
@@ -282,6 +282,16 @@ const connectDB = async () => {
         try {
           await sequelize.query('ALTER TABLE "Users" ADD COLUMN "genderPreference" VARCHAR(255) DEFAULT \'Any\';');
           console.log('✅ [SQLite_MIGRATION] Added genderPreference column to Users.');
+        } catch (_err) {}
+
+        try {
+          await sequelize.query('ALTER TABLE "DeliveryPartners" ADD COLUMN "loginStreak" INTEGER DEFAULT 0;');
+          console.log('✅ [SQLite_MIGRATION] Added loginStreak column to DeliveryPartners.');
+        } catch (_err) {}
+
+        try {
+          await sequelize.query('ALTER TABLE "DeliveryPartners" ADD COLUMN "lastLoginDate" VARCHAR(255);');
+          console.log('✅ [SQLite_MIGRATION] Added lastLoginDate column to DeliveryPartners.');
         } catch (_err) {}
 
         // Restaurant Local Vendor & new fields migration
