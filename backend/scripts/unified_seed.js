@@ -57,7 +57,13 @@ const unifiedSeed = async () => {
   }
 
   // Clear old tables to prevent duplicates and clean up legacy data
-  console.log('🧹 Clearing existing restaurants and menu items...');
+  console.log('🧹 Clearing existing data for fresh seed...');
+  const sequelize = getSequelize();
+  // Clear FK-dependent tables first
+  const Order = sequelize.models.Order;
+  if (Order) await Order.destroy({ where: {}, force: true });
+  const CommunityPost = sequelize.models.CommunityPost;
+  if (CommunityPost) await CommunityPost.destroy({ where: {}, force: true });
   await MenuItem.destroy({ where: {} });
   await Restaurant.destroy({ where: {} });
 
