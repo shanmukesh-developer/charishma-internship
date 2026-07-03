@@ -37,7 +37,7 @@ export default function RegisterPage() {
       });
       const data = await response.json();
       if (response.ok) {
-        localStorage.setItem('user', JSON.stringify({ id: data._id, name: data.name, phone: data.phone }));
+        localStorage.setItem('user', JSON.stringify({ id: data._id, name: data.name, phone: data.phone, token: data.token }));
         if (formData.referralCode.trim()) {
           try {
             await fetch(`${API_URL}/api/features/referral/apply`, {
@@ -81,6 +81,7 @@ export default function RegisterPage() {
         localStorage.setItem('user', JSON.stringify({
           id: data._id, name: data.name, phone: data.phone,
           hostelBlock: data.hostelBlock, roomNumber: data.roomNumber,
+          token: data.token,
         }));
         setOverlay({ isOpen: true, title: 'Account Created', message: 'Welcome to Zenvy!', type: 'success' });
         setTimeout(() => router.push('/'), 2000);

@@ -27,10 +27,7 @@ export default function FetchInterceptor() {
         // Load token from localStorage to append as Bearer token if not already present
         let token = null;
         try {
-          const storedDriver = localStorage.getItem('driver');
-          if (storedDriver) {
-            token = JSON.parse(storedDriver).token;
-          }
+          token = localStorage.getItem('driverToken');
         } catch {}
 
         const headers = new Headers(config.headers || {});

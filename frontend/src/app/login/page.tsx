@@ -52,6 +52,7 @@ export default function LoginPage() {
           phone: data.phone,
           hostelBlock: data.hostelBlock,
           roomNumber: data.roomNumber,
+          token: data.token,
         }));
         setOverlay({ isOpen: true, title: 'Welcome Back', message: `Signed in as ${data.name}.`, type: 'success' });
         setTimeout(() => router.push('/'), 1500);
@@ -83,6 +84,7 @@ export default function LoginPage() {
         localStorage.setItem('user', JSON.stringify({
           id: data._id, name: data.name, phone: data.phone,
           hostelBlock: data.hostelBlock, roomNumber: data.roomNumber,
+          token: data.token,
         }));
         setOverlay({ isOpen: true, title: 'Welcome', message: `Signed in as ${data.name}.`, type: 'success' });
         setTimeout(() => router.push('/'), 1500);
