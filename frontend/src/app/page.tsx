@@ -263,20 +263,7 @@ export default function Home() {
     };
   }, []);
 
-  useEffect(() => {
-    if (activeOrder && cancelSecondsLeft > 0) {
-      const timer = setInterval(() => {
-        setCancelSecondsLeft(prev => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [activeOrder, cancelSecondsLeft]);
+
   useEffect(() => {
     const handleSystemUpdate = (payload: { type: string; data: any }) => {
       const currentUser = userRef.current;
