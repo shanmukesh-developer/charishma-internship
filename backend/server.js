@@ -306,7 +306,7 @@ const startServer = async () => {
         }
       }
     } else {
-      // Production: Auto-seed if database is completely empty (fresh deploy)
+      // Production: Auto-seed if database is empty or critically low on data
       const { getUserModel } = require('./models/User');
       const User = getUserModel();
       if (User) {
@@ -317,8 +317,9 @@ const startServer = async () => {
         const restCount = Restaurant ? await Restaurant.count() : 0;
         const MenuItem = instance.models.MenuItem;
         const menuCount = MenuItem ? await MenuItem.count() : 0;
-        if (restCount === 0 && menuCount === 0) {
-          console.log(`🌱 [PROD_SEED] Fresh deploy detected (Restaurants: ${restCount}, MenuItems: ${menuCount}). Seeding...`);
+        // Trigger seed if DB is empty OR critically low (partial data loss)
+        if (menuCount < 5) {
+          console.log(`🌱 [PROD_SEED] Data critically low (Restaurants: ${restCount}, MenuItems: ${menuCount}, Users: ${userCount}). Re-seeding...`);
           try {
             const seedPath = require('path').join(__dirname, 'scripts', 'seed_full.js');
             delete require.cache[seedPath]; // Clear cache

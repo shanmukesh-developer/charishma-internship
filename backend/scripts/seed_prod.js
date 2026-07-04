@@ -165,8 +165,79 @@ const CONFIGS = [
   { key:'maintenance_mode', value:false, description:'Freeze all orders when true' },
 ];
 
+const PG_HOSTELS = [
+  {
+    name: 'Stanza Living Rome',
+    address: 'SRM AP Sector 3, Near Academic Block',
+    distanceFromCollege: 0.8,
+    genderType: 'Boys',
+    baseRent: 8500,
+    amenities: ['High-speed Wi-Fi', '24/7 Power Backup', 'Professional Housekeeping', '3-Course Meals', 'Gym Access'],
+    images: [
+      'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=800',
+      'https://images.unsplash.com/photo-1598928506311-c55ded91a206?q=80&w=800'
+    ],
+    description: 'Premium student housing with fully loaded amenities including high-speed Wi-Fi, laundry, gym, and 3-course delicious meals.',
+    rooms: [
+      { roomNumber: '101', sharingType: 2, pricePerBed: 9500, totalBeds: 2, availableBeds: 2 },
+      { roomNumber: '102', sharingType: 3, pricePerBed: 8500, totalBeds: 3, availableBeds: 3 }
+    ]
+  },
+  {
+    name: 'Olive Premium PG',
+    address: 'Neerukonda Bypass Road, Amaravathi',
+    distanceFromCollege: 1.2,
+    genderType: 'Girls',
+    baseRent: 9000,
+    amenities: ['Card Access Security', 'Biometric Entry', 'Study Lounge', 'Indoor Games', 'Laundry Service'],
+    images: [
+      'https://images.unsplash.com/photo-1505691938895-1758d7feb511?q=80&w=800',
+      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=800'
+    ],
+    description: 'Safe & secure luxury accommodation for girls. Features card-access security, indoor games, study lounge, and housekeeping.',
+    rooms: [
+      { roomNumber: '201', sharingType: 1, pricePerBed: 12000, totalBeds: 1, availableBeds: 1 },
+      { roomNumber: '202', sharingType: 2, pricePerBed: 9000, totalBeds: 2, availableBeds: 2 }
+    ]
+  },
+  {
+    name: 'Zolo Scholar House',
+    address: 'Inavolu Road, Amaravathi',
+    distanceFromCollege: 1.8,
+    genderType: 'Co-ed',
+    baseRent: 6500,
+    amenities: ['Community Zone', 'Xbox Lounge', 'Self Cooking Kitchen', 'High-speed Wi-Fi', 'Bicycle Parking'],
+    images: [
+      'https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=800',
+      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=800'
+    ],
+    description: 'Managed co-living space for modern students. Social community events, gaming zone, and workspace.',
+    rooms: [
+      { roomNumber: '301', sharingType: 2, pricePerBed: 7500, totalBeds: 2, availableBeds: 1 },
+      { roomNumber: '302', sharingType: 4, pricePerBed: 6500, totalBeds: 4, availableBeds: 4 }
+    ]
+  },
+  {
+    name: 'Nexus Elite PG',
+    address: 'SRM AP Main Gate Road, Neerukonda',
+    distanceFromCollege: 0.5,
+    genderType: 'Co-ed',
+    baseRent: 11000,
+    amenities: ['Central Air Conditioning', 'Personal Pantry', 'Swimming Pool', 'Premium Cafeteria', 'On-demand Shuttle'],
+    images: [
+      'https://images.unsplash.com/photo-1616594039964-ae9021a400a0?q=80&w=800',
+      'https://images.unsplash.com/photo-1502005229762-fc1b2b812ca5?q=80&w=800'
+    ],
+    description: 'Ultra-luxury co-living right next to the campus. AC rooms, personal pantry, laundry, swimming pool, and premium cafeteria.',
+    rooms: [
+      { roomNumber: '401', sharingType: 1, pricePerBed: 15000, totalBeds: 1, availableBeds: 1 },
+      { roomNumber: '402', sharingType: 2, pricePerBed: 11000, totalBeds: 2, availableBeds: 2 }
+    ]
+  }
+];
+
 async function seedProduction(sequelize) {
-  const { Restaurant, MenuItem, User, DeliveryPartner, VaultItem, GlobalConfig, Coupon, CommunityPost } = sequelize.models;
+  const { Restaurant, MenuItem, User, DeliveryPartner, VaultItem, GlobalConfig, Coupon, CommunityPost, PGHostel, PGRoom } = sequelize.models;
 
   console.log('🌱 [SEED] Non-destructive production seed starting...');
   // NO MORE destroy() calls — we use findOrCreate to preserve existing data
@@ -204,7 +275,28 @@ async function seedProduction(sequelize) {
     await CommunityPost.findOrCreate({ where: { content: 'Green Bowl quinoa bowl = best healthy option on campus 💪' }, defaults: { userId:users[1].id, userName:users[1].name, content:'Green Bowl quinoa bowl = best healthy option on campus 💪', likes:9, expiresAt:new Date(Date.now()+48*3600000) }});
   }
 
-  console.log(`✅ [SEED] Done! ${MENUS.length} items across ${RESTS.length} restaurants (non-destructive).`);
+  // ── Seed PG Hostels & Rooms ────────────────────────────────────
+  if (PGHostel && PGRoom) {
+    const adminUser = users.find(u => u.role === 'admin') || users[0];
+    const ownerId = adminUser ? adminUser.id : null;
+
+    for (const pgData of PG_HOSTELS) {
+      const { rooms, ...hostelFields } = pgData;
+      const [hostel] = await PGHostel.findOrCreate({
+        where: { name: pgData.name },
+        defaults: { ...hostelFields, ownerId }
+      });
+      for (const room of rooms) {
+        await PGRoom.findOrCreate({
+          where: { hostelId: hostel.id, roomNumber: room.roomNumber },
+          defaults: { ...room, hostelId: hostel.id }
+        });
+      }
+    }
+    console.log(`🏠 [SEED] Seeded ${PG_HOSTELS.length} PG Hostels with rooms.`);
+  }
+
+  console.log(`✅ [SEED] Done! ${MENUS.length} items across ${RESTS.length} restaurants + ${PG_HOSTELS.length} PGs (non-destructive).`);
 }
 
 module.exports = { seedProduction };
