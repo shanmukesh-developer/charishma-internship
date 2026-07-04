@@ -221,8 +221,8 @@ const connectDB = async () => {
         dialect: 'postgres',
         dialectOptions: dialectOptions,
         pool: {
-          max: 20, // Reduced from 100 to prevent "too many connections" failures under clustering
-          min: 2,  // Keep a small pool of warm connections ready
+          max: 5, // Reduced to prevent "too many connections" under Render's clustering limits
+          min: 1,  // Keep a minimal pool of warm connections ready
           acquire: 60000,
           idle: 30000,
           evict: 15000 // Check for stale connections every 15s

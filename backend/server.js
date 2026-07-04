@@ -847,6 +847,7 @@ setInterval(async () => {
   try {
     const { getMenuItemModel } = require('./models/MenuItem');
     const MenuItem = getMenuItemModel();
+    if (!MenuItem) return;
     const { Op } = require('sequelize');
     
     const expiredItems = await MenuItem.findAll({
