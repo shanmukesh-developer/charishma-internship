@@ -20,6 +20,29 @@ const protect = async (req, res, next) => {
       return res.status(500).json({ message: 'Server configuration error' });
     }
     const decoded = jwt.verify(token, secret);
+    
+    if (decoded.role === 'restaurant') {
+       const { getRestaurantModel } = require('../models/Restaurant');
+       const Restaurant = getRestaurantModel();
+       if (Restaurant) {
+         const dbRest = await Restaurant.findByPk(decoded.id);
+         if (!dbRest) return res.status(401).json({ message: 'Restaurant not found' });
+         req.user = { id: dbRest.id, role: 'restaurant', name: dbRest.name };
+         return next();
+       }
+    }
+    
+    if (decoded.role === 'rider') {
+       const { getDeliveryPartnerModel } = require('../models/DeliveryPartner');
+       const DeliveryPartner = getDeliveryPartnerModel();
+       if (DeliveryPartner) {
+         const dbRider = await DeliveryPartner.findByPk(decoded.id);
+         if (!dbRider) return res.status(401).json({ message: 'Rider not found' });
+         req.user = { id: dbRider.id, role: 'rider', name: dbRider.name };
+         return next();
+       }
+    }
+
     const { getUserModel } = require('../models/User');
     const User = getUserModel();
     if (User) {
