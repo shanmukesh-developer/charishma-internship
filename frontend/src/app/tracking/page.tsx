@@ -54,6 +54,7 @@ function TrackingContent() {
   const [userName, setUserName] = useState('Customer');
   const [copied, setCopied] = useState(false);
   const [zoomPin, setZoomPin] = useState(false);
+  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
 
   const copyPin = () => {
     if (!orderInfo?.deliveryPin) return;
