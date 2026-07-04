@@ -6,6 +6,7 @@ import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '@/utils/firebase';
 import SuccessOverlay from '@/components/SuccessOverlay';
 import { API_URL } from '@/utils/api';
+import { refreshSocketAuth } from '@/utils/socket';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -38,6 +39,7 @@ export default function RegisterPage() {
       const data = await response.json();
       if (response.ok) {
         localStorage.setItem('user', JSON.stringify({ id: data._id, name: data.name, phone: data.phone, token: data.token }));
+        refreshSocketAuth();
         if (formData.referralCode.trim()) {
           try {
             await fetch(`${API_URL}/api/features/referral/apply`, {
@@ -83,6 +85,7 @@ export default function RegisterPage() {
           hostelBlock: data.hostelBlock, roomNumber: data.roomNumber,
           token: data.token,
         }));
+        refreshSocketAuth();
         setOverlay({ isOpen: true, title: 'Account Created', message: 'Welcome to Zenvy!', type: 'success' });
         setTimeout(() => router.push('/'), 2000);
       } else {

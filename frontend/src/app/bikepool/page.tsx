@@ -43,6 +43,7 @@ interface RidePool {
     gender: string;
     genderPreference: string;
     profileImage: string | null;
+    karmaPoints?: number;
   };
   coRider?: {
     id: string;

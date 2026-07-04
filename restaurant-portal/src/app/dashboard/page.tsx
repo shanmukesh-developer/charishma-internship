@@ -42,8 +42,6 @@ interface MenuItem {
 interface Announcement {
   message: string;
   type: 'info' | 'warning' | 'promo' | 'emergency';
-  message: string;
-  type: 'info' | 'warning' | 'promo' | 'emergency';
 }
 
 const TimeAgo = ({ timestamp }: { timestamp: string }) => {

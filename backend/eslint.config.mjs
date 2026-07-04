@@ -20,7 +20,8 @@ export default [
         clearTimeout: "readonly",
         fetch: "readonly",
         Buffer: "readonly",
-        exports: "writable"
+        exports: "writable",
+        URL: "readonly"
       }
     },
     plugins: {
@@ -34,7 +35,8 @@ export default [
           "varsIgnorePattern": "^_"
         }
       ],
-      "no-undef": "error"
+      "no-undef": "error",
+      "no-empty": "off"
     }
   }
 ];

@@ -18,11 +18,13 @@ export default function AdminSocketProvider({ children }: { children: React.Reac
 
   useEffect(() => {
     // Check if user is admin before connecting
+    let token = null;
     try {
       const userData = localStorage.getItem('user');
       if (!userData) return;
       const user = JSON.parse(userData);
       if (user.role !== 'admin') return;
+      token = user.token || null;
     } catch { return; }
 
     const socket = io(SOCKET_URL.replace(/\/$/, ""), {
@@ -32,6 +34,7 @@ export default function AdminSocketProvider({ children }: { children: React.Reac
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 2000,
+      auth: { token }
     });
     socketRef.current = socket;
     socket.emit('joinAdmin');

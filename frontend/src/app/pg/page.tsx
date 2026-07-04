@@ -7,11 +7,30 @@ import SafeImage from '@/components/SafeImage';
 import Tilt from '@/components/Tilt';
 import { API_URL } from '@/utils/api';
 
+interface Room {
+  id: string;
+  sharingType: number;
+  availableBeds: number;
+  roomNumber: string;
+  pricePerBed: number;
+}
+
+interface PG {
+  id: string;
+  name: string;
+  address: string;
+  genderType: string;
+  distanceFromCollege: number;
+  baseRent: number;
+  description: string;
+  rooms?: Room[];
+}
+
 export default function PGPage() {
   const router = useRouter();
-  const [pgs, setPgs] = useState([]);
+  const [pgs, setPgs] = useState<PG[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPg, setSelectedPg] = useState(null);
+  const [selectedPg, setSelectedPg] = useState<PG | null>(null);
 
   useEffect(() => {
     fetchPGs();
@@ -28,7 +47,7 @@ export default function PGPage() {
     }
   };
 
-  const handleBookRoom = async (roomId) => {
+  const handleBookRoom = async (roomId: string) => {
     const token = localStorage.getItem('token');
     if (!token) {
       alert("Please login first.");
@@ -53,7 +72,7 @@ export default function PGPage() {
     }
   };
 
-  const openPGDetails = async (id) => {
+  const openPGDetails = async (id: string) => {
     try {
       const res = await fetch(`${API_URL}/api/pg/${id}`);
       if (res.ok) setSelectedPg(await res.json());

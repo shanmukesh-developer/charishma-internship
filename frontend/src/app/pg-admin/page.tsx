@@ -12,7 +12,7 @@ export default function PGAdminPage() {
   const [distance, setDistance] = useState(0);
   const [baseRent, setBaseRent] = useState(0);
 
-  const handleCreatePG = async (e) => {
+  const handleCreatePG = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
     if (!token) return router.push('/login');

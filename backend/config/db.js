@@ -119,6 +119,21 @@ const initializeAllModels = (instance) => {
   }
 };
 
+const configureSqlitePragmas = (instance) => {
+  instance.addHook('afterConnect', (connection) => {
+    try {
+      if (connection && typeof connection.run === 'function') {
+        connection.run('PRAGMA journal_mode=WAL;');
+        connection.run('PRAGMA busy_timeout=5000;');
+        connection.run('PRAGMA synchronous=NORMAL;');
+        connection.run('PRAGMA cache_size=-10000;');
+      }
+    } catch (err) {
+      console.error('Failed to set SQLite pragmas:', err);
+    }
+  });
+};
+
 const connectDB = async () => {
   const dbUrl = process.env.DATABASE_URL;
   const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
@@ -137,16 +152,9 @@ const connectDB = async () => {
     sequelize = new Sequelize({
       dialect: 'sqlite',
       storage: sqlitePath,
-      logging: false,
-      dialectOptions: {
-        pragmas: {
-          journal_mode: 'WAL',
-          busy_timeout: 5000,
-          synchronous: 'NORMAL',
-          cache_size: -10000
-        }
-      }
+      logging: false
     });
+    configureSqlitePragmas(sequelize);
   } else {
     // Generate self-healing database URL connection candidates for Render environments
     const candidates = [];
@@ -197,7 +205,11 @@ const connectDB = async () => {
       }
 
       // Render internal database connections reject SSL. External connections require SSL.
-      const dialectOptions = {};
+      const dialectOptions = {
+        // High-concurrency guards: Prevent queries and idle transactions from locking rows indefinitely
+        statement_timeout: 30000,                  // Abort any query taking longer than 30 seconds
+        idle_in_transaction_session_timeout: 30000 // Terminate session if transaction is left open/idle for 30 seconds
+      };
       if (!isInternal) {
         dialectOptions.ssl = {
           require: true,
@@ -209,8 +221,8 @@ const connectDB = async () => {
         dialect: 'postgres',
         dialectOptions: dialectOptions,
         pool: {
-          max: 100, // 500+ users need 100+ connections to avoid queueing
-          min: 10,  // Keep 10 warm connections ready for instant queries
+          max: 20, // Reduced from 100 to prevent "too many connections" failures under clustering
+          min: 2,  // Keep a small pool of warm connections ready
           acquire: 60000,
           idle: 30000,
           evict: 15000 // Check for stale connections every 15s
@@ -252,22 +264,20 @@ const connectDB = async () => {
 
     if (!connected) {
       console.error('❌ [DB_FATAL] All PostgreSQL connection candidates failed.');
-      console.warn('⚠️ [DB_FALLBACK] Falling back to local SQLite database in production to maintain service availability!');
+      if (isProduction) {
+        console.error('🛑 [CRITICAL_FAILURE] Production environment detected. Fallback to SQLite is FORBIDDEN.');
+        console.error('🛑 Data loss prevention triggered. Process will exit to prevent serving a blank database.');
+        throw new Error('PostgreSQL connection failed in production. Fallback to SQLite is forbidden.');
+      }
+      console.warn('⚠️ [DB_FALLBACK] Falling back to local SQLite database...');
       const sqlitePath = path.join(__dirname, '..', 'local_prod.sqlite');
       console.log(`📦 Using LOCAL SQLite: ${sqlitePath}`);
       sequelize = new Sequelize({
         dialect: 'sqlite',
         storage: sqlitePath,
-        logging: false,
-        dialectOptions: {
-          pragmas: {
-            journal_mode: 'WAL',
-            busy_timeout: 5000,
-            synchronous: 'NORMAL',
-            cache_size: -10000
-          }
-        }
+        logging: false
       });
+      configureSqlitePragmas(sequelize);
     }
   }
 
@@ -419,6 +429,7 @@ const connectDB = async () => {
       storage: sqlitePath,
       logging: false
     });
+    configureSqlitePragmas(sequelize);
     initializeAllModels(sequelize);
     await sequelize.sync({ alter: true });
     console.log('✅ [DB_FALLBACK] Emergency SQLite is now active.');

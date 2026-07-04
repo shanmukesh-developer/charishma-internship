@@ -71,7 +71,22 @@ function generateCartKey(id: string, customizations?: Customizations): string {
     hash = ((hash << 5) - hash) + sig.charCodeAt(i);
     hash |= 0;
   }
-  return `${id}_${Math.abs(hash).toString(36)}`;
+  return `${id}-${hash.toString(36)}`;
+}
+
+function areCartsEqual(cartA: CartItem[], cartB: CartItem[]): boolean {
+  if (!cartA || !cartB) return false;
+  if (cartA.length !== cartB.length) return false;
+  for (let i = 0; i < cartA.length; i++) {
+    const a = cartA[i];
+    const b = cartB[i];
+    if (a.cartKey !== b.cartKey) return false;
+    if (a.quantity !== b.quantity) return false;
+    if (a.price !== b.price) return false;
+    if (a.name !== b.name) return false;
+    if (JSON.stringify(a.customizations) !== JSON.stringify(b.customizations)) return false;
+  }
+  return true;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -87,11 +102,26 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   
   const socketRef = useRef<Socket | null>(null);
   const isIncomingUpdateRef = useRef(false);
+  const lastSyncedCartRef = useRef<CartItem[]>([]);
+
+  const getAuthToken = () => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        return JSON.parse(storedUser).token || null;
+      }
+    } catch {}
+    return null;
+  };
 
   // Sync state changes to room
   React.useEffect(() => {
-    if (roomCode && socketRef.current && !isIncomingUpdateRef.current) {
-      socketRef.current.emit('cart_change', { roomCode, cart });
+    if (roomCode && socketRef.current) {
+      if (!isIncomingUpdateRef.current && !areCartsEqual(cart, lastSyncedCartRef.current)) {
+        lastSyncedCartRef.current = cart;
+        socketRef.current.emit('cart_change', { roomCode, cart });
+      }
     }
   }, [cart, roomCode]);
 
@@ -110,9 +140,11 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     }
     try {
       // Establish live WebSocket connection with the port 5005 backend
+      const token = getAuthToken();
       const socket = io(API_URL, {
         withCredentials: true,
-        transports: ['websocket', 'polling'] 
+        transports: ['websocket', 'polling'],
+        auth: { token }
       });
 
       socketRef.current = socket;
@@ -122,12 +154,15 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       socket.on('cart_updated', (incomingCart: any) => {
-        isIncomingUpdateRef.current = true;
-        setCart(incomingCart);
-        // Temporary lock reset
-        setTimeout(() => {
-          isIncomingUpdateRef.current = false;
-        }, 100);
+        if (!areCartsEqual(cart, incomingCart)) {
+          lastSyncedCartRef.current = incomingCart;
+          isIncomingUpdateRef.current = true;
+          setCart(incomingCart);
+          // Temporary lock reset
+          setTimeout(() => {
+            isIncomingUpdateRef.current = false;
+          }, 100);
+        }
       });
     } catch (err) {
       console.error('[COLLAB_CART_SOCKET_ERROR]', err);
@@ -166,6 +201,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     setRoomCode('');
     setIsHosting(false);
     setIsJoined(false);
+    lastSyncedCartRef.current = [];
     try {
       localStorage.removeItem('zenvy_collab_session');
     } catch {}

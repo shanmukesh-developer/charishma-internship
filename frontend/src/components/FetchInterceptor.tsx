@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { refreshSocketAuth } from '@/utils/socket';
 
 export default function FetchInterceptor() {
   const router = useRouter();
@@ -47,6 +48,7 @@ export default function FetchInterceptor() {
       // Handle automatic logout on 401
       if (response.status === 401 && typeof resource === 'string' && !resource.includes('/api/users/login')) {
         localStorage.removeItem('user');
+        refreshSocketAuth();
       }
       
       return response;

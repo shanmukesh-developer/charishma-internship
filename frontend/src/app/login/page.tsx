@@ -6,6 +6,7 @@ import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '@/utils/firebase';
 import SuccessOverlay from '@/components/SuccessOverlay';
 import { API_URL } from '@/utils/api';
+import { refreshSocketAuth } from '@/utils/socket';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -54,6 +55,7 @@ export default function LoginPage() {
           roomNumber: data.roomNumber,
           token: data.token,
         }));
+        refreshSocketAuth();
         setOverlay({ isOpen: true, title: 'Welcome Back', message: `Signed in as ${data.name}.`, type: 'success' });
         setTimeout(() => router.push('/'), 1500);
       } else {
@@ -86,6 +88,7 @@ export default function LoginPage() {
           hostelBlock: data.hostelBlock, roomNumber: data.roomNumber,
           token: data.token,
         }));
+        refreshSocketAuth();
         setOverlay({ isOpen: true, title: 'Welcome', message: `Signed in as ${data.name}.`, type: 'success' });
         setTimeout(() => router.push('/'), 1500);
       } else {
