@@ -483,14 +483,12 @@ const startServer = async () => {
         const room = String(roomName).trim();
         // 🛡️ Security Check: Prevent anonymous or arbitrary hijacking of cart rooms
         if (room.startsWith('ZN-')) {
-          if (!socket.user || socket.user.id === 'anonymous') {
-            console.warn(`[SOCKET_DENIED] Anonymous user tried to join cart room ${room}`);
-            return;
-          }
+          const userId = (socket.user && socket.user.id !== 'anonymous') ? socket.user.id : socket.id;
           if (!activeCartRooms.has(room)) {
             activeCartRooms.set(room, new Set());
           }
-          activeCartRooms.get(room).add(socket.user.id);
+          activeCartRooms.get(room).add(userId);
+          socket.effectiveCartId = userId;
         }
         await socket.join(room);
         log(`[JOIN_ROOM] ${socket.id} -> ${room}`);
@@ -501,8 +499,9 @@ const startServer = async () => {
         // 🛡️ Security Check: Validate that emitter belongs to the cart room
         if (room.startsWith('ZN-')) {
           const members = activeCartRooms.get(room);
-          if (!members || !members.has(socket.user.id)) {
-            console.warn(`[SOCKET_DENIED] User ${socket.user?.id} not authorized to broadcast to room ${room}`);
+          const userId = socket.effectiveCartId || (socket.user && socket.user.id !== 'anonymous' ? socket.user.id : socket.id);
+          if (!members || !members.has(userId)) {
+            console.warn(`[SOCKET_DENIED] User ${userId} not authorized to broadcast to room ${room}`);
             return;
           }
         }
