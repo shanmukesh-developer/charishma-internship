@@ -62,7 +62,8 @@ const initUserModel = (sequelize) => {
     lastGiftResetDate: { type: DataTypes.DATE, allowNull: true },
     // Co-Ride Bike Pooling
     gender: { type: DataTypes.STRING, defaultValue: 'Prefer not to say' },
-    genderPreference: { type: DataTypes.STRING, defaultValue: 'Any' }
+    genderPreference: { type: DataTypes.STRING, defaultValue: 'Any' },
+    karmaPoints: { type: DataTypes.INTEGER, defaultValue: 0 }
   }, { timestamps: true });
 
   // Auto-generate referral code

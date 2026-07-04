@@ -5,9 +5,11 @@ const { getBikePoolModel } = require('../models/BikePool');
 const { getUserModel } = require('../models/User');
 const { Op } = require('sequelize');
 
+const { getPoolRequestModel } = require('../models/PoolRequest');
+
 // Create a new bike pool post
 router.post('/posts', protect, async (req, res) => {
-  const { creatorRole, origin, destination, departureTime, estimatedFuelCost, vehicleInfo, notes } = req.body;
+  const { creatorRole, origin, destination, departureTime, rideVibe, vehicleType, availableSeats, autoApprove, stopovers, vehicleInfo, notes } = req.body;
 
   if (!creatorRole || !origin || !destination || !departureTime) {
     return res.status(400).json({ message: 'Role, origin, destination, and departure time are required.' });
@@ -22,20 +24,19 @@ router.post('/posts', protect, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const fuelCost = parseFloat(estimatedFuelCost) || 0;
-    if (fuelCost < 0 || fuelCost > 500) {
-      return res.status(400).json({ message: 'Estimated fuel cost must be between ₹0 and ₹500.' });
-    }
-    const splitAmount = fuelCost / 2;
-
     const newPost = await BikePool.create({
       creatorId: currentUser.id,
       creatorRole,
       origin,
       destination,
       departureTime: new Date(departureTime),
-      estimatedFuelCost: fuelCost,
-      splitAmount,
+      estimatedFuelCost: 0,
+      splitAmount: 0,
+      vehicleType: vehicleType || 'Bike',
+      availableSeats: availableSeats || 1,
+      autoApprove: autoApprove || false,
+      stopovers: stopovers || [],
+      rideVibe: rideVibe || 'Any',
       vehicleInfo: creatorRole === 'rider' ? vehicleInfo : null,
       genderPreference: currentUser.genderPreference || 'Any',
       notes,
@@ -114,7 +115,7 @@ router.post('/posts/:id/join', protect, async (req, res) => {
     const { id } = req.params;
 
     const pool = await BikePool.findByPk(id, {
-      include: [{ model: User, as: 'creator', attributes: ['id', 'gender', 'genderPreference', 'walletBalance'] }]
+      include: [{ model: User, as: 'creator', attributes: ['id', 'gender', 'genderPreference', 'karmaPoints'] }]
     });
 
     if (!pool) {
@@ -144,29 +145,97 @@ router.post('/posts/:id/join', protect, async (req, res) => {
       return res.status(400).json({ message: 'Safety check failed: Gender preferences mismatch.' });
     }
 
-    // Wallet Balance Check for Passenger
-    const isCurrentUserPassenger = pool.creatorRole === 'rider';
-    const passengerBalance = isCurrentUserPassenger ? currentUser.walletBalance : pool.creator.walletBalance;
+    // Wallet Balance Check Removed. Free Community Ride!
+    
+    const PoolRequest = getPoolRequestModel();
 
-    if (passengerBalance < pool.splitAmount) {
-      const targetUser = isCurrentUserPassenger ? 'You have' : 'The poster has';
-      return res.status(400).json({ 
-        message: `${targetUser} insufficient wallet balance (₹${pool.splitAmount} required) to pool together.` 
-      });
+    // Check if already requested
+    const existingRequest = await PoolRequest.findOne({ where: { poolId: pool.id, passengerId: currentUser.id } });
+    if (existingRequest) {
+      return res.status(400).json({ message: 'You have already requested to join this ride.' });
     }
 
-    pool.coRiderId = currentUser.id;
-    pool.status = 'Matched';
-    await pool.save();
-
-    res.json({ message: 'Successfully matched!', pool });
+    if (pool.autoApprove) {
+      await PoolRequest.create({
+        poolId: pool.id,
+        passengerId: currentUser.id,
+        status: 'Approved'
+      });
+      pool.availableSeats = Math.max(0, pool.availableSeats - 1);
+      if (pool.availableSeats === 0) {
+        pool.status = 'Matched';
+      }
+      // Legacy support for coRiderId mapping
+      if (!pool.coRiderId) pool.coRiderId = currentUser.id;
+      await pool.save();
+      return res.json({ message: 'Successfully joined ride! (Auto-Approved)', pool });
+    } else {
+      await PoolRequest.create({
+        poolId: pool.id,
+        passengerId: currentUser.id,
+        status: 'Pending'
+      });
+      return res.json({ message: 'Request sent to host for approval.', pool });
+    }
   } catch (err) {
     console.error('[BIKEPOOL_JOIN_ERROR]', err);
     res.status(500).json({ message: 'Failed to join ride pool.', error: err.message });
   }
 });
 
-// Complete ride & split petrol bill
+// Approve a join request
+router.post('/posts/:id/requests/:requestId/approve', protect, async (req, res) => {
+  try {
+    const BikePool = getBikePoolModel();
+    const PoolRequest = getPoolRequestModel();
+    
+    const pool = await BikePool.findByPk(req.params.id);
+    if (!pool) return res.status(404).json({ message: 'Pool not found.' });
+    if (pool.creatorId !== req.user.id) return res.status(403).json({ message: 'Unauthorized' });
+    if (pool.availableSeats <= 0) return res.status(400).json({ message: 'No seats left.' });
+
+    const request = await PoolRequest.findByPk(req.params.requestId);
+    if (!request || request.poolId !== pool.id) return res.status(404).json({ message: 'Request not found.' });
+
+    request.status = 'Approved';
+    await request.save();
+
+    pool.availableSeats -= 1;
+    if (pool.availableSeats === 0) {
+      pool.status = 'Matched';
+    }
+    if (!pool.coRiderId) pool.coRiderId = request.passengerId; // Legacy support
+    await pool.save();
+
+    res.json({ message: 'Request approved.', pool });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Reject a join request
+router.post('/posts/:id/requests/:requestId/reject', protect, async (req, res) => {
+  try {
+    const BikePool = getBikePoolModel();
+    const PoolRequest = getPoolRequestModel();
+    
+    const pool = await BikePool.findByPk(req.params.id);
+    if (!pool) return res.status(404).json({ message: 'Pool not found.' });
+    if (pool.creatorId !== req.user.id) return res.status(403).json({ message: 'Unauthorized' });
+
+    const request = await PoolRequest.findByPk(req.params.requestId);
+    if (!request || request.poolId !== pool.id) return res.status(404).json({ message: 'Request not found.' });
+
+    request.status = 'Rejected';
+    await request.save();
+
+    res.json({ message: 'Request rejected.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Complete ride
 router.post('/posts/:id/complete', protect, async (req, res) => {
   try {
     const BikePool = getBikePoolModel();
@@ -187,41 +256,37 @@ router.post('/posts/:id/complete', protect, async (req, res) => {
       return res.status(403).json({ message: 'You are not a participant in this ride.' });
     }
 
-    // Identify roles
-    let riderId, passengerId;
-    if (pool.creatorRole === 'rider') {
-      riderId = pool.creatorId;
-      passengerId = pool.coRiderId;
-    } else {
-      riderId = pool.coRiderId;
-      passengerId = pool.creatorId;
+    const PoolRequest = getPoolRequestModel();
+
+    // The person calling this must be the creator (only they can complete a multi-passenger ride)
+    if (pool.creatorId !== req.user.id) {
+      return res.status(403).json({ message: 'Only the creator can complete the ride.' });
     }
 
-    const splitCost = pool.splitAmount;
+    const karmaReward = 50; // 50 Karma points for eco-friendly ride
 
     try {
       const { getSequelize } = require('../config/db');
       const sequelize = getSequelize();
 
       await sequelize.transaction(async (t) => {
-        // Re-fetch users inside transaction with a row lock (FOR UPDATE)
-        const freshPassenger = await User.findByPk(passengerId, { transaction: t, lock: true });
-        const freshRider = await User.findByPk(riderId, { transaction: t, lock: true });
+        const freshCreator = await User.findByPk(pool.creatorId, { transaction: t, lock: true });
+        freshCreator.karmaPoints = (freshCreator.karmaPoints || 0) + karmaReward;
+        await freshCreator.save({ transaction: t });
 
-        if (!freshPassenger || !freshRider) {
-          throw new Error('Rider or passenger account not found.');
+        // Get all approved requests
+        const approvedRequests = await PoolRequest.findAll({
+          where: { poolId: pool.id, status: 'Approved' },
+          transaction: t
+        });
+
+        for (const req of approvedRequests) {
+          const passenger = await User.findByPk(req.passengerId, { transaction: t, lock: true });
+          if (passenger) {
+            passenger.karmaPoints = (passenger.karmaPoints || 0) + karmaReward;
+            await passenger.save({ transaction: t });
+          }
         }
-
-        if (freshPassenger.walletBalance < splitCost) {
-          throw new Error(`Insufficient wallet balance for Passenger (needs ₹${splitCost}, has ₹${freshPassenger.walletBalance}).`);
-        }
-
-        // Perform updates atomically
-        freshPassenger.walletBalance = Math.max(0, freshPassenger.walletBalance - splitCost);
-        freshRider.walletBalance = (freshRider.walletBalance || 0) + splitCost;
-
-        await freshPassenger.save({ transaction: t });
-        await freshRider.save({ transaction: t });
 
         // Mark completed
         pool.status = 'Completed';
@@ -229,14 +294,12 @@ router.post('/posts/:id/complete', protect, async (req, res) => {
         await pool.save({ transaction: t });
       });
 
-      // Fetch fresh states to return in response
-      const updatedRider = await User.findByPk(riderId);
-      const updatedPassenger = await User.findByPk(passengerId);
+      const updatedCreator = await User.findByPk(pool.creatorId);
 
       res.json({
-        message: 'Ride completed successfully and petrol cost split completed!',
+        message: 'Ride completed successfully! Everyone earned +50 Karma Points 🍃!',
         pool,
-        walletBalance: req.user.id === riderId ? updatedRider.walletBalance : updatedPassenger.walletBalance
+        karmaPoints: updatedCreator.karmaPoints
       });
     } catch (txErr) {
       return res.status(400).json({ message: txErr.message || 'Transaction failed.' });

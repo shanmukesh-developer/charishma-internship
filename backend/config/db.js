@@ -16,6 +16,10 @@ const { initCouponModel } = require('../models/Coupon');
 const { initCommunityPostModel } = require('../models/CommunityPost');
 const { initTicketModel } = require('../models/Ticket');
 const { initBikePoolModel } = require('../models/BikePool');
+const { initPoolRequestModel } = require('../models/PoolRequest');
+const { initPGHostelModel } = require('../models/PGHostel');
+const { initPGRoomModel } = require('../models/PGRoom');
+const { initPGBookingModel } = require('../models/PGBooking');
 
 const initializeAllModels = (instance) => {
   initUserModel(instance);
@@ -30,6 +34,10 @@ const initializeAllModels = (instance) => {
   initCommunityPostModel(instance);
   initTicketModel(instance);
   initBikePoolModel(instance);
+  initPoolRequestModel(instance);
+  initPGHostelModel(instance);
+  initPGRoomModel(instance);
+  initPGBookingModel(instance);
 
   // Define Associations
   const Restaurant = instance.models.Restaurant;
@@ -74,9 +82,40 @@ const initializeAllModels = (instance) => {
   }
 
   const BikePool = instance.models.BikePool;
+  const PoolRequest = instance.models.PoolRequest;
+  
   if (BikePool && User) {
     BikePool.belongsTo(User, { foreignKey: 'creatorId', as: 'creator' });
     BikePool.belongsTo(User, { foreignKey: 'coRiderId', as: 'coRider' });
+  }
+
+  if (PoolRequest && BikePool && User) {
+    PoolRequest.belongsTo(BikePool, { foreignKey: 'poolId', as: 'pool' });
+    BikePool.hasMany(PoolRequest, { foreignKey: 'poolId', as: 'requests' });
+    PoolRequest.belongsTo(User, { foreignKey: 'passengerId', as: 'passenger' });
+  }
+
+  const PGHostel = instance.models.PGHostel;
+  const PGRoom = instance.models.PGRoom;
+  const PGBooking = instance.models.PGBooking;
+
+  if (PGHostel && User) {
+    PGHostel.belongsTo(User, { foreignKey: 'ownerId', as: 'owner' });
+    User.hasMany(PGHostel, { foreignKey: 'ownerId', as: 'pgs' });
+  }
+
+  if (PGHostel && PGRoom) {
+    PGRoom.belongsTo(PGHostel, { foreignKey: 'hostelId', as: 'hostel' });
+    PGHostel.hasMany(PGRoom, { foreignKey: 'hostelId', as: 'rooms' });
+  }
+
+  if (PGBooking && PGRoom && User && PGHostel) {
+    PGBooking.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    PGBooking.belongsTo(PGRoom, { foreignKey: 'roomId', as: 'room' });
+    PGBooking.belongsTo(PGHostel, { foreignKey: 'hostelId', as: 'hostel' });
+    User.hasMany(PGBooking, { foreignKey: 'userId', as: 'pgBookings' });
+    PGRoom.hasMany(PGBooking, { foreignKey: 'roomId', as: 'bookings' });
+    PGHostel.hasMany(PGBooking, { foreignKey: 'hostelId', as: 'bookings' });
   }
 };
 
@@ -170,10 +209,11 @@ const connectDB = async () => {
         dialect: 'postgres',
         dialectOptions: dialectOptions,
         pool: {
-          max: 50, // Increased to 50 to support 100+ concurrent users
-          min: 5,  // Increased to 5 for warmer connections
+          max: 100, // 500+ users need 100+ connections to avoid queueing
+          min: 10,  // Keep 10 warm connections ready for instant queries
           acquire: 60000,
-          idle: 20000
+          idle: 30000,
+          evict: 15000 // Check for stale connections every 15s
         },
         retry: {
           match: [
@@ -187,9 +227,10 @@ const connectDB = async () => {
             /ECONNRESET/,
             /TERMINATING/
           ],
-          max: 3
+          max: 5 // Retry up to 5 times for transient failures
         },
-        logging: false
+        logging: false,
+        benchmark: false
       });
 
       try {
@@ -255,11 +296,18 @@ const connectDB = async () => {
 
       // Self-Healing SQLite Migration Guard: Ensure community post expiry column exists
       if (dialect === 'sqlite') {
-        try {
-          await sequelize.query('ALTER TABLE "CommunityPosts" ADD COLUMN "expiresAt" DATETIME;');
-          console.log('✅ [SQLite_MIGRATION] Added expiresAt column to CommunityPosts.');
-        } catch (_err) {
-          // Suppress error if the column is already present or was created during normal sync
+        const poolCols = [
+          { name: 'rideVibe', type: "VARCHAR(255) DEFAULT 'Any'" },
+          { name: 'vehicleType', type: "VARCHAR(255) DEFAULT 'Bike'" },
+          { name: 'availableSeats', type: 'INTEGER DEFAULT 1' },
+          { name: 'autoApprove', type: 'BOOLEAN DEFAULT 0' },
+          { name: 'stopovers', type: "TEXT DEFAULT '[]'" }
+        ];
+        for (const col of poolCols) {
+          try {
+            await sequelize.query(`ALTER TABLE "BikePools" ADD COLUMN "${col.name}" ${col.type};`);
+            console.log(`✅ [SQLite_MIGRATION] Added ${col.name} column to BikePools.`);
+          } catch (_err) {}
         }
 
         try {

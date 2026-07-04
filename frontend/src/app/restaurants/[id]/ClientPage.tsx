@@ -169,9 +169,9 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
   const filteredMenu = (restaurant.menu || []).filter(item => {
     // Category Filter
     if (activeCategory !== 'All') {
-      const activeLower = activeCategory.toLowerCase();
-      const matchCategory = item.category?.toLowerCase() === activeLower;
-      const matchTag = item.tags?.some(tag => tag.toLowerCase() === activeLower);
+      const activeLower = activeCategory.toLowerCase().trim();
+      const matchCategory = item.category?.toLowerCase().includes(activeLower);
+      const matchTag = Array.isArray(item.tags) && item.tags.some(tag => tag.toLowerCase().includes(activeLower));
       const matchName = item.name?.toLowerCase().includes(activeLower);
       
       if (!matchCategory && !matchTag && !matchName) return false;
@@ -345,7 +345,7 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
 
         {/* Category Pills */}
         <div className="flex gap-2.5 overflow-x-auto scrollbar-hide mb-8 pb-1 -mx-4 px-4 md:-mx-6 md:px-6">
-          {['All', ...(restaurant.categories || [])].map((cat) => (
+          {['All', ...(restaurant.categories?.length ? restaurant.categories : (restaurant.tags || []))].map((cat) => (
             <Magnetic key={cat}>
               <button 
                 onClick={() => setActiveCategory(cat)}

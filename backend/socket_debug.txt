@@ -4689,3 +4689,6 @@
 [2026-07-04T06:28:20.509Z] [JOIN_ROOM] PuFoelIMU7WvYsqIAAAP -> restaurant_8467dbf0-1b1b-4ae5-88b6-0fccbfcb1cbb
 [2026-07-04T06:28:20.553Z] [JOIN_ROOM] 1fL53NBbKQXMKGrhAAAR -> restaurant_8467dbf0-1b1b-4ae5-88b6-0fccbfcb1cbb
 [2026-07-04T06:30:29.103Z] [JOIN_ROOM] Wsjhl3RdV-UODn4_AAAT -> restaurant_8467dbf0-1b1b-4ae5-88b6-0fccbfcb1cbb
+[2026-07-04T10:25:34.976Z] [SURGE] Zone Amaravathi_Central ACTIVE — 4 orders
+[2026-07-04T10:27:45.481Z] [SURGE] Zone Amaravathi_Central ACTIVE — 4 orders
+[2026-07-04T10:29:58.679Z] [SURGE] Zone Amaravathi_Central ENDED (Timeout)

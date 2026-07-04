@@ -8,6 +8,7 @@ import ToastProvider from '@/components/ToastProvider';
 import VFXLayer from '@/components/VFXLayer';
 import GlobalAnnouncement from '@/components/GlobalAnnouncement';
 import FetchInterceptor from '@/components/FetchInterceptor';
+import AntiInspect from '@/components/AntiInspect';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -44,6 +45,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <AntiInspect />
         <FetchInterceptor />
         <GlobalAnnouncement />
         <ToastProvider />

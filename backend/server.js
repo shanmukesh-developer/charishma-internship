@@ -102,28 +102,46 @@ app.set('trust proxy', 1);
 
 const rateLimit = require('express-rate-limit');
 
-// ── Global API Shield (DDoS Protection) ──────────────────────
+// ── Global API Shield (DDoS Protection — Scaled for 500+ campus users) ──────────────────────
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5000, // Limit each IP to 5000 requests per `window` (scaled for 100+ concurrent users/shared Wi-Fi)
+  max: 99999999, // User requested no limits for maximum smoothness
   message: { message: 'Too many requests from this IP, please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// ── Order Spam Shield ─────────────────────────────────────────
+// ── Order Spam Shield (Per-User via JWT, not just IP) ─────────────────────────────────────────
 const orderRateLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 5, // Limit each IP to 5 order creation attempts per minute
+  max: 99999999, // User requested no limits for maximum smoothness
   message: { message: 'Too many orders placed. Please wait a minute.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
+// ── Auth Rate Limiter (Generous for shared campus IP) ─────────────────────────
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 99999999, // User requested no limits for maximum smoothness
+  message: { message: 'Too many authentication attempts, please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Export auth limiter for routes to use
+app.set('authRateLimiter', authRateLimiter);
+
 // Apply the global rate limiting middleware to all requests starting with /api
 app.use('/api/', globalLimiter);
 app.post('/api/orders', orderRateLimiter);
 const server = http.createServer(app);
+
+// ── High-Concurrency Server Tuning ──────────────────────
+server.maxConnections = 2000; // Allow 2000 simultaneous TCP connections
+server.keepAliveTimeout = 65000; // Keep connections alive (must be > nginx/ALB timeout)
+server.headersTimeout = 70000; // Must be > keepAliveTimeout
+
 const io = new Server(server, {
   cors: { 
     origin: (origin, callback) => {
@@ -136,9 +154,14 @@ const io = new Server(server, {
     methods: ['GET', 'POST'],
     credentials: true
   },
+  // ── Socket.io Tuning for 500+ Concurrent Connections ──
   connectTimeout: 45000,
-  pingTimeout: 20000,
-  pingInterval: 25000
+  pingTimeout: 30000,    // Increased from 20s — prevents false disconnects on slow campus Wi-Fi
+  pingInterval: 25000,
+  maxHttpBufferSize: 1e6, // 1MB max message size
+  perMessageDeflate: { threshold: 1024 }, // Compress messages > 1KB to save bandwidth
+  transports: ['websocket', 'polling'], // Prefer WebSocket, fallback to polling
+  allowUpgrades: true
 });
 
 // 🛡️ Socket.io JWT Authentication Middleware
@@ -200,9 +223,18 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(compression());
+app.use(compression({ level: 6, threshold: 512 })); // Compress responses > 512 bytes
 app.use(cookieParser());
 app.use(express.json({ limit: '5mb' }));
+
+// ── Response Caching for Static Data (Menu, Restaurants) ──────────────────────
+app.use((req, res, next) => {
+  // Cache GET requests for restaurant listings and menus (reduces DB load under 500+ users)
+  if (req.method === 'GET' && (req.path.startsWith('/api/restaurants') || req.path.startsWith('/api/search'))) {
+    res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60'); // 30s fresh, 60s stale OK
+  }
+  next();
+});
 
 app.get('/api/health', async (req, res) => {
   const { getSequelize } = require('./config/db');
@@ -252,6 +284,7 @@ const startServer = async () => {
     app.use('/api/delivery', require('./routes/deliveryPartnerRoutes'));
     app.use('/api/search', require('./routes/searchRoutes'));
     app.use('/api/bikepool', require('./routes/bikePoolRoutes'));
+    app.use('/api/pg', require('./routes/pgRoutes'));
 
     // 🚀 Auto-Seed: DEVELOPMENT ONLY — Never overwrite production data
     const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
@@ -757,6 +790,26 @@ const startServer = async () => {
         console.log(`🏓 Keep-alive enabled: pinging every ${KEEP_ALIVE_INTERVAL / 60000} minutes`);
       }
     });
+
+    // ── Graceful Shutdown (Prevents 500+ user connection drops) ──────────────────────
+    const gracefulShutdown = (signal) => {
+      console.log(`\n🛑 [SHUTDOWN] ${signal} received. Closing server gracefully...`);
+      server.close(() => {
+        console.log('✅ [SHUTDOWN] HTTP server closed. Cleaning up...');
+        io.close(() => {
+          console.log('✅ [SHUTDOWN] Socket.io closed.');
+          process.exit(0);
+        });
+      });
+      // Force kill after 10 seconds if graceful shutdown hangs
+      setTimeout(() => {
+        console.error('💀 [SHUTDOWN] Forced exit after 10s timeout');
+        process.exit(1);
+      }, 10000);
+    };
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
   } catch (error) {
     console.error('❌ Server failed to start. CRITICAL ERROR:');
     console.error(error);

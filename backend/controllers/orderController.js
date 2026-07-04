@@ -355,20 +355,7 @@ const createOrder = async (req, res) => {
       console.error('[WHATSAPP_ERROR] Customer alert failed:', waErr.message);
     }
 
-    // 1. Notify ALL online riders via socket instantly
-    io.emit('newOrder', {
-      id: createdOrder.id.toString(),
-      restaurant: restaurant.name,
-      restaurantAddress: restaurant.location,
-      customerName: currentUser?.name || 'Customer',
-      drop: createdOrder.deliveryAddress,
-      items: createdOrder.items,
-      totalPrice: createdOrder.totalPrice,
-      finalPrice: createdOrder.finalPrice,
-      earnings: `₹${createdOrder.deliveryFee}`,
-      distance: createdOrder.distance,
-      createdAt: createdOrder.createdAt
-    });
+    // (Rider notification has been moved to restaurantAcceptOrder to enforce sequential lifecycle)
     
     // 3. Notify Admin Command Terminal
     io.to('admin-room').emit('admin_newOrder', {

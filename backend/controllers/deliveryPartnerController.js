@@ -115,7 +115,7 @@ const acceptOrder = async (req, res) => {
     // 2. Atomic Claim: Use a conditional update to prevent race conditions (Rider A vs Rider B)
     const [updatedRows] = await Order.update(
       { deliveryPartnerId: req.user.id },
-      { where: { id: req.params.orderId, deliveryPartnerId: null, status: { [Op.in]: ['Pending', 'Accepted', 'Preparing', 'ReadyForPickup'] } } }
+      { where: { id: req.params.orderId, deliveryPartnerId: null, status: { [Op.in]: ['Accepted', 'Preparing', 'ReadyForPickup'] } } }
     );
 
     if (updatedRows === 0) {
@@ -125,10 +125,7 @@ const acceptOrder = async (req, res) => {
     // Since we successfully updated, we fetch the updated order object
     const updatedOrder = await Order.findByPk(req.params.orderId);
     
-    if (updatedOrder.status === 'Pending') {
-      updatedOrder.status = 'Accepted';
-      await updatedOrder.save();
-    }
+    // (Status advancement is strictly controlled by the Restaurant Portal until picked up)
     
     if (partner) { 
       partner.currentOrderId = updatedOrder.id; 
@@ -187,7 +184,7 @@ const getPendingOrders = async (req, res) => {
     const Restaurant = getRestaurantModel();
     const orders = await Order.findAll({ 
       where: { 
-        status: { [Op.in]: ['Pending', 'Accepted', 'Preparing', 'ReadyForPickup'] },
+        status: { [Op.in]: ['Accepted', 'Preparing', 'ReadyForPickup'] },
         deliveryPartnerId: null
       }, 
       order: [['createdAt', 'DESC']],
@@ -277,8 +274,12 @@ const updateOrderStatus = async (req, res) => {
     if (!order) return res.status(404).json({ message: 'Order not found' });
     if (order.deliveryPartnerId !== req.user.id) return res.status(403).json({ message: 'Unauthorized' });
 
-    if (status === 'PickedUp' && order.status !== 'Accepted') return res.status(400).json({ message: 'Must be Accepted first' });
-    if (status === 'Delivered' && order.status !== 'PickedUp') return res.status(400).json({ message: 'Must be PickedUp first' });
+    if (status === 'PickedUp' && !['Accepted', 'Preparing', 'ReadyForPickup'].includes(order.status)) {
+      return res.status(400).json({ message: 'Order must be Accepted or Ready by restaurant first' });
+    }
+    if (status === 'Delivered' && order.status !== 'PickedUp') {
+      return res.status(400).json({ message: 'Must be PickedUp first' });
+    }
 
     // ── Delivery PIN Validation ──────────────────────
     if (status === 'Delivered') {

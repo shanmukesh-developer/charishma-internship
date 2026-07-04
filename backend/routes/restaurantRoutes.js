@@ -4,10 +4,10 @@ const { protect, admin, vendor } = require('../middleware/authMiddleware');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
 
-// ── Strict Auth Shield (Brute-Force Protection) ──────────────────────
+// ── Strict Auth Shield (Scaled for 500+ campus users on shared Wi-Fi) ──────────────────────
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 500, // 500+ students share same campus Wi-Fi IP → must allow bulk logins
   message: { message: 'Too many authentication attempts, please try again after 15 minutes.' }
 });
 

@@ -125,7 +125,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
               icon: '/logo.png',
               badge: '/logo.png',
               vibrate: [200, 100, 200]
-            });
+            } as NotificationOptions & { vibrate?: number[] });
           });
         } else {
           new Notification(title, { body });
@@ -374,7 +374,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
   useEffect(() => {
     const socket = io(apiUrl.replace(/\/$/, ""), {
       auth: { token: driverToken, role: 'rider', driverId: currentDriver._id, name: currentDriver.name },
-      transports: ['websocket', 'polling'], withCredentials: true,
+      transports: ['websocket', 'polling'],
       withCredentials: true,
       autoConnect: true,
       reconnection: true,

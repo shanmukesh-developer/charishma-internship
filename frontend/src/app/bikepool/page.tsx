@@ -15,7 +15,7 @@ interface UserProfile {
   phone: string;
   gender: string;
   genderPreference: string;
-  walletBalance: number;
+  karmaPoints: number;
 }
 
 interface RidePool {
@@ -26,8 +26,11 @@ interface RidePool {
   origin: string;
   destination: string;
   departureTime: string;
-  estimatedFuelCost: number;
-  splitAmount: number;
+  vehicleType: string;
+  availableSeats: number;
+  autoApprove: boolean;
+  stopovers: string[];
+  rideVibe: string;
   vehicleInfo: string | null;
   genderPreference: string;
   status: 'Available' | 'Matched' | 'Completed' | 'Cancelled';
@@ -72,7 +75,11 @@ export default function BikePoolPage() {
     origin: '',
     destination: '',
     departureTime: '',
-    estimatedFuelCost: 100,
+    vehicleType: 'Bike',
+    availableSeats: 1,
+    autoApprove: true,
+    stopovers: '',
+    rideVibe: 'Any',
     vehicleInfo: '',
     notes: ''
   });
@@ -225,7 +232,10 @@ export default function BikePoolPage() {
       const res = await fetch(`${API_URL}/api/bikepool/posts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          stopovers: formData.stopovers ? formData.stopovers.split(',').map(s => s.trim()).filter(Boolean) : []
+        })
       });
       if (res.ok) {
         triggerFeedback('Co-Ride Posted! 🏍️', 'Your listing is online. We will match you shortly.', 'success');
@@ -235,7 +245,11 @@ export default function BikePoolPage() {
           origin: '',
           destination: '',
           departureTime: '',
-          estimatedFuelCost: 100,
+          vehicleType: 'Bike',
+          availableSeats: 1,
+          autoApprove: true,
+          stopovers: '',
+          rideVibe: 'Any',
           vehicleInfo: '',
           notes: ''
         });
@@ -284,10 +298,10 @@ export default function BikePoolPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        triggerFeedback('Completed & Split! 💳', `Petrol share transferred successfully. Your wallet balance is now ₹${data.walletBalance}.`, 'success');
+        triggerFeedback('Ride Completed! 🍃', `You earned 50 Karma points! Your total Karma is now ${data.karmaPoints}.`, 'success');
         
-        // Sync local user wallet
-        syncLocalUser({ walletBalance: data.walletBalance });
+        // Sync local user karma
+        syncLocalUser({ karmaPoints: data.karmaPoints });
 
         fetchAvailablePools();
         fetchMyRides();
@@ -369,13 +383,13 @@ export default function BikePoolPage() {
               <h1 className="text-3xl md:text-4xl font-black text-white italic tracking-tighter uppercase" style={{ fontFamily: "'Syne', sans-serif" }}>
                 Zenvy Co-Ride 🏍️
               </h1>
-              <p className="text-xs text-gray-400 mt-1">Split petrol bills. Enforce strict safety matching. Travel together.</p>
+              <p className="text-xs text-gray-400 mt-1">Eco-friendly free rides. Build community. Earn Karma 🍃.</p>
             </div>
             
             <div className="flex items-center gap-3">
               <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-2 flex flex-col items-end">
-                <span className="text-[8px] font-bold text-[#C9A84C] uppercase tracking-widest leading-none">Wallet</span>
-                <span className="text-sm font-black text-white mt-1">₹{user?.walletBalance || 0}</span>
+                <span className="text-[8px] font-bold text-emerald-400 uppercase tracking-widest leading-none">Karma 🍃</span>
+                <span className="text-sm font-black text-white mt-1">{user?.karmaPoints || 0}</span>
               </div>
               
               <Magnetic>
@@ -490,7 +504,11 @@ export default function BikePoolPage() {
                   </div>
                 ) : pools.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 bg-white/[0.02] border border-white/5 rounded-[30px] text-center p-6">
-                    <span className="text-4xl mb-4">🏍️</span>
+                    <div className="relative w-16 h-16 mb-6 mx-auto">
+                      <div className="absolute inset-0 bg-indigo-500 rounded-full opacity-20 animate-ping" style={{ animationDuration: '2s' }} />
+                      <div className="absolute inset-2 bg-indigo-500 rounded-full opacity-40 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+                      <div className="absolute inset-0 flex items-center justify-center text-2xl z-10">📡</div>
+                    </div>
                     <h3 className="text-sm font-black uppercase tracking-wider text-gray-400">No Active Pool Listings</h3>
                     <p className="text-xs text-gray-500 mt-1 max-w-sm">No one is currently pooling to your destinations. Be the first to post a ride!</p>
                   </div>
@@ -506,11 +524,11 @@ export default function BikePoolPage() {
                             {/* Card Header */}
                             <div className="flex justify-between items-start mb-4">
                               <span className={`text-[8px] font-black uppercase px-2.5 py-1 rounded-full border ${badgeColor}`}>
-                                {isRider ? '🏍️ Rider (Owner)' : '🎒 Passenger'}
+                                {pool.vehicleType === 'Bike' ? '🏍️ Bike' : pool.vehicleType === 'Car' ? '🚗 Car' : '🛺 Auto'} • {pool.availableSeats} Seat{pool.availableSeats !== 1 ? 's' : ''} Left
                               </span>
                               <div className="text-right">
-                                <span className="text-[8px] text-gray-400 uppercase tracking-widest block">Cost Split</span>
-                                <span className="text-sm font-black text-emerald-400">₹{pool.splitAmount}</span>
+                                <span className="text-[8px] text-gray-400 uppercase tracking-widest block">Trust Score</span>
+                                <span className="text-xs font-black text-emerald-400">{pool.creator?.karmaPoints || 0} 🍃</span>
                               </div>
                             </div>
 
@@ -716,8 +734,8 @@ export default function BikePoolPage() {
                             </div>
                             
                             <div className="text-right">
-                              <span className="text-[9px] text-gray-400 block leading-none">{isCompleted ? 'Split Share Paid' : 'Cancelled'}</span>
-                              <span className={`text-xs font-black ${isCompleted ? 'text-emerald-400' : 'text-gray-600 line-through'}`}>₹{ride.splitAmount}</span>
+                              <span className="text-[9px] text-gray-400 block leading-none">{isCompleted ? 'Karma Earned' : 'Cancelled'}</span>
+                              <span className={`text-xs font-black ${isCompleted ? 'text-emerald-400' : 'text-gray-600 line-through'}`}>+50 🍃</span>
                             </div>
                           </div>
                         );
@@ -812,24 +830,76 @@ export default function BikePoolPage() {
                   />
                 </div>
 
-                {/* Split Petrol Pricing Calculator */}
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Estimated Fuel Cost (₹)</label>
-                    <span className="text-xs font-black text-emerald-400">₹{formData.estimatedFuelCost}</span>
+                {/* Vehicle Type & Seats */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Vehicle Type</label>
+                    <select
+                      value={formData.vehicleType}
+                      onChange={(e) => setFormData(prev => ({ ...prev, vehicleType: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-indigo-400"
+                    >
+                      <option value="Bike" className="bg-[#141416]">Bike 🏍️</option>
+                      <option value="Car" className="bg-[#141416]">Car 🚗</option>
+                      <option value="Auto" className="bg-[#141416]">Auto 🛺</option>
+                    </select>
                   </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Available Seats</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="6"
+                      value={formData.availableSeats}
+                      onChange={(e) => setFormData(prev => ({ ...prev, availableSeats: parseInt(e.target.value) || 1 }))}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-indigo-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Stopovers */}
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Stopovers (Comma separated)</label>
                   <input
-                    type="range"
-                    min="50"
-                    max="500"
-                    step="10"
-                    value={formData.estimatedFuelCost}
-                    onChange={(e) => setFormData(prev => ({ ...prev, estimatedFuelCost: parseInt(e.target.value) }))}
-                    className="w-full accent-primary-yellow bg-white/10 h-1 rounded-lg"
+                    type="text"
+                    placeholder="e.g. Main Gate, Library"
+                    value={formData.stopovers}
+                    onChange={(e) => setFormData(prev => ({ ...prev, stopovers: e.target.value }))}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-600 outline-none focus:border-indigo-400"
                   />
-                  <span className="text-[9px] text-gray-500 block mt-1">
-                    Cost Split Amount: ₹{formData.estimatedFuelCost / 2} deducted from Passenger's wallet, credited to Rider.
-                  </span>
+                </div>
+
+                {/* Ride Vibe Selector */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Ride Vibe</label>
+                    <select
+                      value={formData.rideVibe}
+                      onChange={(e) => setFormData(prev => ({ ...prev, rideVibe: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-indigo-400"
+                    >
+                      <option value="Any" className="bg-[#141416]">Any Vibe</option>
+                      <option value="Silent Ride 🤫" className="bg-[#141416]">Silent Ride 🤫</option>
+                      <option value="Chatty 🗣️" className="bg-[#141416]">Chatty 🗣️</option>
+                      <option value="Music Lover 🎵" className="bg-[#141416]">Music Lover 🎵</option>
+                    </select>
+                  </div>
+                  
+                  {/* Auto Approve Toggle */}
+                  <div className="flex flex-col justify-center">
+                    <label className="flex items-center gap-2 cursor-pointer mt-5">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.autoApprove}
+                        onChange={(e) => setFormData(prev => ({ ...prev, autoApprove: e.target.checked }))}
+                        className="w-4 h-4 accent-emerald-500 bg-white/10 rounded border-white/20"
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-white uppercase tracking-wider">Auto-Approve</span>
+                        <span className="text-[8px] text-gray-500">Instantly accept join requests</span>
+                      </div>
+                    </label>
+                  </div>
                 </div>
 
                 {formData.creatorRole === 'rider' && (
@@ -901,8 +971,8 @@ export default function BikePoolPage() {
               <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl mx-auto mb-4 animate-pulse">
                 🧾
               </div>
-              <h2 className="text-xl font-black text-white italic tracking-tighter uppercase mb-1">Co-Ride Invoice</h2>
-              <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest block mb-4">Transaction Split Receipt</span>
+              <h2 className="text-xl font-black text-white italic tracking-tighter uppercase mb-1">Eco-Ride Complete</h2>
+              <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest block mb-4">Karma Points Award</span>
               
               <div className="p-4 bg-white/5 rounded-2xl text-left space-y-2.5 mb-6 text-xs">
                 <div className="flex justify-between">
@@ -919,8 +989,8 @@ export default function BikePoolPage() {
                 </div>
                 <div className="h-px bg-white/10 my-2" />
                 <div className="flex justify-between text-sm">
-                  <span className="font-black text-[#C9A84C] uppercase tracking-wider">Petrol Split Cost:</span>
-                  <span className="font-black text-emerald-400">₹{selectedRide.splitAmount}</span>
+                  <span className="font-black text-[#C9A84C] uppercase tracking-wider">Karma Reward:</span>
+                  <span className="font-black text-emerald-400">+50 🍃</span>
                 </div>
               </div>
 
@@ -930,7 +1000,7 @@ export default function BikePoolPage() {
                   disabled={completingRideId === selectedRide.id}
                   className="w-full bg-emerald-500 text-black text-xs font-black py-4 rounded-xl uppercase tracking-widest shadow-lg shadow-emerald-500/10"
                 >
-                  {completingRideId === selectedRide.id ? 'Processing Ledger...' : 'Approve & Release Funds'}
+                  {completingRideId === selectedRide.id ? 'Processing...' : 'Complete & Claim Karma'}
                 </button>
                 <button
                   onClick={() => setSelectedRide(null)}

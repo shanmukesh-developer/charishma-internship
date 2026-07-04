@@ -63,6 +63,7 @@ export default function NexusLayoutClient({
             { href: '/coupons', icon: '🏷️', label: 'Coupon Registry' },
             { href: '/bikepool', icon: '🏍️', label: 'Co-Ride Monitor' },
             { href: '/community', icon: '💬', label: 'Community Posts' },
+            { href: '/pg', icon: '🏠', label: 'PG & Hostels' },
             { href: '/analytics', icon: '📈', label: 'Performance Intel' },
             { href: '/analytics/rewards', icon: '🎡', label: 'Rewards Intel' },
             { href: '/audit', icon: '📋', label: 'Audit Logs' },
