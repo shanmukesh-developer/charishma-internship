@@ -38,7 +38,7 @@ export default function PGPage() {
 
   const fetchPGs = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/pg`);
+      const res = await fetch(`${API_URL}/api/pg`, { cache: 'no-store' });
       if (res.ok) setPgs(await res.json());
     } catch (err) {
       console.error(err);
