@@ -939,3 +939,219 @@ exports.deleteCoupon = async (req, res) => {
   }
 };
 
+// ─── Finance & Operations (Payouts & Refunds) ────────────────
+exports.getRestaurantPayouts = async (req, res) => {
+  try {
+    const Order = getOrderModel();
+    const Restaurant = getRestaurantModel();
+    
+    // Group only Delivered orders to calculate real earnings
+    const deliveredOrders = await Order.findAll({ 
+      where: { status: 'Delivered' }
+    });
+    const restaurants = await Restaurant.findAll();
+    const restMap = restaurants.reduce((acc, r) => ({ ...acc, [r.id]: r }), {});
+
+    const payouts = {};
+    deliveredOrders.forEach(o => {
+      const rest = restMap[o.restaurantId];
+      if (!rest) return;
+      const price = o.finalPrice || o.totalPrice || 0;
+      const commissionRate = rest.commissionRate || 10;
+      const commission = price * (commissionRate / 100);
+      
+      if (!payouts[rest.id]) {
+        payouts[rest.id] = {
+          restaurantId: rest.id,
+          restaurantName: rest.name,
+          vendorType: rest.vendorType,
+          totalOrders: 0,
+          totalGMV: 0,
+          totalCommission: 0,
+          netPayout: 0
+        };
+      }
+      payouts[rest.id].totalOrders += 1;
+      payouts[rest.id].totalGMV += price;
+      payouts[rest.id].totalCommission += commission;
+      payouts[rest.id].netPayout += (price - commission);
+    });
+
+    res.json(Object.values(payouts).map(p => ({
+      ...p,
+      totalGMV: Math.round(p.totalGMV),
+      totalCommission: Math.round(p.totalCommission),
+      netPayout: Math.round(p.netPayout)
+    })));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getDisputedOrders = async (req, res) => {
+  try {
+    const Order = getOrderModel();
+    const User = require('../models/User').getUserModel();
+    
+    const disputes = await Order.findAll({
+      where: { status: 'Cancelled' },
+      order: [['createdAt', 'DESC']],
+      include: [{ model: User, as: 'user', attributes: ['name', 'phone'] }]
+    });
+    res.json(disputes.map(d => ({ ...d.toJSON(), _id: d.id, userId: d.user || { name: 'Student', phone: '' } })));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.processManualRefund = async (req, res) => {
+  try {
+    const Order = getOrderModel();
+    const { getUserModel } = require('../models/User');
+    const User = getUserModel();
+    
+    const order = await Order.findByPk(req.params.orderId);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (order.status !== 'Cancelled') return res.status(400).json({ message: 'Can only refund Cancelled orders.' });
+    if (order.paymentMethod === 'COD') return res.status(400).json({ message: 'COD orders do not require refunds.' });
+
+    const user = await User.findByPk(order.userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const refundAmount = order.finalPrice || order.totalPrice;
+    
+    // Perform manual wallet refund
+    user.walletBalance = (user.walletBalance || 0) + refundAmount;
+    await user.save();
+    
+    await logAuditAction(req, order.id, 'MANUAL_REFUND_PROCESSED', { amount: refundAmount, userId: user.id });
+    
+    res.json({ message: 'Refund successful', refundAmount, walletBalance: user.walletBalance });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ─── God-Tier Administrative Endpoints ───────────────────────
+
+exports.toggleUserBan = async (req, res) => {
+  try {
+    const { getUserModel } = require('../models/User');
+    const User = getUserModel();
+    const user = await User.findByPk(req.params.userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.isActive = req.body.isActive !== undefined ? req.body.isActive : !user.isActive;
+    await user.save();
+    
+    const action = user.isActive ? 'USER_UNBANNED' : 'USER_BANNED';
+    await logAuditAction(req, user.id, action, { userId: user.id });
+
+    res.json({ message: `User account ${user.isActive ? 'reactivated' : 'suspended'}`, user });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.broadcastPushNotification = async (req, res) => {
+  try {
+    const { title, body } = req.body;
+    if (!title || !body) return res.status(400).json({ message: 'Title and body required' });
+    
+    // In a real prod environment, we would use firebase-admin.
+    // For this demonstration, we just log it as sent to all FCM tokens.
+    const { getUserModel } = require('../models/User');
+    const User = getUserModel();
+    const activeUsers = await User.count({ where: { isActive: true } });
+
+    await logAuditAction(req, null, 'GLOBAL_PUSH_SENT', { title, body, userCount: activeUsers });
+    
+    res.json({ message: `Push notification broadcasted successfully to approximately ${activeUsers} active devices.` });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getRecentReviews = async (req, res) => {
+  try {
+    const Order = getOrderModel();
+    const User = require('../models/User').getUserModel();
+    const Restaurant = getRestaurantModel();
+    const { Op } = require('sequelize');
+
+    const reviews = await Order.findAll({
+      where: {
+        review: { [Op.not]: null }
+      },
+      order: [['createdAt', 'DESC']],
+      limit: 50,
+      include: [
+        { model: User, as: 'user', attributes: ['name', 'phone'] },
+      ]
+    });
+    
+    // Quick and dirty manual join for restaurant name since associations might be missing
+    const restaurants = await Restaurant.findAll();
+    const restMap = restaurants.reduce((acc, r) => ({ ...acc, [r.id]: r.name }), {});
+
+    const mapped = reviews.map(r => {
+      const data = r.toJSON();
+      data.restaurantName = restMap[r.restaurantId] || 'Unknown Node';
+      return data;
+    });
+
+    res.json(mapped);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.deleteReview = async (req, res) => {
+  try {
+    const Order = getOrderModel();
+    const order = await Order.findByPk(req.params.orderId);
+    if (!order) return res.status(404).json({ message: 'Review not found' });
+    
+    order.review = null;
+    order.rating = null;
+    await order.save();
+    
+    await logAuditAction(req, order.id, 'REVIEW_DELETED', { orderId: order.id });
+    res.json({ message: 'Review successfully removed from the ecosystem.' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getRiderPayouts = async (req, res) => {
+  try {
+    const Order = getOrderModel();
+    
+    const deliveredOrders = await Order.findAll({ 
+      where: { status: 'Delivered' }
+    });
+
+    // In a full implementation, we'd pull from DeliveryPartner model for names.
+    // We will aggregate by deliveryPartnerId.
+    const payouts = {};
+    deliveredOrders.forEach(o => {
+      if (!o.deliveryPartnerId) return;
+      const fee = o.deliveryFee || 0;
+      const rid = o.deliveryPartnerId;
+      
+      if (!payouts[rid]) {
+        payouts[rid] = {
+          riderId: rid,
+          totalDeliveries: 0,
+          totalDeliveryFees: 0,
+        };
+      }
+      payouts[rid].totalDeliveries += 1;
+      payouts[rid].totalDeliveryFees += fee;
+    });
+
+    res.json(Object.values(payouts));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

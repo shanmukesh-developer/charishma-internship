@@ -168,26 +168,25 @@ const CONFIGS = [
 async function seedProduction(sequelize) {
   const { Restaurant, MenuItem, User, DeliveryPartner, VaultItem, GlobalConfig, Coupon, CommunityPost } = sequelize.models;
 
-  console.log('🧹 [SEED] Full wipe and re-seed starting...');
-  await MenuItem.destroy({ where: {}, force: true });
-  await Restaurant.destroy({ where: {}, force: true });
-  await Coupon.destroy({ where: {}, force: true });
-  await CommunityPost.destroy({ where: {}, force: true });
-  await VaultItem.destroy({ where: {}, force: true });
-  await GlobalConfig.destroy({ where: {}, force: true });
+  console.log('🌱 [SEED] Non-destructive production seed starting...');
+  // NO MORE destroy() calls — we use findOrCreate to preserve existing data
 
   const rests = [];
   for (const r of RESTS) {
-    rests.push(await Restaurant.create(r));
+    const [inst] = await Restaurant.findOrCreate({ where: { name: r.name }, defaults: r });
+    rests.push(inst);
   }
 
   for (let i = 0; i < MENUS.length; i++) {
     const [n,p,d,cat,veg,img,tags] = MENUS[i];
     const ri = Math.min(MENU_MAP[i] ?? 0, rests.length - 1);
-    await MenuItem.create({
-      restaurantId: rests[ri].id, name:n, price:p, description:d,
-      category:cat, isVegetarian:veg, isAvailable:true,
-      imageUrl: IMG+img+W, tags: tags||[cat], specs:{}
+    await MenuItem.findOrCreate({
+      where: { name: n, restaurantId: rests[ri].id },
+      defaults: {
+        restaurantId: rests[ri].id, name:n, price:p, description:d,
+        category:cat, isVegetarian:veg, isAvailable:true,
+        imageUrl: IMG+img+W, tags: tags||[cat], specs:{}
+      }
     });
   }
 
@@ -197,13 +196,15 @@ async function seedProduction(sequelize) {
     users.push(inst);
   }
   for (const r of RIDERS) await DeliveryPartner.findOrCreate({ where:{ phone:r.phone }, defaults:r });
-  for (const v of VAULT) await VaultItem.create(v);
+  for (const v of VAULT) await VaultItem.findOrCreate({ where: { name: v.name }, defaults: v });
   for (const c of CONFIGS) await GlobalConfig.findOrCreate({ where:{ key:c.key }, defaults:c });
 
-  await CommunityPost.create({ userId:users[0].id, userName:users[0].name, content:'Brownie Sundae from Frozen Bliss is 🔥 must try!', likes:14, expiresAt:new Date(Date.now()+48*3600000) });
-  await CommunityPost.create({ userId:users[1].id, userName:users[1].name, content:'Green Bowl quinoa bowl = best healthy option on campus 💪', likes:9, expiresAt:new Date(Date.now()+48*3600000) });
+  if (users.length >= 2) {
+    await CommunityPost.findOrCreate({ where: { content: 'Brownie Sundae from Frozen Bliss is 🔥 must try!' }, defaults: { userId:users[0].id, userName:users[0].name, content:'Brownie Sundae from Frozen Bliss is 🔥 must try!', likes:14, expiresAt:new Date(Date.now()+48*3600000) }});
+    await CommunityPost.findOrCreate({ where: { content: 'Green Bowl quinoa bowl = best healthy option on campus 💪' }, defaults: { userId:users[1].id, userName:users[1].name, content:'Green Bowl quinoa bowl = best healthy option on campus 💪', likes:9, expiresAt:new Date(Date.now()+48*3600000) }});
+  }
 
-  console.log(`✅ [SEED] Done! ${MENUS.length} items across ${RESTS.length} restaurants.`);
+  console.log(`✅ [SEED] Done! ${MENUS.length} items across ${RESTS.length} restaurants (non-destructive).`);
 }
 
 module.exports = { seedProduction };

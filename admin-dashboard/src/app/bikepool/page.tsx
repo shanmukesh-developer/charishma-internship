@@ -63,6 +63,26 @@ export default function BikePoolAdmin() {
     } catch { return dateStr; }
   };
 
+  const handleForceCancel = async (id: string) => {
+    if (!confirm('Are you sure you want to forcibly cancel this ride?')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/bikepool/admin/${id}/force-cancel`, { method: 'POST', credentials: 'include' });
+      if (res.ok) fetchPools();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMarkPaid = async (id: string) => {
+    if (!confirm('Are you sure you want to forcibly mark this ride as paid?')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/bikepool/admin/${id}/mark-paid`, { method: 'POST', credentials: 'include' });
+      if (res.ok) fetchPools();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const stats = {
     total: pools.length,
     active: pools.filter(p => p.status === 'Available').length,
@@ -157,13 +177,33 @@ export default function BikePoolAdmin() {
                 )}
               </div>
 
-              <div className="flex gap-2 text-[8px] font-black uppercase">
-                <span className="border border-white/10 px-2 py-1 rounded text-gray-500">
-                  Gender Pref: {pool.genderPreference || 'Any'}
-                </span>
-                <span className={`border px-2 py-1 rounded ${pool.paymentStatus === 'Paid' ? 'text-emerald-400 border-emerald-500/20' : 'text-amber-400 border-amber-500/20'}`}>
-                  {pool.paymentStatus}
-                </span>
+              <div className="flex justify-between items-center mt-2">
+                <div className="flex gap-2 text-[8px] font-black uppercase">
+                  <span className="border border-white/10 px-2 py-1 rounded text-gray-500">
+                    Gender Pref: {pool.genderPreference || 'Any'}
+                  </span>
+                  <span className={`border px-2 py-1 rounded ${pool.paymentStatus === 'Paid' ? 'text-emerald-400 border-emerald-500/20' : 'text-amber-400 border-amber-500/20'}`}>
+                    {pool.paymentStatus}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  {pool.paymentStatus === 'Unpaid' && (
+                    <button 
+                      onClick={() => handleMarkPaid(pool.id)}
+                      className="px-2 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded hover:bg-emerald-500/20 text-[8px] font-black uppercase"
+                    >
+                      ✓ Mark Paid
+                    </button>
+                  )}
+                  {(pool.status === 'Available' || pool.status === 'Matched') && (
+                    <button 
+                      onClick={() => handleForceCancel(pool.id)}
+                      className="px-2 py-1 bg-red-500/10 text-red-500 border border-red-500/20 rounded hover:bg-red-500/20 text-[8px] font-black uppercase"
+                    >
+                      ✕ Force Cancel
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}

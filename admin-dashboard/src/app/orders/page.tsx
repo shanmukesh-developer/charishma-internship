@@ -23,6 +23,8 @@ interface Order {
   status: string;
   hostelGateDelivery: boolean;
   deliverySlot?: string;
+  cancellationReason?: string;
+  estDuration?: string;
   createdAt: string;
 }
 
@@ -69,9 +71,21 @@ const OrderRow = memo(({ order, onSelect, onUpdateStatus, onAccept, actionLoadin
         {order.deliverySlot && <p className="text-[8px] text-blue-400">{order.deliverySlot}</p>}
      </td>
      <td className="p-4">
-        <span className={`text-[9px] font-black px-2 py-1 rounded-md border uppercase tracking-wider ${getStatusStyle(order.status)}`}>
-           {order.status}
-        </span>
+        <div className="flex flex-col items-start gap-1">
+          <span className={`text-[9px] font-black px-2 py-1 rounded-md border uppercase tracking-wider ${getStatusStyle(order.status)}`}>
+             {order.status}
+          </span>
+          {order.status === 'Cancelled' && order.cancellationReason && (
+            <span className="text-[7px] font-black text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20 max-w-[120px] truncate" title={order.cancellationReason}>
+              Reason: {order.cancellationReason}
+            </span>
+          )}
+          {order.status === 'Accepted' && order.estDuration && (
+            <span className="text-[7px] font-black text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/20">
+              Prep: {order.estDuration}
+            </span>
+          )}
+        </div>
      </td>
       <td className="p-4">
          <span className="text-[10px] text-gray-500">
@@ -341,6 +355,13 @@ export default function OrdersPage() {
                     <h5 className="text-[9px] font-black text-blue-500 uppercase tracking-[0.2em] mb-3">Operational Meta</h5>
                     <p className="text-xs text-white font-bold">{selectedOrder.hostelGateDelivery ? '📍 Gate Deployment' : '🚪 Direct Room Entry'}</p>
                     {selectedOrder.deliverySlot && <p className="text-[10px] text-blue-400 font-black mt-1">Slot: {selectedOrder.deliverySlot}</p>}
+                    {selectedOrder.estDuration && <p className="text-[10px] text-sky-400 font-black mt-1">Kitchen ETA: {selectedOrder.estDuration}</p>}
+                    {selectedOrder.cancellationReason && (
+                      <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded text-red-400">
+                        <span className="text-[8px] font-black uppercase tracking-widest block mb-1">Cancellation Reason</span>
+                        <p className="text-[10px] font-bold">{selectedOrder.cancellationReason}</p>
+                      </div>
+                    )}
                   </div>
                </div>
                <div className="space-y-4">

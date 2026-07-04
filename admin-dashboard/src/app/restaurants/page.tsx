@@ -154,6 +154,7 @@ interface Restaurant {
   commissionType: 'percentage' | 'flat';
   operatingHours: { start: string, end: string };
   isActive: boolean;
+  isOffline?: boolean;
   tags?: string[];
   imageUrl?: string;
   vendorType?: string;
@@ -440,6 +441,7 @@ export default function GourmetManagement() {
           onSubmit={handleCreateMenuItem} 
           vendorType={selectedRestaurant?.vendorType}
           initialData={editingItem}
+          isCreating={isCreatingItem}
         />
       ) : null}
 
@@ -588,6 +590,12 @@ const RestaurantCard = memo(({ rest, onManage, onEdit, onToggleStatus, onDelete 
         {!rest.isActive && (
            <div className="absolute inset-0 bg-red-900/40 flex items-center justify-center">
               <span className="text-[9px] font-black text-white bg-red-600 px-2 py-0.5 rounded uppercase tracking-widest">Deactivated</span>
+           </div>
+        )}
+        {rest.isActive && rest.isOffline && (
+           <div className="absolute inset-0 bg-amber-900/40 flex flex-col items-center justify-center backdrop-blur-[1px]">
+              <span className="text-xl mb-1">⚠️</span>
+              <span className="text-[8px] font-black text-white bg-amber-600 px-2 py-0.5 rounded uppercase tracking-widest text-center">Store Marked<br/>Offline</span>
            </div>
         )}
       </div>

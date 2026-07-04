@@ -90,6 +90,41 @@ router.post('/seed', seedDatabase);
 
 // Nexus Intelligence
 router.get('/finance', getFinanceReport);
+router.get('/finance/payouts', (req, res, next) => {
+  const { getRestaurantPayouts } = require('../controllers/adminController');
+  getRestaurantPayouts(req, res, next);
+});
+router.get('/finance/disputes', (req, res, next) => {
+  const { getDisputedOrders } = require('../controllers/adminController');
+  getDisputedOrders(req, res, next);
+});
+router.post('/finance/refund/:orderId', (req, res, next) => {
+  const { processManualRefund } = require('../controllers/adminController');
+  processManualRefund(req, res, next);
+});
+
+// Advanced God-Tier
+router.put('/users/:userId/ban', (req, res, next) => {
+  const { toggleUserBan } = require('../controllers/adminController');
+  toggleUserBan(req, res, next);
+});
+router.post('/broadcast-push', (req, res, next) => {
+  const { broadcastPushNotification } = require('../controllers/adminController');
+  broadcastPushNotification(req, res, next);
+});
+router.get('/reviews', (req, res, next) => {
+  const { getRecentReviews } = require('../controllers/adminController');
+  getRecentReviews(req, res, next);
+});
+router.delete('/reviews/:orderId', (req, res, next) => {
+  const { deleteReview } = require('../controllers/adminController');
+  deleteReview(req, res, next);
+});
+router.get('/fleet/payouts', (req, res, next) => {
+  const { getRiderPayouts } = require('../controllers/adminController');
+  getRiderPayouts(req, res, next);
+});
+
 router.get('/audit', getAuditLogs);
 router.get('/rewards-analytics', getRewardsAnalytics);
 router.get('/health', getSystemHealth);

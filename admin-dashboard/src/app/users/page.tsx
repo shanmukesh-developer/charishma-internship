@@ -10,6 +10,7 @@ interface User {
   email: string;
   phone: string;
   isElite: boolean;
+  isActive: boolean;
   walletBalance: number;
 }
 
@@ -20,9 +21,10 @@ interface AuditLog {
   timestamp: string;
 }
 
-const UserCard = memo(({ user, onToggleElite, onAddWallet }: { 
+const UserCard = memo(({ user, onToggleElite, onToggleBan, onAddWallet }: { 
   user: User, 
   onToggleElite: (id: string, status: boolean) => void,
+  onToggleBan: (id: string, status: boolean) => void,
   onAddWallet: (id: string, amount: number) => void 
 }) => {
   const [amount, setAmount] = useState<string>('500');
@@ -30,10 +32,18 @@ const UserCard = memo(({ user, onToggleElite, onAddWallet }: {
   return (
   <div className="glass-card p-8 group relative overflow-hidden border-white/5 group hover:border-[#C9A84C]/30 transition-all">
     <div className="flex items-start justify-between mb-8">
-       <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white">{user.name[0]}</div>
-       <button onClick={() => onToggleElite(user._id, user.isElite)} className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${user.isElite ? 'bg-[#C9A84C]/20 text-[#C9A84C] border-[#C9A84C]/30' : 'bg-white/5 text-gray-500 border-white/10'}`}>
-         {user.isElite ? 'Elite Mode' : 'Standard'}
-       </button>
+       <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white relative">
+         {user.name[0]}
+         {!user.isActive && <div className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full border-2 border-zinc-900 shadow-[0_0_10px_rgba(239,68,68,0.5)]" />}
+       </div>
+       <div className="flex flex-col gap-2 items-end">
+         <button onClick={() => onToggleElite(user._id, user.isElite)} className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${user.isElite ? 'bg-[#C9A84C]/20 text-[#C9A84C] border-[#C9A84C]/30' : 'bg-white/5 text-gray-500 border-white/10'}`}>
+           {user.isElite ? 'Elite Mode' : 'Standard'}
+         </button>
+         <button onClick={() => onToggleBan(user._id, user.isActive)} className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${!user.isActive ? 'bg-red-500/20 text-red-500 border-red-500/30' : 'bg-white/5 text-gray-500 border-white/10 hover:border-red-500/30 hover:text-red-400'}`}>
+           {!user.isActive ? 'Banned' : 'Ban User'}
+         </button>
+       </div>
     </div>
     <h4 className="text-xl font-black text-white uppercase tracking-tight line-clamp-1">{user.name}</h4>
     <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-4">{user.phone || 'NO_CONTACT'}</p>
@@ -127,6 +137,19 @@ export default function UserManagement() {
     } catch (err) { console.error('[ELITE_TOGGLE_ERROR]', err); }
   };
 
+  const toggleBan = async (userId: string, currentStatus: boolean) => {
+    if (!confirm(`Are you sure you want to ${currentStatus ? 'BAN' : 'UNBAN'} this user?`)) return;
+    try {
+      const token = 'cookie-managed';
+      const res = await fetch(`${API_URL}/api/admin/users/${userId}/ban`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', },
+        body: JSON.stringify({ isActive: !currentStatus })
+      });
+      if (res.ok) { fetchUsers(userPage); fetchLogs(logPage); }
+    } catch (err) { console.error('[BAN_TOGGLE_ERROR]', err); }
+  };
+
   const addWalletBalance = async (userId: string, amount: number) => {
     if (!amount || isNaN(amount)) return;
     try {
@@ -176,7 +199,8 @@ export default function UserManagement() {
                <UserCard 
                  key={user._id} 
                  user={user} 
-                 onToggleElite={toggleElite} 
+                 onToggleElite={toggleElite}
+                 onToggleBan={toggleBan}
                  onAddWallet={addWalletBalance} 
                />
              ))}

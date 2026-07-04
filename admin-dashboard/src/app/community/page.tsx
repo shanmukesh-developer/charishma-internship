@@ -29,6 +29,11 @@ export default function CommunityAdmin() {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const [pushTitle, setPushTitle] = useState('');
+  const [pushBody, setPushBody] = useState('');
+  const [pushTarget, setPushTarget] = useState('ALL');
+  const [pushSending, setPushSending] = useState(false);
+
   useEffect(() => {
     fetchPosts();
   }, []);
@@ -69,6 +74,30 @@ export default function CommunityAdmin() {
     }
   };
 
+  const handleSendPush = async () => {
+    if (!pushTitle || !pushBody) return;
+    setPushSending(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/broadcast-push`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: pushTitle, body: pushBody, targetRole: pushTarget })
+      });
+      if (res.ok) {
+        setPushTitle('');
+        setPushBody('');
+        alert('Push Notification Dispatched Successfully');
+      } else {
+        const d = await res.json();
+        alert(d.error || 'Failed to send push');
+      }
+    } catch (err) {
+      console.error('[PUSH_SEND_ERROR]', err);
+    } finally {
+      setPushSending(false);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     try {
       return new Date(dateStr).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -91,6 +120,46 @@ export default function CommunityAdmin() {
           ↻ Refresh
         </button>
       </header>
+
+      {/* Push Notification Broadcaster */}
+      <div className="glass-card p-6 border border-purple-500/20 bg-purple-500/5">
+        <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">Native Push Broadcaster</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input 
+            type="text" 
+            placeholder="Notification Title (e.g. Flash Sale!)" 
+            className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:border-purple-500/40"
+            value={pushTitle}
+            onChange={e => setPushTitle(e.target.value)}
+          />
+          <select 
+            className="px-4 py-3 bg-[#0a0a0a] border border-white/10 rounded-xl text-sm text-gray-300 outline-none focus:border-purple-500/40"
+            value={pushTarget}
+            onChange={e => setPushTarget(e.target.value)}
+          >
+            <option value="ALL">All Users (Global)</option>
+            <option value="CUSTOMER">Customers Only</option>
+            <option value="RIDER">Delivery Fleet Only</option>
+            <option value="VENDOR">Vendors Only</option>
+          </select>
+          <textarea 
+            placeholder="Notification Body (Keep it short & punchy)"
+            rows={2}
+            className="md:col-span-2 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:border-purple-500/40 resize-none"
+            value={pushBody}
+            onChange={e => setPushBody(e.target.value)}
+          />
+        </div>
+        <div className="flex justify-end mt-4">
+          <button 
+            disabled={!pushTitle || !pushBody || pushSending}
+            onClick={handleSendPush}
+            className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-[11px] font-black uppercase tracking-widest rounded-xl transition-all"
+          >
+            {pushSending ? 'Transmitting...' : 'Dispatch Push'}
+          </button>
+        </div>
+      </div>
 
       {loading ? (
         <div className="flex justify-center py-20">

@@ -24,6 +24,7 @@ const initUserModel = (sequelize) => {
     role: { type: DataTypes.STRING, defaultValue: 'student' },
     zenPoints: { type: DataTypes.INTEGER, defaultValue: 0 },
     isElite: { type: DataTypes.BOOLEAN, defaultValue: false },
+    isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
     address: { type: DataTypes.STRING, allowNull: true },
     city: { type: DataTypes.STRING, defaultValue: 'Amaravathi' },
     profileImage: { type: DataTypes.TEXT, allowNull: true },

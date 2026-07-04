@@ -28,6 +28,7 @@ export default function AnalyticsIntel() {
 
    const [volume, setVolume] = useState<{ hour: string; count: number }[]>([]);
    const [health, setHealth] = useState<any>(null);
+   const [reviews, setReviews] = useState<{_id: string, userId: {name: string}, restaurantId: {name: string}, rating: number, review: string, createdAt: string}[]>([]);
 
   useEffect(() => {
       const fetchVolume = async () => {
@@ -84,12 +85,22 @@ export default function AnalyticsIntel() {
         }
       };
 
+      const fetchReviews = async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/admin/reviews`);
+          if (res.ok) setReviews(await res.json());
+        } catch (error) {
+          console.error('Failed to fetch reviews:', error);
+        }
+      };
+
       fetchStats();
       fetchRewards();
+      fetchReviews();
       const interval = setInterval(() => {
         fetchStats();
         fetchRewards();
-      }, 10000); // Polling every 10s
+      }, 60000); // Polling every 60s (was 10s — too aggressive for free tier)
       return () => clearInterval(interval);
    }, [API_URL]);
 
@@ -260,7 +271,48 @@ export default function AnalyticsIntel() {
                    </div>
                 </div>
              </div>
+             </div>
            )}
+
+            {/* Review Moderation */}
+            <div className="glass-card p-10 mt-10 space-y-6 border border-amber-500/20 bg-black/40">
+               <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-black tracking-tighter uppercase text-white">Content <span className="text-amber-500">Moderation</span></h3>
+                  <span className="text-xs text-gray-500 uppercase tracking-widest">{reviews.length} Flagged Reviews</span>
+               </div>
+               
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {reviews.length === 0 ? (
+                    <p className="text-[10px] text-gray-600 italic py-10 col-span-full text-center">No recent reviews pending moderation.</p>
+                  ) : reviews.map(rev => (
+                     <div key={rev._id} className="p-5 bg-white/5 border border-white/10 rounded-2xl flex flex-col gap-3">
+                        <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                           <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">
+                             {rev.userId?.name || 'Unknown User'} 
+                             <span className="text-gray-500 ml-2">→ {rev.restaurantId?.name || 'Restaurant'}</span>
+                           </span>
+                           <span className="text-amber-400 font-black text-sm">★ {rev.rating}</span>
+                        </div>
+                        <p className="text-sm text-gray-300 italic">{rev.review}</p>
+                        <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5">
+                           <span className="text-[8px] text-gray-600 font-mono">{new Date(rev.createdAt).toLocaleString()}</span>
+                           <button 
+                             onClick={async () => {
+                               if(!confirm('Delete this review for violation?')) return;
+                               try {
+                                 const res = await fetch(`${API_URL}/api/admin/reviews/${rev._id}`, { method: 'DELETE' });
+                                 if(res.ok) setReviews(prev => prev.filter(r => r._id !== rev._id));
+                               } catch(e) { console.error(e); }
+                             }}
+                             className="px-4 py-1.5 bg-red-600/20 text-red-500 hover:bg-red-600/40 rounded text-[9px] font-black uppercase tracking-widest transition-all"
+                           >
+                             Strike Content
+                           </button>
+                        </div>
+                     </div>
+                  ))}
+               </div>
+            </div>
         </>
       )}
     </div>

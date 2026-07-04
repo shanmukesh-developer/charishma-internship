@@ -20,7 +20,16 @@ const protect = async (req, res, next) => {
       return res.status(500).json({ message: 'Server configuration error' });
     }
     const decoded = jwt.verify(token, secret);
-    req.user = decoded;
+    const { getUserModel } = require('../models/User');
+    const User = getUserModel();
+    if (User) {
+      const dbUser = await User.findByPk(decoded.id);
+      if (!dbUser) return res.status(401).json({ message: 'User not found' });
+      if (dbUser.isActive === false) return res.status(403).json({ message: 'Account suspended. Please contact support.' });
+      req.user = dbUser;
+    } else {
+      req.user = decoded;
+    }
     return next();
   } catch (error) {
     console.warn('[AUTH_WARN] Token verification failed:', error.message);

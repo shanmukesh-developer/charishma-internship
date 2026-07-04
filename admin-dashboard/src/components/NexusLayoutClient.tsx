@@ -28,7 +28,7 @@ export default function NexusLayoutClient({
       } catch { /* ignore */ }
     };
     fetchHealth();
-    const timer = setInterval(fetchHealth, 30000); // Check every 30s
+    const timer = setInterval(fetchHealth, 120000); // Check every 2 minutes (was 30s)
     return () => clearInterval(timer);
   }, [isLoginPage]);
 

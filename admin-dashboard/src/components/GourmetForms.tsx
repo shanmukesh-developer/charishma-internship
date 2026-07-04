@@ -213,6 +213,17 @@ export function AddRestaurantForm({ onCancel, onSubmit, isCreating, initialData 
             />
           </div>
 
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-emerald-500 ml-1">Partner Portal Password</label>
+            <input 
+              type="text"
+              placeholder="Leave blank to skip" 
+              className="nexus-input text-emerald-500 placeholder-emerald-900/50" 
+              value={formData.password} 
+              onChange={(e) => setFormData({...formData, password: e.target.value})} 
+            />
+          </div>
+
           {formData.vendorType === 'RENTAL' && (
             <>
               <div className="space-y-2">
@@ -342,9 +353,10 @@ interface ItemFormProps {
   onSubmit: (data: Record<string, unknown>, image: File | null) => void;
   vendorType?: string;
   initialData?: any;
+  isCreating?: boolean;
 }
 
-export function AddMenuItemForm({ onCancel, onSubmit, vendorType, initialData }: ItemFormProps) {
+export function AddMenuItemForm({ onCancel, onSubmit, vendorType, initialData, isCreating }: ItemFormProps) {
   const [formData, setFormData] = useState({ 
     name: initialData?.name || '', 
     price: initialData?.price || 0, 
@@ -528,9 +540,15 @@ export function AddMenuItemForm({ onCancel, onSubmit, vendorType, initialData }:
               }
               onSubmit(formData, imageFile);
             }} 
+            disabled={isCreating}
             className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 hover:shadow-[0_0_30px_rgba(37,99,235,0.3)] text-white font-black uppercase tracking-[0.2em] rounded-2xl text-xs transition-all duration-300 disabled:opacity-40"
           >
-            {initialData ? 'Commit Modifications' : 'Commit Asset'}
+            {isCreating ? (
+              <span className="flex items-center justify-center gap-3">
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Processing...
+              </span>
+            ) : initialData ? 'Commit Modifications' : 'Commit Asset'}
           </button>
           <button 
             onClick={onCancel} 

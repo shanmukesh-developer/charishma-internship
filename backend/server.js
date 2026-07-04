@@ -284,8 +284,8 @@ const startServer = async () => {
         const restCount = Restaurant ? await Restaurant.count() : 0;
         const MenuItem = instance.models.MenuItem;
         const menuCount = MenuItem ? await MenuItem.count() : 0;
-        if (restCount === 0 || menuCount < 80) {
-          console.log(`🌱 [PROD_SEED] Catalog needs seeding (Restaurants: ${restCount}, MenuItems: ${menuCount}). Seeding...`);
+        if (restCount === 0 && menuCount === 0) {
+          console.log(`🌱 [PROD_SEED] Fresh deploy detected (Restaurants: ${restCount}, MenuItems: ${menuCount}). Seeding...`);
           try {
             const seedPath = require('path').join(__dirname, 'scripts', 'seed_full.js');
             delete require.cache[seedPath]; // Clear cache
@@ -548,12 +548,16 @@ const startServer = async () => {
           else if (role === 'admin') verifiedRole = 'admin';
         }
         log(`[CHAT] ${verifiedRole} (${data.sender}) in room ${room}: ${data.message}`);
-        io.to(room).emit('receiveMessage', {
+        const chatData = {
+          orderId: room,
           sender: data.sender,
           senderRole: verifiedRole,
           message: data.message,
           timestamp: new Date()
-        });
+        };
+        io.to(room).emit('receiveMessage', chatData);
+        // Intercept for admin monitoring
+        io.to('admin-room').emit('admin_intercept_chat', chatData);
       });
 
       socket.on('report_issue', (data) => {

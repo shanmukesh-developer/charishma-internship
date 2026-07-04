@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/authMiddleware');
+const { protect, admin } = require('../middleware/authMiddleware');
 const { getBikePoolModel } = require('../models/BikePool');
 const { getUserModel } = require('../models/User');
 const { Op } = require('sequelize');
@@ -319,6 +319,54 @@ router.get('/my-rides', protect, async (req, res) => {
   } catch (err) {
     console.error('[BIKEPOOL_MYRIDES_ERROR]', err);
     res.status(500).json({ message: 'Failed to fetch your rides.', error: err.message });
+  }
+});
+
+// ─── Admin Moderation Routes ────────────────────────────────
+router.post('/admin/:id/force-cancel', protect, admin, async (req, res) => {
+  try {
+    const BikePool = getBikePoolModel();
+    const pool = await BikePool.findByPk(req.params.id);
+    if (!pool) return res.status(404).json({ message: 'Pool not found.' });
+    if (pool.status === 'Completed' || pool.status === 'Cancelled') {
+      return res.status(400).json({ message: 'Cannot cancel a completed or already cancelled ride.' });
+    }
+    pool.status = 'Cancelled';
+    await pool.save();
+    res.json({ message: 'Listing forcibly cancelled by Admin.', pool });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/admin/:id/mark-paid', protect, admin, async (req, res) => {
+  try {
+    const BikePool = getBikePoolModel();
+    const pool = await BikePool.findByPk(req.params.id);
+    if (!pool) return res.status(404).json({ message: 'Pool not found.' });
+    pool.paymentStatus = 'Paid';
+    await pool.save();
+    res.json({ message: 'Listing forcibly marked as Paid by Admin.', pool });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Admin All Pools
+router.get('/admin/all', protect, admin, async (req, res) => {
+  try {
+    const BikePool = getBikePoolModel();
+    const User = getUserModel();
+    const pools = await BikePool.findAll({
+      include: [
+        { model: User, as: 'creator', attributes: ['id', 'name', 'phone', 'gender'] },
+        { model: User, as: 'coRider', attributes: ['id', 'name', 'phone'] }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+    res.json(pools);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 

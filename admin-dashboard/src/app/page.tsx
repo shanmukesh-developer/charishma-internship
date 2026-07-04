@@ -174,6 +174,7 @@ export default function AdminHome() {
   const [liveOrders, setLiveOrders] = useState<LiveOrder[]>([]);
   const [riders, setRiders] = useState<Record<string, RiderPosition>>({});
   const [operationalEvents, setOperationalEvents] = useState<OperationalEvent[]>([]);
+  const [interceptedChats, setInterceptedChats] = useState<{orderId: string, sender: string, senderRole: string, message: string, timestamp: Date}[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Megaphone
@@ -418,6 +419,16 @@ export default function AdminHome() {
       }, ...prev].slice(0, 10));
     });
 
+    socket.on('admin_intercept_chat', (data: any) => {
+      setInterceptedChats(prev => [{
+        orderId: data.orderId,
+        sender: data.sender,
+        senderRole: data.senderRole,
+        message: data.message,
+        timestamp: new Date(data.timestamp)
+      }, ...prev].slice(0, 30));
+    });
+
     return () => { socket.disconnect(); };
   }, [fetchStats, fetchOrders, router, throttledFetchStats]);
 
@@ -539,10 +550,13 @@ export default function AdminHome() {
          </div>
           <div className="flex gap-4 print:hidden">
             <button 
-              onClick={handlePrintReport}
-              className="px-8 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 hover:bg-white/10 hover:text-white transition-all"
+              onClick={() => {
+                if (!confirm("Activate STORM MODE? This will globally enable Surge Pricing and alert all active users.")) return;
+                if (socketRef.current) socketRef.current.emit('admin_broadcast', { message: "⚠️ SEVERE WEATHER: Deliveries may be delayed. Surge pricing active.", type: "emergency" });
+              }}
+              className="px-8 py-4 bg-red-600 shadow-[0_0_30px_rgba(220,38,38,0.3)] rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-white hover:scale-105 transition-all animate-pulse"
             >
-               Generate Intel PDF
+               🚨 STORM MODE OVERRIDE
             </button>
             <button 
               onClick={handleOverrideGlobalBatch}
@@ -553,41 +567,47 @@ export default function AdminHome() {
           </div>
       </div>
 
-      {/* ─── Tactical Megaphone Broadcast ─── */}
-      <div className="glass-card p-8 border border-white/10">
-        <div className="flex items-center gap-3 mb-6">
-          <span className="text-2xl">📢</span>
+      {/* ─── Communication Suite ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        {/* Tactical Megaphone */}
+        <div className="glass-card p-8 border border-white/10 flex flex-col justify-between">
           <div>
-            <h3 className="text-xl font-black text-white uppercase tracking-widest">Tactical Broadcast</h3>
-            <p className="text-[11px] text-gray-500">Push live alerts to all 3 portals instantly via WebSockets</p>
+            <div className="flex items-center gap-3 mb-6">
+              <span className="text-2xl">📢</span>
+              <div>
+                <h3 className="text-xl font-black text-white uppercase tracking-widest">Tactical Broadcast</h3>
+                <p className="text-[11px] text-gray-500">Push live alerts to all 3 portals instantly via WebSockets</p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap gap-2">
+                {(['info', 'warning', 'promo', 'emergency'] as const).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setMegaType(t)}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${
+                      megaType === t
+                        ? t === 'emergency' ? 'bg-red-600 border-red-400 text-white' :
+                          t === 'warning'   ? 'bg-amber-500 border-amber-400 text-black' :
+                          t === 'promo'     ? 'bg-emerald-600 border-emerald-400 text-white' :
+                                              'bg-blue-600 border-blue-400 text-white'
+                        : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
+                    }`}
+                  >
+                    { t === 'emergency' ? '🚨' : t === 'warning' ? '⚠️' : t === 'promo' ? '🎉' : '📢' } {t}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                rows={3}
+                value={megaMsg}
+                onChange={e => setMegaMsg(e.target.value)}
+                placeholder="Type your message (e.g. '🌧️ Rain alert! Deliveries delayed by 15 mins due to weather.')"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-sm text-white placeholder-gray-600 outline-none focus:border-blue-500/40 resize-none transition-all"
+              />
+            </div>
           </div>
-        </div>
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap gap-2">
-            {(['info', 'warning', 'promo', 'emergency'] as const).map(t => (
-              <button
-                key={t}
-                onClick={() => setMegaType(t)}
-                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${
-                  megaType === t
-                    ? t === 'emergency' ? 'bg-red-600 border-red-400 text-white' :
-                      t === 'warning'   ? 'bg-amber-500 border-amber-400 text-black' :
-                      t === 'promo'     ? 'bg-emerald-600 border-emerald-400 text-white' :
-                                          'bg-blue-600 border-blue-400 text-white'
-                    : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
-                }`}
-              >
-                { t === 'emergency' ? '🚨' : t === 'warning' ? '⚠️' : t === 'promo' ? '🎉' : '📢' } {t}
-              </button>
-            ))}
-          </div>
-          <textarea
-            rows={2}
-            value={megaMsg}
-            onChange={e => setMegaMsg(e.target.value)}
-            placeholder="Type your message (e.g. '🌧️ Rain alert! Deliveries delayed by 15 mins due to weather.')"
-            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-sm text-white placeholder-gray-600 outline-none focus:border-blue-500/40 resize-none transition-all"
-          />
           <button
             disabled={!megaMsg.trim() || broadcasting}
             onClick={() => {
@@ -596,11 +616,47 @@ export default function AdminHome() {
               socketRef.current.emit('admin_broadcast', { message: megaMsg.trim(), type: megaType });
               setTimeout(() => { setMegaMsg(''); setBroadcasting(false); }, 1500);
             }}
-            className="self-end px-8 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest bg-[#C9A84C] text-black hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="w-full mt-6 py-4 rounded-xl text-[13px] font-black uppercase tracking-widest bg-[#C9A84C] text-black hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
-            {broadcasting ? '✓ Dispatched!' : 'Broadcast Now'}
+            {broadcasting ? 'Transmitting...' : 'Execute Broadcast'}
           </button>
         </div>
+
+        {/* Live Chat Intercept Terminal */}
+        <div className="glass-card p-8 border border-blue-500/20 bg-black/60 relative overflow-hidden flex flex-col h-[400px]">
+           <div className="absolute top-0 right-0 p-4">
+              <span className="flex items-center gap-2 px-2 py-1 bg-red-500/10 border border-red-500/20 text-red-500 rounded text-[9px] font-black uppercase animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500" /> REC
+              </span>
+           </div>
+           <div className="flex items-center gap-3 mb-6">
+              <span className="text-2xl">📡</span>
+              <div>
+                <h3 className="text-xl font-black text-white uppercase tracking-widest text-blue-400">Comms Intercept</h3>
+                <p className="text-[11px] text-gray-500 font-mono tracking-tight">Monitoring all P2P Grid Communications</p>
+              </div>
+           </div>
+           
+           <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar flex flex-col-reverse">
+             {interceptedChats.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center">
+                   <p className="text-xs font-mono text-gray-600">Awaiting transmission...</p>
+                </div>
+             ) : interceptedChats.map((chat, idx) => (
+               <div key={idx} className="bg-white/5 border border-white/5 p-3 rounded-lg flex flex-col gap-1">
+                 <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                      {chat.senderRole} <span className="text-white">({chat.sender.slice(0,12)}...)</span>
+                    </span>
+                    <span className="text-[8px] font-mono text-gray-600">{chat.timestamp.toLocaleTimeString()}</span>
+                 </div>
+                 <p className="text-sm font-mono text-blue-300">{chat.message}</p>
+                 <span className="text-[8px] font-black text-yellow-600/50 uppercase">Order: #{chat.orderId.slice(-6).toUpperCase()}</span>
+               </div>
+             ))}
+           </div>
+        </div>
+
       </div>
 
       <PaymentVerificationModal 
