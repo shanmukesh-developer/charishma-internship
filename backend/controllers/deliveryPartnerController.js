@@ -114,8 +114,8 @@ const acceptOrder = async (req, res) => {
     
     // 2. Atomic Claim: Use a conditional update to prevent race conditions (Rider A vs Rider B)
     const [updatedRows] = await Order.update(
-      { deliveryPartnerId: req.user.id, status: 'Accepted' },
-      { where: { id: req.params.orderId, deliveryPartnerId: null, status: { [Op.in]: ['Pending', 'Accepted'] } } }
+      { deliveryPartnerId: req.user.id },
+      { where: { id: req.params.orderId, deliveryPartnerId: null, status: { [Op.in]: ['Pending', 'Accepted', 'Preparing', 'ReadyForPickup'] } } }
     );
 
     if (updatedRows === 0) {
@@ -124,6 +124,11 @@ const acceptOrder = async (req, res) => {
 
     // Since we successfully updated, we fetch the updated order object
     const updatedOrder = await Order.findByPk(req.params.orderId);
+    
+    if (updatedOrder.status === 'Pending') {
+      updatedOrder.status = 'Accepted';
+      await updatedOrder.save();
+    }
     
     if (partner) { 
       partner.currentOrderId = updatedOrder.id; 
@@ -182,7 +187,7 @@ const getPendingOrders = async (req, res) => {
     const Restaurant = getRestaurantModel();
     const orders = await Order.findAll({ 
       where: { 
-        status: { [Op.in]: ['Pending', 'Accepted'] },
+        status: { [Op.in]: ['Pending', 'Accepted', 'Preparing', 'ReadyForPickup'] },
         deliveryPartnerId: null
       }, 
       order: [['createdAt', 'DESC']],
