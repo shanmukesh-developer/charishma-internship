@@ -405,7 +405,7 @@ export default function Home() {
     try {
       const token = 'cookie-managed';
       if (!token) {
-        alert('Please login to join Zenvy Elite!');
+        showModal('Login Required', 'Please login to join Zenvy Elite!', 'error');
         return;
       }
 
@@ -923,7 +923,7 @@ export default function Home() {
                     </div>
                   ) : (
                     <Magnetic>
-                      <button className="w-fit bg-primary-yellow text-black text-[9px] font-black px-6 py-2.5 rounded-full uppercase tracking-tighter shadow-lg shadow-primary-yellow/20">Join Elite for ₹199 →</button>
+                      <button onClick={handleJoinElite} className="w-fit bg-primary-yellow text-black text-[9px] font-black px-6 py-2.5 rounded-full uppercase tracking-tighter shadow-lg shadow-primary-yellow/20">Join Elite for ₹199 →</button>
                     </Magnetic>
                   )}
                </div>

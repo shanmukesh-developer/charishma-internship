@@ -97,7 +97,7 @@ export default function DetailPage() {
            Add To Cart
         </button>
         
-        <button className="w-[72px] h-[72px] bg-black border border-white/10 flex items-center justify-center rounded-[24px] shadow-2xl">
+        <button onClick={() => window.location.href = '/checkout'} className="w-[72px] h-[72px] bg-black border border-white/10 flex items-center justify-center rounded-[24px] shadow-2xl">
            <svg className="w-7 h-7 text-primary-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
            </svg>

@@ -183,14 +183,14 @@ const ConciergeDrawer: React.FC<ConciergeDrawerProps> = ({ isOpen, onClose, user
             <div className="px-4 pb-2">
                <h3 className="text-[7px] font-black text-[#C9A84C] uppercase tracking-[0.3em] mb-2 ml-1">Priority Operations</h3>
                 <div className="grid grid-cols-2 gap-2">
-                   <button className="flex items-center gap-3 p-3 bg-white/[0.03] border border-white/5 rounded-2xl group hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/30 transition-all text-left">
+                   <button onClick={() => setInputValue("I have a dispute regarding my recent order.")} className="flex items-center gap-3 p-3 bg-white/[0.03] border border-white/5 rounded-2xl group hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/30 transition-all text-left">
                       <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-sm group-hover:scale-110 transition-transform">📍</div>
                       <div className="flex flex-col">
                         <span className="text-[9px] font-black text-white uppercase tracking-tight">Express Mediation</span>
                         <span className="text-[7px] text-secondary-text font-bold uppercase">Order Disputes</span>
                       </div>
                    </button>
-                   <button className="flex items-center gap-3 p-3 bg-white/[0.03] border border-white/5 rounded-2xl group hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/30 transition-all text-left">
+                   <button onClick={() => setInputValue("I want to use my priority access to the Vault Reserve.")} className="flex items-center gap-3 p-3 bg-white/[0.03] border border-white/5 rounded-2xl group hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/30 transition-all text-left">
                       <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-sm group-hover:scale-110 transition-transform">⚡</div>
                       <div className="flex flex-col">
                         <span className="text-[9px] font-black text-white uppercase tracking-tight">Vault Reserve</span>

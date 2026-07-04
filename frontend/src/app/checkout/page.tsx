@@ -937,7 +937,7 @@ export default function CheckoutPage() {
         >
           <div className="relative max-w-sm w-full bg-white p-6 rounded-[40px] shadow-[0_0_80px_rgba(255,255,255,0.1)] scale-in-center overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-primary-yellow animate-shimmer" />
-            <button className="absolute -top-12 right-0 text-white font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+            <button onClick={(e) => { e.stopPropagation(); setIsQrZoomed(false); }} className="absolute -top-12 right-0 text-white font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
               Tap anywhere to close ✕
             </button>
             {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -186,7 +186,7 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
                   )}
                 </AnimatePresence>
              </div>
-             <button className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-[8px] md:text-[10px] font-black uppercase tracking-widest text-secondary-text hover:bg-white/10 transition-all">
+             <button onClick={() => { setActiveFilter('all'); setActiveCategory('Biryani'); setSortValue('default'); }} className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-[8px] md:text-[10px] font-black uppercase tracking-widest text-secondary-text hover:bg-white/10 transition-all">
                 Clear
              </button>
           </div>
