@@ -168,7 +168,14 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
 
   const filteredMenu = (restaurant.menu || []).filter(item => {
     // Category Filter
-    if (activeCategory !== 'All' && item.category !== activeCategory) return false;
+    if (activeCategory !== 'All') {
+      const activeLower = activeCategory.toLowerCase();
+      const matchCategory = item.category?.toLowerCase() === activeLower;
+      const matchTag = item.tags?.some(tag => tag.toLowerCase() === activeLower);
+      const matchName = item.name?.toLowerCase().includes(activeLower);
+      
+      if (!matchCategory && !matchTag && !matchName) return false;
+    }
 
     // Diet Filter
     if (dietMode === 'veg' && item.isVegetarian !== true) return false;
