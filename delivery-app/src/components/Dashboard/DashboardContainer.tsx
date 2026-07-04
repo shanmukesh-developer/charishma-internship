@@ -88,6 +88,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
   const [showEarnings, setShowEarnings] = useState(false);
   const [isNetworkConnected, setIsNetworkConnected] = useState(typeof window !== 'undefined' ? navigator.onLine : true);
   const [driverPhoto, setDriverPhoto] = useState<string | undefined>();
+  const [offlineQueueCount, setOfflineQueueCount] = useState(0);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [currentCheckpoint, _setCurrentCheckpoint] = useState<string>('Mangalagiri Jn');
 
@@ -236,6 +237,10 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
     }
     const savedStats = localStorage.getItem('todayStats');
     if (savedStats) { try { setTodayStats(JSON.parse(savedStats)); } catch {} }
+    try {
+      const queue = JSON.parse(localStorage.getItem('offlineActionsQueue') || '[]');
+      setOfflineQueueCount(queue.length);
+    } catch {}
   }, [apiUrl, driverToken, onLogout]);
 
   const fetchActiveOrders = useCallback(async () => {
@@ -529,6 +534,8 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
       queue.push({ orderId, status, pin, timestamp: Date.now() });
       localStorage.setItem('offlineActionsQueue', JSON.stringify(queue));
       
+      setOfflineQueueCount(queue.length);
+      
       if (status === 'PickedUp') {
         setOrderStatus(prev => ({ ...prev, [orderId]: 'PickedUp' }));
         toast('Offline fallback: Picked Up saved locally.', 'warning');
@@ -580,6 +587,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
       }
       
       localStorage.setItem('offlineActionsQueue', JSON.stringify(remainingQueue));
+      setOfflineQueueCount(remainingQueue.length);
       if (successCount > 0) {
         toast(`Synced ${successCount} offline actions!`, 'success');
         addNotification('info', 'Offline Sync Complete', `Successfully synced ${successCount} queued actions.`);
@@ -775,15 +783,34 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
           />
         </motion.div>
 
-        {!isNetworkConnected && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 mt-6 flex items-center justify-between text-red-400 animate-pulse">
+        {(!isNetworkConnected || offlineQueueCount > 0) && (
+          <div className={`border rounded-2xl p-4 mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all duration-300 ${
+            !isNetworkConnected 
+              ? 'bg-red-500/10 border-red-500/20 text-red-400 animate-pulse' 
+              : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+          }`}>
             <div className="flex items-center gap-3">
-              <span className="text-xl">⚠️</span>
+              <span className="text-xl shrink-0">{!isNetworkConnected ? '⚠️' : '🔄'}</span>
               <div>
-                <p className="text-xs font-black uppercase tracking-wider">Offline Mode Active</p>
-                <p className="text-[10px] text-red-400/80">Your connection is unstable. Pickup/delivery actions will be queued locally and synced automatically.</p>
+                <p className="text-xs font-black uppercase tracking-wider">
+                  {!isNetworkConnected ? 'Offline Mode Active' : 'Unsynced Data Pending'}
+                </p>
+                <p className="text-[10px] opacity-80 mt-0.5">
+                  {!isNetworkConnected 
+                    ? `Your connection is unstable. Actions will be saved locally. Queued: ${offlineQueueCount}`
+                    : `${offlineQueueCount} action(s) saved locally are waiting to sync with the server.`
+                  }
+                </p>
               </div>
             </div>
+            {isNetworkConnected && offlineQueueCount > 0 && (
+              <button
+                onClick={syncOfflineQueue}
+                className="shrink-0 px-4 py-2 bg-amber-500 text-black text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-amber-400 transition-all active:scale-95 shadow-lg shadow-amber-900/10"
+              >
+                Sync Now
+              </button>
+            )}
           </div>
         )}
 

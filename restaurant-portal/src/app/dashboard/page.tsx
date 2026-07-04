@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 import api from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, UtensilsCrossed, CheckCircle, Clock, User, Plus, Edit2, Power, Eye } from 'lucide-react';
+import { Package, UtensilsCrossed, CheckCircle, Clock, User, Plus, Edit2, Power, Eye, Phone } from 'lucide-react';
 import { useToast } from '@/components/RestaurantToast';
 import { MenuItemForm } from '@/components/RestaurantForms';
 import { OrderDetailModal } from '@/components/OrderDetailModal';
@@ -27,6 +27,8 @@ interface Order {
   upiStatus: string;
   deliveryPartnerName?: string;
   _id?: string;
+  user?: { name: string; phone: string };
+  deliveryPartner?: { name: string; phone: string };
 }
 
 interface MenuItem {
@@ -40,7 +42,32 @@ interface MenuItem {
 interface Announcement {
   message: string;
   type: 'info' | 'warning' | 'promo' | 'emergency';
+  message: string;
+  type: 'info' | 'warning' | 'promo' | 'emergency';
 }
+
+const TimeAgo = ({ timestamp }: { timestamp: string }) => {
+  const [timeStr, setTimeStr] = useState('');
+  const [isUrgent, setIsUrgent] = useState(false);
+
+  useEffect(() => {
+    const update = () => {
+      const diff = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
+      if (diff < 60) { setTimeStr(`${diff}s ago`); setIsUrgent(false); }
+      else if (diff < 3600) { 
+        const m = Math.floor(diff/60);
+        setTimeStr(`${m}m ago`);
+        setIsUrgent(m >= 10);
+      }
+      else setTimeStr(`${Math.floor(diff/3600)}h ago`);
+    };
+    update();
+    const int = setInterval(update, 10000);
+    return () => clearInterval(int);
+  }, [timestamp]);
+
+  return <span className={`text-[10px] font-black uppercase tracking-widest ${isUrgent ? 'text-red-500 animate-pulse' : 'text-zinc-500'}`}>{timeStr}</span>;
+};
 
 export default function Dashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -52,6 +79,8 @@ export default function Dashboard() {
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [openToggleMenu, setOpenToggleMenu] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(typeof window !== 'undefined' ? navigator.onLine : true);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -83,7 +112,7 @@ export default function Dashboard() {
     }
 
     // Connect socket WITH auth token so backend accepts the connection
-    const token = localStorage.getItem('restaurantToken');
+    // (token is already declared above, reuse it here)
     const s = io(process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005', {
       transports: ['websocket', 'polling'],
       auth: { token, role: 'restaurant' },
@@ -93,12 +122,24 @@ export default function Dashboard() {
       reconnectionDelay: 1000,
     });
     
+    const alertChime = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
     s.on('connect', () => {
       console.log('Connected to socket');
       s.emit('joinRoom', `restaurant_${restaurantId}`);
+      // Sync on connect/reconnect to prevent missed orders during network drops
+      api.get(`/restaurants/${restaurantId}/orders`)
+        .then(res => setOrders(res.data.map((o: any) => ({ ...o, id: o.id || o._id }))))
+        .catch(console.error);
     });
 
     s.on('restaurant_newOrder', () => {
+      alertChime.play().catch(e => console.error("Audio play failed:", e));
       api.get(`/restaurants/${restaurantId}/orders`).then(res => setOrders(res.data.map((o: any) => ({ ...o, id: o.id || o._id }))));
     });
 
@@ -114,6 +155,8 @@ export default function Dashboard() {
     });
 
     return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
       s.disconnect();
     };
   }, [router]);
@@ -196,7 +239,9 @@ export default function Dashboard() {
     }
   };
 
-  const activeOrders = orders.filter(o => ['Pending', 'Accepted', 'Preparing', 'ReadyForPickup'].includes(o.status));
+  const activeOrders = orders
+    .filter(o => ['Pending', 'Accepted', 'Preparing', 'ReadyForPickup'].includes(o.status))
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   const pastOrders = orders.filter(o => ['Delivered', 'Cancelled', 'PickedUp'].includes(o.status));
 
   return (
@@ -266,6 +311,19 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {!isOnline && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 mb-8 flex items-center gap-4 text-red-400 animate-pulse"
+        >
+          <span className="text-2xl">⚠️</span>
+          <div>
+            <h3 className="font-black uppercase tracking-widest text-sm">System Offline</h3>
+            <p className="text-xs font-medium text-red-400/80 mt-0.5">Check internet connection. You will not receive new orders until connection is restored.</p>
+          </div>
+        </motion.div>
+      )}
+
       {activeTab === 'orders' ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
@@ -305,7 +363,11 @@ export default function Dashboard() {
                             <Eye size={16} />
                           </button>
                         </div>
-                        <p className="text-zinc-500 text-sm">{order.items.length} items • {new Date(order.createdAt).toLocaleTimeString()}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-zinc-500 text-sm">{order.items.length} items</p>
+                          <span className="text-zinc-700">•</span>
+                          <TimeAgo timestamp={order.createdAt} />
+                        </div>
                       </div>
                       
                       <span className={`px-3 py-1 rounded-full text-[12px] font-black uppercase tracking-widest ${
@@ -317,7 +379,7 @@ export default function Dashboard() {
                       </span>
                     </div>
 
-                    <div className="flex gap-4 mb-6">
+                    <div className="flex gap-4 mb-6 flex-wrap">
                        <div className="flex flex-col gap-1">
                           <p className="text-[8px] font-black uppercase text-zinc-500 tracking-[0.2em]">Settlement</p>
                           <div className="flex items-center gap-2">
@@ -331,11 +393,31 @@ export default function Dashboard() {
                              )}
                           </div>
                        </div>
+                       
+                       {/* Customer Contact */}
+                       {order.user?.phone && (
+                          <div className="flex flex-col gap-1 border-l border-zinc-800 pl-4">
+                             <p className="text-[8px] font-black uppercase text-zinc-500 tracking-[0.2em]">Customer</p>
+                             <div className="flex items-center gap-2 text-zinc-300">
+                                <span className="text-[10px] font-bold truncate max-w-[80px]" title={order.user.name}>{order.user.name}</span>
+                                <a href={`tel:${order.user.phone}`} className="flex items-center gap-1 bg-white/10 hover:bg-white/20 text-white px-2 py-0.5 rounded transition-all text-[10px] font-bold">
+                                   <Phone size={10} /> Call
+                                </a>
+                             </div>
+                          </div>
+                       )}
+
+                       {/* Rider Contact */}
                        {order.deliveryPartnerName && (
                           <div className="flex flex-col gap-1 border-l border-zinc-800 pl-4">
-                             <p className="text-[8px] font-black uppercase text-zinc-500 tracking-[0.2em]">Assigned Node</p>
+                             <p className="text-[8px] font-black uppercase text-zinc-500 tracking-[0.2em]">Rider Node</p>
                              <div className="flex items-center gap-2 text-blue-400">
-                                <span className="text-[10px] font-black uppercase tracking-widest">{order.deliveryPartnerName}</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest truncate max-w-[80px]" title={order.deliveryPartnerName}>{order.deliveryPartnerName}</span>
+                                {order.deliveryPartner?.phone && (
+                                   <a href={`tel:${order.deliveryPartner.phone}`} className="flex items-center gap-1 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded transition-all text-[10px] font-bold">
+                                      <Phone size={10} /> Call
+                                   </a>
+                                )}
                              </div>
                           </div>
                        )}
@@ -445,35 +527,65 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 relative">
                   <button 
                     onClick={() => { setEditingItem(item); setShowItemForm(true); }}
                     className="p-2 text-zinc-500 hover:text-orange-500 transition-colors"
                   >
                     <Edit2 size={18} />
                   </button>
-                  <button 
-                    onClick={() => {
-                       if (item.isAvailable) {
-                          // Prompt for auto-restore
-                          const choice = window.prompt("Type '1' to disable until End of Day. Type '2' to disable indefinitely.");
-                          if (choice === '1') {
-                             const endOfDay = new Date();
-                             endOfDay.setHours(23, 59, 59, 999);
-                             api.put(`/restaurants/menu/${item.id}/toggle`, { outOfStockUntil: endOfDay.toISOString() })
-                              .then(res => setMenu(menu.map(m => m.id === item.id ? { ...m, isAvailable: res.data.isAvailable } : m)))
-                              .catch(() => alert('Failed to update'));
-                          } else if (choice === '2') {
-                             toggleAvailability(item.id);
-                          }
-                       } else {
-                          toggleAvailability(item.id);
-                       }
-                    }}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${item.isAvailable ? 'bg-orange-500' : 'bg-zinc-800'}`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${item.isAvailable ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
+                  <div className="relative">
+                    <button 
+                      onClick={() => {
+                         if (item.isAvailable) {
+                            if (openToggleMenu === item.id) setOpenToggleMenu(null);
+                            else setOpenToggleMenu(item.id);
+                         } else {
+                            toggleAvailability(item.id);
+                         }
+                      }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${item.isAvailable ? 'bg-orange-500' : 'bg-zinc-800'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${item.isAvailable ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                    
+                    <AnimatePresence>
+                      {openToggleMenu === item.id && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setOpenToggleMenu(null)} />
+                          <motion.div 
+                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                            className="absolute right-0 top-8 z-50 w-48 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden"
+                          >
+                            <button
+                              onClick={() => {
+                                 setOpenToggleMenu(null);
+                                 const endOfDay = new Date();
+                                 endOfDay.setHours(23, 59, 59, 999);
+                                 api.put(`/restaurants/menu/${item.id}/toggle`, { outOfStockUntil: endOfDay.toISOString() })
+                                  .then(res => setMenu(menu.map(m => m.id === item.id ? { ...m, isAvailable: res.data.isAvailable } : m)))
+                                  .catch(() => alert('Failed to update'));
+                              }}
+                              className="w-full text-left px-4 py-3 text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors border-b border-zinc-800/50"
+                            >
+                              Disable until end of day
+                            </button>
+                            <button
+                              onClick={() => {
+                                 setOpenToggleMenu(null);
+                                 toggleAvailability(item.id);
+                              }}
+                              className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+                            >
+                              Disable indefinitely
+                            </button>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
               </div>
             ))}

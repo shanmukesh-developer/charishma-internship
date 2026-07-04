@@ -24,7 +24,10 @@ const {
   getRewardsAnalytics,
   getSystemHealth,
   getOrderVolumeStats,
-  batchUpdateOrders
+  batchUpdateOrders,
+  getAllCoupons,
+  createCoupon,
+  deleteCoupon
 } = require('../controllers/adminController');
 const { getAllOrders } = require('../controllers/orderController');
 const { protect, admin } = require('../middleware/authMiddleware');
@@ -67,6 +70,11 @@ router.post('/users/:userId/wallet', (req, res, next) => {
   const { updateUserWallet } = require('../controllers/adminController');
   updateUserWallet(req, res, next);
 });
+
+// Coupon Management
+router.get('/coupons', getAllCoupons);
+router.post('/coupons', createCoupon);
+router.delete('/coupons/:id', deleteCoupon);
 
 // Global Configuration
 router.get('/config', getGlobalConfig);

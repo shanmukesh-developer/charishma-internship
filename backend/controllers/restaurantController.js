@@ -55,13 +55,24 @@ const getRestaurantOrders = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to view these orders' });
     }
 
+    const { getUserModel } = require('../models/User');
+    const { getDeliveryPartnerModel } = require('../models/DeliveryPartner');
+    
     const Order = getOrderModel();
+    const User = getUserModel();
+    const DeliveryPartner = getDeliveryPartnerModel();
+
     const orders = await Order.findAll({
       where: { restaurantId: req.params.id },
+      include: [
+        { model: User, as: 'user', attributes: ['name', 'phone'] },
+        { model: DeliveryPartner, as: 'deliveryPartner', attributes: ['name', 'phone'] }
+      ],
       order: [['createdAt', 'DESC']]
     });
     res.json(orders.map(o => ({ ...o.toJSON(), _id: o.id })));
-  } catch {
+  } catch (error) {
+    console.error('[GET_ORDERS_ERROR]', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

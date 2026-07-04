@@ -287,7 +287,7 @@ export default function AdminHome() {
     fetchOrders();
 
     const socket = io(SOCKET_URL.replace(/\/$/, ""), {
-      transports: ['websocket', 'polling'], withCredentials: true,
+      transports: ['websocket', 'polling'],
       withCredentials: true,
       autoConnect: true,
       reconnection: true,

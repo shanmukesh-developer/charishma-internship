@@ -139,7 +139,7 @@ router.delete('/:id', protect, async (req, res) => {
     const post = await CommunityPost.findByPk(req.params.id);
     if (!post) return res.status(404).json({ message: 'Post not found.' });
 
-    if (String(post.userId) !== String(req.user.id)) {
+    if (String(post.userId) !== String(req.user.id) && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized to delete this post.' });
     }
 

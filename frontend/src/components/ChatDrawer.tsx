@@ -18,12 +18,31 @@ interface Props {
   onClose: () => void;
 }
 
+const QUICK_REPLIES = {
+  rider: [
+    "On my way to pick up the order! 🏍️",
+    "Picked up your order, heading to you now! 🚀",
+    "I have reached the hostel gate/block. Please come down. 🛎️",
+    "Almost there, 2 minutes away! ⏳",
+    "I am waiting near the entrance. 🏫"
+  ],
+  customer: [
+    "Got it, coming down in 2 mins! 🏃‍♂️",
+    "Please leave it with the gate warden/security. 🛡️",
+    "Please leave it outside my room door. 🛏️",
+    "Thanks, on my way! 🙌",
+    "Please call me when you reach the gate. 📞"
+  ]
+};
+
 export default function ChatDrawer({ orderId, userName, userRole, socket, isOpen, onClose }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [remoteTyping, setRemoteTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const replies = QUICK_REPLIES[userRole] || [];
 
   useEffect(() => {
     if (!socket || !orderId) return;
@@ -134,6 +153,29 @@ export default function ChatDrawer({ orderId, userName, userRole, socket, isOpen
 
         {/* Input */}
         <div className="p-6 border-t border-white/5 bg-[#11111A]">
+          {/* Quick Replies */}
+          {replies.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 mb-1 -mx-2 px-2">
+              {replies.map((reply, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    if (!socket || !orderId) return;
+                    const messageData = {
+                      orderId,
+                      sender: userName,
+                      senderRole: userRole,
+                      message: reply
+                    };
+                    socket.emit('sendMessage', messageData);
+                  }}
+                  className="shrink-0 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:border-emerald-500/30 hover:bg-emerald-500/10 text-[10px] font-black uppercase tracking-wider text-slate-300 transition-all active:scale-95"
+                >
+                  {reply}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex gap-3">
             <input
               type="text"

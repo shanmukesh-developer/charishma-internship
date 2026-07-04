@@ -22,51 +22,77 @@ export function OrderDetailModal({ order, onClose }: { order: any; onClose: () =
           </button>
         </div>
         
-        <div className="p-6 max-h-[60vh] overflow-y-auto space-y-6">
+        <div id="printable-receipt" className="p-6 max-h-[60vh] overflow-y-auto space-y-6 bg-white text-black print:p-0 print:max-h-none print:bg-white print:text-black">
           <div className="space-y-4">
-            <h4 className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Order Items</h4>
-            <div className="bg-zinc-950 rounded-xl p-4 border border-zinc-800/50 space-y-3">
+            <h4 className="text-[10px] font-black uppercase text-zinc-500 tracking-widest print:text-black">Order Items</h4>
+            <div className="bg-zinc-950 rounded-xl p-4 border border-zinc-800/50 space-y-3 print:border-none print:p-0 print:bg-white">
               {order.items.map((item: any, i: number) => (
                 <div key={i} className="flex justify-between items-center text-sm">
-                  <span className="text-zinc-300">
-                    <span className="text-orange-500 mr-2 font-bold">{item.quantity}x</span> 
+                  <span className="text-zinc-300 print:text-black">
+                    <span className="text-orange-500 mr-2 font-bold print:text-black">{item.quantity}x</span> 
                     {item.name}
                   </span>
-                  <span className="text-zinc-500">₹{item.price * item.quantity}</span>
+                  <span className="text-zinc-500 print:text-black">₹{item.price * item.quantity}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <h4 className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2">Payment Details</h4>
-              <div className="bg-zinc-950 rounded-xl p-4 border border-zinc-800/50">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs text-zinc-500">Method</span>
-                  <span className="text-xs font-bold text-white">{order.paymentMethod}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-zinc-500">Total</span>
-                  <span className="text-lg font-black text-orange-500">₹{order.totalPrice}</span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2">Delivery Partner</h4>
-              <div className="bg-zinc-950 rounded-xl p-4 border border-zinc-800/50 h-[76px] flex flex-col justify-center">
-                {order.deliveryPartnerName ? (
-                  <span className="text-sm font-bold text-blue-400">{order.deliveryPartnerName}</span>
-                ) : (
-                  <span className="text-xs text-zinc-500 italic">Assigning...</span>
-                )}
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:grid-cols-1 print:gap-2">
+             {/* Customer */}
+             <div>
+               <h4 className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 print:text-black">Customer</h4>
+               <div className="bg-zinc-950 rounded-xl p-4 border border-zinc-800/50 flex flex-col justify-center min-h-[76px] print:border-none print:p-0 print:bg-white print:min-h-0">
+                  {order.user ? (
+                     <>
+                        <span className="text-sm font-bold text-white print:text-black">{order.user.name}</span>
+                        {order.user.phone && <span className="text-xs text-zinc-500 mt-1 font-mono print:text-black">{order.user.phone}</span>}
+                     </>
+                  ) : (
+                     <span className="text-xs text-zinc-500 italic print:text-black">No details</span>
+                  )}
+               </div>
+             </div>
+             
+             {/* Delivery Partner */}
+             <div>
+               <h4 className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 print:text-black">Delivery Partner</h4>
+               <div className="bg-zinc-950 rounded-xl p-4 border border-zinc-800/50 flex flex-col justify-center min-h-[76px] print:border-none print:p-0 print:bg-white print:min-h-0">
+                 {order.deliveryPartnerName ? (
+                   <>
+                     <span className="text-sm font-bold text-blue-400 print:text-black">{order.deliveryPartnerName}</span>
+                     {order.deliveryPartner?.phone && <span className="text-xs text-zinc-500 mt-1 font-mono print:text-black">{order.deliveryPartner.phone}</span>}
+                   </>
+                 ) : (
+                   <span className="text-xs text-zinc-500 italic print:text-black">Assigning...</span>
+                 )}
+               </div>
+             </div>
+             
+             {/* Payment Details */}
+             <div className="md:col-span-2 print:col-span-1">
+               <h4 className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 print:text-black">Payment Details</h4>
+               <div className="bg-zinc-950 rounded-xl p-4 border border-zinc-800/50 flex justify-between items-center print:border-none print:p-0 print:bg-white">
+                 <div className="flex flex-col">
+                    <span className="text-xs text-zinc-500 print:text-black">Method</span>
+                    <span className="text-sm font-bold text-white print:text-black">{order.paymentMethod}</span>
+                 </div>
+                 <div className="flex flex-col items-end">
+                    <span className="text-xs text-zinc-500 print:text-black">Total</span>
+                    <span className="text-xl font-black text-orange-500 print:text-black">₹{order.totalPrice}</span>
+                 </div>
+               </div>
+             </div>
           </div>
         </div>
 
-        <div className="p-4 border-t border-zinc-800 bg-zinc-950 flex justify-end">
+        <div className="p-4 border-t border-zinc-800 bg-zinc-950 flex justify-between print-hide">
+          <button 
+            onClick={() => window.print()} 
+            className="px-6 py-2 bg-orange-500/20 text-orange-500 font-bold rounded-xl text-sm hover:bg-orange-500/30 transition-colors border border-orange-500/30"
+          >
+            🖨️ Print Receipt
+          </button>
           <button onClick={onClose} className="px-6 py-2 bg-white text-black font-bold rounded-xl text-sm hover:bg-zinc-200 transition-colors">
             Close
           </button>

@@ -866,3 +866,76 @@ exports.batchUpdateOrders = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.getAllCoupons = async (req, res) => {
+  try {
+    const { getCouponModel } = require('../models/Coupon');
+    const Coupon = getCouponModel();
+    const User = getUserModel();
+    const coupons = await Coupon.findAll({
+      include: [{ model: User, as: 'user', attributes: ['id', 'name', 'phone'] }],
+      order: [['createdAt', 'DESC']]
+    });
+    res.json(coupons.map(c => ({ ...c.toJSON(), _id: c.id })));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.createCoupon = async (req, res) => {
+  try {
+    const { getCouponModel } = require('../models/Coupon');
+    const Coupon = getCouponModel();
+    const { code, type, value, userId, expiryDate } = req.body;
+    
+    if (!code || !userId) {
+      return res.status(400).json({ message: 'Code and User ID are required' });
+    }
+
+    const User = getUserModel();
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if code is unique
+    const existing = await Coupon.findOne({ where: { code } });
+    if (existing) {
+      return res.status(400).json({ message: 'Coupon code already exists' });
+    }
+
+    const coupon = await Coupon.create({
+      code,
+      type: type || 'FREEDEL',
+      value: value || 0,
+      userId,
+      isUsed: false,
+      expiryDate: expiryDate ? new Date(expiryDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    });
+
+    await logAuditAction(req, coupon.id, 'CREATE_COUPON', { code: coupon.code, userId });
+    broadcastSystemUpdate(req, 'COUPON_CREATED', coupon);
+
+    res.status(201).json({ ...coupon.toJSON(), _id: coupon.id });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+exports.deleteCoupon = async (req, res) => {
+  try {
+    const { getCouponModel } = require('../models/Coupon');
+    const Coupon = getCouponModel();
+    const coupon = await Coupon.findByPk(req.params.id);
+    if (!coupon) return res.status(404).json({ message: 'Coupon not found' });
+    
+    await coupon.destroy();
+    await logAuditAction(req, req.params.id, 'DELETE_COUPON', { code: coupon.code });
+    broadcastSystemUpdate(req, 'COUPON_DELETED', { id: req.params.id });
+    
+    res.json({ message: 'Coupon successfully removed/revoked' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+

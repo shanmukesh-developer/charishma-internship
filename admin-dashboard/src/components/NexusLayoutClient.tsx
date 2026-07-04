@@ -60,9 +60,13 @@ export default function NexusLayoutClient({
             { href: '/finance', icon: '💰', label: 'Finance Trace' },
             { href: '/tickets', icon: '🎫', label: 'Support Tickets' },
             { href: '/users', icon: '👥', label: 'Elite Residents' },
+            { href: '/coupons', icon: '🏷️', label: 'Coupon Registry' },
+            { href: '/bikepool', icon: '🏍️', label: 'Co-Ride Monitor' },
+            { href: '/community', icon: '💬', label: 'Community Posts' },
             { href: '/analytics', icon: '📈', label: 'Performance Intel' },
             { href: '/analytics/rewards', icon: '🎡', label: 'Rewards Intel' },
             { href: '/audit', icon: '📋', label: 'Audit Logs' },
+            { href: '/blocks', icon: '🔒', label: 'Blocked Users' },
             { href: '/config', icon: '⚙️', label: 'Nexus Config' },
           ].map(({ href, icon, label }) => {
             const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href) && (href !== '/analytics' || pathname === '/analytics');

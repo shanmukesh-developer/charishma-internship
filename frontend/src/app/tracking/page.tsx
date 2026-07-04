@@ -51,8 +51,16 @@ function TrackingContent() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [cancelSecondsLeft, setCancelSecondsLeft] = useState(0);
-  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [userName, setUserName] = useState('Customer');
+  const [copied, setCopied] = useState(false);
+  const [zoomPin, setZoomPin] = useState(false);
+
+  const copyPin = () => {
+    if (!orderInfo?.deliveryPin) return;
+    navigator.clipboard.writeText(orderInfo.deliveryPin);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   useEffect(() => {
     try {
@@ -246,11 +254,26 @@ function TrackingContent() {
                 </div>
               </div>
               {orderInfo.deliveryPin && (
-                <div className="text-right shrink-0">
+                <div className="text-right shrink-0 flex flex-col items-end">
                   <p className="text-[9px] font-bold text-white/30 uppercase tracking-wider mb-1">Gate PIN</p>
-                  <div className="bg-[#C9A84C] text-[#0A0A0B] px-4 py-2 rounded-xl font-black text-2xl tracking-[0.25em] shadow-lg shadow-[#C9A84C]/20">
-                    {orderInfo.deliveryPin}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={copyPin}
+                      className="bg-[#C9A84C] text-[#0A0A0B] px-3.5 py-1.5 rounded-xl font-black text-xl tracking-[0.25em] shadow-lg shadow-[#C9A84C]/25 hover:opacity-90 active:scale-95 transition-all relative group"
+                    >
+                      {orderInfo.deliveryPin}
+                    </button>
+                    <button
+                      onClick={() => setZoomPin(true)}
+                      className="w-9 h-9 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 hover:border-[#C9A84C]/30 text-xs transition-colors"
+                      title="Zoom PIN"
+                    >
+                      🔍
+                    </button>
                   </div>
+                  {copied && (
+                    <span className="text-[9px] text-emerald-400 font-bold mt-1 animate-pulse">Copied! 📋</span>
+                  )}
                 </div>
               )}
             </div>
@@ -432,6 +455,21 @@ function TrackingContent() {
       }} />
       <ChatDrawer orderId={orderId || ''} userName={userName} userRole="customer" socket={socket} isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
       <RiderProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} partner={orderInfo?.deliveryPartner || null} />
+
+      {/* Zoom Pin Modal */}
+      {zoomPin && orderInfo?.deliveryPin && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setZoomPin(false)} />
+          <div className="relative bg-[#141416] border border-white/10 p-8 rounded-3xl max-w-sm w-full shadow-2xl text-center flex flex-col items-center">
+            <h3 className="text-lg font-bold text-white mb-2 uppercase tracking-widest text-[#C9A84C]">Gate / Security PIN</h3>
+            <p className="text-xs text-[#6B6B6B] mb-8">Show this code to the rider to verify delivery</p>
+            <div className="bg-[#C9A84C] text-[#0A0A0B] w-full py-8 rounded-2xl font-black text-6xl tracking-[0.2em] pl-[0.2em] shadow-2xl shadow-[#C9A84C]/10 mb-8 select-all">
+              {orderInfo.deliveryPin}
+            </div>
+            <button onClick={() => setZoomPin(false)} className="w-full py-4 bg-white/5 text-white font-bold text-sm rounded-2xl border border-white/8 hover:bg-white/10 transition-colors">Close</button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

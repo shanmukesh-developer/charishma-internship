@@ -19,6 +19,7 @@ interface Order {
   createdAt?: string;
   status?: string;
   _id?: string;
+  restaurantPhone?: string;
 }
 
 interface ActiveOrderCardProps {
@@ -149,6 +150,14 @@ export default function ActiveOrderCard({
             <div className="flex-1 pt-1.5">
               <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-0.5">Pickup From</p>
               <h3 className="text-white font-bold text-sm leading-tight">{order.restaurantAddress || order.restaurant}</h3>
+              {order.restaurantPhone && (
+                <a
+                  href={`tel:${order.restaurantPhone}`}
+                  className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[9px] font-black uppercase tracking-widest hover:bg-blue-500/20 transition-all"
+                >
+                  📞 Call Restaurant
+                </a>
+              )}
             </div>
           </div>
 
@@ -161,8 +170,8 @@ export default function ActiveOrderCard({
               <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-0.5">Deliver To</p>
               <h3 className="text-white font-bold text-sm leading-tight">{order.customerName}</h3>
               <p className="text-xs text-slate-500 mt-0.5 leading-tight">{order.drop}</p>
-              {/* Call customer button — only shown when PickedUp */}
-              {!isAtPickup && order.customerPhone && !order.customerPhone.includes('Protected') && (
+              {/* Call customer button — shown when phone is available */}
+              {order.customerPhone && !order.customerPhone.includes('Protected') && (
                 <a
                   href={`tel:${order.customerPhone}`}
                   className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/20 transition-all"

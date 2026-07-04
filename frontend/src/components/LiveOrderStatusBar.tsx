@@ -26,6 +26,17 @@ export default function LiveOrderStatusBar({ orderId, initialStatus = 'Pending',
   const [riderName, setRiderName] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [userName, setUserName] = useState('Customer');
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.name) setUserName(parsed.name);
+      }
+    } catch {}
+  }, []);
 
   const currentStepIdx = STEPS.findIndex(s => s.key === status);
 
@@ -172,7 +183,7 @@ export default function LiveOrderStatusBar({ orderId, initialStatus = 'Pending',
 
       <ChatDrawer
         orderId={orderId}
-        userName="Student" // Should come from auth context ideally
+        userName={userName}
         userRole="customer"
         socket={socket}
         isOpen={isChatOpen}
