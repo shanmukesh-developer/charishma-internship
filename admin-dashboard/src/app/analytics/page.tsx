@@ -271,7 +271,6 @@ export default function AnalyticsIntel() {
                    </div>
                 </div>
              </div>
-             </div>
            )}
 
             {/* Review Moderation */}
