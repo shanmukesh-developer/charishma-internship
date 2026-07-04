@@ -80,6 +80,8 @@ export default function Dashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [openToggleMenu, setOpenToggleMenu] = useState<string | null>(null);
+  const [rejectPromptId, setRejectPromptId] = useState<string | null>(null);
+  const [acceptPromptId, setAcceptPromptId] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(typeof window !== 'undefined' ? navigator.onLine : true);
   const router = useRouter();
   const { toast } = useToast();
@@ -161,24 +163,37 @@ export default function Dashboard() {
     };
   }, [router]);
 
-  const handleAccept = async (orderId: string) => {
+  const handleAccept = async (orderId: string, estDuration: number) => {
     try {
-      await api.put(`/orders/${orderId}/restaurant-accept`);
-      setOrders(orders.map(o => (o.id === orderId || o._id === orderId) ? { ...o, status: 'Accepted' } : o));
+      await api.put(`/orders/${orderId}/restaurant-accept`, { estDuration });
+      setOrders(orders.map(o => (o.id === orderId || o._id === orderId) ? { ...o, status: 'Accepted', estDuration } : o));
+      setAcceptPromptId(null);
     } catch (error) {
       console.error(error);
       toast('Failed to accept order', 'error');
     }
   };
 
-  const handleReject = async (orderId: string) => {
-    if (!window.confirm("Are you sure you want to reject this order? This cannot be undone.")) return;
+  const handleReject = async (orderId: string, reason: string) => {
     try {
-      await api.put(`/orders/${orderId}/cancel`);
-      setOrders(orders.map(o => (o.id === orderId || o._id === orderId) ? { ...o, status: 'Cancelled' } : o));
+      await api.put(`/orders/${orderId}/cancel`, { reason });
+      setOrders(orders.map(o => (o.id === orderId || o._id === orderId) ? { ...o, status: 'Cancelled', cancellationReason: reason } : o));
+      setRejectPromptId(null);
     } catch (error) {
       console.error('Failed to reject order', error);
       toast('Failed to reject order. It may have already been canceled.', 'error');
+    }
+  };
+
+  const toggleStoreOffline = async () => {
+    if (!restaurant) return;
+    try {
+      const res = await api.put(`/restaurants/${restaurant.id}/offline`);
+      setRestaurant({ ...restaurant, isOffline: res.data.isOffline });
+      toast(res.data.isOffline ? 'Store is now OFFLINE' : 'Store is now ACCEPTING ORDERS', 'success');
+    } catch (error) {
+      console.error(error);
+      toast('Failed to toggle store status', 'error');
     }
   };
 
@@ -292,6 +307,15 @@ export default function Dashboard() {
         </div>
         
         <div className="flex items-center gap-4">
+           {restaurant && (
+             <button
+               onClick={toggleStoreOffline}
+               className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all border ${restaurant.isOffline ? 'bg-red-500/10 text-red-500 border-red-500/30 hover:bg-red-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/20'}`}
+             >
+               <span className={`w-2 h-2 rounded-full ${restaurant.isOffline ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}`} />
+               {restaurant.isOffline ? 'Store Offline' : 'Accepting Orders'}
+             </button>
+           )}
            <div className="hidden md:flex flex-col items-end mr-4">
               <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Node Identity</span>
               <span className="text-[11px] font-mono text-orange-500 font-bold">{restaurant?.id?.slice(0,13)}...</span>
@@ -436,19 +460,42 @@ export default function Dashboard() {
                     </div>
 
                     {order.status === 'Pending' && (
-                      <div className="flex gap-3">
-                        <button 
-                          onClick={() => handleReject(order.id)}
-                          className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] border border-zinc-700"
-                        >
-                          ✕ Reject
-                        </button>
-                        <button 
-                          onClick={() => handleAccept(order.id)}
-                          className="flex-[2] bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-lg shadow-orange-500/20"
-                        >
-                          <CheckCircle size={20} /> Accept & Start
-                        </button>
+                      <div className="flex flex-col gap-2">
+                        {rejectPromptId === order.id ? (
+                          <div className="flex flex-col gap-2 p-3 bg-zinc-900 border border-red-500/30 rounded-xl">
+                            <p className="text-xs font-bold text-red-400">Select rejection reason:</p>
+                            <div className="flex gap-2">
+                              <button onClick={() => handleReject(order.id, 'Out of Stock')} className="flex-1 bg-red-500/10 text-red-400 text-[11px] py-2 rounded-lg hover:bg-red-500 hover:text-white border border-red-500/20 transition-colors">Out of Stock</button>
+                              <button onClick={() => handleReject(order.id, 'Too Busy')} className="flex-1 bg-red-500/10 text-red-400 text-[11px] py-2 rounded-lg hover:bg-red-500 hover:text-white border border-red-500/20 transition-colors">Too Busy</button>
+                              <button onClick={() => setRejectPromptId(null)} className="px-3 bg-zinc-800 text-[11px] py-2 rounded-lg hover:bg-zinc-700">Cancel</button>
+                            </div>
+                          </div>
+                        ) : acceptPromptId === order.id ? (
+                          <div className="flex flex-col gap-2 p-3 bg-zinc-900 border border-orange-500/30 rounded-xl">
+                            <p className="text-xs font-bold text-orange-400">Select prep time:</p>
+                            <div className="flex gap-2">
+                              <button onClick={() => handleAccept(order.id, 15)} className="flex-1 bg-orange-500/10 text-orange-400 text-[11px] py-2 rounded-lg hover:bg-orange-500 hover:text-white border border-orange-500/20 transition-colors">15 min</button>
+                              <button onClick={() => handleAccept(order.id, 30)} className="flex-1 bg-orange-500/10 text-orange-400 text-[11px] py-2 rounded-lg hover:bg-orange-500 hover:text-white border border-orange-500/20 transition-colors">30 min</button>
+                              <button onClick={() => handleAccept(order.id, 45)} className="flex-1 bg-orange-500/10 text-orange-400 text-[11px] py-2 rounded-lg hover:bg-orange-500 hover:text-white border border-orange-500/20 transition-colors">45 min</button>
+                              <button onClick={() => setAcceptPromptId(null)} className="px-3 bg-zinc-800 text-[11px] py-2 rounded-lg hover:bg-zinc-700">Cancel</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex gap-3">
+                            <button 
+                              onClick={() => setRejectPromptId(order.id)}
+                              className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] border border-zinc-700"
+                            >
+                              ✕ Reject
+                            </button>
+                            <button 
+                              onClick={() => setAcceptPromptId(order.id)}
+                              className="flex-[2] bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-lg shadow-orange-500/20"
+                            >
+                              <CheckCircle size={20} /> Accept & Start
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                     {order.status === 'Accepted' && (

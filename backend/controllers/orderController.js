@@ -462,7 +462,11 @@ const restaurantAcceptOrder = async (req, res) => {
     if (!order) return res.status(404).json({ message: 'Order not found' });
     if (order.status !== 'Pending') return res.status(400).json({ message: 'Order is not pending' });
 
+    const { estDuration } = req.body;
     order.status = 'Accepted';
+    if (estDuration) {
+      order.estDuration = parseInt(estDuration, 10);
+    }
     await order.save();
 
     const io = req.app.get('io');
@@ -751,7 +755,11 @@ const cancelOrder = async (req, res) => {
       return res.status(400).json({ message: 'Order is already cancelled' });
     }
 
+    const { reason } = req.body;
     order.status = 'Cancelled';
+    if (reason) {
+      order.cancellationReason = reason;
+    }
     await order.save();
 
     // ── Refund Logic (Only for Wallet payments) ──────────────────────

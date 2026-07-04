@@ -30,6 +30,7 @@ const initOrderModel = (sequelize) => {
       type: DataTypes.ENUM('Pending', 'Accepted', 'Preparing', 'ReadyForPickup', 'PickedUp', 'Delivered', 'Cancelled'),
       defaultValue: 'Pending'
     },
+    cancellationReason: { type: DataTypes.STRING },
     paymentStatus: {
       type: DataTypes.ENUM('Pending', 'Completed', 'Failed'),
       defaultValue: 'Pending'

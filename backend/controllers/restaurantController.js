@@ -325,6 +325,34 @@ const incrementClickCount = async (req, res) => {
   }
 };
 
+// @desc    Toggle master offline state for restaurant
+// @route   PUT /api/restaurants/:id/offline
+const toggleRestaurantOffline = async (req, res) => {
+  try {
+    const isOwner = req.user.id === req.params.id;
+    const isAdmin = req.user.role?.toLowerCase() === 'admin';
+    if (!isOwner && !isAdmin) {
+       return res.status(403).json({ message: 'Not authorized to change store status' });
+    }
+
+    const Restaurant = getRestaurantModel();
+    const restaurant = await Restaurant.findByPk(req.params.id);
+    if (!restaurant) return res.status(404).json({ message: 'Restaurant not found' });
+
+    restaurant.isOffline = !restaurant.isOffline;
+    await restaurant.save();
+
+    // Broadcast to riders/customers that the store state changed
+    const io = req.app.get('io');
+    io.emit('store_status_changed', { restaurantId: restaurant.id, isOffline: restaurant.isOffline });
+
+    res.json({ message: 'Store status updated', isOffline: restaurant.isOffline });
+  } catch (error) {
+    console.error('[TOGGLE_OFFLINE_ERROR]', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = { 
   getRestaurants, 
   getRestaurantMenu, 
@@ -336,5 +364,6 @@ module.exports = {
   createMenuItem,
   updateMenuItem,
   getLocalVendors,
-  incrementClickCount
+  incrementClickCount,
+  toggleRestaurantOffline
 };
