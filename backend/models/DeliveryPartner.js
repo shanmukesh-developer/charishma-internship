@@ -16,14 +16,30 @@ const initDeliveryPartnerModel = (sequelize) => {
     photoUrl: { type: DataTypes.TEXT },
     bio: { type: DataTypes.TEXT },
     emergencyContact: { type: DataTypes.STRING },
-    liveLocation: { type: DataTypes.JSON, defaultValue: { lat: null, lng: null } },
+    liveLocation: { 
+      type: DataTypes.TEXT, 
+      defaultValue: '{"lat":null,"lng":null}',
+      get() {
+        const val = this.getDataValue('liveLocation');
+        try { return val ? JSON.parse(val) : { lat: null, lng: null }; } catch { return { lat: null, lng: null }; }
+      },
+      set(val) { this.setDataValue('liveLocation', JSON.stringify(val)); }
+    },
     isOnline: { type: DataTypes.BOOLEAN, defaultValue: false },
     currentOrderId: { type: DataTypes.UUID },
     totalEarnings: { type: DataTypes.FLOAT, defaultValue: 0 },
     zenPoints: { type: DataTypes.INTEGER, defaultValue: 0 },
     averageRating: { type: DataTypes.FLOAT, defaultValue: 5 },
     totalRatings: { type: DataTypes.INTEGER, defaultValue: 0 },
-    fcmTokens: { type: DataTypes.JSON, defaultValue: [] },
+    fcmTokens: { 
+      type: DataTypes.TEXT, 
+      defaultValue: '[]',
+      get() {
+        const val = this.getDataValue('fcmTokens');
+        try { return val ? JSON.parse(val) : []; } catch { return []; }
+      },
+      set(val) { this.setDataValue('fcmTokens', JSON.stringify(val)); }
+    },
     isFcmActive: { type: DataTypes.BOOLEAN, defaultValue: false },
     isSosActive: { type: DataTypes.BOOLEAN, defaultValue: false },
     isApproved: { type: DataTypes.BOOLEAN, defaultValue: false },

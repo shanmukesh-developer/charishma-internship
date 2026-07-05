@@ -23,6 +23,7 @@ async function simulate() {
 // 1. Auth Customer
   let customerRes = await api.post('/api/users/login', CUSTOMER_CRED);
   if (customerRes.status !== 200) {
+    console.log('Customer login failed:', customerRes.status, customerRes.data);
     console.log('Customer login failed, attempting registration...');
     customerRes = await api.post('/api/users/register', { name: 'Test Cust', phone: CUSTOMER_CRED.phone, password: CUSTOMER_CRED.password });
   }

@@ -11,13 +11,15 @@ const authLimiter = rateLimit({
   message: { message: 'Too many authentication attempts, please try again after 15 minutes.' }
 });
 
+const { accountLockout } = require('../middleware/lockoutMiddleware');
+
 // ── CampusBites: Local Vendor Public Routes (MUST be before /:id) ────
 router.get('/local-vendors', getLocalVendors);
 router.post('/:id/click', incrementClickCount);
 
 router.get('/', getRestaurants);
 router.get('/:id/menu', getRestaurantMenu);
-router.post('/login', authLimiter, restaurantLogin);
+router.post('/login', authLimiter, accountLockout, restaurantLogin);
 router.get('/:id/orders', protect, vendor, getRestaurantOrders); 
 router.put('/:id/offline', protect, vendor, toggleRestaurantOffline);
 router.post('/menu', protect, vendor, createMenuItem);

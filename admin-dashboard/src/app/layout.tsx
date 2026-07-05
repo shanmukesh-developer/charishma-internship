@@ -18,8 +18,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${outfit.className} antialiased bg-[#0A0A0F] text-slate-200 selection:bg-blue-500/30`}>
+    <html lang="en" className="dark" suppressHydrationWarning={true}>
+      <body className={`${outfit.className} antialiased bg-[#0A0A0F] text-slate-200 selection:bg-blue-500/30`} suppressHydrationWarning={true}>
         <FetchInterceptor />
         <SOSAlertModal />
         

@@ -136,6 +136,7 @@ export default function LoginPage() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="Enter phone number"
+                  suppressHydrationWarning={true}
                   className="w-full bg-[#0A0A0B] border border-white/8 hover:border-white/15 focus:border-[#C9A84C]/50 rounded-2xl h-16 pl-16 pr-5 text-base font-medium text-white placeholder:text-white/20 outline-none transition-colors"
                 />
               </div>
@@ -156,11 +157,13 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter password"
                   autoComplete="current-password"
+                  suppressHydrationWarning={true}
                   className="w-full bg-[#0A0A0B] border border-white/8 hover:border-white/15 focus:border-[#C9A84C]/50 rounded-2xl h-16 px-5 pr-14 text-base font-medium text-white placeholder:text-white/20 outline-none transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  suppressHydrationWarning={true}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-[#C9A84C] transition-colors"
                 >
                   {showPassword
@@ -175,6 +178,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
+              suppressHydrationWarning={true}
               className="w-full h-16 rounded-2xl bg-[#C9A84C] hover:bg-[#D4B56A] disabled:opacity-60 disabled:cursor-not-allowed text-[#0A0A0B] text-base font-bold tracking-wide transition-colors mt-2"
             >
               {loading ? 'Signing in…' : 'Sign In'}
@@ -193,6 +197,7 @@ export default function LoginPage() {
             type="button"
             onClick={handleGoogleLogin}
             disabled={loading}
+            suppressHydrationWarning={true}
             className="w-full h-14 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/8 hover:border-white/15 text-white text-base font-semibold flex items-center justify-center gap-3 transition-colors disabled:opacity-60"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">

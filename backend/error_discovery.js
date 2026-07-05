@@ -25,8 +25,8 @@ async function test(name, fn) {
 }
 
 async function run() {
-  let custToken, drvToken, orderId, rid, itemId, deliveryPin;
-  let custH, drvH;
+  let custToken, drvToken, restToken, orderId, rid, itemId, deliveryPin;
+  let custH, drvH, restH;
 
   // ═══ AUTH TESTS ═══
   console.log('\n══ AUTH ENDPOINTS ══');
@@ -75,6 +75,16 @@ async function run() {
     rid = r.data[0].id || r.data[0]._id;
   });
 
+  await test('Restaurant Login (valid)', async () => {
+    const r = await axios.post(`${API}/restaurants/login`, {
+      id: rid,
+      password: 'password123'
+    });
+    restToken = r.data.token;
+    restH = { Authorization: `Bearer ${restToken}` };
+    if (!restToken) throw new Error('No token returned');
+  });
+
   await test('GET /restaurants/:id (valid)', async () => {
     const r = await axios.get(`${API}/users/restaurants/${rid}`);
     const menu = Array.isArray(r.data) ? r.data : (r.data.menu || [r.data]);
@@ -108,7 +118,7 @@ async function run() {
     const r = await axios.post(`${API}/orders`, {
       restaurantId: rid,
       items: [{ id: itemId, quantity: 1, name: 'Test Item' }],
-      deliveryAddress: 'E2E Test Address',
+      deliveryAddress: 'SRM AP Hostel Block A',
       deliverySlot: 'ASAP',
       paymentMethod: 'Cash'
     }, { headers: custH });
@@ -120,7 +130,7 @@ async function run() {
   await test('POST /orders (missing restaurantId)', async () => {
     await axios.post(`${API}/orders`, {
       items: [{ id: itemId, quantity: 1 }],
-      deliveryAddress: 'Test',
+      deliveryAddress: 'SRM AP',
       paymentMethod: 'Cash'
     }, { headers: custH });
     throw new Error('Should have failed');
@@ -130,7 +140,7 @@ async function run() {
     await axios.post(`${API}/orders`, {
       restaurantId: rid,
       items: [{ id: itemId, quantity: 1 }],
-      deliveryAddress: 'Test'
+      deliveryAddress: 'SRM AP'
     }, { headers: custH });
     throw new Error('Should have failed');
   });
@@ -139,7 +149,7 @@ async function run() {
     await axios.post(`${API}/orders`, {
       restaurantId: rid,
       items: [],
-      deliveryAddress: 'Test',
+      deliveryAddress: 'SRM AP',
       paymentMethod: 'Cash'
     }, { headers: custH });
     throw new Error('Should have failed with empty items');
@@ -149,7 +159,7 @@ async function run() {
     await axios.post(`${API}/orders`, {
       restaurantId: rid,
       items: [{ id: itemId, quantity: 1 }],
-      deliveryAddress: 'Test',
+      deliveryAddress: 'SRM AP',
       paymentMethod: 'Cash'
     });
     throw new Error('Should have failed without auth');
@@ -163,7 +173,7 @@ async function run() {
   console.log('\n══ ORDER LIFECYCLE ══');
 
   await test('PUT /orders/:id/restaurant-accept', async () => {
-    await axios.put(`${API}/orders/${orderId}/restaurant-accept`);
+    await axios.put(`${API}/orders/${orderId}/restaurant-accept`, {}, { headers: restH });
   });
 
   await test('PUT /delivery/accept/:orderId', async () => {

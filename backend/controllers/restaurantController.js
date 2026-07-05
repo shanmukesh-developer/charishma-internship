@@ -35,7 +35,12 @@ const restaurantLogin = async (req, res) => {
       if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: restaurant.id, role: 'restaurant' }, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' });
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      console.error('[AUTH_FATAL] JWT_SECRET is not configured.');
+      return res.status(500).json({ message: 'Server configuration error' });
+    }
+    const token = jwt.sign({ id: restaurant.id, role: 'restaurant' }, secret, { expiresIn: '30d' });
     res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 30 * 24 * 60 * 60 * 1000 });
     res.json({ restaurant, token });
   } catch (error) {

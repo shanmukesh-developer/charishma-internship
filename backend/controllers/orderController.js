@@ -447,6 +447,16 @@ const restaurantAcceptOrder = async (req, res) => {
     const Order = getOrderModel();
     const order = await Order.findByPk(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+    
+    // ── IDOR Protection ──────────────────────
+    const isAdmin = req.user && req.user.role && req.user.role.toLowerCase() === 'admin';
+    const isVendor = req.user && req.user.role && req.user.role.toLowerCase() === 'restaurant';
+    const isOwner = order.restaurantId === req.user.id;
+    
+    if (!isAdmin && !(isVendor && isOwner)) {
+      return res.status(403).json({ message: 'Not authorized to accept this order' });
+    }
+
     if (order.status !== 'Pending') return res.status(400).json({ message: 'Order is not pending' });
 
     const { estDuration } = req.body;
@@ -976,6 +986,16 @@ const restaurantReadyOrder = async (req, res) => {
     const Order = getOrderModel();
     const order = await Order.findByPk(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+    
+    // ── IDOR Protection ──────────────────────
+    const isAdmin = req.user && req.user.role && req.user.role.toLowerCase() === 'admin';
+    const isVendor = req.user && req.user.role && req.user.role.toLowerCase() === 'restaurant';
+    const isOwner = order.restaurantId === req.user.id;
+    
+    if (!isAdmin && !(isVendor && isOwner)) {
+      return res.status(403).json({ message: 'Not authorized to update this order' });
+    }
+
     if (order.status !== 'Accepted' && order.status !== 'Preparing') {
        return res.status(400).json({ message: 'Order must be Accepted or Preparing to mark as Ready' });
     }

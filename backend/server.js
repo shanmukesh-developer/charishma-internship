@@ -9,6 +9,21 @@ const { connectDB } = require('./config/db');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const helmet = require('helmet');
+const morgan = require('morgan');
+// xss-clean removed due to Express 5 query getter incompatibility; custom safeXssMiddleware used instead.
+
+// ── Global Bulletproof Shield (Prevents any Node.js Crash) ──────────────
+process.on('uncaughtException', (err) => {
+  console.error('🔥 [CRITICAL] Uncaught Exception Blocked:', err.message);
+  console.error(err.stack);
+  // Do NOT exit process. This guarantees the server stays alive.
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🔥 [CRITICAL] Unhandled Promise Rejection Blocked:', reason);
+  // Do NOT exit process.
+});
 
 // ── Async Buffered Logger (Non-Blocking) ──────────────────────
 const logFile = path.join(__dirname, 'socket_debug.txt');
@@ -213,6 +228,10 @@ io.use((socket, next) => {
 app.set('io', io);
 
 // Middleware
+app.use(helmet({
+  crossOriginResourcePolicy: false, // Allows cross-origin image loading
+}));
+app.use(morgan('combined')); // Enterprise-grade API logging
 app.use(cors({
   origin: function(origin, callback) {
     if (isAllowedOrigin(origin)) {
@@ -226,6 +245,49 @@ app.use(cors({
 app.use(compression({ level: 6, threshold: 512 })); // Compress responses > 512 bytes
 app.use(cookieParser());
 app.use(express.json({ limit: '5mb' }));
+
+// Custom In-Place XSS Sanitizer to prevent TypeError on Express 5 read-only req.query/req.params properties
+const sanitizeXSS = (data) => {
+  if (typeof data === 'string') {
+    return data
+      .replace(/<script[^>]*>([\S\s]*?)<\/script>/gi, '')
+      .replace(/<[^>]*>?/gm, '');
+  }
+  if (Array.isArray(data)) {
+    return data.map(sanitizeXSS);
+  }
+  if (typeof data === 'object' && data !== null) {
+    const cleanObj = {};
+    for (const key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        cleanObj[key] = sanitizeXSS(data[key]);
+      }
+    }
+    return cleanObj;
+  }
+  return data;
+};
+
+app.use((req, res, next) => {
+  if (req.body) {
+    req.body = sanitizeXSS(req.body);
+  }
+  if (req.query) {
+    for (const key in req.query) {
+      if (Object.prototype.hasOwnProperty.call(req.query, key)) {
+        req.query[key] = sanitizeXSS(req.query[key]);
+      }
+    }
+  }
+  if (req.params) {
+    for (const key in req.params) {
+      if (Object.prototype.hasOwnProperty.call(req.params, key)) {
+        req.params[key] = sanitizeXSS(req.params[key]);
+      }
+    }
+  }
+  next();
+});
 
 // ── Response Caching for Static Data (Menu, Restaurants) ──────────────────────
 app.use((req, res, next) => {

@@ -19,8 +19,24 @@ const initRestaurantModel = (sequelize) => {
     deliveryTime: { type: DataTypes.INTEGER },
     commissionRate: { type: DataTypes.FLOAT, defaultValue: 10 },
     commissionType: { type: DataTypes.STRING, defaultValue: 'percentage' },
-    tags: { type: DataTypes.JSON, defaultValue: [] },
-    operatingHours: { type: DataTypes.JSON, defaultValue: { start: '09:00', end: '22:00' } },
+    tags: { 
+      type: DataTypes.TEXT, 
+      defaultValue: '[]',
+      get() {
+        const val = this.getDataValue('tags');
+        try { return val ? JSON.parse(val) : []; } catch { return []; }
+      },
+      set(val) { this.setDataValue('tags', JSON.stringify(val)); }
+    },
+    operatingHours: { 
+      type: DataTypes.TEXT, 
+      defaultValue: '{"start":"09:00","end":"22:00"}',
+      get() {
+        const val = this.getDataValue('operatingHours');
+        try { return val ? JSON.parse(val) : { start: '09:00', end: '22:00' }; } catch { return { start: '09:00', end: '22:00' }; }
+      },
+      set(val) { this.setDataValue('operatingHours', JSON.stringify(val)); }
+    },
     isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
     isOffline: { type: DataTypes.BOOLEAN, defaultValue: false }, // For shops without a smartphone
     password: { type: DataTypes.STRING, allowNull: true }, // For restaurant portal login

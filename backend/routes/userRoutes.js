@@ -7,9 +7,11 @@ const router = express.Router();
 // ── Strict Auth Shield (Scaled for 500+ campus users on shared Wi-Fi) ──────────────────────
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // 500+ students share same campus Wi-Fi IP → must allow bulk logins
+  max: 10000, // Scaled for campus-wide concurrent lunch rushes
   message: { message: 'Too many authentication attempts, please try again after 15 minutes.' }
 });
+
+const { accountLockout } = require('../middleware/lockoutMiddleware');
 
 const { body, validationResult } = require('express-validator');
 
@@ -40,7 +42,7 @@ const loginValidation = [
 ];
 
 router.post('/register', authLimiter, registerValidation, validate, registerUser);
-router.post('/login', authLimiter, loginValidation, validate, authUser);
+router.post('/login', authLimiter, accountLockout, loginValidation, validate, authUser);
 router.post('/google-login', authLimiter, require('../controllers/userController').googleLogin);
 router.post('/reset-password', authLimiter, require('../controllers/userController').resetPassword);
 router.post('/logout', logoutUser);

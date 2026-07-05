@@ -11,8 +11,10 @@ const authLimiter = rateLimit({
   message: { message: 'Too many authentication attempts, please try again after 15 minutes.' }
 });
 
+const { accountLockout } = require('../middleware/lockoutMiddleware');
+
 router.post('/register', authLimiter, registerPartner);
-router.post('/login', authLimiter, authPartner);
+router.post('/login', authLimiter, accountLockout, authPartner);
 router.post('/fcm-token', protect, rider, saveFcmToken);
 router.get('/orders/pending', protect, rider, getPendingOrders);
 router.get('/orders/active', protect, rider, getActiveOrders);

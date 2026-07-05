@@ -11,7 +11,12 @@ const { sendWhatsAppMessage } = require('../utils/whatsappUtil');
 const { normalizePhone } = require('../utils/phoneUtils');
 
 const generateToken = (id) => {
-  return jwt.sign({ id, role: 'rider' }, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' });
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    console.error('[AUTH_FATAL] JWT_SECRET is not configured.');
+    return null; // The calling logic should handle this gracefully
+  }
+  return jwt.sign({ id, role: 'rider' }, secret, { expiresIn: '30d' });
 };
 
 // @desc    Register a new delivery partner (requires Firebase phone verification)

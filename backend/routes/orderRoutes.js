@@ -31,8 +31,8 @@ router.get('/:id', protect, getOrderById);
 router.put('/:id/rate', protect, rateOrder);
 router.put('/:id/cancel', protect, cancelOrder);
 router.put('/:id/status', protect, admin, updateOrderStatus);
-router.put('/:id/restaurant-accept', restaurantAcceptOrder);
-router.put('/:id/restaurant-ready', restaurantReadyOrder);
+router.put('/:id/restaurant-accept', protect, restaurantAcceptOrder);
+router.put('/:id/restaurant-ready', protect, restaurantReadyOrder);
 router.put('/:id/verify-upi', protect, admin, verifyUPIPayment);
 
 module.exports = router;
