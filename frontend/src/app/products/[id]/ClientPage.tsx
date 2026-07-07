@@ -135,12 +135,12 @@ export default function ProductDetailClient({ productId }: { productId: string }
 
          {/* Hero Top Nav */}
          <div className="absolute top-0 left-0 right-0 p-4 md:p-8 pt-10 md:pt-12 flex justify-between items-center z-20 bg-gradient-to-b from-black/80 light:from-white to-transparent">
-           <Link href="/" onClick={(e) => { e.preventDefault(); router.back(); }} className="w-12 h-12 bg-white/5 light:bg-black backdrop-blur-xl rounded-full flex items-center justify-center border border-white/10 light:border-transparent light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:bg-white/10 light:hover:bg-black/10 hover:scale-105 transition-all shadow-2xl text-white light:text-black">
+           <Link href="/" onClick={(e) => { e.preventDefault(); router.back(); }} className="w-12 h-12 bg-white/5 light:bg-black backdrop-blur-xl rounded-full flex items-center justify-center border border-white/10 light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:bg-white/10 light:hover:bg-black/10 hover:scale-105 transition-all shadow-2xl text-white light:text-black">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
               </svg>
            </Link>
-           <div className="bg-black/40 light:bg-white backdrop-blur-xl border border-white/10 light:border-transparent light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] px-4 py-2 rounded-full flex items-center gap-2 text-white light:text-black">
+           <div className="bg-black/40 light:bg-white backdrop-blur-xl border border-white/10 light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] px-4 py-2 rounded-full flex items-center gap-2 text-white light:text-black">
              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
              <span className="text-[9px] uppercase font-black tracking-widest">Available Now</span>
            </div>
@@ -148,7 +148,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
 
          {/* Scroll Indicator */}
          <div className={`absolute bottom-20 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 transition-opacity duration-500 ${scrollY > 50 ? 'opacity-0 pointer-events-none' : 'opacity-80'}`}>
-            <div className="w-5 h-8 border border-white/30 light:border-transparent light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] rounded-full flex justify-center pt-2">
+            <div className="w-5 h-8 border border-white/30 light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] rounded-full flex justify-center pt-2">
                <div className="w-1 h-1.5 bg-white/60 light:bg-black rounded-full animate-[bounce_1.5s_infinite]" />
             </div>
             <span className="text-[8px] uppercase tracking-[0.3em] font-bold text-white light:text-gray-900/50 light:text-black">Explore</span>
@@ -174,7 +174,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
               { icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', label: 'Elite\nStandard' }
             ].map((attr, i) => (
               <Tilt key={i} scale={1.05} className="rounded-[24px] md:rounded-[32px]">
-                <div className="bg-black/40 light:bg-white backdrop-blur-xl border border-white/5 light:border-transparent light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] rounded-[24px] md:rounded-[32px] p-2 sm:p-4 md:p-5 py-5 md:py-6 flex flex-col items-center justify-center text-center gap-2 md:gap-3 hover:bg-white/[0.08] light:hover:bg-white hover:border-primary-yellow/30 transition-all duration-500 group h-full shadow-sm light:shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
+                <div className="bg-black/40 light:bg-white backdrop-blur-xl border border-white/5 light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] rounded-[24px] md:rounded-[32px] p-2 sm:p-4 md:p-5 py-5 md:py-6 flex flex-col items-center justify-center text-center gap-2 md:gap-3 hover:bg-white/[0.08] light:hover:bg-white hover:border-primary-yellow/30 transition-all duration-500 group h-full shadow-sm light:shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
                    <svg className="w-7 h-7 text-primary-yellow group-hover:scale-110 transition-transform duration-500 filter drop-shadow-[0_0_8px_rgba(201,168,76,0.2)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={attr.icon} /></svg>
                    <span className="text-[7px] sm:text-[10px] uppercase tracking-[0.1em] sm:tracking-[0.25em] font-black text-white light:text-gray-900/40 light:text-black group-hover:text-white light:text-gray-900/70 light:group-hover:text-black transition-colors leading-tight whitespace-pre">{attr.label}</span>
                 </div>
@@ -193,14 +193,14 @@ export default function ProductDetailClient({ productId }: { productId: string }
             </div>
 
             {/* Premium Quantity Selector */}
-            <div className="flex items-center gap-4 md:gap-6 bg-white/[0.03] light:bg-white backdrop-blur-2xl border border-white/5 light:border-transparent rounded-full px-2 py-2 md:px-3 md:py-3 shadow-inner light:shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
+            <div className="flex items-center gap-4 md:gap-6 bg-white/[0.03] light:bg-white backdrop-blur-2xl border border-white/5 light:border-gray-200 rounded-full px-2 py-2 md:px-3 md:py-3 shadow-inner light:shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
                <Magnetic>
                  <button 
                    onClick={() => {
                      if (currentQty > 1) updateQuantity(product.id || product._id || "", currentQty - 1);
                      else if (currentQty === 1) removeFromCart(product.id || product._id || "");
                    }}
-                   className="w-12 h-12 rounded-full bg-black light:bg-[#F4F4F5] text-white light:text-black border border-white/5 light:border-transparent flex items-center justify-center text-xl hover:bg-white/10 light:hover:bg-[#E4E4E7] active:scale-90 transition-all shadow-xl light:shadow-none"
+                   className="w-12 h-12 rounded-full bg-black light:bg-[#F4F4F5] text-white light:text-black border border-white/5 light:border-gray-200 flex items-center justify-center text-xl hover:bg-white/10 light:hover:bg-[#E4E4E7] active:scale-90 transition-all shadow-xl light:shadow-none"
                  >−</button>
                </Magnetic>
                <span className="text-2xl font-black w-6 text-center tabular-nums text-white light:text-black">
@@ -244,7 +244,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
              </Link>
            )}
            
-           <Link href="/basket" className="w-[70px] h-[70px] shrink-0 bg-[#1A1A1C] light:bg-white border border-white/10 light:border-transparent light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] flex items-center justify-center rounded-[24px] hover:bg-white/10 light:hover:bg-black/5 hover:border-[#C9A84C]/50 transition-all active:scale-95 shadow-xl group">
+           <Link href="/basket" className="w-[70px] h-[70px] shrink-0 bg-[#1A1A1C] light:bg-white border border-white/10 light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] flex items-center justify-center rounded-[24px] hover:bg-white/10 light:hover:bg-black/5 hover:border-[#C9A84C]/50 transition-all active:scale-95 shadow-xl group">
               <svg className="w-6 h-6 text-white light:text-black group-hover:text-[#C9A84C] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>

@@ -280,7 +280,7 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
               router.push('/');
             }
           }}
-          className="absolute top-12 left-6 w-10 h-10 glass-card rounded-full flex items-center justify-center z-20 outline-none light:bg-white light:shadow-md light:border-transparent light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] light:text-black"
+          className="absolute top-12 left-6 w-10 h-10 glass-card rounded-full flex items-center justify-center z-20 outline-none light:bg-white light:shadow-md light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] light:text-black"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
@@ -290,7 +290,7 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
         {/* Restaurant Info Overlay with Tilt */}
         <div className="absolute bottom-6 md:bottom-10 left-4 md:left-6 right-4 md:right-6 z-10">
           <Tilt scale={1.02}>
-            <div className="p-4 md:p-6 rounded-[24px] md:rounded-[32px] bg-black/40 backdrop-blur-xl border border-white/5 shadow-2xl light:bg-white light:border-transparent light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] light:shadow-md">
+            <div className="p-4 md:p-6 rounded-[24px] md:rounded-[32px] bg-black/40 backdrop-blur-xl border border-white/5 shadow-2xl light:bg-white light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] light:shadow-md">
               <div className="w-full px-4 pt-10 pt-safe md:px-10 lg:px-14 pb-4">
                 {isSurge ? (
                   <span className="bg-red-500 text-white light:text-gray-900 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-wider animate-pulse flex items-center gap-1 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
@@ -361,7 +361,7 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
             <Magnetic key={cat}>
               <button 
                 onClick={() => setActiveCategory(cat)}
-                className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 shadow-xl ${activeCategory === cat ? 'bg-[#EF4F5F] text-white light:text-gray-900 shadow-[#EF4F5F]/20 scale-105' : 'bg-white/5 border border-white/5 text-secondary-text hover:text-white light:text-gray-900 hover:bg-white/10 light:bg-black light:border-transparent light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] light:text-black light:hover:text-black light:hover:bg-black/10'}`}>
+                className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 shadow-xl ${activeCategory === cat ? 'bg-[#EF4F5F] text-white light:text-gray-900 shadow-[#EF4F5F]/20 scale-105' : 'bg-white/5 border border-white/5 text-secondary-text hover:text-white light:text-gray-900 hover:bg-white/10 light:bg-black light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] light:text-black light:hover:text-black light:hover:bg-black/10'}`}>
                 {cat}
               </button>
             </Magnetic>
@@ -376,7 +376,7 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
             const isEliteRestricted = item.isEliteOnly && !isUserElite;
             
             const cardContent = (
-              <div className={`flex gap-4 items-start bg-black/40 backdrop-blur-xl p-4 md:p-5 rounded-[24px] md:rounded-[32px] border border-white/5 hover:border-red-500/25 transition-all duration-500 group relative overflow-hidden light:bg-white light:border-transparent light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] light:hover:border-black/15 light:shadow-md ${isSoldOut || isEliteRestricted ? ' grayscale' : ''} ${isEliteRestricted ? 'pointer-events-none' : ''}`}>
+              <div className={`flex gap-4 items-start bg-black/40 backdrop-blur-xl p-4 md:p-5 rounded-[24px] md:rounded-[32px] border border-white/5 hover:border-red-500/25 transition-all duration-500 group relative overflow-hidden light:bg-white light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] light:hover:border-black/15 light:shadow-md ${isSoldOut || isEliteRestricted ? ' grayscale' : ''} ${isEliteRestricted ? 'pointer-events-none' : ''}`}>
                 {/* Glow Layer */}
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_var(--mouse-x,50%)_var(--mouse-y,50%),rgba(239,79,95,0.03)_0%,transparent_80%)] pointer-events-none" />
                 

@@ -150,7 +150,7 @@ export default function ZenvyVault() {
         scale: isOpen ? 1 : 1.02
       }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      className={`relative rounded-[32px] overflow-hidden transition-all duration-700 ${isOpen ? 'bg-[#121214] shadow-[0_30px_100px_rgba(0,0,0,0.8)]' : 'bg-transparent'}`}
+      className={`relative rounded-[32px] overflow-hidden transition-all duration-700 ${isOpen ? 'vault-wrapper-open shadow-[0_30px_100px_rgba(0,0,0,0.8)]' : 'bg-transparent'}`}
       style={{ transformStyle: 'preserve-3d' }}
     >
       {/* Background Glow */}
@@ -168,7 +168,7 @@ export default function ZenvyVault() {
       {/* Main Header / Trigger */}
       <div 
         onClick={() => isVaultActive && setIsOpen(!isOpen)}
-        className={`bg-[#141416]/90 border border-white/5 light:bg-white light:border-black/5 rounded-[32px] p-4 px-6 flex items-center justify-between cursor-pointer shadow-2xl ${isOpen ? 'rounded-b-none' : ''} transition-all z-10 relative`}
+        className={`vault-header rounded-[32px] p-4 px-6 flex items-center justify-between cursor-pointer ${isOpen ? 'rounded-b-none' : ''} transition-all z-10 relative`}
       >
         <div className="flex items-center gap-5">
            <div className="w-14 h-14 rounded-full bg-black border border-[#C9A84C]/30 flex items-center justify-center relative shadow-[0_0_25px_rgba(201,168,76,0.2)] group">
@@ -210,7 +210,7 @@ export default function ZenvyVault() {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="overflow-hidden border-x border-b border-[#C9A84C]/20 rounded-b-[32px] bg-black/60 backdrop-blur-3xl relative z-10"
+            className="overflow-hidden border-x border-b border-[#C9A84C]/20 rounded-b-[32px] vault-body backdrop-blur-3xl relative z-10"
           >
              <div className="p-8">
                 <motion.p 

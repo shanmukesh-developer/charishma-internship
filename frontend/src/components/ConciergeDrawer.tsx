@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BadgeDetailsModal from './BadgeDetailsModal';
 
@@ -44,6 +44,16 @@ const ConciergeDrawer: React.FC<ConciergeDrawerProps> = ({ isOpen, onClose, user
     } catch { /* ignore */ }
   }, [isOpen]);
 
+  // Lock body scroll when drawer is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isOpen]);
+
   const handleSend = () => {
     if (!inputValue.trim()) return;
     
@@ -75,6 +85,7 @@ const ConciergeDrawer: React.FC<ConciergeDrawerProps> = ({ isOpen, onClose, user
         <>
           {/* Backdrop */}
           <motion.div
+            key="concierge-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -84,6 +95,7 @@ const ConciergeDrawer: React.FC<ConciergeDrawerProps> = ({ isOpen, onClose, user
 
           {/* Drawer */}
           <motion.div
+            key="concierge-drawer"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}

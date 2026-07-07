@@ -94,37 +94,37 @@ const RestaurantCard = ({
         </div>
 
         {/* Info Content Area - PURE WHITE BACKGROUND ZOMATO STYLE */}
-        <div className="p-3 bg-white flex flex-col justify-between">
+        <div className="p-2.5 bg-white flex flex-col justify-between">
           
           {/* Title and Rating Row */}
           <div className="flex justify-between items-start gap-2 mb-0.5">
-            <h3 className="font-bold text-[15px] leading-tight text-gray-900 line-clamp-1 truncate" style={{ fontFamily: "Inter, sans-serif" }}>
+            <h3 className="font-bold text-[13px] leading-tight text-gray-900 line-clamp-1 truncate" style={{ fontFamily: "Inter, sans-serif" }}>
               {name}
             </h3>
             {/* Zomato Green Rating Badge */}
-            <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[#24963F] text-white light:text-gray-900 shrink-0 mt-0.5">
-              <span className="text-[10px] font-bold leading-none">{rating}</span>
-              <svg className="w-[8px] h-[8px] fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+            <div className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-[#24963F] text-white light:text-gray-900 shrink-0 mt-0.5">
+              <span className="text-[9px] font-bold leading-none">{rating}</span>
+              <svg className="w-[7px] h-[7px] fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
             </div>
           </div>
 
           {/* Subtitle / Canteen description & Price */}
           <div className="flex justify-between items-center mb-2.5">
-            <p className="text-[11px] text-gray-500 line-clamp-1 truncate">
+            <p className="text-[10px] text-gray-500 line-clamp-1 truncate">
               {canteenType}
             </p>
-            <p className="text-[11px] text-gray-500 shrink-0 ml-2">
-              ₹{priceForTwo} for one
+            <p className="text-[10px] text-gray-500 shrink-0 ml-2">
+              ₹{priceForTwo}
             </p>
           </div>
 
           {/* Offer Zomato Dashed Line */}
           {hasOffer && (
             <div className="pt-2 border-t border-dashed border-gray-200 flex items-center gap-1.5">
-              <div className="w-4 h-4 rounded-full bg-blue-50 flex items-center justify-center">
-                 <span className="text-[8px]">🏷️</span>
+              <div className="w-3.5 h-3.5 rounded-full bg-blue-50 flex items-center justify-center">
+                 <span className="text-[7px]">🏷️</span>
               </div>
-              <span className="text-[10px] font-medium text-gray-600 line-clamp-1">{offer}</span>
+              <span className="text-[9px] font-medium text-gray-600 line-clamp-1">{offer}</span>
             </div>
           )}
         </div>

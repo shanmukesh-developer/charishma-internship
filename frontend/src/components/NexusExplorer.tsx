@@ -201,7 +201,7 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
                 transition={{ delay: idx * 0.05 }}
               >
                 <Tilt scale={1.02}>
-                  <div className="group relative bg-[#1c1c1e] border border-white/5 rounded-2xl p-2 hover:bg-white/[0.04] hover:border-white/10 transition-all duration-300 overflow-hidden cursor-pointer light:!bg-white light:border-transparent light:shadow-[0_2px_12px_rgba(0,0,0,0.04)] light:hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] light:hover:border-gray-100"
+                  <div className="group relative bg-[#1c1c1e] border border-white/5 rounded-2xl p-2 hover:bg-white/[0.04] hover:border-white/10 transition-all duration-300 overflow-hidden cursor-pointer light:!bg-white light:border-gray-200 light:shadow-[0_2px_12px_rgba(0,0,0,0.04)] light:hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] light:hover:border-gray-100"
                        onClick={() => onSelectItem(item)}>
                     
                     {/* Image Hub (Compact height) */}

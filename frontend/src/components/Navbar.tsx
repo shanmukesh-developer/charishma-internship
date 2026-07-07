@@ -131,14 +131,12 @@ const Navbar = () => {
               {badgeCount}
             </div>
           )}
-          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-black rounded-full shadow-lg" />
+          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-black light:border-[#FAF5EF] rounded-full shadow-lg" />
         </Link>
         
         <button 
           onClick={handleLogout}
-          className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-90 border ${
-            isScrolled ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-white/5 border-white/10 text-white light:text-gray-900/40'
-          }`}
+          className="w-9 h-9 rounded-xl flex items-center justify-center active:scale-90 header-action-btn hover:!border-red-500 hover:!text-red-500 light:hover:!border-red-500 light:hover:!text-red-500"
           title="Sign Out"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
