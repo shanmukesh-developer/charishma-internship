@@ -85,7 +85,7 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
   return (
     <div className="w-full space-y-2 pb-2">
       {/* HUD Controller Shell: Ultra-Compact */}
-      <div className="flex flex-col gap-2 bg-white/[0.02] border border-white/5 p-3 rounded-[24px] light:bg-white light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
+      <div className="flex flex-col gap-2 bg-transparent p-3">
         {/* Row 1: Filters & Sort Integrated */}
         <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide no-scrollbar py-1">
           <div className="flex gap-2">
@@ -96,10 +96,10 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
               <button
                 key={btn.id}
                 onClick={() => { playSensoryFeedback(); setActiveFilter(btn.id as 'all' | 'veg' | 'jain'); }}
-                className={`h-9 py-1 px-4 px-3 rounded-xl flex items-center gap-1.5 transition-all border whitespace-nowrap ${
+                className={`h-9 py-1 px-4 rounded-full flex items-center gap-1.5 transition-all border whitespace-nowrap ${
                   activeFilter === btn.id 
-                  ? 'bg-[#EF4F5F] text-white light:text-gray-900 border-[#EF4F5F] font-black' 
-                  : 'bg-white/5 border-white/10 text-white light:text-gray-900/60 hover:bg-white/10 light:bg-gray-50 light:border-gray-200 light:text-gray-600 light:hover:bg-gray-100'
+                  ? 'bg-[#EF4F5F] text-white border-[#EF4F5F] font-black shadow-sm' 
+                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 font-bold'
                 }`}
               >
                 <span className="text-[10px]">{btn.icon}</span>
@@ -108,7 +108,7 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
             ))}
           </div>
 
-          <div className="w-px h-4 bg-white/10 mx-1 shrink-0 light:bg-gray-200" />
+          <div className="w-px h-4 bg-gray-300 mx-1 shrink-0" />
 
           <div className="flex gap-2">
             {[
@@ -119,10 +119,10 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
               <button
                 key={btn.id}
                 onClick={() => { playSensoryFeedback(); setActiveSort(btn.id as 'recommended' | 'rating' | 'fastest'); }}
-                className={`h-9 py-1 px-4 px-3 rounded-xl flex items-center gap-1.5 transition-all border whitespace-nowrap ${
+                className={`h-9 py-1 px-4 rounded-full flex items-center gap-1.5 transition-all border whitespace-nowrap ${
                   activeSort === btn.id 
-                  ? 'bg-white text-black border-white font-black light:bg-black light:text-white light:text-gray-900 light:border-black' 
-                  : 'bg-white/5 border-white/10 text-white light:text-gray-900/60 hover:bg-white/10 light:bg-gray-50 light:border-gray-200 light:text-gray-600 light:hover:bg-gray-100'
+                  ? 'bg-black text-white border-black font-black shadow-sm' 
+                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 font-bold'
                 }`}
               >
                 <span className="text-[9px] uppercase tracking-widest">{btn.label}</span>
@@ -135,18 +135,18 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
       </div>
 
       {/* Main Explorer Canvas */}
-      <div className="bg-[#141416]/50 backdrop-blur-3xl p-3 md:p-8 rounded-[24px] md:rounded-[48px] border border-white/5 light:bg-white light:border-gray-200 light:shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
-        <div className="flex flex-row justify-between items-center gap-2 mb-4 md:mb-6">
+      <div className="bg-transparent pt-2 md:p-8">
+        <div className="flex flex-row justify-between items-center gap-2 mb-4 md:mb-6 hidden">
           <div>
-             <h2 className="text-sm md:text-4xl font-black text-white light:text-gray-900 italic uppercase tracking-tighter light:text-black" style={{ fontFamily: "'Syne', sans-serif" }}>
+             <h2 className="text-sm md:text-4xl font-black text-black italic uppercase tracking-tighter" style={{ fontFamily: "'Syne', sans-serif" }}>
                {activeCategory}
              </h2>
           </div>
           <div className="flex items-center gap-2">
-             <div className="relative">
+              <div className="relative">
                 <button 
                   onClick={() => setIsSortOpen(!isSortOpen)}
-                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[8px] md:text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-white/10 transition-all outline-none light:bg-white light:border-gray-200 light:text-gray-900 light:hover:bg-gray-50 light:shadow-sm"
+                  className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-[8px] md:text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-gray-50 transition-all outline-none text-gray-900 shadow-sm"
                 >
                   <span className="max-w-[80px] md:max-w-none truncate">{sortValue === 'default' ? 'Sort' : sortValue === 'low' ? 'Low' : 'High'}</span>
                   <svg className={`w-2.5 h-2.5 text-[#EF4F5F] transition-transform duration-300 ${isSortOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
@@ -158,7 +158,7 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
                       initial={{ opacity: 0, y: 5, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                      className="absolute top-full right-0 mt-2 min-w-[140px] bg-[#1A1A1C] border border-white/10 rounded-xl overflow-hidden z-50 shadow-3xl backdrop-blur-3xl light:bg-white light:border-gray-200"
+                      className="absolute top-full right-0 mt-2 min-w-[140px] bg-white border border-gray-200 rounded-xl overflow-hidden z-50 shadow-lg"
                     >
                       {[
                         { id: 'default', label: 'Default' },
@@ -173,8 +173,8 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
                           }}
                           className={`w-full px-4 py-2 text-[8px] font-black uppercase tracking-widest text-left transition-colors ${
                             sortValue === opt.id 
-                            ? 'bg-[#EF4F5F] text-white light:text-gray-900 font-black' 
-                            : 'text-white light:text-gray-900/40 hover:bg-white/5 hover:text-white light:text-black light:hover:bg-black/5 light:hover:text-black'
+                            ? 'bg-[#EF4F5F] text-white font-black' 
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-black'
                           }`}
                         >
                           {opt.label}
@@ -184,7 +184,7 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
                   )}
                 </AnimatePresence>
              </div>
-             <button onClick={() => { setActiveFilter('all'); setActiveCategory('Biryani'); setSortValue('default'); }} className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-[8px] md:text-[10px] font-black uppercase tracking-widest text-[#6B6B6B] hover:bg-white/10 transition-all light:bg-white light:border-gray-200 light:text-gray-900 light:hover:bg-gray-50 light:shadow-sm">
+             <button onClick={() => { setActiveFilter('all'); setActiveCategory('Biryani'); setSortValue('default'); }} className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-[8px] md:text-[10px] font-black uppercase tracking-widest text-gray-500 hover:bg-gray-50 transition-all shadow-sm">
                 Clear
              </button>
           </div>
@@ -201,18 +201,17 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
                 transition={{ delay: idx * 0.05 }}
               >
                 <Tilt scale={1.02}>
-                  <div className="group relative bg-[#1c1c1e] border border-white/5 rounded-2xl p-2 hover:bg-white/[0.04] hover:border-white/10 transition-all duration-300 overflow-hidden cursor-pointer light:!bg-white light:border-gray-200 light:shadow-[0_2px_12px_rgba(0,0,0,0.04)] light:hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] light:hover:border-gray-100"
+                  <div className="group relative bg-white border border-gray-100 rounded-2xl p-2 hover:border-gray-200 transition-all duration-300 overflow-hidden cursor-pointer shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
                        onClick={() => onSelectItem(item)}>
                     
                     {/* Image Hub (Compact height) */}
-                    <div className="relative h-24 md:h-40 w-full rounded-xl overflow-hidden mb-2 border border-white/5">
+                    <div className="relative h-24 md:h-40 w-full rounded-xl overflow-hidden mb-2 bg-gray-50">
                       <SafeImage 
                         src={item.image || item.imageUrl} 
                         alt={item.name}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent " />
                       
                       {/* Compact Favorite Button */}
                       <button 
@@ -228,10 +227,10 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
                       </button>
                     </div>
 
-                    <div className="flex flex-col justify-between pt-1">
+                    <div className="flex flex-col justify-between pt-1 px-1 pb-1">
                       <div>
-                        <h3 className="text-[10px] md:text-[13px] font-black text-white light:text-gray-900 leading-tight mb-0.5 group-hover:text-[#EF4F5F] transition-colors truncate light:text-black">{item.name}</h3>
-                        <p className="text-[7px] md:text-[9px] font-bold text-white light:text-gray-900/40 uppercase tracking-wider truncate light:text-gray-500">{item.restaurantName || 'Zenvy Elite'}</p>
+                        <h3 className="text-[10px] md:text-[13px] font-black text-black leading-tight mb-0.5 group-hover:text-[#EF4F5F] transition-colors truncate">{item.name}</h3>
+                        <p className="text-[7px] md:text-[9px] font-bold text-gray-400 uppercase tracking-wider truncate">{item.restaurantName || 'Zenvy Elite'}</p>
                       </div>
                       <div className="mt-1.5 flex justify-between items-center">
                          <span className="text-[10px] md:text-[13px] font-black text-[#EF4F5F]">₹{item.price}</span>

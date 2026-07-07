@@ -14,23 +14,28 @@
 }
 
 :root {
-  --background: #0A0A0B;
-  --card-bg: #141416;
-  --card-bg-hover: #1A1A1D;
-  --primary-gold: #C9A84C;
-  --primary-gold-light: #E8D48B;
-  --primary-gold-dark: #8B7332;
-  --accent-warm: #D4A853;
-  --secondary-text: #6B6B6B;
-  --border-subtle: rgba(201, 168, 76, 0.08);
-  --border-hover: rgba(201, 168, 76, 0.2);
-  --glow-gold: rgba(201, 168, 76, 0.15);
-  --white: #F5F5F5;
-
+  /* ─── Premium Light Theme (Default) ─── */
+  --background: #FFFFFF;
+  --card-bg: #F9F9FB;
+  --card-bg-hover: #F0F0F5;
+  --primary-gold: #EF4F5F; /* Zomato-like Vibrant Red for accents */
+  --primary-gold-light: #FF7E8B;
+  --primary-gold-dark: #CB202D;
+  --accent-warm: #E03546;
+  --secondary-text: #636366;
+  
+  /* Borders & Shadows */
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-hover: rgba(0, 0, 0, 0.12);
+  --glow-gold: rgba(224, 53, 70, 0.08);
+  
+  /* Constant Black & Structural Text */
+  --white: #111111; /* Text defaults to crisp black on the white background */
+  
   /* ─── Midnight Nexus Variables ─── */
   --midnight-accent: #8E24AA;
-  --midnight-glow: rgba(142, 36, 170, 0.3);
-  --midnight-void: #020203;
+  --midnight-glow: rgba(142, 36, 170, 0.1);
+  --midnight-void: #F5F5F7;
 
   /* ─── Device Protocol Insets ─── */
   --safe-top: env(safe-area-inset-top, 0px);
@@ -39,22 +44,24 @@
   --safe-right: env(safe-area-inset-right, 0px);
 }
 
-/* ─── Zomato-inspired Light Theme Overrides ─── */
-.light {
-  --background: #f0ece4;
-  --card-bg: #FFFFFF;
-  --card-bg-hover: #f9f7f3;
-  --primary-gold: #EF4F5F; /* Zomato-like Vibrant Red */
-  --primary-gold-light: #FF7E8B;
-  --primary-gold-dark: #CB202D;
-  --accent-warm: #E03546;
-  --secondary-text: #696969;
-  --border-subtle: rgba(0, 0, 0, 0.06);
-  --border-hover: rgba(224, 53, 70, 0.15);
-  --glow-gold: rgba(224, 53, 70, 0.08);
-  --white: #1C1C1E;
+/* ─── Dark Mode Overrides (if toggled) ─── */
+.dark {
+  --background: #0A0A0B;
+  --card-bg: #141416;
+  --card-bg-hover: #1A1A1D;
+  --primary-gold: #C9A84C;
+  --primary-gold-light: #E8D48B;
+  --primary-gold-dark: #8B7332;
+  --accent-warm: #D4A853;
+  --secondary-text: #A0A0A5;
   
-  --midnight-void: #EBEBEF;
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-hover: rgba(201, 168, 76, 0.3);
+  --glow-gold: rgba(201, 168, 76, 0.15);
+  
+  --white: #F9F7F3;
+  
+  --midnight-void: #020203;
 }
 
 * {

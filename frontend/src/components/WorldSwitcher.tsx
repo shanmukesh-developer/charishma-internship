@@ -38,7 +38,7 @@ export default function WorldSwitcher({ activeWorld }: WorldSwitcherProps) {
 
   return (
     <div className="my-5">
-      <div className="flex gap-2 p-1.5 bg-white/[0.04] light-switcher-bg border border-white/[0.06] light-switcher-border rounded-2xl relative">
+      <div className="flex gap-2 p-1.5 bg-gray-50 border border-gray-200 rounded-2xl relative">
         {WORLDS.map((world) => {
           const isActive = world.id === activeWorld;
           return (
@@ -70,7 +70,7 @@ export default function WorldSwitcher({ activeWorld }: WorldSwitcherProps) {
               <span className="relative z-10 text-sm">{world.icon}</span>
               <span
                 className={`relative z-10 ${
-                  isActive ? '' : 'text-white/40 light-switcher-inactive-text'
+                  isActive ? 'text-black' : 'text-gray-400'
                 }`}
               >
                 {world.label}

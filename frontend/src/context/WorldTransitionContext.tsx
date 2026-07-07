@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
-export type WorldType = 'food' | 'pg' | 'bikepool';
+export type WorldType = 'food' | 'pg' | 'bikepool' | 'others' | 'comms';
 
 interface WorldTransitionContextType {
   isTransitioning: boolean;
@@ -24,6 +24,8 @@ export const WORLD_THEMES: Record<WorldType, { label: string; gradient: string; 
   food:     { label: 'ZENVY FOOD',     gradient: 'linear-gradient(135deg, #EF4F5F 0%, #F5A623 100%)', color: '#EF4F5F' },
   pg:       { label: 'ZENVY HOMES',    gradient: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)', color: '#6366F1' },
   bikepool: { label: 'ZENVY CO-RIDE',  gradient: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: '#10B981' },
+  others:   { label: 'ZENVY OTHERS', gradient: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)', color: '#8B5CF6' },
+  comms:    { label: 'ZENVY COMMS',    gradient: 'linear-gradient(135deg, #F43F5E 0%, #FB923C 100%)', color: '#F43F5E' },
 };
 
 export function WorldTransitionProvider({ children }: { children: React.ReactNode }) {

@@ -44,10 +44,10 @@ const RestaurantCard = ({
         whileTap={{ scale: 0.95 }}
         onClick={() => playSensoryFeedback()}
         transition={{ duration: 0.2 }}
-        className="relative flex flex-col rounded-[16px] overflow-hidden bg-white light:bg-gradient-to-br light:from-white/95 light:to-white/60 light:backdrop-blur-lg shadow-[0_2px_12px_rgba(0,0,0,0.04)] border border-transparent light:border-white/40 hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-all group"
+        className="relative flex flex-col rounded-[16px] overflow-hidden bg-white light:bg-gradient-to-br light:from-white/95 light:to-white/60 light:backdrop-blur-lg shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-gray-100 light:border-white/40 hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)] transition-all group"
       >
         {/* Food Image Container */}
-        <div className="aspect-[1.3] w-full relative overflow-hidden bg-gray-100">
+        <div className="aspect-[4/3] w-full relative overflow-hidden bg-gray-100">
           <SafeImage 
             src={imageUrl} 
             alt={name}
@@ -81,50 +81,52 @@ const RestaurantCard = ({
           </button>
 
           {/* Time Chip Overlay (Zomato Style Bottom Right) */}
-          <div className="absolute bottom-2 right-2 bg-white/90 backdrop-blur-sm rounded px-1.5 py-0.5 flex items-center shadow-sm">
-            <span className="text-[9px] font-bold text-gray-800">{time}</span>
+          <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm rounded px-1.5 py-0.5 flex items-center shadow-sm">
+            <span className="text-[8px] font-bold text-white">{time}</span>
           </div>
           
           {/* Discount Overlay (Zomato Style Bottom Left Blue/Red Ribbon) */}
           {hasOffer && (
-            <div className="absolute bottom-2 left-0 bg-[#256fef] rounded-r text-white light:text-gray-900 px-2 py-0.5 shadow-sm">
-              <span className="text-[9px] font-bold">{offer.split(' ')[0]} OFF</span>
+            <div className="absolute bottom-2 left-0 bg-[#256fef] rounded-r text-white light:text-gray-900 px-1.5 py-0.5 shadow-sm">
+              <span className="text-[8px] font-bold">
+                {offer.includes('%') ? offer.split(' ')[0] : (offer.includes('Flat') ? 'FLAT OFF' : 'BOGO')}
+              </span>
             </div>
           )}
         </div>
 
         {/* Info Content Area - PURE WHITE BACKGROUND ZOMATO STYLE */}
-        <div className="p-2.5 bg-white flex flex-col justify-between">
+        <div className="p-2 bg-white flex flex-col justify-between">
           
           {/* Title and Rating Row */}
-          <div className="flex justify-between items-start gap-2 mb-0.5">
-            <h3 className="font-bold text-[13px] leading-tight text-gray-900 line-clamp-1 truncate" style={{ fontFamily: "Inter, sans-serif" }}>
+          <div className="flex justify-between items-start gap-1 mb-0.5">
+            <h3 className="font-bold text-[11px] leading-tight text-gray-900 line-clamp-1 truncate" style={{ fontFamily: "Inter, sans-serif" }}>
               {name}
             </h3>
             {/* Zomato Green Rating Badge */}
-            <div className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-[#24963F] text-white light:text-gray-900 shrink-0 mt-0.5">
-              <span className="text-[9px] font-bold leading-none">{rating}</span>
-              <svg className="w-[7px] h-[7px] fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+            <div className="flex items-center gap-0.5 px-1 py-[1px] rounded bg-[#24963F] text-white light:text-gray-900 shrink-0 mt-0.5">
+              <span className="text-[8px] font-bold leading-none">{rating}</span>
+              <svg className="w-[6px] h-[6px] fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
             </div>
           </div>
 
           {/* Subtitle / Canteen description & Price */}
-          <div className="flex justify-between items-center mb-2.5">
-            <p className="text-[10px] text-gray-500 line-clamp-1 truncate">
+          <div className="flex justify-between items-center mb-1.5">
+            <p className="text-[8px] text-gray-500 line-clamp-1 truncate">
               {canteenType}
             </p>
-            <p className="text-[10px] text-gray-500 shrink-0 ml-2">
+            <p className="text-[9px] font-semibold text-gray-700 shrink-0 ml-1">
               ₹{priceForTwo}
             </p>
           </div>
 
           {/* Offer Zomato Dashed Line */}
           {hasOffer && (
-            <div className="pt-2 border-t border-dashed border-gray-200 flex items-center gap-1.5">
-              <div className="w-3.5 h-3.5 rounded-full bg-blue-50 flex items-center justify-center">
-                 <span className="text-[7px]">🏷️</span>
+            <div className="pt-1.5 border-t border-dashed border-gray-200 flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                 <span className="text-[6px]">🏷️</span>
               </div>
-              <span className="text-[9px] font-medium text-gray-600 line-clamp-1">{offer}</span>
+              <span className="text-[8px] font-medium text-gray-600 line-clamp-1 truncate leading-tight">{offer}</span>
             </div>
           )}
         </div>

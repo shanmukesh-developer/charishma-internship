@@ -51,15 +51,15 @@ export default function RecentlyViewed() {
     <section className="mb-14">
       <div className="flex justify-between items-end mb-6">
         <div>
-          <h2 className="text-[9px] font-black text-primary-yellow uppercase tracking-[0.4em] mb-2 ">Memory Cache</h2>
-          <p className="text-xl font-black text-white light:text-gray-900 uppercase italic">Recently Visited</p>
+          <h2 className="text-[9px] font-black text-[#EF4F5F] uppercase tracking-[0.4em] mb-2 ">Memory Cache</h2>
+          <p className="text-xl font-black text-black uppercase italic">Recently Visited</p>
         </div>
         <button 
           onClick={() => {
             localStorage.removeItem(STORAGE_KEY);
             setItems([]);
           }}
-          className="text-[8px] font-black uppercase tracking-widest text-white light:text-gray-900/20 hover:text-white light:text-gray-900/40 transition-colors"
+          className="text-[8px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors"
         >
           Clear History
         </button>

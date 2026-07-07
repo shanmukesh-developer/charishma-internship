@@ -113,7 +113,7 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
             </div>
             <span className="text-[9px] font-black text-orange-400 uppercase tracking-[0.4em]">CampusBites</span>
           </div>
-          <h2 className="text-xl md:text-2xl font-black text-white light:text-gray-900 italic tracking-tighter uppercase" style={{ fontFamily: "'Syne', sans-serif" }}>
+          <h2 className="text-xl md:text-2xl font-black text-black italic tracking-tighter uppercase" style={{ fontFamily: "'Syne', sans-serif" }}>
             Local <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-300">Vendor Stalls</span>
           </h2>
           <p className="text-[9px] font-bold text-secondary-text uppercase tracking-widest mt-1 max-w-[340px] leading-relaxed">
@@ -130,7 +130,7 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
               className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${
                 selectedCampus === c.code
                   ? 'bg-orange-500/10 text-orange-400 border-orange-500/30 shadow-[0_0_12px_rgba(249,115,22,0.15)]'
-                  : 'bg-white/5 text-secondary-text border-white/10 hover:border-white/20'
+                  : 'bg-white/5 text-gray-400 border-gray-200 hover:border-gray-300'
               }`}
             >
               <span className="text-xs">{c.emoji}</span> {c.code === 'ALL' ? 'All' : c.code}
