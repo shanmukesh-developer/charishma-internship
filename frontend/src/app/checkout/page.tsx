@@ -155,9 +155,9 @@ function SuggestedExtras({ cart, onAdd }: { cart: { id: string; name: string }[]
             className="shrink-0 min-w-[130px] p-4 rounded-[24px] border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:border-[#C9A84C]/20 transition-all flex flex-col items-center gap-2 text-center active:scale-95 group"
           >
             <span className="text-2xl group-hover:scale-110 transition-transform">{extra.emoji}</span>
-            <span className="text-[10px] font-bold text-white/60 leading-tight">{extra.name}</span>
+            <span className="text-[10px] font-bold text-white light:text-gray-900/60 leading-tight">{extra.name}</span>
             <span className="text-[11px] font-black text-[#C9A84C]">₹{extra.price}</span>
-            <span className="text-[8px] font-black uppercase tracking-widest text-white/20 bg-white/5 px-3 py-1 rounded-full group-hover:bg-[#C9A84C]/10 group-hover:text-[#C9A84C]/60 transition-all">+ Add</span>
+            <span className="text-[8px] font-black uppercase tracking-widest text-white light:text-gray-900/20 bg-white/5 px-3 py-1 rounded-full group-hover:bg-[#C9A84C]/10 group-hover:text-[#C9A84C]/60 transition-all">+ Add</span>
           </button>
         ))}
       </div>
@@ -439,14 +439,14 @@ export default function CheckoutPage() {
   useEffect(() => setMounted(true), []);
 
   if (!mounted) {
-    return <main className="min-h-screen bg-background text-white p-6 pb-20" />;
+    return <main className="min-h-screen bg-background text-white light:text-gray-900 p-6 pb-20" />;
   }
 
   // Empty cart guard — redirect back if cart is empty
   // Bypass guard if checkout was successful so success modal doesn't get unmounted!
   if (cart.length === 0 && checkoutStatus !== 'success') {
     return (
-      <main className="min-h-screen bg-background text-white flex flex-col items-center justify-center gap-6 p-8">
+      <main className="min-h-screen bg-background text-white light:text-gray-900 flex flex-col items-center justify-center gap-6 p-8">
         <div className="w-24 h-24 glass-card rounded-full flex items-center justify-center text-4xl">🛒</div>
         <h1 className="text-2xl font-black uppercase tracking-widest">Your Basket is Empty</h1>
         <p className="text-secondary-text text-sm text-center">Add some items before checking out.</p>
@@ -456,10 +456,10 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0A0A0B] text-white p-4 md:p-6 pb-20 relative overflow-x-hidden">
+    <main className="min-h-screen bg-[#0A0A0B] text-white light:text-gray-900 p-4 md:p-6 pb-20 relative overflow-x-hidden">
       {/* Cinematic Background */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(201,168,76,0.05)_0%,transparent_50%)] pointer-events-none" />
-      <div className="fixed inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none opacity-40" />
+      <div className="fixed inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none " />
       {/* Copy Toast */}
       {copyToast && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] animate-in fade-in zoom-in duration-200">
@@ -473,7 +473,7 @@ export default function CheckoutPage() {
       <div className="flex items-center gap-4 mb-10 relative z-10">
         <Magnetic>
           <button onClick={() => router.back()} className="w-12 h-12 bg-white/5 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/10 hover:bg-white/10 transition-all">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-white light:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
@@ -522,12 +522,12 @@ export default function CheckoutPage() {
                       value={deliveryAddress}
                       onChange={e => setDeliveryAddress(e.target.value)}
                       placeholder="Street, area, locality..."
-                      className="w-full pl-12 pr-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 outline-none focus:border-primary-yellow/40 transition-all text-sm shadow-inner"
+                      className="w-full pl-12 pr-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white light:text-gray-900 placeholder-gray-600 outline-none focus:border-primary-yellow/40 transition-all text-sm shadow-inner"
                     />
                   </div>
                   <button
                     onClick={() => setIsMapOpen(true)}
-                    className="h-[52px] px-5 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-2xl flex items-center gap-2 transition-all group"
+                    className="h-[52px] px-5 bg-white/5 hover:bg-white/10 text-white light:text-gray-900 border border-white/10 rounded-2xl flex items-center gap-2 transition-all group"
                   >
                     <svg className="w-5 h-5 text-primary-yellow group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline-block">Map</span>
@@ -544,7 +544,7 @@ export default function CheckoutPage() {
                   value={landmark}
                   onChange={e => setLandmark(e.target.value)}
                   placeholder={locationType === 'other' ? "Landmark (optional)" : "Hostel Block & Room No. (Optional)"}
-                  className="w-full pl-12 pr-5 py-4 bg-white/5 border border-white/10 focus:border-primary-yellow/40 rounded-2xl text-white placeholder-gray-500 outline-none transition-all text-sm"
+                  className="w-full pl-12 pr-5 py-4 bg-white/5 border border-white/10 focus:border-primary-yellow/40 rounded-2xl text-white light:text-gray-900 placeholder-gray-500 outline-none transition-all text-sm"
                 />
               </div>
             </div>
@@ -600,19 +600,19 @@ export default function CheckoutPage() {
                         }`}
                       >
                         <span className="text-sm block">{slot.label.split(' ')[0]}</span>
-                        <span className="text-[9px] font-black text-white/60 block">{slot.desc}</span>
+                        <span className="text-[9px] font-black text-white light:text-gray-900/60 block">{slot.desc}</span>
                       </button>
                     );
                   });
                 })()}
               </div>
-              <p className="text-[8px] text-white/20 font-bold text-center uppercase tracking-widest">Or pick a custom time:</p>
+              <p className="text-[8px] text-white light:text-gray-900/20 font-bold text-center uppercase tracking-widest">Or pick a custom time:</p>
               <input
                 type="datetime-local"
                 value={scheduledTime}
                 onChange={e => setScheduledTime(e.target.value)}
                 min={new Date(Date.now() + 30 * 60000).toISOString().slice(0, 16)}
-                className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none focus:border-primary-yellow/40 transition-all text-sm"
+                className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white light:text-gray-900 outline-none focus:border-primary-yellow/40 transition-all text-sm"
               />
             </div>
           )}
@@ -655,7 +655,7 @@ export default function CheckoutPage() {
                      <span className="text-lg">{cpn.type === 'FREEDEL' ? '🚚' : '🏷️'}</span>
                      {selectedCoupon?.id === cpn.id && <span className="text-primary-yellow text-[10px] font-black">ACTIVE</span>}
                    </div>
-                   <span className="text-[10px] font-black uppercase tracking-widest text-white truncate">{cpn.code}</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-white light:text-gray-900 truncate">{cpn.code}</span>
                    <span className="text-[8px] font-bold text-secondary-text uppercase">{cpn.type === 'FREEDEL' ? 'Free Delivery' : 'Discount'}</span>
                  </button>
                ))}
@@ -663,7 +663,7 @@ export default function CheckoutPage() {
            ) : (
              <div className="p-6 bg-white/[0.02] border border-dashed border-white/10 rounded-[32px] flex flex-col items-center justify-center text-center">
                 <span className="text-2xl mb-2 opacity-20">🎡</span>
-                <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">No coupons available yet.<br/>Win unique codes at the Lucky Spin!</p>
+                <p className="text-[9px] font-black text-white light:text-gray-900/30 uppercase tracking-[0.2em]">No coupons available yet.<br/>Win unique codes at the Lucky Spin!</p>
              </div>
            )}
         </div>
@@ -699,7 +699,7 @@ export default function CheckoutPage() {
             <div className="mt-4 p-5 bg-white/[0.03] border border-white/10 rounded-[24px] flex items-center gap-4 animate-in fade-in duration-300">
               <span className="text-2xl">💳</span>
               <div>
-                <p className="text-sm font-black text-white">Card on Delivery</p>
+                <p className="text-sm font-black text-white light:text-gray-900">Card on Delivery</p>
                 <p className="text-[10px] text-secondary-text font-bold mt-0.5">Our rider carries a POS machine. Pay by card when your order arrives.</p>
               </div>
             </div>
@@ -802,7 +802,7 @@ export default function CheckoutPage() {
                   value={upiUTR}
                   onChange={(e) => setUpiUTR(e.target.value)}
                   placeholder="Paste 12-digit UTR Number"
-                  className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 outline-none focus:border-primary-yellow/40 transition-all text-sm font-bold text-center"
+                  className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white light:text-gray-900 placeholder-gray-600 outline-none focus:border-primary-yellow/40 transition-all text-sm font-bold text-center"
                 />
 
                 <input
@@ -866,11 +866,11 @@ export default function CheckoutPage() {
         {/* Pricing Summary with Tilt */}
         <Tilt scale={1.01}>
           <div className="bg-white/[0.02] backdrop-blur-3xl p-5 md:p-8 rounded-[32px] md:rounded-[48px] border border-white/10 space-y-4 md:space-y-5 shadow-2xl">
-            <div className="flex justify-between text-xs font-black uppercase tracking-widest text-white/30">
+            <div className="flex justify-between text-xs font-black uppercase tracking-widest text-white light:text-gray-900/30">
               <span>Mission Assets Subtotal</span>
               <span>₹{totalPrice}</span>
             </div>
-            <div className="flex justify-between text-xs font-black uppercase tracking-widest text-white/30">
+            <div className="flex justify-between text-xs font-black uppercase tracking-widest text-white light:text-gray-900/30">
               <span className="flex items-center gap-2">
                 Logistics Fee
                 {isRoomOrder ? (
@@ -887,7 +887,7 @@ export default function CheckoutPage() {
             </div>
             <div className="border-t border-white/5 pt-5 md:pt-6 flex justify-between items-center">
               <span className="text-sm md:text-base font-black uppercase tracking-[0.3em] text-gold-shimmer">Grand Total</span>
-              <span className="text-2xl md:text-3xl font-black text-white tracking-tighter">₹{finalTotal}</span>
+              <span className="text-2xl md:text-3xl font-black text-white light:text-gray-900 tracking-tighter">₹{finalTotal}</span>
             </div>
           </div>
         </Tilt>
@@ -937,7 +937,7 @@ export default function CheckoutPage() {
         >
           <div className="relative max-w-sm w-full bg-white p-6 rounded-[40px] shadow-[0_0_80px_rgba(255,255,255,0.1)] scale-in-center overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-primary-yellow animate-shimmer" />
-            <button onClick={(e) => { e.stopPropagation(); setIsQrZoomed(false); }} className="absolute -top-12 right-0 text-white font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+            <button onClick={(e) => { e.stopPropagation(); setIsQrZoomed(false); }} className="absolute -top-12 right-0 text-white light:text-gray-900 font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
               Tap anywhere to close ✕
             </button>
             {/* eslint-disable-next-line @next/next/no-img-element */}

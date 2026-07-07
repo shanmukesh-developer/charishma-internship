@@ -361,7 +361,7 @@ export default function CommunityPage() {
                       <img src={post.userAvatar} alt="avatar" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#38BDF8] to-[#C9A84C]">
-                        <span className="text-[8px] font-black text-white">{(post.userName || 'A').charAt(0).toUpperCase()}</span>
+                        <span className="text-[8px] font-black text-white light:text-gray-900">{(post.userName || 'A').charAt(0).toUpperCase()}</span>
                       </div>
                     )}
                   </div>
@@ -450,10 +450,32 @@ export default function CommunityPage() {
   /* ═══════════════════════════════════════════════ */
   return (
     <main className="min-h-screen bg-[#f4f1ea] text-[#3e2723] relative overflow-x-hidden">
-      {/* Background */}
+      {/* Background — Premium Multi-Layer Color Fading */}
       <div className="fixed inset-0 pointer-events-none z-0">
-         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/cream-paper.png")' }} />
-         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.8)_0%,transparent_80%)]" />
+         {/* Base vertical gradient: warm amber top → cream center → soft rose bottom */}
+         <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #f5ebe0 0%, #faf6f0 18%, #f4f1ea 40%, #f3ede4 65%, #f0e8dc 85%, #ece0d1 100%)' }} />
+
+         {/* Radial warm glow top-left */}
+         <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 50% at 15% 5%, rgba(201,168,76,0.08) 0%, transparent 70%)' }} />
+
+         {/* Radial soft rose glow bottom-right */}
+         <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 70% 60% at 85% 90%, rgba(183,135,105,0.07) 0%, transparent 65%)' }} />
+
+         {/* Central light bloom for depth */}
+         <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 50% 35%, rgba(255,255,255,0.6) 0%, transparent 55%)' }} />
+
+         {/* Ambient floating orbs */}
+         <div className="absolute w-[500px] h-[500px] rounded-full opacity-[0.04] blur-[100px] animate-pulse" style={{ background: 'radial-gradient(circle, #C9A84C, transparent 70%)', top: '-10%', left: '-10%', animationDuration: '8s' }} />
+         <div className="absolute w-[400px] h-[400px] rounded-full opacity-[0.035] blur-[80px] animate-pulse" style={{ background: 'radial-gradient(circle, #8b5a2b, transparent 70%)', bottom: '5%', right: '-5%', animationDuration: '12s', animationDelay: '4s' }} />
+
+         {/* Subtle paper texture */}
+         <div className="absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/cream-paper.png")' }} />
+
+         {/* Top edge highlight for polish */}
+         <div className="absolute top-0 left-0 right-0 h-[200px]" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, transparent 100%)' }} />
+
+         {/* Bottom edge warmth */}
+         <div className="absolute bottom-0 left-0 right-0 h-[150px]" style={{ background: 'linear-gradient(0deg, rgba(139,90,43,0.04) 0%, transparent 100%)' }} />
       </div>
 
       {/* Header */}
@@ -488,13 +510,13 @@ export default function CommunityPage() {
           <div className="flex bg-white border border-black/10 p-1 rounded-2xl shadow-sm mt-4">
             <button
               onClick={() => setActiveTab('all')}
-              className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'all' ? 'bg-[#3e2723] text-white shadow-md' : 'text-black/40 hover:bg-black/5'}`}
+              className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'all' ? 'bg-[#3e2723] text-white light:text-gray-900 shadow-md' : 'text-black/40 hover:bg-black/5'}`}
             >
               All Posts
             </button>
             <button
               onClick={() => setActiveTab('reviews')}
-              className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'reviews' ? 'bg-[#8b5a2b] text-white shadow-md' : 'text-black/40 hover:bg-black/5'}`}
+              className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'reviews' ? 'bg-[#8b5a2b] text-white light:text-gray-900 shadow-md' : 'text-black/40 hover:bg-black/5'}`}
             >
               Food Reviews
             </button>
@@ -573,7 +595,7 @@ export default function CommunityPage() {
         <button onClick={() => { setReplyingTo(null); setShowComposer(true); }}
           className="fixed bottom-[88px] right-5 z-[90] w-14 h-14 bg-[#8b5a2b] rounded-2xl flex items-center justify-center shadow-[0_8px_30px_rgba(139,90,43,0.4)] hover:shadow-[0_8px_40px_rgba(139,90,43,0.6)] transition-all active:scale-90 hover:scale-105 border border-[#5c3a21]"
         >
-          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
+          <svg className="w-6 h-6 text-white light:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
         </button>
       )}
 
@@ -667,7 +689,7 @@ export default function CommunityPage() {
               <div className="relative mt-3 rounded-2xl overflow-hidden border border-black/10 shadow-sm max-w-[200px] bg-white p-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={draftImage} alt="Attachment" className="w-full h-auto max-h-[160px] object-cover rounded" />
-                <button onClick={() => setDraftImage(null)} className="absolute top-3 right-3 w-7 h-7 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-red-500 text-xs hover:bg-red-500 hover:text-white shadow-sm transition-all">✕</button>
+                <button onClick={() => setDraftImage(null)} className="absolute top-3 right-3 w-7 h-7 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-red-500 text-xs hover:bg-red-500 hover:text-white light:text-gray-900 shadow-sm transition-all">✕</button>
               </div>
             )}
 
@@ -694,7 +716,7 @@ export default function CommunityPage() {
               </div>
 
               <button onClick={handlePost} disabled={(!draft.trim() && !draftImage) || isPosting}
-                className="bg-[#8b5a2b] text-white px-7 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest disabled:opacity-30 transition-all active:scale-95 shadow-md hover:shadow-lg border border-[#5c3a21]"
+                className="bg-[#8b5a2b] text-white light:text-gray-900 px-7 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest disabled:opacity-30 transition-all active:scale-95 shadow-md hover:shadow-lg border border-[#5c3a21]"
               >
                 {isPosting ? (
                   <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />Pinning</div>
@@ -711,7 +733,7 @@ export default function CommunityPage() {
       )}
 
       {/* Bottom Nav */}
-      <footer className="fixed bottom-0 left-0 right-0 h-16 bg-[#f4f1ea] border-t-2 border-[#8b5a2b]/10 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] flex items-center justify-around sm:hidden z-[100] pb-safe">
+      <footer className="fixed bottom-0 left-0 right-0 h-16 bg-[#f4f1ea]/80 backdrop-blur-xl border-t border-[#8b5a2b]/8 shadow-[0_-4px_30px_rgba(139,90,43,0.06)] flex items-center justify-around sm:hidden z-[100] pb-safe">
         <Magnetic><Link href="/" className="flex flex-col items-center gap-1.5 text-[#3e2723]/40 hover:text-[#3e2723] transition-colors"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" /></svg><span className="text-[9px] font-black uppercase tracking-widest">Home</span></Link></Magnetic>
         <Magnetic><Link href="/orders" className="flex flex-col items-center gap-1.5 text-[#3e2723]/40 hover:text-[#3e2723] transition-colors"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg><span className="text-[9px] font-bold">Orders</span></Link></Magnetic>
         <Magnetic><Link href="/basket" className="flex flex-col items-center gap-1.5 text-[#3e2723]/40 hover:text-[#3e2723] transition-colors"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg><span className="text-[9px] font-bold">Basket</span></Link></Magnetic>
@@ -722,7 +744,7 @@ export default function CommunityPage() {
       {/* ═══════ FULL-SCREEN LIGHTBOX ═══════ */}
       {selectedImage && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/95 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setSelectedImage(null)}>
-          <button onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all active:scale-90">
+          <button onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white light:text-gray-900 transition-all active:scale-90">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}

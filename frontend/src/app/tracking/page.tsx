@@ -35,6 +35,137 @@ interface OrderInfo {
   };
 }
 
+function RouteMap({ currentCheckpoint, status }: { currentCheckpoint: string; status: number }) {
+  const points = [
+    { name: 'Mangalagiri Jn', x: 40, y: 150, label: 'Restaurant', icon: '🍽️' },
+    { name: 'Neerukonda', x: 120, y: 100, label: 'Checkpoint 1', icon: '📍' },
+    { name: 'SRM Main Gate', x: 200, y: 130, label: 'Main Gate', icon: '🚪' },
+    { name: 'Academic Block', x: 280, y: 70, label: 'Academic Area', icon: '🏫' },
+    { name: 'Hostel Sector', x: 360, y: 120, label: 'Hostels (You)', icon: '🏠' },
+  ];
+
+  let riderPos = points[0];
+  if (status >= 5) {
+    riderPos = points[4];
+  } else if (status === 4) {
+    const match = points.find(p => p.name === currentCheckpoint);
+    if (match) riderPos = match;
+    else riderPos = points[1];
+  } else if (status === 3) {
+    riderPos = points[0];
+  } else if (status === 2) {
+    riderPos = points[0];
+  }
+
+  return (
+    <div className="bg-[#141416] border border-[#C9A84C]/15 rounded-3xl p-5 mb-4 relative overflow-hidden">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h3 className="text-xs font-black uppercase tracking-widest text-[#C9A84C]">Live Delivery Map</h3>
+          <p className="text-[10px] text-white light:text-gray-900/40 mt-0.5">Tracking route inside campus</p>
+        </div>
+        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 font-black px-2 py-0.5 rounded border border-emerald-500/20 animate-pulse">
+          LIVE FEED
+        </span>
+      </div>
+
+      <div className="relative w-full h-[200px] border border-white/5 rounded-2xl bg-black/40 overflow-hidden">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:20px_20px]" />
+
+        <svg className="w-full h-full" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">
+          <path
+            d="M 40 150 Q 80 120 120 100 T 200 130 T 280 70 T 360 120"
+            fill="none"
+            stroke="rgba(255,255,255,0.1)"
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
+
+          <path
+            d="M 40 150 Q 80 120 120 100 T 200 130 T 280 70 T 360 120"
+            fill="none"
+            stroke="#C9A84C"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeDasharray="400"
+            strokeDashoffset={
+              status >= 5 ? 0 :
+              currentCheckpoint === 'Hostel Sector' ? 50 :
+              currentCheckpoint === 'Academic Block' ? 100 :
+              currentCheckpoint === 'SRM Main Gate' ? 200 :
+              currentCheckpoint === 'Neerukonda' ? 300 :
+              370
+            }
+            className="transition-all duration-1000 ease-in-out"
+          />
+
+          {points.map((pt, index) => {
+            const isCheckpointReached = 
+              status >= 5 || 
+              points.findIndex(p => p.name === currentCheckpoint) >= index ||
+              (status === 4 && index === 0);
+            const isCurrentNode = currentCheckpoint === pt.name && status === 4;
+
+            return (
+              <g key={pt.name}>
+                {isCurrentNode && (
+                  <circle
+                    cx={pt.x}
+                    cy={pt.y}
+                    r="12"
+                    fill="none"
+                    stroke="#C9A84C"
+                    strokeWidth="1.5"
+                    className="animate-ping origin-center"
+                    style={{ transformOrigin: `${pt.x}px ${pt.y}px` }}
+                  />
+                )}
+                <circle
+                  cx={pt.x}
+                  cy={pt.y}
+                  r="7"
+                  fill={isCheckpointReached ? '#C9A84C' : '#1F1F22'}
+                  stroke={isCheckpointReached ? 'rgba(201,168,76,0.4)' : 'rgba(255,255,255,0.1)'}
+                  strokeWidth="2"
+                  className="transition-all duration-500"
+                />
+                <text
+                  x={pt.x}
+                  y={pt.y - 12}
+                  textAnchor="middle"
+                  className="text-[10px] font-bold fill-white/80 select-none"
+                >
+                  {pt.icon}
+                </text>
+                <text
+                  x={pt.x}
+                  y={pt.y + 18}
+                  textAnchor="middle"
+                  className={`text-[8px] font-black uppercase tracking-wider select-none ${
+                    isCurrentNode ? 'fill-[#C9A84C]' : isCheckpointReached ? 'fill-white/70' : 'fill-white/30'
+                  }`}
+                >
+                  {pt.name.split(' ')[0]}
+                </text>
+              </g>
+            );
+          })}
+
+          <g style={{ transform: `translate(${riderPos.x}px, ${riderPos.y}px)` }} className="transition-all duration-1000 ease-in-out">
+            <circle cx="0" cy="0" r="14" fill="#EF4F5F" className="shadow-lg" />
+            <text x="0" y="4" textAnchor="middle" className="text-xs select-none">🛵</text>
+          </g>
+        </svg>
+      </div>
+
+      <div className="flex gap-4 mt-3 text-[9px] uppercase font-black tracking-widest text-white light:text-gray-900/40 justify-center">
+        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C]" /> Reached</span>
+        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#1F1F22] border border-white/10" /> Pending</span>
+        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#EF4F5F]" /> Rider</span>
+      </div>
+    </div>
+  );
+}
 
 function TrackingContent() {
   const searchParams = useSearchParams();
@@ -175,7 +306,7 @@ function TrackingContent() {
         <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6 border border-red-500/20">
           <span className="text-3xl">✕</span>
         </div>
-        <h1 className="text-2xl font-bold text-white mb-3">Order Cancelled</h1>
+        <h1 className="text-2xl font-bold text-white light:text-gray-900 mb-3">Order Cancelled</h1>
         <p className="text-sm text-[#6B6B6B] mb-8 max-w-xs">This order was cancelled. A full refund of <strong className="text-emerald-400">₹{orderInfo?.finalPrice || orderInfo?.totalPrice || 0}</strong> has been initiated.</p>
         <Link href="/" className="px-8 py-4 bg-white text-black text-xs font-bold uppercase tracking-widest rounded-2xl">Return Home</Link>
       </main>
@@ -183,7 +314,7 @@ function TrackingContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0A0A0B] text-white">
+    <main className="min-h-screen bg-[#0A0A0B] text-white light:text-gray-900">
       <div className="max-w-2xl mx-auto px-4 py-6">
 
         {/* Header */}
@@ -191,13 +322,13 @@ function TrackingContent() {
           <div className="flex items-center gap-3">
             <Magnetic>
               <Link href="/" className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 hover:border-[#C9A84C]/30 transition-colors">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-white light:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
                 </svg>
               </Link>
             </Magnetic>
             <div>
-              <h1 className="text-sm font-bold text-white uppercase tracking-widest">Order Tracking</h1>
+              <h1 className="text-sm font-bold text-white light:text-gray-900 uppercase tracking-widest">Order Tracking</h1>
               {orderId && <p className="text-xs text-[#C9A84C] font-bold tracking-wider">#{orderId.slice(-6).toUpperCase()}</p>}
             </div>
           </div>
@@ -226,8 +357,8 @@ function TrackingContent() {
             {status === 1 ? '⏳' : status === 2 ? '✅' : status === 3 ? '🍳' : status === 4 ? '🛵' : '🎉'}
           </span>
           <div>
-            <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">What&apos;s happening now</p>
-            <p className="text-sm font-semibold text-white">
+            <p className="text-[10px] font-bold text-white light:text-gray-900/30 uppercase tracking-widest">What&apos;s happening now</p>
+            <p className="text-sm font-semibold text-white light:text-gray-900">
               {status === 1 && 'Waiting for the restaurant to accept your order'}
               {status === 2 && 'Restaurant accepted — rider is heading to pick up'}
               {status === 3 && 'Kitchen is cooking your order fresh right now'}
@@ -237,6 +368,7 @@ function TrackingContent() {
           </div>
         </div>
 
+        <RouteMap currentCheckpoint={currentCheckpoint} status={status} />
 
         {/* Order Card + PIN */}
         {orderInfo && (
@@ -245,8 +377,8 @@ function TrackingContent() {
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-[#C9A84C]/10 rounded-2xl flex items-center justify-center text-xl border border-[#C9A84C]/15">📦</div>
                 <div>
-                  <p className="text-[10px] font-bold text-white/30 uppercase tracking-wider mb-0.5">Order #{orderId?.slice(-6)}</p>
-                  <p className="text-sm font-bold text-white">
+                  <p className="text-[10px] font-bold text-white light:text-gray-900/30 uppercase tracking-wider mb-0.5">Order #{orderId?.slice(-6)}</p>
+                  <p className="text-sm font-bold text-white light:text-gray-900">
                     {Array.isArray(orderInfo.items) ? orderInfo.items.length : 0} item{Array.isArray(orderInfo.items) && orderInfo.items.length !== 1 ? 's' : ''} · ₹{orderInfo.finalPrice || orderInfo.totalPrice}
                   </p>
                   {(orderInfo.batchDiscount || 0) > 0 && (
@@ -256,7 +388,7 @@ function TrackingContent() {
               </div>
               {orderInfo.deliveryPin && (
                 <div className="text-right shrink-0 flex flex-col items-end">
-                  <p className="text-[9px] font-bold text-white/30 uppercase tracking-wider mb-1">Gate PIN</p>
+                  <p className="text-[9px] font-bold text-white light:text-gray-900/30 uppercase tracking-wider mb-1">Gate PIN</p>
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={copyPin}
@@ -284,8 +416,8 @@ function TrackingContent() {
                 {orderInfo.items.map((item, i) => (
                   <div key={i} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 bg-white/8 rounded-md flex items-center justify-center text-[10px] font-bold text-white/40">{item.quantity}</span>
-                      <span className="text-xs text-white/70 font-medium">{item.name}</span>
+                      <span className="w-5 h-5 bg-white/8 rounded-md flex items-center justify-center text-[10px] font-bold text-white light:text-gray-900/40">{item.quantity}</span>
+                      <span className="text-xs text-white light:text-gray-900/70 font-medium">{item.name}</span>
                     </div>
                   </div>
                 ))}
@@ -308,7 +440,7 @@ function TrackingContent() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <p className="text-sm font-bold text-white truncate">
+                <p className="text-sm font-bold text-white light:text-gray-900 truncate">
                   {orderInfo?.deliveryPartner?.name || 'Searching rider...'}
                 </p>
                 <span className="text-[9px] font-bold text-emerald-400 border border-emerald-400/20 bg-emerald-500/10 px-1.5 py-0.5 rounded shrink-0">VERIFIED</span>
@@ -322,7 +454,7 @@ function TrackingContent() {
               </p>
             </div>
             {orderInfo?.deliveryPartner && (
-              <svg className="w-4 h-4 text-white/20 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-white light:text-gray-900/20 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
               </svg>
             )}
@@ -344,14 +476,14 @@ function TrackingContent() {
             className="flex flex-col items-center gap-2 bg-[#141416] border border-white/8 hover:border-[#C9A84C]/25 rounded-2xl py-4 transition-colors"
           >
             <span className="text-xl">💬</span>
-            <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Chat</span>
+            <span className="text-[10px] font-bold text-white light:text-gray-900/50 uppercase tracking-wider">Chat</span>
           </button>
           <a
             href={orderInfo?.deliveryPartner?.phone ? `tel:${orderInfo.deliveryPartner.phone}` : '#'}
-            className={`flex flex-col items-center gap-2 bg-[#141416] border border-white/8 hover:border-[#C9A84C]/25 rounded-2xl py-4 transition-colors ${!orderInfo?.deliveryPartner?.phone ? 'opacity-40 pointer-events-none' : ''}`}
+            className={`flex flex-col items-center gap-2 bg-[#141416] border border-white/8 hover:border-[#C9A84C]/25 rounded-2xl py-4 transition-colors ${!orderInfo?.deliveryPartner?.phone ? ' pointer-events-none' : ''}`}
           >
             <span className="text-xl">📞</span>
-            <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Call Rider</span>
+            <span className="text-[10px] font-bold text-white light:text-gray-900/50 uppercase tracking-wider">Call Rider</span>
           </a>
           <button
             onClick={() => {
@@ -364,13 +496,13 @@ function TrackingContent() {
             className="flex flex-col items-center gap-2 bg-[#141416] border border-white/8 hover:border-[#C9A84C]/25 rounded-2xl py-4 transition-colors"
           >
             <span className="text-xl">🔗</span>
-            <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Share</span>
+            <span className="text-[10px] font-bold text-white light:text-gray-900/50 uppercase tracking-wider">Share</span>
           </button>
         </div>
 
         {/* Steps Timeline */}
         <div className="bg-[#141416] border border-[#C9A84C]/10 rounded-3xl p-5 mb-4">
-          <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-5">Order Progress</p>
+          <p className="text-[10px] font-bold text-white light:text-gray-900/30 uppercase tracking-widest mb-5">Order Progress</p>
           <div className="space-y-0">
             {steps.map((step, idx) => {
               const stepNum = idx + 1;
@@ -387,7 +519,7 @@ function TrackingContent() {
                   <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center shrink-0 z-10 transition-all ${
                     isDone ? 'bg-[#C9A84C] border-[#C9A84C] text-[#0A0A0B]' :
                     isCurrent ? 'bg-[#C9A84C]/10 border-[#C9A84C] text-[#C9A84C]' :
-                    'bg-white/3 border-white/10 text-white/20'
+                    'bg-white/3 border-white/10 text-white light:text-gray-900/20'
                   }`}>
                     {isDone
                       ? <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
@@ -396,10 +528,10 @@ function TrackingContent() {
                   </div>
                   {/* Text */}
                   <div className={`pb-6 ${isUpcoming ? 'opacity-30' : ''}`}>
-                    <p className={`text-xs font-bold uppercase tracking-wider ${isCurrent ? 'text-[#C9A84C]' : isDone ? 'text-white/60' : 'text-white/30'}`}>
+                    <p className={`text-xs font-bold uppercase tracking-wider ${isCurrent ? 'text-[#C9A84C]' : isDone ? 'text-white light:text-gray-900/60' : 'text-white light:text-gray-900/30'}`}>
                       {isCurrent ? '● Current' : isDone ? 'Done' : 'Upcoming'}
                     </p>
-                    <p className={`text-sm font-bold mt-0.5 ${isCurrent ? 'text-white' : isDone ? 'text-white/70' : 'text-white/30'}`}>{step.label}</p>
+                    <p className={`text-sm font-bold mt-0.5 ${isCurrent ? 'text-white light:text-gray-900' : isDone ? 'text-white light:text-gray-900/70' : 'text-white light:text-gray-900/30'}`}>{step.label}</p>
                     {(isCurrent || isDone) && <p className="text-xs text-[#6B6B6B] mt-0.5">{step.desc}</p>}
                   </div>
                 </div>
@@ -426,11 +558,11 @@ function TrackingContent() {
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowCancelConfirmation(false)} />
           <div className="relative bg-[#141416] border border-white/10 p-6 rounded-3xl max-w-sm w-full shadow-2xl">
-            <h3 className="text-lg font-bold text-white mb-2">Cancel Order?</h3>
+            <h3 className="text-lg font-bold text-white light:text-gray-900 mb-2">Cancel Order?</h3>
             <p className="text-sm text-[#6B6B6B] mb-6">This cannot be undone. You will lose your queue position and any batch discounts.</p>
             <div className="flex flex-col gap-3">
-              <button onClick={cancelOrderAction} className="w-full py-4 bg-red-500 text-white font-bold text-sm rounded-2xl">Yes, Cancel Order</button>
-              <button onClick={() => setShowCancelConfirmation(false)} className="w-full py-4 bg-white/5 text-white font-bold text-sm rounded-2xl border border-white/8">Keep My Order</button>
+              <button onClick={cancelOrderAction} className="w-full py-4 bg-red-500 text-white light:text-gray-900 font-bold text-sm rounded-2xl">Yes, Cancel Order</button>
+              <button onClick={() => setShowCancelConfirmation(false)} className="w-full py-4 bg-white/5 text-white light:text-gray-900 font-bold text-sm rounded-2xl border border-white/8">Keep My Order</button>
             </div>
           </div>
         </div>
@@ -443,9 +575,9 @@ function TrackingContent() {
             <span className="text-2xl">🛎️</span>
             <div className="flex-1">
               <p className="text-xs font-bold text-[#C9A84C] uppercase tracking-wider">Campus Gate Alert</p>
-              <p className="text-sm text-white">{gateNotification}</p>
+              <p className="text-sm text-white light:text-gray-900">{gateNotification}</p>
             </div>
-            <button onClick={() => setGateNotification(null)} className="text-white/30 hover:text-white">✕</button>
+            <button onClick={() => setGateNotification(null)} className="text-white light:text-gray-900/30 hover:text-white light:text-gray-900">✕</button>
           </div>
         </div>
       )}
@@ -462,12 +594,12 @@ function TrackingContent() {
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setZoomPin(false)} />
           <div className="relative bg-[#141416] border border-white/10 p-8 rounded-3xl max-w-sm w-full shadow-2xl text-center flex flex-col items-center">
-            <h3 className="text-lg font-bold text-white mb-2 uppercase tracking-widest text-[#C9A84C]">Gate / Security PIN</h3>
+            <h3 className="text-lg font-bold text-white light:text-gray-900 mb-2 uppercase tracking-widest text-[#C9A84C]">Gate / Security PIN</h3>
             <p className="text-xs text-[#6B6B6B] mb-8">Show this code to the rider to verify delivery</p>
             <div className="bg-[#C9A84C] text-[#0A0A0B] w-full py-8 rounded-2xl font-black text-6xl tracking-[0.2em] pl-[0.2em] shadow-2xl shadow-[#C9A84C]/10 mb-8 select-all">
               {orderInfo.deliveryPin}
             </div>
-            <button onClick={() => setZoomPin(false)} className="w-full py-4 bg-white/5 text-white font-bold text-sm rounded-2xl border border-white/8 hover:bg-white/10 transition-colors">Close</button>
+            <button onClick={() => setZoomPin(false)} className="w-full py-4 bg-white/5 text-white light:text-gray-900 font-bold text-sm rounded-2xl border border-white/8 hover:bg-white/10 transition-colors">Close</button>
           </div>
         </div>
       )}
@@ -477,7 +609,7 @@ function TrackingContent() {
 
 export default function TrackingPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#0A0A0B] text-white flex items-center justify-center text-sm font-bold">Loading...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[#0A0A0B] text-white light:text-gray-900 flex items-center justify-center text-sm font-bold">Loading...</div>}>
       <TrackingContent />
     </Suspense>
   );

@@ -20,7 +20,7 @@ export default function TemporalSlider() {
       <div className="flex items-center justify-between mb-8 px-2">
          <div>
             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#C9A84C] mb-1">Temporal Navigator</h3>
-            <p className="text-[7px] font-bold text-secondary-text uppercase tracking-widest italic opacity-40">Predictive Batching Activated</p>
+            <p className="text-[7px] font-bold text-secondary-text uppercase tracking-widest italic ">Predictive Batching Activated</p>
          </div>
          <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
@@ -40,7 +40,7 @@ export default function TemporalSlider() {
                className={`flex flex-col items-center gap-3 transition-all duration-500 relative group/btn ${isActive ? 'scale-110' : 'opacity-30 hover:opacity-100'}`}
              >
                 <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-500 border ${isActive ? 'bg-[#C9A84C] border-[#C9A84C] shadow-[0_0_20px_rgba(201,168,76,0.3)]' : 'bg-white/5 border-white/10'}`}>
-                   <span className={`text-[10px] font-black ${isActive ? 'text-black' : 'text-white'}`}>{slot.id.split(' ')[0]}</span>
+                   <span className={`text-[10px] font-black ${isActive ? 'text-black' : 'text-white light:text-gray-900'}`}>{slot.id.split(' ')[0]}</span>
                 </div>
                 {isActive && (
                   <div className="absolute -bottom-2 w-1 h-1 bg-[#C9A84C] rounded-full" />
@@ -57,7 +57,7 @@ export default function TemporalSlider() {
          <div className="flex justify-between items-start relative z-10">
             <div>
                <p className="text-[8px] font-black uppercase tracking-[0.4em] text-[#C9A84C] mb-2">{CAMPUS_SLOTS[activeIdx].label}</p>
-               <h4 className="text-lg font-black text-white italic tracking-tighter mb-1">{CAMPUS_SLOTS[activeIdx].id} Window</h4>
+               <h4 className="text-lg font-black text-white light:text-gray-900 italic tracking-tighter mb-1">{CAMPUS_SLOTS[activeIdx].id} Window</h4>
                <p className="text-[10px] font-medium text-secondary-text max-w-[200px] leading-relaxed italic">{CAMPUS_SLOTS[activeIdx].desc}</p>
             </div>
             <div className="text-right">

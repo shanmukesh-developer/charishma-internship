@@ -54,7 +54,7 @@ export default function ZenvyModal({
           </div>
         </div>
 
-        <h3 className="text-xl font-black text-white uppercase tracking-widest mb-3">
+        <h3 className="text-xl font-black text-white light:text-gray-900 uppercase tracking-widest mb-3">
           {title}
         </h3>
         

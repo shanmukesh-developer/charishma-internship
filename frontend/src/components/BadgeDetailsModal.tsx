@@ -86,14 +86,14 @@ export default function BadgeDetailsModal({ isOpen, onClose, badgeName, userStat
                 {badgeName.includes('Order') ? '📦' : badgeName.includes('Late') ? '🌙' : '🔥'}
               </div>
               
-              <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-2">{badgeName}</h2>
+              <h2 className="text-2xl font-black text-white light:text-gray-900 italic uppercase tracking-tighter mb-2">{badgeName}</h2>
               <p className="text-[10px] font-black text-[#C9A84C] uppercase tracking-[0.3em] mb-6">{currentLevel} Rank Unlocked</p>
               
               <div className="w-full space-y-4 mb-8">
                 <div className="flex justify-between items-end">
                    <div className="text-left">
                      <p className="text-[8px] font-black text-secondary-text uppercase tracking-widest mb-1">Current Progress</p>
-                     <p className="text-lg font-black text-white">{currentStat} / {target}</p>
+                     <p className="text-lg font-black text-white light:text-gray-900">{currentStat} / {target}</p>
                    </div>
                    {nextLevel && (
                      <div className="text-right">
@@ -116,7 +116,7 @@ export default function BadgeDetailsModal({ isOpen, onClose, badgeName, userStat
                    <p className="text-[8px] font-black text-secondary-text uppercase tracking-widest mb-2">Active Perk</p>
                    <div className="flex items-center gap-3">
                       <span className="text-lg">💎</span>
-                      <p className="text-[11px] font-bold text-white leading-tight">
+                      <p className="text-[11px] font-bold text-white light:text-gray-900 leading-tight">
                         {isPlatinum ? '100% Free Delivery on all orders across the campus.' : 
                          isGold ? '50% Discount on Delivery Fees applied automatically.' : 
                          '₹10 Flat Discount on every full order.'}
@@ -127,7 +127,7 @@ export default function BadgeDetailsModal({ isOpen, onClose, badgeName, userStat
 
               <button 
                 onClick={onClose}
-                className="mt-8 w-full py-4 bg-white/5 hover:bg-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white/40 transition-all border border-white/5"
+                className="mt-8 w-full py-4 bg-white/5 hover:bg-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white light:text-gray-900/40 transition-all border border-white/5"
               >
                 Dismiss Intel
               </button>

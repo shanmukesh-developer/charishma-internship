@@ -39,6 +39,24 @@
   --safe-right: env(safe-area-inset-right, 0px);
 }
 
+/* ─── Zomato-inspired Light Theme Overrides ─── */
+.light {
+  --background: #f0ece4;
+  --card-bg: #FFFFFF;
+  --card-bg-hover: #f9f7f3;
+  --primary-gold: #EF4F5F; /* Zomato-like Vibrant Red */
+  --primary-gold-light: #FF7E8B;
+  --primary-gold-dark: #CB202D;
+  --accent-warm: #E03546;
+  --secondary-text: #696969;
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-hover: rgba(224, 53, 70, 0.15);
+  --glow-gold: rgba(224, 53, 70, 0.08);
+  --white: #1C1C1E;
+  
+  --midnight-void: #EBEBEF;
+}
+
 * {
   -webkit-tap-highlight-color: transparent;
 }
@@ -49,7 +67,7 @@ html, body {
   width: 100%;
   height: auto; /* Prevent height conflicts */
   min-height: 100vh;
-  font-size: 72%; /* Net 10% additional reduction as requested */
+  font-size: 90%; /* Increased from 72% for better accessibility */
 }
 
 body {
@@ -328,7 +346,7 @@ html {
   box-shadow: 0 15px 40px rgba(0,0,0,0.3), 0 0 25px var(--glow-gold);
 }
 
-/* ─── Scrollbar Hide ─── *//* ─── Holographic Elite Card ─── */
+/* ─── Scrollbar Hide ─── */ /* ─── Holographic Elite Card ─── */
 .elite-card {
   background: linear-gradient(135deg, #1a1a1c 0%, #0a0a0b 100%);
   position: relative;
@@ -1058,3 +1076,358 @@ input:-webkit-autofill:active {
   transition: width 0.8s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
+/* ─── Light Mode Tailored CSS Overrides (Zomato-inspired) ─── */
+
+/* === PAGE BACKGROUNDS === */
+.light body {
+  background-color: #f8f8fa !important;
+  color: #1C1C1E !important;
+}
+.light .bg-black,
+.light .bg-\\[\\#0A0A0B\\],
+.light .bg-\\[\\#050507\\] {
+  background-color: #f8f8fa !important;
+}
+.light [class*="bg-[#141416]"],
+.light [class*="bg-[#1c1c1e]"],
+.light [class*="bg-[#1A1A1C]"] {
+  background-color: #FFFFFF !important;
+}
+.light [class*="bg-[#141416]/40"],
+.light [class*="bg-[#141416]/50"],
+.light [class*="bg-[#141416]/80"] {
+  background-color: #FFFFFF !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04) !important;
+}
+.light [class*="bg-[#0A0A0B]/85"] {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-bottom-color: rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04) !important;
+}
+.light [class*="bg-[#0A0A0B]/90"] {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+}
+
+/* === OPACITY BACKGROUNDS (white/X → subtle grays) === */
+.light [class*="bg-white/5"] { background-color: rgba(0, 0, 0, 0.03) !important; }
+.light [class*="bg-white/10"] { background-color: rgba(0, 0, 0, 0.05) !important; }
+.light [class*="bg-white/20"] { background-color: rgba(0, 0, 0, 0.06) !important; }
+.light [class*="bg-white/30"] { background-color: rgba(0, 0, 0, 0.08) !important; }
+.light [class*="bg-white/40"] { background-color: rgba(0, 0, 0, 0.10) !important; }
+.light [class*="bg-white/50"] { background-color: rgba(0, 0, 0, 0.14) !important; }
+.light [class*="bg-white/80"] { background-color: rgba(255, 255, 255, 0.85) !important; }
+.light [class*="bg-white/90"] { background-color: rgba(255, 255, 255, 0.92) !important; }
+.light [class*="bg-white/[0.02]"] { background-color: #FFFFFF !important; }
+.light [class*="bg-white/[0.03]"] { background-color: rgba(0, 0, 0, 0.02) !important; }
+.light [class*="bg-white/[0.04]"] { background-color: rgba(0, 0, 0, 0.02) !important; }
+.light [class*="bg-black/20"] { background-color: rgba(0, 0, 0, 0.02) !important; }
+.light [class*="bg-black/40"] { background-color: rgba(255, 255, 255, 0.9) !important; }
+.light [class*="bg-black/60"] { background-color: rgba(255, 255, 255, 0.85) !important; }
+.light [class*="bg-black/80"] { background-color: rgba(255, 255, 255, 0.9) !important; }
+.light [class*="bg-black/90"] { background-color: rgba(255, 255, 255, 0.95) !important; }
+.light [class*="bg-black/25"] { background-color: rgba(0, 0, 0, 0.03) !important; }
+
+/* === TEXT COLORS === */
+.light .text-white { color: #1C1C1E !important; }
+.light [class*="text-white/10"] { color: rgba(28, 28, 30, 0.1) !important; }
+.light [class*="text-white/20"] { color: rgba(28, 28, 30, 0.2) !important; }
+.light [class*="text-white/30"] { color: rgba(28, 28, 30, 0.35) !important; }
+.light [class*="text-white/40"] { color: rgba(28, 28, 30, 0.5) !important; }
+.light [class*="text-white/50"] { color: rgba(28, 28, 30, 0.55) !important; }
+.light [class*="text-white/60"] { color: rgba(28, 28, 30, 0.65) !important; }
+.light [class*="text-white/70"] { color: rgba(28, 28, 30, 0.75) !important; }
+.light [class*="text-white/80"] { color: rgba(28, 28, 30, 0.85) !important; }
+.light [class*="text-white/90"] { color: rgba(28, 28, 30, 0.92) !important; }
+.light .text-secondary-text { color: #696969 !important; }
+.light .text-gray-400 { color: #555558 !important; }
+.light .text-gray-500 { color: #77777A !important; }
+.light .text-zinc-300 { color: #3A3A3C !important; }
+.light .text-zinc-400 { color: #5A5A5C !important; }
+.light .text-zinc-500 { color: #8E8E93 !important; }
+.light [class*="text-zinc-300/60"] { color: rgba(28, 28, 30, 0.6) !important; }
+.light [class*="text-[#6B6B6B]"] { color: #555558 !important; }
+
+/* === BORDER COLORS === */
+.light [class*="border-white/5"] { border-color: rgba(0, 0, 0, 0.05) !important; }
+.light [class*="border-white/10"] { border-color: rgba(0, 0, 0, 0.08) !important; }
+.light [class*="border-white/20"] { border-color: rgba(0, 0, 0, 0.10) !important; }
+.light [class*="border-white/30"] { border-color: rgba(0, 0, 0, 0.14) !important; }
+.light [class*="border-white/40"] { border-color: rgba(0, 0, 0, 0.18) !important; }
+.light [class*="border-white/50"] { border-color: rgba(0, 0, 0, 0.22) !important; }
+.light [class*="border-white/[0.04]"] { border-color: rgba(0, 0, 0, 0.05) !important; }
+.light [class*="border-white/[0.06]"] { border-color: rgba(0, 0, 0, 0.06) !important; }
+
+/* === PLACEHOLDERS === */
+.light input::placeholder,
+.light textarea::placeholder {
+  color: #AEAEB2 !important;
+}
+
+/* === GLASS CARDS === */
+.light .glass-card {
+  background: #FFFFFF !important;
+  border-color: #d4cfc5 !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+.light .glass-card-extreme {
+  background: #FFFFFF !important;
+  border-color: #d4cfc5 !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* === Profile Page Light Mode Components === */
+.light .streak-capsule-premium {
+  background: rgba(245, 243, 238, 0.95) !important;
+  border-color: #d4cfc5 !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06) !important;
+}
+
+.light .identity-telemetry-grid {
+  background: #1a1a1a !important;
+  border-color: #2a2a2a !important;
+}
+
+.light .zenvy-badge-container {
+  background: rgba(201, 168, 76, 0.8) !important;
+}
+
+.light .member-id-label {
+  color: #8a8580 !important;
+}
+
+.light .text-gold-shimmer {
+  background: linear-gradient(110deg, #1a1a1a 30%, #C9A84C 50%, #1a1a1a 70%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  background-size: 200% auto !important;
+}
+
+/* === STARDUST SEARCH === */
+.light .stardust-search {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04) !important;
+}
+.light .stardust-search span {
+  color: #1C1C1E !important;
+}
+
+/* === CHEF CARD === */
+.light .chef-card {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* === CAPSULE CARDS === */
+.light .capsule-card {
+  flex-direction: column !important;
+  align-items: stretch !important;
+  height: auto !important;
+  border-radius: 16px !important;
+  padding: 12px !important;
+  background: #FFFFFF !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04) !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  text-align: left !important;
+}
+.light .capsule-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+  background: #FEFEFE !important;
+}
+.light .food-circle {
+  width: 100% !important;
+  height: 140px !important;
+  border-radius: 12px !important;
+  border: none !important;
+  margin: 0 0 12px 0 !important;
+  box-shadow: none !important;
+}
+.light .capsule-card .flex-1 { padding: 0 !important; }
+.light .capsule-card h3 { color: #1C1C1E !important; font-weight: 800 !important; font-size: 14px !important; }
+
+/* === DISCOVER HEADER === */
+.light .discover-header {
+  background: linear-gradient(135deg, #1C1C1E 0%, #EF4F5F 50%, #1C1C1E 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* === TEXT SHIMMER === */
+.light .text-gold-shimmer {
+  background: none !important;
+  -webkit-text-fill-color: #1C1C1E !important;
+  color: #1C1C1E !important;
+}
+
+/* === GRADIENT OVERRIDES === */
+.light [class*="from-[#0A0A0B]"] {
+  --tw-gradient-from: #f8f8fa !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(248, 248, 250, 0)) !important;
+}
+.light [class*="via-[#0A0A0B]/60"] {
+  --tw-gradient-via: rgba(248, 248, 250, 0.7) !important;
+}
+.light .from-black {
+  --tw-gradient-from: #f8f8fa !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(248, 248, 250, 0)) !important;
+}
+.light [class*="from-black/80"] {
+  --tw-gradient-from: rgba(0, 0, 0, 0.25) !important;
+}
+.light [class*="from-[#141416]"] {
+  --tw-gradient-from: #FFFFFF !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(255, 255, 255, 0)) !important;
+}
+.light [class*="from-[#C9A84C]"] {
+  --tw-gradient-from: #EF4F5F !important;
+}
+.light [class*="via-[#E8D18C]"] {
+  --tw-gradient-via: #FF7E8B !important;
+}
+.light [class*="to-[#C9A84C]"] {
+  --tw-gradient-to: #EF4F5F !important;
+}
+
+/* === SPECIFIC BUTTON/BADGE STYLE OVERRIDES (scoped, not global) === */
+.light .btn-yellow {
+  background: linear-gradient(135deg, #EF4F5F 0%, #E03546 100%) !important;
+  box-shadow: 0 4px 20px rgba(239, 79, 95, 0.25) !important;
+  color: #FFFFFF !important;
+}
+.light .btn-yellow * { color: #FFFFFF !important; }
+.light .bg-primary-yellow { background-color: #EF4F5F !important; }
+.light .text-primary-yellow { color: #EF4F5F !important; }
+
+/* === NAVBAR & FOOTER === */
+.light [class*="bg-black/90"][class*="fixed"][class*="bottom"] {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-top-color: rgba(0, 0, 0, 0.06) !important;
+}
+.light footer,
+.light [class*="fixed"][class*="bottom"][class*="bg-black"] {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-top-color: rgba(0, 0, 0, 0.06) !important;
+}
+.light footer a { color: #636366 !important; }
+.light footer .nav-icon-active { color: #000 !important; }
+.light footer .nav-icon-active svg { color: #000 !important; }
+
+/* === NEXUS EXPLORER / RESTAURANT CARDS DARK BG OVERRIDE === */
+.light [class*="bg-[#1c1c1e]"],
+.light [class*="bg-[#1C1C1E]"] {
+  background-color: #FFFFFF !important;
+}
+
+/* === AUTOFILL === */
+.light input:-webkit-autofill,
+.light input:-webkit-autofill:hover,
+.light input:-webkit-autofill:focus,
+.light input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+  -webkit-text-fill-color: #1C1C1E !important;
+  color: #1C1C1E !important;
+  background-color: #FFFFFF !important;
+  caret-color: #EF4F5F;
+}
+
+/* === SKELETON LOADING === */
+.light .skeleton {
+  background: linear-gradient(90deg, #f0f0f2 25%, #e8e8ea 50%, #f0f0f2 75%) !important;
+  background-size: 200% 100% !important;
+}
+
+/* === SCROLLBAR === */
+.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15) !important;
+}
+
+/* === VFX SUPPRESSION (no film grain / gold dust in light mode) === */
+.light .film-grain,
+.light .luxury-mesh-overlay,
+.light .vfx-shimmer-ray,
+.light .gold-dust,
+.light .lens-dirt,
+.light .film-burn,
+.light .vfx-glow-radial {
+  display: none !important;
+}
+
+/* === CAMPUSBITES SECTION === */
+.light #campusbites-section input {
+  background-color: #FFFFFF !important;
+  color: #1C1C1E !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+.light #campusbites-section input::placeholder { color: #AEAEB2 !important; }
+.light #campusbites-section h3 { color: #1C1C1E !important; }
+.light #campusbites-section button {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+  color: #5A5A5C !important;
+}
+.light #campusbites-section button:hover {
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  color: #1C1C1E !important;
+}
+
+/* === MENU LIST ITEM CARDS === */
+.light .space-y-4 div[class*="bg-black/40"] {
+  background: #FFFFFF !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+}
+.light .space-y-4 div[class*="bg-black/40"] h3 {
+  font-weight: 700 !important;
+  color: #1C1C1E !important;
+}
+
+/* === MOBILE BACKDROP BLUR OVERRIDE === */
+@media (max-width: 640px) {
+  .light .glass-card-extreme,
+  .light [class*="backdrop-blur"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+  }
+}
+
+
+/* === MAGICAL WHITE THEME OVERRIDES === */
+.light [class*="bg-white/5"] { background-color: rgba(0, 0, 0, 0.06) !important; }
+.light [class*="bg-white/10"] { background-color: rgba(0, 0, 0, 0.09) !important; }
+.light [class*="text-white/60"] { color: #1C1C1E !important; font-weight: 700 !important; }
+.light .to-white { --tw-gradient-to: #1C1C1E !important; }
+
+
+.light .light-gradient-fix { --tw-gradient-to: #1C1C1E !important; }
+
+
+.light .glass-card-extreme { box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 1) !important; backdrop-filter: blur(20px) !important; }
+
+
+.gradient-craving { background-image: linear-gradient(to right, #C9A84C, #FFFFFF); }
+.light .gradient-craving { background-image: linear-gradient(to right, #EF4F5F, #1C1C1E) !important; }
+
+
+.light .gradient-craving { background: none !important; -webkit-text-fill-color: #EF4F5F !important; color: #EF4F5F !important; }
+
+
+.campus-card-premium { border-color: rgba(249, 115, 22, 0.1); background-image: linear-gradient(to bottom right, #141416, rgba(124, 45, 18, 0.06)); box-shadow: 0 0 20px rgba(249, 115, 22, 0.08); }
+.campus-card-regular { border-color: rgba(255, 255, 255, 0.06); background-color: rgba(20, 20, 22, 0.8); }
+.light .campus-card-premium { border-color: rgba(249, 115, 22, 0.3) !important; background-image: linear-gradient(to bottom right, #FFFFFF, rgba(249, 115, 22, 0.1)) !important; box-shadow: 0 10px 40px rgba(249, 115, 22, 0.1) !important; }
+.light .campus-card-regular { border-color: rgba(0, 0, 0, 0.06) !important; background-color: #FFFFFF !important; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important; }
+
+
+.light .elite-hologram { display: none !important; }
+
+
+.animate-text-gradient { animation: gradient 3s linear infinite; background-size: 200% auto; }
+
+@keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }

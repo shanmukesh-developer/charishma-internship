@@ -45,7 +45,7 @@ export default function NexusLeaderboard() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h3 className="text-[12px] font-black uppercase tracking-[0.4em] text-[#C9A84C] mb-1">Nexus Legends</h3>
-          <p className="text-[9px] font-bold text-white/50 uppercase tracking-widest">Global Campus Rankings</p>
+          <p className="text-[9px] font-bold text-white light:text-gray-900/50 uppercase tracking-widest">Global Campus Rankings</p>
         </div>
         <div className="w-8 h-8 rounded-lg bg-[#C9A84C]/10 flex items-center justify-center text-sm border border-[#C9A84C]/20">🏆</div>
       </div>
@@ -73,7 +73,7 @@ export default function NexusLeaderboard() {
                     </div>
                   </div>
                   <div>
-                    <h4 className="text-[11px] font-black text-white uppercase tracking-tight group-hover/row:text-[#C9A84C] transition-colors">{legend.name}</h4>
+                    <h4 className="text-[11px] font-black text-white light:text-gray-900 uppercase tracking-tight group-hover/row:text-[#C9A84C] transition-colors">{legend.name}</h4>
                     <div className="flex items-center gap-2 mt-1">
                        <span className={`text-[7px] font-black px-1.5 py-0.5 rounded border ${
                          isPlatinum ? 'border-purple-500/40 text-purple-400 bg-purple-500/5' : 
@@ -87,7 +87,7 @@ export default function NexusLeaderboard() {
                   </div>
                </div>
                <div className="text-right">
-                  <span className="text-[11px] font-black text-white italic">{legend.zenPoints}</span>
+                  <span className="text-[11px] font-black text-white light:text-gray-900 italic">{legend.zenPoints}</span>
                   <p className="text-[6px] font-black text-[#C9A84C] uppercase tracking-tighter">ZEN POINTS</p>
                </div>
             </div>
@@ -103,7 +103,7 @@ export default function NexusLeaderboard() {
         <div className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] border border-white/5">
            <div className="flex items-center gap-3">
               <div className="w-6 h-6 rounded-md bg-emerald-500/20 flex items-center justify-center text-[12px]">✨</div>
-              <p className="text-[10px] font-black text-white uppercase tracking-tight">Active Streak Multiplier</p>
+              <p className="text-[10px] font-black text-white light:text-gray-900 uppercase tracking-tight">Active Streak Multiplier</p>
            </div>
            <span className="text-[11px] font-black text-emerald-400">1.2x</span>
         </div>

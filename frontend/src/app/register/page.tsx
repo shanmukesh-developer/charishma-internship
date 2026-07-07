@@ -99,7 +99,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#0A0A0B] text-white flex items-center justify-center p-5">
+    <main className="min-h-screen bg-[#0A0A0B] light:bg-[#f8f8fa] text-white light:text-black flex items-center justify-center p-5">
       <div className="w-full max-w-lg">
 
         {/* Brand Header */}
@@ -115,19 +115,19 @@ export default function RegisterPage() {
             <span className="text-[10px] font-bold tracking-[0.4em] uppercase text-[#C9A84C]/60">Zenvy</span>
             <div className="w-8 h-px bg-[#C9A84C]/30" />
           </div>
-          <h1 className="text-4xl font-bold text-white tracking-tight">Create Account</h1>
+          <h1 className="text-4xl font-bold text-white light:text-black tracking-tight">Create Account</h1>
           <p className="text-sm text-[#6B6B6B] mt-2">Join Zenvy and start ordering.</p>
         </div>
 
         {/* Card */}
-        <div className="bg-[#141416] border border-[#C9A84C]/10 rounded-3xl p-10 shadow-xl shadow-black/40">
+        <div className="bg-[#141416] light:bg-white border border-[#C9A84C]/10 light:border-black rounded-3xl p-10 shadow-xl shadow-black/40">
 
           {/* Google Sign Up */}
           <button
             type="button"
             onClick={handleGoogleSignUp}
             disabled={isSubmitting}
-            className="w-full h-14 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/8 hover:border-white/15 text-white text-base font-semibold flex items-center justify-center gap-3 transition-colors disabled:opacity-60 mb-5"
+            className="w-full h-14 rounded-2xl bg-white/5 light:bg-black hover:bg-white/10 light:hover:bg-black/10 border border-white/8 light:border-black hover:border-white/15 light:hover:border-black/20 text-white light:text-black text-base font-semibold flex items-center justify-center gap-3 transition-colors disabled: mb-5"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -155,7 +155,7 @@ export default function RegisterPage() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 autoComplete="name"
                 placeholder="Enter your name"
-                className="w-full bg-[#0A0A0B] border border-white/8 hover:border-white/15 focus:border-[#C9A84C]/50 rounded-2xl h-16 px-5 text-base font-medium text-white placeholder:text-white/20 outline-none transition-colors"
+                className="w-full bg-[#0A0A0B] light:bg-[#f8f8fa] border border-white/8 light:border-black hover:border-white/15 light:hover:border-black/20 focus:border-[#C9A84C]/50 rounded-2xl h-16 px-5 text-base font-medium text-white light:text-black placeholder:text-white light:text-black outline-none transition-colors"
               />
             </div>
 
@@ -170,7 +170,7 @@ export default function RegisterPage() {
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   autoComplete="tel"
                   placeholder="Enter phone number"
-                  className="w-full bg-[#0A0A0B] border border-white/8 hover:border-white/15 focus:border-[#C9A84C]/50 rounded-2xl h-16 pl-16 pr-5 text-base font-medium text-white placeholder:text-white/20 outline-none transition-colors"
+                  className="w-full bg-[#0A0A0B] light:bg-[#f8f8fa] border border-white/8 light:border-black hover:border-white/15 light:hover:border-black/20 focus:border-[#C9A84C]/50 rounded-2xl h-16 pl-16 pr-5 text-base font-medium text-white light:text-black placeholder:text-white light:text-black outline-none transition-colors"
                 />
               </div>
             </div>
@@ -185,12 +185,12 @@ export default function RegisterPage() {
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   autoComplete="new-password"
                   placeholder="Create a password"
-                  className="w-full bg-[#0A0A0B] border border-white/8 hover:border-white/15 focus:border-[#C9A84C]/50 rounded-2xl h-16 px-5 pr-14 text-base font-medium text-white placeholder:text-white/20 outline-none transition-colors"
+                  className="w-full bg-[#0A0A0B] light:bg-[#f8f8fa] border border-white/8 light:border-black hover:border-white/15 light:hover:border-black/20 focus:border-[#C9A84C]/50 rounded-2xl h-16 px-5 pr-14 text-base font-medium text-white light:text-black placeholder:text-white light:text-black outline-none transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 hover:text-[#C9A84C] transition-colors"
+                  className="absolute right-5 top-1/2 -translate-y-1/2 text-white light:text-black hover:text-[#C9A84C] transition-colors"
                 >
                   {showPassword
                     ? <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
@@ -211,7 +211,7 @@ export default function RegisterPage() {
                 onChange={(e) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
                 placeholder="ZV-XXXXXX"
                 maxLength={10}
-                className="w-full bg-[#0A0A0B] border border-white/8 hover:border-white/15 focus:border-[#C9A84C]/40 rounded-2xl h-16 px-5 text-base font-medium text-white placeholder:text-white/20 outline-none transition-colors"
+                className="w-full bg-[#0A0A0B] light:bg-[#f8f8fa] border border-white/8 light:border-black hover:border-white/15 light:hover:border-black/20 focus:border-[#C9A84C]/40 rounded-2xl h-16 px-5 text-base font-medium text-white light:text-black placeholder:text-white light:text-black outline-none transition-colors"
               />
               {formData.referralCode && (
                 <p className="text-xs text-emerald-400/70 mt-2 ml-1">Both of you will earn 50 ZenPoints ✦</p>
@@ -222,7 +222,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-16 rounded-2xl bg-[#C9A84C] hover:bg-[#D4B56A] disabled:opacity-60 disabled:cursor-not-allowed text-[#0A0A0B] text-base font-bold tracking-wide transition-colors mt-1"
+              className="w-full h-16 rounded-2xl bg-[#C9A84C] hover:bg-[#D4B56A] disabled: disabled:cursor-not-allowed text-[#0A0A0B] light:text-white light:text-gray-900 text-base font-bold tracking-wide transition-colors mt-1"
             >
               {isSubmitting ? 'Creating account…' : 'Create Account'}
             </button>

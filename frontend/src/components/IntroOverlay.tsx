@@ -24,7 +24,7 @@ export default function IntroOverlay({ onComplete }: { onComplete: () => void })
       document.body.style.overflow = '';
       timers.forEach(clearTimeout);
     };
-  }, [onComplete]);
+  }, []);
 
   // 🎇 Enhanced 15-Particle dense drift (Slowed deceleration for expensive motion feel)
   const embers = [

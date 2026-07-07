@@ -168,7 +168,7 @@ export default function ZenvyVault() {
       {/* Main Header / Trigger */}
       <div 
         onClick={() => isVaultActive && setIsOpen(!isOpen)}
-        className={`glass-card p-6 flex items-center justify-between cursor-pointer border ${isOpen ? 'border-[#C9A84C]/40 rounded-b-none' : 'border-white/5 hover:border-[#C9A84C]/30'} transition-all z-10 relative`}
+        className={`bg-[#141416]/90 border border-white/5 light:bg-white light:border-black/5 rounded-[32px] p-4 px-6 flex items-center justify-between cursor-pointer shadow-2xl ${isOpen ? 'rounded-b-none' : ''} transition-all z-10 relative`}
       >
         <div className="flex items-center gap-5">
            <div className="w-14 h-14 rounded-full bg-black border border-[#C9A84C]/30 flex items-center justify-center relative shadow-[0_0_25px_rgba(201,168,76,0.2)] group">
@@ -182,17 +182,17 @@ export default function ZenvyVault() {
               )}
            </div>
            <div>
-              <h3 className="text-xs font-black text-primary-gold uppercase tracking-[0.3em] leading-tight mb-1">The Zenvy Vault</h3>
-              <p className="text-[10px] font-bold text-secondary-text uppercase tracking-widest">{items.length} ULTRA-PREMIUM DROPS</p>
+              <h3 className="text-xs font-black text-white light:text-black uppercase tracking-[0.3em] leading-tight mb-1">The Zenvy Vault</h3>
+              <p className="text-[9px] font-bold text-gray-400 light:text-gray-500 uppercase tracking-widest">{items.length} ULTRA-PREMIUM DROPS</p>
            </div>
         </div>
 
         <div className="text-right flex flex-col items-end">
            {isVaultActive ? (
              <div className="flex flex-col items-end">
-                <div className="bg-[#C9A84C]/10 border border-[#C9A84C]/20 px-4 py-1.5 rounded-full mb-1 flex items-center gap-2">
+                <div className="bg-[#C9A84C]/10 border border-[#C9A84C]/30 light:bg-[#FFF9E6] light:border-[#FFE082] px-4 py-1.5 rounded-full mb-1 flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
-                  <span className="text-[11px] font-black text-[#C9A84C] font-mono tracking-wider">{countdown}</span>
+                  <span className="text-[11px] font-black text-[#C9A84C] light:text-[#D4A017] font-mono tracking-wider">{countdown}</span>
                 </div>
                 <span className="text-[8px] font-black uppercase text-secondary-text tracking-[0.3em]">UNTIL SEALED</span>
              </div>
@@ -241,14 +241,14 @@ export default function ZenvyVault() {
                             fill 
                             className="object-cover group-hover:scale-110 transition-transform duration-1000" 
                            />
-                           <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-md px-2 py-1 rounded-lg text-[8px] font-black text-white uppercase border border-white/10 tracking-widest">
+                           <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-md px-2 py-1 rounded-lg text-[8px] font-black text-white light:text-gray-900 uppercase border border-white/10 tracking-widest">
                              {item.remainingCount} REMAINING
                            </div>
                         </div>
 
                         <div className="flex flex-col justify-center flex-1">
                            <div className="flex justify-between items-start mb-1">
-                             <h4 className="text-base font-black text-white leading-tight tracking-tight group-hover:text-primary-gold transition-colors">{item.name}</h4>
+                             <h4 className="text-base font-black text-white light:text-gray-900 leading-tight tracking-tight group-hover:text-primary-gold transition-colors">{item.name}</h4>
                              {item.streakRequirement && userStreak < item.streakRequirement && (
                                <span className="text-[9px] font-black text-red-400 bg-red-400/10 px-2 py-0.5 rounded border border-red-400/20 uppercase tracking-widest">
                                  Requires {item.streakRequirement}d Streak
@@ -270,7 +270,7 @@ export default function ZenvyVault() {
                              onClick={() => handleSecureAccess(item)}
                              className={`w-full text-[10px] font-black uppercase tracking-[0.3em] py-3.5 rounded-2xl transition-all duration-300
                                ${item.streakRequirement && userStreak < item.streakRequirement 
-                                 ? 'bg-white/5 text-white/20 border border-white/5 cursor-not-allowed' 
+                                 ? 'bg-white/5 text-white light:text-gray-900/20 border border-white/5 cursor-not-allowed' 
                                  : 'bg-[#C9A84C] text-black shadow-[0_5px_15px_rgba(201,168,76,0.3)] hover:shadow-[0_10px_30px_rgba(201,168,76,0.5)] hover:bg-white'
                                }`}
                            >

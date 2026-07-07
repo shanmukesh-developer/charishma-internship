@@ -1,0 +1,21 @@
+         lineNumber: 1508,
+                                                columnNumber: 11
+                                            }, this),
+                                            /*#__PURE__*/ (0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxDEV)("footer", {
+                                                className: "fixed bottom-0 left-0 right-0 h-[5.5rem] bg-black/90 backdrop-blur-3xl border-t border-white/10 flex items-center justify-around sm:hidden z-[100] pb-safe light:bg-white/95 light:border-black/10",
+                                                children: [
+                                                    /*#__PURE__*/ (0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxDEV)(_components_Magnetic__WEBPACK_IMPORTED_MODULE_12__["default"], {
+                                                        children: /*#__PURE__*/ (0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxDEV)((next_link__WEBPACK_IMPORTED_MODULE_6___default()), {
+                                                            href: "/",
+                                                            className: "flex flex-col items-center gap-1.5 nav-icon-active",
+                                                            children: [
+                                                                /*#__PURE__*/ (0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxDEV)("div", {
+                                                                    className: "tab-pill",
+                                                                    children: /*#__PURE__*/ (0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxDEV)("svg", {
+                                                                        className: "w-6 h-6 text-white",
+                                                                        fill: "currentColor",
+                                                                        viewBox: "0 0 24 24",
+                                                                        children: /*#__PURE__*/ (0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxDEV)("path", {
+                                                                            d: "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"
+                                                                        }, void 0, false, {
+                                                                            fileName: "C:\\\\hostel-bite\\\\frontend\\\\src\\\\a

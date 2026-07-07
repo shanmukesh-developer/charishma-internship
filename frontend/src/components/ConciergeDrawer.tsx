@@ -95,7 +95,7 @@ const ConciergeDrawer: React.FC<ConciergeDrawerProps> = ({ isOpen, onClose, user
                {/* Animated Gold Sparkles & Dust */}
                <div className="absolute inset-0 pointer-events-none">
                   <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] bg-[radial-gradient(circle_at_50%_50%,rgba(201,168,76,0.1)_0%,transparent_70%)] animate-pulse" />
-                  <div className="gold-dust opacity-40" />
+                  <div className="gold-dust " />
                </div>
                
                <button 
@@ -122,7 +122,7 @@ const ConciergeDrawer: React.FC<ConciergeDrawerProps> = ({ isOpen, onClose, user
                         </div>
                      </div>
                   </div>
-                  <h2 className="text-4xl font-black text-white uppercase leading-none tracking-tight">Nexus <br /> <span className="text-gold-gradient">Concierge</span></h2>
+                  <h2 className="text-4xl font-black text-white light:text-gray-900 uppercase leading-none tracking-tight">Nexus <br /> <span className="text-gold-gradient">Concierge</span></h2>
                   <p className="text-[9px] text-[#C9A84C]/60 font-bold uppercase tracking-[0.3em] mt-3 bg-[#C9A84C]/5 w-fit px-3 py-1 rounded-full border border-[#C9A84C]/10">Sub-1m Response Guarantee</p>
                </div>
             </div>
@@ -139,11 +139,11 @@ const ConciergeDrawer: React.FC<ConciergeDrawerProps> = ({ isOpen, onClose, user
                    <div className={`max-w-[85%] rounded-[20px] px-4 py-3 text-[12px] leading-relaxed shadow-xl ${
                      msg.sender === 'user' 
                        ? 'bg-gradient-to-br from-[#C9A84C] to-[#8B7332] text-black font-black rounded-tr-none border border-white/20' 
-                       : 'bg-white/[0.04] border border-[#C9A84C]/20 text-white rounded-tl-none backdrop-blur-xl'
+                       : 'bg-white/[0.04] border border-[#C9A84C]/20 text-white light:text-gray-900 rounded-tl-none backdrop-blur-xl'
                    }`}>
                      {msg.text}
                    </div>
-                   <span className="text-[7px] font-black text-secondary-text uppercase tracking-[0.2em] mt-1.5 px-2 opacity-50">
+                   <span className="text-[7px] font-black text-secondary-text uppercase tracking-[0.2em] mt-1.5 px-2 ">
                      {msg.timestamp} {msg.sender === 'concierge' && '• ELITE LIAISON'}
                    </span>
                  </motion.div>
@@ -186,14 +186,14 @@ const ConciergeDrawer: React.FC<ConciergeDrawerProps> = ({ isOpen, onClose, user
                    <button onClick={() => setInputValue("I have a dispute regarding my recent order.")} className="flex items-center gap-3 p-3 bg-white/[0.03] border border-white/5 rounded-2xl group hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/30 transition-all text-left">
                       <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-sm group-hover:scale-110 transition-transform">📍</div>
                       <div className="flex flex-col">
-                        <span className="text-[9px] font-black text-white uppercase tracking-tight">Express Mediation</span>
+                        <span className="text-[9px] font-black text-white light:text-gray-900 uppercase tracking-tight">Express Mediation</span>
                         <span className="text-[7px] text-secondary-text font-bold uppercase">Order Disputes</span>
                       </div>
                    </button>
                    <button onClick={() => setInputValue("I want to use my priority access to the Vault Reserve.")} className="flex items-center gap-3 p-3 bg-white/[0.03] border border-white/5 rounded-2xl group hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/30 transition-all text-left">
                       <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-sm group-hover:scale-110 transition-transform">⚡</div>
                       <div className="flex flex-col">
-                        <span className="text-[9px] font-black text-white uppercase tracking-tight">Vault Reserve</span>
+                        <span className="text-[9px] font-black text-white light:text-gray-900 uppercase tracking-tight">Vault Reserve</span>
                         <span className="text-[7px] text-secondary-text font-bold uppercase">Priority Access</span>
                       </div>
                    </button>
@@ -210,7 +210,7 @@ const ConciergeDrawer: React.FC<ConciergeDrawerProps> = ({ isOpen, onClose, user
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                     placeholder="Message your Elite liaison..."
-                    className="w-full bg-[#121214] border border-white/10 rounded-xl pl-5 pr-14 py-3.5 text-[12px] text-white placeholder-secondary-text/60 focus:outline-none focus:border-[#C9A84C]/40 transition-all relative z-10"
+                    className="w-full bg-[#121214] border border-white/10 rounded-xl pl-5 pr-14 py-3.5 text-[12px] text-white light:text-gray-900 placeholder-secondary-text/60 focus:outline-none focus:border-[#C9A84C]/40 transition-all relative z-10"
                   />
                   <button 
                     onClick={handleSend}

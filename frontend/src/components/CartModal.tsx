@@ -32,7 +32,7 @@ const CartModal = ({ isOpen, onClose }: CartModalProps) => {
       <div className="relative w-full max-w-xl bg-[#0A0A0B] border border-white/10 rounded-[40px] p-10 shadow-2xl animate-reveal backdrop-blur-2xl">
         <div className="flex justify-between items-center mb-10">
           <h2 className="text-3xl font-black uppercase tracking-widest text-[#C9A84C] drop-shadow-[0_0_10px_rgba(201,168,76,0.3)]">Your Selection</h2>
-          <button onClick={onClose} className="p-3 hover:bg-[#C9A84C]/10 rounded-full transition-colors text-white/40">✕</button>
+          <button onClick={onClose} className="p-3 hover:bg-[#C9A84C]/10 rounded-full transition-colors text-white light:text-gray-900/40">✕</button>
         </div>
 
         {/* Feature Highlight: Batch Delivery */}
@@ -48,16 +48,16 @@ const CartModal = ({ isOpen, onClose }: CartModalProps) => {
           </div>
           <div>
             <p className="text-[10px] font-black tracking-widest text-[#C9A84C] uppercase mb-1">Privilege Window</p>
-            <h4 className="font-bold text-white">Next Curated Batch: 7:30 PM</h4>
-            <p className="text-xs text-white/40">Includes complimentary artisanal gift.</p>
+            <h4 className="font-bold text-white light:text-gray-900">Next Curated Batch: 7:30 PM</h4>
+            <p className="text-xs text-white light:text-gray-900/40">Includes complimentary artisanal gift.</p>
           </div>
         </div>
 
         <div className="space-y-6 mb-12">
             <div className="flex justify-between items-center">
                 <div>
-                   <p className="font-bold text-white">Margherita Artisanal</p>
-                   <p className="text-[10px] text-white/30 uppercase tracking-widest">Quantity: 01</p>
+                   <p className="font-bold text-white light:text-gray-900">Margherita Artisanal</p>
+                   <p className="text-[10px] text-white light:text-gray-900/30 uppercase tracking-widest">Quantity: 01</p>
                 </div>
                 <span className="font-bold text-[#C9A84C]">₹249</span>
             </div>
@@ -69,8 +69,8 @@ const CartModal = ({ isOpen, onClose }: CartModalProps) => {
 
             <div className="bg-white/[0.03] p-6 rounded-3xl flex justify-between items-center border border-white/5">
                 <div>
-                   <p className="font-bold text-white text-sm">Gate Reception</p>
-                   <p className="text-[10px] text-white/30 uppercase tracking-widest mt-1">Acquire at Hostel Gate for 30% Relief</p>
+                   <p className="font-bold text-white light:text-gray-900 text-sm">Gate Reception</p>
+                   <p className="text-[10px] text-white light:text-gray-900/30 uppercase tracking-widest mt-1">Acquire at Hostel Gate for 30% Relief</p>
                 </div>
                 <div className="w-12 h-6 bg-[#C9A84C]/20 rounded-full flex items-center px-1 cursor-pointer">
                     <div className="w-4 h-4 bg-[#C9A84C] rounded-full translate-x-6" />
@@ -79,16 +79,16 @@ const CartModal = ({ isOpen, onClose }: CartModalProps) => {
         </div>
 
         <div className="border-t border-white/10 pt-8 space-y-3 mb-12">
-          <div className="flex justify-between text-white/30 text-xs font-black uppercase tracking-widest">
+          <div className="flex justify-between text-white light:text-gray-900/30 text-xs font-black uppercase tracking-widest">
             <span>Subtotal</span>
             <span>₹200</span>
           </div>
-          <div className="flex justify-between text-white/30 text-xs font-black uppercase tracking-widest">
+          <div className="flex justify-between text-white light:text-gray-900/30 text-xs font-black uppercase tracking-widest">
             <span>Service & Logistics</span>
             <span>₹25</span>
           </div>
           <div className="flex justify-between items-end pt-4">
-            <span className="text-xl font-black uppercase tracking-widest text-white/60">Total</span>
+            <span className="text-xl font-black uppercase tracking-widest text-white light:text-gray-900/60">Total</span>
             <span className="text-3xl font-black text-[#C9A84C]">₹225</span>
           </div>
         </div>

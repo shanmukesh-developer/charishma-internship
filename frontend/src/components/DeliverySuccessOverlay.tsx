@@ -31,7 +31,7 @@ export default function DeliverySuccessOverlay({ isOpen, onComplete, newBadges =
         <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#C9A84C] via-[#F7D331] to-[#8B7332] uppercase tracking-[0.2em] mb-4">
           Delivered!
         </h1>
-        <p className="text-white/60 text-sm font-bold uppercase tracking-widest max-w-[250px] leading-relaxed mb-10">
+        <p className="text-white light:text-gray-900/60 text-sm font-bold uppercase tracking-widest max-w-[250px] leading-relaxed mb-10">
           Your Zenvy captain has completed the mission. Enjoy your meal!
         </p>
 

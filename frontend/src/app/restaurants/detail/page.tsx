@@ -21,18 +21,18 @@ export default function DetailPage() {
     if (btn) {
        const orig = btn.innerText;
        btn.innerText = 'Added! 🚀';
-       btn.classList.add('bg-emerald-500', 'text-white');
+       btn.classList.add('bg-emerald-500', 'text-white light:text-gray-900');
        setTimeout(() => {
           btn.innerText = orig;
-          btn.classList.remove('bg-emerald-500', 'text-white');
+          btn.classList.remove('bg-emerald-500', 'text-white light:text-gray-900');
        }, 2000);
     }
   };
 
   return (
-    <main className="min-h-screen bg-background text-white relative overflow-hidden flex flex-col">
+    <main className="min-h-screen bg-background text-white light:text-gray-900 relative overflow-hidden flex flex-col">
       {/* Wave Background Overlay at bottom */}
-      <div className="wave-bg dark-wave opacity-40" />
+      <div className="wave-bg dark-wave " />
 
       {/* Header */}
       <div className="relative z-10 p-8 flex items-center justify-between">

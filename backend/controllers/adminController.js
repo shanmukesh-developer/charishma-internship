@@ -8,6 +8,11 @@ const { getGlobalConfigModel } = require('../models/GlobalConfig');
 const { getVerificationLogModel } = require('../models/VerificationLog');
 const { Op } = require('sequelize');
 
+let cachedRestaurantsResponse = null;
+const clearRestaurantsCache = () => {
+  cachedRestaurantsResponse = null;
+};
+
 const broadcastSystemUpdate = (req, type, data) => {
   const io = req.app.get('io');
   if (io) io.emit('systemUpdate', { type, data });
@@ -45,6 +50,10 @@ const logAuditAction = async (req, targetId, action, details) => {
 // ─── Public Endpoints ─────────────────────────────────────────
 exports.getRestaurants = async (req, res) => {
   try {
+    if (cachedRestaurantsResponse) {
+      return res.json(cachedRestaurantsResponse);
+    }
+
     const Restaurant = getRestaurantModel();
     const MenuItem = getMenuItemModel();
     const { Op } = require('sequelize');
@@ -88,6 +97,7 @@ exports.getRestaurants = async (req, res) => {
       };
     });
 
+    cachedRestaurantsResponse = result;
     res.json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -234,6 +244,7 @@ exports.createRestaurant = async (req, res) => {
     const data = { ...req.body };
     delete data._id; // Ensure we don't try to insert a custom string ID into UUID field
     const restaurant = await Restaurant.create(data);
+    clearRestaurantsCache();
     broadcastSystemUpdate(req, 'RESTAURANT_CREATED', restaurant);
     await logAuditAction(req, restaurant.id, 'CREATE_RESTAURANT', { name: restaurant.name });
     res.status(201).json({ ...restaurant.toJSON(), _id: restaurant.id });
@@ -249,6 +260,7 @@ exports.updateRestaurant = async (req, res) => {
     const restaurant = await Restaurant.findByPk(req.params.id);
     if (!restaurant) return res.status(404).json({ message: 'Not found' });
     await restaurant.update(req.body);
+    clearRestaurantsCache();
     broadcastSystemUpdate(req, 'RESTAURANT_UPDATED', restaurant);
     await logAuditAction(req, restaurant.id, 'UPDATE_RESTAURANT', { name: restaurant.name });
     res.json({ ...restaurant.toJSON(), _id: restaurant.id });
@@ -269,6 +281,7 @@ exports.upsertMenuItem = async (req, res) => {
     } else {
       menuItem = await MenuItem.create(req.body);
     }
+    clearRestaurantsCache();
     broadcastSystemUpdate(req, 'MENU_UPDATED', menuItem);
     const io = req.app.get('io');
     if (io) {
@@ -287,6 +300,7 @@ exports.deleteMenuItem = async (req, res) => {
     const item = await MenuItem.findByPk(req.params.id);
     if (!item) return res.status(404).json({ message: 'Item not found' });
     await item.destroy();
+    clearRestaurantsCache();
     broadcastSystemUpdate(req, 'MENU_ITEM_DELETED', { id: req.params.id });
     await logAuditAction(req, req.params.id, 'DELETE_MENU_ITEM', { id: req.params.id });
     res.json({ message: 'Menu item deleted' });
@@ -564,6 +578,7 @@ exports.getFinanceReport = async (req, res) => {
 // ─── Seed Database ─────────────────────────────────────────────
 exports.seedDatabase = async (req, res) => {
   try {
+    clearRestaurantsCache();
     let { restaurants } = req.body;
     
     if (!restaurants || !Array.isArray(restaurants) || restaurants.length === 0) {
@@ -807,6 +822,7 @@ exports.deleteRestaurant = async (req, res) => {
     // Cleanup items
     await MenuItem.destroy({ where: { restaurantId: id } });
     await restaurant.destroy();
+    clearRestaurantsCache();
     
     broadcastSystemUpdate(req, 'RESTAURANT_DELETED', { id });
     logAuditAction(req, id, 'RESTAURANT_DELETE', `Deleted restaurant "${restaurant.name}"`);

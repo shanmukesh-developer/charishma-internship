@@ -41,7 +41,7 @@ export default function PGAdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-app-black text-white font-sans overflow-hidden">
+    <div className="min-h-screen bg-app-black text-white light:text-gray-900 font-sans overflow-hidden">
       <Navbar />
       <div className="pt-24 pb-20 px-4 max-w-4xl mx-auto relative z-10">
         <h1 className="text-3xl font-black uppercase mb-8 border-b border-white/10 pb-4">
@@ -69,7 +69,7 @@ export default function PGAdminPage() {
                 <input type="number" value={baseRent} onChange={e => setBaseRent(parseInt(e.target.value))} required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none" />
               </div>
             </div>
-            <button type="submit" className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 rounded-xl mt-4 uppercase tracking-wider text-xs transition-colors">
+            <button type="submit" className="w-full bg-indigo-500 hover:bg-indigo-600 text-white light:text-gray-900 font-bold py-3 rounded-xl mt-4 uppercase tracking-wider text-xs transition-colors">
               Create PG Listing
             </button>
           </form>

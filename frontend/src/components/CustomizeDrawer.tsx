@@ -2,9 +2,6 @@
 import React, { useState, useMemo } from 'react';
 import { Customizations } from '@/context/CartContext';
 
-/* ═══════════════════════════════════════════════ */
-/*  Product Type Detection                         */
-/* ═══════════════════════════════════════════════ */
 type ProductType = 'cake' | 'pizza' | 'biryani' | 'beverage' | 'burger' | 'dessert' | 'sweets' | 'fruit' | 'laundry' | 'rental' | 'pharmacy' | 'general-food' | 'general';
 
 const DETECTION: { type: ProductType; keywords: RegExp }[] = [
@@ -30,9 +27,6 @@ function detectProductType(name: string, tags?: string[], category?: string): Pr
   return 'general';
 }
 
-/* ═══════════════════════════════════════════════ */
-/*  Configuration per Product Type                 */
-/* ═══════════════════════════════════════════════ */
 interface OptionConfig {
   label: string;
   key: keyof Customizations;
@@ -315,7 +309,7 @@ function getOptionsForType(type: ProductType, basePrice: number): OptionConfig[]
         { label: 'Special Instructions', key: 'specialInstructions', type: 'text', placeholder: 'Any preferences, allergies...' },
       ];
 
-    default: // true general fallback for non-food or unknown items
+    default:
       return [
         { label: 'Special Instructions', key: 'specialInstructions', type: 'text', placeholder: 'Any preferences or notes?' },
       ];
@@ -338,9 +332,6 @@ const TYPE_LABELS: Record<ProductType, { emoji: string; title: string }> = {
   general:  { emoji: '📦', title: 'Customize Your Order' },
 };
 
-/* ═══════════════════════════════════════════════ */
-/*  COMPONENT                                      */
-/* ═══════════════════════════════════════════════ */
 interface CustomizeDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -349,16 +340,16 @@ interface CustomizeDrawerProps {
   basePrice: number;
   tags?: string[];
   category?: string;
+  isVegetarian?: boolean;
 }
 
-export default function CustomizeDrawer({ isOpen, onClose, onConfirm, itemName, basePrice, tags, category }: CustomizeDrawerProps) {
+export default function CustomizeDrawer({ isOpen, onClose, onConfirm, itemName, basePrice, tags, category, isVegetarian = true }: CustomizeDrawerProps) {
   const productType = useMemo(() => detectProductType(itemName, tags, category), [itemName, tags, category]);
   const options = useMemo(() => getOptionsForType(productType, basePrice), [productType, basePrice]);
   const typeInfo = TYPE_LABELS[productType];
 
   const [selections, setSelections] = useState<Record<string, any>>({});
 
-  // Set defaults on open
   React.useEffect(() => {
     if (isOpen) {
       const defaults: Record<string, any> = {};
@@ -425,51 +416,72 @@ export default function CustomizeDrawer({ isOpen, onClose, onConfirm, itemName, 
   return (
     <div className="fixed inset-0 z-[300] flex flex-col justify-end animate-in fade-in duration-200">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Drawer */}
-      <div className="relative bg-[#111113] border-t border-white/10 rounded-t-[32px] animate-in slide-in-from-bottom-8 duration-300 max-h-[85vh] flex flex-col">
-        {/* Handle */}
-        <div className="w-10 h-1 bg-white/10 rounded-full mx-auto mt-3 mb-2 shrink-0" />
+      <div className="relative bg-[#161618] border-t border-white/10 rounded-t-[32px] animate-in slide-in-from-bottom-8 duration-300 max-h-[85vh] flex flex-col shadow-2xl light:bg-white light:border-black">
+        {/* Drag handle */}
+        <div className="w-12 h-1.5 bg-white/15 rounded-full mx-auto mt-3.5 mb-2.5 shrink-0 light:bg-black" />
 
-        {/* Header */}
-        <div className="px-4 md:px-6 pb-4 pt-2 border-b border-white/5 shrink-0">
-          <div className="flex items-center gap-3 mb-1">
-            <span className="text-2xl">{typeInfo.emoji}</span>
-            <div>
-              <h2 className="text-lg font-black text-white tracking-tight">{typeInfo.title}</h2>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">{itemName}</p>
+        {/* Header matching Zomato Screen 4 */}
+        <div className="px-5 pb-4 pt-1.5 border-b border-white/5 flex justify-between items-start shrink-0 light:border-black">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              {isVegetarian ? (
+                <div className="w-4 h-4 border border-emerald-500 flex items-center justify-center p-[2.5px] rounded bg-transparent shrink-0">
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                </div>
+              ) : (
+                <div className="w-4 h-4 border border-red-500 flex items-center justify-center p-[2.5px] rounded bg-transparent shrink-0">
+                  <div className="w-0 h-0 border-l-[3.5px] border-l-transparent border-r-[3.5px] border-r-transparent border-b-[7px] border-b-red-500" />
+                </div>
+              )}
+              <h2 className="text-base font-black text-white light:text-gray-900 tracking-tight light:text-black">{typeInfo.title}</h2>
             </div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#EF4F5F]">{itemName}</p>
           </div>
+          
+          <button 
+            onClick={onClose}
+            className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white light:text-gray-900/50 light:bg-black light:hover:bg-black/10 light:text-black transition-colors"
+          >
+            ✕
+          </button>
         </div>
 
-        {/* Options scroll area */}
-        <div className="overflow-y-auto flex-1 px-4 md:px-6 py-4 space-y-6">
+        {/* Options list container */}
+        <div className="overflow-y-auto flex-1 px-5 py-5 space-y-6">
           {options.map((opt) => (
-            <div key={opt.key}>
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#38BDF8]/60 block mb-3">
+            <div key={opt.key} className="space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#EF4F5F] block">
                 {opt.label}
-                {opt.type === 'multi' && <span className="text-white/20 normal-case tracking-normal ml-2">(select multiple)</span>}
+                {opt.type === 'multi' && <span className="text-white light:text-gray-900/20 normal-case tracking-normal ml-2 light:text-black">(select multiple)</span>}
               </label>
 
-              {/* SELECT: pill-style options */}
+              {/* Radio (select) matching Zomato style */}
               {opt.type === 'select' && opt.options && (
-                <div className="flex flex-wrap gap-2">
+                <div className="space-y-3 bg-white/[0.02] border border-white/5 p-3 rounded-2xl light:bg-black light:border-black">
                   {opt.options.map(o => {
                     const isSelected = selections[opt.key] === o.value;
                     return (
                       <button
                         key={o.value}
                         onClick={() => handleSelect(opt.key, o.value)}
-                        className={`px-4 py-2.5 rounded-2xl text-[11px] font-bold transition-all duration-200 border ${
-                          isSelected
-                            ? 'bg-[#38BDF8]/15 text-[#38BDF8] border-[#38BDF8]/30 shadow-[0_0_15px_rgba(56,189,248,0.1)]'
-                            : 'bg-white/[0.03] text-white/40 border-white/[0.06] hover:bg-white/[0.06] hover:text-white/60'
-                        }`}
+                        className="w-full flex items-center justify-between py-2 text-left group focus:outline-none"
                       >
-                        {o.label}
+                        <div className="flex items-center gap-3">
+                          {/* Radio Dot indicator */}
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                            isSelected ? 'border-[#EF4F5F]' : 'border-white/20 light:border-black'
+                          }`}>
+                            {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-[#EF4F5F]" />}
+                          </div>
+                          <span className={`text-[12px] font-bold ${isSelected ? 'text-white light:text-black' : 'text-white light:text-gray-900/40 light:text-black'}`}>
+                            {o.label}
+                          </span>
+                        </div>
                         {o.priceAdd ? (
-                          <span className={`ml-1.5 text-[9px] font-black ${isSelected ? 'text-[#C9A84C]' : 'text-white/20'}`}>
+                          <span className={`text-[11px] font-black ${isSelected ? 'text-[#EF4F5F]' : 'text-white light:text-gray-900/20 light:text-black'}`}>
                             +₹{o.priceAdd}
                           </span>
                         ) : null}
@@ -479,29 +491,32 @@ export default function CustomizeDrawer({ isOpen, onClose, onConfirm, itemName, 
                 </div>
               )}
 
-              {/* MULTI: toggle chips */}
+              {/* Checkbox (multi) matching Zomato style */}
               {opt.type === 'multi' && opt.options && (
-                <div className="flex flex-wrap gap-2">
+                <div className="space-y-3 bg-white/[0.02] border border-white/5 p-3 rounded-2xl light:bg-black light:border-black">
                   {opt.options.map(o => {
                     const isSelected = (selections[opt.key] || []).includes(o.value);
                     return (
                       <button
                         key={o.value}
                         onClick={() => handleToggleMulti(opt.key, o.value)}
-                        className={`px-4 py-2.5 rounded-2xl text-[11px] font-bold transition-all duration-200 border flex items-center gap-1.5 ${
-                          isSelected
-                            ? 'bg-[#C9A84C]/15 text-[#C9A84C] border-[#C9A84C]/30'
-                            : 'bg-white/[0.03] text-white/40 border-white/[0.06] hover:bg-white/[0.06]'
-                        }`}
+                        className="w-full flex items-center justify-between py-2 text-left group focus:outline-none"
                       >
-                        <span className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center text-[8px] transition-all ${
-                          isSelected ? 'bg-[#C9A84C] border-[#C9A84C] text-black' : 'border-white/20'
-                        }`}>
-                          {isSelected && '✓'}
-                        </span>
-                        {o.label}
+                        <div className="flex items-center gap-3">
+                          {/* Checkbox indicator */}
+                          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                            isSelected ? 'border-[#EF4F5F] bg-[#EF4F5F]/10' : 'border-white/20 light:border-black'
+                          }`}>
+                            {isSelected && <span className="text-[10px] text-[#EF4F5F] font-black">✓</span>}
+                          </div>
+                          <span className={`text-[12px] font-bold ${isSelected ? 'text-white light:text-black' : 'text-white light:text-gray-900/40 light:text-black'}`}>
+                            {o.label}
+                          </span>
+                        </div>
                         {o.priceAdd ? (
-                          <span className="text-[9px] font-black text-white/20">+₹{o.priceAdd}</span>
+                          <span className={`text-[11px] font-black ${isSelected ? 'text-[#EF4F5F]' : 'text-white light:text-gray-900/20 light:text-black'}`}>
+                            +₹{o.priceAdd}
+                          </span>
                         ) : null}
                       </button>
                     );
@@ -509,7 +524,7 @@ export default function CustomizeDrawer({ isOpen, onClose, onConfirm, itemName, 
                 </div>
               )}
 
-              {/* TEXT */}
+              {/* Text Area */}
               {opt.type === 'text' && (
                 <input
                   type="text"
@@ -517,39 +532,35 @@ export default function CustomizeDrawer({ isOpen, onClose, onConfirm, itemName, 
                   onChange={e => handleText(opt.key, e.target.value)}
                   placeholder={opt.placeholder}
                   maxLength={100}
-                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-white/15 outline-none focus:border-[#38BDF8]/30 transition-all font-medium"
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3.5 text-xs text-white light:text-gray-900 placeholder:text-white light:text-gray-900/15 outline-none focus:border-[#EF4F5F]/40 transition-all font-bold light:bg-black light:border-black light:text-black light:placeholder:text-black/20"
                 />
               )}
             </div>
           ))}
         </div>
 
-        {/* Footer: price + confirm */}
-        <div className="px-4 md:px-6 py-5 border-t border-white/5 bg-[#0C0C0E] shrink-0">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-[9px] font-black uppercase tracking-widest text-white/20">Total</p>
-              <p className="text-2xl font-black text-[#C9A84C] tracking-tighter">
-                ₹{computedPrice}
-                {computedPrice > basePrice && (
-                  <span className="text-[10px] text-white/20 ml-2 line-through font-bold">₹{basePrice}</span>
-                )}
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={onClose}
-                className="px-5 py-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white/60 transition-all active:scale-95"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirm}
-                className="px-8 py-3 rounded-2xl bg-gradient-to-r from-[#38BDF8] to-[#0EA5E9] text-white text-[11px] font-black uppercase tracking-widest shadow-[0_4px_20px_rgba(56,189,248,0.3)] active:scale-95 transition-all hover:shadow-[0_4px_30px_rgba(56,189,248,0.5)]"
-              >
-                Add to Cart
-              </button>
-            </div>
+        {/* Footer matching Zomato screen: Total Price (Left) + Confirm Red button (Right) */}
+        <div className="px-5 py-4 border-t border-white/5 bg-[#0e0e10] shrink-0 flex items-center justify-between light:border-black light:bg-white">
+          <div className="flex flex-col">
+            <span className="text-[9px] font-black uppercase tracking-widest text-white light:text-gray-900/20 light:text-black">Total Price</span>
+            <span className="text-xl font-black text-white light:text-gray-900 tracking-tighter light:text-black">
+              ₹{computedPrice}
+            </span>
+          </div>
+
+          <div className="flex gap-2.5">
+            <button
+              onClick={onClose}
+              className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-[9px] font-black uppercase tracking-widest text-white light:text-gray-900/40 light:bg-black light:text-black transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirm}
+              className="px-6 py-2.5 rounded-xl bg-[#EF4F5F] hover:bg-[#D93D4D] text-white light:text-gray-900 text-[9px] font-black uppercase tracking-widest shadow-md transition-colors"
+            >
+              Add Item
+            </button>
           </div>
         </div>
       </div>
@@ -557,18 +568,10 @@ export default function CustomizeDrawer({ isOpen, onClose, onConfirm, itemName, 
   );
 }
 
-/* ═══════════════════════════════════════════════ */
-/*  Helper: Check if a product is customizable     */
-/* ═══════════════════════════════════════════════ */
 export function isCustomizable(name: string, tags?: string[], category?: string): boolean {
-  return detectProductType(name, tags, category) !== 'general' ||
-    // Even "general" items show spice level, so always allow customization
-    true;
+  return detectProductType(name, tags, category) !== 'general' || true;
 }
 
-/* ═══════════════════════════════════════════════ */
-/*  Helper: Summarize customizations for display   */
-/* ═══════════════════════════════════════════════ */
 export function summarizeCustomizations(c?: Customizations): string {
   if (!c) return '';
   const parts: string[] = [];

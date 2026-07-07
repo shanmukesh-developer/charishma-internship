@@ -119,7 +119,7 @@ export default function VaultClaimModal({
                   <div className="p-10">
                     <div className="flex justify-between items-start mb-6">
                       <div>
-                        <h2 className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-3">
+                        <h2 className="text-3xl font-black text-white light:text-gray-900 tracking-tighter uppercase leading-none mb-3">
                           {item.name}
                         </h2>
                         <div className="flex items-center gap-3">
@@ -129,8 +129,8 @@ export default function VaultClaimModal({
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-[10px] font-black text-secondary-text uppercase tracking-widest mb-1.5 opacity-60">Batch Release</p>
-                        <p className="text-lg font-black text-white">{item.remainingCount} UNITS</p>
+                        <p className="text-[10px] font-black text-secondary-text uppercase tracking-widest mb-1.5 ">Batch Release</p>
+                        <p className="text-lg font-black text-white light:text-gray-900">{item.remainingCount} UNITS</p>
                       </div>
                     </div>
 
@@ -146,7 +146,7 @@ export default function VaultClaimModal({
                           </div>
                           <div className="text-right">
                             <p className="text-[10px] font-black uppercase tracking-widest mb-1 text-secondary-text opacity-70">Identity Status</p>
-                            <span className="text-sm font-black text-white">
+                            <span className="text-sm font-black text-white light:text-gray-900">
                               {userStreak} DAYS
                             </span>
                           </div>
@@ -170,7 +170,7 @@ export default function VaultClaimModal({
                         onClick={handleSecureAccess}
                         className={`w-full py-6 rounded-[24px] font-black uppercase tracking-[0.3em] text-xs transition-all duration-700 relative z-10 overflow-hidden
                           ${isLocked 
-                            ? 'bg-white/5 text-white/10 border border-white/10 cursor-not-allowed' 
+                            ? 'bg-white/5 text-white light:text-gray-900/10 border border-white/10 cursor-not-allowed' 
                             : 'bg-primary-gold text-black shadow-[0_20px_40px_rgba(201,168,76,0.3)]'
                           }`}
                       >
@@ -186,14 +186,14 @@ export default function VaultClaimModal({
                         )}
                       </motion.button>
                       {!isLocked && !isClaiming && (
-                        <div className="absolute inset-0 bg-[#C9A84C] blur-2xl opacity-20 group-hover:opacity-40 transition-opacity" />
+                        <div className="absolute inset-0 bg-[#C9A84C] blur-2xl opacity-20 group-hover: transition-opacity" />
                       )}
                     </div>
 
                     <button
                       onClick={handleClose}
                       disabled={isClaiming}
-                      className="w-full mt-6 text-[10px] font-black text-secondary-text uppercase tracking-widest hover:text-white transition-colors opacity-40 hover:opacity-100"
+                      className="w-full mt-6 text-[10px] font-black text-secondary-text uppercase tracking-widest hover:text-white light:text-gray-900 transition-colors  hover:opacity-100"
                     >
                       ABORT TRANSITION
                     </button>
@@ -222,11 +222,11 @@ export default function VaultClaimModal({
                     />
                   </div>
                   
-                  <h2 className="text-4xl font-black text-white tracking-tighter uppercase mb-4 leading-none">
+                  <h2 className="text-4xl font-black text-white light:text-gray-900 tracking-tighter uppercase mb-4 leading-none">
                     ACCESS GRANTED
                   </h2>
                   <p className="text-secondary-text text-[13px] font-medium tracking-wide mb-10 leading-relaxed max-w-[80%] mx-auto">
-                    The sequence is complete. <span className="text-white font-bold">{item.name}</span> has been secured for your collection.
+                    The sequence is complete. <span className="text-white light:text-gray-900 font-bold">{item.name}</span> has been secured for your collection.
                   </p>
 
                   <div className="flex flex-col gap-3 w-full">
@@ -240,7 +240,7 @@ export default function VaultClaimModal({
                     </motion.button>
                     <button
                       onClick={handleClose}
-                      className="w-full py-5 text-[10px] font-black text-secondary-text uppercase tracking-widest hover:text-white transition-colors"
+                      className="w-full py-5 text-[10px] font-black text-secondary-text uppercase tracking-widest hover:text-white light:text-gray-900 transition-colors"
                     >
                       RETURN TO HOME
                     </button>

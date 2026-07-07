@@ -66,7 +66,7 @@ export default function BlockWarsLeaderboard({ userBlock }: { userBlock: string 
       <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-[12px] font-black uppercase tracking-[0.3em] text-primary-gold mb-1">Block Leaderboard</h3>
-            <p className="text-[9px] font-bold text-white/50 uppercase tracking-widest">Real-time Activity</p>
+            <p className="text-[9px] font-bold text-white light:text-gray-900/50 uppercase tracking-widest">Real-time Activity</p>
           </div>
          <div className="flex -space-x-2">
             {[1,2,3].map(i => (
@@ -87,8 +87,8 @@ export default function BlockWarsLeaderboard({ userBlock }: { userBlock: string 
                <div className="flex items-center gap-3 relative z-10">
                   <span className={`text-[9px] font-black ${idx === 0 ? 'text-primary-gold' : 'text-secondary-text'}`}>#0{idx + 1}</span>
                   <div>
-                    <h4 className={`text-[11px] font-black uppercase tracking-wider ${isUserBlock ? 'text-primary-gold' : 'text-white'}`}>
-                      {block.name} {isUserBlock && <span className="text-[7px] italic text-primary-gold opacity-60 ml-1">(My Block)</span>}
+                    <h4 className={`text-[11px] font-black uppercase tracking-wider ${isUserBlock ? 'text-primary-gold' : 'text-white light:text-gray-900'}`}>
+                      {block.name} {isUserBlock && <span className="text-[7px] italic text-primary-gold  ml-1">(My Block)</span>}
                     </h4>
                     <div className="w-32 h-1 bg-white/5 rounded-full mt-1.5 overflow-hidden">
                        <div 
@@ -99,7 +99,7 @@ export default function BlockWarsLeaderboard({ userBlock }: { userBlock: string 
                   </div>
                </div>
                <div className="text-right relative z-10">
-                  <span className="text-[11px] font-black text-white">{block.count}</span>
+                  <span className="text-[11px] font-black text-white light:text-gray-900">{block.count}</span>
                   <p className="text-[6px] font-bold text-secondary-text uppercase">Orders</p>
                </div>
                {isUserBlock && <div className="absolute inset-x-[-12px] inset-y-[-8px] bg-primary-gold/[0.03] border-l-2 border-primary-gold rounded-lg -z-10" />}

@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
-
 import tailwindAnimate from "tailwindcss-animate";
+import plugin from "tailwindcss/plugin";
 
 const config: Config = {
   content: [
@@ -16,6 +16,11 @@ const config: Config = {
       },
     },
   },
-  plugins: [tailwindAnimate],
+  plugins: [
+    tailwindAnimate,
+    plugin(function({ addVariant }) {
+      addVariant("light", ".light &");
+    }),
+  ],
 };
 export default config;

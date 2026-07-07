@@ -113,7 +113,7 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
             </div>
             <span className="text-[9px] font-black text-orange-400 uppercase tracking-[0.4em]">CampusBites</span>
           </div>
-          <h2 className="text-xl md:text-2xl font-black text-white italic tracking-tighter uppercase" style={{ fontFamily: "'Syne', sans-serif" }}>
+          <h2 className="text-xl md:text-2xl font-black text-white light:text-gray-900 italic tracking-tighter uppercase" style={{ fontFamily: "'Syne', sans-serif" }}>
             Local <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-300">Vendor Stalls</span>
           </h2>
           <p className="text-[9px] font-bold text-secondary-text uppercase tracking-widest mt-1 max-w-[340px] leading-relaxed">
@@ -146,9 +146,9 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
           placeholder="Search local stalls, dishes..."
           value={stallSearch}
           onChange={(e) => setStallSearch(e.target.value)}
-          className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-xs font-bold tracking-wide outline-none focus:border-orange-500/40 transition-all placeholder:text-white/20 shadow-lg"
+          className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-xs font-bold tracking-wide outline-none focus:border-orange-500/40 transition-all placeholder:text-white light:text-gray-900/20 shadow-lg"
         />
-        <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-orange-400/60 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white light:text-gray-900/20 group-focus-within:text-orange-400/60 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
         </svg>
       </div>
@@ -156,7 +156,7 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
       {/* Vendor Cards Grid */}
       {localVendors.length === 0 ? (
         <div className="w-full flex flex-col items-center justify-center py-12 px-6 border border-white/5 rounded-[30px] bg-white/[0.02] animate-fade-in">
-          <span className="text-4xl mb-4 opacity-50">🏪</span>
+          <span className="text-4xl mb-4 ">🏪</span>
           <p className="text-xs font-black text-secondary-text uppercase tracking-widest">
             {stallSearch ? 'No stalls match your search' : `No local vendors available for ${CAMPUSES.find(c => c.code === selectedCampus)?.label || 'this campus'} yet`}
           </p>
@@ -182,8 +182,8 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
                   }}
                   className={`relative overflow-hidden rounded-[28px] border transition-all duration-500 group cursor-pointer hover:border-orange-500/25 ${
                     isPremium
-                      ? 'border-orange-500/10 bg-gradient-to-br from-[#141416] to-orange-900/[0.06] shadow-[0_0_20px_rgba(249,115,22,0.08)]'
-                      : 'border-white/[0.06] bg-[#141416]/80'
+                      ? 'campus-card-premium'
+                      : 'campus-card-regular'
                   } ${!isOpen ? 'opacity-70' : ''}`}
                 >
                   {/* Premium Badge */}
@@ -209,8 +209,8 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
                         {/* Open/Closed Indicator */}
                         <div className={`absolute bottom-1.5 left-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded-full backdrop-blur-md text-[7px] font-black uppercase tracking-widest ${
                           isOpen
-                            ? 'bg-emerald-500/80 text-white'
-                            : 'bg-red-500/80 text-white'
+                            ? 'bg-emerald-500/80 text-white light:text-gray-900'
+                            : 'bg-red-500/80 text-white light:text-gray-900'
                         }`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? 'bg-white animate-pulse' : 'bg-white/60'}`} />
                           {isOpen ? 'Open' : 'Closed'}
@@ -219,7 +219,7 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
 
                       {/* Vendor Info */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-[15px] font-black text-white uppercase tracking-tight truncate group-hover:text-orange-400 transition-colors">{vendor.name}</h3>
+                        <h3 className="text-[15px] font-black text-white light:text-gray-900 uppercase tracking-tight truncate group-hover:text-orange-400 transition-colors">{vendor.name}</h3>
 
                         {/* Campus + Rating */}
                         <div className="flex items-center gap-2 mt-1">

@@ -1,6 +1,7 @@
 import { Customizations } from '@/context/CartContext';
 
 export interface MenuItem {
+  isBestseller?: boolean;
   _id?: string;
   id?: string;
   name: string;
@@ -46,6 +47,7 @@ export interface Restaurant {
   promoOffer?: string;
   clickCount?: number;
   operatingHours?: { start?: string; end?: string };
+  canteenType?: string;
 }
 
 export interface User {

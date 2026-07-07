@@ -43,7 +43,7 @@ export default function RiderProfileModal({ isOpen, onClose, partner }: RiderPro
             
             <button 
               onClick={onClose}
-              className="absolute top-4 right-4 p-4 text-white/40 hover:text-white transition-colors text-2xl font-bold z-50 cursor-pointer"
+              className="absolute top-4 right-4 p-4 text-white light:text-gray-900/40 hover:text-white light:text-gray-900 transition-colors text-2xl font-bold z-50 cursor-pointer"
             >
               ✕
             </button>
@@ -59,24 +59,24 @@ export default function RiderProfileModal({ isOpen, onClose, partner }: RiderPro
 
               <div className="mb-6">
                 <div className="flex items-center justify-center gap-2 mb-1">
-                   <h2 className="text-xl font-black text-white uppercase tracking-tighter">{partner.name}</h2>
+                   <h2 className="text-xl font-black text-white light:text-gray-900 uppercase tracking-tighter">{partner.name}</h2>
                    <span className="bg-emerald-500/10 text-emerald-500 text-[8px] font-black px-2 py-0.5 rounded border border-emerald-500/20">VERIFIED</span>
                 </div>
                 <div className="flex items-center justify-center gap-2 text-primary-yellow mb-2">
                    <span className="text-sm font-black">{partner.averageRating || '5.0'} ⭐</span>
-                   <span className="text-[10px] text-white/40 uppercase font-black tracking-widest">({partner.totalRatings || 0} Deliveries)</span>
+                   <span className="text-[10px] text-white light:text-gray-900/40 uppercase font-black tracking-widest">({partner.totalRatings || 0} Deliveries)</span>
                 </div>
                 {partner.phone && (
-                  <p className="text-sm font-bold text-white/70 tracking-widest">{partner.phone}</p>
+                  <p className="text-sm font-bold text-white light:text-gray-900/70 tracking-widest">{partner.phone}</p>
                 )}
               </div>
 
               <div className="w-full space-y-3 mb-8">
                  {(partner.vehicleType || partner.vehicleNumber) && (
                    <div className="bg-white/5 border border-white/5 p-4 rounded-3xl text-left">
-                      <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] mb-1.5">Vehicle</p>
+                      <p className="text-[8px] font-black text-white light:text-gray-900/30 uppercase tracking-[0.2em] mb-1.5">Vehicle</p>
                       <div className="flex items-center justify-between">
-                         {partner.vehicleType && <span className="text-xs font-bold text-white uppercase">{partner.vehicleType}</span>}
+                         {partner.vehicleType && <span className="text-xs font-bold text-white light:text-gray-900 uppercase">{partner.vehicleType}</span>}
                          {partner.vehicleNumber && (
                            <span className="bg-white/10 px-3 py-1 rounded-xl text-[10px] font-black text-primary-yellow border border-white/5">
                              {partner.vehicleNumber}
@@ -108,8 +108,8 @@ export default function RiderProfileModal({ isOpen, onClose, partner }: RiderPro
 
               {partner.bio && (
                 <div className="text-left w-full">
-                   <p className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-2">Captain&apos;s Note</p>
-                   <p className="text-[10px] text-white/60 italic leading-relaxed">&quot;{partner.bio}&quot;</p>
+                   <p className="text-[8px] font-black text-white light:text-gray-900/30 uppercase tracking-widest mb-2">Captain&apos;s Note</p>
+                   <p className="text-[10px] text-white light:text-gray-900/60 italic leading-relaxed">&quot;{partner.bio}&quot;</p>
                 </div>
               )}
             </div>

@@ -130,9 +130,9 @@ export default function MapLocationPicker({ isOpen, onClose, onConfirm }: MapLoc
       <div className="bg-black/40 backdrop-blur-3xl border-b border-white/5 p-6 pt-10 flex items-center justify-between shadow-2xl z-20">
         <div>
           <h2 className="text-primary-yellow font-black text-xl tracking-tight uppercase" style={{ fontFamily: "'Syne', sans-serif" }}>Nexus Target Link</h2>
-          <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mt-1">Acquiring precise delivery coordinates...</p>
+          <p className="text-white light:text-gray-900/40 text-[10px] font-black uppercase tracking-widest mt-1">Acquiring precise delivery coordinates...</p>
         </div>
-        <button onClick={onClose} className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-all border border-white/10 hover:border-primary-yellow hover:scale-110">✕</button>
+        <button onClick={onClose} className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-white light:text-gray-900/50 hover:text-white light:text-gray-900 transition-all border border-white/10 hover:border-primary-yellow hover:scale-110">✕</button>
       </div>
 
       {/* Map Area */}
@@ -174,13 +174,13 @@ export default function MapLocationPicker({ isOpen, onClose, onConfirm }: MapLoc
       <div className="bg-black/40 backdrop-blur-3xl border-t border-white/5 p-8 shadow-[0_-30px_60px_rgba(0,0,0,0.5)] z-20 pb-12">
         <div className="bg-white/5 p-5 rounded-3xl border border-white/5 mb-6 relative overflow-hidden group hover:border-primary-yellow/20 transition-colors">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-primary-yellow rounded-l-3xl shadow-[0_0_15px_rgba(201,168,76,0.5)]"/>
-            <p className="text-[9px] uppercase font-black text-white/40 tracking-[0.3em] mb-2">Validated Protocol Address</p>
-            <p className="text-[15px] font-black text-white line-clamp-1 pr-4 tracking-tight">{isLoading ? 'CALIBRATING GPS...' : address.toUpperCase()}</p>
+            <p className="text-[9px] uppercase font-black text-white light:text-gray-900/40 tracking-[0.3em] mb-2">Validated Protocol Address</p>
+            <p className="text-[15px] font-black text-white light:text-gray-900 line-clamp-1 pr-4 tracking-tight">{isLoading ? 'CALIBRATING GPS...' : address.toUpperCase()}</p>
         </div>
         
         <button
           onClick={handleConfirm}
-          className="w-full btn-yellow py-4 rounded-2xl font-black text-sm uppercase tracking-widest disabled:opacity-50"
+          className="w-full btn-yellow py-4 rounded-2xl font-black text-sm uppercase tracking-widest disabled:"
           disabled={isLoading || !address}
         >
           Confirm Location

@@ -38,16 +38,16 @@ export default function RewardsPage() {
   const progressPercent = Math.min(100, (streak / 14) * 100);
 
   return (
-    <main className="min-h-screen bg-[#0A0A0B] text-white p-8 relative overflow-x-hidden">
+    <main className="min-h-screen bg-[#0A0A0B] text-white light:text-gray-900 p-8 relative overflow-x-hidden">
       {/* Cinematic Background */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(201,168,76,0.05)_0%,transparent_50%)] pointer-events-none" />
-      <div className="fixed inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none opacity-40" />
+      <div className="fixed inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none " />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-12 relative z-10">
         <Magnetic>
           <Link href="/profile" className="w-12 h-12 bg-white/5 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/10 hover:bg-white/10 transition-all">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-white light:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
             </svg>
           </Link>
@@ -69,13 +69,13 @@ export default function RewardsPage() {
           
           <div className="flex justify-between items-end mb-8">
             <div>
-              <p className="text-[10px] font-black text-primary-yellow uppercase tracking-[0.2em] mb-2 opacity-60">Authentication Streak</p>
-              <h2 className="text-5xl font-black text-white flex items-center gap-3">
-                <span className="animate-pulse">🔥</span> {loading ? '...' : streak} <span className="text-xl font-bold text-white/40 uppercase tracking-tighter">Days</span>
+              <p className="text-[10px] font-black text-primary-yellow uppercase tracking-[0.2em] mb-2 ">Authentication Streak</p>
+              <h2 className="text-5xl font-black text-white light:text-gray-900 flex items-center gap-3">
+                <span className="animate-pulse">🔥</span> {loading ? '...' : streak} <span className="text-xl font-bold text-white light:text-gray-900/40 uppercase tracking-tighter">Days</span>
               </h2>
             </div>
             <div className="text-right">
-              <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">Status Tier</p>
+              <p className="text-[10px] font-black text-white light:text-gray-900/30 uppercase tracking-widest mb-1">Status Tier</p>
               <div className="px-4 py-1.5 bg-[#C9A84C]/10 rounded-full border border-[#C9A84C]/20">
                 <p className="text-[10px] font-black text-primary-yellow uppercase tracking-[0.15em]">{loading ? 'Scanning...' : getTier(streak)}</p>
               </div>
@@ -87,14 +87,14 @@ export default function RewardsPage() {
             <div className="h-full bg-gradient-to-r from-amber-500 to-primary-yellow rounded-full transition-all duration-1000 shadow-[0_0_20px_rgba(201,168,76,0.3)]" style={{ width: `${progressPercent}%` }} />
           </div>
           
-          <p className="text-white/40 text-[10px] font-bold mt-6 leading-relaxed max-w-[80%] uppercase tracking-widest">
-            Maintain daily uplink to synchronize with the <span className="text-white">Nexus Tier</span> and unlock strategic assets.
+          <p className="text-white light:text-gray-900/40 text-[10px] font-bold mt-6 leading-relaxed max-w-[80%] uppercase tracking-widest">
+            Maintain daily uplink to synchronize with the <span className="text-white light:text-gray-900">Nexus Tier</span> and unlock strategic assets.
           </p>
         </div>
       </Tilt>
 
       {/* Reward Tiers Grid */}
-      <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30 mb-8 ml-2">Strategic Unlockables</h3>
+      <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-white light:text-gray-900/30 mb-8 ml-2">Strategic Unlockables</h3>
       <div className="space-y-4 relative z-10">
         {[
           { icon: '🥉', title: '3 Day Sequence', desc: 'Complimentary Logistics Bypass', level: 'Bronze', dayRequirement: 3 },
@@ -110,12 +110,12 @@ export default function RewardsPage() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                     <h4 className="text-sm font-black uppercase tracking-tight text-white">{reward.title}</h4>
-                     <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded-full ${isUnlocked ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/5 text-white/30'}`}>{reward.level}</span>
+                     <h4 className="text-sm font-black uppercase tracking-tight text-white light:text-gray-900">{reward.title}</h4>
+                     <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded-full ${isUnlocked ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/5 text-white light:text-gray-900/30'}`}>{reward.level}</span>
                   </div>
-                  <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{reward.desc}</p>
+                  <p className="text-[10px] font-bold text-white light:text-gray-900/40 uppercase tracking-widest">{reward.desc}</p>
                 </div>
-                <div className={`px-4 py-2 rounded-xl border ${isUnlocked ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/5 text-white/20'}`}>
+                <div className={`px-4 py-2 rounded-xl border ${isUnlocked ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/5 text-white light:text-gray-900/20'}`}>
                    <span className="text-[9px] font-black uppercase tracking-widest">{isUnlocked ? 'Decrypted' : 'Encrypted'}</span>
                 </div>
               </div>

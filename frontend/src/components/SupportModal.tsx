@@ -65,7 +65,7 @@ export default function SupportModal({ isOpen, onClose }: SupportModalProps) {
 
               {/* Header */}
               <h3 className="text-2xl font-black uppercase tracking-widest mb-2">Nexus Concierge</h3>
-              <p className="text-[10px] text-white/40 font-bold uppercase tracking-[0.3em] mb-8">24/7 Dedicated Support</p>
+              <p className="text-[10px] text-white light:text-gray-900/40 font-bold uppercase tracking-[0.3em] mb-8">24/7 Dedicated Support</p>
 
               {/* Status Indicator */}
               <div className="flex items-center gap-2 mb-8 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-full">
@@ -76,7 +76,7 @@ export default function SupportModal({ isOpen, onClose }: SupportModalProps) {
               {/* Phone Number Display */}
               <div className="w-full bg-white/5 border border-white/5 rounded-3xl p-6 mb-8 group active:scale-[0.98] transition-all cursor-pointer" onClick={handleCopy}>
                 <p className="text-[8px] text-secondary-text font-black uppercase tracking-widest mb-1">Direct Line</p>
-                <p className="text-xl font-black text-white tracking-widest">{SUPPORT_DISPLAY}</p>
+                <p className="text-xl font-black text-white light:text-gray-900 tracking-widest">{SUPPORT_DISPLAY}</p>
                 <p className="text-[8px] text-primary-yellow font-bold uppercase tracking-widest mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   {copied ? "Copied to Clipboard!" : "Tap to Copy Number"}
                 </p>
@@ -89,7 +89,7 @@ export default function SupportModal({ isOpen, onClose }: SupportModalProps) {
                   className="w-full py-5 bg-primary-yellow text-black rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary-yellow/20 active:scale-95 transition-all flex items-center justify-center gap-3"
                 >
                   <span>Initiate Call</span>
-                  <span className="opacity-40">→</span>
+                  <span className="">→</span>
                 </button>
 
                 <button
@@ -102,14 +102,14 @@ export default function SupportModal({ isOpen, onClose }: SupportModalProps) {
 
                 <button
                   onClick={onClose}
-                  className="w-full py-5 bg-white/5 border border-white/5 text-white/40 rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all"
+                  className="w-full py-5 bg-white/5 border border-white/5 text-white light:text-gray-900/40 rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all"
                 >
                   Back to Profile
                 </button>
               </div>
 
               {/* Footer Note */}
-              <p className="text-[8px] text-white/20 mt-8 font-medium italic">
+              <p className="text-[8px] text-white light:text-gray-900/20 mt-8 font-medium italic">
                 Zenvy Nexus ensures priority assistance for all Elite members.
               </p>
             </div>

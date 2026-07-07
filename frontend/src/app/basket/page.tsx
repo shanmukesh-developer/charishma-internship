@@ -44,7 +44,7 @@ function BasketItem({ item, updateQuantity, removeFromCart, updateCustomName }: 
   };
 
   return (
-    <div className="flex flex-col bg-card-bg p-4 md:p-6 rounded-[28px] md:rounded-[35px] border border-white/5 transition-all hover:border-white/10 group">
+    <div className="flex flex-col bg-card-bg p-4 md:p-6 rounded-[28px] md:rounded-[35px] border border-white/5 light:border-black transition-all hover:border-white/10 light:border-black group">
       <div className="flex gap-4 md:gap-6 items-center">
         <div className="w-24 h-24 relative flex-shrink-0">
           <SafeImage 
@@ -55,7 +55,7 @@ function BasketItem({ item, updateQuantity, removeFromCart, updateCustomName }: 
           />
         </div>
         <div className="flex-1">
-          <h3 className="font-black text-base text-white group-hover:text-primary-yellow transition-colors">{item.name}</h3>
+          <h3 className="font-black text-base text-white light:text-black group-hover:text-primary-yellow transition-colors">{item.name}</h3>
           <p className="text-secondary-text text-xs mt-0.5 mb-1">from {item.restaurantName || "Zenvy Elite"}</p>
 
           {/* Customization summary */}
@@ -72,7 +72,7 @@ function BasketItem({ item, updateQuantity, removeFromCart, updateCustomName }: 
           {item.addedBy && (
             <div className="flex items-center gap-1.5 mb-3">
               <span className="w-4 h-4 bg-primary-yellow/20 text-primary-yellow rounded-full flex items-center justify-center text-[8px]">👤</span>
-              <span className="text-[10px] text-white/50 font-bold uppercase tracking-wider">Added by <span className="text-white">{item.addedBy}</span></span>
+              <span className="text-[10px] text-white light:text-black font-bold uppercase tracking-wider">Added by <span className="text-white light:text-black">{item.addedBy}</span></span>
             </div>
           )}
 
@@ -80,13 +80,13 @@ function BasketItem({ item, updateQuantity, removeFromCart, updateCustomName }: 
             <div>
               <p className="text-primary-yellow font-black text-lg">₹{item.price}</p>
               {item.basePrice && item.price !== item.basePrice && (
-                <p className="text-[10px] text-white/20 line-through">₹{item.basePrice}</p>
+                <p className="text-[10px] text-white light:text-black light:text-black line-through">₹{item.basePrice}</p>
               )}
             </div>
-            <div className="flex items-center gap-4 bg-white/5 px-4 py-2 rounded-full border border-white/5">
-              <button onClick={() => updateQuantity(key, item.quantity - 1)} className="w-6 h-6 flex items-center justify-center font-bold text-secondary-text hover:text-white">-</button>
+            <div className="flex items-center gap-4 bg-white/5 light:bg-black px-4 py-2 rounded-full border border-white/5 light:border-black">
+              <button onClick={() => updateQuantity(key, item.quantity - 1)} className="w-6 h-6 flex items-center justify-center font-bold text-secondary-text hover:text-white light:text-black">-</button>
               <span className="font-black text-sm w-4 text-center">{item.quantity}</span>
-              <button onClick={() => updateQuantity(key, item.quantity + 1)} className="w-6 h-6 flex items-center justify-center font-bold text-secondary-text hover:text-white">+</button>
+              <button onClick={() => updateQuantity(key, item.quantity + 1)} className="w-6 h-6 flex items-center justify-center font-bold text-secondary-text hover:text-white light:text-black">+</button>
             </div>
           </div>
         </div>
@@ -97,7 +97,7 @@ function BasketItem({ item, updateQuantity, removeFromCart, updateCustomName }: 
 
       {/* Cake message input */}
       {item.customizations?.cakeMessage !== undefined && (
-        <div className="mt-5 pt-5 border-t border-white/5">
+        <div className="mt-5 pt-5 border-t border-white/5 light:border-black">
           <label className="text-[10px] font-black uppercase tracking-widest text-primary-yellow/60 block mb-3">Message on Cake</label>
           <div className="relative">
             <input 
@@ -105,9 +105,9 @@ function BasketItem({ item, updateQuantity, removeFromCart, updateCustomName }: 
               placeholder="e.g. Happy Birthday Shanmukh"
               value={localName}
               onChange={(e) => handleNameChange(e.target.value)}
-              className="w-full stardust-search rounded-2xl px-5 py-4 text-sm font-black text-white placeholder:text-white/20 focus:outline-none transition-all"
+              className="w-full stardust-search rounded-2xl px-5 py-4 text-sm font-black text-white light:text-black placeholder:text-white light:text-black focus:outline-none transition-all"
             />
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-primary-yellow opacity-40">✍️</div>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-primary-yellow ">✍️</div>
           </div>
         </div>
       )}
@@ -213,16 +213,16 @@ export default function BasketPage() {
   const grandTotal = totalPrice + deliveryFee;
 
   return (
-    <main className="min-h-screen bg-[#0A0A0B] text-white p-4 md:p-8 relative overflow-x-hidden">
+    <main className="min-h-screen bg-[#0A0A0B] light:bg-[#f8f8fa] text-white light:text-black p-4 md:p-8 relative overflow-x-hidden">
       {/* Cinematic Background */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(201,168,76,0.05)_0%,transparent_50%)] pointer-events-none" />
-      <div className="fixed inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none opacity-40" />
+      <div className="fixed inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none " />
 
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-8">
           <Magnetic>
-            <Link href="/" className="w-12 h-12 bg-white/5 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/10 hover:bg-white/10 transition-all">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <Link href="/" className="w-12 h-12 bg-white/5 light:bg-black backdrop-blur-xl rounded-full flex items-center justify-center border border-white/10 light:border-black hover:bg-white/10 transition-all">
+              <svg className="w-5 h-5 text-white light:text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
               </svg>
             </Link>
@@ -232,7 +232,7 @@ export default function BasketPage() {
         </div>
 
         {/* Roommate Multiplayer Cart Hub */}
-        <div className="mb-8 glass-card p-5 md:p-6 border-white/5 rounded-[30px] bg-black/40 backdrop-blur-2xl relative overflow-hidden">
+        <div className="mb-8 glass-card p-5 md:p-6 border-white/5 light:border-black rounded-[30px] bg-black/40 backdrop-blur-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
             <span className="text-5xl font-black italic">ROOM</span>
           </div>
@@ -241,12 +241,12 @@ export default function BasketPage() {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
                 <p className="text-[10px] font-black text-primary-yellow uppercase tracking-widest mb-1">Roommate Group Cart</p>
-                <h4 className="text-xs font-black text-white uppercase tracking-wider">Order together with your roommates and split the bill</h4>
+                <h4 className="text-xs font-black text-white light:text-black uppercase tracking-wider">Order together with your roommates and split the bill</h4>
               </div>
               <div className="flex gap-3 w-full sm:w-auto">
                 <button
                   onClick={handleHostRoom}
-                  className="flex-1 sm:flex-none px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-wider text-white transition-all"
+                  className="flex-1 sm:flex-none px-5 py-2.5 bg-white/5 light:bg-black hover:bg-white/10 border border-white/10 light:border-black rounded-xl text-[10px] font-black uppercase tracking-wider text-white light:text-black transition-all"
                 >
                   📡 Host Cart
                 </button>
@@ -267,11 +267,11 @@ export default function BasketPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Live Room Active</p>
-                    <span className="text-[8px] px-2 py-0.5 bg-white/5 rounded-full text-white/50 uppercase font-black">
+                    <span className="text-[8px] px-2 py-0.5 bg-white/5 light:bg-black rounded-full text-white light:text-black uppercase font-black">
                       {isHosting ? 'Host' : 'Joined'}
                     </span>
                   </div>
-                  <h4 className="text-sm font-black text-white uppercase tracking-widest mt-0.5">
+                  <h4 className="text-sm font-black text-white light:text-black uppercase tracking-widest mt-0.5">
                     Room Code: <span className="text-primary-yellow font-black text-base">{roomCode}</span>
                   </h4>
                 </div>
@@ -286,7 +286,7 @@ export default function BasketPage() {
           )}
 
           {isJoinOpen && !roomCode && (
-            <div className="mt-5 pt-5 border-t border-white/5 animate-in slide-in-from-top-3 duration-300">
+            <div className="mt-5 pt-5 border-t border-white/5 light:border-black animate-in slide-in-from-top-3 duration-300">
               <label className="text-[9px] font-black uppercase tracking-wider text-primary-yellow block mb-2">Enter Roommate Code</label>
               <div className="flex gap-2">
                 <input
@@ -294,7 +294,7 @@ export default function BasketPage() {
                   placeholder="e.g. ZN-8B2A"
                   value={inputCode}
                   onChange={(e) => setInputCode(e.target.value)}
-                  className="flex-1 stardust-search rounded-xl px-4 py-3 text-xs font-black text-white placeholder:text-white/20 focus:outline-none transition-all uppercase"
+                  className="flex-1 stardust-search rounded-xl px-4 py-3 text-xs font-black text-white light:text-black placeholder:text-white light:text-black focus:outline-none transition-all uppercase"
                 />
                 <button
                   onClick={onJoinSubmit}
@@ -308,11 +308,11 @@ export default function BasketPage() {
 
           {/* ── F6: Group Poll UI ── */}
           {roomCode && (
-            <div className="mt-5 pt-5 border-t border-white/5">
+            <div className="mt-5 pt-5 border-t border-white/5 light:border-black">
               {!poll && !showPollCreator && (
                 <button
                   onClick={() => setShowPollCreator(true)}
-                  className="w-full py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary-yellow hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-white/5 light:bg-black border border-white/10 light:border-black rounded-xl text-[10px] font-black uppercase tracking-widest text-primary-yellow hover:bg-white/10 transition-all flex items-center justify-center gap-2"
                 >
                   <span>📊</span> Start a Group Poll
                 </button>
@@ -324,26 +324,26 @@ export default function BasketPage() {
                     type="text"
                     value={newPollQuestion}
                     onChange={e => setNewPollQuestion(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 mb-2 text-sm text-white"
+                    className="w-full bg-black/40 border border-white/10 light:border-black rounded-xl px-4 py-3 mb-2 text-sm text-white light:text-black"
                     placeholder="Question (e.g. What to eat?)"
                   />
                   <input
                     type="text"
                     value={newPollOptions}
                     onChange={e => setNewPollOptions(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 mb-3 text-sm text-white"
+                    className="w-full bg-black/40 border border-white/10 light:border-black rounded-xl px-4 py-3 mb-3 text-sm text-white light:text-black"
                     placeholder="Comma separated options"
                   />
                   <div className="flex gap-2">
                     <button onClick={handleCreatePoll} className="flex-1 py-3 bg-primary-yellow text-black rounded-xl text-[10px] font-black uppercase tracking-widest">Post Poll</button>
-                    <button onClick={() => setShowPollCreator(false)} className="flex-1 py-3 bg-white/5 text-white rounded-xl text-[10px] font-black uppercase tracking-widest">Cancel</button>
+                    <button onClick={() => setShowPollCreator(false)} className="flex-1 py-3 bg-white/5 light:bg-black text-white light:text-black rounded-xl text-[10px] font-black uppercase tracking-widest">Cancel</button>
                   </div>
                 </div>
               )}
 
               {poll && (
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 animate-in fade-in">
-                  <h4 className="text-sm font-black text-white mb-3 flex items-center justify-between">
+                <div className="bg-white/5 light:bg-black border border-white/10 light:border-black rounded-2xl p-4 animate-in fade-in">
+                  <h4 className="text-sm font-black text-white light:text-black mb-3 flex items-center justify-between">
                     <span>📊 {poll.question}</span>
                     {poll.winnerOption && <span className="text-[9px] bg-primary-yellow text-black px-2 py-0.5 rounded-full uppercase tracking-widest">Finished</span>}
                   </h4>
@@ -356,7 +356,7 @@ export default function BasketPage() {
                           key={i}
                           onClick={() => handleVote(i)}
                           disabled={poll.hasVoted || !!poll.winnerOption}
-                          className={`w-full relative overflow-hidden rounded-xl border p-3 flex justify-between items-center transition-all ${isWinner ? 'border-primary-yellow bg-primary-yellow/10' : 'border-white/10 bg-black/20 hover:bg-black/40'}`}
+                          className={`w-full relative overflow-hidden rounded-xl border p-3 flex justify-between items-center transition-all ${isWinner ? 'border-primary-yellow bg-primary-yellow/10' : 'border-white/10 light:border-black bg-black/20 hover:bg-black/40'}`}
                         >
                           <span className="relative z-10 text-sm font-bold">{opt}</span>
                           <span className="relative z-10 text-xs font-black">{votes} {votes === 1 ? 'vote' : 'votes'}</span>
@@ -373,9 +373,9 @@ export default function BasketPage() {
         {cart.length === 0 ? (
           <div className="flex flex-col items-center justify-center pt-32 animate-in fade-in slide-in-from-bottom-8 duration-700">
             <div className="w-full flex justify-center mb-10">
-               <div className="w-40 h-40 bg-white/5 rounded-full flex items-center justify-center text-6xl shadow-2xl border border-white/5">🛒</div>
+               <div className="w-40 h-40 bg-white/5 light:bg-black rounded-full flex items-center justify-center text-6xl shadow-2xl border border-white/5 light:border-black">🛒</div>
             </div>
-            <p className="text-secondary-text font-black uppercase tracking-widest mb-12 opacity-40">Your basket is currently empty</p>
+            <p className="text-secondary-text font-black uppercase tracking-widest mb-12 ">Your basket is currently empty</p>
             <Magnetic>
               <Link href="/" className="px-12 py-4 bg-primary-yellow text-black rounded-2xl font-black uppercase tracking-widest text-xs shadow-[0_15px_30px_-10px_rgba(201,168,76,0.3)]">Explore Canteens</Link>
             </Magnetic>
@@ -387,8 +387,8 @@ export default function BasketPage() {
               {/* Group by user */}
               {Object.entries(groupedByUser).map(([userName, group]) => (
                 <div key={userName} className="mb-6">
-                  <h2 className="text-xs font-black uppercase tracking-[0.2em] text-white/40 mb-4 px-2 flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-white/60">👤</span>
+                  <h2 className="text-xs font-black uppercase tracking-[0.2em] text-white light:text-black mb-4 px-2 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-white/5 light:bg-black flex items-center justify-center text-white light:text-black">👤</span>
                     {userName}'s Items
                   </h2>
                   <div className="space-y-4">
@@ -409,11 +409,11 @@ export default function BasketPage() {
             </div>
 
             <div className="pt-12 space-y-4 animate-in fade-in duration-1000 delay-300">
-               <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest text-white/30">
+               <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest text-white light:text-black">
                  <span>Items Subtotal</span>
                  <span>₹{totalPrice}</span>
                </div>
-               <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest text-white/30">
+               <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest text-white light:text-black">
                  <span className="flex items-center gap-2">
                    Delivery Fee
                    {uniqueRestaurants > 1 && (
@@ -424,8 +424,8 @@ export default function BasketPage() {
                  </span>
                  <span>₹{deliveryFee}</span>
                </div>
-               <div className="h-[1px] bg-white/5" />
-               <div className="flex justify-between items-center text-white text-2xl md:text-3xl font-black tracking-tighter">
+               <div className="h-[1px] bg-white/5 light:bg-black" />
+               <div className="flex justify-between items-center text-white light:text-black text-2xl md:text-3xl font-black tracking-tighter">
                  <span className="text-gold-shimmer uppercase text-[10px] md:text-base tracking-widest">Grand Total</span>
                  <span className="text-primary-yellow">₹{grandTotal}</span>
                </div>

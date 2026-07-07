@@ -87,7 +87,7 @@ export default function SearchOverlay({ isOpen, onClose }: { isOpen: boolean; on
       {/* Header */}
       <div className="p-4 md:p-6 pt-10 md:pt-12 flex items-center gap-2 md:gap-4">
         <button onClick={onClose} className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-white light:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
@@ -98,7 +98,7 @@ export default function SearchOverlay({ isOpen, onClose }: { isOpen: boolean; on
             placeholder="Search food or restaurants..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-full py-2.5 md:py-3 px-5 md:px-6 text-white text-base md:text-lg focus:outline-none focus:ring-2 focus:ring-primary-yellow/50"
+            className="w-full bg-white/5 border border-white/10 rounded-full py-2.5 md:py-3 px-5 md:px-6 text-white light:text-gray-900 text-base md:text-lg focus:outline-none focus:ring-2 focus:ring-primary-yellow/50"
           />
           {loading && (
             <div className="absolute right-4 top-1/2 -translate-y-1/2">
@@ -113,7 +113,7 @@ export default function SearchOverlay({ isOpen, onClose }: { isOpen: boolean; on
         {results.isTrending && (
           <div className="bg-gradient-to-r from-primary-yellow/10 to-transparent p-4 rounded-2xl border-l-4 border-primary-yellow mb-4 animate-slide-up">
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary-yellow mb-1">City Pulse</p>
-            <h3 className="text-sm font-black text-white">Trending in Amaravathi Central 🔥</h3>
+            <h3 className="text-sm font-black text-white light:text-gray-900">Trending in Amaravathi Central 🔥</h3>
           </div>
         )}
 
@@ -138,7 +138,7 @@ export default function SearchOverlay({ isOpen, onClose }: { isOpen: boolean; on
                     />
                   </div>
                   <div>
-                    <h4 className="font-bold text-white text-lg">{res.name}</h4>
+                    <h4 className="font-bold text-white light:text-gray-900 text-lg">{res.name}</h4>
                     <p className="text-secondary-text text-xs uppercase tracking-wider">⭐ {res.rating} • {res.location}</p>
                   </div>
                 </Link>
@@ -163,7 +163,7 @@ export default function SearchOverlay({ isOpen, onClose }: { isOpen: boolean; on
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between">
-                      <h4 className="font-bold text-white">{item.name}</h4>
+                      <h4 className="font-bold text-white light:text-gray-900">{item.name}</h4>
                       <span className="text-primary-yellow font-black">₹{item.price}</span>
                     </div>
                     <p className="text-secondary-text text-xs overflow-hidden text-ellipsis line-clamp-1">{item.description}</p>
@@ -184,7 +184,7 @@ export default function SearchOverlay({ isOpen, onClose }: { isOpen: boolean; on
                 <button
                   key={tag}
                   onClick={() => setQuery(tag)}
-                  className="px-6 py-2 bg-white/5 border border-white/10 rounded-full text-sm text-white hover:bg-primary-yellow hover:text-black transition-all"
+                  className="px-6 py-2 bg-white/5 border border-white/10 rounded-full text-sm text-white light:text-gray-900 hover:bg-primary-yellow hover:text-black transition-all"
                 >
                   {tag}
                 </button>

@@ -51,15 +51,15 @@ export default function RecentlyViewed() {
     <section className="mb-14">
       <div className="flex justify-between items-end mb-6">
         <div>
-          <h2 className="text-[9px] font-black text-primary-yellow uppercase tracking-[0.4em] mb-2 opacity-60">Memory Cache</h2>
-          <p className="text-xl font-black text-white uppercase italic">Recently Visited</p>
+          <h2 className="text-[9px] font-black text-primary-yellow uppercase tracking-[0.4em] mb-2 ">Memory Cache</h2>
+          <p className="text-xl font-black text-white light:text-gray-900 uppercase italic">Recently Visited</p>
         </div>
         <button 
           onClick={() => {
             localStorage.removeItem(STORAGE_KEY);
             setItems([]);
           }}
-          className="text-[8px] font-black uppercase tracking-widest text-white/20 hover:text-white/40 transition-colors"
+          className="text-[8px] font-black uppercase tracking-widest text-white light:text-gray-900/20 hover:text-white light:text-gray-900/40 transition-colors"
         >
           Clear History
         </button>
@@ -79,9 +79,9 @@ export default function RecentlyViewed() {
             >
               <div className="aspect-square relative rounded-3xl overflow-hidden border border-white/10 group-hover:border-primary-yellow/30 transition-colors">
                 <SafeImage src={item.image} alt={item.name} fill />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent " />
                 <div className="absolute bottom-3 left-3 right-3">
-                   <p className="text-[9px] font-black text-white truncate drop-shadow-md">{item.name}</p>
+                   <p className="text-[9px] font-black text-white light:text-gray-900 truncate drop-shadow-md">{item.name}</p>
                 </div>
               </div>
             </Link>

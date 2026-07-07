@@ -119,7 +119,7 @@ export default function OrdersPage() {
   };
 
   const statusColor = (s: string) => {
-    if (s === 'Delivered') return 'text-emerald-400';
+    if (s === 'Delivered') return 'text-emerald-400 light:text-[#EF4F5F] light:text-[#EF4F5F] light:text-[#EF4F5F] light:text-[#EF4F5F]';
     if (s === 'Cancelled') return 'text-red-400';
     return 'text-primary-yellow';
   };
@@ -137,7 +137,7 @@ export default function OrdersPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background text-white p-6 relative overflow-hidden">
+    <main className="min-h-screen bg-background text-white light:text-gray-900 p-6 relative overflow-hidden">
       {/* Ambient */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute -top-40 -left-40 w-80 h-80 bg-[#C9A84C]/[0.03] rounded-full blur-[100px]" />
@@ -147,7 +147,7 @@ export default function OrdersPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-10 pt-6">
           <Link href="/" className="w-10 h-10 glass-card rounded-full flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-white light:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
             </svg>
           </Link>
@@ -165,8 +165,8 @@ export default function OrdersPage() {
                 🍽️
               </div>
             </div>
-            <h2 className="text-2xl font-black mb-3 tracking-tight text-white uppercase italic">No Orders Yet</h2>
-            <p className="text-secondary-text text-xs mb-10 max-w-[280px] font-bold leading-relaxed uppercase tracking-widest opacity-60">
+            <h2 className="text-2xl font-black mb-3 tracking-tight text-white light:text-gray-900 uppercase italic">No Orders Yet</h2>
+            <p className="text-secondary-text text-xs mb-10 max-w-[280px] font-bold leading-relaxed uppercase tracking-widest ">
               You haven't placed any orders yet. <br/>
               Let's order some delicious campus food!
             </p>
@@ -200,8 +200,8 @@ export default function OrdersPage() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <span className={`text-xs ${statusColor(order.status)}`}>{statusIcon(order.status)}</span>
-                      <h3 className="text-sm font-black tracking-tight text-white/80">
-                        Order <span className="text-[#C9A84C]">#{order._id.slice(-6).toUpperCase()}</span>
+                      <h3 className="text-sm font-black tracking-tight text-white light:text-gray-900/80">
+                        Order <span className="text-[#C9A84C] light:text-[#EF4F5F] light:text-[#EF4F5F] light:text-[#EF4F5F] light:text-[#EF4F5F]">#{order._id.slice(-6).toUpperCase()}</span>
                       </h3>
                     </div>
                     <span className={`text-[9px] font-black uppercase tracking-widest ${statusColor(order.status)}`}>
@@ -222,19 +222,19 @@ export default function OrdersPage() {
                           <p className="text-[8px] font-black uppercase text-secondary-text tracking-[0.2em] mb-3 text-center">Order Delivery Details</p>
                           <div className="flex justify-between items-center bg-[#C9A84C]/10 p-4 rounded-xl border border-[#C9A84C]/20">
                              <div>
-                                <p className="text-[7px] font-black uppercase text-[#C9A84C] tracking-widest">Delivery OTP PIN</p>
-                                <p className="text-xl font-black text-white tracking-[0.2em]">{order.deliveryPin || 'WAIT'}</p>
+                                <p className="text-[7px] font-black uppercase text-[#C9A84C] light:text-[#EF4F5F] light:text-[#EF4F5F] light:text-[#EF4F5F] light:text-[#EF4F5F] tracking-widest">Delivery OTP PIN</p>
+                                <p className="text-xl font-black text-white light:text-gray-900 tracking-[0.2em]">{order.deliveryPin || 'WAIT'}</p>
                              </div>
                              <div className="text-right">
                                 <p className="text-[7px] font-black uppercase text-secondary-text tracking-widest">Verification PIN</p>
-                                <p className="text-[9px] font-bold text-white/50">Show to Delivery Partner</p>
+                                <p className="text-[9px] font-bold text-white light:text-gray-900/50">Show to Delivery Partner</p>
                              </div>
                           </div>
                           
                           {order.paymentMethod === 'UPI' && (
                             <div className={`mt-3 px-4 py-2 rounded-xl border flex items-center justify-between ${order.upiStatus === 'Verified' ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-amber-500/10 border-amber-500/20 animate-pulse'}`}>
                                <p className="text-[8px] font-black uppercase tracking-widest text-secondary-text">UPI Verification</p>
-                               <span className={`text-[10px] font-black uppercase tracking-widest ${order.upiStatus === 'Verified' ? 'text-emerald-400' : 'text-amber-500'}`}>
+                               <span className={`text-[10px] font-black uppercase tracking-widest ${order.upiStatus === 'Verified' ? 'text-emerald-400 light:text-[#EF4F5F] light:text-[#EF4F5F] light:text-[#EF4F5F] light:text-[#EF4F5F]' : 'text-amber-500'}`}>
                                  {order.upiStatus === 'Verified' ? '✓ Platform Confirmed' : '⌚ Awaiting Admin Sync'}
                                </span>
                             </div>
@@ -257,7 +257,7 @@ export default function OrdersPage() {
                         ) : (
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleOneTabReorder(order); }}
-                            className="w-full bg-[#C9A84C]/10 border border-[#C9A84C]/30 hover:bg-[#C9A84C]/20 py-3 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 mb-2 text-[#C9A84C] rounded-xl transition-all"
+                            className="w-full bg-[#C9A84C]/10 border border-[#C9A84C]/30 hover:bg-[#C9A84C]/20 py-3 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 mb-2 text-[#C9A84C] light:text-[#EF4F5F] light:text-[#EF4F5F] light:text-[#EF4F5F] light:text-[#EF4F5F] rounded-xl transition-all"
                           >
                             ⚡ 1-Tap Reorder
                           </button>

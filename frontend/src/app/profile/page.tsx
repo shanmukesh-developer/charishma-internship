@@ -13,6 +13,7 @@ import Tilt from '@/components/Tilt';
 import Magnetic from '@/components/Magnetic';
 import { showToast } from '@/components/ToastProvider';
 import { API_URL } from '@/utils/api';
+import ZenvyLoader from '@/components/ZenvyLoader';
 
 interface ProfileUser {
   id: string;
@@ -399,7 +400,7 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center font-black text-primary-yellow uppercase tracking-[0.5em]">Syncing...</div>;
+  if (loading) return <ZenvyLoader message="Synchronizing Profile..." />;
 
   const streak = user?.streakCount || 0;
   const qrValue = [
@@ -424,16 +425,16 @@ export default function ProfilePage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#0A0A0B] text-white p-4 md:p-8 pb-32 relative overflow-x-hidden">
+    <main className="min-h-screen bg-[#0A0A0B] light:bg-[#f0ece4] text-white light:text-[#1a1a1a] p-4 md:p-8 pb-32 relative overflow-x-hidden">
       {/* Cinematic Background */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(201,168,76,0.05)_0%,transparent_50%)] pointer-events-none" />
-      <div className="fixed inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none opacity-40" />
+      <div className="fixed inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none light:hidden" />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-12 relative z-10">
         <Magnetic>
-          <button onClick={handleBack} className="w-12 h-12 bg-white/5 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/10 active:scale-95 transition-all">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
+          <button onClick={handleBack} className="w-12 h-12 bg-white/5 light:bg-white light:shadow-md backdrop-blur-xl rounded-full flex items-center justify-center border border-white/10 light:border-[#d4cfc5] active:scale-95 transition-all">
+            <svg className="w-5 h-5 text-white light:text-[#3e3e3e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
           </button>
         </Magnetic>
         <h1 className="text-xl font-black uppercase tracking-[0.3em] text-gold-shimmer">My Profile</h1>
@@ -444,7 +445,7 @@ export default function ProfilePage() {
 
       {/* Identity Card with Tilt */}
       <Tilt scale={1.02} className="mb-10 relative z-10">
-        <div className={`${user?.isElite ? 'elite-card' : 'bg-black/40 backdrop-blur-3xl border border-white/5'} rounded-[48px] p-8 shadow-2xl relative overflow-hidden group transition-all duration-500`}>
+        <div className={`${user?.isElite ? 'elite-card' : 'bg-black/40 light:bg-white backdrop-blur-3xl border border-white/5 light:border-[#d4cfc5] light:shadow-[0_8px_40px_rgba(0,0,0,0.08)]'} rounded-[32px] p-6 sm:p-8 shadow-2xl relative overflow-hidden group transition-all duration-500`}>
           {user?.isElite && (
             <>
               <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-[#1a1a1c] via-[#0a0a0b] to-[#0a0a0b] z-0" />
@@ -455,9 +456,10 @@ export default function ProfilePage() {
           )}
           
           <div className="relative z-20">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start mb-10 gap-8">
-              {/* Profile Photo with Premium Border */}
-              <div className={`w-32 h-32 sm:w-36 sm:h-36 rounded-full overflow-hidden ${user?.isElite ? 'elite-profile-border' : 'border-2 border-white/10'} shadow-2xl bg-black/40 backdrop-blur-md relative shrink-0`}>
+            {/* Top Row: Avatar + Badges */}
+            <div className="flex items-start justify-between mb-8">
+              {/* Profile Photo */}
+              <div className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden ${user?.isElite ? 'elite-profile-border' : 'border-2 border-white/10 light:border-[#d4cfc5]'} shadow-2xl bg-black/40 light:bg-[#f0ece4] backdrop-blur-md relative shrink-0`}>
                   {user?.profileImage && user.profileImage !== 'null' && user.profileImage !== 'undefined' ? (
                     <SafeImage 
                       src={user.profileImage} 
@@ -465,26 +467,26 @@ export default function ProfilePage() {
                       className="w-full h-full object-cover" 
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-[#1C1C1E] to-black rounded-full flex items-center justify-center">
+                    <div className="w-full h-full bg-gradient-to-br from-[#1C1C1E] to-black light:from-[#e8e4dc] light:to-[#d4cfc5] rounded-full flex items-center justify-center">
                       {user?.isElite ? (
-                        <svg className="w-16 h-16 sm:w-20 sm:h-20 text-[#C9A84C] drop-shadow-[0_0_15px_rgba(201,168,76,0.5)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+                        <svg className="w-12 h-12 sm:w-14 sm:h-14 text-[#C9A84C] drop-shadow-[0_0_15px_rgba(201,168,76,0.5)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M2 19h20M2 19l2-8 4 3 4-7 4 7 4-3 2 8M2 19v2h20v-2" />
                           <circle cx="12" cy="5" r="1" fill="currentColor" />
                         </svg>
                       ) : (
-                        <span className="text-5xl">🧑‍🎓</span>
+                        <span className="text-4xl">🧑‍🎓</span>
                       )}
                     </div>
                   )}
               </div>
 
-              <div className="flex flex-row sm:flex-col items-center sm:items-end gap-3 w-full sm:w-auto justify-between sm:justify-start">
+              <div className="flex flex-col items-end gap-3">
                  {/* Branded Zenvy Badge */}
-                 <div className="zenvy-badge-container scale-100 sm:scale-110">
+                 <div className="zenvy-badge-container">
                     <div className="zenvy-badge-label">ZENVY</div>
                     <div className="flex gap-1 pr-2">
-                       <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                       <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
+                       <div className="w-1.5 h-1.5 rounded-full bg-white/20 light:bg-black/10" />
+                       <div className="w-1.5 h-1.5 rounded-full bg-white/20 light:bg-black/10" />
                     </div>
                  </div>
 
@@ -499,9 +501,10 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="mb-10">
+            {/* Name & Info */}
+            <div className="mb-8">
               <div className="flex items-center gap-3 mb-2">
-                <h2 className="text-4xl font-black tracking-tight text-white leading-none text-gold-shimmer">{user?.name}</h2>
+                <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white light:text-[#1a1a1a] leading-none break-words">{user?.name}</h2>
                 {(user?.zenPoints || 0) >= 200 && (
                   <div className="zen-champion-medal" title="Zen Champion Status">
                      <span className="text-lg">🎖️</span>
@@ -509,27 +512,27 @@ export default function ProfilePage() {
                 )}
               </div>
               
-              <div className="flex justify-between items-center mb-5">
-                <p className="text-[10px] font-black text-[#C9A84C] uppercase tracking-[0.4em] opacity-60">ZENVY MEMBER • {user?.city || 'AMARAVATHI'}</p>
-                <div className="member-id-label px-3 py-1 bg-white/5 rounded-full border border-white/5">ZV-{(user?._id || user?.id || '0000').slice(-8).toUpperCase()}</div>
+              <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
+                <p className="text-[10px] font-black text-[#C9A84C] uppercase tracking-[0.3em]">ZENVY MEMBER • {user?.city || 'AMARAVATHI'}</p>
+                <div className="px-3 py-1 bg-white/5 light:bg-[#f0ece4] rounded-full border border-white/5 light:border-[#d4cfc5] text-[9px] font-black text-white/40 light:text-[#8a8580] uppercase tracking-widest">ZV-{(user?._id || user?.id || '0000').slice(-8).toUpperCase()}</div>
               </div>
 
-              <div className="flex items-center gap-2.5 text-white/40 bg-white/[0.02] p-3 rounded-2xl border border-white/5">
+              <div className="flex items-center gap-2.5 text-white/60 light:text-[#5a5a5a] bg-white/[0.02] light:bg-[#f5f3ee] p-3 rounded-2xl border border-white/5 light:border-[#d4cfc5]">
                  <span className="text-lg">📍</span>
                  <p className="text-xs font-bold leading-tight line-clamp-1">{user?.address || 'GH-2, Room 105, SRM AP'}</p>
               </div>
             </div>
 
             {/* Identity Telemetry Grid */}
-            <div className="identity-telemetry-grid bg-white/[0.03] p-6 rounded-[32px] border border-white/5">
+            <div className="identity-telemetry-grid bg-white/[0.03] light:bg-[#1a1a1a] p-6 rounded-[24px] border border-white/5 light:border-[#2a2a2a]">
               <div className="flex gap-10">
                 <div>
-                  <p className="text-[8px] text-white/20 font-black uppercase tracking-[0.2em] mb-2">Total Orders</p>
+                  <p className="text-[8px] text-white/70 font-black uppercase tracking-[0.2em] mb-2">Total Orders</p>
                   <p className="text-2xl font-black text-white">{user?.totalOrders || 0}</p>
                 </div>
                 <div className="w-[1px] bg-white/10 h-10" />
                 <div>
-                  <p className="text-[8px] text-white/20 font-black uppercase tracking-[0.2em] mb-2">ZenPoints</p>
+                  <p className="text-[8px] text-white/70 font-black uppercase tracking-[0.2em] mb-2">ZenPoints</p>
                   <p className="text-2xl font-black text-[#C9A84C]">{user?.zenPoints || 0}</p>
                 </div>
               </div>
@@ -550,18 +553,18 @@ export default function ProfilePage() {
           <button onClick={() => setAddingAddress(true)} className="text-[9px] font-black text-[#C9A84C] uppercase tracking-widest hover:opacity-70 transition-opacity">+ Add</button>
         </div>
         {savedAddresses.length === 0 && (
-          <div className="glass-card p-5 rounded-[28px] border border-white/5 text-center">
+          <div className="glass-card p-5 rounded-[28px] border border-white/5 light:border-[#d4cfc5] text-center">
             <p className="text-[10px] text-secondary-text font-bold">No saved addresses yet</p>
-            <p className="text-[9px] text-white/20 mt-1">Save Hostel Room, Class Block, Gate-2...</p>
+            <p className="text-[9px] text-white light:text-gray-900/20 mt-1">Save Hostel Room, Class Block, Gate-2...</p>
           </div>
         )}
         {savedAddresses.map((sa, i) => (
-          <div key={i} className="glass-card px-5 py-4 rounded-[28px] border border-white/5 flex items-center justify-between">
+          <div key={i} className="glass-card px-5 py-4 rounded-[28px] border border-white/5 light:border-[#d4cfc5] flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-[#C9A84C]/10 flex items-center justify-center text-sm">📍</div>
               <div>
                 <p className="text-[10px] font-black text-[#C9A84C] uppercase tracking-wider">{sa.label}</p>
-                <p className="text-[11px] text-white/70 font-medium">{sa.address}</p>
+                <p className="text-[11px] text-white light:text-gray-900/70 font-medium">{sa.address}</p>
               </div>
             </div>
             <button onClick={() => { const updated = savedAddresses.filter((_, idx) => idx !== i); saveAddresses(updated); }} className="text-[9px] text-red-400/50 hover:text-red-400 transition-colors font-black">✕</button>
@@ -572,13 +575,13 @@ export default function ProfilePage() {
       {/* 🥗 Dietary Preferences */}
       <div className="space-y-3 mb-6">
         <h3 className="text-[9px] font-black text-secondary-text uppercase tracking-[0.3em] pl-4">Dietary Preferences</h3>
-        <div className="glass-card p-4 md:p-6 rounded-[28px] md:rounded-[34px] border border-white/5 space-y-4 md:space-y-6">
+        <div className="glass-card p-4 md:p-6 rounded-[28px] md:rounded-[34px] border border-white/5 light:border-[#d4cfc5] space-y-4 md:space-y-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-[10px] text-secondary-text uppercase tracking-widest font-black">Selective filter</p>
               <div className="flex items-center gap-1">
                 <div className={`w-1 h-1 rounded-full ${dietPrefs.mode === 'all' ? 'bg-[#C9A84C]' : 'bg-white/20'}`} />
-                <span className="text-[8px] text-white/40 font-black uppercase">Active</span>
+                <span className="text-[8px] text-white light:text-gray-900/40 font-black uppercase">Active</span>
               </div>
             </div>
             
@@ -595,10 +598,10 @@ export default function ProfilePage() {
                   className={`flex items-center gap-1.5 px-3 py-2.5 md:px-5 md:py-3 rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all duration-300 border ${
                     dietPrefs.mode === opt.id 
                       ? 'bg-[#C9A84C] border-[#C9A84C] text-black shadow-lg shadow-[#C9A84C]/20' 
-                      : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10'
+                      : 'bg-white/5 border-white/10 text-white light:text-gray-900/40 hover:bg-white/10'
                   }`}
                 >
-                  <span className={dietPrefs.mode === opt.id ? 'opacity-100' : 'opacity-40'}>{opt.icon}</span>
+                  <span className={dietPrefs.mode === opt.id ? 'opacity-100' : ''}>{opt.icon}</span>
                   {opt.label}
                   {dietPrefs.mode === opt.id && <div className="w-1 h-1 rounded-full bg-black ml-1 animate-pulse" />}
                 </button>
@@ -611,7 +614,7 @@ export default function ProfilePage() {
           <div className="flex flex-wrap gap-2">
             {(['nuts', 'dairy', 'gluten'] as const).map(a => (
               <button key={a} onClick={() => saveDiet({ ...dietPrefs, [a]: !dietPrefs[a] })}
-                className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all duration-200 active:scale-95 ${dietPrefs[a] ? 'bg-red-500/20 border-red-500/50 text-red-400' : 'bg-white/5 border-white/10 text-white/40'}`}>
+                className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all duration-200 active:scale-95 ${dietPrefs[a] ? 'bg-red-500/20 border-red-500/50 text-red-400' : 'bg-white/5 border-white/10 text-white light:text-gray-900/40'}`}>
                 {a === 'nuts' ? '🥜' : a === 'dairy' ? '🥛' : '🌾'} {a}
               </button>
             ))}
@@ -621,7 +624,7 @@ export default function ProfilePage() {
                 <button onClick={() => {
                   const updated = dietPrefs.custom.filter((_, i) => i !== idx);
                   saveDiet({ ...dietPrefs, custom: updated });
-                }} className="opacity-40 group-hover:opacity-100 transition-opacity">✕</button>
+                }} className=" group-hover:opacity-100 transition-opacity">✕</button>
               </div>
             ))}
           </div>
@@ -664,7 +667,7 @@ export default function ProfilePage() {
             Enable Push
           </button>
         </div>
-        <div className="glass-card p-5 rounded-[34px] border border-white/5 space-y-5">
+        <div className="glass-card p-5 rounded-[34px] border border-white/5 light:border-[#d4cfc5] space-y-5">
           {([
             { key: 'orders', icon: '🛵', label: 'Order Updates', desc: 'Placed, accepted, delivered' },
             { key: 'surge', icon: '⚡', label: 'Surge Alerts', desc: 'High demand zone notifications' },
@@ -672,7 +675,7 @@ export default function ProfilePage() {
           ] as const).map(({ key, icon, label, desc }) => (
             <div key={key} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-base">{icon}</div>
+                <div className="w-9 h-9 rounded-xl bg-white/5 light:bg-[#f5f3ee] flex items-center justify-center text-base">{icon}</div>
                 <div>
                   <p className="text-sm font-black">{label}</p>
                   <p className="text-[9px] text-secondary-text">{desc}</p>
@@ -685,21 +688,21 @@ export default function ProfilePage() {
       </div>
 
       {/* Order History Link */}
-      <Link href="/orders" className="glass-card p-6 rounded-[34px] border border-white/5 flex items-center justify-between group hover:border-[#C9A84C]/20 transition-all mb-6">
+      <Link href="/orders" className="glass-card p-6 rounded-[34px] border border-white/5 light:border-[#d4cfc5] flex items-center justify-between group hover:border-[#C9A84C]/20 transition-all mb-6">
         <div className="flex items-center gap-5">
-          <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">🥡</div>
+          <div className="w-12 h-12 rounded-2xl bg-white/5 light:bg-[#f5f3ee] flex items-center justify-center text-xl group-hover:scale-110 transition-transform">🥡</div>
           <div>
             <span className="font-black text-sm block">Order History</span>
             <span className="text-[9px] text-secondary-text font-bold uppercase tracking-widest">Manage Past Orders</span>
           </div>
         </div>
-        <span className="text-white/10 group-hover:text-[#C9A84C] transition-colors">→</span>
+        <span className="text-white light:text-gray-900/10 group-hover:text-[#C9A84C] transition-colors">→</span>
       </Link>
       
       {/* 🏆 Nexus Achievements */}
       <div className="space-y-4 mb-6">
         <h3 className="text-[9px] font-black text-secondary-text uppercase tracking-[0.3em] pl-4">Nexus Achievements</h3>
-        <div className="glass-card p-6 rounded-[34px] border border-white/5">
+        <div className="glass-card p-6 rounded-[34px] border border-white/5 light:border-[#d4cfc5]">
            {user?.badges && user.badges.length > 0 ? (
              <div className="grid grid-cols-2 gap-4">
                 {user.badges.includes('Nexus Legend') && (
@@ -727,13 +730,13 @@ export default function ProfilePage() {
              </div>
            ) : (
              <div className="text-center py-6">
-                <p className="text-[10px] text-white/30 font-black uppercase tracking-widest">No Achievements Unlocked Yet</p>
+                <p className="text-[10px] text-white light:text-gray-900/30 font-black uppercase tracking-widest">No Achievements Unlocked Yet</p>
                 <div className="flex justify-center gap-4 mt-4 opacity-10 grayscale">
                    <div className="text-2xl">👑</div>
                    <div className="text-2xl">🦉</div>
                    <div className="text-3xl">🔥</div>
                 </div>
-                <p className="text-[8px] text-white/10 font-bold uppercase tracking-widest mt-4">Keep ordering to earn status badges</p>
+                <p className="text-[8px] text-white light:text-gray-900/10 font-bold uppercase tracking-widest mt-4">Keep ordering to earn status badges</p>
              </div>
            )}
            
@@ -745,7 +748,7 @@ export default function ProfilePage() {
               <div className="h-10 w-[1px] bg-white/5" />
               <div className="text-right">
                  <p className="text-[8px] text-secondary-text font-black uppercase tracking-widest mb-1">Milestone Progress</p>
-                 <p className="text-sm font-black text-white">{user?.completedOrders || 0} / 50 <span className="text-[9px] text-gray-600">Orders</span></p>
+                 <p className="text-sm font-black text-white light:text-gray-900">{user?.completedOrders || 0} / 50 <span className="text-[9px] text-gray-600">Orders</span></p>
               </div>
            </div>
         </div>
@@ -763,22 +766,22 @@ export default function ProfilePage() {
             {coupons.map(cpn => (
               <div 
                 key={cpn.id}
-                className="shrink-0 w-64 p-6 rounded-[32px] border border-white/5 bg-gradient-to-br from-primary-yellow/10 to-transparent relative overflow-hidden group"
+                className="shrink-0 w-64 p-6 rounded-[32px] border border-white/5 light:border-[#d4cfc5] bg-gradient-to-br from-primary-yellow/10 to-transparent relative overflow-hidden group"
               >
                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary-yellow/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
                 
                 <div className="relative z-10">
                   <span className="text-[9px] font-black text-primary-yellow uppercase tracking-widest">{cpn.type === 'FREEDEL' ? 'Logistics Reward' : 'Gourmet Reward'}</span>
-                  <h4 className="text-2xl font-black text-white mt-1 mb-4">{cpn.type === 'FREEDEL' ? 'FREE DELIVERY' : 'DISCOUNT'}</h4>
+                  <h4 className="text-2xl font-black text-white light:text-gray-900 mt-1 mb-4">{cpn.type === 'FREEDEL' ? 'FREE DELIVERY' : 'DISCOUNT'}</h4>
                   
-                  <div className="flex items-center justify-between bg-black/40 backdrop-blur-md p-3 rounded-2xl border border-white/5">
+                  <div className="flex items-center justify-between bg-black/40 backdrop-blur-md p-3 rounded-2xl border border-white/5 light:border-[#d4cfc5]">
                     <span className="text-[11px] font-black tracking-widest text-primary-yellow">{cpn.code}</span>
                     <button 
                       onClick={() => {
                          navigator.clipboard.writeText(cpn.code);
                          setOverlay({ isOpen: true, title: 'Code Copied', message: 'Reward code copied to clipboard!', type: 'success' });
                       }}
-                      className="text-[9px] font-black uppercase text-white/40 hover:text-white transition-colors"
+                      className="text-[9px] font-black uppercase text-white light:text-gray-900/40 hover:text-white light:text-gray-900 transition-colors"
                     >
                       Copy
                     </button>
@@ -792,10 +795,10 @@ export default function ProfilePage() {
             ))}
           </div>
         ) : (
-          <div className="glass-card p-8 rounded-[34px] border border-white/5 text-center flex flex-col items-center justify-center opacity-60">
+          <div className="glass-card p-8 rounded-[34px] border border-white/5 light:border-[#d4cfc5] text-center flex flex-col items-center justify-center ">
              <span className="text-3xl mb-3">🎫</span>
-             <p className="text-[10px] font-black text-white uppercase tracking-widest">Vault is Empty</p>
-             <p className="text-[8px] text-white/30 font-bold uppercase tracking-widest mt-1">Spin the wheel to earn exclusive rewards</p>
+             <p className="text-[10px] font-black text-white light:text-gray-900 uppercase tracking-widest">Vault is Empty</p>
+             <p className="text-[8px] text-white light:text-gray-900/30 font-bold uppercase tracking-widest mt-1">Spin the wheel to earn exclusive rewards</p>
           </div>
         )}
       </div>
@@ -806,23 +809,23 @@ export default function ProfilePage() {
         <div className="grid grid-cols-2 gap-3">
           <Link 
             href="/support"
-            className="glass-card p-5 rounded-[30px] border border-white/5 flex flex-col items-center gap-3 active:scale-95 transition-all text-center group"
+            className="glass-card p-5 rounded-[30px] border border-white/5 light:border-[#d4cfc5] flex flex-col items-center gap-3 active:scale-95 transition-all text-center group"
           >
             <div className="w-10 h-10 rounded-2xl bg-[#C9A84C]/10 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">🎫</div>
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] mb-1">Support Tickets</p>
-              <p className="text-[8px] text-white/40 font-bold leading-tight">File an issue <br /> Track status</p>
+              <p className="text-[8px] text-white light:text-gray-900/40 font-bold leading-tight">File an issue <br /> Track status</p>
             </div>
           </Link>
           
           <button 
             onClick={() => setShowAbout(true)}
-            className="glass-card p-5 rounded-[30px] border border-white/5 flex flex-col items-center gap-3 active:scale-95 transition-all text-center group"
+            className="glass-card p-5 rounded-[30px] border border-white/5 light:border-[#d4cfc5] flex flex-col items-center gap-3 active:scale-95 transition-all text-center group"
           >
-            <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">✨</div>
+            <div className="w-10 h-10 rounded-2xl bg-white/5 light:bg-[#f5f3ee] flex items-center justify-center text-lg group-hover:scale-110 transition-transform">✨</div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-1">About Zenvy</p>
-              <p className="text-[8px] text-white/40 font-bold leading-tight">Version 2.4.0 <br /> Project Nexus</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-white light:text-gray-900/60 mb-1">About Zenvy</p>
+              <p className="text-[8px] text-white light:text-gray-900/40 font-bold leading-tight">Version 2.4.0 <br /> Project Nexus</p>
             </div>
           </button>
         </div>
@@ -831,10 +834,10 @@ export default function ProfilePage() {
       {/* ── F1: Referral Share ── */}
       <div className="mb-8">
         <h3 className="text-[9px] font-black text-secondary-text uppercase tracking-[0.3em] pl-4 mb-4">🔗 Invite Friends</h3>
-        <div className="glass-card p-5 rounded-[30px] border border-white/5">
+        <div className="glass-card p-5 rounded-[30px] border border-white/5 light:border-[#d4cfc5]">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Your Referral Code</p>
+              <p className="text-[9px] font-black text-white light:text-gray-900/40 uppercase tracking-widest">Your Referral Code</p>
               <p className="text-lg font-black text-[#C9A84C] tracking-widest mt-1">{user?.referralCode || 'Loading...'}</p>
             </div>
             <button
@@ -849,7 +852,7 @@ export default function ProfilePage() {
               Copy
             </button>
           </div>
-          <p className="text-[8px] font-bold text-white/30">Share this code — both of you earn <span className="text-emerald-400">50 ZenPoints</span> when they place their first order.</p>
+          <p className="text-[8px] font-bold text-white light:text-gray-900/30">Share this code — both of you earn <span className="text-emerald-400">50 ZenPoints</span> when they place their first order.</p>
         </div>
       </div>
 
@@ -857,13 +860,13 @@ export default function ProfilePage() {
       {user?.isElite && (
         <div className="mb-8">
           <h3 className="text-[9px] font-black text-secondary-text uppercase tracking-[0.3em] pl-4 mb-4">🎁 Send a Gift</h3>
-          <div className="glass-card p-5 rounded-[30px] border border-white/5">
-            <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest mb-3">Gift a meal to a friend (Elite perk)</p>
+          <div className="glass-card p-5 rounded-[30px] border border-white/5 light:border-[#d4cfc5]">
+            <p className="text-[8px] font-bold text-white light:text-gray-900/40 uppercase tracking-widest mb-3">Gift a meal to a friend (Elite perk)</p>
             <div className="flex gap-2 mb-3">
               <input
                 type="tel"
                 placeholder="Friend's phone number"
-                className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white outline-none focus:border-[#C9A84C]/40 font-bold"
+                className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white light:text-gray-900 outline-none focus:border-[#C9A84C]/40 font-bold"
                 id="gift-phone"
               />
             </div>
@@ -888,13 +891,13 @@ export default function ProfilePage() {
                       }
                     } catch { showToast('Network error', 'error', '⚠️'); }
                   }}
-                  className="flex-1 py-3 rounded-2xl text-sm font-black border bg-white/5 border-white/10 text-white/60 active:scale-95 transition-all"
+                  className="flex-1 py-3 rounded-2xl text-sm font-black border bg-white/5 border-white/10 text-white light:text-gray-900/60 active:scale-95 transition-all"
                 >
                   ₹{amt}
                 </button>
               ))}
             </div>
-            <p className="text-[7px] text-white/20 font-bold text-center">3 gifts per month • Deducted from your wallet</p>
+            <p className="text-[7px] text-white light:text-gray-900/20 font-bold text-center">3 gifts per month • Deducted from your wallet</p>
           </div>
         </div>
       )}
@@ -905,8 +908,8 @@ export default function ProfilePage() {
         {spendStats ? (
           <div className="space-y-4">
             {/* Monthly Bar Chart */}
-            <div className="glass-card p-5 rounded-[30px] border border-white/5">
-              <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-4">Last 6 Months</p>
+            <div className="glass-card p-5 rounded-[30px] border border-white/5 light:border-[#d4cfc5]">
+              <p className="text-[9px] font-black text-white light:text-gray-900/40 uppercase tracking-widest mb-4">Last 6 Months</p>
               <div className="flex items-end gap-2 h-24">
                 {(() => {
                   const max = Math.max(...spendStats.monthlySpend.map(m => m.total), 1);
@@ -921,9 +924,9 @@ export default function ProfilePage() {
                             : 'rgba(255,255,255,0.1)'
                         }}
                       />
-                      <span className="text-[7px] font-black text-white/30">{m.month.split(' ')[0]}</span>
+                      <span className="text-[7px] font-black text-white light:text-gray-900/30">{m.month.split(' ')[0]}</span>
                       {m.total > 0 && (
-                        <span className="text-[6px] font-black text-white/50">₹{m.total}</span>
+                        <span className="text-[6px] font-black text-white light:text-gray-900/50">₹{m.total}</span>
                       )}
                     </div>
                   ));
@@ -933,16 +936,16 @@ export default function ProfilePage() {
 
             {/* Top Items */}
             {spendStats.topItems.length > 0 && (
-              <div className="glass-card p-5 rounded-[30px] border border-white/5">
-                <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-3">Most Ordered</p>
+              <div className="glass-card p-5 rounded-[30px] border border-white/5 light:border-[#d4cfc5]">
+                <p className="text-[9px] font-black text-white light:text-gray-900/40 uppercase tracking-widest mb-3">Most Ordered</p>
                 <div className="space-y-3">
                   {spendStats.topItems.map((item, i) => (
                     <div key={i} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <span className="text-sm">{i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}</span>
                         <div>
-                          <p className="text-xs font-black text-white">{item.name}</p>
-                          <p className="text-[9px] text-white/40 font-bold">{item.count}x ordered</p>
+                          <p className="text-xs font-black text-white light:text-gray-900">{item.name}</p>
+                          <p className="text-[9px] text-white light:text-gray-900/40 font-bold">{item.count}x ordered</p>
                         </div>
                       </div>
                       <span className="text-xs font-black text-[#C9A84C]">₹{item.spend}</span>
@@ -960,29 +963,29 @@ export default function ProfilePage() {
                 { label: 'Current Streak', value: `🔥 ${spendStats.currentStreak}d`, icon: '⚡' },
                 { label: 'Fav Restaurant', value: spendStats.favoriteRestaurant.split(' ')[0], icon: '🍽️' },
               ].map((stat, i) => (
-                <div key={i} className="glass-card p-4 rounded-[24px] border border-white/5 flex flex-col gap-1">
+                <div key={i} className="glass-card p-4 rounded-[24px] border border-white/5 light:border-[#d4cfc5] flex flex-col gap-1">
                   <span className="text-lg">{stat.icon}</span>
-                  <p className="text-xs font-black text-white truncate">{stat.value}</p>
-                  <p className="text-[8px] font-bold text-white/40 uppercase tracking-wider">{stat.label}</p>
+                  <p className="text-xs font-black text-white light:text-gray-900 truncate">{stat.value}</p>
+                  <p className="text-[8px] font-bold text-white light:text-gray-900/40 uppercase tracking-wider">{stat.label}</p>
                 </div>
               ))}
             </div>
           </div>
         ) : (
-          <div className="glass-card p-6 rounded-[30px] border border-white/5 text-center opacity-50">
-            <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Place your first order to see stats</p>
+          <div className="glass-card p-6 rounded-[30px] border border-white/5 light:border-[#d4cfc5] text-center ">
+            <p className="text-[10px] font-black text-white light:text-gray-900/40 uppercase tracking-widest">Place your first order to see stats</p>
           </div>
         )}
       </div>
 
-      <div className="mt-10 pt-10 border-t border-white/5 pb-20">
+      <div className="mt-10 pt-10 border-t border-white/5 light:border-[#d4cfc5] pb-20">
         <button 
           onClick={handleLogout} 
           className="w-full bg-red-500/5 hover:bg-red-500/10 text-red-500/60 hover:text-red-500 py-6 rounded-[32px] text-[11px] uppercase font-black tracking-[0.5em] transition-all border border-red-500/10 hover:border-red-500/30 shadow-lg active:scale-[0.98]"
         >
           Logout
         </button>
-        <p className="text-center mt-6 text-[8px] font-bold text-white/10 uppercase tracking-[0.3em]">Sign out of your account</p>
+        <p className="text-center mt-6 text-[8px] font-bold text-white/20 light:text-[#8a8580] uppercase tracking-[0.3em]">Sign out of your account</p>
       </div>
 
 
@@ -1034,7 +1037,7 @@ export default function ProfilePage() {
                   <div className="absolute left-0 right-0 top-[calc(100%+4px)] bg-[#1a1a1c] border border-white/10 rounded-2xl overflow-hidden shadow-2xl z-50">
                     {addressSuggestions.map((item, i) => (
                       <button key={i} type="button" onMouseDown={() => handleSelectSuggestion(item)}
-                        className="w-full text-left px-5 py-3.5 text-[11px] font-bold text-white/80 hover:bg-[#C9A84C]/10 hover:text-[#C9A84C] border-b border-white/5 last:border-0 transition-colors leading-snug">
+                        className="w-full text-left px-5 py-3.5 text-[11px] font-bold text-white light:text-gray-900/80 hover:bg-[#C9A84C]/10 hover:text-[#C9A84C] border-b border-white/5 last:border-0 transition-colors leading-snug">
                         <span className="text-[#C9A84C] mr-2">📍</span>{item.name ? <><strong>{item.name}</strong>, </> : ''}{item.address?.road || item.address?.neighbourhood || ''}{item.address?.village ? ` &mdash; ${item.address.village}` : ''}
                       </button>
                     ))}
@@ -1060,7 +1063,7 @@ export default function ProfilePage() {
         <div className="w-full sm:max-w-[360px] space-y-6 bg-[#141416] border border-white/10 rounded-[40px] p-8 relative">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-2xl font-black uppercase tracking-widest">Add Address</h3>
-              <button className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all" onClick={() => setAddingAddress(false)}>✕</button>
+              <button className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white light:text-gray-900/40 hover:text-white light:text-gray-900 hover:bg-white/10 transition-all" onClick={() => setAddingAddress(false)}>✕</button>
             </div>
             <div className="space-y-4">
               <input type="text" value={newAddr.label} onChange={e => setNewAddr({ ...newAddr, label: e.target.value })} placeholder="Label (e.g. Hostel A-204, Gate-2...)" className="w-full bg-white/5 border border-white/10 rounded-2xl h-14 px-6 font-bold outline-none" />
@@ -1138,8 +1141,8 @@ export default function ProfilePage() {
               
               <div className="space-y-6 mt-8">
                 <div className="space-y-2">
-                  <p className="text-[11px] font-black uppercase tracking-widest text-white/60">The Vision</p>
-                  <p className="text-[12px] font-medium text-white/70 leading-relaxed italic">
+                  <p className="text-[11px] font-black uppercase tracking-widest text-white light:text-gray-900/60">The Vision</p>
+                  <p className="text-[12px] font-medium text-white light:text-gray-900/70 leading-relaxed italic">
                     &quot;Redefining campus logistics through cinematic design and surgical precision. Zenvy Nexus isn&apos;t just a delivery platform; it&apos;s the heartbeat of university commerce.&quot;
                   </p>
                 </div>
@@ -1147,16 +1150,16 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
                     <p className="text-[8px] font-black text-secondary-text uppercase mb-1">Version</p>
-                    <p className="text-sm font-black text-white">2.4.0-STABLE</p>
+                    <p className="text-sm font-black text-white light:text-gray-900">2.4.0-STABLE</p>
                   </div>
                   <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
                     <p className="text-[8px] font-black text-secondary-text uppercase mb-1">Architecture</p>
-                    <p className="text-sm font-black text-white">NEXUS_V2</p>
+                    <p className="text-sm font-black text-white light:text-gray-900">NEXUS_V2</p>
                   </div>
                 </div>
 
                 <div className="pt-4 flex flex-col items-center gap-4">
-                  <p className="text-[9px] text-white/30 font-bold uppercase tracking-[0.1em] text-center leading-relaxed">
+                  <p className="text-[9px] text-white light:text-gray-900/30 font-bold uppercase tracking-[0.1em] text-center leading-relaxed">
                      Designed by <br />
                      Shanmukesh Kunjam
                   </p>

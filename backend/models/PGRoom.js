@@ -13,6 +13,17 @@ const initPGRoomModel = (sequelize) => {
     pricePerBed: { type: DataTypes.FLOAT, allowNull: false },
     totalBeds: { type: DataTypes.INTEGER, allowNull: false },
     availableBeds: { type: DataTypes.INTEGER, allowNull: false },
+    floorNumber: { type: DataTypes.INTEGER, defaultValue: 1 },
+    hasAttachedBathroom: { type: DataTypes.BOOLEAN, defaultValue: true },
+    hasAC: { type: DataTypes.BOOLEAN, defaultValue: false },
+    hasBalcony: { type: DataTypes.BOOLEAN, defaultValue: false },
+    furnishing: { type: DataTypes.STRING, defaultValue: 'Fully Furnished' }, // 'Fully Furnished', 'Semi Furnished', 'Unfurnished'
+    images: {
+      type: DataTypes.TEXT,
+      defaultValue: '[]',
+      get() { const v = this.getDataValue('images'); return v ? JSON.parse(v) : []; },
+      set(v) { this.setDataValue('images', JSON.stringify(v)); }
+    },
     isActive: { type: DataTypes.BOOLEAN, defaultValue: true }
   }, { timestamps: true });
 
@@ -20,3 +31,4 @@ const initPGRoomModel = (sequelize) => {
 };
 
 module.exports = { initPGRoomModel, getPGRoomModel: () => PGRoom };
+

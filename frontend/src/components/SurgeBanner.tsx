@@ -27,7 +27,7 @@ export default function SurgeBanner() {
   if (!surge) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[9997] bg-gradient-to-r from-orange-600 to-red-600 text-white flex items-center justify-between px-6 py-2.5 shadow-lg border-b border-red-400/30">
+    <div className="fixed top-0 left-0 right-0 z-[9997] bg-gradient-to-r from-orange-600 to-red-600 text-white light:text-gray-900 flex items-center justify-between px-6 py-2.5 shadow-lg border-b border-red-400/30">
       <div className="flex items-center gap-3">
         <span className="text-xl animate-pulse">🔥</span>
         <div>

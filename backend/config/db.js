@@ -385,6 +385,21 @@ const connectDB = async () => {
             console.log(`✅ [SQLite_MIGRATION] Added ${col.name} column to MenuItems.`);
           } catch (_err) {}
         }
+        // PGRooms new fields migration
+        const pgRoomCols = [
+          { name: 'floorNumber', type: 'INTEGER DEFAULT 1' },
+          { name: 'hasAttachedBathroom', type: 'BOOLEAN DEFAULT 1' },
+          { name: 'hasAC', type: 'BOOLEAN DEFAULT 0' },
+          { name: 'hasBalcony', type: 'BOOLEAN DEFAULT 0' },
+          { name: 'furnishing', type: "VARCHAR(255) DEFAULT 'Fully Furnished'" },
+          { name: 'images', type: 'TEXT DEFAULT \'[]\'' }
+        ];
+        for (const col of pgRoomCols) {
+          try {
+            await sequelize.query(`ALTER TABLE "PGRooms" ADD COLUMN "${col.name}" ${col.type};`);
+            console.log(`✅ [SQLite_MIGRATION] Added ${col.name} column to PGRooms.`);
+          } catch (_err) {}
+        }
       }
     } else {
       console.log('🔒 Production Sync: Running { alter: true } (Resilient Mode)');

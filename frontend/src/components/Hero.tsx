@@ -48,7 +48,7 @@ const Hero = () => {
         <div className="text-center px-4">
           <p className="text-[11px] font-black text-primary-yellow uppercase tracking-[0.5em] mb-4 animate-fade-in">Now Live in Amaravathi 🌆</p>
           <h1 className="text-[48px] md:text-[56px] leading-[1] font-extrabold mb-8 tracking-tighter" style={{ fontFamily: "'Syne', sans-serif" }}>
-            <span className="text-white">Your city,</span><br />
+            <span className="text-white light:text-gray-900">Your city,</span><br />
             <span className="text-gold-shimmer block mt-2">your cravings.</span>
           </h1>
           <p className="text-secondary-text text-[15px] font-medium leading-relaxed mb-12 max-w-[320px] mx-auto opacity-80">

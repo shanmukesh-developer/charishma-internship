@@ -9,6 +9,7 @@ import VFXLayer from '@/components/VFXLayer';
 import GlobalAnnouncement from '@/components/GlobalAnnouncement';
 import FetchInterceptor from '@/components/FetchInterceptor';
 import AntiInspect from '@/components/AntiInspect';
+import EcosystemFab from '@/components/EcosystemFab';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -42,6 +43,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning={true}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (localStorage.theme === 'light' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+                  document.documentElement.classList.add('light');
+                } else if (localStorage.theme === 'dark') {
+                  document.documentElement.classList.remove('light');
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning={true}
@@ -53,6 +69,8 @@ export default function RootLayout({
         <CartProvider>
           {/* Performance Optimized VFX Layer */}
           <VFXLayer />
+          
+          <EcosystemFab />
 
           <div className="relative z-10">
             {children}
@@ -62,4 +80,3 @@ export default function RootLayout({
     </html>
   );
 }
-

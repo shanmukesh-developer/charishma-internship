@@ -48,7 +48,7 @@ export default function SuccessOverlay({ isOpen, onClose, title, message, type =
           <div className={`absolute inset-0 rounded-full border-2 ${isError ? 'border-red-500/50' : 'border-[#C9A84C]'} animate-ping opacity-20`} />
           <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${isError ? 'from-red-500 to-red-600' : 'from-[#C9A84C] to-[#8B7332]'} flex items-center justify-center shadow-lg ${isError ? 'shadow-red-500/30' : 'shadow-[#C9A84C]/30'}`}>
             {isError ? (
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 text-white light:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
               </svg>
             ) : (
@@ -66,7 +66,7 @@ export default function SuccessOverlay({ isOpen, onClose, title, message, type =
           {actionLabel && onAction && (
             <button 
               onClick={() => { onAction(); setShow(false); setTimeout(onClose, 500); }}
-              className={`w-full h-14 ${isError ? 'bg-red-500 text-white' : 'bg-primary-yellow text-black'} rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg transition-all active:scale-95`}
+              className={`w-full h-14 ${isError ? 'bg-red-500 text-white light:text-gray-900' : 'bg-primary-yellow text-black'} rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg transition-all active:scale-95`}
             >
               {actionLabel}
             </button>

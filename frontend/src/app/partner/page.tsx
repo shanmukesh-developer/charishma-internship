@@ -57,25 +57,25 @@ export default function RestaurantOnboardingPage() {
 
   if (success) {
     return (
-      <main className="min-h-screen bg-background text-white flex flex-col items-center justify-center p-8 text-center">
+      <main className="min-h-screen bg-background text-white light:text-gray-900 flex flex-col items-center justify-center p-8 text-center">
         <div className="text-6xl mb-6 animate-bounce">🎉</div>
         <h1 className="text-3xl font-black mb-3">You&apos;re on the list!</h1>
         <p className="text-secondary-text text-sm mb-2 max-w-sm">
-          <strong className="text-white">{form.restaurantName}</strong> has been submitted for review.
+          <strong className="text-white light:text-gray-900">{form.restaurantName}</strong> has been submitted for review.
           Our team will contact you at <strong className="text-primary-yellow">{form.phone}</strong> within 24 hours.
         </p>
-        <p className="text-[10px] text-secondary-text uppercase tracking-widest font-bold mt-6 opacity-50">Zenvy Partner Network · Amaravathi</p>
+        <p className="text-[10px] text-secondary-text uppercase tracking-widest font-bold mt-6 ">Zenvy Partner Network · Amaravathi</p>
         <Link href="/" className="mt-10 btn-yellow text-sm px-8 py-4">Back to Home</Link>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-background text-white pb-20">
+    <main className="min-h-screen bg-background text-white light:text-gray-900 pb-20">
       {/* Header */}
       <div className="sticky top-0 bg-background/90 backdrop-blur-md border-b border-white/5 z-50 px-6 py-4 flex items-center gap-4">
         <Link href="/" className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-white light:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
           </svg>
         </Link>
@@ -112,7 +112,7 @@ export default function RestaurantOnboardingPage() {
                   value={form[field.key as keyof typeof form] as string}
                   onChange={e => setForm(p => ({ ...p, [field.key]: e.target.value }))}
                   placeholder={field.placeholder}
-                  className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 outline-none focus:border-primary-yellow/40 transition-all text-sm"
+                  className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white light:text-gray-900 placeholder-gray-600 outline-none focus:border-primary-yellow/40 transition-all text-sm"
                 />
               </div>
             ))}
@@ -146,7 +146,7 @@ export default function RestaurantOnboardingPage() {
                   value={form[field.key as keyof typeof form] as string}
                   onChange={e => setForm(p => ({ ...p, [field.key]: e.target.value }))}
                   placeholder={field.placeholder}
-                  className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 outline-none focus:border-primary-yellow/40 transition-all text-sm"
+                  className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white light:text-gray-900 placeholder-gray-600 outline-none focus:border-primary-yellow/40 transition-all text-sm"
                 />
               </div>
             ))}
@@ -171,11 +171,11 @@ export default function RestaurantOnboardingPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-[9px] font-black uppercase tracking-widest text-secondary-text block mb-2">Opens At</label>
-                <input type="time" value={form.openTime} onChange={e => setForm(p => ({ ...p, openTime: e.target.value }))} className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none text-sm" />
+                <input type="time" value={form.openTime} onChange={e => setForm(p => ({ ...p, openTime: e.target.value }))} className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white light:text-gray-900 outline-none text-sm" />
               </div>
               <div>
                 <label className="text-[9px] font-black uppercase tracking-widest text-secondary-text block mb-2">Closes At</label>
-                <input type="time" value={form.closeTime} onChange={e => setForm(p => ({ ...p, closeTime: e.target.value }))} className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none text-sm" />
+                <input type="time" value={form.closeTime} onChange={e => setForm(p => ({ ...p, closeTime: e.target.value }))} className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white light:text-gray-900 outline-none text-sm" />
               </div>
             </div>
             <div className="flex gap-3">
@@ -205,7 +205,7 @@ export default function RestaurantOnboardingPage() {
                   value={form[field.key as keyof typeof form] as string}
                   onChange={e => setForm(p => ({ ...p, [field.key]: e.target.value }))}
                   placeholder={field.placeholder}
-                  className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 outline-none focus:border-primary-yellow/40 transition-all text-sm"
+                  className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white light:text-gray-900 placeholder-gray-600 outline-none focus:border-primary-yellow/40 transition-all text-sm"
                 />
               </div>
             ))}

@@ -102,7 +102,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#0A0A0B] text-white flex items-center justify-center p-5">
+    <main className="min-h-screen bg-[#0A0A0B] light:bg-[#f0ece4] text-white light:text-[#1a1a1a] flex items-center justify-center p-5">
       <div className="w-full max-w-lg">
 
         {/* Logo / Brand */}
@@ -118,17 +118,17 @@ export default function LoginPage() {
             <span className="text-[10px] font-bold tracking-[0.4em] uppercase text-[#C9A84C]/60">Zenvy</span>
             <div className="w-8 h-px bg-[#C9A84C]/30" />
           </div>
-          <h1 className="text-4xl font-bold text-white tracking-tight">Sign In</h1>
-          <p className="text-sm text-[#6B6B6B] mt-2">Welcome back. Sign in to your account.</p>
+          <h1 className="text-4xl font-bold text-white light:text-[#1a1a1a] tracking-tight">Sign In</h1>
+          <p className="text-sm text-[#6B6B6B] light:text-[#5a5a5a] mt-2">Welcome back. Sign in to your account.</p>
         </div>
 
         {/* Card */}
-        <div className="bg-[#141416] border border-[#C9A84C]/10 rounded-3xl p-10 shadow-xl shadow-black/40">
+        <div className="bg-[#141416] light:bg-white border border-[#C9A84C]/10 light:border-[#d4cfc5] rounded-3xl p-10 shadow-xl shadow-black/40 light:shadow-[0_8px_40px_rgba(0,0,0,0.08)]">
 
           <form onSubmit={handleLogin} className="space-y-6">
             {/* Phone */}
             <div>
-              <label className="block text-sm font-semibold text-[#6B6B6B] mb-2 tracking-wider uppercase">Phone Number</label>
+              <label className="block text-sm font-semibold text-[#6B6B6B] light:text-[#3e3e3e] mb-2 tracking-wider uppercase">Phone Number</label>
               <div className="relative">
                 <span className="absolute left-5 top-1/2 -translate-y-1/2 text-[#C9A84C] text-base font-bold">+91</span>
                 <input
@@ -137,7 +137,7 @@ export default function LoginPage() {
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="Enter phone number"
                   suppressHydrationWarning={true}
-                  className="w-full bg-[#0A0A0B] border border-white/8 hover:border-white/15 focus:border-[#C9A84C]/50 rounded-2xl h-16 pl-16 pr-5 text-base font-medium text-white placeholder:text-white/20 outline-none transition-colors"
+                  className="w-full bg-[#0A0A0B] light:bg-[#f5f3ee] border border-white/8 light:border-[#c8c3b8] hover:border-white/15 light:hover:border-[#a8a298] focus:border-[#C9A84C]/50 rounded-2xl h-16 pl-16 pr-5 text-base font-medium text-white light:text-[#1a1a1a] placeholder:text-white/40 light:placeholder:text-[#9a9590] outline-none transition-colors"
                 />
               </div>
             </div>
@@ -145,7 +145,7 @@ export default function LoginPage() {
             {/* Password */}
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="text-sm font-semibold text-[#6B6B6B] tracking-wider uppercase">Password</label>
+                <label className="text-sm font-semibold text-[#6B6B6B] light:text-[#3e3e3e] tracking-wider uppercase">Password</label>
                 <Link href="/forgot-password" className="text-xs text-[#C9A84C]/70 hover:text-[#C9A84C] transition-colors">
                   Forgot password?
                 </Link>
@@ -158,13 +158,13 @@ export default function LoginPage() {
                   placeholder="Enter password"
                   autoComplete="current-password"
                   suppressHydrationWarning={true}
-                  className="w-full bg-[#0A0A0B] border border-white/8 hover:border-white/15 focus:border-[#C9A84C]/50 rounded-2xl h-16 px-5 pr-14 text-base font-medium text-white placeholder:text-white/20 outline-none transition-colors"
+                  className="w-full bg-[#0A0A0B] light:bg-[#f5f3ee] border border-white/8 light:border-[#c8c3b8] hover:border-white/15 light:hover:border-[#a8a298] focus:border-[#C9A84C]/50 rounded-2xl h-16 px-5 pr-14 text-base font-medium text-white light:text-[#1a1a1a] placeholder:text-white/40 light:placeholder:text-[#9a9590] outline-none transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   suppressHydrationWarning={true}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-[#C9A84C] transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/60 light:text-[#6B6B6B] hover:text-[#C9A84C] transition-colors"
                 >
                   {showPassword
                     ? <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
@@ -179,7 +179,7 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               suppressHydrationWarning={true}
-              className="w-full h-16 rounded-2xl bg-[#C9A84C] hover:bg-[#D4B56A] disabled:opacity-60 disabled:cursor-not-allowed text-[#0A0A0B] text-base font-bold tracking-wide transition-colors mt-2"
+              className="w-full h-16 rounded-2xl bg-[#C9A84C] hover:bg-[#D4B56A] disabled:opacity-50 disabled:cursor-not-allowed text-white text-base font-bold tracking-wide transition-colors mt-2 shadow-lg shadow-[#C9A84C]/20"
             >
               {loading ? 'Signing in…' : 'Sign In'}
             </button>
@@ -187,9 +187,9 @@ export default function LoginPage() {
 
           {/* Divider */}
           <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-white/8" />
-            <span className="text-xs text-[#6B6B6B] font-medium">or</span>
-            <div className="flex-1 h-px bg-white/8" />
+            <div className="flex-1 h-px bg-white/8 light:bg-[#d4cfc5]" />
+            <span className="text-xs text-[#6B6B6B] light:text-[#8a8580] font-medium">or</span>
+            <div className="flex-1 h-px bg-white/8 light:bg-[#d4cfc5]" />
           </div>
 
           {/* Google */}
@@ -198,7 +198,7 @@ export default function LoginPage() {
             onClick={handleGoogleLogin}
             disabled={loading}
             suppressHydrationWarning={true}
-            className="w-full h-14 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/8 hover:border-white/15 text-white text-base font-semibold flex items-center justify-center gap-3 transition-colors disabled:opacity-60"
+            className="w-full h-14 rounded-2xl bg-white/5 light:bg-[#1a1a1a] hover:bg-white/10 light:hover:bg-[#2a2a2a] border border-white/8 light:border-[#1a1a1a] hover:border-white/15 text-white text-base font-semibold flex items-center justify-center gap-3 transition-colors disabled:opacity-50 light:shadow-md"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -210,7 +210,7 @@ export default function LoginPage() {
           </button>
 
           {/* Footer */}
-          <p className="text-center text-xs text-[#6B6B6B] mt-6">
+          <p className="text-center text-xs text-[#6B6B6B] light:text-[#5a5a5a] mt-6">
             Don&apos;t have an account?{' '}
             <Link href="/register" className="text-[#C9A84C] hover:text-[#E8D48B] font-semibold transition-colors">
               Create account

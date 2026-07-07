@@ -57,7 +57,7 @@ export default function CheckoutProcessingModal({ isOpen, status, errorMessage }
                 🔒
               </div>
             </div>
-            <h2 className="text-xl font-black text-white uppercase tracking-widest mb-2 animate-in fade-in">Processing</h2>
+            <h2 className="text-xl font-black text-white light:text-gray-900 uppercase tracking-widest mb-2 animate-in fade-in">Processing</h2>
             <p className="text-[#C9A84C] text-sm font-bold uppercase tracking-widest transition-all duration-300 animate-in slide-in-from-bottom-2">
               {messages[step]}
             </p>
@@ -85,7 +85,7 @@ export default function CheckoutProcessingModal({ isOpen, status, errorMessage }
                 />
               ))}
             </div>
-            <h2 className="text-2xl font-black text-white uppercase tracking-widest">Order Confirmed</h2>
+            <h2 className="text-2xl font-black text-white light:text-gray-900 uppercase tracking-widest">Order Confirmed</h2>
             <p className="text-emerald-500 text-sm font-bold uppercase tracking-widest mt-2">Routing to Tracker...</p>
           </div>
         )}
@@ -95,11 +95,11 @@ export default function CheckoutProcessingModal({ isOpen, status, errorMessage }
              <div className="w-24 h-24 bg-red-500 rounded-full flex items-center justify-center text-5xl mx-auto mb-6 text-black shadow-[0_0_50px_rgba(239,68,68,0.5)]">
               ✕
             </div>
-            <h2 className="text-2xl font-black text-white uppercase tracking-widest">Payment Failed</h2>
+            <h2 className="text-2xl font-black text-white light:text-gray-900 uppercase tracking-widest">Payment Failed</h2>
             <p className="text-red-400 text-xs font-bold uppercase tracking-widest mt-4 max-w-xs">{errorMessage || 'Request Rejected'}</p>
             <button 
               onClick={() => window.location.reload()}
-              className="mt-8 px-6 py-2 bg-white/10 border border-white/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/20 transition-all"
+              className="mt-8 px-6 py-2 bg-white/10 border border-white/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-white light:text-gray-900 hover:bg-white/20 transition-all"
             >
               Back to Checkout
             </button>

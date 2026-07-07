@@ -89,7 +89,7 @@ export default function SpinWheel({ onWin }: { onWin: (prize: typeof PRIZES[0]) 
       <div className="absolute inset-0 bg-[#C9A84C]/5 pointer-events-none" />
       
       <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary-yellow">Nexus Luck</h3>
-      <h2 className="text-xl font-black text-white uppercase tracking-wider text-center">Gourmet Lucky Spin</h2>
+      <h2 className="text-xl font-black text-white light:text-gray-900 uppercase tracking-wider text-center">Gourmet Lucky Spin</h2>
       
       <div className="relative w-64 h-64 mt-4">
         {/* Pointer */}
@@ -115,7 +115,7 @@ export default function SpinWheel({ onWin }: { onWin: (prize: typeof PRIZES[0]) 
               }}
             >
               <span 
-                className="absolute top-8 left-1/2 -translate-x-1/2 text-[8px] font-black text-white whitespace-nowrap origin-bottom"
+                className="absolute top-8 left-1/2 -translate-x-1/2 text-[8px] font-black text-white light:text-gray-900 whitespace-nowrap origin-bottom"
                 style={{ transform: `rotate(${(360 / PRIZES.length) / 2}deg)` }}
               >
                 {prize.label}
@@ -169,10 +169,10 @@ export default function SpinWheel({ onWin }: { onWin: (prize: typeof PRIZES[0]) 
         <button 
           onClick={handleSpinClick}
           disabled={isSpinning || !eligibility || eligibility.spinsAvailable <= 0}
-          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full glass-card border-2 shadow-xl z-30 flex items-center justify-center transition-all ${isSpinning || !eligibility || eligibility.spinsAvailable <= 0 ? 'border-white/10 opacity-50' : 'border-primary-yellow hover:scale-110 active:scale-95'}`}
+          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full glass-card border-2 shadow-xl z-30 flex items-center justify-center transition-all ${isSpinning || !eligibility || eligibility.spinsAvailable <= 0 ? 'border-white/10 ' : 'border-primary-yellow hover:scale-110 active:scale-95'}`}
         >
           <div className="text-center">
-            <p className="text-[10px] font-black text-white uppercase leading-none">SPIN</p>
+            <p className="text-[10px] font-black text-white light:text-gray-900 uppercase leading-none">SPIN</p>
             {(!eligibility || eligibility.spinsAvailable <= 0) && !isSpinning && <p className="text-[6px] font-bold text-primary-yellow uppercase mt-1">Locked</p>}
           </div>
         </button>
@@ -184,7 +184,7 @@ export default function SpinWheel({ onWin }: { onWin: (prize: typeof PRIZES[0]) 
             ? `${eligibility.spinsAvailable} Spin${eligibility.spinsAvailable > 1 ? 's' : ''} Earned!` 
             : `${eligibility?.nextMilestoneIn || 2} orders left for next spin`}
         </p>
-        <p className="text-[7px] text-white/20 uppercase tracking-widest italic">Nexus Reward System v1.1</p>
+        <p className="text-[7px] text-white light:text-gray-900/20 uppercase tracking-widest italic">Nexus Reward System v1.1</p>
       </div>
     </div>
   );

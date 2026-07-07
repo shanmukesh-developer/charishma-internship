@@ -365,10 +365,10 @@ export default function BikePoolPage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen text-white pb-32 bg-[#0A0A0B] relative overflow-hidden">
+      <main className="min-h-screen text-white light:text-gray-900 pb-32 bg-[#0A0A0B] relative overflow-hidden">
         {/* Futuristic Background VFX Layer */}
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          <div className="absolute inset-0 opacity-60 bg-[radial-gradient(circle_at_50%_0%,rgba(165,180,252,0.08),transparent_70%)]" />
+          <div className="absolute inset-0  bg-[radial-gradient(circle_at_50%_0%,rgba(165,180,252,0.08),transparent_70%)]" />
           <div className="fixed inset-0 pointer-events-none z-0">
             <div className="absolute top-1/4 -right-40 w-96 h-96 rounded-full blur-[120px] bg-indigo-500/[0.05]" />
             <div className="absolute bottom-1/3 -left-32 w-80 h-80 rounded-full blur-[100px] bg-primary-yellow/[0.03]" />
@@ -381,7 +381,7 @@ export default function BikePoolPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
             <div>
               <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400 mb-1">Collaborative Commute</h2>
-              <h1 className="text-3xl md:text-4xl font-black text-white italic tracking-tighter uppercase" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <h1 className="text-3xl md:text-4xl font-black text-white light:text-gray-900 italic tracking-tighter uppercase" style={{ fontFamily: "'Syne', sans-serif" }}>
                 Zenvy Co-Ride 🏍️
               </h1>
               <p className="text-xs text-gray-400 mt-1">Eco-friendly free rides. Build community. Earn Karma 🍃.</p>
@@ -390,7 +390,7 @@ export default function BikePoolPage() {
             <div className="flex items-center gap-3">
               <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-2 flex flex-col items-end">
                 <span className="text-[8px] font-bold text-emerald-400 uppercase tracking-widest leading-none">Karma 🍃</span>
-                <span className="text-sm font-black text-white mt-1">{user?.karmaPoints || 0}</span>
+                <span className="text-sm font-black text-white light:text-gray-900 mt-1">{user?.karmaPoints || 0}</span>
               </div>
               
               <Magnetic>
@@ -425,7 +425,7 @@ export default function BikePoolPage() {
                     <select
                       value={genderData.gender}
                       onChange={(e) => setGenderData(prev => ({ ...prev, gender: e.target.value }))}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:border-indigo-400 outline-none"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white light:text-gray-900 focus:border-indigo-400 outline-none"
                     >
                       <option value="Prefer not to say" className="bg-[#141416]">Prefer Not to Say</option>
                       <option value="Male" className="bg-[#141416]">Male</option>
@@ -438,7 +438,7 @@ export default function BikePoolPage() {
                     <select
                       value={genderData.genderPreference}
                       onChange={(e) => setGenderData(prev => ({ ...prev, genderPreference: e.target.value }))}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:border-indigo-400 outline-none"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white light:text-gray-900 focus:border-indigo-400 outline-none"
                     >
                       <option value="Any" className="bg-[#141416]">Match with Any Gender</option>
                       <option value="Same Gender Only" className="bg-[#141416]">Strictly Same Gender Only</option>
@@ -450,13 +450,13 @@ export default function BikePoolPage() {
                   <button
                     onClick={handleUpdateGenderSettings}
                     disabled={updatingProfile}
-                    className="bg-indigo-500 hover:bg-indigo-600 disabled:bg-indigo-500/50 text-white text-[10px] font-black uppercase px-6 py-2.5 rounded-xl tracking-wider transition-all"
+                    className="bg-indigo-500 hover:bg-indigo-600 disabled:bg-indigo-500/50 text-white light:text-gray-900 text-[10px] font-black uppercase px-6 py-2.5 rounded-xl tracking-wider transition-all"
                   >
                     {updatingProfile ? 'Saving...' : 'Save Settings'}
                   </button>
                   <button
                     onClick={() => setShowProfileSetup(false)}
-                    className="text-gray-400 hover:text-white text-[10px] font-bold uppercase px-4 py-2.5"
+                    className="text-gray-400 hover:text-white light:text-gray-900 text-[10px] font-bold uppercase px-4 py-2.5"
                   >
                     Dismiss
                   </button>
@@ -469,7 +469,7 @@ export default function BikePoolPage() {
           <div className="flex gap-4 border-b border-white/10 pb-4 mb-6">
             <button
               onClick={() => setActiveTab('browse')}
-              className={`text-xs font-black uppercase tracking-widest pb-1 transition-all relative ${activeTab === 'browse' ? 'text-white' : 'text-gray-500 hover:text-white'}`}
+              className={`text-xs font-black uppercase tracking-widest pb-1 transition-all relative ${activeTab === 'browse' ? 'text-white light:text-gray-900' : 'text-gray-500 hover:text-white light:text-gray-900'}`}
             >
               Browse Matches
               {activeTab === 'browse' && (
@@ -478,11 +478,11 @@ export default function BikePoolPage() {
             </button>
             <button
               onClick={() => setActiveTab('my-rides')}
-              className={`text-xs font-black uppercase tracking-widest pb-1 transition-all relative ${activeTab === 'my-rides' ? 'text-white' : 'text-gray-500 hover:text-white'}`}
+              className={`text-xs font-black uppercase tracking-widest pb-1 transition-all relative ${activeTab === 'my-rides' ? 'text-white light:text-gray-900' : 'text-gray-500 hover:text-white light:text-gray-900'}`}
             >
               My Commutes & Active Matches
               {getActiveRides().length > 0 && (
-                <span className="ml-2 bg-indigo-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse">
+                <span className="ml-2 bg-indigo-500 text-white light:text-gray-900 text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse">
                   {getActiveRides().length}
                 </span>
               )}
@@ -507,7 +507,7 @@ export default function BikePoolPage() {
                   <div className="flex flex-col items-center justify-center py-20 bg-white/[0.02] border border-white/5 rounded-[30px] text-center p-6">
                     <div className="relative w-16 h-16 mb-6 mx-auto">
                       <div className="absolute inset-0 bg-indigo-500 rounded-full opacity-20 animate-ping" style={{ animationDuration: '2s' }} />
-                      <div className="absolute inset-2 bg-indigo-500 rounded-full opacity-40 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+                      <div className="absolute inset-2 bg-indigo-500 rounded-full  animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
                       <div className="absolute inset-0 flex items-center justify-center text-2xl z-10">📡</div>
                     </div>
                     <h3 className="text-sm font-black uppercase tracking-wider text-gray-400">No Active Pool Listings</h3>
@@ -537,11 +537,11 @@ export default function BikePoolPage() {
                             <div className="mb-4">
                               <div className="flex items-center gap-2 mb-1.5 min-w-0">
                                 <span className="text-xs text-gray-400 shrink-0">From</span>
-                                <span className="text-xs font-bold text-white truncate" title={pool.origin}>{pool.origin}</span>
+                                <span className="text-xs font-bold text-white light:text-gray-900 truncate" title={pool.origin}>{pool.origin}</span>
                               </div>
                               <div className="flex items-center gap-2 min-w-0">
                                 <span className="text-xs text-gray-400 shrink-0">To</span>
-                                <span className="text-xs font-bold text-white truncate" title={pool.destination}>{pool.destination}</span>
+                                <span className="text-xs font-bold text-white light:text-gray-900 truncate" title={pool.destination}>{pool.destination}</span>
                               </div>
                             </div>
 
@@ -549,11 +549,11 @@ export default function BikePoolPage() {
                             <div className="grid grid-cols-2 gap-2 border-t border-white/5 pt-3 mb-4">
                               <div>
                                 <span className="text-[7px] text-gray-500 uppercase tracking-wider block">Departure</span>
-                                <span className="text-[10px] font-bold text-white">{formatDateTime(pool.departureTime)}</span>
+                                <span className="text-[10px] font-bold text-white light:text-gray-900">{formatDateTime(pool.departureTime)}</span>
                               </div>
                               <div>
                                 <span className="text-[7px] text-gray-500 uppercase tracking-wider block">Co-rider Gender</span>
-                                <span className="text-[10px] font-bold text-white flex items-center gap-1">
+                                <span className="text-[10px] font-bold text-white light:text-gray-900 flex items-center gap-1">
                                   👤 {pool.creator?.gender || 'Unknown'} 
                                   <span className="text-[7px] text-gray-500">({pool.creator?.genderPreference === 'Same Gender Only' ? 'Strict' : 'Any'})</span>
                                 </span>
@@ -579,14 +579,14 @@ export default function BikePoolPage() {
                               </div>
                               <div className="min-w-0">
                                 <span className="text-[9px] text-gray-400 block leading-none">Posted By</span>
-                                <span className="text-[10px] font-bold text-white truncate block max-w-[100px]">{pool.creator?.name}</span>
+                                <span className="text-[10px] font-bold text-white light:text-gray-900 truncate block max-w-[100px]">{pool.creator?.name}</span>
                               </div>
                             </div>
 
                             <button
                               onClick={() => handleJoinPool(pool.id)}
                               disabled={joiningRideId === pool.id}
-                              className="bg-white hover:bg-primary-yellow hover:text-black text-black text-[10px] font-black px-4 py-2.5 rounded-xl uppercase tracking-tighter disabled:opacity-50 transition-all shrink-0"
+                              className="bg-white hover:bg-primary-yellow hover:text-black text-black text-[10px] font-black px-4 py-2.5 rounded-xl uppercase tracking-tighter disabled: transition-all shrink-0"
                             >
                               {joiningRideId === pool.id ? 'Matching...' : 'Join Ride'}
                             </button>
@@ -641,11 +641,11 @@ export default function BikePoolPage() {
                               <div className="grid grid-cols-2 gap-4 mb-4">
                                 <div>
                                   <span className="text-[7px] text-gray-500 uppercase block">Route</span>
-                                  <p className="text-xs font-black text-white">{ride.origin} → {ride.destination}</p>
+                                  <p className="text-xs font-black text-white light:text-gray-900">{ride.origin} → {ride.destination}</p>
                                 </div>
                                 <div>
                                   <span className="text-[7px] text-gray-500 uppercase block">Departure</span>
-                                  <p className="text-xs font-black text-white">{formatDateTime(ride.departureTime)}</p>
+                                  <p className="text-xs font-black text-white light:text-gray-900">{formatDateTime(ride.departureTime)}</p>
                                 </div>
                               </div>
 
@@ -662,7 +662,7 @@ export default function BikePoolPage() {
                                         )}
                                       </div>
                                       <div>
-                                        <span className="text-xs font-bold text-white block">{otherPerson.name}</span>
+                                        <span className="text-xs font-bold text-white light:text-gray-900 block">{otherPerson.name}</span>
                                         <span className="text-[9px] text-gray-400 block">{otherPerson.phone}</span>
                                       </div>
                                     </div>
@@ -729,7 +729,7 @@ export default function BikePoolPage() {
                                 <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded ${isCompleted ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
                                   {ride.status}
                                 </span>
-                                <span className="text-[10px] font-bold text-white">{ride.origin} → {ride.destination}</span>
+                                <span className="text-[10px] font-bold text-white light:text-gray-900">{ride.origin} → {ride.destination}</span>
                               </div>
                               <span className="text-[9px] text-gray-500">{formatDateTime(ride.departureTime)}</span>
                             </div>
@@ -769,7 +769,7 @@ export default function BikePoolPage() {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="bg-[#141416] border border-white/10 rounded-[30px] w-full max-w-lg p-6 relative z-10 overflow-y-auto max-h-[90vh]"
             >
-              <h2 className="text-xl font-black text-white italic tracking-tighter uppercase mb-2">Post Co-Ride Offer</h2>
+              <h2 className="text-xl font-black text-white light:text-gray-900 italic tracking-tighter uppercase mb-2">Post Co-Ride Offer</h2>
               <p className="text-xs text-gray-400 mb-6">Create a ride share post. Matching algorithm applies safety parameters automatically.</p>
               
               <form onSubmit={handleCreatePool} className="space-y-4">
@@ -781,14 +781,14 @@ export default function BikePoolPage() {
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, creatorRole: 'rider' }))}
-                      className={`py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all ${formData.creatorRole === 'rider' ? 'bg-primary-yellow text-black' : 'text-gray-400 hover:text-white'}`}
+                      className={`py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all ${formData.creatorRole === 'rider' ? 'bg-primary-yellow text-black' : 'text-gray-400 hover:text-white light:text-gray-900'}`}
                     >
                       🏍️ Rider (I have a bike)
                     </button>
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, creatorRole: 'passenger' }))}
-                      className={`py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all ${formData.creatorRole === 'passenger' ? 'bg-indigo-400 text-black' : 'text-gray-400 hover:text-white'}`}
+                      className={`py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all ${formData.creatorRole === 'passenger' ? 'bg-indigo-400 text-black' : 'text-gray-400 hover:text-white light:text-gray-900'}`}
                     >
                       🎒 Passenger (No bike)
                     </button>
@@ -804,7 +804,7 @@ export default function BikePoolPage() {
                       placeholder="e.g. Shakti Canteen, SRM AP"
                       value={formData.origin}
                       onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value }))}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-600 outline-none focus:border-indigo-400"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white light:text-gray-900 placeholder-gray-600 outline-none focus:border-indigo-400"
                     />
                   </div>
                   <div>
@@ -815,7 +815,7 @@ export default function BikePoolPage() {
                       placeholder="e.g. Vijayawada Station"
                       value={formData.destination}
                       onChange={(e) => setFormData(prev => ({ ...prev, destination: e.target.value }))}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-600 outline-none focus:border-indigo-400"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white light:text-gray-900 placeholder-gray-600 outline-none focus:border-indigo-400"
                     />
                   </div>
                 </div>
@@ -827,7 +827,7 @@ export default function BikePoolPage() {
                     required
                     value={formData.departureTime}
                     onChange={(e) => setFormData(prev => ({ ...prev, departureTime: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-indigo-400"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white light:text-gray-900 outline-none focus:border-indigo-400"
                   />
                 </div>
 
@@ -838,7 +838,7 @@ export default function BikePoolPage() {
                     <select
                       value={formData.vehicleType}
                       onChange={(e) => setFormData(prev => ({ ...prev, vehicleType: e.target.value }))}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-indigo-400"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white light:text-gray-900 outline-none focus:border-indigo-400"
                     >
                       <option value="Bike" className="bg-[#141416]">Bike 🏍️</option>
                       <option value="Car" className="bg-[#141416]">Car 🚗</option>
@@ -853,7 +853,7 @@ export default function BikePoolPage() {
                       max="6"
                       value={formData.availableSeats}
                       onChange={(e) => setFormData(prev => ({ ...prev, availableSeats: parseInt(e.target.value) || 1 }))}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-indigo-400"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white light:text-gray-900 outline-none focus:border-indigo-400"
                     />
                   </div>
                 </div>
@@ -866,7 +866,7 @@ export default function BikePoolPage() {
                     placeholder="e.g. Main Gate, Library"
                     value={formData.stopovers}
                     onChange={(e) => setFormData(prev => ({ ...prev, stopovers: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-600 outline-none focus:border-indigo-400"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white light:text-gray-900 placeholder-gray-600 outline-none focus:border-indigo-400"
                   />
                 </div>
 
@@ -877,7 +877,7 @@ export default function BikePoolPage() {
                     <select
                       value={formData.rideVibe}
                       onChange={(e) => setFormData(prev => ({ ...prev, rideVibe: e.target.value }))}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-indigo-400"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white light:text-gray-900 outline-none focus:border-indigo-400"
                     >
                       <option value="Any" className="bg-[#141416]">Any Vibe</option>
                       <option value="Silent Ride 🤫" className="bg-[#141416]">Silent Ride 🤫</option>
@@ -896,7 +896,7 @@ export default function BikePoolPage() {
                         className="w-4 h-4 accent-emerald-500 bg-white/10 rounded border-white/20"
                       />
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-white uppercase tracking-wider">Auto-Approve</span>
+                        <span className="text-[10px] font-bold text-white light:text-gray-900 uppercase tracking-wider">Auto-Approve</span>
                         <span className="text-[8px] text-gray-500">Instantly accept join requests</span>
                       </div>
                     </label>
@@ -911,7 +911,7 @@ export default function BikePoolPage() {
                       placeholder="e.g. Black Activa, AP-16-XX"
                       value={formData.vehicleInfo}
                       onChange={(e) => setFormData(prev => ({ ...prev, vehicleInfo: e.target.value }))}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-600 outline-none focus:border-indigo-400"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white light:text-gray-900 placeholder-gray-600 outline-none focus:border-indigo-400"
                     />
                   </div>
                 )}
@@ -923,7 +923,7 @@ export default function BikePoolPage() {
                     placeholder="e.g. Carrying luggage, need to leave on time."
                     value={formData.notes}
                     onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-600 outline-none focus:border-indigo-400 resize-none"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white light:text-gray-900 placeholder-gray-600 outline-none focus:border-indigo-400 resize-none"
                   />
                 </div>
 
@@ -938,7 +938,7 @@ export default function BikePoolPage() {
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="bg-white/5 border border-white/10 text-white text-xs font-bold px-6 py-3.5 rounded-xl uppercase tracking-wider hover:bg-white/10"
+                    className="bg-white/5 border border-white/10 text-white light:text-gray-900 text-xs font-bold px-6 py-3.5 rounded-xl uppercase tracking-wider hover:bg-white/10"
                   >
                     Cancel
                   </button>
@@ -972,21 +972,21 @@ export default function BikePoolPage() {
               <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl mx-auto mb-4 animate-pulse">
                 🧾
               </div>
-              <h2 className="text-xl font-black text-white italic tracking-tighter uppercase mb-1">Eco-Ride Complete</h2>
+              <h2 className="text-xl font-black text-white light:text-gray-900 italic tracking-tighter uppercase mb-1">Eco-Ride Complete</h2>
               <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest block mb-4">Karma Points Award</span>
               
               <div className="p-4 bg-white/5 rounded-2xl text-left space-y-2.5 mb-6 text-xs">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Origin:</span>
-                  <span className="font-bold text-white">{selectedRide.origin}</span>
+                  <span className="font-bold text-white light:text-gray-900">{selectedRide.origin}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Destination:</span>
-                  <span className="font-bold text-white">{selectedRide.destination}</span>
+                  <span className="font-bold text-white light:text-gray-900">{selectedRide.destination}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Scheduled Time:</span>
-                  <span className="font-bold text-white">{formatDateTime(selectedRide.departureTime)}</span>
+                  <span className="font-bold text-white light:text-gray-900">{formatDateTime(selectedRide.departureTime)}</span>
                 </div>
                 <div className="h-px bg-white/10 my-2" />
                 <div className="flex justify-between text-sm">
@@ -1005,7 +1005,7 @@ export default function BikePoolPage() {
                 </button>
                 <button
                   onClick={() => setSelectedRide(null)}
-                  className="w-full bg-white/5 text-gray-400 text-[10px] font-bold py-2.5 rounded-xl uppercase tracking-wider hover:text-white"
+                  className="w-full bg-white/5 text-gray-400 text-[10px] font-bold py-2.5 rounded-xl uppercase tracking-wider hover:text-white light:text-gray-900"
                 >
                   Dismiss
                 </button>
@@ -1026,7 +1026,7 @@ export default function BikePoolPage() {
               exit={{ scale: 0.9, opacity: 0 }}
               className="bg-[#18181B] border border-white/10 rounded-3xl p-6 max-w-sm w-full text-center relative z-10 shadow-2xl"
             >
-              <h3 className="text-lg font-black text-white mb-2">{feedbackOverlay.title}</h3>
+              <h3 className="text-lg font-black text-white light:text-gray-900 mb-2">{feedbackOverlay.title}</h3>
               <p className="text-xs text-gray-400 leading-relaxed mb-6">{feedbackOverlay.message}</p>
               <button
                 onClick={() => setFeedbackOverlay(prev => ({ ...prev, isOpen: false }))}

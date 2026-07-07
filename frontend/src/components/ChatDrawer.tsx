@@ -109,10 +109,10 @@ export default function ChatDrawer({ orderId, userName, userRole, socket, isOpen
             </div>
             <div>
               <p className="text-[10px] text-emerald-500 uppercase font-black tracking-widest">Live Chat</p>
-              <h3 className="text-white font-bold">{userRole === 'customer' ? 'Zenvy Captain' : 'Customer'}</h3>
+              <h3 className="text-white light:text-gray-900 font-bold">{userRole === 'customer' ? 'Zenvy Captain' : 'Customer'}</h3>
             </div>
           </div>
-          <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-colors text-xl font-bold">✕</button>
+          <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white light:text-gray-900 transition-colors text-xl font-bold">✕</button>
         </div>
 
         {/* Messages */}
@@ -128,10 +128,10 @@ export default function ChatDrawer({ orderId, userName, userRole, socket, isOpen
             return (
               <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[80%] p-4 rounded-2xl ${
-                  isMe ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white/10 text-gray-200 rounded-tl-none border border-white/5'
+                  isMe ? 'bg-emerald-600 text-white light:text-gray-900 rounded-tr-none' : 'bg-white/10 text-gray-200 rounded-tl-none border border-white/5'
                 }`}>
                   <p className="text-sm font-medium leading-relaxed">{msg.message}</p>
-                  <p className="text-[8px] mt-1.5 opacity-50 font-bold uppercase tracking-widest">
+                  <p className="text-[8px] mt-1.5  font-bold uppercase tracking-widest">
                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
@@ -183,7 +183,7 @@ export default function ChatDrawer({ orderId, userName, userRole, socket, isOpen
               onChange={handleInputChange}
               onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
               placeholder="Type a message..."
-              className="flex-1 px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none focus:border-emerald-500/50 transition-all text-sm"
+              className="flex-1 px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white light:text-gray-900 outline-none focus:border-emerald-500/50 transition-all text-sm"
             />
             <button
               onClick={handleSendMessage}

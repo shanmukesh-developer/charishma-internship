@@ -183,7 +183,7 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#0A0A0B] text-white flex items-center justify-center p-5">
+    <main className="min-h-screen bg-[#0A0A0B] light:bg-[#f8f8fa] text-white light:text-black flex items-center justify-center p-5">
       {/* Invisible reCAPTCHA anchor */}
       <div id="recaptcha-container" />
 
@@ -209,7 +209,7 @@ export default function ForgotPasswordPage() {
             <div className="w-8 h-px bg-[#C9A84C]/30" />
           </div>
 
-          <h1 className="text-4xl font-bold text-white tracking-tight">
+          <h1 className="text-4xl font-bold text-white light:text-black tracking-tight">
             {step === 1 ? 'Reset Password' : 'Verify & Reset'}
           </h1>
           <p className="text-sm text-[#6B6B6B] mt-2">
@@ -226,7 +226,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-[#141416] border border-[#C9A84C]/10 rounded-3xl p-10 shadow-xl shadow-black/40">
+        <div className="bg-[#141416] light:bg-white border border-[#C9A84C]/10 light:border-black rounded-3xl p-10 shadow-xl shadow-black/40">
 
           {/* ── STEP 1: Phone ── */}
           {step === 1 && (
@@ -243,7 +243,7 @@ export default function ForgotPasswordPage() {
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="Enter your registered number"
                     maxLength={10}
-                    className="w-full bg-[#0A0A0B] border border-white/8 hover:border-white/15 focus:border-[#C9A84C]/50 rounded-2xl h-16 pl-16 pr-5 text-base font-medium text-white placeholder:text-white/20 outline-none transition-colors"
+                    className="w-full bg-[#0A0A0B] light:bg-[#f8f8fa] border border-white/8 light:border-black hover:border-white/15 light:hover:border-black/20 focus:border-[#C9A84C]/50 rounded-2xl h-16 pl-16 pr-5 text-base font-medium text-white light:text-black placeholder:text-white light:text-black outline-none transition-colors"
                   />
                 </div>
               </div>
@@ -251,7 +251,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-16 rounded-2xl bg-[#C9A84C] hover:bg-[#D4B56A] disabled:opacity-60 disabled:cursor-not-allowed text-[#0A0A0B] text-base font-bold tracking-wide transition-colors"
+                className="w-full h-16 rounded-2xl bg-[#C9A84C] hover:bg-[#D4B56A] disabled: disabled:cursor-not-allowed text-[#0A0A0B] light:text-white light:text-gray-900 text-base font-bold tracking-wide transition-colors"
               >
                 {loading ? 'Sending OTP…' : 'Send OTP →'}
               </button>
@@ -278,10 +278,10 @@ export default function ForgotPasswordPage() {
                       value={digit}
                       onChange={(e) => handleOtpChange(e.target.value, i)}
                       onKeyDown={(e) => handleOtpKeyDown(e, i)}
-                      className={`w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl text-center text-2xl font-bold bg-[#0A0A0B] border-2 outline-none transition-all min-w-0 ${
+                      className={`w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl text-center text-2xl font-bold bg-[#0A0A0B] light:bg-[#f8f8fa] border-2 outline-none transition-all min-w-0 ${
                         digit
                           ? 'border-[#C9A84C] text-[#C9A84C] shadow-[0_0_12px_rgba(201,168,76,0.2)]'
-                          : 'border-white/10 text-white focus:border-[#C9A84C]/50'
+                          : 'border-white/10 text-white light:text-black focus:border-[#C9A84C]/50'
                       }`}
                     />
                   ))}
@@ -315,12 +315,12 @@ export default function ForgotPasswordPage() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Choose a new password"
-                    className="w-full bg-[#0A0A0B] border border-white/8 hover:border-white/15 focus:border-[#C9A84C]/50 rounded-2xl h-16 px-5 pr-14 text-base font-medium text-white placeholder:text-white/20 outline-none transition-colors"
+                    className="w-full bg-[#0A0A0B] light:bg-[#f8f8fa] border border-white/8 light:border-black hover:border-white/15 light:hover:border-black/20 focus:border-[#C9A84C]/50 rounded-2xl h-16 px-5 pr-14 text-base font-medium text-white light:text-black placeholder:text-white light:text-black outline-none transition-colors"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 hover:text-[#C9A84C] transition-colors"
+                    className="absolute right-5 top-1/2 -translate-y-1/2 text-white light:text-black hover:text-[#C9A84C] transition-colors"
                   >
                     {showPassword
                       ? <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
@@ -334,7 +334,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading || otp.join('').length < 6}
-                className="w-full h-16 rounded-2xl bg-[#C9A84C] hover:bg-[#D4B56A] disabled:opacity-60 disabled:cursor-not-allowed text-[#0A0A0B] text-base font-bold tracking-wide transition-colors"
+                className="w-full h-16 rounded-2xl bg-[#C9A84C] hover:bg-[#D4B56A] disabled: disabled:cursor-not-allowed text-[#0A0A0B] light:text-white light:text-gray-900 text-base font-bold tracking-wide transition-colors"
               >
                 {loading ? 'Verifying…' : 'Verify & Reset Password'}
               </button>

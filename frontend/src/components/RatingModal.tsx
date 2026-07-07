@@ -47,8 +47,8 @@ export default function RatingModal({ isOpen, onClose, onSubmit }: Props) {
               <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center text-3xl mx-auto mb-3 animate-bounce">
                 🎉
               </div>
-              <h2 className="text-lg font-black text-white">Meal Delivered!</h2>
-              <p className="text-white/50 text-xs mt-1 font-bold">How was your Zenvy Captain?</p>
+              <h2 className="text-lg font-black text-white light:text-gray-900">Meal Delivered!</h2>
+              <p className="text-white light:text-gray-900/50 text-xs mt-1 font-bold">How was your Zenvy Captain?</p>
             </div>
 
             {/* Stars — large tap targets for mobile */}
@@ -59,7 +59,7 @@ export default function RatingModal({ isOpen, onClose, onSubmit }: Props) {
                   type="button"
                   onClick={() => setRating(star)}
                   className={`text-4xl transition-transform active:scale-90 select-none ${
-                    rating >= star ? 'text-primary-yellow' : 'text-white/20'
+                    rating >= star ? 'text-primary-yellow' : 'text-white light:text-gray-900/20'
                   }`}
                 >
                   ★
@@ -72,12 +72,12 @@ export default function RatingModal({ isOpen, onClose, onSubmit }: Props) {
               value={review}
               onChange={(e) => setReview(e.target.value)}
               placeholder="Any feedback? (Optional)"
-              className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-sm outline-none focus:border-emerald-500/50 transition-all h-20 mb-5 resize-none"
+              className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white light:text-gray-900 text-sm outline-none focus:border-emerald-500/50 transition-all h-20 mb-5 resize-none"
             />
 
             {/* Tip Section */}
             <div className="mb-6">
-              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-3">
+              <p className="text-[10px] font-black text-white light:text-gray-900/40 uppercase tracking-widest mb-3">
                 🛵 Tip your rider (goes directly to them)
               </p>
               <div className="flex gap-2">
@@ -89,7 +89,7 @@ export default function RatingModal({ isOpen, onClose, onSubmit }: Props) {
                     className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all active:scale-95 border ${
                       tip === opt.value && !showCustomTip
                         ? 'bg-[#C9A84C]/20 border-[#C9A84C] text-[#C9A84C]'
-                        : 'bg-white/5 border-white/10 text-white/60'
+                        : 'bg-white/5 border-white/10 text-white light:text-gray-900/60'
                     }`}
                   >
                     {opt.label}
@@ -101,7 +101,7 @@ export default function RatingModal({ isOpen, onClose, onSubmit }: Props) {
                   className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all active:scale-95 border ${
                     showCustomTip
                       ? 'bg-[#C9A84C]/20 border-[#C9A84C] text-[#C9A84C]'
-                      : 'bg-white/5 border-white/10 text-white/60'
+                      : 'bg-white/5 border-white/10 text-white light:text-gray-900/60'
                   }`}
                 >
                   Custom
@@ -114,7 +114,7 @@ export default function RatingModal({ isOpen, onClose, onSubmit }: Props) {
                   value={customTip}
                   onChange={(e) => setCustomTip(e.target.value)}
                   placeholder="Enter amount ₹"
-                  className="mt-2 w-full bg-white/5 border border-[#C9A84C]/40 rounded-2xl px-4 py-3 text-white text-sm outline-none font-bold"
+                  className="mt-2 w-full bg-white/5 border border-[#C9A84C]/40 rounded-2xl px-4 py-3 text-white light:text-gray-900 text-sm outline-none font-bold"
                 />
               )}
               {finalTip > 0 && (
@@ -128,14 +128,14 @@ export default function RatingModal({ isOpen, onClose, onSubmit }: Props) {
             <div className="flex gap-3">
               <button
                 onClick={onClose}
-                className="flex-1 py-4 text-white/40 font-black uppercase tracking-widest text-[10px] bg-white/5 rounded-2xl active:scale-95 transition-transform"
+                className="flex-1 py-4 text-white light:text-gray-900/40 font-black uppercase tracking-widest text-[10px] bg-white/5 rounded-2xl active:scale-95 transition-transform"
               >
                 Skip
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={rating === 0}
-                className="flex-[2] bg-emerald-600 disabled:bg-white/10 disabled:text-white/20 py-4 rounded-2xl text-white font-black uppercase tracking-widest text-[10px] transition-all active:scale-95"
+                className="flex-[2] bg-emerald-600 disabled:bg-white/10 disabled:text-white light:text-gray-900/20 py-4 rounded-2xl text-white light:text-gray-900 font-black uppercase tracking-widest text-[10px] transition-all active:scale-95"
               >
                 Submit Review
               </button>
@@ -146,8 +146,8 @@ export default function RatingModal({ isOpen, onClose, onSubmit }: Props) {
             <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center text-4xl mx-auto mb-4 text-black shadow-[0_0_30px_rgba(16,185,129,0.4)]">
               ✓
             </div>
-            <h2 className="text-lg font-black text-white">Thank You!</h2>
-            <p className="text-white/50 text-xs mt-1 font-bold">Your feedback helps us be better.</p>
+            <h2 className="text-lg font-black text-white light:text-gray-900">Thank You!</h2>
+            <p className="text-white light:text-gray-900/50 text-xs mt-1 font-bold">Your feedback helps us be better.</p>
             <div className="mt-4 flex flex-col items-center gap-2">
               <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest animate-pulse">+10 ZenPoints Earned</span>
               {finalTip > 0 && (

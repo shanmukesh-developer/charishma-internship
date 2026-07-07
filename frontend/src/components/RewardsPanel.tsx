@@ -44,7 +44,7 @@ export default function RewardsPanel({ onWin }: { onWin: (prize: { type: string;
         >
           <button 
             onClick={onClose}
-            className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-colors z-10"
+            className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white light:text-gray-900/40 hover:text-white light:text-gray-900 transition-colors z-10"
           >✕</button>
           <div className="mt-2">
             {children}
@@ -68,7 +68,7 @@ export default function RewardsPanel({ onWin }: { onWin: (prize: { type: string;
         <div className="text-[#C9A84C] group-hover:rotate-45 transition-transform duration-500 drop-shadow-[0_0_5px_rgba(201,168,76,0.3)]">
           <SpinIcon />
         </div>
-        <span className="text-[10px] font-black uppercase tracking-widest text-white">Spin</span>
+        <span className="text-[10px] font-black uppercase tracking-widest text-white light:text-gray-900">Spin</span>
       </motion.button>
 
 
@@ -87,7 +87,7 @@ export default function RewardsPanel({ onWin }: { onWin: (prize: { type: string;
           <ModalContent type="coupons" onClose={() => setShowCoupons(false)}>
              <div className="flex flex-col">
               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-secondary-text mb-6">Gourmet Pass</span>
-              <h2 className="text-2xl font-black text-white mb-8">Active Rewards</h2>
+              <h2 className="text-2xl font-black text-white light:text-gray-900 mb-8">Active Rewards</h2>
               <CouponSection />
             </div>
           </ModalContent>

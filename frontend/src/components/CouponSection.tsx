@@ -19,7 +19,7 @@ export default function CouponSection() {
       <div className="flex items-center justify-between px-2">
         <div>
           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary-yellow">Gourmet Pass</h3>
-          <h2 className="text-lg font-black text-white uppercase">Active Coupons</h2>
+          <h2 className="text-lg font-black text-white light:text-gray-900 uppercase">Active Coupons</h2>
         </div>
         <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest underline cursor-pointer">View All</span>
       </div>
@@ -38,13 +38,13 @@ export default function CouponSection() {
             
             <div className="relative z-10">
               <span className="text-[9px] font-black text-primary-yellow uppercase tracking-widest">{cp.desc}</span>
-              <h4 className="text-2xl font-black text-white mt-1 mb-4">{cp.disc}</h4>
+              <h4 className="text-2xl font-black text-white light:text-gray-900 mt-1 mb-4">{cp.disc}</h4>
               
               <div className="flex items-center justify-between bg-black/40 backdrop-blur-md p-3 rounded-2xl border border-white/5">
                 <span className="text-[11px] font-black tracking-widest text-[#C9A84C]">{cp.code}</span>
                 <button 
                   onClick={() => copyCoupon(cp.code)}
-                  className="text-[9px] font-black uppercase text-white/40 hover:text-white transition-colors"
+                  className="text-[9px] font-black uppercase text-white light:text-gray-900/40 hover:text-white light:text-gray-900 transition-colors"
                 >
                   Copy
                 </button>

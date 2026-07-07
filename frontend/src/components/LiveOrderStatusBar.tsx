@@ -100,7 +100,7 @@ export default function LiveOrderStatusBar({ orderId, initialStatus = 'Pending',
             </div>
             <div className="text-left">
               <p className="text-[9px] text-emerald-500 uppercase font-black tracking-widest">Live Order</p>
-              <p className="text-sm font-black text-white">{STEPS[currentStepIdx]?.label}</p>
+              <p className="text-sm font-black text-white light:text-gray-900">{STEPS[currentStepIdx]?.label}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -135,7 +135,7 @@ export default function LiveOrderStatusBar({ orderId, initialStatus = 'Pending',
           <div className="px-5 pb-5">
             {riderName && (
               <p className="text-[10px] text-gray-400 font-medium mb-4">
-                🛵 Your rider: <span className="text-white font-black">{riderName}</span>
+                🛵 Your rider: <span className="text-white light:text-gray-900 font-black">{riderName}</span>
               </p>
             )}
             <div className="flex items-center gap-0">

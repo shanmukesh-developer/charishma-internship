@@ -1,10 +1,23 @@
 "use client";
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { socket } from '@/utils/socket';
+import { playSensoryFeedback } from '@/utils/sensory';
+import { useRouter } from 'next/navigation';
 
 export default function ZenvyPulse({ userBlock }: { userBlock: string | null }) {
-  const [pulses, setPulses] = useState<{ id: number; block: string }[]>([]);
+  const [pulses, setPulses] = useState<{ id: number; block: string; message: string; isEcosystem?: boolean; link?: string; icon?: string }[]>([]);
   const [isEnabled, setIsEnabled] = useState(true);
+  const router = useRouter();
+
+  // Random trending messages for normal food pulses
+  const messages = [
+    "just ordered Chicken Biryani",
+    "secured a Late Night Combo",
+    "unlocked Elite Free Delivery",
+    "is tracking a live order",
+    "just spun the Zenvy Wheel"
+  ];
 
   useEffect(() => {
     socket.on('systemUpdate', ({ type, data }: { type: string; data: { key: string; value: boolean } }) => {
@@ -16,11 +29,17 @@ export default function ZenvyPulse({ userBlock }: { userBlock: string | null }) 
     socket.on('blockOrderPulse', ({ blockName }: { blockName: string }) => {
       if (!isEnabled) return;
       if (blockName === userBlock || !userBlock) {
+        if (typeof window !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate(5);
+        }
+        
         const id = Date.now();
-        setPulses(prev => [...prev, { id, block: blockName }]);
+        const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+        
+        setPulses(prev => [...prev, { id, block: blockName, message: randomMsg }]);
         setTimeout(() => {
           setPulses(prev => prev.filter(p => p.id !== id));
-        }, 3000);
+        }, 4000);
       }
     });
 
@@ -30,37 +49,60 @@ export default function ZenvyPulse({ userBlock }: { userBlock: string | null }) 
     };
   }, [userBlock, isEnabled]);
 
+  // For testing/demo purposes, simulate a pulse every 12 seconds
+  useEffect(() => {
+    if (!isEnabled) return;
+    const interval = setInterval(() => {
+      const id = Date.now();
+      
+      const blocks = ['Block A', 'Block B', 'Block C', 'PG 1'];
+      const randomBlock = blocks[Math.floor(Math.random() * blocks.length)];
+      const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+      setPulses(prev => [...prev, { id, block: randomBlock, message: randomMsg }]);
+
+      setTimeout(() => {
+        setPulses(prev => prev.filter(p => p.id !== id));
+      }, 5000); 
+    }, 12000);
+    return () => clearInterval(interval);
+  }, [isEnabled]);
+
   if (!isEnabled) return null;
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
-      {pulses.map((pulse) => (
-        <div key={pulse.id} className="absolute inset-0 flex items-center justify-center">
-          <div className="w-[1px] h-[1px] bg-[#C9A84C]/40 rounded-full animate-ripple-magical" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] font-black text-[#C9A84C] uppercase tracking-[0.5em] animate-pulse-text-fade">
-             {pulse.block} Pulse
-          </div>
-        </div>
-      ))}
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes ripple-magical {
-          0% { transform: scale(0); opacity: 0.8; box-shadow: 0 0 20px 10px rgba(201, 168, 76, 0.4); }
-          50% { opacity: 0.4; }
-          100% { transform: scale(3000); opacity: 0; }
-        }
-        @keyframes pulse-text-fade {
-          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-          20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-          80% { opacity: 1; }
-          100% { opacity: 0; transform: translate(-50%, -50%) scale(1.1); }
-        }
-        .animate-ripple-magical {
-          animation: ripple-magical 3s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-        }
-        .animate-pulse-text-fade {
-          animation: pulse-text-fade 3s ease-out forwards;
-        }
-      ` }} />
+    <div className="fixed bottom-[100px] left-4 z-50 pointer-events-none flex flex-col justify-end">
+      <AnimatePresence>
+        {pulses.map(pulse => (
+          <motion.div
+            key={pulse.id}
+            initial={{ opacity: 0, y: 20, scale: 0.9, filter: 'blur(10px)' }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -20, scale: 0.9, filter: 'blur(10px)' }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            onClick={() => {
+              if (pulse.link) {
+                playSensoryFeedback();
+                router.push(pulse.link);
+              }
+            }}
+            className={`mb-2 bg-black/80 light:bg-white/90 backdrop-blur-2xl border border-white/10 light:border-gray-200 p-2.5 pr-5 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.2)] light:shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex items-center gap-3 overflow-hidden ${pulse.link ? 'cursor-pointer pointer-events-auto hover:bg-black light:hover:bg-gray-50' : ''}`}
+          >
+            {/* Glowing Dot */}
+            <div className="relative flex h-3 w-3 shrink-0 ml-1">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#EF4F5F] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-[#EF4F5F]"></span>
+            </div>
+            
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-black uppercase tracking-widest text-white light:text-black">{pulse.block}</span>
+                <span className="text-[8px] bg-white/10 light:bg-black/5 text-white light:text-gray-900/70 light:text-black/70 px-1.5 py-0.5 rounded-sm font-bold tracking-widest">LIVE</span>
+              </div>
+              <span className="text-[9px] text-white light:text-gray-900/60 light:text-gray-500 font-medium truncate max-w-[200px]">{pulse.message}</span>
+            </div>
+          </motion.div>
+        ))}
+      </AnimatePresence>
     </div>
   );
 }

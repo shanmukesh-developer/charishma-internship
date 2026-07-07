@@ -11,10 +11,10 @@ interface Announcement {
 }
 
 const TYPE_STYLES = {
-  info:      'bg-blue-600/90 border-blue-400/50 text-white',
+  info:      'bg-blue-600/90 border-blue-400/50 text-white light:text-gray-900',
   warning:   'bg-amber-500/90 border-amber-400/50 text-black',
-  promo:     'bg-emerald-600/90 border-emerald-400/50 text-white',
-  emergency: 'bg-red-600/90 border-red-400/50 text-white animate-pulse',
+  promo:     'bg-emerald-600/90 border-emerald-400/50 text-white light:text-gray-900',
+  emergency: 'bg-red-600/90 border-red-400/50 text-white light:text-gray-900 animate-pulse',
 };
 
 const TYPE_ICONS = {

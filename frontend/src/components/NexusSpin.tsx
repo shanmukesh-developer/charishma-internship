@@ -51,7 +51,7 @@ export default function NexusSpin() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(201,168,76,0.05),transparent_70%)] pointer-events-none" />
       
       <div className="text-center mb-10 relative z-10">
-        <h3 className="text-2xl font-black uppercase tracking-tighter italic text-white mb-2">Nexus Synchronizer</h3>
+        <h3 className="text-2xl font-black uppercase tracking-tighter italic text-white light:text-gray-900 mb-2">Nexus Synchronizer</h3>
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary-yellow/60">Daily Probability Matrix Injection</p>
       </div>
 
@@ -80,7 +80,7 @@ export default function NexusSpin() {
                 }}
               >
                 <span className="text-lg mb-2">{prize.icon}</span>
-                <span className="text-[7px] font-black uppercase tracking-widest text-white/40 rotate-90 origin-center translate-y-12 whitespace-nowrap">
+                <span className="text-[7px] font-black uppercase tracking-widest text-white light:text-gray-900/40 rotate-90 origin-center translate-y-12 whitespace-nowrap">
                   {prize.text}
                 </span>
               </div>
@@ -99,7 +99,7 @@ export default function NexusSpin() {
         disabled={isSpinning || hasSpun}
         className={`relative z-10 px-12 py-4 rounded-full font-black uppercase tracking-[0.4em] text-[10px] transition-all active:scale-95 ${
           hasSpun 
-          ? 'bg-white/5 text-white/20 border border-white/5 cursor-not-allowed' 
+          ? 'bg-white/5 text-white light:text-gray-900/20 border border-white/5 cursor-not-allowed' 
           : 'bg-primary-yellow text-black shadow-[0_10px_30px_rgba(201,168,76,0.3)] hover:shadow-[0_15px_40px_rgba(201,168,76,0.5)]'
         }`}
       >
@@ -107,7 +107,7 @@ export default function NexusSpin() {
       </button>
       
       {hasSpun && (
-        <p className="mt-6 text-[8px] font-black uppercase tracking-widest text-white/20 animate-pulse">
+        <p className="mt-6 text-[8px] font-black uppercase tracking-widest text-white light:text-gray-900/20 animate-pulse">
           Return in 24h for next injection
         </p>
       )}
