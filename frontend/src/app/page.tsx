@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useWorldTransition } from '@/context/WorldTransitionContext';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
@@ -72,6 +73,7 @@ interface Order {
 }
 
 export default function Home() {
+  const { triggerTransition } = useWorldTransition();
   const router = useRouter();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { cart: _cart } = useCart();
@@ -1126,388 +1128,8 @@ export default function Home() {
             </motion.div>
           </section>
 
-          {/* 📚 Stationary & Printing */}
-          {groupedCollections.stationary.length > 0 && (
-            <>
-              <motion.div 
-                initial={{ scaleX: 0 }}
-                whileInView={{ scaleX: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 1, ease: "easeInOut" }}
-                className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-14 origin-left"
-              />
-              <section className="mb-14">
-                <div className="flex justify-between items-end mb-6">
-                  <div>
-                    <h2 className="text-[9px] font-black text-violet-400 uppercase tracking-[0.4em] mb-2">Academic Essentials</h2>
-                    <p className="text-xl font-black text-white">Stationary & Print</p>
-                  </div>
-                </div>
-                <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
-                  {groupedCollections.stationary.map((item) => (
-                    <motion.div 
-                       initial={{ opacity: 0, y: 20 }}
-                       animate={{ opacity: 1, y: 0 }}
-                       transition={{ duration: 0.3 }}
-                       style={{ perspective: 1000 }}
-                       key={item.id} 
-                    >
-                      <Tilt>
-                        <Link href={`/products/${item.id}`} className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform premium-card-hover rounded-[30px]">
-                          <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-violet-500/30 transition-colors">
-                              <SafeImage src={item.image || item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} />
-                              <button 
-                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.id!); }}
-                                  className={`absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center transition-all z-20 ${(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? 'bg-primary-yellow text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-md hover:bg-black/60'}`}
-                                >
-                                  <svg className="w-4.5 h-4.5" fill={(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                  </svg>
-                              </button>
-                          </div>
-                          <div className="mt-3">
-                             <h3 className="text-xs font-black text-white">{item.name}</h3>
-                             <div className="flex justify-between items-start mt-1 gap-2 min-w-0 overflow-hidden">
-                               <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate min-w-0 flex-1" title={item.restaurantName}>{item.restaurantName}</span>
-                                <span className="text-[13px] font-black shrink-0 pr-1 block text-violet-400">₹{item.price}</span>
-                             </div>
-                          </div>
-                        </Link>
-                      </Tilt>
-                    </motion.div>
-                  ))}
-                </div>
-              </section>
-            </>
-          )}
+          
 
-          {/* ❄️ Season Specials */}
-          <section className="mb-10">
-            <div className="flex justify-between items-end mb-6">
-              <div>
-                <h2 className="text-[9px] font-black text-cyan-400 uppercase tracking-[0.4em] mb-2">Omni-Category</h2>
-                <p className="text-xl font-black text-white">SEASON SPECIALS</p>
-              </div>
-            </div>
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
-              {groupedCollections.seasonal.map((item) => (
-                <motion.div 
-                  key={item.id}
-                  whileHover={{ scale: 1.05, rotateY: 10, rotateX: -5 }}
-                  style={{ perspective: 1000 }}
-                >
-                  <Link href={`/products/${item.id}`} prefetch={false} className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform">
-                    <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-cyan-500/30 transition-colors">
-                        <SafeImage src={item.image || item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} />
-                        <button 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.id!); }}
-                              className={`absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center transition-all z-20 ${(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? 'bg-primary-yellow text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-md hover:bg-black/60'}`}
-                            >
-                              <svg className="w-4.5 h-4.5" fill={(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                              </svg>
-                         </button>
-                    </div>
-                    <div className="mt-3">
-                       <h3 className="text-xs font-black text-white">{item.name}</h3>
-                       <div className="flex justify-between items-start mt-1 gap-2 min-w-0 overflow-hidden">
-                           <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate min-w-0 flex-1" title={item.restaurantName}>{item.restaurantName}</span>
-                          <span className="text-[13px] font-black shrink-0 pr-1 block text-cyan-400">₹{item.price}</span>
-                       </div>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          </section>
-
-          {/* 🥐 Sweets & Bakery */}
-          <section className="mb-14">
-            <div className="flex justify-between items-end mb-6">
-              <div>
-                <h2 className="text-[9px] font-black text-rose-400 uppercase tracking-[0.4em] mb-2">Delicious Desserts</h2>
-                <p className="text-xl font-black text-white uppercase">Sweets & Desserts</p>
-              </div>
-            </div>
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
-              {groupedCollections.sweets.map((item) => (
-                <motion.div 
-                  key={item.id}
-                  whileHover={{ scale: 1.05, rotateY: 10, rotateX: -5 }}
-                  style={{ perspective: 1000 }}
-                >
-                  <Link href={`/products/${item.id}`} prefetch={false} className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform">
-                    <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-rose-500/30 transition-colors">
-                        <SafeImage src={item.image || item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} />
-                        <button 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.id!); }}
-                              className={`absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center transition-all z-20 ${(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? 'bg-primary-yellow text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-md hover:bg-black/60'}`}
-                            >
-                              <svg className="w-4.5 h-4.5" fill={(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                              </svg>
-                         </button>
-                    </div>
-                    <div className="mt-3">
-                       <h3 className="text-xs font-black text-white">{item.name}</h3>
-                       <div className="flex justify-between items-start mt-1 gap-2 min-w-0 overflow-hidden">
-                           <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate min-w-0 flex-1" title={item.restaurantName}>{item.restaurantName}</span>
-                          <span className="text-[13px] font-black shrink-0 pr-1 block text-rose-400">₹{item.price}</span>
-                       </div>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          </section>
-
-          {/* 🍹 Refreshing Drinks */}
-          <section className="mb-10">
-            <div className="flex items-center justify-between mb-5">
-               <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#A5B4FC]">Drinks & Beverages</h2>
-               <span className="text-[9px] font-bold text-secondary-text uppercase tracking-wider">Swipe →</span>
-            </div>
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
-              {groupedCollections.drinks.map((item) => (
-                <motion.div 
-                  key={item.id}
-                  whileHover={{ scale: 1.05, rotateY: 10, rotateX: -5 }}
-                  style={{ perspective: 1000 }}
-                >
-                  <Link href={`/products/${item.id}`} prefetch={false} className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform">
-                    <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-[#A5B4FC]/30 transition-colors">
-                       <SafeImage src={item.image || item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} />
-                       <button 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.id!); }}
-                              className={`absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center transition-all z-20 ${(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? 'bg-primary-yellow text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-md hover:bg-black/60'}`}
-                            >
-                              <svg className="w-4.5 h-4.5" fill={(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                              </svg>
-                         </button>
-                    </div>
-                    <div className="mt-3">
-                       <h3 className="text-xs font-black text-white">{item.name}</h3>
-                       <div className="flex justify-between items-start mt-1 gap-2 min-w-0 overflow-hidden">
-                           <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate min-w-0 flex-1" title={item.restaurantName}>{item.restaurantName}</span>
-                          <span className="text-[13px] font-black shrink-0 pr-1 block text-[#A5B4FC]">₹{item.price}</span>
-                       </div>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          </section>
-
-          {/* 🏋️ Elite Performance: Gym Rats */}
-          <section className="mb-10">
-            <div className="flex items-center justify-between mb-5">
-               <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#C9A84C]">Gym & Protein</h2>
-               <span className="text-[9px] font-bold text-secondary-text uppercase tracking-wider">Swipe →</span>
-            </div>
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
-              {groupedCollections.gym.map((item) => (
-                <motion.div 
-                  key={item.id}
-                  whileHover={{ scale: 1.05, rotateY: 10, rotateX: -5 }}
-                  style={{ perspective: 1000 }}
-                >
-                  <Link href={`/products/${item.id}`} prefetch={false} className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform">
-                    <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-[#C9A84C]/30 transition-colors">
-                       <SafeImage src={item.image || item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} />
-                       <button 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.id!); }}
-                              className={`absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center transition-all z-20 ${(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? 'bg-primary-yellow text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-md hover:bg-black/60'}`}
-                            >
-                              <svg className="w-4.5 h-4.5" fill={(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                              </svg>
-                         </button>
-                    </div>
-                    <div className="mt-3">
-                       <h3 className="text-xs font-black text-white">{item.name}</h3>
-                       <div className="flex justify-between items-start mt-1 gap-2 min-w-0 overflow-hidden">
-                           <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate min-w-0 flex-1" title={item.restaurantName}>{item.restaurantName}</span>
-                          <span className="text-[13px] font-black shrink-0 pr-1 block text-[#C9A84C]">₹{item.price}</span>
-                       </div>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          </section>
-
-          <motion.div 
-            initial={{ scaleX: 0 }}
-            whileInView={{ scaleX: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 1, ease: "easeInOut" }}
-            className="h-px bg-gradient-to-r from-transparent via-[#C9A84C]/30 to-transparent my-14 origin-left"
-          />
-
-          {/* 🚲 Campus Rentals: Explorer */}
-          <section className="mb-14">
-            <div className="flex justify-between items-end mb-6">
-              <div>
-                <h2 className="text-[9px] font-black text-amber-500 uppercase tracking-[0.4em] mb-2">Campus Rides & Gear</h2>
-                <p className="text-xl font-black text-white">Campus Rentals</p>
-              </div>
-            </div>
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
-              {groupedCollections.rentals.length > 0 ? (
-                groupedCollections.rentals.map((item) => (
-                  <motion.div 
-                    key={item.id}
-                    style={{ perspective: 1000 }}
-                  >
-                    <Tilt>
-                      <div 
-                        onClick={() => setSelectedRental(item)}
-                        className="relative shrink-0 w-[240px] block group active:scale-95 transition-transform premium-card-hover rounded-[30px] cursor-pointer"
-                      >
-                        <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-amber-500/30 transition-colors">
-                            <SafeImage src={item.image || item.imageUrl} alt={item.name} fill />
-                            <div className="absolute top-4 left-4 bg-amber-500 text-black text-[7px] font-black px-2 py-1 rounded-md uppercase tracking-widest shadow-lg">Rental</div>
-                        </div>
-                        <div className="mt-3">
-                           <h3 className="text-xs font-black text-white">{item.name}</h3>
-                           <div className="flex justify-between items-start mt-1 gap-2">
-                             <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate flex-1">{item.restaurantName}</span>
-                             <span className="text-[13px] font-black shrink-0 pr-1 block text-amber-500">₹{item.price}/day</span>
-                           </div>
-                        </div>
-                      </div>
-                    </Tilt>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="w-full flex flex-col items-center justify-center py-10 px-6 border border-white/5 rounded-[30px] bg-white/[0.02]">
-                   <span className="text-4xl mb-4 opacity-50">🚲</span>
-                   <p className="text-xs font-black text-secondary-text uppercase tracking-widest">No Active Rentals Currently</p>
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* 🍎 Fresh Fruits: Vitality */}
-          <section className="mb-14">
-            <div className="flex justify-between items-end mb-6">
-              <div>
-                <h2 className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.4em] mb-2">Fresh Fruits & Salads</h2>
-                <p className="text-xl font-black text-white">Fresh Fruits</p>
-              </div>
-            </div>
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
-              {groupedCollections.fruits.length > 0 ? (
-                groupedCollections.fruits.map((item) => (
-                  <motion.div 
-                    key={item.id}
-                    style={{ perspective: 1000 }}
-                  >
-                    <Tilt>
-                      <Link href={`/products/${item.id}`} className="relative shrink-0 w-[200px] block group active:scale-95 transition-transform premium-card-hover rounded-[30px]">
-                        <div className="aspect-square relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-emerald-500/30 transition-colors">
-                            <SafeImage src={item.image || item.imageUrl} alt={item.name} fill />
-                            <button 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.id!); }}
-                              className={`absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center transition-all z-20 ${(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? 'bg-primary-yellow text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-md hover:bg-black/60'}`}
-                            >
-                              <svg className="w-4.5 h-4.5" fill={(favorites.includes(item.id!) || (item._id && favorites.includes(item._id))) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                              </svg>
-                            </button>
-                        </div>
-                        <div className="mt-3">
-                           <h3 className="text-xs font-black text-white">{item.name}</h3>
-                           <div className="flex justify-between items-start mt-1 gap-2">
-                             <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate flex-1">{item.restaurantName}</span>
-                             <span className="text-[13px] font-black shrink-0 pr-1 block text-emerald-400">₹{item.price}</span>
-                           </div>
-                        </div>
-                      </Link>
-                    </Tilt>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="w-full flex flex-col items-center justify-center py-10 px-6 border border-white/5 rounded-[30px] bg-white/[0.02]">
-                   <span className="text-4xl mb-4 opacity-50">🍎</span>
-                   <p className="text-xs font-black text-secondary-text uppercase tracking-widest">Finding Fresh Choices...</p>
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* 💊 Pharmacy: Health Sync */}
-          {groupedCollections.pharmacy.length > 0 && (
-            <section className="mb-14">
-              <div className="flex justify-between items-end mb-6">
-                <div>
-                  <h2 className="text-[9px] font-black text-rose-400 uppercase tracking-[0.4em] mb-2">Pharmacy & Wellness</h2>
-                  <p className="text-xl font-black text-white">Pharmacy</p>
-                </div>
-              </div>
-              <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
-                {groupedCollections.pharmacy.map((item) => (
-                  <motion.div 
-                    key={item.id}
-                    style={{ perspective: 1000 }}
-                  >
-                    <Tilt>
-                      <Link href={`/products/${item.id}`} className="relative shrink-0 w-[200px] block group active:scale-95 transition-transform premium-card-hover rounded-[30px]">
-                        <div className="aspect-square relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-rose-500/30 transition-colors">
-                            <SafeImage src={item.image || item.imageUrl} alt={item.name} fill />
-                            <div className="absolute top-4 left-4 bg-rose-500 text-white text-[7px] font-black px-2 py-1 rounded-md uppercase tracking-widest shadow-lg">Pharmacy</div>
-                        </div>
-                        <div className="mt-3">
-                           <h3 className="text-xs font-black text-white">{item.name}</h3>
-                           <div className="flex justify-between items-start mt-1 gap-2">
-                             <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate flex-1">{item.restaurantName}</span>
-                             <span className="text-[13px] font-black shrink-0 pr-1 block text-rose-400">₹{item.price}</span>
-                           </div>
-                        </div>
-                      </Link>
-                    </Tilt>
-                  </motion.div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* 🧺 Dry Wash: Laundry Operations */}
-          {groupedCollections.laundry.length > 0 && (
-            <section className="mb-14">
-              <div className="flex justify-between items-end mb-6">
-                <div>
-                  <h2 className="text-[9px] font-black text-blue-400 uppercase tracking-[0.4em] mb-2">Campus Logistics</h2>
-                  <p className="text-xl font-black text-white">Dry Wash & Laundry</p>
-                </div>
-              </div>
-              <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
-                {groupedCollections.laundry.map((item) => (
-                  <motion.div 
-                    key={item.id}
-                    style={{ perspective: 1000 }}
-                  >
-                    <Tilt>
-                      <Link href={`/products/${item.id}`} className="relative shrink-0 w-[200px] block group active:scale-95 transition-transform premium-card-hover rounded-[30px]">
-                        <div className="aspect-square relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-blue-500/30 transition-colors">
-                            <SafeImage src={item.image || item.imageUrl} alt={item.name} fill />
-                            <div className="absolute top-4 left-4 bg-blue-500 text-white text-[7px] font-black px-2 py-1 rounded-md uppercase tracking-widest shadow-lg">Dry Wash</div>
-                        </div>
-                        <div className="mt-3">
-                           <h3 className="text-xs font-black text-white">{item.name}</h3>
-                           <div className="flex justify-between items-start mt-1 gap-2">
-                             <span className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate flex-1">{item.restaurantName}</span>
-                             <span className="text-[13px] font-black shrink-0 pr-1 block text-blue-400">₹{item.price}/kg</span>
-                           </div>
-                        </div>
-                      </Link>
-                    </Tilt>
-                  </motion.div>
-                ))}
-              </div>
-            </section>
-          )}
 
           {/* All Restaurants List & Advanced Filters */}
           <div className="mb-8 px-6 space-y-4">
@@ -1577,37 +1199,43 @@ export default function Home() {
           </section>
 
 
-        <footer className="fixed bottom-0 left-0 right-0 h-[5.5rem] bg-black/90 backdrop-blur-3xl border-t border-white/10 flex items-center justify-around sm:hidden z-[100] pb-safe">
+        <div className="fixed bottom-28 right-6 z-[100] sm:hidden">
+          <Link href="/community" onClick={(e) => { e.preventDefault(); triggerTransition('/community', 'comms'); }} className="w-14 h-14 rounded-full bg-black text-white shadow-[0_8px_30px_rgba(0,0,0,0.2)] flex items-center justify-center hover:scale-110 active:scale-95 transition-transform group border border-gray-800 relative focus:outline-none">
+            <svg className="w-6 h-6 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg>
+            <div className="absolute top-0 right-0 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-black"></div>
+          </Link>
+        </div>
+        <footer className="fixed bottom-0 left-0 right-0 h-[5.5rem] bg-black text-white border-t border-white/10 flex items-center justify-around sm:hidden z-[100] pb-safe shadow-none">
           <Magnetic>
-            <Link href="/" className="flex flex-col items-center gap-1.5 nav-icon-active">
-              <div className="tab-pill">
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            <Link href="/" className="flex flex-col items-center gap-1.5 text-[#EF4F5F]">
+              <div className="tab-pill text-[#EF4F5F]">
+                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
               </div>
-              <span className="text-[11px] font-black uppercase tracking-widest">Home</span>
+              <span className="text-[12px] font-black uppercase tracking-widest text-[#EF4F5F]">Home</span>
             </Link>
           </Magnetic>
           <Magnetic>
-            <Link href="/orders" className="flex flex-col items-center gap-1.5 opacity-40">
-               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-               <span className="text-[11px] font-bold">Orders</span>
+            <Link href="/others" onClick={(e) => { e.preventDefault(); triggerTransition('/others', 'others'); }} className="flex flex-col items-center gap-1.5 text-gray-400 hover:text-white transition-colors">
+               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+               <span className="text-[12px] font-bold">Others</span>
             </Link>
           </Magnetic>
           <Magnetic>
-            <Link href="/basket" className="flex flex-col items-center gap-1.5 opacity-40">
-               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-               <span className="text-[11px] font-bold">Basket</span>
+            <Link href="/orders" className="flex flex-col items-center gap-1.5 text-gray-400 hover:text-white transition-colors">
+               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+               <span className="text-[12px] font-bold">Orders</span>
             </Link>
           </Magnetic>
           <Magnetic>
-            <Link href="/community" className="flex flex-col items-center gap-1.5 opacity-40">
-               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg>
-               <span className="text-[11px] font-bold">Comms</span>
+            <Link href="/basket" className="flex flex-col items-center gap-1.5 text-gray-400 hover:text-white transition-colors">
+               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+               <span className="text-[12px] font-bold">Basket</span>
             </Link>
           </Magnetic>
           <Magnetic>
-            <Link href="/profile" className="flex flex-col items-center gap-1.5 opacity-40">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                <span className="text-[11px] font-bold">Profile</span>
+            <Link href="/profile" className="flex flex-col items-center gap-1.5 text-gray-400 hover:text-white transition-colors">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                <span className="text-[12px] font-bold">Profile</span>
             </Link>
           </Magnetic>
         </footer>
