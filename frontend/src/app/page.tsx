@@ -20,7 +20,7 @@ const NexusExplorer = dynamic(() => import('@/components/NexusExplorer'), { ssr:
 const CampusBitesSection = dynamic(() => import('@/components/CampusBitesSection'), { ssr: false });
 // const WorldSwitcher = dynamic(() => import('@/components/WorldSwitcher'), { ssr: false });
 
-import ZenvyPulse from '@/components/ZenvyPulse';
+
 import LiveOrderStatusBar from '@/components/LiveOrderStatusBar';
 import ScrollProgressIndicator from '@/components/ScrollProgressIndicator';
 import Magnetic from '@/components/Magnetic';
@@ -1291,8 +1291,6 @@ export default function Home() {
           </div>
         , document.body)}
 
-        {/* 🌀 Magical Social Pulse */}
-        <ZenvyPulse userBlock={user?.hostelBlock || null} />
 
         {/* 👑 Priority Concierge FAB (Elite Only) */}
         <AnimatePresence>
