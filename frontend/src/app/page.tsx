@@ -743,6 +743,36 @@ export default function Home() {
                   description: 'JOIN ZENVY ELITE TODAY. ZERO DELIVERY CHARGES ON ALL GOURMET ORDERS.', 
                   buttonText: 'CLAIM ELITE', 
                   isActive: true 
+                },
+                { 
+                  id: '3', 
+                  imageUrl: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?q=80&w=2070&auto=format&fit=crop', 
+                  tagline: 'ZENVY CO-RIDE', 
+                  title1: 'SPLIT THE RIDE', 
+                  title2: 'SAVE THE FARE', 
+                  description: 'CONNECT WITH CAMPUS PEERS FOR INSTANT BIKE POOLING. SECURE AND VERIFIED.', 
+                  buttonText: 'FIND A RIDE', 
+                  isActive: true 
+                },
+                { 
+                  id: '4', 
+                  imageUrl: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=2071&auto=format&fit=crop', 
+                  tagline: 'PREMIUM STAYS', 
+                  title1: 'YOUR NEXT', 
+                  title2: 'CAMPUS HOME', 
+                  description: 'DISCOVER VERIFIED HOSTELS AND PG ACCOMMODATIONS. ZERO BROKERAGE, FULL TRANSPARENCY.', 
+                  buttonText: 'EXPLORE HOSTELS', 
+                  isActive: true 
+                },
+                { 
+                  id: '5', 
+                  imageUrl: 'https://images.unsplash.com/photo-1493770348161-369560ae357d?q=80&w=2070&auto=format&fit=crop', 
+                  tagline: 'ZENVY AI', 
+                  title1: 'SMART BITES', 
+                  title2: 'CURATED FOR YOU', 
+                  description: "CAN'T DECIDE? LET OUR AI SUGGEST THE PERFECT MEAL BASED ON YOUR TASTE PROFILE.", 
+                  buttonText: 'TRY AI PICKS', 
+                  isActive: true 
                 }
               ]} 
             />
