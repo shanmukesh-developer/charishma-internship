@@ -9,6 +9,7 @@ import Link from 'next/link';
 import RestaurantCard from '@/components/RestaurantCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import SafeImage from '@/components/SafeImage';
+import PromoCarousel from '@/components/PromoCarousel';
 
 // Heavy Components Dynamic Import
 const ConciergeDrawer = dynamic(() => import('@/components/ConciergeDrawer'), { ssr: false });
@@ -716,60 +717,50 @@ export default function Home() {
                   </Link>
                 </div>
 
-                {/* 🎁 Rewards HUD */}
-                <div className="bg-white/5 border border-white/10 rounded-[16px] p-2 flex items-center gap-3 shadow-2xl backdrop-blur-xl">
-                   <RewardsPanel onWin={handlePrizeWin} />
-                   <div className="h-4 w-px bg-white/10" />
-                   <div className="flex gap-4">
-                      <div className="flex flex-col items-end">
-                         <span className="text-[7px] font-black text-[#C9A84C] uppercase tracking-widest mb-0.5 opacity-90">Zenvy Wallet</span>
-                         <p className="text-[13px] font-black text-white tracking-tighter drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">₹{user?.walletBalance || 0}</p>
-                      </div>
-                      <div className="flex flex-col items-end">
-                         <span className="text-[7px] font-black text-blue-400 uppercase tracking-widest mb-0.5 opacity-90">ZenPoints</span>
-                         <p className="text-[13px] font-black text-white tracking-tighter">{user?.zenPoints || 0}</p>
-                      </div>
-                   </div>
-                </div>
+
               </div>
             </div>
 
-            {/* Cinematic Hero Element */}
-            <div className="relative mb-4 group">
-              <div className="absolute inset-x-0 -top-10 h-40 bg-gradient-to-b from-primary-yellow/5 to-transparent pointer-events-none" />
-              <div className="glass-card-extreme overflow-hidden rounded-[30px] border border-white/5 relative min-h-[210px] h-auto md:h-[280px] flex items-center px-6 md:px-12 py-8 md:py-0 group">
-                <div className="absolute right-0 top-0 w-1/2 h-full pointer-events-none opacity-40 group-hover:opacity-60 transition-opacity">
-                   <div className="absolute inset-0 bg-gradient-to-l from-black via-transparent to-transparent z-10" />
-                   <SafeImage 
-          src="https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?q=80&w=2070&auto=format&fit=crop" 
-          alt="Hero"
-          fallback="/assets/placeholder_premium.png"
-          fill
-          className="group-hover:scale-110 transition-transform duration-700 object-cover"
-        />
-                </div>
-                
-                <div className="relative z-20 max-w-md">
-                   <span className="text-[10px] font-black text-primary-yellow uppercase tracking-[0.5em] mb-4 block">Central Command 🌆</span>
-                   <h1 className="text-xl md:text-5xl font-black text-white leading-[0.9] italic tracking-tighter mb-4" style={{ fontFamily: "'Syne', sans-serif" }}>
-                      LET&apos;S CLEAR <br />
-                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-yellow to-white">YOUR CRAVING</span>
-                   </h1>
-                   <p className="text-[9px] font-bold text-secondary-text uppercase tracking-widest max-w-[280px] leading-relaxed mb-6">
-                      Mission-critical speed. Zero friction. <br /> Delivering across Amaravathi.
-                   </p>
-                   <motion.button 
-                    whileTap={{ scale: 0.95 }}
-                    whileHover={{ scale: 1.02 }}
-                    onClick={() => document.getElementById('restaurant-feed')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="btn-yellow text-[10px] py-4 px-10 shadow-[0_0_30px_rgba(201,168,76,0.2)]"
-                   >
-                      IDENTIFY RESTAURANTS →
-                   </motion.button>
-                </div>
-                {/* Stardust Aura Effect */}
-                <div className="absolute bottom-0 left-1/4 w-1/2 h-px bg-gradient-to-r from-transparent via-primary-yellow/40 to-transparent blur-sm" />
-              </div>
+            {/* Promo Carousel (Ads and Offers) */}
+            <PromoCarousel 
+              offers={[
+                { 
+                  id: '1', 
+                  imageUrl: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?q=80&w=2070&auto=format&fit=crop', 
+                  tagline: 'CENTRAL COMMAND', 
+                  title1: "LET'S CLEAR", 
+                  title2: 'YOUR CRAVING', 
+                  description: 'MISSION-CRITICAL SPEED. ZERO FRICTION. DELIVERING ACROSS AMARAVATHI.', 
+                  buttonText: 'IDENTIFY RESTAURANTS', 
+                  isActive: true 
+                },
+                { 
+                  id: '2', 
+                  imageUrl: 'https://images.unsplash.com/photo-1544148103-0773bf10d330?q=80&w=2070&auto=format&fit=crop', 
+                  tagline: 'NEXUS OFFERS', 
+                  title1: 'UNLIMITED', 
+                  title2: 'FREE DELIVERY', 
+                  description: 'JOIN ZENVY ELITE TODAY. ZERO DELIVERY CHARGES ON ALL GOURMET ORDERS.', 
+                  buttonText: 'CLAIM ELITE', 
+                  isActive: true 
+                }
+              ]} 
+            />
+
+            {/* Classic Navigation Buttons */}
+            <div className="flex items-center gap-2 mb-6 overflow-x-auto no-scrollbar relative z-20 px-2 py-1">
+               <a href="/" onClick={(e) => { e.preventDefault(); triggerTransition('/', 'food'); }} className="h-9 py-1 px-4 rounded-xl flex items-center gap-1.5 transition-all border whitespace-nowrap bg-white/5 border-white/10 text-white light:text-gray-900/60 hover:bg-white/10 light:bg-gray-50 light:border-gray-200 light:text-gray-600 active:scale-95 group cursor-pointer">
+                  <span className="text-sm group-hover:scale-110 transition-transform">🍔</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest">Food</span>
+               </a>
+               <a href="/pg" onClick={(e) => { e.preventDefault(); triggerTransition('/pg', 'pg'); }} className="h-9 py-1 px-4 rounded-xl flex items-center gap-1.5 transition-all border whitespace-nowrap bg-white/5 border-white/10 text-white light:text-gray-900/60 hover:bg-white/10 light:bg-gray-50 light:border-gray-200 light:text-gray-600 active:scale-95 group cursor-pointer">
+                  <span className="text-sm group-hover:scale-110 transition-transform">🏢</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest">Hostels</span>
+               </a>
+               <a href="/bikepool" onClick={(e) => { e.preventDefault(); triggerTransition('/bikepool', 'bikepool'); }} className="h-9 py-1 px-4 rounded-xl flex items-center gap-1.5 transition-all border whitespace-nowrap bg-white/5 border-white/10 text-white light:text-gray-900/60 hover:bg-white/10 light:bg-gray-50 light:border-gray-200 light:text-gray-600 active:scale-95 group cursor-pointer">
+                  <span className="text-sm group-hover:scale-110 transition-transform">🏍️</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest">Co-Ride</span>
+               </a>
             </div>
 
             <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
@@ -803,39 +794,7 @@ export default function Home() {
             />
           </div>
 
-          {/* ✨ F11: AI-Powered Zenvy Picks */}
-          {aiPicks.length > 0 && (
-            <section className="mb-10">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-400 mb-1">Zenvy AI</h2>
-                  <p className="text-xl font-black text-white italic tracking-tighter uppercase">Picked For You</p>
-                </div>
-                <span className="text-[9px] font-black text-secondary-text uppercase tracking-widest bg-white/5 border border-white/10 px-4 py-2 rounded-full">🤖 Smart</span>
-              </div>
-              <motion.div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6">
-                {aiPicks.map((item: any) => (
-                  <motion.div key={item.id || item._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                    <Link href={`/products/${item.id || item._id}`} prefetch={false}>
-                      <Tilt className="chef-card bg-[#141416]">
-                        <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-emerald-500/20">
-                          <SafeImage src={item.image || item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} />
-                          <div className="absolute top-3 left-3 bg-emerald-500/80 backdrop-blur-md text-[7px] font-black uppercase text-white px-2 py-0.5 rounded-full">AI Pick</div>
-                        </div>
-                        <div className="mt-3">
-                          <h3 className="font-bold text-[15px] text-white mb-1">{item.name}</h3>
-                          <div className="flex items-start justify-between gap-2 min-w-0 overflow-hidden mt-1">
-                            <p className="text-[8px] font-bold text-secondary-text uppercase tracking-widest truncate min-w-0 flex-1">{item.restaurantName || 'Zenvy Pick'}</p>
-                            <span className="text-[13px] font-black shrink-0 pr-1 block text-emerald-400">₹{item.price}</span>
-                          </div>
-                        </div>
-                      </Tilt>
-                    </Link>
-                  </motion.div>
-                ))}
-              </motion.div>
-            </section>
-          )}
+
 
           {/* 🔒 The Zenvy Vault (Daily FOMO Scarcity) */}
           <motion.section 
