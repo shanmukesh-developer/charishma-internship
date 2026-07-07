@@ -34,3 +34,26 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ---- Anti-script guard ----
+# Diagnostic / forensic scripts (never commit these)
+read-*.js
+extract-*.js
+find-*.js
+print-*.js
+recover-*.js
+search-*.js
+search-backups.js
+format-*.js
+analyze-*.js
+dump-index-*.js
+list-all-*.js
+check-frontend.js
+
+# Generated output blobs (never commit these)
+extracted-*.js
+extracted-*.txt
+recovered_*.js
+recovered_pages/
+diff*.txt
+*.err

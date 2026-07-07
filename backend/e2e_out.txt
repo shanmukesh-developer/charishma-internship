@@ -1,4 +1,0 @@
-[AUTH] ── Authenticating Customer ──
-[AUTH] ⚠️ Customer login failed. Registering...
-
-❌ UNHANDLED ERROR: 

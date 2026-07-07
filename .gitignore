@@ -42,4 +42,30 @@ next-env.d.ts
 
 # build logs
 *.log
+*.err
 lint_output.txt
+
+# ---- Anti-script guard ----
+# Never commit auto-modifying or forensic scripts
+sync_all_ports.js
+tmp/
+*.auto.js
+*.sync.js
+
+# Backend log/output junk
+backend/socket_debug.txt
+backend/server_debug.txt
+backend/backend_logs*.txt
+backend/simulation_results*.txt
+backend/error_report*.txt
+backend/token.txt
+backend/out*.txt
+backend/e2e*.txt
+backend/e2e*.log
+backend/seed_log.txt
+backend/fail.log
+
+# Frontend forensic output blobs
+frontend/extracted-*
+frontend/recovered_*
+frontend/diff*.txt
