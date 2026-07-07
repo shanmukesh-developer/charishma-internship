@@ -882,56 +882,97 @@ export default function Home() {
             </Link>
           </Tilt>
 
-          {/* 🏠 PG & Hostels: Housing Discovery Banner */}
-          <Tilt className="mb-8 group cursor-pointer overflow-hidden rounded-[30px] relative border shadow-xl transition-all duration-500 border-teal-500/30 hover:border-teal-500/60 bg-gradient-to-br from-black to-teal-500/10">
-            <Link href="/pg">
-              <div className="p-6 relative z-10 flex items-center justify-between">
-                <div>
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-teal-400 mb-1">Campus Housing</h3>
-                  <p className="text-2xl font-black italic tracking-tighter text-white">PG & Hostels 🏠</p>
-                  <p className="text-[9px] font-bold text-white/50 uppercase tracking-widest mt-1">Discover, compare, and book verified stays.</p>
-                </div>
-                <div className="w-12 h-12 rounded-full bg-teal-500/20 border border-teal-500/40 flex items-center justify-center text-teal-400 group-hover:scale-110 transition-transform">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" /></svg>
-                </div>
-              </div>
-            </Link>
-          </Tilt>
-
-          <Tilt className={`mb-10 group cursor-pointer overflow-hidden rounded-[34px] relative border shadow-2xl transition-all duration-500 elite-card ${isElite ? 'border-[#C9A84C]/40' : 'border-[#C9A84C]/20'}`}>
-
-            <motion.section 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+          {/* 💎 Zenvy Elite: Unlimited Free Delivery Banner */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mb-8"
+          >
+            <div 
               onClick={!isElite ? handleJoinElite : undefined}
+              className="group cursor-pointer overflow-hidden rounded-[24px] relative border border-gray-200 light:border-gray-200 shadow-lg hover:shadow-xl transition-all duration-500 bg-white light:bg-white"
             >
-                <div className="elite-hologram" />
-                <div className="absolute inset-0 bg-gradient-to-br from-[#C9A84C]/20 to-[#8B7332]/20 z-0" />
-                <SafeImage
-                      src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop"
-                      alt="Elite Promo"
-                      fill
-                      className="relative z-10 object-cover w-full h-[140px] group-hover:scale-110 transition-transform duration-700 opacity-40 mix-blend-overlay"
-                />
-               <div className="absolute inset-0 z-20 p-6 flex flex-col justify-center">
-                  <span className="text-[8px] font-black text-primary-yellow uppercase tracking-[0.3em] mb-2">{isElite ? 'Elite Member' : 'Exclusive Offer'}</span>
-                  <h3 className="text-lg font-black text-white leading-tight mb-2">
-                    {isElite ? <>Unlimited <br /> Free Delivery</> : <>Unlock Zero <br /> Delivery Fees</>}
+              <div className="flex items-stretch min-h-[200px]">
+                {/* Left Content */}
+                <div className="flex-1 p-6 md:p-8 flex flex-col justify-center z-10">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-[11px] font-black uppercase tracking-[0.25em] text-[#1a5cba]">Zenvy Elite</span>
+                    <span className="text-blue-500 text-sm">💎</span>
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-black text-[#1a1a1a] leading-tight mb-0.5">
+                    {isElite ? 'YOU HAVE' : 'GET'}
                   </h3>
+                  <h3 className="text-xl md:text-2xl font-black italic text-[#EF4F5F] leading-tight mb-3">
+                    {isElite ? 'UNLIMITED FREE DELIVERY' : 'UNLIMITED FREE DELIVERY'}
+                  </h3>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-5 max-w-[220px] leading-relaxed">
+                    {isElite ? 'Zero delivery charges on all gourmet orders. Elite active.' : 'Join Zenvy Elite today. Zero delivery charges on all gourmet orders.'}
+                  </p>
                   {isElite ? (
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest" style={{ textShadow: '0 0 10px rgba(16,185,129,0.5)' }}>Premium Active</span>
+                      <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Premium Active</span>
                     </div>
                   ) : (
-                    <Magnetic>
-                      <button onClick={handleJoinElite} className="w-fit bg-primary-yellow text-black text-[9px] font-black px-6 py-2.5 rounded-full uppercase tracking-tighter shadow-lg shadow-primary-yellow/20">Join Elite for ₹199 →</button>
-                    </Magnetic>
+                    <button onClick={handleJoinElite} className="w-fit bg-[#EF4F5F] hover:bg-[#d9404f] text-white text-[11px] font-black px-6 py-3 rounded-xl uppercase tracking-wider shadow-lg shadow-[#EF4F5F]/20 transition-all active:scale-95">
+                      Join Elite Now →
+                    </button>
                   )}
-               </div>
-            </motion.section>
-          </Tilt>
+                </div>
+                {/* Right Image */}
+                <div className="w-[45%] relative overflow-hidden hidden sm:block">
+                  <SafeImage
+                    src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=800&auto=format&fit=crop"
+                    alt="Elite Restaurant"
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-white via-white/40 to-transparent z-10" />
+                </div>
+              </div>
+            </div>
+          </motion.section>
+
+          {/* 🏠 Zenvy Homes: Premium Campus Stays Banner */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mb-8"
+          >
+            <Link href="/pg">
+              <div className="group cursor-pointer overflow-hidden rounded-[24px] relative border border-gray-200 light:border-gray-200 shadow-lg hover:shadow-xl transition-all duration-500 bg-white light:bg-white">
+                <div className="flex items-stretch min-h-[200px]">
+                  {/* Left Content */}
+                  <div className="flex-1 p-6 md:p-8 flex flex-col justify-center z-10">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[11px] font-black uppercase tracking-[0.25em] text-[#1a5cba]">Zenvy Homes</span>
+                      <span className="text-sm">🏠</span>
+                    </div>
+                    <h3 className="text-xl md:text-2xl font-black text-[#1a1a1a] leading-tight mb-0.5">PREMIUM</h3>
+                    <h3 className="text-xl md:text-2xl font-black italic text-[#EF4F5F] leading-tight mb-3">CAMPUS STAYS</h3>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-5 max-w-[220px] leading-relaxed">
+                      Verified student hostels & PGs starting from ₹6,500/month. No brokerage.
+                    </p>
+                    <button className="w-fit bg-[#EF4F5F] hover:bg-[#d9404f] text-white text-[11px] font-black px-6 py-3 rounded-xl uppercase tracking-wider shadow-lg shadow-[#EF4F5F]/20 transition-all active:scale-95">
+                      Explore PG Hostels →
+                    </button>
+                  </div>
+                  {/* Right Image */}
+                  <div className="w-[45%] relative overflow-hidden hidden sm:block">
+                    <SafeImage
+                      src="https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=800&auto=format&fit=crop"
+                      alt="Campus Stay Room"
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-white via-white/40 to-transparent z-10" />
+                  </div>
+                </div>
+              </div>
+            </Link>
+          </motion.section>
 
           <motion.div 
             initial={{ scaleX: 0 }}
@@ -1521,17 +1562,16 @@ export default function Home() {
                 .sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0))
                 .map((res, index) => (
                 <div key={res._id || res.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.05}s`, animationFillMode: 'both' }}>
-                  <Link href={`/restaurants/${res._id || res.id}`} prefetch={false}>
-                    <RestaurantCard 
-                      name={res.name} 
-                      rating={String(res.rating || "4.5")} 
-                      time={res.calculatedTime || res.time || "30-50 min"}
-                      imageUrl={res.imageUrl || "/assets/placeholder_premium.png"} 
-                      imagePosition={index % 2 === 0 ? 'left' : 'right'}
-                      isFeatured={res.isFeatured}
-                      featuredBadge={res.featuredBadge}
-                    />
-                  </Link>
+                  <RestaurantCard 
+                    id={res._id || res.id}
+                    name={res.name} 
+                    rating={String(res.rating || "4.5")} 
+                    time={res.calculatedTime || res.time || "30-50 min"}
+                    imageUrl={res.imageUrl || "/assets/placeholder_premium.png"} 
+                    imagePosition={index % 2 === 0 ? 'left' : 'right'}
+                    isFeatured={res.isFeatured}
+                    featuredBadge={res.featuredBadge}
+                  />
                 </div>
               ))}
             </div>
