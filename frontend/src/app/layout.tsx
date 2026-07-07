@@ -3,13 +3,14 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { CartProvider } from '@/context/CartContext';
+import { WorldTransitionProvider } from '@/context/WorldTransitionContext';
 
 import ToastProvider from '@/components/ToastProvider';
 import VFXLayer from '@/components/VFXLayer';
 import GlobalAnnouncement from '@/components/GlobalAnnouncement';
 import FetchInterceptor from '@/components/FetchInterceptor';
 import AntiInspect from '@/components/AntiInspect';
-import EcosystemFab from '@/components/EcosystemFab';
+import WorldTransitionOverlay from '@/components/WorldTransitionOverlay';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -67,14 +68,15 @@ export default function RootLayout({
         <GlobalAnnouncement />
         <ToastProvider />
         <CartProvider>
-          {/* Performance Optimized VFX Layer */}
-          <VFXLayer />
-          
-          <EcosystemFab />
+          <WorldTransitionProvider>
+            {/* Performance Optimized VFX Layer */}
+            <VFXLayer />
+            <WorldTransitionOverlay />
 
-          <div className="relative z-10">
-            {children}
-          </div>
+            <div className="relative z-10">
+              {children}
+            </div>
+          </WorldTransitionProvider>
         </CartProvider>
       </body>
     </html>

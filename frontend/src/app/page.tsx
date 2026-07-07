@@ -16,6 +16,7 @@ const IntroOverlay = dynamic(() => import('@/components/IntroOverlay'), { ssr: f
 const ZenvyVault = dynamic(() => import('@/components/ZenvyVault'), { ssr: false });
 const NexusExplorer = dynamic(() => import('@/components/NexusExplorer'), { ssr: false });
 const CampusBitesSection = dynamic(() => import('@/components/CampusBitesSection'), { ssr: false });
+const WorldSwitcher = dynamic(() => import('@/components/WorldSwitcher'), { ssr: false });
 
 import ZenvyPulse from '@/components/ZenvyPulse';
 import LiveOrderStatusBar from '@/components/LiveOrderStatusBar';

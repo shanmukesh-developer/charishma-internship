@@ -1474,3 +1474,47 @@ input:-webkit-autofill:active {
 .animate-text-gradient { animation: gradient 3s linear infinite; background-size: 200% auto; }
 
 @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+/* === WORLD SWITCHER LIGHT MODE === */
+.light .light-switcher-bg {
+  background: rgba(0, 0, 0, 0.03) !important;
+}
+.light .light-switcher-border {
+  border-color: #D1D1D6 !important;
+}
+.light .light-switcher-inactive-text {
+  color: #999 !important;
+}
+
+/* === CATEGORY CIRCLES === */
+.category-circle {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+.category-circle:hover {
+  border-color: #EF4F5F;
+  transform: scale(1.08);
+}
+.light .category-circle {
+  border-color: #E8E8E8 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.light .category-circle:hover {
+  border-color: #EF4F5F !important;
+}
+
+/* === PROMO BANNER CAROUSEL === */
+.promo-banner-card {
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.light .promo-banner-card {
+  border-color: #D1D1D6 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+}
