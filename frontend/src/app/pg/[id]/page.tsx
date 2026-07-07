@@ -35,6 +35,7 @@ interface PG {
   messMenu: Record<string, { breakfast: string; lunch: string; dinner: string }>;
   foodTimetable: { breakfast: string; lunch: string; dinner: string };
   rules: string[];
+  totalRooms?: number;
   contactInfo: {
     phone: string;
     email: string;

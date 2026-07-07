@@ -1564,7 +1564,7 @@ export default function Home() {
                 .map((res, index) => (
                 <div key={res._id || res.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.05}s`, animationFillMode: 'both' }}>
                   <RestaurantCard 
-                    id={res._id || res.id}
+                    id={res._id || res.id || ''}
                     name={res.name} 
                     rating={String(res.rating || "4.5")} 
                     time={res.calculatedTime || res.time || "30-50 min"}
