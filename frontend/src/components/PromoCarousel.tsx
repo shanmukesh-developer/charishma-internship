@@ -41,9 +41,9 @@ export default function PromoCarousel({ offers }: PromoCarouselProps) {
       <div className="absolute inset-x-0 -top-10 h-40 bg-gradient-to-b from-primary-yellow/5 to-transparent pointer-events-none" />
       <div className="glass-card-extreme overflow-hidden rounded-[30px] border border-white/5 relative min-h-[210px] h-auto md:h-[280px] flex items-center px-6 md:px-12 py-10 md:py-0 group">
         
-        {/* Right Side Fading Image Container */}
-        <div className="absolute right-0 top-0 w-1/2 h-full pointer-events-none opacity-40 group-hover:opacity-60 transition-opacity z-0">
-           <div className="absolute inset-0 bg-gradient-to-l from-black via-transparent to-transparent z-10 light:from-white" />
+        {/* Background Image Container */}
+        <div className="absolute inset-0 w-full h-full pointer-events-none z-0">
+           <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0B] via-[#0A0A0B]/90 to-transparent z-10 light:from-white light:via-white/90" />
            <AnimatePresence mode="wait">
              <motion.div
                key={currentOffer.id}
