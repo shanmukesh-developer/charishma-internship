@@ -16,7 +16,7 @@ const IntroOverlay = dynamic(() => import('@/components/IntroOverlay'), { ssr: f
 const ZenvyVault = dynamic(() => import('@/components/ZenvyVault'), { ssr: false });
 const NexusExplorer = dynamic(() => import('@/components/NexusExplorer'), { ssr: false });
 const CampusBitesSection = dynamic(() => import('@/components/CampusBitesSection'), { ssr: false });
-const WorldSwitcher = dynamic(() => import('@/components/WorldSwitcher'), { ssr: false });
+// const WorldSwitcher = dynamic(() => import('@/components/WorldSwitcher'), { ssr: false });
 
 import ZenvyPulse from '@/components/ZenvyPulse';
 import LiveOrderStatusBar from '@/components/LiveOrderStatusBar';
@@ -32,7 +32,7 @@ import { Restaurant, User, NexusItem } from '@/types';
 import RewardsPanel from '@/components/RewardsPanel';
 import NexusLeaderboard from '@/components/NexusLeaderboard';
 import SurgeBanner from '@/components/SurgeBanner';
-import GlobalAnnouncement from '@/components/GlobalAnnouncement';
+// import GlobalAnnouncement from '@/components/GlobalAnnouncement';
 import Navbar from '@/components/Navbar';
 import RecentlyViewed from '@/components/RecentlyViewed';
 import { API_URL } from '@/utils/api';
@@ -343,7 +343,6 @@ export default function Home() {
       'warning',
       async () => {
         try {
-          const token = 'cookie-managed';
           const orderId = activeOrder?._id || activeOrder?.id;
           if (orderId) {
             await fetch(`${API_URL}/api/orders/${orderId}/cancel`, {
@@ -365,7 +364,6 @@ export default function Home() {
 
   const handleRatingSubmit = async (rating: number, review: string) => {
     try {
-      const token = 'cookie-managed';
       const orderId = activeOrder?._id || activeOrder?.id;
       if (!orderId) return;
 
@@ -1111,7 +1109,7 @@ export default function Home() {
                     <Link href={`/products/${item.id}`}>
                       <Tilt className="chef-card bg-[#141416]">
                         <div className="aspect-[4/3] relative rounded-[30px] overflow-hidden border border-white/10 group-hover:border-primary-yellow/30 transition-colors">
-                          <SafeImage src={item.image || item.imageUrl} alt={item.name} fill style={{ objectFit: 'cover' }} />
+                          <SafeImage src={item.image || item.imageUrl || ''} alt={item.name || 'Product'} fill style={{ objectFit: 'cover' }} />
                         </div>
                         <div className="mt-3">
                           <h3 className="font-bold text-[15px] text-white mb-1">{item.name}</h3>
