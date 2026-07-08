@@ -7,7 +7,7 @@ import SafeImage from '@/components/SafeImage';
 import Tilt from '@/components/Tilt';
 import Magnetic from '@/components/Magnetic';
 import socket from '@/utils/socket';
-
+import { showToast } from '@/components/ToastProvider';
 interface CartItem {
   id: string;
   cartKey: string;
