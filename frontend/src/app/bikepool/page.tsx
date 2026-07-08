@@ -56,10 +56,25 @@ interface RidePool {
   createdAt: string;
 }
 
+const campusLocations = [
+  "SRM AP Main Gate",
+  "Shakti Canteen",
+  "Library",
+  "Hostel Blocks",
+  "Neerukonda",
+  "Mangalagiri",
+  "Vijayawada Station",
+  "Guntur"
+];
 export default function BikePoolPage() {
   const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [activeTab, setActiveTab] = useState<'browse' | 'my-rides'>('browse');
+  
+  // Filters
+  const [browseFilter, setBrowseFilter] = useState<'Any' | 'Same Gender Only'>('Any');
+  const [vehicleFilter, setVehicleFilter] = useState<'All' | 'Bike' | 'Car' | 'Auto'>('All');
+  const [vibeFilter, setVibeFilter] = useState<'Any' | 'Silent Ride 🤫' | 'Chatty 🗣️' | 'Music Lover 🎵'>('Any');
   
   // Available Pools List
   const [pools, setPools] = useState<RidePool[]>([]);
@@ -71,6 +86,7 @@ export default function BikePoolPage() {
 
   // Form State
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [formStep, setFormStep] = useState(1);
   const [creating, setCreating] = useState(false);
   const [formData, setFormData] = useState({
     creatorRole: 'rider' as 'rider' | 'passenger',
@@ -83,7 +99,10 @@ export default function BikePoolPage() {
     stopovers: '',
     rideVibe: 'Any',
     vehicleInfo: '',
-    notes: ''
+    notes: '',
+    isRecurring: false,
+    recurringDays: [] as string[],
+    estimatedFuelCost: 0
   });
 
   // Profile Setup State (for inline editing of gender & pref)
@@ -503,15 +522,73 @@ export default function BikePoolPage() {
           {/* TABS CONTAINER */}
           <div>
             {/* Browse Matches Tab */}
-            {activeTab === 'browse' && (
+            {activeTab === 'browse' && (() => {
+              const displayedPools = pools.filter(p => {
+                let match = true;
+                if (browseFilter === 'Same Gender Only') {
+                  if (!user || user.gender === 'Prefer not to say' || p.creator?.gender !== user.gender) {
+                    match = false;
+                  }
+                }
+                if (vehicleFilter !== 'All' && p.vehicleType !== vehicleFilter) match = false;
+                if (vibeFilter !== 'Any' && p.rideVibe !== vibeFilter) match = false;
+                return match;
+              });
+
+              return (
               <div>
+                {/* Filters */}
+                {!loadingPools && pools.length > 0 && (
+                  <div className="flex flex-col gap-2 mb-6">
+                    <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold block">Filters</span>
+                    <div className="flex flex-wrap gap-2">
+                      <div className="bg-white/5 border border-white/10 rounded-xl p-1 flex">
+                        <button 
+                          onClick={() => setBrowseFilter('Any')}
+                          className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${browseFilter === 'Any' ? 'bg-indigo-500 text-white' : 'text-gray-400 hover:text-white light:text-gray-900'}`}
+                        >
+                          All Genders
+                        </button>
+                        <button 
+                          onClick={() => setBrowseFilter('Same Gender Only')}
+                          className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${browseFilter === 'Same Gender Only' ? 'bg-indigo-500 text-white' : 'text-gray-400 hover:text-white light:text-gray-900'}`}
+                        >
+                          Same Gender Only
+                        </button>
+                      </div>
+
+                      <select
+                        value={vehicleFilter}
+                        onChange={(e) => setVehicleFilter(e.target.value as any)}
+                        className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 outline-none focus:border-indigo-400"
+                      >
+                        <option value="All" className="bg-[#141416]">All Vehicles</option>
+                        <option value="Bike" className="bg-[#141416]">Bike 🏍️</option>
+                        <option value="Car" className="bg-[#141416]">Car 🚗</option>
+                        <option value="Auto" className="bg-[#141416]">Auto 🛺</option>
+                      </select>
+
+                      <select
+                        value={vibeFilter}
+                        onChange={(e) => setVibeFilter(e.target.value as any)}
+                        className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 outline-none focus:border-indigo-400"
+                      >
+                        <option value="Any" className="bg-[#141416]">Any Vibe</option>
+                        <option value="Silent Ride 🤫" className="bg-[#141416]">Silent Ride 🤫</option>
+                        <option value="Chatty 🗣️" className="bg-[#141416]">Chatty 🗣️</option>
+                        <option value="Music Lover 🎵" className="bg-[#141416]">Music Lover 🎵</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+                
                 {loadingPools ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[1, 2, 3].map(i => (
                       <div key={i} className="glass-card-extreme p-6 rounded-[30px] min-h-[180px] skeleton" />
                     ))}
                   </div>
-                ) : pools.length === 0 ? (
+                ) : displayedPools.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 bg-[#1A1A24] light:bg-white border border-white/5 light:border-gray-200 shadow-[0_8px_30px_rgba(0,0,0,0.04)] rounded-[30px] text-center p-6">
                     <div className="relative w-16 h-16 mb-6 mx-auto">
                       <div className="absolute inset-0 bg-indigo-500 rounded-full opacity-20 animate-ping" style={{ animationDuration: '2s' }} />
@@ -519,11 +596,11 @@ export default function BikePoolPage() {
                       <div className="absolute inset-0 flex items-center justify-center text-2xl z-10">📡</div>
                     </div>
                     <h3 className="text-sm font-black uppercase tracking-wider text-gray-400">No Active Pool Listings</h3>
-                    <p className="text-xs text-gray-500 mt-1 max-w-sm">No one is currently pooling to your destinations. Be the first to post a ride!</p>
+                    <p className="text-xs text-gray-500 mt-1 max-w-sm">No matches found for your criteria. Be the first to post a ride!</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {pools.map(pool => {
+                    {displayedPools.map(pool => {
                       const isRider = pool.creatorRole === 'rider';
                       const badgeColor = isRider ? 'border-primary-yellow/30 bg-primary-yellow/10 text-primary-yellow' : 'border-indigo-400/30 bg-indigo-400/10 text-indigo-400';
                       
@@ -605,7 +682,7 @@ export default function BikePoolPage() {
                   </div>
                 )}
               </div>
-            )}
+            )})()}
 
             {/* My Commutes Tab */}
             {activeTab === 'my-rides' && (
@@ -675,14 +752,25 @@ export default function BikePoolPage() {
                                       </div>
                                     </div>
                                     
-                                    <a
-                                      href={`https://wa.me/91${otherPerson.phone.replace(/[^0-9]/g, '')}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-wider hover:bg-emerald-500/20 transition-all"
-                                    >
-                                      Chat on WA
-                                    </a>
+                                    <div className="flex gap-2">
+                                      <a
+                                        href={`https://wa.me/?text=${encodeURIComponent(`🚨 ZENVY SOS: I am on a Co-Ride from ${ride.origin} to ${ride.destination}. My Co-rider is ${otherPerson.name} (${otherPerson.phone}). Vehicle: ${ride.vehicleInfo || ride.vehicleType}. Track me safely!`)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="bg-red-500/10 text-red-400 border border-red-500/20 text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-wider hover:bg-red-500/20 transition-all flex items-center gap-1"
+                                      >
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                        Share SOS
+                                      </a>
+                                      <a
+                                        href={`https://wa.me/91${otherPerson.phone.replace(/[^0-9]/g, '')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-wider hover:bg-emerald-500/20 transition-all flex items-center gap-1"
+                                      >
+                                        Chat
+                                      </a>
+                                    </div>
                                   </div>
                                 </div>
                               ) : (
@@ -777,12 +865,25 @@ export default function BikePoolPage() {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="bg-[#141416] border border-white/10 rounded-[30px] w-full max-w-lg p-6 relative z-10 overflow-y-auto max-h-[90vh]"
             >
-              <h2 className="text-xl font-black text-white light:text-gray-900 italic tracking-tighter uppercase mb-2">Post Co-Ride Offer</h2>
+              
+              <datalist id="campusLocations">
+                {campusLocations.map(loc => <option key={loc} value={loc} />)}
+              </datalist>
+
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xl font-black text-white light:text-gray-900 italic tracking-tighter uppercase">Post Co-Ride</h2>
+                <div className="flex items-center gap-1">
+                  <div className={`h-1.5 w-6 rounded-full ${formStep >= 1 ? 'bg-primary-yellow' : 'bg-white/10'}`} />
+                  <div className={`h-1.5 w-6 rounded-full ${formStep >= 2 ? 'bg-primary-yellow' : 'bg-white/10'}`} />
+                </div>
+              </div>
               <p className="text-xs text-gray-400 mb-6">Create a ride share post. Matching algorithm applies safety parameters automatically.</p>
               
               <form onSubmit={handleCreatePool} className="space-y-4">
                 
-                {/* Role Switcher */}
+                {formStep === 1 && (
+                  <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+                    {/* Role Switcher */}
                 <div>
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Your Commute Role</label>
                   <div className="grid grid-cols-2 gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/5">
@@ -809,6 +910,7 @@ export default function BikePoolPage() {
                     <input
                       type="text"
                       required
+                      list="campusLocations"
                       placeholder="e.g. Shakti Canteen, SRM AP"
                       value={formData.origin}
                       onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value }))}
@@ -820,6 +922,7 @@ export default function BikePoolPage() {
                     <input
                       type="text"
                       required
+                      list="campusLocations"
                       placeholder="e.g. Vijayawada Station"
                       value={formData.destination}
                       onChange={(e) => setFormData(prev => ({ ...prev, destination: e.target.value }))}
@@ -828,6 +931,13 @@ export default function BikePoolPage() {
                   </div>
                 </div>
 
+                {formData.origin && formData.destination && (
+                  <div className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold p-3 rounded-xl flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    ETA will be calculated dynamically once matched!
+                  </div>
+                )}
+
                 <div>
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Departure Time *</label>
                   <input
@@ -835,35 +945,143 @@ export default function BikePoolPage() {
                     required
                     value={formData.departureTime}
                     onChange={(e) => setFormData(prev => ({ ...prev, departureTime: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white light:text-gray-900 outline-none focus:border-indigo-400"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white light:text-gray-900 outline-none focus:border-indigo-400 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert-[0.8] light:[&::-webkit-calendar-picker-indicator]:invert-0"
                   />
                 </div>
 
+                {/* Recurring Rides */}
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                  <label className="flex items-center gap-2 cursor-pointer mb-3">
+                    <input 
+                      type="checkbox" 
+                      checked={formData.isRecurring}
+                      onChange={(e) => setFormData(prev => ({ ...prev, isRecurring: e.target.checked }))}
+                      className="w-4 h-4 accent-indigo-500 bg-white/10 rounded border-white/20"
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-white light:text-gray-900 uppercase tracking-wider">Repeat this ride</span>
+                      <span className="text-[8px] text-gray-500">Automatically recreate this ride every week</span>
+                    </div>
+                  </label>
+                  
+                  {formData.isRecurring && (
+                    <div className="flex flex-wrap gap-2">
+                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => {
+                              const days = prev.recurringDays.includes(day)
+                                ? prev.recurringDays.filter(d => d !== day)
+                                : [...prev.recurringDays, day];
+                              return { ...prev, recurringDays: days };
+                            });
+                          }}
+                          className={`text-[9px] font-black uppercase px-3 py-1.5 rounded-lg transition-all ${formData.recurringDays.includes(day) ? 'bg-indigo-500 text-white' : 'bg-white/10 text-gray-400 hover:text-white'}`}
+                        >
+                          {day}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-4 pt-4 border-t border-white/5">
+                  <button
+                    type="button"
+                    onClick={() => setFormStep(2)}
+                    disabled={!formData.origin || !formData.destination || !formData.departureTime}
+                    className="flex-1 bg-primary-yellow text-black text-xs font-black py-3.5 rounded-xl uppercase tracking-tighter shadow-lg shadow-primary-yellow/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next Step ➔
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="bg-white/5 border border-white/10 text-white light:text-gray-900 text-xs font-bold px-6 py-3.5 rounded-xl uppercase tracking-wider hover:bg-white/10"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                </motion.div>
+                )}
+
+                {formStep === 2 && (
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+                  
+                  {/* Live Post Preview */}
+                  <div className="mb-4 bg-primary-yellow/5 border border-primary-yellow/20 rounded-2xl p-4 shadow-xl">
+                    <span className="text-[8px] font-black text-primary-yellow uppercase tracking-widest block mb-2">Live Preview</span>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-[10px] font-bold text-white light:text-gray-900">{formData.origin || 'Origin'}</span>
+                      <span className="text-gray-500">→</span>
+                      <span className="text-[10px] font-bold text-white light:text-gray-900">{formData.destination || 'Destination'}</span>
+                    </div>
+                    <div className="flex gap-2 text-[9px] text-gray-500 uppercase tracking-wider">
+                      <span>{formData.vehicleType}</span>
+                      <span>•</span>
+                      <span>{formData.availableSeats} Seats</span>
+                      <span>•</span>
+                      <span>{formData.rideVibe}</span>
+                    </div>
+                  </div>
                 {/* Vehicle Type & Seats */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Vehicle Type</label>
-                    <select
-                      value={formData.vehicleType}
-                      onChange={(e) => setFormData(prev => ({ ...prev, vehicleType: e.target.value }))}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white light:text-gray-900 outline-none focus:border-indigo-400"
-                    >
-                      <option value="Bike" className="bg-[#141416]">Bike 🏍️</option>
-                      <option value="Car" className="bg-[#141416]">Car 🚗</option>
-                      <option value="Auto" className="bg-[#141416]">Auto 🛺</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Available Seats</label>
+                  {formData.creatorRole === 'rider' && (
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Vehicle Type</label>
+                      <select
+                        value={formData.vehicleType}
+                        onChange={(e) => {
+                          const type = e.target.value;
+                          const maxSeats = type === 'Bike' ? 1 : (type === 'Car' ? 4 : 3);
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            vehicleType: type,
+                            availableSeats: Math.min(prev.availableSeats, maxSeats)
+                          }));
+                        }}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white light:text-gray-900 outline-none focus:border-indigo-400"
+                      >
+                        <option value="Bike" className="bg-[#141416] light:bg-white">Bike 🏍️</option>
+                        <option value="Car" className="bg-[#141416] light:bg-white">Car 🚗</option>
+                        <option value="Auto" className="bg-[#141416] light:bg-white">Auto 🛺</option>
+                      </select>
+                    </div>
+                  )}
+                  <div className={formData.creatorRole === 'passenger' ? "sm:col-span-2" : ""}>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                      {formData.creatorRole === 'rider' ? 'Available Seats' : 'Seats Needed'}
+                    </label>
                     <input
                       type="number"
                       min="1"
-                      max="6"
+                      max={formData.creatorRole === 'rider' ? (formData.vehicleType === 'Bike' ? 1 : (formData.vehicleType === 'Car' ? 4 : 3)) : 4}
                       value={formData.availableSeats}
-                      onChange={(e) => setFormData(prev => ({ ...prev, availableSeats: parseInt(e.target.value) || 1 }))}
+                      onChange={(e) => {
+                        let val = parseInt(e.target.value) || 1;
+                        let max = formData.creatorRole === 'rider' ? (formData.vehicleType === 'Bike' ? 1 : (formData.vehicleType === 'Car' ? 4 : 3)) : 4;
+                        if (val > max) val = max;
+                        setFormData(prev => ({ ...prev, availableSeats: val }));
+                      }}
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white light:text-gray-900 outline-none focus:border-indigo-400"
                     />
                   </div>
+                </div>
+
+                {/* Cost Transparency */}
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Fuel Split / Contribution (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 50 (leave as 0 for free)"
+                    value={formData.estimatedFuelCost}
+                    onChange={(e) => setFormData(prev => ({ ...prev, estimatedFuelCost: parseInt(e.target.value) || 0 }))}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white light:text-gray-900 placeholder-gray-600 outline-none focus:border-indigo-400"
+                  />
+                  <span className="text-[8px] text-gray-500 mt-1 block">Zenvy Co-Ride is community-first. Explicitly state split expectations to avoid awkwardness.</span>
                 </div>
 
                 {/* Stopovers */}
@@ -905,7 +1123,8 @@ export default function BikePoolPage() {
                       />
                       <div className="flex flex-col">
                         <span className="text-[10px] font-bold text-white light:text-gray-900 uppercase tracking-wider">Auto-Approve</span>
-                        <span className="text-[8px] text-gray-500">Instantly accept join requests</span>
+                        <span className="text-[8px] text-gray-500">Instantly accept join requests.</span>
+                        <span className="text-[8px] text-red-400 font-bold">Riders will be added instantly without your review!</span>
                       </div>
                     </label>
                   </div>
@@ -939,19 +1158,20 @@ export default function BikePoolPage() {
                   <button
                     type="submit"
                     disabled={creating}
-                    className="flex-1 bg-primary-yellow text-black text-xs font-black py-3.5 rounded-xl uppercase tracking-tighter shadow-lg shadow-primary-yellow/10"
+                    className="flex-1 bg-primary-yellow text-black text-xs font-black py-3.5 rounded-xl uppercase tracking-tighter shadow-lg shadow-primary-yellow/10 disabled:opacity-50"
                   >
                     {creating ? 'Publishing...' : 'Publish Ride'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowCreateModal(false)}
+                    onClick={() => setFormStep(1)}
                     className="bg-white/5 border border-white/10 text-white light:text-gray-900 text-xs font-bold px-6 py-3.5 rounded-xl uppercase tracking-wider hover:bg-white/10"
                   >
-                    Cancel
+                    Back
                   </button>
                 </div>
-
+                </motion.div>
+                )}
               </form>
             </motion.div>
           </div>
@@ -1003,13 +1223,22 @@ export default function BikePoolPage() {
                 </div>
               </div>
 
+              <div className="mb-6 bg-white/5 border border-white/10 p-4 rounded-2xl">
+                <span className="text-[10px] font-bold text-white light:text-gray-900 block mb-3 uppercase tracking-wider">How was your co-rider?</span>
+                <div className="flex gap-4 justify-center mb-3">
+                  <button className="bg-white/5 border border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-2xl p-3 rounded-xl transition-all shadow-sm active:scale-95">👍</button>
+                  <button className="bg-white/5 border border-white/10 hover:border-red-500/50 hover:bg-red-500/10 text-2xl p-3 rounded-xl transition-all shadow-sm active:scale-95">👎</button>
+                </div>
+                <p className="text-[8px] text-gray-500 uppercase tracking-widest leading-relaxed">Feedback confirms completion & validates Karma.</p>
+              </div>
+
               <div className="flex flex-col gap-2">
                 <button
                   onClick={() => handleCompletePool(selectedRide.id)}
                   disabled={completingRideId === selectedRide.id}
-                  className="w-full bg-emerald-500 text-black text-xs font-black py-4 rounded-xl uppercase tracking-widest shadow-lg shadow-emerald-500/10"
+                  className="w-full bg-emerald-500 text-black text-xs font-black py-4 rounded-xl uppercase tracking-widest shadow-[0_4px_20px_rgba(16,185,129,0.3)] transition-all active:scale-95"
                 >
-                  {completingRideId === selectedRide.id ? 'Processing...' : 'Complete & Claim Karma'}
+                  {completingRideId === selectedRide.id ? 'Processing...' : 'Confirm Ride & Claim Karma'}
                 </button>
                 <button
                   onClick={() => setSelectedRide(null)}

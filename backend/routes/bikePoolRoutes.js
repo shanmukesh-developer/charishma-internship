@@ -9,7 +9,7 @@ const { getPoolRequestModel } = require('../models/PoolRequest');
 
 // Create a new bike pool post
 router.post('/posts', protect, async (req, res) => {
-  const { creatorRole, origin, destination, departureTime, rideVibe, vehicleType, availableSeats, autoApprove, stopovers, vehicleInfo, notes } = req.body;
+  const { creatorRole, origin, destination, departureTime, rideVibe, vehicleType, availableSeats, autoApprove, stopovers, vehicleInfo, notes, isRecurring, recurringDays, estimatedFuelCost } = req.body;
 
   if (!creatorRole || !origin || !destination || !departureTime) {
     return res.status(400).json({ message: 'Role, origin, destination, and departure time are required.' });
@@ -30,11 +30,13 @@ router.post('/posts', protect, async (req, res) => {
       origin,
       destination,
       departureTime: new Date(departureTime),
-      estimatedFuelCost: 0,
+      estimatedFuelCost: estimatedFuelCost || 0,
       splitAmount: 0,
       vehicleType: vehicleType || 'Bike',
       availableSeats: availableSeats || 1,
       autoApprove: autoApprove || false,
+      isRecurring: isRecurring || false,
+      recurringDays: recurringDays || [],
       stopovers: stopovers || [],
       rideVibe: rideVibe || 'Any',
       vehicleInfo: creatorRole === 'rider' ? vehicleInfo : null,

@@ -18,6 +18,18 @@ const initBikePoolModel = (sequelize) => {
     vehicleType: { type: DataTypes.STRING, defaultValue: 'Bike' }, // 'Bike', 'Car', 'Auto'
     availableSeats: { type: DataTypes.INTEGER, defaultValue: 1 },
     autoApprove: { type: DataTypes.BOOLEAN, defaultValue: false },
+    isRecurring: { type: DataTypes.BOOLEAN, defaultValue: false },
+    recurringDays: {
+      type: DataTypes.TEXT,
+      defaultValue: '[]',
+      get() {
+        const val = this.getDataValue('recurringDays');
+        return val ? JSON.parse(val) : [];
+      },
+      set(val) {
+        this.setDataValue('recurringDays', JSON.stringify(val));
+      }
+    },
     stopovers: { 
       type: DataTypes.TEXT, 
       defaultValue: '[]',
