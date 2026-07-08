@@ -148,10 +148,10 @@ export default function PGDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-app-black light:bg-[#f0ece4] flex items-center justify-center text-white light:text-[#1a1a1a]">
+      <div className="min-h-screen bg-[#11111A] light:bg-[#FAFAFA] flex items-center justify-center text-white light:text-gray-900 transition-colors duration-500">
         <div className="text-center">
-          <div className="inline-block w-8 h-8 border-4 border-[#C9A84C] border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 font-black uppercase tracking-widest text-xs">Loading Residence Details...</p>
+          <div className="inline-block w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-6 font-black uppercase tracking-[0.2em] text-[10px] text-gray-500">Loading Premium Residence...</p>
         </div>
       </div>
     );
@@ -159,12 +159,12 @@ export default function PGDetailPage() {
 
   if (!pg) {
     return (
-      <div className="min-h-screen bg-app-black light:bg-[#f0ece4] flex items-center justify-center text-white light:text-[#1a1a1a]">
-        <div className="text-center p-8 glass-card border border-white/5 light:border-[#d4cfc5] rounded-3xl">
-          <span className="text-5xl">⚠️</span>
-          <p className="mt-4 font-black text-sm uppercase tracking-widest">PG Property not found</p>
-          <Link href="/pg" className="mt-6 inline-block bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2.5 px-6 rounded-xl text-xs uppercase tracking-wider transition-transform active:scale-95">
-            Back to Portal
+      <div className="min-h-screen bg-[#11111A] light:bg-[#FAFAFA] flex items-center justify-center text-white light:text-gray-900 transition-colors duration-500">
+        <div className="text-center p-10 bg-white/5 light:bg-white border border-white/5 light:border-gray-100 rounded-[36px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] max-w-sm w-full mx-4">
+          <span className="text-6xl">⚠️</span>
+          <p className="mt-6 font-black text-sm uppercase tracking-widest text-gray-400 light:text-gray-600">Property Not Found</p>
+          <Link href="/pg" className="mt-8 block bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 px-6 rounded-2xl text-[10px] uppercase tracking-[0.2em] transition-transform active:scale-95 shadow-lg shadow-indigo-600/20">
+            Back to Zenvy Homes
           </Link>
         </div>
       </div>
@@ -182,7 +182,11 @@ export default function PGDetailPage() {
   if (pg.genderType === 'Co-ed') genderColor = 'text-purple-400 bg-purple-500/10 border-purple-500/20';
 
   return (
-    <div className="min-h-screen bg-app-black light:bg-[#f0ece4] text-white light:text-[#1a1a1a] selection:bg-indigo-500/30 font-sans pb-24">
+    <div className="min-h-screen bg-[#11111A] light:bg-[#FAFAFA] text-white light:text-gray-900 selection:bg-indigo-500/30 font-sans pb-32 transition-colors duration-500 relative overflow-hidden">
+      {/* Subtle top glow */}
+      <div className="absolute top-0 left-0 right-0 h-[600px] bg-gradient-radial from-indigo-50/60 via-transparent to-transparent opacity-80 pointer-events-none hidden light:block" />
+      <div className="absolute top-0 left-0 right-0 h-[600px] bg-gradient-radial from-indigo-900/20 via-transparent to-transparent opacity-80 pointer-events-none block light:hidden" />
+
       <Navbar />
 
       {/* Floating Toast Notification */}
@@ -192,128 +196,140 @@ export default function PGDetailPage() {
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className={`fixed bottom-6 right-6 z-[9999] px-6 py-4 rounded-2xl shadow-2xl border flex items-center gap-3 font-bold text-xs uppercase tracking-wider backdrop-blur-md ${
+            className={`fixed bottom-8 right-6 z-[9999] px-6 py-4 rounded-2xl shadow-2xl border flex items-center gap-4 font-black text-[10px] uppercase tracking-widest backdrop-blur-md ${
               toast.type === 'success' 
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                : 'bg-red-500/10 text-red-400 border-red-500/20'
+                ? 'bg-[#11111A] text-emerald-400 border-emerald-500/30' 
+                : 'bg-[#11111A] text-red-400 border-red-500/30'
             }`}
           >
-            <span>{toast.type === 'success' ? '✅' : '⚠️'}</span>
+            <span className="text-lg">{toast.type === 'success' ? '✅' : '⚠️'}</span>
             <span>{toast.msg}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="pt-24 px-4 max-w-7xl mx-auto space-y-8">
+      <div className="pt-24 px-4 sm:px-6 max-w-7xl mx-auto space-y-10 relative z-10">
         
         {/* Breadcrumb / Back Button */}
         <div>
-          <Link href="/pg" className="inline-flex items-center gap-2 text-xs font-black text-gray-400 light:text-gray-600 hover:text-white light:hover:text-black uppercase tracking-widest transition-colors">
+          <Link href="/pg" className="inline-flex items-center gap-2 text-[10px] font-black text-gray-400 light:text-gray-500 hover:text-white light:hover:text-indigo-600 uppercase tracking-widest transition-colors bg-white/5 light:bg-white px-4 py-2 rounded-xl border border-white/5 light:border-gray-200 shadow-sm">
             <span>◀</span> Back to Zenvy Homes
           </Link>
         </div>
 
-        {/* 1. Photo Gallery Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {/* Main big display */}
-          <div className="lg:col-span-3 h-[450px] rounded-[36px] overflow-hidden border border-white/5 light:border-[#d4cfc5] shadow-xl relative bg-black/20">
-            <img 
-              src={activeImage} 
-              alt={pg.name} 
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute top-6 left-6 flex gap-2">
-              <span className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl backdrop-blur-md border ${genderColor}`}>
-                {pg.genderType}
-              </span>
-              <span className="text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl bg-black/60 text-white backdrop-blur-md border border-white/10">
-                ⭐ 4.8 / 5 Rating
-              </span>
+        {/* 1. Masonry Photo Gallery Section */}
+        <div className="bg-[#1A1A24] light:bg-white p-4 sm:p-6 rounded-[36px] border border-white/5 light:border-gray-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative">
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 h-[50vh] md:h-[65vh] min-h-[400px]">
+            {/* Main Hero Image */}
+            <div className="md:col-span-2 md:row-span-2 relative rounded-3xl overflow-hidden group">
+              <img 
+                src={pg.images && pg.images.length > 0 ? pg.images[0] : '/pg-images/pg_boys_exterior.png'} 
+                alt={`${pg.name} Main`} 
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none" />
+              
+              <div className="absolute top-5 left-5 flex gap-2">
+                <span className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full backdrop-blur-md shadow-sm border ${genderColor}`}>
+                  {pg.genderType}
+                </span>
+              </div>
+              <div className="absolute top-5 right-5">
+                <span className="text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full bg-emerald-500/90 text-white shadow-lg shadow-emerald-500/20">
+                  VERIFIED PROPERTY
+                </span>
+              </div>
+              <div className="absolute bottom-5 left-5">
+                <span className="text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full bg-black/50 text-white backdrop-blur-md border border-white/20">
+                  ⭐ 4.8 / 5 Rating
+                </span>
+              </div>
             </div>
-            <div className="absolute top-6 right-6">
-              <span className="text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 backdrop-blur-md border border-emerald-500/30">
-                ⚡ ZENVY VERIFIED PROPERTY
-              </span>
-            </div>
-          </div>
 
-          {/* Side Thumbnail List */}
-          <div className="flex lg:flex-col gap-3 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 h-auto lg:h-[450px]">
-            {pg.images.map((img, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActiveImage(img)}
-                className={`flex-1 shrink-0 w-28 lg:w-full h-24 lg:h-[105px] rounded-[24px] overflow-hidden border-2 transition-all ${
-                  activeImage === img 
-                    ? 'border-indigo-500 scale-[0.98]' 
-                    : 'border-white/5 light:border-[#d4cfc5] hover:opacity-80'
-                }`}
-              >
-                <img src={img} alt={`PG Thumbnail ${idx+1}`} className="w-full h-full object-cover" />
-              </button>
-            ))}
+            {/* Sub Image 1 */}
+            <div className="hidden md:block relative rounded-3xl overflow-hidden group">
+              <img src={pg.images && pg.images.length > 1 ? pg.images[1] : '/pg-images/room_double_sharing.png'} alt="Room View" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+            </div>
+
+            {/* Sub Image 2 */}
+            <div className="hidden md:block relative rounded-3xl overflow-hidden group">
+              <img src={pg.images && pg.images.length > 2 ? pg.images[2] : '/pg-images/pg_boys_exterior.png'} alt="Amenity View" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+            </div>
+
+            {/* Sub Image 3 */}
+            <div className="hidden md:block md:col-span-2 relative rounded-3xl overflow-hidden group">
+              <img src={pg.images && pg.images.length > 3 ? pg.images[3] : '/pg-images/room_single_sharing.png'} alt="Common Area View" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+              <div className="absolute inset-0 bg-black/40 hover:bg-black/20 transition-colors flex items-center justify-center cursor-pointer">
+                <span className="text-xs font-black text-white uppercase tracking-widest border border-white/30 px-6 py-3 rounded-full backdrop-blur-md hover:bg-white hover:text-black transition-colors">
+                  View All {pg.images?.length || 4} Photos
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* 2. Header details */}
-        <div className="glass-card p-8 rounded-[36px] border border-white/5 light:border-[#d4cfc5] shadow-xl">
+        <div className="bg-[#1A1A24] light:bg-white p-6 md:p-10 rounded-[36px] border border-white/5 light:border-gray-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
-              <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white light:text-[#1a1a1a]">{pg.name}</h1>
-              <p className="text-sm text-gray-400 light:text-gray-600 font-bold uppercase tracking-wider mt-2 flex items-center gap-1.5">
-                <span>📍</span> {pg.address}
+              <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white light:text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>{pg.name}</h1>
+              <p className="text-xs text-gray-400 light:text-gray-500 font-bold uppercase tracking-widest mt-4 flex items-center gap-1.5">
+                <span className="text-indigo-500 text-lg">📍</span> {pg.address}
               </p>
             </div>
-            <div className="bg-[#C9A84C]/10 border border-[#C9A84C]/20 p-4 rounded-3xl flex items-center gap-3">
+            <div className="bg-indigo-500/10 light:bg-indigo-50 border border-indigo-500/20 light:border-indigo-100 p-5 rounded-3xl flex items-center gap-4 shrink-0">
               <span className="text-3xl">🏃</span>
               <div>
-                <p className="text-[9px] font-black text-gray-400 light:text-gray-600 uppercase tracking-widest">Campus Distance</p>
-                <p className="text-lg font-black text-[#C9A84C]">{pg.distanceFromCollege} km away</p>
+                <p className="text-[9px] font-black text-gray-400 light:text-gray-500 uppercase tracking-[0.2em]">Campus Proximity</p>
+                <p className="text-xl font-black text-indigo-500 mt-1">{pg.distanceFromCollege} <span className="text-[10px] uppercase text-indigo-400">km away</span></p>
               </div>
             </div>
           </div>
 
+          <p className="text-[13px] text-gray-400 light:text-gray-600 font-medium leading-relaxed mt-8 max-w-4xl">
+            {pg.description}
+          </p>
+
           {/* Quick Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-8 border-t border-white/5 light:border-[#d4cfc5]">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-10 pt-10 border-t border-white/5 light:border-gray-100">
             {[
               { label: 'Security Deposit', value: `₹${pg.securityDeposit}`, desc: 'Fully Refundable', icon: '💰' },
               { label: 'Property Type', value: `${pg.genderType} Only`, desc: 'Strict Adherence', icon: '👥' },
               { label: 'Mess System', value: '7 Days Open', desc: 'Hygiene Certified', icon: '🍽️' },
-              { label: 'Total Rooms', value: `${pg.totalRooms} Rooms`, desc: 'Well Ventilated', icon: '🏢' }
+              { label: 'Total Rooms', value: `${pg.totalRooms || 24} Rooms`, desc: 'Well Ventilated', icon: '🏢' }
             ].map((stat, idx) => (
-              <div key={idx} className="bg-white/5 light:bg-[#f5f3ee] border border-white/5 light:border-[#d4cfc5] p-4 rounded-2xl flex items-center gap-3.5">
-                <span className="text-2xl">{stat.icon}</span>
+              <div key={idx} className="bg-white/5 light:bg-[#F8F9FA] border border-white/5 light:border-gray-100 p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center gap-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                <div className="w-12 h-12 rounded-full bg-white/10 light:bg-white flex items-center justify-center shrink-0 border border-white/5 light:border-gray-200">
+                  <span className="text-2xl">{stat.icon}</span>
+                </div>
                 <div>
-                  <p className="text-[8px] font-black text-gray-400 light:text-gray-600 uppercase tracking-widest">{stat.label}</p>
-                  <p className="text-sm font-black text-white light:text-[#1a1a1a] mt-0.5">{stat.value}</p>
-                  <p className="text-[8px] text-gray-500 font-medium">{stat.desc}</p>
+                  <p className="text-[9px] font-black text-gray-400 light:text-gray-500 uppercase tracking-[0.2em]">{stat.label}</p>
+                  <p className="text-sm font-black text-white light:text-gray-900 mt-1">{stat.value}</p>
+                  <p className="text-[9px] text-gray-500 light:text-gray-400 font-bold mt-1 uppercase">{stat.desc}</p>
                 </div>
               </div>
             ))}
           </div>
-
-          <p className="text-sm text-gray-400 light:text-gray-600 font-medium leading-relaxed mt-8">
-            {pg.description}
-          </p>
         </div>
 
         {/* 3. Room Cards Section */}
         <div>
-          <h2 className="text-xl font-black uppercase tracking-[0.25em] pl-4 mb-6">🛌 Available Room Configurations</h2>
+          <h2 className="text-xl md:text-2xl font-black uppercase tracking-[0.2em] pl-2 mb-8 text-white light:text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>Available Rooms</h2>
           
           {pg.rooms && pg.rooms.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {pg.rooms.map(room => (
                 <div 
                   key={room.id}
-                  className="glass-card rounded-[32px] border border-white/5 light:border-[#d4cfc5] overflow-hidden flex flex-col justify-between hover:border-indigo-500/20 transition-all duration-300 shadow-lg relative"
+                  className="bg-[#1A1A24] light:bg-white rounded-[32px] border border-white/5 light:border-gray-100 overflow-hidden flex flex-col justify-between hover:shadow-[0_20px_40px_rgba(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.04)] relative"
                 >
                   {/* Absolute Bed Count Banner */}
                   <div className="absolute top-4 left-4 z-10">
-                    <span className={`text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg backdrop-blur-md border ${
+                    <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-full backdrop-blur-md border shadow-sm ${
                       room.availableBeds > 0 
-                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                        : 'bg-red-500/10 text-red-400 border-red-500/20'
+                        ? 'bg-emerald-500/90 text-white border-emerald-400' 
+                        : 'bg-red-500/90 text-white border-red-400'
                     }`}>
                       {room.availableBeds} beds left
                     </span>
@@ -321,36 +337,42 @@ export default function PGDetailPage() {
 
                   <div>
                     {/* Room Thumbnail Photo */}
-                    <div className="h-44 w-full bg-black/20 overflow-hidden">
+                    <div className="h-52 w-full bg-black/20 overflow-hidden relative group">
                       <img 
                         src={room.images && room.images.length > 0 ? room.images[0] : '/pg-images/room_double_sharing.png'} 
                         alt={`${room.sharingType} Seater Room`}
-                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+                      <div className="absolute bottom-4 left-4">
+                        <span className="text-[10px] bg-black/50 text-white px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/20 font-black uppercase tracking-wider">
+                          Floor {room.floorNumber}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="p-6 space-y-4">
+                    <div className="p-6 md:p-8 space-y-5">
                       <div>
-                        <h3 className="text-md font-black text-white light:text-[#1a1a1a]">{room.sharingType} Seater Room</h3>
-                        <p className="text-[9px] text-gray-400 light:text-gray-600 font-bold uppercase tracking-wider mt-0.5">Room No: {room.roomNumber} • Floor: {room.floorNumber}F</p>
+                        <h3 className="text-xl font-black text-white light:text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>{room.sharingType} Seater Room</h3>
+                        <p className="text-[10px] text-gray-400 light:text-gray-500 font-bold uppercase tracking-widest mt-1">Room No: {room.roomNumber}</p>
                       </div>
 
                       {/* Room specs checklist */}
-                      <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-gray-400 light:text-gray-600">
-                        <div className="flex items-center gap-1.5">
-                          <span>{room.hasAC ? '✅' : '❌'}</span>
-                          <span>Air Conditioning</span>
+                      <div className="grid grid-cols-2 gap-3 text-[10px] font-bold text-gray-400 light:text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center gap-2 bg-white/5 light:bg-[#F8F9FA] p-2 rounded-xl">
+                          <span className="text-sm">{room.hasAC ? '❄️' : '🌬️'}</span>
+                          <span>{room.hasAC ? 'AC' : 'Non-AC'}</span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <span>{room.hasAttachedBathroom ? '✅' : '❌'}</span>
-                          <span>Private Bath</span>
+                        <div className="flex items-center gap-2 bg-white/5 light:bg-[#F8F9FA] p-2 rounded-xl">
+                          <span className="text-sm">{room.hasAttachedBathroom ? '🚿' : '🚪'}</span>
+                          <span>{room.hasAttachedBathroom ? 'Private Bath' : 'Shared Bath'}</span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <span>🚪</span>
+                        <div className="flex items-center gap-2 bg-white/5 light:bg-[#F8F9FA] p-2 rounded-xl">
+                          <span className="text-sm">🌅</span>
                           <span>{room.hasBalcony ? 'Balcony' : 'No Balcony'}</span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <span>🪑</span>
+                        <div className="flex items-center gap-2 bg-white/5 light:bg-[#F8F9FA] p-2 rounded-xl">
+                          <span className="text-sm">🪑</span>
                           <span className="truncate">{room.furnishing}</span>
                         </div>
                       </div>
@@ -358,29 +380,34 @@ export default function PGDetailPage() {
                   </div>
 
                   {/* Room Booking Footer */}
-                  <div className="p-6 pt-0 border-t border-white/5 light:border-[#d4cfc5] mt-4 flex items-center justify-between gap-2">
-                    <div>
-                      <p className="text-[8px] font-black text-gray-400 light:text-gray-600 uppercase tracking-widest">Rent per bed</p>
-                      <p className="text-lg font-black text-emerald-400">₹{room.pricePerBed}<span className="text-[10px] text-gray-400 light:text-gray-600 font-normal">/mo</span></p>
+                  <div className="p-6 md:p-8 pt-0 flex flex-col gap-4">
+                    <div className="flex items-end justify-between border-t border-white/5 light:border-gray-100 pt-5">
+                      <div>
+                        <p className="text-[9px] font-black text-gray-400 light:text-gray-500 uppercase tracking-widest">Rent per bed</p>
+                        <p className="text-2xl font-black text-indigo-500 mt-0.5">₹{room.pricePerBed}<span className="text-[11px] text-gray-400 light:text-gray-400 font-bold uppercase tracking-wider ml-1">/mo</span></p>
+                      </div>
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                      <input 
-                        type="date" 
-                        value={checkInDate}
-                        onChange={(e) => setCheckInDate(e.target.value)}
-                        className="bg-white/5 light:bg-[#f5f3ee] border border-white/10 light:border-[#d4cfc5] rounded-xl px-2 py-1.5 text-[9px] font-bold outline-none text-white light:text-black"
-                      />
+                    <div className="flex flex-col gap-3">
+                      <div className="relative">
+                        <span className="absolute left-4 top-3 text-xs">📅</span>
+                        <input 
+                          type="date" 
+                          value={checkInDate}
+                          onChange={(e) => setCheckInDate(e.target.value)}
+                          className="w-full bg-white/5 light:bg-[#F8F9FA] border border-white/10 light:border-gray-200 rounded-2xl py-3 pl-10 pr-4 text-[11px] font-bold outline-none text-white light:text-gray-900 focus:border-indigo-500 transition-all uppercase tracking-widest cursor-pointer"
+                        />
+                      </div>
                       <button
                         onClick={() => handleBookRoom(room.id)}
                         disabled={room.availableBeds === 0 || bookingRoomId === room.id}
-                        className={`font-black py-2.5 px-4 rounded-xl text-[9px] uppercase tracking-wider transition-all duration-200 active:scale-95 ${
+                        className={`font-black py-4 px-4 rounded-2xl text-[11px] uppercase tracking-[0.2em] transition-all duration-300 shadow-lg active:scale-95 flex items-center justify-center gap-2 ${
                           room.availableBeds === 0 
-                            ? 'bg-gray-800 text-gray-600 cursor-not-allowed border border-gray-700' 
-                            : 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-md shadow-indigo-500/10'
+                            ? 'bg-white/5 light:bg-gray-100 text-gray-500 cursor-not-allowed border border-white/10 light:border-gray-200 shadow-none' 
+                            : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20 hover:shadow-indigo-600/40'
                         }`}
                       >
-                        {bookingRoomId === room.id ? 'Booking...' : room.availableBeds === 0 ? 'Sold Out' : 'Book Bed'}
+                        {bookingRoomId === room.id ? 'Processing...' : room.availableBeds === 0 ? 'Sold Out' : 'Book Now'}
                       </button>
                     </div>
                   </div>
@@ -389,23 +416,23 @@ export default function PGDetailPage() {
               ))}
             </div>
           ) : (
-            <div className="glass-card p-8 rounded-[32px] border border-white/5 light:border-[#d4cfc5] text-center">
-              <span className="text-4xl">📭</span>
-              <p className="text-gray-500 light:text-gray-600 mt-2 font-black uppercase tracking-wider text-xs">No active rooms found for this property.</p>
+            <div className="bg-[#1A1A24] light:bg-white p-12 rounded-[36px] border border-white/5 light:border-gray-100 text-center shadow-sm">
+              <span className="text-6xl">📭</span>
+              <p className="text-gray-500 light:text-gray-600 mt-4 font-black uppercase tracking-[0.2em] text-sm">No active rooms found.</p>
             </div>
           )}
         </div>
 
         {/* 4. Amenities Grid Section */}
-        <div className="glass-card p-8 rounded-[36px] border border-white/5 light:border-[#d4cfc5] shadow-xl">
-          <h2 className="text-lg font-black uppercase tracking-[0.25em] border-b border-white/5 light:border-[#d4cfc5] pb-4 mb-6">📶 Premium Amenities & Facility Scope</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-[#1A1A24] light:bg-white p-6 md:p-10 rounded-[36px] border border-white/5 light:border-gray-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+          <h2 className="text-xl md:text-2xl font-black uppercase tracking-[0.2em] border-b border-white/5 light:border-gray-100 pb-6 mb-8 text-white light:text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>Premium Amenities</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {pg.amenities.map((amenity, idx) => (
-              <div key={idx} className="bg-white/5 light:bg-[#f5f3ee] border border-white/5 light:border-[#d4cfc5] p-4 rounded-2xl flex items-center gap-3">
-                <span className="text-2xl">{getAmenityEmoji(amenity)}</span>
+              <div key={idx} className="bg-white/5 light:bg-[#F8F9FA] border border-white/5 light:border-gray-100 p-5 rounded-2xl flex flex-col items-center text-center gap-3 hover:-translate-y-1 transition-transform">
+                <span className="text-4xl">{getAmenityEmoji(amenity)}</span>
                 <div>
-                  <span className="text-xs font-black text-white light:text-[#1a1a1a] block truncate">{amenity}</span>
-                  <span className="text-[8px] text-gray-500 uppercase tracking-widest font-black block mt-0.5">Verified Facility</span>
+                  <span className="text-[11px] font-black text-white light:text-gray-900 block truncate">{amenity}</span>
+                  <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mt-1">Included</span>
                 </div>
               </div>
             ))}
@@ -415,72 +442,87 @@ export default function PGDetailPage() {
         {/* 5. Mess Menu & food Timetable */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
+          {/* Daily Schedule / Timeline */}
+          <div className="bg-[#1A1A24] light:bg-white p-6 md:p-10 rounded-[36px] border border-white/5 light:border-gray-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+            <div>
+              <h2 className="text-xl font-black uppercase tracking-[0.2em] border-b border-white/5 light:border-gray-100 pb-6 mb-8 text-white light:text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>Daily Schedule</h2>
+              
+              <div className="relative pl-6 space-y-8 before:absolute before:inset-0 before:ml-[11px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-indigo-500 before:via-indigo-500/20 before:to-transparent">
+                
+                <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full border-4 border-[#1A1A24] light:border-white bg-indigo-500 absolute -left-[35px] text-[8px] text-transparent shadow-sm">1</div>
+                  <div className="w-full bg-white/5 light:bg-[#F8F9FA] p-4 rounded-2xl border border-white/5 light:border-gray-100">
+                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1">Breakfast</p>
+                    <p className="text-sm font-black text-white light:text-gray-900">{pg.foodTimetable.breakfast}</p>
+                  </div>
+                </div>
+
+                <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full border-4 border-[#1A1A24] light:border-white bg-indigo-500 absolute -left-[35px] text-[8px] text-transparent shadow-sm">2</div>
+                  <div className="w-full bg-white/5 light:bg-[#F8F9FA] p-4 rounded-2xl border border-white/5 light:border-gray-100">
+                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1">Lunch</p>
+                    <p className="text-sm font-black text-white light:text-gray-900">{pg.foodTimetable.lunch}</p>
+                  </div>
+                </div>
+
+                <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full border-4 border-[#1A1A24] light:border-white bg-indigo-500 absolute -left-[35px] text-[8px] text-transparent shadow-sm">3</div>
+                  <div className="w-full bg-white/5 light:bg-[#F8F9FA] p-4 rounded-2xl border border-white/5 light:border-gray-100">
+                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1">Dinner</p>
+                    <p className="text-sm font-black text-white light:text-gray-900">{pg.foodTimetable.dinner}</p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <div className="mt-8 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5 text-center">
+              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] block">Quality Assured</span>
+              <p className="text-[10px] text-emerald-600/70 light:text-emerald-700 mt-2 font-bold leading-relaxed">FSSAI certified wardens oversee food prep daily. 100% vegetarian separate kitchen options available.</p>
+            </div>
+          </div>
+
           {/* Mess Menu Table */}
-          <div className="lg:col-span-2 glass-card p-8 rounded-[36px] border border-white/5 light:border-[#d4cfc5] shadow-xl">
-            <h2 className="text-lg font-black uppercase tracking-[0.25em] border-b border-white/5 light:border-[#d4cfc5] pb-4 mb-6">🍽️ Weekly Mess Menu (7-Days)</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+          <div className="lg:col-span-2 bg-[#1A1A24] light:bg-white p-6 md:p-10 rounded-[36px] border border-white/5 light:border-gray-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col">
+            <h2 className="text-xl md:text-2xl font-black uppercase tracking-[0.2em] border-b border-white/5 light:border-gray-100 pb-6 mb-8 text-white light:text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>7-Day Mess Menu</h2>
+            <div className="overflow-x-auto flex-1">
+              <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-white/10 light:border-[#d4cfc5]">
-                    <th className="py-3 font-black text-[9px] uppercase tracking-widest text-gray-400 light:text-gray-600">Day</th>
-                    <th className="py-3 font-black text-[9px] uppercase tracking-widest text-[#C9A84C]">Breakfast</th>
-                    <th className="py-3 font-black text-[9px] uppercase tracking-widest text-indigo-400">Lunch</th>
-                    <th className="py-3 font-black text-[9px] uppercase tracking-widest text-emerald-400">Dinner</th>
+                  <tr>
+                    <th className="py-4 font-black text-[10px] uppercase tracking-[0.2em] text-gray-500 border-b border-white/10 light:border-gray-200">Day</th>
+                    <th className="py-4 font-black text-[10px] uppercase tracking-[0.2em] text-[#C9A84C] border-b border-white/10 light:border-gray-200">Breakfast</th>
+                    <th className="py-4 font-black text-[10px] uppercase tracking-[0.2em] text-indigo-500 border-b border-white/10 light:border-gray-200">Lunch</th>
+                    <th className="py-4 font-black text-[10px] uppercase tracking-[0.2em] text-emerald-500 border-b border-white/10 light:border-gray-200">Dinner</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-white/5 light:divide-gray-100">
                   {Object.entries(pg.messMenu).map(([day, meal]) => (
-                    <tr key={day} className="border-b border-white/5 light:border-[#d4cfc5] hover:bg-white/5 light:hover:bg-[#f5f3ee] transition-all">
-                      <td className="py-4 font-black text-white light:text-black uppercase tracking-wider">{day}</td>
-                      <td className="py-4 font-bold text-gray-300 light:text-gray-700">{meal.breakfast}</td>
-                      <td className="py-4 font-bold text-gray-300 light:text-gray-700">{meal.lunch}</td>
-                      <td className="py-4 font-bold text-gray-300 light:text-gray-700">{meal.dinner}</td>
+                    <tr key={day} className="hover:bg-white/5 light:hover:bg-[#F8F9FA] transition-colors group">
+                      <td className="py-5 font-black text-white light:text-gray-900 uppercase tracking-widest text-[11px]">{day}</td>
+                      <td className="py-5 font-bold text-[13px] text-gray-300 light:text-gray-600 group-hover:text-white light:group-hover:text-gray-900 pr-4">{meal.breakfast}</td>
+                      <td className="py-5 font-bold text-[13px] text-gray-300 light:text-gray-600 group-hover:text-white light:group-hover:text-gray-900 pr-4">{meal.lunch}</td>
+                      <td className="py-5 font-bold text-[13px] text-gray-300 light:text-gray-600 group-hover:text-white light:group-hover:text-gray-900 pr-4">{meal.dinner}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </div>
-
-          {/* Food Timetable */}
-          <div className="glass-card p-8 rounded-[36px] border border-white/5 light:border-[#d4cfc5] shadow-xl flex flex-col justify-between">
-            <div>
-              <h2 className="text-lg font-black uppercase tracking-[0.25em] border-b border-white/5 light:border-[#d4cfc5] pb-4 mb-6">⏰ Meal Timings</h2>
-              <div className="space-y-6">
-                {[
-                  { meal: 'Breakfast Schedule', time: pg.foodTimetable.breakfast, icon: '🍳', color: 'text-[#C9A84C]' },
-                  { meal: 'Lunch Schedule', time: pg.foodTimetable.lunch, icon: '🍛', color: 'text-indigo-400' },
-                  { meal: 'Dinner Schedule', time: pg.foodTimetable.dinner, icon: '🍲', color: 'text-emerald-400' }
-                ].map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-4 bg-white/5 light:bg-[#f5f3ee] border border-white/5 light:border-[#d4cfc5] p-4 rounded-2xl">
-                    <span className="text-3xl">{item.icon}</span>
-                    <div>
-                      <p className="text-[8px] font-black text-gray-400 light:text-gray-600 uppercase tracking-widest">{item.meal}</p>
-                      <p className={`text-md font-black mt-0.5 ${item.color}`}>{item.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-6 bg-[#C9A84C]/5 border border-[#C9A84C]/10 rounded-2xl p-4 text-center">
-              <span className="text-xs font-black text-[#C9A84C] uppercase tracking-widest block">Quality Assurance</span>
-              <p className="text-[9px] text-gray-400 light:text-gray-600 mt-1 font-bold">100% vegetarian separate kitchen options. FSSAI certified wardens oversee food prep daily.</p>
-            </div>
-          </div>
-
         </div>
 
         {/* 6. Rules & Regulations */}
-        <div className="glass-card p-8 rounded-[36px] border border-white/5 light:border-[#d4cfc5] shadow-xl">
-          <h2 className="text-lg font-black uppercase tracking-[0.25em] border-b border-white/5 light:border-[#d4cfc5] pb-4 mb-6">📜 Rules, Regulations & Guidelines</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-[#1A1A24] light:bg-white p-6 md:p-10 rounded-[36px] border border-white/5 light:border-gray-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative overflow-hidden">
+          {/* Subtle watermark */}
+          <div className="absolute -bottom-10 -right-10 text-9xl opacity-[0.03] pointer-events-none select-none">📜</div>
+          
+          <h2 className="text-xl md:text-2xl font-black uppercase tracking-[0.2em] border-b border-white/5 light:border-gray-100 pb-6 mb-8 text-white light:text-gray-900 relative z-10" style={{ fontFamily: "'Syne', sans-serif" }}>Property Guidelines</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
             {pg.rules.map((rule, idx) => (
-              <div key={idx} className="bg-white/5 light:bg-[#f5f3ee] border border-white/5 light:border-[#d4cfc5] p-4 rounded-2xl flex items-start gap-3">
-                <span className="text-lg mt-0.5">⚠️</span>
+              <div key={idx} className="bg-white/5 light:bg-[#F8F9FA] border border-white/5 light:border-gray-100 p-5 rounded-2xl flex items-start gap-4">
+                <span className="text-2xl mt-0.5">⚠️</span>
                 <div>
-                  <span className="text-[10px] font-black text-gray-400 light:text-gray-600 uppercase tracking-widest block">Rule #{idx+1}</span>
-                  <p className="text-xs font-bold text-white light:text-black mt-1 leading-relaxed">{rule}</p>
+                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] block mb-1">Regulation 0{idx+1}</span>
+                  <p className="text-sm font-bold text-gray-300 light:text-gray-800 leading-relaxed">{rule}</p>
                 </div>
               </div>
             ))}
@@ -491,11 +533,8 @@ export default function PGDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Map Embed */}
-          <div className="lg:col-span-2 glass-card p-8 rounded-[36px] border border-white/5 light:border-[#d4cfc5] shadow-xl overflow-hidden">
-            <h2 className="text-lg font-black uppercase tracking-[0.25em] border-b border-white/5 light:border-[#d4cfc5] pb-4 mb-6">🗺️ Live Campus Proximity Map</h2>
-            
-            {/* Direct Google Maps Iframe using coordinates */}
-            <div className="w-full h-80 rounded-2xl overflow-hidden border border-white/10 light:border-[#d4cfc5] shadow-inner">
+          <div className="lg:col-span-2 bg-[#1A1A24] light:bg-white p-4 sm:p-6 rounded-[36px] border border-white/5 light:border-gray-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+            <div className="w-full h-80 md:h-[450px] rounded-[24px] overflow-hidden border border-white/5 light:border-gray-200 relative group">
               <iframe
                 title="PG Live Map"
                 width="100%"
@@ -503,49 +542,61 @@ export default function PGDetailPage() {
                 style={{ border: 0 }}
                 loading="lazy"
                 allowFullScreen
-                src={`https://maps.google.com/maps?q=${lat},${lng}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                src={`https://maps.google.com/maps?q=${lat},${lng}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
+                className="grayscale-[20%] group-hover:grayscale-0 transition-all duration-700"
               />
-            </div>
-            
-            <div className="flex justify-between items-center mt-4 text-[10px] font-bold text-gray-400 light:text-gray-600 uppercase tracking-wider">
-              <span>Latitude: {lat}</span>
-              <span>Longitude: {lng}</span>
+              <div className="absolute bottom-4 left-4 right-4 md:right-auto bg-black/80 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 flex items-center justify-between md:justify-start gap-6">
+                <div>
+                  <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">Coordinates</p>
+                  <p className="text-[10px] font-bold text-white mt-0.5">{lat.toFixed(4)}, {lng.toFixed(4)}</p>
+                </div>
+                <div className="w-px h-6 bg-white/20 hidden md:block" />
+                <a 
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`}
+                  target="_blank" rel="noreferrer"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-colors shrink-0"
+                >
+                  Get Directions
+                </a>
+              </div>
             </div>
           </div>
 
           {/* Contact Details */}
-          <div className="glass-card p-8 rounded-[36px] border border-white/5 light:border-[#d4cfc5] shadow-xl flex flex-col justify-between">
+          <div className="bg-[#1A1A24] light:bg-white p-6 md:p-8 rounded-[36px] border border-white/5 light:border-gray-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex flex-col justify-between">
             <div>
-              <h2 className="text-lg font-black uppercase tracking-[0.25em] border-b border-white/5 light:border-[#d4cfc5] pb-4 mb-6">📞 Warden & Office Contacts</h2>
-              <div className="space-y-4">
+              <h2 className="text-xl font-black uppercase tracking-[0.2em] border-b border-white/5 light:border-gray-100 pb-5 mb-6 text-white light:text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>Administration</h2>
+              <div className="space-y-5">
                 {[
                   { label: 'Hostel Owner', value: pg.contactInfo.ownerName, sub: 'Administration', icon: '👤' },
                   { label: 'Campus Warden', value: pg.contactInfo.wardenName, sub: 'In-premises Support', icon: '🛡️' },
                   { label: 'Contact Phone', value: pg.contactInfo.phone, sub: '9:00 AM to 8:00 PM', icon: '📞' },
-                  { label: 'Emergency Hotline', value: pg.contactInfo.emergencyContact, sub: '24/7 Availability', icon: '🚨', color: 'text-red-400' },
-                  { label: 'Office Email', value: pg.contactInfo.email, sub: 'Official Queries', icon: '✉️' }
+                  { label: 'Emergency Hotline', value: pg.contactInfo.emergencyContact, sub: '24/7 Availability', icon: '🚨', color: 'text-red-400' }
                 ].map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <span className="text-xl">{item.icon}</span>
+                  <div key={idx} className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-white/5 light:bg-[#F8F9FA] flex items-center justify-center shrink-0 text-xl border border-white/5 light:border-gray-100">
+                      {item.icon}
+                    </div>
                     <div>
-                      <p className="text-[8px] font-black text-gray-400 light:text-gray-600 uppercase tracking-widest">{item.label}</p>
-                      <p className={`text-xs font-black mt-0.5 ${item.color || 'text-white light:text-black'}`}>{item.value}</p>
-                      <p className="text-[8px] text-gray-500 font-medium">{item.sub}</p>
+                      <p className="text-[8px] font-black text-gray-400 light:text-gray-500 uppercase tracking-widest">{item.label}</p>
+                      <p className={`text-[13px] font-black mt-0.5 ${item.color || 'text-white light:text-gray-900'}`}>{item.value}</p>
+                      <p className="text-[8px] text-gray-500 light:text-gray-400 font-bold mt-0.5">{item.sub}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
             
-            <div className="pt-6 border-t border-white/5 light:border-[#d4cfc5] mt-6">
+            <div className="pt-6 mt-6">
               <button 
                 onClick={() => {
                   navigator.clipboard.writeText(pg.contactInfo.phone);
                   showToast("Contact number copied to clipboard!", 'success');
                 }}
-                className="w-full bg-white/5 light:bg-[#f5f3ee] hover:bg-white/10 border border-white/10 light:border-[#d4cfc5] text-white light:text-black font-black py-3 rounded-2xl text-[9px] uppercase tracking-widest transition-transform active:scale-95"
+                className="w-full bg-white/5 light:bg-[#F8F9FA] hover:bg-white/10 light:hover:bg-gray-100 border border-white/10 light:border-gray-200 text-white light:text-gray-900 font-black py-4 rounded-2xl text-[10px] uppercase tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-2"
               >
                 Copy Contact Number
+                <svg className="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
               </button>
             </div>
           </div>
@@ -553,19 +604,30 @@ export default function PGDetailPage() {
         </div>
 
         {/* 8. Policies Section */}
-        <div className="glass-card p-8 rounded-[36px] border border-white/5 light:border-[#d4cfc5] shadow-xl">
-          <h2 className="text-lg font-black uppercase tracking-[0.25em] border-b border-white/5 light:border-[#d4cfc5] pb-4 mb-6">🔒 Booking Policies & Cancellation Terms</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-gray-400 light:text-gray-600 leading-relaxed font-bold">
-            <div className="space-y-2">
-              <p className="font-black text-white light:text-black uppercase tracking-widest text-[9px]">1. Deposit & Refunding</p>
+        <div className="bg-[#1A1A24] light:bg-white p-6 md:p-10 rounded-[36px] border border-white/5 light:border-gray-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-indigo-500 to-[#C9A84C]" />
+          <h2 className="text-xl md:text-2xl font-black uppercase tracking-[0.2em] border-b border-white/5 light:border-gray-100 pb-6 mb-8 text-white light:text-gray-900 ml-4" style={{ fontFamily: "'Syne', sans-serif" }}>Booking Terms</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-[13px] text-gray-300 light:text-gray-600 leading-relaxed font-medium ml-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-indigo-500/10 light:bg-indigo-50 flex items-center justify-center text-indigo-500 text-[10px] font-black border border-indigo-500/20">1</span>
+                <p className="font-black text-white light:text-gray-900 uppercase tracking-widest text-[10px]">Deposit & Refunding</p>
+              </div>
               <p>The security deposit of ₹{pg.securityDeposit} is fully refundable at the end of the tenancy agreement, subject to clearance of any outstanding bills or structural damage assessment.</p>
             </div>
-            <div className="space-y-2">
-              <p className="font-black text-white light:text-black uppercase tracking-widest text-[9px]">2. Cancellation Guard</p>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-indigo-500/10 light:bg-indigo-50 flex items-center justify-center text-indigo-500 text-[10px] font-black border border-indigo-500/20">2</span>
+                <p className="font-black text-white light:text-gray-900 uppercase tracking-widest text-[10px]">Cancellation Guard</p>
+              </div>
               <p>Get a 100% refund of security deposit if cancelled within 48 hours of booking. Post 48 hours, a deduction of 10% will apply. No refunds allowed after checking in.</p>
             </div>
-            <div className="space-y-2">
-              <p className="font-black text-white light:text-black uppercase tracking-widest text-[9px]">3. Rent Billing Cycles</p>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-indigo-500/10 light:bg-indigo-50 flex items-center justify-center text-indigo-500 text-[10px] font-black border border-indigo-500/20">3</span>
+                <p className="font-black text-white light:text-gray-900 uppercase tracking-widest text-[10px]">Rent Billing Cycles</p>
+              </div>
               <p>Monthly rent must be paid in advance by the 5th of every calendar month. Late payments attract ₹100 daily fine. Electricity bills are charged separate based on actual meter consumption.</p>
             </div>
           </div>

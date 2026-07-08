@@ -115,70 +115,79 @@ export default function PGPage() {
   };
 
   return (
-    <div className="min-h-screen bg-app-black light:bg-[#f0ece4] text-white light:text-[#1a1a1a] selection:bg-indigo-500/30 font-sans transition-colors duration-300">
+    <div className="min-h-screen bg-[#11111A] light:bg-[#FAFAFA] text-white light:text-gray-900 selection:bg-indigo-500/30 font-sans transition-colors duration-500 relative overflow-hidden pb-24">
+      {/* Premium Background Glow */}
+      <div className="absolute top-0 left-0 right-0 h-[600px] bg-gradient-radial from-indigo-50/60 via-transparent to-transparent opacity-80 pointer-events-none hidden light:block" />
+      <div className="absolute top-0 left-0 right-0 h-[600px] bg-gradient-radial from-indigo-900/20 via-transparent to-transparent opacity-80 pointer-events-none block light:hidden" />
+
       <Navbar />
       
-      <div className="pt-24 pb-20 px-4 max-w-7xl mx-auto relative z-10">
+      <div className="pt-24 px-4 sm:px-6 max-w-7xl mx-auto relative z-10">
         
         {/* Header Hero */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-12 flex flex-col items-center">
+          <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-white border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.03)] mb-6">
+            <span className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.4em]">Residences</span>
+          </div>
           <motion.h1 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-6xl font-black uppercase tracking-tighter"
+            className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-gray-900"
+            style={{ fontFamily: "'Syne', sans-serif" }}
           >
-            ZENVY <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-indigo-500 to-[#C9A84C]">HOMES</span> 🏠
+            ZENVY <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-[#C9A84C]">HOMES</span>
           </motion.h1>
+          <div className="w-16 h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-[#C9A84C] mt-6 rounded-full" />
           <motion.p 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-gray-400 light:text-gray-600 text-xs md:text-sm mt-3 uppercase tracking-[0.2em] max-w-2xl mx-auto font-black"
+            className="text-gray-400 light:text-gray-500 text-[10px] md:text-xs mt-6 uppercase tracking-[0.3em] max-w-2xl mx-auto font-black"
           >
-            Premium Student PGs & Hostels • Zero Brokerage • Live Map Locations
+            Premium Student PGs • Zero Brokerage • Live Map Locations
           </motion.p>
         </div>
 
         {/* Premium Filter Dashboard */}
-        <div className="glass-card p-6 rounded-[32px] border border-white/5 light:border-[#d4cfc5] mb-10 shadow-xl space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-[#1A1A24] light:bg-white p-6 md:p-8 rounded-[36px] border border-white/5 light:border-gray-100 mb-14 shadow-[0_8px_30px_rgba(0,0,0,0.04)] space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
             
             {/* Search */}
             <div className="md:col-span-2 relative">
-              <span className="absolute left-4 top-3.5 text-lg">🔍</span>
+              <span className="absolute left-5 top-4 text-lg opacity-50">🔍</span>
               <input
                 type="text"
                 placeholder="Search PG by name, college road or junction..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white/5 light:bg-[#f5f3ee] border border-white/10 light:border-[#d4cfc5] rounded-2xl py-3 pl-12 pr-4 text-sm text-white light:text-[#1a1a1a] placeholder-gray-500 outline-none focus:border-indigo-500 transition-colors font-bold"
+                className="w-full bg-white/5 light:bg-[#F8F9FA] border border-white/10 light:border-transparent rounded-2xl py-4 pl-14 pr-5 text-sm text-white light:text-gray-900 placeholder-gray-500 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold"
               />
             </div>
 
             {/* Sort Dropdown */}
             <div className="relative">
-              <span className="absolute left-4 top-3.5 text-lg">↕️</span>
+              <span className="absolute left-5 top-4 text-lg opacity-50">↕️</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full bg-white/5 light:bg-[#f5f3ee] border border-white/10 light:border-[#d4cfc5] rounded-2xl py-3 pl-12 pr-4 text-sm text-white light:text-[#1a1a1a] outline-none focus:border-indigo-500 transition-colors font-bold appearance-none cursor-pointer"
+                className="w-full bg-white/5 light:bg-[#F8F9FA] border border-white/10 light:border-transparent rounded-2xl py-4 pl-14 pr-5 text-sm text-white light:text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold appearance-none cursor-pointer"
               >
-                <option value="distance" className="text-black">Sort: Nearest first</option>
+                <option value="distance" className="text-black">Nearest First</option>
                 <option value="rent-asc" className="text-black">Price: Low to High</option>
                 <option value="rent-desc" className="text-black">Price: High to Low</option>
               </select>
             </div>
 
             {/* Gender Filters */}
-            <div className="flex gap-2 p-1 bg-white/5 light:bg-[#f5f3ee] rounded-2xl border border-white/10 light:border-[#d4cfc5]">
+            <div className="flex gap-2 p-1.5 bg-white/5 light:bg-[#F8F9FA] rounded-2xl border border-white/10 light:border-transparent">
               {['All', 'Boys', 'Girls', 'Co-ed'].map(gender => (
                 <button
                   key={gender}
                   onClick={() => setGenderFilter(gender)}
-                  className={`flex-1 py-2 text-xs font-black rounded-xl transition-all ${
+                  className={`flex-1 py-2.5 text-[11px] font-black uppercase tracking-wider rounded-xl transition-all duration-300 ${
                     genderFilter === gender 
-                      ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' 
-                      : 'text-gray-400 light:text-gray-600 hover:text-white light:hover:text-black'
+                      ? 'bg-indigo-600 text-white shadow-md' 
+                      : 'text-gray-400 light:text-gray-500 hover:text-white light:hover:text-gray-900'
                   }`}
                 >
                   {gender}
@@ -259,39 +268,40 @@ export default function PGPage() {
               return (
                 <div 
                   key={pg.id} 
-                  className="glass-card rounded-[36px] border border-white/5 light:border-[#d4cfc5] overflow-hidden flex flex-col justify-between group shadow-xl hover:shadow-2xl hover:border-indigo-500/30 transition-all duration-300 transform hover:-translate-y-1"
+                  className="bg-[#1A1A24] light:bg-white rounded-[32px] border border-white/5 light:border-gray-100 overflow-hidden flex flex-col justify-between group shadow-[0_8px_24px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-500"
                 >
                   <div>
                     {/* Swipeable Image Banner */}
-                    <div className="relative h-56 w-full bg-black/40 overflow-hidden group/img">
+                    <div className="relative h-64 w-full bg-black/40 overflow-hidden group/img">
                       <img 
                         src={currentImage} 
                         alt={pg.name}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
                       
                       {/* Carousel controls */}
                       {hasImages && pg.images.length > 1 && (
                         <>
                           <button
                             onClick={(e) => handlePrevImage(pg.id, pg.images.length, e)}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white text-xs opacity-0 group-hover/img:opacity-100 transition-opacity active:scale-90"
+                            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/40 flex items-center justify-center text-white text-sm opacity-0 group-hover/img:opacity-100 transition-all active:scale-95"
                           >
                             ◀
                           </button>
                           <button
                             onClick={(e) => handleNextImage(pg.id, pg.images.length, e)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white text-xs opacity-0 group-hover/img:opacity-100 transition-opacity active:scale-90"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/40 flex items-center justify-center text-white text-sm opacity-0 group-hover/img:opacity-100 transition-all active:scale-95"
                           >
                             ▶
                           </button>
                           
                           {/* Dot indicator indicators */}
-                          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+                          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
                             {pg.images.map((_, i) => (
                               <div 
                                 key={i} 
-                                className={`w-1.5 h-1.5 rounded-full transition-all ${i === activeIndex ? 'bg-indigo-500 w-3' : 'bg-white/50'}`}
+                                className={`h-1.5 rounded-full transition-all duration-300 ${i === activeIndex ? 'bg-white w-4' : 'bg-white/40 w-1.5'}`}
                               />
                             ))}
                           </div>
@@ -299,53 +309,55 @@ export default function PGPage() {
                       )}
 
                       {/* Top Badges */}
-                      <div className="absolute top-4 left-4 flex gap-2 z-10">
-                        <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl backdrop-blur-md ${genderBg}`}>
+                      <div className="absolute top-5 left-5 flex gap-2 z-10">
+                        <span className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full backdrop-blur-md shadow-sm ${genderBg}`}>
                           {pg.genderType}
                         </span>
-                        <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl bg-black/50 text-white backdrop-blur-md">
+                        <span className="text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full bg-white/20 text-white backdrop-blur-md border border-white/30 shadow-sm">
                           ⭐ 4.8
                         </span>
                       </div>
 
-                      <div className="absolute top-4 right-4 z-10">
-                        <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 backdrop-blur-md border border-emerald-500/30">
+                      <div className="absolute top-5 right-5 z-10">
+                        <span className="text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full bg-emerald-500/90 text-white shadow-lg shadow-emerald-500/20">
                           VERIFIED
                         </span>
                       </div>
                     </div>
 
                     {/* Card Content */}
-                    <div className="p-6">
-                      <h3 className="text-lg font-black leading-tight text-white light:text-[#1a1a1a] line-clamp-1">{pg.name}</h3>
-                      <p className="text-[10px] text-gray-400 light:text-gray-600 font-bold uppercase tracking-wider mt-1 line-clamp-1">📍 {pg.address}</p>
+                    <div className="p-6 md:p-8 relative -mt-4 bg-[#1A1A24] light:bg-white rounded-t-[32px]">
+                      <h3 className="text-2xl font-black leading-tight text-white light:text-gray-900 line-clamp-1" style={{ fontFamily: "'Syne', sans-serif" }}>{pg.name}</h3>
+                      <p className="text-[11px] text-gray-400 light:text-gray-500 font-bold uppercase tracking-wider mt-2 line-clamp-1 flex items-center gap-1.5">
+                        <span className="text-indigo-400">📍</span> {pg.address}
+                      </p>
                       
-                      <div className="flex gap-2 mt-3">
-                        <span className="text-[9px] bg-indigo-500/10 text-indigo-400 font-black px-2.5 py-1 rounded-xl">
+                      <div className="flex gap-2.5 mt-4">
+                        <span className="text-[10px] bg-indigo-50 light:bg-[#F8F9FA] text-indigo-600 font-black px-3 py-1.5 rounded-xl border border-indigo-100/50 light:border-transparent">
                           🏃 {pg.distanceFromCollege} km to Campus
                         </span>
-                        <span className="text-[9px] bg-emerald-500/10 text-emerald-400 font-black px-2.5 py-1 rounded-xl">
+                        <span className="text-[10px] bg-emerald-50 light:bg-emerald-50 text-emerald-600 font-black px-3 py-1.5 rounded-xl border border-emerald-100/50 light:border-transparent">
                           🔒 Deposit: ₹{pg.securityDeposit}
                         </span>
                       </div>
 
-                      <p className="text-xs text-gray-400 light:text-gray-600 font-medium mt-4 line-clamp-2 leading-relaxed">
+                      <p className="text-[13px] text-gray-400 light:text-gray-600 font-medium mt-5 line-clamp-2 leading-relaxed">
                         {pg.description}
                       </p>
 
                       {/* Amenities Preview */}
-                      <div className="mt-5 pt-4 border-t border-white/5 light:border-[#d4cfc5] flex flex-wrap gap-1.5">
+                      <div className="mt-6 pt-5 border-t border-white/5 light:border-gray-100 flex flex-wrap gap-2">
                         {pg.amenities.slice(0, 4).map((amenity, idx) => (
                           <span 
                             key={idx} 
-                            className="text-[8px] font-black text-gray-400 light:text-gray-600 border border-white/10 light:border-[#d4cfc5] px-2 py-1 rounded-lg uppercase tracking-wide bg-white/5 light:bg-[#f5f3ee]"
+                            className="text-[9px] font-bold text-gray-300 light:text-gray-600 border border-white/10 light:border-gray-200 px-3 py-1.5 rounded-lg uppercase tracking-wider bg-white/5 light:bg-transparent"
                           >
                             {amenity}
                           </span>
                         ))}
                         {pg.amenities.length > 4 && (
-                          <span className="text-[8px] font-black text-indigo-400 px-2 py-1">
-                            +{pg.amenities.length - 4} more
+                          <span className="text-[9px] font-black text-indigo-500 px-2 py-1.5 flex items-center">
+                            +{pg.amenities.length - 4} MORE
                           </span>
                         )}
                       </div>
@@ -353,17 +365,18 @@ export default function PGPage() {
                   </div>
 
                   {/* CTA Footer */}
-                  <div className="p-6 pt-0 flex items-center justify-between gap-4">
+                  <div className="p-6 md:p-8 pt-0 flex items-center justify-between gap-4 bg-[#1A1A24] light:bg-white">
                     <div>
-                      <p className="text-[8px] font-black text-gray-400 light:text-gray-600 uppercase tracking-widest">Monthly Rent Starts At</p>
-                      <p className="text-xl font-black text-emerald-400 mt-0.5">₹{pg.baseRent}<span className="text-[10px] text-gray-400 light:text-gray-600 font-normal">/mo</span></p>
+                      <p className="text-[9px] font-black text-gray-400 light:text-gray-500 uppercase tracking-widest">Starts At</p>
+                      <p className="text-2xl font-black text-indigo-600 mt-1 flex items-baseline gap-1">₹{pg.baseRent}<span className="text-[11px] text-gray-400 light:text-gray-400 font-bold uppercase tracking-wider">/mo</span></p>
                     </div>
 
                     <Link 
                       href={`/pg/${pg.id}`}
-                      className="bg-indigo-500 hover:bg-indigo-600 text-white font-black px-5 py-3 rounded-2xl text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/10 active:scale-95"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-6 py-4 rounded-2xl text-[11px] uppercase tracking-widest transition-all shadow-[0_8px_20px_rgba(79,70,229,0.2)] hover:shadow-[0_12px_24px_rgba(79,70,229,0.3)] active:scale-95 flex items-center gap-2"
                     >
-                      View Details & Book
+                      View Details
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" /></svg>
                     </Link>
                   </div>
                 </div>
