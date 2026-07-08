@@ -777,19 +777,25 @@ export default function Home() {
               ]} 
             />
 
-            {/* Classic Navigation Buttons */}
-            <div className="flex items-center gap-2 mb-6 overflow-x-auto no-scrollbar relative z-20 px-2 py-1">
-               <a href="/" onClick={(e) => { e.preventDefault(); triggerTransition('/', 'food'); }} className="h-9 py-1 px-4 rounded-xl flex items-center gap-1.5 transition-all border whitespace-nowrap bg-white/5 border-white/10 text-white light:text-gray-900/60 hover:bg-white/10 light:bg-gray-50 light:border-gray-200 light:text-gray-600 active:scale-95 group cursor-pointer">
-                  <span className="text-sm group-hover:scale-110 transition-transform">🍔</span>
-                  <span className="text-[9px] font-black uppercase tracking-widest">Food</span>
+            {/* Premium Category Grid */}
+            <div className="grid grid-cols-3 gap-3 md:gap-4 mb-8 relative z-20">
+               <a href="/" onClick={(e) => { e.preventDefault(); triggerTransition('/', 'food'); }} className="flex flex-col items-center justify-center gap-2.5 py-5 rounded-[24px] bg-black/40 light:bg-white backdrop-blur-xl border border-white/5 light:border-gray-100 shadow-2xl light:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:bg-white/5 light:hover:bg-gray-50 hover:border-primary-yellow/40 transition-all duration-500 group active:scale-95 cursor-pointer">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-white/10 to-transparent light:from-gray-50 light:to-gray-100 border border-white/10 light:border-gray-200 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 shadow-inner transition-transform duration-500">
+                    🍔
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white light:text-gray-900 group-hover:text-primary-yellow light:group-hover:text-[#EF4F5F] transition-colors">Food</span>
                </a>
-               <a href="/pg" onClick={(e) => { e.preventDefault(); triggerTransition('/pg', 'pg'); }} className="h-9 py-1 px-4 rounded-xl flex items-center gap-1.5 transition-all border whitespace-nowrap bg-white/5 border-white/10 text-white light:text-gray-900/60 hover:bg-white/10 light:bg-gray-50 light:border-gray-200 light:text-gray-600 active:scale-95 group cursor-pointer">
-                  <span className="text-sm group-hover:scale-110 transition-transform">🏢</span>
-                  <span className="text-[9px] font-black uppercase tracking-widest">Hostels</span>
+               <a href="/pg" onClick={(e) => { e.preventDefault(); triggerTransition('/pg', 'pg'); }} className="flex flex-col items-center justify-center gap-2.5 py-5 rounded-[24px] bg-black/40 light:bg-white backdrop-blur-xl border border-white/5 light:border-gray-100 shadow-2xl light:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:bg-white/5 light:hover:bg-gray-50 hover:border-primary-yellow/40 transition-all duration-500 group active:scale-95 cursor-pointer">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-white/10 to-transparent light:from-gray-50 light:to-gray-100 border border-white/10 light:border-gray-200 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:-rotate-3 shadow-inner transition-transform duration-500">
+                    🏢
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white light:text-gray-900 group-hover:text-primary-yellow light:group-hover:text-[#EF4F5F] transition-colors">Hostels</span>
                </a>
-               <a href="/bikepool" onClick={(e) => { e.preventDefault(); triggerTransition('/bikepool', 'bikepool'); }} className="h-9 py-1 px-4 rounded-xl flex items-center gap-1.5 transition-all border whitespace-nowrap bg-white/5 border-white/10 text-white light:text-gray-900/60 hover:bg-white/10 light:bg-gray-50 light:border-gray-200 light:text-gray-600 active:scale-95 group cursor-pointer">
-                  <span className="text-sm group-hover:scale-110 transition-transform">🏍️</span>
-                  <span className="text-[9px] font-black uppercase tracking-widest">Co-Ride</span>
+               <a href="/bikepool" onClick={(e) => { e.preventDefault(); triggerTransition('/bikepool', 'bikepool'); }} className="flex flex-col items-center justify-center gap-2.5 py-5 rounded-[24px] bg-black/40 light:bg-white backdrop-blur-xl border border-white/5 light:border-gray-100 shadow-2xl light:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:bg-white/5 light:hover:bg-gray-50 hover:border-primary-yellow/40 transition-all duration-500 group active:scale-95 cursor-pointer">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-white/10 to-transparent light:from-gray-50 light:to-gray-100 border border-white/10 light:border-gray-200 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:rotate-3 shadow-inner transition-transform duration-500">
+                    🏍️
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white light:text-gray-900 group-hover:text-primary-yellow light:group-hover:text-[#EF4F5F] transition-colors">Co-Ride</span>
                </a>
             </div>
 
