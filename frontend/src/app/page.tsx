@@ -891,7 +891,7 @@ export default function Home() {
 
           <section id="restaurant-feed" className="pb-20 scroll-mt-24">
             <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary-text mb-6">Restaurants</h2>
-            <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 md:gap-4">
               {[...displayRestaurants]
                 .sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0))
                 .map((res, index) => (
