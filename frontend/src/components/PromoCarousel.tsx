@@ -27,7 +27,7 @@ export default function PromoCarousel({ offers }: PromoCarouselProps) {
     
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % activeOffers.length);
-    }, 5000); 
+    }, 2500); 
     
     return () => clearInterval(interval);
   }, [activeOffers.length]);

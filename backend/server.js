@@ -379,9 +379,11 @@ const startServer = async () => {
         const restCount = Restaurant ? await Restaurant.count() : 0;
         const MenuItem = instance.models.MenuItem;
         const menuCount = MenuItem ? await MenuItem.count() : 0;
+        const PGHostel = instance.models.PGHostel;
+        const pgCount = PGHostel ? await PGHostel.count() : 0;
         // Trigger seed if DB is empty OR critically low (partial data loss)
-        if (menuCount < 5) {
-          console.log(`🌱 [PROD_SEED] Data critically low (Restaurants: ${restCount}, MenuItems: ${menuCount}, Users: ${userCount}). Re-seeding...`);
+        if (menuCount < 5 || pgCount === 0) {
+          console.log(`🌱 [PROD_SEED] Data critically low (Restaurants: ${restCount}, MenuItems: ${menuCount}, Users: ${userCount}, PGs: ${pgCount}). Re-seeding...`);
           try {
             const seedPath = require('path').join(__dirname, 'scripts', 'seed_full.js');
             delete require.cache[seedPath]; // Clear cache
