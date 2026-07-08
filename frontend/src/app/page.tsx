@@ -819,6 +819,17 @@ export default function Home() {
              </Magnetic>
            </motion.div>
 
+          {/* 🔒 The Zenvy Vault (Daily FOMO Scarcity) */}
+          <motion.section 
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="mb-10"
+          >
+             <ZenvyVault />
+          </motion.section>
+
           {/* 🔍 Nexus Explorer: Advanced Discovery Engine */}
           <div id="nexus-catalog" className="scroll-mt-24 mt-1">
             <NexusExplorer 
@@ -832,19 +843,6 @@ export default function Home() {
               toggleFavorite={toggleFavorite}
             />
           </div>
-
-
-
-          {/* 🔒 The Zenvy Vault (Daily FOMO Scarcity) */}
-          <motion.section 
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="mb-10"
-          >
-             <ZenvyVault />
-          </motion.section>
 
           {/* 🏪 CampusBites: Local Vendor Stalls */}
           <CampusBitesSection restaurants={liveRestaurants} />
