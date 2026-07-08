@@ -370,7 +370,7 @@ export default function PGDetailPage() {
                       }`}>
                         {room.availableBeds} beds available
                       </span>
-                      <span className="inline-flex w-max text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg bg-black/50 text-gray-200 border border-white/20 backdrop-blur-md shadow-sm">
+                      <span className="inline-flex w-max text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg bg-black/50 light:bg-white/90 text-white light:text-gray-900 border border-white/20 light:border-gray-300 backdrop-blur-md shadow-sm">
                         Total Capacity: {room.totalBeds} Beds
                       </span>
                     </div>
