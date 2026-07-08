@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Navbar from '@/components/Navbar';
+import WorldSwitcher from '@/components/WorldSwitcher';
 import { API_URL } from '@/utils/api';
 import Link from 'next/link';
 
@@ -146,6 +147,13 @@ export default function PGPage() {
           >
             Premium Student PGs • Zero Brokerage • Live Map Locations
           </motion.p>
+        </div>
+
+        {/* World Switcher (Ecosystem Navigation) */}
+        <div className="flex justify-center mb-10 relative z-20">
+          <div className="max-w-md w-full">
+            <WorldSwitcher activeWorld="pg" />
+          </div>
         </div>
 
         {/* Premium Filter Dashboard */}
