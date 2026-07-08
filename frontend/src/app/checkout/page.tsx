@@ -456,10 +456,10 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0A0A0B] text-white light:text-gray-900 p-4 md:p-6 pb-20 relative overflow-x-hidden">
+    <main className="min-h-screen bg-[#0A0A0B] light:bg-[#f8f8fa] text-white light:text-gray-900 p-4 md:p-6 pb-20 relative overflow-x-hidden">
       {/* Cinematic Background */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(201,168,76,0.05)_0%,transparent_50%)] pointer-events-none" />
-      <div className="fixed inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none " />
+      <div className="fixed inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none light:hidden" />
       {/* Copy Toast */}
       {copyToast && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] animate-in fade-in zoom-in duration-200">

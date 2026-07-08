@@ -41,7 +41,7 @@ export default function RewardsPage() {
     <main className="min-h-screen bg-[#0A0A0B] text-white light:text-gray-900 p-8 relative overflow-x-hidden">
       {/* Cinematic Background */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(201,168,76,0.05)_0%,transparent_50%)] pointer-events-none" />
-      <div className="fixed inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none " />
+      <div className="fixed inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none light:hidden" />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-12 relative z-10">

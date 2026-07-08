@@ -31,7 +31,7 @@ export default function ChallengesPage() {
     <main className="min-h-screen bg-[#0A0A0B] text-white light:text-gray-900 p-4 md:p-8 relative overflow-x-hidden">
       {/* Background */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(139,90,43,0.1)_0%,transparent_50%)] pointer-events-none" />
-      <div className="fixed inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none " />
+      <div className="fixed inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none light:hidden" />
 
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-8">

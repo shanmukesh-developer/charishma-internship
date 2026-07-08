@@ -216,7 +216,7 @@ export default function BasketPage() {
     <main className="min-h-screen bg-[#0A0A0B] light:bg-[#f8f8fa] text-white light:text-black p-4 md:p-8 relative overflow-x-hidden">
       {/* Cinematic Background */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(201,168,76,0.05)_0%,transparent_50%)] pointer-events-none" />
-      <div className="fixed inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none " />
+      <div className="fixed inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none light:hidden" />
 
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-8">
@@ -271,9 +271,21 @@ export default function BasketPage() {
                       {isHosting ? 'Host' : 'Joined'}
                     </span>
                   </div>
-                  <h4 className="text-sm font-black text-white light:text-black uppercase tracking-widest mt-0.5">
-                    Room Code: <span className="text-primary-yellow font-black text-base">{roomCode}</span>
-                  </h4>
+                  <div className="flex items-center gap-3 mt-0.5">
+                    <h4 className="text-sm font-black text-white light:text-black uppercase tracking-widest">
+                      Room Code: <span className="text-primary-yellow font-black text-base">{roomCode}</span>
+                    </h4>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(roomCode);
+                        showToast('Room code copied to clipboard!', 'success', '📋');
+                      }}
+                      className="p-1.5 bg-white/5 hover:bg-white/10 light:bg-black/5 light:hover:bg-black/10 rounded-md transition-all active:scale-95"
+                      title="Copy Room Code"
+                    >
+                      <svg className="w-4 h-4 text-white light:text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    </button>
+                  </div>
                 </div>
               </div>
               <button
