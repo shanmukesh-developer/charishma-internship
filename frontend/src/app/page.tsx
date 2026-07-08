@@ -726,7 +726,7 @@ export default function Home() {
               offers={[
                 { 
                   id: '1', 
-                  imageUrl: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?q=80&w=2070&auto=format&fit=crop', 
+                  imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070&auto=format&fit=crop', 
                   tagline: 'CENTRAL COMMAND', 
                   title1: "LET'S CLEAR", 
                   title2: 'YOUR CRAVING', 
@@ -736,7 +736,7 @@ export default function Home() {
                 },
                 { 
                   id: '2', 
-                  imageUrl: 'https://images.unsplash.com/photo-1544148103-0773bf10d330?q=80&w=2070&auto=format&fit=crop', 
+                  imageUrl: 'https://images.unsplash.com/photo-1618331835717-801e976710b2?q=80&w=2070&auto=format&fit=crop', 
                   tagline: 'NEXUS OFFERS', 
                   title1: 'UNLIMITED', 
                   title2: 'FREE DELIVERY', 
@@ -746,7 +746,7 @@ export default function Home() {
                 },
                 { 
                   id: '3', 
-                  imageUrl: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?q=80&w=2070&auto=format&fit=crop', 
+                  imageUrl: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?q=80&w=2070&auto=format&fit=crop', 
                   tagline: 'ZENVY CO-RIDE', 
                   title1: 'SPLIT THE RIDE', 
                   title2: 'SAVE THE FARE', 
@@ -756,7 +756,7 @@ export default function Home() {
                 },
                 { 
                   id: '4', 
-                  imageUrl: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=2071&auto=format&fit=crop', 
+                  imageUrl: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?q=80&w=2069&auto=format&fit=crop', 
                   tagline: 'PREMIUM STAYS', 
                   title1: 'YOUR NEXT', 
                   title2: 'CAMPUS HOME', 
@@ -766,7 +766,7 @@ export default function Home() {
                 },
                 { 
                   id: '5', 
-                  imageUrl: 'https://images.unsplash.com/photo-1493770348161-369560ae357d?q=80&w=2070&auto=format&fit=crop', 
+                  imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=2070&auto=format&fit=crop', 
                   tagline: 'ZENVY AI', 
                   title1: 'SMART BITES', 
                   title2: 'CURATED FOR YOU', 
@@ -781,24 +781,30 @@ export default function Home() {
             <div className="grid grid-cols-3 gap-2 md:gap-4 mb-8 relative z-20">
                <a href="/" onClick={(e) => { e.preventDefault(); triggerTransition('/', 'food'); }} className="relative flex flex-row items-center justify-center md:justify-start md:px-4 gap-1.5 sm:gap-2.5 py-3 sm:py-4 rounded-[18px] bg-[#141416]/80 light:bg-white backdrop-blur-2xl border border-white/5 light:border-white shadow-lg light:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.06)] hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all duration-400 group overflow-hidden cursor-pointer">
                   <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent light:from-orange-50/40 light:to-transparent pointer-events-none" />
-                  <div className="relative w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 light:from-orange-100 light:to-red-50 border border-[#C9A84C]/20 light:border-orange-200/50 flex items-center justify-center text-xs sm:text-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-inner">
-                    🍔
+                  <div className="relative w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 light:from-orange-100 light:to-red-50 border border-[#C9A84C]/20 light:border-orange-200/50 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-inner">
+                    <svg className="w-3 h-3 sm:w-5 sm:h-5 text-[#C9A84C] light:text-[#EF4F5F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
                   </div>
                   <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-white light:text-gray-900 relative z-10 group-hover:text-[#C9A84C] light:group-hover:text-[#EF4F5F] transition-colors truncate">Food</span>
                </a>
                <a href="/pg" onClick={(e) => { e.preventDefault(); triggerTransition('/pg', 'pg'); }} className="relative flex flex-row items-center justify-center md:justify-start md:px-4 gap-1.5 sm:gap-2.5 py-3 sm:py-4 rounded-[18px] bg-[#141416]/80 light:bg-white backdrop-blur-2xl border border-white/5 light:border-white shadow-lg light:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.06)] hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all duration-400 group overflow-hidden cursor-pointer">
                   <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent light:from-blue-50/40 light:to-transparent pointer-events-none" />
-                  <div className="relative w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-white/10 to-transparent light:from-blue-100 light:to-cyan-50 border border-white/10 light:border-blue-200/50 flex items-center justify-center text-xs sm:text-xl group-hover:scale-110 group-hover:-rotate-6 transition-all duration-500 shadow-inner">
-                    🏢
+                  <div className="relative w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-white/10 to-transparent light:from-blue-100 light:to-cyan-50 border border-white/10 light:border-blue-200/50 flex items-center justify-center group-hover:scale-110 group-hover:-rotate-6 transition-all duration-500 shadow-inner">
+                    <svg className="w-3 h-3 sm:w-5 sm:h-5 text-gray-300 light:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
                   </div>
-                  <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-white light:text-gray-900 relative z-10 group-hover:text-[#C9A84C] light:group-hover:text-[#EF4F5F] transition-colors truncate">Hostels</span>
+                  <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-white light:text-gray-900 relative z-10 group-hover:text-gray-300 light:group-hover:text-blue-600 transition-colors truncate">Hostels</span>
                </a>
                <a href="/bikepool" onClick={(e) => { e.preventDefault(); triggerTransition('/bikepool', 'bikepool'); }} className="relative flex flex-row items-center justify-center md:justify-start md:px-4 gap-1.5 sm:gap-2.5 py-3 sm:py-4 rounded-[18px] bg-[#141416]/80 light:bg-white backdrop-blur-2xl border border-white/5 light:border-white shadow-lg light:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.06)] hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all duration-400 group overflow-hidden cursor-pointer">
                   <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent light:from-purple-50/40 light:to-transparent pointer-events-none" />
-                  <div className="relative w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-white/10 to-transparent light:from-purple-100 light:to-pink-50 border border-white/10 light:border-purple-200/50 flex items-center justify-center text-xs sm:text-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-inner">
-                    🏍️
+                  <div className="relative w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-white/10 to-transparent light:from-purple-100 light:to-pink-50 border border-white/10 light:border-purple-200/50 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-inner">
+                    <svg className="w-3 h-3 sm:w-5 sm:h-5 text-gray-300 light:text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
                   </div>
-                  <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-white light:text-gray-900 relative z-10 group-hover:text-[#C9A84C] light:group-hover:text-[#EF4F5F] transition-colors truncate">Co-Ride</span>
+                  <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-white light:text-gray-900 relative z-10 group-hover:text-gray-300 light:group-hover:text-purple-600 transition-colors truncate">Co-Ride</span>
                </a>
             </div>
 
