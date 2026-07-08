@@ -778,7 +778,7 @@ export default function Home() {
             />
 
             {/* Premium Category Grid */}
-            <div className="grid grid-cols-3 gap-2 md:gap-4 mb-8 relative z-20">
+            <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 relative z-20">
                <a href="/" onClick={(e) => { e.preventDefault(); triggerTransition('/', 'food'); }} className="relative flex flex-row items-center justify-center md:justify-start md:px-4 gap-1.5 sm:gap-2.5 py-3 sm:py-4 rounded-[18px] bg-[#141416]/80 light:bg-white backdrop-blur-2xl border border-white/5 light:border-white shadow-lg light:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.06)] hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all duration-400 group overflow-hidden cursor-pointer">
                   <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent light:from-orange-50/40 light:to-transparent pointer-events-none" />
                   <div className="relative w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-white light:bg-white border border-[#C9A84C]/20 light:border-orange-200/50 flex items-center justify-center group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500 shadow-inner overflow-hidden">
@@ -818,6 +818,35 @@ export default function Home() {
                 </div>
              </Magnetic>
            </motion.div>
+
+          {/* THE CLASSICS */}
+          <div className="mt-8 mb-4 px-2">
+            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 light:text-gray-500 mb-5 px-2">The Classics</h3>
+            <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-2 px-2 snap-x">
+              {[
+                { name: 'Biryani', img: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?q=80&w=200&auto=format&fit=crop' },
+                { name: 'Pizza', img: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=200&auto=format&fit=crop' },
+                { name: 'Burgers', img: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=200&auto=format&fit=crop' },
+                { name: 'South Indian', img: 'https://images.unsplash.com/photo-1610192131976-96b6c00e12cc?q=80&w=200&auto=format&fit=crop' },
+                { name: 'Drinks', img: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?q=80&w=200&auto=format&fit=crop' },
+                { name: 'Chinese', img: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?q=80&w=200&auto=format&fit=crop' }
+              ].map(classic => (
+                <button 
+                  key={classic.name}
+                  onClick={() => { 
+                    window.dispatchEvent(new CustomEvent('change-nexus-category', { detail: classic.name }));
+                    document.getElementById('nexus-catalog')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="flex flex-col items-center gap-3 shrink-0 snap-start group"
+                >
+                  <div className="w-[72px] h-[72px] sm:w-[88px] sm:h-[88px] rounded-full overflow-hidden border-2 border-transparent group-hover:border-primary-yellow/50 transition-all shadow-md bg-gray-100">
+                    <SafeImage src={classic.img} alt={classic.name} width={88} height={88} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  </div>
+                  <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-gray-500 group-hover:text-white light:group-hover:text-black transition-colors">{classic.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* 🔍 Nexus Explorer: Advanced Discovery Engine */}
           <div id="nexus-catalog" className="scroll-mt-24 mt-1">
