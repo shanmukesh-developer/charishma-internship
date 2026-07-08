@@ -209,6 +209,10 @@ export default function OrdersPage() {
                     </span>
                   </div>
                   
+                  <div className="mb-2">
+                    <p className="text-[13px] font-black text-white light:text-gray-900 line-clamp-1">{order.restaurantName || order.items?.[0]?.restaurantName || 'Zenvy Partner'}</p>
+                  </div>
+                  
                   <div className="flex items-center justify-between">
                     <p className="text-[10px] text-secondary-text font-bold">
                       {order.items?.length || 0} item{(order.items?.length || 0) > 1 ? 's' : ''} • {new Date(order.createdAt).toLocaleDateString()}
