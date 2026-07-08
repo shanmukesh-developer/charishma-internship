@@ -926,9 +926,9 @@ export default function Home() {
 
 
         <div className="fixed bottom-28 right-6 z-[100] sm:hidden">
-          <Link href="/community" onClick={(e) => { e.preventDefault(); triggerTransition('/community', 'comms'); }} className="w-14 h-14 rounded-full bg-black text-white shadow-[0_8px_30px_rgba(0,0,0,0.2)] flex items-center justify-center hover:scale-110 active:scale-95 transition-transform group border border-gray-800 relative focus:outline-none">
+          <Link href="/community" onClick={(e) => { e.preventDefault(); triggerTransition('/community', 'comms'); }} className="w-14 h-14 rounded-full bg-black light:bg-white text-white light:text-gray-900 shadow-[0_8px_30px_rgba(0,0,0,0.2)] light:shadow-[0_8px_30px_rgba(0,0,0,0.1)] flex items-center justify-center hover:scale-110 active:scale-95 transition-transform group border border-gray-800 light:border-gray-200 relative focus:outline-none">
             <svg className="w-6 h-6 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg>
-            <div className="absolute top-0 right-0 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-black"></div>
+            <div className="absolute top-0 right-0 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-black light:border-white"></div>
           </Link>
         </div>
         <footer className="fixed bottom-0 left-0 right-0 h-[5.5rem] bg-black text-white border-t border-white/10 flex items-center justify-around sm:hidden z-[100] pb-safe shadow-none">
