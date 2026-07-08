@@ -121,7 +121,7 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
                 onClick={() => { playSensoryFeedback(); setActiveSort(btn.id as 'recommended' | 'rating' | 'fastest'); }}
                 className={`h-9 py-1 px-4 rounded-full flex items-center gap-1.5 transition-all border whitespace-nowrap ${
                   activeSort === btn.id 
-                  ? 'bg-black text-white border-black font-black shadow-sm' 
+                  ? 'bg-[#EF4F5F] text-white light:text-white border-[#EF4F5F] font-black shadow-sm' 
                   : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 font-bold'
                 }`}
               >
