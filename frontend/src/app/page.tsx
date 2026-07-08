@@ -845,7 +845,11 @@ export default function Home() {
           </motion.section>
 
           {/* All Restaurants List & Advanced Filters */}
-          <div className="mb-8 px-6 space-y-4">
+          <div className="mb-8 px-6 space-y-4 pt-4">
+              <div className="mb-4">
+                 <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight italic">All Restaurants</h2>
+                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">Discover your campus favorites</p>
+              </div>
               {/* Category Chips */}
               <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
                 {['All', 'Veg', 'Premium', 'Budget', 'Jain', 'Eggless'].map(cat => (
@@ -890,8 +894,7 @@ export default function Home() {
           </div>
 
           <section id="restaurant-feed" className="pb-20 scroll-mt-24">
-            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary-text mb-6">Restaurants</h2>
-            <div className="grid grid-cols-2 gap-3 md:gap-4">
+            <div className="grid grid-cols-2 gap-3 md:gap-4 px-6">
               {[...displayRestaurants]
                 .sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0))
                 .map((res, index) => (
