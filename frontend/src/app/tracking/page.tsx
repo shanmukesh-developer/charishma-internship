@@ -35,137 +35,6 @@ interface OrderInfo {
   };
 }
 
-function RouteMap({ currentCheckpoint, status }: { currentCheckpoint: string; status: number }) {
-  const points = [
-    { name: 'Mangalagiri Jn', x: 40, y: 150, label: 'Restaurant', icon: '🍽️' },
-    { name: 'Neerukonda', x: 120, y: 100, label: 'Checkpoint 1', icon: '📍' },
-    { name: 'SRM Main Gate', x: 200, y: 130, label: 'Main Gate', icon: '🚪' },
-    { name: 'Academic Block', x: 280, y: 70, label: 'Academic Area', icon: '🏫' },
-    { name: 'Hostel Sector', x: 360, y: 120, label: 'Hostels (You)', icon: '🏠' },
-  ];
-
-  let riderPos = points[0];
-  if (status >= 5) {
-    riderPos = points[4];
-  } else if (status === 4) {
-    const match = points.find(p => p.name === currentCheckpoint);
-    if (match) riderPos = match;
-    else riderPos = points[1];
-  } else if (status === 3) {
-    riderPos = points[0];
-  } else if (status === 2) {
-    riderPos = points[0];
-  }
-
-  return (
-    <div className="bg-[#141416] border border-[#C9A84C]/15 rounded-3xl p-5 mb-4 relative overflow-hidden">
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h3 className="text-xs font-black uppercase tracking-widest text-[#C9A84C]">Live Delivery Map</h3>
-          <p className="text-[10px] text-white light:text-gray-900/40 mt-0.5">Tracking route inside campus</p>
-        </div>
-        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 font-black px-2 py-0.5 rounded border border-emerald-500/20 animate-pulse">
-          LIVE FEED
-        </span>
-      </div>
-
-      <div className="relative w-full h-[200px] border border-white/5 rounded-2xl bg-black/40 overflow-hidden">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:20px_20px]" />
-
-        <svg className="w-full h-full" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">
-          <path
-            d="M 40 150 Q 80 120 120 100 T 200 130 T 280 70 T 360 120"
-            fill="none"
-            stroke="rgba(255,255,255,0.1)"
-            strokeWidth="4"
-            strokeLinecap="round"
-          />
-
-          <path
-            d="M 40 150 Q 80 120 120 100 T 200 130 T 280 70 T 360 120"
-            fill="none"
-            stroke="#C9A84C"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeDasharray="400"
-            strokeDashoffset={
-              status >= 5 ? 0 :
-              currentCheckpoint === 'Hostel Sector' ? 50 :
-              currentCheckpoint === 'Academic Block' ? 100 :
-              currentCheckpoint === 'SRM Main Gate' ? 200 :
-              currentCheckpoint === 'Neerukonda' ? 300 :
-              370
-            }
-            className="transition-all duration-1000 ease-in-out"
-          />
-
-          {points.map((pt, index) => {
-            const isCheckpointReached = 
-              status >= 5 || 
-              points.findIndex(p => p.name === currentCheckpoint) >= index ||
-              (status === 4 && index === 0);
-            const isCurrentNode = currentCheckpoint === pt.name && status === 4;
-
-            return (
-              <g key={pt.name}>
-                {isCurrentNode && (
-                  <circle
-                    cx={pt.x}
-                    cy={pt.y}
-                    r="12"
-                    fill="none"
-                    stroke="#C9A84C"
-                    strokeWidth="1.5"
-                    className="animate-ping origin-center"
-                    style={{ transformOrigin: `${pt.x}px ${pt.y}px` }}
-                  />
-                )}
-                <circle
-                  cx={pt.x}
-                  cy={pt.y}
-                  r="7"
-                  fill={isCheckpointReached ? '#C9A84C' : '#1F1F22'}
-                  stroke={isCheckpointReached ? 'rgba(201,168,76,0.4)' : 'rgba(255,255,255,0.1)'}
-                  strokeWidth="2"
-                  className="transition-all duration-500"
-                />
-                <text
-                  x={pt.x}
-                  y={pt.y - 12}
-                  textAnchor="middle"
-                  className="text-[10px] font-bold fill-white/80 select-none"
-                >
-                  {pt.icon}
-                </text>
-                <text
-                  x={pt.x}
-                  y={pt.y + 18}
-                  textAnchor="middle"
-                  className={`text-[8px] font-black uppercase tracking-wider select-none ${
-                    isCurrentNode ? 'fill-[#C9A84C]' : isCheckpointReached ? 'fill-white/70' : 'fill-white/30'
-                  }`}
-                >
-                  {pt.name.split(' ')[0]}
-                </text>
-              </g>
-            );
-          })}
-
-          <g style={{ transform: `translate(${riderPos.x}px, ${riderPos.y}px)` }} className="transition-all duration-1000 ease-in-out">
-            <circle cx="0" cy="0" r="14" fill="#EF4F5F" className="shadow-lg" />
-            <text x="0" y="4" textAnchor="middle" className="text-xs select-none">🛵</text>
-          </g>
-        </svg>
-      </div>
-
-      <div className="flex gap-4 mt-3 text-[9px] uppercase font-black tracking-widest text-white light:text-gray-900/40 justify-center">
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C]" /> Reached</span>
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#1F1F22] border border-white/10" /> Pending</span>
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#EF4F5F]" /> Rider</span>
-      </div>
-    </div>
-  );
-}
 
 function TrackingContent() {
   const searchParams = useSearchParams();
@@ -314,7 +183,7 @@ function TrackingContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0A0A0B] text-white light:text-gray-900">
+    <main className="min-h-screen bg-[#0A0A0B] light:bg-[#f8f8fa] text-white light:text-gray-900">
       <div className="max-w-2xl mx-auto px-4 py-6">
 
         {/* Header */}
@@ -352,7 +221,7 @@ function TrackingContent() {
         </div>
 
         {/* What's Happening Now */}
-        <div className="bg-[#141416] border border-[#C9A84C]/10 rounded-2xl px-4 py-3 mb-4 flex items-center gap-3">
+        <div className="bg-white/[0.03] light:bg-white light:shadow-sm border border-[#C9A84C]/10 rounded-2xl px-4 py-3 mb-4 flex items-center gap-3">
           <span className="text-xl shrink-0">
             {status === 1 ? '⏳' : status === 2 ? '✅' : status === 3 ? '🍳' : status === 4 ? '🛵' : '🎉'}
           </span>
@@ -368,11 +237,11 @@ function TrackingContent() {
           </div>
         </div>
 
-        <RouteMap currentCheckpoint={currentCheckpoint} status={status} />
+
 
         {/* Order Card + PIN */}
         {orderInfo && (
-          <div className="bg-[#141416] border border-[#C9A84C]/10 rounded-3xl p-5 mb-4">
+          <div className="bg-white/[0.03] light:bg-white light:shadow-sm border border-[#C9A84C]/10 rounded-3xl p-5 mb-4">
             <div className="flex items-center justify-between gap-4 mb-3">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-[#C9A84C]/10 rounded-2xl flex items-center justify-center text-xl border border-[#C9A84C]/15">📦</div>
@@ -429,7 +298,7 @@ function TrackingContent() {
         {/* Rider Card */}
         <div
           onClick={() => orderInfo?.deliveryPartner && setIsProfileOpen(true)}
-          className={`bg-[#141416] border border-[#C9A84C]/10 rounded-3xl p-5 mb-3 ${orderInfo?.deliveryPartner ? 'cursor-pointer hover:border-[#C9A84C]/25 transition-colors' : ''}`}
+          className={`bg-white/[0.03] light:bg-white light:shadow-sm border border-[#C9A84C]/10 rounded-3xl p-5 mb-3 ${orderInfo?.deliveryPartner ? 'cursor-pointer hover:border-[#C9A84C]/25 transition-colors' : ''}`}
         >
           <p className="text-[10px] font-bold text-[#C9A84C] uppercase tracking-widest mb-4">Delivery Rider</p>
           <div className="flex items-center gap-4">
@@ -473,14 +342,14 @@ function TrackingContent() {
         <div className="grid grid-cols-3 gap-3 mb-4">
           <button
             onClick={() => setIsChatOpen(true)}
-            className="flex flex-col items-center gap-2 bg-[#141416] border border-white/8 hover:border-[#C9A84C]/25 rounded-2xl py-4 transition-colors"
+            className="flex flex-col items-center gap-2 bg-white/[0.03] light:bg-white light:shadow-sm border border-white/8 light:border-gray-200 hover:border-[#C9A84C]/25 rounded-2xl py-4 transition-colors"
           >
             <span className="text-xl">💬</span>
             <span className="text-[10px] font-bold text-white light:text-gray-900/50 uppercase tracking-wider">Chat</span>
           </button>
           <a
             href={orderInfo?.deliveryPartner?.phone ? `tel:${orderInfo.deliveryPartner.phone}` : '#'}
-            className={`flex flex-col items-center gap-2 bg-[#141416] border border-white/8 hover:border-[#C9A84C]/25 rounded-2xl py-4 transition-colors ${!orderInfo?.deliveryPartner?.phone ? ' pointer-events-none' : ''}`}
+            className={`flex flex-col items-center gap-2 bg-white/[0.03] light:bg-white light:shadow-sm border border-white/8 light:border-gray-200 hover:border-[#C9A84C]/25 rounded-2xl py-4 transition-colors ${!orderInfo?.deliveryPartner?.phone ? ' pointer-events-none' : ''}`}
           >
             <span className="text-xl">📞</span>
             <span className="text-[10px] font-bold text-white light:text-gray-900/50 uppercase tracking-wider">Call Rider</span>
@@ -493,7 +362,7 @@ function TrackingContent() {
                 navigator.clipboard.writeText(window.location.href);
               }
             }}
-            className="flex flex-col items-center gap-2 bg-[#141416] border border-white/8 hover:border-[#C9A84C]/25 rounded-2xl py-4 transition-colors"
+            className="flex flex-col items-center gap-2 bg-white/[0.03] light:bg-white light:shadow-sm border border-white/8 light:border-gray-200 hover:border-[#C9A84C]/25 rounded-2xl py-4 transition-colors"
           >
             <span className="text-xl">🔗</span>
             <span className="text-[10px] font-bold text-white light:text-gray-900/50 uppercase tracking-wider">Share</span>
@@ -501,7 +370,7 @@ function TrackingContent() {
         </div>
 
         {/* Steps Timeline */}
-        <div className="bg-[#141416] border border-[#C9A84C]/10 rounded-3xl p-5 mb-4">
+        <div className="bg-white/[0.03] light:bg-white light:shadow-sm border border-[#C9A84C]/10 rounded-3xl p-5 mb-4">
           <p className="text-[10px] font-bold text-white light:text-gray-900/30 uppercase tracking-widest mb-5">Order Progress</p>
           <div className="space-y-0">
             {steps.map((step, idx) => {
