@@ -624,7 +624,7 @@ export default function Home() {
   return (
     <>
     <ScrollProgressIndicator />
-    <main className={`min-h-screen text-white pb-32 relative ${isAfter9 ? 'bg-[#050507]' : 'bg-[#0A0A0B]'}`}>
+    <main className={`min-h-screen pb-32 relative text-white light:text-gray-900 transition-colors duration-500 ${isAfter9 ? 'bg-[#050507] light:bg-[#F3F4F6]' : 'bg-[#0A0A0B] light:bg-white'}`}>
       {/* Background VFX Layer - Minimalist Optimized */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
         <div className={`absolute inset-0 opacity-60 transition-colors duration-1000 ${isAfter9 ? 'bg-[radial-gradient(circle_at_50%_0%,rgba(201,168,76,0.15),transparent_70%)]' : 'bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.08),transparent_70%)]'}`} />
@@ -648,7 +648,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] bg-[#0A0A0B]/90 backdrop-blur-2xl flex flex-col items-center justify-center p-8 text-center"
+            className="fixed inset-0 z-[9999] bg-[#0A0A0B]/90 light:bg-white/90 backdrop-blur-2xl flex flex-col items-center justify-center p-8 text-center"
           >
             <div className="w-24 h-24 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-4xl mb-8 animate-pulse">
               {systemStatus.maintenance ? '🛠️' : '🌙'}
@@ -800,7 +800,7 @@ export default function Home() {
              onClick={() => setIsSearchOpen(true)}
             >
              <Magnetic>
-                <div className="w-full stardust-search py-6 pl-12 pr-4 text-xs text-white font-black uppercase tracking-widest cursor-pointer rounded-3xl group shadow-2xl relative overflow-hidden">
+                <div className="w-full stardust-search py-6 pl-12 pr-4 text-xs text-white light:text-gray-500 font-black uppercase tracking-widest cursor-pointer rounded-3xl group shadow-2xl relative overflow-hidden">
                    <div className="absolute inset-0 bg-gradient-to-r from-primary-yellow/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                    <div className="flex items-center gap-4 relative z-10">
                       <span className="text-lg opacity-40 group-hover:opacity-100 group-hover:text-primary-yellow transition-all">🔍</span>
@@ -1259,7 +1259,7 @@ export default function Home() {
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              className="w-full max-w-[320px] bg-[#0A0A0B] border-l border-white/5 h-full relative z-10 p-6 shadow-2xl flex flex-col"
+              className="w-full max-w-[320px] bg-[#0A0A0B] light:bg-white border-l border-white/5 light:border-gray-200 h-full relative z-10 p-6 shadow-2xl flex flex-col"
             >
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-sm font-black uppercase tracking-[0.3em] text-gold-gradient">Nexus Alerts</h3>

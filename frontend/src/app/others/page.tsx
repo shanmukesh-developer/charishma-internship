@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 export default function OthersPage() {
   const { phase } = useWorldTransition();
 
-  
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
