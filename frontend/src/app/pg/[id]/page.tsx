@@ -387,29 +387,6 @@ export default function PGDetailPage() {
                         <p className="text-2xl font-black text-indigo-500 mt-0.5">₹{room.pricePerBed}<span className="text-[11px] text-gray-400 light:text-gray-400 font-bold uppercase tracking-wider ml-1">/mo</span></p>
                       </div>
                     </div>
-
-                    <div className="flex flex-col gap-3">
-                      <div className="relative">
-                        <span className="absolute left-4 top-3 text-xs">📅</span>
-                        <input 
-                          type="date" 
-                          value={checkInDate}
-                          onChange={(e) => setCheckInDate(e.target.value)}
-                          className="w-full bg-white/5 light:bg-[#F8F9FA] border border-white/10 light:border-gray-200 rounded-2xl py-3 pl-10 pr-4 text-[11px] font-bold outline-none text-white light:text-gray-900 focus:border-indigo-500 transition-all uppercase tracking-widest cursor-pointer"
-                        />
-                      </div>
-                      <button
-                        onClick={() => handleBookRoom(room.id)}
-                        disabled={room.availableBeds === 0 || bookingRoomId === room.id}
-                        className={`font-black py-4 px-4 rounded-2xl text-[11px] uppercase tracking-[0.2em] transition-all duration-300 shadow-lg active:scale-95 flex items-center justify-center gap-2 ${
-                          room.availableBeds === 0 
-                            ? 'bg-white/5 light:bg-gray-100 text-gray-500 cursor-not-allowed border border-white/10 light:border-gray-200 shadow-none' 
-                            : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20 hover:shadow-indigo-600/40'
-                        }`}
-                      >
-                        {bookingRoomId === room.id ? 'Processing...' : room.availableBeds === 0 ? 'Sold Out' : 'Book Now'}
-                      </button>
-                    </div>
                   </div>
 
                 </div>
