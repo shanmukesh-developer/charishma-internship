@@ -524,21 +524,21 @@ export default function ProfilePage() {
             </div>
 
             {/* Identity Telemetry Grid */}
-            <div className="identity-telemetry-grid bg-white/[0.03] light:bg-[#1a1a1a] p-6 rounded-[24px] border border-white/5 light:border-[#2a2a2a]">
+            <div className="identity-telemetry-grid bg-white/[0.03] light:bg-[#f5f3ee] p-6 rounded-[24px] border border-white/5 light:border-[#d4cfc5]">
               <div className="flex gap-10">
                 <div>
-                  <p className="text-[8px] text-[#e5e7eb] light:text-[#e5e7eb] font-black uppercase tracking-[0.2em] mb-2">Total Orders</p>
-                  <p className="text-2xl font-black text-[#ffffff] light:text-[#ffffff]">{user?.totalOrders || 0}</p>
+                  <p className="text-[8px] text-[#e5e7eb] light:text-[#8a8580] font-black uppercase tracking-[0.2em] mb-2">Total Orders</p>
+                  <p className="text-2xl font-black text-[#ffffff] light:text-[#1a1a1a]">{user?.totalOrders || 0}</p>
                 </div>
-                <div className="w-[1px] bg-white/10 light:bg-white/10 h-10" />
+                <div className="w-[1px] bg-white/10 light:bg-gray-900/10 h-10" />
                 <div>
-                  <p className="text-[8px] text-[#e5e7eb] light:text-[#e5e7eb] font-black uppercase tracking-[0.2em] mb-2">ZenPoints</p>
+                  <p className="text-[8px] text-[#e5e7eb] light:text-[#8a8580] font-black uppercase tracking-[0.2em] mb-2">ZenPoints</p>
                   <p className="text-2xl font-black text-[#C9A84C]">{user?.zenPoints || 0}</p>
                 </div>
               </div>
 
               <div className="mt-4 flex items-center justify-between">
-                <span className="text-[10px] font-black text-[#C9A84C]/50 uppercase tracking-[0.1em]">Account Status: <span className="text-[#C9A84C]">{user?.isElite ? 'Elite Member' : 'Logged In'}</span></span>
+                <span className="text-[10px] font-black text-[#C9A84C]/50 light:text-gray-900/40 uppercase tracking-[0.1em]">Account Status: <span className="text-[#C9A84C]">{user?.isElite ? 'Elite Member' : 'Logged In'}</span></span>
               </div>
             </div>
           </div>
