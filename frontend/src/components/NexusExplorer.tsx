@@ -201,11 +201,11 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
                 transition={{ delay: idx * 0.05 }}
               >
                 <Tilt scale={1.02}>
-                  <div className="group relative bg-white border border-gray-100 rounded-2xl p-2 hover:border-gray-200 transition-all duration-300 overflow-hidden cursor-pointer shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
+                  <div className="group relative flex flex-col gap-2 cursor-pointer"
                        onClick={() => onSelectItem(item)}>
                     
-                    {/* Image Hub (Compact height) */}
-                    <div className="relative h-24 md:h-40 w-full rounded-xl overflow-hidden mb-2 bg-gray-50">
+                    {/* Dish Image Tile (Square) */}
+                    <div className="relative aspect-square w-full rounded-[24px] overflow-hidden bg-gray-50 shadow-sm group-hover:shadow-md transition-all duration-300">
                       <SafeImage 
                         src={item.image || item.imageUrl} 
                         alt={item.name}
@@ -219,22 +219,21 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
                           e.stopPropagation();
                           if (item.id || item._id) toggleFavorite((item.id || item._id)!);
                         }}
-                        className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex items-center justify-center hover:scale-110 transition-transform active:scale-90 z-20"
+                        className="absolute top-2 right-2 w-6 h-6 md:w-7 md:h-7 rounded-full bg-white/90 backdrop-blur-sm shadow-sm flex items-center justify-center hover:scale-110 transition-transform active:scale-90 z-20"
                       >
-                        <svg className={`w-3 h-3 ${(item.id && favorites.includes(item.id)) || (item._id && favorites.includes(item._id)) ? 'fill-[#EF4F5F] text-[#EF4F5F] stroke-[#EF4F5F]' : 'fill-none text-[#EF4F5F] stroke-[#EF4F5F]'}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                        <svg className={`w-3 h-3 md:w-4 md:h-4 ${(item.id && favorites.includes(item.id)) || (item._id && favorites.includes(item._id)) ? 'fill-[#EF4F5F] text-[#EF4F5F] stroke-[#EF4F5F]' : 'fill-none text-gray-500 stroke-gray-500'}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                           <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                         </svg>
                       </button>
                     </div>
 
-                    <div className="flex flex-col justify-between pt-1 px-1 pb-1">
-                      <div>
-                        <h3 className="text-[10px] md:text-[13px] font-black text-black leading-tight mb-0.5 group-hover:text-[#EF4F5F] transition-colors truncate">{item.name}</h3>
-                        <p className="text-[7px] md:text-[9px] font-bold text-gray-400 uppercase tracking-wider truncate">{item.restaurantName || 'Zenvy Elite'}</p>
+                    {/* Minimal Text Below */}
+                    <div className="flex flex-col px-1">
+                      <div className="flex justify-between items-start gap-1 mb-0.5">
+                        <h3 className="text-[11px] md:text-[13px] font-black text-gray-900 leading-tight group-hover:text-[#EF4F5F] transition-colors line-clamp-1">{item.name}</h3>
+                        <span className="text-[11px] md:text-[13px] font-black text-[#EF4F5F] shrink-0">₹{item.price}</span>
                       </div>
-                      <div className="mt-1.5 flex justify-between items-center">
-                         <span className="text-[10px] md:text-[13px] font-black text-[#EF4F5F]">₹{item.price}</span>
-                      </div>
+                      <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider truncate">{item.restaurantName || 'Zenvy Elite'}</p>
                     </div>
                   </div>
                 </Tilt>
