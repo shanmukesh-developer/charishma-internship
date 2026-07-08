@@ -169,7 +169,7 @@ export default function ChatDrawer({ orderId, userName, userRole, socket, isOpen
                     };
                     socket.emit('sendMessage', messageData);
                   }}
-                  className="shrink-0 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:border-emerald-500/30 hover:bg-emerald-500/10 text-[10px] font-black uppercase tracking-wider text-slate-300 transition-all active:scale-95"
+                  className="shrink-0 px-5 py-3 flex items-center justify-center min-h-[36px] rounded-full bg-white/5 border border-white/10 hover:border-emerald-500/30 hover:bg-emerald-500/10 text-[10px] font-black uppercase tracking-wider text-slate-300 transition-all active:scale-95 leading-none"
                 >
                   {reply}
                 </button>

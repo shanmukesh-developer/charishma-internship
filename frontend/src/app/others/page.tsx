@@ -17,15 +17,15 @@ export default function OthersPage() {
   }, []);
 
   const topCategories = [
-    { id: 'stationary', name: 'Stationary', img: 'https://images.unsplash.com/photo-1531346878377-a5447cb02621?q=80&w=200&auto=format&fit=crop' },
-    { id: 'sweets', name: 'Desserts', img: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?q=80&w=200&auto=format&fit=crop' },
-    { id: 'drinks', name: 'Beverages', img: 'https://images.unsplash.com/photo-1461023058943-0708e58231cb?q=80&w=200&auto=format&fit=crop' },
-    { id: 'pharmacy', name: 'Pharmacy', img: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ad?q=80&w=200&auto=format&fit=crop' },
-    { id: 'fruits', name: 'Fresh Fruits', img: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6faa6?q=80&w=200&auto=format&fit=crop' },
-    { id: 'gym', name: 'Gym & Protein', img: 'https://images.unsplash.com/photo-1579722820308-d74e571900a9?q=80&w=200&auto=format&fit=crop' },
-    { id: 'rentals', name: 'Campus Rides', img: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?q=80&w=200&auto=format&fit=crop' },
-    { id: 'laundry', name: 'Dry Wash', img: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?q=80&w=200&auto=format&fit=crop' },
-    { id: 'seasonal', name: 'Festive', img: 'https://images.unsplash.com/photo-1605493725791-318e874959db?q=80&w=200&auto=format&fit=crop' }
+    { id: 'stationary', name: 'Stationary', img: '/assets/categories/stationary.png' },
+    { id: 'sweets', name: 'Desserts', img: '/assets/categories/sweets.png' },
+    { id: 'drinks', name: 'Beverages', img: '/assets/categories/drinks.png' },
+    { id: 'pharmacy', name: 'Pharmacy', img: '/assets/categories/pharmacy.png' },
+    { id: 'fruits', name: 'Fresh Fruits', img: '/assets/categories/fruits.png' },
+    { id: 'gym', name: 'Gym & Protein', img: '/assets/categories/gym.png' },
+    { id: 'rentals', name: 'Campus Rides', img: '/assets/categories/rides.png' },
+    { id: 'laundry', name: 'Dry Wash', img: '/assets/categories/laundry.png' },
+    { id: 'seasonal', name: 'Festive', img: '/assets/categories/sweets.png' }
   ];
 
   const trendingDeals = [
@@ -33,7 +33,7 @@ export default function OthersPage() {
       id: 'deal-1', 
       title: 'Midnight Cravings', 
       desc: 'Up to 20% off on late night snacks', 
-      img: 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?q=80&w=600&auto=format&fit=crop', 
+      img: '/assets/categories/sweets.png', 
       tag: 'HOT',
       link: '/category/sweets' 
     },
@@ -41,7 +41,7 @@ export default function OthersPage() {
       id: 'deal-2', 
       title: 'Exam Season Prep', 
       desc: 'Stationary & energy drinks combo', 
-      img: 'https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=600&auto=format&fit=crop', 
+      img: '/assets/categories/stationary.png', 
       tag: 'NEW',
       link: '/category/stationary'
     },
@@ -49,7 +49,7 @@ export default function OthersPage() {
       id: 'deal-3', 
       title: 'Healthy Living', 
       desc: 'Fresh fruits and whey supplements', 
-      img: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=600&auto=format&fit=crop', 
+      img: '/assets/categories/fruits.png', 
       tag: 'TRENDING',
       link: '/category/gym'
     },
@@ -57,7 +57,7 @@ export default function OthersPage() {
       id: 'deal-4', 
       title: 'Campus Commute', 
       desc: 'Book your ride for tomorrow', 
-      img: 'https://images.unsplash.com/photo-1595821927361-4238421d7baa?q=80&w=600&auto=format&fit=crop', 
+      img: '/assets/categories/rides.png', 
       tag: 'ESSENTIAL',
       link: '/category/rentals'
     }
