@@ -729,13 +729,32 @@ const unifiedSeed = async () => {
           amenities: ['High-speed Wi-Fi', '24/7 Power Backup', 'Professional Housekeeping', '3-Course Meals', 'Gym Access'],
           images: [
             'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=800',
-            'https://images.unsplash.com/photo-1598928506311-c55ded91a206?q=80&w=800'
+            'https://images.unsplash.com/photo-1598928506311-c55ded91a206?q=80&w=800',
+            'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?q=80&w=800',
+            'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=800'
           ],
-          description: 'Premium student housing with fully loaded amenities including high-speed Wi-Fi, laundry, gym, and 3-course delicious meals.',
+          description: 'Premium student housing with fully loaded amenities including high-speed Wi-Fi, laundry, gym, and 3-course delicious meals. Designed specifically for focused students wanting hassle-free living.',
+          rules: [
+            "No visitors allowed in the rooms after 9:00 PM.",
+            "Loud music is prohibited after 10:00 PM to respect quiet hours.",
+            "Smoking and alcohol consumption are strictly prohibited anywhere on the premises.",
+            "Monthly rent must be paid by the 5th of every month to avoid late fees."
+          ],
+          contactInfo: { ownerName: 'Rajeev Kumar', wardenName: 'Suresh Babu', phone: '+91-9876543210', emergencyContact: '+91-9999999999', email: 'hello@stanzarome.com' },
+          foodTimetable: { breakfast: '7:30 AM - 9:30 AM', lunch: '12:30 PM - 2:30 PM', dinner: '7:30 PM - 9:30 PM' },
+          messMenu: {
+            Monday: { breakfast: 'Poha, Jalebi, Tea/Coffee', lunch: 'Rajma Chawal, Roti, Salad', dinner: 'Dal Makhani, Mix Veg, Rice, Roti' },
+            Tuesday: { breakfast: 'Aloo Paratha, Curd, Pickle', lunch: 'Chole Bhature, Lassi', dinner: 'Paneer Butter Masala, Roti, Rice' },
+            Wednesday: { breakfast: 'Idli, Sambar, Coconut Chutney', lunch: 'Kadhi Pakora, Rice, Roti', dinner: 'Egg Curry/Mushroom Masala, Roti, Rice' },
+            Thursday: { breakfast: 'Upma, Banana, Tea/Coffee', lunch: 'Dal Fry, Jeera Rice, Bhindi Fry', dinner: 'Chicken Curry/Palak Paneer, Roti, Rice' },
+            Friday: { breakfast: 'Masala Dosa, Sambar', lunch: 'Veg Biryani, Raita', dinner: 'Malai Kofta, Naan, Rice' },
+            Saturday: { breakfast: 'Puri Bhaji, Halwa', lunch: 'Dal Tadka, Rice, Aloo Gobi', dinner: 'Veg Pulao, Paneer Tikka Masala' },
+            Sunday: { breakfast: 'Chole Kulche, Lassi', lunch: 'Special Thali (Dessert included)', dinner: 'Hakka Noodles, Manchurian' }
+          },
           ownerId,
           rooms: [
-            { roomNumber: '101', sharingType: 2, pricePerBed: 9500, totalBeds: 2, availableBeds: 2 },
-            { roomNumber: '102', sharingType: 3, pricePerBed: 8500, totalBeds: 3, availableBeds: 3 }
+            { roomNumber: '101', sharingType: 2, pricePerBed: 9500, totalBeds: 2, availableBeds: 2, images: ['https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=800'] },
+            { roomNumber: '102', sharingType: 3, pricePerBed: 8500, totalBeds: 3, availableBeds: 3, images: ['https://images.unsplash.com/photo-1598928506311-c55ded91a206?q=80&w=800'] }
           ]
         },
         {
@@ -747,13 +766,32 @@ const unifiedSeed = async () => {
           amenities: ['Card Access Security', 'Biometric Entry', 'Study Lounge', 'Indoor Games', 'Laundry Service'],
           images: [
             'https://images.unsplash.com/photo-1505691938895-1758d7feb511?q=80&w=800',
-            'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=800'
+            'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=800',
+            'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?q=80&w=800',
+            'https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=800'
           ],
-          description: 'Safe & secure luxury accommodation for girls. Features card-access security, indoor games, study lounge, and housekeeping.',
+          description: 'Safe & secure luxury accommodation for girls. Features card-access security, indoor games, study lounge, and housekeeping. Highly rated for food hygiene and safety standards.',
+          rules: [
+            "In-time is 8:30 PM sharp. Late entry requires prior permission from parents.",
+            "Male visitors are strictly restricted to the lobby area only.",
+            "Cooking inside the rooms is not permitted.",
+            "Maintain cleanliness in common areas and study lounges."
+          ],
+          contactInfo: { ownerName: 'Anita Sharma', wardenName: 'Geeta Reddy', phone: '+91-9876543211', emergencyContact: '+91-9999999998', email: 'admin@olivepg.com' },
+          foodTimetable: { breakfast: '7:00 AM - 9:00 AM', lunch: '12:00 PM - 2:00 PM', dinner: '7:00 PM - 9:00 PM' },
+          messMenu: {
+            Monday: { breakfast: 'Oats, Milk, Fruits', lunch: 'Jeera Dal, Rice, Salad', dinner: 'Mix Veg, Roti, Rice' },
+            Tuesday: { breakfast: 'Puri Sabzi', lunch: 'Rajma Chawal', dinner: 'Aloo Gobi, Roti' },
+            Wednesday: { breakfast: 'Bread Omelette / Sandwich', lunch: 'Veg Pulao, Raita', dinner: 'Paneer Bhurji, Paratha' },
+            Thursday: { breakfast: 'Idli Vada', lunch: 'Lemon Rice, Curd', dinner: 'Dal Tadka, Jeera Rice' },
+            Friday: { breakfast: 'Poha', lunch: 'Chole Chawal', dinner: 'Soya Chaap, Roti' },
+            Saturday: { breakfast: 'Upma', lunch: 'Veg Thali', dinner: 'Pav Bhaji' },
+            Sunday: { breakfast: 'Channa Bhatura', lunch: 'Special Veg Feast', dinner: 'Fried Rice, Manchurian' }
+          },
           ownerId,
           rooms: [
-            { roomNumber: '201', sharingType: 1, pricePerBed: 12000, totalBeds: 1, availableBeds: 1 },
-            { roomNumber: '202', sharingType: 2, pricePerBed: 9000, totalBeds: 2, availableBeds: 2 }
+            { roomNumber: '201', sharingType: 1, pricePerBed: 12000, totalBeds: 1, availableBeds: 1, images: ['https://images.unsplash.com/photo-1505691938895-1758d7feb511?q=80&w=800'] },
+            { roomNumber: '202', sharingType: 2, pricePerBed: 9000, totalBeds: 2, availableBeds: 2, images: ['https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=800'] }
           ]
         },
         {
@@ -765,13 +803,32 @@ const unifiedSeed = async () => {
           amenities: ['Community Zone', 'Xbox Lounge', 'Self Cooking Kitchen', 'High-speed Wi-Fi', 'Bicycle Parking'],
           images: [
             'https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=800',
-            'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=800'
+            'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=800',
+            'https://images.unsplash.com/photo-1598928636135-d146006ff4be?q=80&w=800',
+            'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=800'
           ],
-          description: 'Managed co-living space for modern students. Social community events, gaming zone, and workspace.',
+          description: 'Managed co-living space for modern students. Social community events, gaming zone, and workspace. Perfect for those who want a vibrant community life while studying.',
+          rules: [
+            "Keep the Xbox lounge clean after use.",
+            "Self-cooking kitchen must be cleaned by the user immediately after cooking.",
+            "Quiet hours strictly enforced from 11:00 PM to 6:00 AM.",
+            "No unauthorized guests allowed overnight."
+          ],
+          contactInfo: { ownerName: 'Zolo Stays', wardenName: 'Praveen', phone: '+91-9876543212', emergencyContact: '+91-9999999997', email: 'support@zolostays.com' },
+          foodTimetable: { breakfast: '8:00 AM - 10:00 AM', lunch: '1:00 PM - 3:00 PM', dinner: '8:00 PM - 10:00 PM' },
+          messMenu: {
+            Monday: { breakfast: 'Cornflakes, Milk, Toast', lunch: 'Dal Fry, Rice, Seasonal Veg', dinner: 'Paneer Curry, Roti' },
+            Tuesday: { breakfast: 'Aloo Paratha', lunch: 'Rajma Chawal', dinner: 'Bhindi Masala, Roti' },
+            Wednesday: { breakfast: 'Idli Sambar', lunch: 'Kadhi Chawal', dinner: 'Mix Veg Curry, Roti' },
+            Thursday: { breakfast: 'Poha', lunch: 'Chole Bhature', dinner: 'Egg Curry / Tofu Curry' },
+            Friday: { breakfast: 'Upma', lunch: 'Veg Pulao', dinner: 'Dal Makhani, Naan' },
+            Saturday: { breakfast: 'Puri Sabzi', lunch: 'South Indian Thali', dinner: 'Veg Burgers, Fries' },
+            Sunday: { breakfast: 'Masala Dosa', lunch: 'Special Sunday Feast', dinner: 'Chinese Combo' }
+          },
           ownerId,
           rooms: [
-            { roomNumber: '301', sharingType: 2, pricePerBed: 7500, totalBeds: 2, availableBeds: 1 },
-            { roomNumber: '302', sharingType: 4, pricePerBed: 6500, totalBeds: 4, availableBeds: 4 }
+            { roomNumber: '301', sharingType: 2, pricePerBed: 7500, totalBeds: 2, availableBeds: 1, images: ['https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=800'] },
+            { roomNumber: '302', sharingType: 4, pricePerBed: 6500, totalBeds: 4, availableBeds: 4, images: ['https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=800'] }
           ]
         },
         {
@@ -783,13 +840,32 @@ const unifiedSeed = async () => {
           amenities: ['Central Air Conditioning', 'Personal Pantry', 'Swimming Pool', 'Premium Cafeteria', 'On-demand Shuttle'],
           images: [
             'https://images.unsplash.com/photo-1616594039964-ae9021a400a0?q=80&w=800',
-            'https://images.unsplash.com/photo-1502005229762-fc1b2b812ca5?q=80&w=800'
+            'https://images.unsplash.com/photo-1502005229762-fc1b2b812ca5?q=80&w=800',
+            'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=800',
+            'https://images.unsplash.com/photo-1521783988139-89397d761dce?q=80&w=800'
           ],
-          description: 'Ultra-luxury co-living right next to the campus. AC rooms, personal pantry, laundry, swimming pool, and premium cafeteria.',
+          description: 'Ultra-luxury co-living right next to the campus. AC rooms, personal pantry, laundry, swimming pool, and premium cafeteria. A truly 5-star student housing experience.',
+          rules: [
+            "Pool timings: 6:00 AM to 8:00 PM only.",
+            "Please book the shuttle 30 minutes in advance via the app.",
+            "Room cleaning is scheduled on alternate days.",
+            "Any damage to premium appliances will be deducted from the security deposit."
+          ],
+          contactInfo: { ownerName: 'Nexus Properties', wardenName: 'Vikram', phone: '+91-9876543213', emergencyContact: '+91-9999999996', email: 'concierge@nexuselite.com' },
+          foodTimetable: { breakfast: '7:00 AM - 10:30 AM', lunch: '12:00 PM - 3:30 PM', dinner: '7:00 PM - 11:00 PM' },
+          messMenu: {
+            Monday: { breakfast: 'Continental Breakfast Buffet', lunch: 'North Indian Thali', dinner: 'Italian Pasta & Pizza' },
+            Tuesday: { breakfast: 'South Indian Buffet', lunch: 'Mexican Bowls', dinner: 'Paneer / Chicken Tikka Masala' },
+            Wednesday: { breakfast: 'Healthy Oats & Smoothie Bar', lunch: 'Mediterranean Wraps', dinner: 'Gourmet Burgers' },
+            Thursday: { breakfast: 'English Breakfast', lunch: 'Thai Curries with Jasmine Rice', dinner: 'Dal Bukhara & Naan' },
+            Friday: { breakfast: 'Pancakes & Waffles', lunch: 'Biryani Feast (Veg/Non-Veg)', dinner: 'Chinese Wok Station' },
+            Saturday: { breakfast: 'Chola Bhatura Live Counter', lunch: 'South Indian Meals', dinner: 'Lebanese Shawarma' },
+            Sunday: { breakfast: 'Late Sunday Brunch', lunch: 'Special Chef\'s Tasting Menu', dinner: 'Comfort Food (Khichdi/Soup)' }
+          },
           ownerId,
           rooms: [
-            { roomNumber: '401', sharingType: 1, pricePerBed: 15000, totalBeds: 1, availableBeds: 1 },
-            { roomNumber: '402', sharingType: 2, pricePerBed: 11000, totalBeds: 2, availableBeds: 2 }
+            { roomNumber: '401', sharingType: 1, pricePerBed: 15000, totalBeds: 1, availableBeds: 1, images: ['https://images.unsplash.com/photo-1616594039964-ae9021a400a0?q=80&w=800'] },
+            { roomNumber: '402', sharingType: 2, pricePerBed: 11000, totalBeds: 2, availableBeds: 2, images: ['https://images.unsplash.com/photo-1502005229762-fc1b2b812ca5?q=80&w=800'] }
           ]
         }
       ];
