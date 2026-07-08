@@ -523,22 +523,35 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Identity Telemetry Grid */}
-            <div className="identity-telemetry-grid bg-white/[0.03] light:bg-[#f5f3ee] p-6 rounded-[24px] border border-white/5 light:border-[#d4cfc5]">
-              <div className="flex gap-10">
-                <div>
-                  <p className="text-[8px] text-[#e5e7eb] light:text-[#8a8580] font-black uppercase tracking-[0.2em] mb-2">Total Orders</p>
-                  <p className="text-2xl font-black text-[#ffffff] light:text-[#1a1a1a]">{user?.totalOrders || 0}</p>
+            {/* Identity Telemetry Grid - PREMIUM BOX */}
+            <div className="relative mt-8 group">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#C9A84C]/20 to-transparent blur-xl opacity-50 group-hover:opacity-80 transition-opacity duration-500 rounded-3xl" />
+              <div className="identity-telemetry-grid relative bg-black/40 light:bg-white p-6 sm:p-8 rounded-[24px] border border-white/10 light:border-gray-200 shadow-2xl light:shadow-[0_15px_40px_-10px_rgba(201,168,76,0.2)] overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#C9A84C]/10 rounded-full blur-[50px] -mr-10 -mt-10" />
+                
+                <div className="flex gap-12 relative z-10">
+                  <div>
+                    <p className="text-[9px] text-gray-400 light:text-gray-500 font-black uppercase tracking-[0.25em] mb-2">Total Orders</p>
+                    <p className="text-3xl font-black text-white light:text-gray-900 drop-shadow-sm">{user?.totalOrders || 0}</p>
+                  </div>
+                  <div className="w-[1px] bg-gradient-to-b from-white/20 via-white/5 to-transparent light:from-gray-200 light:via-gray-100 h-14" />
+                  <div>
+                    <p className="text-[9px] text-gray-400 light:text-gray-500 font-black uppercase tracking-[0.25em] mb-2">ZenPoints</p>
+                    <p className="text-3xl font-black bg-gradient-to-r from-[#C9A84C] to-[#e4c875] bg-clip-text text-transparent drop-shadow-md">{user?.zenPoints || 0}</p>
+                  </div>
                 </div>
-                <div className="w-[1px] bg-white/10 light:bg-gray-900/10 h-10" />
-                <div>
-                  <p className="text-[8px] text-[#e5e7eb] light:text-[#8a8580] font-black uppercase tracking-[0.2em] mb-2">ZenPoints</p>
-                  <p className="text-2xl font-black text-[#C9A84C]">{user?.zenPoints || 0}</p>
-                </div>
-              </div>
 
-              <div className="mt-4 flex items-center justify-between">
-                <span className="text-[10px] font-black text-[#C9A84C]/50 light:text-gray-900/40 uppercase tracking-[0.1em]">Account Status: <span className="text-[#C9A84C]">{user?.isElite ? 'Elite Member' : 'Logged In'}</span></span>
+                <div className="mt-6 pt-4 border-t border-white/5 light:border-gray-100 flex items-center justify-between relative z-10">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C9A84C] opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#C9A84C]"></span>
+                    </span>
+                    <span className="text-[10px] font-black text-gray-400 light:text-gray-500 uppercase tracking-[0.1em]">
+                      Status: <span className="text-[#C9A84C] ml-1">{user?.isElite ? 'Elite Member' : 'Active Account'}</span>
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
