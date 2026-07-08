@@ -445,21 +445,16 @@ export default function ProfilePage() {
 
       {/* Identity Card with Tilt */}
       <Tilt scale={1.02} className="mb-10 relative z-10">
-        <div className={`${user?.isElite ? 'elite-card' : 'bg-black/40 light:bg-white backdrop-blur-3xl border border-white/5 light:border-[#d4cfc5] light:shadow-[0_8px_40px_rgba(0,0,0,0.08)]'} rounded-[32px] p-6 sm:p-8 shadow-2xl relative overflow-hidden group transition-all duration-500`}>
-          {user?.isElite && (
-            <>
-              <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-[#1a1a1c] via-[#0a0a0b] to-[#0a0a0b] z-0" />
-              <div className="elite-hologram" />
-              <div className="luxury-mesh-overlay" />
-              <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#C9A84C]/5 rounded-full blur-[80px] z-10" />
-            </>
-          )}
+        <div className="bg-[#111111] light:bg-white backdrop-blur-3xl border border-[#C9A84C]/30 light:border-[#d4cfc5] rounded-[32px] p-6 sm:p-8 shadow-2xl light:shadow-[0_8px_40px_rgba(0,0,0,0.08)] relative overflow-hidden group transition-all duration-500">
+           {/* Dynamic Cohesive BG */}
+           <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-[#1a1a1c] via-[#0a0a0b] to-[#0a0a0b] light:from-white light:via-[#fcfbf9] light:to-[#f5f3ee] z-0" />
+           <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#C9A84C]/5 light:bg-[#C9A84C]/10 rounded-full blur-[80px] z-10" />
           
           <div className="relative z-20">
             {/* Top Row: Avatar + Badges */}
             <div className="flex items-start justify-between mb-8">
-              {/* Profile Photo */}
-              <div className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden ${user?.isElite ? 'elite-profile-border' : 'border-2 border-white/10 light:border-[#d4cfc5]'} shadow-2xl bg-black/40 light:bg-[#f0ece4] backdrop-blur-md relative shrink-0`}>
+              {/* Profile Photo or Initials */}
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-2 border-[#C9A84C]/40 light:border-[#C9A84C]/60 shadow-[0_0_20px_rgba(201,168,76,0.15)] bg-[#1a1a1c] light:bg-[#f0ece4] relative shrink-0">
                   {user?.profileImage && user.profileImage !== 'null' && user.profileImage !== 'undefined' ? (
                     <SafeImage 
                       src={user.profileImage} 
@@ -467,35 +462,30 @@ export default function ProfilePage() {
                       className="w-full h-full object-cover" 
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-[#1C1C1E] to-black light:from-[#e8e4dc] light:to-[#d4cfc5] rounded-full flex items-center justify-center">
-                      {user?.isElite ? (
-                        <svg className="w-12 h-12 sm:w-14 sm:h-14 text-[#C9A84C] drop-shadow-[0_0_15px_rgba(201,168,76,0.5)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M2 19h20M2 19l2-8 4 3 4-7 4 7 4-3 2 8M2 19v2h20v-2" />
-                          <circle cx="12" cy="5" r="1" fill="currentColor" />
-                        </svg>
-                      ) : (
-                        <span className="text-4xl">🧑‍🎓</span>
-                      )}
+                    <div className="w-full h-full bg-gradient-to-br from-[#2a2a2c] to-[#111111] light:from-[#e8e4dc] light:to-[#d4cfc5] rounded-full flex items-center justify-center border border-white/5 light:border-black/5">
+                      <span className="text-3xl font-black text-[#C9A84C] tracking-tighter">
+                        {user?.name?.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase() || 'ZM'}
+                      </span>
                     </div>
                   )}
               </div>
 
               <div className="flex flex-col items-end gap-3">
-                 {/* Branded Zenvy Badge */}
-                 <div className="zenvy-badge-container">
-                    <div className="zenvy-badge-label">ZENVY</div>
-                    <div className="flex gap-1 pr-2">
-                       <div className="w-1.5 h-1.5 rounded-full bg-white/20 light:bg-black/10" />
-                       <div className="w-1.5 h-1.5 rounded-full bg-white/20 light:bg-black/10" />
+                 {/* Cohesive Zenvy Badge */}
+                 <div className="px-3 py-1 bg-[#C9A84C] rounded-md flex items-center gap-2 shadow-[0_4px_12px_rgba(201,168,76,0.2)]">
+                    <div className="text-[10px] font-black uppercase text-black tracking-[0.2em]">ZENVY</div>
+                    <div className="flex gap-1 pr-1">
+                       <div className="w-1.5 h-1.5 rounded-full bg-black/20" />
+                       <div className="w-1.5 h-1.5 rounded-full bg-black/20" />
                     </div>
                  </div>
 
-                 {/* Polished Streak Capsule */}
-                 <div className="streak-capsule-premium">
-                    <span className="text-xl">🔥</span>
+                 {/* Streak Capsule */}
+                 <div className="px-4 py-2 bg-[#1a1a1c] light:bg-white border border-[#C9A84C]/20 light:border-[#d4cfc5] rounded-full flex items-center gap-2 shadow-lg light:shadow-sm">
+                    <span className="text-lg">🔥</span>
                     <div>
-                       <p className="streak-text-main">{streak} day streak</p>
-                       <p className="streak-text-sub">Keep ordering!</p>
+                       <p className="text-[11px] font-black text-white light:text-gray-900">{streak} Day Streak</p>
+                       <p className="text-[8px] font-bold text-[#C9A84C] uppercase tracking-widest">Order again tomorrow!</p>
                     </div>
                  </div>
               </div>
@@ -504,52 +494,69 @@ export default function ProfilePage() {
             {/* Name & Info */}
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-2">
-                <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white light:text-[#1a1a1a] leading-none break-words">{user?.name}</h2>
-                {(user?.zenPoints || 0) >= 200 && (
-                  <div className="zen-champion-medal" title="Zen Champion Status">
-                     <span className="text-lg">🎖️</span>
-                  </div>
-                )}
+                <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white light:text-gray-900 leading-none break-words">{user?.name || 'Zenvy Member'}</h2>
               </div>
               
               <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
-                <p className="text-[10px] font-black text-[#C9A84C] uppercase tracking-[0.3em]">ZENVY MEMBER • {user?.city || 'AMARAVATHI'}</p>
-                <div className="px-3 py-1 bg-white/5 light:bg-[#f0ece4] rounded-full border border-white/5 light:border-[#d4cfc5] text-[9px] font-black text-white/40 light:text-[#8a8580] uppercase tracking-widest">ZV-{(user?._id || user?.id || '0000').slice(-8).toUpperCase()}</div>
+                <p className="text-[10px] font-black text-[#C9A84C] uppercase tracking-[0.3em]">
+                  {user?.isElite ? 'ELITE MEMBER' : 'EXPLORER TIER'} • SINCE 2024
+                </p>
+                <div className="px-3 py-1 bg-white/5 light:bg-[#f0ece4] rounded-full border border-white/10 light:border-[#d4cfc5] flex items-center gap-2 hover:bg-white/10 light:hover:bg-[#e8e4dc] transition-colors cursor-pointer">
+                  {/* Barcode visual */}
+                  <div className="flex gap-[2px] h-3 opacity-60">
+                    <div className="w-[2px] h-full bg-white light:bg-black"/><div className="w-[1px] h-full bg-white light:bg-black"/><div className="w-[3px] h-full bg-white light:bg-black"/><div className="w-[1px] h-full bg-white light:bg-black"/><div className="w-[2px] h-full bg-white light:bg-black"/>
+                  </div>
+                  <span className="text-[9px] font-black text-white/60 light:text-gray-500 uppercase tracking-widest">
+                    ZV-{(user?._id || user?.id || '0000').slice(-6).toUpperCase()}
+                  </span>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2.5 text-white/60 light:text-[#5a5a5a] bg-white/[0.02] light:bg-[#f5f3ee] p-3 rounded-2xl border border-white/5 light:border-[#d4cfc5]">
-                 <span className="text-lg">📍</span>
-                 <p className="text-xs font-bold leading-tight line-clamp-1">{user?.address || 'GH-2, Room 105, SRM AP'}</p>
+              <div 
+                onClick={() => setIsMapPickerOpen(true)}
+                className="flex items-center justify-between text-white/60 light:text-gray-600 bg-white/5 light:bg-[#f5f3ee] p-3 rounded-2xl border border-white/10 light:border-[#d4cfc5] hover:border-[#C9A84C]/30 light:hover:border-[#C9A84C]/50 transition-colors cursor-pointer group"
+              >
+                 <div className="flex items-center gap-2.5">
+                   <span className="text-lg group-hover:text-[#C9A84C] transition-colors">📍</span>
+                   <p className="text-xs font-bold leading-tight line-clamp-1">{user?.address || 'GH-2, Room 105, SRM AP'}</p>
+                 </div>
+                 <span className="text-[9px] font-black uppercase text-[#C9A84C] opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
               </div>
             </div>
 
             {/* Identity Telemetry Grid - PREMIUM BOX */}
             <div className="relative mt-8 group">
-              <div className="absolute inset-0 bg-gradient-to-r from-[#C9A84C]/20 to-transparent blur-xl opacity-50 group-hover:opacity-80 transition-opacity duration-500 rounded-3xl" />
-              <div className="identity-telemetry-grid relative bg-black/40 light:bg-white p-6 sm:p-8 rounded-[24px] border border-white/10 light:border-gray-200 shadow-2xl light:shadow-[0_15px_40px_-10px_rgba(201,168,76,0.2)] overflow-hidden">
+              <div className="absolute inset-0 bg-[#C9A84C]/5 group-hover:bg-[#C9A84C]/10 transition-colors duration-500 rounded-3xl" />
+              <div className="relative bg-[#1a1a1c] light:bg-white p-6 sm:p-8 rounded-[24px] border border-[#C9A84C]/20 light:border-[#d4cfc5] shadow-2xl light:shadow-sm overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#C9A84C]/10 rounded-full blur-[50px] -mr-10 -mt-10" />
                 
-                <div className="flex gap-12 relative z-10">
-                  <div>
-                    <p className="text-[9px] text-gray-400 light:text-gray-500 font-black uppercase tracking-[0.25em] mb-2">Total Orders</p>
-                    <p className="text-3xl font-black text-white light:text-gray-900 drop-shadow-sm">{user?.totalOrders || 0}</p>
+                <div className="grid grid-cols-3 gap-2 sm:gap-4 relative z-10">
+                  <div className="flex flex-col items-center text-center">
+                    <p className="text-[8px] sm:text-[9px] text-gray-400 light:text-gray-500 font-black uppercase tracking-[0.2em] mb-2">Total Orders</p>
+                    <p className="text-2xl sm:text-3xl font-black text-white light:text-gray-900 drop-shadow-md">{user?.totalOrders || 0}</p>
                   </div>
-                  <div className="w-[1px] bg-gradient-to-b from-white/20 via-white/5 to-transparent light:from-gray-200 light:via-gray-100 h-14" />
-                  <div>
-                    <p className="text-[9px] text-gray-400 light:text-gray-500 font-black uppercase tracking-[0.25em] mb-2">ZenPoints</p>
-                    <p className="text-3xl font-black bg-gradient-to-r from-[#C9A84C] to-[#e4c875] bg-clip-text text-transparent drop-shadow-md">{user?.zenPoints || 0}</p>
+                  <div className="flex flex-col items-center text-center border-l border-r border-white/10 light:border-gray-200">
+                    <p className="text-[8px] sm:text-[9px] text-gray-400 light:text-gray-500 font-black uppercase tracking-[0.2em] mb-2">ZenPoints</p>
+                    <p className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-[#C9A84C] to-[#e4c875] bg-clip-text text-transparent drop-shadow-md">{user?.zenPoints || 0}</p>
+                  </div>
+                  <div className="flex flex-col items-center text-center">
+                    <p className="text-[8px] sm:text-[9px] text-gray-400 light:text-gray-500 font-black uppercase tracking-[0.2em] mb-2">Tier Status</p>
+                    <p className="text-sm sm:text-lg font-black text-[#C9A84C] mt-2 tracking-wide uppercase">{user?.isElite ? 'Elite' : 'Explorer'}</p>
                   </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-white/5 light:border-gray-100 flex items-center justify-between relative z-10">
-                  <div className="flex items-center gap-2">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C9A84C] opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#C9A84C]"></span>
+                <div className="mt-8 relative z-10 border-t border-white/10 light:border-gray-200 pt-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[9px] font-black text-gray-400 light:text-gray-500 uppercase tracking-widest">Distance to Elite Tier</span>
+                    <span className="text-[9px] font-black text-[#C9A84C] uppercase tracking-widest">
+                      {Math.min(user?.completedOrders || 0, 500)} / 500 Orders
                     </span>
-                    <span className="text-[10px] font-black text-gray-400 light:text-gray-500 uppercase tracking-[0.1em]">
-                      Status: <span className="text-[#C9A84C] ml-1">{user?.isElite ? 'Elite Member' : 'Active Account'}</span>
-                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-black light:bg-gray-200 rounded-full overflow-hidden border border-white/5 light:border-gray-300">
+                    <div 
+                      className="h-full bg-gradient-to-r from-[#C9A84C] to-[#e4c875] rounded-full"
+                      style={{ width: `${Math.min(((user?.completedOrders || 0) / 500) * 100, 100)}%` }}
+                    />
                   </div>
                 </div>
               </div>
@@ -851,21 +858,22 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-[9px] font-black text-white light:text-gray-900/40 uppercase tracking-widest">Your Referral Code</p>
-              <p className="text-lg font-black text-[#C9A84C] tracking-widest mt-1">{user?.referralCode || 'Loading...'}</p>
+              <p className="text-lg font-black text-[#C9A84C] tracking-widest mt-1">
+                {user?.referralCode || `ZV-${(user?._id || user?.id || 'NEW50').slice(-5).toUpperCase()}`}
+              </p>
             </div>
             <button
               onClick={() => {
-                if (user?.referralCode) {
-                  navigator.clipboard.writeText(user.referralCode);
-                  showToast('Code copied!', 'success', '📋');
-                }
+                const code = user?.referralCode || `ZV-${(user?._id || user?.id || 'NEW50').slice(-5).toUpperCase()}`;
+                navigator.clipboard.writeText(code);
+                setOverlay({ isOpen: true, title: 'Code Copied', message: 'Referral code copied to clipboard!', type: 'success' });
               }}
               className="bg-[#C9A84C]/10 border border-[#C9A84C]/30 px-4 py-2 rounded-2xl text-[9px] font-black text-[#C9A84C] uppercase tracking-widest active:scale-95 transition-transform"
             >
               Copy
             </button>
           </div>
-          <p className="text-[8px] font-bold text-white light:text-gray-900/30">Share this code — both of you earn <span className="text-emerald-400">50 ZenPoints</span> when they place their first order.</p>
+          <p className="text-[8px] font-bold text-white light:text-gray-900/30">Share this code — both of you earn <span className="text-[#C9A84C]">50 ZenPoints</span> when they place their first order.</p>
         </div>
       </div>
 

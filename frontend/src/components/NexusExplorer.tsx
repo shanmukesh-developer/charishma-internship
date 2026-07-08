@@ -98,8 +98,8 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
                 onClick={() => { playSensoryFeedback(); setActiveFilter(btn.id as 'all' | 'veg' | 'jain'); }}
                 className={`h-9 py-1 px-4 rounded-full flex items-center gap-1.5 transition-all border whitespace-nowrap ${
                   activeFilter === btn.id 
-                  ? 'bg-[#EF4F5F] text-white border-[#EF4F5F] font-black shadow-sm' 
-                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 font-bold'
+                  ? 'bg-[#EF4F5F] text-white border-[#C9A84C] font-black shadow-[0_0_10px_rgba(201,168,76,0.3)]' 
+                  : 'bg-[#1a1a1c] light:bg-gray-50 border-[#C9A84C]/40 light:border-[#C9A84C]/60 text-gray-400 light:text-gray-600 hover:border-[#C9A84C] font-bold'
                 }`}
               >
                 <span className="text-[10px]">{btn.icon}</span>
@@ -121,8 +121,8 @@ export default function NexusExplorer({ restaurants, onSelectItem, favorites, to
                 onClick={() => { playSensoryFeedback(); setActiveSort(btn.id as 'recommended' | 'rating' | 'fastest'); }}
                 className={`h-9 py-1 px-4 rounded-full flex items-center gap-1.5 transition-all border whitespace-nowrap ${
                   activeSort === btn.id 
-                  ? 'bg-[#EF4F5F] text-white light:text-white border-[#EF4F5F] font-black shadow-sm' 
-                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 font-bold'
+                  ? 'bg-[#EF4F5F] text-white light:text-white border-[#C9A84C] font-black shadow-[0_0_10px_rgba(201,168,76,0.3)]' 
+                  : 'bg-[#1a1a1c] light:bg-gray-50 border-[#C9A84C]/40 light:border-[#C9A84C]/60 text-gray-400 light:text-gray-600 hover:border-[#C9A84C] font-bold'
                 }`}
               >
                 <span className="text-[9px] uppercase tracking-widest">{btn.label}</span>

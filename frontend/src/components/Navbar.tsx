@@ -113,30 +113,30 @@ const Navbar = () => {
 
         <button 
           onClick={toggleTheme}
-          className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-90 border bg-white/5 border-white/10 text-white hover:text-[#EF4F5F] hover:border-[#EF4F5F]/40"
+          className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-90 border bg-[#1a1a1c] light:bg-white border-[#C9A84C]/40 text-[#C9A84C] hover:text-[#e4c875] hover:border-[#C9A84C] hover:shadow-[0_0_10px_rgba(201,168,76,0.2)]"
           title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
         >
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
 
         <Link href="/profile" className="relative group block">
-          <div className={`w-9 h-9 rounded-xl bg-gradient-to-br from-[#C9A84C] to-[#8B7332] flex items-center justify-center text-black font-black text-lg shadow-[0_0_15px_rgba(201,168,76,0.3)] transition-all hover:scale-110 active:scale-95 cursor-pointer ${isElite ? 'vip-gold-halo' : ''}`}>
-            <svg className="w-6 h-6 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <div className={`w-9 h-9 rounded-xl bg-gradient-to-br from-[#1a1a1c] to-black flex items-center justify-center text-[#C9A84C] border border-[#C9A84C]/60 shadow-[0_0_15px_rgba(201,168,76,0.3)] transition-all hover:scale-110 hover:border-[#C9A84C] active:scale-95 cursor-pointer ${isElite ? 'vip-gold-halo' : ''}`}>
+            <svg className="w-5 h-5 text-[#C9A84C]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                <path strokeLinecap="round" strokeLinejoin="round" d="M2 19h20M2 19l2-8 4 3 4-7 4 7 4-3 2 8" />
             </svg>
           </div>
           
           {badgeCount > 0 && (
-            <div className="absolute -top-1 -right-1 w-5 h-5 bg-black border border-primary-yellow rounded-full flex items-center justify-center text-[8px] font-black text-primary-yellow shadow-lg group-hover:scale-110 transition-transform">
+            <div className="absolute -top-1 -right-1 w-5 h-5 bg-black border border-[#C9A84C] rounded-full flex items-center justify-center text-[8px] font-black text-[#C9A84C] shadow-lg group-hover:scale-110 transition-transform">
               {badgeCount}
             </div>
           )}
-          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-black light:border-[#FAF5EF] rounded-full shadow-lg" />
+          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border border-black rounded-full shadow-lg" />
         </Link>
         
         <button 
           onClick={handleLogout}
-          className="w-9 h-9 rounded-xl flex items-center justify-center active:scale-90 header-action-btn hover:!border-red-500 hover:!text-red-500 text-gray-400"
+          className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-90 border bg-[#1a1a1c] light:bg-white border-[#C9A84C]/40 text-gray-400 hover:!border-red-500 hover:!text-red-500 hover:shadow-[0_0_10px_rgba(239,68,68,0.2)]"
           title="Sign Out"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -119,6 +119,57 @@ const MENUS = [
   ['Umbrella Rental (per day)',19,'Heavy-duty monsoon umbrella rental','Rental',true,'1523362628745-0c100150b504',['rental']],
   ['Laptop Charger Rental (per day)',49,'Universal laptop charger compatible with all brands','Rental',true,'1496181133206-80ce9b88a853',['rental']],
   ['Power Bank Rental (per day)',39,'20000mAh fast-charge power bank rental','Rental',true,'1558618666-fcd25c85cd64',['rental']],
+  ['Lucknowi Chicken Biryani',289,'Mildly spiced awadhi style chicken biryani','Biryani',false,'1589302168068-964664d93dc0',['Biryani']],
+  ['Egg Dum Biryani',199,'Basmati rice with boiled eggs in rich masala','Biryani',false,'1626777552726-4a6b54c97e46',['Biryani']],
+  ['Farmhouse Veg Pizza',289,'Loaded with mushrooms, bell peppers, corn and olives','Pizza',true,'1604068549290-dea0e4a305ca',['Pizza']],
+  ['Tandoori Chicken Pizza',329,'Indian fusion with smoky tandoori chicken chunks','Pizza',false,'1565299624946-b28f40a0ae38',['Pizza']],
+  ['Rava Masala Dosa',119,'Crispy semolina dosa with spiced potato filling','South Indian',true,'1567337710282-00832b415979',['South Indian']],
+  ['Ghee Pongal',99,'Classic comfort food with rice, lentils and pepper','South Indian',true,'1610192131976-96b6c00e12cc',['South Indian']],
+  ['Spicy Zinger Burger',219,'Extra crispy fried chicken breast with spicy mayo','Burgers',false,'1571091718767-18b5b1457add',['Burgers']],
+  ['Mushroom Swiss Burger',199,'Grilled mushrooms with melted swiss cheese','Burgers',true,'1586190848861-99aa4a171e90',['Burgers']],
+  ['Monsoon Corn Fritters',89,'Crispy sweet corn pakoras with mint chutney','Seasonal',true,'1601050690597-df056fb4ce78',['seasonal']],
+
+  // --- EXTRA MASSIVE DATA DUMP FOR PITCH ---
+  ['Mughlai Mutton Biryani', 320, 'Rich, slow-cooked royal mutton biryani with aromatic spices.', 'Biryani', false, '1589302168068-964664d93dc0', ['Biryani', 'Mughlai']],
+  ['Ambur Chicken Biryani', 260, 'Spicy South Indian style biryani with seeraga samba rice.', 'Biryani', false, '1563379926898-05f4575a45d8', ['Biryani']],
+  ['Fish Tikka Biryani', 340, 'Tender fish pieces marinated and cooked in dum style.', 'Biryani', false, '1626777552726-4a6b54c97e46', ['Biryani']],
+  ['Soya Chaap Biryani', 220, 'Vegetarian delight made with marinated soya chaap.', 'Biryani', true, '1544025162-d76694265947', ['Biryani']],
+  ['Prawn Dum Biryani', 380, 'Fresh prawns cooked with traditional spices and basmati.', 'Biryani', false, '1633945274405-b6c8069047b0', ['Biryani', 'Seafood']],
+  ['Afghani Chicken Biryani', 290, 'Mildly spiced biryani with creamy Afghani chicken.', 'Biryani', false, '1589302168068-964664d93dc0', ['Biryani']],
+  ['Mushroom Masala Biryani', 230, 'Spicy mushroom and peas cooked with fragrant rice.', 'Biryani', true, '1626777552726-4a6b54c97e46', ['Biryani', 'Veg']],
+  ['Paneer Makhani Biryani', 250, 'Sweet and spicy paneer makhani layered with rice.', 'Biryani', true, '1544025162-d76694265947', ['Biryani', 'Veg']],
+  ['Keema Biryani', 310, 'Minced mutton cooked with spices and long grain rice.', 'Biryani', false, '1563379926898-05f4575a45d8', ['Biryani', 'Non-veg']],
+  ['Kashmiri Pulao', 240, 'Sweet and savory rice dish with dry fruits and nuts.', 'Biryani', true, '1633945274405-b6c8069047b0', ['Biryani', 'Sweet']],
+  ['BBQ Chicken Pizza', 349, 'Smoky BBQ chicken, red onions, and cilantro.', 'Pizza', false, '1565299624946-b28f40a0ae38', ['Pizza', 'Non-veg']],
+  ['Hawaiian Paradise', 319, 'Classic combination of pineapple and savory ham.', 'Pizza', false, '1604068549290-dea0e4a305ca', ['Pizza', 'Non-veg']],
+  ['Veg Extravaganza', 299, 'Black olives, capsicum, onion, grilled mushroom, corn.', 'Pizza', true, '1513104890138-7c749659a591', ['Pizza', 'Veg']],
+  ['Four Cheese Pizza', 339, 'Mozzarella, Cheddar, Parmesan, and Gouda blend.', 'Pizza', true, '1574071318508-1cdbab80d002', ['Pizza', 'Cheese']],
+  ['Mexican Green Wave', 289, 'Crunchy onions, crisp capsicum, juicy tomatoes and jalapeno.', 'Pizza', true, '1604382354936-07c5d9983bd3', ['Pizza', 'Veg', 'Spicy']],
+  ['Meat Lover\'s Pizza', 399, 'Loaded with pepperoni, sausage, ham, and bacon.', 'Pizza', false, '1590947132387-155cc02f3212', ['Pizza', 'Non-veg']],
+  ['Mushroom & Truffle Oil', 359, 'Gourmet pizza with wild mushrooms and truffle oil drizzle.', 'Pizza', true, '1604068549290-dea0e4a305ca', ['Pizza', 'Gourmet', 'Veg']],
+  ['Pesto Chicken Pizza', 329, 'Basil pesto sauce, grilled chicken, and cherry tomatoes.', 'Pizza', false, '1565299624946-b28f40a0ae38', ['Pizza', 'Non-veg']],
+  ['Vegan Supreme', 309, 'Dairy-free cheese with assorted bell peppers and olives.', 'Pizza', true, '1513104890138-7c749659a591', ['Pizza', 'Vegan']],
+  ['Spicy Paneer Classic', 279, 'Spiced paneer cubes with red paprika and capsicum.', 'Pizza', true, '1574071318508-1cdbab80d002', ['Pizza', 'Veg', 'Spicy']],
+  ['Double Trouble Burger', 259, 'Two massive beef patties with extra cheddar cheese.', 'Burgers', false, '1568901346375-23c9450c58cd', ['Burgers', 'Non-veg']],
+  ['BBQ Bacon Burger', 239, 'Crispy bacon strips, BBQ sauce, and a juicy chicken patty.', 'Burgers', false, '1586190848861-99aa4a171e90', ['Burgers', 'Non-veg']],
+  ['Spicy Bean Burger', 179, 'Mexican-spiced black bean patty with jalapeños and salsa.', 'Burgers', true, '1550547660-d9450f859349', ['Burgers', 'Veg', 'Spicy']],
+  ['Teriyaki Chicken Burger', 219, 'Grilled chicken breast glazed in sweet teriyaki sauce.', 'Burgers', false, '1562967560249-be0a4f07f9cf', ['Burgers', 'Non-veg']],
+  ['Mac & Cheese Burger', 249, 'A crispy macaroni and cheese patty topped with cheddar.', 'Burgers', true, '1571091718767-18b5b1457add', ['Burgers', 'Veg']],
+  ['Mysore Masala Dosa', 129, 'Spicy red chutney spread with traditional potato filling.', 'South Indian', true, '1589301760014-d929f3979dbc', ['South Indian', 'Veg', 'Spicy']],
+  ['Podi Idli (10pc mini)', 109, 'Mini idlis tossed in spicy gunpowder and ghee.', 'South Indian', true, '1630383249896-424e482df921', ['South Indian', 'Veg', 'Spicy']],
+  ['Tomato Uttapam', 119, 'Thick pancake generously topped with tangy tomatoes and herbs.', 'South Indian', true, '1668236543090-82eba5ee5976', ['South Indian', 'Veg']],
+  ['Set Dosa (3pc)', 139, 'Soft and spongy dosas served with kurma and chutney.', 'South Indian', true, '1601050690117-94f5f6fa8bd7', ['South Indian', 'Veg']],
+  ['Curd Rice', 89, 'Cooling curd mixed with rice and tempered with mustard seeds.', 'South Indian', true, '1567337710282-00832b415979', ['South Indian', 'Veg', 'Comfort Food']],
+  ['Chilli Chicken', 199, 'Classic Indo-Chinese appetizer tossed with soy sauce and chillies.', 'Chinese', false, '1525755662160-7547c42c0c24', ['Chinese', 'Non-veg', 'Spicy']],
+  ['Veg Manchurian Dry', 179, 'Crispy vegetable balls tossed in sweet and spicy sauce.', 'Chinese', true, '1534422298391-e4f8c172dddb', ['Chinese', 'Veg']],
+  ['Garlic Fried Rice', 169, 'Wok-tossed rice with an abundance of burnt garlic.', 'Chinese', true, '1603133872878-684f208fb84b', ['Chinese', 'Veg']],
+  ['American Chopsuey', 219, 'Crispy noodles topped with a sweet and sour vegetable gravy.', 'Chinese', true, '1569718212165-3a8922ada9f3', ['Chinese', 'Veg']],
+  ['Chicken Sweet Corn Soup', 129, 'Comforting thick soup with sweet corn and shredded chicken.', 'Chinese', false, '1547592166-23ac45744aec', ['Chinese', 'Non-veg']],
+  ['Virgin Mojito', 99, 'Refreshing mint and lime mocktail over crushed ice.', 'Drinks', true, '1554631879-9a0b3a7e0a65', ['Drinks', 'Veg', 'Mocktail']],
+  ['Iced Peach Tea', 109, 'Brewed black tea infused with sweet peach syrup.', 'Drinks', true, '1509042239860-f550ce710b93', ['Drinks', 'Veg', 'Tea']],
+  ['Blue Lagoon', 119, 'Vibrant blue curacao mocktail with lemon and soda.', 'Drinks', true, '1535041919-4e427f31b612', ['Drinks', 'Veg', 'Mocktail']],
+  ['Hazelnut Cold Coffee', 139, 'Classic cold coffee blended with rich hazelnut syrup.', 'Drinks', true, '1461023058943-07fcbe16d735', ['Drinks', 'Veg', 'Coffee']],
+  ['Mint Oreo Shake', 159, 'Oreo milkshake with a refreshing hint of mint.', 'Drinks', true, '1572490284235-7e7484d68b44', ['Drinks', 'Veg', 'Shake']],
 ];
 
 // Maps each item to a restaurant index
@@ -137,6 +188,18 @@ const MENU_MAP = [
   10,10,10,10,10, // Laundry -> SpinClean
   11,11,11,11,11,11, // Stationary -> Campus Stationery
   12,12,12,12,12, // Rentals -> Campus Rentals
+  0,0, // Extra Biryani -> Spice Garden
+  1,1, // Extra Pizza -> Urban Bites
+  0,0, // Extra South Indian -> Spice Garden
+  1,1, // Extra Burgers -> Urban Bites
+  6,   // Extra Seasonal -> Green Bowl
+
+  0,0,0,0,0,0,0,0,0,0, // 10 Biryani -> Spice Garden
+  1,1,1,1,1,1,1,1,1,1, // 10 Pizza -> Urban Bites
+  1,1,1,1,1,           // 5 Burgers -> Urban Bites
+  0,0,0,0,0,           // 5 South Indian -> Spice Garden
+  2,2,2,2,2,           // 5 Chinese -> Dragon Wok
+  3,3,3,3,3,           // 5 Drinks -> Chai & Chill
 ];
 
 const USERS = [

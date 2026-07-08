@@ -698,15 +698,21 @@ export default function Home() {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
                 <div className="flex flex-col">
                   <Link href="/profile" className="flex items-center gap-3 mb-2 group">
-                    <div className={`w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-xl border transition-all group-hover:scale-105 ${isElite ? 'vip-gold-halo border-transparent' : 'border-white/10'}`}>
-                      👤
+                    <div className={`w-12 h-12 rounded-2xl bg-[#1a1a1c] light:bg-white flex items-center justify-center border transition-all duration-300 group-hover:scale-105 overflow-hidden shadow-lg light:shadow-sm ${isElite ? 'vip-gold-halo border-transparent' : 'border-[#C9A84C]/40 light:border-[#C9A84C]/60 shadow-[0_0_15px_rgba(201,168,76,0.1)]'}`}>
+                      {user?.profileImage && user.profileImage !== 'null' && user.profileImage !== 'undefined' ? (
+                        <SafeImage src={user.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-[14px] font-black text-[#C9A84C] tracking-tighter">
+                          {userName ? userName.replace(/^(OP_|op_|Op_)/g, '').split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase() : 'ZM'}
+                        </span>
+                      )}
                     </div>
                     <div>
                       <h2 className="text-[9px] font-black uppercase tracking-[0.3em] text-secondary-text mb-0.5">
                         {mounted ? getGreeting() : 'Initializing...'}
                       </h2>
                       <div className="flex items-center gap-2 pr-32 md:pr-0">
-                        <h1 className="text-2xl font-black text-white tracking-widest uppercase truncate max-w-[200px] md:max-w-none" style={{ fontFamily: "'Syne', sans-serif" }}>
+                        <h1 className="text-2xl font-black tracking-widest uppercase truncate max-w-[200px] md:max-w-none bg-gradient-to-t from-orange-600 via-red-500 to-yellow-400 text-transparent bg-clip-text drop-shadow-[0_2px_10px_rgba(239,68,68,0.3)] animate-pulse" style={{ fontFamily: "'Syne', sans-serif" }}>
                           {userName ? userName.replace(/^(OP_|op_|Op_)/g, '').split(' ')[0].toUpperCase() : 'GUEST'}
                         </h1>
                         {isElite && (
@@ -781,21 +787,21 @@ export default function Home() {
             <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 relative z-20">
                <a href="/" onClick={(e) => { e.preventDefault(); triggerTransition('/', 'food'); }} className="relative flex flex-row items-center justify-center md:justify-start md:px-4 gap-1.5 sm:gap-2.5 py-3 sm:py-4 rounded-[18px] bg-[#141416]/80 light:bg-white backdrop-blur-2xl border border-white/5 light:border-white shadow-lg light:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.06)] hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all duration-400 group overflow-hidden cursor-pointer">
                   <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent light:from-orange-50/40 light:to-transparent pointer-events-none" />
-                  <div className="relative w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-white light:bg-white border border-[#C9A84C]/20 light:border-orange-200/50 flex items-center justify-center group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500 shadow-inner overflow-hidden">
+                  <div className="relative w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-white light:bg-white border-2 border-[#C9A84C]/60 light:border-[#C9A84C] flex items-center justify-center group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500 shadow-[0_0_10px_rgba(201,168,76,0.3)] overflow-hidden">
                     <SafeImage src="/assets/3d-burger.png" alt="Food" fill style={{ objectFit: 'cover' }} />
                   </div>
-                  <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-white light:text-gray-900 relative z-10 group-hover:text-[#C9A84C] light:group-hover:text-[#EF4F5F] transition-colors truncate">Food</span>
+                  <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-white light:text-gray-900 relative z-10 group-hover:text-gray-300 light:group-hover:text-[#EF4F5F] transition-colors truncate">Food</span>
                </a>
                <a href="/pg" onClick={(e) => { e.preventDefault(); triggerTransition('/pg', 'pg'); }} className="relative flex flex-row items-center justify-center md:justify-start md:px-4 gap-1.5 sm:gap-2.5 py-3 sm:py-4 rounded-[18px] bg-[#141416]/80 light:bg-white backdrop-blur-2xl border border-white/5 light:border-white shadow-lg light:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.06)] hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all duration-400 group overflow-hidden cursor-pointer">
                   <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent light:from-blue-50/40 light:to-transparent pointer-events-none" />
-                  <div className="relative w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-white light:bg-white border border-white/10 light:border-blue-200/50 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-inner overflow-hidden">
+                  <div className="relative w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-white light:bg-white border-2 border-[#C9A84C]/60 light:border-[#C9A84C] flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-[0_0_10px_rgba(201,168,76,0.3)] overflow-hidden">
                     <SafeImage src="/assets/3d-hostel.png" alt="Hostels" fill style={{ objectFit: 'cover' }} />
                   </div>
                   <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-white light:text-gray-900 relative z-10 group-hover:text-gray-300 light:group-hover:text-blue-600 transition-colors truncate">Hostels</span>
                </a>
                <a href="/bikepool" onClick={(e) => { e.preventDefault(); triggerTransition('/bikepool', 'bikepool'); }} className="relative flex flex-row items-center justify-center md:justify-start md:px-4 gap-1.5 sm:gap-2.5 py-3 sm:py-4 rounded-[18px] bg-[#141416]/80 light:bg-white backdrop-blur-2xl border border-white/5 light:border-white shadow-lg light:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.06)] hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all duration-400 group overflow-hidden cursor-pointer">
                   <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent light:from-purple-50/40 light:to-transparent pointer-events-none" />
-                  <div className="relative w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-white light:bg-white border border-white/10 light:border-purple-200/50 flex items-center justify-center group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500 shadow-inner overflow-hidden">
+                  <div className="relative w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-white light:bg-white border-2 border-[#C9A84C]/60 light:border-[#C9A84C] flex items-center justify-center group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500 shadow-[0_0_10px_rgba(201,168,76,0.3)] overflow-hidden">
                     <SafeImage src="/assets/3d-bike.png" alt="Co-Ride" fill style={{ objectFit: 'cover' }} />
                   </div>
                   <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-white light:text-gray-900 relative z-10 group-hover:text-gray-300 light:group-hover:text-purple-600 transition-colors truncate">Co-Ride</span>
@@ -809,8 +815,8 @@ export default function Home() {
              onClick={() => setIsSearchOpen(true)}
             >
              <Magnetic>
-                <div className="w-full stardust-search py-6 pl-12 pr-4 text-xs text-white light:text-gray-500 font-black uppercase tracking-widest cursor-pointer rounded-3xl group shadow-2xl relative overflow-hidden">
-                   <div className="absolute inset-0 bg-gradient-to-r from-primary-yellow/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="w-full bg-[#141416]/80 light:bg-white py-6 pl-12 pr-4 text-xs text-white light:text-gray-500 font-black uppercase tracking-widest cursor-pointer rounded-3xl border-2 border-[#C9A84C] light:border-[#C9A84C] group shadow-2xl hover:shadow-[0_0_15px_rgba(201,168,76,0.3)] transition-all duration-300 relative overflow-hidden">
+                   <div className="absolute inset-0 bg-[#C9A84C]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                    <div className="flex items-center gap-4 relative z-10">
                       <span className="text-lg opacity-40 group-hover:opacity-100 group-hover:text-primary-yellow transition-all">🔍</span>
                       <span className="opacity-40 group-hover:opacity-100 transition-opacity">Search for dishes or restaurants...</span>
@@ -839,7 +845,7 @@ export default function Home() {
                   }}
                   className="flex flex-col items-center gap-3 shrink-0 snap-start group"
                 >
-                  <div className="w-[72px] h-[72px] sm:w-[88px] sm:h-[88px] rounded-full overflow-hidden border-2 border-transparent group-hover:border-primary-yellow/50 transition-all shadow-md bg-gray-100">
+                  <div className="w-[72px] h-[72px] sm:w-[88px] sm:h-[88px] rounded-full overflow-hidden border-2 border-[#C9A84C]/40 light:border-[#C9A84C] group-hover:border-[#C9A84C] group-hover:shadow-[0_0_15px_rgba(201,168,76,0.3)] transition-all shadow-md bg-gray-100">
                     <SafeImage src={classic.img} alt={classic.name} width={88} height={88} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                   </div>
                   <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-gray-500 group-hover:text-white light:group-hover:text-black transition-colors">{classic.name}</span>
@@ -955,7 +961,7 @@ export default function Home() {
 
 
         <div className="fixed bottom-28 right-6 z-[100] sm:hidden">
-          <Link href="/community" onClick={(e) => { e.preventDefault(); triggerTransition('/community', 'comms'); }} className="w-14 h-14 rounded-full bg-black light:bg-white text-white light:text-gray-900 shadow-[0_8px_30px_rgba(0,0,0,0.2)] light:shadow-[0_8px_30px_rgba(0,0,0,0.1)] flex items-center justify-center hover:scale-110 active:scale-95 transition-transform group border border-gray-800 light:border-gray-200 relative focus:outline-none">
+          <Link href="/community" onClick={(e) => { e.preventDefault(); triggerTransition('/community', 'comms'); }} className="w-14 h-14 rounded-full bg-black light:bg-white text-white light:text-gray-900 shadow-[0_8px_30px_rgba(0,0,0,0.2)] light:shadow-[0_8px_30px_rgba(0,0,0,0.1)] flex items-center justify-center hover:scale-110 active:scale-95 transition-transform group border-2 border-red-500 light:border-red-500 relative focus:outline-none">
             <svg className="w-6 h-6 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg>
             <div className="absolute top-0 right-0 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-black light:border-white"></div>
           </Link>
