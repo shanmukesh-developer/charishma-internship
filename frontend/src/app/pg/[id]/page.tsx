@@ -217,11 +217,11 @@ export default function PGDetailPage() {
           </Link>
         </div>
 
-        {/* 1. Masonry Photo Gallery Section */}
+        {/* 1. Dynamic Photo Gallery Section */}
         <div className="bg-[#1A1A24] light:bg-white p-4 sm:p-6 rounded-[36px] border border-white/5 light:border-gray-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative">
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 h-[50vh] md:h-[65vh] min-h-[400px]">
-            {/* Main Hero Image */}
+          <div className={`grid grid-cols-1 md:grid-cols-4 gap-3 h-[50vh] md:h-[65vh] min-h-[400px]`}>
+            {/* Main Hero Image (Spans 2x2) */}
             <div className="md:col-span-2 md:row-span-2 relative rounded-3xl overflow-hidden group">
               <img 
                 src={pg.images && pg.images.length > 0 ? pg.images[0] : '/pg-images/pg_boys_exterior.png'} 
@@ -258,11 +258,16 @@ export default function PGDetailPage() {
             </div>
 
             {/* Sub Image 3 */}
-            <div className="hidden md:block md:col-span-2 relative rounded-3xl overflow-hidden group">
-              <img src={pg.images && pg.images.length > 3 ? pg.images[3] : '/pg-images/room_single_sharing.png'} alt="Common Area View" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            <div className="hidden md:block relative rounded-3xl overflow-hidden group">
+              <img src={pg.images && pg.images.length > 3 ? pg.images[3] : '/pg-images/room_single_sharing.png'} alt="Common Area View 1" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            </div>
+
+            {/* Sub Image 4 (If more than 4 images) or View All button */}
+            <div className="hidden md:block relative rounded-3xl overflow-hidden group">
+              <img src={pg.images && pg.images.length > 4 ? pg.images[4] : (pg.images && pg.images.length > 0 ? pg.images[0] : '/pg-images/room_double_sharing.png')} alt="View More" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
               <div className="absolute inset-0 bg-black/40 hover:bg-black/20 transition-colors flex items-center justify-center cursor-pointer">
-                <span className="text-xs font-black text-white uppercase tracking-widest border border-white/30 px-6 py-3 rounded-full backdrop-blur-md hover:bg-white hover:text-black transition-colors">
-                  View All {pg.images?.length || 4} Photos
+                <span className="text-xs font-black text-white uppercase tracking-widest border border-white/30 px-6 py-3 rounded-full backdrop-blur-md hover:bg-white hover:text-black transition-colors shadow-lg">
+                  View All {pg.images?.length > 4 ? pg.images.length : 15} Photos
                 </span>
               </div>
             </div>
@@ -313,82 +318,97 @@ export default function PGDetailPage() {
           </div>
         </div>
 
-        {/* 3. Room Cards Section */}
+        {/* 3. Room Inventory & Details Section */}
         <div>
-          <h2 className="text-xl md:text-2xl font-black uppercase tracking-[0.2em] pl-2 mb-8 text-white light:text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>Available Rooms</h2>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 pl-2 gap-4">
+            <div>
+              <h2 className="text-xl md:text-2xl font-black uppercase tracking-[0.2em] text-white light:text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>Room Inventory</h2>
+              <p className="text-xs text-gray-400 light:text-gray-500 font-bold uppercase tracking-widest mt-2">
+                Detailed real-time availability breakdown
+              </p>
+            </div>
+            
+            {/* Summary Tag */}
+            {pg.rooms && pg.rooms.length > 0 && (
+              <div className="flex items-center gap-3 bg-[#1A1A24] light:bg-white border border-white/5 light:border-gray-200 px-5 py-3 rounded-2xl shadow-sm">
+                <div className="flex -space-x-2">
+                  {pg.rooms.map((r, i) => (
+                    <div key={i} className="w-8 h-8 rounded-full bg-indigo-500/20 light:bg-indigo-100 border-2 border-[#1A1A24] light:border-white flex items-center justify-center text-[9px] font-black text-indigo-400 light:text-indigo-600 z-10 relative shadow-sm">
+                      {r.sharingType}S
+                    </div>
+                  ))}
+                </div>
+                <div className="h-6 w-px bg-white/10 light:bg-gray-200" />
+                <div className="text-[10px] font-black uppercase tracking-widest text-emerald-400 light:text-emerald-600">
+                  {pg.rooms.reduce((acc, curr) => acc + curr.availableBeds, 0)} Total Beds Left
+                </div>
+              </div>
+            )}
+          </div>
           
           {pg.rooms && pg.rooms.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {pg.rooms.map(room => (
                 <div 
                   key={room.id}
-                  className="bg-[#1A1A24] light:bg-white rounded-[32px] border border-white/5 light:border-gray-100 overflow-hidden flex flex-col justify-between hover:shadow-[0_20px_40px_rgba(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.04)] relative"
+                  className="bg-[#1A1A24] light:bg-white rounded-[32px] border border-white/5 light:border-gray-100 overflow-hidden flex flex-col md:flex-row hover:shadow-[0_20px_40px_rgba(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.04)] relative"
                 >
-                  {/* Absolute Bed Count Banner */}
-                  <div className="absolute top-4 left-4 z-10">
-                    <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-full backdrop-blur-md border shadow-sm ${
-                      room.availableBeds > 0 
-                        ? 'bg-emerald-500/90 text-white border-emerald-400' 
-                        : 'bg-red-500/90 text-white border-red-400'
-                    }`}>
-                      {room.availableBeds} beds left
-                    </span>
-                  </div>
-
-                  <div>
-                    {/* Room Thumbnail Photo */}
-                    <div className="h-52 w-full bg-black/20 overflow-hidden relative group">
-                      <img 
-                        src={room.images && room.images.length > 0 ? room.images[0] : '/pg-images/room_double_sharing.png'} 
-                        alt={`${room.sharingType} Seater Room`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
-                      <div className="absolute bottom-4 left-4">
-                        <span className="text-[10px] bg-black/50 text-white px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/20 font-black uppercase tracking-wider">
-                          Floor {room.floorNumber}
-                        </span>
-                      </div>
+                  {/* Room Thumbnail Photo */}
+                  <div className="h-48 md:h-auto md:w-2/5 bg-black/20 overflow-hidden relative group shrink-0">
+                    <img 
+                      src={room.images && room.images.length > 0 ? room.images[0] : '/pg-images/room_double_sharing.png'} 
+                      alt={`${room.sharingType} Seater Room`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                    
+                    <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+                      <span className={`inline-flex items-center text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg backdrop-blur-md border shadow-sm ${
+                        room.availableBeds > 0 
+                          ? 'bg-emerald-500/90 text-white border-emerald-400' 
+                          : 'bg-red-500/90 text-white border-red-400'
+                      }`}>
+                        {room.availableBeds} beds available
+                      </span>
+                      <span className="inline-flex w-max text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg bg-black/50 text-gray-200 border border-white/20 backdrop-blur-md shadow-sm">
+                        Total Capacity: {room.totalBeds} Beds
+                      </span>
                     </div>
 
-                    <div className="p-6 md:p-8 space-y-5">
-                      <div>
-                        <h3 className="text-xl font-black text-white light:text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>{room.sharingType} Seater Room</h3>
-                        <p className="text-[10px] text-gray-400 light:text-gray-500 font-bold uppercase tracking-widest mt-1">Room No: {room.roomNumber}</p>
-                      </div>
+                    <div className="absolute bottom-4 left-4">
+                      <span className="text-[10px] bg-black/50 text-white px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/20 font-black uppercase tracking-wider">
+                        Room {room.roomNumber}
+                      </span>
+                    </div>
+                  </div>
 
-                      {/* Room specs checklist */}
-                      <div className="grid grid-cols-2 gap-3 text-[10px] font-bold text-gray-400 light:text-gray-600 uppercase tracking-wider">
+                  <div className="p-6 flex flex-col justify-between w-full">
+                    <div>
+                      <h3 className="text-xl font-black text-white light:text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>{room.sharingType} Seater Setup</h3>
+                      
+                      <div className="mt-4 grid grid-cols-2 gap-3 text-[9px] font-bold text-gray-400 light:text-gray-600 uppercase tracking-wider">
                         <div className="flex items-center gap-2 bg-white/5 light:bg-[#F8F9FA] p-2 rounded-xl">
                           <span className="text-sm">{room.hasAC ? '❄️' : '🌬️'}</span>
-                          <span>{room.hasAC ? 'AC' : 'Non-AC'}</span>
+                          <span>{room.hasAC ? 'Air Conditioned' : 'Non-AC'}</span>
                         </div>
                         <div className="flex items-center gap-2 bg-white/5 light:bg-[#F8F9FA] p-2 rounded-xl">
                           <span className="text-sm">{room.hasAttachedBathroom ? '🚿' : '🚪'}</span>
                           <span>{room.hasAttachedBathroom ? 'Private Bath' : 'Shared Bath'}</span>
                         </div>
-                        <div className="flex items-center gap-2 bg-white/5 light:bg-[#F8F9FA] p-2 rounded-xl">
-                          <span className="text-sm">🌅</span>
-                          <span>{room.hasBalcony ? 'Balcony' : 'No Balcony'}</span>
-                        </div>
-                        <div className="flex items-center gap-2 bg-white/5 light:bg-[#F8F9FA] p-2 rounded-xl">
-                          <span className="text-sm">🪑</span>
-                          <span className="truncate">{room.furnishing}</span>
+                        <div className="flex items-center gap-2 bg-white/5 light:bg-[#F8F9FA] p-2 rounded-xl col-span-2">
+                          <span className="text-sm">🛏️</span>
+                          <span>{room.totalBeds} Individual Beds (Standard Size)</span>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Room Booking Footer */}
-                  <div className="p-6 md:p-8 pt-0 flex flex-col gap-4">
-                    <div className="flex items-end justify-between border-t border-white/5 light:border-gray-100 pt-5">
+                    <div className="mt-6 pt-5 border-t border-white/5 light:border-gray-100 flex items-end justify-between">
                       <div>
-                        <p className="text-[9px] font-black text-gray-400 light:text-gray-500 uppercase tracking-widest">Rent per bed</p>
+                        <p className="text-[9px] font-black text-gray-400 light:text-gray-500 uppercase tracking-widest">Pricing per bed</p>
                         <p className="text-2xl font-black text-indigo-500 mt-0.5">₹{room.pricePerBed}<span className="text-[11px] text-gray-400 light:text-gray-400 font-bold uppercase tracking-wider ml-1">/mo</span></p>
                       </div>
                     </div>
                   </div>
-
                 </div>
               ))}
             </div>
