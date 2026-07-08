@@ -66,19 +66,27 @@ export default function OthersPage() {
   if (!mounted) return <div className="min-h-screen bg-white" />;
 
   return (
-    <div className={`min-h-screen bg-white text-black font-sans pb-24 ${phase === 'covering' || phase === 'uncovering' ? 'pointer-events-none' : ''}`}>
+    <div className={`min-h-screen bg-[#FAFAFA] text-black font-sans pb-24 relative overflow-hidden ${phase === 'covering' || phase === 'uncovering' ? 'pointer-events-none' : ''}`}>
+      {/* Premium subtle background glow */}
+      <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-radial from-orange-50/50 via-transparent to-transparent opacity-80 pointer-events-none" />
+      
       <Navbar />
 
-      <main className="pt-24 max-w-7xl mx-auto">
+      <main className="pt-24 max-w-7xl mx-auto relative z-10">
         {/* Header Section */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="mb-6 px-6"
+          className="mb-8 px-6 flex flex-col items-center text-center mt-2"
         >
-          <h2 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.4em] mb-1">Ecosystem</h2>
-          <p className="text-3xl font-black text-black tracking-tight">Explore More</p>
+          <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-white border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.03)] mb-4">
+            <span className="text-[9px] font-black text-gray-500 uppercase tracking-[0.4em]">Ecosystem</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter" style={{ fontFamily: "'Syne', sans-serif" }}>
+            Explore More
+          </h2>
+          <div className="w-12 h-1 bg-gradient-to-r from-gray-200 via-gray-400 to-gray-200 mt-6 rounded-full" />
         </motion.div>
 
         {/* 1. Dynamic Hero Promotional Carousel */}
@@ -120,20 +128,25 @@ export default function OthersPage() {
         </div>
 
         {/* 2. Swiggy/Zomato Style Circular Quick-Links */}
-        <div className="mb-12 px-2 sm:px-6">
-          <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500 mb-5 px-4">Categories</h3>
-          <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-4 px-4 snap-x">
+        <div className="mb-14 px-2 sm:px-6">
+          <div className="flex items-center justify-between px-4 mb-6">
+            <h3 className="text-[12px] font-black uppercase tracking-[0.2em] text-gray-800">Premium Categories</h3>
+            <span className="text-[10px] font-bold text-gray-400 tracking-widest cursor-pointer hover:text-black transition-colors">SEE ALL</span>
+          </div>
+          <div className="flex gap-6 overflow-x-auto scrollbar-hide pb-6 px-4 snap-x">
             {topCategories.map((cat, index) => (
-              <Link href={`/category/${cat.id}`} key={cat.id} className="flex flex-col items-center gap-3 shrink-0 snap-start group">
+              <Link href={`/category/${cat.id}`} key={cat.id} className="flex flex-col items-center gap-3.5 shrink-0 snap-start group">
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.4, delay: 0.1 + (index * 0.05) }}
-                  className="w-[72px] h-[72px] sm:w-[88px] sm:h-[88px] rounded-full overflow-hidden border-2 border-transparent group-hover:border-black transition-all shadow-[0_4px_12px_rgba(0,0,0,0.05)] group-hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] bg-gray-50 relative"
+                  className="w-[76px] h-[76px] sm:w-[96px] sm:h-[96px] rounded-full overflow-hidden border border-gray-100 group-hover:border-transparent transition-all shadow-[0_4px_16px_rgba(0,0,0,0.03)] group-hover:shadow-[0_12px_28px_rgba(0,0,0,0.12)] bg-white relative p-1"
                 >
-                  <SafeImage src={cat.img} alt={cat.name} fill style={{ objectFit: 'cover' }} className="group-hover:scale-110 transition-transform duration-500" />
+                  <div className="w-full h-full rounded-full overflow-hidden relative">
+                    <SafeImage src={cat.img} alt={cat.name} fill style={{ objectFit: 'cover' }} className="group-hover:scale-110 transition-transform duration-700" />
+                  </div>
                 </motion.div>
-                <span className="text-[10px] sm:text-[11px] font-bold text-gray-600 group-hover:text-black transition-colors text-center w-full leading-tight">{cat.name}</span>
+                <span className="text-[11px] sm:text-[12px] font-extrabold text-gray-600 group-hover:text-black transition-colors text-center w-full leading-tight">{cat.name}</span>
               </Link>
             ))}
           </div>
@@ -141,8 +154,10 @@ export default function OthersPage() {
 
         {/* 3. Trending Services Deal Grid (Amazon/Flipkart Style) */}
         <div className="px-6 mb-16">
-           <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500 mb-5">Trending Collections</h3>
-           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+           <div className="flex items-center justify-between mb-6">
+             <h3 className="text-[12px] font-black uppercase tracking-[0.2em] text-gray-800">Trending Collections</h3>
+           </div>
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
              {trendingDeals.map((deal, index) => (
                <motion.div
                  key={deal.id}
@@ -150,27 +165,29 @@ export default function OthersPage() {
                  animate={{ opacity: 1, y: 0 }}
                  transition={{ duration: 0.4, delay: 0.2 + (index * 0.1) }}
                >
-                 <Link href={deal.link} className="block group relative rounded-[28px] overflow-hidden bg-gray-50 border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-300 h-[220px]">
+                 <Link href={deal.link} className="block group relative rounded-[32px] overflow-hidden bg-white border border-gray-100 shadow-[0_8px_24px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-500 h-[260px]">
                    <div className="absolute inset-0 z-0">
-                     <SafeImage src={deal.img} alt={deal.title} fill style={{ objectFit: 'cover' }} className="group-hover:scale-105 transition-transform duration-700 opacity-90 group-hover:opacity-100" />
+                     <SafeImage src={deal.img} alt={deal.title} fill style={{ objectFit: 'cover' }} className="group-hover:scale-105 transition-transform duration-700 opacity-95 group-hover:opacity-100" />
                    </div>
-                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent z-10" />
+                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent z-10" />
                    
-                   <div className="absolute top-4 left-4 z-20">
-                     <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[9px] font-black uppercase tracking-widest text-white border border-white/20">
+                   <div className="absolute top-5 left-5 z-20">
+                     <span className="px-4 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[9px] font-black uppercase tracking-[0.2em] text-white border border-white/30 shadow-[0_4px_12px_rgba(0,0,0,0.1)]">
                        {deal.tag}
                      </span>
                    </div>
                    
-                   <div className="absolute bottom-5 left-5 right-5 z-20">
-                     <h4 className="text-xl font-black text-white leading-tight mb-1">{deal.title}</h4>
-                     <p className="text-[11px] font-bold text-gray-300 uppercase tracking-wider">{deal.desc}</p>
+                   <div className="absolute bottom-0 left-0 right-0 p-6 z-20 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
+                     <h4 className="text-2xl font-black text-white leading-tight mb-1.5" style={{ fontFamily: "'Syne', sans-serif" }}>{deal.title}</h4>
+                     <p className="text-[11px] font-bold text-gray-300 uppercase tracking-widest">{deal.desc}</p>
                      
-                     <div className="mt-4 flex items-center justify-between opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-white">Explore Collection</span>
-                        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-black">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" /></svg>
-                        </div>
+                     <div className="mt-5 flex items-center justify-between overflow-hidden">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/90 group-hover:text-white transition-colors flex items-center gap-2 transform translate-y-8 group-hover:translate-y-0 duration-300">
+                          Explore Collection
+                          <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-black">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" /></svg>
+                          </div>
+                        </span>
                      </div>
                    </div>
                  </Link>
