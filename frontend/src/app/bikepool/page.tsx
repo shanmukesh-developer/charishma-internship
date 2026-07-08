@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '@/components/Navbar';
 import SafeImage from '@/components/SafeImage';
+import WorldSwitcher from '@/components/WorldSwitcher';
 import Tilt from '@/components/Tilt';
 import Magnetic from '@/components/Magnetic';
 import { API_URL } from '@/utils/api';
@@ -365,7 +366,7 @@ export default function BikePoolPage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen text-white light:text-gray-900 pb-32 bg-[#0A0A0B] relative overflow-hidden">
+      <main className="min-h-screen text-white light:text-gray-900 pb-32 bg-[#0A0A0B] light:bg-[#FAFAFA] relative overflow-hidden">
         {/* Futuristic Background VFX Layer */}
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
           <div className="absolute inset-0  bg-[radial-gradient(circle_at_50%_0%,rgba(165,180,252,0.08),transparent_70%)]" />
@@ -401,6 +402,13 @@ export default function BikePoolPage() {
                   Post a Ride +
                 </button>
               </Magnetic>
+            </div>
+          </div>
+
+          {/* World Switcher (Ecosystem Navigation) */}
+          <div className="flex justify-center mb-10 relative z-20">
+            <div className="max-w-md w-full">
+              <WorldSwitcher activeWorld="bikepool" />
             </div>
           </div>
 
@@ -504,7 +512,7 @@ export default function BikePoolPage() {
                     ))}
                   </div>
                 ) : pools.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 bg-white/[0.02] border border-white/5 rounded-[30px] text-center p-6">
+                  <div className="flex flex-col items-center justify-center py-20 bg-[#1A1A24] light:bg-white border border-white/5 light:border-gray-200 shadow-[0_8px_30px_rgba(0,0,0,0.04)] rounded-[30px] text-center p-6">
                     <div className="relative w-16 h-16 mb-6 mx-auto">
                       <div className="absolute inset-0 bg-indigo-500 rounded-full opacity-20 animate-ping" style={{ animationDuration: '2s' }} />
                       <div className="absolute inset-2 bg-indigo-500 rounded-full  animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
