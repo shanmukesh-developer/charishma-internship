@@ -819,17 +819,6 @@ export default function Home() {
              </Magnetic>
            </motion.div>
 
-          {/* 🔒 The Zenvy Vault (Daily FOMO Scarcity) */}
-          <motion.section 
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="mb-10"
-          >
-             <ZenvyVault />
-          </motion.section>
-
           {/* 🔍 Nexus Explorer: Advanced Discovery Engine */}
           <div id="nexus-catalog" className="scroll-mt-24 mt-1">
             <NexusExplorer 
@@ -843,6 +832,84 @@ export default function Home() {
               toggleFavorite={toggleFavorite}
             />
           </div>
+
+          {/* 🔒 The Zenvy Vault (Daily FOMO Scarcity) */}
+          <motion.section 
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="mb-10"
+          >
+             <ZenvyVault />
+          </motion.section>
+
+          {/* All Restaurants List & Advanced Filters */}
+          <div className="mb-8 px-6 space-y-4">
+              {/* Category Chips */}
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+                {['All', 'Veg', 'Premium', 'Budget', 'Jain', 'Eggless'].map(cat => (
+                  <button 
+                    key={cat}
+                    onClick={() => setFilter(cat.toLowerCase() as 'all' | 'budget' | 'veg' | 'jain' | 'eggless' | 'rating' | 'fastest' | 'premium')}
+                    className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${filter === cat.toLowerCase() ? 'bg-primary-yellow text-black border-primary-yellow' : 'bg-white/5 text-secondary-text border-white/10 hover:border-white/20'}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              {/* Search & Sort Controls */}
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="relative flex-1 group">
+                  <input 
+                    type="text"
+                    placeholder="Instant search for restaurants or dishes..."
+                    value={restaurantSearch}
+                    onChange={(e) => setRestaurantSearch(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold tracking-wide outline-none focus:border-primary-yellow/40 transition-all placeholder:text-white/30 shadow-lg"
+                  />
+                  <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-primary-yellow/40 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </div>
+                
+                <div className="relative shrink-0">
+                  <select 
+                    value={sortBy} 
+                    onChange={(e) => setSortBy(e.target.value as 'default' | 'price-asc' | 'price-desc' | 'rating' | 'fastest')}
+                    className="w-full md:w-auto h-full text-[10px] font-black uppercase tracking-widest bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-primary-yellow/40 appearance-none pr-10 text-white"
+                    style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%23C9A84C\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\' /%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '12px' }}
+                  >
+                    <option value="default" className="bg-[#141416]">Sort: Smart</option>
+                    <option value="rating" className="bg-[#141416]">Top Rated</option>
+                    <option value="fastest" className="bg-[#141416]">Fastest Delivery</option>
+                    <option value="price-asc" className="bg-[#141416]">Price: Low to High</option>
+                    <option value="price-desc" className="bg-[#141416]">Price: High to Low</option>
+                  </select>
+                </div>
+              </div>
+          </div>
+
+          <section id="restaurant-feed" className="pb-20 scroll-mt-24">
+            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary-text mb-6">Restaurants</h2>
+            <div className="space-y-4">
+              {[...displayRestaurants]
+                .sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0))
+                .map((res, index) => (
+                <div key={res._id || res.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.05}s`, animationFillMode: 'both' }}>
+                  <RestaurantCard 
+                    id={res._id || res.id || ''}
+                    name={res.name} 
+                    rating={String(res.rating || "4.5")} 
+                    time={res.calculatedTime || res.time || "30-50 min"}
+                    imageUrl={res.imageUrl || "/assets/placeholder_premium.png"} 
+                    imagePosition={index % 2 === 0 ? 'left' : 'right'}
+                    isFeatured={res.isFeatured}
+                    featuredBadge={res.featuredBadge}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
 
           {/* 🏪 CampusBites: Local Vendor Stalls */}
           <CampusBitesSection restaurants={liveRestaurants} />
@@ -1127,72 +1194,7 @@ export default function Home() {
           
 
 
-          {/* All Restaurants List & Advanced Filters */}
-          <div className="mb-8 px-6 space-y-4">
-              {/* Category Chips */}
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
-                {['All', 'Veg', 'Premium', 'Budget', 'Jain', 'Eggless'].map(cat => (
-                  <button 
-                    key={cat}
-                    onClick={() => setFilter(cat.toLowerCase() as 'all' | 'budget' | 'veg' | 'jain' | 'eggless' | 'rating' | 'fastest' | 'premium')}
-                    className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${filter === cat.toLowerCase() ? 'bg-primary-yellow text-black border-primary-yellow' : 'bg-white/5 text-secondary-text border-white/10 hover:border-white/20'}`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
 
-              {/* Search & Sort Controls */}
-              <div className="flex flex-col md:flex-row gap-3">
-                <div className="relative flex-1 group">
-                  <input 
-                    type="text"
-                    placeholder="Instant search for restaurants or dishes..."
-                    value={restaurantSearch}
-                    onChange={(e) => setRestaurantSearch(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold tracking-wide outline-none focus:border-primary-yellow/40 transition-all placeholder:text-white/30 shadow-lg"
-                  />
-                  <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-primary-yellow/40 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                </div>
-                
-                <div className="relative shrink-0">
-                  <select 
-                    value={sortBy} 
-                    onChange={(e) => setSortBy(e.target.value as 'default' | 'price-asc' | 'price-desc' | 'rating' | 'fastest')}
-                    className="w-full md:w-auto h-full text-[10px] font-black uppercase tracking-widest bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-primary-yellow/40 appearance-none pr-10 text-white"
-                    style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%23C9A84C\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\' /%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '12px' }}
-                  >
-                    <option value="default" className="bg-[#141416]">Sort: Smart</option>
-                    <option value="rating" className="bg-[#141416]">Top Rated</option>
-                    <option value="fastest" className="bg-[#141416]">Fastest Delivery</option>
-                    <option value="price-asc" className="bg-[#141416]">Price: Low to High</option>
-                    <option value="price-desc" className="bg-[#141416]">Price: High to Low</option>
-                  </select>
-                </div>
-              </div>
-          </div>
-
-          <section id="restaurant-feed" className="pb-20 scroll-mt-24">
-            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary-text mb-6">Restaurants</h2>
-            <div className="space-y-4">
-              {[...displayRestaurants]
-                .sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0))
-                .map((res, index) => (
-                <div key={res._id || res.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.05}s`, animationFillMode: 'both' }}>
-                  <RestaurantCard 
-                    id={res._id || res.id || ''}
-                    name={res.name} 
-                    rating={String(res.rating || "4.5")} 
-                    time={res.calculatedTime || res.time || "30-50 min"}
-                    imageUrl={res.imageUrl || "/assets/placeholder_premium.png"} 
-                    imagePosition={index % 2 === 0 ? 'left' : 'right'}
-                    isFeatured={res.isFeatured}
-                    featuredBadge={res.featuredBadge}
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
 
 
         <div className="fixed bottom-28 right-6 z-[100] sm:hidden">
