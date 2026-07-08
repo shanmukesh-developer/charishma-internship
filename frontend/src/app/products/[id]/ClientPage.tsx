@@ -135,7 +135,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
 
          {/* Hero Top Nav */}
          <div className="absolute top-0 left-0 right-0 p-4 md:p-8 pt-10 md:pt-12 flex justify-between items-center z-20 bg-gradient-to-b from-black/80 light:from-white to-transparent">
-           <Link href="/" onClick={(e) => { e.preventDefault(); router.back(); }} className="w-12 h-12 bg-white/5 light:bg-black backdrop-blur-xl rounded-full flex items-center justify-center border border-white/10 light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:bg-white/10 light:hover:bg-black/10 hover:scale-105 transition-all shadow-2xl text-white light:text-black">
+           <Link href="/" onClick={(e) => { e.preventDefault(); router.back(); }} className="w-12 h-12 bg-black/60 light:bg-white backdrop-blur-xl rounded-full flex items-center justify-center border border-white/10 light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:bg-black/80 light:hover:bg-gray-100 hover:scale-105 transition-all shadow-2xl text-white light:text-black">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
               </svg>

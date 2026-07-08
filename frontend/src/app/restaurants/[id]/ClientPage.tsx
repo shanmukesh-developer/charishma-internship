@@ -280,7 +280,7 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
               router.push('/');
             }
           }}
-          className="absolute top-12 left-6 w-10 h-10 glass-card rounded-full flex items-center justify-center z-20 outline-none light:bg-white light:shadow-md light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] light:text-black"
+          className="absolute top-12 left-6 w-10 h-10 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center z-20 outline-none light:bg-white light:shadow-md light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] light:text-black"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
