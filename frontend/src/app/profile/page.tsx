@@ -527,12 +527,12 @@ export default function ProfilePage() {
             <div className="identity-telemetry-grid bg-white/[0.03] light:bg-[#1a1a1a] p-6 rounded-[24px] border border-white/5 light:border-[#2a2a2a]">
               <div className="flex gap-10">
                 <div>
-                  <p className="text-[8px] text-white/70 light:text-white/70 font-black uppercase tracking-[0.2em] mb-2">Total Orders</p>
-                  <p className="text-2xl font-black text-white light:text-white">{user?.totalOrders || 0}</p>
+                  <p className="text-[8px] text-[#e5e7eb] light:text-[#e5e7eb] font-black uppercase tracking-[0.2em] mb-2">Total Orders</p>
+                  <p className="text-2xl font-black text-[#ffffff] light:text-[#ffffff]">{user?.totalOrders || 0}</p>
                 </div>
                 <div className="w-[1px] bg-white/10 light:bg-white/10 h-10" />
                 <div>
-                  <p className="text-[8px] text-white/70 light:text-white/70 font-black uppercase tracking-[0.2em] mb-2">ZenPoints</p>
+                  <p className="text-[8px] text-[#e5e7eb] light:text-[#e5e7eb] font-black uppercase tracking-[0.2em] mb-2">ZenPoints</p>
                   <p className="text-2xl font-black text-[#C9A84C]">{user?.zenPoints || 0}</p>
                 </div>
               </div>
