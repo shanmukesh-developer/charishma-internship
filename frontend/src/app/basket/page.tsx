@@ -44,7 +44,7 @@ function BasketItem({ item, updateQuantity, removeFromCart, updateCustomName }: 
   };
 
   return (
-    <div className="flex flex-col bg-card-bg p-4 md:p-6 rounded-[28px] md:rounded-[35px] border border-white/5 light:border-black transition-all hover:border-white/10 light:border-black group">
+    <div className="flex flex-col bg-white/[0.03] light:bg-white p-4 md:p-6 rounded-[28px] md:rounded-[35px] border border-white/5 light:border-gray-200 transition-all hover:border-white/10 light:shadow-md group">
       <div className="flex gap-4 md:gap-6 items-center">
         <div className="w-24 h-24 relative flex-shrink-0">
           <SafeImage 
@@ -55,7 +55,7 @@ function BasketItem({ item, updateQuantity, removeFromCart, updateCustomName }: 
           />
         </div>
         <div className="flex-1">
-          <h3 className="font-black text-base text-white light:text-black group-hover:text-primary-yellow transition-colors">{item.name}</h3>
+          <h3 className="font-black text-base text-white light:text-gray-900 group-hover:text-primary-yellow transition-colors">{item.name}</h3>
           <p className="text-secondary-text text-xs mt-0.5 mb-1">from {item.restaurantName || "Zenvy Elite"}</p>
 
           {/* Customization summary */}
@@ -72,7 +72,7 @@ function BasketItem({ item, updateQuantity, removeFromCart, updateCustomName }: 
           {item.addedBy && (
             <div className="flex items-center gap-1.5 mb-3">
               <span className="w-4 h-4 bg-primary-yellow/20 text-primary-yellow rounded-full flex items-center justify-center text-[8px]">👤</span>
-              <span className="text-[10px] text-white light:text-black font-bold uppercase tracking-wider">Added by <span className="text-white light:text-black">{item.addedBy}</span></span>
+              <span className="text-[10px] text-white light:text-gray-600 font-bold uppercase tracking-wider">Added by <span className="text-white light:text-gray-900">{item.addedBy}</span></span>
             </div>
           )}
 
@@ -80,17 +80,17 @@ function BasketItem({ item, updateQuantity, removeFromCart, updateCustomName }: 
             <div>
               <p className="text-primary-yellow font-black text-lg">₹{item.price}</p>
               {item.basePrice && item.price !== item.basePrice && (
-                <p className="text-[10px] text-white light:text-black light:text-black line-through">₹{item.basePrice}</p>
+                <p className="text-[10px] text-white/50 light:text-gray-400 line-through">₹{item.basePrice}</p>
               )}
             </div>
-            <div className="flex items-center gap-4 bg-white/5 light:bg-black px-4 py-2 rounded-full border border-white/5 light:border-black">
-              <button onClick={() => updateQuantity(key, item.quantity - 1)} className="w-6 h-6 flex items-center justify-center font-bold text-secondary-text hover:text-white light:text-black">-</button>
-              <span className="font-black text-sm w-4 text-center">{item.quantity}</span>
-              <button onClick={() => updateQuantity(key, item.quantity + 1)} className="w-6 h-6 flex items-center justify-center font-bold text-secondary-text hover:text-white light:text-black">+</button>
+            <div className="flex items-center gap-4 bg-white/5 light:bg-gray-50 px-4 py-2 rounded-full border border-white/5 light:border-gray-200">
+              <button onClick={() => updateQuantity(key, item.quantity - 1)} className="w-6 h-6 flex items-center justify-center font-bold text-secondary-text hover:text-white light:hover:text-black">-</button>
+              <span className="font-black text-sm w-4 text-center light:text-gray-900">{item.quantity}</span>
+              <button onClick={() => updateQuantity(key, item.quantity + 1)} className="w-6 h-6 flex items-center justify-center font-bold text-secondary-text hover:text-white light:hover:text-black">+</button>
             </div>
           </div>
         </div>
-        <button onClick={() => removeFromCart(key)} className="p-2 opacity-20 hover:opacity-100 hover:text-red-500 transition-all">
+        <button onClick={() => removeFromCart(key)} className="p-2 opacity-20 hover:opacity-100 hover:text-red-500 light:text-gray-400 light:hover:text-red-500 transition-all">
           <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
         </button>
       </div>
