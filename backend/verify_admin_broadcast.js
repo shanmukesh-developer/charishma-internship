@@ -50,7 +50,7 @@ async function verify() {
   const testMsg = '🚨 Nexus Update: Real-time connections are LIVE! ' + new Date().toLocaleTimeString();
   console.log('-> Admin broadcasting message:', testMsg);
   
-  adminSocket.emit('admin_announcement', {
+  adminSocket.emit('admin_broadcast', {
     message: testMsg,
     type: 'emergency'
   });

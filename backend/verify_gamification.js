@@ -17,7 +17,7 @@ async function verify() {
 
     // Create a dummy user for testing
     const [testUser, created] = await User.findOrCreate({
-      where: { phone: '9999999999' },
+      where: { phone: '9999999991' },
       defaults: {
         name: 'Badge Tester',
         password: 'password',

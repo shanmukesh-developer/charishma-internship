@@ -89,7 +89,7 @@ async function verify() {
       restaurantId: targetRest.id, 
       items: [{ menuItemId: targetItem.id, name: targetItem.name, quantity: 1, price: targetItem.price }],
       totalPrice: targetItem.price,
-      deliveryAddress: 'Test Sector',
+      deliveryAddress: 'SRM AP Campus',
       paymentMethod: 'COD'
     };
     
@@ -98,6 +98,19 @@ async function verify() {
     });
 
     console.log('-> Order placed successfully. ID:', res.data._id);
+
+    // Login as Restaurant and accept the order to trigger newOrder dispatch
+    console.log(`-> Logging in as Restaurant ID ${targetRest.id}...`);
+    const restLoginRes = await axios.post(`${API_URL}/api/restaurants/login`, {
+      id: targetRest.id,
+      password: 'password123'
+    });
+    const restToken = restLoginRes.data.token;
+
+    console.log(`-> Restaurant accepting Order ${res.data._id}...`);
+    await axios.put(`${API_URL}/api/orders/${res.data._id}/restaurant-accept`, {}, {
+      headers: { Authorization: `Bearer ${restToken}` }
+    });
     
     await orderReceivedPromise;
     console.log('--- Phase 1 PASSED ---');

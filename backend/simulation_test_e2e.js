@@ -55,6 +55,18 @@ async function simulate() {
     const deliveryPin = orderRes.data.deliveryPin;
     console.log(`✅ Order Placed! ID: ${orderId}, PIN: ${deliveryPin}`);
 
+    // 3.5 Restaurant Accepts Order
+    console.log('3.5 Restaurant Accepting Order...');
+    const restLoginRes = await axios.post(`${API_URL}/restaurants/login`, {
+      id: targetRest._id || targetRest.id,
+      password: 'password123'
+    });
+    const restToken = restLoginRes.data.token;
+    await axios.put(`${API_URL}/orders/${orderId}/restaurant-accept`, {}, {
+      headers: { Authorization: `Bearer ${restToken}` }
+    });
+    console.log('✅ Order Accepted by Restaurant!');
+
     // Wait a brief moment to allow sockets and db hooks to fire
     await new Promise(resolve => setTimeout(resolve, 1000));
 
