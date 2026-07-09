@@ -43,6 +43,7 @@ export default function OthersPage() {
   }, []);
 
   const topCategories = [
+    { id: 'mega-basket', name: 'Mega Basket', img: '/assets/3d-basket.png' },
     { id: 'stationary', name: 'Stationary', img: '/assets/categories/stationary.png' },
     { id: 'sweets', name: 'Desserts', img: '/assets/categories/sweets.png' },
     { id: 'drinks', name: 'Beverages', img: '/assets/categories/drinks.png' },
@@ -55,6 +56,16 @@ export default function OthersPage() {
   ];
 
   const trendingDeals = [
+    { 
+      id: 'mega-basket-deal', 
+      title: 'Essentials Mega Basket', 
+      desc: 'Build a custom grocery list & get delivery with live shop pricing', 
+      img: '/assets/3d-basket.png', 
+      tag: 'NEW SERVICE',
+      urgencyBadge: '⚡ Zero Estimation Errors',
+      targetTime: ['morning', 'afternoon', 'evening', 'night'],
+      link: '/mega-basket' 
+    },
     { 
       id: 'deal-1', 
       title: 'Midnight Cravings', 
@@ -153,7 +164,7 @@ export default function OthersPage() {
                    e.preventDefault();
                    playSensoryFeedback();
                    alert("Search coming soon!");
-                }}
+                 }}
                 className="bg-[#1a1a1c] text-[#C9A84C] text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl border border-[#C9A84C] hover:bg-[#C9A84C] hover:text-black transition-all shadow-[0_0_10px_rgba(201,168,76,0.3)] hover:shadow-[0_0_15px_rgba(201,168,76,0.5)] active:scale-95"
               >
                 Search
@@ -212,7 +223,7 @@ export default function OthersPage() {
           </div>
           <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-y-8 gap-x-2">
             {topCategories.map((cat, index) => (
-              <Link href={`/category/${cat.id}`} key={cat.id} className="flex flex-col items-center gap-2 group">
+              <Link href={cat.id === 'mega-basket' ? '/mega-basket' : `/category/${cat.id}`} key={cat.id} className="flex flex-col items-center gap-2 group">
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}

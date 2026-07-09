@@ -20,6 +20,8 @@ const { initPoolRequestModel } = require('../models/PoolRequest');
 const { initPGHostelModel } = require('../models/PGHostel');
 const { initPGRoomModel } = require('../models/PGRoom');
 const { initPGBookingModel } = require('../models/PGBooking');
+const { initMegaBasketModel } = require('../models/MegaBasket');
+const { initMegaBasketItemModel } = require('../models/MegaBasketItem');
 
 const initializeAllModels = (instance) => {
   initUserModel(instance);
@@ -38,6 +40,8 @@ const initializeAllModels = (instance) => {
   initPGHostelModel(instance);
   initPGRoomModel(instance);
   initPGBookingModel(instance);
+  initMegaBasketModel(instance);
+  initMegaBasketItemModel(instance);
 
   // Define Associations
   const Restaurant = instance.models.Restaurant;
@@ -116,6 +120,25 @@ const initializeAllModels = (instance) => {
     User.hasMany(PGBooking, { foreignKey: 'userId', as: 'pgBookings' });
     PGRoom.hasMany(PGBooking, { foreignKey: 'roomId', as: 'bookings' });
     PGHostel.hasMany(PGBooking, { foreignKey: 'hostelId', as: 'bookings' });
+  }
+
+  // MegaBasket Associations
+  const MegaBasket = instance.models.MegaBasket;
+  const MegaBasketItem = instance.models.MegaBasketItem;
+
+  if (MegaBasket && User) {
+    MegaBasket.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    User.hasMany(MegaBasket, { foreignKey: 'userId', as: 'megaBaskets' });
+  }
+
+  if (MegaBasket && DeliveryPartner) {
+    MegaBasket.belongsTo(DeliveryPartner, { foreignKey: 'deliveryPartnerId', as: 'deliveryPartner' });
+    DeliveryPartner.hasMany(MegaBasket, { foreignKey: 'deliveryPartnerId', as: 'megaBaskets' });
+  }
+
+  if (MegaBasket && MegaBasketItem) {
+    MegaBasket.hasMany(MegaBasketItem, { foreignKey: 'basketId', as: 'items' });
+    MegaBasketItem.belongsTo(MegaBasket, { foreignKey: 'basketId', as: 'basket' });
   }
 };
 

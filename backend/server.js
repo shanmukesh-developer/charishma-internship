@@ -347,6 +347,7 @@ const startServer = async () => {
     app.use('/api/search', require('./routes/searchRoutes'));
     app.use('/api/bikepool', require('./routes/bikePoolRoutes'));
     app.use('/api/pg', require('./routes/pgRoutes'));
+    app.use('/api/mega-basket', require('./routes/megaBasketRoutes'));
 
     // 🚀 Auto-Seed: DEVELOPMENT ONLY — Never overwrite production data
     const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';

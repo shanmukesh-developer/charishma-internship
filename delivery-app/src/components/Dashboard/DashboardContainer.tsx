@@ -22,6 +22,7 @@ import { messaging } from '@/utils/firebase';
 import { getToken } from 'firebase/messaging';
 
 const RiderMap = dynamic(() => import('@/components/RiderMap'), { ssr: false });
+import ActiveBasketCard from './ActiveBasketCard';
 
 
 
@@ -72,7 +73,9 @@ interface DashboardContainerProps {
 export default function DashboardContainer({ driver, onLogout, apiUrl }: DashboardContainerProps) {
   const [isOnline, setIsOnline] = useState(false);
   const [activeOrders, setActiveOrders] = useState<Order[]>([]);
+  const [activeBaskets, setActiveBaskets] = useState<any[]>([]);
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
+  const [pendingBaskets, setPendingBaskets] = useState<any[]>([]);
   const [taskSequence, setTaskSequence] = useState<any[]>([]);
   const [historyOrders, setHistoryOrders] = useState<Order[]>([]);
   const [orderStatus, setOrderStatus] = useState<Record<string, string>>({});
@@ -295,6 +298,36 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
     } catch (err) { console.error('[RT] Pending orders fetch failed:', err); }
   }, [apiUrl, driverToken, isOnline, onLogout]);
 
+  const fetchActiveBaskets = useCallback(async () => {
+    try {
+      const res = await fetch(`${apiUrl}/api/mega-basket/rider/active`);
+      if (res.ok) {
+        const data = await res.json();
+        setActiveBaskets(data);
+      }
+    } catch (err) { console.error('[RT] Active baskets fetch failed:', err); }
+  }, [apiUrl]);
+
+  const fetchPendingBaskets = useCallback(async () => {
+    if (!isOnline) return;
+    try {
+      const res = await fetch(`${apiUrl}/api/mega-basket/rider/pending`);
+      if (res.ok) {
+        const data = await res.json();
+        setPendingBaskets(data);
+        
+        setOrderTimers(prev => {
+          const newTimers = { ...prev };
+          data.forEach((b: any) => {
+            const id = b.id;
+            if (id && !newTimers[id]) newTimers[id] = 60;
+          });
+          return newTimers;
+        });
+      }
+    } catch (err) { console.error('[RT] Pending baskets fetch failed:', err); }
+  }, [apiUrl, isOnline]);
+
   // Timer Countdown Logic
   useEffect(() => {
     const interval = setInterval(() => {
@@ -359,17 +392,23 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
 
   useEffect(() => {
     fetchActiveOrders();
+    fetchActiveBaskets();
     fetchPendingOrders();
+    fetchPendingBaskets();
     fetchHistory();
     fetchTodayStats();
     fetchProfile();
     // Reduced from 15s to 30s — socket handles real-time updates, polling is a safety net
     const pollInterval = setInterval(() => {
       fetchActiveOrders();
-      if (isOnline) fetchPendingOrders();
+      fetchActiveBaskets();
+      if (isOnline) {
+        fetchPendingOrders();
+        fetchPendingBaskets();
+      }
     }, 30000);
     return () => clearInterval(pollInterval);
-  }, [fetchActiveOrders, fetchPendingOrders, fetchHistory, fetchTodayStats, fetchProfile, isOnline]);
+  }, [fetchActiveOrders, fetchActiveBaskets, fetchPendingOrders, fetchPendingBaskets, fetchHistory, fetchTodayStats, fetchProfile, isOnline]);
 
   useEffect(() => {
     const socket = io(apiUrl.replace(/\/$/, ""), {
@@ -507,6 +546,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
   };
 
   const acceptOrder = async (orderId: string) => {
+    if (!isOnline) { toast('You are offline. Cannot accept orders.', 'warning'); return; }
     setActionLoading(true);
     try {
       const res = await fetch(`${apiUrl}/api/delivery/accept/${orderId}`, {
@@ -527,6 +567,25 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
         toast(data.message || 'Failed to accept order.', 'error');
       }
     } catch { toast('Network error during acceptance.', 'error'); }
+    setActionLoading(false);
+  };
+
+  const claimBasket = async (basketId: string) => {
+    if (!isOnline) { toast('You are offline. Cannot claim baskets.', 'warning'); return; }
+    setActionLoading(true);
+    try {
+      const res = await fetch(`${apiUrl}/api/mega-basket/${basketId}/claim`, {
+        method: 'POST',
+      });
+      if (res.ok) {
+        setPendingBaskets(prev => prev.filter(b => b.id !== basketId));
+        fetchActiveBaskets();
+        toast('Basket claimed! Start shopping.', 'success');
+      } else {
+        const data = await res.json();
+        toast(data.message || 'Failed to claim basket.', 'error');
+      }
+    } catch { toast('Network error claiming basket.', 'error'); }
     setActionLoading(false);
   };
 
@@ -935,6 +994,24 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
                       </div>
                     )}
 
+                    {activeBaskets.length > 0 && (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                           <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                           <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">Active Essentials Tasks</p>
+                        </div>
+                        {activeBaskets.map(basket => (
+                          <ActiveBasketCard
+                            key={basket.id}
+                            basket={basket}
+                            apiUrl={apiUrl}
+                            onRefresh={() => { fetchActiveBaskets(); fetchPendingBaskets(); }}
+                          />
+                        ))}
+                        <div className="gold-line !opacity-20" />
+                      </div>
+                    )}
+
                     {/* Available Tasks Section */}
                     <OrdersList
                       orders={availableOrders}
@@ -944,6 +1021,41 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
                       onDecline={(id) => setAvailableOrders(prev => prev.filter(o => o.id !== id))}
                       onRefresh={fetchPendingOrders}
                     />
+
+                    {/* Pending Mega Baskets Section */}
+                    {pendingBaskets.length > 0 && (
+                      <div className="space-y-4 mt-8">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                            <span>🛒</span> New Mega Baskets
+                          </p>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[8px] font-black">{pendingBaskets.length}</span>
+                        </div>
+                        {pendingBaskets.map(basket => (
+                          <motion.div key={basket.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-[#141416]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-4 shadow-lg flex flex-col gap-3">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h4 className="text-white font-bold text-sm">{basket.items?.length || 0} Items</h4>
+                                <p className="text-gray-400 text-[10px] uppercase tracking-widest mt-1">Block {basket.user?.hostelBlock || 'Unknown'} • Est. Total: ₹{basket.estimatedTotal}</p>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-emerald-400 font-black text-xs">+₹{basket.shoppingFee + basket.deliveryFee}</span>
+                                <p className="text-gray-500 text-[8px] uppercase tracking-widest">Est. Earnings</p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => claimBasket(basket.id)}
+                                disabled={actionLoading}
+                                className="flex-1 py-3 bg-emerald-500 text-black text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-400 transition-all active:scale-95 disabled:opacity-50"
+                              >
+                                Claim & Shop
+                              </button>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
                   </motion.div>
                 ) : (
                   <motion.div 
