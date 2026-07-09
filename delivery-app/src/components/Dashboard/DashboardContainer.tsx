@@ -767,7 +767,7 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
 
   return (
     <div className="min-h-screen bg-background font-outfit text-white selection:bg-blue-500/30 relative">
-      <main className="max-w-4xl mx-auto p-4 md:p-8 pb-32">
+      <main className="p-4 pb-32">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <RiderNavbar
             driverName={currentDriver.name}

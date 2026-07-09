@@ -56,8 +56,9 @@ export default function EcosystemFab() {
   };
 
   return (
-    <div ref={fabRef} className="fixed right-4 bottom-[120px] md:bottom-32 z-[60] flex flex-col items-center gap-3">
-      {/* Expanded Menu */}
+    <div className="fixed inset-0 max-w-md mx-auto pointer-events-none z-[60]">
+      <div ref={fabRef} className="absolute right-4 bottom-[120px] flex flex-col items-center gap-3 pointer-events-auto">
+        {/* Expanded Menu */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -118,6 +119,7 @@ export default function EcosystemFab() {
           )}
         </motion.div>
       </motion.button>
+      </div>
     </div>
   );
 }

@@ -45,7 +45,9 @@ export default function RootLayout({
         <FetchInterceptor />
         <GlobalAnnouncement />
         <RiderToastProvider>
-          {children}
+          <div className="max-w-md mx-auto min-h-screen bg-[#0A0A0B] shadow-2xl relative border-x border-white/5 overflow-x-hidden">
+            {children}
+          </div>
         </RiderToastProvider>
       </body>
     </html>

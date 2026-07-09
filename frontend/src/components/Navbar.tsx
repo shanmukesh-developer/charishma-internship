@@ -72,7 +72,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 px-6 transition-all duration-500 flex items-center justify-between border-b ${
+    <nav className={`fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 px-6 transition-all duration-500 flex items-center justify-between border-b ${
       isScrolled 
       ? 'h-16 bg-[#0A0A0B]/95 backdrop-blur-2xl border-white/10 shadow-none' 
       : 'h-16 bg-transparent border-transparent'

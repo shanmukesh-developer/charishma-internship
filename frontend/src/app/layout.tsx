@@ -73,7 +73,7 @@ export default function RootLayout({
             <VFXLayer />
             <WorldTransitionOverlay />
 
-            <div className="relative z-10">
+            <div className="relative z-10 max-w-md mx-auto min-h-screen shadow-2xl border-x border-white/10 overflow-x-hidden bg-black/50">
               {children}
             </div>
           </WorldTransitionProvider>

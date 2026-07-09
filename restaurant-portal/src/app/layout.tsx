@@ -43,7 +43,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col" suppressHydrationWarning={true}>
         <FetchInterceptor />
         <RestaurantToastProvider>
-          {children}
+          <div className="max-w-md mx-auto min-h-screen w-full bg-zinc-950 shadow-2xl relative border-x border-zinc-900 overflow-x-hidden">
+            {children}
+          </div>
         </RestaurantToastProvider>
       </body>
     </html>

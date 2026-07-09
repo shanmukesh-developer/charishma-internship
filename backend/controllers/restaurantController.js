@@ -171,8 +171,9 @@ const toggleMenuItemAvailability = async (req, res) => {
     io.emit('inventory_updated', { itemId: item.id, isAvailable: item.isAvailable });
 
     res.json({ message: 'Item availability updated', _id: item.id, isAvailable: item.isAvailable });
-  } catch {
-    res.status(500).json({ message: 'Server error' });
+  } catch (error) {
+    console.error('[TOGGLE_MENU_ERROR]', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 

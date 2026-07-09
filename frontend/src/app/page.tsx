@@ -682,10 +682,10 @@ export default function Home() {
           <div className={`absolute top-1/3 -left-32 w-80 h-80 rounded-full blur-[100px] ${isAfter9 ? 'bg-[#C9A84C]/[0.05]' : 'bg-[#C9A84C]/[0.03]'}`} />
         </div>
 
-        {/* Layout Grid: Content + Sidebar */}
-        <div className="max-w-[1500px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8 relative z-10">
+        {/* Layout Grid: Content */}
+        <div className="w-full relative z-10">
           {/* Main Feed Content */}
-          <div className="w-full px-4 pt-10 pt-safe md:px-10 lg:px-14 pb-4">
+          <div className="w-full px-4 pt-10 pt-safe pb-4">
             <Navbar />
             
             <div className="mt-1 relative">
@@ -1085,8 +1085,8 @@ export default function Home() {
 
         </div> {/* End Main Feed Content (Opened at 456) */}
 
-        {/* 🏷️ Desktop Sidebar: Game Panel */}
-        <aside className="hidden lg:block pt-14 pr-10 sticky top-0 h-screen overflow-y-auto scrollbar-hide space-y-8 animate-fade-in pb-20">
+        {/* 🏷️ Leaderboard & Metrics Panel (Now Mobile Visible) */}
+        <div className="w-full px-4 mt-12 space-y-8 pb-32">
             <NexusLeaderboard />
             
             {/* Extra Desktop Side-space Polish */}
@@ -1098,7 +1098,7 @@ export default function Home() {
                 </div>
                 <p className="text-[8px] font-bold text-secondary-text uppercase tracking-widest mt-1">Average Driver Rating</p>
             </div>
-        </aside>
+        </div>
 
       </div> {/* End Layout Grid */}
     </div> {/* End Intro Visibility Wrapper */}

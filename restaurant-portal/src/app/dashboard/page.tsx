@@ -347,10 +347,10 @@ export default function Dashboard() {
       )}
 
       {activeTab === 'orders' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 gap-8">
           
           {/* Incoming/Active Orders */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="col-span-1 space-y-6">
             <h2 className="text-xl font-semibold flex items-center gap-2">
               <Clock className="text-orange-500" /> Live Feed
             </h2>
