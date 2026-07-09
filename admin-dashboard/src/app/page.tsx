@@ -186,8 +186,10 @@ export default function AdminHome() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const token = typeof window !== 'undefined' ? 'cookie-managed' : null;
+      const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+      const token = userData.token || '';
       const res = await fetch(`${API_URL}/api/admin/stats?t=${Date.now()}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
         credentials: 'include', cache: 'no-store'
       });
       if (!res.ok) return;
@@ -204,8 +206,10 @@ export default function AdminHome() {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const token = typeof window !== 'undefined' ? 'cookie-managed' : null;
+      const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+      const token = userData.token || '';
       const res = await fetch(`${API_URL}/api/orders?t=${Date.now()}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
         credentials: 'include', cache: 'no-store'
       });
       const data = await res.json();
@@ -245,11 +249,13 @@ export default function AdminHome() {
 
   const handleVerifyUPI = async (orderId: string, isVerified: boolean) => {
     try {
-      const token = typeof window !== 'undefined' ? 'cookie-managed' : null;
+      const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+      const token = userData.token || '';
       const res = await fetch(`${API_URL}/api/orders/${orderId}/verify-payment`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
           },
         body: JSON.stringify({ isVerified })
       });
@@ -263,10 +269,14 @@ export default function AdminHome() {
   const handleOverrideGlobalBatch = async () => {
     if (!confirm('OVERRIDE PROTOCOL: Force-accept all pending orders?')) return;
     try {
-      const token = 'cookie-managed';
+      const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+      const token = userData.token || '';
       const res = await fetch(`${API_URL}/api/admin/orders/batch-update`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ targetStatus: 'Pending', newStatus: 'Accepted' })
       });
       if (res.ok) {
