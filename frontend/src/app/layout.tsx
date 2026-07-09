@@ -49,9 +49,10 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                if (localStorage.theme === 'light' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+                var savedTheme = localStorage.getItem('zenvy_theme');
+                if (savedTheme === 'light' || (!savedTheme && window.matchMedia('(prefers-color-scheme: light)').matches)) {
                   document.documentElement.classList.add('light');
-                } else if (localStorage.theme === 'dark') {
+                } else {
                   document.documentElement.classList.remove('light');
                 }
               } catch (e) {}
