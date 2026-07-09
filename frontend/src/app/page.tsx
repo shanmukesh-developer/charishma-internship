@@ -18,9 +18,6 @@ const IntroOverlay = dynamic(() => import('@/components/IntroOverlay'), { ssr: f
 const ZenvyVault = dynamic(() => import('@/components/ZenvyVault'), { ssr: false });
 const NexusExplorer = dynamic(() => import('@/components/NexusExplorer'), { ssr: false });
 const CampusBitesSection = dynamic(() => import('@/components/CampusBitesSection'), { ssr: false });
-// const WorldSwitcher = dynamic(() => import('@/components/WorldSwitcher'), { ssr: false });
-
-
 import LiveOrderStatusBar from '@/components/LiveOrderStatusBar';
 import ScrollProgressIndicator from '@/components/ScrollProgressIndicator';
 import Magnetic from '@/components/Magnetic';
@@ -731,6 +728,16 @@ export default function Home() {
             <PromoCarousel 
               offers={[
                 { 
+                  id: '0', 
+                  imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=1974&auto=format&fit=crop', 
+                  tagline: 'MEGA BASKET', 
+                  title1: 'YOUR ESSENTIALS', 
+                  title2: 'DELIVERED TODAY', 
+                  description: 'CREATE A CUSTOM SHOPPING LIST AND HAVE OUR PERSONAL SHOPPERS BUY AND DELIVER YOUR DAILY NEEDS.', 
+                  buttonText: 'CREATE BASKET', 
+                  isActive: true 
+                },
+                { 
                   id: '1', 
                   imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070&auto=format&fit=crop', 
                   tagline: 'CENTRAL COMMAND', 
@@ -741,6 +748,7 @@ export default function Home() {
                   isActive: true 
                 },
                 { 
+
                   id: '2', 
                   imageUrl: 'https://images.unsplash.com/photo-1618331835717-801e976710b2?q=80&w=2070&auto=format&fit=crop', 
                   tagline: 'NEXUS OFFERS', 
@@ -784,27 +792,34 @@ export default function Home() {
             />
 
             {/* Premium Category Grid */}
-            <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 relative z-20">
+            <div className="grid grid-cols-4 gap-2 md:gap-4 mb-4 relative z-20">
                <a href="/" onClick={(e) => { e.preventDefault(); triggerTransition('/', 'food'); }} className="relative flex flex-row items-center justify-center md:justify-start md:px-4 gap-1.5 sm:gap-2.5 py-3 sm:py-4 rounded-[18px] bg-[#141416]/80 light:bg-white backdrop-blur-2xl border border-white/5 light:border-white shadow-lg light:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.06)] hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all duration-400 group overflow-hidden cursor-pointer">
                   <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent light:from-orange-50/40 light:to-transparent pointer-events-none" />
-                  <div className="relative w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-white light:bg-white border-2 border-[#C9A84C]/60 light:border-[#C9A84C] flex items-center justify-center group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500 shadow-[0_0_10px_rgba(201,168,76,0.3)] overflow-hidden">
+                  <div className="relative w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-white light:bg-white border-2 border-[#C9A84C]/60 light:border-[#C9A84C] flex items-center justify-center group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500 shadow-[0_0_10px_rgba(201,168,76,0.3)] overflow-hidden">
                     <SafeImage src="/assets/3d-burger.png" alt="Food" fill style={{ objectFit: 'cover' }} />
                   </div>
-                  <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-white light:text-gray-900 relative z-10 group-hover:text-gray-300 light:group-hover:text-[#EF4F5F] transition-colors truncate">Food</span>
+                  <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-wider text-white light:text-gray-900 relative z-10 group-hover:text-gray-300 light:group-hover:text-[#EF4F5F] transition-colors truncate">Food</span>
+               </a>
+               <a href="/mega-basket" onClick={(e) => { e.preventDefault(); triggerTransition('/mega-basket', 'mega-basket'); }} className="relative flex flex-row items-center justify-center md:justify-start md:px-4 gap-1.5 sm:gap-2.5 py-3 sm:py-4 rounded-[18px] bg-[#141416]/80 light:bg-white backdrop-blur-2xl border border-white/5 light:border-white shadow-lg light:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.06)] hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all duration-400 group overflow-hidden cursor-pointer">
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent light:from-emerald-50/40 light:to-transparent pointer-events-none" />
+                  <div className="relative w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-white light:bg-white border-2 border-[#C9A84C]/60 light:border-[#C9A84C] flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-[0_0_10px_rgba(201,168,76,0.3)] overflow-hidden text-lg sm:text-2xl">
+                    🧺
+                  </div>
+                  <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-wider text-white light:text-gray-900 relative z-10 group-hover:text-gray-300 light:group-hover:text-emerald-600 transition-colors truncate">Basket</span>
                </a>
                <a href="/pg" onClick={(e) => { e.preventDefault(); triggerTransition('/pg', 'pg'); }} className="relative flex flex-row items-center justify-center md:justify-start md:px-4 gap-1.5 sm:gap-2.5 py-3 sm:py-4 rounded-[18px] bg-[#141416]/80 light:bg-white backdrop-blur-2xl border border-white/5 light:border-white shadow-lg light:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.06)] hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all duration-400 group overflow-hidden cursor-pointer">
                   <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent light:from-blue-50/40 light:to-transparent pointer-events-none" />
-                  <div className="relative w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-white light:bg-white border-2 border-[#C9A84C]/60 light:border-[#C9A84C] flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-[0_0_10px_rgba(201,168,76,0.3)] overflow-hidden">
+                  <div className="relative w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-white light:bg-white border-2 border-[#C9A84C]/60 light:border-[#C9A84C] flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-[0_0_10px_rgba(201,168,76,0.3)] overflow-hidden">
                     <SafeImage src="/assets/3d-hostel.png" alt="Hostels" fill style={{ objectFit: 'cover' }} />
                   </div>
-                  <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-white light:text-gray-900 relative z-10 group-hover:text-gray-300 light:group-hover:text-blue-600 transition-colors truncate">Hostels</span>
+                  <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-wider text-white light:text-gray-900 relative z-10 group-hover:text-gray-300 light:group-hover:text-blue-600 transition-colors truncate">Hostels</span>
                </a>
                <a href="/bikepool" onClick={(e) => { e.preventDefault(); triggerTransition('/bikepool', 'bikepool'); }} className="relative flex flex-row items-center justify-center md:justify-start md:px-4 gap-1.5 sm:gap-2.5 py-3 sm:py-4 rounded-[18px] bg-[#141416]/80 light:bg-white backdrop-blur-2xl border border-white/5 light:border-white shadow-lg light:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.06)] hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all duration-400 group overflow-hidden cursor-pointer">
                   <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent light:from-purple-50/40 light:to-transparent pointer-events-none" />
-                  <div className="relative w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-white light:bg-white border-2 border-[#C9A84C]/60 light:border-[#C9A84C] flex items-center justify-center group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500 shadow-[0_0_10px_rgba(201,168,76,0.3)] overflow-hidden">
+                  <div className="relative w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-white light:bg-white border-2 border-[#C9A84C]/60 light:border-[#C9A84C] flex items-center justify-center group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500 shadow-[0_0_10px_rgba(201,168,76,0.3)] overflow-hidden">
                     <SafeImage src="/assets/3d-bike.png" alt="Co-Ride" fill style={{ objectFit: 'cover' }} />
                   </div>
-                  <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-white light:text-gray-900 relative z-10 group-hover:text-gray-300 light:group-hover:text-purple-600 transition-colors truncate">Co-Ride</span>
+                  <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-wider text-white light:text-gray-900 relative z-10 group-hover:text-gray-300 light:group-hover:text-purple-600 transition-colors truncate">Co-Ride</span>
                </a>
             </div>
 

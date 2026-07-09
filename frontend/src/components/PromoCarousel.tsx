@@ -74,12 +74,12 @@ export default function PromoCarousel({ offers }: PromoCarouselProps) {
                exit={{ opacity: 0, y: -10 }}
                transition={{ duration: 0.4 }}
              >
-                 <span className="text-[10px] font-black text-[#EF4F5F] light:text-[#EF4F5F] uppercase tracking-[0.5em] mb-4 block">
+                 <span className="text-[10px] font-black text-[#C9A84C] light:text-[#C9A84C] uppercase tracking-[0.5em] mb-4 block">
                     {currentOffer.tagline} 🌆
                  </span>
                  <h1 className="text-xl md:text-5xl font-black text-white light:text-gray-900 leading-[0.9] italic tracking-tighter mb-4" style={{ fontFamily: "'Syne', sans-serif" }}>
                     {currentOffer.title1} <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-yellow to-[#EF4F5F] light:from-[#EF4F5F] light:to-[#F5A623]">
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-yellow to-[#C9A84C] light:from-[#C9A84C] light:to-[#F5A623]">
                       {currentOffer.title2}
                     </span>
                  </h1>
@@ -89,8 +89,14 @@ export default function PromoCarousel({ offers }: PromoCarouselProps) {
                  <motion.button 
                   whileTap={{ scale: 0.95 }}
                   whileHover={{ scale: 1.02 }}
-                  onClick={() => document.getElementById('restaurant-feed')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="bg-[#EF4F5F] hover:bg-[#d9404f] text-white text-[10px] font-black py-4 px-10 rounded-full shadow-[0_0_30px_rgba(239,79,95,0.2)] uppercase tracking-widest transition-colors"
+                  onClick={() => {
+                    if (currentOffer.buttonText === 'CREATE BASKET') {
+                      window.location.href = '/mega-basket';
+                    } else {
+                      document.getElementById('restaurant-feed')?.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                  className="bg-[#C9A84C] hover:bg-[#b5953e] text-black text-[10px] font-black py-4 px-10 rounded-full shadow-[0_0_30px_rgba(201,168,76,0.2)] uppercase tracking-widest transition-colors"
                  >
                     {currentOffer.buttonText} →
                  </motion.button>
@@ -106,7 +112,7 @@ export default function PromoCarousel({ offers }: PromoCarouselProps) {
                 key={idx}
                 onClick={() => setCurrentIndex(idx)}
                 className={`h-1.5 rounded-full transition-all duration-300 ${
-                  idx === currentIndex ? 'w-6 bg-[#EF4F5F]' : 'w-1.5 border border-white/40 light:border-gray-300 hover:bg-white/20'
+                  idx === currentIndex ? 'w-6 bg-[#C9A84C]' : 'w-1.5 border border-white/40 light:border-gray-300 hover:bg-white/20'
                 }`}
                 aria-label={`Go to offer ${idx + 1}`}
               />
@@ -115,7 +121,7 @@ export default function PromoCarousel({ offers }: PromoCarouselProps) {
         )}
 
         {/* Stardust Aura Effect */}
-        <div className="absolute bottom-0 left-1/4 w-1/2 h-px bg-gradient-to-r from-transparent via-[#EF4F5F]/40 to-transparent blur-sm" />
+        <div className="absolute bottom-0 left-1/4 w-1/2 h-px bg-gradient-to-r from-transparent via-[#C9A84C]/40 to-transparent blur-sm" />
       </div>
     </div>
   );
