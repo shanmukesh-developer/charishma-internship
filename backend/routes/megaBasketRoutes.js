@@ -1,5 +1,5 @@
 const express = require('express');
-const { protect, rider } = require('../middleware/authMiddleware');
+const { protect, rider, admin } = require('../middleware/authMiddleware');
 const {
   createBasket,
   payBasket,
@@ -14,10 +14,14 @@ const {
   purchaseCompleted,
   startDelivery,
   completeDelivery,
-  getActiveBaskets
+  getActiveBaskets,
+  getAllBaskets
 } = require('../controllers/megaBasketController');
 
 const router = express.Router();
+
+// Admin Endpoints
+router.get('/admin/all', protect, admin, getAllBaskets);
 
 // Customer Endpoints
 router.post('/', protect, createBasket);

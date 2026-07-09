@@ -491,6 +491,31 @@ const getActiveBaskets = async (req, res) => {
   }
 };
 
+// @desc    Get all baskets for admin panel
+// @route   GET /api/mega-basket/admin/all
+const getAllBaskets = async (req, res) => {
+  try {
+    const MegaBasket = getMegaBasketModel();
+    const MegaBasketItem = getMegaBasketItemModel();
+    const User = getUserModel();
+    const DeliveryPartner = getDeliveryPartnerModel();
+
+    const baskets = await MegaBasket.findAll({
+      include: [
+        { model: MegaBasketItem, as: 'items' },
+        { model: User, as: 'user', attributes: ['name', 'phone', 'hostelBlock', 'roomNumber'] },
+        { model: DeliveryPartner, as: 'deliveryPartner', attributes: ['name', 'phone', 'photoUrl'] }
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: 50 // Keep response size manageable for admin dash
+    });
+
+    res.json(baskets);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 module.exports = {
   createBasket,
   payBasket,
@@ -505,5 +530,6 @@ module.exports = {
   purchaseCompleted,
   startDelivery,
   completeDelivery,
-  getActiveBaskets
+  getActiveBaskets,
+  getAllBaskets
 };

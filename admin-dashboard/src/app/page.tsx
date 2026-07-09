@@ -208,14 +208,17 @@ export default function AdminHome() {
     try {
       const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
       const token = userData.token || '';
-      const res = await fetch(`${API_URL}/api/orders?t=${Date.now()}`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-        credentials: 'include', cache: 'no-store'
-      });
-      const data = await res.json();
-      if (res.ok) {
+      
+      const [ordersRes, basketsRes] = await Promise.all([
+        fetch(`${API_URL}/api/orders?t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${token}` }, credentials: 'include', cache: 'no-store' }),
+        fetch(`${API_URL}/api/mega-basket/admin/all?t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${token}` }, credentials: 'include', cache: 'no-store' }).catch(() => null)
+      ]);
+
+      const data = await ordersRes.json();
+      let formatted = [];
+      if (ordersRes.ok) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const formatted = data.map((o: any) => ({
+        formatted = data.map((o: any) => ({
             id: String(o._id || o.id),
             customer: o.userId?.name || 'Student',
             location: (o.hostelGateDelivery) ? 'Hostel Gate' : 'Room Delivery',
@@ -230,8 +233,30 @@ export default function AdminHome() {
             deliveryPartnerName: o.deliveryPartner?.name,
             deliveryPartnerPhoto: o.deliveryPartner?.photoUrl
         }));
-        setLiveOrders(formatted);
       }
+
+      if (basketsRes && basketsRes.ok) {
+        const basketsData = await basketsRes.json();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const formattedBaskets = basketsData.map((b: any) => ({
+            id: String(b.id),
+            customer: b.user?.name || 'Student',
+            location: b.deliveryAddress || 'Hostel Delivery',
+            status: String(b.status),
+            price: Number((b.actualTotal || b.estimatedTotal) + b.shoppingFee + b.deliveryFee),
+            restaurant: '🛒 Mega Basket',
+            timestamp: new Date(String(b.createdAt)),
+            paymentMethod: String(b.paymentMethod),
+            upiStatus: String(b.paymentStatus === 'Completed' ? 'Verified' : 'Pending'),
+            upiUTR: String(b.upiUTR || ''),
+            upiScreenshot: '',
+            deliveryPartnerName: b.deliveryPartner?.name,
+            deliveryPartnerPhoto: b.deliveryPartner?.photoUrl
+        }));
+        formatted = [...formatted, ...formattedBaskets].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      }
+
+      setLiveOrders(formatted);
     } catch {
     } finally {
       setLoading(false);
