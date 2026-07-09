@@ -25,10 +25,12 @@ const setCachedUser = (userId, user) => {
 };
 
 const protect = async (req, res, next) => {
-  let token = req.cookies?.token;
+  let token;
 
-  if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer') && !req.headers.authorization.includes('cookie-managed')) {
     token = req.headers.authorization.split(' ')[1];
+  } else {
+    token = req.cookies?.token;
   }
 
   if (!token) {

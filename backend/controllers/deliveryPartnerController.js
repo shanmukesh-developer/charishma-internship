@@ -33,7 +33,38 @@ const registerPartner = async (req, res) => {
 
     const partner = await DeliveryPartner.create({ name, phone: cleanPhone, password, vehicleType });
     const token = generateToken(partner.id);
-    res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 30 * 24 * 60 * 60 * 1000 });
+    
+    // Check if request is made by an Admin to avoid overwriting their session cookie
+    let skipCookie = false;
+    let authHeader = req.headers.authorization;
+    let tokenToCheck = null;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      tokenToCheck = authHeader.split(' ')[1].replace(/['"]+/g, '').trim();
+    } else if (req.cookies?.token) {
+      tokenToCheck = req.cookies.token.replace(/['"]+/g, '').trim();
+    }
+
+    if (tokenToCheck) {
+      try {
+        const decoded = jwt.verify(tokenToCheck, process.env.JWT_SECRET);
+        if (decoded.role === 'admin') {
+          skipCookie = true;
+        } else {
+          const { getUserModel } = require('../models/User');
+          const User = getUserModel();
+          if (User) {
+            const dbUser = await User.findByPk(decoded.id);
+            if (dbUser && dbUser.role && dbUser.role.toLowerCase() === 'admin') {
+              skipCookie = true;
+            }
+          }
+        }
+      } catch (err) {}
+    }
+
+    if (!skipCookie) {
+      res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 30 * 24 * 60 * 60 * 1000 });
+    }
     res.status(201).json({ _id: partner.id, name: partner.name, token });
   } catch (error) {
     console.error('[PARTNER_REGISTER_ERROR]', error);
