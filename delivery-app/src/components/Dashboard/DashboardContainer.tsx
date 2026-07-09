@@ -499,6 +499,9 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
         });
         if (newStatus) fetchPendingOrders();
         else setAvailableOrders([]);
+      } else {
+        const data = await res.json();
+        toast(data.message || 'Could not update status.', 'error');
       }
     } catch { toast('Network error. Could not update status.', 'error'); }
   };

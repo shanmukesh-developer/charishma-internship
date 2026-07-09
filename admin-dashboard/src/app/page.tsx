@@ -187,8 +187,9 @@ export default function AdminHome() {
   const fetchStats = useCallback(async () => {
     try {
       const token = typeof window !== 'undefined' ? 'cookie-managed' : null;
-      const res = await fetch(`${API_URL}/api/admin/stats`, {
-         });
+      const res = await fetch(`${API_URL}/api/admin/stats?t=${Date.now()}`, {
+        credentials: 'include', cache: 'no-store'
+      });
       if (!res.ok) return;
       const data = await res.json();
       setStats([
@@ -204,8 +205,9 @@ export default function AdminHome() {
   const fetchOrders = useCallback(async () => {
     try {
       const token = typeof window !== 'undefined' ? 'cookie-managed' : null;
-      const res = await fetch(`${API_URL}/api/orders`, {
-         });
+      const res = await fetch(`${API_URL}/api/orders?t=${Date.now()}`, {
+        credentials: 'include', cache: 'no-store'
+      });
       const data = await res.json();
       if (res.ok) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

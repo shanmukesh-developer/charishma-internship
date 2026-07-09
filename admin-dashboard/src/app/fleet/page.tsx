@@ -104,7 +104,7 @@ export default function FleetManagement() {
   const fetchRiders = async (page = 1) => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/admin/riders?page=${page}`, { credentials: 'include' });
+      const res = await fetch(`${API_URL}/api/admin/riders?page=${page}&t=${Date.now()}`, { credentials: 'include', cache: 'no-store' });
       const data = await res.json();
       if (res.ok) {
         setRiders(data.riders || []);
@@ -117,7 +117,7 @@ export default function FleetManagement() {
 
   const fetchPayouts = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/fleet/payouts`, { credentials: 'include' });
+      const res = await fetch(`${API_URL}/api/admin/fleet/payouts?t=${Date.now()}`, { credentials: 'include', cache: 'no-store' });
       if (res.ok) setPayouts(await res.json());
     } catch (err) { console.error(err); }
   };
