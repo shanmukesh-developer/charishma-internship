@@ -155,9 +155,15 @@ const createOrder = async (req, res) => {
     // ── Backend Price Validation (Security Guard) ────────────
     const MenuItem = getMenuItemModel();
     
+    const mockPrefixes = ['stat-', 'sw-', 'dr-', 'gym-', 'ren-', 'fr-', 'phar-', 'laun-', 'seas-'];
     const dbItemIds = items
       .map(i => i.menuItemId || i.id || i._id)
-      .filter(id => typeof id !== 'string' || !id.startsWith('extra-'));
+      .filter(id => {
+        if (typeof id !== 'string') return true;
+        if (id.startsWith('extra-')) return false;
+        if (mockPrefixes.some(prefix => id.startsWith(prefix))) return false;
+        return true;
+      });
       
     const dbItems = await MenuItem.findAll({ where: { id: dbItemIds } });
     const itemMap = Object.fromEntries(dbItems.map(i => [i.id, i]));
