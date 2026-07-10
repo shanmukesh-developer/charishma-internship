@@ -1068,12 +1068,7 @@ export default function Home() {
 
 
 
-        <div className="fixed bottom-28 right-6 z-[100] sm:hidden">
-          <Link href="/community" onClick={(e) => { e.preventDefault(); triggerTransition('/community', 'comms'); }} className="w-14 h-14 rounded-full bg-black light:bg-white text-white light:text-gray-900 shadow-[0_8px_30px_rgba(0,0,0,0.2)] light:shadow-[0_8px_30px_rgba(0,0,0,0.1)] flex items-center justify-center hover:scale-110 active:scale-95 transition-transform group border-2 border-red-500 light:border-red-500 relative focus:outline-none">
-            <svg className="w-6 h-6 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg>
-            <div className="absolute top-0 right-0 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-black light:border-white"></div>
-          </Link>
-        </div>
+
         <footer className="fixed bottom-0 left-0 right-0 h-[5.5rem] bg-black text-white border-t border-white/10 flex items-center justify-around sm:hidden z-[100] pb-safe shadow-none">
           <Magnetic>
             <Link href="/" className="flex flex-col items-center gap-1.5 text-[#EF4F5F]">
@@ -1109,7 +1104,7 @@ export default function Home() {
           </Magnetic>
         </footer>
 
-        {/* 🛵 Live Order Status Bar */}
+        {/* 🛵 Live Order Status Bar — DISABLED per user request
         {activeOrder && (
           <LiveOrderStatusBar
             orderId={activeOrder._id || activeOrder.id || 'SRM_DEV_ORDER_1'}
@@ -1119,6 +1114,7 @@ export default function Home() {
             onDelivered={() => setIsRatingModalOpen(true)}
           />
         )}
+        */}
 
         <RatingModal
           isOpen={isRatingModalOpen}
@@ -1172,23 +1168,20 @@ export default function Home() {
         , document.body)}
 
 
-        {/* 👑 Priority Concierge FAB (Elite Only) */}
+        {/* 💬 Community / Comms Section FAB */}
         <AnimatePresence>
-          {isElite && (
-            <motion.button
-              initial={{ scale: 0, rotate: -45 }}
-              animate={{ scale: 1, rotate: 0 }}
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setShowConcierge(true)}
-              className="fixed bottom-32 right-6 w-14 h-14 rounded-2xl bg-gradient-to-br from-[#C9A84C] via-[#E6C983] to-[#C9A84C] text-black shadow-[0_0_20px_rgba(201,168,76,0.5)] z-50 flex items-center justify-center border-2 border-white/20 group overflow-hidden"
-            >
-               <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-[-45deg]" />
-               <svg className="w-8 h-8 text-black relative z-10" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="8">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M25 25 L75 25 L25 75 L75 75" />
-               </svg>
-            </motion.button>
-          )}
+          <motion.div
+            initial={{ scale: 0, rotate: -45 }}
+            animate={{ scale: 1, rotate: 0 }}
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            whileTap={{ scale: 0.9 }}
+            className="fixed bottom-32 right-6 z-50"
+          >
+            <Link href="/community" onClick={(e) => { e.preventDefault(); triggerTransition('/community', 'comms'); }} className="w-14 h-14 rounded-full bg-black light:bg-white text-white light:text-gray-900 shadow-[0_8px_30px_rgba(0,0,0,0.2)] light:shadow-[0_8px_30px_rgba(0,0,0,0.1)] flex items-center justify-center hover:scale-110 active:scale-95 transition-transform group border-2 border-red-500 light:border-red-500 relative focus:outline-none">
+              <svg className="w-6 h-6 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg>
+              <div className="absolute top-0 right-0 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-black light:border-white"></div>
+            </Link>
+          </motion.div>
         </AnimatePresence>
 
         </div> {/* End Main Feed Content (Opened at 456) */}

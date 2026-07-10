@@ -11,7 +11,6 @@ import GlobalAnnouncement from '@/components/GlobalAnnouncement';
 import FetchInterceptor from '@/components/FetchInterceptor';
 import AntiInspect from '@/components/AntiInspect';
 import WorldTransitionOverlay from '@/components/WorldTransitionOverlay';
-import EcosystemFab from '@/components/EcosystemFab';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -77,7 +76,6 @@ export default function RootLayout({
 
             <div className="relative z-10 max-w-md mx-auto min-h-screen shadow-2xl border-x border-white/10 overflow-x-hidden bg-black/50">
               {children}
-              <EcosystemFab />
             </div>
           </WorldTransitionProvider>
         </CartProvider>

@@ -151,7 +151,7 @@ const RESTAURANTS = [
       gradient: "linear-gradient(135deg, #E4002B 0%, #111111 100%)",
       fontColor: "#FFFFFF",
       logoAnimationType: "kfc-bucket-drop",
-      logoUrl: "/assets/kfc_logo.png"
+      logoUrl: "https://upload.wikimedia.org/wikipedia/en/thumb/b/bf/KFC_logo.svg/1200px-KFC_logo.svg.png"
     },
     menu: [
       { name: "KFC Zinger Burger", price: 199, description: "Signature crispy chicken zinger burger, freshly prepared.", imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=600&auto=format&fit=crop", category: "Burgers", tags: ["burgers", "non-veg"], isVegetarian: false },
@@ -170,7 +170,7 @@ const RESTAURANTS = [
       gradient: "linear-gradient(135deg, #006491 0%, #E31B23 100%)",
       fontColor: "#FFFFFF",
       logoAnimationType: "dominos-flip",
-      logoUrl: "/assets/dominos_logo.png"
+      logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Domino%27s_pizza_logo.svg/1200px-Domino%27s_pizza_logo.svg.png"
     },
     menu: [
       { name: "Domino's Cheese Burst Margherita", price: 299, description: "Classic cheese burst pizza with rich tomato herb sauce.", imageUrl: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?q=80&w=600&auto=format&fit=crop", category: "Pizza", tags: ["pizza", "veg"], isVegetarian: true },
@@ -189,7 +189,7 @@ const RESTAURANTS = [
       gradient: "linear-gradient(135deg, #DA291C 0%, #FFC72C 100%)",
       fontColor: "#FFFFFF",
       logoAnimationType: "mcd-glow",
-      logoUrl: "/assets/mcdonalds_logo.png"
+      logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/McDonald%27s_Golden_Arches.svg/1200px-McDonald%27s_Golden_Arches.svg.png"
     },
     menu: [
       { name: "McDonald's Big Mac", price: 249, description: "Double layer flame-grilled chicken patties, special sauce, cheese, pickles.", imageUrl: "https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=600&auto=format&fit=crop", category: "Burgers", tags: ["burgers", "non-veg"], isVegetarian: false },

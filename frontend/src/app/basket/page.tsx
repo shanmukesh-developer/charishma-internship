@@ -83,14 +83,39 @@ function BasketItem({ item, updateQuantity, removeFromCart, updateCustomName }: 
                 <p className="text-[10px] text-white/50 light:text-gray-400 line-through">₹{item.basePrice}</p>
               )}
             </div>
-            <div className="flex items-center gap-4 bg-white/5 light:bg-gray-50 px-4 py-2 rounded-full border border-white/5 light:border-gray-200">
-              <button onClick={() => updateQuantity(key, item.quantity - 1)} className="w-6 h-6 flex items-center justify-center font-bold text-secondary-text hover:text-white light:hover:text-black">-</button>
+            <div className="flex items-center gap-4 bg-white/5 light:bg-gray-50 px-4 py-2 rounded-full border border-white/5 light:border-gray-200 relative z-30">
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  updateQuantity(key, item.quantity - 1);
+                }} 
+                className="w-6 h-6 flex items-center justify-center font-bold text-secondary-text hover:text-white light:hover:text-black"
+              >
+                -
+              </button>
               <span className="font-black text-sm w-4 text-center light:text-gray-900">{item.quantity}</span>
-              <button onClick={() => updateQuantity(key, item.quantity + 1)} className="w-6 h-6 flex items-center justify-center font-bold text-secondary-text hover:text-white light:hover:text-black">+</button>
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  updateQuantity(key, item.quantity + 1);
+                }} 
+                className="w-6 h-6 flex items-center justify-center font-bold text-secondary-text hover:text-white light:hover:text-black"
+              >
+                +
+              </button>
             </div>
           </div>
         </div>
-        <button onClick={() => removeFromCart(key)} className="p-2 opacity-20 hover:opacity-100 hover:text-red-500 light:text-gray-400 light:hover:text-red-500 transition-all">
+        <button 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            removeFromCart(key);
+          }} 
+          className="relative z-30 p-2 opacity-60 hover:opacity-100 hover:text-red-500 light:text-gray-400 light:hover:text-red-500 transition-all"
+        >
           <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
         </button>
       </div>

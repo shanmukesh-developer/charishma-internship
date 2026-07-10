@@ -61,6 +61,30 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
   const [isMaintenance, setIsMaintenance] = useState(false);
   const mainRef = useRef<HTMLDivElement>(null);
   const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
+  const [clickCoords, setClickCoords] = useState<{ x: number; y: number } | null>(null);
+  const [flyingItem, setFlyingItem] = useState<{ imageUrl: string; startX: number; startY: number } | null>(null);
+  const [cartBounce, setCartBounce] = useState(false);
+  const [tiltX, setTiltX] = useState(0);
+  const [tiltY, setTiltY] = useState(0);
+  const [shineX, setShineX] = useState(50);
+  const [shineY, setShineY] = useState(50);
+
+  const onBucketMouseMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width;
+    const py = (e.clientY - rect.top) / rect.height;
+    setTiltX((py - 0.5) * -24);
+    setTiltY((px - 0.5) * 24);
+    setShineX(px * 100);
+    setShineY(py * 100);
+  };
+
+  const onBucketMouseLeave = () => {
+    setTiltX(0);
+    setTiltY(0);
+    setShineX(50);
+    setShineY(50);
+  };
 
   const isLocalVendor = restaurant?.vendorType === 'LOCAL_VENDOR';
 
@@ -197,7 +221,61 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
   });
 
   const handleAddToCart = (item: MenuItem) => {
-    setCustomizingItem(item);
+    try {
+      addToCart({
+        id: item.id || item._id || "",
+        name: item.name,
+        price: item.price,
+        basePrice: item.price,
+        image: item.image || item.imageUrl || "",
+        restaurantId: restaurant.id || restaurant._id,
+        restaurantName: restaurant.name,
+        customizations: {},
+      });
+      setAddedId(item.id || item._id || null);
+      if (clickCoords) {
+        setFlyingItem({
+          imageUrl: item.image || item.imageUrl || "",
+          startX: clickCoords.x,
+          startY: clickCoords.y
+        });
+      }
+      setTimeout(() => setAddedId(null), 800);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'MULTIPLE_RESTAURANTS') {
+        setOverlay({
+          isOpen: true,
+          title: 'Clear Basket?',
+          message: 'Your basket contains items from another restaurant. Clear it to add this item?',
+          type: 'error',
+          actionLabel: 'Clear & Add',
+          onAction: () => {
+            clearCart();
+            setTimeout(() => {
+              addToCart({
+                id: item.id || item._id || "",
+                name: item.name,
+                price: item.price,
+                basePrice: item.price,
+                image: item.image || item.imageUrl || "",
+                restaurantId: restaurant.id || restaurant._id,
+                restaurantName: restaurant.name,
+                customizations: {},
+              });
+              setAddedId(item.id || item._id || null);
+              if (clickCoords) {
+                setFlyingItem({
+                  imageUrl: item.image || item.imageUrl || "",
+                  startX: clickCoords.x,
+                  startY: clickCoords.y
+                });
+              }
+              setTimeout(() => setAddedId(null), 800);
+            }, 100);
+          }
+        });
+      }
+    }
   };
 
   const handleCustomizeConfirm = (customizations: Customizations, finalPrice: number) => {
@@ -216,6 +294,13 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
         customizations,
       });
       setAddedId(item.id || item._id || null);
+      if (clickCoords) {
+        setFlyingItem({
+          imageUrl: item.image || item.imageUrl || "",
+          startX: clickCoords.x,
+          startY: clickCoords.y
+        });
+      }
       setOverlay({
         isOpen: true,
         title: 'Added to Basket',
@@ -430,6 +515,8 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
       <div className="px-4 md:px-6 pb-24 -mt-4 relative z-10">
         <div className="gold-line mb-8" />
 
+
+
         {/* Category Pills */}
         <div className="flex gap-2.5 overflow-x-auto scrollbar-hide mb-8 pb-1 -mx-4 px-4 md:-mx-6 md:px-6">
           {['All', ...(restaurant.categories?.length ? restaurant.categories : (restaurant.tags || []))].map((cat) => (
@@ -547,7 +634,10 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
                          onClick={(e) => { 
                            e.preventDefault(); 
                            e.stopPropagation(); 
-                           if(!isSoldOut && !isEliteRestricted) handleAddToCart(item); 
+                           if(!isSoldOut && !isEliteRestricted) {
+                             setClickCoords({ x: e.clientX, y: e.clientY });
+                             handleAddToCart(item);
+                           }
                          }}
                          disabled={isSoldOut || isEliteRestricted}
                          className={`px-6 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-md transition-all duration-300 border ${
@@ -589,27 +679,302 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
         </div>
       </div>
 
-      {/* Floating Cart */}
-      {totalItems > 0 && !isLocalVendor && (
-        <Link 
-          href="/basket" 
-          className={`fixed bottom-6 right-6 left-6 h-16 text-black rounded-full flex items-center justify-between px-8 z-50 shadow-2xl active:scale-95 transition-all ${
-            brand 
-              ? 'shadow-black/50' 
-              : 'bg-gradient-to-r from-[#C9A84C] via-[#E8D18C] to-[#C9A84C] shadow-[#C9A84C]/30'
-          }`}
-          style={brand ? { 
-            background: `linear-gradient(90deg, ${brand.primaryColor}, ${brand.accentColor})`,
-            color: brand.secondaryColor || '#000000'
-          } : {}}
+      {/* 🍟 Flying Item Animation */}
+      {flyingItem && (
+        <motion.div
+          className="fixed z-[9999] pointer-events-none rounded-full overflow-hidden bg-white border border-[#E4002B]/20 shadow-lg flex items-center justify-center"
+          initial={{
+            x: flyingItem.startX - 24,
+            y: flyingItem.startY - 24,
+            scale: 1,
+            opacity: 1
+          }}
+          animate={{
+            x: typeof window !== 'undefined' ? window.innerWidth / 2 - 24 : 200,
+            y: typeof window !== 'undefined' ? window.innerHeight - 80 : 600,
+            scale: 0.2,
+            opacity: [1, 0.8, 0.4, 0]
+          }}
+          transition={{
+            duration: 1.0,
+            ease: [0.25, 1, 0.5, 1]
+          }}
+          onAnimationComplete={() => {
+            setFlyingItem(null);
+            setCartBounce(true);
+            setTimeout(() => setCartBounce(false), 500);
+          }}
+          style={{ width: 48, height: 48 }}
         >
-           <div className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-full bg-black text-white light:text-gray-900 text-[11px] font-black flex items-center justify-center">{totalItems}</span>
-              <span className="font-black uppercase tracking-widest text-[11px]">View Basket</span>
-           </div>
-           <span className="font-black text-sm">Proceed →</span>
-        </Link>
+          <img
+            src={flyingItem.imageUrl}
+            alt="Flying Item"
+            className="w-full h-full object-cover"
+          />
+        </motion.div>
       )}
+
+      {/* Floating Cart */}
+      <AnimatePresence>
+        {!isLocalVendor && (totalItems > 0 || restaurant.name.toLowerCase().includes('kfc')) && (
+          <motion.div
+            initial={{ y: 250, opacity: 0 }}
+            animate={{ 
+              y: 0, 
+              opacity: 1,
+              scale: cartBounce ? [1, 1.15, 0.95, 1.05, 1] : 1
+            }}
+            exit={{ y: 250, opacity: 0 }}
+            transition={{
+              y: { type: 'spring', damping: 15, stiffness: 180 },
+              scale: { duration: 0.5, ease: "easeInOut" }
+            }}
+            className={restaurant.name.toLowerCase().includes('kfc')
+              ? "fixed bottom-0 left-1/2 -translate-x-1/2 z-50 pointer-events-auto flex justify-center pb-2"
+              : "fixed bottom-6 right-6 left-6 z-50 pointer-events-auto"
+            }
+          >
+            {restaurant.name.toLowerCase().includes('kfc') ? (
+              /* ═══════════════════════════════════════
+                 ANIMATED CSS KFC BUCKET — realistic
+                 ═══════════════════════════════════════ */
+              <Link
+                href="/basket"
+                onMouseMove={onBucketMouseMove}
+                onMouseLeave={onBucketMouseLeave}
+                className="relative flex flex-col items-center justify-end w-52 h-64 mx-auto cursor-pointer select-none"
+                style={{ perspective: 1200 }}
+              >
+                {/* ── Steam wisps ── */}
+                <div className="absolute top-6 left-1/2 -translate-x-1/2 flex gap-3 pointer-events-none z-20">
+                  {[
+                    { delay: 0,   dur: 2.2, x: [0,-8,8,0]  },
+                    { delay: 0.6, dur: 2.6, x: [0, 9,-9,0] },
+                    { delay: 0.3, dur: 2.0, x: [0,-6,6,0]  },
+                  ].map((s, i) => (
+                    <motion.div
+                      key={i}
+                      className="w-1 h-10 bg-white/35 rounded-full"
+                      style={{ filter: 'blur(3px)' }}
+                      animate={{ y: [-4, -36], x: s.x, opacity: [0, 0.85, 0.4, 0] }}
+                      transition={{ repeat: Infinity, duration: s.dur, delay: s.delay, ease: 'easeInOut' }}
+                    />
+                  ))}
+                </div>
+
+                {/* ── Particle burst on item drop ── */}
+                {cartBounce && (
+                  <div className="absolute top-12 left-1/2 -translate-x-1/2 pointer-events-none z-30">
+                    {[...Array(18)].map((_, i) => {
+                      const a = (i / 18) * Math.PI * 2;
+                      const v = 45 + Math.random() * 75;
+                      return (
+                        <motion.div key={i}
+                          className="absolute rounded-full"
+                          style={{
+                            width: 6 + Math.random() * 4,
+                            height: 6 + Math.random() * 4,
+                            background: i % 3 === 0 ? '#E4002B' : i % 3 === 1 ? '#fff' : '#ffd700',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+                          }}
+                          initial={{ x: 0, y: 0, scale: 1, opacity: 1 }}
+                          animate={{ x: Math.cos(a)*v, y: -Math.sin(a)*v - 30, scale: [1,1.3,0], opacity: [1,0.8,0] }}
+                          transition={{ duration: 0.65, ease: 'easeOut' }}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* ── Contact shadow ── */}
+                <motion.div
+                  className="absolute bottom-8 left-1/2 -translate-x-1/2 rounded-full pointer-events-none -z-10"
+                  style={{ width: 110, height: 12, background: 'rgba(0,0,0,0.5)', filter: 'blur(7px)' }}
+                  animate={{ scaleX: cartBounce ? 1.35 : 1, opacity: cartBounce ? 0.8 : 0.38 }}
+                  transition={{ duration: 0.3 }}
+                />
+
+                {/* ══ 3D TILT WRAPPER ══ */}
+                <motion.div
+                  animate={{
+                    rotateX: tiltX,
+                    rotateY: tiltY,
+                    scaleX: cartBounce ? [1, 1.16, 0.88, 1.05, 1] : 1,
+                    scaleY: cartBounce ? [1, 0.82, 1.13, 0.95, 1] : 1,
+                    rotateZ: cartBounce ? [0, -4, 4, -1.5, 0] : 0,
+                  }}
+                  transition={{
+                    rotateX: { type: 'spring', damping: 22, stiffness: 230 },
+                    rotateY: { type: 'spring', damping: 22, stiffness: 230 },
+                    default: { duration: 0.55, ease: 'easeInOut' },
+                  }}
+                  style={{ transformStyle: 'preserve-3d', filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.6))' }}
+                  className="relative flex flex-col items-center"
+                >
+                  {/* ── Metal handle (CSS arc via border-radius + overflow clip) ── */}
+                  <div
+                    className="absolute pointer-events-none"
+                    style={{
+                      top: -28,
+                      width: 120,
+                      height: 50,
+                      border: '3px solid #b0b0b0',
+                      borderBottom: 'none',
+                      borderRadius: '60px 60px 0 0',
+                      background: 'transparent',
+                      boxShadow: 'inset 0 6px 8px rgba(255,255,255,0.4)',
+                    }}
+                  />
+
+                  {/* ── Rim (top ellipse / opening) ── */}
+                  <div
+                    className="relative z-20"
+                    style={{
+                      width: 152,
+                      height: 22,
+                      background: 'linear-gradient(180deg, #e8e8e8 0%, #c0c0c0 100%)',
+                      borderRadius: '50%',
+                      marginBottom: -6,
+                      boxShadow: '0 3px 8px rgba(0,0,0,0.3), inset 0 -3px 6px rgba(0,0,0,0.2)',
+                      border: '1px solid #aaa',
+                    }}
+                  >
+                    {/* dark hollow inside */}
+                    <div
+                      className="absolute inset-[3px] rounded-full overflow-hidden"
+                      style={{ background: 'radial-gradient(ellipse at center, rgba(180,100,0,0.25) 0%, #0a0a0a 70%)' }}
+                    />
+                  </div>
+
+                  {/* ══ BUCKET BODY — matches reference: white with left+right red edge stripes ══ */}
+                  <div
+                    className="relative overflow-hidden"
+                    style={{
+                      width: 152,
+                      height: 148,
+                      clipPath: 'polygon(5% 0%, 95% 0%, 100% 100%, 0% 100%)',
+                      background: 'linear-gradient(90deg, #d0d0d0 0%, #f8f8f8 8%, #ffffff 18%, #ffffff 82%, #f5f5f5 92%, #c8c8c8 100%)',
+                    }}
+                  >
+                    {/* LEFT red band — on the far left edge of bucket */}
+                    <div
+                      className="absolute top-0 bottom-0"
+                      style={{
+                        left: 0,
+                        width: '22%',
+                        background: 'linear-gradient(90deg, #b8001a 0%, #E4002B 70%, #E4002B 100%)',
+                        transform: 'skewX(-2deg)',
+                        transformOrigin: 'top',
+                      }}
+                    />
+
+                    {/* RIGHT red band — on the far right edge of bucket */}
+                    <div
+                      className="absolute top-0 bottom-0"
+                      style={{
+                        right: 0,
+                        width: '22%',
+                        background: 'linear-gradient(90deg, #E4002B 0%, #E4002B 30%, #b8001a 100%)',
+                        transform: 'skewX(2deg)',
+                        transformOrigin: 'top',
+                      }}
+                    />
+
+                    {/* ── Colonel Sanders logo (large, centred) ── */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10" style={{ gap: 2 }}>
+                      <img
+                        src="/assets/kfc_logo.png"
+                        alt="KFC"
+                        className="object-contain"
+                        style={{ width: 68, height: 68, filter: 'contrast(1.3) brightness(0.85)' }}
+                        draggable={false}
+                      />
+                      <span
+                        style={{
+                          fontFamily: "Georgia, 'Times New Roman', serif",
+                          fontStyle: 'italic',
+                          fontWeight: 900,
+                          fontSize: 17,
+                          color: '#0d0d0d',
+                          letterSpacing: 4,
+                          lineHeight: 1,
+                        }}
+                      >
+                        KFC
+                      </span>
+                    </div>
+
+                    {/* ── Animated gloss sweep ── */}
+                    <motion.div
+                      className="absolute inset-0 pointer-events-none z-20"
+                      style={{
+                        background: 'linear-gradient(118deg, transparent 22%, rgba(255,255,255,0.65) 48%, rgba(255,255,255,0.65) 52%, transparent 78%)',
+                      }}
+                      animate={{ x: ['-130%', '130%'], opacity: [0, 0.9, 0] }}
+                      transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut', repeatDelay: 2.5 }}
+                    />
+
+                    {/* ── Cursor specular highlight ── */}
+                    <div
+                      className="absolute inset-0 pointer-events-none z-20"
+                      style={{
+                        background: `radial-gradient(circle at ${shineX}% ${shineY}%, rgba(255,255,255,0.55) 0%, transparent 48%)`,
+                        mixBlendMode: 'overlay',
+                      }}
+                    />
+
+                    {/* Bottom edge shadow */}
+                    <div
+                      className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none"
+                      style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.1))' }}
+                    />
+                  </div>
+                </motion.div>
+
+                {/* ── Status bar ── */}
+                <motion.div
+                  className="mt-3 bg-black/90 backdrop-blur-md text-white px-5 py-2 rounded-2xl border border-white/10 flex items-center gap-3 z-20"
+                  style={{ boxShadow: '0 5px 20px rgba(0,0,0,0.6)' }}
+                  animate={{ scale: cartBounce ? [1, 1.08, 1] : 1 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <motion.span
+                    className="bg-[#E4002B] text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center border border-white/20"
+                    animate={{ scale: cartBounce ? [1, 1.6, 1] : 1 }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    {totalItems}
+                  </motion.span>
+                  <span className="text-[9px] font-black uppercase tracking-[0.22em] whitespace-nowrap">
+                    View Basket
+                  </span>
+                </motion.div>
+              </Link>
+            ) : (
+              /* Default Premium Cart Bar */
+              <Link
+                href="/basket"
+                className={`h-16 text-black rounded-full flex items-center justify-between px-8 shadow-2xl active:scale-95 transition-all ${
+                  brand
+                    ? 'shadow-black/50'
+                    : 'bg-gradient-to-r from-[#C9A84C] via-[#E8D18C] to-[#C9A84C] shadow-[#C9A84C]/30'
+                }`}
+                style={brand ? {
+                  background: `linear-gradient(90deg, ${brand.primaryColor}, ${brand.accentColor})`,
+                  color: brand.secondaryColor || '#000000'
+                } : {}}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-7 h-7 rounded-full bg-black text-white light:text-gray-900 text-[11px] font-black flex items-center justify-center">{totalItems}</span>
+                  <span className="font-black uppercase tracking-widest text-[11px]">View Basket</span>
+                </div>
+                <span className="font-black text-sm">Proceed →</span>
+              </Link>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Customize Drawer */}
       {customizingItem && (
         <CustomizeDrawer
