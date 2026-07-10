@@ -31,7 +31,17 @@ export function AddRestaurantForm({ onCancel, onSubmit, isCreating, initialData 
     whatsappNumber: initialData?.whatsappNumber || '',
     promoOffer: initialData?.promoOffer || '',
     subscriptionTier: initialData?.subscriptionTier || 'free',
-    stallDescription: initialData?.stallDescription || ''
+    stallDescription: initialData?.stallDescription || '',
+    // Brand Theme settings
+    brandThemeActive: !!initialData?.brandTheme,
+    primaryColor: initialData?.brandTheme?.primaryColor || '#E4002B',
+    secondaryColor: initialData?.brandTheme?.secondaryColor || '#111111',
+    accentColor: initialData?.brandTheme?.accentColor || '#FFC72C',
+    gradient: initialData?.brandTheme?.gradient || 'linear-gradient(135deg, #E4002B 0%, #111111 100%)',
+    fontColor: initialData?.brandTheme?.fontColor || '#FFFFFF',
+    logoAnimationType: initialData?.brandTheme?.logoAnimationType || 'none',
+    logoUrl: initialData?.brandTheme?.logoUrl || '',
+    offersJSON: initialData?.brandTheme?.offers ? JSON.stringify(initialData.brandTheme.offers, null, 2) : '[]'
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -310,6 +320,164 @@ export function AddRestaurantForm({ onCancel, onSubmit, isCreating, initialData 
               </div>
             </>
           )}
+
+          {/* 👑 Brand Theme Configurations */}
+          <div className="col-span-full mt-4 mb-1">
+            <div className="flex items-center gap-2">
+              <div className="h-px flex-1 bg-yellow-500/20" />
+              <span className="text-[9px] font-black text-yellow-400 uppercase tracking-[0.3em]">👑 Premium Brand & Takeover Configuration</span>
+              <div className="h-px flex-1 bg-yellow-500/20" />
+            </div>
+          </div>
+
+          <div className="col-span-full flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="brandThemeActive"
+              className="w-4 h-4 rounded border-white/10 bg-white/5 text-emerald-500 accent-emerald-500 cursor-pointer"
+              checked={formData.brandThemeActive}
+              onChange={(e) => setFormData({...formData, brandThemeActive: e.target.checked})}
+            />
+            <label htmlFor="brandThemeActive" className="text-[10px] font-black uppercase tracking-widest text-white cursor-pointer select-none">
+              Enable Premium Takeover & Dynamic Offers
+            </label>
+          </div>
+
+          {formData.brandThemeActive && (
+            <>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Primary Color</label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    className="w-12 h-10 rounded-xl bg-white/5 border border-white/10 p-1 cursor-pointer"
+                    value={formData.primaryColor}
+                    onChange={(e) => setFormData({...formData, primaryColor: e.target.value})}
+                  />
+                  <input
+                    type="text"
+                    className="nexus-input flex-1"
+                    value={formData.primaryColor}
+                    onChange={(e) => setFormData({...formData, primaryColor: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Secondary Color</label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    className="w-12 h-10 rounded-xl bg-white/5 border border-white/10 p-1 cursor-pointer"
+                    value={formData.secondaryColor}
+                    onChange={(e) => setFormData({...formData, secondaryColor: e.target.value})}
+                  />
+                  <input
+                    type="text"
+                    className="nexus-input flex-1"
+                    value={formData.secondaryColor}
+                    onChange={(e) => setFormData({...formData, secondaryColor: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Accent Color</label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    className="w-12 h-10 rounded-xl bg-white/5 border border-white/10 p-1 cursor-pointer"
+                    value={formData.accentColor}
+                    onChange={(e) => setFormData({...formData, accentColor: e.target.value})}
+                  />
+                  <input
+                    type="text"
+                    className="nexus-input flex-1"
+                    value={formData.accentColor}
+                    onChange={(e) => setFormData({...formData, accentColor: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Font Color</label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    className="w-12 h-10 rounded-xl bg-white/5 border border-white/10 p-1 cursor-pointer"
+                    value={formData.fontColor}
+                    onChange={(e) => setFormData({...formData, fontColor: e.target.value})}
+                  />
+                  <input
+                    type="text"
+                    className="nexus-input flex-1"
+                    value={formData.fontColor}
+                    onChange={(e) => setFormData({...formData, fontColor: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Logo Animation Type</label>
+                <select
+                  className="nexus-select"
+                  value={formData.logoAnimationType}
+                  onChange={(e) => setFormData({...formData, logoAnimationType: e.target.value})}
+                >
+                  <option value="none">None (Static Shutter)</option>
+                  <option value="kfc-bucket-drop">🍗 KFC Bucket Drop</option>
+                  <option value="dominos-flip">🍕 Domino's Pizza Flip</option>
+                  <option value="mcd-glow">🍟 McDonald's Arches Glow</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Logo URL (Transparent PNG/SVG)</label>
+                <input
+                  placeholder="https://..."
+                  className="nexus-input"
+                  value={formData.logoUrl}
+                  onChange={(e) => setFormData({...formData, logoUrl: e.target.value})}
+                />
+              </div>
+
+              <div className="space-y-2 col-span-full">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Gradient Shutter Background CSS</label>
+                <input
+                  placeholder="linear-gradient(135deg, #E4002B 0%, #111111 100%)"
+                  className="nexus-input"
+                  value={formData.gradient}
+                  onChange={(e) => setFormData({...formData, gradient: e.target.value})}
+                />
+              </div>
+
+              <div className="space-y-2 col-span-full">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">
+                    Active Coupons / Promotional Offers (JSON Array)
+                  </label>
+                  {errors.offersJSON && (
+                    <span className="text-red-500 text-[9px] font-bold uppercase">{errors.offersJSON}</span>
+                  )}
+                </div>
+                <textarea
+                  placeholder={`[\n  { "code": "WELCOME50", "desc": "Flat 50% OFF", "sub": "Min order ₹199 · Single use" }\n]`}
+                  className="nexus-input font-mono h-32 resize-y text-xs text-emerald-400 placeholder-emerald-900/40"
+                  value={formData.offersJSON}
+                  onChange={(e) => {
+                    setFormData({...formData, offersJSON: e.target.value});
+                    // Clear error immediately on change
+                    if (errors.offersJSON) {
+                      setErrors({ ...errors, offersJSON: '' });
+                    }
+                  }}
+                />
+                <p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">
+                  Format must be a valid JSON array of objects with code, desc, and sub fields.
+                </p>
+              </div>
+            </>
+          )}
        </div>
 
        <div className="flex gap-4 mt-10 relative">
@@ -322,11 +490,46 @@ export function AddRestaurantForm({ onCancel, onSubmit, isCreating, initialData 
               if (formData.deliveryTime < 0) newErrors.submit = "ETA cannot be negative";
               if (formData.ownerPhone && formData.ownerPhone.length !== 10) newErrors.submit = "Phone must be 10 digits";
               
+              let brandThemePayload = null;
+              if (formData.brandThemeActive) {
+                try {
+                  brandThemePayload = {
+                    primaryColor: formData.primaryColor,
+                    secondaryColor: formData.secondaryColor,
+                    accentColor: formData.accentColor,
+                    gradient: formData.gradient,
+                    fontColor: formData.fontColor,
+                    logoAnimationType: formData.logoAnimationType,
+                    logoUrl: formData.logoUrl,
+                    offers: JSON.parse(formData.offersJSON || '[]')
+                  };
+                } catch (e) {
+                  newErrors.offersJSON = "Invalid JSON array formatting";
+                }
+              }
+
               if (Object.keys(newErrors).length > 0) {
                 setErrors(newErrors);
                 return;
               }
-              onSubmit(formData, imageFile);
+
+              const payload = {
+                ...formData,
+                brandTheme: brandThemePayload
+              };
+
+              // Clean up local form fields
+              delete (payload as any).brandThemeActive;
+              delete (payload as any).primaryColor;
+              delete (payload as any).secondaryColor;
+              delete (payload as any).accentColor;
+              delete (payload as any).gradient;
+              delete (payload as any).fontColor;
+              delete (payload as any).logoAnimationType;
+              delete (payload as any).logoUrl;
+              delete (payload as any).offersJSON;
+
+              onSubmit(payload, imageFile);
             }} 
             className="flex-1 py-4 bg-emerald-600 text-white font-black uppercase tracking-[0.2em] rounded-2xl text-xs disabled:opacity-40 hover:bg-emerald-500 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all duration-300"
           >

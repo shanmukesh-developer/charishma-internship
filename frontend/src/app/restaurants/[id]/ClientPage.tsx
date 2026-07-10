@@ -386,6 +386,19 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
     : null;
 
   const getOffers = () => {
+    // 1. Prioritize dynamic offers set by admin in brandTheme
+    try {
+      const themeObj = restaurant?.brandTheme
+        ? (typeof restaurant.brandTheme === 'string' ? JSON.parse(restaurant.brandTheme) : restaurant.brandTheme)
+        : null;
+      if (themeObj && Array.isArray(themeObj.offers) && themeObj.offers.length > 0) {
+        return themeObj.offers;
+      }
+    } catch (e) {
+      console.error("[OFFERS_PARSE_ERR]", e);
+    }
+
+    // 2. Fallback to hardcoded legacy brand offers
     if (brand) {
       if (restaurant?.name?.toLowerCase().includes('kfc')) {
         return [
@@ -409,6 +422,8 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
         ];
       }
     }
+
+    // 3. Fallback to default offers
     return [
       { code: 'WELCOME50', desc: '50% OFF up to ₹100', sub: 'On your first order' },
       { code: 'FREEDEL', desc: 'Free Delivery', sub: 'For all orders above ₹199' },
@@ -419,7 +434,7 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
   return (
     <main 
       ref={mainRef} 
-      className={`min-h-screen pb-48 overflow-y-auto overflow-x-hidden relative transition-all duration-1000 ${
+      className={`min-h-screen pb-72 overflow-y-auto overflow-x-hidden relative transition-all duration-1000 ${
         brand 
           ? 'text-white brand-takeover-active' 
           : 'bg-background text-white light:text-gray-900 light:bg-gradient-to-b light:from-[#f8f8fa] light:to-white'
@@ -644,7 +659,7 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
             </h2>
             <span className="text-[9px] text-zinc-500 light:text-zinc-400 font-bold uppercase tracking-wider">Swipe to view</span>
           </div>
-          <div ref={offersRef} className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 md:-mx-6 md:px-6">
+          <div ref={offersRef} className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 md:-mx-6 md:px-6 snap-x snap-mandatory" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}>
             {getOffers().map((offer) => (
               <div 
                 key={offer.code}
@@ -899,7 +914,7 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
 
       {/* Floating Cart */}
       <AnimatePresence>
-        {!isLocalVendor && (totalItems > 0 || restaurant.name.toLowerCase().includes('kfc')) && (
+        {!isLocalVendor && totalItems > 0 && (
           <motion.div
             initial={{ y: 250, opacity: 0 }}
             animate={{ 
