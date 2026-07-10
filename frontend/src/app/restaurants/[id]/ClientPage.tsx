@@ -60,6 +60,7 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
   const [surgeMultiplier, setSurgeMultiplier] = useState(1.0);
   const [isMaintenance, setIsMaintenance] = useState(false);
   const mainRef = useRef<HTMLDivElement>(null);
+  const offersRef = useRef<HTMLDivElement>(null);
   const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
   const [clickCoords, setClickCoords] = useState<{ x: number; y: number } | null>(null);
   const [flyingItem, setFlyingItem] = useState<{ imageUrl: string; startX: number; startY: number } | null>(null);
@@ -110,7 +111,11 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
         if (data && data.name) {
           setRestaurant(data);
           if (data.brandTheme) {
-            setShowTakeoverSplash(true);
+            const hasSeen = sessionStorage.getItem(`hasSeenTakeover_${effectiveId}`);
+            if (!hasSeen) {
+              setShowTakeoverSplash(true);
+              sessionStorage.setItem(`hasSeenTakeover_${effectiveId}`, 'true');
+            }
           }
           saveRecentlyViewed({
             id: effectiveId,
@@ -153,6 +158,57 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
       })
       .catch(() => {});
   }, [effectiveId]);
+
+  useEffect(() => {
+    const el = offersRef.current;
+    if (!el) return;
+
+    let direction = 1;
+    let interval: NodeJS.Timeout;
+
+    const startScrolling = () => {
+      interval = setInterval(() => {
+        const maxScroll = el.scrollWidth - el.clientWidth;
+        if (maxScroll <= 0) return;
+
+        let nextScroll = el.scrollLeft + (direction * 0.8);
+        if (nextScroll >= maxScroll) {
+          direction = -1;
+          nextScroll = maxScroll;
+        } else if (nextScroll <= 0) {
+          direction = 1;
+          nextScroll = 0;
+        }
+        el.scrollLeft = nextScroll;
+      }, 30);
+    };
+
+    const timeout = setTimeout(startScrolling, 1500);
+
+    const pause = () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
+    const resume = () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+      startScrolling();
+    };
+
+    el.addEventListener('mouseenter', pause);
+    el.addEventListener('touchstart', pause, { passive: true });
+    el.addEventListener('mouseleave', resume);
+    el.addEventListener('touchend', resume, { passive: true });
+
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+      el.removeEventListener('mouseenter', pause);
+      el.removeEventListener('touchstart', pause);
+      el.removeEventListener('mouseleave', resume);
+      el.removeEventListener('touchend', resume);
+    };
+  }, [restaurant]);
 
   const [isSurge, setIsSurge] = useState(false);
 
@@ -329,12 +385,43 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
     ? (typeof restaurant.brandTheme === 'string' ? JSON.parse(restaurant.brandTheme) : restaurant.brandTheme)
     : null;
 
+  const getOffers = () => {
+    if (brand) {
+      if (restaurant?.name?.toLowerCase().includes('kfc')) {
+        return [
+          { code: 'KFCSAVER', desc: 'Flat 20% OFF on buckets', sub: 'Min order ₹349 · Single use' },
+          { code: 'FREEZINGER', desc: 'Free Zinger Burger', sub: 'On orders above ₹499' },
+          { code: 'CAMPUSKFC', desc: 'Flat ₹50 OFF for Hostels', sub: 'Use code CAMPUSKFC' }
+        ];
+      }
+      if (restaurant?.name?.toLowerCase().includes('domino')) {
+        return [
+          { code: 'DOMINOS50', desc: '50% OFF up to ₹100', sub: 'Valid on Cheese Burst Pizzas' },
+          { code: 'FREEDIP', desc: 'Free Cheesy Dip', sub: 'On orders above ₹299' },
+          { code: 'DOUBLEDEAL', desc: 'Buy 1 Get 1 Free', sub: 'On Medium Pizzas · Wed & Fri' }
+        ];
+      }
+      if (restaurant?.name?.toLowerCase().includes('mcdonald')) {
+        return [
+          { code: 'MCDFREE', desc: 'Free Large Fries', sub: 'On orders above ₹399' },
+          { code: 'MCDELITE', desc: 'Flat 15% OFF for Elite', sub: 'No minimum order required' },
+          { code: 'BURGERDEAL', desc: '2 McSpicy Burgers @ ₹249', sub: 'Limited time offer' }
+        ];
+      }
+    }
+    return [
+      { code: 'WELCOME50', desc: '50% OFF up to ₹100', sub: 'On your first order' },
+      { code: 'FREEDEL', desc: 'Free Delivery', sub: 'For all orders above ₹199' },
+      { code: 'STUDENT10', desc: 'Flat 10% OFF', sub: 'Valid for all campus hostels' }
+    ];
+  };
+
   return (
     <main 
       ref={mainRef} 
       className={`min-h-screen pb-48 overflow-y-auto overflow-x-hidden relative transition-all duration-1000 ${
         brand 
-          ? 'text-white' 
+          ? 'text-white brand-takeover-active' 
           : 'bg-background text-white light:text-gray-900 light:bg-gradient-to-b light:from-[#f8f8fa] light:to-white'
       }`}
       style={brand ? { 
@@ -362,6 +449,40 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
           }
           .brand-takeover-btn:hover {
             opacity: 0.9;
+          }
+          .light main.brand-takeover-active .text-white {
+            color: #ffffff !important;
+          }
+          .light main.brand-takeover-active [class*="text-white/"] {
+            color: rgba(255, 255, 255, 0.7) !important;
+          }
+          .light main.brand-takeover-active .text-secondary-text {
+            color: rgba(255, 255, 255, 0.7) !important;
+          }
+          .light main.brand-takeover-active .text-gray-400 {
+            color: #a1a1aa !important;
+          }
+          .light main.brand-takeover-active .text-zinc-300 {
+            color: #d4d4d8 !important;
+          }
+          .light main.brand-takeover-active .text-zinc-400 {
+            color: #a1a1aa !important;
+          }
+          .light main.brand-takeover-active .text-zinc-500 {
+            color: #71717a !important;
+          }
+          .light main.brand-takeover-active .bg-black {
+            background-color: #000000 !important;
+          }
+          .light main.brand-takeover-active [class*="bg-black/"] {
+            background-color: rgba(0, 0, 0, 0.4) !important;
+          }
+          .light main.brand-takeover-active .brand-takeover-card {
+            background-color: rgba(0, 0, 0, 0.6) !important;
+            border-color: rgba(255, 255, 255, 0.05) !important;
+          }
+          .light main.brand-takeover-active [class*="border-white/"] {
+            border-color: rgba(255, 255, 255, 0.1) !important;
           }
         `}} />
       )}
@@ -514,6 +635,68 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
       {/* ── Content ── */}
       <div className="px-4 md:px-6 pb-24 -mt-4 relative z-10">
         <div className="gold-line mb-8" />
+
+        {/* Horizontal Offers/Coupons Carousel */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h2 className={`text-xs font-black uppercase tracking-widest ${brand ? 'text-white/60' : 'text-secondary-text light:text-black/50'}`}>
+              🎟️ Active Promo Codes
+            </h2>
+            <span className="text-[9px] text-zinc-500 light:text-zinc-400 font-bold uppercase tracking-wider">Swipe to view</span>
+          </div>
+          <div ref={offersRef} className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 md:-mx-6 md:px-6">
+            {getOffers().map((offer) => (
+              <div 
+                key={offer.code}
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                    navigator.clipboard.writeText(offer.code);
+                  }
+                  setOverlay({
+                    isOpen: true,
+                    title: '🎟️ Coupon Copied!',
+                    message: `Promo code "${offer.code}" has been copied to your clipboard. Use it at checkout to claim: ${offer.desc}`,
+                    type: 'success',
+                    actionLabel: 'Awesome'
+                  });
+                }}
+                className={`relative flex-shrink-0 w-64 p-4 rounded-2xl border cursor-pointer select-none transition-all duration-300 active:scale-95 ${
+                  brand 
+                    ? 'bg-black/40 border-white/10 hover:border-white/20' 
+                    : 'bg-white/5 border-white/5 hover:bg-white/10 light:bg-white light:border-zinc-200 light:shadow-sm'
+                }`}
+              >
+                {/* Coupon left dashed decorative line */}
+                <div className="absolute left-0 top-4 bottom-4 border-l border-dashed border-zinc-500/50" />
+                
+                <div className="flex flex-col h-full justify-between pl-2">
+                  <div>
+                    <span 
+                      className="inline-block px-2.5 py-0.5 rounded-lg text-[9px] font-black tracking-wider uppercase mb-2"
+                      style={brand ? { 
+                        backgroundColor: `${brand.accentColor}20`, 
+                        color: brand.accentColor,
+                        border: `1px solid ${brand.accentColor}40`
+                      } : { 
+                        backgroundColor: 'rgba(239, 79, 95, 0.1)', 
+                        color: '#EF4F5F',
+                        border: '1px solid rgba(239, 79, 95, 0.2)' 
+                      }}
+                    >
+                      {offer.code}
+                    </span>
+                    <h3 className={`text-sm font-black ${brand ? 'text-white' : 'text-white light:text-zinc-800'}`}>
+                      {offer.desc}
+                    </h3>
+                  </div>
+                  <p className="text-[10px] text-zinc-400 light:text-zinc-500 mt-2 font-medium">
+                    {offer.sub}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
 
 

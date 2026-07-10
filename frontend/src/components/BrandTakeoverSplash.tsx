@@ -93,13 +93,20 @@ export default function BrandTakeoverSplash({
     '#DA291C';
 
   return (
-    <div className="fixed inset-0 z-[9999] overflow-hidden select-none pointer-events-none">
+    <div className="fixed inset-0 z-[9999] overflow-hidden select-none pointer-events-none brand-takeover-splash-container">
+      <style dangerouslySetInnerHTML={{ __html: `
+        .light .brand-takeover-splash-container .bg-black {
+          background-color: #000000 !important;
+        }
+        .light .brand-takeover-splash-container .text-white {
+          color: #ffffff !important;
+        }
+      `}} />
       
       {/* Left Shutter Panel */}
       <motion.div
         initial={{ x: "-100%" }}
         animate={{ x: 0 }}
-        exit={{ x: "-100%" }}
         transition={{ 
           duration: 0.75,
           ease: [0.76, 0, 0.24, 1]
@@ -112,7 +119,6 @@ export default function BrandTakeoverSplash({
       <motion.div
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
-        exit={{ x: "100%" }}
         transition={{ 
           duration: 0.75,
           ease: [0.76, 0, 0.24, 1]
@@ -125,7 +131,6 @@ export default function BrandTakeoverSplash({
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
         transition={{ duration: 0.6 }}
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -135,7 +140,6 @@ export default function BrandTakeoverSplash({
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.15 }}
-        exit={{ opacity: 0 }}
         transition={{ duration: 0.6 }}
         className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"
       />
@@ -175,7 +179,6 @@ export default function BrandTakeoverSplash({
       <motion.div
         initial={{ opacity: 0, scale: 0.92, filter: "blur(5px)" }}
         animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-        exit={{ opacity: 0, scale: 1.12, filter: "blur(10px)" }}
         transition={{ 
           duration: 0.7, 
           ease: [0.16, 1, 0.3, 1]
@@ -496,15 +499,6 @@ export default function BrandTakeoverSplash({
         )}
       </motion.div>
 
-      {/* Cinematic Bright Flash Overlay on Exit */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0 }}
-        exit={{ opacity: [0, 1, 1, 0] }}
-        transition={{ duration: 0.6, ease: "easeInOut", times: [0, 0.2, 0.4, 1.0] }}
-        className="absolute inset-0 pointer-events-none mix-blend-screen z-[10000]"
-        style={{ backgroundColor: `${accentColor}33` }}
-      />
     </div>
   );
 }
