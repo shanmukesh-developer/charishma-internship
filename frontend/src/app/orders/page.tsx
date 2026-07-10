@@ -14,6 +14,7 @@ interface OrderItem {
   basePrice?: number;
   customizations?: Record<string, unknown>;
   image?: string;
+  restaurantName?: string;
 }
 
 interface OrderRecord {

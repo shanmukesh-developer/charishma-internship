@@ -272,7 +272,10 @@ export default function BikePoolPage() {
           stopovers: '',
           rideVibe: 'Any',
           vehicleInfo: '',
-          notes: ''
+          notes: '',
+          isRecurring: false,
+          recurringDays: [],
+          estimatedFuelCost: 0
         });
         fetchAvailablePools();
         fetchMyRides();

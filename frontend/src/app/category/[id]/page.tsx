@@ -237,7 +237,7 @@ export default function CategoryPage() {
         )}
       </main>
 
-      <WorldSwitcher />
+      <WorldSwitcher activeWorld="food" />
     </div>
   );
 }

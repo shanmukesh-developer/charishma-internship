@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 interface Toast {
   id: number;
   message: string;
-  type: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'info' | 'warning';
   icon?: string;
 }
 
@@ -38,6 +38,7 @@ export default function ToastProvider() {
     success: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400',
     error:   'border-red-500/40 bg-red-500/10 text-red-400',
     info:    'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]',
+    warning: 'border-amber-500/40 bg-amber-500/10 text-amber-400',
   };
 
   return createPortal(
