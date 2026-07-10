@@ -1,0 +1,233 @@
+/**
+ * push_all_to_live.js — Push ALL missing restaurants + brandThemes to production
+ * Run: node backend/push_all_to_live.js
+ */
+async function pushAll() {
+  const API = 'https://hostelbites-backend-jwmt.onrender.com';
+
+  console.log('🔐 Logging in as admin...');
+  const loginRes = await fetch(`${API}/api/users/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone: '9999999999', password: 'admin123' })
+  });
+  if (!loginRes.ok) { console.error('❌ Login failed:', await loginRes.text()); return; }
+  const { token } = await loginRes.json();
+  console.log('✅ Token acquired\n');
+
+  const restaurants = [
+    {
+      name: "Royal Biryani Handi", location: "Nexus Gate 1", vendorType: "RESTAURANT",
+      imageUrl: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?q=80&w=800&auto=format&fit=crop",
+      tags: ["restaurant", "food", "biryani"],
+      menu: [
+        { name: "Dum Mutton Biryani", price: 340, description: "Slow-cooked goat meat with fragrant Basmati rice.", imageUrl: "https://images.unsplash.com/photo-1589302168068-964664d93dc0?q=80&w=600&auto=format&fit=crop", category: "Biryani", tags: ["biryani", "non-veg"], isVegetarian: false },
+        { name: "Kolkata Chicken Biryani", price: 280, description: "Light aromatic biryani with egg and potato.", imageUrl: "https://images.unsplash.com/photo-1633945274405-b6c8069047b0?q=80&w=600&auto=format&fit=crop", category: "Biryani", tags: ["biryani", "non-veg"], isVegetarian: false }
+      ]
+    },
+    {
+      name: "Artisanal Pizza Lab", location: "Nexus Central", vendorType: "RESTAURANT",
+      imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=800&auto=format&fit=crop",
+      tags: ["restaurant", "food", "pizza"],
+      menu: [
+        { name: "Italian Buffalo Margherita", price: 320, description: "San Marzano tomatoes, buffalo mozzarella, fresh basil.", imageUrl: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?q=80&w=600&auto=format&fit=crop", category: "Pizza", tags: ["pizza", "veg"], isVegetarian: true },
+        { name: "Truffle Mushroom Pizza", price: 450, description: "Wild mushrooms with black truffle oil.", imageUrl: "https://images.unsplash.com/photo-1571407970349-bc81e7e96d47?q=80&w=600&auto=format&fit=crop", category: "Pizza", tags: ["pizza", "premium"], isVegetarian: true }
+      ]
+    },
+    {
+      name: "South Indian Soul", location: "Nexus Plaza", vendorType: "RESTAURANT",
+      imageUrl: "https://images.unsplash.com/photo-1630383249896-424e482df921?q=80&w=800&auto=format&fit=crop",
+      tags: ["restaurant", "food", "south-indian"],
+      menu: [
+        { name: "Ghee Roast Masala Dosa", price: 120, description: "Crispy dosa with potatoes and pure ghee.", imageUrl: "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?q=80&w=600&auto=format&fit=crop", category: "South Indian", tags: ["south-indian", "veg"], isVegetarian: true },
+        { name: "Steamed Button Idli", price: 90, description: "Soft idlis served with three types of chutney.", imageUrl: "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?q=80&w=600&auto=format&fit=crop", category: "South Indian", tags: ["south-indian", "veg"], isVegetarian: true }
+      ]
+    },
+    {
+      name: "Iron Kitchen: Elite Fuel", location: "Campus Gym Wing", vendorType: "GYM",
+      imageUrl: "https://images.unsplash.com/photo-1547592166-23ac45744acd?q=80&w=800&auto=format&fit=crop",
+      tags: ["gym", "high-protein", "healthy"],
+      menu: [
+        { name: "Grilled Salmon Quinoa Bowl", price: 420, description: "Fresh salmon with quinoa, avocado, and kale.", imageUrl: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?q=80&w=600&auto=format&fit=crop", category: "Gym", tags: ["gym", "high-protein", "healthy"], isVegetarian: false },
+        { name: "Vegan Tofu Scramble", price: 290, description: "Silken tofu with turmeric and greens.", imageUrl: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=600&auto=format&fit=crop", category: "Gym", tags: ["gym", "veg", "healthy"], isVegetarian: true }
+      ]
+    },
+    {
+      name: "Zenvy Juice Booth", location: "Central Plaza", vendorType: "DRINKS",
+      imageUrl: "https://images.unsplash.com/photo-1497515114629-f71d768fd07c?q=80&w=800&auto=format&fit=crop",
+      tags: ["drinks"],
+      menu: [
+        { name: "Dragon Fruit Cooler", price: 180, description: "Fresh pink dragon fruit juice with mint.", imageUrl: "https://images.unsplash.com/photo-1525385133512-2f3bdd039054?q=80&w=600&auto=format&fit=crop", category: "Drinks", tags: ["drinks", "fruits"], isVegetarian: true },
+        { name: "Cold Brew Espresso", price: 220, description: "12-hour cold extracted signature blend.", imageUrl: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?q=80&w=600&auto=format&fit=crop", category: "Drinks", tags: ["drinks", "coffee"], isVegetarian: true }
+      ]
+    },
+    {
+      name: "Bakehouse & Sweets", location: "Gate 2 Mall", vendorType: "SWEETS",
+      imageUrl: "https://images.unsplash.com/photo-1551024601-bec78aea704b?q=80&w=800&auto=format&fit=crop",
+      tags: ["sweets"],
+      menu: [
+        { name: "Belgian Chocolate Pastry", price: 160, description: "Rich layers of dark chocolate ganache.", imageUrl: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?q=80&w=600&auto=format&fit=crop", category: "Sweets", tags: ["sweets", "pastry"], isVegetarian: true },
+        { name: "Royal Kesari Rasmalai", price: 190, description: "Traditional saffron milk dumplings.", imageUrl: "https://images.unsplash.com/photo-1601050690597-df056fb1ce7b?q=80&w=600&auto=format&fit=crop", category: "Sweets", tags: ["sweets", "traditional"], isVegetarian: true }
+      ]
+    },
+    {
+      name: "Nexus E-Fleet", location: "Gate 1 Parking", vendorType: "RENTAL",
+      imageUrl: "https://images.unsplash.com/photo-1614165939096-45ef13bcbc0e?q=80&w=800&auto=format&fit=crop",
+      tags: ["rental"],
+      menu: [
+        { name: "Nexus E-Bike Pro", price: 100, description: "Rental for 2 hours. High speed e-bike.", imageUrl: "https://images.unsplash.com/photo-1593764592116-bfb2a97c642a?q=80&w=600&auto=format&fit=crop", category: "Rental", tags: ["rental", "ebike"], isVegetarian: true },
+        { name: "Electric Skate X", price: 150, description: "Rental for full day. Premium board.", imageUrl: "https://images.unsplash.com/photo-1547444801-f99a9f60e392?q=80&w=600&auto=format&fit=crop", category: "Rental", tags: ["rental", "board"], isVegetarian: true }
+      ]
+    },
+    {
+      name: "The Exotic Orchard", location: "Nexus Lobby", vendorType: "GROCERY",
+      imageUrl: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?q=80&w=800&auto=format&fit=crop",
+      tags: ["fruits", "grocery"],
+      menu: [
+        { name: "Premium Berry Box", price: 499, description: "Imported blueberries, raspberries, and strawberries.", imageUrl: "https://images.unsplash.com/photo-1629815049187-b952a2333061?q=80&w=600&auto=format&fit=crop", category: "Fruits", tags: ["fruits", "healthy"], isVegetarian: true },
+        { name: "Avocado Duo Pack", price: 320, description: "Two medium-sized ripe avocados.", imageUrl: "https://images.unsplash.com/photo-1519162808019-7de1683fa2ad?q=80&w=600&auto=format&fit=crop", category: "Fruits", tags: ["fruits", "healthy"], isVegetarian: true }
+      ]
+    },
+    {
+      name: "Nexus Season Specials", location: "Central Store", vendorType: "SEASONAL",
+      imageUrl: "https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=800&auto=format&fit=crop",
+      tags: ["seasonal"],
+      menu: [
+        { name: "Holiday Gift Hamper", price: 899, description: "Exclusive festive goodies and merch.", imageUrl: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=600&auto=format&fit=crop", category: "Seasonal", tags: ["seasonal", "hamper"], isVegetarian: true },
+        { name: "Zenvy Elite Mug", price: 250, description: "Ceramic black and gold branding.", imageUrl: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=600&auto=format&fit=crop", category: "Seasonal", tags: ["seasonal", "merch"], isVegetarian: true }
+      ]
+    },
+    {
+      name: "Stationery & Print", location: "Academic Block", vendorType: "STATIONARY",
+      imageUrl: "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?q=80&w=800&auto=format&fit=crop",
+      tags: ["stationary", "books", "print"],
+      menu: [
+        { name: "Leatherbound Notebook", price: 450, description: "Classic A5 dotted journal.", imageUrl: "https://images.unsplash.com/photo-1531346878377-a5be20888e57?q=80&w=600&auto=format&fit=crop", category: "Stationary", tags: ["stationary", "books"], isVegetarian: true },
+        { name: "Precision Graphic Pen", price: 85, description: "Fineliner for technical drawing.", imageUrl: "https://images.unsplash.com/photo-1515545934533-3392437ce43a?q=80&w=600&auto=format&fit=crop", category: "Stationary", tags: ["stationary", "pens"], isVegetarian: true }
+      ]
+    },
+    {
+      name: "FreshPress Laundry", location: "Laundry Court", vendorType: "LAUNDRY",
+      imageUrl: "https://images.unsplash.com/photo-1545173153-5d4694469bb7?q=80&w=800&auto=format&fit=crop",
+      tags: ["laundry", "dry-wash"],
+      menu: [
+        { name: "Premium Dry Cleaning", price: 500, description: "Per suit/coat with steam press.", imageUrl: "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?q=80&w=600&auto=format&fit=crop", category: "Laundry", tags: ["laundry", "dry-wash"], isVegetarian: true },
+        { name: "Sneaker Deep Wash", price: 200, description: "Professional sneaker restoration.", imageUrl: "https://images.unsplash.com/photo-1514989940723-e8e51635b782?q=80&w=600&auto=format&fit=crop", category: "Laundry", tags: ["laundry", "shoes"], isVegetarian: true }
+      ]
+    },
+    {
+      name: "Campus Health Center", location: "Nexus Health", vendorType: "PHARMACY",
+      imageUrl: "https://images.unsplash.com/photo-1586015555751-63bb77f4322a?q=80&w=800&auto=format&fit=crop",
+      tags: ["pharmacy", "medicine"],
+      menu: [
+        { name: "First Aid Kit", price: 350, description: "Compact emergency medical supplies.", imageUrl: "https://images.unsplash.com/photo-1583947215259-38e31be8751f?q=80&w=600&auto=format&fit=crop", category: "Pharmacy", tags: ["pharmacy", "medicine"], isVegetarian: true },
+        { name: "Vitamin C Pack", price: 120, description: "Immune system support tablets.", imageUrl: "https://images.unsplash.com/photo-1512069772995-ec65ed45afd6?q=80&w=600&auto=format&fit=crop", category: "Pharmacy", tags: ["pharmacy", "health"], isVegetarian: true }
+      ]
+    },
+    {
+      name: "Burger Bunker", location: "Central Plaza", vendorType: "RESTAURANT",
+      imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=800&auto=format&fit=crop",
+      tags: ["restaurant", "food", "burgers"],
+      menu: [
+        { name: "Double Angus Jalapeño", price: 380, description: "Aged beef with house spicy sauce.", imageUrl: "https://images.unsplash.com/photo-1550317138-10000687ad32?q=80&w=600&auto=format&fit=crop", category: "Burgers", tags: ["burgers", "non-veg"], isVegetarian: false },
+        { name: "Classic Cheese Melt", price: 290, description: "Triple cheese blend with caramelized onions.", imageUrl: "https://images.unsplash.com/photo-1571091718767-18b5b1457add?q=80&w=600&auto=format&fit=crop", category: "Burgers", tags: ["burgers", "veg"], isVegetarian: true }
+      ]
+    },
+    {
+      name: "Roll Republic", location: "South Hub", vendorType: "RESTAURANT",
+      imageUrl: "https://images.unsplash.com/photo-1626078299034-90f7727142be?q=80&w=800&auto=format&fit=crop",
+      tags: ["restaurant", "food", "rolls"],
+      menu: [
+        { name: "Kolkata Egg Chicken Roll", price: 180, description: "Classic egg washed roll with lemon chicken.", imageUrl: "https://images.unsplash.com/photo-1589302168068-964664d93dc0?q=80&w=600&auto=format&fit=crop", category: "Rolls", tags: ["rolls", "non-veg"], isVegetarian: false },
+        { name: "Paneer Tikka Roll", price: 150, description: "Char-grilled paneer with mint chutney wrap.", imageUrl: "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?q=80&w=600&auto=format&fit=crop", category: "Rolls", tags: ["rolls", "veg"], isVegetarian: true }
+      ]
+    },
+    {
+      name: "Mandarin Magic", location: "Nexus Central Hub", vendorType: "RESTAURANT",
+      imageUrl: "https://images.unsplash.com/photo-1585032226651-759b368d7246?q=80&w=800&auto=format&fit=crop",
+      tags: ["restaurant", "food", "chinese"],
+      menu: [
+        { name: "Hakka Noodles (Special)", price: 220, description: "Wok-tossed noodles with exotic mountain spices.", imageUrl: "https://images.unsplash.com/photo-1526318896980-cf78c088247c?q=80&w=600&auto=format&fit=crop", category: "Chinese", tags: ["chinese", "veg"], isVegetarian: true },
+        { name: "Chili Garlic Dry Chicken", price: 280, description: "Crispy chicken tossed in burnt garlic sauce.", imageUrl: "https://images.unsplash.com/photo-1623341214825-9f4f963727da?q=80&w=600&auto=format&fit=crop", category: "Chinese", tags: ["chinese", "non-veg"], isVegetarian: false }
+      ]
+    },
+    // Flagship brands with CORRECT logoUrls (Wikipedia SVGs)
+    {
+      name: "KFC Premium", location: "Nexus Gate 1", vendorType: "RESTAURANT",
+      imageUrl: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?q=80&w=800&auto=format&fit=crop",
+      tags: ["restaurant", "food", "burgers", "chicken", "premium"],
+      brandTheme: {
+        primaryColor: "#E4002B", secondaryColor: "#111111", accentColor: "#FFC72C",
+        gradient: "linear-gradient(135deg, #E4002B 0%, #111111 100%)",
+        fontColor: "#FFFFFF", logoAnimationType: "kfc-bucket-drop",
+        logoUrl: "https://upload.wikimedia.org/wikipedia/en/thumb/b/bf/KFC_logo.svg/1200px-KFC_logo.svg.png"
+      },
+      menu: [
+        { name: "KFC Zinger Burger", price: 199, description: "Signature crispy chicken zinger burger.", imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=600&auto=format&fit=crop", category: "Burgers", tags: ["burgers", "non-veg"], isVegetarian: false },
+        { name: "KFC 8pc Hot & Crispy Bucket", price: 649, description: "8 pieces of signature hot & crispy chicken.", imageUrl: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?q=80&w=600&auto=format&fit=crop", category: "Fried Chicken", tags: ["chicken", "non-veg"], isVegetarian: false },
+        { name: "KFC Popcorn Chicken Large", price: 229, description: "Crispy bite-sized chicken popcorn.", imageUrl: "https://images.unsplash.com/photo-1562967914-608f82629710?q=80&w=600&auto=format&fit=crop", category: "Sides", tags: ["chicken", "non-veg"], isVegetarian: false }
+      ]
+    },
+    {
+      name: "Domino's Pizza", location: "Nexus Central", vendorType: "RESTAURANT",
+      imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=800&auto=format&fit=crop",
+      tags: ["restaurant", "food", "pizza", "premium"],
+      brandTheme: {
+        primaryColor: "#006491", secondaryColor: "#E31B23", accentColor: "#006491",
+        gradient: "linear-gradient(135deg, #006491 0%, #E31B23 100%)",
+        fontColor: "#FFFFFF", logoAnimationType: "dominos-flip",
+        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Domino%27s_pizza_logo.svg/1200px-Domino%27s_pizza_logo.svg.png"
+      },
+      menu: [
+        { name: "Domino's Cheese Burst Margherita", price: 299, description: "Classic cheese burst pizza.", imageUrl: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?q=80&w=600&auto=format&fit=crop", category: "Pizza", tags: ["pizza", "veg"], isVegetarian: true },
+        { name: "Domino's Garlic Breadsticks", price: 129, description: "Freshly baked garlic breadsticks with cheesy dip.", imageUrl: "https://images.unsplash.com/photo-1544982503-9f984c14501a?q=80&w=600&auto=format&fit=crop", category: "Sides", tags: ["pizza", "veg"], isVegetarian: true },
+        { name: "Domino's Choco Lava Cake", price: 109, description: "Hot chocolate lava cake with molten core.", imageUrl: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?q=80&w=600&auto=format&fit=crop", category: "Desserts", tags: ["dessert", "veg"], isVegetarian: true }
+      ]
+    },
+    {
+      name: "McDonald's Premium", location: "Nexus East", vendorType: "RESTAURANT",
+      imageUrl: "https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=800&auto=format&fit=crop",
+      tags: ["restaurant", "food", "burgers", "premium"],
+      brandTheme: {
+        primaryColor: "#FFC72C", secondaryColor: "#DA291C", accentColor: "#FFC72C",
+        gradient: "linear-gradient(135deg, #DA291C 0%, #FFC72C 100%)",
+        fontColor: "#FFFFFF", logoAnimationType: "mcd-glow",
+        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/McDonald%27s_Golden_Arches.svg/1200px-McDonald%27s_Golden_Arches.svg.png"
+      },
+      menu: [
+        { name: "McDonald's Big Mac", price: 249, description: "Double layer flame-grilled chicken patties.", imageUrl: "https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=600&auto=format&fit=crop", category: "Burgers", tags: ["burgers", "non-veg"], isVegetarian: false },
+        { name: "McDonald's French Fries L", price: 149, description: "World famous crispy golden fries.", imageUrl: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?q=80&w=600&auto=format&fit=crop", category: "Sides", tags: ["fries", "veg"], isVegetarian: true },
+        { name: "McDonald's McFlurry Oreo", price: 129, description: "Creamy vanilla soft serve with Oreo crumbs.", imageUrl: "https://images.unsplash.com/photo-1579954115545-a95591f28bfc?q=80&w=600&auto=format&fit=crop", category: "Desserts", tags: ["dessert", "veg"], isVegetarian: true }
+      ]
+    }
+  ];
+
+  console.log(`📡 Pushing ${restaurants.length} restaurants to production...`);
+  const seedRes = await fetch(`${API}/api/admin/seed`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ restaurants })
+  });
+
+  if (!seedRes.ok) {
+    console.error('❌ Seed failed:', await seedRes.text());
+    return;
+  }
+  const result = await seedRes.json();
+  console.log('✅ Result:', result);
+
+  // Verify
+  console.log('\n🔍 Verifying all restaurants on live...');
+  const verifyRes = await fetch(`${API}/api/users/restaurants`);
+  const allData = await verifyRes.json();
+  const names = restaurants.map(r => r.name);
+  let found = 0, missing = 0;
+  for (const name of names) {
+    const r = allData.find(x => x.name === name);
+    if (r) { console.log(`  ✅ ${name}${r.brandTheme ? ' [brandTheme SET]' : ''}`); found++; }
+    else    { console.log(`  ❌ ${name} — NOT FOUND`); missing++; }
+  }
+  console.log(`\n🏁 Done: ${found} found, ${missing} missing on live.`);
+}
+
+pushAll().catch(console.error);
