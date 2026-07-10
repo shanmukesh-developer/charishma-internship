@@ -159,6 +159,14 @@ export default function Home() {
       }
       const storedFavs = localStorage.getItem('zenvy_favorites');
       if (storedFavs) setFavorites(JSON.parse(storedFavs));
+
+      // Restore Zenvy home page filters & search for native Android experience
+      const savedFilter = sessionStorage.getItem('zenvy_home_filter');
+      if (savedFilter) setFilter(savedFilter as any);
+      const savedSearch = sessionStorage.getItem('zenvy_home_search');
+      if (savedSearch) setRestaurantSearch(savedSearch);
+      const savedSort = sessionStorage.getItem('zenvy_home_sort');
+      if (savedSort) setSortBy(savedSort as any);
     } catch { /* ignore */ }
 
     // Check backend mode and active orders
@@ -264,6 +272,56 @@ export default function Home() {
     };
   }, []);
 
+  // Save filters to session storage for Android back-button experience
+  useEffect(() => {
+    if (mounted) {
+      try {
+        sessionStorage.setItem('zenvy_home_filter', filter);
+      } catch { /* ignore */ }
+    }
+  }, [filter, mounted]);
+
+  useEffect(() => {
+    if (mounted) {
+      try {
+        sessionStorage.setItem('zenvy_home_search', restaurantSearch);
+      } catch { /* ignore */ }
+    }
+  }, [restaurantSearch, mounted]);
+
+  useEffect(() => {
+    if (mounted) {
+      try {
+        sessionStorage.setItem('zenvy_home_sort', sortBy);
+      } catch { /* ignore */ }
+    }
+  }, [sortBy, mounted]);
+
+  // Save scroll position on scroll
+  useEffect(() => {
+    if (!mounted) return;
+    const handleScroll = () => {
+      try {
+        sessionStorage.setItem('zenvy_home_scroll', window.scrollY.toString());
+      } catch { /* ignore */ }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [mounted]);
+
+  // Restore scroll position after loading completes
+  useEffect(() => {
+    if (!isLoading && mounted) {
+      const savedScroll = sessionStorage.getItem('zenvy_home_scroll');
+      if (savedScroll) {
+        const targetScroll = Number(savedScroll);
+        const timer = setTimeout(() => {
+          window.scrollTo({ top: targetScroll, behavior: 'instant' as any });
+        }, 150); // Give the grid layout a brief 150ms to finish rendering
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isLoading, mounted]);
 
   useEffect(() => {
     const handleSystemUpdate = (payload: { type: string; data: any }) => {
@@ -616,6 +674,9 @@ export default function Home() {
     });
   }, [liveRestaurants, filter, gymMode, restaurantSearch, sortBy, user]);
 
+  const kfcRestaurant = liveRestaurants.find(r => r.name.toLowerCase().includes('kfc'));
+  const kfcRedirectUrl = kfcRestaurant ? `/restaurants/${kfcRestaurant.id || kfcRestaurant._id}` : '#';
+
   if (showIntro === null) return <div className="min-h-screen bg-black" />;
 
   return (
@@ -727,6 +788,17 @@ export default function Home() {
             {/* Promo Carousel (Ads and Offers) */}
             <PromoCarousel 
               offers={[
+                { 
+                  id: 'kfc-promo', 
+                  imageUrl: '/assets/kfc_takeover_banner.png', 
+                  tagline: 'KFC TAKEOVER LIVE', 
+                  title1: 'CRISPY. JUICY.', 
+                  title2: 'CRUNCHY BUCKET', 
+                  description: 'KFC PREMIUM TAKEOVER IS NOW LIVE. TAP TO UNLEASH BRAND THEME MOMENTS AND ORDER ONLINE.', 
+                  buttonText: 'ORDER KFC NOW', 
+                  isActive: true,
+                  redirectUrl: kfcRedirectUrl
+                },
                 { 
                   id: '0', 
                   imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=1974&auto=format&fit=crop', 

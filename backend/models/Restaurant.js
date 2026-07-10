@@ -50,7 +50,17 @@ const initRestaurantModel = (sequelize) => {
     subscriptionTier: { type: DataTypes.STRING, defaultValue: 'free' }, // 'free' or 'premium'
     stallDescription: { type: DataTypes.TEXT, allowNull: true },
     promoOffer: { type: DataTypes.STRING, allowNull: true }, // e.g. 'Buy 2 Get 1 Free'
-    clickCount: { type: DataTypes.INTEGER, defaultValue: 0 }
+    clickCount: { type: DataTypes.INTEGER, defaultValue: 0 },
+    brandTheme: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      defaultValue: null,
+      get() {
+        const val = this.getDataValue('brandTheme');
+        try { return val ? JSON.parse(val) : null; } catch { return null; }
+      },
+      set(val) { this.setDataValue('brandTheme', val ? JSON.stringify(val) : null); }
+    }
   }, { timestamps: true });
 
   const hashPassword = async (restaurant) => {

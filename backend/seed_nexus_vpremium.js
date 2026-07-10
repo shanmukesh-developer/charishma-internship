@@ -139,6 +139,63 @@ const RESTAURANTS = [
         { name: "Hakka Noodles (Special)", price: 220, description: "Wok-tossed noodles with exotic mountain spices.", imageUrl: "https://images.unsplash.com/photo-1526318896980-cf78c088247c?q=80&w=600&auto=format&fit=crop", category: "Chinese", tags: ["chinese", "veg"], isVegetarian: true },
         { name: "Chili Garlic Dry Chicken", price: 280, description: "Crispy chicken tossed in burnt garlic sauce.", imageUrl: "https://images.unsplash.com/photo-1623341214825-9f4f963727da?q=80&w=600&auto=format&fit=crop", category: "Chinese", tags: ["chinese", "non-veg"], isVegetarian: false }
     ]
+  },
+  {
+    name: "KFC Premium", location: "Nexus Gate 1", vendorType: "RESTAURANT",
+    imageUrl: "/assets/kfc_takeover_banner.png",
+    tags: ["restaurant", "food", "burgers", "chicken", "premium"],
+    brandTheme: {
+      primaryColor: "#E4002B",
+      secondaryColor: "#111111",
+      accentColor: "#FFC72C",
+      gradient: "linear-gradient(135deg, #E4002B 0%, #111111 100%)",
+      fontColor: "#FFFFFF",
+      logoAnimationType: "kfc-bucket-drop",
+      logoUrl: "/assets/kfc_logo.png"
+    },
+    menu: [
+      { name: "KFC Zinger Burger", price: 199, description: "Signature crispy chicken zinger burger, freshly prepared.", imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=600&auto=format&fit=crop", category: "Burgers", tags: ["burgers", "non-veg"], isVegetarian: false },
+      { name: "KFC 8pc Hot & Crispy Bucket", price: 649, description: "8 pieces of signature hot & crispy chicken, perfect for sharing.", imageUrl: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?q=80&w=600&auto=format&fit=crop", category: "Fried Chicken", tags: ["chicken", "non-veg"], isVegetarian: false },
+      { name: "KFC Popcorn Chicken Large", price: 229, description: "Crispy, bite-sized chicken popcorn seasoned perfectly.", imageUrl: "https://images.unsplash.com/photo-1562967914-608f82629710?q=80&w=600&auto=format&fit=crop", category: "Sides", tags: ["chicken", "non-veg"], isVegetarian: false }
+    ]
+  },
+  {
+    name: "Domino's Pizza", location: "Nexus Central", vendorType: "RESTAURANT",
+    imageUrl: "/assets/dominos_takeover_banner.png",
+    tags: ["restaurant", "food", "pizza", "premium"],
+    brandTheme: {
+      primaryColor: "#006491",
+      secondaryColor: "#E31B23",
+      accentColor: "#006491",
+      gradient: "linear-gradient(135deg, #006491 0%, #E31B23 100%)",
+      fontColor: "#FFFFFF",
+      logoAnimationType: "dominos-flip",
+      logoUrl: "/assets/dominos_logo.png"
+    },
+    menu: [
+      { name: "Domino's Cheese Burst Margherita", price: 299, description: "Classic cheese burst pizza with rich tomato herb sauce.", imageUrl: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?q=80&w=600&auto=format&fit=crop", category: "Pizza", tags: ["pizza", "veg"], isVegetarian: true },
+      { name: "Domino's Garlic Breadsticks", price: 129, description: "Freshly baked garlic breadsticks served with cheesy dip.", imageUrl: "https://images.unsplash.com/photo-1544982503-9f984c14501a?q=80&w=600&auto=format&fit=crop", category: "Sides", tags: ["pizza", "veg"], isVegetarian: true },
+      { name: "Domino's Choco Lava Cake", price: 109, description: "Delicious hot chocolate lava cake with molten core.", imageUrl: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?q=80&w=600&auto=format&fit=crop", category: "Desserts", tags: ["dessert", "veg"], isVegetarian: true }
+    ]
+  },
+  {
+    name: "McDonald's Premium", location: "Nexus East", vendorType: "RESTAURANT",
+    imageUrl: "/assets/mcdonalds_takeover_banner.png",
+    tags: ["restaurant", "food", "burgers", "premium"],
+    brandTheme: {
+      primaryColor: "#FFC72C",
+      secondaryColor: "#DA291C",
+      accentColor: "#FFC72C",
+      gradient: "linear-gradient(135deg, #DA291C 0%, #FFC72C 100%)",
+      fontColor: "#FFFFFF",
+      logoAnimationType: "mcd-glow",
+      logoUrl: "/assets/mcdonalds_logo.png"
+    },
+    menu: [
+      { name: "McDonald's Big Mac", price: 249, description: "Double layer flame-grilled chicken patties, special sauce, cheese, pickles.", imageUrl: "https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=600&auto=format&fit=crop", category: "Burgers", tags: ["burgers", "non-veg"], isVegetarian: false },
+      { name: "McDonald's French Fries L", price: 149, description: "World famous crispy golden fries salted perfectly.", imageUrl: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?q=80&w=600&auto=format&fit=crop", category: "Sides", tags: ["fries", "veg"], isVegetarian: true },
+      { name: "McDonald's McFlurry Oreo", price: 129, description: "Creamy vanilla soft serve with crunchy Oreo cookie crumbs.", imageUrl: "https://images.unsplash.com/photo-1579954115545-a95591f28bfc?q=80&w=600&auto=format&fit=crop", category: "Desserts", tags: ["dessert", "veg"], isVegetarian: true }
+    ]
   }
 ];
 
@@ -176,7 +233,8 @@ async function reseed() {
       isActive: true,
       tags: JSON.stringify(r.tags),
       rating: (Math.random() * (5.0 - 4.5) + 4.5).toFixed(1),
-      time: "20-35 min"
+      time: "20-35 min",
+      brandTheme: r.brandTheme ? r.brandTheme : null
     });
 
     for (let i = 0; i < r.menu.length; i++) {

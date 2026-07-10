@@ -385,7 +385,8 @@ const connectDB = async () => {
           { name: 'stallDescription', type: 'TEXT' },
           { name: 'promoOffer', type: 'VARCHAR(255)' },
           { name: 'clickCount', type: 'INTEGER DEFAULT 0' },
-          { name: 'isOffline', type: 'BOOLEAN DEFAULT 0' }
+          { name: 'isOffline', type: 'BOOLEAN DEFAULT 0' },
+          { name: 'brandTheme', type: 'TEXT' }
         ];
         for (const col of restCols) {
           try {

@@ -12,6 +12,7 @@ export interface PromoOffer {
   description: string;
   buttonText: string;
   isActive: boolean;
+  redirectUrl?: string;
 }
 
 interface PromoCarouselProps {
@@ -39,7 +40,20 @@ export default function PromoCarousel({ offers }: PromoCarouselProps) {
   return (
     <div className="relative mb-4 group">
       <div className="absolute inset-x-0 -top-10 h-40 bg-gradient-to-b from-primary-yellow/5 to-transparent pointer-events-none" />
-      <div className="glass-card-extreme overflow-hidden rounded-[30px] border border-white/5 relative min-h-[210px] h-auto md:h-[280px] flex items-center px-6 md:px-12 py-10 md:py-0 group">
+      <motion.div 
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.15}
+        onDragEnd={(e, info) => {
+          const swipeThreshold = 50;
+          if (info.offset.x < -swipeThreshold) {
+            setCurrentIndex((prev) => (prev + 1) % activeOffers.length);
+          } else if (info.offset.x > swipeThreshold) {
+            setCurrentIndex((prev) => (prev - 1 + activeOffers.length) % activeOffers.length);
+          }
+        }}
+        className="glass-card-extreme overflow-hidden rounded-[30px] border border-white/5 relative min-h-[210px] h-auto md:h-[280px] flex items-center px-6 md:px-12 py-10 md:py-0 group cursor-grab active:cursor-grabbing"
+      >
         
         {/* Background Image Container */}
         <div className="absolute inset-0 w-full h-full pointer-events-none z-0">
@@ -90,7 +104,9 @@ export default function PromoCarousel({ offers }: PromoCarouselProps) {
                   whileTap={{ scale: 0.95 }}
                   whileHover={{ scale: 1.02 }}
                   onClick={() => {
-                    if (currentOffer.buttonText === 'CREATE BASKET') {
+                    if (currentOffer.redirectUrl) {
+                      window.location.href = currentOffer.redirectUrl;
+                    } else if (currentOffer.buttonText === 'CREATE BASKET') {
                       window.location.href = '/mega-basket';
                     } else {
                       document.getElementById('restaurant-feed')?.scrollIntoView({ behavior: 'smooth' });
@@ -122,7 +138,7 @@ export default function PromoCarousel({ offers }: PromoCarouselProps) {
 
         {/* Stardust Aura Effect */}
         <div className="absolute bottom-0 left-1/4 w-1/2 h-px bg-gradient-to-r from-transparent via-[#C9A84C]/40 to-transparent blur-sm" />
-      </div>
+      </motion.div>
     </div>
   );
 }

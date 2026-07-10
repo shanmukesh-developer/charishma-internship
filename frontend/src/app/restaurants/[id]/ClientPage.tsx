@@ -11,9 +11,10 @@ import { Restaurant, MenuItem } from '@/types';
 import Tilt from '@/components/Tilt';
 import Magnetic from '@/components/Magnetic';
 import { saveRecentlyViewed } from '@/components/RecentlyViewed';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { API_URL } from '@/utils/api';
 import ZenvyLoader from '@/components/ZenvyLoader';
+import BrandTakeoverSplash from '@/components/BrandTakeoverSplash';
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || API_URL;
 
@@ -41,6 +42,8 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
 
   const effectiveId = (legacyIdMap[restaurantId] || restaurantId).replace(/\/$/, "");
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [showTakeoverSplash, setShowTakeoverSplash] = useState(false);
+  const [takeoverDone, setTakeoverDone] = useState(false);
   const [loading, setLoading] = useState(true);
   const [soldOutItems, setSoldOutItems] = useState<Set<string>>(new Set());
   const { totalItems, addToCart, clearCart } = useCart();
@@ -82,6 +85,9 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
       .then(data => {
         if (data && data.name) {
           setRestaurant(data);
+          if (data.brandTheme) {
+            setShowTakeoverSplash(true);
+          }
           saveRecentlyViewed({
             id: effectiveId,
             name: data.name,
@@ -234,8 +240,59 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
     }
   };
 
+  const brand = restaurant?.brandTheme
+    ? (typeof restaurant.brandTheme === 'string' ? JSON.parse(restaurant.brandTheme) : restaurant.brandTheme)
+    : null;
+
   return (
-    <main ref={mainRef} className="min-h-screen pb-48 bg-background text-white light:text-gray-900 overflow-y-auto overflow-x-hidden relative light:bg-gradient-to-b light:from-[#f8f8fa] light:to-white">
+    <main 
+      ref={mainRef} 
+      className={`min-h-screen pb-48 overflow-y-auto overflow-x-hidden relative transition-all duration-1000 ${
+        brand 
+          ? 'text-white' 
+          : 'bg-background text-white light:text-gray-900 light:bg-gradient-to-b light:from-[#f8f8fa] light:to-white'
+      }`}
+      style={brand ? { 
+        background: brand.gradient || brand.primaryColor,
+        color: brand.fontColor || '#ffffff'
+      } : {}}
+    >
+      {brand && (
+        <style dangerouslySetInnerHTML={{__html: `
+          .brand-takeover-card {
+            border-color: rgba(255, 255, 255, 0.05) !important;
+            background-color: rgba(0, 0, 0, 0.6) !important;
+          }
+          .brand-takeover-card:hover {
+            border-color: ${brand.accentColor} !important;
+            box-shadow: 0 0 20px ${brand.accentColor}30 !important;
+          }
+          .brand-takeover-card:hover h3 {
+            color: ${brand.accentColor} !important;
+          }
+          .brand-takeover-btn {
+            background-color: ${brand.accentColor} !important;
+            color: ${brand.secondaryColor || '#000000'} !important;
+            border-color: ${brand.accentColor} !important;
+          }
+          .brand-takeover-btn:hover {
+            opacity: 0.9;
+          }
+        `}} />
+      )}
+      <AnimatePresence>
+        {showTakeoverSplash && brand && (
+          <BrandTakeoverSplash
+            brandName={restaurant.name}
+            logoAnimationType={brand.logoAnimationType}
+            logoUrl={brand.logoUrl}
+            onComplete={() => {
+              setShowTakeoverSplash(false);
+              setTakeoverDone(true);
+            }}
+          />
+        )}
+      </AnimatePresence>
       {isMaintenance && (
         <div className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center animate-fade-in">
           <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center text-3xl mb-6 animate-pulse">🛠️</div>
@@ -290,7 +347,11 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
         {/* Restaurant Info Overlay with Tilt */}
         <div className="absolute bottom-6 md:bottom-10 left-4 md:left-6 right-4 md:right-6 z-10">
           <Tilt scale={1.02}>
-            <div className="p-4 md:p-6 rounded-[24px] md:rounded-[32px] bg-black/40 backdrop-blur-xl border border-white/5 shadow-2xl light:bg-white light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] light:shadow-md">
+            <div className={`p-4 md:p-6 rounded-[24px] md:rounded-[32px] backdrop-blur-xl border shadow-2xl transition-all duration-500 ${
+              brand 
+                ? 'border-white/10 bg-black/60 shadow-[0_0_30px_rgba(0,0,0,0.5)]' 
+                : 'bg-black/40 border border-white/5 light:bg-white light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] light:shadow-md'
+            }`}>
               <div className="w-full px-4 pt-10 pt-safe md:px-10 lg:px-14 pb-4">
                 {isSurge ? (
                   <span className="bg-red-500 text-white light:text-gray-900 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-wider animate-pulse flex items-center gap-1 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
@@ -301,7 +362,21 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
                 )}
                 <span className="text-xs font-bold text-white light:text-gray-900/50 light:text-black">⭐ {restaurant.rating}</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-black mb-1 text-gold-shimmer light:text-black">{restaurant.name}</h1>
+
+              <div className="flex items-center gap-3 mb-1">
+                {brand && brand.logoUrl && (
+                  <div className="relative w-8 h-8 shrink-0">
+                    <SafeImage src={brand.logoUrl} alt={`${restaurant.name} logo`} fill style={{ objectFit: 'contain' }} />
+                  </div>
+                )}
+                <h1 
+                  className={`text-2xl md:text-3xl font-black text-gold-shimmer ${brand ? '' : 'light:text-black'}`}
+                  style={brand ? { color: brand.accentColor, textShadow: `0 0 15px ${brand.accentColor}30` } : {}}
+                >
+                  {restaurant.name}
+                </h1>
+              </div>
+
               <p className="text-secondary-text text-[11px] font-medium leading-relaxed light:text-black">{restaurant.description || restaurant.stallDescription}</p>
               
               {isLocalVendor && (
@@ -361,7 +436,13 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
             <Magnetic key={cat}>
               <button 
                 onClick={() => setActiveCategory(cat)}
-                className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 shadow-xl ${activeCategory === cat ? 'bg-[#EF4F5F] text-white light:text-gray-900 shadow-[#EF4F5F]/20 scale-105' : 'bg-white/5 border border-white/5 text-secondary-text hover:text-white light:text-gray-900 hover:bg-white/10 light:bg-black light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] light:text-black light:hover:text-black light:hover:bg-black/10'}`}>
+                className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 shadow-xl ${activeCategory === cat ? 'bg-[#EF4F5F] text-white light:text-gray-900 shadow-[#EF4F5F]/20 scale-105' : 'bg-white/5 border border-white/5 text-secondary-text hover:text-white light:text-gray-900 hover:bg-white/10 light:bg-black light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] light:text-black light:hover:text-black light:hover:bg-black/10'}`}
+                style={brand ? (
+                  activeCategory === cat
+                    ? { backgroundColor: brand.accentColor, color: brand.secondaryColor || '#000000', boxShadow: `0 0 15px ${brand.accentColor}30` }
+                    : { backgroundColor: 'rgba(255, 255, 255, 0.08)', color: '#ffffff', borderColor: 'rgba(255,255,255,0.1)' }
+                ) : {}}
+              >
                 {cat}
               </button>
             </Magnetic>
@@ -376,7 +457,7 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
             const isEliteRestricted = item.isEliteOnly && !isUserElite;
             
             const cardContent = (
-              <div className={`flex gap-4 items-start bg-black/40 backdrop-blur-xl p-4 md:p-5 rounded-[24px] md:rounded-[32px] border border-white/5 hover:border-red-500/25 transition-all duration-500 group relative overflow-hidden light:bg-white light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] light:hover:border-black/15 light:shadow-md ${isSoldOut || isEliteRestricted ? ' grayscale' : ''} ${isEliteRestricted ? 'pointer-events-none' : ''}`}>
+              <div className={`flex gap-4 items-start bg-black/40 backdrop-blur-xl p-4 md:p-5 rounded-[24px] md:rounded-[32px] border border-white/5 hover:border-red-500/25 transition-all duration-500 group relative overflow-hidden light:bg-white light:border-gray-200 light:shadow-[0_4px_15px_rgba(0,0,0,0.05)] light:hover:border-black/15 light:shadow-md ${isSoldOut || isEliteRestricted ? ' grayscale' : ''} ${isEliteRestricted ? 'pointer-events-none' : ''} ${brand ? 'brand-takeover-card' : ''}`}>
                 {/* Glow Layer */}
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_var(--mouse-x,50%)_var(--mouse-y,50%),rgba(239,79,95,0.03)_0%,transparent_80%)] pointer-events-none" />
                 
@@ -510,7 +591,18 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
 
       {/* Floating Cart */}
       {totalItems > 0 && !isLocalVendor && (
-        <Link href="/basket" className="fixed bottom-6 right-6 left-6 h-16 bg-gradient-to-r from-[#C9A84C] via-[#E8D18C] to-[#C9A84C] text-black rounded-full flex items-center justify-between px-8 z-50 shadow-2xl shadow-[#C9A84C]/30 active:scale-95 transition-all">
+        <Link 
+          href="/basket" 
+          className={`fixed bottom-6 right-6 left-6 h-16 text-black rounded-full flex items-center justify-between px-8 z-50 shadow-2xl active:scale-95 transition-all ${
+            brand 
+              ? 'shadow-black/50' 
+              : 'bg-gradient-to-r from-[#C9A84C] via-[#E8D18C] to-[#C9A84C] shadow-[#C9A84C]/30'
+          }`}
+          style={brand ? { 
+            background: `linear-gradient(90deg, ${brand.primaryColor}, ${brand.accentColor})`,
+            color: brand.secondaryColor || '#000000'
+          } : {}}
+        >
            <div className="flex items-center gap-3">
               <span className="w-7 h-7 rounded-full bg-black text-white light:text-gray-900 text-[11px] font-black flex items-center justify-center">{totalItems}</span>
               <span className="font-black uppercase tracking-widest text-[11px]">View Basket</span>

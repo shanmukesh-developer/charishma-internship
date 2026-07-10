@@ -48,6 +48,7 @@ export interface Restaurant {
   clickCount?: number;
   operatingHours?: { start?: string; end?: string };
   canteenType?: string;
+  brandTheme?: any;
 }
 
 export interface User {
