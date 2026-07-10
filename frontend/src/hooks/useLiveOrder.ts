@@ -13,7 +13,11 @@ export const useLiveOrder = (orderId: string) => {
     if (!orderId) return;
 
     socketRef.current = socket;
-    socketRef.current.emit('joinOrder', orderId);
+    const join = () => {
+      socketRef.current?.emit('joinOrder', orderId);
+    };
+    join();
+    socketRef.current.on('connect', join);
 
     socketRef.current.on('locationUpdated', (data) => {
       setLocation({ lat: data.lat, lng: data.lng });
@@ -21,7 +25,8 @@ export const useLiveOrder = (orderId: string) => {
     });
 
     return () => {
-      socket.off('locationUpdated');
+      socketRef.current?.off('connect', join);
+      socketRef.current?.off('locationUpdated');
     };
   }, [orderId]);
 

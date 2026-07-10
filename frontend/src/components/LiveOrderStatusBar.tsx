@@ -42,7 +42,14 @@ export default function LiveOrderStatusBar({ orderId, initialStatus = 'Pending',
 
   useEffect(() => {
     if (!orderId) return;
-    socket.emit('joinOrder', orderId);
+
+    const joinRoom = () => {
+      socket.emit('joinOrder', orderId);
+    };
+
+    joinRoom();
+    socket.on('connect', joinRoom);
+
     socket.on('statusUpdated', (data: any) => {
       const s = typeof data === 'string' ? data : data.status;
       const targetId = typeof data === 'object' && data !== null ? data.id || data.orderId : null;
@@ -59,6 +66,7 @@ export default function LiveOrderStatusBar({ orderId, initialStatus = 'Pending',
     });
 
     return () => { 
+      socket.off('connect', joinRoom);
       socket.off('statusUpdated');
       socket.off('locationUpdated');
     };

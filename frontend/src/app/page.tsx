@@ -29,7 +29,6 @@ import Tilt from '@/components/Tilt';
 import socket from '@/utils/socket';
 import { Restaurant, User, NexusItem } from '@/types';
 import RewardsPanel from '@/components/RewardsPanel';
-import NexusLeaderboard from '@/components/NexusLeaderboard';
 import SurgeBanner from '@/components/SurgeBanner';
 // import GlobalAnnouncement from '@/components/GlobalAnnouncement';
 import Navbar from '@/components/Navbar';
@@ -235,19 +234,41 @@ export default function Home() {
     };
     fetchAIPicks();
     
-    // Simulate finding an active order (for UX demo)
-    const storedOrder = localStorage.getItem('last_order');
-    if (storedOrder) {
-      const parsed = JSON.parse(storedOrder);
-      setActiveOrder(parsed);
-      // Calculate remaining cancellation window (2 min = 120s)
-      if (parsed.createdAt) {
-        const elapsed = (Date.now() - new Date(parsed.createdAt).getTime()) / 1000;
-        const remaining = Math.max(0, 120 - Math.round(elapsed));
-        setCancelSecondsLeft(remaining);
-      } else {
-        setCancelSecondsLeft(120);
+    // Sync and fetch active order from backend database
+    const syncActiveOrder = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/orders/myorders`);
+        if (res.ok) {
+          const orders = await res.json();
+          if (Array.isArray(orders)) {
+            const active = orders.find((o: any) => o.status !== 'Delivered' && o.status !== 'Cancelled');
+            if (active) {
+              setActiveOrder(active);
+              localStorage.setItem('last_order', JSON.stringify(active));
+              if (active.createdAt) {
+                const elapsed = (Date.now() - new Date(active.createdAt).getTime()) / 1000;
+                const remaining = Math.max(0, 120 - Math.round(elapsed));
+                setCancelSecondsLeft(remaining);
+              } else {
+                setCancelSecondsLeft(120);
+              }
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[ACTIVE_ORDER_SYNC_ERROR]', err);
       }
+      setActiveOrder(null);
+      localStorage.removeItem('last_order');
+    };
+
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      syncActiveOrder();
+    } else {
+      setActiveOrder(null);
+      localStorage.removeItem('last_order');
     }
 
     // Simulate loading for UX polish
@@ -920,7 +941,7 @@ export default function Home() {
                 { name: 'Biryani', img: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?q=80&w=200&auto=format&fit=crop' },
                 { name: 'Pizza', img: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=200&auto=format&fit=crop' },
                 { name: 'Burgers', img: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=200&auto=format&fit=crop' },
-                { name: 'South Indian', img: 'https://images.unsplash.com/photo-1610192131976-96b6c00e12cc?q=80&w=200&auto=format&fit=crop' },
+                { name: 'South Indian', img: 'https://images.unsplash.com/photo-1541832676-9b763b0239ab?q=80&w=200&auto=format&fit=crop' },
                 { name: 'Drinks', img: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?q=80&w=200&auto=format&fit=crop' },
                 { name: 'Chinese', img: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?q=80&w=200&auto=format&fit=crop' }
               ].map(classic => (
@@ -1171,21 +1192,6 @@ export default function Home() {
         </AnimatePresence>
 
         </div> {/* End Main Feed Content (Opened at 456) */}
-
-        {/* 🏷️ Leaderboard & Metrics Panel (Now Mobile Visible) */}
-        <div className="w-full px-4 mt-12 space-y-8 pb-32">
-            <NexusLeaderboard />
-            
-            {/* Extra Desktop Side-space Polish */}
-            <div className="glass-card p-6 rounded-[34px] border border-white/5 opacity-40 hover:opacity-100 transition-opacity">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary-text mb-2">Nexus Metrics</p>
-                <div className="flex items-end gap-2">
-                  <p className="text-2xl font-black text-white">4.9/5</p>
-                  <span className="text-[10px] text-emerald-400 font-black mb-1">↑ 2%</span>
-                </div>
-                <p className="text-[8px] font-bold text-secondary-text uppercase tracking-widest mt-1">Average Driver Rating</p>
-            </div>
-        </div>
 
       </div> {/* End Layout Grid */}
     </div> {/* End Intro Visibility Wrapper */}

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 
 // Deterministic placeholder images
 const FALLBACK_IMAGES = [
@@ -48,13 +48,19 @@ export default function SafeImage({
 }: SafeImageProps) {
   const deterministicFallback = fallback ?? getFallback(alt);
   
-  // Initialize state synchronously
-  const [imgSrc, setImgSrc] = useState<string>(() => resolveSrc(src, deterministicFallback));
+  const resolvedUrl = typeof src === "string" ? src : src?.src;
 
-  // Update when src prop changes
+  const resolved = useMemo(() => {
+    return resolveSrc(src, deterministicFallback);
+  }, [resolvedUrl, deterministicFallback]);
+
+  // Initialize state synchronously
+  const [imgSrc, setImgSrc] = useState<string>(resolved);
+
+  // Update when resolved URL value changes
   useEffect(() => {
-    setImgSrc(resolveSrc(src, deterministicFallback));
-  }, [src, deterministicFallback]);
+    setImgSrc(resolved);
+  }, [resolved]);
 
   // Styles for fill mode (absolute covering)
   const containerStyle: React.CSSProperties = fill
