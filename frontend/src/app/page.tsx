@@ -811,7 +811,7 @@ export default function Home() {
               offers={[
                 { 
                   id: 'kfc-promo', 
-                  imageUrl: '/assets/kfc_takeover_banner.png', 
+                  imageUrl: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?q=80&w=1200&auto=format&fit=crop', 
                   tagline: 'KFC TAKEOVER LIVE', 
                   title1: 'CRISPY. JUICY.', 
                   title2: 'CRUNCHY BUCKET', 

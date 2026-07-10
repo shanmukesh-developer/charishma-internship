@@ -142,7 +142,7 @@ const RESTAURANTS = [
   },
   {
     name: "KFC Premium", location: "Nexus Gate 1", vendorType: "RESTAURANT",
-    imageUrl: "/assets/kfc_takeover_banner.png",
+    imageUrl: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?q=80&w=800&auto=format&fit=crop",
     tags: ["restaurant", "food", "burgers", "chicken", "premium"],
     brandTheme: {
       primaryColor: "#E4002B",
@@ -161,7 +161,7 @@ const RESTAURANTS = [
   },
   {
     name: "Domino's Pizza", location: "Nexus Central", vendorType: "RESTAURANT",
-    imageUrl: "/assets/dominos_takeover_banner.png",
+    imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=800&auto=format&fit=crop",
     tags: ["restaurant", "food", "pizza", "premium"],
     brandTheme: {
       primaryColor: "#006491",
@@ -180,7 +180,7 @@ const RESTAURANTS = [
   },
   {
     name: "McDonald's Premium", location: "Nexus East", vendorType: "RESTAURANT",
-    imageUrl: "/assets/mcdonalds_takeover_banner.png",
+    imageUrl: "https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=800&auto=format&fit=crop",
     tags: ["restaurant", "food", "burgers", "premium"],
     brandTheme: {
       primaryColor: "#FFC72C",

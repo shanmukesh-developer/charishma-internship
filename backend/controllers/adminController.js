@@ -640,14 +640,18 @@ exports.seedDatabase = async (req, res) => {
           commissionType: restData.commissionType || 'percentage',
           operatingHours: restData.operatingHours || { start: '09:00', end: '22:00' },
           isActive: restData.isActive !== undefined ? restData.isActive : true,
-          tags: restData.categories || restData.tags || []
+          tags: restData.categories || restData.tags || [],
+          brandTheme: restData.brandTheme || null,
+          subscriptionTier: restData.subscriptionTier || 'free',
+          rating: restData.rating || (Math.random() * (5.0 - 4.5) + 4.5).toFixed(1)
         });
       } else {
         // Update existing to refresh images/tags
         await restaurant.update({
           imageUrl: restData.imageUrl || restData.image,
           vendorType: restData.vendorType || 'RESTAURANT',
-          tags: restData.categories || restData.tags || []
+          tags: restData.categories || restData.tags || [],
+          brandTheme: restData.brandTheme || null
         });
       }
 
