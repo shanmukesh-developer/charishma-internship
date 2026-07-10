@@ -632,7 +632,7 @@ export default function Home() {
     if (filter === 'jain') list = list.filter(res => (res.menu || []).some(item => item.tags?.includes('jain')));
     if (filter === 'eggless') list = list.filter(res => (res.menu || []).some(item => item.tags?.includes('eggless')));
     if (filter === 'budget') list = list.filter(res => (res.menu || []).some(item => item.price < 150));
-    if (filter === 'premium') list = list.filter(res => (res.menu || []).some(item => item.price > 500));
+    if (filter === 'premium') list = list.filter(res => res.subscriptionTier === 'premium' || res.isFeatured === true || (res.menu || []).some(item => item.price > 200));
 
     if (gymMode) {
       list = list.filter(res => {

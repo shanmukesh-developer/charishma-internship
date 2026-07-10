@@ -113,7 +113,7 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
             </div>
             <span className="text-[9px] font-black text-orange-400 uppercase tracking-[0.4em]">CampusBites</span>
           </div>
-          <h2 className="text-xl md:text-2xl font-black text-black italic tracking-tighter uppercase" style={{ fontFamily: "'Syne', sans-serif" }}>
+          <h2 className="text-xl md:text-2xl font-black text-white light:text-black italic tracking-tighter uppercase" style={{ fontFamily: "'Syne', sans-serif" }}>
             Local <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-300">Vendor Stalls</span>
           </h2>
           <p className="text-[9px] font-bold text-secondary-text uppercase tracking-widest mt-1 max-w-[340px] leading-relaxed">

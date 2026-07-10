@@ -23,18 +23,6 @@ interface SafeImageProps extends Omit<React.ImgHTMLAttributes<HTMLImageElement>,
   alt?: string;
 }
 
-const resolveSrc = (src: any, fallbackUrl: string) => {
-  let finalSrc = typeof src === "string" ? src : src?.src;
-  
-  if (!finalSrc || 
-      finalSrc === "null" || 
-      finalSrc === "undefined" || 
-      finalSrc === "" ||
-      finalSrc.includes("placeholder")) {
-    return fallbackUrl;
-  }
-  return finalSrc;
-};
 
 export default function SafeImage({
   src,
@@ -48,19 +36,20 @@ export default function SafeImage({
 }: SafeImageProps) {
   const deterministicFallback = fallback ?? getFallback(alt);
   
-  const resolvedUrl = typeof src === "string" ? src : src?.src;
+  const resolvedUrl = useMemo(() => {
+    const rawUrl = typeof src === "string" ? src : src?.src;
+    if (!rawUrl || rawUrl === "null" || rawUrl === "undefined" || rawUrl === "") {
+      return deterministicFallback;
+    }
+    return rawUrl;
+  }, [typeof src === "string" ? src : src ? (typeof src === "object" && "src" in src ? src.src : "") : "", deterministicFallback]);
 
-  const resolved = useMemo(() => {
-    return resolveSrc(src, deterministicFallback);
-  }, [resolvedUrl, deterministicFallback]);
-
-  // Initialize state synchronously
-  const [imgSrc, setImgSrc] = useState<string>(resolved);
+  const [imgSrc, setImgSrc] = useState<string>(resolvedUrl);
 
   // Update when resolved URL value changes
   useEffect(() => {
-    setImgSrc(resolved);
-  }, [resolved]);
+    setImgSrc(resolvedUrl);
+  }, [resolvedUrl]);
 
   // Styles for fill mode (absolute covering)
   const containerStyle: React.CSSProperties = fill

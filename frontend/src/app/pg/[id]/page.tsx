@@ -407,6 +407,28 @@ export default function PGDetailPage() {
                         <p className="text-[9px] font-black text-gray-400 light:text-gray-500 uppercase tracking-widest">Pricing per bed</p>
                         <p className="text-2xl font-black text-indigo-500 mt-0.5">₹{room.pricePerBed}<span className="text-[11px] text-gray-400 light:text-gray-400 font-bold uppercase tracking-wider ml-1">/mo</span></p>
                       </div>
+
+                      {room.availableBeds > 0 ? (
+                        <button
+                          onClick={() => handleBookRoom(room.id)}
+                          disabled={bookingRoomId === room.id}
+                          className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400/50 text-white font-black px-5 py-3 rounded-xl text-[10px] uppercase tracking-widest transition-all active:scale-95 shadow-md flex items-center gap-1.5"
+                        >
+                          {bookingRoomId === room.id ? (
+                            <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            '⚡'
+                          )}
+                          Book Bed
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          className="bg-gray-500/10 text-gray-500 font-black px-5 py-3 rounded-xl text-[10px] uppercase tracking-widest cursor-not-allowed border border-white/5"
+                        >
+                          Fully Booked
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
