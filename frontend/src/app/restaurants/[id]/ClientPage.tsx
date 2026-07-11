@@ -276,7 +276,7 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
     return true;
   });
 
-  const handleAddToCart = (item: MenuItem) => {
+  const handleAddToCart = (item: MenuItem, coords?: { x: number; y: number }) => {
     try {
       addToCart({
         id: item.id || item._id || "",
@@ -289,11 +289,11 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
         customizations: {},
       });
       setAddedId(item.id || item._id || null);
-      if (clickCoords) {
+      if (coords) {
         setFlyingItem({
           imageUrl: item.image || item.imageUrl || "",
-          startX: clickCoords.x,
-          startY: clickCoords.y
+          startX: coords.x,
+          startY: coords.y
         });
       }
       setTimeout(() => setAddedId(null), 800);
@@ -319,11 +319,11 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
                 customizations: {},
               });
               setAddedId(item.id || item._id || null);
-              if (clickCoords) {
+              if (coords) {
                 setFlyingItem({
                   imageUrl: item.image || item.imageUrl || "",
-                  startX: clickCoords.x,
-                  startY: clickCoords.y
+                  startX: coords.x,
+                  startY: coords.y
                 });
               }
               setTimeout(() => setAddedId(null), 800);
@@ -833,8 +833,7 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
                            e.preventDefault(); 
                            e.stopPropagation(); 
                            if(!isSoldOut && !isEliteRestricted) {
-                             setClickCoords({ x: e.clientX, y: e.clientY });
-                             handleAddToCart(item);
+                             handleAddToCart(item, { x: e.clientX, y: e.clientY });
                            }
                          }}
                          disabled={isSoldOut || isEliteRestricted}
