@@ -32,6 +32,29 @@ frontend/public/assets/*.png
 !frontend/public/assets/placeholder.png
 !frontend/public/assets/placeholder_premium.png
 !admin-dashboard/public/assets/placeholder.png
+!frontend/public/assets/kfc_logo.png
+!frontend/public/assets/dominos_logo.png
+!frontend/public/assets/mcdonalds_logo.png
+!frontend/public/assets/kfc_takeover_banner.png
+!frontend/public/assets/dominos_takeover_banner.png
+!frontend/public/assets/mcdonalds_takeover_banner.png
+!frontend/public/assets/3d-basket.png
+!frontend/public/assets/3d-bike.png
+!frontend/public/assets/3d-burger.png
+!frontend/public/assets/3d-hostel.png
+!frontend/public/assets/gmaps_icon.png
+!frontend/public/assets/gpay_logo.png
+!frontend/public/assets/phonepe_logo.png
+!frontend/public/assets/upi_qr.png
+!frontend/public/assets/creamy_alfredo.png
+!frontend/public/assets/garlic_breadsticks.png
+!frontend/public/assets/margherita_classica.png
+!frontend/public/assets/kfc_3d_bucket.png
+!frontend/public/assets/kfc_vintage_legend.png
+!frontend/public/assets/kaju_katli_elite.png
+!frontend/public/assets/whey_protein_bowl.png
+!frontend/public/assets/subway_fresh_sandwich_*.png
+!frontend/public/assets/zenvy_*.png
 
 # vercel
 .vercel
