@@ -94,6 +94,7 @@ export function useScrollRestoration(
     // The page may still be rendering dynamic content (restaurants, PG cards, etc.)
     // We retry scrolling until the document is tall enough to reach the target position,
     // or we've tried long enough (1.5s max).
+    let interval: ReturnType<typeof setInterval> | null = null;
     let attempts = 0;
     const maxAttempts = 30; // 30 × 50ms = 1.5s
 
@@ -107,7 +108,7 @@ export function useScrollRestoration(
       if (canReach || attempts >= maxAttempts) {
         // Use 'instant' to avoid smooth scroll animation — Android doesn't animate on back
         window.scrollTo({ top: target, behavior: 'instant' as ScrollBehavior });
-        clearInterval(interval);
+        if (interval) clearInterval(interval);
       } else {
         // Try scrolling anyway — this helps trigger lazy-loaded content
         window.scrollTo({ top: Math.min(target, docHeight - viewportHeight), behavior: 'instant' as ScrollBehavior });
@@ -117,9 +118,11 @@ export function useScrollRestoration(
 
     // Start immediately, then retry
     restore();
-    const interval = setInterval(restore, 50);
+    interval = setInterval(restore, 50);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [ready, disabled, key]);
 
   // ── Clear saved position (call on explicit "Home" navigation) ──

@@ -8,6 +8,12 @@ export default function IntroOverlay({ onComplete }: { onComplete: () => void })
     // Lock body scroll while intro is visible
     document.body.style.overflow = 'hidden';
 
+    // Prevent white borders/safe area background leaks from the page body
+    const originalHtmlBg = document.documentElement.style.backgroundColor;
+    const originalBodyBg = document.body.style.backgroundColor;
+    document.documentElement.style.backgroundColor = '#010101';
+    document.body.style.backgroundColor = '#010101';
+
     // 🎞️ "Absolute Richness" Cinematic Pacing (Continuous hyper-smooth viscous drift)
     const timers = [
       setTimeout(() => setStage(1), 300),   // Stage 1: Darkness -> Ambient Liquid gradients drift in
@@ -16,12 +22,16 @@ export default function IntroOverlay({ onComplete }: { onComplete: () => void })
       setTimeout(() => setStage(4), 5000),  // Stage 4: Continuous Aperture forward scale Drive
       setTimeout(() => {
         document.body.style.overflow = '';
+        document.documentElement.style.backgroundColor = originalHtmlBg;
+        document.body.style.backgroundColor = originalBodyBg;
         onComplete();
       }, 6200) 
     ];
 
     return () => {
       document.body.style.overflow = '';
+      document.documentElement.style.backgroundColor = originalHtmlBg;
+      document.body.style.backgroundColor = originalBodyBg;
       timers.forEach(clearTimeout);
     };
   }, []);
@@ -50,9 +60,11 @@ export default function IntroOverlay({ onComplete }: { onComplete: () => void })
       style={{
         position: 'fixed',
         top: 0,
+        bottom: 0,
         left: 0,
-        width: '100%',
-        height: '100dvh',
+        right: 0,
+        width: '100vw',
+        height: '100vh',
         zIndex: 999999,
         backgroundColor: '#010101', // Pure Black slate to make gold pop heavier
         overflow: 'hidden',
