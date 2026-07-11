@@ -483,9 +483,24 @@ export default function Home() {
         'Do you want to exit the application?',
         'warning',
         () => {
-          // If User confirms exit: remove listener and trigger go back to exit
+          // If User confirms exit: remove listener and close the app/tab
           window.removeEventListener('popstate', handlePopState);
-          window.history.go(-2);
+          
+          // 1. Try native Android / iOS WebView exit bridges
+          const win = window as any;
+          if (win.Android && typeof win.Android.closeApp === 'function') {
+            win.Android.closeApp();
+          } else if (win.Android && typeof win.Android.exit === 'function') {
+            win.Android.exit();
+          } else if (win.webkit && win.webkit.messageHandlers && win.webkit.messageHandlers.closeApp) {
+            win.webkit.messageHandlers.closeApp.postMessage(null);
+          }
+          
+          // 2. Try standard window.close()
+          window.close();
+          
+          // 3. Fallback to clearing browser window
+          window.location.href = "about:blank";
         },
         'Exit',
         'Cancel'
