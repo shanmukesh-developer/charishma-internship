@@ -118,6 +118,7 @@ export default function Home() {
   const [isAddClassicModalOpen, setIsAddClassicModalOpen] = useState(false);
   const [newClassicName, setNewClassicName] = useState('');
   const [newClassicImg, setNewClassicImg] = useState('');
+  const [isNetworkSlow, setIsNetworkSlow] = useState(false);
 
   const saveClassics = async (updatedList: Array<{ name: string; img: string }>) => {
     setClassics(updatedList);
@@ -250,10 +251,29 @@ export default function Home() {
 
     checkStatus();
     
+    // Connection speed check using Network Info API
+    if (typeof navigator !== 'undefined' && (navigator as any).connection) {
+      const conn = (navigator as any).connection;
+      const checkConn = () => {
+        if (conn.effectiveType === '2g' || conn.effectiveType === '3g' || conn.downlink < 1.5) {
+          setIsNetworkSlow(true);
+        } else {
+          setIsNetworkSlow(false);
+        }
+      };
+      checkConn();
+      conn.addEventListener('change', checkConn);
+    }
+
     // Asset Discovery Engine: Sync with Nexus Command Center
     const fetchLiveAssets = async () => {
+      const startTime = Date.now();
       try {
         const res = await fetch(`${API_URL}/api/users/restaurants`);
+        const duration = Date.now() - startTime;
+        if (duration > 2500) {
+          setIsNetworkSlow(true);
+        }
         const data = await res.json();
         if (Array.isArray(data)) setLiveRestaurants(data);
       } catch (_err) {
@@ -446,6 +466,37 @@ export default function Home() {
       }
     }
   }, [isLoading, mounted]);
+
+  // Intercept back gesture on home screen to confirm exit
+  useEffect(() => {
+    if (!mounted) return;
+
+    // Push initial state
+    window.history.pushState({ page: 'home_intercepted' }, '');
+
+    const handlePopState = (e: PopStateEvent) => {
+      // Re-push state immediately to lock back button
+      window.history.pushState({ page: 'home_intercepted' }, '');
+
+      showModal(
+        'Exit Zenvy?',
+        'Do you want to exit the application?',
+        'warning',
+        () => {
+          // If User confirms exit: remove listener and trigger go back to exit
+          window.removeEventListener('popstate', handlePopState);
+          window.history.go(-2);
+        },
+        'Exit',
+        'Cancel'
+      );
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [mounted]);
 
   useEffect(() => {
     const handleSystemUpdate = (payload: { type: string; data: any }) => {
@@ -875,6 +926,17 @@ export default function Home() {
           <div className="w-full px-4 pt-10 pt-safe pb-4">
             <Navbar />
             
+            {isNetworkSlow && (
+              <div className="mt-4 mb-2 mx-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex items-center gap-3 animate-pulse text-yellow-500 light:bg-yellow-100 light:border-yellow-200 light:text-yellow-700">
+                <span className="text-sm">⚡</span>
+                <div className="flex-1">
+                  <p className="text-[9px] font-black uppercase tracking-wider m-0 leading-tight">Slow Network Detected</p>
+                  <p className="text-[8px] font-bold opacity-80 m-0 leading-tight">Your connection seems slow. Content might take longer to load.</p>
+                </div>
+                <button onClick={() => setIsNetworkSlow(false)} className="text-[9px] font-black uppercase opacity-60 hover:opacity-100 outline-none px-2 py-1">✕</button>
+              </div>
+            )}
+
             <div className="mt-1 relative">
               {/* Tactical Background Decals */}
               <div className="absolute -top-16 left-0 flex flex-col gap-1 opacity-20 pointer-events-none hidden md:flex">
