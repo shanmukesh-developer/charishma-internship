@@ -10,6 +10,7 @@ import RestaurantCard from '@/components/RestaurantCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import SafeImage from '@/components/SafeImage';
 import PromoCarousel from '@/components/PromoCarousel';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 // Heavy Components Dynamic Import
 const ConciergeDrawer = dynamic(() => import('@/components/ConciergeDrawer'), { ssr: false });
@@ -118,7 +119,7 @@ export default function Home() {
   const [isAddClassicModalOpen, setIsAddClassicModalOpen] = useState(false);
   const [newClassicName, setNewClassicName] = useState('');
   const [newClassicImg, setNewClassicImg] = useState('');
-  const [isNetworkSlow, setIsNetworkSlow] = useState(false);
+  const network = useNetworkStatus();
 
   const saveClassics = async (updatedList: Array<{ name: string; img: string }>) => {
     setClassics(updatedList);
@@ -251,29 +252,12 @@ export default function Home() {
 
     checkStatus();
     
-    // Connection speed check using Network Info API
-    if (typeof navigator !== 'undefined' && (navigator as any).connection) {
-      const conn = (navigator as any).connection;
-      const checkConn = () => {
-        if (conn.effectiveType === '2g' || conn.effectiveType === '3g' || conn.downlink < 1.5) {
-          setIsNetworkSlow(true);
-        } else {
-          setIsNetworkSlow(false);
-        }
-      };
-      checkConn();
-      conn.addEventListener('change', checkConn);
-    }
+    // Network monitoring is now handled by the useNetworkStatus hook
 
     // Asset Discovery Engine: Sync with Nexus Command Center
     const fetchLiveAssets = async () => {
-      const startTime = Date.now();
       try {
         const res = await fetch(`${API_URL}/api/users/restaurants`);
-        const duration = Date.now() - startTime;
-        if (duration > 2500) {
-          setIsNetworkSlow(true);
-        }
         const data = await res.json();
         if (Array.isArray(data)) setLiveRestaurants(data);
       } catch (_err) {
@@ -941,16 +925,68 @@ export default function Home() {
           <div className="w-full px-4 pt-10 pt-safe pb-4">
             <Navbar />
             
-            {isNetworkSlow && (
-              <div className="mt-4 mb-2 mx-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex items-center gap-3 animate-pulse text-yellow-500 light:bg-yellow-100 light:border-yellow-200 light:text-yellow-700">
-                <span className="text-sm">⚡</span>
-                <div className="flex-1">
-                  <p className="text-[9px] font-black uppercase tracking-wider m-0 leading-tight">Slow Network Detected</p>
-                  <p className="text-[8px] font-bold opacity-80 m-0 leading-tight">Your connection seems slow. Content might take longer to load.</p>
-                </div>
-                <button onClick={() => setIsNetworkSlow(false)} className="text-[9px] font-black uppercase opacity-60 hover:opacity-100 outline-none px-2 py-1">✕</button>
-              </div>
-            )}
+            {/* Network Status Banner — real-time monitoring */}
+            <AnimatePresence>
+              {(network.isOffline || network.isSlow) && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: 'auto' }}
+                  exit={{ opacity: 0, y: -10, height: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                  className={`mt-4 mb-2 mx-2 p-3 rounded-2xl flex items-center gap-3 ${
+                    network.isOffline
+                      ? 'bg-red-500/10 border border-red-500/20 text-red-500 light:bg-red-50 light:border-red-200 light:text-red-600'
+                      : 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 light:bg-yellow-50 light:border-yellow-200 light:text-yellow-700'
+                  }`}
+                >
+                  {/* Animated pulse indicator */}
+                  <div className="relative flex items-center justify-center w-8 h-8 flex-shrink-0">
+                    <div className={`absolute inset-0 rounded-full animate-ping opacity-30 ${
+                      network.isOffline ? 'bg-red-500' : 'bg-yellow-500'
+                    }`} />
+                    <span className="relative text-base z-10">{network.isOffline ? '📡' : '⚡'}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-wider m-0 leading-tight">
+                      {network.isOffline ? 'No Internet Connection' : 'Slow Network Detected'}
+                    </p>
+                    <p className="text-[8px] font-bold opacity-70 m-0 leading-tight mt-0.5">
+                      {network.isOffline 
+                        ? 'Check your Wi-Fi or mobile data. We\'ll reconnect automatically.' 
+                        : `Your connection is slow${network.latency ? ` (${Math.round(network.latency / 100) / 10}s response)` : ''}${network.effectiveType ? ` · ${network.effectiveType.toUpperCase()}` : ''}. Content may load slower.`
+                      }
+                    </p>
+                    {!network.isOffline && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <div className="flex gap-[2px]">
+                          {[1, 2, 3, 4].map(bar => (
+                            <div 
+                              key={bar} 
+                              className={`w-[3px] rounded-sm transition-all duration-300 ${
+                                (network.latency && network.latency < bar * 1000) 
+                                  ? 'bg-current opacity-90' 
+                                  : 'bg-current opacity-20'
+                              }`}
+                              style={{ height: `${4 + bar * 3}px` }}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[7px] font-bold opacity-50 uppercase">Monitoring · Auto-recovery active</span>
+                      </div>
+                    )}
+                  </div>
+                  {!network.isOffline && (
+                    <button 
+                      onClick={network.dismiss} 
+                      className="text-[9px] font-black uppercase opacity-40 hover:opacity-100 outline-none px-2 py-1 transition-opacity flex-shrink-0"
+                      aria-label="Dismiss network warning"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div className="mt-1 relative">
               {/* Tactical Background Decals */}
