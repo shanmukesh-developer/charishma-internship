@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import SafeImage from '@/components/SafeImage';
 import PromoCarousel from '@/components/PromoCarousel';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useScrollRestoration } from '@/hooks/useScrollRestoration';
 
 // Heavy Components Dynamic Import
 const ConciergeDrawer = dynamic(() => import('@/components/ConciergeDrawer'), { ssr: false });
@@ -120,6 +121,9 @@ export default function Home() {
   const [newClassicName, setNewClassicName] = useState('');
   const [newClassicImg, setNewClassicImg] = useState('');
   const network = useNetworkStatus();
+  const scrollRestore = useScrollRestoration('zenvy_home_scroll', {
+    ready: mounted && !isLoading,
+  });
 
   const saveClassics = async (updatedList: Array<{ name: string; img: string }>) => {
     setClassics(updatedList);
@@ -384,72 +388,7 @@ export default function Home() {
     }
   }, [sortBy, mounted]);
 
-  // Save scroll position on scroll
-  useEffect(() => {
-    if (!mounted || isLoading) return;
-    
-    let isNavigatingAway = false;
-
-    const handleLinkClick = (e: MouseEvent) => {
-      isNavigatingAway = true;
-      console.log('[SCROLL] Interaction detected. Scroll saving frozen at:', window.scrollY);
-      if (window.scrollY > 0) {
-        try {
-          sessionStorage.setItem('zenvy_home_scroll', window.scrollY.toString());
-        } catch {}
-      }
-      // Reset the freeze flag after 1.5 seconds if they did not actually navigate away
-      setTimeout(() => {
-        isNavigatingAway = false;
-      }, 1500);
-    };
-
-    const handleScroll = () => {
-      if (isNavigatingAway) return;
-      try {
-        if (window.scrollY > 0) {
-          console.log('[SCROLL] Saving scroll position:', window.scrollY);
-          sessionStorage.setItem('zenvy_home_scroll', window.scrollY.toString());
-        }
-      } catch { /* ignore */ }
-    };
-
-    window.addEventListener('click', handleLinkClick, { capture: true });
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener('click', handleLinkClick, { capture: true });
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [mounted, isLoading]);
-
-  // Restore scroll position after loading completes
-  useEffect(() => {
-    if (!isLoading && mounted) {
-      const savedScroll = sessionStorage.getItem('zenvy_home_scroll');
-      console.log('[SCROLL] Loaded. Saved scroll was:', savedScroll);
-      if (savedScroll) {
-        const targetScroll = Number(savedScroll);
-        if (targetScroll > 0) {
-          let attempts = 0;
-          const interval = setInterval(() => {
-            const currentHeight = document.documentElement.scrollHeight;
-            const viewportHeight = window.innerHeight;
-            console.log(`[SCROLL] Restoring attempt ${attempts}: currentHeight=${currentHeight}, targetScroll=${targetScroll}, viewportHeight=${viewportHeight}`);
-            // Scroll dynamically as the page loads/reflows. Clear interval once fully restored or timeout.
-            if (currentHeight >= targetScroll + viewportHeight || attempts > 30) {
-              window.scrollTo({ top: targetScroll, behavior: 'instant' as any });
-              console.log('[SCROLL] Restored scroll position successfully at height:', currentHeight);
-              clearInterval(interval);
-            } else {
-              window.scrollTo({ top: targetScroll, behavior: 'instant' as any });
-            }
-            attempts++;
-          }, 50);
-          return () => clearInterval(interval);
-        }
-      }
-    }
-  }, [isLoading, mounted]);
+  // Scroll save/restore is now handled by useScrollRestoration hook
 
   // Intercept back gesture on home screen to confirm exit
   useEffect(() => {
@@ -1328,7 +1267,7 @@ export default function Home() {
 
         <footer className="fixed bottom-0 left-0 right-0 h-[5.5rem] bg-black text-white border-t border-white/10 flex items-center justify-around sm:hidden z-[100] pb-safe shadow-none">
           <Magnetic>
-            <Link href="/" onClick={() => { try { sessionStorage.removeItem('zenvy_home_scroll'); } catch {} }} className="flex flex-col items-center gap-1.5 text-[#EF4F5F]">
+            <Link href="/" onClick={() => scrollRestore.clear()} className="flex flex-col items-center gap-1.5 text-[#EF4F5F]">
               <div className="tab-pill text-[#EF4F5F]">
                 <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
               </div>

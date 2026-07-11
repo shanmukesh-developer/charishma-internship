@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import WorldSwitcher from '@/components/WorldSwitcher';
 import { API_URL } from '@/utils/api';
 import Link from 'next/link';
+import { useScrollRestoration } from '@/hooks/useScrollRestoration';
 
 interface Room {
   id: string;
@@ -51,65 +52,9 @@ export default function PGPage() {
     fetchPGs();
   }, []);
 
-  // Save scroll position on scroll
-  useEffect(() => {
-    if (loading) return;
-    
-    let isNavigatingAway = false;
+  useScrollRestoration('zenvy_pg_scroll', { ready: !loading });
 
-    const handleLinkClick = (e: MouseEvent) => {
-      isNavigatingAway = true;
-      if (window.scrollY > 0) {
-        try {
-          sessionStorage.setItem('zenvy_pg_scroll', window.scrollY.toString());
-        } catch {}
-      }
-      setTimeout(() => {
-        isNavigatingAway = false;
-      }, 1500);
-    };
-
-    const handleScroll = () => {
-      if (isNavigatingAway) return;
-      try {
-        if (window.scrollY > 0) {
-          sessionStorage.setItem('zenvy_pg_scroll', window.scrollY.toString());
-        }
-      } catch { /* ignore */ }
-    };
-
-    window.addEventListener('click', handleLinkClick, { capture: true });
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener('click', handleLinkClick, { capture: true });
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [loading]);
-
-  // Restore scroll position after loading completes
-  useEffect(() => {
-    if (!loading) {
-      const savedScroll = sessionStorage.getItem('zenvy_pg_scroll');
-      if (savedScroll) {
-        const targetScroll = Number(savedScroll);
-        if (targetScroll > 0) {
-          let attempts = 0;
-          const interval = setInterval(() => {
-            const currentHeight = document.documentElement.scrollHeight;
-            const viewportHeight = window.innerHeight;
-            if (currentHeight >= targetScroll + viewportHeight || attempts > 30) {
-              window.scrollTo({ top: targetScroll, behavior: 'instant' as any });
-              clearInterval(interval);
-            } else {
-              window.scrollTo({ top: targetScroll, behavior: 'instant' as any });
-            }
-            attempts++;
-          }, 50);
-          return () => clearInterval(interval);
-        }
-      }
-    }
-  }, [loading]);
+  // Scroll save/restore is now handled by useScrollRestoration hook
 
   const fetchPGs = async () => {
     try {
