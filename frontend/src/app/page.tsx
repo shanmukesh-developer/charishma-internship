@@ -383,7 +383,25 @@ export default function Home() {
   // Save scroll position on scroll
   useEffect(() => {
     if (!mounted || isLoading) return;
+    
+    let isNavigatingAway = false;
+
+    const handleLinkClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const closestLink = target.closest('a, button');
+      if (closestLink) {
+        isNavigatingAway = true;
+        console.log('[SCROLL] Link clicked. Scroll saving frozen at:', window.scrollY);
+        if (window.scrollY > 0) {
+          try {
+            sessionStorage.setItem('zenvy_home_scroll', window.scrollY.toString());
+          } catch {}
+        }
+      }
+    };
+
     const handleScroll = () => {
+      if (isNavigatingAway) return;
       try {
         if (window.scrollY > 0) {
           console.log('[SCROLL] Saving scroll position:', window.scrollY);
@@ -391,8 +409,13 @@ export default function Home() {
         }
       } catch { /* ignore */ }
     };
+
+    window.addEventListener('click', handleLinkClick, { capture: true });
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('click', handleLinkClick, { capture: true });
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, [mounted, isLoading]);
 
   // Restore scroll position after loading completes
