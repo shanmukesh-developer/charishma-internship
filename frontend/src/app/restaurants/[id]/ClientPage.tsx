@@ -660,7 +660,7 @@ export default function RestaurantMenuClient({ restaurantId }: { restaurantId: s
             <span className="text-[9px] text-zinc-500 light:text-zinc-400 font-bold uppercase tracking-wider">Swipe to view</span>
           </div>
           <div ref={offersRef} className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 md:-mx-6 md:px-6 snap-x snap-mandatory" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}>
-            {getOffers().map((offer) => (
+            {getOffers().map((offer: any) => (
               <div 
                 key={offer.code}
                 onClick={() => {

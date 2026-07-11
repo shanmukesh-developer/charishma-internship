@@ -62,6 +62,7 @@ export interface User {
   hostelBlock?: string;
   profileImage?: string | null;
   walletBalance?: number;
+  role?: string;
 }
 
 export interface NexusItem {
