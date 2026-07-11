@@ -58,16 +58,15 @@ export default function PGPage() {
     let isNavigatingAway = false;
 
     const handleLinkClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const closestLink = target.closest('a, button');
-      if (closestLink) {
-        isNavigatingAway = true;
-        if (window.scrollY > 0) {
-          try {
-            sessionStorage.setItem('zenvy_pg_scroll', window.scrollY.toString());
-          } catch {}
-        }
+      isNavigatingAway = true;
+      if (window.scrollY > 0) {
+        try {
+          sessionStorage.setItem('zenvy_pg_scroll', window.scrollY.toString());
+        } catch {}
       }
+      setTimeout(() => {
+        isNavigatingAway = false;
+      }, 1500);
     };
 
     const handleScroll = () => {

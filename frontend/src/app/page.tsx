@@ -407,17 +407,17 @@ export default function Home() {
     let isNavigatingAway = false;
 
     const handleLinkClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const closestLink = target.closest('a, button');
-      if (closestLink) {
-        isNavigatingAway = true;
-        console.log('[SCROLL] Link clicked. Scroll saving frozen at:', window.scrollY);
-        if (window.scrollY > 0) {
-          try {
-            sessionStorage.setItem('zenvy_home_scroll', window.scrollY.toString());
-          } catch {}
-        }
+      isNavigatingAway = true;
+      console.log('[SCROLL] Interaction detected. Scroll saving frozen at:', window.scrollY);
+      if (window.scrollY > 0) {
+        try {
+          sessionStorage.setItem('zenvy_home_scroll', window.scrollY.toString());
+        } catch {}
       }
+      // Reset the freeze flag after 1.5 seconds if they did not actually navigate away
+      setTimeout(() => {
+        isNavigatingAway = false;
+      }, 1500);
     };
 
     const handleScroll = () => {
