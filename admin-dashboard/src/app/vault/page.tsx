@@ -13,11 +13,13 @@ interface VaultItem {
   remainingCount: number;
   imageUrl: string;
   isActive: boolean;
+  streakRequirement?: number;
 }
 
 export default function VaultTerminal() {
   const isAuthed = useAdminAuth();
   const [items, setItems] = useState<VaultItem[]>([]);
+  const [menuItems, setMenuItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -28,12 +30,25 @@ export default function VaultTerminal() {
     price: 0, 
     originalPrice: 0, 
     remainingCount: 1, 
-    imageUrl: '' 
+    imageUrl: '',
+    streakRequirement: 0
   });
 
   useEffect(() => {
     fetchVault();
+    fetchMenuItems();
   }, []);
+
+  const fetchMenuItems = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/menu-items`);
+      const data = await res.json();
+      if (res.ok) setMenuItems(data);
+    } catch (err) {
+      console.error('[MENU_ITEMS_FETCH_ERROR]', err);
+    }
+  };
+
 
   const fetchVault = async () => {
     try {
@@ -103,6 +118,37 @@ export default function VaultTerminal() {
              <span className="w-8 h-8 bg-[#C9A84C]/20 rounded-lg flex items-center justify-center text-sm">📦</span>
              Onboard New Scarcity Asset
           </h3>
+          
+          {/* Pre-fill from Existing Menu Item */}
+          <div className="mb-8 space-y-3">
+            <label className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] ml-1">Pre-fill from Existing Menu Item</label>
+            <select
+              className="vault-input"
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val) {
+                  const selected = menuItems.find(m => m._id === val);
+                  if (selected) {
+                    setNewItem({
+                      name: selected.name,
+                      price: selected.price,
+                      originalPrice: selected.originalPrice || selected.price,
+                      remainingCount: newItem.remainingCount,
+                      imageUrl: selected.imageUrl || '',
+                      streakRequirement: newItem.streakRequirement
+                    });
+                  }
+                }
+              }}
+              defaultValue=""
+            >
+              <option value="" className="text-gray-400">-- Choose Menu Item (Optional) --</option>
+              {menuItems.map(m => (
+                <option key={m._id} value={m._id}>{m.name} (₹{m.price})</option>
+              ))}
+            </select>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">
               <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Asset Name</label>
@@ -114,7 +160,7 @@ export default function VaultTerminal() {
               />
             </div>
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Asset Asset/Image</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Asset Image</label>
               <div className="flex gap-4">
                 <input 
                   type="file" 
@@ -141,7 +187,7 @@ export default function VaultTerminal() {
                   htmlFor="vault-image-upload"
                   className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-[10px] font-black uppercase tracking-widest text-center cursor-pointer hover:bg-white/10 transition-all flex items-center justify-center gap-3"
                 >
-                  {isUploading ? '📦 Syncing...' : imageFile ? `✅ ${imageFile.name.slice(0, 15)}...` : '📂 Upload from Local'}
+                  {isUploading ? '📦 Syncing...' : imageFile ? `✅ ${imageFile.name.slice(0, 15)}...` : '📂 Upload'}
                 </label>
                 <input 
                   placeholder="Or paste URL" 
@@ -151,7 +197,7 @@ export default function VaultTerminal() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-6 md:col-span-2">
+            <div className="grid grid-cols-4 gap-6 md:col-span-2">
                <div className="space-y-3">
                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Live Price (₹)</label>
                  <input 
@@ -171,12 +217,21 @@ export default function VaultTerminal() {
                  />
                </div>
                <div className="space-y-3">
-                 <label className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] ml-1">Initial Stock</label>
+                 <label className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C] ml-1">Stock</label>
                  <input 
                    type="number" 
                    className="vault-input border-[#C9A84C]/20 bg-[#C9A84C]/5 text-[#C9A84C]" 
                    value={newItem.remainingCount} 
                    onChange={(e) => setNewItem({...newItem, remainingCount: Number(e.target.value)})} 
+                 />
+               </div>
+               <div className="space-y-3">
+                 <label className="text-[10px] font-black uppercase tracking-widest text-yellow-500 ml-1">Streak Req</label>
+                 <input 
+                   type="number" 
+                   className="vault-input border-yellow-500/20 bg-yellow-500/5 text-yellow-500" 
+                   value={newItem.streakRequirement} 
+                   onChange={(e) => setNewItem({...newItem, streakRequirement: Number(e.target.value)})} 
                  />
                </div>
             </div>
@@ -189,7 +244,7 @@ export default function VaultTerminal() {
                 setIsCreating(false);
                 setIsAdding(false);
                 setImageFile(null);
-                setNewItem({ name: '', price: 0, originalPrice: 0, remainingCount: 1, imageUrl: '' });
+                setNewItem({ name: '', price: 0, originalPrice: 0, remainingCount: 1, imageUrl: '', streakRequirement: 0 });
               }}
               disabled={isCreating || !newItem.name}
               className="flex-1 py-5 bg-[#C9A84C] text-black font-black uppercase tracking-[0.3em] rounded-3xl text-xs disabled:opacity-50"
@@ -264,11 +319,30 @@ const VaultItemComponent = memo(({ item, onUpdate, onDelete }: { item: VaultItem
         />
       </div>
       <div className="flex-1 space-y-4">
-        <div className="flex justify-between items-start">
-          <h4 className="text-xl font-black text-white uppercase tracking-tight">{item.name}</h4>
-          <button onClick={() => onDelete(item._id)} className="text-red-500/40 hover:text-red-500 hover:scale-125 transition-all text-sm">✕</button>
+        <div className="flex justify-between items-start gap-4">
+          <div className="flex-1">
+            <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block mb-1">Asset Name</label>
+            <input 
+              type="text" 
+              defaultValue={item.name}
+              className="w-full bg-white/5 border border-white/10 rounded-xl p-2 text-sm text-white font-black focus:border-[#C9A84C]/40 outline-none"
+              onBlur={(e) => onUpdate({ ...item, name: e.target.value })}
+            />
+          </div>
+          <button onClick={() => onDelete(item._id)} className="text-red-500/40 hover:text-red-500 hover:scale-125 transition-all text-sm mt-6">✕</button>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+
+        <div>
+          <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block mb-1">Image URL</label>
+          <input 
+            type="text" 
+            defaultValue={item.imageUrl}
+            className="w-full bg-white/5 border border-white/10 rounded-xl p-2 text-xs text-white font-mono focus:border-[#C9A84C]/40 outline-none"
+            onBlur={(e) => onUpdate({ ...item, imageUrl: e.target.value })}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block mb-1">Live Price</label>
             <input 
@@ -296,12 +370,34 @@ const VaultItemComponent = memo(({ item, onUpdate, onDelete }: { item: VaultItem
               onBlur={(e) => onUpdate({ ...item, remainingCount: Number(e.target.value) })}
             />
           </div>
+          <div>
+            <label className="text-[8px] font-black text-yellow-500 uppercase tracking-widest block mb-1">Streak Req</label>
+            <input 
+              type="number" 
+              defaultValue={item.streakRequirement || 0}
+              className="w-full bg-white/5 border border-white/10 rounded-xl p-2 text-xs text-white font-black focus:border-[#C9A84C]/40 outline-none"
+              onBlur={(e) => onUpdate({ ...item, streakRequirement: Number(e.target.value) })}
+            />
+          </div>
         </div>
-        <div className="flex items-center gap-2 pt-2">
-          <div className={`w-2 h-2 rounded-full ${item.remainingCount > 0 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-red-500 animate-pulse'}`} />
-          <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-            {item.remainingCount > 0 ? 'ACTIVE IN VAULT' : 'OUT OF STOCK / HIDDEN'}
-          </span>
+        
+        <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${item.isActive ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-red-500 animate-pulse'}`} />
+            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+              {item.isActive ? 'ACTIVE IN VAULT' : 'HIDDEN / INACTIVE'}
+            </span>
+          </div>
+          <button
+            onClick={() => onUpdate({ ...item, isActive: !item.isActive })}
+            className={`px-3 py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg border transition-all ${
+              item.isActive 
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20' 
+                : 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20'
+            }`}
+          >
+            {item.isActive ? 'Deactivate' : 'Activate'}
+          </button>
         </div>
       </div>
     </div>

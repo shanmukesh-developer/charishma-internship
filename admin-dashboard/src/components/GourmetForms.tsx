@@ -1,5 +1,5 @@
 "use client";
-import { useState, ChangeEvent } from 'react';
+import { useState, ChangeEvent, useEffect } from 'react';
 
 interface RestaurantFormProps {
   onCancel: () => void;
@@ -46,6 +46,34 @@ export function AddRestaurantForm({ onCancel, onSubmit, isCreating, initialData 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // Parser helper
+  const parseGradient = (gradientStr: string) => {
+    const defaultVal = { angle: 135, colorA: '#E4002B', colorB: '#111111' };
+    if (!gradientStr) return defaultVal;
+    const match = gradientStr.match(/linear-gradient\((\d+)deg,\s*(#[a-fA-F0-9]{6}|[a-zA-Z]+)\s*\d+%,\s*(#[a-fA-F0-9]{6}|[a-zA-Z]+)\s*\d+%\)/);
+    if (!match) return defaultVal;
+    return {
+      angle: parseInt(match[1], 10),
+      colorA: match[2],
+      colorB: match[3]
+    };
+  };
+
+  const parsedGrad = parseGradient(formData.gradient);
+  const [gradAngle, setGradAngle] = useState(parsedGrad.angle);
+  const [gradColorA, setGradColorA] = useState(parsedGrad.colorA);
+  const [gradColorB, setGradColorB] = useState(parsedGrad.colorB);
+
+  useEffect(() => {
+    if (initialData?.brandTheme?.gradient) {
+      const parsed = parseGradient(initialData.brandTheme.gradient);
+      setGradAngle(parsed.angle);
+      setGradColorA(parsed.colorA);
+      setGradColorB(parsed.colorB);
+    }
+  }, [initialData]);
+
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -137,7 +165,8 @@ export function AddRestaurantForm({ onCancel, onSubmit, isCreating, initialData 
                 onChange={(e) => setFormData({...formData, commissionRate: parseFloat(e.target.value)})} 
               />
               <select 
-                className="nexus-select w-20" 
+                className="nexus-select" 
+                style={{ width: '100px' }}
                 value={formData.commissionType} 
                 onChange={(e) => setFormData({...formData, commissionType: e.target.value})}
               >
@@ -441,14 +470,100 @@ export function AddRestaurantForm({ onCancel, onSubmit, isCreating, initialData 
                 />
               </div>
 
-              <div className="space-y-2 col-span-full">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Gradient Shutter Background CSS</label>
-                <input
-                  placeholder="linear-gradient(135deg, #E4002B 0%, #111111 100%)"
-                  className="nexus-input"
-                  value={formData.gradient}
-                  onChange={(e) => setFormData({...formData, gradient: e.target.value})}
-                />
+              <div className="space-y-4 col-span-full bg-white/[0.02] border border-white/5 rounded-3xl p-6">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-yellow-500 ml-1">Gradient Shutter Background CSS</label>
+                  <span className="text-[10px] font-mono text-gray-400">{formData.gradient}</span>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                  {/* Color A */}
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-gray-500 block">Start Color (Color A)</label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={gradColorA}
+                        onChange={(e) => {
+                          const newColorA = e.target.value;
+                          setGradColorA(newColorA);
+                          setFormData(prev => ({ ...prev, gradient: `linear-gradient(${gradAngle}deg, ${newColorA} 0%, ${gradColorB} 100%)` }));
+                        }}
+                        className="w-12 h-12 rounded-xl bg-transparent border-0 cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={gradColorA}
+                        onChange={(e) => {
+                          const newColorA = e.target.value;
+                          setGradColorA(newColorA);
+                          setFormData(prev => ({ ...prev, gradient: `linear-gradient(${gradAngle}deg, ${newColorA} 0%, ${gradColorB} 100%)` }));
+                        }}
+                        className="nexus-input py-2 px-3 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Color B */}
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-gray-500 block">End Color (Color B)</label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={gradColorB}
+                        onChange={(e) => {
+                          const newColorB = e.target.value;
+                          setGradColorB(newColorB);
+                          setFormData(prev => ({ ...prev, gradient: `linear-gradient(${gradAngle}deg, ${gradColorA} 0%, ${newColorB} 100%)` }));
+                        }}
+                        className="w-12 h-12 rounded-xl bg-transparent border-0 cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={gradColorB}
+                        onChange={(e) => {
+                          const newColorB = e.target.value;
+                          setGradColorB(newColorB);
+                          setFormData(prev => ({ ...prev, gradient: `linear-gradient(${gradAngle}deg, ${gradColorA} 0%, ${newColorB} 100%)` }));
+                        }}
+                        className="nexus-input py-2 px-3 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Angle Slider */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[9px] font-black uppercase tracking-widest text-gray-500">Angle</label>
+                      <span className="text-[10px] font-bold text-white">{gradAngle}°</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="360"
+                      value={gradAngle}
+                      onChange={(e) => {
+                        const newAngle = parseInt(e.target.value, 10);
+                        setGradAngle(newAngle);
+                        setFormData(prev => ({ ...prev, gradient: `linear-gradient(${newAngle}deg, ${gradColorA} 0%, ${gradColorB} 100%)` }));
+                      }}
+                      className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Live Preview Box */}
+                <div className="mt-4">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-gray-500 block mb-2">Live Theme Preview</label>
+                  <div 
+                    className="h-24 rounded-2xl border border-white/10 relative overflow-hidden flex items-center justify-center shadow-lg"
+                    style={{ background: formData.gradient }}
+                  >
+                    <div className="text-white text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl bg-black/40 backdrop-blur-md border border-white/10">
+                      Takeover Banner
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-2 col-span-full">

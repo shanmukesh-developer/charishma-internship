@@ -22,13 +22,15 @@ interface AnalyticsData {
   redemptionRate: number;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
+
 export default function RewardsAnalytics() {
   const isAuthed = useAdminAuth();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:5005/api/admin/rewards-analytics', {
+    fetch(`${API_URL}/api/admin/rewards-analytics`, {
       headers: { 'Authorization': `Bearer ${'cookie-managed'}` }
     })
       .then(res => res.json())
@@ -38,6 +40,7 @@ export default function RewardsAnalytics() {
       })
       .catch(err => console.error(err));
   }, []);
+
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[60vh]">

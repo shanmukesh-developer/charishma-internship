@@ -1175,3 +1175,17 @@ exports.getRiderPayouts = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.getAuditLogs = async (req, res) => {
+  try {
+    const VerificationLog = getVerificationLogModel();
+    const logs = await VerificationLog.findAll({
+      order: [['timestamp', 'DESC']],
+      limit: 100
+    });
+    res.json(logs);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
