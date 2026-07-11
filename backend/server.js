@@ -412,8 +412,16 @@ const startServer = async () => {
 
       if (key === seedKey) {
         console.log('📥 [MANUAL_SEED] Triggered via API');
-        const { unifiedSeed: runSeed } = require('./scripts/unified_seed');
-        await runSeed();
+        const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
+        if (isProduction) {
+          const { getSequelize } = require('./config/db');
+          const instance = getSequelize();
+          const { seedProduction } = require('./scripts/seed_prod');
+          await seedProduction(instance);
+        } else {
+          const { unifiedSeed: runSeed } = require('./scripts/unified_seed');
+          await runSeed();
+        }
         return res.json({ message: 'Seeding complete' });
       }
       res.status(403).json({ error: 'Access Denied' });

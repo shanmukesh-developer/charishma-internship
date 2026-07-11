@@ -814,6 +814,7 @@ exports.getRewardsAnalytics = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 exports.deleteRestaurant = async (req, res) => {
   try {
     const Restaurant = getRestaurantModel();
@@ -842,20 +843,35 @@ exports.getOrderVolumeStats = async (req, res) => {
     const Order = getOrderModel();
     const { getSequelize } = require('../config/db');
     const sequelize = getSequelize();
+    const dialect = sequelize.getDialect();
     
-    // Fetch last 12 hours of order counts
-    const stats = await Order.findAll({
-      attributes: [
-        [sequelize.fn('date_trunc', 'hour', sequelize.col('createdAt')), 'hour'],
-        [sequelize.fn('count', sequelize.col('id')), 'count']
-      ],
-      where: {
-        createdAt: { [Op.gte]: new Date(Date.now() - 12 * 60 * 60 * 1000) }
-      },
-      group: [sequelize.fn('date_trunc', 'hour', sequelize.col('createdAt'))],
-      order: [[sequelize.fn('date_trunc', 'hour', sequelize.col('createdAt')), 'ASC']]
-    });
-
+    let stats;
+    if (dialect === 'postgres') {
+      stats = await Order.findAll({
+        attributes: [
+          [sequelize.fn('date_trunc', 'hour', sequelize.col('createdAt')), 'hour'],
+          [sequelize.fn('count', sequelize.col('id')), 'count']
+        ],
+        where: {
+          createdAt: { [Op.gte]: new Date(Date.now() - 12 * 60 * 60 * 1000) }
+        },
+        group: [sequelize.fn('date_trunc', 'hour', sequelize.col('createdAt'))],
+        order: [[sequelize.fn('date_trunc', 'hour', sequelize.col('createdAt')), 'ASC']]
+      });
+    } else {
+      stats = await Order.findAll({
+        attributes: [
+          [sequelize.fn('strftime', '%Y-%m-%d %H:00:00', sequelize.col('createdAt')), 'hour'],
+          [sequelize.fn('count', sequelize.col('id')), 'count']
+        ],
+        where: {
+          createdAt: { [Op.gte]: new Date(Date.now() - 12 * 60 * 60 * 1000) }
+        },
+        group: [sequelize.fn('strftime', '%Y-%m-%d %H:00:00', sequelize.col('createdAt'))],
+        order: [[sequelize.fn('strftime', '%Y-%m-%d %H:00:00', sequelize.col('createdAt')), 'ASC']]
+      });
+    }
+ 
     res.json(stats.map(s => ({
       hour: new Date(s.dataValues.hour).getHours() + ':00',
       count: parseInt(s.dataValues.count)

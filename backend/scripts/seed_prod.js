@@ -421,15 +421,21 @@ async function seedProduction(sequelize) {
 
     for (const pgData of PG_HOSTELS) {
       const { rooms, ...hostelFields } = pgData;
-      const [hostel] = await PGHostel.findOrCreate({
+      const [hostel, created] = await PGHostel.findOrCreate({
         where: { name: pgData.name },
         defaults: { ...hostelFields, ownerId }
       });
+      if (!created) {
+        await hostel.update({ ...hostelFields, ownerId });
+      }
       for (const room of rooms) {
-        await PGRoom.findOrCreate({
+        const [rInst, rCreated] = await PGRoom.findOrCreate({
           where: { hostelId: hostel.id, roomNumber: room.roomNumber },
           defaults: { ...room, hostelId: hostel.id }
         });
+        if (!rCreated) {
+          await rInst.update(room);
+        }
       }
     }
     console.log(`🏠 [SEED] Seeded ${PG_HOSTELS.length} PG Hostels with rooms.`);

@@ -61,15 +61,19 @@ router.post('/:roomId/book', protect, async (req, res) => {
   }
 });
 
-// POST Create a PG (Owner)
+// POST Create a PG (Owner / Admin)
 router.post('/', protect, async (req, res) => {
   try {
     const PGHostel = getPGHostelModel();
-    const { name, address, distanceFromCollege, genderType, baseRent, amenities, images, description } = req.body;
+    const { 
+      name, address, distanceFromCollege, genderType, baseRent, securityDeposit, 
+      amenities, images, description, messMenu, foodTimetable, rules, contactInfo, isActive 
+    } = req.body;
     
     const pg = await PGHostel.create({
       ownerId: req.user.id,
-      name, address, distanceFromCollege, genderType, baseRent, amenities, images, description
+      name, address, distanceFromCollege, genderType, baseRent, securityDeposit, 
+      amenities, images, description, messMenu, foodTimetable, rules, contactInfo, isActive: isActive ?? true
     });
     res.status(201).json(pg);
   } catch (err) {
@@ -97,9 +101,13 @@ router.put('/:id', protect, admin, async (req, res) => {
     const pg = await PGHostel.findByPk(req.params.id);
     if (!pg) return res.status(404).json({ message: 'PG not found.' });
 
-    const { name, address, distanceFromCollege, genderType, baseRent, amenities, images, description, isActive } = req.body;
+    const { 
+      name, address, distanceFromCollege, genderType, baseRent, securityDeposit, 
+      amenities, images, description, messMenu, foodTimetable, rules, contactInfo, isActive 
+    } = req.body;
     await pg.update({
-      name, address, distanceFromCollege, genderType, baseRent, amenities, images, description, isActive
+      name, address, distanceFromCollege, genderType, baseRent, securityDeposit, 
+      amenities, images, description, messMenu, foodTimetable, rules, contactInfo, isActive
     });
     res.json(pg);
   } catch (err) {

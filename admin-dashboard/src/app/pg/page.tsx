@@ -14,6 +14,28 @@ interface PGHostel {
   isActive: boolean;
   amenities: string[];
   description?: string;
+  securityDeposit: number;
+  contactInfo: {
+    phone: string;
+    email: string;
+    ownerName: string;
+    warden: string;
+  };
+  rules: string[];
+  foodTimetable: {
+    breakfast: string;
+    lunch: string;
+    dinner: string;
+  };
+  messMenu: {
+    Monday: { breakfast: string; lunch: string; dinner: string };
+    Tuesday: { breakfast: string; lunch: string; dinner: string };
+    Wednesday: { breakfast: string; lunch: string; dinner: string };
+    Thursday: { breakfast: string; lunch: string; dinner: string };
+    Friday: { breakfast: string; lunch: string; dinner: string };
+    Saturday: { breakfast: string; lunch: string; dinner: string };
+    Sunday: { breakfast: string; lunch: string; dinner: string };
+  };
 }
 
 interface PGRoom {
@@ -60,10 +82,34 @@ export default function PGMonitorPage() {
     distanceFromCollege: 1.0,
     genderType: 'Co-Ed',
     baseRent: 5000,
+    securityDeposit: 0,
     description: '',
     isActive: true,
-    amenities: [] as string[]
+    amenities: [] as string[],
+    contactInfo: {
+      phone: '',
+      email: '',
+      ownerName: '',
+      warden: ''
+    },
+    rules: [] as string[],
+    foodTimetable: {
+      breakfast: '8:00 AM - 9:30 AM',
+      lunch: '1:00 PM - 2:30 PM',
+      dinner: '8:00 PM - 9:30 PM'
+    },
+    messMenu: {
+      Monday: { breakfast: '', lunch: '', dinner: '' },
+      Tuesday: { breakfast: '', lunch: '', dinner: '' },
+      Wednesday: { breakfast: '', lunch: '', dinner: '' },
+      Thursday: { breakfast: '', lunch: '', dinner: '' },
+      Friday: { breakfast: '', lunch: '', dinner: '' },
+      Saturday: { breakfast: '', lunch: '', dinner: '' },
+      Sunday: { breakfast: '', lunch: '', dinner: '' }
+    }
   });
+
+  const [newRule, setNewRule] = useState('');
 
   // Rooms States
   const [rooms, setRooms] = useState<PGRoom[]>([]);
@@ -115,9 +161,22 @@ export default function PGMonitorPage() {
           distanceFromCollege: 1.0,
           genderType: 'Co-Ed',
           baseRent: 5000,
+          securityDeposit: 0,
           description: '',
           isActive: true,
-          amenities: []
+          amenities: [],
+          contactInfo: { phone: '', email: '', ownerName: '', warden: '' },
+          rules: [],
+          foodTimetable: { breakfast: '8:00 AM - 9:30 AM', lunch: '1:00 PM - 2:30 PM', dinner: '8:00 PM - 9:30 PM' },
+          messMenu: {
+            Monday: { breakfast: '', lunch: '', dinner: '' },
+            Tuesday: { breakfast: '', lunch: '', dinner: '' },
+            Wednesday: { breakfast: '', lunch: '', dinner: '' },
+            Thursday: { breakfast: '', lunch: '', dinner: '' },
+            Friday: { breakfast: '', lunch: '', dinner: '' },
+            Saturday: { breakfast: '', lunch: '', dinner: '' },
+            Sunday: { breakfast: '', lunch: '', dinner: '' }
+          }
         });
         fetchPGs();
       }
@@ -234,9 +293,22 @@ export default function PGMonitorPage() {
       distanceFromCollege: pg.distanceFromCollege,
       genderType: pg.genderType,
       baseRent: pg.baseRent,
+      securityDeposit: pg.securityDeposit || 0,
       description: pg.description || '',
       isActive: pg.isActive,
-      amenities: pg.amenities || []
+      amenities: pg.amenities || [],
+      contactInfo: pg.contactInfo || { phone: '', email: '', ownerName: '', warden: '' },
+      rules: pg.rules || [],
+      foodTimetable: pg.foodTimetable || { breakfast: '8:00 AM - 9:30 AM', lunch: '1:00 PM - 2:30 PM', dinner: '8:00 PM - 9:30 PM' },
+      messMenu: pg.messMenu || {
+        Monday: { breakfast: '', lunch: '', dinner: '' },
+        Tuesday: { breakfast: '', lunch: '', dinner: '' },
+        Wednesday: { breakfast: '', lunch: '', dinner: '' },
+        Thursday: { breakfast: '', lunch: '', dinner: '' },
+        Friday: { breakfast: '', lunch: '', dinner: '' },
+        Saturday: { breakfast: '', lunch: '', dinner: '' },
+        Sunday: { breakfast: '', lunch: '', dinner: '' }
+      }
     });
     fetchRooms(pg.id);
   };
@@ -272,9 +344,22 @@ export default function PGMonitorPage() {
               distanceFromCollege: 1.0,
               genderType: 'Co-Ed',
               baseRent: 5000,
+              securityDeposit: 0,
               description: '',
               isActive: true,
-              amenities: []
+              amenities: [],
+              contactInfo: { phone: '', email: '', ownerName: '', warden: '' },
+              rules: [],
+              foodTimetable: { breakfast: '8:00 AM - 9:30 AM', lunch: '1:00 PM - 2:30 PM', dinner: '8:00 PM - 9:30 PM' },
+              messMenu: {
+                Monday: { breakfast: '', lunch: '', dinner: '' },
+                Tuesday: { breakfast: '', lunch: '', dinner: '' },
+                Wednesday: { breakfast: '', lunch: '', dinner: '' },
+                Thursday: { breakfast: '', lunch: '', dinner: '' },
+                Friday: { breakfast: '', lunch: '', dinner: '' },
+                Saturday: { breakfast: '', lunch: '', dinner: '' },
+                Sunday: { breakfast: '', lunch: '', dinner: '' }
+              }
             });
           }}
           className="px-8 py-3 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:scale-105 transition-all border border-blue-500/20 shadow-[0_0_20px_rgba(37,99,235,0.2)]"
@@ -312,7 +397,7 @@ export default function PGMonitorPage() {
                   onChange={(e) => setPgForm({ ...pgForm, address: e.target.value })}
                 />
               </div>
-              <div className="grid grid-cols-3 gap-4 md:col-span-2">
+              <div className="grid grid-cols-4 gap-4 md:col-span-2">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block">Distance (KM)</label>
                   <input
@@ -346,7 +431,191 @@ export default function PGMonitorPage() {
                     onChange={(e) => setPgForm({ ...pgForm, baseRent: parseInt(e.target.value) })}
                   />
                 </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block">Deposit (₹)</label>
+                  <input
+                    type="number"
+                    required
+                    className="nexus-input"
+                    value={pgForm.securityDeposit}
+                    onChange={(e) => setPgForm({ ...pgForm, securityDeposit: parseInt(e.target.value) })}
+                  />
+                </div>
               </div>
+              
+              {/* Contact Info */}
+              <div className="space-y-4 col-span-full">
+                <h4 className="text-xs font-black text-blue-400 uppercase tracking-widest border-b border-white/5 pb-2">Contact Info & Administration</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Owner Name</label>
+                    <input 
+                      placeholder="e.g. Ram Prasad"
+                      className="nexus-input py-2 px-3 text-xs"
+                      value={pgForm.contactInfo.ownerName}
+                      onChange={(e) => setPgForm({ ...pgForm, contactInfo: { ...pgForm.contactInfo, ownerName: e.target.value } })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Phone Number</label>
+                    <input 
+                      placeholder="e.g. +91 9876543210"
+                      className="nexus-input py-2 px-3 text-xs"
+                      value={pgForm.contactInfo.phone}
+                      onChange={(e) => setPgForm({ ...pgForm, contactInfo: { ...pgForm.contactInfo, phone: e.target.value } })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Email Address</label>
+                    <input 
+                      placeholder="e.g. owner@zenvy.com"
+                      className="nexus-input py-2 px-3 text-xs"
+                      value={pgForm.contactInfo.email}
+                      onChange={(e) => setPgForm({ ...pgForm, contactInfo: { ...pgForm.contactInfo, email: e.target.value } })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Warden Name</label>
+                    <input 
+                      placeholder="e.g. Suresh Kumar"
+                      className="nexus-input py-2 px-3 text-xs"
+                      value={pgForm.contactInfo.warden}
+                      onChange={(e) => setPgForm({ ...pgForm, contactInfo: { ...pgForm.contactInfo, warden: e.target.value } })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Timings */}
+              <div className="space-y-4 col-span-full">
+                <h4 className="text-xs font-black text-blue-400 uppercase tracking-widest border-b border-white/5 pb-2">Food Timetable (Timings)</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Breakfast Time</label>
+                    <input 
+                      className="nexus-input py-2 px-3 text-xs"
+                      value={pgForm.foodTimetable.breakfast}
+                      onChange={(e) => setPgForm({ ...pgForm, foodTimetable: { ...pgForm.foodTimetable, breakfast: e.target.value } })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Lunch Time</label>
+                    <input 
+                      className="nexus-input py-2 px-3 text-xs"
+                      value={pgForm.foodTimetable.lunch}
+                      onChange={(e) => setPgForm({ ...pgForm, foodTimetable: { ...pgForm.foodTimetable, lunch: e.target.value } })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Dinner Time</label>
+                    <input 
+                      className="nexus-input py-2 px-3 text-xs"
+                      value={pgForm.foodTimetable.dinner}
+                      onChange={(e) => setPgForm({ ...pgForm, foodTimetable: { ...pgForm.foodTimetable, dinner: e.target.value } })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Weekly Mess Menu */}
+              <div className="space-y-4 col-span-full">
+                <h4 className="text-xs font-black text-blue-400 uppercase tracking-widest border-b border-white/5 pb-2">Weekly Mess Menu</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
+                    const dayMenu = pgForm.messMenu[day as keyof typeof pgForm.messMenu] || { breakfast: '', lunch: '', dinner: '' };
+                    return (
+                      <div key={day} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">{day} Menu</span>
+                        <div className="grid grid-cols-3 gap-2">
+                          <input 
+                            placeholder="Breakfast"
+                            className="nexus-input py-1.5 px-3 text-xs"
+                            value={dayMenu.breakfast}
+                            onChange={(e) => {
+                              const updatedMenu = { ...pgForm.messMenu };
+                              updatedMenu[day as keyof typeof pgForm.messMenu] = { ...dayMenu, breakfast: e.target.value };
+                              setPgForm({ ...pgForm, messMenu: updatedMenu });
+                            }}
+                          />
+                          <input 
+                            placeholder="Lunch"
+                            className="nexus-input py-1.5 px-3 text-xs"
+                            value={dayMenu.lunch}
+                            onChange={(e) => {
+                              const updatedMenu = { ...pgForm.messMenu };
+                              updatedMenu[day as keyof typeof pgForm.messMenu] = { ...dayMenu, lunch: e.target.value };
+                              setPgForm({ ...pgForm, messMenu: updatedMenu });
+                            }}
+                          />
+                          <input 
+                            placeholder="Dinner"
+                            className="nexus-input py-1.5 px-3 text-xs"
+                            value={dayMenu.dinner}
+                            onChange={(e) => {
+                              const updatedMenu = { ...pgForm.messMenu };
+                              updatedMenu[day as keyof typeof pgForm.messMenu] = { ...dayMenu, dinner: e.target.value };
+                              setPgForm({ ...pgForm, messMenu: updatedMenu });
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Rules */}
+              <div className="space-y-4 col-span-full">
+                <h4 className="text-xs font-black text-blue-400 uppercase tracking-widest border-b border-white/5 pb-2">Rules & Regulations</h4>
+                <div className="space-y-2">
+                  {pgForm.rules.map((rule, idx) => (
+                    <div key={idx} className="flex justify-between items-center bg-white/5 border border-white/5 p-2 rounded-xl text-xs text-white">
+                      <span>{idx + 1}. {rule}</span>
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          const updatedRules = [...pgForm.rules];
+                          updatedRules.splice(idx, 1);
+                          setPgForm({ ...pgForm, rules: updatedRules });
+                        }}
+                        className="text-red-400 hover:text-red-300 font-bold"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input 
+                    placeholder="e.g. Curfew time is 10:00 PM"
+                    className="nexus-input flex-1 py-2 px-3 text-xs"
+                    value={newRule}
+                    onChange={(e) => setNewRule(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (newRule.trim()) {
+                          setPgForm({ ...pgForm, rules: [...pgForm.rules, newRule.trim()] });
+                          setNewRule('');
+                        }
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newRule.trim()) {
+                        setPgForm({ ...pgForm, rules: [...pgForm.rules, newRule.trim()] });
+                        setNewRule('');
+                      }
+                    }}
+                    className="px-4 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/20 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-600/30"
+                  >
+                    Add Rule
+                  </button>
+                </div>
+              </div>
+
               <div className="space-y-2 col-span-full">
                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block">Description</label>
                 <textarea
@@ -526,7 +795,7 @@ export default function PGMonitorPage() {
                       onChange={(e) => setPgForm({ ...pgForm, address: e.target.value })}
                     />
                   </div>
-                  <div className="grid grid-cols-3 gap-4 md:col-span-2">
+                  <div className="grid grid-cols-4 gap-4 md:col-span-2">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block">Distance (KM)</label>
                       <input
@@ -560,7 +829,191 @@ export default function PGMonitorPage() {
                         onChange={(e) => setPgForm({ ...pgForm, baseRent: parseInt(e.target.value) })}
                       />
                     </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block">Deposit (₹)</label>
+                      <input
+                        type="number"
+                        required
+                        className="nexus-input"
+                        value={pgForm.securityDeposit}
+                        onChange={(e) => setPgForm({ ...pgForm, securityDeposit: parseInt(e.target.value) })}
+                      />
+                    </div>
                   </div>
+
+                  {/* Contact Info */}
+                  <div className="space-y-4 col-span-full">
+                    <h4 className="text-xs font-black text-blue-400 uppercase tracking-widest border-b border-white/5 pb-2">Contact Info & Administration</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Owner Name</label>
+                        <input 
+                          placeholder="e.g. Ram Prasad"
+                          className="nexus-input py-2 px-3 text-xs"
+                          value={pgForm.contactInfo.ownerName}
+                          onChange={(e) => setPgForm({ ...pgForm, contactInfo: { ...pgForm.contactInfo, ownerName: e.target.value } })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Phone Number</label>
+                        <input 
+                          placeholder="e.g. +91 9876543210"
+                          className="nexus-input py-2 px-3 text-xs"
+                          value={pgForm.contactInfo.phone}
+                          onChange={(e) => setPgForm({ ...pgForm, contactInfo: { ...pgForm.contactInfo, phone: e.target.value } })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Email Address</label>
+                        <input 
+                          placeholder="e.g. owner@zenvy.com"
+                          className="nexus-input py-2 px-3 text-xs"
+                          value={pgForm.contactInfo.email}
+                          onChange={(e) => setPgForm({ ...pgForm, contactInfo: { ...pgForm.contactInfo, email: e.target.value } })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Warden Name</label>
+                        <input 
+                          placeholder="e.g. Suresh Kumar"
+                          className="nexus-input py-2 px-3 text-xs"
+                          value={pgForm.contactInfo.warden}
+                          onChange={(e) => setPgForm({ ...pgForm, contactInfo: { ...pgForm.contactInfo, warden: e.target.value } })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Timings */}
+                  <div className="space-y-4 col-span-full">
+                    <h4 className="text-xs font-black text-blue-400 uppercase tracking-widest border-b border-white/5 pb-2">Food Timetable (Timings)</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Breakfast Time</label>
+                        <input 
+                          className="nexus-input py-2 px-3 text-xs"
+                          value={pgForm.foodTimetable.breakfast}
+                          onChange={(e) => setPgForm({ ...pgForm, foodTimetable: { ...pgForm.foodTimetable, breakfast: e.target.value } })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Lunch Time</label>
+                        <input 
+                          className="nexus-input py-2 px-3 text-xs"
+                          value={pgForm.foodTimetable.lunch}
+                          onChange={(e) => setPgForm({ ...pgForm, foodTimetable: { ...pgForm.foodTimetable, lunch: e.target.value } })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block">Dinner Time</label>
+                        <input 
+                          className="nexus-input py-2 px-3 text-xs"
+                          value={pgForm.foodTimetable.dinner}
+                          onChange={(e) => setPgForm({ ...pgForm, foodTimetable: { ...pgForm.foodTimetable, dinner: e.target.value } })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Weekly Mess Menu */}
+                  <div className="space-y-4 col-span-full">
+                    <h4 className="text-xs font-black text-blue-400 uppercase tracking-widest border-b border-white/5 pb-2">Weekly Mess Menu</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
+                        const dayMenu = pgForm.messMenu[day as keyof typeof pgForm.messMenu] || { breakfast: '', lunch: '', dinner: '' };
+                        return (
+                          <div key={day} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">{day} Menu</span>
+                            <div className="grid grid-cols-3 gap-2">
+                              <input 
+                                placeholder="Breakfast"
+                                className="nexus-input py-1.5 px-3 text-xs"
+                                value={dayMenu.breakfast}
+                                onChange={(e) => {
+                                  const updatedMenu = { ...pgForm.messMenu };
+                                  updatedMenu[day as keyof typeof pgForm.messMenu] = { ...dayMenu, breakfast: e.target.value };
+                                  setPgForm({ ...pgForm, messMenu: updatedMenu });
+                                }}
+                              />
+                              <input 
+                                placeholder="Lunch"
+                                className="nexus-input py-1.5 px-3 text-xs"
+                                value={dayMenu.lunch}
+                                onChange={(e) => {
+                                  const updatedMenu = { ...pgForm.messMenu };
+                                  updatedMenu[day as keyof typeof pgForm.messMenu] = { ...dayMenu, lunch: e.target.value };
+                                  setPgForm({ ...pgForm, messMenu: updatedMenu });
+                                }}
+                              />
+                              <input 
+                                placeholder="Dinner"
+                                className="nexus-input py-1.5 px-3 text-xs"
+                                value={dayMenu.dinner}
+                                onChange={(e) => {
+                                  const updatedMenu = { ...pgForm.messMenu };
+                                  updatedMenu[day as keyof typeof pgForm.messMenu] = { ...dayMenu, dinner: e.target.value };
+                                  setPgForm({ ...pgForm, messMenu: updatedMenu });
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Rules */}
+                  <div className="space-y-4 col-span-full">
+                    <h4 className="text-xs font-black text-blue-400 uppercase tracking-widest border-b border-white/5 pb-2">Rules & Regulations</h4>
+                    <div className="space-y-2">
+                      {pgForm.rules.map((rule, idx) => (
+                        <div key={idx} className="flex justify-between items-center bg-white/5 border border-white/5 p-2 rounded-xl text-xs text-white">
+                          <span>{idx + 1}. {rule}</span>
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              const updatedRules = [...pgForm.rules];
+                              updatedRules.splice(idx, 1);
+                              setPgForm({ ...pgForm, rules: updatedRules });
+                            }}
+                            className="text-red-400 hover:text-red-300 font-bold"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <input 
+                        placeholder="e.g. Curfew time is 10:00 PM"
+                        className="nexus-input flex-1 py-2 px-3 text-xs"
+                        value={newRule}
+                        onChange={(e) => setNewRule(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (newRule.trim()) {
+                              setPgForm({ ...pgForm, rules: [...pgForm.rules, newRule.trim()] });
+                              setNewRule('');
+                            }
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (newRule.trim()) {
+                            setPgForm({ ...pgForm, rules: [...pgForm.rules, newRule.trim()] });
+                            setNewRule('');
+                          }
+                        }}
+                        className="px-4 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/20 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-600/30"
+                      >
+                        Add Rule
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="space-y-2 col-span-full">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block">Description</label>
                     <textarea
