@@ -51,6 +51,45 @@ export default function PGPage() {
     fetchPGs();
   }, []);
 
+  // Save scroll position on scroll
+  useEffect(() => {
+    if (loading) return;
+    const handleScroll = () => {
+      try {
+        if (window.scrollY > 0) {
+          sessionStorage.setItem('zenvy_pg_scroll', window.scrollY.toString());
+        }
+      } catch { /* ignore */ }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loading]);
+
+  // Restore scroll position after loading completes
+  useEffect(() => {
+    if (!loading) {
+      const savedScroll = sessionStorage.getItem('zenvy_pg_scroll');
+      if (savedScroll) {
+        const targetScroll = Number(savedScroll);
+        if (targetScroll > 0) {
+          let attempts = 0;
+          const interval = setInterval(() => {
+            const currentHeight = document.documentElement.scrollHeight;
+            const viewportHeight = window.innerHeight;
+            if (currentHeight >= targetScroll + viewportHeight || attempts > 30) {
+              window.scrollTo({ top: targetScroll, behavior: 'instant' as any });
+              clearInterval(interval);
+            } else {
+              window.scrollTo({ top: targetScroll, behavior: 'instant' as any });
+            }
+            attempts++;
+          }, 50);
+          return () => clearInterval(interval);
+        }
+      }
+    }
+  }, [loading]);
+
   const fetchPGs = async () => {
     try {
       const res = await fetch(`${API_URL}/api/pg`, { cache: 'no-store' });

@@ -64,18 +64,21 @@
   --midnight-void: #020203;
 }
 
-* {
-  -webkit-tap-highlight-color: transparent;
-}
-
 html, body {
   overflow-x: hidden;
   max-width: 100%;
   width: 100%;
   height: auto; /* Prevent height conflicts */
   min-height: 100vh;
-  font-size: 90%; /* Increased from 72% for better accessibility */
+  font-size: 87.5%; /* 14px base for small phones */
 }
+
+/* Progressive font scaling — adapts to every screen size */
+@media (min-width: 375px) { html { font-size: 90%; } }
+@media (min-width: 640px) { html { font-size: 93.75%; } } /* 15px */
+@media (min-width: 768px) { html { font-size: 100%; } }  /* 16px */
+@media (min-width: 1024px) { html { font-size: 100%; } }
+@media (min-width: 1280px) { html { font-size: 100%; } }
 
 body {
   background-color: var(--background);

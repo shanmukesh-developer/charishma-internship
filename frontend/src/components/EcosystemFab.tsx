@@ -56,7 +56,7 @@ export default function EcosystemFab() {
   };
 
   return (
-    <div className="fixed inset-0 max-w-md mx-auto pointer-events-none z-[60]">
+    <div className="fixed inset-0 w-full max-w-[100vw] sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto pointer-events-none z-[60]">
       <div ref={fabRef} className="absolute right-4 bottom-[120px] flex flex-col items-center gap-3 pointer-events-auto">
         {/* Expanded Menu */}
       <AnimatePresence>

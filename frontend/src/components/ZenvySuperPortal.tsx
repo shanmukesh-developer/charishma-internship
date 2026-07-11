@@ -73,7 +73,7 @@ export default function ZenvySuperPortal() {
 
             {/* The 3D Flipping Container */}
             <motion.div 
-              className="relative w-full max-w-md h-[85vh] mx-auto pointer-events-auto"
+              className="relative w-full max-w-md sm:max-w-lg md:max-w-xl h-[85vh] mx-auto pointer-events-auto"
               initial={{ rotateY: -90, scale: 0.8, opacity: 0 }}
               animate={{ rotateY: 0, scale: 1, opacity: 1 }}
               exit={{ rotateY: 90, scale: 0.8, opacity: 0 }}

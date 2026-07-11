@@ -72,17 +72,17 @@ const Navbar = () => {
   };
 
   return (
-    <nav className={`fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 px-6 transition-all duration-500 flex items-center justify-between border-b ${
+    <nav className={`fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[100vw] sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-5xl z-50 px-4 sm:px-6 transition-all duration-500 flex items-center justify-between border-b ${
       isScrolled 
-      ? 'h-16 bg-[#0A0A0B]/95 backdrop-blur-2xl border-white/10 shadow-none' 
-      : 'h-16 bg-transparent border-transparent'
+      ? 'h-14 sm:h-16 bg-[#0A0A0B]/95 light:bg-white/95 backdrop-blur-2xl border-white/10 light:border-black/10 shadow-none' 
+      : 'h-14 sm:h-16 bg-transparent border-transparent'
     }`}>
       {/* Location - Hidden on Home Top to avoid HUD clash */}
       <div className={`flex flex-col group cursor-pointer transition-opacity duration-500 ${(isHomePage && !isScrolled) ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         <div className="flex items-center gap-1.5">
           <span className="text-primary-yellow text-sm animate-bounce">📍</span>
           <div className="relative">
-            <span className="text-white text-[13px] font-black tracking-tight truncate max-w-[100px] sm:max-w-[160px] group-hover:text-[#EF4F5F] transition-colors">{location}</span>
+            <span className="text-white light:text-gray-900 text-[13px] font-black tracking-tight truncate max-w-[100px] sm:max-w-[160px] group-hover:text-[#EF4F5F] transition-colors">{location}</span>
             <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary-yellow scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
           </div>
           <svg className="w-3 h-3 text-primary-yellow  group-hover:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 20 20">
@@ -104,12 +104,7 @@ const Navbar = () => {
            </div>
         </div>
         
-        <Link 
-          href="/pg"
-          className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/10 bg-white/5 text-white font-black uppercase tracking-widest text-[9px] hover:text-[#EF4F5F] hover:border-[#EF4F5F]/40 transition-all"
-        >
-          <span>🏠</span> PG Hostels
-        </Link>
+
 
         <button 
           onClick={toggleTheme}
