@@ -47,8 +47,8 @@ export default function IntroOverlay({ onComplete }: IntroOverlayProps) {
   const embers = useRef(
     Array.from({ length: 16 }).map(() => ({
       y: new Animated.Value(SH * 1.1),
-      x: new Animated.Value(Math.random() * SW),
-      scale: Math.random() * 1.6 + 0.4,
+      x: Math.random() * SW,
+      scale: new Animated.Value(Math.random() * 1.6 + 0.4),
       opacity: new Animated.Value(0),
     }))
   ).current;
@@ -123,7 +123,7 @@ export default function IntroOverlay({ onComplete }: IntroOverlayProps) {
         }),
         Animated.timing(sheenAnim, {
           toValue: -150,
-          duration: 0,
+          duration: 1,
           useNativeDriver: true,
         }),
         Animated.delay(1600), // delay between sweeps
@@ -252,11 +252,12 @@ export default function IntroOverlay({ onComplete }: IntroOverlayProps) {
           style={[
             styles.ember,
             {
-              transform: [{ translateY: ember.y }],
               opacity: ember.opacity,
               left: ember.x,
-              scaleX: ember.scale,
-              scaleY: ember.scale,
+              transform: [
+                { translateY: ember.y },
+                { scale: ember.scale }
+              ]
             },
           ]}
         />

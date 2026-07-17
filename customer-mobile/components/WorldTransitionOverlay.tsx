@@ -265,19 +265,18 @@ export default function WorldTransitionOverlay() {
   return (
     <View style={s.container} pointerEvents={phase === 'covering' ? 'auto' : 'none'}>
       {/* ── LAYER 1: Full-screen Diamond Wipe ── */}
-      <Animated.View
-        style={[
-          s.diamondWipe,
-          {
-            backgroundColor: theme.colors[0],
-            transform: [
-              { rotate: '45deg' },
-              { scale: diamondScale },
-            ],
-            opacity: wipeProgress,
-          },
-        ]}
-      />
+      <View style={[s.diamondWipe, { transform: [{ rotate: '45deg' }] }]}>
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              backgroundColor: theme.colors[0],
+              transform: [{ scale: diamondScale }],
+              opacity: wipeProgress,
+            },
+          ]}
+        />
+      </View>
 
       {/* ── LAYER 2: Theme Gradient Overlay ── */}
       <Animated.View style={[s.gradientOverlay, { opacity: wipeProgress }]}>
@@ -291,19 +290,24 @@ export default function WorldTransitionOverlay() {
 
       {/* ── LAYER 3: Radial Light Rays ── */}
       {rayAnims.map((ray, i) => (
-        <Animated.View
+        <View
           key={`ray-${i}`}
           style={[
             s.lightRay,
-            {
-              opacity: ray.opacity,
-              transform: [
-                { rotate: `${(i * 360) / NUM_RAYS}deg` },
-                { scaleX: ray.scaleX },
-              ],
-            },
+            { transform: [{ rotate: `${(i * 360) / NUM_RAYS}deg` }] }
           ]}
-        />
+        >
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                opacity: ray.opacity,
+                transform: [{ scaleX: ray.scaleX }],
+                backgroundColor: 'rgba(255,255,255,0.3)'
+              },
+            ]}
+          />
+        </View>
       ))}
 
       {/* ── LAYER 4: Luminous Concentric Rings ── */}
@@ -410,7 +414,6 @@ const s = StyleSheet.create({
     position: 'absolute',
     width: W * 2,
     height: 2,
-    backgroundColor: 'rgba(255,255,255,0.3)',
     alignSelf: 'center',
     top: H / 2 - 1,
     left: -W * 0.5,

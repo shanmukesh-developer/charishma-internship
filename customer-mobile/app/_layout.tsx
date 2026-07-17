@@ -1,12 +1,11 @@
 import React from 'react';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'react-native';
+import { StatusBar, Platform, View, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider } from '../context/AuthContext';
 import { CartProvider } from '../context/CartContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { WorldTransitionProvider } from '../context/WorldTransitionContext';
-import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import WorldTransitionOverlay from '../components/WorldTransitionOverlay';
 import IntroOverlay from '../components/IntroOverlay';
@@ -58,10 +57,6 @@ function AppContainer() {
     }
   };
 
-  if (checkingIntro) {
-    return null;
-  }
-
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: isDark ? '#0A0A0B' : '#F5F5F7' }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={isDark ? "#0A0A0B" : "#F5F5F7"} />
@@ -71,7 +66,13 @@ function AppContainer() {
             <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
             <WorldTransitionOverlay />
             <GlobalAnnouncement />
-            {showIntro && <IntroOverlay onComplete={handleIntroComplete} />}
+            
+            {checkingIntro ? (
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: '#060608', zIndex: 999999 }]} />
+            ) : showIntro ? (
+              <IntroOverlay onComplete={handleIntroComplete} />
+            ) : null}
+            
           </CartProvider>
         </AuthProvider>
       </WorldTransitionProvider>
