@@ -1,0 +1,206 @@
+import React, { useRef, useCallback, useState } from 'react';
+import { TouchableOpacity, Animated, ViewStyle, Platform, View, StyleSheet } from 'react-native';
+import { playSound } from '../utils/sounds';
+import * as Haptics from 'expo-haptics';
+
+// ── Dopamine Pressable ──────────────────────────────────────────────────
+// A premium interactive wrapper with spring-loaded scale + opacity bounce.
+// Upgraded with native GPU-driven 3D touch tilt dynamics for physical realism.
+
+interface DopaminePressableProps {
+  children: React.ReactNode;
+  onPress?: () => void;
+  onLongPress?: () => void;
+  style?: any;
+  disabled?: boolean;
+  activeScale?: number;       // Scale when pressed (default 0.96)
+  springSpeed?: number;       // Spring animation speed (default 18)
+  springBounciness?: number;  // Spring bounciness (default 4)
+  sound?: 'click' | 'addToCart' | 'tabSwitch' | 'success' | 'worldTransition' | 'pgTransition' | 'rideTransition' | 'premiumRestaurantTransition' | null;
+  activeOpacity?: number;
+  tilt?: boolean;             // Enable 3D tilt mechanics (default false)
+  haptic?: 'light' | 'medium' | 'heavy' | 'success' | 'none'; // Native haptics
+}
+
+export default function DopaminePressable({
+  children,
+  onPress,
+  onLongPress,
+  style,
+  disabled = false,
+  activeScale = 0.96,
+  springSpeed = 18,
+  springBounciness = 4,
+  sound = 'click',
+  activeOpacity = 0.9,
+  tilt = false,
+  haptic = 'light',
+}: DopaminePressableProps) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const tiltX = useRef(new Animated.Value(0)).current;
+  const tiltY = useRef(new Animated.Value(0)).current;
+  const [layout, setLayout] = useState({ width: 0, height: 0 });
+
+  const handleLayout = useCallback((e: any) => {
+    const { width, height } = e.nativeEvent.layout;
+    setLayout({ width, height });
+  }, []);
+
+  const handleTouch = useCallback((e: any) => {
+    if (!tilt || !layout.width || !layout.height) return;
+    const { locationX, locationY } = e.nativeEvent;
+
+    // Clamp coordinates within layout boundaries
+    const x = Math.max(0, Math.min(locationX, layout.width));
+    const y = Math.max(0, Math.min(locationY, layout.height));
+
+    const centerX = layout.width / 2;
+    const centerY = layout.height / 2;
+
+    // Normalized coordinates from -1 to 1
+    const normX = (x - centerX) / centerX;
+    const normY = (y - centerY) / centerY;
+
+    Animated.parallel([
+      Animated.spring(tiltX, {
+        toValue: normX,
+        useNativeDriver: true,
+        tension: 140,
+        friction: 12,
+      }),
+      Animated.spring(tiltY, {
+        toValue: normY,
+        useNativeDriver: true,
+        tension: 140,
+        friction: 12,
+      }),
+    ]).start();
+  }, [tilt, layout]);
+
+  const handlePressIn = useCallback((e: any) => {
+    Animated.spring(scaleAnim, {
+      toValue: activeScale,
+      useNativeDriver: true,
+      speed: springSpeed,
+      bounciness: springBounciness,
+    }).start();
+
+    if (Platform.OS !== 'web' && haptic !== 'none') {
+      try {
+        if (haptic === 'success') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        else if (haptic === 'heavy') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        else if (haptic === 'medium') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch (e) {}
+    }
+
+    if (tilt) {
+      handleTouch(e);
+    }
+  }, [activeScale, springSpeed, springBounciness, tilt, handleTouch]);
+
+  const handlePressOut = useCallback(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: springSpeed,
+      bounciness: springBounciness + 2,
+    }).start();
+
+    if (tilt) {
+      Animated.parallel([
+        Animated.spring(tiltX, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 160,
+          friction: 10,
+        }),
+        Animated.spring(tiltY, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 160,
+          friction: 10,
+        }),
+      ]).start();
+    }
+  }, [springSpeed, springBounciness, tilt]);
+
+  const handlePress = useCallback(() => {
+    if (sound) {
+      playSound(sound);
+    }
+    onPress?.();
+  }, [onPress, sound]);
+
+  // Interpolations for 3D rotation
+  const rotateX = tiltY.interpolate({
+    inputRange: [-1, 1],
+    outputRange: ['8deg', '-8deg'], // top touch tilts forward, bottom backward
+  });
+
+  const rotateY = tiltX.interpolate({
+    inputRange: [-1, 1],
+    outputRange: ['-8deg', '8deg'], // left touch tilts left, right tilts right
+  });
+
+  const transformStyle = [
+    { perspective: 400 },
+    { scale: scaleAnim },
+    ...(tilt ? [{ rotateX }, { rotateY }] : []),
+  ];
+
+  const flatStyle = style ? StyleSheet.flatten(style) : {};
+  const hasHeight = flatStyle && flatStyle.height !== undefined;
+
+  // Helper to copy key layout behaviors down to the inner Animated.View container
+  const getLayoutStyles = () => {
+    if (!style) return {};
+    const layoutKeys = ['flexDirection', 'alignItems', 'justifyContent', 'flexWrap', 'flex', 'gap', 'borderRadius', 'overflow'];
+    const extracted: any = {};
+    layoutKeys.forEach(key => {
+      if (flatStyle[key] !== undefined) {
+        extracted[key] = flatStyle[key];
+      }
+    });
+    return extracted;
+  };
+
+  return (
+    <View
+      onLayout={tilt ? handleLayout : undefined}
+      onTouchMove={tilt ? handleTouch : undefined}
+      style={style}
+    >
+      <TouchableOpacity
+        style={{ width: '100%', height: hasHeight ? '100%' : undefined }}
+        activeOpacity={activeOpacity}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={handlePress}
+        onLongPress={onLongPress}
+        disabled={disabled}
+      >
+        <Animated.View style={[{ transform: transformStyle, width: '100%', height: hasHeight ? '100%' : undefined }, getLayoutStyles()]}>
+          {children}
+        </Animated.View>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// ── Preset Variants ──
+
+// For cards and larger surfaces — gentler scale, default tilt = true
+export function CardPressable({ tilt = true, ...props }: DopaminePressableProps) {
+  return <DopaminePressable activeScale={0.98} springSpeed={14} springBounciness={3} sound={props.sound ?? null} tilt={tilt} {...props} />;
+}
+
+// For CTA / action buttons — snappier bounce
+export function ActionPressable({ tilt = false, ...props }: DopaminePressableProps) {
+  return <DopaminePressable activeScale={0.93} springSpeed={20} springBounciness={6} sound={props.sound ?? 'click'} tilt={tilt} haptic="medium" {...props} />;
+}
+
+// For add-to-cart buttons — satisfying pop
+export function CartPressable({ tilt = false, ...props }: DopaminePressableProps) {
+  return <DopaminePressable activeScale={0.9} springSpeed={22} springBounciness={8} sound={props.sound ?? 'addToCart'} tilt={tilt} haptic="heavy" {...props} />;
+}

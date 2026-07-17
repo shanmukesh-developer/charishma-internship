@@ -58,7 +58,8 @@ const cleanPrivateKey = (raw) => {
 };
 
 const initializeFirebase = () => {
-  if (admin.apps.length > 0) return admin;
+  const apps = (admin.getApps ? admin.getApps() : admin.apps) || [];
+  if (apps.length > 0) return admin;
 
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
@@ -71,7 +72,7 @@ const initializeFirebase = () => {
       const decoded = Buffer.from(serviceAccountBase64, 'base64').toString('utf8');
       const serviceAccount = JSON.parse(decoded);
       admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+        credential: (admin.cert || admin.credential.cert)(serviceAccount)
       });
       console.log('✅ Firebase Admin initialized via FIREBASE_SERVICE_ACCOUNT_BASE64');
       return admin;
@@ -86,7 +87,7 @@ const initializeFirebase = () => {
       const privateKey = cleanPrivateKey(privateKeyRaw);
       if (privateKey) {
         admin.initializeApp({
-          credential: admin.credential.cert({
+          credential: (admin.cert || admin.credential.cert)({
             projectId,
             clientEmail,
             privateKey
@@ -100,7 +101,8 @@ const initializeFirebase = () => {
     } catch (err) {
       console.error('❌ Failed to initialize via individual ENV vars:', err.message);
       // Delete partially initialized app if any
-      if (admin.apps.length > 0) admin.app().delete().catch(() => {});
+      const currentApps = (admin.getApps ? admin.getApps() : admin.apps) || [];
+      if (currentApps.length > 0) admin.app().delete().catch(() => {});
     }
   }
 
@@ -110,7 +112,7 @@ const initializeFirebase = () => {
     try {
       const serviceAccount = require(serviceAccountPath);
       admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+        credential: (admin.cert || admin.credential.cert)(serviceAccount)
       });
       console.log('✅ Firebase Admin initialized via firebase-key.json');
       return admin;

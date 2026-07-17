@@ -68,7 +68,7 @@ export default function NexusLayoutClient({
             { href: '/analytics/rewards', icon: '🎡', label: 'Rewards Intel' },
             { href: '/audit', icon: '📋', label: 'Audit Logs' },
             { href: '/blocks', icon: '🔒', label: 'Blocked Users' },
-            { href: '/config', icon: '⚙️', label: 'Nexus Config' },
+            { href: '/cms', icon: '🎨', label: 'Global CMS Layout' },
           ].map(({ href, icon, label }) => {
             const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href) && (href !== '/analytics' || pathname === '/analytics');
             return (

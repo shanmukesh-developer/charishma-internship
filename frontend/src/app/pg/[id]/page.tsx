@@ -87,7 +87,15 @@ export default function PGDetailPage() {
   };
 
   const handleBookRoom = async (roomId: string) => {
-    const token = localStorage.getItem('token');
+    let token = localStorage.getItem('token');
+    if (!token) {
+      try {
+        const stored = localStorage.getItem('user');
+        if (stored) {
+          token = JSON.parse(stored).token;
+        }
+      } catch {}
+    }
     if (!token) {
       showToast("Please login to book a room.", 'error');
       setTimeout(() => {

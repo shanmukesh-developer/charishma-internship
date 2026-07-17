@@ -30,7 +30,23 @@ export default function GlobalAnnouncement() {
   useEffect(() => {
     const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'], withCredentials: true });
     socket.on('global_announcement', (data: Announcement) => {
-      setAnnouncement(data);
+      // Personalize the message dynamically for the current user
+      let processedMessage = data.message;
+      if (processedMessage.includes('{{username}}')) {
+        let userName = 'User';
+        try {
+          const stored = localStorage.getItem('user');
+          if (stored) {
+            const u = JSON.parse(stored);
+            if (u.name) {
+              userName = u.name.split(' ')[0]; // Use first name
+            }
+          }
+        } catch (e) {}
+        processedMessage = processedMessage.replace(/{{username}}/g, userName);
+      }
+      
+      setAnnouncement({ ...data, message: processedMessage });
       // Auto-dismiss after 8 seconds unless emergency
       if (data.type !== 'emergency') {
         setTimeout(() => setAnnouncement(null), 8000);

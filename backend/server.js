@@ -341,6 +341,10 @@ const startServer = async () => {
 
     // Routes
     app.use('/api/users', require('./routes/userRoutes'));
+    const ticketRoutes = require('./routes/ticketRoutes');
+    const testRoutes = require('./routes/testRoutes');
+    const systemRoutes = require('./routes/systemRoutes');
+    const appConfigRoutes = require('./routes/appConfigRoutes');
     app.use('/api/restaurants', require('./routes/restaurantRoutes'));
     app.use('/api/orders', require('./routes/orderRoutes'));
     app.use('/api/delivery', require('./routes/deliveryPartnerRoutes'));
@@ -431,7 +435,10 @@ const startServer = async () => {
     app.use('/api/admin', require('./routes/adminRoutes'));
     app.use('/api/rewards', require('./routes/rewardRoutes'));
     app.use('/api/community', require('./routes/communityRoutes'));
-    app.use('/api/tickets', require('./routes/ticketRoutes'));
+    app.use('/api/tickets', ticketRoutes);
+    app.use('/api/test', testRoutes);
+    app.use('/api/system', systemRoutes);
+    app.use('/api/config', appConfigRoutes);
     app.use('/api/features', require('./routes/featureRoutes'));
 
     // ── Hourly Cleanup: Delete expired community posts ──────────────────────

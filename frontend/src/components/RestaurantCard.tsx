@@ -29,43 +29,44 @@ const RestaurantCard = ({
 }: RestaurantCardProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
 
-  // Zomato style random price for two
-  const priceForTwo = Math.floor(Math.random() * (350 - 150 + 1) + 150);
-  
-  // Zomato style random offer
+  // Stable pseudo-random seed to prevent hydration mismatches
+  const seed = (name || '').length + (id || '').charCodeAt(0) + (id || '').charCodeAt((id || '').length - 1 || 0);
+  const priceForTwo = 150 + (seed * 7) % 201;
   const offers = ["50% OFF up to ₹100", "Flat ₹75 OFF", "Free Delivery", "60% OFF up to ₹120", "Buy 1 Get 1 Free"];
-  const offer = offers[Math.floor(Math.random() * offers.length)];
-  const hasOffer = Math.random() > 0.3; // 70% chance to have an offer
+  const offer = offers[seed % offers.length];
+  const hasOffer = (seed % 10) < 7;
 
   return (
     <Link href={`/restaurants/${id}`} className="block w-full outline-none">
       <motion.div 
-        whileHover={{ scale: 0.98 }}
-        whileTap={{ scale: 0.95 }}
+        whileHover={{ y: -6 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
         onClick={() => playSensoryFeedback()}
-        transition={{ duration: 0.2 }}
-        className="relative flex flex-col rounded-[16px] overflow-hidden bg-white light:bg-gradient-to-br light:from-white/95 light:to-white/60 light:backdrop-blur-lg shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-gray-100 light:border-white/40 hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)] transition-all group"
+        className="relative flex flex-col rounded-2xl overflow-hidden bg-white dark:bg-zinc-900 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-slate-100 dark:border-zinc-800/80 hover:shadow-[0_12px_30px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_12px_30px_rgba(0,0,0,0.4)] transition-all duration-300 group"
       >
         {/* Food Image Container */}
-        <div className="aspect-[4/3] w-full relative overflow-hidden bg-gray-100">
+        <div className="aspect-[4/3] w-full relative overflow-hidden bg-slate-100 dark:bg-zinc-800">
           <SafeImage 
             src={imageUrl} 
             alt={name}
             fallback="/assets/placeholder_premium.png"
             fill
-            className="object-cover transition-transform duration-700"
+            className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
           />
 
-          {/* Featured Badge / Promoted */}
+          {/* Gradient Overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60" />
+
+          {/* Featured / Promoted Badge */}
           {isFeatured && (
-            <div className="absolute top-2 left-2 z-10">
-              <span className="bg-black/60 backdrop-blur-sm text-white light:text-gray-900 text-[9px] font-medium tracking-wide px-1.5 py-0.5 rounded shadow-sm">
-                Promoted
+            <div className="absolute top-3 left-3 z-10">
+              <span className="bg-black/60 dark:bg-black/80 backdrop-blur-md text-white text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-md shadow-sm border border-white/10">
+                PROMOTED
               </span>
             </div>
           )}
 
-          {/* Favorite Icon (Zomato Style Top Right Heart) */}
+          {/* Favorite Icon */}
           <button 
             onClick={(e) => {
               e.preventDefault();
@@ -73,60 +74,60 @@ const RestaurantCard = ({
               playSensoryFeedback();
               setIsFavorite(!isFavorite);
             }}
-            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white shadow-md flex items-center justify-center transition-all z-10 hover:scale-110 active:scale-90"
+            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 dark:bg-black/60 backdrop-blur-md shadow-sm border border-white/20 dark:border-white/10 flex items-center justify-center transition-all z-10 hover:scale-110 active:scale-90 hover:bg-white dark:hover:bg-black"
           >
-            <svg className={`w-4 h-4 ${isFavorite ? 'fill-[#E23744] text-[#E23744]' : 'fill-none stroke-[#E23744]'}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            <svg className={`w-4.5 h-4.5 transition-colors duration-300 ${isFavorite ? 'fill-[#FF385C] text-[#FF385C]' : 'fill-none stroke-gray-600 dark:stroke-gray-300'}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
           </button>
 
-          {/* Time Chip Overlay (Zomato Style Bottom Right) */}
-          <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm rounded px-1.5 py-0.5 flex items-center shadow-sm">
-            <span className="text-[8px] font-bold text-white">{time}</span>
+          {/* Time Chip Overlay */}
+          <div className="absolute bottom-3 right-3 bg-black/65 backdrop-blur-md rounded-lg px-2 py-1 flex items-center shadow-sm border border-white/10">
+            <span className="text-[10px] font-bold text-white tracking-wide">{time}</span>
           </div>
           
-          {/* Discount Overlay (Zomato Style Bottom Left Blue/Red Ribbon) */}
+          {/* Discount Overlay */}
           {hasOffer && (
-            <div className="absolute bottom-2 left-0 bg-[#256fef] rounded-r text-white light:text-gray-900 px-1.5 py-0.5 shadow-sm">
-              <span className="text-[8px] font-bold">
+            <div className="absolute bottom-3 left-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-2.5 py-1 rounded-lg shadow-md border border-emerald-400/20">
+              <span className="text-[10px] font-black tracking-wide uppercase">
                 {offer.includes('%') ? offer.split(' ')[0] : (offer.includes('Flat') ? 'FLAT OFF' : 'BOGO')}
               </span>
             </div>
           )}
         </div>
 
-        {/* Info Content Area - PURE WHITE BACKGROUND ZOMATO STYLE */}
-        <div className="p-2 bg-white flex flex-col justify-between">
+        {/* Info Content Area */}
+        <div className="p-3 bg-white dark:bg-zinc-900 flex flex-col justify-between flex-1">
           
           {/* Title and Rating Row */}
-          <div className="flex justify-between items-start gap-1 mb-0.5">
-            <h3 className="font-bold text-[11px] leading-tight text-gray-900 line-clamp-1 truncate" style={{ fontFamily: "Inter, sans-serif" }}>
+          <div className="flex justify-between items-center gap-2 mb-1.5">
+            <h3 className="font-bold text-sm tracking-tight text-slate-800 dark:text-zinc-100 line-clamp-1 truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-200" style={{ fontFamily: "Inter, sans-serif" }}>
               {name}
             </h3>
-            {/* Zomato Green Rating Badge */}
-            <div className="flex items-center gap-0.5 px-1 py-[1px] rounded bg-[#24963F] text-white light:text-gray-900 shrink-0 mt-0.5">
-              <span className="text-[8px] font-bold leading-none">{rating}</span>
-              <svg className="w-[6px] h-[6px] fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+            {/* Emerald Rating Badge */}
+            <div className="flex items-center gap-0.5 px-2 py-0.5 rounded-lg bg-emerald-600 text-white shrink-0 shadow-sm shadow-emerald-600/10">
+              <span className="text-[10px] font-black leading-none">{rating}</span>
+              <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
             </div>
           </div>
 
           {/* Subtitle / Canteen description & Price */}
-          <div className="flex justify-between items-center mb-1.5">
-            <p className="text-[8px] text-gray-500 line-clamp-1 truncate">
+          <div className="flex justify-between items-center mb-2.5">
+            <p className="text-xs text-slate-500 dark:text-zinc-400 line-clamp-1 truncate flex-1 mr-2">
               {canteenType}
             </p>
-            <p className="text-[9px] font-semibold text-gray-700 shrink-0 ml-1">
-              ₹{priceForTwo}
+            <p className="text-xs font-bold text-slate-700 dark:text-zinc-300 shrink-0">
+              ₹{priceForTwo} <span className="text-[10px] font-normal text-slate-400">for two</span>
             </p>
           </div>
 
-          {/* Offer Zomato Dashed Line */}
+          {/* Offer Banner */}
           {hasOffer && (
-            <div className="pt-1.5 border-t border-dashed border-gray-200 flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                 <span className="text-[6px]">🏷️</span>
+            <div className="pt-2.5 border-t border-dashed border-slate-100 dark:border-zinc-800/60 flex items-center gap-1.5">
+              <div className="w-5 h-5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
+                 <span className="text-xs">🏷️</span>
               </div>
-              <span className="text-[8px] font-medium text-gray-600 line-clamp-1 truncate leading-tight">{offer}</span>
+              <span className="text-[10px] font-semibold text-slate-600 dark:text-zinc-400 line-clamp-1 truncate leading-none">{offer}</span>
             </div>
           )}
         </div>

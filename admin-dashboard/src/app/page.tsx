@@ -640,7 +640,7 @@ export default function AdminHome() {
                 rows={3}
                 value={megaMsg}
                 onChange={e => setMegaMsg(e.target.value)}
-                placeholder="Type your message (e.g. '🌧️ Rain alert! Deliveries delayed by 15 mins due to weather.')"
+                placeholder="Type your message. Use {{username}} for personalized names (e.g., '{{username}} garu, order cheysukondi!')"
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-sm text-white placeholder-gray-600 outline-none focus:border-blue-500/40 resize-none transition-all"
               />
             </div>

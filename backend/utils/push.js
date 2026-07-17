@@ -1,7 +1,8 @@
 const admin = require('../config/firebase');
 
 const sendPushToTokens = async (tokens, title, body, data = {}) => {
-  if (!admin.apps.length) return console.log('Firebase not initialized');
+  const apps = (admin.getApps ? admin.getApps() : admin.apps) || [];
+  if (!apps.length) return console.log('Firebase not initialized');
   let tokenList = tokens;
   if (typeof tokens === 'string') {
     try {

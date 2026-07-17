@@ -455,8 +455,8 @@ export function AddRestaurantForm({ onCancel, onSubmit, isCreating, initialData 
                 >
                   <option value="none">None (Static Shutter)</option>
                   <option value="kfc-bucket-drop">🍗 KFC Bucket Drop</option>
-                  <option value="dominos-flip">🍕 Domino's Pizza Flip</option>
-                  <option value="mcd-glow">🍟 McDonald's Arches Glow</option>
+                  <option value="dominos-flip">🍕 Domino&apos;s Pizza Flip</option>
+                  <option value="mcd-glow">🍟 McDonald&apos;s Arches Glow</option>
                 </select>
               </div>
 

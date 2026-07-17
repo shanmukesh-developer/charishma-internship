@@ -1,7 +1,7 @@
 /* eslint-disable */
 const axios = require('axios');
 
-const API_URL = 'http://localhost:5005/api';
+const API_URL = 'https://hostelbites-backend-jwmt.onrender.com/api';
 
 async function simulate() {
   try {

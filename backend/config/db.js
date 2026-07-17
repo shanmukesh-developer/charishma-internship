@@ -22,9 +22,11 @@ const { initPGRoomModel } = require('../models/PGRoom');
 const { initPGBookingModel } = require('../models/PGBooking');
 const { initMegaBasketModel } = require('../models/MegaBasket');
 const { initMegaBasketItemModel } = require('../models/MegaBasketItem');
+const { initAppConfigModel } = require('../models/AppConfig');
 
 const initializeAllModels = (instance) => {
   initUserModel(instance);
+  initAppConfigModel(instance);
   initRestaurantModel(instance);
   initMenuItemModel(instance);
   initOrderModel(instance);

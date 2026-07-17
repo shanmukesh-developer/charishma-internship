@@ -21,7 +21,13 @@ export default function SupportPage() {
 
   const fetchTickets = async () => {
     try {
-      const token = 'cookie-managed';
+      let token = localStorage.getItem('token');
+      if (!token) {
+        try {
+          const stored = localStorage.getItem('user');
+          if (stored) token = JSON.parse(stored).token;
+        } catch {}
+      }
       if (!token) return router.push('/login');
 
       const res = await fetch(`${API_URL}/api/tickets`, {
@@ -50,7 +56,15 @@ export default function SupportPage() {
     
     setIsSubmitting(true);
     try {
-      const token = 'cookie-managed';
+      let token = localStorage.getItem('token');
+      if (!token) {
+        try {
+          const stored = localStorage.getItem('user');
+          if (stored) token = JSON.parse(stored).token;
+        } catch {}
+      }
+      if (!token) return router.push('/login');
+
       const response = await fetch(`${API_URL}/api/tickets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', },
