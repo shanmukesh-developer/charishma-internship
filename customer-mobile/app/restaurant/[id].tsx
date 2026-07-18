@@ -117,8 +117,10 @@ export default function RestaurantDetail() {
         }
         const favsStr = await AsyncStorage.getItem('zenvy_favorites');
         if (favsStr) {
-          const favs = JSON.parse(favsStr);
-          setIsFavorite(favs.includes(id));
+          try {
+            const favs = JSON.parse(favsStr);
+            setIsFavorite(Array.isArray(favs) ? favs.includes(id) : false);
+          } catch(e) {}
         }
         const userStr = await AsyncStorage.getItem('user');
         if (userStr) {
@@ -172,8 +174,11 @@ export default function RestaurantDetail() {
   async function toggleFavorite() {
     try {
       const favsStr = await AsyncStorage.getItem('zenvy_favorites');
-      let favs = favsStr ? JSON.parse(favsStr) : [];
-      if (favs.includes(id)) {
+      let favs = [];
+      try {
+        favs = favsStr ? JSON.parse(favsStr) : [];
+      } catch(e) {}
+      if (Array.isArray(favs) && favs.includes(id)) {
         favs = favs.filter((f: string) => f !== id);
         setIsFavorite(false);
       } else {
