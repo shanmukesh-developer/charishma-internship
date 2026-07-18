@@ -97,6 +97,11 @@ export default function BasketScreen() {
                         {summarizeCustomizations(item.customizations)}
                       </Text>
                     )}
+                    {item.addedBy && (
+                      <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4 }}>
+                        <Text style={{ fontSize: 8, fontWeight: '800', color: txtSec, textTransform: 'uppercase' }}>👤 ADDED BY {item.addedBy}</Text>
+                      </View>
+                    )}
                     <Text style={{ fontSize: 16, fontWeight: '900', color: goldColor, marginTop: 4 }}>₹{item.price}</Text>
                   </View>
                   <View style={[s.qtyWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6' }]}>

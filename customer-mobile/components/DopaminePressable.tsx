@@ -149,7 +149,7 @@ export default function DopaminePressable({
   const transformStyle = [
     ...(Platform.OS !== 'android' ? [{ perspective: 400 }] : []),
     { scale: scaleAnim },
-    ...(tilt ? [{ rotateX }, { rotateY }] : []),
+    ...(tilt && Platform.OS !== 'android' ? [{ rotateX }, { rotateY }] : []),
   ];
 
   const flatStyle = style ? StyleSheet.flatten(style) : {};
