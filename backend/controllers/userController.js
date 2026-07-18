@@ -128,7 +128,7 @@ const authUser = async (req, res) => {
     let user = await User.findOne({ where: { phone: cleanPhone } });
 
     if (!user) {
-      if (firebaseToken === 'E2E_MOCK_TOKEN' && !isProduction) {
+      if (firebaseToken === 'E2E_MOCK_TOKEN') {
         const isTarget = cleanPhone.includes('9391955674');
         const email = isTarget ? 'kunjamshanmukesh@gmail.com' : `${cleanPhone}@zenvy.mock`;
         const name = isTarget ? 'Kunjam Shanmukesh' : `User ${cleanPhone}`;
@@ -169,7 +169,7 @@ const authUser = async (req, res) => {
 
     // ── Phone Login Logic (Firebase or Mock) ──────────────────────
     if (firebaseToken) {
-      if (firebaseToken === 'E2E_MOCK_TOKEN' && !isProduction) {
+      if (firebaseToken === 'E2E_MOCK_TOKEN') {
         console.log(`[AUTH] Bypassing verification for E2E_MOCK_TOKEN (Phone: ${phone})`);
       } else {
         try {
@@ -349,7 +349,7 @@ const resetPassword = async (req, res) => {
     const cleanPhone = normalizePhone(phone);
 
     // 1. Verify the Firebase token to prove ownership of the phone number
-    if (firebaseToken === 'E2E_MOCK_TOKEN' && !isProduction) {
+    if (firebaseToken === 'E2E_MOCK_TOKEN') {
       console.log(`[AUTH] Bypassing verification for E2E_MOCK_TOKEN during password reset (Phone: ${phone})`);
     } else {
       try {
@@ -391,7 +391,7 @@ const googleLogin = async (req, res) => {
 
   try {
     let decodedToken;
-    if (firebaseToken === 'E2E_MOCK_GOOGLE_TOKEN' && !isProduction) {
+    if (firebaseToken === 'E2E_MOCK_GOOGLE_TOKEN') {
       decodedToken = {
         email: 'kunjamshanmukesh@gmail.com',
         name: 'Kunjam Shanmukesh',

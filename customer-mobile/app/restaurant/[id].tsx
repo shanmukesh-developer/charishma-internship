@@ -164,7 +164,7 @@ export default function RestaurantDetail() {
   const cardBg = brand ? 'rgba(0,0,0,0.6)' : (isDark ? COLORS.bgCard : '#fff');
   const border = brand ? 'rgba(255,255,255,0.05)' : (isDark ? COLORS.borderDark : COLORS.borderLight);
   const rating = Number(restaurant.rating) || 4.0;
-  const menu = restaurant.menu || [];
+  const menu = Array.isArray(restaurant.menu) ? restaurant.menu.filter(Boolean) : [];
   const heroImg = restaurant.imageUrl || restaurant.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600';
 
   const isLocalVendor = restaurant?.vendorType === 'LOCAL_VENDOR';

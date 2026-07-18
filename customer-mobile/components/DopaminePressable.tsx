@@ -77,10 +77,12 @@ export default function DopaminePressable({
     ]).start();
   }, [tilt, layout]);
 
+  const useNative = !tilt; // Use native driver if not using 3D tilt
+
   const handlePressIn = useCallback((e: any) => {
     Animated.spring(scaleAnim, {
       toValue: activeScale,
-      useNativeDriver: false,
+      useNativeDriver: useNative,
       speed: springSpeed,
       bounciness: springBounciness,
     }).start();
@@ -98,12 +100,12 @@ export default function DopaminePressable({
     if (tilt) {
       handleTouch(e);
     }
-  }, [activeScale, springSpeed, springBounciness, tilt, handleTouch]);
+  }, [activeScale, springSpeed, springBounciness, tilt, handleTouch, useNative]);
 
   const handlePressOut = useCallback(() => {
     Animated.spring(scaleAnim, {
       toValue: 1,
-      useNativeDriver: false,
+      useNativeDriver: useNative,
       speed: springSpeed,
       bounciness: springBounciness + 2,
     }).start();
@@ -124,7 +126,7 @@ export default function DopaminePressable({
         }),
       ]).start();
     }
-  }, [springSpeed, springBounciness, tilt]);
+  }, [springSpeed, springBounciness, tilt, useNative]);
 
   const handlePress = useCallback(() => {
     if (sound) {
@@ -145,7 +147,7 @@ export default function DopaminePressable({
   });
 
   const transformStyle = [
-    { perspective: 400 },
+    ...(Platform.OS !== 'android' ? [{ perspective: 400 }] : []),
     { scale: scaleAnim },
     ...(tilt ? [{ rotateX }, { rotateY }] : []),
   ];

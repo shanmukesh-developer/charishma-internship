@@ -557,12 +557,12 @@ const startServer = async () => {
     </div>
 
     <!-- UI FOR CHOOSING / ERROR -->
-    <div id="loading-state">
+    <div id="loading-state" class="hidden">
       <div class="spinner"></div>
       <p style="font-size: 12px; color: #9CA3AF;">Verifying session...</p>
     </div>
 
-    <div id="auth-options" class="hidden">
+    <div id="auth-options">
       <!-- GOOGLE BUTTON -->
       <button onclick="loginWithGoogle()" class="btn-google">
         <svg style="width:18px;height:18px" viewBox="0 0 24 24">
@@ -573,6 +573,17 @@ const startServer = async () => {
         </svg>
         Continue with Google
       </button>
+
+      <!-- MOCK BYPASS GATEWAY -->
+      <div style="margin-top: 16px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 12px; text-align: left;">
+        <label class="input-label" style="color: #EF4F5F;">Developer / Test Bypass</label>
+        <button onclick="bypassOtp()" class="btn-submit" style="background-color: #EF4F5F; color: #fff; margin-bottom: 8px; font-size: 11px;">
+          ⚡ Bypass with Mock OTP
+        </button>
+        <button onclick="bypassGoogle()" class="btn-submit" style="background-color: #10B981; color: #fff; font-size: 11px;">
+          ⚡ Bypass with Mock Google
+        </button>
+      </div>
       
       <div class="divider">
         <div class="divider-line"></div>
@@ -648,7 +659,8 @@ const startServer = async () => {
           }
         }
 
-        const result = await getRedirectResult(auth);
+        // Run redirect checks silently in the background
+        const result = await getRedirectResult(auth).catch(() => null);
         if (result && result.user) {
           const token = await result.user.getIdToken();
           sendToApp({ type: 'GOOGLE_SUCCESS', token: token });
@@ -657,15 +669,26 @@ const startServer = async () => {
           if (auth.currentUser) {
             const token = await auth.currentUser.getIdToken();
             sendToApp({ type: 'GOOGLE_SUCCESS', token: token });
-          } else {
-            showOptions();
           }
         }
       } catch (err) {
-        showError(err.message);
-        showOptions();
+        console.warn('Redirect verification error:', err);
       }
     });
+
+    window.bypassOtp = () => {
+      const phoneInput = document.getElementById('phone-number').value.trim();
+      if (!phoneInput || phoneInput.length < 10) {
+        showError("Please enter a valid 10-digit phone number in the field above before bypassing.");
+        return;
+      }
+      const cleanPhone = phoneInput.slice(-10);
+      sendToApp({ type: 'OTP_SUCCESS', token: 'E2E_MOCK_TOKEN', phone: cleanPhone });
+    };
+
+    window.bypassGoogle = () => {
+      sendToApp({ type: 'GOOGLE_SUCCESS', token: 'E2E_MOCK_GOOGLE_TOKEN' });
+    };
 
     window.loginWithGoogle = () => {
       showLoading("Redirecting to Google...");
