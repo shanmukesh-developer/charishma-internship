@@ -1,6 +1,7 @@
 const { getUserModel } = require('../models/User');
 const jwt = require('jsonwebtoken');
 const admin = require('../config/firebase');
+const { getAuth } = require('firebase-admin/auth');
 const { normalizePhone } = require('../utils/phoneUtils');
 
 const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
@@ -142,7 +143,7 @@ const authUser = async (req, res) => {
         console.log(`[AUTH] Auto-created mock user on OTP bypass for phone: ${cleanPhone}`);
       } else if (firebaseToken) {
         try {
-          const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+          const decodedToken = await getAuth().verifyIdToken(firebaseToken);
           const firebasePhone = normalizePhone(decodedToken.phone_number);
           if (firebasePhone !== cleanPhone) {
             return res.status(401).json({ message: 'Phone mismatch with Firebase token' });
@@ -160,7 +161,7 @@ const authUser = async (req, res) => {
           console.log(`[AUTH] Auto-created user on REAL OTP verification for phone: ${cleanPhone}`);
         } catch (firebaseErr) {
           console.error('[AUTH_FIREBASE_ERR_ON_AUTOCREATE]', firebaseErr);
-          return res.status(401).json({ message: 'Invalid Firebase token' });
+          return res.status(401).json({ message: 'Invalid Firebase token: ' + firebaseErr.message });
         }
       } else {
         return res.status(401).json({ message: 'User not found' });
@@ -173,14 +174,14 @@ const authUser = async (req, res) => {
         console.log(`[AUTH] Bypassing verification for E2E_MOCK_TOKEN (Phone: ${phone})`);
       } else {
         try {
-          const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+          const decodedToken = await getAuth().verifyIdToken(firebaseToken);
           const firebasePhone = normalizePhone(decodedToken.phone_number);
           if (firebasePhone !== cleanPhone) {
             return res.status(401).json({ message: 'Phone mismatch with Firebase token' });
           }
         } catch (firebaseErr) {
           console.error('[AUTH_FIREBASE_ERR]', firebaseErr);
-          return res.status(401).json({ message: 'Invalid Firebase token' });
+          return res.status(401).json({ message: 'Invalid Firebase token: ' + firebaseErr.message });
         }
       }
     } else if (password) {
@@ -353,14 +354,14 @@ const resetPassword = async (req, res) => {
       console.log(`[AUTH] Bypassing verification for E2E_MOCK_TOKEN during password reset (Phone: ${phone})`);
     } else {
       try {
-        const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+        const decodedToken = await getAuth().verifyIdToken(firebaseToken);
         const firebasePhone = normalizePhone(decodedToken.phone_number);
         if (firebasePhone !== cleanPhone) {
           return res.status(401).json({ message: 'Phone mismatch with Firebase token' });
         }
       } catch (firebaseErr) {
         console.error('[AUTH_FIREBASE_ERR]', firebaseErr);
-        return res.status(401).json({ message: 'Invalid Firebase token' });
+        return res.status(401).json({ message: 'Invalid Firebase token: ' + firebaseErr.message });
       }
     }
 
@@ -401,7 +402,7 @@ const googleLogin = async (req, res) => {
       console.log(`[AUTH] Bypassing verification for E2E_MOCK_GOOGLE_TOKEN (Email: kunjamshanmukesh@gmail.com)`);
     } else {
       try {
-        decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+        decodedToken = await getAuth().verifyIdToken(firebaseToken);
       } catch (err) {
         // Fallback for native Google Sign-In tokens (which are raw OAuth tokens, not Firebase tokens)
         const { OAuth2Client } = require('google-auth-library');
