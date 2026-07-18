@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { Audio } from 'expo-av';
+import { createAudioPlayer, AudioPlayer } from 'expo-audio';
 
 // ── Zenvy Sound Engine ─────────────────────────────────────────────────────
 // Generates synthetic sounds using Web Audio API (web) and expo-av (native).
@@ -31,19 +31,19 @@ const NATIVE_SOUND_URLS: Record<SoundType, string> = {
   brandSplash: 'https://assets.mixkit.co/active_storage/sfx/2017/2017-84.wav',
 };
 
-const soundCache: Record<string, Audio.Sound> = {};
+const soundCache: Record<string, AudioPlayer> = {};
 
 async function playNativeSound(type: SoundType) {
   try {
     if (soundCache[type]) {
-      await soundCache[type].setStatusAsync({ shouldPlay: true, positionMillis: 0 });
+      await soundCache[type].seekTo(0);
+      soundCache[type].play();
       return;
     }
-    const { sound } = await Audio.Sound.createAsync(
-      { uri: NATIVE_SOUND_URLS[type] },
-      { shouldPlay: true, volume: type === 'click' ? 0.3 : 0.8 }
-    );
-    soundCache[type] = sound;
+    const player = createAudioPlayer(NATIVE_SOUND_URLS[type]);
+    player.volume = type === 'click' ? 0.3 : 0.8;
+    player.play();
+    soundCache[type] = player;
   } catch (err) {
     // Fail silently in background
   }

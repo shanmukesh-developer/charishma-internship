@@ -136,12 +136,12 @@ export default function HomeScreen() {
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 1200,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(pulseAnim, {
           toValue: 0.4,
           duration: 1200,
-          useNativeDriver: true,
+          useNativeDriver: false,
         })
       ])
     ).start();
@@ -154,7 +154,7 @@ export default function HomeScreen() {
         toValue: 1,
         tension: 60,
         friction: 8,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
     }
   }, [classicFilter]);

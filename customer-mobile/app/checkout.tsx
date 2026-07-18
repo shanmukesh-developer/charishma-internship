@@ -634,7 +634,7 @@ const s = StyleSheet.create({
   billVal: { fontSize: 12, fontWeight: '800' },
   placeBtnContainer: {
     marginTop: 24,
-    marginBottom: 40,
+    marginBottom: Platform.OS === 'android' ? 80 : 40,
   },
   placeBtn: {
     backgroundColor: COLORS.red,

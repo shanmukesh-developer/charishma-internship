@@ -7,16 +7,6 @@ import { BlurView } from 'expo-blur';
 import { useAuth } from '../context/AuthContext';
 import * as Notifications from 'expo-notifications';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
-
 const { width } = Dimensions.get('window');
 
 interface Announcement {
@@ -37,6 +27,21 @@ export default function GlobalAnnouncement() {
   const { user } = useAuth();
 
   useEffect(() => {
+    // Set notification handler at runtime (not module scope — avoids Android crash)
+    try {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+          shouldShowBanner: true,
+          shouldShowList: true,
+        }),
+      });
+    } catch (e) {
+      console.warn('Failed to set notification handler:', e);
+    }
+
     // Request notification permissions gracefully
     Notifications.requestPermissionsAsync().catch(() => {});
 

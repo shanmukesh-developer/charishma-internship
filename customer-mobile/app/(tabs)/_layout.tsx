@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../constants/theme';
 import { useWorldTransition } from '../../context/WorldTransitionContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -30,6 +31,7 @@ function TabIcon({ name, focused, iconName, isDark }: { name: string; focused: b
 export default function TabLayout() {
   const { triggerTransition } = useWorldTransition();
   const { isDark } = useTheme();
+  const insets = useSafeAreaInsets();
 
   // Only Home and Others get the cinematic world transition.
   // Orders, Basket, Profile switch instantly — no overlay needed.
@@ -45,9 +47,9 @@ export default function TabLayout() {
     backgroundColor: isDark ? COLORS.bgDark : '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: isDark ? COLORS.borderDark : 'rgba(0,0,0,0.06)',
-    height: Platform.OS === 'ios' ? 88 : 68,
+    height: Platform.OS === 'ios' ? 88 : 60 + insets.bottom,
     paddingTop: 8,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+    paddingBottom: Platform.OS === 'ios' ? 24 : insets.bottom > 0 ? insets.bottom : 8,
     elevation: 20,
     shadowColor: isDark ? '#000' : 'rgba(0,0,0,0.1)',
     shadowOffset: { width: 0, height: -4 },

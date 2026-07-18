@@ -1,6 +1,7 @@
 import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar, Platform, View, StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider } from '../context/AuthContext';
 import { CartProvider } from '../context/CartContext';
@@ -11,26 +12,26 @@ import WorldTransitionOverlay from '../components/WorldTransitionOverlay';
 import IntroOverlay from '../components/IntroOverlay';
 import GlobalAnnouncement from '../components/GlobalAnnouncement';
 
-if (Platform.OS === 'web') {
-  const style = document.createElement('style');
-  style.textContent = `
-    ::-webkit-scrollbar {
-      display: none !important;
-      width: 0px !important;
-      background: transparent !important;
-    }
-    body, html, #root, div {
-      -ms-overflow-style: none !important;
-      scrollbar-width: none !important;
-    }
-  `;
-  document.head.append(style);
-}
-
 function AppContainer() {
   const { isDark } = useTheme();
   const [showIntro, setShowIntro] = React.useState(true);
   const [checkingIntro, setCheckingIntro] = React.useState(true);
+
+  // Hide scrollbars on web only (safe: runs at runtime, not module load)
+  React.useEffect(() => {
+    if (Platform.OS === 'web') {
+      try {
+        const style = document.createElement('style');
+        style.textContent = `
+          ::-webkit-scrollbar { display: none !important; width: 0px !important; background: transparent !important; }
+          body, html, #root, div { -ms-overflow-style: none !important; scrollbar-width: none !important; }
+        `;
+        document.head.append(style);
+      } catch (e) {
+        // document not available on native — silently ignore
+      }
+    }
+  }, []);
 
   React.useEffect(() => {
     const checkIntroSeen = async () => {
@@ -58,10 +59,11 @@ function AppContainer() {
   };
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: isDark ? '#0A0A0B' : '#F5F5F7' }}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={isDark ? "#0A0A0B" : "#F5F5F7"} />
-      <WorldTransitionProvider>
-        <AuthProvider>
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: isDark ? '#0A0A0B' : '#F5F5F7' }}>
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={isDark ? "#0A0A0B" : "#F5F5F7"} />
+        <WorldTransitionProvider>
+          <AuthProvider>
           <CartProvider>
             <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
             <WorldTransitionOverlay />
@@ -75,8 +77,9 @@ function AppContainer() {
             
           </CartProvider>
         </AuthProvider>
-      </WorldTransitionProvider>
-    </GestureHandlerRootView>
+        </WorldTransitionProvider>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
 
@@ -87,4 +90,3 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
-

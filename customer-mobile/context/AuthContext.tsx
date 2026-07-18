@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { getUser, setUser as saveUser, removeToken, removeUser } from '../utils/auth';
+import { getUser, setUser as saveUser, removeToken, removeUser, getToken } from '../utils/auth';
 
 interface User {
   _id?: string;
@@ -50,7 +50,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadUser = async () => {
     try {
       const stored = await getUser();
-      if (stored) setUserState(stored);
+      const token = await getToken();
+      if (stored && token) {
+        setUserState(stored);
+      } else {
+        await removeToken();
+        await removeUser();
+      }
     } catch { }
     setIsLoading(false);
   };

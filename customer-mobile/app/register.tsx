@@ -93,7 +93,7 @@ export default function RegisterScreen() {
       } else {
         setError(data.message || 'Registration failed');
       }
-    } catch (e) { setError('Network error. Try again.'); }
+    } catch (e) { setError('Network error (Server waking up). Please try again in 30s.'); }
     finally { setLoading(false); }
   };
 
@@ -140,7 +140,7 @@ export default function RegisterScreen() {
         />
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1, zIndex: 10 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1, zIndex: 10 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           
           {/* Logo & Brand Section with Parallax Effect */}
@@ -250,7 +250,7 @@ const s = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.08)',
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: Platform.OS === 'ios' ? 44 : 32,
+    paddingBottom: Platform.OS === 'ios' ? 44 : 80,
     ...SHADOWS.card,
     zIndex: 15,
   },

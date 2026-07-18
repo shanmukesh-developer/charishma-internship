@@ -78,7 +78,7 @@ export default function WorldTransitionOverlay() {
         toValue: 1,
         duration: 500,
         easing: luxuryEase,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
 
       // ── 2. Luminous Ring Expansion ──
@@ -87,20 +87,20 @@ export default function WorldTransitionOverlay() {
           toValue: 1.8,
           duration: 900,
           easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(ringOpacity, {
           toValue: 0.6,
           duration: 500,
           delay: 150,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.loop(
           Animated.timing(ringRotation, {
             toValue: 1,
             duration: 4000,
             easing: Easing.linear,
-            useNativeDriver: true,
+            useNativeDriver: false,
           })
         ),
       ]).start();
@@ -111,21 +111,21 @@ export default function WorldTransitionOverlay() {
           toValue: 1,
           duration: 400,
           delay: 200,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.spring(contentScale, {
           toValue: 1,
           speed: 8,
           bounciness: 3,
           delay: 200,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(contentY, {
           toValue: 0,
           duration: 450,
           delay: 200,
           easing: luxuryEase,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start();
 
@@ -135,7 +135,7 @@ export default function WorldTransitionOverlay() {
         duration: 500,
         delay: 300,
         easing: luxuryEase,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
 
       // ── 5. Radial Light Rays ──
@@ -145,14 +145,14 @@ export default function WorldTransitionOverlay() {
             toValue: 0.15 + Math.random() * 0.2,
             duration: 600,
             delay: 100 + i * 60,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.timing(ray.scaleX, {
             toValue: 1,
             duration: 800,
             delay: 100 + i * 60,
             easing: luxuryEase,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
         ]).start();
       });
@@ -168,26 +168,26 @@ export default function WorldTransitionOverlay() {
             duration: 1000,
             delay: i * 40,
             easing: Easing.out(Easing.ease),
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.timing(p.translateY, {
             toValue: -60 - Math.random() * 120,
             duration: 1200,
             delay: i * 40,
             easing: Easing.out(Easing.ease),
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.sequence([
             Animated.timing(p.opacity, {
               toValue: 0.3 + Math.random() * 0.5,
               duration: 350,
               delay: i * 40,
-              useNativeDriver: true,
+              useNativeDriver: false,
             }),
             Animated.timing(p.opacity, {
               toValue: 0,
               duration: 850,
-              useNativeDriver: true,
+              useNativeDriver: false,
             }),
           ]),
         ]).start();
@@ -199,12 +199,12 @@ export default function WorldTransitionOverlay() {
           Animated.timing(breathOpacity, {
             toValue: 0.15,
             duration: 800,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.timing(breathOpacity, {
             toValue: 0.04,
             duration: 800,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
         ])
       ).start();
@@ -216,28 +216,28 @@ export default function WorldTransitionOverlay() {
           toValue: 0,
           duration: 450,
           easing: luxuryEase,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(contentOpacity, {
           toValue: 0,
           duration: 200,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(ringOpacity, {
           toValue: 0,
           duration: 300,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(lineScaleX, {
           toValue: 0,
           duration: 200,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         ...rayAnims.map(r =>
           Animated.timing(r.opacity, {
             toValue: 0,
             duration: 250,
-            useNativeDriver: true,
+            useNativeDriver: false,
           })
         ),
       ]).start();
@@ -326,9 +326,9 @@ export default function WorldTransitionOverlay() {
           s.ring,
           s.ringInner,
           {
-            opacity: Animated.multiply(ringOpacity, 0.7),
+            opacity: ringOpacity.interpolate({ inputRange: [0, 1], outputRange: [0, 0.7] }),
             transform: [
-              { scale: Animated.multiply(ringScale, 0.6) },
+              { scale: ringScale.interpolate({ inputRange: [0, 5], outputRange: [0, 3] }) },
               { rotate: counterRotateInterp },
             ],
           },
@@ -389,7 +389,11 @@ export default function WorldTransitionOverlay() {
 
 const s = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFill as object,
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
     zIndex: 99999,
     alignItems: 'center',
     justifyContent: 'center',
@@ -406,7 +410,11 @@ const s = StyleSheet.create({
 
   // Theme gradient
   gradientOverlay: {
-    ...StyleSheet.absoluteFill as object,
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
 
   // Light rays emanating from center
@@ -427,7 +435,6 @@ const s = StyleSheet.create({
   ring: {
     position: 'absolute',
     borderWidth: 1.5,
-    borderStyle: 'dashed',
     borderRadius: 999,
   },
   ringOuter: {
@@ -449,12 +456,16 @@ const s = StyleSheet.create({
     borderRadius: 150,
     backgroundColor: '#FFF',
     ...Platform.select({
-      web: { filter: 'blur(80px)' },
+      ios: {
+        shadowColor: '#FFF',
+        shadowRadius: 60,
+        shadowOpacity: 0.8,
+        shadowOffset: { width: 0, height: 0 },
+      },
+      android: {
+        elevation: 20,
+      },
     }),
-    shadowColor: '#FFF',
-    shadowRadius: 60,
-    shadowOpacity: 0.8,
-    elevation: 20,
   },
 
   // Particles
@@ -547,7 +558,6 @@ const s = StyleSheet.create({
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   statusDot: {
     width: 6,

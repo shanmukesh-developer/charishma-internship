@@ -54,7 +54,11 @@ export default function ShimmerLoader({ width, height, borderRadius = 12, style 
     >
       <Animated.View
         style={{
-          ...StyleSheet.absoluteFill as object,
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
           transform: [{ translateX }],
         }}
       >
@@ -107,7 +111,6 @@ const s = StyleSheet.create({
   },
   cardBody: {
     padding: 12,
-    gap: 4,
   },
   cardRow: {
     flexDirection: 'row',
