@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal, Image, Dimensions, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { COLORS, SHADOWS } from '../constants/theme';
 import { ENDPOINTS } from '../constants/api';
 import { apiFetch } from '../utils/auth';
@@ -62,6 +63,21 @@ export default function CommunityScreen() {
   const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
   const [posting, setPosting] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets && result.assets[0].base64) {
+      const b64 = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      setDraftImage(b64);
+    }
+  };
 
   useEffect(() => {
     fetchPosts();
@@ -241,9 +257,9 @@ export default function CommunityScreen() {
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
-              } else {
-                router.replace('/(tabs)' as any);
               }
+              // Force back to home just in case
+              router.push('/' as any);
             }}
           >
             <Text style={[s.backText, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>◀ HOME</Text>
@@ -355,14 +371,14 @@ export default function CommunityScreen() {
                       <Image source={{ uri: post.imageUrl }} style={s.polaroidImg} />
                     ) : (
                       <View style={[s.textPostBg, { backgroundColor: bgGrad[0] }]}>
-                        <Text style={s.textPostContent}>{post.content}</Text>
+                        <Text style={s.textPostContent} numberOfLines={8}>{post.content}</Text>
                       </View>
                     )}
 
                     {/* Footer Details */}
                     <View style={s.polaroidDetails}>
                       {post.imageUrl && post.content ? (
-                        <Text style={[s.polaroidDesc, { color: txt }]} numberOfLines={2}>"{post.content}"</Text>
+                        <Text style={[s.polaroidDesc, { color: txt }]} numberOfLines={3}>"{post.content}"</Text>
                       ) : null}
 
                       {/* Review details */}
@@ -519,13 +535,14 @@ export default function CommunityScreen() {
               onChangeText={setDraft} 
             />
 
-            <TextInput 
-              style={[s.composerInputName, { backgroundColor: isDark ? '#222' : '#fff', borderColor: border, color: txt }]} 
-              placeholder="Optional Image URL (https://...)" 
-              placeholderTextColor="#888" 
-              value={draftImage || ''} 
-              onChangeText={setDraftImage} 
-            />
+            <TouchableOpacity 
+              style={[s.composerInputName, { backgroundColor: isDark ? '#222' : '#fff', borderColor: border, justifyContent: 'center', alignItems: 'center' }]} 
+              onPress={pickImage}
+            >
+              <Text style={{ color: txt, fontSize: 11, fontWeight: '700' }}>
+                {draftImage ? '🖼️ Image Selected (Tap to change)' : '📸 Upload Photo from Gallery'}
+              </Text>
+            </TouchableOpacity>
 
             {draftImage ? (
               <Image source={{ uri: draftImage }} style={s.composerImgPreview} />

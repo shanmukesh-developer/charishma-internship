@@ -574,16 +574,7 @@ const startServer = async () => {
         Continue with Google
       </button>
 
-      <!-- MOCK BYPASS GATEWAY -->
-      <div style="margin-top: 16px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 12px; text-align: left;">
-        <label class="input-label" style="color: #EF4F5F;">Developer / Test Bypass</label>
-        <button onclick="bypassOtp()" class="btn-submit" style="background-color: #EF4F5F; color: #fff; margin-bottom: 8px; font-size: 11px;">
-          ⚡ Bypass with Mock OTP
-        </button>
-        <button onclick="bypassGoogle()" class="btn-submit" style="background-color: #10B981; color: #fff; font-size: 11px;">
-          ⚡ Bypass with Mock Google
-        </button>
-      </div>
+      <!-- MOCK BYPASS GATEWAY REMOVED FOR PRODUCTION -->
       
       <div class="divider">
         <div class="divider-line"></div>
