@@ -64,13 +64,13 @@ export default function DopaminePressable({
     Animated.parallel([
       Animated.spring(tiltX, {
         toValue: normX,
-        useNativeDriver: true,
+        useNativeDriver: false,
         tension: 140,
         friction: 12,
       }),
       Animated.spring(tiltY, {
         toValue: normY,
-        useNativeDriver: true,
+        useNativeDriver: false,
         tension: 140,
         friction: 12,
       }),
@@ -80,19 +80,20 @@ export default function DopaminePressable({
   const handlePressIn = useCallback((e: any) => {
     Animated.spring(scaleAnim, {
       toValue: activeScale,
-      useNativeDriver: true,
+      useNativeDriver: false,
       speed: springSpeed,
       bounciness: springBounciness,
     }).start();
 
-    if (Platform.OS !== 'web' && haptic !== 'none') {
-      try {
-        if (haptic === 'success') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        else if (haptic === 'heavy') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-        else if (haptic === 'medium') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      } catch (e) {}
-    }
+    // Disabled expo-haptics on Android to prevent crashes when touching animated items
+    // if (Platform.OS !== 'web' && haptic !== 'none') {
+    //   try {
+    //     if (haptic === 'success') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    //     else if (haptic === 'heavy') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    //     else if (haptic === 'medium') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    //     else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    //   } catch (e) {}
+    // }
 
     if (tilt) {
       handleTouch(e);
@@ -102,7 +103,7 @@ export default function DopaminePressable({
   const handlePressOut = useCallback(() => {
     Animated.spring(scaleAnim, {
       toValue: 1,
-      useNativeDriver: true,
+      useNativeDriver: false,
       speed: springSpeed,
       bounciness: springBounciness + 2,
     }).start();
@@ -111,13 +112,13 @@ export default function DopaminePressable({
       Animated.parallel([
         Animated.spring(tiltX, {
           toValue: 0,
-          useNativeDriver: true,
+          useNativeDriver: false,
           tension: 160,
           friction: 10,
         }),
         Animated.spring(tiltY, {
           toValue: 0,
-          useNativeDriver: true,
+          useNativeDriver: false,
           tension: 160,
           friction: 10,
         }),

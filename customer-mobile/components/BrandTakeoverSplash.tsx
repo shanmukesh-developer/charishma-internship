@@ -88,13 +88,13 @@ export default function BrandTakeoverSplash({
         toValue: 0,
         duration: 750,
         easing: Easing.bezier(0.76, 0, 0.24, 1),
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(rightShutterX, {
         toValue: 0,
         duration: 750,
         easing: Easing.bezier(0.76, 0, 0.24, 1),
-        useNativeDriver: true,
+        useNativeDriver: false,
       })
     ]).start();
 
@@ -104,14 +104,14 @@ export default function BrandTakeoverSplash({
         toValue: 1,
         duration: 700,
         delay: 300,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(contentScale, {
         toValue: 1,
         duration: 800,
         delay: 300,
         easing: Easing.out(Easing.back(1.5)),
-        useNativeDriver: true,
+        useNativeDriver: false,
       })
     ]).start();
 
@@ -123,18 +123,18 @@ export default function BrandTakeoverSplash({
             toValue: 1.45,
             duration: 1600,
             easing: Easing.out(Easing.ease),
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.sequence([
             Animated.timing(shockwaveOpacity, {
               toValue: 0.6,
               duration: 400,
-              useNativeDriver: true,
+              useNativeDriver: false,
             }),
             Animated.timing(shockwaveOpacity, {
               toValue: 0,
               duration: 1200,
-              useNativeDriver: true,
+              useNativeDriver: false,
             })
           ])
         ]),
@@ -149,7 +149,7 @@ export default function BrandTakeoverSplash({
         duration: 400,
         delay: 1100 + idx * 120,
         easing: Easing.out(Easing.back(1.5)),
-        useNativeDriver: true,
+        useNativeDriver: false,
       })
     );
     Animated.parallel(itemTriggers).start();
@@ -162,18 +162,18 @@ export default function BrandTakeoverSplash({
           toValue: -SW / 2,
           duration: 650,
           easing: Easing.bezier(0.76, 0, 0.24, 1),
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(rightShutterX, {
           toValue: SW / 2,
           duration: 650,
           easing: Easing.bezier(0.76, 0, 0.24, 1),
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(contentOpacity, {
           toValue: 0,
           duration: 350,
-          useNativeDriver: true,
+          useNativeDriver: false,
         })
       ]).start(() => {
         onComplete();

@@ -27,19 +27,19 @@ export function StaggeredSection({ children, delay = 0, duration = 500, directio
           toValue: 1,
           duration,
           easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.spring(slideAnim, {
           toValue: 0,
           friction: 8,
           tension: 40,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.spring(scaleAnim, {
           toValue: 1,
           friction: 8,
           tension: 40,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start();
     }, delay);
@@ -85,7 +85,7 @@ export function ShimmerSkeleton({ width, height, borderRadius = 12, style }: Shi
         toValue: 2,
         duration: 1500,
         easing: Easing.linear,
-        useNativeDriver: true,
+        useNativeDriver: false,
       })
     ).start();
   }, []);
@@ -140,12 +140,12 @@ export function PulseGlow({ size, color = '#EF4F5F', children, style }: PulseGlo
     Animated.loop(
       Animated.parallel([
         Animated.sequence([
-          Animated.timing(pulseScale, { toValue: 1.25, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(pulseScale, { toValue: 1, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(pulseScale, { toValue: 1.25, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+          Animated.timing(pulseScale, { toValue: 1, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
         ]),
         Animated.sequence([
-          Animated.timing(pulseOpacity, { toValue: 0, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(pulseOpacity, { toValue: 0.6, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(pulseOpacity, { toValue: 0, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+          Animated.timing(pulseOpacity, { toValue: 0.6, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
         ]),
       ])
     ).start();
@@ -186,12 +186,12 @@ export function FloatingPulse({ children, color = '#EF4F5F', style }: FloatingPu
     Animated.loop(
       Animated.parallel([
         Animated.sequence([
-          Animated.timing(breathScale, { toValue: 1.15, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(breathScale, { toValue: 1, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(breathScale, { toValue: 1.15, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+          Animated.timing(breathScale, { toValue: 1, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
         ]),
         Animated.sequence([
-          Animated.timing(breathOpacity, { toValue: 0.3, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(breathOpacity, { toValue: 0.08, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(breathOpacity, { toValue: 0.3, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+          Animated.timing(breathOpacity, { toValue: 0.08, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
         ]),
       ])
     ).start();
@@ -267,7 +267,7 @@ export function BounceIn({ children, delay = 0, style }: BounceInProps) {
         toValue: 1,
         friction: 3,
         tension: 120,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
     }, delay);
     return () => clearTimeout(timeout);
