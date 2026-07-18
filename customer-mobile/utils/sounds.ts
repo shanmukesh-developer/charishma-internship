@@ -33,8 +33,28 @@ const NATIVE_SOUND_URLS: Record<SoundType, string> = {
 const soundCache: Record<string, any> = {};
 
 async function playNativeSound(type: SoundType) {
-  // Disabled native audio temporarily to prevent crashes on Android devices
-  return;
+  try {
+    const { createAudioPlayer } = require('expo-audio');
+    if (soundCache[type]) {
+      try {
+        await soundCache[type].seekTo(0);
+        soundCache[type].play();
+      } catch {
+        const player = createAudioPlayer(NATIVE_SOUND_URLS[type]);
+        player.volume = type === 'click' ? 0.3 : 0.8;
+        player.play();
+        soundCache[type] = player;
+      }
+      return;
+    }
+    const player = createAudioPlayer(NATIVE_SOUND_URLS[type]);
+    player.volume = type === 'click' ? 0.3 : 0.8;
+    player.play();
+    soundCache[type] = player;
+  } catch (err) {
+    // Fail silently in background to prevent native crashes
+    console.warn('[SOUND_ERROR] Failed to play native sound safely:', err);
+  }
 }
 
 // ── Web Audio Context (singleton) ──

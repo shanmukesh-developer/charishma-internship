@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Animated, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Animated, Dimensions, ActivityIndicator, Alert, Modal } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { COLORS, SHADOWS } from '../constants/theme';
-import { ENDPOINTS } from '../constants/api';
+import { ENDPOINTS, API_URL } from '../constants/api';
 import { useAuth } from '../context/AuthContext';
 import { StaggeredSection, BounceIn } from '../components/AnimatedSection';
 import { setToken } from '../utils/auth';
@@ -28,6 +29,23 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showWakeup, setShowWakeup] = useState(false);
+
+  // OTP Login Flow States
+  const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('password');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  // WebView Real-time Auth Gateway States
+  const [authModalVisible, setAuthModalVisible] = useState(false);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const interval = setInterval(() => {
+      setCountdown(c => c - 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [countdown]);
 
   // Background Slideshow Animation State
   const [imgIndex, setImgIndex] = useState(0);
@@ -84,7 +102,35 @@ export default function LoginScreen() {
     }).start();
   };
 
+  const handleSendOtp = () => {
+    const digits = phone.replace(/\D/g, '').slice(-10);
+    if (digits.length < 10) {
+      setError('Please enter a valid 10-digit phone number');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      setOtpSent(true);
+      setCountdown(60);
+      Alert.alert(
+        'OTP Sent Successfully',
+        `Verification code for ${digits === '9391955674' || digits === '919391955674' ? 'kunjamshanmukesh@gmail.com' : 'your phone number'} is: 000000`,
+        [{ text: 'OK' }]
+      );
+    }, 1000);
+  };
+
   const handleLogin = async () => {
+    if (loginMethod === 'otp') {
+      // Open the real Firebase auth-helper WebView for phone OTP verification
+      const digits = phone.replace(/\D/g, '').slice(-10);
+      if (digits.length < 10) { setError('Please enter a valid 10-digit phone number'); return; }
+      setAuthModalVisible(true);
+      return;
+    }
+
     if (!phone || !password) { setError('Please fill in all fields'); return; }
     setLoading(true); setError('');
     try {
@@ -109,6 +155,60 @@ export default function LoginScreen() {
       }
     }
     finally { setLoading(false); }
+  };
+
+  const handleAuthMessage = async (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === 'GOOGLE_SUCCESS') {
+        setAuthModalVisible(false);
+        setLoading(true);
+        setError('');
+        const res = await fetch(`${API_URL}/api/users/google-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ firebaseToken: data.token }),
+        });
+        const resData = await res.json();
+        if (res.ok && resData.token) {
+          await setToken(resData.token);
+          await setUser(resData.user || resData);
+          const { playSound } = require('../utils/sounds');
+          playSound('success');
+          router.replace('/(tabs)' as any);
+        } else {
+          setError(resData.message || 'Google Sign-In failed');
+        }
+      } else if (data.type === 'OTP_SUCCESS') {
+        setAuthModalVisible(false);
+        setLoading(true);
+        setError('');
+        const res = await fetch(ENDPOINTS.login, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: data.phone, firebaseToken: data.token }),
+        });
+        const resData = await res.json();
+        if (res.ok && resData.token) {
+          await setToken(resData.token);
+          await setUser(resData.user || resData);
+          const { playSound } = require('../utils/sounds');
+          playSound('success');
+          router.replace('/(tabs)' as any);
+        } else {
+          setError(resData.message || 'OTP verification failed');
+        }
+      }
+    } catch (e: any) {
+      setError(`Auth failed: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError('');
+    setAuthModalVisible(true);
   };
 
   return (
@@ -232,32 +332,68 @@ export default function LoginScreen() {
               <Text style={s.cardTitle}>Welcome Back</Text>
               <Text style={s.cardSubtitle}>Sign in to your premium campus account</Text>
 
-              <Text style={s.label}>PHONE NUMBER</Text>
-              <TextInput 
-                style={s.input} 
-                value={phone} 
-                onChangeText={setPhone} 
-                placeholder="9876543210" 
-                placeholderTextColor={COLORS.textMuted} 
-                keyboardType="phone-pad" 
-                autoCapitalize="none" 
-              />
+              {/* Login Method Tabs */}
+              <View style={s.tabRow}>
+                <TouchableOpacity 
+                  style={[s.tabBtn, loginMethod === 'password' && s.tabBtnActive]} 
+                  onPress={() => { setLoginMethod('password'); setError(''); }}
+                >
+                  <Text style={[s.tabText, loginMethod === 'password' && s.tabTextActive]}>PASSWORD LOGIN</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[s.tabBtn, loginMethod === 'otp' && s.tabBtnActive]} 
+                  onPress={() => { setLoginMethod('otp'); setError(''); }}
+                >
+                  <Text style={[s.tabText, loginMethod === 'otp' && s.tabTextActive]}>OTP LOGIN</Text>
+                </TouchableOpacity>
+              </View>
 
-              <Text style={s.label}>PASSWORD</Text>
-              <TextInput 
-                style={s.input} 
-                value={password} 
-                onChangeText={setPassword} 
-                placeholder="••••••••" 
-                placeholderTextColor={COLORS.textMuted} 
-                secureTextEntry 
-              />
+              {loginMethod === 'password' ? (
+                <>
+                  <Text style={s.label}>PHONE NUMBER</Text>
+                  <TextInput 
+                    style={s.input} 
+                    value={phone} 
+                    onChangeText={setPhone} 
+                    placeholder="9876543210" 
+                    placeholderTextColor={COLORS.textMuted} 
+                    keyboardType="phone-pad" 
+                    autoCapitalize="none" 
+                  />
+
+                  <Text style={s.label}>PASSWORD</Text>
+                  <TextInput 
+                    style={s.input} 
+                    value={password} 
+                    onChangeText={setPassword} 
+                    placeholder="••••••••" 
+                    placeholderTextColor={COLORS.textMuted} 
+                    secureTextEntry 
+                  />
+                </>
+              ) : (
+                <>
+                  <Text style={[s.label, { textAlign: 'center', marginTop: 12, fontSize: 10, color: COLORS.textSecondary }]}>
+                    Authenticate securely using real-time Firebase SMS verification.
+                  </Text>
+                  
+                  <TouchableOpacity 
+                    style={s.realtimeOtpBtn} 
+                    onPress={() => { setError(''); setAuthModalVisible(true); }}
+                    disabled={loading}
+                  >
+                    <Text style={s.realtimeOtpBtnText}>START REAL-TIME SMS LOGIN</Text>
+                  </TouchableOpacity>
+                </>
+              )}
 
               {error ? <Text style={s.error}>{error}</Text> : null}
 
-              <TouchableOpacity style={s.forgotBtn} onPress={() => router.push('/forgot-password' as any)}>
-                <Text style={s.forgotText}>FORGOT PASSWORD?</Text>
-              </TouchableOpacity>
+              {loginMethod === 'password' && (
+                <TouchableOpacity style={s.forgotBtn} onPress={() => router.push('/forgot-password' as any)}>
+                  <Text style={s.forgotText}>FORGOT PASSWORD?</Text>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity style={s.loginBtn} onPress={handleLogin} disabled={loading}>
                 {loading ? (
@@ -273,7 +409,11 @@ export default function LoginScreen() {
                 <View style={s.line} />
               </View>
 
-              <TouchableOpacity style={s.googleBtn}>
+              <TouchableOpacity 
+                style={s.googleBtn} 
+                onPress={handleGoogleLogin} 
+                disabled={loading}
+              >
                 <Text style={s.googleIconG}>G</Text>
                 <Text style={s.googleText}>Continue with Google</Text>
               </TouchableOpacity>
@@ -286,6 +426,58 @@ export default function LoginScreen() {
 
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Real-time Auth Gateway Modal */}
+      <Modal
+        visible={authModalVisible}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setAuthModalVisible(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+          style={{ flex: 1, backgroundColor: '#0A0A0B' }}
+        >
+          {/* Header */}
+          <View style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            paddingHorizontal: 20, 
+            paddingTop: Platform.OS === 'ios' ? 50 : 20, 
+            paddingBottom: 15,
+            borderBottomWidth: 1,
+            borderBottomColor: 'rgba(255,255,255,0.08)'
+          }}>
+            <Text style={{ fontSize: 13, fontWeight: '900', color: COLORS.gold, letterSpacing: 2 }}>ZENVY SECURE AUTH</Text>
+            <TouchableOpacity 
+              onPress={() => setAuthModalVisible(false)}
+              style={{ 
+                paddingHorizontal: 12, 
+                paddingVertical: 6, 
+                borderRadius: 8, 
+                backgroundColor: 'rgba(255,255,255,0.08)' 
+              }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: '800', color: '#fff' }}>CLOSE</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <WebView
+            source={{ uri: `${API_URL}/auth-helper?phone=${encodeURIComponent('+91' + phone.replace(/\D/g, '').slice(-10))}` }}
+            onMessage={handleAuthMessage}
+            style={{ flex: 1, backgroundColor: '#0A0A0B' }}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            startInLoadingState={true}
+            renderLoading={() => (
+              <View style={{ ...StyleSheet.absoluteFill, backgroundColor: '#0A0A0B', alignItems: 'center', justifyContent: 'center' }}>
+                <ActivityIndicator size="large" color={COLORS.gold} />
+              </View>
+            )}
+          />
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -383,4 +575,17 @@ const s = StyleSheet.create({
   
   switchLink: { alignItems: 'center', marginTop: 20 },
   switchText: { fontSize: 11, color: COLORS.textSecondary },
+
+  tabRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 4, marginVertical: 14, borderWidth: 1, borderColor: COLORS.borderDark },
+  tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
+  tabBtnActive: { backgroundColor: 'rgba(201,168,76,0.15)', borderWidth: 1, borderColor: 'rgba(201,168,76,0.3)' },
+  tabText: { fontSize: 9, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.5 },
+  tabTextActive: { color: COLORS.gold },
+
+  otpInputRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  sendOtpBtn: { backgroundColor: 'rgba(201,168,76,0.12)', borderWidth: 1, borderColor: 'rgba(201,168,76,0.4)', borderRadius: 14, paddingHorizontal: 16, height: 50, alignItems: 'center', justifyContent: 'center' },
+  sendOtpText: { fontSize: 8.5, fontWeight: '900', color: COLORS.gold, letterSpacing: 1 },
+
+  realtimeOtpBtn: { backgroundColor: COLORS.gold, paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginTop: 12, ...SHADOWS.goldGlow },
+  realtimeOtpBtnText: { fontSize: 10, fontWeight: '900', color: '#000', letterSpacing: 2 },
 });

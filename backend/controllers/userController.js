@@ -3,6 +3,8 @@ const jwt = require('jsonwebtoken');
 const admin = require('../config/firebase');
 const { normalizePhone } = require('../utils/phoneUtils');
 
+const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
+
 const generateToken = (id, role) => {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
@@ -123,15 +125,51 @@ const authUser = async (req, res) => {
   try {
     const User = getUserModel();
     const cleanPhone = normalizePhone(phone);
-    const user = await User.findOne({ where: { phone: cleanPhone } });
+    let user = await User.findOne({ where: { phone: cleanPhone } });
 
     if (!user) {
-      return res.status(401).json({ message: 'User not found' });
+      if (firebaseToken === 'E2E_MOCK_TOKEN' && !isProduction) {
+        const isTarget = cleanPhone.includes('9391955674');
+        const email = isTarget ? 'kunjamshanmukesh@gmail.com' : `${cleanPhone}@zenvy.mock`;
+        const name = isTarget ? 'Kunjam Shanmukesh' : `User ${cleanPhone}`;
+        user = await User.create({
+          name,
+          phone: cleanPhone,
+          email,
+          password: Math.random().toString(36).slice(-8) + 'OtpPass!1',
+          role: 'student'
+        });
+        console.log(`[AUTH] Auto-created mock user on OTP bypass for phone: ${cleanPhone}`);
+      } else if (firebaseToken) {
+        try {
+          const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+          const firebasePhone = normalizePhone(decodedToken.phone_number);
+          if (firebasePhone !== cleanPhone) {
+            return res.status(401).json({ message: 'Phone mismatch with Firebase token' });
+          }
+          const isTarget = cleanPhone.includes('9391955674');
+          const email = isTarget ? 'kunjamshanmukesh@gmail.com' : `${cleanPhone}@zenvy.member`;
+          const name = isTarget ? 'Kunjam Shanmukesh' : `Student ${cleanPhone}`;
+          user = await User.create({
+            name,
+            phone: cleanPhone,
+            email,
+            password: Math.random().toString(36).slice(-8) + 'OtpReal!1',
+            role: 'student'
+          });
+          console.log(`[AUTH] Auto-created user on REAL OTP verification for phone: ${cleanPhone}`);
+        } catch (firebaseErr) {
+          console.error('[AUTH_FIREBASE_ERR_ON_AUTOCREATE]', firebaseErr);
+          return res.status(401).json({ message: 'Invalid Firebase token' });
+        }
+      } else {
+        return res.status(401).json({ message: 'User not found' });
+      }
     }
 
     // ── Phone Login Logic (Firebase or Mock) ──────────────────────
     if (firebaseToken) {
-      if (firebaseToken === 'E2E_MOCK_TOKEN') {
+      if (firebaseToken === 'E2E_MOCK_TOKEN' && !isProduction) {
         console.log(`[AUTH] Bypassing verification for E2E_MOCK_TOKEN (Phone: ${phone})`);
       } else {
         try {
@@ -191,7 +229,8 @@ const authUser = async (req, res) => {
 // @desc    Save FCM Token
 // @route   POST /api/users/fcm-token
 const saveFcmToken = async (req, res) => {
-  const { userId, fcmToken, appVersion } = req.body;
+  const { fcmToken, appVersion } = req.body;
+  const userId = req.user.id;
 
   try {
     const User = getUserModel();
@@ -310,7 +349,7 @@ const resetPassword = async (req, res) => {
     const cleanPhone = normalizePhone(phone);
 
     // 1. Verify the Firebase token to prove ownership of the phone number
-    if (firebaseToken === 'E2E_MOCK_TOKEN') {
+    if (firebaseToken === 'E2E_MOCK_TOKEN' && !isProduction) {
       console.log(`[AUTH] Bypassing verification for E2E_MOCK_TOKEN during password reset (Phone: ${phone})`);
     } else {
       try {
@@ -351,7 +390,18 @@ const googleLogin = async (req, res) => {
   if (!firebaseToken) return res.status(400).json({ message: 'Firebase token required' });
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+    let decodedToken;
+    if (firebaseToken === 'E2E_MOCK_GOOGLE_TOKEN' && !isProduction) {
+      decodedToken = {
+        email: 'kunjamshanmukesh@gmail.com',
+        name: 'Kunjam Shanmukesh',
+        uid: 'E2E_MOCK_GOOGLE_UID_kunjamshanmukesh',
+        phone_number: '919391955674'
+      };
+      console.log(`[AUTH] Bypassing verification for E2E_MOCK_GOOGLE_TOKEN (Email: kunjamshanmukesh@gmail.com)`);
+    } else {
+      decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+    }
     const email = decodedToken.email;
     const name = decodedToken.name || 'Google User';
     const googleId = decodedToken.uid;

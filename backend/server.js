@@ -117,10 +117,10 @@ app.set('trust proxy', 1);
 
 const rateLimit = require('express-rate-limit');
 
-// ── Global API Shield (DDoS Protection — Scaled for 500+ campus users) ──────────────────────
+// ── Global API Shield (DDoS Protection — Scaled for 500-1000 campus users) ──────────────────────
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 99999999, // User requested no limits for maximum smoothness
+  max: 2000, // 2000 requests per IP per 15 min — generous for shared campus Wi-Fi
   message: { message: 'Too many requests from this IP, please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -129,7 +129,7 @@ const globalLimiter = rateLimit({
 // ── Order Spam Shield (Per-User via JWT, not just IP) ─────────────────────────────────────────
 const orderRateLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 99999999, // User requested no limits for maximum smoothness
+  max: 10, // Max 10 order submissions per minute per IP
   message: { message: 'Too many orders placed. Please wait a minute.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -138,7 +138,7 @@ const orderRateLimiter = rateLimit({
 // ── Auth Rate Limiter (Generous for shared campus IP) ─────────────────────────
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 99999999, // User requested no limits for maximum smoothness
+  max: 50, // 50 auth attempts per IP per 15 min — prevents brute force but allows shared WiFi retries
   message: { message: 'Too many authentication attempts, please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -338,6 +338,420 @@ app.get('/api/health', async (req, res) => {
 const startServer = async () => {
   try {
     await connectDB();
+
+    app.get('/auth-helper', (req, res) => {
+      res.send(`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenvy Secure Auth Gateway</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0A0A0B;
+      color: #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 400px;
+      background: rgba(26, 26, 28, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 24px;
+      padding: 32px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .logo-container {
+      width: 64px;
+      height: 64px;
+      background: rgba(201, 168, 76, 0.1);
+      border: 1px solid rgba(201, 168, 76, 0.3);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin: 0 auto 16px auto;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #FFFFFF;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    h1 span {
+      color: #C9A84C;
+    }
+    p.subtitle {
+      font-size: 12px;
+      color: #9CA3AF;
+      margin-bottom: 24px;
+    }
+    .spinner {
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      border-top: 3px solid #C9A84C;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .btn-google {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background-color: #FFFFFF;
+      color: #000000;
+      border: none;
+      padding: 16px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-bottom: 16px;
+    }
+    .btn-google:hover {
+      background-color: #E5E7EB;
+    }
+    .divider {
+      display: flex;
+      align-items: center;
+      margin: 20px 0;
+    }
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    .divider-text {
+      padding: 0 12px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #6B7280;
+    }
+    .input-group {
+      text-align: left;
+      margin-bottom: 20px;
+    }
+    .input-label {
+      font-size: 10px;
+      font-weight: 900;
+      color: #C9A84C;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .input-wrapper {
+      display: flex;
+      gap: 8px;
+    }
+    .input-prefix {
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 14px;
+      padding: 14px;
+      color: #9CA3AF;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    input {
+      flex: 1;
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 14px;
+      padding: 14px 16px;
+      color: #FFFFFF;
+      font-size: 14px;
+      font-weight: 700;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus {
+      border-color: rgba(201, 168, 76, 0.4);
+    }
+    .btn-submit {
+      width: 100%;
+      background-color: #C9A84C;
+      color: #000000;
+      border: none;
+      padding: 16px;
+      border-radius: 14px;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(201, 168, 76, 0.2);
+      transition: background 0.2s;
+    }
+    .btn-submit:hover {
+      background-color: #E4C875;
+    }
+    .btn-back {
+      width: 100%;
+      background-color: rgba(255, 255, 255, 0.05);
+      color: #FFFFFF;
+      border: none;
+      padding: 16px;
+      border-radius: 14px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 12px;
+    }
+    .btn-back:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    .error-container {
+      margin-top: 16px;
+      padding: 12px;
+      background-color: rgba(239, 79, 95, 0.1);
+      border: 1px solid rgba(239, 79, 95, 0.2);
+      border-radius: 14px;
+      color: #EF4F5F;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div>
+      <div class="logo-container">
+        ✨
+      </div>
+      <h1>ZENVY <span>SECURE</span></h1>
+      <p id="subtitle" class="subtitle">Authenticating session...</p>
+    </div>
+
+    <!-- UI FOR CHOOSING / ERROR -->
+    <div id="loading-state">
+      <div class="spinner"></div>
+      <p style="font-size: 12px; color: #9CA3AF;">Verifying session...</p>
+    </div>
+
+    <div id="auth-options" class="hidden">
+      <!-- GOOGLE BUTTON -->
+      <button onclick="loginWithGoogle()" class="btn-google">
+        <svg style="width:18px;height:18px" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.69c-.29 1.5-1.14 2.77-2.4 3.61v3h3.86c2.26-2.09 3.59-5.16 3.59-8.46z"/>
+          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.1A11.993 11.993 0 0 0 12 24z"/>
+          <path fill="#FBBC05" d="M5.27 14.29a7.18 7.18 0 0 1 0-4.58V6.61H1.29a11.993 11.993 0 0 0 0 10.78l3.98-3.1z"/>
+          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.43-3.43C17.93 1.19 15.24 0 12 0 7.33 0 3.29 2.68 1.29 6.61l3.98 3.1c.95-2.85 3.6-4.96 6.73-4.96z"/>
+        </svg>
+        Continue with Google
+      </button>
+      
+      <div class="divider">
+        <div class="divider-line"></div>
+        <span class="divider-text">OR</span>
+        <div class="divider-line"></div>
+      </div>
+
+      <!-- PHONE INPUT -->
+      <div class="input-group">
+        <label class="input-label">Phone Number</label>
+        <div class="input-wrapper">
+          <span class="input-prefix">+91</span>
+          <input id="phone-number" type="tel" placeholder="9876543210" />
+        </div>
+      </div>
+
+      <div id="recaptcha-container" style="margin-top: 10px;"></div>
+
+      <button id="send-otp-btn" onclick="sendOtp()" class="btn-submit">
+        Send Verification SMS
+      </button>
+    </div>
+
+    <!-- UI FOR ENTERING OTP -->
+    <div id="otp-input-state" class="hidden">
+      <div class="input-group">
+        <label class="input-label" style="text-align: center;">Enter 6-Digit OTP</label>
+        <input id="otp-code" type="number" placeholder="123456" style="text-align: center; letter-spacing: 8px; font-size: 18px;" />
+      </div>
+
+      <button onclick="verifyOtp()" class="btn-submit">
+        Verify & Continue
+      </button>
+      
+      <button onclick="showOptions()" class="btn-back">
+        ← Back
+      </button>
+    </div>
+
+    <!-- ERROR BLOCK -->
+    <div id="error-message" class="error-container hidden"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyASKW2EosQpJjkZMGILrURhoiP7vhjj8TY",
+      authDomain: "hostelbites-c77a8.firebaseapp.com",
+      projectId: "hostelbites-c77a8",
+      storageBucket: "hostelbites-c77a8.appspot.com",
+      messagingSenderId: "785490473159",
+      appId: "1:785490473159:web:7e7b7b00cc9e2669000ee2"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+    let confirmationResult = null;
+
+    // Parse phone parameter from URL query if provided
+    window.addEventListener('load', async () => {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryPhone = urlParams.get('phone');
+        if (queryPhone) {
+          // Strip +91 if present for raw display in the input
+          const cleanPhone = queryPhone.replace('+91', '').trim();
+          const phoneInputEl = document.getElementById('phone-number');
+          if (phoneInputEl) {
+            phoneInputEl.value = cleanPhone;
+          }
+        }
+
+        const result = await getRedirectResult(auth);
+        if (result && result.user) {
+          const token = await result.user.getIdToken();
+          sendToApp({ type: 'GOOGLE_SUCCESS', token: token });
+        } else {
+          // If no redirect user, check if we're already logged in
+          if (auth.currentUser) {
+            const token = await auth.currentUser.getIdToken();
+            sendToApp({ type: 'GOOGLE_SUCCESS', token: token });
+          } else {
+            showOptions();
+          }
+        }
+      } catch (err) {
+        showError(err.message);
+        showOptions();
+      }
+    });
+
+    window.loginWithGoogle = () => {
+      showLoading("Redirecting to Google...");
+      signInWithRedirect(auth, provider);
+    };
+
+    window.sendOtp = async () => {
+      const phoneInput = document.getElementById('phone-number').value.trim();
+      if (!phoneInput || phoneInput.length < 10) {
+        showError("Please enter a valid 10-digit phone number.");
+        return;
+      }
+      
+      showLoading("Initiating security check...");
+      try {
+        if (!window.recaptchaVerifier) {
+          window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            'size': 'invisible',
+            'callback': (response) => {}
+          });
+        }
+        
+        const fullPhone = "+91" + phoneInput.slice(-10);
+        const result = await signInWithPhoneNumber(auth, fullPhone, window.recaptchaVerifier);
+        confirmationResult = result;
+        
+        document.getElementById('loading-state').classList.add('hidden');
+        document.getElementById('auth-options').classList.add('hidden');
+        document.getElementById('otp-input-state').classList.remove('hidden');
+        document.getElementById('subtitle').innerText = "Enter verification code sent to " + fullPhone;
+        hideError();
+      } catch (err) {
+        showError(err.message);
+        showOptions();
+      }
+    };
+
+    window.verifyOtp = async () => {
+      const code = document.getElementById('otp-code').value.trim();
+      if (!code || code.length < 6) {
+        showError("Please enter the 6-digit OTP code.");
+        return;
+      }
+      
+      showLoading("Verifying OTP code...");
+      try {
+        const result = await confirmationResult.confirm(code);
+        const token = await result.user.getIdToken();
+        const phone = document.getElementById('phone-number').value.trim().slice(-10);
+        sendToApp({ type: 'OTP_SUCCESS', token: token, phone: phone });
+      } catch (err) {
+        showError(err.message || "Invalid OTP code.");
+        document.getElementById('loading-state').classList.add('hidden');
+        document.getElementById('otp-input-state').classList.remove('hidden');
+      }
+    };
+
+    window.showOptions = () => {
+      document.getElementById('loading-state').classList.add('hidden');
+      document.getElementById('otp-input-state').classList.add('hidden');
+      document.getElementById('auth-options').classList.remove('hidden');
+      document.getElementById('subtitle').innerText = "Choose sign-in method";
+    };
+
+    function showLoading(msg) {
+      document.getElementById('auth-options').classList.add('hidden');
+      document.getElementById('otp-input-state').classList.add('hidden');
+      document.getElementById('loading-state').classList.remove('hidden');
+      document.getElementById('loading-state').querySelector('p').innerText = msg;
+    }
+
+    function showError(msg) {
+      const errBlock = document.getElementById('error-message');
+      errBlock.innerText = msg;
+      errBlock.classList.remove('hidden');
+    }
+
+    function hideError() {
+      document.getElementById('error-message').classList.add('hidden');
+    }
+
+    function sendToApp(data) {
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify(data));
+      } else {
+        console.log("Not in React Native WebView, payload:", data);
+        alert("Authentication Success! Token: " + data.token.slice(0, 20) + "...");
+      }
+    }
+  </script>
+</body>
+</html>
+      `);
+    });
 
     // Routes
     app.use('/api/users', require('./routes/userRoutes'));

@@ -92,10 +92,15 @@ export default function RestaurantDetail() {
               type: 'restaurant'
             });
 
-            // Parse brandTheme and check if seen
-            const parsedTheme = found.brandTheme
-              ? (typeof found.brandTheme === 'string' ? JSON.parse(found.brandTheme) : found.brandTheme)
-              : null;
+            // Parse brandTheme and check if seen safely
+            let parsedTheme = null;
+            if (found.brandTheme) {
+              try {
+                parsedTheme = typeof found.brandTheme === 'string' ? JSON.parse(found.brandTheme) : found.brandTheme;
+              } catch (err) {
+                console.error('Error parsing brandTheme in useEffect:', err);
+              }
+            }
 
             if (parsedTheme && !seenTakeovers.has(id)) {
               seenTakeovers.add(id);
@@ -131,9 +136,15 @@ export default function RestaurantDetail() {
   const name = (restaurant.name || '').toLowerCase();
   const brandKey = Object.keys(BRAND_THEMES).find(k => name.includes(k));
 
-  const brand = restaurant?.brandTheme
-    ? (typeof restaurant.brandTheme === 'string' ? JSON.parse(restaurant.brandTheme) : restaurant.brandTheme)
-    : (brandKey ? BRAND_THEMES[brandKey] : null);
+  const brand = (() => {
+    if (!restaurant?.brandTheme) return brandKey ? BRAND_THEMES[brandKey] : null;
+    try {
+      return typeof restaurant.brandTheme === 'string' ? JSON.parse(restaurant.brandTheme) : restaurant.brandTheme;
+    } catch (err) {
+      console.error('Error parsing brandTheme in render:', err);
+      return brandKey ? BRAND_THEMES[brandKey] : null;
+    }
+  })();
 
   if (showTakeover && brand) {
     return (
@@ -286,10 +297,21 @@ export default function RestaurantDetail() {
     setTimeout(() => setAddedId(null), 800);
   };
 
-  const categories = ['All', ...(restaurant.categories?.length ? restaurant.categories : (restaurant.tags || []))];
+  const categoriesList = Array.isArray(restaurant.categories)
+    ? restaurant.categories
+    : (Array.isArray(restaurant.tags) ? restaurant.tags : []);
+  const categories = ['All', ...categoriesList];
+
   const filteredMenu = activeCategory === 'All'
     ? menu
-    : menu.filter((item: any) => (item.category === activeCategory || (item.tags || []).includes(activeCategory)));
+    : menu.filter((item: any) => {
+        if (!item) return false;
+        const itemCategory = (item.category || '').toLowerCase();
+        const activeCatLower = activeCategory.toLowerCase();
+        if (itemCategory === activeCatLower) return true;
+        const tags = Array.isArray(item.tags) ? item.tags : [];
+        return tags.some((t: string) => String(t).toLowerCase() === activeCatLower);
+      });
 
   return (
     <View style={st.container}>

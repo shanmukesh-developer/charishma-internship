@@ -154,6 +154,28 @@ export default function Dashboard() {
       }
     });
 
+    s.on('systemUpdate', (payload: { type: string; data: any }) => {
+      console.log('[SOCKET_PARTNER_SYNC] Received system update:', payload.type);
+      if (payload.type === 'MENU_UPDATED' || payload.type === 'MENU_ITEM_DELETED') {
+        api.get(`/restaurants/${restaurantId}/menu`)
+          .then(res => setMenu(res.data.map((m: any) => ({ ...m, id: m.id || m._id }))))
+          .catch(console.error);
+      } else if (payload.type === 'RESTAURANT_UPDATED') {
+        const updatedRes = payload.data;
+        if (updatedRes && (updatedRes._id === restaurantId || updatedRes.id === restaurantId)) {
+          const storedUser = localStorage.getItem('restaurantUser');
+          if (storedUser) {
+            try {
+              const u = JSON.parse(storedUser);
+              const newUser = { ...u, isOffline: updatedRes.isOffline, name: updatedRes.name };
+              localStorage.setItem('restaurantUser', JSON.stringify(newUser));
+              setRestaurant(newUser);
+            } catch (e) {}
+          }
+        }
+      }
+    });
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);

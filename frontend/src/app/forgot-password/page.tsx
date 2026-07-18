@@ -66,14 +66,6 @@ export default function ForgotPasswordPage() {
       return;
     }
 
-    // Developer Bypass for testing without Firebase SMS
-    if (digits === '0000000000') {
-      setStep(2);
-      setResendCooldown(60);
-      setTimeout(() => otpRefs.current[0]?.focus(), 100);
-      return;
-    }
-
     setLoading(true);
     try {
       const verifier = setupRecaptcha();
@@ -113,8 +105,7 @@ export default function ForgotPasswordPage() {
     }
     const digits = phone.replace(/\D/g, '').slice(-10);
     
-    // Check session except for bypass
-    if (digits !== '0000000000' && !confirmationRef.current) {
+    if (!confirmationRef.current) {
       setOverlay({ isOpen: true, title: 'Session Expired', message: 'Please go back and request a new OTP.', type: 'error' });
       return;
     }
@@ -123,16 +114,9 @@ export default function ForgotPasswordPage() {
     try {
       let firebaseToken = '';
       
-      // 1. Confirm OTP with Firebase OR use Bypass
-      if (digits === '0000000000') {
-        if (code !== '000000') {
-          throw { code: 'bypass-error', message: 'For bypass testing, please enter OTP 000000' };
-        }
-        firebaseToken = 'E2E_MOCK_TOKEN';
-      } else {
-        const result = await confirmationRef.current!.confirm(code);
-        firebaseToken = await result.user.getIdToken();
-      }
+      // Confirm OTP with Firebase
+      const result = await confirmationRef.current!.confirm(code);
+      firebaseToken = await result.user.getIdToken();
 
       // 2. Send token + new password to backend
       const response = await fetch(`${API_URL}/api/users/reset-password`, {

@@ -479,11 +479,33 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
       }
     });
 
+    socket.on('systemUpdate', (payload: { type: string; data: any }) => {
+      console.log('[SOCKET_RIDER_SYNC] Received system update:', payload.type);
+      if (payload.type === 'RIDER_STATUS_CHANGED') {
+        const { id, isApproved } = payload.data;
+        if (id === currentDriver._id) {
+          toast(isApproved ? 'Your account has been APPROVED by admin!' : 'Your account approval has been revoked by admin.', isApproved ? 'success' : 'error');
+          fetchProfile();
+        }
+      } else if (payload.type === 'RIDER_UPDATED') {
+        const updatedRider = payload.data;
+        if (updatedRider && (updatedRider._id === currentDriver._id || updatedRider.id === currentDriver._id)) {
+          toast('Your profile details were updated by admin.', 'info');
+          fetchProfile();
+        }
+      } else if (payload.type === 'RIDER_SOS_RESET') {
+        const { id } = payload.data;
+        if (id === currentDriver._id) {
+          toast('Emergency SOS reset by admin.', 'success');
+        }
+      }
+    });
+
     return () => {
       socket.emit('rider_disconnected', { driverId: currentDriver._id });
       socket.disconnect();
     };
-  }, [apiUrl, driverToken, currentDriver._id, currentDriver.name, isOnline, addNotification, triggerNativeNotification]);
+  }, [apiUrl, driverToken, currentDriver._id, currentDriver.name, isOnline, addNotification, triggerNativeNotification, fetchProfile]);
 
   useEffect(() => {
     if (socketRef.current?.connected) {

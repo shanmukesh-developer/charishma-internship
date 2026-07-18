@@ -30,10 +30,11 @@ const restaurantLogin = async (req, res) => {
 
     if (!restaurant) return res.status(404).json({ message: 'Restaurant not found' });
     
-    if (restaurant.password) {
-      const isMatch = await restaurant.comparePassword(password);
-      if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
+    if (!restaurant.password) {
+      return res.status(401).json({ message: 'No password set for this account. Contact the admin to configure credentials.' });
     }
+    const isMatch = await restaurant.comparePassword(password);
+    if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
     const secret = process.env.JWT_SECRET;
     if (!secret) {

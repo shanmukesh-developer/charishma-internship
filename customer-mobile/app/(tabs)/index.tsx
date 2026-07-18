@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, RefreshControl, Image, FlatList, Dimensions, Platform, Modal, ActivityIndicator, Alert, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, RefreshControl, Image, FlatList, Dimensions, Platform, Modal, ActivityIndicator, Alert, Animated, Linking } from 'react-native';
+import { Socket } from 'socket.io-client';
+import { connectSocket } from '../../utils/socket';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -286,6 +288,23 @@ export default function HomeScreen() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  useEffect(() => {
+    const socket = connectSocket();
+
+    const handleSystemUpdate = (payload: { type: string; data: any }) => {
+      console.log('[SOCKET_MOBILE_SYNC] Received system update:', payload.type);
+      if (['RESTAURANT_CREATED', 'RESTAURANT_UPDATED', 'MENU_UPDATED', 'MENU_ITEM_DELETED', 'GLOBAL_CONFIG_UPDATED', 'DATABASE_SEEDED'].includes(payload.type)) {
+        fetchData();
+      }
+    };
+
+    socket.on('systemUpdate', handleSystemUpdate);
+
+    return () => {
+      socket.off('systemUpdate', handleSystemUpdate);
+    };
+  }, [fetchData]);
+
   const filtered = restaurants
     .filter(r => { const t = (r.vendorType||'').toUpperCase(); return t === 'FOOD' || t === 'RESTAURANT'; })
     .filter(r => {
@@ -327,7 +346,7 @@ export default function HomeScreen() {
         if (p.redirectUrl.startsWith('/')) {
            router.push(p.redirectUrl as any);
         } else {
-           // External URL not currently supported in mobile webview directly without Linking, but safely handled.
+           Linking.openURL(p.redirectUrl).catch(err => console.error("Couldn't open external URL", err));
         }
       } else if (p.id === 'kfc') {
         router.push('/restaurant/kfc' as any);

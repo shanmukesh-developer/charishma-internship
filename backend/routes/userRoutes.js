@@ -4,10 +4,10 @@ const { protect } = require('../middleware/authMiddleware');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
 
-// ── Strict Auth Shield (Scaled for 500+ campus users on shared Wi-Fi) ──────────────────────
+// ── Strict Auth Shield (Scaled for 500-1000 campus users on shared Wi-Fi) ──────────────────────
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10000, // Scaled for campus-wide concurrent lunch rushes
+  max: 50, // 50 auth attempts per IP per 15 min — prevents brute force while accommodating shared campus WiFi
   message: { message: 'Too many authentication attempts, please try again after 15 minutes.' }
 });
 
@@ -46,7 +46,7 @@ router.post('/login', authLimiter, accountLockout, loginValidation, validate, au
 router.post('/google-login', authLimiter, require('../controllers/userController').googleLogin);
 router.post('/reset-password', authLimiter, require('../controllers/userController').resetPassword);
 router.post('/logout', logoutUser);
-router.post('/fcm-token', saveFcmToken);
+router.post('/fcm-token', protect, saveFcmToken);
 router.get('/profile', protect, getUserProfile);
 router.put('/profile', protect, updateUserProfile);
 

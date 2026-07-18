@@ -204,39 +204,68 @@ export default function CheckoutScreen() {
 
     setLoading(true);
     try {
-      const orderData = {
-        restaurantId: cart[0]?.restaurantId,
-        restaurantIds: [...new Set(cart.map(i => i.restaurantId))],
-        items: cart.map(item => ({
-          menuItemId: item.id,
-          name: item.name,
-          quantity: item.quantity,
-          priceAtOrder: item.price,
-          basePrice: item.basePrice || item.price,
-          customizations: item.customizations || null,
-          restaurantId: item.restaurantId,
-        })),
-        totalPrice,
-        deliveryFee,
-        isRoomOrder,
-        paymentMethod,
-        upiUTR: paymentMethod === 'UPI' ? upiUTR : undefined,
-        upiScreenshot: paymentMethod === 'UPI' ? upiScreenshot : undefined,
-        deliverySlot: deliveryType === 'asap' ? 'ASAP' : scheduledTime,
-        deliveryAddress: `${locationType === 'srmap' ? 'SRM AP' : locationType === 'vitap' ? 'VIT AP' : locationType === 'amrita' ? 'AMRITA' : 'OTHERS'} - ${address} (Landmark: ${landmark})`,
-        couponCode: selectedCoupon?.code
-      };
+      const isMegaBasket = cart.some(item => item.restaurantId === 'mega-basket-vendor');
+      let res;
 
-      const res = await apiFetch(ENDPOINTS.placeOrder, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData),
-      });
+      const deliveryAddress = `${locationType === 'srmap' ? 'SRM AP' : locationType === 'vitap' ? 'VIT AP' : locationType === 'amrita' ? 'AMRITA' : 'OTHERS'} - ${address} (Landmark: ${landmark})`;
+
+      if (isMegaBasket) {
+        const bodyPayload = {
+          items: cart.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            unit: 'pcs',
+            priceEstimated: item.price
+          })),
+          deliveryAddress,
+          paymentMethod,
+          upiUTR: paymentMethod === 'UPI' ? upiUTR : undefined
+        };
+
+        res = await apiFetch(`${API_URL}/api/mega-basket`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bodyPayload),
+        });
+      } else {
+        const orderData = {
+          restaurantId: cart[0]?.restaurantId,
+          restaurantIds: [...new Set(cart.map(i => i.restaurantId))],
+          items: cart.map(item => ({
+            menuItemId: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            priceAtOrder: item.price,
+            basePrice: item.basePrice || item.price,
+            customizations: item.customizations || null,
+            restaurantId: item.restaurantId,
+          })),
+          totalPrice,
+          deliveryFee,
+          isRoomOrder,
+          paymentMethod,
+          upiUTR: paymentMethod === 'UPI' ? upiUTR : undefined,
+          upiScreenshot: paymentMethod === 'UPI' ? upiScreenshot : undefined,
+          deliverySlot: deliveryType === 'asap' ? 'ASAP' : scheduledTime,
+          deliveryAddress,
+          couponCode: selectedCoupon?.code
+        };
+
+        res = await apiFetch(ENDPOINTS.placeOrder, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderData),
+        });
+      }
 
       if (res.ok) {
         const data = await res.json();
         clearCart();
-        router.replace(`/tracking/${data._id || data.id}` as any);
+        if (isMegaBasket) {
+          router.replace('/mega-basket' as any);
+        } else {
+          router.replace(`/tracking/${data._id || data.id}` as any);
+        }
       } else {
         const err = await res.json();
         Alert.alert('Order Failed', err.message || 'Payment Rejected. Please try again.');
@@ -539,10 +568,12 @@ export default function CheckoutScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Dev Mode Simulator */}
+              {/* Dev Mode Simulator — only visible in development builds */}
+              {__DEV__ && (
               <TouchableOpacity style={s.devSimBtn} onPress={simulateSuccess}>
                 <Text style={s.devSimText}>⚡ SIMULATE PAYMENT (DEV MODE)</Text>
               </TouchableOpacity>
+              )}
 
               <TextInput
                 style={[s.input, { backgroundColor: bg, color: txt, marginTop: 12 }]}

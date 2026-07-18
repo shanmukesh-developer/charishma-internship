@@ -30,12 +30,11 @@ export default function AdminLoginPage() {
     
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
-      // Use the internal admin bypass phone
       const phone = '9391955674'; 
       const response = await fetch(`${API_URL}/api/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, firebaseToken: 'E2E_MOCK_TOKEN' }),
+        body: JSON.stringify({ phone, password }),
       });
       
       const data = await response.json();

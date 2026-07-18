@@ -7,6 +7,8 @@ import { BlurView } from 'expo-blur';
 import { useAuth } from '../context/AuthContext';
 import * as Notifications from 'expo-notifications';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 const { width } = Dimensions.get('window');
 
 interface Announcement {
@@ -15,16 +17,18 @@ interface Announcement {
 }
 
 const TYPE_STYLES = {
-  info: { bg: 'rgba(37, 99, 235, 0.95)', border: '#60A5FA', icon: '📢' },
-  warning: { bg: 'rgba(245, 158, 11, 0.95)', border: '#FBBF24', icon: '⚠️' },
-  promo: { bg: 'rgba(16, 185, 129, 0.95)', border: '#34D399', icon: '🎉' },
-  emergency: { bg: 'rgba(220, 38, 38, 0.95)', border: '#F87171', icon: '🚨' },
+  info: { bg: 'rgba(26, 26, 28, 0.95)', border: 'rgba(201, 168, 76, 0.6)', icon: '✨' },
+  warning: { bg: 'rgba(26, 26, 28, 0.95)', border: 'rgba(245, 158, 11, 0.6)', icon: '⚠️' },
+  promo: { bg: 'rgba(26, 26, 28, 0.95)', border: 'rgba(201, 168, 76, 0.8)', icon: '🎁' },
+  emergency: { bg: 'rgba(26, 26, 28, 0.95)', border: 'rgba(239, 79, 95, 0.8)', icon: '🚨' },
 };
 
 export default function GlobalAnnouncement() {
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
-  const slideAnim = React.useRef(new Animated.Value(-100)).current;
+  const slideAnim = React.useRef(new Animated.Value(-150)).current;
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
+  const topOffset = Math.max(insets.top + 8, 16);
 
   useEffect(() => {
     // Set notification handler at runtime (not module scope — avoids Android crash)
@@ -82,7 +86,7 @@ export default function GlobalAnnouncement() {
       setAnnouncement({ ...data, message: processedMessage });
       
       Animated.spring(slideAnim, {
-        toValue: 50,
+        toValue: topOffset,
         useNativeDriver: true,
         friction: 8,
         tension: 40
@@ -96,11 +100,11 @@ export default function GlobalAnnouncement() {
     });
 
     return () => { socket.disconnect(); };
-  }, [user]);
+  }, [user, topOffset]);
 
   const hideAnnouncement = () => {
     Animated.timing(slideAnim, {
-      toValue: -150,
+      toValue: -200,
       duration: 300,
       useNativeDriver: true,
     }).start(() => setAnnouncement(null));

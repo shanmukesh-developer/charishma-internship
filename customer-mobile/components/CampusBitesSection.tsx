@@ -56,13 +56,42 @@ export default function CampusBitesSection({ restaurants }: CampusBitesSectionPr
 
   if (!hasAnyLocalVendors) return null;
 
-  // 2. Check open status helper
+  // 2. Check open status helper safely
   const isVendorOpen = (vendor: any): boolean => {
     if (!vendor.operatingHours) return vendor.isOpenNow !== false;
     const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-    const [startH, startM] = (vendor.operatingHours.start || '00:00').split(':').map(Number);
-    const [endH, endM] = (vendor.operatingHours.end || '23:59').split(':').map(Number);
+    // Convert client's local system time to Indian Standard Time (IST, GMT+5:30)
+    const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
+    const istTime = new Date(utcTime + (3600000 * 5.5));
+    const currentMinutes = istTime.getHours() * 60 + istTime.getMinutes();
+
+    let operatingHours = vendor.operatingHours;
+    if (typeof operatingHours === 'string') {
+      try {
+        operatingHours = JSON.parse(operatingHours);
+      } catch {
+        return vendor.isOpenNow !== false;
+      }
+    }
+
+    if (!operatingHours || typeof operatingHours !== 'object') {
+      return vendor.isOpenNow !== false;
+    }
+
+    const startStr = String(operatingHours.start || '00:00');
+    const endStr = String(operatingHours.end || '23:59');
+
+    if (!startStr.includes(':') || !endStr.includes(':')) {
+      return vendor.isOpenNow !== false;
+    }
+
+    const [startH, startM] = startStr.split(':').map(Number);
+    const [endH, endM] = endStr.split(':').map(Number);
+
+    if (isNaN(startH) || isNaN(startM) || isNaN(endH) || isNaN(endM)) {
+      return vendor.isOpenNow !== false;
+    }
+
     const startMinutes = startH * 60 + startM;
     const endMinutes = endH * 60 + endM;
     if (endMinutes < startMinutes) {

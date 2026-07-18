@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { useRouter } from 'expo-router';
 import { COLORS, SHADOWS, RADIUS } from '../constants/theme';
 import { API_URL } from '../constants/api';
@@ -8,19 +9,33 @@ export default function ForgotPasswordScreen() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2>(1);
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
+  
+  // Real-Time Firebase Auth States
+  const [authModalVisible, setAuthModalVisible] = useState(false);
+  const [realtimeToken, setRealtimeToken] = useState('');
 
-  const otpRefs = useRef<(TextInput | null)[]>([]);
-
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const t = setTimeout(() => setResendCooldown(c => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [resendCooldown]);
+  const handleAuthMessage = (event: any) => {
+    try {
+      const msg = JSON.parse(event.nativeEvent.data);
+      if (msg.type === 'OTP_SUCCESS') {
+        setRealtimeToken(msg.token);
+        if (msg.phone) {
+          setPhone(msg.phone.replace('+91', ''));
+        }
+        setAuthModalVisible(false);
+        setStep(2);
+        Alert.alert('Identity Verified', 'Your number is successfully verified in real-time! Please enter your new password below.');
+      } else if (msg.type === 'AUTH_ERROR') {
+        setAuthModalVisible(false);
+        Alert.alert('Verification Failed', msg.error || 'Firebase could not verify this phone number.');
+      }
+    } catch (e) {
+      console.warn('Could not parse webview message', e);
+    }
+  };
 
   const handleSendOtp = async () => {
     const digits = phone.replace(/\D/g, '').slice(-10);
@@ -29,30 +44,14 @@ export default function ForgotPasswordScreen() {
       return;
     }
 
-    setLoading(true);
-    // Mimic the Firebase OTP flow with developer bypass and loading delay
-    setTimeout(() => {
-      setLoading(false);
-      setStep(2);
-      setResendCooldown(60);
-      Alert.alert('OTP Sent', 'For testing, enter verification code: 000000');
-    }, 1000);
+    setAuthModalVisible(true);
   };
 
   const handleVerifyAndReset = async () => {
-    const code = otp.join('');
-    if (code.length < 6) {
-      Alert.alert('Enter OTP', 'Please enter the complete 6-digit code.');
-      return;
-    }
+    const digits = phone.replace(/\D/g, '').slice(-10);
+
     if (!newPassword || newPassword.length < 6) {
       Alert.alert('Password Too Short', 'Password must be at least 6 characters.');
-      return;
-    }
-
-    const digits = phone.replace(/\D/g, '').slice(-10);
-    if (code !== '000000') {
-      Alert.alert('Incorrect OTP', 'For bypass testing, please enter OTP: 000000');
       return;
     }
 
@@ -63,7 +62,7 @@ export default function ForgotPasswordScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           phone: digits, 
-          firebaseToken: 'E2E_MOCK_TOKEN', 
+          firebaseToken: realtimeToken, 
           newPassword 
         }),
       });
@@ -79,16 +78,6 @@ export default function ForgotPasswordScreen() {
       Alert.alert('Error', 'Failed to connect to reset servers.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleOtpChange = (val: string, idx: number) => {
-    if (!/^\d*$/.test(val)) return;
-    const next = [...otp];
-    next[idx] = val.slice(-1);
-    setOtp(next);
-    if (val && idx < 5) {
-      otpRefs.current[idx + 1]?.focus();
     }
   };
 
@@ -119,15 +108,15 @@ export default function ForgotPasswordScreen() {
 
         <View style={s.card}>
           <Text style={s.stepTitle}>
-            {step === 1 ? 'Reset Password' : 'Verify & Reset'}
+            {step === 1 ? 'Reset Password' : 'Choose New Password'}
           </Text>
           <Text style={s.stepSub}>
             {step === 1
-              ? "We'll send a one-time code to your phone number."
-              : `Code sent to +91 ${phone.replace(/\D/g, '').slice(-10)}`}
+              ? "Verify your mobile number using OTP to reset password."
+              : 'Identity verified successfully! Enter your new password below.'}
           </Text>
 
-          {/* Step 1: Phone number */}
+          {/* Step 1: Phone Verification */}
           {step === 1 && (
             <View style={{ marginTop: 20 }}>
               <Text style={s.label}>PHONE NUMBER</Text>
@@ -148,46 +137,15 @@ export default function ForgotPasswordScreen() {
                 {loading ? (
                   <ActivityIndicator size="small" color="#000" />
                 ) : (
-                  <Text style={s.actionBtnText}>SEND OTP</Text>
+                  <Text style={s.actionBtnText}>VERIFY VIA OTP</Text>
                 )}
               </TouchableOpacity>
             </View>
           )}
 
-          {/* Step 2: OTP + New Password */}
+          {/* Step 2: New Password Form */}
           {step === 2 && (
             <View style={{ marginTop: 20 }}>
-              <Text style={s.label}>6-DIGIT CODE</Text>
-              <View style={s.otpRow}>
-                {otp.map((digit, i) => (
-                  <TextInput
-                    key={i}
-                    ref={el => { otpRefs.current[i] = el; }}
-                    style={[s.otpInput, digit !== '' && s.otpInputActive]}
-                    keyboardType="number-pad"
-                    maxLength={1}
-                    value={digit}
-                    onChangeText={(val) => handleOtpChange(val, i)}
-                    onKeyPress={({ nativeEvent }) => {
-                      if (nativeEvent.key === 'Backspace' && !otp[i] && i > 0) {
-                        otpRefs.current[i - 1]?.focus();
-                      }
-                    }}
-                  />
-                ))}
-              </View>
-
-              {/* Resend Cooldown */}
-              <View style={s.resendWrap}>
-                {resendCooldown > 0 ? (
-                  <Text style={s.resendText}>Resend in {resendCooldown}s</Text>
-                ) : (
-                  <TouchableOpacity onPress={handleSendOtp}>
-                    <Text style={[s.resendText, { color: COLORS.gold }]}>Resend OTP</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
               <Text style={s.label}>NEW PASSWORD</Text>
               <TextInput 
                 style={s.input} 
@@ -209,6 +167,58 @@ export default function ForgotPasswordScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Real-time Auth Gateway Modal */}
+      <Modal
+        visible={authModalVisible}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setAuthModalVisible(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+          style={{ flex: 1, backgroundColor: '#0A0A0B' }}
+        >
+          {/* Header */}
+          <View style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            paddingHorizontal: 20, 
+            paddingTop: Platform.OS === 'ios' ? 50 : 20, 
+            paddingBottom: 15,
+            borderBottomWidth: 1,
+            borderBottomColor: 'rgba(255,255,255,0.08)'
+          }}>
+            <Text style={{ fontSize: 13, fontWeight: '900', color: COLORS.gold, letterSpacing: 2 }}>ZENVY SECURE OTP</Text>
+            <TouchableOpacity 
+              onPress={() => setAuthModalVisible(false)}
+              style={{ 
+                paddingHorizontal: 12, 
+                paddingVertical: 6, 
+                borderRadius: 8, 
+                backgroundColor: 'rgba(255,255,255,0.08)' 
+              }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: '800', color: '#fff' }}>CLOSE</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <WebView
+            source={{ uri: `${API_URL}/auth-helper?phone=${encodeURIComponent('+91' + phone.replace(/\D/g, '').slice(-10))}` }}
+            onMessage={handleAuthMessage}
+            style={{ flex: 1, backgroundColor: '#0A0A0B' }}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            startInLoadingState={true}
+            renderLoading={() => (
+              <View style={{ ...StyleSheet.absoluteFill, backgroundColor: '#0A0A0B', alignItems: 'center', justifyContent: 'center' }}>
+                <ActivityIndicator size="large" color={COLORS.gold} />
+              </View>
+            )}
+          />
+        </KeyboardAvoidingView>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -241,5 +251,11 @@ const s = StyleSheet.create({
   resendText: { fontSize: 9, fontWeight: '800', color: COLORS.textSecondary },
 
   actionBtn: { backgroundColor: COLORS.gold, paddingVertical: 14, borderRadius: 14, alignItems: 'center', marginTop: 24, ...SHADOWS.goldGlow },
-  actionBtnText: { fontSize: 11, fontWeight: '900', color: '#000', letterSpacing: 2 }
+  actionBtnText: { fontSize: 11, fontWeight: '900', color: '#000', letterSpacing: 2 },
+
+  tabRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 4, marginVertical: 14, borderWidth: 1, borderColor: COLORS.borderDark },
+  tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
+  tabBtnActive: { backgroundColor: 'rgba(201,168,76,0.15)', borderWidth: 1, borderColor: 'rgba(201,168,76,0.3)' },
+  tabText: { fontSize: 9, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.5 },
+  tabTextActive: { color: COLORS.gold },
 });
