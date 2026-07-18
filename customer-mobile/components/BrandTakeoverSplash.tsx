@@ -275,7 +275,7 @@ export default function BrandTakeoverSplash({
 
 const s = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     zIndex: 99999,
     alignItems: 'center',
     justifyContent: 'center',

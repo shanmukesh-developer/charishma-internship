@@ -99,7 +99,7 @@ export function ShimmerSkeleton({ width, height, borderRadius = 12, style }: Shi
 
   return (
     <View style={[{ width: width as any, height, borderRadius, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.06)' }, style]}>
-      <Animated.View style={{ ...StyleSheet.absoluteFill, transform: [{ translateX }] }}>
+      <Animated.View style={{ ...StyleSheet.absoluteFillObject, transform: [{ translateX }] }}>
         <LinearGradient
           colors={['transparent', 'rgba(255,255,255,0.08)', 'rgba(255,255,255,0.15)', 'rgba(255,255,255,0.08)', 'transparent']}
           start={{ x: 0, y: 0.5 }}
@@ -203,7 +203,7 @@ export function FloatingPulse({ children, color = '#EF4F5F', style }: FloatingPu
     <View style={[{ position: 'relative' }, style]}>
       <Animated.View
         style={{
-          ...StyleSheet.absoluteFill,
+          ...StyleSheet.absoluteFillObject,
           borderRadius: 999,
           backgroundColor: color,
           opacity: breathOpacity,
