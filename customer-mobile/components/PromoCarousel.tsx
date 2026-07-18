@@ -76,6 +76,11 @@ export default function PromoCarousel({ offers, containerStyle }: PromoCarouselP
         decelerationRate="fast"
         onMomentumScrollEnd={onMomentumScrollEnd}
         keyExtractor={(item) => item.id}
+        getItemLayout={(data, index) => ({
+          length: SLIDE_WIDTH,
+          offset: SLIDE_WIDTH * index,
+          index,
+        })}
         renderItem={({ item }) => (
           <View style={{ width: SLIDE_WIDTH, height: 220, position: 'relative' }}>
             {/* Background Image */}

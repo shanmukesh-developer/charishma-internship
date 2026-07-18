@@ -403,12 +403,9 @@ export default function HomeScreen() {
 
         {/* ── HERO CAROUSEL CARD ── */}
         <StaggeredSection delay={100} direction="up">
-        <View style={[s.heroCarouselCard, { borderColor: border }]}>
           <PromoCarousel 
             offers={carouselOffers} 
-            containerStyle={s.heroCarousel} 
           />
-        </View>
         </StaggeredSection>
 
         {/* ── CATEGORIES GRID CONTAINER (EXACT FIT) ── */}
