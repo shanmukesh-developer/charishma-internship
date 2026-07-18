@@ -20,6 +20,8 @@ export function StaggeredSection({ children, delay = 0, duration = 500, directio
   const slideAnim = useRef(new Animated.Value(direction === 'up' ? 30 : direction === 'down' ? -30 : direction === 'left' ? 40 : -40)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
+  const useNative = Platform.OS !== 'android';
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       Animated.parallel([
@@ -27,19 +29,19 @@ export function StaggeredSection({ children, delay = 0, duration = 500, directio
           toValue: 1,
           duration,
           easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
+          useNativeDriver: useNative,
         }),
         Animated.spring(slideAnim, {
           toValue: 0,
           friction: 8,
           tension: 40,
-          useNativeDriver: true,
+          useNativeDriver: useNative,
         }),
         Animated.spring(scaleAnim, {
           toValue: 1,
           friction: 8,
           tension: 40,
-          useNativeDriver: true,
+          useNativeDriver: useNative,
         }),
       ]).start();
     }, delay);

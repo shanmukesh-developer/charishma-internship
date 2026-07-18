@@ -357,7 +357,7 @@ export default function RestaurantDetail() {
         <View style={[st.floatingInfoCard, { backgroundColor: cardBg, borderColor: border }]}>
           {brand && (
             <View style={[st.brandTag, { backgroundColor: accent, marginBottom: 8 }]}>
-              <Text style={st.brandTagText}>{restaurant.name.toUpperCase()} TAKEOVER</Text>
+              <Text style={st.brandTagText}>{String(restaurant.name || '').toUpperCase()} TAKEOVER</Text>
             </View>
           )}
 
@@ -464,7 +464,7 @@ export default function RestaurantDetail() {
                 activeScale={0.94}
               >
                 <Text style={[st.categoryText, { color: isActive ? '#FFF' : txt }]}>
-                  {cat.toUpperCase()}
+                  {String(cat).toUpperCase()}
                 </Text>
               </DopaminePressable>
             );
