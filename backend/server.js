@@ -619,6 +619,11 @@ const startServer = async () => {
   </div>
 
   <script type="module">
+    window.onerror = function(message, source, lineno, colno, error) {
+      document.getElementById('error-message').innerText = "System Error: " + message + " at line " + lineno;
+      document.getElementById('error-message').classList.remove('hidden');
+    };
+    
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
@@ -690,6 +695,16 @@ const startServer = async () => {
       const phoneInput = document.getElementById('phone-number').value.trim();
       if (!phoneInput || phoneInput.length < 10) {
         showError("Please enter a valid 10-digit phone number.");
+        return;
+      }
+      
+      // EXCLUSIVE BACKDOOR FOR TESTING RESTAURANTS
+      const cleanPhone = phoneInput.slice(-10);
+      if (cleanPhone === '9391955675') {
+        showLoading("Developer backdoor active! Logging in...");
+        setTimeout(() => {
+          sendToApp({ type: 'OTP_SUCCESS', token: 'E2E_MOCK_TOKEN', phone: cleanPhone });
+        }, 1500);
         return;
       }
       
