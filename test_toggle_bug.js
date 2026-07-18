@@ -15,7 +15,7 @@ async function request(endpoint, method = 'GET', body = null, token = null) {
   if (body) options.body = JSON.stringify(body);
 
   try {
-    const res = await fetch(url, options);
+    const res = await fetch(urapkl, options);
     let data;
     try {
       data = await res.json();

@@ -34,19 +34,9 @@ const NATIVE_SOUND_URLS: Record<SoundType, string> = {
 const soundCache: Record<string, AudioPlayer> = {};
 
 async function playNativeSound(type: SoundType) {
-  try {
-    if (soundCache[type]) {
-      await soundCache[type].seekTo(0);
-      soundCache[type].play();
-      return;
-    }
-    const player = createAudioPlayer(NATIVE_SOUND_URLS[type]);
-    player.volume = type === 'click' ? 0.3 : 0.8;
-    player.play();
-    soundCache[type] = player;
-  } catch (err) {
-    // Fail silently in background
-  }
+  // Disabled expo-audio on native temporarily to prevent crashes on some Android devices (like Pixel)
+  // We can re-enable this once we switch to expo-av or fix the native audio crashing issue.
+  return;
 }
 
 // ── Web Audio Context (singleton) ──

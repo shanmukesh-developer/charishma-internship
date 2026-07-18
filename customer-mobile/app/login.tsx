@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { StaggeredSection, BounceIn } from '../components/AnimatedSection';
 import { setToken } from '../utils/auth';
 import DopaminePressable from '../components/DopaminePressable';
+import ServerWakeupOverlay from '../components/ServerWakeupOverlay';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -26,6 +27,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showWakeup, setShowWakeup] = useState(false);
 
   // Background Slideshow Animation State
   const [imgIndex, setImgIndex] = useState(0);
@@ -99,7 +101,13 @@ export default function LoginScreen() {
       } else {
         setError(data.message || 'Login failed');
       }
-    } catch (e) { setError('Network error (Server waking up). Please try again in 30s.'); }
+    } catch (e: any) { 
+      if (e.message && (e.message.includes('Network') || e.message.includes('Failed to fetch') || e.message.includes('JSON'))) {
+        setShowWakeup(true);
+      } else {
+        setError(`Network error: ${e.message || 'Server waking up. Try again.'}`); 
+      }
+    }
     finally { setLoading(false); }
   };
 
@@ -122,6 +130,14 @@ export default function LoginScreen() {
         }
       } as any)}
     >
+      <ServerWakeupOverlay 
+        visible={showWakeup} 
+        onWakeupComplete={() => {
+          setShowWakeup(false);
+          handleLogin();
+        }} 
+      />
+
       {/* Background Slideshow with Parallax Shift */}
       <View style={StyleSheet.absoluteFill}>
         <Animated.Image 

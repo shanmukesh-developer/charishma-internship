@@ -18,6 +18,7 @@ import { useWorldTransition } from '../../context/WorldTransitionContext';
 import AmbientBackground from '../../components/AmbientBackground';
 import DopaminePressable, { CardPressable, ActionPressable } from '../../components/DopaminePressable';
 import { StaggeredSection, RestaurantCardSkeleton, PulseGlow, BounceIn, FloatingPulse } from '../../components/AnimatedSection';
+import ServerWakeupOverlay from '../../components/ServerWakeupOverlay';
 
 const VaultTimerBadge = ({ pulseAnim }: { pulseAnim: any }) => {
   const [vaultTimer, setVaultTimer] = useState('00:00:00');
@@ -108,6 +109,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [classics, setClassics] = useState<any[]>(CLASSICS);
   const [promos, setPromos] = useState<any[]>(PROMOS);
+  const [showWakeup, setShowWakeup] = useState(false);
 
   // Search Overlay State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -245,7 +247,14 @@ export default function HomeScreen() {
       const res = await fetch(ENDPOINTS.restaurants);
       const data = await res.json();
       if (Array.isArray(data)) setRestaurants(data);
-    } catch (e) { console.error(e); }
+    } catch (e: any) { 
+      if (e.message && (e.message.includes('Network') || e.message.includes('Failed to fetch') || e.message.includes('JSON'))) {
+        setShowWakeup(true);
+      } else {
+        Alert.alert('Data Fetch Error', e.message || 'Could not fetch restaurants');
+      }
+      console.error(e); 
+    }
 
     try {
       const confRes = await fetch(`${API_URL}/api/config`);
@@ -343,6 +352,14 @@ export default function HomeScreen() {
 
   return (
     <View style={s.container}>
+      <ServerWakeupOverlay 
+        visible={showWakeup} 
+        onWakeupComplete={() => {
+          setShowWakeup(false);
+          setRefreshing(true);
+          fetchData();
+        }} 
+      />
       <AmbientBackground />
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} tintColor={goldColor} />}>
 
