@@ -400,7 +400,27 @@ const googleLogin = async (req, res) => {
       };
       console.log(`[AUTH] Bypassing verification for E2E_MOCK_GOOGLE_TOKEN (Email: kunjamshanmukesh@gmail.com)`);
     } else {
-      decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+      try {
+        decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+      } catch (err) {
+        // Fallback for native Google Sign-In tokens (which are raw OAuth tokens, not Firebase tokens)
+        const { OAuth2Client } = require('google-auth-library');
+        const client = new OAuth2Client();
+        const ticket = await client.verifyIdToken({
+            idToken: firebaseToken,
+            audience: [
+              '785490473159-8u6m41d2u27icc02719pbdluouukru3t.apps.googleusercontent.com', // Web Client ID
+              '785490473159-fv6irlncd2qtjhbj0neceo8sovot2gtr.apps.googleusercontent.com'  // Android Client ID
+            ]
+        });
+        const payload = ticket.getPayload();
+        decodedToken = {
+          email: payload.email,
+          name: payload.name,
+          uid: payload.sub,
+          phone_number: null
+        };
+      }
     }
     const email = decodedToken.email;
     const name = decodedToken.name || 'Google User';
