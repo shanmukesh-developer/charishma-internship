@@ -199,104 +199,106 @@ export default function ProductDetail() {
     if (!id) return;
     const cleanId = id.replace(/\/$/, "");
 
-    // Intercept mock details first
-    if (MOCK_DETAILS[cleanId]) {
-      setProduct(MOCK_DETAILS[cleanId]);
-      saveRecentlyViewed({
-        id: cleanId,
-        name: MOCK_DETAILS[cleanId].name,
-        image: MOCK_DETAILS[cleanId].image,
-        type: 'product',
-        price: MOCK_DETAILS[cleanId].price,
-        restaurantName: MOCK_DETAILS[cleanId].brand
-      });
-      setLoading(false);
-      return;
-    }
-
-    // Dynamic generation from any other ID starting with known prefixes
-    const isLocalOther = cleanId.startsWith('toys-') || cleanId.startsWith('seeds-') || cleanId.startsWith('fruit-') || cleanId.startsWith('cat-') || cleanId.startsWith('org-') || cleanId.startsWith('elec-') || cleanId.startsWith('hyg-') || cleanId.startsWith('bb-');
-    if (isLocalOther) {
-      // Setup dynamic mock details
-      let name = cleanId.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      let price = 99;
-      let img = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600';
-      let brand = 'Premium Quality';
-
-      if (cleanId.includes('uno')) { name = 'Uno Original Card Game'; price = 119; img = 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=600&q=80'; brand = 'Mattel Games'; }
-      else if (cleanId.includes('rubik')) { name = 'Speed Cube 3 x 3'; price = 89; img = 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600'; brand = 'Toy Cloud'; }
-      else if (cleanId.includes('cucumber')) { name = 'Cucumber Khira Seeds'; price = 59; img = 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=600&q=80'; brand = 'Bombay Seeds'; }
-      else if (cleanId.includes('chilli')) { name = 'Chilli Hot Pepper Seeds'; price = 59; img = 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=600&q=80'; brand = 'Bombay Seeds'; }
-      else if (cleanId.includes('lemon')) { name = 'Fresh Lemon'; price = 10; img = 'https://images.unsplash.com/photo-1590502593747-42a996133562?w=600&q=80'; brand = 'Fresho'; }
-
-      const dynamicDetail = {
-        id: cleanId,
-        name,
-        price,
-        originalPrice: price * 1.5,
-        discount: '30% OFF',
-        weight: '1 pc',
-        image: img,
-        description: `${name} is an premium selection, carefully curated for best standard and reliability.`,
-        rating: 4.4,
-        ratingCount: 1205,
-        reviewsBreakdown: { 5: 750, 4: 310, 3: 90, 2: 35, 1: 20 },
-        packSizes: [
-          { size: '1 pc', price, originalPrice: price * 1.5, discount: '30% OFF' }
-        ],
-        accordions: [
-          { title: 'About', content: `${name} matches our highest quality benchmarks to give complete satisfaction. Packed hygienically and shipped directly.` },
-          { title: 'Storage & Care', content: 'Store in a cool, dark, dry place. Keep away from water and direct heat.' }
-        ],
-        recipes: [
-          { title: 'Quick Demo Guide', time: '15 mins', img }
-        ],
-        brand
-      };
-
-      setProduct(dynamicDetail);
-      saveRecentlyViewed({
-        id: cleanId,
-        name,
-        image: img,
-        type: 'product',
-        price,
-        restaurantName: brand
-      });
-      setLoading(false);
-      return;
-    }
-
     const fetchProduct = async () => {
       try {
         const res = await fetch(`${API_URL}/api/users/products/${cleanId}`);
-        if (!res.ok) throw new Error('NOT_FOUND');
-        const data = await res.json();
-        
-        if (data && (data.name || data.id)) {
-          const productWithImg = {
-            ...data,
-            image: data.imageUrl || data.image
-          };
-          setProduct(productWithImg);
-          saveRecentlyViewed({
-            id: data.id || data._id,
-            name: data.name,
-            image: productWithImg.image || '',
-            type: 'product',
-            price: data.price,
-            restaurantName: data.restaurantName
-          });
-        } else {
-          setNetError(true);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && (data.name || data.id)) {
+            const productWithImg = {
+              ...data,
+              image: data.imageUrl || data.image
+            };
+            setProduct(productWithImg);
+            saveRecentlyViewed({
+              id: data.id || data._id,
+              name: data.name,
+              image: productWithImg.image || '',
+              type: 'product',
+              price: data.price,
+              restaurantName: data.restaurantName
+            });
+            setLoading(false);
+            return;
+          }
         }
       } catch (err) {
-        console.error('[FETCH_PRODUCT_ERROR]', err);
-        setNetError(true);
-      } finally {
-        setLoading(false);
+        console.warn('[FETCH_PRODUCT_ERROR] DB check failed, using fallback:', err);
       }
+
+      // Check mock details as fallback
+      if (MOCK_DETAILS[cleanId]) {
+        setProduct(MOCK_DETAILS[cleanId]);
+        saveRecentlyViewed({
+          id: cleanId,
+          name: MOCK_DETAILS[cleanId].name,
+          image: MOCK_DETAILS[cleanId].image,
+          type: 'product',
+          price: MOCK_DETAILS[cleanId].price,
+          restaurantName: MOCK_DETAILS[cleanId].brand
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Dynamic generation from any other ID starting with known prefixes
+      const isLocalOther = cleanId.startsWith('toys-') || cleanId.startsWith('seeds-') || cleanId.startsWith('fruit-') || cleanId.startsWith('cat-') || cleanId.startsWith('org-') || cleanId.startsWith('elec-') || cleanId.startsWith('hyg-') || cleanId.startsWith('bb-');
+      if (isLocalOther) {
+        // Setup dynamic mock details
+        let name = cleanId.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        let price = 99;
+        let img = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600';
+        let brand = 'Premium Quality';
+
+        if (cleanId.includes('uno')) { name = 'Uno Original Card Game'; price = 119; img = 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=600&q=80'; brand = 'Mattel Games'; }
+        else if (cleanId.includes('rubik')) { name = 'Speed Cube 3 x 3'; price = 89; img = 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600'; brand = 'Toy Cloud'; }
+        else if (cleanId.includes('cucumber')) { name = 'Cucumber Khira Seeds'; price = 59; img = 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=600&q=80'; brand = 'Bombay Seeds'; }
+        else if (cleanId.includes('chilli')) { name = 'Chilli Hot Pepper Seeds'; price = 59; img = 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=600&q=80'; brand = 'Bombay Seeds'; }
+        else if (cleanId.includes('lemon')) { name = 'Fresh Lemon'; price = 10; img = 'https://images.unsplash.com/photo-1590502593747-42a996133562?w=600&q=80'; brand = 'Fresho'; }
+
+        const dynamicDetail = {
+          id: cleanId,
+          name,
+          price,
+          originalPrice: price * 1.5,
+          discount: '30% OFF',
+          weight: '1 pc',
+          image: img,
+          description: `${name} is an premium selection, carefully curated for best standard and reliability.`,
+          rating: 4.4,
+          ratingCount: 1205,
+          reviewsBreakdown: { 5: 750, 4: 310, 3: 90, 2: 35, 1: 20 },
+          packSizes: [
+            { size: '1 pc', price, originalPrice: price * 1.5, discount: '30% OFF' }
+          ],
+          accordions: [
+            { title: 'About', content: `${name} matches our highest quality benchmarks to give complete satisfaction. Packed hygienically and shipped directly.` },
+            { title: 'Storage & Care', content: 'Store in a cool, dark, dry place. Keep away from water and direct heat.' }
+          ],
+          recipes: [
+            { title: 'Quick Demo Guide', time: '15 mins', img }
+          ],
+          brand
+        };
+
+        setProduct(dynamicDetail);
+        saveRecentlyViewed({
+          id: cleanId,
+          name,
+          image: img,
+          type: 'product',
+          price,
+          restaurantName: brand
+        });
+        setLoading(false);
+        return;
+      }
+
+      // If both DB lookup and mock fallbacks failed completely
+      setNetError(true);
+      setLoading(false);
     };
+
     fetchProduct();
   }, [id]);
 
@@ -374,8 +376,8 @@ export default function ProductDetail() {
       price: finalPrice,
       basePrice: product.price,
       image: product.image || '',
-      restaurantId: product.restaurantId || 'unknown',
-      restaurantName: product.restaurantName || 'Zenvy Kitchen',
+      restaurantId: product.restaurantId || '8467dbf0-1b1b-4ae5-88b6-0fccbfcb1cbb',
+      restaurantName: product.restaurantName || 'Biryani Hub',
       customizations,
     });
     

@@ -153,8 +153,7 @@ export default function ProfilePage() {
     suggestDebounceRef.current = setTimeout(async () => {
       try {
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=in&addressdetails=1&limit=5`,
-          { headers: { 'Accept-Language': 'en', 'User-Agent': 'ZenvyNexusStudentApp/2.4.0 (contact@zenvy.app)' } }
+          `${API_URL}/api/system/nominatim-proxy?type=search&format=json&q=${encodeURIComponent(query)}&countrycodes=in&addressdetails=1&limit=5`
         );
         const results = await res.json();
         setAddressSuggestions(results || []);

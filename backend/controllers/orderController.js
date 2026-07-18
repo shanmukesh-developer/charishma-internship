@@ -58,15 +58,16 @@ const createOrder = async (req, res) => {
     const Restaurant = getRestaurantModel();
     let targetRid = typeof restaurantId === 'object' ? (restaurantId._id || restaurantId.id) : restaurantId;
     
-    // Intercept 'mock-vendor' from frontend mock data and map it to an actual restaurant to prevent PostgreSQL UUID crash
-    if (targetRid === 'mock-vendor') {
+    // Intercept 'mock-vendor' or 'mega-basket-vendor' from frontend mock data and map to an actual restaurant
+    // This prevents PostgreSQL UUID crash for non-UUID vendor IDs from category/grocery cart flows
+    if (targetRid === 'mock-vendor' || targetRid === 'mega-basket-vendor' || targetRid === 'unknown-vendor') {
       const fallbackRest = await Restaurant.findOne({ where: { isActive: true } });
       if (fallbackRest) {
         targetRid = fallbackRest.id;
         // Also update all items to use the fallback restaurant ID to pass backend validation
         items.forEach(i => i.restaurantId = fallbackRest.id);
       } else {
-        return res.status(404).json({ message: 'No restaurants available to process this mock order' });
+        return res.status(404).json({ message: 'No restaurants available to process this order' });
       }
     }
 
@@ -879,6 +880,40 @@ const updateOrderStatus = async (req, res) => {
       newBadges: status === 'Delivered' ? (order.newBadges || []) : []
     };
     io.to(order.id.toString()).emit('statusUpdated', statusPayload);
+
+    // 🟢 Push Notification: Status Update to Customer
+    try {
+      const User = getUserModel();
+      const customer = await User.findByPk(order.userId);
+      if (customer && customer.fcmTokens && customer.fcmTokens.length > 0) {
+        const titles = {
+          'Accepted': 'Order Confirmed! 👍',
+          'Preparing': 'Kitchen is cooking! 🍳',
+          'ReadyForPickup': 'Order ready! 📦',
+          'PickedUp': 'Out for Delivery! 🛵',
+          'Delivered': 'Enjoy your meal! 🎉',
+          'Cancelled': 'Order Cancelled 🛑'
+        };
+        const bodies = {
+          'Accepted': 'Your order was accepted by the merchant.',
+          'Preparing': 'Your order has been sent to the kitchen.',
+          'ReadyForPickup': 'The merchant prepared your order and is waiting for a rider.',
+          'PickedUp': 'Rider has picked up your order and is heading your way.',
+          'Delivered': 'Your order has been delivered successfully.',
+          'Cancelled': 'Your order was cancelled by the store/system.'
+        };
+        if (titles[status]) {
+          await sendPushToTokens(
+            customer.fcmTokens,
+            titles[status],
+            bodies[status],
+            { orderId: order.id, type: 'ORDER_UPDATE' }
+          );
+        }
+      }
+    } catch (pushStatusErr) {
+      console.error('[PUSH_ERROR] Status update notification failed:', pushStatusErr.message);
+    }
 
     // 🟢 WhatsApp Integration: Status Update to Customer
     try {

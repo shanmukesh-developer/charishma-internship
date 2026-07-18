@@ -137,8 +137,25 @@ export default function FinanceConsole() {
     }
   };
 
-  const handleMarkSettled = (restId: string) => {
-    alert(`Payout marked as settled for node: ${restId}. (Mock Action)`);
+  const handleMarkSettled = async (restId: string) => {
+    if (!confirm('Are you sure you want to mark this restaurant payout as settled?')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/finance/settle-restaurant`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restaurantId: restId }),
+        credentials: 'include'
+      });
+      if (res.ok) {
+        alert('Restaurant payout settled successfully.');
+        fetchPayouts();
+      } else {
+        const err = await res.json();
+        alert(`Settlement failed: ${err.message}`);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   if (!isAuthed) return <div className="p-20 text-center font-black text-white uppercase tracking-widest animate-pulse">Authenticating...</div>;

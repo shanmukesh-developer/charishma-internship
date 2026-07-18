@@ -21,6 +21,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { apiFetch } from '../utils/auth';
 import { StaggeredSection, FloatingPulse, BounceIn } from '../components/AnimatedSection';
+import * as ImagePicker from 'expo-image-picker';
 
 interface ExtraItem {
   id: string;
@@ -284,13 +285,34 @@ export default function CheckoutScreen() {
     Alert.alert('Dev Mode Payment Simulated', 'UTR Code and Screenshot attachment set.');
   };
 
-  const attachMockScreenshot = () => {
-    setIsUploading(true);
-    setTimeout(() => {
-      setUpiScreenshot('https://picsum.photos/seed/payment/400/800');
+  const attachMockScreenshot = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permissionResult.granted === false) {
+        Alert.alert("Permission Required", "You need to allow camera roll access to upload screenshots.");
+        return;
+      }
+
+      setIsUploading(true);
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const base64Image = `data:image/jpeg;base64,${asset.base64}`;
+        setUpiScreenshot(base64Image);
+        Alert.alert('Screenshot Attached', 'Your payment receipt has been successfully attached.');
+      }
+    } catch (err) {
+      console.warn('Screenshot upload error:', err);
+      Alert.alert('Upload Failed', 'Could not select or process screenshot.');
+    } finally {
       setIsUploading(false);
-      Alert.alert('Screenshot Attached', 'Mock verification receipt uploaded successfully.');
-    }, 800);
+    }
   };
 
   const copyUpiId = () => {

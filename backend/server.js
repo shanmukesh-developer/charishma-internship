@@ -13,16 +13,24 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 // xss-clean removed due to Express 5 query getter incompatibility; custom safeXssMiddleware used instead.
 
-// ── Global Bulletproof Shield (Prevents any Node.js Crash) ──────────────
+// ── Global Bulletproof Shield (Prevents any Node.js Crash in Dev, Restarts in Prod) ──────────────
 process.on('uncaughtException', (err) => {
-  console.error('🔥 [CRITICAL] Uncaught Exception Blocked:', err.message);
+  console.error('🔥 [CRITICAL] Uncaught Exception:', err.message);
   console.error(err.stack);
-  // Do NOT exit process. This guarantees the server stays alive.
+  const isProd = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
+  if (isProd) {
+    console.error('🔥 Exiting process due to uncaught exception in production...');
+    process.exit(1);
+  }
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('🔥 [CRITICAL] Unhandled Promise Rejection Blocked:', reason);
-  // Do NOT exit process.
+  console.error('🔥 [CRITICAL] Unhandled Promise Rejection:', reason);
+  const isProd = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
+  if (isProd) {
+    console.error('🔥 Exiting process due to unhandled promise rejection in production...');
+    process.exit(1);
+  }
 });
 
 // ── Async Buffered Logger (Non-Blocking) ──────────────────────

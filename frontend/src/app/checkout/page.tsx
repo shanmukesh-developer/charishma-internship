@@ -274,12 +274,7 @@ export default function CheckoutPage() {
           navigator.geolocation.getCurrentPosition(async (pos) => {
             try {
               const { latitude, longitude } = pos.coords;
-              const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
-                headers: { 
-                  'Accept-Language': 'en',
-                  'User-Agent': 'ZenvyCampusBites/1.0 (contact@zenvy.edu)'
-                }
-              });
+              const res = await fetch(`${API_URL}/api/system/nominatim-proxy?type=reverse&format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
               const data = await res.json();
               if (data.display_name) {
                 setDeliveryAddress(data.display_name);

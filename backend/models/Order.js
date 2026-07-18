@@ -55,7 +55,9 @@ const initOrderModel = (sequelize) => {
       defaultValue: 'Pending'
     },
     proofImage: { type: DataTypes.TEXT },
-    proofTimestamp: { type: DataTypes.DATE }
+    proofTimestamp: { type: DataTypes.DATE },
+    payoutSettled: { type: DataTypes.BOOLEAN, defaultValue: false },
+    riderPayoutSettled: { type: DataTypes.BOOLEAN, defaultValue: false }
   }, { 
     timestamps: true,
     indexes: [

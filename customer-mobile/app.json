@@ -60,6 +60,19 @@
       "expo-secure-store",
       "expo-image",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Zenvy to access your photos to upload payment screenshots."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#C9A84C"
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {

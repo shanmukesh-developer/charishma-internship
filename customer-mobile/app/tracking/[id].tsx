@@ -11,7 +11,8 @@ import {
   Platform,
   Alert,
   Share,
-  Linking
+  Linking,
+  Animated
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { COLORS, SHADOWS, RADIUS } from '../../constants/theme';
@@ -22,6 +23,7 @@ import { connectSocket, getSocket } from '../../utils/socket';
 import { apiFetch } from '../../utils/auth';
 import { StaggeredSection, FloatingPulse, BounceIn } from '../../components/AnimatedSection';
 import ConfettiCannon from 'react-native-confetti-cannon';
+import Svg, { Polyline, Circle } from 'react-native-svg';
 
 const CHECKPOINTS = [
   { name: 'Mangalagiri Jn' },
@@ -30,6 +32,251 @@ const CHECKPOINTS = [
   { name: 'Academic Block' },
   { name: 'Hostel Sector' },
 ];
+
+const ROUTE_NODES = [
+  { id: 'Restaurant', name: 'Kitchen', x: 25, y: 155, icon: '🍳' },
+  { id: 'Mangalagiri Jn', name: 'Mangalagiri', x: 80, y: 120, icon: '📍' },
+  { id: 'Neerukonda', name: 'Neerukonda', x: 130, y: 140, icon: '📍' },
+  { id: 'SRM Main Gate', name: 'Main Gate', x: 190, y: 80, icon: '🛡️' },
+  { id: 'Academic Block', name: 'Academic', x: 250, y: 100, icon: '🏫' },
+  { id: 'Hostel Sector', name: 'Hostel', x: 310, y: 40, icon: '🏠' }
+];
+
+function TacticalRadarMap({ status, currentCheckpoint, isDark }: { status: number, currentCheckpoint: string, isDark: boolean }) {
+  const riderPos = useRef(new Animated.ValueXY({ x: 25, y: 155 })).current;
+
+  let riderIdx = 0;
+  if (status === 4) {
+    const idx = ROUTE_NODES.findIndex(n => n.id === currentCheckpoint);
+    riderIdx = idx !== -1 ? idx : 1;
+  } else if (status >= 5) {
+    riderIdx = ROUTE_NODES.length - 1;
+  }
+
+  useEffect(() => {
+    const targetNode = ROUTE_NODES[riderIdx];
+    Animated.spring(riderPos, {
+      toValue: { x: targetNode.x, y: targetNode.y },
+      useNativeDriver: false,
+      friction: 8,
+      tension: 40
+    }).start();
+  }, [riderIdx]);
+
+  const polylinePoints = ROUTE_NODES.map(n => `${n.x},${n.y}`).join(' ');
+  const traveledPoints = ROUTE_NODES.slice(0, riderIdx + 1).map(n => `${n.x},${n.y}`).join(' ');
+
+  const cardBg = isDark ? '#141416' : '#FFF';
+  const border = isDark ? 'rgba(212, 175, 122, 0.25)' : 'rgba(0, 0, 0, 0.06)';
+  const txt = isDark ? '#FFF' : '#111';
+  const txtSec = isDark ? '#AAA' : '#666';
+
+  return (
+    <View style={[mapStyles.card, { backgroundColor: cardBg, borderColor: border }]}>
+      <View style={mapStyles.headerRow}>
+        <View>
+          <Text style={mapStyles.badge}>GPS RADAR ARRAY</Text>
+          <Text style={[mapStyles.title, { color: txt }]}>LIVE PATH TELEMETRY</Text>
+        </View>
+        <FloatingPulse color="#C9A84C">
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#C9A84C' }} />
+        </FloatingPulse>
+      </View>
+
+      <View style={mapStyles.canvasContainer}>
+        <View style={mapStyles.gridOverlay}>
+          {[...Array(6)].map((_, i) => (
+            <View key={i} style={[mapStyles.gridLineH, { top: i * 35, borderBottomColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]} />
+          ))}
+          {[...Array(10)].map((_, i) => (
+            <View key={i} style={[mapStyles.gridLineV, { left: i * 35, borderRightColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]} />
+          ))}
+        </View>
+
+        <Svg style={StyleSheet.absoluteFill}>
+          <Polyline
+            points={polylinePoints}
+            fill="none"
+            stroke={isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}
+            strokeWidth={4}
+            strokeDasharray="5,5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+
+          {traveledPoints.length > 0 && (
+            <Polyline
+              points={polylinePoints}
+              fill="none"
+              stroke="#D4AF37"
+              strokeWidth={4}
+              strokeDasharray="5,5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={0.3}
+            />
+          )}
+
+          {traveledPoints && (
+            <Polyline
+              points={traveledPoints}
+              fill="none"
+              stroke="#D4AF37"
+              strokeWidth={4.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
+
+          {ROUTE_NODES.map((n, i) => {
+            const isCompleted = i < riderIdx;
+            const isActive = i === riderIdx;
+            return (
+              <Circle
+                key={n.id}
+                cx={n.x}
+                cy={n.y}
+                r={isActive ? 8 : 5}
+                fill={isActive ? '#D4AF37' : (isCompleted ? '#D4AF37' : (isDark ? '#333' : '#CCC'))}
+                stroke={isActive ? (isDark ? '#000' : '#FFF') : 'transparent'}
+                strokeWidth={2}
+              />
+            );
+          })}
+        </Svg>
+
+        {ROUTE_NODES.map((n, i) => {
+          const isActive = i === riderIdx;
+          const isCompleted = i <= riderIdx;
+          return (
+            <View key={n.id} style={[mapStyles.nodeLabelContainer, { left: n.x - 30, top: n.y - 30 }]}>
+              <View style={[mapStyles.nodeLabelBox, { backgroundColor: isActive ? '#D4AF37' : (isDark ? 'rgba(20,20,22,0.85)' : 'rgba(255,255,255,0.85)') }]}>
+                <Text style={[mapStyles.nodeLabelText, { color: isActive ? '#000' : (isCompleted ? '#D4AF37' : txtSec) }]}>
+                  {n.icon} {n.name}
+                </Text>
+              </View>
+            </View>
+          );
+        })}
+
+        <Animated.View
+          style={[
+            mapStyles.riderIconContainer,
+            {
+              left: Animated.subtract(riderPos.x, 18),
+              top: Animated.subtract(riderPos.y, 22),
+            }
+          ]}
+        >
+          <View style={mapStyles.riderPulseRing} />
+          <View style={mapStyles.riderAvatar}>
+            <Text style={{ fontSize: 13 }}>🛵</Text>
+          </View>
+        </Animated.View>
+      </View>
+    </View>
+  );
+}
+
+const mapStyles = StyleSheet.create({
+  card: {
+    padding: 16,
+    borderRadius: 24,
+    borderWidth: 1,
+    marginBottom: 16,
+    overflow: 'hidden'
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12
+  },
+  badge: {
+    fontSize: 7,
+    fontWeight: '900',
+    color: '#D4AF37',
+    letterSpacing: 2
+  },
+  title: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginTop: 2
+  },
+  canvasContainer: {
+    height: 195,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.03)',
+    overflow: 'hidden',
+    position: 'relative'
+  },
+  gridOverlay: {
+    ...StyleSheet.absoluteFill
+  },
+  gridLineH: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    borderBottomWidth: 1
+  },
+  gridLineV: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    borderRightWidth: 1
+  },
+  nodeLabelContainer: {
+    position: 'absolute',
+    width: 60,
+    alignItems: 'center'
+  },
+  nodeLabelBox: {
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center'
+  },
+  nodeLabelText: {
+    fontSize: 7,
+    fontWeight: '900',
+    letterSpacing: 0.2
+  },
+  riderIconContainer: {
+    position: 'absolute',
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  riderPulseRing: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#D4AF37',
+    opacity: 0.6,
+    transform: [{ scale: 1.4 }]
+  },
+  riderAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#D4AF37',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84
+  }
+});
 
 interface OrderInfo {
   _id: string;
@@ -378,6 +625,11 @@ export default function TrackingScreen() {
       </View>
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+        {/* ── LIVE TACTICAL RADAR MAP ── */}
+        <StaggeredSection delay={30} direction="up">
+          <TacticalRadarMap status={status} currentCheckpoint={currentCheckpoint} isDark={isDark} />
+        </StaggeredSection>
+
         {/* ── CURRENT STAGE CARD ── */}
         <StaggeredSection delay={50} direction="up">
           <View style={[s.currentStageCard, { backgroundColor: cardBg, borderColor: COLORS.goldBorder }]}>

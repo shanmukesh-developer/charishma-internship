@@ -26,6 +26,8 @@ import { StaggeredSection, BounceIn } from '../../components/AnimatedSection';
 import DopaminePressable from '../../components/DopaminePressable';
 import { apiFetch } from '../../utils/auth';
 import { API_URL, ENDPOINTS } from '../../constants/api';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 
 // Pre-selected high-quality gaming & food avatars
 const PREMIUM_AVATARS = [
@@ -109,6 +111,7 @@ export default function ProfileScreen() {
   useEffect(() => {
     loadLocalPreferences();
     fetchData();
+    handleEnablePush(true);
   }, []);
 
   const loadLocalPreferences = async () => {
@@ -206,8 +209,47 @@ export default function ProfileScreen() {
     await AsyncStorage.setItem('zenvy_notif_prefs', JSON.stringify(updated));
   };
 
-  const handleEnablePush = () => {
-    Alert.alert('Push Notifications', 'Live delivery updates have been activated for this device!');
+  const handleEnablePush = async (silent = false) => {
+    try {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        if (silent) return; // Do not prompt silently
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        if (!silent) Alert.alert('Permission Denied', 'Please enable notification permissions in your device settings to receive delivery updates.');
+        return;
+      }
+
+      let projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
+      if (!projectId || projectId === 'your-eas-project-id') {
+        projectId = undefined; 
+      }
+      
+      const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+      const fcmToken = tokenData.data;
+
+      // Send to backend
+      const res = await apiFetch(`${API_URL}/api/users/fcm-token`, {
+        method: 'POST',
+        body: JSON.stringify({
+          fcmToken,
+          appVersion: '1.0.0'
+        })
+      });
+
+      if (res.ok) {
+        if (!silent) Alert.alert('Success', 'Live delivery updates have been activated for this device!');
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        if (!silent) Alert.alert('Activation Failed', errData.message || 'Could not sync token with server.');
+      }
+    } catch (err: any) {
+      console.warn('Push registration error:', err);
+      if (!silent) Alert.alert('Error', 'An error occurred while enabling notifications. Please try again.');
+    }
   };
 
   // Profile Edit helpers
@@ -221,8 +263,7 @@ export default function ProfileScreen() {
     suggestTimeout.current = setTimeout(async () => {
       try {
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=in&addressdetails=1&limit=5`,
-          { headers: { 'Accept-Language': 'en', 'User-Agent': 'ZenvyNexusStudentApp/2.4.0 (contact@zenvy.app)' } }
+          `${API_URL}/api/system/nominatim-proxy?type=search&format=json&q=${encodeURIComponent(query)}&countrycodes=in&addressdetails=1&limit=5`
         );
         const results = await res.json();
         setSuggestions(results || []);
@@ -546,7 +587,7 @@ export default function ProfileScreen() {
         <StaggeredSection delay={200} direction="up">
           <View style={s.sectionHeader}>
             <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111' }]}>NOTIFICATIONS</Text>
-            <TouchableOpacity style={[s.pushBtn, { borderColor: goldColor }]} onPress={handleEnablePush}>
+            <TouchableOpacity style={[s.pushBtn, { borderColor: goldColor }]} onPress={() => handleEnablePush(false)}>
               <Text style={[s.pushBtnText, { color: goldColor }]}>ENABLE PUSH</Text>
             </TouchableOpacity>
           </View>

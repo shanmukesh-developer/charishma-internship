@@ -122,6 +122,27 @@ export default function FleetManagement() {
     } catch (err) { console.error(err); }
   };
 
+  const handleMarkSettled = async (riderId: string, riderName: string) => {
+    if (!confirm(`Are you sure you want to mark rider ${riderName}'s payout as settled?`)) return;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/finance/settle-rider`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ riderId }),
+        credentials: 'include'
+      });
+      if (res.ok) {
+        alert('Rider payout settled successfully.');
+        fetchPayouts();
+      } else {
+        const err = await res.json();
+        alert(`Settlement failed: ${err.message}`);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleToggleApproval = async (id: string, currentStatus: boolean) => {
     try {
       const res = await fetch(`${API_URL}/api/admin/riders/${id}/approve`, {
@@ -286,14 +307,17 @@ export default function FleetManagement() {
                 {payouts.length === 0 ? (
                   <tr><td colSpan={4} className="py-10 text-center text-gray-500 text-xs italic">No rider earnings logged yet.</td></tr>
                 ) : payouts.map(p => {
-                  const riderName = riders.find(r => r._id === p.riderId)?.name || p.riderId.slice(-6).toUpperCase();
+                  const riderName = p.riderName || riders.find(r => r._id === p.riderId)?.name || p.riderId.slice(-6).toUpperCase();
                   return (
                     <tr key={p.riderId} className="hover:bg-white/[0.02]">
-                      <td className="px-8 py-4 text-sm font-bold text-white uppercase tracking-tight">{riderName}</td>
+                      <td className="px-8 py-4 text-sm font-bold text-white uppercase tracking-tight">
+                        {riderName}
+                        {p.riderPhone && <span className="block text-[8px] text-gray-500 font-mono mt-0.5">{p.riderPhone}</span>}
+                      </td>
                       <td className="px-8 py-4 text-sm text-gray-300 font-mono">{p.totalDeliveries}</td>
                       <td className="px-8 py-4 text-lg font-black text-emerald-400">₹{p.totalDeliveryFees}</td>
                       <td className="px-8 py-4">
-                        <button onClick={() => alert(`Marked ₹${p.totalDeliveryFees} paid to ${riderName}.`)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[9px] font-black uppercase">Mark Settled</button>
+                        <button onClick={() => handleMarkSettled(p.riderId, riderName)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[9px] font-black uppercase">Mark Settled</button>
                       </td>
                     </tr>
                   )

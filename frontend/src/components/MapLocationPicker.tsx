@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import { API_URL } from '@/utils/api';
 
 const LeafletMapSub = dynamic(() => import('@/components/LeafletMapSub'), { ssr: false });
 
@@ -73,7 +74,7 @@ export default function MapLocationPicker({ isOpen, onClose, onConfirm }: MapLoc
   const reverseGeocode = async (pos: { lat: number, lng: number }) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.lat}&lon=${pos.lng}&addressdetails=1`);
+      const response = await fetch(`${API_URL}/api/system/nominatim-proxy?type=reverse&format=json&lat=${pos.lat}&lon=${pos.lng}&addressdetails=1`);
       const data = await response.json();
       const addr = data.address || {};
       

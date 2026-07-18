@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Platform, Alert, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Platform, Alert, FlatList, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { COLORS, SHADOWS, RADIUS } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useCart } from '../../context/CartContext';
+import { API_URL } from '../../constants/api';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -136,8 +137,52 @@ export default function CategoryScreen() {
   const { isDark } = useTheme();
   const { addToCart } = useCart();
 
+  const [items, setItems] = useState<any[]>(MOCK_DATA[id || ''] || []);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    const fetchCategoryItems = async () => {
+      try {
+        setLoading(true);
+        const queryMap: Record<string, string> = {
+          sweets: 'Dessert',
+          drinks: 'Drinks',
+          gym: 'gym',
+          rentals: 'Rentals',
+          fruits: 'fruits',
+          stationary: 'stationary',
+          pharmacy: 'pharmacy',
+          laundry: 'laundry'
+        };
+        const searchTerm = queryMap[id] || id;
+        const res = await fetch(`${API_URL}/api/search?q=${encodeURIComponent(searchTerm)}`);
+        if (res.ok) {
+          const data = await res.json();
+          let fetchedItems = data.items || [];
+          if (fetchedItems.length > 0) {
+            const formatted = fetchedItems.map((item: any) => ({
+              id: item.id || item._id,
+              name: item.name,
+              price: item.price,
+              image: item.imageUrl || item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600',
+              desc: item.description,
+              restaurantId: item.restaurantId?._id || item.restaurantId || 'unknown-vendor',
+              restaurantName: item.restaurantId?.name || 'Zenvy Merchant'
+            }));
+            setItems(formatted);
+          }
+        }
+      } catch (err) {
+        console.warn('Category items fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCategoryItems();
+  }, [id]);
+
   const categoryName = CATEGORY_NAMES[id || ''] || 'Category Items';
-  const items = MOCK_DATA[id || ''] || [];
 
   const txt = isDark ? '#FFF' : '#111';
   const txtSec = isDark ? '#AAA' : '#666';
@@ -147,10 +192,13 @@ export default function CategoryScreen() {
 
   const handleAdd = (item: any) => {
     addToCart({
-      ...item,
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      image: item.image,
       quantity: 1,
-      restaurantId: 'mock-vendor',
-      restaurantName: 'Zenvy Hub'
+      restaurantId: item.restaurantId || 'mega-basket-vendor',
+      restaurantName: item.restaurantName || 'Mega Basket'
     });
     Alert.alert('Added to Cart', `${item.name} added to your mega basket.`);
   };
@@ -178,7 +226,12 @@ export default function CategoryScreen() {
       </View>
 
       {/* Grid List */}
-      {items.length > 0 ? (
+      {loading && items.length === 0 ? (
+        <View style={s.emptyState}>
+          <ActivityIndicator size="large" color={isDark ? COLORS.gold : COLORS.red} />
+          <Text style={{ marginTop: 12, color: txtSec, fontSize: 11, fontWeight: '700' }}>Fetching live catalog...</Text>
+        </View>
+      ) : items.length > 0 ? (
         <FlatList
           data={items}
           keyExtractor={(item) => item.id}

@@ -981,9 +981,9 @@ exports.getRestaurantPayouts = async (req, res) => {
     const Order = getOrderModel();
     const Restaurant = getRestaurantModel();
     
-    // Group only Delivered orders to calculate real earnings
+    // Group only Delivered, unsettled orders to calculate real earnings
     const deliveredOrders = await Order.findAll({ 
-      where: { status: 'Delivered' }
+      where: { status: 'Delivered', payoutSettled: false }
     });
     const restaurants = await Restaurant.findAll();
     const restMap = restaurants.reduce((acc, r) => ({ ...acc, [r.id]: r }), {});
@@ -1019,6 +1019,26 @@ exports.getRestaurantPayouts = async (req, res) => {
       totalCommission: Math.round(p.totalCommission),
       netPayout: Math.round(p.netPayout)
     })));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.settleRestaurantPayout = async (req, res) => {
+  try {
+    const Order = getOrderModel();
+    const { restaurantId } = req.body;
+    if (!restaurantId) return res.status(400).json({ message: 'restaurantId is required' });
+
+    // Mark all delivered, unpaid orders for this restaurant as settled
+    const [updatedCount] = await Order.update(
+      { payoutSettled: true },
+      { where: { restaurantId, status: 'Delivered', payoutSettled: false } }
+    );
+
+    await logAuditAction(req, restaurantId, 'RESTAURANT_PAYOUT_SETTLED', { restaurantId, updatedOrdersCount: updatedCount });
+
+    res.json({ message: 'Restaurant payout marked as settled successfully', updatedOrdersCount: updatedCount });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -1162,22 +1182,28 @@ exports.deleteReview = async (req, res) => {
 exports.getRiderPayouts = async (req, res) => {
   try {
     const Order = getOrderModel();
+    const DeliveryPartner = getDeliveryPartnerModel();
     
+    // Group only Delivered, unsettled rider orders
     const deliveredOrders = await Order.findAll({ 
-      where: { status: 'Delivered' }
+      where: { status: 'Delivered', riderPayoutSettled: false }
     });
 
-    // In a full implementation, we'd pull from DeliveryPartner model for names.
-    // We will aggregate by deliveryPartnerId.
+    const riders = await DeliveryPartner.findAll();
+    const riderMap = riders.reduce((acc, r) => ({ ...acc, [r.id]: r }), {});
+
     const payouts = {};
     deliveredOrders.forEach(o => {
       if (!o.deliveryPartnerId) return;
       const fee = o.deliveryFee || 0;
       const rid = o.deliveryPartnerId;
+      const rider = riderMap[rid];
       
       if (!payouts[rid]) {
         payouts[rid] = {
           riderId: rid,
+          riderName: rider ? rider.name : 'Unknown Rider',
+          riderPhone: rider ? rider.phone : '',
           totalDeliveries: 0,
           totalDeliveryFees: 0,
         };
@@ -1186,7 +1212,30 @@ exports.getRiderPayouts = async (req, res) => {
       payouts[rid].totalDeliveryFees += fee;
     });
 
-    res.json(Object.values(payouts));
+    res.json(Object.values(payouts).map(p => ({
+      ...p,
+      totalDeliveryFees: Math.round(p.totalDeliveryFees)
+    })));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.settleRiderPayout = async (req, res) => {
+  try {
+    const Order = getOrderModel();
+    const { riderId } = req.body;
+    if (!riderId) return res.status(400).json({ message: 'riderId is required' });
+
+    // Mark all delivered, unpaid orders for this rider as settled
+    const [updatedCount] = await Order.update(
+      { riderPayoutSettled: true },
+      { where: { deliveryPartnerId: riderId, status: 'Delivered', riderPayoutSettled: false } }
+    );
+
+    await logAuditAction(req, riderId, 'RIDER_PAYOUT_SETTLED', { riderId, updatedOrdersCount: updatedCount });
+
+    res.json({ message: 'Rider payout marked as settled successfully', updatedOrdersCount: updatedCount });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -94,6 +94,14 @@ router.get('/finance/payouts', (req, res, next) => {
   const { getRestaurantPayouts } = require('../controllers/adminController');
   getRestaurantPayouts(req, res, next);
 });
+router.post('/finance/settle-restaurant', (req, res, next) => {
+  const { settleRestaurantPayout } = require('../controllers/adminController');
+  settleRestaurantPayout(req, res, next);
+});
+router.post('/finance/settle-rider', (req, res, next) => {
+  const { settleRiderPayout } = require('../controllers/adminController');
+  settleRiderPayout(req, res, next);
+});
 router.get('/finance/disputes', (req, res, next) => {
   const { getDisputedOrders } = require('../controllers/adminController');
   getDisputedOrders(req, res, next);
