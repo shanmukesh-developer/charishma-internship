@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { COLORS, SHADOWS } from '../../constants/theme';
 import { useCart } from '../../context/CartContext';
@@ -10,7 +10,9 @@ import { StaggeredSection, FloatingPulse, BounceIn } from '../../components/Anim
 
 export default function BasketScreen() {
   const { isDark } = useTheme();
-  const { cart, removeFromCart, updateQuantity, totalPrice, totalItems } = useCart();
+  const { cart, removeFromCart, updateQuantity, totalPrice, totalItems, roomCode, isHosting, isJoined, handleHostRoom, handleJoinRoom, handleDisconnect } = useCart();
+  const [isJoinOpen, setIsJoinOpen] = React.useState(false);
+  const [inputCode, setInputCode] = React.useState('');
   const router = useRouter();
   const bg = isDark ? COLORS.bgDark : COLORS.bgLight;
   const cardBg = isDark ? COLORS.bgCard : COLORS.bgLightCard;
@@ -28,12 +30,51 @@ export default function BasketScreen() {
         {/* Group Cart */}
         <StaggeredSection delay={50} direction="up">
           <View style={[s.groupCard, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={{ fontSize: 11, fontWeight: '900', color: goldColor, letterSpacing: 2, marginBottom: 2 }}>ROOMMATE GROUP CART</Text>
-            <Text style={[s.groupDesc, { color: txt }]}>ORDER TOGETHER WITH YOUR ROOMMATES AND SPLIT THE BILL</Text>
-            <View style={s.groupBtns}>
-              <TouchableOpacity style={[s.hostBtn, { borderColor: txtSec }]} onPress={() => alert('Host Cart coming soon!')}><Text style={[s.hostBtnText, { color: txtSec }]}>🎯 HOST CART</Text></TouchableOpacity>
-              <TouchableOpacity style={[s.joinBtn, { backgroundColor: goldColor }]} onPress={() => alert('Join Cart coming soon!')}><Text style={s.joinBtnText}>👥 JOIN CART</Text></TouchableOpacity>
-            </View>
+            {!roomCode ? (
+              <View>
+                <Text style={{ fontSize: 11, fontWeight: '900', color: goldColor, letterSpacing: 2, marginBottom: 2 }}>ROOMMATE GROUP CART</Text>
+                <Text style={[s.groupDesc, { color: txt }]}>ORDER TOGETHER WITH YOUR ROOMMATES AND SPLIT THE BILL</Text>
+                <View style={s.groupBtns}>
+                  <TouchableOpacity style={[s.hostBtn, { borderColor: txtSec }]} onPress={handleHostRoom}>
+                    <Text style={[s.hostBtnText, { color: txtSec }]}>📡 HOST CART</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[s.joinBtn, { backgroundColor: goldColor }]} onPress={() => setIsJoinOpen(!isJoinOpen)}>
+                    <Text style={s.joinBtnText}>👥 JOIN CART</Text>
+                  </TouchableOpacity>
+                </View>
+                {isJoinOpen && (
+                  <View style={s.joinInputRow}>
+                    <TextInput
+                      style={[s.joinInput, { color: txt, borderColor: border }]}
+                      placeholder="ENTER ROOM CODE (e.g. ZN-8B2A)"
+                      placeholderTextColor={txtSec}
+                      value={inputCode}
+                      onChangeText={setInputCode}
+                      autoCapitalize="characters"
+                    />
+                    <TouchableOpacity style={[s.joinSubmit, { backgroundColor: goldColor }]} onPress={() => { handleJoinRoom(inputCode); setIsJoinOpen(false); }}>
+                      <Text style={s.joinSubmitText}>CONNECT</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            ) : (
+              <View style={s.activeRoomCard}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <View style={s.liveDot} />
+                  <Text style={{ fontSize: 10, fontWeight: '900', color: '#10B981', letterSpacing: 2 }}>LIVE ROOM ACTIVE ({isHosting ? 'HOST' : 'JOINED'})</Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View>
+                    <Text style={{ fontSize: 9, color: txtSec, fontWeight: '700', letterSpacing: 1, marginBottom: 2 }}>ROOM CODE</Text>
+                    <Text style={{ fontSize: 18, fontWeight: '900', color: goldColor }}>{roomCode}</Text>
+                  </View>
+                  <TouchableOpacity style={s.disconnectBtn} onPress={handleDisconnect}>
+                    <Text style={s.disconnectText}>🚫 DISCONNECT</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
         </StaggeredSection>
 
@@ -134,6 +175,14 @@ const s = StyleSheet.create({
   billRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   billLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 2 },
   billVal: { fontSize: 13, fontWeight: '800' },
+  joinInputRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  joinInput: { flex: 1, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 10, fontWeight: '900' },
+  joinSubmit: { paddingHorizontal: 16, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  joinSubmitText: { fontSize: 10, fontWeight: '900', color: '#000', letterSpacing: 1 },
+  activeRoomCard: { width: '100%' },
+  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#10B981' },
+  disconnectBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.2)' },
+  disconnectText: { fontSize: 9, fontWeight: '900', color: '#EF4444', letterSpacing: 1 },
   checkoutBtnContainer: {
     position: 'absolute',
     bottom: Platform.OS === 'ios' ? 100 : 80,
