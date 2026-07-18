@@ -2,30 +2,101 @@
   "project_info": {
     "project_number": "785490473159",
     "project_id": "hostelbites-c77a8",
-    "storage_bucket": "hostelbites-c77a8.appspot.com"
+    "storage_bucket": "hostelbites-c77a8.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:785490473159:android:7e7b7b00cc9e2669000ee2",
+        "mobilesdk_app_id": "1:785490473159:android:7180c2aca61f77e8000ee2",
         "android_client_info": {
-          "package_name": "com.zenvy.customer"
+          "package_name": "com.srm.hostelbites"
         }
       },
       "oauth_client": [
         {
-          "client_id": "785490473159-webclientplaceholderid.apps.googleusercontent.com",
+          "client_id": "785490473159-fv6irlncd2qtjhbj0neceo8sovot2gtr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.srm.hostelbites",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "785490473159-8u6m41d2u27icc02719pbdluouukru3t.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyASKW2EosQpJjkZMGILrURhoiP7vhjj8TY"
+          "current_key": "AIzaSyCL_P8iuolehpXDQThKS-KfLrbETJJLGCA"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "785490473159-8u6m41d2u27icc02719pbdluouukru3t.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:785490473159:android:92fc8d109b8a7c1e000ee2",
+        "android_client_info": {
+          "package_name": "com.srm.hostelbitesadmin"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "785490473159-8u6m41d2u27icc02719pbdluouukru3t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCL_P8iuolehpXDQThKS-KfLrbETJJLGCA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "785490473159-8u6m41d2u27icc02719pbdluouukru3t.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:785490473159:android:b3850edcf4bf6424000ee2",
+        "android_client_info": {
+          "package_name": "com.srm.hostelbitesdelivery"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "785490473159-8u6m41d2u27icc02719pbdluouukru3t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCL_P8iuolehpXDQThKS-KfLrbETJJLGCA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "785490473159-8u6m41d2u27icc02719pbdluouukru3t.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

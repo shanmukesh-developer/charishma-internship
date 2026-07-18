@@ -15,7 +15,7 @@ import ServerWakeupOverlay from '../components/ServerWakeupOverlay';
 const { width: SW, height: SH } = Dimensions.get('window');
 
 // TODO: Replace this with your Google Web Client ID from the Firebase console credentials page
-const GOOGLE_WEB_CLIENT_ID = '785490473159-webclientplaceholderid.apps.googleusercontent.com';
+const GOOGLE_WEB_CLIENT_ID = '785490473159-8u6m41d2u27icc02719pbdluouukru3t.apps.googleusercontent.com';
 
 GoogleSignin.configure({
   webClientId: GOOGLE_WEB_CLIENT_ID,
