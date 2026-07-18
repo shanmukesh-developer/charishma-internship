@@ -623,7 +623,7 @@ const startServer = async () => {
     import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyASKW2EosQpJjkZMGILrURhoiP7vhjj8TY",
+      apiKey: "AIzaSyCL_P8iuolehpXDQThKS-KfLrbETJJLGCA",
       authDomain: "hostelbites-c77a8.firebaseapp.com",
       projectId: "hostelbites-c77a8",
       storageBucket: "hostelbites-c77a8.appspot.com",
