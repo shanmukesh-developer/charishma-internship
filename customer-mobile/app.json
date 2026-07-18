@@ -27,6 +27,7 @@
         "backgroundColor": "#0A0A0B"
       },
       "package": "com.zenvy.customer",
+      "googleServicesFile": "./google-services.json",
       "versionCode": 1,
       "compileSdkVersion": 36,
       "targetSdkVersion": 35,
@@ -50,6 +51,7 @@
       "bundler": "metro"
     },
     "plugins": [
+      "@react-native-google-signin/google-signin",
       "expo-router",
       [
         "expo-status-bar",

@@ -1,0 +1,34 @@
+{
+  "project_info": {
+    "project_number": "785490473159",
+    "project_id": "hostelbites-c77a8",
+    "storage_bucket": "hostelbites-c77a8.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:785490473159:android:7e7b7b00cc9e2669000ee2",
+        "android_client_info": {
+          "package_name": "com.zenvy.customer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "785490473159-webclientplaceholderid.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyASKW2EosQpJjkZMGILrURhoiP7vhjj8TY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

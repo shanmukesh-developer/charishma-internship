@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Animated, Dimensions, ActivityIndicator, Alert, Modal } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { COLORS, SHADOWS } from '../constants/theme';
@@ -12,6 +13,14 @@ import DopaminePressable from '../components/DopaminePressable';
 import ServerWakeupOverlay from '../components/ServerWakeupOverlay';
 
 const { width: SW, height: SH } = Dimensions.get('window');
+
+// TODO: Replace this with your Google Web Client ID from the Firebase console credentials page
+const GOOGLE_WEB_CLIENT_ID = '785490473159-webclientplaceholderid.apps.googleusercontent.com';
+
+GoogleSignin.configure({
+  webClientId: GOOGLE_WEB_CLIENT_ID,
+  offlineAccess: true,
+});
 
 // Fresh, ultra-premium, dark-themed gourmet visual assets
 const IMAGES = [
@@ -208,7 +217,53 @@ export default function LoginScreen() {
 
   const handleGoogleLogin = async () => {
     setError('');
-    setAuthModalVisible(true);
+    try {
+      setLoading(true);
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      const idToken = response.data?.idToken;
+      if (!idToken) {
+        throw new Error('Failed to retrieve ID token from native Google Sign-In');
+      }
+
+      const res = await fetch(`${API_URL}/api/users/google-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firebaseToken: idToken }),
+      });
+      const resData = await res.json();
+      if (res.ok && resData.token) {
+        await setToken(resData.token);
+        await setUser(resData.user || resData);
+        const { playSound } = require('../utils/sounds');
+        playSound('success');
+        router.replace('/(tabs)' as any);
+      } else {
+        setError(resData.message || 'Google Sign-In backend verification failed');
+      }
+    } catch (err: any) {
+      console.warn('[NATIVE_GOOGLE_ERROR]', err);
+      // Fallback to secure WebView authentication
+      Alert.alert(
+        'Google Native Auth',
+        'Google native SDK authentication is not configured yet. Falling back to secure web authentication.\n\n(Developers: Register SHA-1 fingerprint 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25 in Firebase and update GOOGLE_WEB_CLIENT_ID).',
+        [
+          {
+            text: 'Continue to Web Login',
+            onPress: () => {
+              setError('');
+              setAuthModalVisible(true);
+            }
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          }
+        ]
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
