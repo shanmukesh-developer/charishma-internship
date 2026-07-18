@@ -1,5 +1,4 @@
 import { Platform } from 'react-native';
-import { createAudioPlayer, AudioPlayer } from 'expo-audio';
 
 // ── Zenvy Sound Engine ─────────────────────────────────────────────────────
 // Generates synthetic sounds using Web Audio API (web) and expo-av (native).
@@ -31,11 +30,10 @@ const NATIVE_SOUND_URLS: Record<SoundType, string> = {
   brandSplash: 'https://assets.mixkit.co/active_storage/sfx/2017/2017-84.wav',
 };
 
-const soundCache: Record<string, AudioPlayer> = {};
+const soundCache: Record<string, any> = {};
 
 async function playNativeSound(type: SoundType) {
-  // Disabled expo-audio on native temporarily to prevent crashes on some Android devices (like Pixel)
-  // We can re-enable this once we switch to expo-av or fix the native audio crashing issue.
+  // Disabled native audio temporarily to prevent crashes on Android devices
   return;
 }
 

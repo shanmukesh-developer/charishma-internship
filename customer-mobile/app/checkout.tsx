@@ -223,7 +223,7 @@ export default function CheckoutScreen() {
         upiUTR: paymentMethod === 'UPI' ? upiUTR : undefined,
         upiScreenshot: paymentMethod === 'UPI' ? upiScreenshot : undefined,
         deliverySlot: deliveryType === 'asap' ? 'ASAP' : scheduledTime,
-        deliveryAddress: `${locationType.toUpperCase()} - ${address} (Landmark: ${landmark})`,
+        deliveryAddress: `${locationType === 'srmap' ? 'SRM AP' : locationType === 'vitap' ? 'VIT AP' : locationType === 'amrita' ? 'AMRITA' : 'OTHERS'} - ${address} (Landmark: ${landmark})`,
         couponCode: selectedCoupon?.code
       };
 

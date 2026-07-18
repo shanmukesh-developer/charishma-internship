@@ -310,30 +310,7 @@ export default function WorldTransitionOverlay() {
         </View>
       ))}
 
-      {/* ── LAYER 4: Luminous Concentric Rings ── */}
-      <Animated.View
-        style={[
-          s.ring,
-          s.ringOuter,
-          {
-            opacity: ringOpacity,
-            transform: [{ scale: ringScale }, { rotate: rotateInterp }],
-          },
-        ]}
-      />
-      <Animated.View
-        style={[
-          s.ring,
-          s.ringInner,
-          {
-            opacity: ringOpacity.interpolate({ inputRange: [0, 1], outputRange: [0, 0.7] }),
-            transform: [
-              { scale: ringScale.interpolate({ inputRange: [0, 5], outputRange: [0, 3] }) },
-              { rotate: counterRotateInterp },
-            ],
-          },
-        ]}
-      />
+      {/* LAYER 4 removed to prevent white borders as requested */}
 
       {/* ── LAYER 5: Breath Glow ── */}
       <Animated.View style={[s.breathGlow, { opacity: breathOpacity }]} />

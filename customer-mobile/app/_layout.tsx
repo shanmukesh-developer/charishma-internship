@@ -34,28 +34,12 @@ function AppContainer() {
   }, []);
 
   React.useEffect(() => {
-    const checkIntroSeen = async () => {
-      try {
-        const seen = await AsyncStorage.getItem('zenvy_intro_seen');
-        if (seen === 'true') {
-          setShowIntro(false);
-        }
-      } catch (e) {
-        console.log('Error reading intro seen:', e);
-      } finally {
-        setCheckingIntro(false);
-      }
-    };
-    checkIntroSeen();
+    // Always show intro on startup
+    setCheckingIntro(false);
   }, []);
 
   const handleIntroComplete = async () => {
     setShowIntro(false);
-    try {
-      await AsyncStorage.setItem('zenvy_intro_seen', 'true');
-    } catch (e) {
-      console.log('Error saving intro seen:', e);
-    }
   };
 
   return (

@@ -272,12 +272,13 @@ export default function HomeScreen() {
             redirectUrl: b.redirectUrl
           })));
         }
-        if (confData.config.categories) {
-          setClassics(confData.config.categories.filter((c: any) => c.isActive).sort((a: any, b: any) => a.order - b.order).map((c: any) => ({
-            name: c.name,
-            img: c.img
-          })));
-        }
+        // Commented out to prevent overriding with missing images from backend
+        // if (confData.config.categories) {
+        //   setClassics(confData.config.categories.filter((c: any) => c.isActive).sort((a: any, b: any) => a.order - b.order).map((c: any) => ({
+        //     name: c.name,
+        //     img: c.img
+        //   })));
+        // }
       }
     } catch (err) { console.error('Config fetch error:', err); }
     finally { setLoading(false); setRefreshing(false); }

@@ -31,8 +31,8 @@ export default function BasketScreen() {
             <Text style={{ fontSize: 11, fontWeight: '900', color: goldColor, letterSpacing: 2, marginBottom: 2 }}>ROOMMATE GROUP CART</Text>
             <Text style={[s.groupDesc, { color: txt }]}>ORDER TOGETHER WITH YOUR ROOMMATES AND SPLIT THE BILL</Text>
             <View style={s.groupBtns}>
-              <TouchableOpacity style={[s.hostBtn, { borderColor: txtSec }]}><Text style={[s.hostBtnText, { color: txtSec }]}>🎯 HOST CART</Text></TouchableOpacity>
-              <TouchableOpacity style={[s.joinBtn, { backgroundColor: goldColor }]}><Text style={s.joinBtnText}>👥 JOIN CART</Text></TouchableOpacity>
+              <TouchableOpacity style={[s.hostBtn, { borderColor: txtSec }]} onPress={() => alert('Host Cart coming soon!')}><Text style={[s.hostBtnText, { color: txtSec }]}>🎯 HOST CART</Text></TouchableOpacity>
+              <TouchableOpacity style={[s.joinBtn, { backgroundColor: goldColor }]} onPress={() => alert('Join Cart coming soon!')}><Text style={s.joinBtnText}>👥 JOIN CART</Text></TouchableOpacity>
             </View>
           </View>
         </StaggeredSection>
