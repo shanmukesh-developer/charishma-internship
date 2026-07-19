@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { 
   ShoppingCart, 
@@ -38,6 +39,8 @@ const itemVariants = {
 };
 
 export default function ZenvyEcosystemGrid() {
+  const router = useRouter();
+
   return (
     <section className="py-8 px-4 w-full max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -62,7 +65,7 @@ export default function ZenvyEcosystemGrid() {
               whileHover={{ scale: 1.05, y: -5 }}
               whileTap={{ scale: 0.95 }}
               className="flex flex-col items-center justify-center p-3 rounded-2xl bg-[#1A1A1A] border border-white/5 cursor-pointer relative group overflow-hidden"
-              onClick={() => console.log(`Navigating to ${service.id}...`)}
+              onClick={() => router.push(`/services/${service.id}`)}
             >
               {/* Highlight Hover Effect */}
               <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300 ${service.color.replace('/10', '')}`} />
