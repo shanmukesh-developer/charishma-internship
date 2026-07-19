@@ -1,7 +1,10 @@
 import React, { useRef, useCallback, useState } from 'react';
 import { TouchableOpacity, Animated, ViewStyle, Platform, View, StyleSheet } from 'react-native';
 import { playSound } from '../utils/sounds';
-import * as Haptics from 'expo-haptics';
+
+// Hoist outside component to avoid re-creation on every render
+const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity) as any;
+// expo-haptics import removed — disabled on Android to prevent crashes
 
 // ── Dopamine Pressable ──────────────────────────────────────────────────
 // A premium interactive wrapper with spring-loaded scale + opacity bounce.
@@ -128,9 +131,15 @@ export default function DopaminePressable({
     }
   }, [springSpeed, springBounciness, tilt, useNative]);
 
+  // Throttle sound to prevent audio system overload on rapid taps
+  const lastSoundRef = useRef(0);
   const handlePress = useCallback(() => {
     if (sound) {
-      playSound(sound);
+      const now = Date.now();
+      if (now - lastSoundRef.current > 150) {
+        lastSoundRef.current = now;
+        playSound(sound);
+      }
     }
     onPress?.();
   }, [onPress, sound]);
@@ -152,42 +161,22 @@ export default function DopaminePressable({
     ...(tilt && Platform.OS !== 'android' ? [{ rotateX }, { rotateY }] : []),
   ];
 
-  const flatStyle = style ? StyleSheet.flatten(style) : {};
-  const hasHeight = flatStyle && flatStyle.height !== undefined;
-
-  // Helper to copy key layout behaviors down to the inner Animated.View container
-  const getLayoutStyles = () => {
-    if (!style) return {};
-    const layoutKeys = ['flexDirection', 'alignItems', 'justifyContent', 'flexWrap', 'flex', 'gap', 'borderRadius', 'overflow'];
-    const extracted: any = {};
-    layoutKeys.forEach(key => {
-      if (flatStyle[key] !== undefined) {
-        extracted[key] = flatStyle[key];
-      }
-    });
-    return extracted;
-  };
+  // AnimatedTouchable is now hoisted to module scope for performance
 
   return (
-    <View
+    <AnimatedTouchable
       onLayout={tilt ? handleLayout : undefined}
       onTouchMove={tilt ? handleTouch : undefined}
-      style={style}
+      activeOpacity={activeOpacity}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onPress={handlePress}
+      onLongPress={onLongPress}
+      disabled={disabled}
+      style={[style, { transform: transformStyle }]}
     >
-      <TouchableOpacity
-        style={{ width: '100%', height: hasHeight ? '100%' : undefined }}
-        activeOpacity={activeOpacity}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        onPress={handlePress}
-        onLongPress={onLongPress}
-        disabled={disabled}
-      >
-        <Animated.View style={[{ transform: transformStyle, width: '100%', height: hasHeight ? '100%' : undefined }, getLayoutStyles()]}>
-          {children}
-        </Animated.View>
-      </TouchableOpacity>
-    </View>
+      {children}
+    </AnimatedTouchable>
   );
 }
 

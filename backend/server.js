@@ -886,23 +886,41 @@ const startServer = async () => {
     app.use('/api/admin', require('./routes/adminRoutes'));
     app.use('/api/rewards', require('./routes/rewardRoutes'));
     app.use('/api/community', require('./routes/communityRoutes'));
+    app.use('/api/birthdays', require('./routes/birthdayRoutes'));
     app.use('/api/tickets', ticketRoutes);
     app.use('/api/test', testRoutes);
     app.use('/api/system', systemRoutes);
     app.use('/api/config', appConfigRoutes);
     app.use('/api/features', require('./routes/featureRoutes'));
 
-    // ── Hourly Cleanup: Delete expired community posts ──────────────────────
+    // ── Hourly Cleanup: Delete expired community posts and mark expired birthdays ──────────────────────
     const runExpiryCleanup = async () => {
       try {
         const { getCommunityPostModel } = require('./models/CommunityPost');
+        const { getBirthdayCelebrationModel } = require('./models/BirthdayCelebration');
         const { Op: CleanupOp } = require('sequelize');
+        
         const CommunityPost = getCommunityPostModel();
-        if (!CommunityPost) return;
-        const deleted = await CommunityPost.destroy({
-          where: { expiresAt: { [CleanupOp.lt]: new Date() } }
-        });
-        if (deleted > 0) console.log(`🗑️  [EXPIRY_CLEANUP] Deleted ${deleted} expired community post(s).`);
+        if (CommunityPost) {
+          const deleted = await CommunityPost.destroy({
+            where: { expiresAt: { [CleanupOp.lt]: new Date() } }
+          });
+          if (deleted > 0) console.log(`🗑️  [EXPIRY_CLEANUP] Deleted ${deleted} expired community post(s).`);
+        }
+
+        const BirthdayCelebration = getBirthdayCelebrationModel();
+        if (BirthdayCelebration) {
+          const [updated] = await BirthdayCelebration.update(
+            { status: 'expired' },
+            {
+              where: {
+                status: 'approved',
+                expiresAt: { [CleanupOp.lt]: new Date() }
+              }
+            }
+          );
+          if (updated > 0) console.log(`🗑️  [EXPIRY_CLEANUP] Marked ${updated} expired birthday celebration(s) as expired.`);
+        }
       } catch (e) { console.warn('[EXPIRY_CLEANUP] Error:', e.message); }
     };
     // Run once on startup, then every hour

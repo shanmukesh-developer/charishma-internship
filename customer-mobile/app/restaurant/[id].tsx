@@ -54,6 +54,7 @@ export default function RestaurantDetail() {
   const [isUserElite, setIsUserElite] = useState(false);
   const [addedId, setAddedId] = useState<string | null>(null);
   const [customizingItem, setCustomizingItem] = useState<any>(null);
+  const [dietMode, setDietMode] = useState<string>('all');
 
   const promoScrollRef = useRef<ScrollView>(null);
   const [promoScrollIdx, setPromoScrollIdx] = useState(0);
@@ -104,13 +105,13 @@ export default function RestaurantDetail() {
 
             if (parsedTheme && !seenTakeovers.has(id)) {
               seenTakeovers.add(id);
-              setShowTakeover(true);
+              // setShowTakeover(true);
             } else {
               const rName = (found.name || '').toLowerCase();
-              const bk = Object.keys(BRAND_LOGOS).find(k => rName.includes(k));
+              const bk = Object.keys(BRAND_LOGOS).find(k => rName && typeof rName.includes === 'function' && rName.includes(k));
               if (bk && !seenTakeovers.has(id)) {
                 seenTakeovers.add(id);
-                setShowTakeover(true);
+                // setShowTakeover(true);
               }
             }
           }
@@ -127,6 +128,15 @@ export default function RestaurantDetail() {
           const u = JSON.parse(userStr);
           setIsUserElite(u.isElite || false);
         }
+        const dietPrefsRaw = await AsyncStorage.getItem('zenvy_diet_prefs');
+        if (dietPrefsRaw) {
+          try {
+            const parsed = JSON.parse(dietPrefsRaw);
+            if (parsed && parsed.mode) {
+              setDietMode(parsed.mode);
+            }
+          } catch(e) {}
+        }
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     })();
@@ -136,7 +146,7 @@ export default function RestaurantDetail() {
   if (!restaurant) return <View style={[st.center, { backgroundColor: isDark ? COLORS.bgDark : COLORS.bgLight }]}><Text style={{ color: isDark ? '#fff' : COLORS.textDark }}>Restaurant not found</Text></View>;
 
   const name = (restaurant.name || '').toLowerCase();
-  const brandKey = Object.keys(BRAND_THEMES).find(k => name.includes(k));
+  const brandKey = Object.keys(BRAND_THEMES).find(k => name && typeof name?.includes === 'function' && name.includes(k));
 
   const brand = (() => {
     if (!restaurant?.brandTheme) return brandKey ? BRAND_THEMES[brandKey] : null;
@@ -210,21 +220,21 @@ export default function RestaurantDetail() {
     if (brand && Array.isArray(brand.offers) && brand.offers.length > 0) {
       return brand.offers;
     }
-    if (name.includes('kfc')) {
+    if (typeof name?.includes === 'function' && name.includes('kfc')) {
       return [
         { code: 'KFCSAVER', desc: 'Flat 20% OFF on buckets', sub: 'Min order ₹349 · Single use' },
         { code: 'FREEZINGER', desc: 'Free Zinger Burger', sub: 'On orders above ₹499' },
         { code: 'CAMPUSKFC', desc: 'Flat ₹50 OFF for Hostels', sub: 'Use code CAMPUSKFC' }
       ];
     }
-    if (name.includes('domino')) {
+    if (typeof name?.includes === 'function' && name.includes('domino')) {
       return [
         { code: 'DOMINOS50', desc: '50% OFF up to ₹100', sub: 'Valid on Cheese Burst Pizzas' },
         { code: 'FREEDIP', desc: 'Free Cheesy Dip', sub: 'On orders above ₹299' },
         { code: 'DOUBLEDEAL', desc: 'Buy 1 Get 1 Free', sub: 'On Medium Pizzas · Wed & Fri' }
       ];
     }
-    if (name.includes('mcdonald')) {
+    if (typeof name?.includes === 'function' && name.includes('mcdonald')) {
       return [
         { code: 'MCDFREE', desc: 'Free Large Fries', sub: 'On orders above ₹399' },
         { code: 'MCDELITE', desc: 'Flat 15% OFF for Elite', sub: 'No minimum order required' },
@@ -307,16 +317,40 @@ export default function RestaurantDetail() {
     : (Array.isArray(restaurant.tags) ? restaurant.tags : []);
   const categories = ['All', ...categoriesList];
 
-  const filteredMenu = activeCategory === 'All'
-    ? menu
-    : menu.filter((item: any) => {
-        if (!item) return false;
-        const itemCategory = (item.category || '').toLowerCase();
-        const activeCatLower = activeCategory.toLowerCase();
-        if (itemCategory === activeCatLower) return true;
-        const tags = Array.isArray(item.tags) ? item.tags : [];
-        return tags.some((t: string) => String(t).toLowerCase() === activeCatLower);
-      });
+  const filteredMenu = menu.filter((item: any) => {
+    if (!item) return false;
+
+    // Apply Diet Preference Mode Filter
+    if (dietMode === 'veg') {
+      const isVeg = item.isVegetarian === true || 
+                    String(item.isVegetarian).toLowerCase() === 'true' || 
+                    Number(item.isVegetarian) === 1 ||
+                    (Array.isArray(item.tags) ? item.tags.some((t: string) => String(t).toLowerCase().includes('veg')) : false);
+      if (!isVeg) return false;
+    } else if (dietMode === 'non-veg') {
+      const isVeg = item.isVegetarian === true || 
+                    String(item.isVegetarian).toLowerCase() === 'true' || 
+                    Number(item.isVegetarian) === 1 ||
+                    (Array.isArray(item.tags) ? item.tags.some((t: string) => String(t).toLowerCase().includes('veg')) : false);
+      if (isVeg) return false;
+    } else if (dietMode === 'egg') {
+      const isVegOrEgg = item.isVegetarian === true || 
+                         String(item.isVegetarian).toLowerCase() === 'true' || 
+                         Number(item.isVegetarian) === 1 ||
+                         (Array.isArray(item.tags) ? item.tags.some((t: string) => ['veg', 'egg'].includes(String(t).toLowerCase())) : false);
+      if (!isVegOrEgg) return false;
+    }
+
+    // Apply Category Filter
+    if (activeCategory === 'All') return true;
+
+    const itemCategory = (item.category || '').toLowerCase();
+    const activeCatLower = activeCategory.toLowerCase();
+    if (itemCategory === activeCatLower) return true;
+
+    const tags = Array.isArray(item.tags) ? item.tags : [];
+    return tags.some((t: string) => String(t).toLowerCase() === activeCatLower);
+  });
 
   return (
     <View style={st.container}>
@@ -576,7 +610,7 @@ export default function RestaurantDetail() {
           basePrice={customizingItem.price}
           tags={customizingItem.tags}
           category={customizingItem.category}
-          isVegetarian={customizingItem.isVegetarian === true || String(customizingItem.isVegetarian).toLowerCase() === 'true' || Number(customizingItem.isVegetarian) === 1 || (customizingItem.tags || []).includes('veg')}
+          isVegetarian={customizingItem.isVegetarian === true || String(customizingItem.isVegetarian).toLowerCase() === 'true' || Number(customizingItem.isVegetarian) === 1 || (Array.isArray(customizingItem?.tags) ? customizingItem.tags.includes('veg') : (typeof customizingItem?.tags === 'string' ? customizingItem.tags.includes('veg') : false))}
         />
       )}
     </View>
@@ -588,7 +622,7 @@ const st = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   hero: { width: SW, height: 200, position: 'relative' },
   heroImg: { width: '100%', height: '100%', resizeMode: 'cover' },
-  heroGrad: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
+  heroGrad: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.4)' },
   backBtn: { position: 'absolute', top: Platform.OS === 'android' ? 36 : 50, left: 16, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
   favoriteBtn: { position: 'absolute', top: Platform.OS === 'android' ? 36 : 50, right: 16, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center', zIndex: 2, ...SHADOWS.card },
   
@@ -675,3 +709,4 @@ const st = StyleSheet.create({
   floatingCartText: { fontSize: 11, fontWeight: '900', letterSpacing: 2 },
   proceedText: { fontSize: 12, fontWeight: '900' },
 });
+// BUST_CACHE_2026_07_19_00_42

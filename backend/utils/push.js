@@ -34,4 +34,22 @@ const sendPushToTokens = async (tokens, title, body, data = {}) => {
   }
 };
 
-module.exports = { sendPushToTokens };
+const sendPushToTopic = async (topic, title, body, data = {}) => {
+  const apps = (admin.getApps ? admin.getApps() : admin.apps) || [];
+  if (!apps.length) return console.log('Firebase not initialized');
+
+  const message = {
+    notification: { title, body },
+    data,
+    topic
+  };
+
+  try {
+    const response = await admin.messaging().send(message);
+    console.log(`Successfully sent topic message to ${topic}:`, response);
+  } catch (error) {
+    console.error(`Error sending message to topic ${topic}:`, error);
+  }
+};
+
+module.exports = { sendPushToTokens, sendPushToTopic };

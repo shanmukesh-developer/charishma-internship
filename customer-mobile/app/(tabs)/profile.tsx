@@ -28,6 +28,7 @@ import { apiFetch } from '../../utils/auth';
 import { API_URL, ENDPOINTS } from '../../constants/api';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
+import * as ImagePicker from 'expo-image-picker';
 
 // Pre-selected high-quality gaming & food avatars
 const PREMIUM_AVATARS = [
@@ -83,6 +84,7 @@ export default function ProfileScreen() {
   const [editAddress, setEditAddress] = useState('');
   const [editCity, setEditCity] = useState('Amaravathi');
   const [editProfileImage, setEditProfileImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Location suggestions
   const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -106,6 +108,33 @@ export default function ProfileScreen() {
   const [giftPhone, setGiftPhone] = useState('');
 
   const initials = (user?.name || 'ZU').substring(0, 2).toUpperCase();
+
+  if (!user) {
+    return (
+      <View style={[s.container, { backgroundColor: bg, justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+        <AmbientBackground />
+        <Text style={{ fontSize: 48, marginBottom: 16 }}>🔐</Text>
+        <Text style={{ fontSize: 18, fontWeight: '900', color: txt, letterSpacing: 2, textAlign: 'center', marginBottom: 8 }}>
+          AUTHENTICATION REQUIRED
+        </Text>
+        <Text style={{ fontSize: 11, color: txtSec, fontWeight: '600', textAlign: 'center', marginBottom: 24, lineHeight: 18 }}>
+          Please sign in to access your secure Zenvy profile, orders, and elite campus benefits.
+        </Text>
+        <TouchableOpacity 
+          style={{ 
+            backgroundColor: COLORS.red, 
+            paddingHorizontal: 32, 
+            paddingVertical: 14, 
+            borderRadius: 16, 
+            ...SHADOWS.redGlow 
+          }} 
+          onPress={() => router.push('/login' as any)}
+        >
+          <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '900', letterSpacing: 2 }}>SIGN IN / SIGN UP</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   // Load preferences and server data
   useEffect(() => {
@@ -282,6 +311,37 @@ export default function ProfileScreen() {
     setEditCity(city);
     setSuggestions([]);
     setShowSuggestions(false);
+  };
+
+  const handleUploadLocalImage = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permissionResult.granted === false) {
+        Alert.alert("Permission Required", "You need to allow camera roll access to upload a profile picture.");
+        return;
+      }
+
+      setUploadingImage(true);
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.15,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const base64Image = `data:image/jpeg;base64,${asset.base64}`;
+        setEditProfileImage(base64Image);
+        Alert.alert('Image Selected', 'Local profile image selected successfully. Save profile to sync.');
+      }
+    } catch (err) {
+      console.warn('Profile image selection error:', err);
+      Alert.alert('Upload Failed', 'Could not select or process profile image.');
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleUpdateProfile = async () => {
@@ -889,7 +949,7 @@ export default function ProfileScreen() {
             await logout();
             router.replace('/login');
           }}>
-            <Text style={s.logoutText}>SIGN OUT PROTOCOL</Text>
+            <Text style={s.logoutText}>SIGN OUT</Text>
           </TouchableOpacity>
           <Text style={s.logoutSubText}>Sign out of your campus account safely</Text>
         </StaggeredSection>
@@ -959,6 +1019,19 @@ export default function ProfileScreen() {
                 placeholderTextColor="#555"
                 style={s.modalInput}
               />
+
+              {/* Local Device Image Upload */}
+              <TouchableOpacity 
+                style={s.localUploadBtn} 
+                onPress={handleUploadLocalImage}
+                disabled={uploadingImage}
+              >
+                {uploadingImage ? (
+                  <ActivityIndicator size="small" color={goldColor} />
+                ) : (
+                  <Text style={s.localUploadBtnText}>📸 UPLOAD FROM LOCAL DEVICE</Text>
+                )}
+              </TouchableOpacity>
 
               {/* Name */}
               <Text style={s.inputLabel}>FULL NAME</Text>
@@ -1953,6 +2026,25 @@ const s = StyleSheet.create({
     color: '#FFF',
     fontWeight: '600',
     marginBottom: 8,
+  },
+  localUploadBtn: {
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(201, 168, 76, 0.4)',
+    backgroundColor: 'rgba(201, 168, 76, 0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  localUploadBtnText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#C9A84C',
+    letterSpacing: 1.5,
   },
   suggestionsBox: {
     backgroundColor: '#1E1E22',

@@ -32,6 +32,7 @@
       "compileSdkVersion": 36,
       "targetSdkVersion": 35,
       "minSdkVersion": 24,
+      "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",

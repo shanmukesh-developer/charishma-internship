@@ -9,7 +9,7 @@ interface IntroOverlayProps {
 }
 
 export default function IntroOverlay({ onComplete }: IntroOverlayProps) {
-  // Container & Logo Zoom Animations — ALL useNativeDriver: false
+  // Container & Logo Zoom Animations — ALL useNativeDriver: true
   const fadeOutAnim = useRef(new Animated.Value(1)).current;
   const logoScale = useRef(new Animated.Value(0.4)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
@@ -30,9 +30,9 @@ export default function IntroOverlay({ onComplete }: IntroOverlayProps) {
   const wave1Opacity = useRef(new Animated.Value(0.6)).current;
   const wave2Opacity = useRef(new Animated.Value(0.6)).current;
 
-  // 8 Particle Embers (reduced from 16 for Android perf)
+  // 6 Particle Embers (reduced from 8 for faster startup)
   const embers = useRef(
-    Array.from({ length: 8 }).map(() => ({
+    Array.from({ length: 6 }).map(() => ({
       y: new Animated.Value(0),
       xOffset: Math.random() * SW,
       scale: new Animated.Value(Math.random() * 1.2 + 0.4),
@@ -42,105 +42,133 @@ export default function IntroOverlay({ onComplete }: IntroOverlayProps) {
 
   useEffect(() => {
     // 1. Central Crest Reveal
-    Animated.parallel([
+    const logoAnim = Animated.parallel([
       Animated.timing(logoOpacity, {
         toValue: 1,
-        duration: 1200,
-        useNativeDriver: false,
+        duration: 1000,
+        useNativeDriver: true,
       }),
       Animated.spring(logoScale, {
         toValue: 1.0,
         friction: 6,
         tension: 30,
-        useNativeDriver: false,
+        useNativeDriver: true,
       }),
-    ]).start();
+    ]);
+    logoAnim.start();
 
     // 2. Concentric Gold Ripples
-    Animated.loop(
+    const ripple1 = Animated.loop(
       Animated.parallel([
-        Animated.timing(wave1, { toValue: 2.2, duration: 2800, easing: Easing.out(Easing.ease), useNativeDriver: false }),
-        Animated.timing(wave1Opacity, { toValue: 0, duration: 2800, useNativeDriver: false }),
+        Animated.timing(wave1, { toValue: 2.2, duration: 2400, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+        Animated.timing(wave1Opacity, { toValue: 0, duration: 2400, useNativeDriver: true }),
       ])
-    ).start();
+    );
+    ripple1.start();
 
-    setTimeout(() => {
-      Animated.loop(
+    let ripple2: any = null;
+    const ripple2Timeout = setTimeout(() => {
+      ripple2 = Animated.loop(
         Animated.parallel([
-          Animated.timing(wave2, { toValue: 2.2, duration: 2800, easing: Easing.out(Easing.ease), useNativeDriver: false }),
-          Animated.timing(wave2Opacity, { toValue: 0, duration: 2800, useNativeDriver: false }),
+          Animated.timing(wave2, { toValue: 2.2, duration: 2400, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+          Animated.timing(wave2Opacity, { toValue: 0, duration: 2400, useNativeDriver: true }),
         ])
-      ).start();
-    }, 900);
+      );
+      ripple2.start();
+    }, 800);
 
     // 3. Staggered Letters Sequence (Z E N V Y)
+    const letterTimeouts: any[] = [];
     letters.forEach((_, idx) => {
-      const delay = 800 + idx * 160;
-      setTimeout(() => {
+      const delay = 600 + idx * 120;
+      const t = setTimeout(() => {
         Animated.parallel([
-          Animated.timing(letterOpacityAnims[idx], { toValue: 1, duration: 600, useNativeDriver: false }),
-          Animated.spring(letterYAnims[idx], { toValue: 0, friction: 5, tension: 50, useNativeDriver: false }),
-          Animated.spring(letterScaleAnims[idx], { toValue: 1, friction: 5, tension: 50, useNativeDriver: false }),
+          Animated.timing(letterOpacityAnims[idx], { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.spring(letterYAnims[idx], { toValue: 0, friction: 6, tension: 60, useNativeDriver: true }),
+          Animated.spring(letterScaleAnims[idx], { toValue: 1, friction: 6, tension: 60, useNativeDriver: true }),
         ]).start();
       }, delay);
+      letterTimeouts.push(t);
     });
 
     // 4. Tagline Slide in
-    setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(tagOpacity, { toValue: 0.7, duration: 1000, useNativeDriver: false }),
-        Animated.timing(tagY, { toValue: 0, duration: 1000, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
-      ]).start();
-    }, 1800);
+    let tagAnim: any = null;
+    const tagTimeout = setTimeout(() => {
+      tagAnim = Animated.parallel([
+        Animated.timing(tagOpacity, { toValue: 0.7, duration: 800, useNativeDriver: true }),
+        Animated.timing(tagY, { toValue: 0, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      ]);
+      tagAnim.start();
+    }, 1400);
 
     // 5. Floating particles movement
+    const emberAnims: any[] = [];
     embers.forEach((ember, idx) => {
       ember.y.setValue(0);
       ember.opacity.setValue(0);
-      const duration = 5000 + Math.random() * 4000;
-      const delay = idx * 250;
+      const duration = 4000 + Math.random() * 3000;
+      const delay = idx * 200;
 
-      Animated.loop(
+      const loop = Animated.loop(
         Animated.sequence([
           Animated.delay(delay),
           Animated.parallel([
-            Animated.timing(ember.y, { toValue: -(SH * 0.6), duration, easing: Easing.linear, useNativeDriver: false }),
+            Animated.timing(ember.y, { toValue: -(SH * 0.6), duration, easing: Easing.linear, useNativeDriver: true }),
             Animated.sequence([
-              Animated.timing(ember.opacity, { toValue: Math.random() * 0.6 + 0.2, duration: 1200, useNativeDriver: false }),
-              Animated.delay(Math.max(0, duration - 2400)),
-              Animated.timing(ember.opacity, { toValue: 0, duration: 1200, useNativeDriver: false }),
+              Animated.timing(ember.opacity, { toValue: Math.random() * 0.6 + 0.2, duration: 1000, useNativeDriver: true }),
+              Animated.delay(Math.max(0, duration - 2000)),
+              Animated.timing(ember.opacity, { toValue: 0, duration: 1000, useNativeDriver: true }),
             ]),
           ]),
         ])
-      ).start();
+      );
+      loop.start();
+      emberAnims.push(loop);
     });
 
     // 6. Zoom-Through Portal Fade-Out
+    let fadeOutAnimation: any = null;
     const zoomTimeout = setTimeout(() => {
-      Animated.parallel([
+      fadeOutAnimation = Animated.parallel([
         Animated.timing(logoScale, {
           toValue: 4.5,
-          duration: 1400,
+          duration: 1000,
           easing: Easing.inOut(Easing.cubic),
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
         Animated.timing(fadeOutAnim, {
           toValue: 0,
-          duration: 1200,
+          duration: 800,
           easing: Easing.out(Easing.ease),
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
-      ]).start();
-    }, 4500);
+      ]);
+      fadeOutAnimation.start();
+    }, 2400);
 
     // 7. Completion callback
     const doneTimeout = setTimeout(() => {
       onComplete();
-    }, 5700);
+    }, 3200);
 
     return () => {
+      clearTimeout(ripple2Timeout);
+      clearTimeout(tagTimeout);
       clearTimeout(zoomTimeout);
       clearTimeout(doneTimeout);
+      letterTimeouts.forEach(clearTimeout);
+
+      // Stop all active animations
+      try {
+        logoAnim.stop();
+        ripple1.stop();
+        if (ripple2) ripple2.stop();
+        if (tagAnim) tagAnim.stop();
+        emberAnims.forEach(anim => anim.stop());
+        if (fadeOutAnimation) fadeOutAnimation.stop();
+      } catch (err) {
+        console.warn('Error stopping animations on unmount:', err);
+      }
     };
   }, []);
 
@@ -237,7 +265,7 @@ const styles = StyleSheet.create({
     width: SW * 1.1,
     height: SW * 1.1,
     borderRadius: (SW * 1.1) / 2,
-    opacity: 0.5,
+    opacity: 0.2,
   },
   blobGold: {
     top: SH * 0.1,
@@ -269,7 +297,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 0 },
       },
       android: {
-        elevation: 3,
+        // No elevation for smoother translation animations
       },
     }),
     zIndex: 15,
@@ -290,7 +318,7 @@ const styles = StyleSheet.create({
     height: 140,
     borderRadius: 70,
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.25)',
+    borderColor: 'rgba(212, 175, 55, 0.45)', // Enhanced border opacity for gold glow effect
     ...Platform.select({
       ios: {
         shadowColor: '#D4AF37',
@@ -299,7 +327,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 0 },
       },
       android: {
-        elevation: 2,
+        // No elevation for smoother scaling animations
       },
     }),
   },
@@ -307,8 +335,8 @@ const styles = StyleSheet.create({
     width: 110,
     height: 110,
     borderRadius: 55,
-    borderWidth: 2,
-    borderColor: '#D4AF37',
+    borderWidth: 2.5, // slightly thicker border to compensate for no shadow on android
+    borderColor: 'rgba(212, 175, 55, 0.9)', 
     padding: 3,
     backgroundColor: 'rgba(255, 255, 255, 0.01)',
     alignItems: 'center',
@@ -321,7 +349,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 0 },
       },
       android: {
-        elevation: 10,
+        // No elevation for smoother scaling/zoom animations
       },
     }),
     zIndex: 25,

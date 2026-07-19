@@ -22,6 +22,8 @@ interface Payout {
   riderId: string;
   totalDeliveries: number;
   totalDeliveryFees: number;
+  riderName?: string;
+  riderPhone?: string;
 }
 
 const RiderRow = memo(({ rider, onEdit, onToggleApproval, onResetSos }: { 

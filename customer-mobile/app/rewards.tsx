@@ -32,10 +32,10 @@ export default function RewardsScreen() {
   const progressPercent = Math.min(100, (streak / 14) * 100);
 
   const getTier = (days: number) => {
-    if (days >= 14) return 'Gold Protocol';
-    if (days >= 7) return 'Silver Protocol';
-    if (days >= 3) return 'Bronze Protocol';
-    return 'Starter Protocol';
+    if (days >= 14) return 'Gold Tier';
+    if (days >= 7) return 'Silver Tier';
+    if (days >= 3) return 'Bronze Tier';
+    return 'Starter Tier';
   };
 
   // Backend Eligibility State
@@ -52,8 +52,20 @@ export default function RewardsScreen() {
   const bulbPulse = useRef(new Animated.Value(0.3)).current;   // Perimeter Chase Lights
 
   useEffect(() => {
+    if (!user) {
+      Alert.alert(
+        'Authentication Required',
+        'Please sign in to access Elysian Rewards.',
+        [
+          { text: 'Cancel', onPress: () => router.replace('/(tabs)/profile' as any), style: 'cancel' },
+          { text: 'Sign In', onPress: () => router.push('/login' as any) }
+        ],
+        { cancelable: false }
+      );
+      return;
+    }
     fetchEligibility();
-  }, []);
+  }, [user]);
 
   const fetchEligibility = async () => {
     try {
@@ -219,7 +231,7 @@ export default function RewardsScreen() {
           <Text style={[s.backIcon, { color: txt }]}>‹</Text>
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={s.subText}>STRATEGIC SECURE PROTOCOL</Text>
+          <Text style={s.subText}>SECURE CAMPUS REWARDS</Text>
           <Text style={[s.title, { color: txt }]}>Elysian Rewards</Text>
         </View>
       </View>

@@ -1,16 +1,83 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal, Image, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal, Image, Dimensions, Platform, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Animated, Easing } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS, SHADOWS } from '../constants/theme';
-import { ENDPOINTS } from '../constants/api';
+import { ENDPOINTS, API_URL } from '../constants/api';
 import { apiFetch } from '../utils/auth';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { StaggeredSection, FloatingPulse, BounceIn } from '../components/AnimatedSection';
+import { StaggeredSection, FloatingPulse, BounceIn, PulseGlow } from '../components/AnimatedSection';
 import DopaminePressable, { CardPressable, ActionPressable } from '../components/DopaminePressable';
 
-const { width: SW } = Dimensions.get('window');
+const { width: SW, height: SH } = Dimensions.get('window');
+
+// ── Confetti Particle (Pure Native Drivers, Zero-Lag) ──
+const ConfettiParticle = ({ delay }: { delay: number }) => {
+  const animatedValue = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(animatedValue, {
+          toValue: 1,
+          duration: 3500 + Math.random() * 2500,
+          delay: delay,
+          useNativeDriver: true,
+          easing: Easing.linear,
+        })
+      ])
+    ).start();
+  }, []);
+
+  const translateY = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-60, SH + 60]
+  });
+
+  const translateX = animatedValue.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [
+      Math.random() * SW,
+      Math.random() * SW,
+      Math.random() * SW
+    ]
+  });
+
+  const rotate = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', `${Math.random() * 360}deg`]
+  });
+
+  const colors = ['#FF69B4', '#FFD700', '#FF4500', '#00FFFF', '#ADFF2F', '#FF00FF'];
+  const color = colors[Math.floor(Math.random() * colors.length)];
+
+  return (
+    <Animated.View
+      style={{
+        position: 'absolute',
+        width: 8 + Math.random() * 8,
+        height: 8 + Math.random() * 8,
+        backgroundColor: color,
+        borderRadius: Math.random() > 0.5 ? 4 : 0,
+        transform: [{ translateY }, { translateX }, { rotate }],
+        opacity: 0.8,
+        zIndex: 999
+      }}
+    />
+  );
+};
+
+const ConfettiCannon = () => {
+  const particles = Array.from({ length: 45 });
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {particles.map((_, i) => (
+        <ConfettiParticle key={i} delay={i * 100} />
+      ))}
+    </View>
+  );
+};
 
 interface PostType {
   id: string;
@@ -67,9 +134,9 @@ export default function CommunityScreen() {
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      allowsEditing: false, // Disabled crop engine to prevent Android intent crashes
       aspect: [1, 1],
-      quality: 0.5,
+      quality: 0.1, // Drastically reduced to prevent OOM kills on Android
       base64: true,
     });
 
@@ -79,9 +146,199 @@ export default function CommunityScreen() {
     }
   };
 
+  // ── BIRTHDAY CELEBRATIONS STATE ──
+  interface BirthdayType {
+    id: string;
+    userId: string;
+    candidateName: string;
+    candidatePhotoUrl: string | null;
+    birthdayDate: string;
+    status: 'pending' | 'approved' | 'rejected' | 'expired';
+    wishCount: number;
+    approvedAt?: string;
+    expiresAt?: string;
+  }
+  
+  interface WishType {
+    id: string;
+    celebrationId: string;
+    userId: string;
+    userName: string;
+    message: string;
+    createdAt: string;
+  }
+
+  const [birthdays, setBirthdays] = useState<BirthdayType[]>([]);
+  const [pendingBirthdays, setPendingBirthdays] = useState<BirthdayType[]>([]);
+  const [selectedBirthday, setSelectedBirthday] = useState<BirthdayType | null>(null);
+  const [selectedBirthdayWishes, setSelectedBirthdayWishes] = useState<WishType[]>([]);
+  const [birthdayWishMessage, setBirthdayWishMessage] = useState('');
+  
+  // Modals
+  const [showBirthdayWishModal, setShowBirthdayWishModal] = useState(false);
+  const [showRegisterBirthdayModal, setShowRegisterBirthdayModal] = useState(false);
+  const [showAdminPanelModal, setShowAdminPanelModal] = useState(false);
+  const [submittingWish, setSubmittingWish] = useState(false);
+
+  // New Birthday Nomination
+  const [newBirthdayName, setNewBirthdayName] = useState('');
+  const [newBirthdayDate, setNewBirthdayDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newBirthdayPhoto, setNewBirthdayPhoto] = useState<string | null>(null);
+  const [submittingBirthday, setSubmittingBirthday] = useState(false);
+
+  const fetchBirthdays = async () => {
+    try {
+      const res = await apiFetch((ENDPOINTS as any).birthdaysActive);
+      if (res.ok) {
+        const data = await res.json();
+        setBirthdays(data);
+      }
+      if (user?.role === 'admin') {
+        const resPending = await apiFetch((ENDPOINTS as any).birthdaysPending);
+        if (resPending.ok) {
+          const dataPending = await resPending.json();
+          setPendingBirthdays(dataPending);
+        }
+      }
+    } catch (e) {
+      console.error('[FETCH_BIRTHDAYS_ERROR]', e);
+    }
+  };
+
+  const submitBirthday = async () => {
+    if (!newBirthdayName.trim()) {
+      Alert.alert('Validation Error', 'Please enter the birthday candidate\'s name.');
+      return;
+    }
+    setSubmittingBirthday(true);
+    try {
+      const res = await apiFetch((ENDPOINTS as any).birthdaysSubmit, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidateName: newBirthdayName,
+          birthdayDate: newBirthdayDate,
+          candidatePhoto: newBirthdayPhoto
+        })
+      });
+
+      if (res.ok) {
+        Alert.alert('Nominated! 🎉', 'Nomination submitted to admin queue for approval.');
+        setNewBirthdayName('');
+        setNewBirthdayPhoto(null);
+        setShowRegisterBirthdayModal(false);
+        fetchBirthdays();
+      } else {
+        const err = await res.json();
+        Alert.alert('Submission Failed', err.message || 'Something went wrong.');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Network connection error.');
+    } finally {
+      setSubmittingBirthday(false);
+    }
+  };
+
+  const pickBirthdayPhoto = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      aspect: [1, 1],
+      quality: 0.1,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets && result.assets[0].base64) {
+      const b64 = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      setNewBirthdayPhoto(b64);
+    }
+  };
+
+  const approveBirthday = async (id: string) => {
+    try {
+      const res = await apiFetch((ENDPOINTS as any).birthdaysApprove(id), { method: 'PUT' });
+      if (res.ok) {
+        Alert.alert('Approved! 🎂', 'Birthday is now live and a notification has been sent.');
+        fetchBirthdays();
+      } else {
+        Alert.alert('Error', 'Failed to approve request.');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const rejectBirthday = async (id: string) => {
+    try {
+      const res = await apiFetch((ENDPOINTS as any).birthdaysReject(id), { method: 'PUT' });
+      if (res.ok) {
+        Alert.alert('Rejected', 'Nomination rejected successfully.');
+        fetchBirthdays();
+      } else {
+        Alert.alert('Error', 'Failed to reject request.');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const openBirthdayDetail = async (birthday: BirthdayType) => {
+    setSelectedBirthday(birthday);
+    setBirthdayWishMessage('');
+    setShowBirthdayWishModal(true);
+    try {
+      const res = await apiFetch((ENDPOINTS as any).birthdaysWishes(birthday.id));
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedBirthdayWishes(data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const submitWish = async (presetText?: string) => {
+    if (!selectedBirthday) return;
+    const msg = presetText || birthdayWishMessage;
+    if (!msg.trim()) return;
+
+    setSubmittingWish(true);
+    try {
+      const res = await apiFetch((ENDPOINTS as any).birthdaysWish(selectedBirthday.id), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedBirthday(prev => prev ? { ...prev, wishCount: data.wishCount } : null);
+        setBirthdayWishMessage('');
+        const wishesRes = await apiFetch((ENDPOINTS as any).birthdaysWishes(selectedBirthday.id));
+        if (wishesRes.ok) {
+          const wishesData = await wishesRes.json();
+          setSelectedBirthdayWishes(wishesData);
+        }
+        fetchBirthdays();
+        fetchPosts();
+      } else {
+        const err = await res.json();
+        Alert.alert('Wish Failed', err.message || 'Failed to submit wish.');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Network error sending wish.');
+    } finally {
+      setSubmittingWish(false);
+    }
+  };
+
   useEffect(() => {
     fetchPosts();
-    const interval = setInterval(fetchPosts, 10000);
+    fetchBirthdays();
+    const interval = setInterval(() => {
+      fetchPosts();
+      fetchBirthdays();
+    }, 10000);
     return () => clearInterval(interval);
   }, [activeTab]);
 
@@ -110,7 +367,26 @@ export default function CommunityScreen() {
     }
   };
 
+  const checkAuthAndRun = (action: () => void) => {
+    if (!user) {
+      Alert.alert(
+        'Authentication Required',
+        'Sign in to your premium Zenvy account to post, reply, or like memories on the community wall.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign In', onPress: () => router.push('/login' as any) }
+        ]
+      );
+      return;
+    }
+    action();
+  };
+
   const handlePost = async () => {
+    if (!user) {
+      Alert.alert('Authentication Required', 'Please sign in to post.');
+      return;
+    }
     if (!draft.trim() && !draftImage) return;
     setPosting(true);
     try {
@@ -153,6 +429,17 @@ export default function CommunityScreen() {
   };
 
   const handleLike = async (id: string) => {
+    if (!user) {
+      Alert.alert(
+        'Authentication Required',
+        'Sign in to your premium Zenvy account to post, reply, or like memories on the community wall.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign In', onPress: () => router.push('/login' as any) }
+        ]
+      );
+      return;
+    }
     const userId = user ? (user.id || user._id || '') : '';
     if (!userId) return;
     
@@ -309,6 +596,53 @@ export default function CommunityScreen() {
       </View>
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        {/* ── BIRTHDAY CELEBRATIONS STORY ROW ── */}
+        <View style={s.birthdaySection}>
+          <View style={s.birthdaySectionHeader}>
+            <Text style={[s.birthdaySectionTitle, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>🎂 TODAY'S CELEBRATIONS</Text>
+            {user?.role === 'admin' && pendingBirthdays.length > 0 && (
+              <TouchableOpacity onPress={() => setShowAdminPanelModal(true)}>
+                <Text style={[s.adminBadgeText, { color: COLORS.red }]}>ADMIN QUEUE ({pendingBirthdays.length})</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.birthdayScroll} contentContainerStyle={{ paddingHorizontal: 16, gap: 14, alignItems: 'center' }}>
+            {/* Nominate / Add Story */}
+            <TouchableOpacity 
+              style={s.birthdayStoryCard} 
+              onPress={() => checkAuthAndRun(() => setShowRegisterBirthdayModal(true))}
+            >
+              <View style={[s.addBirthdayStoryCircle, { borderColor: border }]}>
+                <Text style={{ fontSize: 22, color: txtSec }}>➕</Text>
+              </View>
+              <Text style={[s.birthdayStoryName, { color: txtSec }]} numberOfLines={1}>Nominate</Text>
+            </TouchableOpacity>
+
+            {/* Birthday Stories */}
+            {birthdays.map(b => (
+              <TouchableOpacity 
+                key={b.id} 
+                style={s.birthdayStoryCard} 
+                onPress={() => openBirthdayDetail(b)}
+              >
+                <PulseGlow size={66} color="#FF69B4">
+                  <View style={s.birthdayStoryCircle}>
+                    {b.candidatePhotoUrl ? (
+                      <Image source={{ uri: b.candidatePhotoUrl.startsWith('http') ? b.candidatePhotoUrl : `${API_URL}${b.candidatePhotoUrl}` }} style={s.birthdayStoryImg} />
+                    ) : (
+                      <View style={[s.birthdayStoryTextImg, { backgroundColor: isDark ? '#1C161D' : '#FFF0F5' }]}>
+                        <Text style={{ fontSize: 24 }}>🎂</Text>
+                      </View>
+                    )}
+                  </View>
+                </PulseGlow>
+                <Text style={[s.birthdayStoryName, { color: txt }]} numberOfLines={1}>{b.candidateName}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         {/* ── TRENDING ── */}
         {!search && trending.length > 0 && posts.length > 3 && (
           <View style={s.trendingSection}>
@@ -365,7 +699,7 @@ export default function CommunityScreen() {
                   <CardPressable 
                     style={[s.polaroidFrame, { backgroundColor: cardBg, borderColor: border }]} 
                     onPress={() => post.imageUrl ? setSelectedImage(post.imageUrl) : null} 
-                    tilt={true}
+                    tilt={false} // Disabled 3D tilt to eliminate JS thread lag
                   >
                     {post.imageUrl ? (
                       <Image source={{ uri: post.imageUrl }} style={s.polaroidImg} />
@@ -417,8 +751,10 @@ export default function CommunityScreen() {
                         </DopaminePressable>
 
                         <DopaminePressable style={s.actionBtn} onPress={() => {
-                          setReplyingTo(post);
-                          setShowComposer(true);
+                          checkAuthAndRun(() => {
+                            setReplyingTo(post);
+                            setShowComposer(true);
+                          });
                         }} sound="click" activeScale={0.88}>
                           <Text style={s.actionText}>💬 {post.replyCount}</Text>
                         </DopaminePressable>
@@ -467,8 +803,10 @@ export default function CommunityScreen() {
         <ActionPressable 
           style={[s.composeFab, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b' }]} 
           onPress={() => {
-            setReplyingTo(null);
-            setShowComposer(true);
+            checkAuthAndRun(() => {
+              setReplyingTo(null);
+              setShowComposer(true);
+            });
           }}
           sound="click"
         >
@@ -476,99 +814,118 @@ export default function CommunityScreen() {
         </ActionPressable>
       </FloatingPulse>
       <Modal visible={showComposer} animationType="slide" transparent={true}>
-        <View style={s.composerOverlay}>
-          <View style={[s.composerContent, { backgroundColor: cardBg }]}>
-            <View style={s.dragHandle} />
+        <KeyboardAvoidingView 
+          style={{ flex: 1 }} 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        >
+          <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); setShowComposer(false); }}>
+            <View style={s.composerOverlay}>
+              <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+                <View style={[s.composerContent, { backgroundColor: cardBg, maxHeight: '85%' }]}>
+                  <View style={s.dragHandle} />
 
-            {replyingTo && (
-              <View style={[s.replyBanner, { backgroundColor: isDark ? '#1C1B1F' : 'rgba(139,90,43,0.05)', borderColor: border }]}>
-                <Text style={[s.replyBannerText, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>REPLYING TO {replyingTo.userName.toUpperCase()}</Text>
-                <Text style={[s.replyBannerSub, { color: txtSec }]} numberOfLines={1}>{replyingTo.content}</Text>
-              </View>
-            )}
+                  <ScrollView 
+                    showsVerticalScrollIndicator={false} 
+                    keyboardShouldPersistTaps="handled"
+                    bounces={false}
+                  >
+                    {replyingTo && (
+                      <View style={[s.replyBanner, { backgroundColor: isDark ? '#1C1B1F' : 'rgba(139,90,43,0.05)', borderColor: border }]}>
+                        <Text style={[s.replyBannerText, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>REPLYING TO {replyingTo.userName.toUpperCase()}</Text>
+                        <Text style={[s.replyBannerSub, { color: txtSec }]} numberOfLines={1}>{replyingTo.content}</Text>
+                      </View>
+                    )}
 
-            <Text style={[s.composerTitle, { color: txt }]}>{replyingTo ? 'REPLY TO THREAD' : 'PIN NEW MEMORY'}</Text>
-            
-            <TextInput 
-              style={[s.composerInputName, { backgroundColor: isDark ? '#222' : '#fff', borderColor: border, color: txt }]} 
-              placeholder="Display Name..." 
-              placeholderTextColor="#888" 
-              value={customAuthorName} 
-              onChangeText={setCustomAuthorName} 
-            />
+                    <Text style={[s.composerTitle, { color: txt }]}>{replyingTo ? 'REPLY TO THREAD' : 'PIN NEW MEMORY'}</Text>
+                    
+                    <TextInput 
+                      style={[s.composerInputName, { backgroundColor: isDark ? '#222' : '#fff', borderColor: border, color: txt }]} 
+                      placeholder="Display Name..." 
+                      placeholderTextColor="#888" 
+                      value={customAuthorName} 
+                      onChangeText={setCustomAuthorName} 
+                    />
 
-            {!replyingTo && (
-              <View style={[s.reviewToggleRow, { backgroundColor: isDark ? '#222' : '#fff', borderColor: border }]}>
-                <Text style={[s.reviewToggleLabel, { color: txt }]}>POST AS FOOD REVIEW?</Text>
-                <TouchableOpacity 
-                  style={[s.toggleBtn, isReviewDraft && [s.toggleBtnActive, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b', borderColor: isDark ? COLORS.gold : '#8b5a2b' }]] as any}
-                  onPress={() => setIsReviewDraft(!isReviewDraft)}
-                >
-                  <Text style={[s.toggleBtnText, isReviewDraft && { color: isDark ? '#000' : '#fff' }]}>
-                    {isReviewDraft ? 'YES' : 'NO'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
+                    {!replyingTo && (
+                      <View style={[s.reviewToggleRow, { backgroundColor: isDark ? '#222' : '#fff', borderColor: border }]}>
+                        <Text style={[s.reviewToggleLabel, { color: txt }]}>POST AS FOOD REVIEW?</Text>
+                        <TouchableOpacity 
+                          style={[s.toggleBtn, isReviewDraft && [s.toggleBtnActive, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b', borderColor: isDark ? COLORS.gold : '#8b5a2b' }]] as any}
+                          onPress={() => setIsReviewDraft(!isReviewDraft)}
+                        >
+                          <Text style={[s.toggleBtnText, isReviewDraft && { color: isDark ? '#000' : '#fff' }]}>
+                            {isReviewDraft ? 'YES' : 'NO'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
 
-            {isReviewDraft && !replyingTo && (
-              <View style={[s.reviewFields, { backgroundColor: isDark ? '#1C1B1F' : 'rgba(139,90,43,0.04)', borderColor: border }]}>
-                <View style={s.ratingStarsRow}>
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <DopaminePressable key={star} onPress={() => setStarRating(star)} sound="click" activeScale={0.88}>
-                      <Text style={[s.starIcon, starRating >= star && { color: '#F59E0B' }]}>★</Text>
-                    </DopaminePressable>
-                  ))}
+                    {isReviewDraft && !replyingTo && (
+                      <View style={[s.reviewFields, { backgroundColor: isDark ? '#1C1B1F' : 'rgba(139,90,43,0.04)', borderColor: border }]}>
+                        <View style={s.ratingStarsRow}>
+                          {[1, 2, 3, 4, 5].map(star => (
+                            <DopaminePressable key={star} onPress={() => setStarRating(star)} sound="click" activeScale={0.88}>
+                              <Text style={[s.starIcon, starRating >= star && { color: '#F59E0B' }]}>★</Text>
+                            </DopaminePressable>
+                          ))}
+                        </View>
+                        <TextInput style={[s.reviewInputField, { backgroundColor: isDark ? '#222' : '#fff', borderColor: border, color: txt }]} placeholder="Restaurant Name" placeholderTextColor="#999" value={restaurantName} onChangeText={setRestaurantName} />
+                        <TextInput style={[s.reviewInputField, { backgroundColor: isDark ? '#222' : '#fff', borderColor: border, color: txt }]} placeholder="Dish Name" placeholderTextColor="#999" value={productName} onChangeText={setProductName} />
+                      </View>
+                    )}
+
+                    <TextInput 
+                      style={[s.composerTextArea, { backgroundColor: isDark ? '#222' : '#fff', borderColor: border, color: txt }]} 
+                      placeholder={replyingTo ? 'Write a reply...' : 'Write something beautiful...'} 
+                      placeholderTextColor="#888" 
+                      multiline 
+                      numberOfLines={4} 
+                      value={draft} 
+                      onChangeText={setDraft} 
+                    />
+
+                    <TouchableOpacity 
+                      style={[s.composerInputName, { backgroundColor: isDark ? '#222' : '#fff', borderColor: border, justifyContent: 'center', alignItems: 'center' }]} 
+                      onPress={pickImage}
+                    >
+                      <Text style={{ color: txt, fontSize: 11, fontWeight: '700' }}>
+                        {draftImage ? '🖼️ Image Selected (Tap to change)' : '📸 Upload Photo from Gallery'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {draftImage ? (
+                      <Image source={{ uri: draftImage }} style={s.composerImgPreview} />
+                    ) : null}
+
+                    <View style={s.composerActions}>
+                      <DopaminePressable style={[s.composerCancel, { flex: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }]} onPress={() => setShowComposer(false)} sound="click">
+                        <Text style={[s.cancelText, { color: txtSec }]}>CANCEL</Text>
+                      </DopaminePressable>
+
+                      <ActionPressable 
+                        style={[s.composerSubmit, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b' }, posting && { opacity: 0.5 }, { flex: 2 }] as any} 
+                        onPress={handlePost} 
+                        disabled={posting}
+                        sound="success"
+                      >
+                        {posting ? (
+                          <ActivityIndicator size="small" color={isDark ? '#000' : '#fff'} />
+                        ) : (
+                          <Text style={[s.submitText, { color: isDark ? '#000' : '#fff' }]}>{replyingTo ? 'REPLY 💬' : 'PIN POST 📌'}</Text>
+                        )}
+                      </ActionPressable>
+                    </View>
+
+                    {/* Extra padding so content is visible above keyboard */}
+                    <View style={{ height: 20 }} />
+                  </ScrollView>
+
                 </View>
-                <TextInput style={[s.reviewInputField, { backgroundColor: isDark ? '#222' : '#fff', borderColor: border, color: txt }]} placeholder="Restaurant Name" placeholderTextColor="#999" value={restaurantName} onChangeText={setRestaurantName} />
-                <TextInput style={[s.reviewInputField, { backgroundColor: isDark ? '#222' : '#fff', borderColor: border, color: txt }]} placeholder="Dish Name" placeholderTextColor="#999" value={productName} onChangeText={setProductName} />
-              </View>
-            )}
-
-            <TextInput 
-              style={[s.composerTextArea, { backgroundColor: isDark ? '#222' : '#fff', borderColor: border, color: txt }]} 
-              placeholder={replyingTo ? 'Write a reply...' : 'Write something beautiful...'} 
-              placeholderTextColor="#888" 
-              multiline 
-              numberOfLines={4} 
-              value={draft} 
-              onChangeText={setDraft} 
-            />
-
-            <TouchableOpacity 
-              style={[s.composerInputName, { backgroundColor: isDark ? '#222' : '#fff', borderColor: border, justifyContent: 'center', alignItems: 'center' }]} 
-              onPress={pickImage}
-            >
-              <Text style={{ color: txt, fontSize: 11, fontWeight: '700' }}>
-                {draftImage ? '🖼️ Image Selected (Tap to change)' : '📸 Upload Photo from Gallery'}
-              </Text>
-            </TouchableOpacity>
-
-            {draftImage ? (
-              <Image source={{ uri: draftImage }} style={s.composerImgPreview} />
-            ) : null}
-
-            <View style={s.composerActions}>
-              <DopaminePressable style={[s.composerCancel, { flex: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }]} onPress={() => setShowComposer(false)} sound="click">
-                <Text style={[s.cancelText, { color: txtSec }]}>CANCEL</Text>
-              </DopaminePressable>
-
-              <ActionPressable 
-                style={[s.composerSubmit, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b' }, posting && { opacity: 0.5 }, { flex: 2 }] as any} 
-                onPress={handlePost} 
-                disabled={posting}
-                sound="success"
-              >
-                {posting ? (
-                  <ActivityIndicator size="small" color={isDark ? '#000' : '#fff'} />
-                ) : (
-                  <Text style={[s.submitText, { color: isDark ? '#000' : '#fff' }]}>{replyingTo ? 'REPLY 💬' : 'PIN POST 📌'}</Text>
-                )}
-              </ActionPressable>
+              </TouchableWithoutFeedback>
             </View>
-
-          </View>
-        </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── LIGHTBOX MODAL ── */}
@@ -582,6 +939,247 @@ export default function CommunityScreen() {
             <Image source={{ uri: selectedImage }} style={s.lightboxImg} />
           )}
         </TouchableOpacity>
+      </Modal>
+
+      {/* ── BIRTHDAY WISHING MODAL ── */}
+      <Modal visible={showBirthdayWishModal} transparent={true} animationType="slide">
+        <View style={s.bdayOverlay}>
+          {/* Confetti cannon! */}
+          <ConfettiCannon />
+
+          <TouchableWithoutFeedback onPress={() => setShowBirthdayWishModal(false)}>
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+            style={s.bdayCardWrapper}
+          >
+            <View style={[s.bdayCard, { backgroundColor: isDark ? '#141416' : '#fff' }]}>
+              {/* Card Header decoration */}
+              <View style={s.bdayHeaderDecor}>
+                <Text style={{ fontSize: 24 }}>✨🎉🥳🎉✨</Text>
+              </View>
+
+              {/* Close Button */}
+              <TouchableOpacity style={s.bdayCloseBtn} onPress={() => setShowBirthdayWishModal(false)}>
+                <Text style={{ fontSize: 18, color: txtSec }}>✕</Text>
+              </TouchableOpacity>
+
+              {selectedBirthday && (
+                <>
+                  {/* Large Avatar container */}
+                  <PulseGlow size={110} color="#FF69B4">
+                    <View style={s.bdayLargeAvatarRing}>
+                      {selectedBirthday.candidatePhotoUrl ? (
+                        <Image source={{ uri: selectedBirthday.candidatePhotoUrl.startsWith('http') ? selectedBirthday.candidatePhotoUrl : `${API_URL}${selectedBirthday.candidatePhotoUrl}` }} style={s.bdayLargeAvatarImg} />
+                      ) : (
+                        <Text style={{ fontSize: 44 }}>🎂</Text>
+                      )}
+                    </View>
+                  </PulseGlow>
+
+                  {/* Name and count */}
+                  <Text style={[s.bdayCandidateName, { color: txt }]}>{selectedBirthday.candidateName}</Text>
+                  <Text style={[s.bdayWishCountText, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>
+                    ❤️ {selectedBirthday.wishCount || 0} peer wishes received today!
+                  </Text>
+
+                  {/* Wishes Scroll View */}
+                  <View style={[s.bdayWishesContainer, { borderColor: border }]}>
+                    <ScrollView 
+                      showsVerticalScrollIndicator={false}
+                      nestedScrollEnabled
+                      style={{ flex: 1 }}
+                    >
+                      {selectedBirthdayWishes.length === 0 ? (
+                        <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+                          <Text style={{ color: txtSec, fontSize: 10, fontWeight: '700' }}>No wishes yet. Be the first! 👇</Text>
+                        </View>
+                      ) : (
+                        selectedBirthdayWishes.map((w, idx) => (
+                          <View key={w.id || idx} style={[s.wishBubble, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]}>
+                            <Text style={[s.wishBubbleUser, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>{w.userName}</Text>
+                            <Text style={[s.wishBubbleText, { color: txt }]}>{w.message || 'Happy Birthday! 🎉'}</Text>
+                          </View>
+                        ))
+                      )}
+                    </ScrollView>
+                  </View>
+
+                  {/* Quick Reaction Row */}
+                  <View style={s.quickReactionsRow}>
+                    {['🎉 Congrats!', '🎂 HBD!', '💖 Stay Blessed!', '👑 Superstar!', '🥳 Cheers!'].map((react) => (
+                      <TouchableOpacity 
+                        key={react} 
+                        style={[s.quickReactionBadge, { borderColor: border }]}
+                        onPress={() => submitWish(react)}
+                      >
+                        <Text style={s.quickReactionText}>{react}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  {/* Custom wish composer */}
+                  <View style={s.bdayComposeRow}>
+                    <TextInput 
+                      style={[s.bdayWishInput, { backgroundColor: isDark ? '#222' : '#fff', color: txt, borderColor: border }]}
+                      placeholder="Write a custom blessing..."
+                      placeholderTextColor="#888"
+                      value={birthdayWishMessage}
+                      onChangeText={setBirthdayWishMessage}
+                    />
+                    <TouchableOpacity 
+                      style={[s.bdayWishSendBtn, { backgroundColor: isDark ? COLORS.gold : '#FF69B4' }]}
+                      onPress={() => submitWish()}
+                      disabled={submittingWish}
+                    >
+                      {submittingWish ? (
+                        <ActivityIndicator size="small" color="#000" />
+                      ) : (
+                        <Text style={s.bdayWishSendText}>SEND</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      {/* ── REGISTER / NOMINATE BIRTHDAY MODAL ── */}
+      <Modal visible={showRegisterBirthdayModal} transparent={true} animationType="slide">
+        <View style={s.bdayOverlay}>
+          <TouchableWithoutFeedback onPress={() => setShowRegisterBirthdayModal(false)}>
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+            style={s.bdayCardWrapper}
+          >
+            <View style={[s.bdayCard, { backgroundColor: isDark ? '#141416' : '#fff' }]}>
+              <Text style={[s.modalTitle, { color: txt }]}>NOMINATE BIRTHDAY PEER</Text>
+              <Text style={[s.modalSubtitle, { color: txtSec }]}>Nominate a classmate. Approved birthdays appear on the community feed for 24h.</Text>
+
+              {/* Form Input fields */}
+              <TextInput 
+                style={[s.bdayWishInput, { backgroundColor: isDark ? '#222' : '#fff', color: txt, borderColor: border, width: '100%', marginBottom: 12 }]}
+                placeholder="Candidate Full Name"
+                placeholderTextColor="#888"
+                value={newBirthdayName}
+                onChangeText={setNewBirthdayName}
+              />
+
+              <TextInput 
+                style={[s.bdayWishInput, { backgroundColor: isDark ? '#222' : '#fff', color: txt, borderColor: border, width: '100%', marginBottom: 12 }]}
+                placeholder="Birthday Date (YYYY-MM-DD)"
+                placeholderTextColor="#888"
+                value={newBirthdayDate}
+                onChangeText={setNewBirthdayDate}
+              />
+
+              {/* Photo selector */}
+              <TouchableOpacity 
+                style={[s.bdayPhotoSelector, { borderColor: border }]}
+                onPress={pickBirthdayPhoto}
+              >
+                {newBirthdayPhoto ? (
+                  <Image source={{ uri: newBirthdayPhoto }} style={s.bdayPhotoPreview} />
+                ) : (
+                  <View style={{ alignItems: 'center' }}>
+                    <Text style={{ fontSize: 24, marginBottom: 4 }}>📸</Text>
+                    <Text style={{ color: txtSec, fontSize: 9, fontWeight: '700' }}>ADD PEER PORTRAIT</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {/* Action Buttons */}
+              <View style={s.modalActionsRow}>
+                <TouchableOpacity 
+                  style={[s.modalCancelBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} 
+                  onPress={() => setShowRegisterBirthdayModal(false)}
+                >
+                  <Text style={[s.modalCancelText, { color: txtSec }]}>CANCEL</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[s.modalSubmitBtn, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b' }]} 
+                  onPress={submitBirthday}
+                  disabled={submittingBirthday}
+                >
+                  {submittingBirthday ? (
+                    <ActivityIndicator size="small" color="#000" />
+                  ) : (
+                    <Text style={s.modalSubmitText}>NOMINATE 🎁</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      {/* ── ADMIN PANEL QUEUE MODAL ── */}
+      <Modal visible={showAdminPanelModal} transparent={true} animationType="slide">
+        <View style={s.bdayOverlay}>
+          <TouchableWithoutFeedback onPress={() => setShowAdminPanelModal(false)}>
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+
+          <View style={[s.bdayCard, { backgroundColor: isDark ? '#141416' : '#fff', maxHeight: '80%' }]}>
+            <Text style={[s.modalTitle, { color: txt }]}>ADMIN APPROVAL QUEUE</Text>
+            <Text style={[s.modalSubtitle, { color: txtSec }]}>Approve celebrations to notify users and set them live for 24h.</Text>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ width: '100%', marginVertical: 12 }}>
+              {pendingBirthdays.length === 0 ? (
+                <View style={{ padding: 24, alignItems: 'center' }}>
+                  <Text style={{ color: txtSec, fontSize: 11, fontWeight: '700' }}>No pending nominations in queue. 🌟</Text>
+                </View>
+              ) : (
+                pendingBirthdays.map((p) => (
+                  <View key={p.id} style={[s.adminQueueCard, { borderColor: border, backgroundColor: isDark ? '#1C1B1F' : '#fcfcfc' }]}>
+                    <View style={s.adminQueueRow}>
+                      {p.candidatePhotoUrl ? (
+                        <Image source={{ uri: p.candidatePhotoUrl.startsWith('http') ? p.candidatePhotoUrl : `${API_URL}${p.candidatePhotoUrl}` }} style={s.adminQueueImg} />
+                      ) : (
+                        <View style={s.adminQueueTextImg}><Text>🎂</Text></View>
+                      )}
+                      <View style={{ flex: 1 }}>
+                        <Text style={[s.adminQueueName, { color: txt }]}>{p.candidateName}</Text>
+                        <Text style={[s.adminQueueDate, { color: txtSec }]}>Date: {p.birthdayDate}</Text>
+                      </View>
+                    </View>
+
+                    <View style={s.adminQueueActions}>
+                      <TouchableOpacity 
+                        style={[s.adminRejectBtn, { backgroundColor: COLORS.red + '22' }]} 
+                        onPress={() => rejectBirthday(p.id)}
+                      >
+                        <Text style={{ color: COLORS.red, fontSize: 10, fontWeight: '900' }}>REJECT ❌</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={[s.adminApproveBtn, { backgroundColor: COLORS.emerald + '22' }]} 
+                        onPress={() => approveBirthday(p.id)}
+                      >
+                        <Text style={{ color: COLORS.emerald, fontSize: 10, fontWeight: '900' }}>APPROVE ✅</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+
+            <TouchableOpacity 
+              style={[s.modalCancelBtn, { width: '100%', backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} 
+              onPress={() => setShowAdminPanelModal(false)}
+            >
+              <Text style={[s.modalCancelText, { color: txtSec }]}>CLOSE</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
 
     </View>
@@ -695,4 +1293,67 @@ const s = StyleSheet.create({
 
   lightboxOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
   lightboxImg: { width: SW - 20, height: SW - 20, resizeMode: 'contain', borderRadius: 8 },
+
+  // ── BIRTHDAY STYLING ──
+  birthdaySection: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(139,90,43,0.05)' },
+  birthdaySectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 8 },
+  birthdaySectionTitle: { fontSize: 8, fontWeight: '900', letterSpacing: 1.5 },
+  adminBadgeText: { fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  birthdayScroll: { minHeight: 90 },
+  birthdayStoryCard: { alignItems: 'center', width: 66, gap: 4 },
+  addBirthdayStoryCircle: { width: 56, height: 56, borderRadius: 28, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.02)' },
+  birthdayStoryCircle: { width: 56, height: 56, borderRadius: 28, overflow: 'hidden', borderWidth: 2, borderColor: '#FF69B4', alignItems: 'center', justifyContent: 'center' },
+  birthdayStoryImg: { width: '100%', height: '100%', resizeMode: 'cover' },
+  birthdayStoryTextImg: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
+  birthdayStoryName: { fontSize: 8, fontWeight: '900', textAlign: 'center', width: '100%' },
+
+  // Overlay
+  bdayOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  bdayCardWrapper: { width: '100%', maxWidth: 360 },
+  bdayCard: { width: '100%', borderRadius: 28, padding: 24, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10, position: 'relative' },
+  bdayHeaderDecor: { marginBottom: 12 },
+  bdayCloseBtn: { position: 'absolute', top: 16, right: 16, padding: 6, zIndex: 10 },
+  bdayLargeAvatarRing: { width: 100, height: 100, borderRadius: 50, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+  bdayLargeAvatarImg: { width: '100%', height: '100%', resizeMode: 'cover' },
+  bdayCandidateName: { fontSize: 18, fontWeight: '900', marginTop: 12, textAlign: 'center', letterSpacing: 0.5 },
+  bdayWishCountText: { fontSize: 10, fontWeight: '900', marginTop: 4, letterSpacing: 0.5 },
+
+  // Wishes List
+  bdayWishesContainer: { width: '100%', height: 140, borderWidth: 1, borderRadius: 16, marginVertical: 16, padding: 12, backgroundColor: 'rgba(0,0,0,0.01)' },
+  wishBubble: { padding: 10, borderRadius: 12, marginBottom: 8, gap: 2 },
+  wishBubbleUser: { fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
+  wishBubbleText: { fontSize: 9, fontWeight: '600' },
+
+  // Quick reactions
+  quickReactionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 12 },
+  quickReactionBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, backgroundColor: 'rgba(255,105,180,0.05)' },
+  quickReactionText: { fontSize: 8, fontWeight: '900', color: '#FF69B4' },
+
+  // Composer
+  bdayComposeRow: { flexDirection: 'row', gap: 8, width: '100%', alignItems: 'center' },
+  bdayWishInput: { flex: 1, height: 38, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, fontSize: 11, fontWeight: '700' },
+  bdayWishSendBtn: { height: 38, paddingHorizontal: 16, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  bdayWishSendText: { color: '#000', fontSize: 10, fontWeight: '900' },
+
+  // Nomination
+  modalTitle: { fontSize: 14, fontWeight: '900', letterSpacing: 1.5, marginBottom: 4, textAlign: 'center' },
+  modalSubtitle: { fontSize: 9, fontWeight: '700', letterSpacing: 0.5, marginBottom: 16, textAlign: 'center', lineHeight: 12 },
+  bdayPhotoSelector: { width: '100%', height: 120, borderStyle: 'dashed', borderWidth: 1, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 18, overflow: 'hidden' },
+  bdayPhotoPreview: { width: '100%', height: '100%', resizeMode: 'cover' },
+  modalActionsRow: { flexDirection: 'row', gap: 10, width: '100%' },
+  modalCancelBtn: { flex: 1, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  modalCancelText: { fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  modalSubmitBtn: { flex: 2, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  modalSubmitText: { color: '#000', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+
+  // Admin Queue
+  adminQueueCard: { width: '100%', borderRadius: 16, borderWidth: 1, padding: 12, marginBottom: 10 },
+  adminQueueRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  adminQueueImg: { width: 44, height: 44, borderRadius: 22, resizeMode: 'cover' },
+  adminQueueTextImg: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' },
+  adminQueueName: { fontSize: 12, fontWeight: '900' },
+  adminQueueDate: { fontSize: 9, fontWeight: '700' },
+  adminQueueActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 10 },
+  adminRejectBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  adminApproveBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
 });

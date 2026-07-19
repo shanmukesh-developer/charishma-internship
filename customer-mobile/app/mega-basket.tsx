@@ -85,8 +85,20 @@ export default function MegaBasketScreen() {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
+    if (!user) {
+      Alert.alert(
+        'Authentication Required',
+        'Please sign in to order or manage daily essentials.',
+        [
+          { text: 'Cancel', onPress: () => router.replace('/(tabs)' as any), style: 'cancel' },
+          { text: 'Sign In', onPress: () => router.push('/login' as any) }
+        ],
+        { cancelable: false }
+      );
+      return;
+    }
     fetchBaskets();
-  }, []);
+  }, [user]);
 
   // Socket Connection for selected basket
   useEffect(() => {

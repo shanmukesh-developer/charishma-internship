@@ -153,6 +153,18 @@ export default function CheckoutScreen() {
   const [addedExtras, setAddedExtras] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    if (!user) {
+      Alert.alert(
+        'Authentication Required',
+        'Please sign in to complete your order mission.',
+        [
+          { text: 'Cancel', onPress: () => router.replace('/(tabs)' as any), style: 'cancel' },
+          { text: 'Sign In', onPress: () => router.push('/login' as any) }
+        ],
+        { cancelable: false }
+      );
+      return;
+    }
     if (user?.address) setAddress(user.address);
     if (user?.zenPoints) setZenPoints(user.zenPoints);
 

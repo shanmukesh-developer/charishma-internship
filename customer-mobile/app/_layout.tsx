@@ -1,6 +1,6 @@
 import React from 'react';
 import { Stack } from 'expo-router';
-import { StatusBar, Platform, View, StyleSheet } from 'react-native';
+import { StatusBar, Platform, View, StyleSheet, Alert } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider } from '../context/AuthContext';
@@ -11,6 +11,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import WorldTransitionOverlay from '../components/WorldTransitionOverlay';
 import IntroOverlay from '../components/IntroOverlay';
 import GlobalAnnouncement from '../components/GlobalAnnouncement';
+import ThemedAlert, { showGlobalAlert } from '../components/ThemedAlert';
+import OfflineBanner from '../components/OfflineBanner';
+
+// Global interceptor to theme all native Alert.alert calls across the codebase automatically
+const originalAlert = Alert.alert;
+Alert.alert = (title, message, buttons, options) => {
+  if (showGlobalAlert) {
+    showGlobalAlert(title, message, buttons, options);
+  } else {
+    originalAlert(title, message, buttons, options);
+  }
+};
 
 function AppContainer() {
   const { isDark } = useTheme();
@@ -52,6 +64,8 @@ function AppContainer() {
             <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
             <WorldTransitionOverlay />
             <GlobalAnnouncement />
+            <ThemedAlert />
+            <OfflineBanner />
             
             {checkingIntro ? (
               <View style={[StyleSheet.absoluteFill, { backgroundColor: '#060608', zIndex: 999999 }]} />

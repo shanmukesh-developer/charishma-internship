@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Platform, TextInput, ActivityIndicator, Alert, Modal, Linking, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -13,6 +13,22 @@ import SearchOverlay from '../../components/SearchOverlay';
 import AmbientBackground from '../../components/AmbientBackground';
 import DopaminePressable, { CardPressable, ActionPressable } from '../../components/DopaminePressable';
 import { StaggeredSection, FloatingPulse, BounceIn } from '../../components/AnimatedSection';
+
+// ── Self-contained countdown timer to prevent re-rendering the entire screen ──
+const FlashDealTimer = memo(() => {
+  const [secs, setSecs] = useState(9912);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSecs(prev => (prev > 0 ? prev - 1 : 9912));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const hrs = Math.floor(secs / 3600);
+  const mins = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  const display = `${hrs.toString().padStart(2, '0')}h ${mins.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`;
+  return <Text style={{ fontWeight: '900', color: '#DC2626' }}>{display}</Text>;
+});
 
 const { width: SW } = Dimensions.get('window');
 const DEPT_SIZE = (SW - 48 - 36) / 4;
@@ -534,7 +550,6 @@ export default function OthersScreen() {
   const [activeCategoryPill, setActiveCategoryPill] = useState('All');
   const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
 
-  const [countdownSeconds, setCountdownSeconds] = useState(9912); // 2h 45m 12s
   const [isAdPlaying, setIsAdPlaying] = useState(true);
   const adAnimRotate = useRef(new Animated.Value(0)).current;
 
@@ -644,8 +659,9 @@ export default function OthersScreen() {
     }
   }, [activeTab]);
 
-  // Persistent loop animations
+  // Persistent loop animations — only run when promos tab is active to save CPU
   useEffect(() => {
+    if (activeTab !== 'promos') return;
     const loops = [
       Animated.loop(Animated.sequence([
         Animated.timing(spinBtnScale, { toValue: 1.08, duration: 800, useNativeDriver: true }),
@@ -674,7 +690,7 @@ export default function OthersScreen() {
     ];
     loops.forEach(l => l.start());
     return () => loops.forEach(l => l.stop());
-  }, []);
+  }, [activeTab]);
 
   const handleCopyCode = (code: string) => {
     setCopiedCode(code);
@@ -765,12 +781,7 @@ export default function OthersScreen() {
 
 
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdownSeconds(prev => (prev > 0 ? prev - 1 : 9912));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  // Countdown timer moved to FlashDealTimer component to prevent whole-screen re-renders
 
   useEffect(() => {
     let animLoop: Animated.CompositeAnimation | null = null;
@@ -791,13 +802,6 @@ export default function OthersScreen() {
       }
     };
   }, [isAdPlaying]);
-
-  const formatCountdown = (totalSecs: number) => {
-    const hrs = Math.floor(totalSecs / 3600);
-    const mins = Math.floor((totalSecs % 3600) / 60);
-    const secs = totalSecs % 60;
-    return `${hrs.toString().padStart(2, '0')}h ${mins.toString().padStart(2, '0')}m ${secs.toString().padStart(2, '0')}s`;
-  };
 
   const tabContentFade = useRef(new Animated.Value(0)).current;
   const tabContentTranslateY = useRef(new Animated.Value(20)).current;
@@ -1367,7 +1371,7 @@ export default function OthersScreen() {
               </LinearGradient>
               <View style={{ flex: 1, paddingLeft: 8 }}>
                 <Text style={s.flashDealTitle} numberOfLines={1}>Cadbury Dairy Milk Silk at 50% OFF!</Text>
-                <Text style={s.flashDealTimerLabel}>Ends in: <Text style={{ fontWeight: '900', color: '#DC2626' }}>{formatCountdown(countdownSeconds)}</Text></Text>
+                <Text style={s.flashDealTimerLabel}>Ends in: <FlashDealTimer /></Text>
               </View>
               <TouchableOpacity 
                 style={s.flashDealCta}

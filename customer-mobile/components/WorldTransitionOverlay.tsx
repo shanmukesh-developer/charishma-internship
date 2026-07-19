@@ -1,23 +1,24 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Dimensions, Animated, Easing, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useWorldTransition, WORLD_THEMES } from '../context/WorldTransitionContext';
 
 const { width: W, height: H } = Dimensions.get('window');
 
-// ── Cinematic Diamond Wipe Transition ─────────────────────────────────────
-// Inspired by AAA game loading screens — a diamond iris wipe with
-// luminous edge glow, morphing brand crest, and ambient particle field.
+// ── Cinematic Transition Overlay ─────────────────────────────────────
+// All animations use useNativeDriver: true for 60fps GPU performance.
+// Uses scale + opacity wipe instead of layout-dependent diamond wipe.
 
-const NUM_PARTICLES = 16;
-const NUM_RAYS = 6;
+const NUM_PARTICLES = 8;
+const NUM_RAYS = 4;
 
 export default function WorldTransitionOverlay() {
   const { isTransitioning, targetWorld, phase } = useWorldTransition();
   const theme = targetWorld ? WORLD_THEMES[targetWorld] : null;
 
-  // ── Core Wipe ──
-  const wipeProgress = useRef(new Animated.Value(0)).current;     // 0→1 cover, 1→0 uncover
+  // ── Core Wipe (opacity + scale based for native driver) ──
+  const wipeOpacity = useRef(new Animated.Value(0)).current;
+  const wipeScale = useRef(new Animated.Value(0.3)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
   const contentScale = useRef(new Animated.Value(0.7)).current;
   const contentY = useRef(new Animated.Value(40)).current;
@@ -58,7 +59,8 @@ export default function WorldTransitionOverlay() {
   useEffect(() => {
     if (!isTransitioning || !theme) {
       // Reset all
-      wipeProgress.setValue(0);
+      wipeOpacity.setValue(0);
+      wipeScale.setValue(0.3);
       contentOpacity.setValue(0);
       contentScale.setValue(0.7);
       contentY.setValue(40);
@@ -73,34 +75,42 @@ export default function WorldTransitionOverlay() {
     }
 
     if (phase === 'covering') {
-      // ── 1. Diamond Wipe In ──
-      Animated.timing(wipeProgress, {
-        toValue: 1,
-        duration: 500,
-        easing: luxuryEase,
-        useNativeDriver: false,
-      }).start();
+      // ── 1. Scale + Opacity Wipe In (native driver) ──
+      Animated.parallel([
+        Animated.timing(wipeOpacity, {
+          toValue: 1,
+          duration: 400,
+          easing: luxuryEase,
+          useNativeDriver: true,
+        }),
+        Animated.timing(wipeScale, {
+          toValue: 3,
+          duration: 500,
+          easing: luxuryEase,
+          useNativeDriver: true,
+        }),
+      ]).start();
 
-      // ── 2. Luminous Ring Expansion ──
+      // ── 2. Ring Expansion ──
       Animated.parallel([
         Animated.timing(ringScale, {
           toValue: 1.8,
           duration: 900,
           easing: Easing.out(Easing.ease),
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
         Animated.timing(ringOpacity, {
           toValue: 0.6,
           duration: 500,
           delay: 150,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
         Animated.loop(
           Animated.timing(ringRotation, {
             toValue: 1,
             duration: 4000,
             easing: Easing.linear,
-            useNativeDriver: false,
+            useNativeDriver: true,
           })
         ),
       ]).start();
@@ -111,21 +121,21 @@ export default function WorldTransitionOverlay() {
           toValue: 1,
           duration: 400,
           delay: 200,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
         Animated.spring(contentScale, {
           toValue: 1,
           speed: 8,
           bounciness: 3,
           delay: 200,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
         Animated.timing(contentY, {
           toValue: 0,
           duration: 450,
           delay: 200,
           easing: luxuryEase,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
       ]).start();
 
@@ -135,7 +145,7 @@ export default function WorldTransitionOverlay() {
         duration: 500,
         delay: 300,
         easing: luxuryEase,
-        useNativeDriver: false,
+        useNativeDriver: true,
       }).start();
 
       // ── 5. Radial Light Rays ──
@@ -145,14 +155,14 @@ export default function WorldTransitionOverlay() {
             toValue: 0.15 + Math.random() * 0.2,
             duration: 600,
             delay: 100 + i * 60,
-            useNativeDriver: false,
+            useNativeDriver: true,
           }),
           Animated.timing(ray.scaleX, {
             toValue: 1,
             duration: 800,
             delay: 100 + i * 60,
             easing: luxuryEase,
-            useNativeDriver: false,
+            useNativeDriver: true,
           }),
         ]).start();
       });
@@ -166,28 +176,28 @@ export default function WorldTransitionOverlay() {
           Animated.timing(p.scale, {
             toValue: 0.6 + Math.random() * 1.2,
             duration: 1000,
-            delay: i * 40,
+            delay: i * 50,
             easing: Easing.out(Easing.ease),
-            useNativeDriver: false,
+            useNativeDriver: true,
           }),
           Animated.timing(p.translateY, {
             toValue: -60 - Math.random() * 120,
             duration: 1200,
-            delay: i * 40,
+            delay: i * 50,
             easing: Easing.out(Easing.ease),
-            useNativeDriver: false,
+            useNativeDriver: true,
           }),
           Animated.sequence([
             Animated.timing(p.opacity, {
               toValue: 0.3 + Math.random() * 0.5,
               duration: 350,
-              delay: i * 40,
-              useNativeDriver: false,
+              delay: i * 50,
+              useNativeDriver: true,
             }),
             Animated.timing(p.opacity, {
               toValue: 0,
               duration: 850,
-              useNativeDriver: false,
+              useNativeDriver: true,
             }),
           ]),
         ]).start();
@@ -199,45 +209,51 @@ export default function WorldTransitionOverlay() {
           Animated.timing(breathOpacity, {
             toValue: 0.15,
             duration: 800,
-            useNativeDriver: false,
+            useNativeDriver: true,
           }),
           Animated.timing(breathOpacity, {
             toValue: 0.04,
             duration: 800,
-            useNativeDriver: false,
+            useNativeDriver: true,
           }),
         ])
       ).start();
 
     } else if (phase === 'uncovering') {
-      // ── Smooth Iris Wipe Out ──
+      // ── Smooth Wipe Out ──
       Animated.parallel([
-        Animated.timing(wipeProgress, {
+        Animated.timing(wipeOpacity, {
           toValue: 0,
           duration: 450,
           easing: luxuryEase,
-          useNativeDriver: false,
+          useNativeDriver: true,
+        }),
+        Animated.timing(wipeScale, {
+          toValue: 0.3,
+          duration: 450,
+          easing: luxuryEase,
+          useNativeDriver: true,
         }),
         Animated.timing(contentOpacity, {
           toValue: 0,
           duration: 200,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
         Animated.timing(ringOpacity, {
           toValue: 0,
           duration: 300,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
         Animated.timing(lineScaleX, {
           toValue: 0,
           duration: 200,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
         ...rayAnims.map(r =>
           Animated.timing(r.opacity, {
             toValue: 0,
             duration: 250,
-            useNativeDriver: false,
+            useNativeDriver: true,
           })
         ),
       ]).start();
@@ -251,35 +267,22 @@ export default function WorldTransitionOverlay() {
     outputRange: ['0deg', '360deg'],
   });
 
-  const counterRotateInterp = ringRotation.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['360deg', '0deg'],
-  });
-
-  // Diamond scale for wipe effect
-  const diamondScale = wipeProgress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 3],
-  });
-
   return (
     <View style={s.container} pointerEvents={phase === 'covering' ? 'auto' : 'none'}>
-      {/* ── LAYER 1: Full-screen Diamond Wipe ── */}
-      <View style={[s.diamondWipe, { transform: [{ rotate: '45deg' }] }]}>
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              backgroundColor: theme.colors[0],
-              transform: [{ scale: diamondScale }],
-              opacity: wipeProgress,
-            },
-          ]}
-        />
-      </View>
+      {/* ── LAYER 1: Full-screen Scale+Opacity Wipe ── */}
+      <Animated.View
+        style={[
+          s.wipeLayer,
+          {
+            backgroundColor: theme.colors[0],
+            opacity: wipeOpacity,
+            transform: [{ scale: wipeScale }],
+          },
+        ]}
+      />
 
       {/* ── LAYER 2: Theme Gradient Overlay ── */}
-      <Animated.View style={[s.gradientOverlay, { opacity: wipeProgress }]}>
+      <Animated.View style={[s.gradientOverlay, { opacity: wipeOpacity }]}>
         <LinearGradient
           colors={[theme.colors[0], theme.colors[1] || theme.colors[0], '#000'] as [string, string, ...string[]]}
           start={{ x: 0, y: 0 }}
@@ -309,8 +312,6 @@ export default function WorldTransitionOverlay() {
           />
         </View>
       ))}
-
-      {/* LAYER 4 removed to prevent white borders as requested */}
 
       {/* ── LAYER 5: Breath Glow ── */}
       <Animated.View style={[s.breathGlow, { opacity: breathOpacity }]} />
@@ -377,12 +378,12 @@ const s = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  // Diamond wipe
-  diamondWipe: {
+  // Scale+Opacity based wipe layer
+  wipeLayer: {
     position: 'absolute',
-    width: Math.max(W, H),
-    height: Math.max(W, H),
-    borderRadius: 8,
+    width: Math.max(W, H) * 1.5,
+    height: Math.max(W, H) * 1.5,
+    borderRadius: Math.max(W, H) * 0.75,
   },
 
   // Theme gradient
@@ -406,23 +407,6 @@ const s = StyleSheet.create({
     shadowRadius: 8,
     shadowOpacity: 0.5,
     elevation: 4,
-  },
-
-  // Concentric rings
-  ring: {
-    position: 'absolute',
-    borderWidth: 1.5,
-    borderRadius: 999,
-  },
-  ringOuter: {
-    width: 200,
-    height: 200,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  ringInner: {
-    width: 200,
-    height: 200,
-    borderColor: 'rgba(201,168,76,0.5)',
   },
 
   // Breath glow

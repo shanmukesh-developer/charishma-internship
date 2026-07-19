@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, RefreshControl, Image, FlatList, Dimensions, Platform, Modal, ActivityIndicator, Alert, Animated, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, RefreshControl, Image, FlatList, Dimensions, Platform, Modal, ActivityIndicator, Alert, Animated, Linking, BackHandler } from 'react-native';
 import { Socket } from 'socket.io-client';
 import { connectSocket } from '../../utils/socket';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SHADOWS, RADIUS } from '../../constants/theme';
 import { API_URL, ENDPOINTS } from '../../constants/api';
@@ -140,12 +140,12 @@ export default function HomeScreen() {
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 1200,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 0.4,
           duration: 1200,
-          useNativeDriver: false,
+          useNativeDriver: true,
         })
       ])
     ).start();
@@ -158,7 +158,7 @@ export default function HomeScreen() {
         toValue: 1,
         tension: 60,
         friction: 8,
-        useNativeDriver: false,
+        useNativeDriver: true,
       }).start();
     }
   }, [classicFilter]);
@@ -167,7 +167,10 @@ export default function HomeScreen() {
     (async () => {
       try {
         const favs = await AsyncStorage.getItem('zenvy_favorites');
-        if (favs) setFavorites(JSON.parse(favs));
+        if (favs) {
+          const parsed = JSON.parse(favs);
+          if (Array.isArray(parsed)) setFavorites(parsed);
+        }
       } catch (e) {
         console.error(e);
       }
@@ -177,8 +180,12 @@ export default function HomeScreen() {
   const toggleFavorite = async (id: string) => {
     try {
       const favsStr = await AsyncStorage.getItem('zenvy_favorites');
-      let favs = favsStr ? JSON.parse(favsStr) : [];
-      if (favs.includes(id)) {
+      let favs = [];
+      try {
+        favs = favsStr ? JSON.parse(favsStr) : [];
+      } catch(e) {}
+      if (!Array.isArray(favs)) favs = [];
+      if ((Array.isArray(favs) ? favs.includes(id) : false)) {
         favs = favs.filter((f: string) => f !== id);
       } else {
         favs.push(id);
@@ -287,6 +294,62 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadDietPrefs = async () => {
+        try {
+          const dietPrefsRaw = await AsyncStorage.getItem('zenvy_diet_prefs');
+          if (dietPrefsRaw) {
+            const parsed = JSON.parse(dietPrefsRaw);
+            if (parsed && parsed.mode) {
+              if (parsed.mode === 'veg') {
+                setFilter('veg');
+              } else if (parsed.mode === 'all') {
+                setFilter('all');
+              }
+            }
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      loadDietPrefs();
+    }, [])
+  );
+
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const backAction = () => {
+      if (pathname === '/' || pathname === '/(tabs)' || pathname === '/(tabs)/') {
+        Alert.alert(
+          "Exit Zenvy",
+          "Are you sure you want to close the application?",
+          [
+            {
+              text: "Cancel",
+              onPress: () => null,
+              style: "cancel"
+            },
+            { 
+              text: "Exit", 
+              onPress: () => BackHandler.exitApp() 
+            }
+          ]
+        );
+        return true;
+      }
+      return false;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [pathname]);
 
   useEffect(() => {
     const socket = connectSocket();
@@ -654,7 +717,7 @@ export default function HomeScreen() {
             const offers = ["50% OFF up to ₹100", "Flat ₹75 OFF", "Free Delivery", "60% OFF up to ₹120", "Buy 1 Get 1 Free"];
             const offer = offers[nameSeed % offers.length];
             const hasOffer = (nameSeed % 10) < 7;
-            const isFav = favorites.includes(id);
+            const isFav = (Array.isArray(favorites) ? favorites.includes(id) : false);
             const isPremium = r.subscriptionTier === 'premium' || r.isFeatured;
 
             return (
@@ -1045,6 +1108,7 @@ const s = StyleSheet.create({
     marginHorizontal: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: 16,
     marginBottom: 20,
     gap: 8,
   },
@@ -1083,3 +1147,5 @@ const s = StyleSheet.create({
     textAlign: 'center',
   },
 });
+// BUST_CACHE_2026_07_19_00_42
+// BUST_CACHE_2026_07_19_00_42

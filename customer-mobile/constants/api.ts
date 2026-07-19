@@ -63,5 +63,14 @@ export const ENDPOINTS = {
   megaBasketCreate: `${API_URL}/api/mega-basket`,
   megaBasketPay: (id: string) => `${API_URL}/api/mega-basket/${id}/pay`,
   megaBasketApprove: (id: string) => `${API_URL}/api/mega-basket/${id}/approve`,
+
+  // Birthdays
+  birthdaysActive: `${API_URL}/api/birthdays/active`,
+  birthdaysPending: `${API_URL}/api/birthdays/pending`,
+  birthdaysSubmit: `${API_URL}/api/birthdays`,
+  birthdaysApprove: (id: string) => `${API_URL}/api/birthdays/${id}/approve`,
+  birthdaysReject: (id: string) => `${API_URL}/api/birthdays/${id}/reject`,
+  birthdaysWish: (id: string) => `${API_URL}/api/birthdays/${id}/wish`,
+  birthdaysWishes: (id: string) => `${API_URL}/api/birthdays/${id}/wishes`,
 };
 

@@ -31,9 +31,16 @@ const NATIVE_SOUND_URLS: Record<SoundType, string> = {
 };
 
 const soundCache: Record<string, any> = {};
+const lastPlayTime: Record<string, number> = {};
+const SOUND_THROTTLE_MS = 100;
 
 async function playNativeSound(type: SoundType) {
   try {
+    // Throttle rapid-fire sounds to prevent audio driver overload
+    const now = Date.now();
+    if (lastPlayTime[type] && now - lastPlayTime[type] < SOUND_THROTTLE_MS) return;
+    lastPlayTime[type] = now;
+
     const { createAudioPlayer } = require('expo-audio');
     if (soundCache[type]) {
       try {

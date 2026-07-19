@@ -227,13 +227,13 @@ export default function AmbientBackground({ isStatic = false }: { isStatic?: boo
       {/* ── Aurora Orb 1 (Gold/Red Metamorphosis) ── */}
       <Animated.Image
         source={blurDotSource}
-        blurRadius={Platform.OS === 'ios' ? 70 : 35}
+        blurRadius={Platform.OS === 'ios' ? 70 : 20}
         style={[
           styles.orb,
           {
-            width: 350,
-            height: 350,
-            borderRadius: 175,
+            width: 280,
+            height: 280,
+            borderRadius: 140,
             tintColor: orb1Color,
             transform: [{ translateX: orb1X }, { translateY: orb1Y }],
           },
@@ -243,13 +243,13 @@ export default function AmbientBackground({ isStatic = false }: { isStatic?: boo
       {/* ── Aurora Orb 2 (Rose/Red) ── */}
       <Animated.Image
         source={blurDotSource}
-        blurRadius={Platform.OS === 'ios' ? 80 : 40}
+        blurRadius={Platform.OS === 'ios' ? 80 : 25}
         style={[
           styles.orb,
           {
-            width: 420,
-            height: 420,
-            borderRadius: 210,
+            width: 340,
+            height: 340,
+            borderRadius: 170,
             tintColor: orb2Color,
             transform: [{ translateX: orb2X }, { translateY: orb2Y }],
           },

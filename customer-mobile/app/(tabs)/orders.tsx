@@ -6,6 +6,7 @@ import { COLORS, SHADOWS } from '../../constants/theme';
 import { ENDPOINTS } from '../../constants/api';
 import { useTheme } from '../../context/ThemeContext';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { apiFetch } from '../../utils/auth';
 import AmbientBackground from '../../components/AmbientBackground';
 import { StaggeredSection, BounceIn, FloatingPulse, PulseGlow } from '../../components/AnimatedSection';
@@ -54,6 +55,7 @@ const ScalePressable = ({ children, onPress, style, activeOpacity = 0.85 }: any)
 export default function OrdersScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
+  const { user } = useAuth();
   const { addToCart, clearCart, cart } = useCart();
   const [orders, setOrders] = useState<any[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -128,6 +130,33 @@ export default function OrdersScreen() {
   const txt = isDark ? COLORS.textPrimary : COLORS.textDark;
   const txtSec = isDark ? COLORS.textSecondary : COLORS.textDarkSecondary;
   const border = isDark ? 'rgba(255, 255, 255, 0.08)' : COLORS.borderLight;
+
+  if (!user) {
+    return (
+      <View style={[st.container, { backgroundColor: isDark ? '#0B0B0D' : COLORS.bgLight, justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+        <AmbientBackground />
+        <Text style={{ fontSize: 48, marginBottom: 16 }}>🔐</Text>
+        <Text style={{ fontSize: 18, fontWeight: '900', color: txt, letterSpacing: 2, textAlign: 'center', marginBottom: 8 }}>
+          AUTHENTICATION REQUIRED
+        </Text>
+        <Text style={{ fontSize: 11, color: txtSec, fontWeight: '600', textAlign: 'center', marginBottom: 24, lineHeight: 18 }}>
+          Please sign in to access your secure Zenvy order records and tracking missions.
+        </Text>
+        <TouchableOpacity 
+          style={{ 
+            backgroundColor: COLORS.red, 
+            paddingHorizontal: 32, 
+            paddingVertical: 14, 
+            borderRadius: 16, 
+            ...SHADOWS.redGlow 
+          }} 
+          onPress={() => router.push('/login' as any)}
+        >
+          <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '900', letterSpacing: 2 }}>SIGN IN / SIGN UP</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const toggleExpand = (id: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);

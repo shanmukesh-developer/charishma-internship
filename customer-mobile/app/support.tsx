@@ -99,7 +99,7 @@ export default function SupportScreen() {
           <Text style={[s.backIcon, { color: txt }]}>‹</Text>
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={[s.subText, { color: goldColor }]}>STRATEGIC ASSISTANCE PROTOCOL</Text>
+          <Text style={[s.subText, { color: goldColor }]}>CUSTOMER HELP & SUPPORT</Text>
           <Text style={[s.title, { color: txt }]}>Support Center</Text>
         </View>
         <TouchableOpacity 

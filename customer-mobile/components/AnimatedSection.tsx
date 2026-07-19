@@ -20,8 +20,6 @@ export function StaggeredSection({ children, delay = 0, duration = 500, directio
   const slideAnim = useRef(new Animated.Value(direction === 'up' ? 30 : direction === 'down' ? -30 : direction === 'left' ? 40 : -40)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
-  const useNative = Platform.OS !== 'android';
-
   useEffect(() => {
     const timeout = setTimeout(() => {
       Animated.parallel([
@@ -29,19 +27,19 @@ export function StaggeredSection({ children, delay = 0, duration = 500, directio
           toValue: 1,
           duration,
           easing: Easing.out(Easing.cubic),
-          useNativeDriver: useNative,
+          useNativeDriver: true,
         }),
         Animated.spring(slideAnim, {
           toValue: 0,
           friction: 8,
           tension: 40,
-          useNativeDriver: useNative,
+          useNativeDriver: true,
         }),
         Animated.spring(scaleAnim, {
           toValue: 1,
           friction: 8,
           tension: 40,
-          useNativeDriver: useNative,
+          useNativeDriver: true,
         }),
       ]).start();
     }, delay);
@@ -99,7 +97,7 @@ export function ShimmerSkeleton({ width, height, borderRadius = 12, style }: Shi
 
   return (
     <View style={[{ width: width as any, height, borderRadius, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.06)' }, style]}>
-      <Animated.View style={{ ...StyleSheet.absoluteFillObject, transform: [{ translateX }] }}>
+      <Animated.View style={{ ...StyleSheet.absoluteFill, transform: [{ translateX }] }}>
         <LinearGradient
           colors={['transparent', 'rgba(255,255,255,0.08)', 'rgba(255,255,255,0.15)', 'rgba(255,255,255,0.08)', 'transparent']}
           start={{ x: 0, y: 0.5 }}
@@ -203,7 +201,7 @@ export function FloatingPulse({ children, color = '#EF4F5F', style }: FloatingPu
     <View style={[{ position: 'relative' }, style]}>
       <Animated.View
         style={{
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
           borderRadius: 999,
           backgroundColor: color,
           opacity: breathOpacity,

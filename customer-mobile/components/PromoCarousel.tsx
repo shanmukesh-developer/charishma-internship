@@ -28,21 +28,27 @@ export default function PromoCarousel({ offers, containerStyle }: PromoCarouselP
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
-  // Auto-scroll loop
+  const currentIndexRef = useRef(0);
+
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+
+  // Auto-scroll loop (3 seconds interval for snappy ad-like slides)
   useEffect(() => {
     if (offers.length <= 1) return;
 
     const interval = setInterval(() => {
-      const nextIndex = (currentIndex + 1) % offers.length;
+      const nextIndex = (currentIndexRef.current + 1) % offers.length;
       setCurrentIndex(nextIndex);
       flatListRef.current?.scrollToIndex({
         index: nextIndex,
         animated: true,
       });
-    }, 4000);
+    }, 3000);
 
     return () => clearInterval(interval);
-  }, [currentIndex, offers.length]);
+  }, [offers.length]);
 
   const onMomentumScrollEnd = (e: any) => {
     const contentOffset = e.nativeEvent.contentOffset.x;

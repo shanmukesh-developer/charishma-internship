@@ -23,6 +23,8 @@ const { initPGBookingModel } = require('../models/PGBooking');
 const { initMegaBasketModel } = require('../models/MegaBasket');
 const { initMegaBasketItemModel } = require('../models/MegaBasketItem');
 const { initAppConfigModel } = require('../models/AppConfig');
+const { initBirthdayCelebrationModel } = require('../models/BirthdayCelebration');
+const { initBirthdayWishModel } = require('../models/BirthdayWish');
 
 const initializeAllModels = (instance) => {
   initUserModel(instance);
@@ -44,6 +46,8 @@ const initializeAllModels = (instance) => {
   initPGBookingModel(instance);
   initMegaBasketModel(instance);
   initMegaBasketItemModel(instance);
+  initBirthdayCelebrationModel(instance);
+  initBirthdayWishModel(instance);
 
   // Define Associations
   const Restaurant = instance.models.Restaurant;
