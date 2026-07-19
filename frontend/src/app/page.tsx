@@ -20,6 +20,7 @@ const IntroOverlay = dynamic(() => import('@/components/IntroOverlay'), { ssr: f
 const ZenvyVault = dynamic(() => import('@/components/ZenvyVault'), { ssr: false });
 const NexusExplorer = dynamic(() => import('@/components/NexusExplorer'), { ssr: false });
 const CampusBitesSection = dynamic(() => import('@/components/CampusBitesSection'), { ssr: false });
+import ZenvyEcosystemGrid from '@/components/ZenvyEcosystemGrid';
 import LiveOrderStatusBar from '@/components/LiveOrderStatusBar';
 import ScrollProgressIndicator from '@/components/ScrollProgressIndicator';
 import Magnetic from '@/components/Magnetic';
@@ -1269,6 +1270,9 @@ export default function Home() {
               ))}
             </div>
           </section>
+
+          {/* 🌐 Mega Market Ecosystem Services */}
+          <ZenvyEcosystemGrid />
 
           {/* 🏪 CampusBites: Local Vendor Stalls */}
           <CampusBitesSection restaurants={liveRestaurants} />
