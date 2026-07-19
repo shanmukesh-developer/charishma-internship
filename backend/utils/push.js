@@ -1,7 +1,7 @@
 const admin = require('../config/firebase');
 const { getMessaging } = require('firebase-admin/messaging');
 
-const sendPushToTokens = async (tokens, title, body, data = {}) => {
+const sendPushToTokens = async (tokens, title, body, data = {}, extraFCMOptions = {}) => {
   const apps = (admin.getApps ? admin.getApps() : admin.apps) || [];
   if (!apps.length) return console.log('Firebase not initialized');
   let tokenList = tokens;
@@ -24,6 +24,7 @@ const sendPushToTokens = async (tokens, title, body, data = {}) => {
     },
     data,
     tokens: validTokens,
+    ...extraFCMOptions
   };
 
   try {
@@ -35,14 +36,15 @@ const sendPushToTokens = async (tokens, title, body, data = {}) => {
   }
 };
 
-const sendPushToTopic = async (topic, title, body, data = {}) => {
+const sendPushToTopic = async (topic, title, body, data = {}, extraFCMOptions = {}) => {
   const apps = (admin.getApps ? admin.getApps() : admin.apps) || [];
   if (!apps.length) return console.log('Firebase not initialized');
 
   const message = {
     notification: { title, body },
     data,
-    topic
+    topic,
+    ...extraFCMOptions
   };
 
   try {

@@ -97,6 +97,36 @@ router.post('/', protect, async (req, res) => {
       productName: isReview ? (productName || null) : null
     });
 
+    // --- BIRTHDAY BROADCAST LOGIC ---
+    // If the post is explicitly marked as a birthday or contains birthday keywords,
+    // we trigger an automatic specially themed broadcast to all users!
+    const isBirthdayPost = postType === 'birthday' || 
+      (content && (content.toLowerCase().includes('happy birthday') || content.toLowerCase().includes('hbd')));
+      
+    if (isBirthdayPost) {
+      const { sendPushToTopic } = require('../utils/push');
+      
+      // We pass a custom theme flag and android-specific rich styling for the push
+      await sendPushToTopic(
+        'all',
+        `🎉 🎂 Birthday Alert! 🎂 🎉`,
+        `Someone just posted a birthday wish for ${newPost.userName} in the community! Join the celebration! ✨`,
+        {
+          type: 'BIRTHDAY_ALERT',
+          postId: String(newPost.id),
+          theme: 'birthday_party_special' // App can read this to show confetti/special UI
+        },
+        {
+          android: {
+            notification: {
+              color: '#FF1493', // Deep Pink theme
+              sound: 'default'
+            }
+          }
+        }
+      ).catch(e => console.error('Birthday push broadcast error:', e));
+    }
+
     res.status(201).json(newPost);
   } catch (error) {
     console.error('Create post error:', error);
