@@ -134,6 +134,7 @@ export default function HomeScreen() {
 
   // Favorites state and logic
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     Animated.loop(
@@ -315,7 +316,23 @@ export default function HomeScreen() {
           console.error(e);
         }
       };
+      const checkUnread = async () => {
+        try {
+          const stored = await AsyncStorage.getItem('zenvy_notifications');
+          if (stored) {
+            const notifs = JSON.parse(stored);
+            if (Array.isArray(notifs)) {
+              setUnreadCount(notifs.filter((n: any) => !n.read).length);
+            }
+          } else {
+            setUnreadCount(2); // Default mock notifications
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
       loadDietPrefs();
+      checkUnread();
     }, [])
   );
 
@@ -450,7 +467,11 @@ export default function HomeScreen() {
         {/* ── NAVBAR ── */}
         <StaggeredSection delay={0} direction="down">
         <View style={s.nav}>
-          <View style={s.navLeft}>
+          <TouchableOpacity 
+            style={s.navLeft}
+            activeOpacity={0.8}
+            onPress={() => router.push('/(tabs)/profile')}
+          >
             <View style={[s.avatar, { backgroundColor: cardBg, borderColor: goldBorderColor }, user?.isElite && [s.avatarElite, { borderColor: goldColor }, goldGlowShadow]]}>
               <Text style={[s.avatarText, { color: goldColor }]}>{(user?.name||'Z').substring(0,2).toUpperCase()}</Text>
             </View>
@@ -461,7 +482,7 @@ export default function HomeScreen() {
                 {user?.isElite && <BounceIn delay={400}><View style={[s.eliteBadge, { backgroundColor: goldColor }]}><Text style={s.eliteBadgeText}>ELITE</Text></View></BounceIn>}
               </View>
             </View>
-          </View>
+          </TouchableOpacity>
           <View style={s.navRight}>
             <DopaminePressable 
               style={[s.navBtn, { backgroundColor: cardBg, borderColor: goldBorderColor }]} 
@@ -473,12 +494,12 @@ export default function HomeScreen() {
             </DopaminePressable>
             <DopaminePressable 
               style={[s.navBtn, { backgroundColor: cardBg, borderColor: goldBorderColor }, s.profileBtn, { borderColor: goldColor }, goldGlowShadow]} 
-              onPress={() => router.push('/(tabs)/profile')}
+              onPress={() => router.push('/notifications' as any)}
               sound="click"
               activeScale={0.9}
             >
-              <Text style={{ fontSize: 18 }}>👤</Text>
-              {totalItems > 0 && <BounceIn><View style={s.badge}><Text style={s.badgeText}>{totalItems}</Text></View></BounceIn>}
+              <Text style={{ fontSize: 18 }}>🔔</Text>
+              {unreadCount > 0 && <BounceIn><View style={s.badge}><Text style={s.badgeText}>{unreadCount}</Text></View></BounceIn>}
             </DopaminePressable>
           </View>
         </View>

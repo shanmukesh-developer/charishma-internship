@@ -84,6 +84,7 @@ export default function GlobalAnnouncement() {
   }, [user]);
 
   useEffect(() => {
+    let responseSub: any;
     // Set notification handler at runtime (not module scope — avoids Android crash)
     try {
       Notifications.setNotificationHandler({
@@ -95,8 +96,53 @@ export default function GlobalAnnouncement() {
           shouldShowList: true,
         }),
       });
+
+      // Register notification category for calls with action buttons (WhatsApp style)
+      Notifications.setNotificationCategoryAsync('incoming-call', [
+        {
+          identifier: 'ANSWER',
+          buttonTitle: '🟢 Answer',
+          options: {
+            opensAppToForeground: true,
+          },
+        },
+        {
+          identifier: 'DECLINE',
+          buttonTitle: '🔴 Decline',
+          options: {
+            opensAppToForeground: false,
+            isDestructive: true,
+          },
+        },
+      ]);
     } catch (e) {
       console.warn('Failed to set notification handler:', e);
+    }
+
+    // Response listener when notification clicked or button pressed
+    try {
+      responseSub = Notifications.addNotificationResponseReceivedListener(async response => {
+        try {
+          const { actionIdentifier, notification } = response;
+          const data = notification.request.content.data;
+          if (data?.type === 'call') {
+            if (actionIdentifier === 'ANSWER' || actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+              // Store auto-answer request
+              await AsyncStorage.setItem('zenvy_auto_answer_call', JSON.stringify({
+                callerName: data.callerName || 'Alex (Developer)',
+                mode: data.mode || 'audio'
+              }));
+              // Redirect to community Tab
+              const { router } = require('expo-router');
+              router.push('/community');
+            }
+          }
+        } catch (err) {
+          console.warn('Error handling notification response:', err);
+        }
+      });
+    } catch (e) {
+      console.warn('Failed to add notification response listener:', e);
     }
 
     // Request notification permissions gracefully
@@ -136,6 +182,26 @@ export default function GlobalAnnouncement() {
         console.warn('Native notification failed', err);
       }
 
+      // Save notification in AsyncStorage history
+      try {
+        const stored = await AsyncStorage.getItem('zenvy_notifications');
+        const notifs = stored ? JSON.parse(stored) : [];
+        const newNotif = {
+          id: Math.random().toString(),
+          title: data.type === 'emergency' ? '🚨 Zenvy Alert' : data.type === 'promo' ? '🎉 Zenvy Update' : '📢 Zenvy Announcement',
+          body: processedMessage,
+          timestamp: new Date().toISOString(),
+          type: data.type,
+          read: false
+        };
+        if (Array.isArray(notifs)) {
+          notifs.unshift(newNotif);
+          await AsyncStorage.setItem('zenvy_notifications', JSON.stringify(notifs));
+        }
+      } catch (e) {
+        console.warn('Error saving notification history:', e);
+      }
+
       setAnnouncement({ ...data, message: processedMessage });
       
       Animated.spring(slideAnim, {
@@ -152,7 +218,10 @@ export default function GlobalAnnouncement() {
       }
     });
 
-    return () => { socket.disconnect(); };
+    return () => {
+      socket.disconnect();
+      if (responseSub) responseSub.remove();
+    };
   }, [user, topOffset]);
 
   const hideAnnouncement = () => {

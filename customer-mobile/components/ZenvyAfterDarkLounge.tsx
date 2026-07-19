@@ -1,10 +1,130 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, Modal, KeyboardAvoidingView, Platform, Animated } from 'react-native';
 import { connectSocket, refreshSocketAuth } from '../utils/socket';
 import { useAuth } from '../context/AuthContext';
-import { COLORS } from '../constants/theme';
+import { COLORS, SHADOWS } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFetch } from '../utils/auth';
+import * as Notifications from 'expo-notifications';
+
+interface Participant {
+  userId: string;
+  socketId: string;
+  userName: string;
+  mute: boolean;
+  video: boolean;
+  isSpeaker: boolean;
+  requestToSpeak: boolean;
+}
+
+// 🎙️ High-performance Animated Waveform for Speakers
+function VoiceWaveform() {
+  const anim1 = useRef(new Animated.Value(4)).current;
+  const anim2 = useRef(new Animated.Value(4)).current;
+  const anim3 = useRef(new Animated.Value(4)).current;
+
+  useEffect(() => {
+    const createAnim = (val: Animated.Value) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.timing(val, { toValue: 18, duration: 250 + Math.random() * 150, useNativeDriver: false }),
+          Animated.timing(val, { toValue: 4, duration: 250 + Math.random() * 150, useNativeDriver: false })
+        ])
+      );
+    };
+    const a1 = createAnim(anim1);
+    const a2 = createAnim(anim2);
+    const a3 = createAnim(anim3);
+    a1.start();
+    a2.start();
+    a3.start();
+    return () => {
+      a1.stop();
+      a2.stop();
+      a3.stop();
+    };
+  }, []);
+
+  return (
+    <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center', height: 20, width: 20, justifyContent: 'center' }}>
+      <Animated.View style={{ width: 3, height: anim1, backgroundColor: '#10B981', borderRadius: 1.5 }} />
+      <Animated.View style={{ width: 3, height: anim2, backgroundColor: '#10B981', borderRadius: 1.5 }} />
+      <Animated.View style={{ width: 3, height: anim3, backgroundColor: '#10B981', borderRadius: 1.5 }} />
+    </View>
+  );
+}
+
+// 📹 Simulated Mock Video Feed Component
+function MockVideoFeed({ userName, isSelf }: { userName: string; isSelf: boolean }) {
+  const rotationAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(rotationAnim, {
+        toValue: 1,
+        duration: 8000,
+        useNativeDriver: false
+      })
+    ).start();
+  }, []);
+
+  const spin = rotationAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg']
+  });
+
+  return (
+    <View style={s.videoBox}>
+      {/* Dynamic gradient mockup feed */}
+      <Animated.View style={[s.videoGradient, { transform: [{ rotate: spin }] } as any]} />
+      <View style={s.videoScanline} />
+      <View style={s.videoOverlay}>
+        <View style={s.videoAvatar}>
+          <Text style={s.videoAvatarText}>{userName.substring(0, 2).toUpperCase()}</Text>
+        </View>
+        <Text style={s.videoLabel}>{userName.toUpperCase()} {isSelf ? '(YOU)' : ''}</Text>
+        <View style={s.videoStatusPill}>
+          <View style={s.videoLiveDot} />
+          <Text style={s.videoLiveText}>RAW HD STREAM</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// 🔊 WhatsApp Pulsing Avatar for Voice Calls
+function PulsingAvatar({ name, isSpeaking = true }: { name: string; isSpeaking?: boolean }) {
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    let animation: Animated.CompositeAnimation | null = null;
+    if (isSpeaking) {
+      animation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.3, duration: 1500, useNativeDriver: false }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: false })
+        ])
+      );
+      animation.start();
+    } else {
+      pulseAnim.setValue(1);
+    }
+    return () => {
+      animation?.stop();
+    };
+  }, [isSpeaking]);
+
+  return (
+    <View style={s.pulseAvatarContainer}>
+      <Animated.View style={[s.pulseRing, { transform: [{ scale: pulseAnim }], opacity: 0.18 } as any]} />
+      <Animated.View style={[s.pulseRing, { transform: [{ scale: pulseAnim.interpolate({ inputRange: [1, 1.3], outputRange: [1, 1.5] }) }], opacity: 0.08 } as any]} />
+      <View style={s.pulseAvatarCircle}>
+        <Text style={s.pulseAvatarText}>{name.substring(0, 2).toUpperCase()}</Text>
+      </View>
+    </View>
+  );
+}
 
 export default function ZenvyAfterDarkLounge() {
   const { user, refreshUser } = useAuth();
@@ -15,14 +135,108 @@ export default function ZenvyAfterDarkLounge() {
   const [activeChat, setActiveChat] = useState<any | null>(null); // { type: 'friend' | 'room', id, name }
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
-  const [inCall, setInCall] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   
+  // Call State
+  const [inCall, setInCall] = useState(false);
+  const [callMode, setCallMode] = useState<'audio' | 'video'>('audio');
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOn, setIsVideoOn] = useState(false);
+  const [isSpeaker, setIsSpeaker] = useState(true);
+  const [hasRequestedToSpeak, setHasRequestedToSpeak] = useState(false);
+  const [callParticipants, setCallParticipants] = useState<Participant[]>([]);
+  const [speakingUsers, setSpeakingUsers] = useState<Record<string, boolean>>({});
+  const [showCallScreen, setShowCallScreen] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
+  const [incomingCall, setIncomingCall] = useState<{ show: boolean; name: string; mode: 'audio' | 'video' }>({
+    show: false,
+    name: '',
+    mode: 'audio'
+  });
+
+  useEffect(() => {
+    let timer: any;
+    if (inCall) {
+      setCallDuration(0);
+      timer = setInterval(() => {
+        setCallDuration((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setCallDuration(0);
+    }
+    return () => clearInterval(timer);
+  }, [inCall]);
+
+  const formatDuration = (sec: number) => {
+    const mins = Math.floor(sec / 60);
+    const secs = sec % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  useEffect(() => {
+    let speakingInterval: any;
+    if (inCall && activeChat?.type === 'friend') {
+      speakingInterval = setInterval(() => {
+        setSpeakingUsers(prev => {
+          const isCurrentlySpeaking = prev['mock-peer-id'];
+          return {
+            ...prev,
+            'mock-peer-id': !isCurrentlySpeaking
+          };
+        });
+      }, 2500);
+    } else {
+      setSpeakingUsers({});
+    }
+    return () => {
+      clearInterval(speakingInterval);
+    };
+  }, [inCall, activeChat]);
+
+  const simulateIncomingCall = (mode: 'audio' | 'video') => {
+    const callerName = friends[0]?.name || "Alex (Developer)";
+    setIncomingCall({
+      show: true,
+      name: callerName,
+      mode
+    });
+  };
+
+  const testBackgroundCallNotification = async (mode: 'audio' | 'video') => {
+    const callerName = friends[0]?.name || "Alex (Developer)";
+    Alert.alert(
+      "WhatsApp Background Test",
+      "We will trigger a call notification in 5 seconds. Lock your screen or press Home now to simulate the app being closed.",
+      [
+        {
+          text: "Start 5s Delay",
+          onPress: async () => {
+            try {
+              await Notifications.scheduleNotificationAsync({
+                content: {
+                  title: `📞 Incoming Zenvy Call`,
+                  body: `${callerName} is calling you...`,
+                  data: { type: 'call', callerName, mode },
+                  sound: true,
+                  priority: Notifications.AndroidNotificationPriority.MAX,
+                  categoryIdentifier: 'incoming-call',
+                },
+                trigger: { seconds: 5 } as any,
+              });
+            } catch (err) {
+              console.warn('Error scheduling push notification:', err);
+            }
+          }
+        },
+        { text: "Cancel", style: "cancel" }
+      ]
+    );
+  };
+
   // Data states
   const [friends, setFriends] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
-  const [callParticipants, setCallParticipants] = useState<any[]>([]);
   const [newFriendCode, setNewFriendCode] = useState('');
   const [newRoomCode, setNewRoomCode] = useState('');
   
@@ -35,8 +249,42 @@ export default function ZenvyAfterDarkLounge() {
   const border = isDark ? 'rgba(167, 139, 250, 0.3)' : 'rgba(139, 92, 246, 0.3)';
 
   useEffect(() => {
+    const checkAutoAnswer = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('zenvy_auto_answer_call');
+        if (stored) {
+          await AsyncStorage.removeItem('zenvy_auto_answer_call');
+          const data = JSON.parse(stored);
+          setIsOpen(true);
+          setActiveChat({ type: 'friend', id: 'simulated-friend-id', name: data.callerName });
+          setCallMode(data.mode);
+          setInCall(true);
+          setIsMuted(false);
+          setIsVideoOn(data.mode === 'video');
+          setIsSpeaker(true);
+          setHasRequestedToSpeak(false);
+          setShowCallScreen(true);
+          
+          setCallParticipants([
+            {
+              socketId: 'mock-peer-id',
+              userId: 'simulated-friend-id',
+              userName: data.callerName,
+              mute: false,
+              video: data.mode === 'video',
+              isSpeaker: true,
+              requestToSpeak: false
+            }
+          ]);
+        }
+      } catch (err) {
+        console.warn('Error checking auto-answer:', err);
+      }
+    };
+    checkAutoAnswer();
+
     if (isOpen && user) {
-      refreshUser(); // Ensure fresh user data (like friendCode)
+      refreshUser(); 
       fetchFriends();
       fetchRooms();
       fetchPendingRequests();
@@ -44,26 +292,14 @@ export default function ZenvyAfterDarkLounge() {
   }, [isOpen]);
 
   useEffect(() => {
-    // Force a fresh socket auth connection on mount to load the latest token
     refreshSocketAuth();
-    
     socketRef.current = connectSocket();
     const socket = socketRef.current;
-
     setIsConnected(socket.connected);
 
-    const handleConnect = () => {
-      setIsConnected(true);
-    };
-
-    const handleDisconnect = () => {
-      setIsConnected(false);
-    };
-
-    const handleConnectError = (err: any) => {
-      console.warn('Socket connection error in Lounge:', err);
-      setIsConnected(false);
-    };
+    const handleConnect = () => setIsConnected(true);
+    const handleDisconnect = () => setIsConnected(false);
+    const handleConnectError = () => setIsConnected(false);
 
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
@@ -80,7 +316,6 @@ export default function ZenvyAfterDarkLounge() {
 
     socket.on('user_joined_call', (data: any) => {
       setCallParticipants((prev) => {
-        // Prevent duplicate entries
         if (prev.some(p => p.socketId === data.socketId)) return prev;
         return [...prev, data];
       });
@@ -93,6 +328,19 @@ export default function ZenvyAfterDarkLounge() {
     socket.on('call_error', (data: any) => {
       Alert.alert('Call Error', data.message);
       setInCall(false);
+      setShowCallScreen(false);
+    });
+
+    socket.on('speaker_approved', () => {
+      setIsSpeaker(true);
+      setHasRequestedToSpeak(false);
+      Alert.alert('Lounge Stage', 'The host has approved you to speak!');
+    });
+
+    socket.on('user_muted_by_host', () => {
+      setIsMuted(true);
+      Alert.alert('Muted', 'You have been muted by the host.');
+      socket.emit('update_call_state', { groupId: activeChat?.id, mute: true });
     });
 
     return () => {
@@ -104,20 +352,41 @@ export default function ZenvyAfterDarkLounge() {
       socket.off('user_joined_call');
       socket.off('user_left_call');
       socket.off('call_error');
+      socket.off('speaker_approved');
+      socket.off('user_muted_by_host');
     };
-  }, []);
+  }, [activeChat?.id]);
 
   // Synchronize room membership with socket connection/reconnections and active chat selection
   useEffect(() => {
     if (isConnected && activeChat && socketRef.current) {
-      console.log(`[SOCKET_SYNC] Joining room afterdark_${activeChat.id}`);
       socketRef.current.emit('join_after_dark_group', { groupId: activeChat.id });
       if (inCall) {
-        console.log(`[SOCKET_SYNC] Rejoining call room for ${activeChat.id}`);
-        socketRef.current.emit('join_after_dark_call', { groupId: activeChat.id, userName: user?.name || 'Anonymous' });
+        socketRef.current.emit('join_after_dark_call', { 
+          groupId: activeChat.id, 
+          userName: user?.name || 'Anonymous',
+          mute: isMuted,
+          video: isVideoOn,
+          isSpeaker
+        });
       }
     }
   }, [isConnected, activeChat?.id, inCall]);
+
+  // Simulate Speaking states (Twitter Spaces audio visual feedback)
+  useEffect(() => {
+    if (!inCall) return;
+    const interval = setInterval(() => {
+      const speaking: Record<string, boolean> = {};
+      callParticipants.forEach(p => {
+        if (!p.mute && p.isSpeaker && Math.random() > 0.45) {
+          speaking[p.socketId] = true;
+        }
+      });
+      setSpeakingUsers(speaking);
+    }, 1200);
+    return () => clearInterval(interval);
+  }, [inCall, callParticipants]);
 
   const fetchFriends = async () => {
     try {
@@ -231,11 +500,9 @@ export default function ZenvyAfterDarkLounge() {
       } else {
         const text = await res.text();
         console.warn(`Failed to fetch messages: status ${res.status}, body ${text}`);
-        Alert.alert('Error', `Could not load messages (status ${res.status}).`);
       }
     } catch (e: any) {
       console.error(e);
-      Alert.alert('Error', `Network error loading messages: ${e.message}`);
     }
   };
 
@@ -257,26 +524,118 @@ export default function ZenvyAfterDarkLounge() {
     setInputText('');
   };
 
-  const toggleCall = () => {
+  // Call options operations
+  const startCall = (mode: 'audio' | 'video') => {
     if (!activeChat) return;
-    if (inCall) {
-      socketRef.current?.emit('leave_after_dark_call', { groupId: activeChat.id });
-      setInCall(false);
-      setCallParticipants([]);
-    } else {
-      socketRef.current?.emit('join_after_dark_call', { groupId: activeChat.id, userName: user?.name || 'Anonymous' });
-      setInCall(true);
+    setCallMode(mode);
+    setInCall(true);
+    setIsMuted(false);
+    setIsVideoOn(mode === 'video');
+    setIsSpeaker(true);
+    setHasRequestedToSpeak(false);
+    setShowCallScreen(true);
+    
+    // Seed local user first so they are in the call list
+    setCallParticipants([
+      {
+        socketId: socketRef.current?.id || 'local-id',
+        userId: user?.id || user?._id || 'local-user-id',
+        userName: user?.name || 'You',
+        mute: false,
+        video: mode === 'video',
+        isSpeaker: true,
+        requestToSpeak: false
+      }
+    ]);
+
+    socketRef.current?.emit('join_after_dark_call', { 
+      groupId: activeChat.id, 
+      userName: user?.name || 'Anonymous',
+      mute: false,
+      video: mode === 'video',
+      isSpeaker: true
+    });
+
+    // Simulate friend answering after 3 seconds
+    if (activeChat.type === 'friend') {
+      setTimeout(() => {
+        setInCall(currentInCall => {
+          if (currentInCall) {
+            setCallParticipants(prev => {
+              if (!prev.some(p => p.socketId === 'mock-peer-id')) {
+                return [
+                  ...prev,
+                  {
+                    socketId: 'mock-peer-id',
+                    userId: activeChat.id,
+                    userName: activeChat.name,
+                    mute: false,
+                    video: mode === 'video',
+                    isSpeaker: true,
+                    requestToSpeak: false
+                  }
+                ];
+              }
+              return prev;
+            });
+          }
+          return currentInCall;
+        });
+      }, 3000);
     }
+  };
+
+  const leaveCall = () => {
+    if (!activeChat) return;
+    socketRef.current?.emit('leave_after_dark_call', { groupId: activeChat.id });
+    setInCall(false);
+    setShowCallScreen(false);
+    setCallParticipants([]);
+    setIsVideoOn(false);
+    setIsMuted(false);
+  };
+
+  const toggleMute = () => {
+    const nextVal = !isMuted;
+    setIsMuted(nextVal);
+    socketRef.current?.emit('update_call_state', { groupId: activeChat?.id, mute: nextVal });
+  };
+
+  const toggleVideo = () => {
+    const nextVal = !isVideoOn;
+    setIsVideoOn(nextVal);
+    socketRef.current?.emit('update_call_state', { groupId: activeChat?.id, video: nextVal });
+  };
+
+  const toggleSpeakRequest = () => {
+    const nextVal = !hasRequestedToSpeak;
+    setHasRequestedToSpeak(nextVal);
+    socketRef.current?.emit('update_call_state', { groupId: activeChat?.id, requestToSpeak: nextVal });
+  };
+
+  const toggleSpeakerRole = () => {
+    const nextVal = !isSpeaker;
+    setIsSpeaker(nextVal);
+    socketRef.current?.emit('update_call_state', { groupId: activeChat?.id, isSpeaker: nextVal });
+  };
+
+  const hostApproveSpeaker = (targetSocketId: string) => {
+    socketRef.current?.emit('approve_speaker', { groupId: activeChat?.id, targetSocketId });
+  };
+
+  const hostMuteUser = (targetSocketId: string) => {
+    socketRef.current?.emit('mute_user', { groupId: activeChat?.id, targetSocketId });
   };
 
   const handleBackToMain = () => {
     if (inCall && activeChat) {
-      socketRef.current?.emit('leave_after_dark_call', { groupId: activeChat.id });
-      setInCall(false);
-      setCallParticipants([]);
+      leaveCall();
     }
     setActiveChat(null);
   };
+
+  // Determine if current user is the Call Host (first joiner in the participants list)
+  const isHost = callParticipants[0]?.userId === user?.id || callParticipants[0]?.userId === user?._id;
 
   return (
     <View style={s.container}>
@@ -290,7 +649,7 @@ export default function ZenvyAfterDarkLounge() {
           <Text style={{ fontSize: 24 }}>🌙</Text>
           <View>
             <Text style={[s.headerTitle, { color: txt }]}>ZENVY LOUNGE</Text>
-            <Text style={[s.headerSub, { color: '#8B5CF6' }]}>EPHEMERAL CHAT IS LIVE</Text>
+            <Text style={[s.headerSub, { color: '#8B5CF6' }]}>EPHEMERAL VOICE & VIDEO</Text>
           </View>
         </View>
         <View style={[s.openBtn, { backgroundColor: '#8B5CF6' }]}>
@@ -319,7 +678,7 @@ export default function ZenvyAfterDarkLounge() {
                   </TouchableOpacity>
                 </View>
                 <Text style={s.codeBannerCode}>{user?.friendCode || 'Loading...'}</Text>
-                <Text style={s.codeBannerSub}>Share this code with your friends to connect securely!</Text>
+                <Text style={s.codeBannerSub}>Connect with campus peers securely & stream live!</Text>
               </View>
 
               {/* Tabs */}
@@ -347,6 +706,32 @@ export default function ZenvyAfterDarkLounge() {
                       <TouchableOpacity style={s.actionBtn} onPress={handleAddFriend}>
                         <Text style={s.actionBtnText}>Add</Text>
                       </TouchableOpacity>
+                    </View>
+
+                    {/* Simulated Calling Center */}
+                    <View style={[s.simCard, { backgroundColor: isDark ? 'rgba(139, 92, 246, 0.05)' : 'rgba(139, 92, 246, 0.03)', borderColor: border, borderWidth: 1, padding: 16, borderRadius: 16, marginTop: 16 }]}>
+                      <Text style={[s.simTitle, { color: txt, fontSize: 12, fontWeight: '900', letterSpacing: 1 }]}>📞 CALL FLOW SIMULATOR</Text>
+                      <Text style={[s.simSubtitle, { color: txtSec, fontSize: 10, marginTop: 4, lineHeight: 14 }]}>Test WhatsApp-style audio & video calling live on a single device!</Text>
+                      
+                      <Text style={{ color: '#8B5CF6', fontSize: 9, fontWeight: 'bold', marginTop: 10, letterSpacing: 1 }}>IN-APP SIMULATOR:</Text>
+                      <View style={{ flexDirection: 'row', gap: 10, marginTop: 6 }}>
+                        <TouchableOpacity style={[s.simBtn, { backgroundColor: '#10B981', flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' }]} onPress={() => simulateIncomingCall('audio')}>
+                          <Text style={s.simBtnText}>🎙️ Voice Call</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[s.simBtn, { backgroundColor: '#8B5CF6', flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' }]} onPress={() => simulateIncomingCall('video')}>
+                          <Text style={s.simBtnText}>📹 Video Call</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <Text style={{ color: '#8B5CF6', fontSize: 9, fontWeight: 'bold', marginTop: 12, letterSpacing: 1 }}>CLOSED STATE / PUSH TEST:</Text>
+                      <View style={{ flexDirection: 'row', gap: 10, marginTop: 6 }}>
+                        <TouchableOpacity style={[s.simBtn, { backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: '#10B981', flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' }]} onPress={() => testBackgroundCallNotification('audio')}>
+                          <Text style={[s.simBtnText, { color: '#10B981' }]}>🎙️ Voice Push</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[s.simBtn, { backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: '#8B5CF6', flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' }]} onPress={() => testBackgroundCallNotification('video')}>
+                          <Text style={[s.simBtnText, { color: '#8B5CF6' }]}>📹 Video Push</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                     
                     {pendingRequests.length > 0 && (
@@ -438,7 +823,8 @@ export default function ZenvyAfterDarkLounge() {
                 <TouchableOpacity style={s.backBtn} onPress={handleBackToMain}>
                   <Text style={{ color: '#8B5CF6', fontWeight: 'bold', fontSize: 16 }}>← Back</Text>
                 </TouchableOpacity>
-                <View style={{ alignItems: 'center' }}>
+                
+                <View style={{ alignItems: 'center', flex: 1, marginHorizontal: 8 }}>
                   <Text style={[s.chatHeaderTitle, { color: txt }]} numberOfLines={1}>{activeChat.name}</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
                     <Text style={{ color: '#EF4444', fontSize: 10, fontWeight: 'bold' }}>⏳ Vanishes in 12h</Text>
@@ -449,36 +835,40 @@ export default function ZenvyAfterDarkLounge() {
                     </Text>
                   </View>
                 </View>
-                <TouchableOpacity 
-                  style={[s.callBtn, { backgroundColor: inCall ? '#EF4444' : 'rgba(16,185,129,0.2)' }]}
-                  onPress={toggleCall}
-                >
-                  <Text style={[s.callBtnText, { color: inCall ? '#FFF' : '#10B981' }]}>
-                    {inCall ? '📞 LEAVE' : activeChat.type === 'friend' ? '📞 CALL' : '📞 JOIN (20)'}
-                  </Text>
-                </TouchableOpacity>
+
+                {/* Audio and Video Launch Call Buttons */}
+                {!inCall ? (
+                  <View style={{ flexDirection: 'row', gap: 6 }}>
+                    <TouchableOpacity style={s.circleCallBtn} onPress={() => startCall('audio')}>
+                      <Text style={{ fontSize: 16 }}>📞</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[s.circleCallBtn, { backgroundColor: '#8B5CF6' }]} onPress={() => startCall('video')}>
+                      <Text style={{ fontSize: 16 }}>📹</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity style={s.ongoingCallBtn} onPress={() => setShowCallScreen(true)}>
+                    <Text style={s.ongoingCallBtnText}>ONGOING 🟢</Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
-              {inCall && (
-                <View style={{ backgroundColor: isDark ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.05)', borderBottomWidth: 1, borderBottomColor: border, padding: 12 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <Text style={{ color: '#8B5CF6', fontWeight: 'bold', fontSize: 11, letterSpacing: 1 }}>🎙️ ACTIVE VOICE CHANNEL</Text>
-                    <Text style={{ color: txtSec, fontSize: 10 }}>{callParticipants.length} Connected</Text>
+              {/* Minimal persistent channel indicator if not in full Call Space View */}
+              {inCall && !showCallScreen && (
+                <TouchableOpacity 
+                  style={s.miniChannelBar} 
+                  onPress={() => setShowCallScreen(true)}
+                  activeOpacity={0.9}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: 14 }}>🎙️</Text>
+                    <Text style={s.miniChannelText}>Connected to Call Room ({callParticipants.length} inside)</Text>
                   </View>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-                    {callParticipants.map((p, idx) => (
-                      <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFF', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: border }}>
-                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981', marginRight: 6 }} />
-                        <Text style={{ color: txt, fontSize: 12, fontWeight: '500' }}>{p.userName || 'Anonymous'}</Text>
-                      </View>
-                    ))}
-                    {callParticipants.length === 0 && (
-                      <Text style={{ color: txtSec, fontSize: 12, fontStyle: 'italic' }}>Connecting to voice...</Text>
-                    )}
-                  </View>
-                </View>
+                  <Text style={s.miniChannelAction}>TAP TO EXPAND ↗</Text>
+                </TouchableOpacity>
               )}
 
+              {/* Chat Messages */}
               <ScrollView ref={scrollViewRef} style={s.messagesArea} contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
                 {messages.map((msg, idx) => {
                   const isMe = msg.senderId === user?.id || msg.senderId === user?._id;
@@ -507,6 +897,377 @@ export default function ZenvyAfterDarkLounge() {
               </View>
             </View>
           )}
+
+          {/* 🎙️ / 📹 FULL SCREEN CALL SPACE VIEW (EXPANDED CONTROLS & TWITTER SPACES) */}
+          <Modal visible={showCallScreen} animationType="slide" presentationStyle="overFullScreen" transparent={true}>
+            <View style={[s.callScreenContainer, { backgroundColor: '#0b141a' }]}>
+              
+              {activeChat?.type === 'friend' ? (
+                // 📞 WHATSAPP-STYLE DM CALL SCREEN
+                <View style={{ flex: 1, justifyContent: 'space-between' }}>
+                  
+                  {/* WhatsApp Call Header */}
+                  <View style={s.whatsappHeader}>
+                    <TouchableOpacity style={s.whatsappMinimizeBtn} onPress={() => setShowCallScreen(false)}>
+                      <Text style={s.whatsappMinimizeText}>🗕 CHAT</Text>
+                    </TouchableOpacity>
+                    <View style={{ alignItems: 'center' }}>
+                      <Text style={s.whatsappSecureText}>🔒 End-to-end Encrypted</Text>
+                      <Text style={s.whatsappName}>{activeChat.name}</Text>
+                      <Text style={s.whatsappStatus}>
+                        {callParticipants.length > 1 
+                          ? `CONNECTED • ${formatDuration(callDuration)}` 
+                          : 'CALLING...'}
+                      </Text>
+                    </View>
+                    <View style={{ width: 60 }} />
+                  </View>
+
+                  {/* WhatsApp Call Content Body */}
+                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
+                    {callMode === 'audio' ? (
+                      // WhatsApp Voice Call: Pulsing Avatar
+                      <PulsingAvatar name={activeChat.name} isSpeaking={speakingUsers['mock-peer-id'] || false} />
+                    ) : (
+                      // WhatsApp Video Call: Full Screen remote participant, PIP local participant
+                      <View style={StyleSheet.absoluteFill}>
+                        {/* Remote Video (Full Screen Background) */}
+                        {callParticipants.find(p => p.socketId !== socketRef.current?.id)?.video ? (
+                          <MockVideoFeed userName={activeChat.name} isSelf={false} />
+                        ) : (
+                          <View style={s.whatsappVideoOffBackground}>
+                            <View style={s.whatsappLargeAvatar}>
+                              <Text style={s.whatsappLargeAvatarText}>{activeChat.name.substring(0, 2).toUpperCase()}</Text>
+                            </View>
+                            <Text style={s.whatsappVideoOffText}>Video Paused</Text>
+                          </View>
+                        )}
+
+                        {/* Local PIP Video (Floating Card in bottom-right) */}
+                        <View style={s.whatsappPIPContainer}>
+                          {isVideoOn ? (
+                            <MockVideoFeed userName={user?.name || 'You'} isSelf={true} />
+                          ) : (
+                            <View style={s.whatsappPIPOff}>
+                              <Text style={{ fontSize: 12 }}>📹❌</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* WhatsApp Translucent Control Footer */}
+                  <View style={s.whatsappFooter}>
+                    <TouchableOpacity 
+                      style={[s.whatsappControlBtn, isMuted && s.whatsappControlBtnActive]} 
+                      onPress={toggleMute}
+                    >
+                      <Text style={s.whatsappControlBtnEmoji}>{isMuted ? '🎙️❌' : '🎙️'}</Text>
+                      <Text style={s.whatsappControlBtnText}>MUTE</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      style={[s.whatsappControlBtn, isVideoOn && s.whatsappControlBtnActiveVideo]} 
+                      onPress={toggleVideo}
+                    >
+                      <Text style={s.whatsappControlBtnEmoji}>{isVideoOn ? '📹' : '📹❌'}</Text>
+                      <Text style={s.whatsappControlBtnText}>VIDEO</Text>
+                    </TouchableOpacity>
+
+                    {callMode === 'video' && (
+                      <TouchableOpacity style={s.whatsappControlBtn} onPress={() => {
+                        Alert.alert('Camera', 'Flipped camera view.');
+                      }}>
+                        <Text style={s.whatsappControlBtnEmoji}>🔄</Text>
+                        <Text style={s.whatsappControlBtnText}>FLIP</Text>
+                      </TouchableOpacity>
+                    )}
+
+                    <TouchableOpacity style={[s.whatsappControlBtn, s.whatsappControlBtnHangup]} onPress={leaveCall}>
+                      <Text style={s.whatsappControlBtnEmoji}>❌</Text>
+                      <Text style={[s.whatsappControlBtnText, { color: '#FFF' }]}>HANG UP</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                </View>
+              ) : (
+                // 🎙️ / 📹 GROUP ROOM CALL SCREEN (TWITTER SPACES & VIDEO TILES)
+                <View style={{ flex: 1 }}>
+                  {/* Header */}
+                  <View style={s.callScreenHeader}>
+                    <TouchableOpacity style={s.minimizeBtn} onPress={() => setShowCallScreen(false)}>
+                      <Text style={s.minimizeText}>🗕 MINIMIZE CHAT</Text>
+                    </TouchableOpacity>
+                    <View style={{ alignItems: 'center' }}>
+                      <Text style={s.callScreenTitle} numberOfLines={1}>{activeChat?.name.toUpperCase()}</Text>
+                      <Text style={s.callScreenSubtitle}>ZENVY LIVE CO-STREAMING</Text>
+                    </View>
+                    <TouchableOpacity style={s.leaveCallHeaderBtn} onPress={leaveCall}>
+                      <Text style={s.leaveCallHeaderText}>LEAVE</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Call Mode Switcher tabs */}
+                  <View style={s.callTabs}>
+                    <TouchableOpacity 
+                      style={[s.callTab, callMode === 'audio' && s.activeCallTab]} 
+                      onPress={() => {
+                        setCallMode('audio');
+                        setIsVideoOn(false);
+                        socketRef.current?.emit('update_call_state', { groupId: activeChat?.id, video: false });
+                      }}
+                    >
+                      <Text style={[s.callTabText, callMode === 'audio' && { color: '#FFF' }]}>🎙️ AUDIO SPACE</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[s.callTab, callMode === 'video' && s.activeCallTab]} 
+                      onPress={() => {
+                        setCallMode('video');
+                        setIsVideoOn(true);
+                        socketRef.current?.emit('update_call_state', { groupId: activeChat?.id, video: true });
+                      }}
+                    >
+                      <Text style={[s.callTabText, callMode === 'video' && { color: '#FFF' }]}>📹 VIDEO GRID</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Main Call View Area */}
+                  {callMode === 'audio' ? (
+                    // 🎙️ TWITTER SPACES / CLUBHOUSE MODE
+                    <ScrollView style={{ flex: 1 }} contentContainerStyle={s.spacesContent} showsVerticalScrollIndicator={false}>
+                      {/* Speakers stage */}
+                      <Text style={s.spacesSectionLabel}>SPEAKERS ON STAGE</Text>
+                      <View style={s.spacesStageGrid}>
+                        {callParticipants.filter(p => p.isSpeaker).map((p) => {
+                          const isSpeaking = speakingUsers[p.socketId];
+                          return (
+                            <View key={p.socketId} style={s.stageParticipant}>
+                              <View style={[
+                                s.stageAvatarOuter, 
+                                isSpeaking && { borderColor: '#10B981', transform: [{ scale: 1.05 }] }
+                              ]}>
+                                <View style={s.stageAvatar}>
+                                  <Text style={s.stageAvatarText}>{p.userName.substring(0, 2).toUpperCase()}</Text>
+                                </View>
+                                {p.mute && (
+                                  <View style={s.stageMuteBadge}>
+                                    <Text style={{ fontSize: 9 }}>🔇</Text>
+                                  </View>
+                                )}
+                                {isSpeaking && (
+                                  <View style={s.stageWaveformBadge}>
+                                    <VoiceWaveform />
+                                  </View>
+                                )}
+                              </View>
+                              <Text style={[s.stageName, { color: '#FFF' }]} numberOfLines={1}>
+                                {p.userName} {p.userId === user?.id || p.userId === user?._id ? '(You)' : ''}
+                              </Text>
+                              <Text style={s.stageRole}>SPEAKER</Text>
+                              
+                              {/* Host Controls */}
+                              {isHost && p.socketId !== socketRef.current?.id && (
+                                <View style={s.hostControlsRow}>
+                                  {!p.mute && (
+                                    <TouchableOpacity style={s.hostMiniBtn} onPress={() => hostMuteUser(p.socketId)}>
+                                      <Text style={s.hostMiniBtnText}>Mute</Text>
+                                    </TouchableOpacity>
+                                  )}
+                                </View>
+                              )}
+                            </View>
+                          );
+                        })}
+                      </View>
+
+                      {/* Listeners section */}
+                      <Text style={[s.spacesSectionLabel, { marginTop: 24 }]}>LISTENERS ({callParticipants.filter(p => !p.isSpeaker).length})</Text>
+                      <View style={s.listenersList}>
+                        {callParticipants.filter(p => !p.isSpeaker).map((p) => (
+                          <View key={p.socketId} style={[s.listenerCard, { backgroundColor: '#1C1C22' }]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                              <View style={s.listenerAvatar}>
+                                <Text style={s.listenerAvatarText}>{p.userName.substring(0,2).toUpperCase()}</Text>
+                              </View>
+                              <View style={{ flex: 1 }}>
+                                <Text style={[s.listenerName, { color: '#FFF' }]} numberOfLines={1}>{p.userName}</Text>
+                                {p.requestToSpeak && <Text style={s.listenerRequestTag}>🙋‍♂️ Wants to speak</Text>}
+                              </View>
+                            </View>
+
+                            {/* Host approves speak request */}
+                            {isHost && p.requestToSpeak && (
+                              <TouchableOpacity 
+                                style={s.approveSpeakBtn} 
+                                onPress={() => hostApproveSpeaker(p.socketId)}
+                              >
+                                <Text style={s.approveSpeakBtnText}>GRANT STAGE 🎙️</Text>
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        ))}
+                        {callParticipants.filter(p => !p.isSpeaker).length === 0 && (
+                          <Text style={s.noListenersText}>No listeners in the channel.</Text>
+                        )}
+                      </View>
+                    </ScrollView>
+                  ) : (
+                    // 📹 VIDEO GRID MODE
+                    <View style={{ flex: 1, padding: 12 }}>
+                      <ScrollView contentContainerStyle={s.videoGrid} showsVerticalScrollIndicator={false}>
+                        {/* Render Local User feed */}
+                        <View style={s.videoCard}>
+                          {isVideoOn ? (
+                            <MockVideoFeed userName={user?.name || 'You'} isSelf={true} />
+                          ) : (
+                            <View style={s.videoOffBox}>
+                              <View style={s.videoAvatar}>
+                                <Text style={s.videoAvatarText}>{(user?.name || 'Z').substring(0, 2).toUpperCase()}</Text>
+                              </View>
+                              <Text style={s.videoOffText}>CAMERA SHUTDOWN</Text>
+                            </View>
+                          )}
+                        </View>
+
+                        {/* Render Call participants feeds */}
+                        {callParticipants.filter(p => p.socketId !== socketRef.current?.id).map((p) => (
+                          <View key={p.socketId} style={s.videoCard}>
+                            {p.video ? (
+                              <MockVideoFeed userName={p.userName} isSelf={false} />
+                            ) : (
+                              <View style={s.videoOffBox}>
+                                <View style={s.videoAvatar}>
+                                  <Text style={s.videoAvatarText}>{p.userName.substring(0, 2).toUpperCase()}</Text>
+                                </View>
+                                <Text style={s.videoOffText}>CAMERA SHUTDOWN</Text>
+                              </View>
+                            )}
+                            {p.mute && (
+                              <View style={s.videoMutePill}>
+                                <Text style={{ fontSize: 9 }}>🔇 MUTED</Text>
+                              </View>
+                            )}
+                          </View>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+
+                  {/* Call Controls Floating Bar */}
+                  <View style={[s.callControlsBar, { backgroundColor: '#14141A' }]}>
+                    {/* Mute Mic Button */}
+                    <TouchableOpacity 
+                      style={[s.controlBtn, isMuted && s.controlBtnActive]} 
+                      onPress={toggleMute}
+                    >
+                      <Text style={s.controlBtnEmoji}>{isMuted ? '🎙️❌' : '🎙️'}</Text>
+                      <Text style={[s.controlBtnText, { color: '#FFF' }]}>{isMuted ? 'UNMUTE' : 'MUTE'}</Text>
+                    </TouchableOpacity>
+
+                    {/* Toggle Video Button */}
+                    <TouchableOpacity 
+                      style={[s.controlBtn, isVideoOn && s.controlBtnActiveVideo]} 
+                      onPress={toggleVideo}
+                    >
+                      <Text style={s.controlBtnEmoji}>{isVideoOn ? '📹' : '📹❌'}</Text>
+                      <Text style={[s.controlBtnText, { color: '#FFF' }]}>{isVideoOn ? 'CAMERA OFF' : 'CAMERA ON'}</Text>
+                    </TouchableOpacity>
+
+                    {/* Twitter Spaces Roles: Request speak / Leave stage / Toggle speaker role */}
+                    {callMode === 'audio' && (
+                      <>
+                        {isSpeaker ? (
+                          <TouchableOpacity style={s.controlBtn} onPress={toggleSpeakerRole}>
+                            <Text style={s.controlBtnEmoji}>👥</Text>
+                            <Text style={[s.controlBtnText, { color: '#FFF' }]}>LISTEN</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity 
+                            style={[s.controlBtn, hasRequestedToSpeak && s.controlBtnActive]} 
+                            onPress={toggleSpeakRequest}
+                          >
+                            <Text style={s.controlBtnEmoji}>{hasRequestedToSpeak ? '🙋‍♂️' : '🙋'}</Text>
+                            <Text style={[s.controlBtnText, { color: '#FFF' }]}>{hasRequestedToSpeak ? 'REQUESTED' : 'SPEAK'}</Text>
+                          </TouchableOpacity>
+                        )}
+                      </>
+                    )}
+
+                    {/* End Call Button */}
+                    <TouchableOpacity style={[s.controlBtn, s.controlBtnHangup]} onPress={leaveCall}>
+                      <Text style={s.controlBtnEmoji}>❌</Text>
+                      <Text style={[s.controlBtnText, { color: '#FFF' }]}>LEAVE</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
+          </Modal>
+
+          {/* 📞 INBOUND CALL OVERLAY (WHATSAPP CALLING ANIMATION) */}
+          <Modal visible={incomingCall.show} animationType="fade" presentationStyle="overFullScreen" transparent={true}>
+            <View style={s.inboundCallOverlay}>
+              <Text style={s.inboundCallType}>
+                {incomingCall.mode === 'video' ? '📹 ZENVY VIDEO CALL' : '🎙️ ZENVY AUDIO CALL'}
+              </Text>
+              
+              <Text style={s.inboundCallName}>{incomingCall.name}</Text>
+              
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <PulsingAvatar name={incomingCall.name} isSpeaking={true} />
+              </View>
+
+              <View style={s.inboundCallActions}>
+                <TouchableOpacity 
+                  style={[s.inboundCallBtn, { backgroundColor: '#EF4444' }]} 
+                  onPress={() => {
+                    setIncomingCall(prev => ({ ...prev, show: false }));
+                    Alert.alert('Call Declined', 'You declined the call.');
+                  }}
+                >
+                  <Text style={s.inboundCallBtnEmoji}>❌</Text>
+                  <Text style={s.inboundCallBtnText}>DECLINE</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[s.inboundCallBtn, { backgroundColor: '#10B981' }]} 
+                  onPress={() => {
+                    const name = incomingCall.name;
+                    const mode = incomingCall.mode;
+                    setIncomingCall(prev => ({ ...prev, show: false }));
+                    
+                    // Route to chat immediately and start call
+                    setActiveChat({ type: 'friend', id: 'simulated-friend-id', name });
+                    setCallMode(mode);
+                    setInCall(true);
+                    setIsMuted(false);
+                    setIsVideoOn(mode === 'video');
+                    setIsSpeaker(true);
+                    setHasRequestedToSpeak(false);
+                    setShowCallScreen(true);
+                    
+                    // Join and auto-populate participant
+                    setCallParticipants([
+                      {
+                        socketId: 'mock-peer-id',
+                        userId: 'simulated-friend-id',
+                        userName: name,
+                        mute: false,
+                        video: mode === 'video',
+                        isSpeaker: true,
+                        requestToSpeak: false
+                      }
+                    ]);
+                  }}
+                >
+                  <Text style={s.inboundCallBtnEmoji}>📞</Text>
+                  <Text style={s.inboundCallBtnText}>ANSWER</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
         </KeyboardAvoidingView>
       </Modal>
     </View>
@@ -550,8 +1311,14 @@ const s = StyleSheet.create({
   chatHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 60, borderBottomWidth: 1 },
   backBtn: { padding: 8 },
   chatHeaderTitle: { fontSize: 16, fontWeight: 'bold' },
-  callBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16 },
-  callBtnText: { fontSize: 10, fontWeight: '900' },
+  circleCallBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(16,185,129,0.2)', alignItems: 'center', justifyContent: 'center' },
+  ongoingCallBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, backgroundColor: 'rgba(16,185,129,0.2)', borderWidth: 1, borderColor: '#10B981' },
+  ongoingCallBtnText: { color: '#10B981', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+
+  miniChannelBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#8B5CF6', paddingHorizontal: 16, paddingVertical: 10 },
+  miniChannelText: { color: '#FFF', fontSize: 11, fontWeight: '700' },
+  miniChannelAction: { color: '#FFF', fontSize: 9, fontWeight: '900', textDecorationLine: 'underline' },
+
   messagesArea: { flex: 1 },
   messageWrap: { marginBottom: 16, maxWidth: '85%' },
   msgMe: { alignSelf: 'flex-end' },
@@ -562,5 +1329,119 @@ const s = StyleSheet.create({
   input: { flex: 1, borderRadius: 24, paddingHorizontal: 20, paddingVertical: 14, fontSize: 14 },
   sendBtn: { backgroundColor: '#8B5CF6', paddingHorizontal: 20, justifyContent: 'center', borderRadius: 24 },
   smallActionBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  smallActionBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 12 }
+  smallActionBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 12 },
+
+  // Call Screen Styles
+  callScreenContainer: { flex: 1, paddingTop: 50 },
+  callScreenHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+  minimizeBtn: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)' },
+  minimizeText: { color: '#AAA', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  callScreenTitle: { color: '#FFF', fontSize: 14, fontWeight: '900', letterSpacing: 2 },
+  callScreenSubtitle: { color: '#8B5CF6', fontSize: 8, fontWeight: '900', letterSpacing: 3, marginTop: 2 },
+  leaveCallHeaderBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, backgroundColor: '#EF4444' },
+  leaveCallHeaderText: { color: '#FFF', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+
+  callTabs: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 12, margin: 16, padding: 4 },
+  callTab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
+  activeCallTab: { backgroundColor: '#8B5CF6' },
+  callTabText: { color: '#888', fontSize: 10, fontWeight: '900', letterSpacing: 2 },
+
+  spacesContent: { padding: 16 },
+  spacesSectionLabel: { color: '#8B5CF6', fontSize: 10, fontWeight: '900', letterSpacing: 2, marginBottom: 16 },
+  spacesStageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, justifyContent: 'space-evenly' },
+  stageParticipant: { alignItems: 'center', width: 90 },
+  stageAvatarOuter: { width: 70, height: 70, borderRadius: 35, borderWidth: 3, borderColor: 'transparent', padding: 3, position: 'relative', justifyContent: 'center', alignItems: 'center' },
+  stageAvatar: { width: '100%', height: '100%', borderRadius: 32, backgroundColor: '#2D2D35', justifyContent: 'center', alignItems: 'center' },
+  stageAvatarText: { color: '#FFF', fontSize: 18, fontWeight: '900' },
+  stageMuteBadge: { position: 'absolute', bottom: -2, right: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: '#EF4444', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#0F0F12' },
+  stageWaveformBadge: { position: 'absolute', bottom: -2, left: -2, width: 24, height: 24, borderRadius: 12, backgroundColor: '#10B981', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#0F0F12' },
+  stageName: { fontSize: 12, fontWeight: '700', marginTop: 8, textAlign: 'center' },
+  stageRole: { fontSize: 8, fontWeight: '900', color: '#8B5CF6', letterSpacing: 1, marginTop: 2 },
+  
+  hostControlsRow: { marginTop: 6 },
+  hostMiniBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)' },
+  hostMiniBtnText: { color: '#EF4444', fontSize: 8, fontWeight: '900' },
+
+  listenersList: { gap: 12 },
+  listenerCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  listenerAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#2D2D35', justifyContent: 'center', alignItems: 'center' },
+  listenerAvatarText: { color: '#FFF', fontSize: 12, fontWeight: '900' },
+  listenerName: { fontSize: 13, fontWeight: '700' },
+  listenerRequestTag: { color: '#10B981', fontSize: 9, fontWeight: '900', marginTop: 2 },
+  approveSpeakBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: '#10B981' },
+  approveSpeakBtnText: { color: '#FFF', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  noListenersText: { color: '#888', fontSize: 11, fontStyle: 'italic', textAlign: 'center', paddingVertical: 20 },
+
+  // Video Grid layout
+  videoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingBottom: 40 },
+  videoCard: { width: '48%', aspectRatio: 3/4, backgroundColor: '#1E1E24', borderRadius: 16, overflow: 'hidden', position: 'relative', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  videoOffBox: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  videoAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#8B5CF6', justifyContent: 'center', alignItems: 'center' },
+  videoAvatarText: { color: '#FFF', fontSize: 16, fontWeight: '900' },
+  videoOffText: { color: '#EF4444', fontSize: 8, fontWeight: '900', letterSpacing: 2 },
+  videoMutePill: { position: 'absolute', bottom: 8, left: 8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(239, 68, 68, 0.7)' },
+  
+  // Simulated Feed Animation Styles
+  videoBox: { flex: 1, overflow: 'hidden', position: 'relative' },
+  videoGradient: { ...StyleSheet.absoluteFill, backgroundColor: '#8B5CF6', opacity: 0.8 },
+  videoScanline: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.05)', borderBottomWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)' },
+  videoOverlay: { ...StyleSheet.absoluteFill, padding: 12, justifyContent: 'space-between', zIndex: 10 },
+  videoLabel: { color: '#FFF', fontSize: 10, fontWeight: '900', letterSpacing: 1, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 3 },
+  videoStatusPill: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4, backgroundColor: 'rgba(0,0,0,0.6)' },
+  videoLiveDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#10B981' },
+  videoLiveText: { color: '#FFF', fontSize: 7, fontWeight: '900', letterSpacing: 1 },
+
+  // Call Controls Bar
+  callControlsBar: { flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center', paddingVertical: 18, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.05)', borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  controlBtn: { alignItems: 'center', gap: 4 },
+  controlBtnActive: { opacity: 0.5 },
+  controlBtnActiveVideo: { opacity: 0.5 },
+  controlBtnHangup: { backgroundColor: '#EF4444', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
+  controlBtnEmoji: { fontSize: 20 },
+  controlBtnText: { fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+
+  // WhatsApp Layout Styles
+  whatsappHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 10 },
+  whatsappMinimizeBtn: { backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
+  whatsappMinimizeText: { color: '#FFF', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  whatsappSecureText: { color: '#888', fontSize: 9, fontWeight: '700', letterSpacing: 0.5, marginBottom: 4 },
+  whatsappName: { color: '#FFF', fontSize: 20, fontWeight: '900', letterSpacing: 0.5 },
+  whatsappStatus: { color: '#10B981', fontSize: 10, fontWeight: '900', letterSpacing: 1.5, marginTop: 4 },
+
+  whatsappVideoOffBackground: { ...StyleSheet.absoluteFill, backgroundColor: '#0B141A', justifyContent: 'center', alignItems: 'center', gap: 16 },
+  whatsappLargeAvatar: { width: 120, height: 120, borderRadius: 60, backgroundColor: '#8B5CF6', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)' },
+  whatsappLargeAvatarText: { color: '#FFF', fontSize: 36, fontWeight: '900' },
+  whatsappVideoOffText: { color: '#AAA', fontSize: 11, fontWeight: '700', letterSpacing: 1 },
+
+  whatsappPIPContainer: { position: 'absolute', bottom: 120, right: 16, width: 110, height: 160, borderRadius: 16, overflow: 'hidden', borderWidth: 2, borderColor: 'rgba(255,255,255,0.15)', backgroundColor: '#000', elevation: 8 },
+  whatsappPIPOff: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1A1A24' },
+
+  whatsappFooter: { flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center', paddingVertical: 20, paddingBottom: 40, backgroundColor: 'rgba(11,20,26,0.95)', borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.05)', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  whatsappControlBtn: { alignItems: 'center', justifyContent: 'center', width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,255,255,0.08)' },
+  whatsappControlBtnActive: { backgroundColor: '#EF4444' },
+  whatsappControlBtnActiveVideo: { backgroundColor: '#8B5CF6' },
+  whatsappControlBtnHangup: { backgroundColor: '#EF4444' },
+  whatsappControlBtnEmoji: { fontSize: 22 },
+  whatsappControlBtnText: { color: '#FFF', fontSize: 7, fontWeight: '900', letterSpacing: 0.5, marginTop: 4, position: 'absolute', bottom: -14 },
+
+  pulseAvatarContainer: { justifyContent: 'center', alignItems: 'center', width: 220, height: 220, position: 'relative' },
+  pulseRing: { position: 'absolute', width: 160, height: 160, borderRadius: 80, borderWidth: 4, borderColor: '#10B981', backgroundColor: 'transparent' },
+  pulseAvatarCircle: { width: 130, height: 130, borderRadius: 65, backgroundColor: '#8B5CF6', justifyContent: 'center', alignItems: 'center', zIndex: 10, elevation: 12 },
+  pulseAvatarText: { color: '#FFF', fontSize: 44, fontWeight: '900' },
+
+  // Call Flow Simulator Card Styles
+  simCard: { borderWidth: 1, padding: 16, borderRadius: 16, marginTop: 16 },
+  simTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 1 },
+  simSubtitle: { fontSize: 10, marginTop: 4, lineHeight: 14 },
+  simBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
+  simBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 12 },
+
+  // Inbound Call Overlay Styles
+  inboundCallOverlay: { ...StyleSheet.absoluteFill, backgroundColor: '#0B141A', paddingTop: 80, paddingBottom: 60, justifyContent: 'space-between', alignItems: 'center', zIndex: 99999 },
+  inboundCallType: { color: '#10B981', fontSize: 10, fontWeight: '900', letterSpacing: 2 },
+  inboundCallName: { color: '#FFF', fontSize: 28, fontWeight: 'bold', marginTop: 10, textAlign: 'center' },
+  inboundCallActions: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', paddingHorizontal: 40 },
+  inboundCallBtn: { width: 76, height: 76, borderRadius: 38, justifyContent: 'center', alignItems: 'center', elevation: 6 },
+  inboundCallBtnEmoji: { fontSize: 24 },
+  inboundCallBtnText: { color: '#FFF', fontSize: 8, fontWeight: '900', marginTop: 6, position: 'absolute', bottom: -18 }
 });

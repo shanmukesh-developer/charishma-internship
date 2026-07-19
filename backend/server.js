@@ -1181,17 +1181,29 @@ const startServer = async () => {
         }
 
         socket.join(callRoom);
-        roomMap.set(socket.id, { userId: socket.user?.id || socket.id, userName });
+        roomMap.set(socket.id, { 
+          userId: socket.user?.id || socket.id, 
+          socketId: socket.id,
+          userName,
+          mute: data.mute || false,
+          video: data.video || false,
+          isSpeaker: data.isSpeaker !== undefined ? data.isSpeaker : true,
+          requestToSpeak: false
+        });
         
         // Send list of all current participants to the joining user
         const participants = Array.from(roomMap.values());
-        socket.emit('call_participants_list', { participants });
+        io.to(callRoom).emit('call_participants_list', { participants });
         
         // Notify others
         socket.to(callRoom).emit('user_joined_call', { 
           userId: socket.user?.id || socket.id, 
           socketId: socket.id,
-          userName
+          userName,
+          mute: data.mute || false,
+          video: data.video || false,
+          isSpeaker: data.isSpeaker !== undefined ? data.isSpeaker : true,
+          requestToSpeak: false
         });
         log(`[AFTER_DARK_CALL] User ${userName} joined call ${callRoom}`);
       });
@@ -1208,12 +1220,59 @@ const startServer = async () => {
             activeCallRooms.delete(callRoom);
           }
           
+          const participants = Array.from(roomMap.values());
+          io.to(callRoom).emit('call_participants_list', { participants });
+          
           socket.to(callRoom).emit('user_left_call', { 
             userId: socket.user?.id || socket.id, 
             socketId: socket.id,
             userName: p?.userName || 'Anonymous'
           });
           log(`[AFTER_DARK_CALL] User ${p?.userName || 'Anonymous'} left call ${callRoom}`);
+        }
+      });
+
+      socket.on('update_call_state', (data) => {
+        const callRoom = `afterdark_call_${data.groupId}`;
+        const roomMap = activeCallRooms.get(callRoom);
+        if (roomMap && roomMap.has(socket.id)) {
+          const participant = roomMap.get(socket.id);
+          if (data.mute !== undefined) participant.mute = data.mute;
+          if (data.video !== undefined) participant.video = data.video;
+          if (data.isSpeaker !== undefined) participant.isSpeaker = data.isSpeaker;
+          if (data.requestToSpeak !== undefined) participant.requestToSpeak = data.requestToSpeak;
+          
+          const participants = Array.from(roomMap.values());
+          io.to(callRoom).emit('call_participants_list', { participants });
+        }
+      });
+
+      socket.on('approve_speaker', (data) => {
+        const callRoom = `afterdark_call_${data.groupId}`;
+        const roomMap = activeCallRooms.get(callRoom);
+        if (roomMap && roomMap.has(data.targetSocketId)) {
+          const participant = roomMap.get(data.targetSocketId);
+          participant.isSpeaker = true;
+          participant.requestToSpeak = false;
+          
+          const participants = Array.from(roomMap.values());
+          io.to(callRoom).emit('call_participants_list', { participants });
+          
+          io.to(data.targetSocketId).emit('speaker_approved', { groupId: data.groupId });
+        }
+      });
+
+      socket.on('mute_user', (data) => {
+        const callRoom = `afterdark_call_${data.groupId}`;
+        const roomMap = activeCallRooms.get(callRoom);
+        if (roomMap && roomMap.has(data.targetSocketId)) {
+          const participant = roomMap.get(data.targetSocketId);
+          participant.mute = true;
+          
+          const participants = Array.from(roomMap.values());
+          io.to(callRoom).emit('call_participants_list', { participants });
+          
+          io.to(data.targetSocketId).emit('user_muted_by_host', { groupId: data.groupId });
         }
       });
       // --------------------------------------
