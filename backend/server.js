@@ -1004,6 +1004,7 @@ const startServer = async () => {
 
     // Socket.io
     const activeCartRooms = new Map(); // roomCode -> Set of userId
+    const activeCallRooms = new Map(); // callRoom -> Map of socketId -> { userId, userName }
 
     io.on('connection', (socket) => {
       console.log(`[SOCKET CONNECT] ${socket.id} (User: ${socket.user.id}, Role: ${socket.user.role})`);
@@ -1161,23 +1162,53 @@ const startServer = async () => {
       socket.on('join_after_dark_call', (data) => {
         if (!isAfterDark()) return;
         const callRoom = `afterdark_call_${data.groupId}`;
+        const userName = data.userName || 'Anonymous';
         
-        const roomInfo = io.sockets.adapter.rooms.get(callRoom);
-        const participantCount = roomInfo ? roomInfo.size : 0;
-
-        if (participantCount >= 20) {
+        if (!activeCallRooms.has(callRoom)) {
+          activeCallRooms.set(callRoom, new Map());
+        }
+        const roomMap = activeCallRooms.get(callRoom);
+        
+        if (roomMap.size >= 20) {
           socket.emit('call_error', { message: 'This lounge is full (Max 20 participants).' });
           return;
         }
 
         socket.join(callRoom);
-        socket.to(callRoom).emit('user_joined_call', { userId: socket.user.id, socketId: socket.id });
+        roomMap.set(socket.id, { userId: socket.user?.id || socket.id, userName });
+        
+        // Send list of all current participants to the joining user
+        const participants = Array.from(roomMap.values());
+        socket.emit('call_participants_list', { participants });
+        
+        // Notify others
+        socket.to(callRoom).emit('user_joined_call', { 
+          userId: socket.user?.id || socket.id, 
+          socketId: socket.id,
+          userName
+        });
+        log(`[AFTER_DARK_CALL] User ${userName} joined call ${callRoom}`);
       });
 
       socket.on('leave_after_dark_call', (data) => {
         const callRoom = `afterdark_call_${data.groupId}`;
         socket.leave(callRoom);
-        socket.to(callRoom).emit('user_left_call', { userId: socket.user.id, socketId: socket.id });
+        
+        const roomMap = activeCallRooms.get(callRoom);
+        if (roomMap) {
+          const p = roomMap.get(socket.id);
+          roomMap.delete(socket.id);
+          if (roomMap.size === 0) {
+            activeCallRooms.delete(callRoom);
+          }
+          
+          socket.to(callRoom).emit('user_left_call', { 
+            userId: socket.user?.id || socket.id, 
+            socketId: socket.id,
+            userName: p?.userName || 'Anonymous'
+          });
+          log(`[AFTER_DARK_CALL] User ${p?.userName || 'Anonymous'} left call ${callRoom}`);
+        }
       });
       // --------------------------------------
 
@@ -1364,6 +1395,22 @@ const startServer = async () => {
 
       socket.on('disconnect', () => {
         console.log(`[SOCKET DISCONNECT] ${socket.id}`);
+        // Clean up from voice call rooms
+        for (const [callRoom, roomMap] of activeCallRooms.entries()) {
+          if (roomMap.has(socket.id)) {
+            const p = roomMap.get(socket.id);
+            roomMap.delete(socket.id);
+            if (roomMap.size === 0) {
+              activeCallRooms.delete(callRoom);
+            }
+            socket.to(callRoom).emit('user_left_call', {
+              userId: socket.user?.id || socket.id,
+              socketId: socket.id,
+              userName: p?.userName || 'Anonymous'
+            });
+            log(`[AFTER_DARK_CALL] User ${p?.userName || 'Anonymous'} disconnected and left call ${callRoom}`);
+          }
+        }
       });
     });
 

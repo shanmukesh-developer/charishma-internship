@@ -195,6 +195,19 @@ const authUser = async (req, res) => {
       return res.status(400).json({ message: 'Authentication required (Password or Verification Token)' });
     }
 
+    if (!user.friendCode) {
+      const generateFriendCode = () => {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let code = '';
+        for (let i = 0; i < 5; i++) {
+          code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return 'ZNV-' + code;
+      };
+      user.friendCode = generateFriendCode();
+      await user.save();
+    }
+
     // ── 3. Return user data and JWT token ────────────────────────────────
     const token = generateToken(user.id, user.role);
     res.cookie('token', token, {
@@ -261,6 +274,18 @@ const getUserProfile = async (req, res) => {
     const User = getUserModel();
     const user = await User.findByPk(req.user.id);
     if (user) {
+      if (!user.friendCode) {
+        const generateFriendCode = () => {
+          const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+          let code = '';
+          for (let i = 0; i < 5; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+          return 'ZNV-' + code;
+        };
+        user.friendCode = generateFriendCode();
+        await user.save();
+      }
       res.json({
         _id: user.id,
         name: user.name,

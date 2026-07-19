@@ -21,6 +21,8 @@ export default function ZenvyAfterDarkLounge() {
   // Data states
   const [friends, setFriends] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [callParticipants, setCallParticipants] = useState<any[]>([]);
   const [newFriendCode, setNewFriendCode] = useState('');
   const [newRoomCode, setNewRoomCode] = useState('');
   
@@ -37,6 +39,7 @@ export default function ZenvyAfterDarkLounge() {
       refreshUser(); // Ensure fresh user data (like friendCode)
       fetchFriends();
       fetchRooms();
+      fetchPendingRequests();
     }
   }, [isOpen]);
 
@@ -71,6 +74,22 @@ export default function ZenvyAfterDarkLounge() {
       setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
     });
 
+    socket.on('call_participants_list', (data: any) => {
+      setCallParticipants(data.participants || []);
+    });
+
+    socket.on('user_joined_call', (data: any) => {
+      setCallParticipants((prev) => {
+        // Prevent duplicate entries
+        if (prev.some(p => p.socketId === data.socketId)) return prev;
+        return [...prev, data];
+      });
+    });
+
+    socket.on('user_left_call', (data: any) => {
+      setCallParticipants((prev) => prev.filter(p => p.socketId !== data.socketId));
+    });
+
     socket.on('call_error', (data: any) => {
       Alert.alert('Call Error', data.message);
       setInCall(false);
@@ -81,6 +100,9 @@ export default function ZenvyAfterDarkLounge() {
       socket.off('disconnect', handleDisconnect);
       socket.off('connect_error', handleConnectError);
       socket.off('receive_after_dark_message');
+      socket.off('call_participants_list');
+      socket.off('user_joined_call');
+      socket.off('user_left_call');
       socket.off('call_error');
     };
   }, []);
@@ -93,6 +115,34 @@ export default function ZenvyAfterDarkLounge() {
         setFriends(data.friends || []);
       }
     } catch (e) { console.error(e); }
+  };
+
+  const fetchPendingRequests = async () => {
+    try {
+      const res = await apiFetch('/api/friends/pending');
+      if (res.ok) {
+        const data = await res.json();
+        setPendingRequests(data.requests || []);
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleHandleRequest = async (requestId: string, action: 'accept' | 'reject') => {
+    try {
+      const res = await apiFetch('/api/friends/handle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, action })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        Alert.alert('Success', `Friend request ${action}ed!`);
+        fetchPendingRequests();
+        fetchFriends();
+      } else {
+        Alert.alert('Error', data.message || `Failed to ${action} request`);
+      }
+    } catch (e) { Alert.alert('Error', 'Network request failed.'); }
   };
 
   const fetchRooms = async () => {
@@ -200,10 +250,20 @@ export default function ZenvyAfterDarkLounge() {
     if (inCall) {
       socketRef.current?.emit('leave_after_dark_call', { groupId: activeChat.id });
       setInCall(false);
+      setCallParticipants([]);
     } else {
-      socketRef.current?.emit('join_after_dark_call', { groupId: activeChat.id });
+      socketRef.current?.emit('join_after_dark_call', { groupId: activeChat.id, userName: user?.name || 'Anonymous' });
       setInCall(true);
     }
+  };
+
+  const handleBackToMain = () => {
+    if (inCall && activeChat) {
+      socketRef.current?.emit('leave_after_dark_call', { groupId: activeChat.id });
+      setInCall(false);
+      setCallParticipants([]);
+    }
+    setActiveChat(null);
   };
 
   return (
@@ -230,8 +290,8 @@ export default function ZenvyAfterDarkLounge() {
       <Modal visible={isOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setIsOpen(false)}>
         <KeyboardAvoidingView 
           style={[s.modalContainer, { backgroundColor: cardBg }]} 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 30}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 80}
         >
           
           {/* Main Navigation when not in a chat */}
@@ -260,7 +320,7 @@ export default function ZenvyAfterDarkLounge() {
                 </TouchableOpacity>
               </View>
 
-              <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+              <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
                 {activeTab === 'dms' ? (
                   <View>
                     <View style={s.inputRow}>
@@ -276,6 +336,31 @@ export default function ZenvyAfterDarkLounge() {
                         <Text style={s.actionBtnText}>Add</Text>
                       </TouchableOpacity>
                     </View>
+                    
+                    {pendingRequests.length > 0 && (
+                      <View style={{ marginTop: 24 }}>
+                        <Text style={[s.sectionTitle, { color: '#8B5CF6', marginBottom: 12 }]}>PENDING FRIEND REQUESTS ({pendingRequests.length})</Text>
+                        {pendingRequests.map(r => (
+                          <View key={r.friendshipId} style={[s.listItem, { borderColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFF', justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' }]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, flex: 1 }}>
+                              <View style={s.avatarWrap}><Text style={{ fontSize: 20 }}>👤</Text></View>
+                              <View style={{ flex: 1 }}>
+                                <Text style={[s.listName, { color: txt }]} numberOfLines={1}>{r.name}</Text>
+                                <Text style={{ color: txtSec, fontSize: 11 }}>Code: {r.friendCode}</Text>
+                              </View>
+                            </View>
+                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                              <TouchableOpacity style={[s.smallActionBtn, { backgroundColor: '#10B981' }]} onPress={() => handleHandleRequest(r.friendshipId, 'accept')}>
+                                <Text style={s.smallActionBtnText}>✓</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity style={[s.smallActionBtn, { backgroundColor: '#EF4444' }]} onPress={() => handleHandleRequest(r.friendshipId, 'reject')}>
+                                <Text style={s.smallActionBtnText}>✕</Text>
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    )}
                     
                     <Text style={[s.sectionTitle, { color: txtSec, marginTop: 24 }]}>YOUR FRIENDS</Text>
                     {friends.length === 0 ? (
@@ -338,7 +423,7 @@ export default function ZenvyAfterDarkLounge() {
             // Active Chat Interface
             <View style={s.activeChat}>
               <View style={[s.chatHeader, { borderBottomColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFF' }]}>
-                <TouchableOpacity style={s.backBtn} onPress={() => setActiveChat(null)}>
+                <TouchableOpacity style={s.backBtn} onPress={handleBackToMain}>
                   <Text style={{ color: '#8B5CF6', fontWeight: 'bold', fontSize: 16 }}>← Back</Text>
                 </TouchableOpacity>
                 <View style={{ alignItems: 'center' }}>
@@ -352,21 +437,39 @@ export default function ZenvyAfterDarkLounge() {
                     </Text>
                   </View>
                 </View>
-                {activeChat.type === 'room' ? (
-                  <TouchableOpacity 
-                    style={[s.callBtn, { backgroundColor: inCall ? '#EF4444' : 'rgba(16,185,129,0.2)' }]}
-                    onPress={toggleCall}
-                  >
-                    <Text style={[s.callBtnText, { color: inCall ? '#FFF' : '#10B981' }]}>
-                      {inCall ? '📞 LEAVE' : '📞 JOIN (20)'}
-                    </Text>
-                  </TouchableOpacity>
-                ) : <View style={{ width: 60 }} />}
+                <TouchableOpacity 
+                  style={[s.callBtn, { backgroundColor: inCall ? '#EF4444' : 'rgba(16,185,129,0.2)' }]}
+                  onPress={toggleCall}
+                >
+                  <Text style={[s.callBtnText, { color: inCall ? '#FFF' : '#10B981' }]}>
+                    {inCall ? '📞 LEAVE' : activeChat.type === 'friend' ? '📞 CALL' : '📞 JOIN (20)'}
+                  </Text>
+                </TouchableOpacity>
               </View>
 
-              <ScrollView ref={scrollViewRef} style={s.messagesArea} contentContainerStyle={{ padding: 16 }}>
+              {inCall && (
+                <View style={{ backgroundColor: isDark ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.05)', borderBottomWidth: 1, borderBottomColor: border, padding: 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <Text style={{ color: '#8B5CF6', fontWeight: 'bold', fontSize: 11, letterSpacing: 1 }}>🎙️ ACTIVE VOICE CHANNEL</Text>
+                    <Text style={{ color: txtSec, fontSize: 10 }}>{callParticipants.length} Connected</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+                    {callParticipants.map((p, idx) => (
+                      <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFF', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: border }}>
+                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981', marginRight: 6 }} />
+                        <Text style={{ color: txt, fontSize: 12, fontWeight: '500' }}>{p.userName || 'Anonymous'}</Text>
+                      </View>
+                    ))}
+                    {callParticipants.length === 0 && (
+                      <Text style={{ color: txtSec, fontSize: 12, fontStyle: 'italic' }}>Connecting to voice...</Text>
+                    )}
+                  </View>
+                </View>
+              )}
+
+              <ScrollView ref={scrollViewRef} style={s.messagesArea} contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
                 {messages.map((msg, idx) => {
-                  const isMe = msg.senderId === user?.id;
+                  const isMe = msg.senderId === user?.id || msg.senderId === user?._id;
                   return (
                     <View key={idx} style={[s.messageWrap, isMe ? s.msgMe : s.msgOther]}>
                       {!isMe && activeChat.type === 'room' && <Text style={s.msgSender}>{msg.senderName}</Text>}
@@ -445,5 +548,7 @@ const s = StyleSheet.create({
   messageBubble: { padding: 14, borderRadius: 20 },
   inputArea: { flexDirection: 'row', padding: 16, borderTopWidth: 1, gap: 12 },
   input: { flex: 1, borderRadius: 24, paddingHorizontal: 20, paddingVertical: 14, fontSize: 14 },
-  sendBtn: { backgroundColor: '#8B5CF6', paddingHorizontal: 20, justifyContent: 'center', borderRadius: 24 }
+  sendBtn: { backgroundColor: '#8B5CF6', paddingHorizontal: 20, justifyContent: 'center', borderRadius: 24 },
+  smallActionBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  smallActionBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 12 }
 });

@@ -130,8 +130,40 @@ const getFriendsList = async (req, res) => {
   }
 };
 
+const getPendingRequests = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const Friendship = getFriendshipModel();
+    const User = getUserModel();
+
+    const pending = await Friendship.findAll({
+      where: {
+        recipientId: userId,
+        status: 'pending'
+      },
+      include: [
+        { model: User, as: 'requester', attributes: ['id', 'name', 'profileImage', 'friendCode'] }
+      ]
+    });
+
+    const requests = pending.map(p => ({
+      friendshipId: p.id,
+      id: p.requester.id,
+      name: p.requester.name,
+      profileImage: p.requester.profileImage,
+      friendCode: p.requester.friendCode
+    }));
+
+    res.status(200).json({ requests });
+  } catch (error) {
+    console.error('[GET_PENDING_ERROR]', error);
+    res.status(500).json({ message: 'Server error fetching pending requests.' });
+  }
+};
+
 module.exports = {
   sendFriendRequest,
   handleFriendRequest,
-  getFriendsList
+  getFriendsList,
+  getPendingRequests
 };
