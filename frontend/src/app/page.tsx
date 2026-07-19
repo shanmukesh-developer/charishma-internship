@@ -21,6 +21,7 @@ const ZenvyVault = dynamic(() => import('@/components/ZenvyVault'), { ssr: false
 const NexusExplorer = dynamic(() => import('@/components/NexusExplorer'), { ssr: false });
 const CampusBitesSection = dynamic(() => import('@/components/CampusBitesSection'), { ssr: false });
 import ZenvyEcosystemGrid from '@/components/ZenvyEcosystemGrid';
+import ZenvyAfterDarkLounge from '@/components/ZenvyAfterDarkLounge';
 import LiveOrderStatusBar from '@/components/LiveOrderStatusBar';
 import ScrollProgressIndicator from '@/components/ScrollProgressIndicator';
 import Magnetic from '@/components/Magnetic';
@@ -1273,6 +1274,9 @@ export default function Home() {
 
           {/* 🌐 Mega Market Ecosystem Services */}
           <ZenvyEcosystemGrid />
+
+          {/* 🌙 Zenvy After Dark Social Engine */}
+          <ZenvyAfterDarkLounge />
 
           {/* 🏪 CampusBites: Local Vendor Stalls */}
           <CampusBitesSection restaurants={liveRestaurants} />
