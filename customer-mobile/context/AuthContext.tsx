@@ -21,6 +21,7 @@ interface User {
   city?: string;
   badges?: string[];
   referralCode?: string;
+  friendCode?: string;
   role?: string;
 }
 

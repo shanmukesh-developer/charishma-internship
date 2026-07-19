@@ -30,6 +30,14 @@ const initMessageModel = (sequelize) => {
     isSystemMessage: {
       type: DataTypes.BOOLEAN,
       defaultValue: false // Used for "Zenvy After Dark Opens" or "Call Started" markers
+    },
+    expiresAt: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    attachmentUrl: {
+      type: DataTypes.STRING,
+      allowNull: true
     }
   }, { timestamps: true });
 

@@ -27,6 +27,9 @@ const { initBirthdayCelebrationModel } = require('../models/BirthdayCelebration'
 const { initBirthdayWishModel } = require('../models/BirthdayWish');
 const { initConversationModel } = require('../models/Conversation');
 const { initMessageModel } = require('../models/Message');
+const { initFriendshipModel } = require('../models/Friendship');
+const { initRoomModel } = require('../models/Room');
+const { initRoomParticipantModel } = require('../models/RoomParticipant');
 
 const initializeAllModels = (instance) => {
   initUserModel(instance);
@@ -52,6 +55,9 @@ const initializeAllModels = (instance) => {
   initBirthdayWishModel(instance);
   initConversationModel(instance);
   initMessageModel(instance);
+  initFriendshipModel(instance);
+  initRoomModel(instance);
+  initRoomParticipantModel(instance);
 
   // Define Associations
   const Restaurant = instance.models.Restaurant;
@@ -85,6 +91,25 @@ const initializeAllModels = (instance) => {
   if (Conversation && Message) {
     Conversation.hasMany(Message, { foreignKey: 'conversationId', as: 'messages' });
     Message.belongsTo(Conversation, { foreignKey: 'conversationId', as: 'conversation' });
+  }
+
+  const Friendship = instance.models.Friendship;
+  if (Friendship && User) {
+    Friendship.belongsTo(User, { foreignKey: 'requesterId', as: 'requester' });
+    Friendship.belongsTo(User, { foreignKey: 'recipientId', as: 'recipient' });
+  }
+
+  const Room = instance.models.Room;
+  const RoomParticipant = instance.models.RoomParticipant;
+
+  if (Room && RoomParticipant && User) {
+    Room.belongsTo(User, { foreignKey: 'adminId', as: 'admin' });
+    
+    Room.hasMany(RoomParticipant, { foreignKey: 'roomId', as: 'participants' });
+    RoomParticipant.belongsTo(Room, { foreignKey: 'roomId', as: 'room' });
+    
+    User.hasMany(RoomParticipant, { foreignKey: 'userId', as: 'roomMemberships' });
+    RoomParticipant.belongsTo(User, { foreignKey: 'userId', as: 'user' });
   }
 
   const Coupon = instance.models.Coupon;

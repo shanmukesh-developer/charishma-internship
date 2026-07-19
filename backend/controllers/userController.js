@@ -109,6 +109,7 @@ const registerUser = async (req, res) => {
       completedOrders: createdUser.completedOrders || 0,
       gender: createdUser.gender || 'Prefer not to say',
       genderPreference: createdUser.genderPreference || 'Any',
+      friendCode: createdUser.friendCode,
       token
     });
   } catch (_error) {
@@ -218,6 +219,7 @@ const authUser = async (req, res) => {
       role: user.role,
       gender: user.gender || 'Prefer not to say',
       genderPreference: user.genderPreference || 'Any',
+      friendCode: user.friendCode,
       token
     });
   } catch (_error) {
@@ -277,7 +279,8 @@ const getUserProfile = async (req, res) => {
         badges: user.badges || [],
         completedOrders: user.completedOrders || 0,
         gender: user.gender || 'Prefer not to say',
-        genderPreference: user.genderPreference || 'Any'
+        genderPreference: user.genderPreference || 'Any',
+        friendCode: user.friendCode
       });
     } else {
       res.status(401).json({ message: 'Account not found (Nexus Session Expired)' });
@@ -326,6 +329,7 @@ const updateUserProfile = async (req, res) => {
         completedOrders: user.completedOrders || 0,
         gender: user.gender,
         genderPreference: user.genderPreference,
+        friendCode: user.friendCode,
         token: generateToken(user.id, user.role)
       });
     } else {

@@ -806,8 +806,6 @@ export default function HomeScreen() {
           })}
         </View>
 
-        {/* 🌐 ZENVY MEGA MARKET */}
-        <ZenvyEcosystemGrid />
 
         {/* ── CAMPUSBITES: LOCAL VENDORS ── */}
         <CampusBitesSection restaurants={restaurants} />

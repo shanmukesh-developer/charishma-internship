@@ -63,7 +63,8 @@ const initUserModel = (sequelize) => {
     // Co-Ride Bike Pooling
     gender: { type: DataTypes.STRING, defaultValue: 'Prefer not to say' },
     genderPreference: { type: DataTypes.STRING, defaultValue: 'Any' },
-    karmaPoints: { type: DataTypes.INTEGER, defaultValue: 0 }
+    karmaPoints: { type: DataTypes.INTEGER, defaultValue: 0 },
+    friendCode: { type: DataTypes.STRING(10), unique: true, allowNull: true }
   }, { timestamps: true });
 
   // Auto-generate referral code
@@ -74,6 +75,15 @@ const initUserModel = (sequelize) => {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return 'ZV-' + code;
+  };
+
+  const generateFriendCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 5; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return 'ZNV-' + code;
   };
 
   const hashPassword = async (user) => {
@@ -87,6 +97,9 @@ const initUserModel = (sequelize) => {
     if (!user.referralCode) {
       user.referralCode = generateReferralCode();
     }
+    if (!user.friendCode) {
+      user.friendCode = generateFriendCode();
+    }
   });
   User.beforeUpdate(hashPassword);
   User.beforeBulkCreate(async (users) => {
@@ -94,6 +107,9 @@ const initUserModel = (sequelize) => {
       user.password = await bcrypt.hash(user.password, 10);
       if (!user.referralCode) {
         user.referralCode = generateReferralCode();
+      }
+      if (!user.friendCode) {
+        user.friendCode = generateFriendCode();
       }
     }
   });

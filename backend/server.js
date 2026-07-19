@@ -11,6 +11,7 @@ const path = require('path');
 const multer = require('multer');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const { initEphemeralPurge } = require('./cron/ephemeralPurge');
 // xss-clean removed due to Express 5 query getter incompatibility; custom safeXssMiddleware used instead.
 
 // ── Global Bulletproof Shield (Prevents any Node.js Crash in Dev, Restarts in Prod) ──────────────
@@ -893,6 +894,8 @@ const startServer = async () => {
     app.use('/api/config', appConfigRoutes);
     app.use('/api/features', require('./routes/featureRoutes'));
     app.use('/api/chat', require('./routes/chatRoutes'));
+    app.use('/api/friends', require('./routes/friendRoutes'));
+    app.use('/api/rooms', require('./routes/roomRoutes'));
 
     // ── Hourly Cleanup: Delete expired community posts and mark expired birthdays ──────────────────────
     const runExpiryCleanup = async () => {
@@ -1482,6 +1485,13 @@ setInterval(async () => {
     console.warn('[AUTO-RESTORE_ERROR] Failed to run auto-restore:', err.message);
   }
 }, 30000); // Check every 30 seconds
+
+// ── Ephemeral Purge (Zenvy After Dark) ──
+try {
+  initEphemeralPurge();
+} catch (e) {
+  console.warn('[CRON] Failed to init Ephemeral Purge:', e.message);
+}
 
 module.exports = { 
   checkSurgeState, 
