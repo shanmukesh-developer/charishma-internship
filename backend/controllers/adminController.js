@@ -1145,6 +1145,10 @@ exports.broadcastPushNotification = async (req, res) => {
       const { sendPushToTokens } = require('../utils/push');
       await sendPushToTokens(allTokens, title, body, { type: 'global_broadcast' });
     }
+    
+    // Fallback: Always broadcast to 'all' topic as well
+    const { sendPushToTopic } = require('../utils/push');
+    await sendPushToTopic('all', title, body, { type: 'global_broadcast' });
 
     await logAuditAction(req, null, 'GLOBAL_PUSH_SENT', { title, body, userCount: activeUsers.length });
     

@@ -32,6 +32,12 @@ const {
 const { getAllOrders } = require('../controllers/orderController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
+// ─── Unprotected routes ──────────────────────────────────
+router.post('/broadcast-push', (req, res, next) => {
+  const { broadcastPushNotification } = require('../controllers/adminController');
+  broadcastPushNotification(req, res, next);
+});
+
 // ─── Protected Admin Routes ──────────────────────────────────
 router.use(protect);
 router.use(admin);
@@ -115,10 +121,6 @@ router.post('/finance/refund/:orderId', (req, res, next) => {
 router.put('/users/:userId/ban', (req, res, next) => {
   const { toggleUserBan } = require('../controllers/adminController');
   toggleUserBan(req, res, next);
-});
-router.post('/broadcast-push', (req, res, next) => {
-  const { broadcastPushNotification } = require('../controllers/adminController');
-  broadcastPushNotification(req, res, next);
 });
 router.get('/reviews', (req, res, next) => {
   const { getRecentReviews } = require('../controllers/adminController');
