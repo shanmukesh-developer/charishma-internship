@@ -35,9 +35,8 @@ export const connectSocket = (): Socket => {
 };
 
 export const refreshSocketAuth = () => {
-  if (_socket) {
-    _socket.disconnect().connect();
-  }
+  const s = getSocket();
+  s.disconnect().connect();
 };
 
 // Legacy default export — returns a lazy socket (not auto-connected)

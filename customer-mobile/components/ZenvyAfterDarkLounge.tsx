@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native';
-import { connectSocket } from '../utils/socket';
+import { connectSocket, refreshSocketAuth } from '../utils/socket';
 import { useAuth } from '../context/AuthContext';
 import { COLORS } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
@@ -16,6 +16,7 @@ export default function ZenvyAfterDarkLounge() {
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
   const [inCall, setInCall] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   
   // Data states
   const [friends, setFriends] = useState<any[]>([]);
@@ -40,8 +41,30 @@ export default function ZenvyAfterDarkLounge() {
   }, [isOpen]);
 
   useEffect(() => {
+    // Force a fresh socket auth connection on mount to load the latest token
+    refreshSocketAuth();
+    
     socketRef.current = connectSocket();
     const socket = socketRef.current;
+
+    setIsConnected(socket.connected);
+
+    const handleConnect = () => {
+      setIsConnected(true);
+    };
+
+    const handleDisconnect = () => {
+      setIsConnected(false);
+    };
+
+    const handleConnectError = (err: any) => {
+      console.warn('Socket connection error in Lounge:', err);
+      setIsConnected(false);
+    };
+
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+    socket.on('connect_error', handleConnectError);
 
     socket.on('receive_after_dark_message', (msg: any) => {
       setMessages((prev) => [...prev, msg]);
@@ -54,6 +77,9 @@ export default function ZenvyAfterDarkLounge() {
     });
 
     return () => {
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      socket.off('connect_error', handleConnectError);
       socket.off('receive_after_dark_message');
       socket.off('call_error');
     };
@@ -140,8 +166,15 @@ export default function ZenvyAfterDarkLounge() {
         const data = await res.json();
         setMessages(data || []);
         setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 200);
+      } else {
+        const text = await res.text();
+        console.warn(`Failed to fetch messages: status ${res.status}, body ${text}`);
+        Alert.alert('Error', `Could not load messages (status ${res.status}).`);
       }
-    } catch (e) { console.error(e); }
+    } catch (e: any) {
+      console.error(e);
+      Alert.alert('Error', `Network error loading messages: ${e.message}`);
+    }
   };
 
   const openChat = (item: any, type: 'friend' | 'room') => {
@@ -309,8 +342,15 @@ export default function ZenvyAfterDarkLounge() {
                   <Text style={{ color: '#8B5CF6', fontWeight: 'bold', fontSize: 16 }}>← Back</Text>
                 </TouchableOpacity>
                 <View style={{ alignItems: 'center' }}>
-                  <Text style={[s.chatHeaderTitle, { color: txt }]}>{activeChat.name}</Text>
-                  <Text style={{ color: '#EF4444', fontSize: 10, fontWeight: 'bold' }}>⏳ Vanishes in 12h</Text>
+                  <Text style={[s.chatHeaderTitle, { color: txt }]} numberOfLines={1}>{activeChat.name}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                    <Text style={{ color: '#EF4444', fontSize: 10, fontWeight: 'bold' }}>⏳ Vanishes in 12h</Text>
+                    <Text style={{ color: txtSec, fontSize: 8 }}>•</Text>
+                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isConnected ? '#10B981' : '#EF4444' }} />
+                    <Text style={{ color: isConnected ? '#10B981' : '#EF4444', fontSize: 8, fontWeight: '900' }}>
+                      {isConnected ? 'LIVE' : 'OFFLINE'}
+                    </Text>
+                  </View>
                 </View>
                 {activeChat.type === 'room' ? (
                   <TouchableOpacity 
