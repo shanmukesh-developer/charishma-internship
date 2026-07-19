@@ -85,14 +85,6 @@ const initializeAllModels = (instance) => {
     User.hasMany(Order, { foreignKey: 'userId', as: 'orders' });
   }
 
-  const Conversation = instance.models.Conversation;
-  const Message = instance.models.Message;
-
-  if (Conversation && Message) {
-    Conversation.hasMany(Message, { foreignKey: 'conversationId', as: 'messages' });
-    Message.belongsTo(Conversation, { foreignKey: 'conversationId', as: 'conversation' });
-  }
-
   const Friendship = instance.models.Friendship;
   if (Friendship && User) {
     Friendship.belongsTo(User, { foreignKey: 'requesterId', as: 'requester' });
@@ -467,6 +459,18 @@ const connectDB = async () => {
             console.log(`✅ [SQLite_MIGRATION] Added ${col.name} column to PGRooms.`);
           } catch (_err) {}
         }
+        // Self-Healing SQLite Migration Guard: Ensure Messages table does not have old foreign key to Conversations
+        try {
+          const [results] = await sequelize.query("PRAGMA foreign_key_list('Messages');");
+          if (results && results.some(r => r.table === 'Conversations')) {
+            console.log('🔄 [SQLite] Old foreign key constraint detected on Messages table. Re-creating table...');
+            await sequelize.query('DROP TABLE IF EXISTS "Messages";');
+            await sequelize.models.Message.sync({ force: true });
+            console.log('✅ [SQLite] Messages table re-created without foreign key constraints.');
+          }
+        } catch (e) {
+          console.warn('⚠️ [SQLite_MIGRATION_WARN] Failed checking/dropping Messages foreign keys:', e.message);
+        }
       }
     } else {
       console.log('🔒 Production Sync: Running { alter: true } (Resilient Mode)');
@@ -492,6 +496,14 @@ const connectDB = async () => {
         console.log('✅ [DB_MIGRATION] Asset columns expanded to TEXT.');
       } catch (err) { 
         // console.log('[DB_MIGRATION_SKIP] Already done or PG error:', err.message); 
+      }
+
+      // Drop conversationId foreign key constraint if it exists to allow Rooms & Friendships as conversationIds
+      try {
+        await sequelize.query('ALTER TABLE "Messages" DROP CONSTRAINT IF EXISTS "Messages_conversationId_fkey";');
+        console.log('✅ [DB_MIGRATION] Messages conversationId foreign key constraint dropped.');
+      } catch (err) {
+        console.warn('⚠️ [DB_MIGRATION_WARN] Failed to drop Messages conversationId constraint:', err.message);
       }
     }
   } catch (error) {

@@ -107,6 +107,18 @@ export default function ZenvyAfterDarkLounge() {
     };
   }, []);
 
+  // Synchronize room membership with socket connection/reconnections and active chat selection
+  useEffect(() => {
+    if (isConnected && activeChat && socketRef.current) {
+      console.log(`[SOCKET_SYNC] Joining room afterdark_${activeChat.id}`);
+      socketRef.current.emit('join_after_dark_group', { groupId: activeChat.id });
+      if (inCall) {
+        console.log(`[SOCKET_SYNC] Rejoining call room for ${activeChat.id}`);
+        socketRef.current.emit('join_after_dark_call', { groupId: activeChat.id, userName: user?.name || 'Anonymous' });
+      }
+    }
+  }, [isConnected, activeChat?.id, inCall]);
+
   const fetchFriends = async () => {
     try {
       const res = await apiFetch('/api/friends/list');

@@ -1138,6 +1138,12 @@ const startServer = async () => {
         log(`[AFTER_DARK] User ${socket.user?.id} joined group ${groupId}`);
       });
 
+      socket.on('leave_after_dark_group', async (data) => {
+        const groupId = `afterdark_${data.groupId}`;
+        await socket.leave(groupId);
+        log(`[AFTER_DARK] User ${socket.user?.id} left group ${groupId}`);
+      });
+
       socket.on('send_after_dark_message', async (data) => {
         if (!isAfterDark()) return;
         const { groupId, text } = data;
