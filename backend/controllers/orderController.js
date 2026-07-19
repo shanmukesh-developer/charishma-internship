@@ -18,6 +18,22 @@ const createOrder = async (req, res) => {
     return res.status(400).json({ message: 'No order items' });
   }
 
+  // --- Time Restriction: No orders after 9 PM ---
+  // Ensure we check in IST timezone since the server might be in UTC
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kolkata',
+    hour: 'numeric',
+    hour12: false
+  });
+  const currentIstHour = parseInt(formatter.format(new Date()), 10);
+
+  // Block orders from 9:00 PM (21) to 6:00 AM (6)
+  if (currentIstHour >= 21 || currentIstHour < 6) {
+    return res.status(403).json({ 
+      message: 'Campus ordering is closed for the night! 🌙 We will be back at 6 AM.' 
+    });
+  }
+
   // --- Geo-Fencing Validation (40 KM Radius) ---
   const isStandardCampus = deliveryAddress && (
     deliveryAddress.includes('SRM AP') || 
