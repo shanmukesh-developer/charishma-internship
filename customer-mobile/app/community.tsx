@@ -13,6 +13,12 @@ import ZenvyAfterDarkLounge from '../components/ZenvyAfterDarkLounge';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
+const getImageUrl = (url: string | null) => {
+  if (!url) return '';
+  if (url.startsWith('http') || url.startsWith('data:')) return url;
+  return `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 // ── Confetti Particle (Pure Native Drivers, Zero-Lag) ──
 const ConfettiParticle = ({ delay }: { delay: number }) => {
   const animatedValue = React.useRef(new Animated.Value(0)).current;
@@ -633,7 +639,7 @@ export default function CommunityScreen() {
                 <PulseGlow size={66} color="#FF69B4">
                   <View style={s.birthdayStoryCircle}>
                     {b.candidatePhotoUrl ? (
-                      <Image source={{ uri: b.candidatePhotoUrl.startsWith('http') ? b.candidatePhotoUrl : `${API_URL}${b.candidatePhotoUrl}` }} style={s.birthdayStoryImg} />
+                      <Image source={{ uri: getImageUrl(b.candidatePhotoUrl) }} style={s.birthdayStoryImg} />
                     ) : (
                       <View style={[s.birthdayStoryTextImg, { backgroundColor: isDark ? '#1C161D' : '#FFF0F5' }]}>
                         <Text style={{ fontSize: 24 }}>🎂</Text>
@@ -982,7 +988,7 @@ export default function CommunityScreen() {
                     <PulseGlow size={110} color="#FF69B4">
                       <View style={s.bdayLargeAvatarRing}>
                         {selectedBirthday.candidatePhotoUrl ? (
-                          <Image source={{ uri: selectedBirthday.candidatePhotoUrl.startsWith('http') ? selectedBirthday.candidatePhotoUrl : `${API_URL}${selectedBirthday.candidatePhotoUrl}` }} style={s.bdayLargeAvatarImg} />
+                          <Image source={{ uri: getImageUrl(selectedBirthday.candidatePhotoUrl) }} style={s.bdayLargeAvatarImg} />
                         ) : (
                           <Text style={{ fontSize: 44 }}>🎂</Text>
                         )}
@@ -1160,7 +1166,7 @@ export default function CommunityScreen() {
                   <View key={p.id} style={[s.adminQueueCard, { borderColor: border, backgroundColor: isDark ? '#1C1B1F' : '#fcfcfc' }]}>
                     <View style={s.adminQueueRow}>
                       {p.candidatePhotoUrl ? (
-                        <Image source={{ uri: p.candidatePhotoUrl.startsWith('http') ? p.candidatePhotoUrl : `${API_URL}${p.candidatePhotoUrl}` }} style={s.adminQueueImg} />
+                        <Image source={{ uri: getImageUrl(p.candidatePhotoUrl) }} style={s.adminQueueImg} />
                       ) : (
                         <View style={s.adminQueueTextImg}><Text>🎂</Text></View>
                       )}

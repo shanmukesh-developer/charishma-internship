@@ -4,6 +4,12 @@ import { useEffect, useState } from 'react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
 
+const getImageUrl = (url: string | null) => {
+  if (!url) return '';
+  if (url.startsWith('http') || url.startsWith('data:')) return url;
+  return `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 interface CommunityPost {
   id: string;
   content: string;
@@ -329,7 +335,7 @@ export default function CommunityAdmin() {
                     <div className="flex gap-4">
                       {b.candidatePhotoUrl ? (
                         <img 
-                          src={b.candidatePhotoUrl.startsWith('http') ? b.candidatePhotoUrl : `${API_URL}${b.candidatePhotoUrl}`}
+                          src={getImageUrl(b.candidatePhotoUrl)}
                           alt={b.candidateName}
                           className="w-16 h-16 rounded-xl object-cover border border-white/15 bg-neutral-900"
                         />
@@ -379,7 +385,7 @@ export default function CommunityAdmin() {
                     <div className="flex gap-3 items-center">
                       {b.candidatePhotoUrl ? (
                         <img 
-                          src={b.candidatePhotoUrl.startsWith('http') ? b.candidatePhotoUrl : `${API_URL}${b.candidatePhotoUrl}`}
+                          src={getImageUrl(b.candidatePhotoUrl)}
                           alt={b.candidateName}
                           className="w-12 h-12 rounded-full object-cover border-2 border-purple-500/30"
                         />
