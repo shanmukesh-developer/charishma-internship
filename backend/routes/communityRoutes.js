@@ -104,27 +104,49 @@ router.post('/', protect, async (req, res) => {
       (content && (content.toLowerCase().includes('happy birthday') || content.toLowerCase().includes('hbd')));
       
     if (isBirthdayPost) {
-      const { sendPushToTopic } = require('../utils/push');
+      const { getUserModel } = require('../models/User');
+      const User = getUserModel();
+      const activeUsers = await User.findAll({ where: { isActive: true } });
       
-      // We pass a custom theme flag and android-specific rich styling for the push
-      await sendPushToTopic(
-        'all',
-        `🎉 🎂 Birthday Alert! 🎂 🎉`,
-        `Someone just posted a birthday wish for ${newPost.userName} in the community! Join the celebration! ✨`,
-        {
-          type: 'BIRTHDAY_ALERT',
-          postId: String(newPost.id),
-          theme: 'birthday_party_special' // App can read this to show confetti/special UI
-        },
-        {
-          android: {
-            notification: {
-              color: '#FF1493', // Deep Pink theme
-              sound: 'default'
-            }
+      let allTokens = [];
+      activeUsers.forEach(user => {
+        if (user.fcmTokens) {
+          let tokenList = user.fcmTokens;
+          if (typeof tokenList === 'string') {
+            try { tokenList = JSON.parse(tokenList); } catch { tokenList = [tokenList]; }
+          }
+          if (Array.isArray(tokenList)) {
+            tokenList.forEach(t => {
+              const tokenStr = typeof t === 'string' ? t : t?.token;
+              if (tokenStr) allTokens.push(tokenStr);
+            });
           }
         }
-      ).catch(e => console.error('Birthday push broadcast error:', e));
+      });
+      allTokens = [...new Set(allTokens.filter(Boolean))];
+
+      if (allTokens.length > 0) {
+        const { sendPushToTokens } = require('../utils/push');
+        
+        await sendPushToTokens(
+          allTokens,
+          `🎉 🎂 Birthday Alert! 🎂 🎉`,
+          `Someone just posted a birthday wish for ${newPost.userName} in the community! Join the celebration! ✨`,
+          {
+            type: 'BIRTHDAY_ALERT',
+            postId: String(newPost.id),
+            theme: 'birthday_party_special'
+          },
+          {
+            android: {
+              notification: {
+                color: '#FF1493',
+                sound: 'default'
+              }
+            }
+          }
+        ).catch(e => console.error('Birthday push broadcast error:', e));
+      }
     }
 
     res.status(201).json(newPost);
