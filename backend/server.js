@@ -1376,8 +1376,32 @@ const startServer = async () => {
       }
     });
 
-    server.listen(PORT, '0.0.0.0', () => {
+    server.listen(PORT, '0.0.0.0', async () => {
       console.log(`🚀 Server running on port ${PORT}`);
+
+      // Auto-backfill missing friendCodes on startup (especially for Render PostgreSQL DB)
+      try {
+        const { getUserModel } = require('./models/User');
+        const User = getUserModel();
+        if (User) {
+          const users = await User.findAll({ where: { friendCode: null } });
+          if (users.length > 0) {
+            console.log(`[BOOT] Backfilling friendCode for ${users.length} users...`);
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            for (const user of users) {
+              let code = '';
+              for (let i = 0; i < 5; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+              }
+              user.friendCode = 'ZNV-' + code;
+              await user.save();
+            }
+            console.log('[BOOT] Backfill completed.');
+          }
+        }
+      } catch (err) {
+        console.error('[BOOT_ERROR] FriendCode backfill failed:', err.message);
+      }
 
       // ── Self-Ping Keep-Alive (Prevents Render Free Tier Sleep) ──
       if (process.env.NODE_ENV === 'production' || process.env.RENDER === 'true') {
