@@ -28,6 +28,8 @@ export const removeUser = async (): Promise<void> => {
   await AsyncStorage.removeItem('zenvy_user');
 };
 
+import { API_URL } from '../constants/api';
+
 // ── Authenticated Fetch ───────────────────────────────────────────────────────
 export const apiFetch = async (
   url: string,
@@ -41,7 +43,8 @@ export const apiFetch = async (
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  return fetch(url, { ...options, headers });
+  const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
+  return fetch(fullUrl, { ...options, headers });
 };
 
 // ── Logout ────────────────────────────────────────────────────────────────────
