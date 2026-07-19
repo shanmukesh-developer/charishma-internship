@@ -22,7 +22,6 @@ import DopaminePressable, { CardPressable, ActionPressable } from '../../compone
 import { StaggeredSection, RestaurantCardSkeleton, PulseGlow, BounceIn, FloatingPulse } from '../../components/AnimatedSection';
 import ServerWakeupOverlay from '../../components/ServerWakeupOverlay';
 import ZenvyEcosystemGrid from '../../components/ZenvyEcosystemGrid';
-import ZenvyAfterDarkLounge from '../../components/ZenvyAfterDarkLounge';
 
 const VaultTimerBadge = ({ pulseAnim }: { pulseAnim: any }) => {
   const [vaultTimer, setVaultTimer] = useState('00:00:00');
@@ -809,9 +808,6 @@ export default function HomeScreen() {
 
         {/* 🌐 ZENVY MEGA MARKET */}
         <ZenvyEcosystemGrid />
-
-        {/* 🌙 ZENVY AFTER DARK */}
-        <ZenvyAfterDarkLounge />
 
         {/* ── CAMPUSBITES: LOCAL VENDORS ── */}
         <CampusBitesSection restaurants={restaurants} />

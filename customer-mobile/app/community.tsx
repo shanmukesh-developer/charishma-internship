@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { StaggeredSection, FloatingPulse, BounceIn, PulseGlow } from '../components/AnimatedSection';
 import DopaminePressable, { CardPressable, ActionPressable } from '../components/DopaminePressable';
+import ZenvyAfterDarkLounge from '../components/ZenvyAfterDarkLounge';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -596,6 +597,9 @@ export default function CommunityScreen() {
       </View>
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        {/* 🌙 ZENVY AFTER DARK */}
+        <ZenvyAfterDarkLounge />
+
         {/* ── BIRTHDAY CELEBRATIONS STORY ROW ── */}
         <View style={s.birthdaySection}>
           <View style={s.birthdaySectionHeader}>
