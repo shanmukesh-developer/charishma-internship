@@ -7,6 +7,7 @@ import { useTheme } from '../context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFetch } from '../utils/auth';
 import * as Notifications from 'expo-notifications';
+import { WebView } from 'react-native-webview';
 
 interface Participant {
   userId: string;
@@ -898,309 +899,78 @@ export default function ZenvyAfterDarkLounge() {
             </View>
           )}
 
-          {/* 🎙️ / 📹 FULL SCREEN CALL SPACE VIEW (EXPANDED CONTROLS & TWITTER SPACES) */}
+          {/* 🎙️ / 📹 FULL SCREEN CALL SPACE VIEW (REAL-TIME WEBRTC CALLING VIA JITSI) */}
           <Modal visible={showCallScreen} animationType="slide" presentationStyle="overFullScreen" transparent={true}>
-            <View style={[s.callScreenContainer, { backgroundColor: '#0b141a' }]}>
+            <View style={[s.callScreenContainer, { backgroundColor: '#0b141a', flex: 1 }]}>
               
-              {activeChat?.type === 'friend' ? (
-                // 📞 WHATSAPP-STYLE DM CALL SCREEN
-                <View style={{ flex: 1, justifyContent: 'space-between' }}>
-                  
-                  {/* WhatsApp Call Header */}
-                  <View style={s.whatsappHeader}>
-                    <TouchableOpacity style={s.whatsappMinimizeBtn} onPress={() => setShowCallScreen(false)}>
-                      <Text style={s.whatsappMinimizeText}>🗕 CHAT</Text>
-                    </TouchableOpacity>
-                    <View style={{ alignItems: 'center' }}>
-                      <Text style={s.whatsappSecureText}>🔒 End-to-end Encrypted</Text>
-                      <Text style={s.whatsappName}>{activeChat.name}</Text>
-                      <Text style={s.whatsappStatus}>
-                        {callParticipants.length > 1 
-                          ? `CONNECTED • ${formatDuration(callDuration)}` 
-                          : 'CALLING...'}
-                      </Text>
-                    </View>
-                    <View style={{ width: 60 }} />
-                  </View>
+              {/* Header Bar */}
+              <View style={{
+                height: 60,
+                backgroundColor: '#16161A',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: '#26262B',
+                marginTop: Platform.OS === 'ios' ? 40 : 0
+              }}>
+                <TouchableOpacity 
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                    paddingVertical: 6,
+                    paddingHorizontal: 12,
+                    borderRadius: 8
+                  }} 
+                  onPress={() => setShowCallScreen(false)}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>🗕 MINIMIZE</Text>
+                </TouchableOpacity>
 
-                  {/* WhatsApp Call Content Body */}
-                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
-                    {callMode === 'audio' ? (
-                      // WhatsApp Voice Call: Pulsing Avatar
-                      <PulsingAvatar name={activeChat.name} isSpeaking={speakingUsers['mock-peer-id'] || false} />
-                    ) : (
-                      // WhatsApp Video Call: Full Screen remote participant, PIP local participant
-                      <View style={StyleSheet.absoluteFill}>
-                        {/* Remote Video (Full Screen Background) */}
-                        {callParticipants.find(p => p.socketId !== socketRef.current?.id)?.video ? (
-                          <MockVideoFeed userName={activeChat.name} isSelf={false} />
-                        ) : (
-                          <View style={s.whatsappVideoOffBackground}>
-                            <View style={s.whatsappLargeAvatar}>
-                              <Text style={s.whatsappLargeAvatarText}>{activeChat.name.substring(0, 2).toUpperCase()}</Text>
-                            </View>
-                            <Text style={s.whatsappVideoOffText}>Video Paused</Text>
-                          </View>
-                        )}
-
-                        {/* Local PIP Video (Floating Card in bottom-right) */}
-                        <View style={s.whatsappPIPContainer}>
-                          {isVideoOn ? (
-                            <MockVideoFeed userName={user?.name || 'You'} isSelf={true} />
-                          ) : (
-                            <View style={s.whatsappPIPOff}>
-                              <Text style={{ fontSize: 12 }}>📹❌</Text>
-                            </View>
-                          )}
-                        </View>
-                      </View>
-                    )}
-                  </View>
-
-                  {/* WhatsApp Translucent Control Footer */}
-                  <View style={s.whatsappFooter}>
-                    <TouchableOpacity 
-                      style={[s.whatsappControlBtn, isMuted && s.whatsappControlBtnActive]} 
-                      onPress={toggleMute}
-                    >
-                      <Text style={s.whatsappControlBtnEmoji}>{isMuted ? '🎙️❌' : '🎙️'}</Text>
-                      <Text style={s.whatsappControlBtnText}>MUTE</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                      style={[s.whatsappControlBtn, isVideoOn && s.whatsappControlBtnActiveVideo]} 
-                      onPress={toggleVideo}
-                    >
-                      <Text style={s.whatsappControlBtnEmoji}>{isVideoOn ? '📹' : '📹❌'}</Text>
-                      <Text style={s.whatsappControlBtnText}>VIDEO</Text>
-                    </TouchableOpacity>
-
-                    {callMode === 'video' && (
-                      <TouchableOpacity style={s.whatsappControlBtn} onPress={() => {
-                        Alert.alert('Camera', 'Flipped camera view.');
-                      }}>
-                        <Text style={s.whatsappControlBtnEmoji}>🔄</Text>
-                        <Text style={s.whatsappControlBtnText}>FLIP</Text>
-                      </TouchableOpacity>
-                    )}
-
-                    <TouchableOpacity style={[s.whatsappControlBtn, s.whatsappControlBtnHangup]} onPress={leaveCall}>
-                      <Text style={s.whatsappControlBtnEmoji}>❌</Text>
-                      <Text style={[s.whatsappControlBtnText, { color: '#FFF' }]}>HANG UP</Text>
-                    </TouchableOpacity>
-                  </View>
-
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 14 }}>
+                    {activeChat?.name?.toUpperCase() || 'LIVE CALL'}
+                  </Text>
+                  <Text style={{ color: '#10B981', fontSize: 10, fontWeight: '600', marginTop: 2 }}>
+                    🟢 REAL-TIME WEBRTC ACTIVE
+                  </Text>
                 </View>
-              ) : (
-                // 🎙️ / 📹 GROUP ROOM CALL SCREEN (TWITTER SPACES & VIDEO TILES)
-                <View style={{ flex: 1 }}>
-                  {/* Header */}
-                  <View style={s.callScreenHeader}>
-                    <TouchableOpacity style={s.minimizeBtn} onPress={() => setShowCallScreen(false)}>
-                      <Text style={s.minimizeText}>🗕 MINIMIZE CHAT</Text>
-                    </TouchableOpacity>
-                    <View style={{ alignItems: 'center' }}>
-                      <Text style={s.callScreenTitle} numberOfLines={1}>{activeChat?.name.toUpperCase()}</Text>
-                      <Text style={s.callScreenSubtitle}>ZENVY LIVE CO-STREAMING</Text>
-                    </View>
-                    <TouchableOpacity style={s.leaveCallHeaderBtn} onPress={leaveCall}>
-                      <Text style={s.leaveCallHeaderText}>LEAVE</Text>
-                    </TouchableOpacity>
-                  </View>
 
-                  {/* Call Mode Switcher tabs */}
-                  <View style={s.callTabs}>
-                    <TouchableOpacity 
-                      style={[s.callTab, callMode === 'audio' && s.activeCallTab]} 
-                      onPress={() => {
-                        setCallMode('audio');
-                        setIsVideoOn(false);
-                        socketRef.current?.emit('update_call_state', { groupId: activeChat?.id, video: false });
-                      }}
-                    >
-                      <Text style={[s.callTabText, callMode === 'audio' && { color: '#FFF' }]}>🎙️ AUDIO SPACE</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[s.callTab, callMode === 'video' && s.activeCallTab]} 
-                      onPress={() => {
-                        setCallMode('video');
-                        setIsVideoOn(true);
-                        socketRef.current?.emit('update_call_state', { groupId: activeChat?.id, video: true });
-                      }}
-                    >
-                      <Text style={[s.callTabText, callMode === 'video' && { color: '#FFF' }]}>📹 VIDEO GRID</Text>
-                    </TouchableOpacity>
-                  </View>
+                <TouchableOpacity 
+                  style={{
+                    backgroundColor: '#EF4444',
+                    paddingVertical: 6,
+                    paddingHorizontal: 12,
+                    borderRadius: 8
+                  }} 
+                  onPress={leaveCall}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>🔴 HANG UP</Text>
+                </TouchableOpacity>
+              </View>
 
-                  {/* Main Call View Area */}
-                  {callMode === 'audio' ? (
-                    // 🎙️ TWITTER SPACES / CLUBHOUSE MODE
-                    <ScrollView style={{ flex: 1 }} contentContainerStyle={s.spacesContent} showsVerticalScrollIndicator={false}>
-                      {/* Speakers stage */}
-                      <Text style={s.spacesSectionLabel}>SPEAKERS ON STAGE</Text>
-                      <View style={s.spacesStageGrid}>
-                        {callParticipants.filter(p => p.isSpeaker).map((p) => {
-                          const isSpeaking = speakingUsers[p.socketId];
-                          return (
-                            <View key={p.socketId} style={s.stageParticipant}>
-                              <View style={[
-                                s.stageAvatarOuter, 
-                                isSpeaking && { borderColor: '#10B981', transform: [{ scale: 1.05 }] }
-                              ]}>
-                                <View style={s.stageAvatar}>
-                                  <Text style={s.stageAvatarText}>{p.userName.substring(0, 2).toUpperCase()}</Text>
-                                </View>
-                                {p.mute && (
-                                  <View style={s.stageMuteBadge}>
-                                    <Text style={{ fontSize: 9 }}>🔇</Text>
-                                  </View>
-                                )}
-                                {isSpeaking && (
-                                  <View style={s.stageWaveformBadge}>
-                                    <VoiceWaveform />
-                                  </View>
-                                )}
-                              </View>
-                              <Text style={[s.stageName, { color: '#FFF' }]} numberOfLines={1}>
-                                {p.userName} {p.userId === user?.id || p.userId === user?._id ? '(You)' : ''}
-                              </Text>
-                              <Text style={s.stageRole}>SPEAKER</Text>
-                              
-                              {/* Host Controls */}
-                              {isHost && p.socketId !== socketRef.current?.id && (
-                                <View style={s.hostControlsRow}>
-                                  {!p.mute && (
-                                    <TouchableOpacity style={s.hostMiniBtn} onPress={() => hostMuteUser(p.socketId)}>
-                                      <Text style={s.hostMiniBtnText}>Mute</Text>
-                                    </TouchableOpacity>
-                                  )}
-                                </View>
-                              )}
-                            </View>
-                          );
-                        })}
-                      </View>
-
-                      {/* Listeners section */}
-                      <Text style={[s.spacesSectionLabel, { marginTop: 24 }]}>LISTENERS ({callParticipants.filter(p => !p.isSpeaker).length})</Text>
-                      <View style={s.listenersList}>
-                        {callParticipants.filter(p => !p.isSpeaker).map((p) => (
-                          <View key={p.socketId} style={[s.listenerCard, { backgroundColor: '#1C1C22' }]}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                              <View style={s.listenerAvatar}>
-                                <Text style={s.listenerAvatarText}>{p.userName.substring(0,2).toUpperCase()}</Text>
-                              </View>
-                              <View style={{ flex: 1 }}>
-                                <Text style={[s.listenerName, { color: '#FFF' }]} numberOfLines={1}>{p.userName}</Text>
-                                {p.requestToSpeak && <Text style={s.listenerRequestTag}>🙋‍♂️ Wants to speak</Text>}
-                              </View>
-                            </View>
-
-                            {/* Host approves speak request */}
-                            {isHost && p.requestToSpeak && (
-                              <TouchableOpacity 
-                                style={s.approveSpeakBtn} 
-                                onPress={() => hostApproveSpeaker(p.socketId)}
-                              >
-                                <Text style={s.approveSpeakBtnText}>GRANT STAGE 🎙️</Text>
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                        ))}
-                        {callParticipants.filter(p => !p.isSpeaker).length === 0 && (
-                          <Text style={s.noListenersText}>No listeners in the channel.</Text>
-                        )}
-                      </View>
-                    </ScrollView>
-                  ) : (
-                    // 📹 VIDEO GRID MODE
-                    <View style={{ flex: 1, padding: 12 }}>
-                      <ScrollView contentContainerStyle={s.videoGrid} showsVerticalScrollIndicator={false}>
-                        {/* Render Local User feed */}
-                        <View style={s.videoCard}>
-                          {isVideoOn ? (
-                            <MockVideoFeed userName={user?.name || 'You'} isSelf={true} />
-                          ) : (
-                            <View style={s.videoOffBox}>
-                              <View style={s.videoAvatar}>
-                                <Text style={s.videoAvatarText}>{(user?.name || 'Z').substring(0, 2).toUpperCase()}</Text>
-                              </View>
-                              <Text style={s.videoOffText}>CAMERA SHUTDOWN</Text>
-                            </View>
-                          )}
-                        </View>
-
-                        {/* Render Call participants feeds */}
-                        {callParticipants.filter(p => p.socketId !== socketRef.current?.id).map((p) => (
-                          <View key={p.socketId} style={s.videoCard}>
-                            {p.video ? (
-                              <MockVideoFeed userName={p.userName} isSelf={false} />
-                            ) : (
-                              <View style={s.videoOffBox}>
-                                <View style={s.videoAvatar}>
-                                  <Text style={s.videoAvatarText}>{p.userName.substring(0, 2).toUpperCase()}</Text>
-                                </View>
-                                <Text style={s.videoOffText}>CAMERA SHUTDOWN</Text>
-                              </View>
-                            )}
-                            {p.mute && (
-                              <View style={s.videoMutePill}>
-                                <Text style={{ fontSize: 9 }}>🔇 MUTED</Text>
-                              </View>
-                            )}
-                          </View>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  )}
-
-                  {/* Call Controls Floating Bar */}
-                  <View style={[s.callControlsBar, { backgroundColor: '#14141A' }]}>
-                    {/* Mute Mic Button */}
-                    <TouchableOpacity 
-                      style={[s.controlBtn, isMuted && s.controlBtnActive]} 
-                      onPress={toggleMute}
-                    >
-                      <Text style={s.controlBtnEmoji}>{isMuted ? '🎙️❌' : '🎙️'}</Text>
-                      <Text style={[s.controlBtnText, { color: '#FFF' }]}>{isMuted ? 'UNMUTE' : 'MUTE'}</Text>
-                    </TouchableOpacity>
-
-                    {/* Toggle Video Button */}
-                    <TouchableOpacity 
-                      style={[s.controlBtn, isVideoOn && s.controlBtnActiveVideo]} 
-                      onPress={toggleVideo}
-                    >
-                      <Text style={s.controlBtnEmoji}>{isVideoOn ? '📹' : '📹❌'}</Text>
-                      <Text style={[s.controlBtnText, { color: '#FFF' }]}>{isVideoOn ? 'CAMERA OFF' : 'CAMERA ON'}</Text>
-                    </TouchableOpacity>
-
-                    {/* Twitter Spaces Roles: Request speak / Leave stage / Toggle speaker role */}
-                    {callMode === 'audio' && (
-                      <>
-                        {isSpeaker ? (
-                          <TouchableOpacity style={s.controlBtn} onPress={toggleSpeakerRole}>
-                            <Text style={s.controlBtnEmoji}>👥</Text>
-                            <Text style={[s.controlBtnText, { color: '#FFF' }]}>LISTEN</Text>
-                          </TouchableOpacity>
-                        ) : (
-                          <TouchableOpacity 
-                            style={[s.controlBtn, hasRequestedToSpeak && s.controlBtnActive]} 
-                            onPress={toggleSpeakRequest}
-                          >
-                            <Text style={s.controlBtnEmoji}>{hasRequestedToSpeak ? '🙋‍♂️' : '🙋'}</Text>
-                            <Text style={[s.controlBtnText, { color: '#FFF' }]}>{hasRequestedToSpeak ? 'REQUESTED' : 'SPEAK'}</Text>
-                          </TouchableOpacity>
-                        )}
-                      </>
-                    )}
-
-                    {/* End Call Button */}
-                    <TouchableOpacity style={[s.controlBtn, s.controlBtnHangup]} onPress={leaveCall}>
-                      <Text style={s.controlBtnEmoji}>❌</Text>
-                      <Text style={[s.controlBtnText, { color: '#FFF' }]}>LEAVE</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+              {/* Jitsi WebRTC Container */}
+              {showCallScreen && activeChat && (
+                <WebView
+                  source={{
+                    uri: `https://meet.jit.si/zenvy_call_${activeChat.id}#config.prejoinPageEnabled=false&config.disableDeepLinking=true&config.startWithAudioMuted=${isMuted}&config.startWithVideoMuted=${!isVideoOn}&interfaceConfig.TOOLBAR_BUTTONS=["microphone","camera","hangup","tileview","chat"]`
+                  }}
+                  style={{ flex: 1 }}
+                  allowsInlineMediaPlayback={true}
+                  mediaPlaybackRequiresUserAction={false}
+                  domStorageEnabled={true}
+                  javaScriptEnabled={true}
+                  originWhitelist={['*']}
+                  onNavigationStateChange={(navState) => {
+                    if (
+                      navState.url.includes('close.html') || 
+                      navState.url.includes('/static/close') || 
+                      (!navState.url.includes('meet.jit.si') && !navState.url.includes('about:blank'))
+                    ) {
+                      leaveCall();
+                    }
+                  }}
+                />
               )}
             </View>
           </Modal>

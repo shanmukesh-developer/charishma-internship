@@ -72,6 +72,25 @@ const handleFriendRequest = async (req, res) => {
     if (action === 'accept') {
       friendship.status = 'accepted';
       await friendship.save();
+
+      // Send push notification to the requester notifying them that the request was accepted
+      try {
+        const User = getUserModel();
+        const requester = await User.findByPk(friendship.requesterId);
+        const recipient = await User.findByPk(friendship.recipientId);
+        if (requester && requester.fcmTokens && requester.fcmTokens.length > 0) {
+          const { sendPushToTokens } = require('../utils/push');
+          await sendPushToTokens(
+            requester.fcmTokens,
+            'Friend Request Accepted 🤝',
+            `${recipient.name} accepted your friend request!`,
+            { type: 'friend_accepted', friendshipId: friendship.id }
+          );
+        }
+      } catch (pushErr) {
+        console.error('[FRIEND_ACCEPT_PUSH_ERR]', pushErr);
+      }
+
       return res.status(200).json({ message: 'Friend request accepted.' });
     } else if (action === 'reject') {
       await friendship.destroy(); // Hard delete rejected requests to keep DB clean

@@ -1159,6 +1159,30 @@ const startServer = async () => {
             text
           });
           io.to(room).emit('receive_after_dark_message', newMsg);
+
+          // Find the receiver and send a push notification
+          try {
+            const { getFriendshipModel } = require('./models/Friendship');
+            const Friendship = getFriendshipModel();
+            const friendship = await Friendship.findByPk(groupId);
+            if (friendship) {
+              const receiverId = friendship.requesterId === socket.user.id ? friendship.recipientId : friendship.requesterId;
+              const { getUserModel } = require('./models/User');
+              const User = getUserModel();
+              const receiver = await User.findByPk(receiverId);
+              if (receiver && receiver.fcmTokens && receiver.fcmTokens.length > 0) {
+                const { sendPushToTokens } = require('./utils/push');
+                await sendPushToTokens(
+                  receiver.fcmTokens,
+                  `New message from ${data.senderName || 'Friend'}`,
+                  text,
+                  { type: 'chat_message', groupId, senderName: data.senderName || 'Friend' }
+                );
+              }
+            }
+          } catch (pushErr) {
+            console.error('[AFTER_DARK_PUSH_ERR]', pushErr);
+          }
         } catch (err) {
           console.error('[AFTER_DARK_MSG_ERR]', err);
         }

@@ -7,38 +7,39 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { StaggeredSection, BounceIn } from '../components/AnimatedSection';
 import DopaminePressable from '../components/DopaminePressable';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface NotificationItem {
   id: string;
   title: string;
   body: string;
   timestamp: string;
-  type: 'info' | 'warning' | 'promo' | 'emergency';
+  type: 'info' | 'warning' | 'promo' | 'emergency' | 'friend_accepted' | 'chat_message';
   read: boolean;
 }
 
 const DEFAULT_NOTIFICATIONS: NotificationItem[] = [
   {
     id: 'default-1',
-    title: '🚀 Welcome to Zenvy Elite!',
-    body: 'You are now part of our premium campus network. Enjoy 50% discount codes, priority support, and instant free delivery on all orders.',
-    timestamp: new Date(Date.now() - 3600000 * 2).toISOString(), // 2 hours ago
+    title: '🚀 Zenvy Elite Status Unlocked!',
+    body: 'Welcome to the premium campus circle! Enjoy 50% flat discount coupons, zero surge fees, and free priority delivery on all local orders. 🎁',
+    timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
     type: 'promo',
     read: false,
   },
   {
     id: 'default-2',
-    title: '🏆 Blockwars Arena is Live!',
-    body: 'The Amaravathi Central block challenge is heating up! Place orders to help your block climb the weekly leaderboard and win the exclusive rewards.',
-    timestamp: new Date(Date.now() - 3600000 * 5).toISOString(), // 5 hours ago
+    title: '🏆 Blockwars Challenge is Live!',
+    body: 'Amaravathi Central is currently leading the weekly board. Order now to earn extra ZPoints and secure the block trophy! ⚡',
+    timestamp: new Date(Date.now() - 3600000 * 5).toISOString(),
     type: 'info',
     read: false,
   },
   {
     id: 'default-3',
-    title: '⚡ Zone Surge Alert',
-    body: 'High demand detected in Central Zone. Delivery speeds are optimized for priority partners to guarantee lightning fast service.',
-    timestamp: new Date(Date.now() - 3600000 * 24).toISOString(), // 1 day ago
+    title: '🚨 Zone Surge Alert: Rainfall',
+    body: 'High demand detected in Central Hostels. Delivery speeds are optimized for priority partners. Stay indoors, we will bring your food warm! 🌧️',
+    timestamp: new Date(Date.now() - 3600000 * 24).toISOString(),
     type: 'warning',
     read: true,
   }
@@ -62,7 +63,6 @@ export default function NotificationsScreen() {
       if (stored) {
         setNotifications(JSON.parse(stored));
       } else {
-        // Pre-seed with default premium announcements
         await AsyncStorage.setItem('zenvy_notifications', JSON.stringify(DEFAULT_NOTIFICATIONS));
         setNotifications(DEFAULT_NOTIFICATIONS);
       }
@@ -141,40 +141,46 @@ export default function NotificationsScreen() {
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
-    
-    // Check if yesterday
+
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
     if (date.toDateString() === yesterday.toDateString()) {
       return 'Yesterday';
     }
-    
+
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   };
 
   const getIconForType = (type: string) => {
     switch (type) {
       case 'emergency': return '🚨';
-      case 'warning': return '⚡';
+      case 'warning': return '⚠️';
       case 'promo': return '🎁';
+      case 'info': return '📢';
+      case 'friend_accepted': return '🤝';
+      case 'chat_message': return '💬';
       default: return '📢';
     }
   };
 
-  const getTypeColor = (type: string) => {
+  const getTypeColors = (type: string) => {
     if (isDark) {
       switch (type) {
-        case 'emergency': return 'rgba(239, 79, 95, 0.15)';
-        case 'warning': return 'rgba(245, 158, 11, 0.15)';
-        case 'promo': return 'rgba(201, 168, 76, 0.15)';
-        default: return 'rgba(59, 130, 246, 0.15)';
+        case 'emergency': return ['#EF4F5F', '#EF4F5F'];
+        case 'warning': return ['#F59E0B', '#F59E0B'];
+        case 'promo': return ['#C9A84C', '#C9A84C'];
+        case 'friend_accepted': return ['#10B981', '#10B981'];
+        case 'chat_message': return ['#3B82F6', '#3B82F6'];
+        default: return ['#3B82F6', '#3B82F6'];
       }
     } else {
       switch (type) {
-        case 'emergency': return '#FEE2E2';
-        case 'warning': return '#FEF3C7';
-        case 'promo': return '#FEF9C3';
-        default: return '#DBEAFE';
+        case 'emergency': return ['#EF4F5F', '#EF4F5F'];
+        case 'warning': return ['#D97706', '#D97706'];
+        case 'promo': return ['#B45309', '#B45309'];
+        case 'friend_accepted': return ['#059669', '#059669'];
+        case 'chat_message': return ['#2563EB', '#2563EB'];
+        default: return ['#2563EB', '#2563EB'];
       }
     }
   };
@@ -190,8 +196,8 @@ export default function NotificationsScreen() {
     <View style={[s.container, { backgroundColor: bg }]}>
       {/* Header */}
       <View style={[s.header, { borderBottomColor: border, backgroundColor: bg }]}>
-        <TouchableOpacity 
-          style={[s.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} 
+        <TouchableOpacity
+          style={[s.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}
           onPress={() => {
             if (router.canGoBack()) {
               router.back();
@@ -206,7 +212,7 @@ export default function NotificationsScreen() {
           <Text style={[s.subText, { color: goldColor }]}>CAMPUS BROADCASTS & ALERTS</Text>
           <Text style={[s.title, { color: txt }]}>Notifications</Text>
         </View>
-        
+
         {notifications.length > 0 && (
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity onPress={markAllAsRead} style={s.actionHeaderBtn}>
@@ -225,7 +231,7 @@ export default function NotificationsScreen() {
           <ActivityIndicator size="large" color={goldColor} />
         </View>
       ) : notifications.length === 0 ? (
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={[s.center, { flexGrow: 1 }]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={goldColor} />}
         >
@@ -240,57 +246,61 @@ export default function NotificationsScreen() {
           </BounceIn>
         </ScrollView>
       ) : (
-        <ScrollView 
-          style={{ flex: 1 }} 
+        <ScrollView
+          style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={s.scrollContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={goldColor} />}
         >
           <StaggeredSection delay={50} direction="up">
             <View style={s.list}>
-              {notifications.map((n, idx) => (
-                <TouchableOpacity 
-                  key={n.id || String(idx)} 
-                  activeOpacity={0.9}
-                  onPress={() => toggleReadStatus(n.id)}
-                  style={[
-                    s.card, 
-                    { 
-                      backgroundColor: cardBg, 
-                      borderColor: border,
-                    },
-                    !n.read && {
-                      borderColor: isDark ? 'rgba(201, 168, 76, 0.4)' : 'rgba(239, 79, 95, 0.3)',
-                      borderLeftWidth: 4,
-                      borderLeftColor: goldColor
-                    }
-                  ]}
-                >
-                  <View style={s.cardHeader}>
-                    <View style={[s.iconBadge, { backgroundColor: getTypeColor(n.type) }]}>
-                      <Text style={{ fontSize: 16 }}>{getIconForType(n.type)}</Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <View style={s.titleRow}>
-                        <Text style={[s.cardTitle, { color: txt }, !n.read && { fontWeight: '900' }]} numberOfLines={1}>
-                          {n.title.toUpperCase()}
-                        </Text>
-                        <Text style={[s.timeText, { color: txtSec }]}>{formatTime(n.timestamp)}</Text>
+              {notifications.map((n, idx) => {
+                const indicatorColor = getTypeColors(n.type)[0];
+                return (
+                  <DopaminePressable
+                    key={n.id || String(idx)}
+                    activeScale={0.97}
+                    sound="click"
+                    onPress={() => toggleReadStatus(n.id)}
+                    style={[
+                      s.card,
+                      {
+                        backgroundColor: cardBg,
+                        borderColor: border,
+                      },
+                      !n.read && {
+                        borderColor: indicatorColor,
+                        borderLeftWidth: 4,
+                        borderLeftColor: indicatorColor
+                      }
+                    ]}
+                  >
+                    <View style={s.cardHeader}>
+                      <View style={[s.iconBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: border, borderWidth: 1 }]}>
+                        <Text style={{ fontSize: 18 }}>{getIconForType(n.type)}</Text>
                       </View>
-                      <Text style={[s.cardBody, { color: txtSec }, !n.read && { color: txt }]}>
-                        {n.body}
-                      </Text>
+                      <View style={{ flex: 1 }}>
+                        <View style={s.titleRow}>
+                          <Text style={[s.cardTitle, { color: txt }, !n.read && { fontWeight: '900' }]} numberOfLines={1}>
+                            {n.title}
+                          </Text>
+                          <Text style={[s.timeText, { color: txtSec }]}>{formatTime(n.timestamp)}</Text>
+                        </View>
+                        <Text style={[s.cardBody, { color: txtSec }, !n.read && { color: txt, fontWeight: '700' }]}>
+                          {n.body}
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        style={s.deleteBtn}
+                        onPress={() => deleteNotification(n.id)}
+                      >
+                        <Text style={{ color: '#EF4444', fontSize: 13, fontWeight: '700' }}>✕</Text>
+                      </TouchableOpacity>
                     </View>
-                    
-                    <TouchableOpacity 
-                      style={s.deleteBtn} 
-                      onPress={() => deleteNotification(n.id)}
-                    >
-                      <Text style={{ color: '#EF4444', fontSize: 13, fontWeight: '700' }}>✕</Text>
-                    </TouchableOpacity>
-                  </View>
-                </TouchableOpacity>
-              ))}
+                  </DopaminePressable>
+                );
+              })}
             </View>
           </StaggeredSection>
         </ScrollView>
@@ -301,25 +311,25 @@ export default function NotificationsScreen() {
 
 const s = StyleSheet.create({
   container: { flex: 1, paddingTop: Platform.OS === 'android' ? 40 : 50 },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingHorizontal: 16, 
-    paddingBottom: 16, 
-    borderBottomWidth: 1 
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1
   },
-  backBtn: { 
-    width: 36, 
-    height: 36, 
-    borderRadius: 18, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    marginRight: 12 
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12
   },
   backIcon: { fontSize: 32, fontWeight: '300' },
   subText: { fontSize: 8, fontWeight: '900', letterSpacing: 2 },
   title: { fontSize: 18, fontWeight: '900' },
-  
+
   actionHeaderBtn: {
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -331,14 +341,14 @@ const s = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 1,
   },
-  
+
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
   },
-  
+
   emptyState: {
     alignItems: 'center',
     textAlign: 'center',
@@ -356,16 +366,16 @@ const s = StyleSheet.create({
     lineHeight: 16,
     maxWidth: 240,
   },
-  
+
   scrollContent: {
     padding: 16,
     paddingBottom: 40,
   },
-  
+
   list: {
     gap: 12,
   },
-  
+
   card: {
     padding: 14,
     borderRadius: 20,
@@ -376,46 +386,46 @@ const s = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
-  
+
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
   },
-  
+
   iconBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
+
   titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 4,
   },
-  
+
   cardTitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
     flex: 1,
   },
-  
+
   timeText: {
     fontSize: 9,
     fontWeight: '600',
   },
-  
+
   cardBody: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '500',
     lineHeight: 16,
   },
-  
+
   deleteBtn: {
     padding: 6,
     marginLeft: 4,

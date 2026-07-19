@@ -145,6 +145,40 @@ export default function GlobalAnnouncement() {
       console.warn('Failed to add notification response listener:', e);
     }
 
+    // Add incoming notification listener (foreground) to save to history
+    let notificationSub: any;
+    try {
+      notificationSub = Notifications.addNotificationReceivedListener(async (notification) => {
+        try {
+          const { title, body, data } = notification.request.content;
+          if (data?.type === 'call') return;
+
+          const stored = await AsyncStorage.getItem('zenvy_notifications');
+          const notifs = stored ? JSON.parse(stored) : [];
+          
+          const exists = notifs.some((n: any) => n.title === title && n.body === body);
+          if (!exists) {
+            const newNotif = {
+              id: notification.request.identifier || Math.random().toString(),
+              title: title || '📢 Zenvy Announcement',
+              body: body || '',
+              timestamp: new Date().toISOString(),
+              type: data?.type || 'info',
+              read: false
+            };
+            if (Array.isArray(notifs)) {
+              notifs.unshift(newNotif);
+              await AsyncStorage.setItem('zenvy_notifications', JSON.stringify(notifs));
+            }
+          }
+        } catch (e) {
+          console.warn('Error saving received notification:', e);
+        }
+      });
+    } catch (e) {
+      console.warn('Failed to add notification received listener:', e);
+    }
+
     // Request notification permissions gracefully
     Notifications.requestPermissionsAsync().catch(() => {});
 
@@ -221,6 +255,7 @@ export default function GlobalAnnouncement() {
     return () => {
       socket.disconnect();
       if (responseSub) responseSub.remove();
+      if (notificationSub) notificationSub.remove();
     };
   }, [user, topOffset]);
 
