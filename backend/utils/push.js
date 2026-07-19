@@ -1,4 +1,5 @@
 const admin = require('../config/firebase');
+const { getMessaging } = require('firebase-admin/messaging');
 
 const sendPushToTokens = async (tokens, title, body, data = {}) => {
   const apps = (admin.getApps ? admin.getApps() : admin.apps) || [];
@@ -26,7 +27,7 @@ const sendPushToTokens = async (tokens, title, body, data = {}) => {
   };
 
   try {
-    const response = await admin.messaging().sendEachForMulticast(message);
+    const response = await getMessaging().sendEachForMulticast(message);
     console.log(`Successfully sent message:`, response);
     // You could also clean up old/invalid tokens here
   } catch (error) {
@@ -45,7 +46,7 @@ const sendPushToTopic = async (topic, title, body, data = {}) => {
   };
 
   try {
-    const response = await admin.messaging().send(message);
+    const response = await getMessaging().send(message);
     console.log(`Successfully sent topic message to ${topic}:`, response);
   } catch (error) {
     console.error(`Error sending message to topic ${topic}:`, error);
