@@ -892,6 +892,7 @@ const startServer = async () => {
     app.use('/api/system', systemRoutes);
     app.use('/api/config', appConfigRoutes);
     app.use('/api/features', require('./routes/featureRoutes'));
+    app.use('/api/chat', require('./routes/chatRoutes'));
 
     // ── Hourly Cleanup: Delete expired community posts and mark expired birthdays ──────────────────────
     const runExpiryCleanup = async () => {
@@ -1119,6 +1120,64 @@ const startServer = async () => {
       socket.on('typing_end', (data) => {
         socket.to(String(data.orderId)).emit('typing_end', { sender: data.sender });
       });
+
+      // --- Zenvy After Dark Social Engine ---
+      
+      const isAfterDark = () => {
+        const istHour = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false }).format(new Date()), 10);
+        return istHour >= 21 || istHour < 2;
+      };
+
+      socket.on('join_after_dark_group', async (data) => {
+        if (!isAfterDark()) return;
+        const groupId = `afterdark_${data.groupId}`;
+        await socket.join(groupId);
+        log(`[AFTER_DARK] User ${socket.user?.id} joined group ${groupId}`);
+      });
+
+      socket.on('send_after_dark_message', async (data) => {
+        if (!isAfterDark()) return;
+        const { groupId, text } = data;
+        const room = `afterdark_${groupId}`;
+        
+        try {
+          const { getMessageModel } = require('./models/Message');
+          const Message = getMessageModel();
+          const newMsg = await Message.create({
+            conversationId: groupId,
+            senderId: socket.user.id,
+            senderName: data.senderName || 'Anonymous',
+            text
+          });
+          io.to(room).emit('receive_after_dark_message', newMsg);
+        } catch (err) {
+          console.error('[AFTER_DARK_MSG_ERR]', err);
+        }
+      });
+
+      // Call Signaling (Limit 20)
+      socket.on('join_after_dark_call', (data) => {
+        if (!isAfterDark()) return;
+        const callRoom = `afterdark_call_${data.groupId}`;
+        
+        const roomInfo = io.sockets.adapter.rooms.get(callRoom);
+        const participantCount = roomInfo ? roomInfo.size : 0;
+
+        if (participantCount >= 20) {
+          socket.emit('call_error', { message: 'This lounge is full (Max 20 participants).' });
+          return;
+        }
+
+        socket.join(callRoom);
+        socket.to(callRoom).emit('user_joined_call', { userId: socket.user.id, socketId: socket.id });
+      });
+
+      socket.on('leave_after_dark_call', (data) => {
+        const callRoom = `afterdark_call_${data.groupId}`;
+        socket.leave(callRoom);
+        socket.to(callRoom).emit('user_left_call', { userId: socket.user.id, socketId: socket.id });
+      });
+      // --------------------------------------
 
       socket.on('sendMessage', (data) => {
         const room = String(data.orderId).trim();

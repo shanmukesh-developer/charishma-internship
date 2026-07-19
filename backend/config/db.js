@@ -25,6 +25,8 @@ const { initMegaBasketItemModel } = require('../models/MegaBasketItem');
 const { initAppConfigModel } = require('../models/AppConfig');
 const { initBirthdayCelebrationModel } = require('../models/BirthdayCelebration');
 const { initBirthdayWishModel } = require('../models/BirthdayWish');
+const { initConversationModel } = require('../models/Conversation');
+const { initMessageModel } = require('../models/Message');
 
 const initializeAllModels = (instance) => {
   initUserModel(instance);
@@ -48,6 +50,8 @@ const initializeAllModels = (instance) => {
   initMegaBasketItemModel(instance);
   initBirthdayCelebrationModel(instance);
   initBirthdayWishModel(instance);
+  initConversationModel(instance);
+  initMessageModel(instance);
 
   // Define Associations
   const Restaurant = instance.models.Restaurant;
@@ -73,6 +77,14 @@ const initializeAllModels = (instance) => {
   if (Order && User) {
     Order.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     User.hasMany(Order, { foreignKey: 'userId', as: 'orders' });
+  }
+
+  const Conversation = instance.models.Conversation;
+  const Message = instance.models.Message;
+
+  if (Conversation && Message) {
+    Conversation.hasMany(Message, { foreignKey: 'conversationId', as: 'messages' });
+    Message.belongsTo(Conversation, { foreignKey: 'conversationId', as: 'conversation' });
   }
 
   const Coupon = instance.models.Coupon;
