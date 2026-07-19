@@ -1114,16 +1114,43 @@ exports.broadcastPushNotification = async (req, res) => {
     const { title, body } = req.body;
     if (!title || !body) return res.status(400).json({ message: 'Title and body required' });
     
-    // In a real prod environment, we would use firebase-admin.
-    // For this demonstration, we just log it as sent to all FCM tokens.
     const { getUserModel } = require('../models/User');
     const User = getUserModel();
-    const activeUsers = await User.count({ where: { isActive: true } });
-
-    await logAuditAction(req, null, 'GLOBAL_PUSH_SENT', { title, body, userCount: activeUsers });
+    const activeUsers = await User.findAll({ where: { isActive: true } });
     
-    res.json({ message: `Push notification broadcasted successfully to approximately ${activeUsers} active devices.` });
+    let allTokens = [];
+    activeUsers.forEach(user => {
+      if (user.fcmTokens) {
+        let tokenList = user.fcmTokens;
+        if (typeof tokenList === 'string') {
+          try {
+            tokenList = JSON.parse(tokenList);
+          } catch {
+            tokenList = [tokenList];
+          }
+        }
+        if (Array.isArray(tokenList)) {
+          tokenList.forEach(t => {
+            const tokenStr = typeof t === 'string' ? t : t?.token;
+            if (tokenStr) allTokens.push(tokenStr);
+          });
+        }
+      }
+    });
+
+    // Remove duplicates
+    allTokens = [...new Set(allTokens.filter(Boolean))];
+
+    if (allTokens.length > 0) {
+      const { sendPushToTokens } = require('../utils/push');
+      await sendPushToTokens(allTokens, title, body, { type: 'global_broadcast' });
+    }
+
+    await logAuditAction(req, null, 'GLOBAL_PUSH_SENT', { title, body, userCount: activeUsers.length });
+    
+    res.json({ message: `Push notification broadcasted successfully to approximately ${activeUsers.length} active devices.` });
   } catch (error) {
+    console.error('Broadcast push failed:', error);
     res.status(500).json({ message: error.message });
   }
 };

@@ -252,13 +252,19 @@ export default function ProfileScreen() {
         return;
       }
 
-      let projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
-      if (!projectId || projectId === 'your-eas-project-id') {
-        projectId = undefined; 
+      let fcmToken = '';
+      try {
+        const deviceTokenData = await Notifications.getDevicePushTokenAsync();
+        fcmToken = deviceTokenData.data;
+      } catch (deviceError) {
+        console.warn('FCM native token failed, trying Expo fallback:', deviceError);
+        let projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
+        if (!projectId || projectId === 'your-eas-project-id') {
+          projectId = undefined; 
+        }
+        const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+        fcmToken = tokenData.data;
       }
-      
-      const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
-      const fcmToken = tokenData.data;
 
       // Send to backend
       const res = await apiFetch(`${API_URL}/api/users/fcm-token`, {

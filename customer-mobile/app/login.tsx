@@ -409,7 +409,7 @@ export default function LoginScreen() {
           <Animated.View style={[s.logoWrap, { transform: [{ translateX: Animated.multiply(pan.x, -0.3) }, { translateY: Animated.multiply(pan.y, -0.3) }] }]}>
             <BounceIn delay={200}>
               <View style={s.iconBadge}>
-                <Text style={s.logoIcon}>✨</Text>
+                <Text style={s.logoIcon}>Z</Text>
               </View>
             </BounceIn>
             <StaggeredSection delay={400} direction="down">
@@ -649,7 +649,7 @@ const s = StyleSheet.create({
   
   logoWrap: { alignItems: 'center', marginBottom: 20, marginTop: 45, paddingHorizontal: 24, zIndex: 5 },
   iconBadge: { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(201, 168, 76, 0.1)', borderWidth: 1.5, borderColor: COLORS.goldBorder, alignItems: 'center', justifyContent: 'center', ...SHADOWS.goldGlow },
-  logoIcon: { fontSize: 32 },
+  logoIcon: { fontSize: 40, fontWeight: '300', fontStyle: 'italic', color: '#D4AF37', marginTop: Platform.OS === 'ios' ? 4 : 0 },
   brand: { fontSize: 36, fontWeight: '900', color: COLORS.gold, letterSpacing: 8, marginTop: 12, textShadowColor: 'rgba(201,168,76,0.3)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 },
   tagline: { fontSize: 8, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 4, marginTop: 4, textTransform: 'uppercase' },
   

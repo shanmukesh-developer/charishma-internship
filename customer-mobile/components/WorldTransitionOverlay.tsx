@@ -291,27 +291,7 @@ export default function WorldTransitionOverlay() {
         />
       </Animated.View>
 
-      {/* ── LAYER 3: Radial Light Rays ── */}
-      {rayAnims.map((ray, i) => (
-        <View
-          key={`ray-${i}`}
-          style={[
-            s.lightRay,
-            { transform: [{ rotate: `${(i * 360) / NUM_RAYS}deg` }] }
-          ]}
-        >
-          <Animated.View
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                opacity: ray.opacity,
-                transform: [{ scaleX: ray.scaleX }],
-                backgroundColor: 'rgba(255,255,255,0.3)'
-              },
-            ]}
-          />
-        </View>
-      ))}
+      {/* Radial Light Rays removed to eliminate distracting crosshair lines */}
 
       {/* ── LAYER 5: Breath Glow ── */}
       <Animated.View style={[s.breathGlow, { opacity: breathOpacity }]} />

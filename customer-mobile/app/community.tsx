@@ -607,7 +607,7 @@ export default function CommunityScreen() {
             )}
           </View>
           
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.birthdayScroll} contentContainerStyle={{ paddingHorizontal: 16, gap: 14, alignItems: 'center' }}>
+          <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} style={s.birthdayScroll} contentContainerStyle={{ paddingHorizontal: 16, gap: 14, alignItems: 'center' }}>
             {/* Nominate / Add Story */}
             <TouchableOpacity 
               style={s.birthdayStoryCard} 
@@ -647,7 +647,7 @@ export default function CommunityScreen() {
         {!search && trending.length > 0 && posts.length > 3 && (
           <View style={s.trendingSection}>
             <Text style={[s.trendingTitle, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>🔥 TRENDING NOW</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.trendingScroll}>
+            <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} style={s.trendingScroll}>
               {trending.map(tp => (
                 <View key={tp.id} style={[s.trendingCard, { backgroundColor: cardBg, borderColor: border }]}>
                   <View style={s.trendingUserRow}>
@@ -952,97 +952,104 @@ export default function CommunityScreen() {
           </TouchableWithoutFeedback>
 
           <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'padding'} 
             style={s.bdayCardWrapper}
           >
-            <View style={[s.bdayCard, { backgroundColor: isDark ? '#141416' : '#fff' }]}>
-              {/* Card Header decoration */}
-              <View style={s.bdayHeaderDecor}>
-                <Text style={{ fontSize: 24 }}>✨🎉🥳🎉✨</Text>
-              </View>
+            <View style={[s.bdayCard, { backgroundColor: isDark ? '#141416' : '#fff', maxHeight: SH * 0.85 }]}>
+              <ScrollView 
+                style={{ width: '100%' }}
+                contentContainerStyle={{ alignItems: 'center' }}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {/* Card Header decoration */}
+                <View style={s.bdayHeaderDecor}>
+                  <Text style={{ fontSize: 24 }}>✨🎉🥳🎉✨</Text>
+                </View>
 
-              {/* Close Button */}
-              <TouchableOpacity style={s.bdayCloseBtn} onPress={() => setShowBirthdayWishModal(false)}>
-                <Text style={{ fontSize: 18, color: txtSec }}>✕</Text>
-              </TouchableOpacity>
+                {/* Close Button */}
+                <TouchableOpacity style={s.bdayCloseBtn} onPress={() => setShowBirthdayWishModal(false)}>
+                  <Text style={{ fontSize: 18, color: txtSec }}>✕</Text>
+                </TouchableOpacity>
 
-              {selectedBirthday && (
-                <>
-                  {/* Large Avatar container */}
-                  <PulseGlow size={110} color="#FF69B4">
-                    <View style={s.bdayLargeAvatarRing}>
-                      {selectedBirthday.candidatePhotoUrl ? (
-                        <Image source={{ uri: selectedBirthday.candidatePhotoUrl.startsWith('http') ? selectedBirthday.candidatePhotoUrl : `${API_URL}${selectedBirthday.candidatePhotoUrl}` }} style={s.bdayLargeAvatarImg} />
-                      ) : (
-                        <Text style={{ fontSize: 44 }}>🎂</Text>
-                      )}
-                    </View>
-                  </PulseGlow>
+                {selectedBirthday && (
+                  <>
+                    {/* Large Avatar container */}
+                    <PulseGlow size={110} color="#FF69B4">
+                      <View style={s.bdayLargeAvatarRing}>
+                        {selectedBirthday.candidatePhotoUrl ? (
+                          <Image source={{ uri: selectedBirthday.candidatePhotoUrl.startsWith('http') ? selectedBirthday.candidatePhotoUrl : `${API_URL}${selectedBirthday.candidatePhotoUrl}` }} style={s.bdayLargeAvatarImg} />
+                        ) : (
+                          <Text style={{ fontSize: 44 }}>🎂</Text>
+                        )}
+                      </View>
+                    </PulseGlow>
 
-                  {/* Name and count */}
-                  <Text style={[s.bdayCandidateName, { color: txt }]}>{selectedBirthday.candidateName}</Text>
-                  <Text style={[s.bdayWishCountText, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>
-                    ❤️ {selectedBirthday.wishCount || 0} peer wishes received today!
-                  </Text>
+                    {/* Name and count */}
+                    <Text style={[s.bdayCandidateName, { color: txt }]}>{selectedBirthday.candidateName}</Text>
+                    <Text style={[s.bdayWishCountText, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>
+                      ❤️ {selectedBirthday.wishCount || 0} peer wishes received today!
+                    </Text>
 
-                  {/* Wishes Scroll View */}
-                  <View style={[s.bdayWishesContainer, { borderColor: border }]}>
-                    <ScrollView 
-                      showsVerticalScrollIndicator={false}
-                      nestedScrollEnabled
-                      style={{ flex: 1 }}
-                    >
-                      {selectedBirthdayWishes.length === 0 ? (
-                        <View style={{ paddingVertical: 24, alignItems: 'center' }}>
-                          <Text style={{ color: txtSec, fontSize: 10, fontWeight: '700' }}>No wishes yet. Be the first! 👇</Text>
-                        </View>
-                      ) : (
-                        selectedBirthdayWishes.map((w, idx) => (
-                          <View key={w.id || idx} style={[s.wishBubble, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]}>
-                            <Text style={[s.wishBubbleUser, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>{w.userName}</Text>
-                            <Text style={[s.wishBubbleText, { color: txt }]}>{w.message || 'Happy Birthday! 🎉'}</Text>
-                          </View>
-                        ))
-                      )}
-                    </ScrollView>
-                  </View>
-
-                  {/* Quick Reaction Row */}
-                  <View style={s.quickReactionsRow}>
-                    {['🎉 Congrats!', '🎂 HBD!', '💖 Stay Blessed!', '👑 Superstar!', '🥳 Cheers!'].map((react) => (
-                      <TouchableOpacity 
-                        key={react} 
-                        style={[s.quickReactionBadge, { borderColor: border }]}
-                        onPress={() => submitWish(react)}
+                    {/* Wishes Scroll View */}
+                    <View style={[s.bdayWishesContainer, { borderColor: border }]}>
+                      <ScrollView 
+                        showsVerticalScrollIndicator={false}
+                        nestedScrollEnabled
+                        style={{ flex: 1 }}
                       >
-                        <Text style={s.quickReactionText}>{react}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                        {selectedBirthdayWishes.length === 0 ? (
+                          <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+                            <Text style={{ color: txtSec, fontSize: 10, fontWeight: '700' }}>No wishes yet. Be the first! 👇</Text>
+                          </View>
+                        ) : (
+                          selectedBirthdayWishes.map((w, idx) => (
+                            <View key={w.id || idx} style={[s.wishBubble, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]}>
+                              <Text style={[s.wishBubbleUser, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>{w.userName}</Text>
+                              <Text style={[s.wishBubbleText, { color: txt }]}>{w.message || 'Happy Birthday! 🎉'}</Text>
+                            </View>
+                          ))
+                        )}
+                      </ScrollView>
+                    </View>
 
-                  {/* Custom wish composer */}
-                  <View style={s.bdayComposeRow}>
-                    <TextInput 
-                      style={[s.bdayWishInput, { backgroundColor: isDark ? '#222' : '#fff', color: txt, borderColor: border }]}
-                      placeholder="Write a custom blessing..."
-                      placeholderTextColor="#888"
-                      value={birthdayWishMessage}
-                      onChangeText={setBirthdayWishMessage}
-                    />
-                    <TouchableOpacity 
-                      style={[s.bdayWishSendBtn, { backgroundColor: isDark ? COLORS.gold : '#FF69B4' }]}
-                      onPress={() => submitWish()}
-                      disabled={submittingWish}
-                    >
-                      {submittingWish ? (
-                        <ActivityIndicator size="small" color="#000" />
-                      ) : (
-                        <Text style={s.bdayWishSendText}>SEND</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </>
-              )}
+                    {/* Quick Reaction Row */}
+                    <View style={s.quickReactionsRow}>
+                      {['🎉 Congrats!', '🎂 HBD!', '💖 Stay Blessed!', '👑 Superstar!', '🥳 Cheers!'].map((react) => (
+                        <TouchableOpacity 
+                          key={react} 
+                          style={[s.quickReactionBadge, { borderColor: border }]}
+                          onPress={() => submitWish(react)}
+                        >
+                          <Text style={s.quickReactionText}>{react}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    {/* Custom wish composer */}
+                    <View style={s.bdayComposeRow}>
+                      <TextInput 
+                        style={[s.bdayWishInput, { backgroundColor: isDark ? '#222' : '#fff', color: txt, borderColor: border }]}
+                        placeholder="Write a custom blessing..."
+                        placeholderTextColor="#888"
+                        value={birthdayWishMessage}
+                        onChangeText={setBirthdayWishMessage}
+                      />
+                      <TouchableOpacity 
+                        style={[s.bdayWishSendBtn, { backgroundColor: isDark ? COLORS.gold : '#FF69B4' }]}
+                        onPress={() => submitWish()}
+                        disabled={submittingWish}
+                      >
+                        {submittingWish ? (
+                          <ActivityIndicator size="small" color="#000" />
+                        ) : (
+                          <Text style={s.bdayWishSendText}>SEND</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+              </ScrollView>
             </View>
           </KeyboardAvoidingView>
         </View>
@@ -1056,66 +1063,73 @@ export default function CommunityScreen() {
           </TouchableWithoutFeedback>
 
           <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'padding'} 
             style={s.bdayCardWrapper}
           >
-            <View style={[s.bdayCard, { backgroundColor: isDark ? '#141416' : '#fff' }]}>
-              <Text style={[s.modalTitle, { color: txt }]}>NOMINATE BIRTHDAY PEER</Text>
-              <Text style={[s.modalSubtitle, { color: txtSec }]}>Nominate a classmate. Approved birthdays appear on the community feed for 24h.</Text>
-
-              {/* Form Input fields */}
-              <TextInput 
-                style={[s.bdayWishInput, { backgroundColor: isDark ? '#222' : '#fff', color: txt, borderColor: border, width: '100%', marginBottom: 12 }]}
-                placeholder="Candidate Full Name"
-                placeholderTextColor="#888"
-                value={newBirthdayName}
-                onChangeText={setNewBirthdayName}
-              />
-
-              <TextInput 
-                style={[s.bdayWishInput, { backgroundColor: isDark ? '#222' : '#fff', color: txt, borderColor: border, width: '100%', marginBottom: 12 }]}
-                placeholder="Birthday Date (YYYY-MM-DD)"
-                placeholderTextColor="#888"
-                value={newBirthdayDate}
-                onChangeText={setNewBirthdayDate}
-              />
-
-              {/* Photo selector */}
-              <TouchableOpacity 
-                style={[s.bdayPhotoSelector, { borderColor: border }]}
-                onPress={pickBirthdayPhoto}
+            <View style={[s.bdayCard, { backgroundColor: isDark ? '#141416' : '#fff', maxHeight: SH * 0.85 }]}>
+              <ScrollView 
+                style={{ width: '100%' }}
+                contentContainerStyle={{ alignItems: 'center' }}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
               >
-                {newBirthdayPhoto ? (
-                  <Image source={{ uri: newBirthdayPhoto }} style={s.bdayPhotoPreview} />
-                ) : (
-                  <View style={{ alignItems: 'center' }}>
-                    <Text style={{ fontSize: 24, marginBottom: 4 }}>📸</Text>
-                    <Text style={{ color: txtSec, fontSize: 9, fontWeight: '700' }}>ADD PEER PORTRAIT</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
+                <Text style={[s.modalTitle, { color: txt }]}>NOMINATE BIRTHDAY PEER</Text>
+                <Text style={[s.modalSubtitle, { color: txtSec }]}>Nominate a classmate. Approved birthdays appear on the community feed for 24h.</Text>
 
-              {/* Action Buttons */}
-              <View style={s.modalActionsRow}>
-                <TouchableOpacity 
-                  style={[s.modalCancelBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} 
-                  onPress={() => setShowRegisterBirthdayModal(false)}
-                >
-                  <Text style={[s.modalCancelText, { color: txtSec }]}>CANCEL</Text>
-                </TouchableOpacity>
+                {/* Form Input fields */}
+                <TextInput 
+                  style={[s.bdayWishInput, { backgroundColor: isDark ? '#222' : '#fff', color: txt, borderColor: border, width: '100%', marginBottom: 12 }]}
+                  placeholder="Candidate Full Name"
+                  placeholderTextColor="#888"
+                  value={newBirthdayName}
+                  onChangeText={setNewBirthdayName}
+                />
 
+                <TextInput 
+                  style={[s.bdayWishInput, { backgroundColor: isDark ? '#222' : '#fff', color: txt, borderColor: border, width: '100%', marginBottom: 12 }]}
+                  placeholder="Birthday Date (YYYY-MM-DD)"
+                  placeholderTextColor="#888"
+                  value={newBirthdayDate}
+                  onChangeText={setNewBirthdayDate}
+                />
+
+                {/* Photo selector */}
                 <TouchableOpacity 
-                  style={[s.modalSubmitBtn, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b' }]} 
-                  onPress={submitBirthday}
-                  disabled={submittingBirthday}
+                  style={[s.bdayPhotoSelector, { borderColor: border }]}
+                  onPress={pickBirthdayPhoto}
                 >
-                  {submittingBirthday ? (
-                    <ActivityIndicator size="small" color="#000" />
+                  {newBirthdayPhoto ? (
+                    <Image source={{ uri: newBirthdayPhoto }} style={s.bdayPhotoPreview} />
                   ) : (
-                    <Text style={s.modalSubmitText}>NOMINATE 🎁</Text>
+                    <View style={{ alignItems: 'center' }}>
+                      <Text style={{ fontSize: 24, marginBottom: 4 }}>📸</Text>
+                      <Text style={{ color: txtSec, fontSize: 9, fontWeight: '700' }}>ADD PEER PORTRAIT</Text>
+                    </View>
                   )}
                 </TouchableOpacity>
-              </View>
+
+                {/* Action Buttons */}
+                <View style={s.modalActionsRow}>
+                  <TouchableOpacity 
+                    style={[s.modalCancelBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} 
+                    onPress={() => setShowRegisterBirthdayModal(false)}
+                  >
+                    <Text style={[s.modalCancelText, { color: txtSec }]}>CANCEL</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={[s.modalSubmitBtn, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b' }]} 
+                    onPress={submitBirthday}
+                    disabled={submittingBirthday}
+                  >
+                    {submittingBirthday ? (
+                      <ActivityIndicator size="small" color="#000" />
+                    ) : (
+                      <Text style={s.modalSubmitText}>NOMINATE 🎁</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
             </View>
           </KeyboardAvoidingView>
         </View>
