@@ -76,8 +76,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshUser = async () => {
-    const stored = await getUser();
-    if (stored) setUserState(stored);
+    try {
+      const { API_URL } = require('../constants/api');
+      const { apiFetch } = require('../utils/auth');
+      const response = await apiFetch(`${API_URL}/api/users/profile`);
+      if (response.ok) {
+        const data = await response.json();
+        setUserState(data);
+        await saveUser(data);
+      } else {
+        // Fallback to local storage if API call fails
+        const stored = await getUser();
+        if (stored) setUserState(stored);
+      }
+    } catch (e) {
+      const stored = await getUser();
+      if (stored) setUserState(stored);
+    }
   };
 
   return (
