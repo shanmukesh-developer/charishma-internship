@@ -2,15 +2,8 @@ const { getConversationModel } = require('../models/Conversation');
 const { getMessageModel } = require('../models/Message');
 
 const checkAfterDarkHours = (req, res, next) => {
-  const options = { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false };
-  const istHour = parseInt(new Intl.DateTimeFormat('en-US', options).format(new Date()), 10);
-  
-  // Active between 9 PM (21) and 2 AM (2)
-  if (istHour >= 21 || istHour < 2) {
-    next();
-  } else {
-    return res.status(403).json({ message: 'Zenvy After Dark is currently closed. Come back at 9 PM!' });
-  }
+  // Temporarily unlocked for testing
+  next();
 };
 
 const getConversations = async (req, res) => {

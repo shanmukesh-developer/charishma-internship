@@ -1124,8 +1124,7 @@ const startServer = async () => {
       // --- Zenvy After Dark Social Engine ---
       
       const isAfterDark = () => {
-        const istHour = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false }).format(new Date()), 10);
-        return istHour >= 21 || istHour < 2;
+        return true; // Temporarily unlocked for testing
       };
 
       socket.on('join_after_dark_group', async (data) => {

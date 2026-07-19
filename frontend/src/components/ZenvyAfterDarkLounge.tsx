@@ -26,9 +26,8 @@ export default function ZenvyAfterDarkLounge() {
   // Time Gate Check
   useEffect(() => {
     const checkTime = () => {
-      const h = new Date().getHours();
-      // Active from 21:00 (9 PM) to 01:59 (2 AM)
-      setIsAfterDark(h >= 21 || h < 2);
+      // Temporarily forced to true for testing
+      setIsAfterDark(true);
     };
     checkTime();
     const interval = setInterval(checkTime, 60000);
