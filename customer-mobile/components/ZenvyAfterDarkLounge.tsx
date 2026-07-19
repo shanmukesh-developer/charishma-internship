@@ -133,10 +133,23 @@ export default function ZenvyAfterDarkLounge() {
     } catch (e) { Alert.alert('Error', 'Network request failed.'); }
   };
 
+  const fetchMessages = async (chatId: string) => {
+    try {
+      const res = await apiFetch(`/api/chat/conversations/${chatId}/messages`);
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(data || []);
+        setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 200);
+      }
+    } catch (e) { console.error(e); }
+  };
+
   const openChat = (item: any, type: 'friend' | 'room') => {
-    setActiveChat({ type, id: item.id, name: item.name });
+    const chatId = type === 'friend' ? item.friendshipId : item.id;
+    setActiveChat({ type, id: chatId, name: item.name });
     setMessages([]);
-    socketRef.current?.emit('join_after_dark_group', { groupId: item.id });
+    fetchMessages(chatId);
+    socketRef.current?.emit('join_after_dark_group', { groupId: chatId });
   };
 
   const handleSendMessage = () => {
@@ -182,7 +195,11 @@ export default function ZenvyAfterDarkLounge() {
 
       {/* FULL SCREEN MODAL */}
       <Modal visible={isOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setIsOpen(false)}>
-        <KeyboardAvoidingView style={[s.modalContainer, { backgroundColor: cardBg }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView 
+          style={[s.modalContainer, { backgroundColor: cardBg }]} 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 30}
+        >
           
           {/* Main Navigation when not in a chat */}
           {!activeChat ? (

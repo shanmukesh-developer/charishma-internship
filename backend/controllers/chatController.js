@@ -32,12 +32,7 @@ const getConversations = async (req, res) => {
 const getMessages = async (req, res) => {
   try {
     const Message = getMessageModel();
-    const Conversation = getConversationModel();
-
     const conversationId = req.params.conversationId;
-    const conversation = await Conversation.findByPk(conversationId);
-    
-    if (!conversation) return res.status(404).json({ message: 'Conversation not found' });
 
     const messages = await Message.findAll({
       where: { conversationId },
