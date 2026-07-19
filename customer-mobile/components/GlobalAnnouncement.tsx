@@ -31,6 +31,59 @@ export default function GlobalAnnouncement() {
   const topOffset = Math.max(insets.top + 8, 16);
 
   useEffect(() => {
+    if (!user) return;
+    
+    const registerPushToken = async () => {
+      try {
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+        if (finalStatus !== 'granted') return;
+        
+        let fcmToken = '';
+        try {
+          const deviceTokenData = await Notifications.getDevicePushTokenAsync();
+          fcmToken = deviceTokenData.data;
+        } catch (deviceError) {
+          console.warn('FCM native token failed in GlobalAnnouncement, trying Expo fallback:', deviceError);
+          const Constants = require('expo-constants').default;
+          let projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
+          if (!projectId || projectId === 'your-eas-project-id') {
+            projectId = undefined; 
+          }
+          const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+          fcmToken = tokenData.data;
+        }
+        
+        if (!fcmToken) return;
+        
+        // Sync with backend
+        const { apiFetch } = require('../utils/auth');
+        const res = await apiFetch(`${API_URL}/api/users/fcm-token`, {
+          method: 'POST',
+          body: JSON.stringify({
+            fcmToken,
+            appVersion: '1.0.0'
+          })
+        });
+        if (res.ok) {
+          console.log('[PUSH] Push token auto-registered successfully.');
+        } else {
+          console.warn('[PUSH] Auto-register failed:', res.status);
+        }
+      } catch (err) {
+        console.warn('[PUSH] Auto-register error:', err);
+      }
+    };
+    
+    const timer = setTimeout(registerPushToken, 3000);
+    return () => clearTimeout(timer);
+  }, [user]);
+
+  useEffect(() => {
     // Set notification handler at runtime (not module scope — avoids Android crash)
     try {
       Notifications.setNotificationHandler({
