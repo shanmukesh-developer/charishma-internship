@@ -139,6 +139,32 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
     }
   }, []);
 
+  const playNotificationSound = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const audioCtx = new AudioContextClass();
+      const playBeep = (freq: number, startTime: number, duration: number) => {
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, startTime);
+        gainNode.gain.setValueAtTime(0.15, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      };
+      const now = audioCtx.currentTime;
+      playBeep(880, now, 0.15);
+      playBeep(1109, now + 0.12, 0.30);
+    } catch (e) {
+      console.warn('AudioContext failed:', e);
+    }
+  }, []);
+
   useEffect(() => {
     const saved = localStorage.getItem('rider_notifications');
     if (saved) {
@@ -435,8 +461,21 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
     socket.on('newOrder', (order: Record<string, unknown>) => {
       if (!isOnline) return;
       const id = String(order._id || order.id);
+      playNotificationSound();
+      toast(`📦 New Order Available: From ${order.restaurant || 'Zenvy'} to ${order.drop || 'Delivery'}!`, 'info');
       addNotification('order', 'New Order Available', `From ${order.restaurant || 'Zenvy'} to ${order.drop || 'Delivery'}`);
       triggerNativeNotification('New Order Available 📦', `From ${order.restaurant || 'Zenvy'} to ${order.drop || 'Delivery'}`);
+      
+      if (typeof window !== 'undefined' && (window as any).ReactNativeWebView) {
+        try {
+          (window as any).ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'NEW_ORDER',
+            title: 'New Order Available 📦',
+            body: `From ${order.restaurant || 'Zenvy'} to ${order.drop || 'Delivery'}`
+          }));
+        } catch (e) {}
+      }
+
       setAvailableOrders(prev => {
         if (prev.find(o => o.id === id)) return prev;
         return [{
@@ -448,7 +487,8 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
           totalPrice: Number(order.totalPrice || 0),
           finalPrice: Number(order.finalPrice || 0),
           createdAt: String(order.createdAt || new Date().toISOString()),
-          status: 'Pending'
+          status: 'Pending',
+          deliverySlot: String(order.deliverySlot || 'Standard')
         }, ...prev];
       });
     });
@@ -456,6 +496,17 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
     socket.on('orderCancelled', ({ orderId }: { orderId: string }) => {
       addNotification('warning', 'Order Cancelled', `Order #${orderId.slice(-6)} has been cancelled.`);
       triggerNativeNotification('Order Cancelled ⚠️', `Order #${orderId.slice(-6)} has been cancelled.`);
+      
+      if (typeof window !== 'undefined' && (window as any).ReactNativeWebView) {
+        try {
+          (window as any).ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'SHOW_NOTIFICATION',
+            title: 'Order Cancelled ⚠️',
+            body: `Order #${orderId.slice(-6)} has been cancelled.`
+          }));
+        } catch (e) {}
+      }
+
       setAvailableOrders(prev => prev.filter(o => o.id !== String(orderId)));
       setActiveOrders(prev => prev.filter(o => o.id !== String(orderId)));
     });
@@ -516,6 +567,16 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
       });
     }
   }, [isOnline, currentDriver._id, currentDriver.name]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).ReactNativeWebView) {
+      (window as any).ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'SYNC_ACTIVE_ORDERS',
+        orders: activeOrders,
+        token: driverToken
+      }));
+    }
+  }, [activeOrders, driverToken]);
 
   useEffect(() => {
     if (!socketRef.current) return;

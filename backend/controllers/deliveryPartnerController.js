@@ -263,7 +263,8 @@ const getPendingOrders = async (req, res) => {
         totalPrice: order.totalPrice,
         finalPrice: order.finalPrice,
         earnings: '₹30',
-        createdAt: order.createdAt
+        createdAt: order.createdAt,
+        deliverySlot: order.deliverySlot
       };
     });
 
@@ -551,7 +552,8 @@ const getActiveOrders = async (req, res) => {
         status: order.status,
         deliveryPin: order.deliveryPin,
         earnings: '₹30',
-        createdAt: order.createdAt
+        createdAt: order.createdAt,
+        deliverySlot: order.deliverySlot
       };
     });
 

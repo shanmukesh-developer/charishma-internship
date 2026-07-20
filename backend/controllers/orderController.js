@@ -440,6 +440,21 @@ const createOrder = async (req, res) => {
       createdAt: createdOrder.createdAt
     });
 
+    // 🟢 Real-time dispatch to all online riders immediately
+    io.emit('newOrder', {
+      id: createdOrder.id,
+      restaurant: restaurant.name,
+      restaurantAddress: restaurant.location,
+      drop: createdOrder.deliveryAddress,
+      items: normalizeItems(createdOrder.items),
+      totalPrice: createdOrder.totalPrice,
+      finalPrice: createdOrder.finalPrice,
+      earnings: `₹${createdOrder.deliveryFee}`,
+      distance: createdOrder.distance,
+      createdAt: createdOrder.createdAt,
+      deliverySlot: createdOrder.deliverySlot
+    });
+
     // 2. Smart Proximity Dispatch (Targeted Push to Closest Riders)
     try {
       const { getCoordsForAddress, getHaversineDistance } = require('../utils/distance');
