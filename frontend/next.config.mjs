@@ -11,11 +11,11 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   outputFileTracingRoot: path.join(__dirname, '../'),
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
+  },
+  turbopack: {
+    root: path.resolve(__dirname, '..'),
   },
   images: {
     unoptimized: true,

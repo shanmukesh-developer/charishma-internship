@@ -12,11 +12,23 @@ const PROVIDER = process.env.WHATSAPP_PROVIDER || 'CONSOLE'; // CONSOLE, TWILIO,
  * Formats order details into a clean WhatsApp-ready message
  */
 const formatOrderMessage = (order, type = 'CUSTOMER_CONFIRMATION') => {
-  const orderId = (order._id || order.id).toString().slice(-6).toUpperCase();
-  const parsedItems = Array.isArray(order.items) ? order.items : JSON.parse(order.items || '[]');
-  const items = parsedItems.map(i => `• ${i.name} x${i.quantity}`).join('\n');
+  const orderId = (order._id || order.id || 'UNKNOWN').toString().slice(-6).toUpperCase();
+  let parsedItems = [];
+  if (order && order.items) {
+    if (Array.isArray(order.items)) {
+      parsedItems = order.items;
+    } else {
+      try {
+        parsedItems = JSON.parse(order.items);
+      } catch (err) {
+        console.error('[WHATSAPP_PARSE_ERROR] Failed to parse order items:', err.message);
+        parsedItems = [];
+      }
+    }
+  }
+  const items = parsedItems.map(i => `• ${i.name || 'Item'} x${i.quantity || 1}`).join('\n');
   const restaurant = order.restaurant?.name || 'Zenvy Partner';
-  const trackUrl = `${process.env.FRONTEND_URL || 'https://zenvy.app'}/orders/${order._id || order.id}`;
+  const trackUrl = `${process.env.FRONTEND_URL || 'https://zenvy.app'}/orders/${order._id || order.id || ''}`;
 
   if (type === 'CUSTOMER_CONFIRMATION') {
     return `🛍️ *Order Confirmed!* #${orderId}\n\nHi! Your order from *${restaurant}* is now being prepared.\n\n*Items:*\n${items}\n\n*Total:* ₹${order.finalPrice || order.totalPrice}\n\n📍 *Tracking:* ${trackUrl}\n\n_Thank you for choosing Zenvy!_`;

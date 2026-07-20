@@ -182,7 +182,15 @@ router.get('/recommendations', protect, async (req, res) => {
     const categoryFreq = {};
     const restaurantFreq = {};
     pastOrders.forEach(o => {
-      const items = Array.isArray(o.items) ? o.items : [];
+      let itemsList = o.items;
+      if (typeof itemsList === 'string') {
+        try {
+          itemsList = JSON.parse(itemsList);
+        } catch {
+          itemsList = [];
+        }
+      }
+      const items = Array.isArray(itemsList) ? itemsList : [];
       items.forEach(item => {
         const name = item.name || '';
         itemFreq[name] = (itemFreq[name] || 0) + 1;

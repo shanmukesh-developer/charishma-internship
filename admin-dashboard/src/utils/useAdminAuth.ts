@@ -16,8 +16,15 @@ export function useAdminAuth() {
     }
 
     // OPTIMISTIC AUTH: Assume valid if token exists, verify in background
-    const user = JSON.parse(userData);
-    if (user.role === 'admin') {
+    let user;
+    try {
+      user = JSON.parse(userData);
+    } catch {
+      router.push('/login');
+      return;
+    }
+
+    if (user && user.role === 'admin') {
       setIsAuthed(true);
     } else {
       router.push('/login');

@@ -12,7 +12,7 @@ const initAppConfigModel = (sequelize) => {
       defaultValue: '[]',
       get() {
         const val = this.getDataValue('banners');
-        return val ? JSON.parse(val) : [];
+        try { return val ? JSON.parse(val) : []; } catch { return []; }
       },
       set(val) {
         this.setDataValue('banners', typeof val === 'string' ? val : JSON.stringify(val));
@@ -23,7 +23,7 @@ const initAppConfigModel = (sequelize) => {
       defaultValue: '[]',
       get() {
         const val = this.getDataValue('categories');
-        return val ? JSON.parse(val) : [];
+        try { return val ? JSON.parse(val) : []; } catch { return []; }
       },
       set(val) {
         this.setDataValue('categories', typeof val === 'string' ? val : JSON.stringify(val));

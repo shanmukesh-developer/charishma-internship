@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ShoppingCart, Stethoscope, WashingMachine, Printer, Bicycle, Cake, Beef, Apple, Plus } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Stethoscope, WashingMachine, Printer, Bike, Cake, Beef, Apple, Plus } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { useCart } from '@/context/CartContext';
 import { API_URL } from '@/utils/api';
@@ -11,7 +11,7 @@ const SERVICE_CONFIG = {
   grocery: { name: 'Fresh Groceries', icon: Apple, color: 'text-green-500', bg: 'bg-green-500/10' },
   meat: { name: 'Raw Meat & Fish', icon: Beef, color: 'text-red-500', bg: 'bg-red-500/10' },
   bakery: { name: 'Cakes & Sweets', icon: Cake, color: 'text-pink-500', bg: 'bg-pink-500/10' },
-  rentals: { name: 'Campus Rentals', icon: Bicycle, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+  rentals: { name: 'Campus Rentals', icon: Bike, color: 'text-blue-500', bg: 'bg-blue-500/10' },
   pharmacy: { name: 'Pharmacy SOS', icon: Stethoscope, color: 'text-teal-500', bg: 'bg-teal-500/10' },
   laundry: { name: 'Wash & Fold', icon: WashingMachine, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
   print: { name: 'Print & Drop', icon: Printer, color: 'text-gray-300', bg: 'bg-gray-500/10' },
@@ -90,7 +90,7 @@ export default function ZenvyServicePage({ params }: { params: { id: string } })
 
   return (
     <main className="min-h-screen bg-[#0A0A0B] pb-24">
-      <Navbar onMenuClick={() => {}} userName="" isElite={false} user={null} />
+      <Navbar />
       
       {/* Dynamic Header */}
       <div className={`${service.bg} pt-24 pb-8 px-4 border-b border-white/5`}>
@@ -141,7 +141,14 @@ export default function ZenvyServicePage({ params }: { params: { id: string } })
                     <span className="font-black text-white">₹{item.price}</span>
                     <button 
                       disabled={!item.isAvailable}
-                      onClick={() => addToCart(item, { id: item.restaurantId, name: item.restaurantName || 'Zenvy Hub' } as any)}
+                      onClick={() => addToCart({
+                        id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        image: item.imageUrl || '',
+                        restaurantId: item.restaurantId,
+                        restaurantName: item.restaurantName || 'Zenvy Hub'
+                      })}
                       className={`p-2 rounded-full ${item.isAvailable ? 'bg-white text-black hover:bg-gray-200' : 'bg-white/10 text-white/30 cursor-not-allowed'}`}
                     >
                       <Plus className="w-4 h-4" />

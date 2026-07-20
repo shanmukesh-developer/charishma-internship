@@ -24,6 +24,7 @@ import { useTheme } from '../../context/ThemeContext';
 import AmbientBackground from '../../components/AmbientBackground';
 import { StaggeredSection, BounceIn } from '../../components/AnimatedSection';
 import DopaminePressable from '../../components/DopaminePressable';
+import SafeImage from '../../components/SafeImage';
 import { apiFetch } from '../../utils/auth';
 import { API_URL, ENDPOINTS } from '../../constants/api';
 import * as Notifications from 'expo-notifications';
@@ -109,39 +110,14 @@ export default function ProfileScreen() {
 
   const initials = (user?.name || 'ZU').substring(0, 2).toUpperCase();
 
-  if (!user) {
-    return (
-      <View style={[s.container, { backgroundColor: bg, justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
-        <AmbientBackground />
-        <Text style={{ fontSize: 48, marginBottom: 16 }}>🔐</Text>
-        <Text style={{ fontSize: 18, fontWeight: '900', color: txt, letterSpacing: 2, textAlign: 'center', marginBottom: 8 }}>
-          AUTHENTICATION REQUIRED
-        </Text>
-        <Text style={{ fontSize: 11, color: txtSec, fontWeight: '600', textAlign: 'center', marginBottom: 24, lineHeight: 18 }}>
-          Please sign in to access your secure Zenvy profile, orders, and elite campus benefits.
-        </Text>
-        <TouchableOpacity 
-          style={{ 
-            backgroundColor: COLORS.red, 
-            paddingHorizontal: 32, 
-            paddingVertical: 14, 
-            borderRadius: 16, 
-            ...SHADOWS.redGlow 
-          }} 
-          onPress={() => router.push('/login' as any)}
-        >
-          <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '900', letterSpacing: 2 }}>SIGN IN / SIGN UP</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   // Load preferences and server data
   useEffect(() => {
-    loadLocalPreferences();
-    fetchData();
-    handleEnablePush(true);
-  }, []);
+    if (user) {
+      loadLocalPreferences();
+      fetchData();
+      handleEnablePush(true);
+    }
+  }, [user]);
 
   const loadLocalPreferences = async () => {
     try {
@@ -239,6 +215,10 @@ export default function ProfileScreen() {
   };
 
   const handleEnablePush = async (silent = false) => {
+    if (Platform.OS === 'web') {
+      if (!silent) Alert.alert('Not Supported', 'Push notifications are not supported in web browser previews.');
+      return;
+    }
     try {
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
@@ -410,6 +390,33 @@ export default function ProfileScreen() {
     'END:VCARD',
   ].join('\n');
 
+  if (!user) {
+    return (
+      <View style={[s.container, { backgroundColor: bg, justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+        <AmbientBackground />
+        <Text style={{ fontSize: 48, marginBottom: 16 }}>🔐</Text>
+        <Text style={{ fontSize: 18, fontWeight: '900', color: txt, letterSpacing: 2, textAlign: 'center', marginBottom: 8 }}>
+          AUTHENTICATION REQUIRED
+        </Text>
+        <Text style={{ fontSize: 11, color: txtSec, fontWeight: '600', textAlign: 'center', marginBottom: 24, lineHeight: 18 }}>
+          Please sign in to access your secure Zenvy profile, orders, and elite campus benefits.
+        </Text>
+        <TouchableOpacity 
+          style={{ 
+            backgroundColor: COLORS.red, 
+            paddingHorizontal: 32, 
+            paddingVertical: 14, 
+            borderRadius: 16, 
+            ...SHADOWS.redGlow 
+          }} 
+          onPress={() => router.push('/login' as any)}
+        >
+          <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '900', letterSpacing: 2 }}>SIGN IN / SIGN UP</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={[s.container, { backgroundColor: bg }]}>
       <AmbientBackground />
@@ -431,7 +438,7 @@ export default function ProfileScreen() {
                   >
                     <View style={[s.avatar, { backgroundColor: isDark ? '#141416' : '#FFF' }]}>
                       {user?.profileImage ? (
-                        <Image source={{ uri: user.profileImage }} style={s.avatarImg} />
+                        <SafeImage source={{ uri: user.profileImage }} style={s.avatarImg} />
                       ) : (
                         <Text style={[s.avatarText, { color: isDark ? goldColor : '#EF4F5F' }]}>{initials}</Text>
                       )}
@@ -463,7 +470,7 @@ export default function ProfileScreen() {
             {/* Name, Tier & ZV code */}
             <Text style={[s.name, { color: txt }]}>{(user?.name || 'ZENVY MEMBER').toUpperCase()}</Text>
             <Text style={[s.tierText, { color: goldColor }]}>
-              {user?.isElite ? 'ELITE MEMBER' : 'EXPLORER TIER'} • SINCE 2024
+              {user?.isElite ? 'ELITE MEMBER' : 'EXPLORER TIER'} • SINCE {user?.createdAt ? new Date(user.createdAt).getFullYear() : '2024'}
             </Text>
 
             <TouchableOpacity style={[s.barcodeBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6' }]} onPress={() => setShowQR(true)}>
@@ -475,7 +482,7 @@ export default function ProfileScreen() {
                 <View style={[s.barcodeLine, { backgroundColor: txt, width: 2 }]} />
               </View>
               <Text style={[s.barcodeText, { color: txtSec }]}>
-                ZV-{(user?._id || user?.id || '0000').slice(-6).toUpperCase()}
+                {user?.friendCode ? user.friendCode : `ZV-${(user?._id || user?.id || '0000').slice(-6).toUpperCase()}`}
               </Text>
             </TouchableOpacity>
 
@@ -691,20 +698,27 @@ export default function ProfileScreen() {
           <View style={[s.achievementsCard, { backgroundColor: cardBg, borderColor: border }]}>
             {user?.badges && user.badges.length > 0 ? (
               <View style={s.badgeGrid}>
-                {user.badges.includes('Nexus Legend') && (
-                  <View style={[s.badgeCard, { borderColor: '#F59E0B' }]}>
-                    <Text style={s.badgeEmoji}>👑</Text>
-                    <Text style={s.badgeTitle}>Nexus Legend</Text>
-                    <Text style={s.badgeDesc}>50+ Orders Completed</Text>
-                  </View>
-                )}
-                {user.badges.includes('Night Owl') && (
-                  <View style={[s.badgeCard, { borderColor: '#6366F1' }]}>
-                    <Text style={s.badgeEmoji}>🦉</Text>
-                    <Text style={s.badgeTitle}>Night Owl</Text>
-                    <Text style={s.badgeDesc}>Late Night Expert</Text>
-                  </View>
-                )}
+                {user.badges.map((badgeName: string, index: number) => {
+                  let emoji = '⚡';
+                  let color = '#A855F7';
+                  let desc = 'Unlocked Milestone';
+                  if (badgeName.includes('Legend') || badgeName.includes('Elite')) { emoji = '👑'; color = '#F59E0B'; desc = 'Top Tier Legend'; }
+                  else if (badgeName.includes('Night') || badgeName.includes('Owl') || badgeName.includes('Bat') || badgeName.includes('Shadow')) { emoji = '🦉'; color = '#6366F1'; desc = 'Late Night Expert'; }
+                  else if (badgeName.includes('Streak') || badgeName.includes('Believer') || badgeName.includes('Streaker')) { emoji = '🔥'; color = '#EF4444'; desc = 'Streak Master'; }
+                  else if (badgeName.includes('Gold') || badgeName.includes('Grafter')) { emoji = '🥇'; color = '#EAB308'; desc = 'Gold Tier Rank'; }
+                  else if (badgeName.includes('Silver') || badgeName.includes('Scaler')) { emoji = '🥈'; color = '#9CA3AF'; desc = 'Silver Tier Rank'; }
+                  else if (badgeName.includes('Bronze') || badgeName.includes('Beginner')) { emoji = '🥉'; color = '#D97706'; desc = 'Bronze Tier Rank'; }
+                  else if (badgeName.includes('Diamond')) { emoji = '💎'; color = '#38BDF8'; desc = 'Diamond Devotee'; }
+                  else if (badgeName.includes('Veggie')) { emoji = '🥗'; color = '#22C55E'; desc = 'Veg Specialist'; }
+
+                  return (
+                    <View key={index} style={[s.badgeCard, { borderColor: color }]}>
+                      <Text style={s.badgeEmoji}>{emoji}</Text>
+                      <Text style={s.badgeTitle}>{badgeName}</Text>
+                      <Text style={s.badgeDesc}>{desc}</Text>
+                    </View>
+                  );
+                })}
               </View>
             ) : (
               <View style={s.emptyAchievements}>

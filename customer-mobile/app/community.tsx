@@ -119,6 +119,7 @@ export default function CommunityScreen() {
   const border = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(139,90,43,0.1)';
 
   const [posts, setPosts] = useState<PostType[]>([]);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'reviews'>('all');
   const [search, setSearch] = useState('');
@@ -639,8 +640,14 @@ export default function CommunityScreen() {
               >
                 <PulseGlow size={66} color="#FF69B4">
                   <View style={s.birthdayStoryCircle}>
-                    {b.candidatePhotoUrl ? (
-                      <Image source={{ uri: getImageUrl(b.candidatePhotoUrl) }} style={s.birthdayStoryImg} />
+                    {b.candidatePhotoUrl && !imageErrors[b.id] ? (
+                      <Image 
+                        source={{ uri: getImageUrl(b.candidatePhotoUrl) }} 
+                        style={s.birthdayStoryImg} 
+                        onError={() => {
+                          setImageErrors(prev => ({ ...prev, [b.id]: true }));
+                        }}
+                      />
                     ) : (
                       <View style={[s.birthdayStoryTextImg, { backgroundColor: isDark ? '#1C161D' : '#FFF0F5' }]}>
                         <Text style={{ fontSize: 24 }}>🎂</Text>
@@ -712,11 +719,17 @@ export default function CommunityScreen() {
                     onPress={() => post.imageUrl ? setSelectedImage(post.imageUrl) : null} 
                     tilt={false} // Disabled 3D tilt to eliminate JS thread lag
                   >
-                    {post.imageUrl ? (
-                      <Image source={{ uri: post.imageUrl }} style={s.polaroidImg} />
+                    {post.imageUrl && !imageErrors[post.id] ? (
+                      <Image 
+                        source={{ uri: post.imageUrl }} 
+                        style={s.polaroidImg} 
+                        onError={() => {
+                          setImageErrors(prev => ({ ...prev, [post.id]: true }));
+                        }}
+                      />
                     ) : (
                       <View style={[s.textPostBg, { backgroundColor: bgGrad[0] }]}>
-                        <Text style={s.textPostContent} numberOfLines={8}>{post.content}</Text>
+                        <Text style={s.textPostContent} numberOfLines={8}>{post.content || 'Memory Image unavailable'}</Text>
                       </View>
                     )}
 
@@ -988,8 +1001,14 @@ export default function CommunityScreen() {
                     {/* Large Avatar container */}
                     <PulseGlow size={110} color="#FF69B4">
                       <View style={s.bdayLargeAvatarRing}>
-                        {selectedBirthday.candidatePhotoUrl ? (
-                          <Image source={{ uri: getImageUrl(selectedBirthday.candidatePhotoUrl) }} style={s.bdayLargeAvatarImg} />
+                        {selectedBirthday.candidatePhotoUrl && !imageErrors[selectedBirthday.id] ? (
+                          <Image 
+                            source={{ uri: getImageUrl(selectedBirthday.candidatePhotoUrl) }} 
+                            style={s.bdayLargeAvatarImg} 
+                            onError={() => {
+                              setImageErrors(prev => ({ ...prev, [selectedBirthday.id]: true }));
+                            }}
+                          />
                         ) : (
                           <Text style={{ fontSize: 44 }}>🎂</Text>
                         )}
@@ -1166,8 +1185,14 @@ export default function CommunityScreen() {
                 pendingBirthdays.map((p) => (
                   <View key={p.id} style={[s.adminQueueCard, { borderColor: border, backgroundColor: isDark ? '#1C1B1F' : '#fcfcfc' }]}>
                     <View style={s.adminQueueRow}>
-                      {p.candidatePhotoUrl ? (
-                        <Image source={{ uri: getImageUrl(p.candidatePhotoUrl) }} style={s.adminQueueImg} />
+                      {p.candidatePhotoUrl && !imageErrors[p.id] ? (
+                        <Image 
+                          source={{ uri: getImageUrl(p.candidatePhotoUrl) }} 
+                          style={s.adminQueueImg} 
+                          onError={() => {
+                            setImageErrors(prev => ({ ...prev, [p.id]: true }));
+                          }}
+                        />
                       ) : (
                         <View style={s.adminQueueTextImg}><Text>🎂</Text></View>
                       )}

@@ -19,7 +19,7 @@ const initCommunityPostModel = (sequelize) => {
       defaultValue: '[]',
       get() {
         const val = this.getDataValue('likedBy');
-        return val ? JSON.parse(val) : [];
+        try { return val ? JSON.parse(val) : []; } catch { return []; }
       },
       set(val) {
         this.setDataValue('likedBy', JSON.stringify(val));

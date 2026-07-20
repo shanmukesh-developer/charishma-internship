@@ -250,15 +250,16 @@ router.post('/posts/:id/complete', protect, async (req, res) => {
       return res.status(404).json({ message: 'Bike pool listing not found.' });
     }
 
-    if (pool.status !== 'Matched') {
-      return res.status(400).json({ message: 'Only matched rides can be completed.' });
+    const PoolRequest = getPoolRequestModel();
+    const hasApproved = await PoolRequest.findOne({ where: { poolId: pool.id, status: 'Approved' } });
+
+    if (pool.status !== 'Matched' && !(pool.status === 'Available' && hasApproved)) {
+      return res.status(400).json({ message: 'Only matched or joined rides can be completed.' });
     }
 
     if (pool.creatorId !== req.user.id && pool.coRiderId !== req.user.id) {
       return res.status(403).json({ message: 'You are not a participant in this ride.' });
     }
-
-    const PoolRequest = getPoolRequestModel();
 
     // The person calling this must be the creator (only they can complete a multi-passenger ride)
     if (pool.creatorId !== req.user.id) {
@@ -357,6 +358,7 @@ router.get('/my-rides', protect, async (req, res) => {
   try {
     const BikePool = getBikePoolModel();
     const User = getUserModel();
+    const PoolRequest = getPoolRequestModel();
 
     const myRides = await BikePool.findAll({
       where: {
@@ -375,6 +377,17 @@ router.get('/my-rides', protect, async (req, res) => {
           model: User,
           as: 'coRider',
           attributes: ['id', 'name', 'phone', 'gender', 'profileImage']
+        },
+        {
+          model: PoolRequest,
+          as: 'requests',
+          include: [
+            {
+              model: User,
+              as: 'passenger',
+              attributes: ['id', 'name', 'phone', 'gender', 'profileImage']
+            }
+          ]
         }
       ],
       order: [['createdAt', 'DESC']]

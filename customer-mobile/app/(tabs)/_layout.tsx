@@ -71,14 +71,24 @@ export default function TabLayout() {
         options={{
           tabBarIcon: ({ focused }) => <TabIcon name="Home" focused={focused} iconName="home" isDark={isDark} />,
         }}
-        listeners={makeTransitionListener('/(tabs)', 'food')}
+        listeners={{
+          tabPress: () => {
+            resumeAudio();
+            playSound('tabSwitch');
+          }
+        }}
       />
       <Tabs.Screen
         name="others"
         options={{
           tabBarIcon: ({ focused }) => <TabIcon name="Others" focused={focused} iconName="grid" isDark={isDark} />,
         }}
-        listeners={makeTransitionListener('/(tabs)/others', 'others')}
+        listeners={{
+          tabPress: () => {
+            resumeAudio();
+            playSound('tabSwitch');
+          }
+        }}
       />
 
       {/* Orders, Basket, Profile — instant switch, no transition */}

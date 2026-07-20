@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { io, Socket } from 'socket.io-client';
 import { API_URL } from '../constants/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import * as Notifications from 'expo-notifications';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
@@ -24,6 +25,7 @@ const TYPE_STYLES = {
 };
 
 export default function GlobalAnnouncement() {
+  const router = useRouter();
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const slideAnim = React.useRef(new Animated.Value(-150)).current;
   const { user } = useAuth();
@@ -31,7 +33,7 @@ export default function GlobalAnnouncement() {
   const topOffset = Math.max(insets.top + 8, 16);
 
   useEffect(() => {
-    if (!user) return;
+    if (Platform.OS === 'web' || !user) return;
     
     const registerPushToken = async () => {
       try {
@@ -84,6 +86,7 @@ export default function GlobalAnnouncement() {
   }, [user]);
 
   useEffect(() => {
+    if (Platform.OS === 'web') return;
     let responseSub: any;
     // Set notification handler at runtime (not module scope — avoids Android crash)
     try {
@@ -182,6 +185,18 @@ export default function GlobalAnnouncement() {
     // Request notification permissions gracefully
     Notifications.requestPermissionsAsync().catch(() => {});
 
+    if (Platform.OS === 'android') {
+      Notifications.setNotificationChannelAsync('incoming-calls', {
+        name: 'Incoming Calls 📞',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 500, 250, 500, 250, 500, 250, 500],
+        lightColor: '#10B981',
+        sound: 'default',
+        enableVibrate: true,
+        showBadge: true,
+      }).catch(e => console.warn('Failed to set channel:', e));
+    }
+
     const socket: Socket = io(API_URL, { transports: ['websocket', 'polling'] });
     
     socket.on('global_announcement', async (data: Announcement) => {
@@ -271,12 +286,23 @@ export default function GlobalAnnouncement() {
 
   const style = TYPE_STYLES[announcement.type] || TYPE_STYLES.info;
 
+  const handlePress = () => {
+    hideAnnouncement();
+    if (announcement.message.includes('Birthday')) {
+      router.push('/community' as any);
+    } else {
+      router.push('/notifications' as any);
+    }
+  };
+
   return (
     <Animated.View style={[s.container, { transform: [{ translateY: slideAnim }] }]}>
       <BlurView intensity={80} tint="dark" style={[s.blur, { backgroundColor: style.bg, borderColor: style.border }]}>
         <View style={s.content}>
-          <Text style={s.icon}>{style.icon}</Text>
-          <Text style={s.message}>{announcement.message}</Text>
+          <TouchableOpacity style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingRight: 8 }} onPress={handlePress}>
+            <Text style={s.icon}>{style.icon}</Text>
+            <Text style={s.message} numberOfLines={2}>{announcement.message}</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={hideAnnouncement} style={s.closeBtn}>
             <Text style={s.closeText}>✕</Text>
           </TouchableOpacity>

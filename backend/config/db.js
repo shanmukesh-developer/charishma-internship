@@ -505,6 +505,45 @@ const connectDB = async () => {
       } catch (err) {
         console.warn('⚠️ [DB_MIGRATION_WARN] Failed to drop Messages conversationId constraint:', err.message);
       }
+
+      // Self-Healing: Clear broken /uploads/ birthday photo URLs.
+      // Render's filesystem is ephemeral — any file written to /uploads/ is lost on restart.
+      // This migration sets those broken paths to NULL so the app shows a clean fallback emoji
+      // instead of a broken image. Future uploads are now stored as base64 directly in the DB.
+      try {
+        const [result] = await sequelize.query(
+          `UPDATE "BirthdayCelebrations" 
+           SET "candidatePhotoUrl" = NULL 
+           WHERE "candidatePhotoUrl" LIKE '/uploads/%'`
+        );
+        console.log('✅ [DB_MIGRATION] Cleared broken ephemeral /uploads/ birthday photo paths. Rows fixed:', result?.rowCount ?? 'N/A');
+      } catch (err) {
+        console.warn('⚠️ [DB_MIGRATION_WARN] Could not clear broken birthday photo paths:', err.message);
+      }
+
+      // Also clear broken /uploads/ paths from CommunityPosts if any exist
+      try {
+        await sequelize.query(
+          `UPDATE "CommunityPosts" 
+           SET "imageUrl" = NULL 
+           WHERE "imageUrl" LIKE '/uploads/%'`
+        );
+        console.log('✅ [DB_MIGRATION] Cleared broken ephemeral /uploads/ community post image paths.');
+      } catch (err) {
+        // Silently skip if column doesn't exist
+      }
+
+      // Also clear broken /uploads/ paths from Users profileImage
+      try {
+        await sequelize.query(
+          `UPDATE "Users" 
+           SET "profileImage" = NULL 
+           WHERE "profileImage" LIKE '/uploads/%'`
+        );
+        console.log('✅ [DB_MIGRATION] Cleared broken ephemeral /uploads/ user profile image paths.');
+      } catch (err) {
+        // Silently skip
+      }
     }
   } catch (error) {
     console.error('❌ [DB_FATAL] Database connection failed:', error.message);

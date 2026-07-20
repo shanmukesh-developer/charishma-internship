@@ -138,6 +138,10 @@ export default function ZenvyAfterDarkLounge() {
   const [inputText, setInputText] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   
+  // WhatsApp Chat Features States
+  const [replyingTo, setReplyingTo] = useState<any | null>(null);
+  const [activeReactionMsgId, setActiveReactionMsgId] = useState<string | null>(null);
+  
   // Call State
   const [inCall, setInCall] = useState(false);
   const [callMode, setCallMode] = useState<'audio' | 'video'>('audio');
@@ -174,25 +178,8 @@ export default function ZenvyAfterDarkLounge() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  useEffect(() => {
-    let speakingInterval: any;
-    if (inCall && activeChat?.type === 'friend') {
-      speakingInterval = setInterval(() => {
-        setSpeakingUsers(prev => {
-          const isCurrentlySpeaking = prev['mock-peer-id'];
-          return {
-            ...prev,
-            'mock-peer-id': !isCurrentlySpeaking
-          };
-        });
-      }, 2500);
-    } else {
-      setSpeakingUsers({});
-    }
-    return () => {
-      clearInterval(speakingInterval);
-    };
-  }, [inCall, activeChat]);
+  // Speaking state is now driven by real call_participants_list from server
+  // No mock simulation needed
 
   const simulateIncomingCall = (mode: 'audio' | 'video') => {
     const callerName = friends[0]?.name || "Alex (Developer)";
@@ -212,6 +199,10 @@ export default function ZenvyAfterDarkLounge() {
         {
           text: "Start 5s Delay",
           onPress: async () => {
+            if (Platform.OS === 'web') {
+              Alert.alert('Not Supported', 'Local call scheduling notifications are not supported in web browser previews.');
+              return;
+            }
             try {
               await Notifications.scheduleNotificationAsync({
                 content: {
@@ -256,8 +247,9 @@ export default function ZenvyAfterDarkLounge() {
         if (stored) {
           await AsyncStorage.removeItem('zenvy_auto_answer_call');
           const data = JSON.parse(stored);
+          const chatId = data.groupId || data.callerName;
           setIsOpen(true);
-          setActiveChat({ type: 'friend', id: 'simulated-friend-id', name: data.callerName });
+          setActiveChat({ type: 'friend', id: chatId, name: data.callerName });
           setCallMode(data.mode);
           setInCall(true);
           setIsMuted(false);
@@ -266,17 +258,15 @@ export default function ZenvyAfterDarkLounge() {
           setHasRequestedToSpeak(false);
           setShowCallScreen(true);
           
-          setCallParticipants([
-            {
-              socketId: 'mock-peer-id',
-              userId: 'simulated-friend-id',
-              userName: data.callerName,
-              mute: false,
-              video: data.mode === 'video',
-              isSpeaker: true,
-              requestToSpeak: false
-            }
-          ]);
+          // Join the real Jitsi call room via socket
+          socketRef.current?.emit('join_after_dark_group', { groupId: chatId });
+          socketRef.current?.emit('join_after_dark_call', { 
+            groupId: chatId, 
+            userName: user?.name || 'Anonymous',
+            mute: false,
+            video: data.mode === 'video',
+            isSpeaker: true
+          });
         }
       } catch (err) {
         console.warn('Error checking auto-answer:', err);
@@ -309,6 +299,16 @@ export default function ZenvyAfterDarkLounge() {
     socket.on('receive_after_dark_message', (msg: any) => {
       setMessages((prev) => [...prev, msg]);
       setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+    });
+
+    socket.on('receive_message_reaction', (data: any) => {
+      setMessages((prev) => prev.map(m => {
+        const mId = m.id || m._id;
+        if (mId === data.messageId) {
+          return { ...m, reactions: JSON.stringify(data.reactions) };
+        }
+        return m;
+      }));
     });
 
     socket.on('call_participants_list', (data: any) => {
@@ -344,17 +344,28 @@ export default function ZenvyAfterDarkLounge() {
       socket.emit('update_call_state', { groupId: activeChat?.id, mute: true });
     });
 
+    // Real incoming call signal from a friend who started a call
+    socket.on('incoming_call_signal', (data: any) => {
+      setIncomingCall({
+        show: true,
+        name: data.callerName || 'Friend',
+        mode: data.mode || 'audio'
+      });
+    });
+
     return () => {
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
       socket.off('connect_error', handleConnectError);
       socket.off('receive_after_dark_message');
+      socket.off('receive_message_reaction');
       socket.off('call_participants_list');
       socket.off('user_joined_call');
       socket.off('user_left_call');
       socket.off('call_error');
       socket.off('speaker_approved');
       socket.off('user_muted_by_host');
+      socket.off('incoming_call_signal');
     };
   }, [activeChat?.id]);
 
@@ -517,15 +528,23 @@ export default function ZenvyAfterDarkLounge() {
 
   const handleSendMessage = () => {
     if (!inputText.trim() || !activeChat) return;
-    socketRef.current?.emit('send_after_dark_message', {
+    const payload: any = {
       groupId: activeChat.id,
       text: inputText,
       senderName: user?.name || 'Anonymous'
-    });
+    };
+    if (replyingTo) {
+      payload.replyTo = {
+        text: replyingTo.text,
+        senderName: replyingTo.senderName || 'Friend'
+      };
+    }
+    socketRef.current?.emit('send_after_dark_message', payload);
     setInputText('');
+    setReplyingTo(null);
   };
 
-  // Call options operations
+  // Call options operations — REAL WebRTC via Jitsi Meet
   const startCall = (mode: 'audio' | 'video') => {
     if (!activeChat) return;
     setCallMode(mode);
@@ -535,20 +554,8 @@ export default function ZenvyAfterDarkLounge() {
     setIsSpeaker(true);
     setHasRequestedToSpeak(false);
     setShowCallScreen(true);
-    
-    // Seed local user first so they are in the call list
-    setCallParticipants([
-      {
-        socketId: socketRef.current?.id || 'local-id',
-        userId: user?.id || user?._id || 'local-user-id',
-        userName: user?.name || 'You',
-        mute: false,
-        video: mode === 'video',
-        isSpeaker: true,
-        requestToSpeak: false
-      }
-    ]);
 
+    // Join the server-side call room (triggers FCM push to offline friends)
     socketRef.current?.emit('join_after_dark_call', { 
       groupId: activeChat.id, 
       userName: user?.name || 'Anonymous',
@@ -556,34 +563,6 @@ export default function ZenvyAfterDarkLounge() {
       video: mode === 'video',
       isSpeaker: true
     });
-
-    // Simulate friend answering after 3 seconds
-    if (activeChat.type === 'friend') {
-      setTimeout(() => {
-        setInCall(currentInCall => {
-          if (currentInCall) {
-            setCallParticipants(prev => {
-              if (!prev.some(p => p.socketId === 'mock-peer-id')) {
-                return [
-                  ...prev,
-                  {
-                    socketId: 'mock-peer-id',
-                    userId: activeChat.id,
-                    userName: activeChat.name,
-                    mute: false,
-                    video: mode === 'video',
-                    isSpeaker: true,
-                    requestToSpeak: false
-                  }
-                ];
-              }
-              return prev;
-            });
-          }
-          return currentInCall;
-        });
-      }, 3000);
-    }
   };
 
   const leaveCall = () => {
@@ -709,31 +688,7 @@ export default function ZenvyAfterDarkLounge() {
                       </TouchableOpacity>
                     </View>
 
-                    {/* Simulated Calling Center */}
-                    <View style={[s.simCard, { backgroundColor: isDark ? 'rgba(139, 92, 246, 0.05)' : 'rgba(139, 92, 246, 0.03)', borderColor: border, borderWidth: 1, padding: 16, borderRadius: 16, marginTop: 16 }]}>
-                      <Text style={[s.simTitle, { color: txt, fontSize: 12, fontWeight: '900', letterSpacing: 1 }]}>📞 CALL FLOW SIMULATOR</Text>
-                      <Text style={[s.simSubtitle, { color: txtSec, fontSize: 10, marginTop: 4, lineHeight: 14 }]}>Test WhatsApp-style audio & video calling live on a single device!</Text>
-                      
-                      <Text style={{ color: '#8B5CF6', fontSize: 9, fontWeight: 'bold', marginTop: 10, letterSpacing: 1 }}>IN-APP SIMULATOR:</Text>
-                      <View style={{ flexDirection: 'row', gap: 10, marginTop: 6 }}>
-                        <TouchableOpacity style={[s.simBtn, { backgroundColor: '#10B981', flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' }]} onPress={() => simulateIncomingCall('audio')}>
-                          <Text style={s.simBtnText}>🎙️ Voice Call</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[s.simBtn, { backgroundColor: '#8B5CF6', flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' }]} onPress={() => simulateIncomingCall('video')}>
-                          <Text style={s.simBtnText}>📹 Video Call</Text>
-                        </TouchableOpacity>
-                      </View>
 
-                      <Text style={{ color: '#8B5CF6', fontSize: 9, fontWeight: 'bold', marginTop: 12, letterSpacing: 1 }}>CLOSED STATE / PUSH TEST:</Text>
-                      <View style={{ flexDirection: 'row', gap: 10, marginTop: 6 }}>
-                        <TouchableOpacity style={[s.simBtn, { backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: '#10B981', flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' }]} onPress={() => testBackgroundCallNotification('audio')}>
-                          <Text style={[s.simBtnText, { color: '#10B981' }]}>🎙️ Voice Push</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[s.simBtn, { backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: '#8B5CF6', flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' }]} onPress={() => testBackgroundCallNotification('video')}>
-                          <Text style={[s.simBtnText, { color: '#8B5CF6' }]}>📹 Video Push</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
                     
                     {pendingRequests.length > 0 && (
                       <View style={{ marginTop: 24 }}>
@@ -870,19 +825,134 @@ export default function ZenvyAfterDarkLounge() {
               )}
 
               {/* Chat Messages */}
-              <ScrollView ref={scrollViewRef} style={s.messagesArea} contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
+              <ScrollView ref={scrollViewRef} style={s.messagesArea} contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
                 {messages.map((msg, idx) => {
                   const isMe = msg.senderId === user?.id || msg.senderId === user?._id;
+                  const mId = msg.id || msg._id || String(idx);
+                  
+                  // Parse replyTo data
+                  let replyData = null;
+                  if (msg.replyTo) {
+                    try {
+                      replyData = typeof msg.replyTo === 'string' ? JSON.parse(msg.replyTo) : msg.replyTo;
+                    } catch (e) {}
+                  }
+
+                  // Parse reactions data
+                  let reactionsList: any[] = [];
+                  if (msg.reactions) {
+                    try {
+                      reactionsList = typeof msg.reactions === 'string' ? JSON.parse(msg.reactions) : msg.reactions;
+                    } catch (e) {}
+                  }
+
                   return (
-                    <View key={idx} style={[s.messageWrap, isMe ? s.msgMe : s.msgOther]}>
-                      {!isMe && activeChat.type === 'room' && <Text style={s.msgSender}>{msg.senderName}</Text>}
-                      <View style={[s.messageBubble, isMe ? { backgroundColor: '#8B5CF6' } : { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB' }]}>
-                        <Text style={{ color: isMe ? '#FFF' : txt }}>{msg.text}</Text>
+                    <View key={mId} style={{ marginBottom: 16 }}>
+                      {/* Reaction Popup overlay */}
+                      {activeReactionMsgId === mId && (
+                        <View style={[s.reactionToolbar, isMe ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start' }]}>
+                          {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(emoji => (
+                            <TouchableOpacity
+                              key={emoji}
+                              style={s.reactionToolbarBtn}
+                              onPress={() => {
+                                socketRef.current?.emit('react_to_after_dark_message', {
+                                  messageId: mId,
+                                  emoji,
+                                  groupId: activeChat.id
+                                });
+                                setActiveReactionMsgId(null);
+                              }}
+                            >
+                              <Text style={{ fontSize: 20 }}>{emoji}</Text>
+                            </TouchableOpacity>
+                          ))}
+                          <TouchableOpacity 
+                            style={[s.reactionToolbarBtn, { backgroundColor: 'rgba(255,255,255,0.1)' }]} 
+                            onPress={() => setActiveReactionMsgId(null)}
+                          >
+                            <Text style={{ color: '#EF4444', fontWeight: 'bold', fontSize: 12 }}>✕</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+
+                      <View style={[s.messageWrap, isMe ? s.msgMe : s.msgOther]}>
+                        {/* Sender name above bubble (always shown) */}
+                        <Text style={[s.msgSender, isMe ? { textAlign: 'right', color: '#C9A84C' } : { color: '#8B5CF6' }]}>
+                          {isMe ? `YOU (${(user?.name || 'SHANMUKH').toUpperCase()})` : (msg.senderName || 'FRIEND').toUpperCase()}
+                        </Text>
+
+                        <TouchableOpacity 
+                          activeOpacity={0.95}
+                          onLongPress={() => setActiveReactionMsgId(mId)}
+                          style={[
+                            s.messageBubble, 
+                            isMe ? { backgroundColor: '#8B5CF6' } : { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB' },
+                            { position: 'relative', paddingBottom: reactionsList.length > 0 ? 22 : 12 }
+                          ]}
+                        >
+                          {/* Replied-To / Quoted Quote Display */}
+                          {replyData && (
+                            <View style={[s.replyBubbleHeader, { borderLeftColor: isMe ? '#FFF' : '#8B5CF6' }]}>
+                              <Text style={[s.replyBubbleSender, { color: isMe ? '#C9A84C' : '#8B5CF6' }]}>
+                                {replyData.senderName?.toUpperCase()}
+                              </Text>
+                              <Text style={{ fontSize: 11, color: isMe ? 'rgba(255,255,255,0.8)' : txtSec }} numberOfLines={2}>
+                                {replyData.text}
+                              </Text>
+                            </View>
+                          )}
+
+                          <Text style={{ color: isMe ? '#FFF' : txt, fontSize: 14 }}>{msg.text}</Text>
+
+                          {/* Reactions badges overlay inside bubble */}
+                          {reactionsList.length > 0 && (
+                            <View style={s.bubbleReactionsWrap}>
+                              {reactionsList.slice(0, 3).map((r, rIdx) => (
+                                <Text key={rIdx} style={{ fontSize: 12, marginRight: 2 }}>{r.emoji}</Text>
+                              ))}
+                              {reactionsList.length > 3 && <Text style={{ fontSize: 9, color: isMe ? '#FFF' : txtSec }}>+{reactionsList.length - 3}</Text>}
+                            </View>
+                          )}
+
+                          {/* Time & Double Ticks details at the bottom of the bubble */}
+                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4, gap: 4 }}>
+                            <Text style={{ fontSize: 8, color: isMe ? 'rgba(255,255,255,0.6)' : txtSec }}>
+                              {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </Text>
+                            {isMe && (
+                              <Text style={{ fontSize: 10, color: '#3B82F6', fontWeight: 'bold' }}>✓✓</Text>
+                            )}
+                          </View>
+                        </TouchableOpacity>
+
+                        {/* Action buttons (Reply & React toggle buttons) next to message */}
+                        <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, alignSelf: isMe ? 'flex-end' : 'flex-start' }}>
+                          <TouchableOpacity onPress={() => setReplyingTo({ id: mId, text: msg.text, senderName: msg.senderName })}>
+                            <Text style={{ fontSize: 10, color: '#8B5CF6', fontWeight: 'bold' }}>REPLY ↩</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={() => setActiveReactionMsgId(activeReactionMsgId === mId ? null : mId)}>
+                            <Text style={{ fontSize: 10, color: txtSec, fontWeight: 'bold' }}>REACT 😊</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     </View>
                   );
                 })}
               </ScrollView>
+
+              {/* Replying-To bar display if message is quoted */}
+              {replyingTo && (
+                <View style={[s.replyInputBar, { backgroundColor: isDark ? '#26262B' : '#F3F4F6', borderTopColor: border }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.replyInputTitle, { color: '#8B5CF6' }]}>REPLYING TO {replyingTo.senderName?.toUpperCase()}</Text>
+                    <Text style={{ color: txtSec, fontSize: 12 }} numberOfLines={1}>{replyingTo.text}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setReplyingTo(null)} style={{ padding: 6 }}>
+                    <Text style={{ color: '#EF4444', fontWeight: 'bold', fontSize: 16 }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               <View style={[s.inputArea, { borderTopColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFF' }]}>
                 <TextInput
@@ -949,29 +1019,38 @@ export default function ZenvyAfterDarkLounge() {
                 </TouchableOpacity>
               </View>
 
-              {/* Jitsi WebRTC Container */}
-              {showCallScreen && activeChat && (
-                <WebView
-                  source={{
-                    uri: `https://meet.jit.si/zenvy_call_${activeChat.id}#config.prejoinPageEnabled=false&config.disableDeepLinking=true&config.startWithAudioMuted=${isMuted}&config.startWithVideoMuted=${!isVideoOn}&interfaceConfig.TOOLBAR_BUTTONS=["microphone","camera","hangup","tileview","chat"]`
-                  }}
-                  style={{ flex: 1 }}
-                  allowsInlineMediaPlayback={true}
-                  mediaPlaybackRequiresUserAction={false}
-                  domStorageEnabled={true}
-                  javaScriptEnabled={true}
-                  originWhitelist={['*']}
-                  onNavigationStateChange={(navState) => {
-                    if (
-                      navState.url.includes('close.html') || 
-                      navState.url.includes('/static/close') || 
-                      (!navState.url.includes('meet.jit.si') && !navState.url.includes('about:blank'))
-                    ) {
-                      leaveCall();
-                    }
-                  }}
-                />
-              )}
+              {/* Jitsi WebRTC Container — Real video/audio call */}
+              {showCallScreen && activeChat && (() => {
+                const roomName = `ZenvyCall${activeChat.id.replace(/[^a-zA-Z0-9]/g, '')}`;
+                const displayName = encodeURIComponent(user?.name || 'Zenvy User');
+                const jitsiUrl = `https://meet.jit.si/${roomName}#config.prejoinPageEnabled=false&config.disableDeepLinking=true&config.startWithAudioMuted=${isMuted}&config.startWithVideoMuted=${!isVideoOn}&userInfo.displayName=${displayName}&config.toolbarButtons=["microphone","camera","hangup","tileview","chat"]`;
+                return (
+                  <WebView
+                    key={roomName}
+                    source={{ uri: jitsiUrl }}
+                    style={{ flex: 1 }}
+                    allowsInlineMediaPlayback={true}
+                    mediaPlaybackRequiresUserAction={false}
+                    domStorageEnabled={true}
+                    javaScriptEnabled={true}
+                    originWhitelist={['*']}
+                    allowsFullscreenVideo={true}
+                    injectedJavaScriptBeforeContentLoaded={`
+                      window._jitsiDisplayName = "${user?.name || 'Zenvy User'}";
+                      true;
+                    `}
+                    onNavigationStateChange={(navState) => {
+                      if (
+                        navState.url.includes('close.html') || 
+                        navState.url.includes('/static/close') || 
+                        (!navState.url.includes('meet.jit.si') && !navState.url.includes('about:blank'))
+                      ) {
+                        leaveCall();
+                      }
+                    }}
+                  />
+                );
+              })()}
             </View>
           </Modal>
 
@@ -1007,8 +1086,18 @@ export default function ZenvyAfterDarkLounge() {
                     const mode = incomingCall.mode;
                     setIncomingCall(prev => ({ ...prev, show: false }));
                     
-                    // Route to chat immediately and start call
-                    setActiveChat({ type: 'friend', id: 'simulated-friend-id', name });
+                    // Find the friend who is calling by matching their name
+                    const callingFriend = friends.find(f => f.name === name);
+                    const chatId = callingFriend?.friendshipId || activeChat?.id || name;
+                    
+                    // Set active chat to the caller's real conversation
+                    if (!activeChat || activeChat.id !== chatId) {
+                      setActiveChat({ type: 'friend', id: chatId, name });
+                      fetchMessages(chatId);
+                      socketRef.current?.emit('join_after_dark_group', { groupId: chatId });
+                    }
+                    
+                    // Start the real call — joins Jitsi via the same room ID
                     setCallMode(mode);
                     setInCall(true);
                     setIsMuted(false);
@@ -1017,18 +1106,14 @@ export default function ZenvyAfterDarkLounge() {
                     setHasRequestedToSpeak(false);
                     setShowCallScreen(true);
                     
-                    // Join and auto-populate participant
-                    setCallParticipants([
-                      {
-                        socketId: 'mock-peer-id',
-                        userId: 'simulated-friend-id',
-                        userName: name,
-                        mute: false,
-                        video: mode === 'video',
-                        isSpeaker: true,
-                        requestToSpeak: false
-                      }
-                    ]);
+                    // Join the server-side call room
+                    socketRef.current?.emit('join_after_dark_call', { 
+                      groupId: chatId, 
+                      userName: user?.name || 'Anonymous',
+                      mute: false,
+                      video: mode === 'video',
+                      isSpeaker: true
+                    });
                   }}
                 >
                   <Text style={s.inboundCallBtnEmoji}>📞</Text>
@@ -1213,5 +1298,13 @@ const s = StyleSheet.create({
   inboundCallActions: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', paddingHorizontal: 40 },
   inboundCallBtn: { width: 76, height: 76, borderRadius: 38, justifyContent: 'center', alignItems: 'center', elevation: 6 },
   inboundCallBtnEmoji: { fontSize: 24 },
-  inboundCallBtnText: { color: '#FFF', fontSize: 8, fontWeight: '900', marginTop: 6, position: 'absolute', bottom: -18 }
+  inboundCallBtnText: { color: '#FFF', fontSize: 8, fontWeight: '900', marginTop: 6, position: 'absolute', bottom: -18 },
+  
+  replyBubbleHeader: { borderLeftWidth: 3, paddingLeft: 8, paddingVertical: 2, marginBottom: 8, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 4 },
+  replyBubbleSender: { fontSize: 10, fontWeight: 'bold', marginBottom: 2 },
+  bubbleReactionsWrap: { position: 'absolute', bottom: -12, right: 12, flexDirection: 'row', backgroundColor: '#1F2937', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, borderWidth: 1, borderColor: '#374151', alignItems: 'center' },
+  replyInputBar: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: 1, alignItems: 'center', justifyContent: 'space-between' },
+  replyInputTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 1, marginBottom: 2 },
+  reactionToolbar: { flexDirection: 'row', backgroundColor: '#1F2937', padding: 6, borderRadius: 20, marginBottom: 4, gap: 8, borderWidth: 1, borderColor: '#374151', elevation: 4 },
+  reactionToolbarBtn: { padding: 4, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }
 });

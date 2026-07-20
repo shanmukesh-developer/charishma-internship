@@ -10,6 +10,17 @@ const { sendWhatsAppMessage } = require('../utils/whatsappUtil');
 
 const { normalizePhone } = require('../utils/phoneUtils');
 
+const normalizeItems = (items) => {
+  if (typeof items === 'string') {
+    try {
+      return JSON.parse(items);
+    } catch {
+      return [];
+    }
+  }
+  return Array.isArray(items) ? items : [];
+};
+
 const generateToken = (id) => {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
@@ -185,7 +196,7 @@ const acceptOrder = async (req, res) => {
         customerName: customer?.name || 'Customer',
         customerPhone: customer?.phone || 'Hidden',
         drop: updatedOrder.deliveryAddress || (updatedOrder.hostelGateDelivery ? `${customer?.hostelBlock || 'Hostel'} (Gate)` : `${customer?.hostelBlock || 'Hostel'} (Room)`),
-        items: updatedOrder.items,
+        items: normalizeItems(updatedOrder.items),
         totalPrice: updatedOrder.totalPrice,
         finalPrice: updatedOrder.finalPrice,
         earnings: '₹30'
@@ -248,7 +259,7 @@ const getPendingOrders = async (req, res) => {
         customerName: customer?.name || 'Customer',
         customerPhone: customer?.phone || 'Hidden',
         drop: order.deliveryAddress || (order.hostelGateDelivery ? `${customer?.hostelBlock || 'Block'} (Gate)` : `${customer?.hostelBlock || 'Block'} (Room)`),
-        items: order.items,
+        items: normalizeItems(order.items),
         totalPrice: order.totalPrice,
         finalPrice: order.finalPrice,
         earnings: '₹30',
@@ -284,7 +295,7 @@ const getOrderHistory = async (req, res) => {
         id: order.id,
         restaurant: restaurant?.name || 'Restaurant',
         drop: order.deliveryAddress || (order.hostelGateDelivery ? 'Hostel Gate' : 'Room Delivery'),
-        items: order.items,
+        items: normalizeItems(order.items),
         totalPrice: order.totalPrice,
         finalPrice: order.finalPrice,
         earnings: '₹30',
@@ -534,7 +545,7 @@ const getActiveOrders = async (req, res) => {
         customerName: customer?.name || 'Verified Customer',
         customerPhone: customer?.phone || 'Identity Protected',
         drop: order.deliveryAddress || (order.hostelGateDelivery ? `${customer?.hostelBlock || 'Block'} (Gate)` : `${customer?.hostelBlock || 'Block'} (Room)`),
-        items: order.items,
+        items: normalizeItems(order.items),
         totalPrice: order.totalPrice,
         finalPrice: order.finalPrice,
         status: order.status,

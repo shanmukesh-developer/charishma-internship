@@ -773,7 +773,16 @@ exports.getRewardsAnalytics = async (req, res) => {
         totalSpinsUsed += (uJson.spinsUsed || 0);
         totalZenPoints += (uJson.zenPoints || 0);
         
-        const badges = Array.isArray(uJson.badges) ? uJson.badges : (typeof uJson.badges === 'string' ? JSON.parse(uJson.badges) : []);
+        let badges = [];
+        if (Array.isArray(uJson.badges)) {
+          badges = uJson.badges;
+        } else if (typeof uJson.badges === 'string') {
+          try {
+            badges = JSON.parse(uJson.badges);
+          } catch {
+            badges = [];
+          }
+        }
         badges.forEach(b => {
           badgeCounts[b] = (badgeCounts[b] || 0) + 1;
         });
@@ -1149,6 +1158,19 @@ exports.broadcastPushNotification = async (req, res) => {
     // Fallback: Always broadcast to 'all' topic as well
     const { sendPushToTopic } = require('../utils/push');
     await sendPushToTopic('all', title, body, { type: 'global_broadcast' });
+
+    // Broadcast via Socket.io so active users get live toast & save to notification history
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('global_announcement', {
+          message: `${title}: ${body}`,
+          type: 'info'
+        });
+      }
+    } catch (sockErr) {
+      console.error('Failed to emit admin broadcast socket announcement:', sockErr);
+    }
 
     await logAuditAction(req, null, 'GLOBAL_PUSH_SENT', { title, body, userCount: activeUsers.length });
     

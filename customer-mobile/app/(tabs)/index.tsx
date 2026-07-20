@@ -22,6 +22,7 @@ import DopaminePressable, { CardPressable, ActionPressable } from '../../compone
 import { StaggeredSection, RestaurantCardSkeleton, PulseGlow, BounceIn, FloatingPulse } from '../../components/AnimatedSection';
 import ServerWakeupOverlay from '../../components/ServerWakeupOverlay';
 import ZenvyEcosystemGrid from '../../components/ZenvyEcosystemGrid';
+import SafeImage from '../../components/SafeImage';
 
 const VaultTimerBadge = ({ pulseAnim }: { pulseAnim: any }) => {
   const [vaultTimer, setVaultTimer] = useState('00:00:00');
@@ -539,7 +540,7 @@ export default function HomeScreen() {
               sound="tabSwitch"
               activeScale={0.95}
             >
-              <Image 
+              <SafeImage 
                 source={CATEGORY_IMAGES[c.key as keyof typeof CATEGORY_IMAGES]} 
                 style={{ width: '100%', height: 60 }} 
                 resizeMode="cover" 
@@ -552,7 +553,6 @@ export default function HomeScreen() {
           ))}
         </View>
         </StaggeredSection>
-
 
         {/* ── SEARCH ── */}
         <StaggeredSection delay={350} direction="left">
@@ -626,7 +626,7 @@ export default function HomeScreen() {
                 activeScale={0.92}
               >
                 <View style={[s.classicImgWrap, isActive && { borderColor: COLORS.red, ...SHADOWS.redGlow }]}>
-                  <Image source={{ uri: c.img }} style={s.classicImg} />
+                  <SafeImage source={{ uri: c.img }} style={s.classicImg} />
                 </View>
                 <Text style={[s.classicName, { color: isActive ? COLORS.red : txt }]}>{c.name.toUpperCase()}</Text>
               </DopaminePressable>
@@ -755,7 +755,7 @@ export default function HomeScreen() {
                 sound={isPremium ? 'premiumRestaurantTransition' : 'click'}
               >
                 <View style={s.rImgWrap} pointerEvents="box-none">
-                  <Image source={{ uri: img }} style={s.rImg} />
+                  <SafeImage source={{ uri: img }} style={s.rImg} />
                   
                   {/* Favorite Toggle Button */}
                   <DopaminePressable 

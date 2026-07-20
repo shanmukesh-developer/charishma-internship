@@ -22,6 +22,7 @@ interface User {
   badges?: string[];
   referralCode?: string;
   friendCode?: string;
+  createdAt?: string;
   role?: string;
 }
 

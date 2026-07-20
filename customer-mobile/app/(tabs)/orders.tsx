@@ -116,8 +116,10 @@ export default function OrdersScreen() {
   };
 
   useEffect(() => {
-    fetchOrders();
-  }, []);
+    if (user) {
+      fetchOrders();
+    }
+  }, [user]);
 
   const onRefresh = async () => {
     setRefreshing(true);

@@ -305,7 +305,8 @@ const getUserProfile = async (req, res) => {
         completedOrders: user.completedOrders || 0,
         gender: user.gender || 'Prefer not to say',
         genderPreference: user.genderPreference || 'Any',
-        friendCode: user.friendCode
+        friendCode: user.friendCode,
+        createdAt: user.createdAt
       });
     } else {
       res.status(401).json({ message: 'Account not found (Nexus Session Expired)' });

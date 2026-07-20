@@ -30,7 +30,8 @@ const FlashDealTimer = memo(() => {
   return <Text style={{ fontWeight: '900', color: '#DC2626' }}>{display}</Text>;
 });
 
-const { width: SW } = Dimensions.get('window');
+const { width: SW, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const SH = SCREEN_HEIGHT;
 const DEPT_SIZE = (SW - 48 - 36) / 4;
 
 const ScalePressable = ({ children, onPress, style, activeOpacity = 0.85 }: any) => {
@@ -87,6 +88,17 @@ const TABS = [
   { key: 'pg', label: 'PG HOMES' },
   { key: 'coride', label: 'CO-RIDE' },
   { key: 'promos', label: 'DEALS & SPINS' },
+];
+
+const BB_CATEGORIES = [
+  { key: 'Fresh', label: 'Fresh Fruits', icon: '🍎', bg: '#F0FDF4', border: '#DCFCE7', text: '#15803D' },
+  { key: 'Grocery', label: 'Atta & Staples', icon: '🌾', bg: '#FFFBEB', border: '#FEF3C7', text: '#B45309' },
+  { key: 'Chips & Namkeens', label: 'Snacks & Chips', icon: '🍟', bg: '#FEF2F2', border: '#FEE2E2', text: '#B91C1C' },
+  { key: 'Biscuits & Cakes', label: 'Biscuits & Cakes', icon: '🍪', bg: '#FAF5FF', border: '#F3E8FF', text: '#6B21A8' },
+  { key: 'Health', label: 'Health & Care', icon: '🥗', bg: '#ECFDF5', border: '#D1FAE5', text: '#047857' },
+  { key: 'Electronics', label: 'Electronics', icon: '🔌', bg: '#F0F9FF', border: '#E0F2FE', text: '#0369A1' },
+  { key: 'Vehicle toys', label: 'Toys & Play', icon: '🧸', bg: '#EFF6FF', border: '#DBEAFE', text: '#1D4ED8' },
+  { key: 'Seeds', label: 'Seeds & Greens', icon: '🌱', bg: '#F5F5F4', border: '#E7E5E4', text: '#44403C' },
 ];
 
 const WHEEL_SECTORS = [
@@ -537,6 +549,15 @@ export default function OthersScreen() {
   const router = useRouter();
   const { tab } = useLocalSearchParams<{ tab: string }>();
   const [activeTab, setActiveTab] = useState('food');
+  const [groceryMode, setGroceryMode] = useState<'home' | 'categories'>('home');
+  const [selectedBBOption, setSelectedBBOption] = useState('Fresh');
+  const [showVegOnly, setShowVegOnly] = useState(false);
+  const [listText, setListText] = useState('');
+  const [showAutoFillCard, setShowAutoFillCard] = useState(false);
+  const [customItemName, setCustomItemName] = useState('');
+  const [customItemQty, setCustomItemQty] = useState('1');
+  const [customItemPrice, setCustomItemPrice] = useState('');
+  const [showCustomForm, setShowCustomForm] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -990,6 +1011,7 @@ export default function OthersScreen() {
   const [rideVibe, setRideVibe] = useState('Any');
   const [estimatedFuelCost, setEstimatedFuelCost] = useState('0');
   const [notes, setNotes] = useState('');
+  const [autoApprove, setAutoApprove] = useState(true);
   const [submittingRide, setSubmittingRide] = useState(false);
 
   // Auto-rotate Promos
@@ -1138,6 +1160,38 @@ export default function OthersScreen() {
     }
   };
 
+  const handleApproveRequest = async (rideId: string, requestId: string) => {
+    try {
+      const res = await apiFetch(`${API_URL}/api/bikepool/posts/${rideId}/requests/${requestId}/approve`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        Alert.alert('Approved', data.message || 'Passenger approved!');
+        fetchRides();
+        fetchMyRides();
+      } else {
+        Alert.alert('Failed', data.message || 'Unable to approve request.');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Network error approving request.');
+    }
+  };
+
+  const handleRejectRequest = async (rideId: string, requestId: string) => {
+    try {
+      const res = await apiFetch(`${API_URL}/api/bikepool/posts/${rideId}/requests/${requestId}/reject`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        Alert.alert('Rejected', data.message || 'Passenger request rejected.');
+        fetchRides();
+        fetchMyRides();
+      } else {
+        Alert.alert('Failed', data.message || 'Unable to reject request.');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Network error rejecting request.');
+    }
+  };
+
   const handleCreateRide = async () => {
     if (!origin || !destination || !departureTime) {
       Alert.alert('Missing Fields', 'Please fill Origin, Destination, and Departure Time.');
@@ -1158,7 +1212,7 @@ export default function OthersScreen() {
           rideVibe,
           estimatedFuelCost: parseFloat(estimatedFuelCost) || 0,
           notes,
-          autoApprove: true
+          autoApprove
         })
       });
       const data = await res.json();
@@ -1171,6 +1225,7 @@ export default function OthersScreen() {
         setDepartureTime('');
         setEstimatedFuelCost('0');
         setNotes('');
+        setAutoApprove(true);
         fetchRides();
         fetchMyRides();
       } else {
@@ -1181,6 +1236,89 @@ export default function OthersScreen() {
     } finally {
       setSubmittingRide(false);
     }
+  };
+
+  const handleSmartAutoFill = () => {
+    if (!listText.trim()) {
+      Alert.alert('Empty List', 'Please type or paste your shopping list first.');
+      return;
+    }
+
+    const itemsList = listText.split(/[,\n;]+/).map(i => i.trim()).filter(Boolean);
+    let matchedCount = 0;
+    
+    const allProducts: any[] = [];
+    Object.values(CATEGORY_PRODUCTS).forEach(arr => allProducts.push(...arr));
+    allProducts.push(...TOY_ITEMS, ...SEED_ITEMS);
+    
+    const uniqueProds = Array.from(new Map(allProducts.map(p => [p.id, p])).values());
+
+    itemsList.forEach(queryText => {
+      const cleanQuery = queryText.replace(/^\d+\s*/, '').toLowerCase(); 
+      const matched = uniqueProds.find(p => p.name.toLowerCase().includes(cleanQuery) || p.brand?.toLowerCase().includes(cleanQuery));
+      
+      if (matched) {
+        let qty = 1;
+        const matchesQty = queryText.match(/^(\d+)/);
+        if (matchesQty) {
+          qty = parseInt(matchesQty[1], 10);
+        }
+        
+        for (let k = 0; k < qty; k++) {
+          addToCart({
+            id: matched.id,
+            name: matched.name,
+            price: matched.price,
+            image: matched.image,
+            restaurantId: 'mega-basket-vendor',
+            restaurantName: 'Mega Basket Grocery'
+          });
+        }
+        matchedCount++;
+      }
+    });
+
+    if (matchedCount > 0) {
+      Alert.alert(
+        'Basket Auto-filled! ⚡',
+        `Successfully matched and added ${matchedCount} items to your basket based on your shopping list! 🎉`
+      );
+      setListText('');
+      setShowAutoFillCard(false);
+    } else {
+      Alert.alert(
+        'No Matches Found 😕',
+        'We could not match any items in our catalog. Try simpler keywords like "atta", "chips", or "lemon".'
+      );
+    }
+  };
+
+  const handleAddCustomRequest = () => {
+    if (!customItemName.trim()) {
+      Alert.alert('Missing Name', 'Please specify the item name you want.');
+      return;
+    }
+    const priceVal = parseFloat(customItemPrice) || 50;
+    const qtyVal = parseInt(customItemQty, 10) || 1;
+    
+    addToCart({
+      id: `custom-${Date.now()}`,
+      name: `[Custom Request] ${customItemName} (${qtyVal} unit)`,
+      price: priceVal,
+      image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200',
+      restaurantId: 'mega-basket-vendor',
+      restaurantName: 'Mega Basket Grocery'
+    });
+
+    Alert.alert(
+      'Custom Request Added! 🛍️',
+      `"${customItemName}" added to basket at an estimated price of ₹${priceVal}. Your rider will pick it up!`
+    );
+
+    setCustomItemName('');
+    setCustomItemPrice('');
+    setCustomItemQty('1');
+    setShowCustomForm(false);
   };
 
   // Filter available ride posts
@@ -1350,14 +1488,63 @@ export default function OthersScreen() {
       </View>
 
       <Animated.View style={{ opacity: tabContentFade, transform: [{ translateY: tabContentTranslateY }], flex: 1 }}>
-        <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} scrollEnabled={true} nestedScrollEnabled={true}>
           {/* ── HERO CAROUSEL CARD ── */}
-          <View style={[s.heroCarouselCard, { borderColor: border }]}>
-            <PromoCarousel offers={carouselOffers} containerStyle={s.heroCarousel} />
-          </View>
+          {!(activeTab === 'food' && groceryMode === 'categories') && (
+            <View style={[s.heroCarouselCard, { borderColor: border }]}>
+              <PromoCarousel offers={carouselOffers} containerStyle={s.heroCarousel} />
+            </View>
+          )}
+
+          {/* ── LUXURY MODE SELECTOR ── */}
+          {activeTab === 'food' && (
+            <View style={{ flexDirection: 'row', marginHorizontal: 12, marginTop: 4, marginBottom: 4, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', borderRadius: 24, padding: 3, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0' }}>
+              <TouchableOpacity 
+                style={{ flex: 1, borderRadius: 20, overflow: 'hidden' }}
+                onPress={() => setGroceryMode('home')}
+                activeOpacity={0.85}
+              >
+                {groceryMode === 'home' ? (
+                  <LinearGradient
+                    colors={['#10B981', '#059669']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{ paddingVertical: 6, alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <Text style={{ fontSize: 9, fontWeight: '900', color: '#FFF', letterSpacing: 0.5 }}>🏠 HOME</Text>
+                  </LinearGradient>
+                ) : (
+                  <View style={{ paddingVertical: 6, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: txtSec, letterSpacing: 0.3 }}>🏠 HOME</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={{ flex: 1, borderRadius: 20, overflow: 'hidden' }}
+                onPress={() => setGroceryMode('categories')}
+                activeOpacity={0.85}
+              >
+                {groceryMode === 'categories' ? (
+                  <LinearGradient
+                    colors={['#10B981', '#059669']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{ paddingVertical: 6, alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <Text style={{ fontSize: 9, fontWeight: '900', color: '#FFF', letterSpacing: 0.5 }}>🗂️ CATEGORIES</Text>
+                  </LinearGradient>
+                ) : (
+                  <View style={{ paddingVertical: 6, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: txtSec, letterSpacing: 0.3 }}>🗂️ CATEGORIES</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
 
         {/* ── FOOD / MEGA BASKET TAB ── */}
-        {activeTab === 'food' && (
+        {activeTab === 'food' && groceryMode === 'home' && (
           <View>
             {/* ── LIMITED-TIME FLASH DEALS TICKER ── */}
             <View style={[s.flashDealContainer, { backgroundColor: '#FEF2F2', borderColor: '#FCA5A5', marginTop: 12 }]}>
@@ -2192,7 +2379,6 @@ export default function OthersScreen() {
                             fontSize: 12,
                             fontWeight: '900',
                             color: '#fff',
-                            textShadowColor: 'rgba(0,0,0,0.6)',
                             textShadowOffset: { width: 0, height: 1 },
                             textShadowRadius: 4,
                           }} numberOfLines={2}>
@@ -2206,6 +2392,401 @@ export default function OthersScreen() {
               </View>
               );
             })}
+          </View>
+        )}
+
+        {/* ── BIGBASKET CATEGORY MODE ── */}
+        {activeTab === 'food' && groceryMode === 'categories' && (
+          <View style={{ flex: 1, height: SH > 700 ? SH - 200 : 540, backgroundColor: isDark ? '#0B0B0D' : '#F8FAFC' }}>
+            {/* Quick List Auto Fill Card */}
+            {showAutoFillCard && (
+              <View style={{ marginHorizontal: 10, backgroundColor: cardBg, borderWidth: 1, borderColor: '#22C55E', borderRadius: 14, padding: 10, marginVertical: 4, elevation: 3 }}>
+                <Text style={{ fontSize: 10, fontWeight: '900', color: txt, marginBottom: 4 }}>⚡ SMART BASKET AUTO-FILL</Text>
+                <TextInput
+                  style={{
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
+                    borderWidth: 1,
+                    borderColor: border,
+                    borderRadius: 8,
+                    padding: 6,
+                    fontSize: 10,
+                    color: txt,
+                    height: 48,
+                    textAlignVertical: 'top'
+                  }}
+                  multiline
+                  placeholder="e.g. 1 Atta, 2 chips, 3 Lemon"
+                  placeholderTextColor={txtSec}
+                  value={listText}
+                  onChangeText={setListText}
+                />
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 6, marginTop: 6 }}>
+                  <TouchableOpacity 
+                    style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: isDark ? '#3F3F46' : '#E2E8F0' }}
+                    onPress={() => setShowAutoFillCard(false)}
+                  >
+                    <Text style={{ fontSize: 8.5, fontWeight: '900', color: txt }}>CANCEL</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: '#22C55E' }}
+                    onPress={handleSmartAutoFill}
+                  >
+                    <Text style={{ fontSize: 8.5, fontWeight: '900', color: '#fff' }}>AUTO-FILL</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Custom Request Form */}
+            {showCustomForm && (
+              <View style={{ marginHorizontal: 10, backgroundColor: cardBg, borderWidth: 1, borderColor: '#EF4444', borderRadius: 14, padding: 10, marginVertical: 4, elevation: 3 }}>
+                <Text style={{ fontSize: 10, fontWeight: '900', color: txt, marginBottom: 4 }}>🎁 REQUEST CUSTOM ITEM</Text>
+                <TextInput
+                  style={{
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
+                    borderWidth: 1,
+                    borderColor: border,
+                    borderRadius: 6,
+                    paddingHorizontal: 8,
+                    height: 28,
+                    fontSize: 10,
+                    color: txt,
+                    marginBottom: 6
+                  }}
+                  placeholder="Item name and brand"
+                  placeholderTextColor={txtSec}
+                  value={customItemName}
+                  onChangeText={setCustomItemName}
+                />
+
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}>
+                  <TextInput
+                    style={{
+                      flex: 1,
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
+                      borderWidth: 1,
+                      borderColor: border,
+                      borderRadius: 6,
+                      paddingHorizontal: 8,
+                      height: 28,
+                      fontSize: 10,
+                      color: txt
+                    }}
+                    placeholder="Qty (e.g. 2)"
+                    placeholderTextColor={txtSec}
+                    keyboardType="numeric"
+                    value={customItemQty}
+                    onChangeText={setCustomItemQty}
+                  />
+                  <TextInput
+                    style={{
+                      flex: 1,
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
+                      borderWidth: 1,
+                      borderColor: border,
+                      borderRadius: 6,
+                      paddingHorizontal: 8,
+                      height: 28,
+                      fontSize: 10,
+                      color: txt
+                    }}
+                    placeholder="Price (e.g. 100)"
+                    placeholderTextColor={txtSec}
+                    keyboardType="numeric"
+                    value={customItemPrice}
+                    onChangeText={setCustomItemPrice}
+                  />
+                </View>
+
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 6, marginTop: 4 }}>
+                  <TouchableOpacity 
+                    style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: isDark ? '#3F3F46' : '#E2E8F0' }}
+                    onPress={() => setShowCustomForm(false)}
+                  >
+                    <Text style={{ fontSize: 8.5, fontWeight: '900', color: txt }}>CANCEL</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: '#EF4444' }}
+                    onPress={handleAddCustomRequest}
+                  >
+                    <Text style={{ fontSize: 8.5, fontWeight: '900', color: '#fff' }}>ADD TO CART</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Luxury Split Grid */}
+            <View style={{ flexDirection: 'row', flex: 1, width: '100%', borderTopWidth: 1, borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0' }}>
+              {/* Luxury Sidebar (Strict Fixed 68px Width) */}
+              <ScrollView 
+                style={{ 
+                  width: 68, 
+                  maxWidth: 68, 
+                  minWidth: 68, 
+                  flexGrow: 0, 
+                  flexShrink: 0, 
+                  borderRightWidth: 1, 
+                  borderRightColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0', 
+                  backgroundColor: isDark ? '#0D0E12' : '#F8FAFC' 
+                }} 
+                contentContainerStyle={{ alignItems: 'center', paddingBottom: 100 }}
+                nestedScrollEnabled={true}
+                showsVerticalScrollIndicator={false}
+              >
+                {BB_CATEGORIES.map(cat => {
+                  const isSelected = selectedBBOption === cat.key;
+                  return (
+                    <TouchableOpacity
+                      key={cat.key}
+                      style={{
+                        width: 68,
+                        paddingVertical: 10,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        position: 'relative',
+                        backgroundColor: isSelected ? (isDark ? 'rgba(16,185,129,0.08)' : '#F0FDF4') : 'transparent',
+                      }}
+                      onPress={() => setSelectedBBOption(cat.key)}
+                      activeOpacity={0.8}
+                    >
+                      {/* Left Active Line */}
+                      {isSelected && (
+                        <View style={{
+                          position: 'absolute',
+                          left: 0,
+                          top: 10,
+                          bottom: 10,
+                          width: 3.5,
+                          backgroundColor: '#10B981',
+                          borderTopRightRadius: 3,
+                          borderBottomRightRadius: 3
+                        }} />
+                      )}
+
+                      {/* Small Circular Icon Bubble */}
+                      {isSelected ? (
+                        <LinearGradient
+                          colors={['#10B981', '#059669']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 20,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginBottom: 4,
+                            shadowColor: '#10B981',
+                            shadowOffset: { width: 0, height: 3 },
+                            shadowOpacity: 0.35,
+                            shadowRadius: 6,
+                            elevation: 4
+                          }}
+                        >
+                          <Text style={{ fontSize: 18 }}>{cat.icon}</Text>
+                        </LinearGradient>
+                      ) : (
+                        <View style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: 19,
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginBottom: 4,
+                          borderWidth: 1,
+                          borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0',
+                        }}>
+                          <Text style={{ fontSize: 17 }}>{cat.icon}</Text>
+                        </View>
+                      )}
+
+                      {/* Compact Title */}
+                      <Text 
+                        style={{
+                          fontSize: 7.5,
+                          fontWeight: isSelected ? '900' : '600',
+                          color: isSelected ? (isDark ? '#34D399' : '#047857') : txtSec,
+                          textAlign: 'center',
+                          paddingHorizontal: 2,
+                          lineHeight: 9
+                        }}
+                        numberOfLines={2}
+                      >
+                        {cat.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              {/* Right Product Grid */}
+              <ScrollView 
+                style={{ flex: 1, backgroundColor: isDark ? '#0B0B0D' : '#FAFAFA' }} 
+                contentContainerStyle={{ padding: 8, paddingBottom: 140 }} 
+                nestedScrollEnabled={true}
+                showsVerticalScrollIndicator={false}
+              >
+                {/* Header with Luxury Badge & Actions */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, paddingHorizontal: 2 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '900', color: txt, textTransform: 'uppercase', letterSpacing: 0.8 }}>✨ {selectedBBOption}</Text>
+                  </View>
+                  
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    {/* Inline Quick Action Icons */}
+                    <TouchableOpacity 
+                      style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: isDark ? 'rgba(16,185,129,0.2)' : '#DCFCE7', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isDark ? 'rgba(16,185,129,0.4)' : '#86EFAC' }}
+                      onPress={() => setShowAutoFillCard(!showAutoFillCard)}
+                    >
+                      <Text style={{ fontSize: 11 }}>⚡</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: isDark ? 'rgba(239,68,68,0.2)' : '#FEE2E2', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isDark ? 'rgba(239,68,68,0.4)' : '#FCA5A5' }}
+                      onPress={() => setShowCustomForm(!showCustomForm)}
+                    >
+                      <Text style={{ fontSize: 11 }}>🎁</Text>
+                    </TouchableOpacity>
+
+                    {/* Veg Only Toggle */}
+                    <Text style={{ fontSize: 8, fontWeight: '800', color: txtSec, marginLeft: 2 }}>🟢 Veg</Text>
+                    <TouchableOpacity 
+                      style={{ width: 28, height: 16, borderRadius: 9, backgroundColor: showVegOnly ? '#10B981' : '#D1D5DB', justifyContent: 'center', paddingHorizontal: 2 }}
+                      onPress={() => setShowVegOnly(!showVegOnly)}
+                    >
+                      <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#fff', alignSelf: showVegOnly ? 'flex-end' : 'flex-start' }} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {getCategoryProducts(selectedBBOption)
+                    .filter(p => !showVegOnly || p.isVeg)
+                    .map(product => {
+                      const inCart = cart.find(i => i.id === product.id);
+                      const quantity = inCart ? inCart.quantity : 0;
+                      // SW - 68 (sidebar) - 16 (padding) - 8 (gap) / 2
+                      const cardWidth = (SW - 68 - 24) / 2;
+                      return (
+                        <View
+                          key={product.id}
+                          style={{
+                            width: cardWidth,
+                            backgroundColor: isDark ? '#18181B' : '#FFFFFF',
+                            borderRadius: 16,
+                            borderWidth: 1,
+                            borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#F1F5F9',
+                            padding: 8,
+                            marginBottom: 4,
+                            position: 'relative',
+                            shadowColor: '#0F172A',
+                            shadowOffset: { width: 0, height: 3 },
+                            shadowOpacity: isDark ? 0.3 : 0.06,
+                            shadowRadius: 8,
+                            elevation: 3
+                          }}
+                        >
+                          {/* Product Image Stage */}
+                          <View style={{ width: '100%', height: 90, backgroundColor: '#FFF', borderRadius: 12, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', position: 'relative', borderWidth: 1, borderColor: '#F8FAFC' }}>
+                            <TouchableOpacity 
+                              style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }} 
+                              onPress={() => {
+                                router.push(`/products/${product.id}` as any);
+                              }}
+                            >
+                              <Image source={{ uri: product.image }} style={{ width: '88%', height: '88%', resizeMode: 'contain' }} />
+                            </TouchableOpacity>
+                            {product.discount && (
+                              <View style={{ position: 'absolute', top: 4, left: 4, borderRadius: 6, overflow: 'hidden' }}>
+                                <LinearGradient
+                                  colors={['#EF4444', '#B91C1C']}
+                                  start={{ x: 0, y: 0 }}
+                                  end={{ x: 1, y: 0 }}
+                                  style={{ paddingHorizontal: 5, paddingVertical: 2 }}
+                                >
+                                  <Text style={{ fontSize: 6.5, fontWeight: '900', color: '#FFF', letterSpacing: 0.3 }}>{product.discount}</Text>
+                                </LinearGradient>
+                              </View>
+                            )}
+                          </View>
+
+                          {/* Details */}
+                          <Text style={{ fontSize: 9.5, fontWeight: '800', color: txt, marginTop: 6, height: 26, lineHeight: 12 }} numberOfLines={2}>{product.name}</Text>
+                          <Text style={{ fontSize: 8, color: txtSec, marginTop: 2, fontWeight: '600' }}>{product.weight}</Text>
+
+                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                            <Text style={{ fontSize: 11, fontWeight: '900', color: isDark ? '#F3F4F6' : '#0F172A' }}>₹{product.price}</Text>
+
+                            {/* Luxury Stepper / ADD Button */}
+                            <View style={{ minWidth: 50 }}>
+                              {quantity > 0 ? (
+                                <View style={{ borderRadius: 10, overflow: 'hidden' }}>
+                                  <LinearGradient
+                                    colors={['#10B981', '#047857']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={{ flexDirection: 'row', alignItems: 'center', height: 24, justifyContent: 'space-between', paddingHorizontal: 5 }}
+                                  >
+                                    <TouchableOpacity
+                                      style={{ width: 14, height: 14, alignItems: 'center', justifyContent: 'center' }}
+                                      onPress={() => {
+                                        const cartKey = cart.find(i => i.id === product.id)?.cartKey || product.id;
+                                        updateQuantity(cartKey, quantity - 1);
+                                      }}
+                                    >
+                                      <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }}>-</Text>
+                                    </TouchableOpacity>
+                                    <Text style={{ color: '#fff', fontWeight: '900', fontSize: 9.5, paddingHorizontal: 2 }}>{quantity}</Text>
+                                    <TouchableOpacity
+                                      style={{ width: 14, height: 14, alignItems: 'center', justifyContent: 'center' }}
+                                      onPress={() => {
+                                        addToCart({
+                                          id: product.id,
+                                          name: product.name,
+                                          price: product.price,
+                                          image: product.image,
+                                          restaurantId: 'mega-basket-vendor',
+                                          restaurantName: 'Mega Basket Grocery'
+                                        });
+                                      }}
+                                    >
+                                      <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }}>+</Text>
+                                    </TouchableOpacity>
+                                  </LinearGradient>
+                                </View>
+                              ) : (
+                                <TouchableOpacity
+                                  style={{ borderRadius: 10, overflow: 'hidden', shadowColor: '#10B981', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 2 }}
+                                  onPress={() => {
+                                    addToCart({
+                                      id: product.id,
+                                      name: product.name,
+                                      price: product.price,
+                                      image: product.image,
+                                      restaurantId: 'mega-basket-vendor',
+                                      restaurantName: 'Mega Basket Grocery'
+                                    });
+                                  }}
+                                  activeOpacity={0.85}
+                                >
+                                  <LinearGradient
+                                    colors={['#10B981', '#059669']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={{ height: 24, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 }}
+                                  >
+                                    <Text style={{ fontSize: 8.5, fontWeight: '900', color: '#FFF', letterSpacing: 0.5 }}>ADD +</Text>
+                                  </LinearGradient>
+                                </TouchableOpacity>
+                              )}
+                            </View>
+                          </View>
+                        </View>
+                      );
+                    })}
+                </View>
+              </ScrollView>
+            </View>
           </View>
         )}
 
@@ -2539,9 +3120,56 @@ export default function OthersScreen() {
                         )}
 
                         {ride.status === 'Available' && isCreator && (
-                          <ActionPressable style={[s.cancelRideBtn, { marginTop: 12, width: '100%' }]} onPress={() => handleCancelRide(ride.id)} sound="click">
-                            <Text style={s.cancelRideBtnText}>REMOVE POST Listing ✕</Text>
-                          </ActionPressable>
+                          <View style={{ marginTop: 8 }}>
+                            {/* List of pending requests */}
+                            {ride.requests && ride.requests.filter((r: any) => r.status === 'Pending').length > 0 && (
+                              <View style={{ marginTop: 8, padding: 10, backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: border }}>
+                                <Text style={{ fontSize: 10, fontWeight: '900', color: goldColor, letterSpacing: 1, marginBottom: 8 }}>PENDING PASSENGER REQUESTS</Text>
+                                {ride.requests.filter((r: any) => r.status === 'Pending').map((r: any) => (
+                                  <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 0.5, borderBottomColor: border }}>
+                                    <View style={{ flex: 1 }}>
+                                      <Text style={{ fontSize: 12, fontWeight: '700', color: txt }}>{r.passenger?.name || 'Campus Peer'}</Text>
+                                      <Text style={{ fontSize: 9, color: txtSec }}>Gender: {r.passenger?.gender || 'Any'} • Phone: {r.passenger?.phone || 'Hidden'}</Text>
+                                    </View>
+                                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                                      <TouchableOpacity style={{ backgroundColor: COLORS.emerald, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 }} onPress={() => handleApproveRequest(ride.id, r.id)}>
+                                        <Text style={{ color: '#fff', fontSize: 10, fontWeight: '900' }}>✓ APPROVE</Text>
+                                      </TouchableOpacity>
+                                      <TouchableOpacity style={{ backgroundColor: COLORS.red, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 }} onPress={() => handleRejectRequest(ride.id, r.id)}>
+                                        <Text style={{ color: '#fff', fontSize: 10, fontWeight: '900' }}>✕ REJECT</Text>
+                                      </TouchableOpacity>
+                                    </View>
+                                  </View>
+                                ))}
+                              </View>
+                            )}
+
+                            {/* List of approved passengers */}
+                            {ride.requests && ride.requests.filter((r: any) => r.status === 'Approved').length > 0 && (
+                              <View style={{ marginTop: 8, padding: 10, backgroundColor: isDark ? 'rgba(16,185,129,0.05)' : '#ECFDF5', borderRadius: 12, borderWidth: 1, borderColor: border }}>
+                                <Text style={{ fontSize: 9, fontWeight: '900', color: COLORS.emerald, letterSpacing: 1, marginBottom: 6 }}>JOINED PASSENGERS</Text>
+                                {ride.requests.filter((r: any) => r.status === 'Approved').map((r: any) => (
+                                  <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 }}>
+                                    <View style={{ flex: 1 }}>
+                                      <Text style={{ fontSize: 12, fontWeight: '700', color: txt }}>👤 {r.passenger?.name || 'Campus Peer'}</Text>
+                                      <Text style={{ fontSize: 9, color: txtSec }}>Phone: {r.passenger?.phone || 'Hidden'}</Text>
+                                    </View>
+                                  </View>
+                                ))}
+                              </View>
+                            )}
+
+                            <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                              {ride.requests && ride.requests.filter((r: any) => r.status === 'Approved').length > 0 && (
+                                <ActionPressable style={[s.completeBtn, { flex: 1 }]} onPress={() => handleCompleteRide(ride.id)} sound="success">
+                                  <Text style={s.completeBtnText}>COMPLETE RIDE ✅</Text>
+                                </ActionPressable>
+                              )}
+                              <ActionPressable style={[s.cancelRideBtn, { flex: 1 }]} onPress={() => handleCancelRide(ride.id)} sound="click">
+                                <Text style={s.cancelRideBtnText}>REMOVE LISTING ✕</Text>
+                              </ActionPressable>
+                            </View>
+                          </View>
                         )}
                       </View>
                     );
@@ -3083,6 +3711,16 @@ export default function OthersScreen() {
                     <Text style={[s.roleBtnTextLabel, rideVibe === vb && s.roleBtnTextLabelActive]}>{vb.toUpperCase()}</Text>
                   </DopaminePressable>
                 ))}
+              </View>
+
+              <Text style={[s.formLabel, { color: txt }]}>APPROVAL & MATCHING MODE</Text>
+              <View style={s.formRoleRow}>
+                <DopaminePressable style={[s.roleBtn, autoApprove && s.roleBtnActive, { flex: 1 }]} onPress={() => setAutoApprove(true)} sound="click" activeScale={0.95}>
+                  <Text style={[s.roleBtnTextLabel, autoApprove && s.roleBtnTextLabelActive]}>⚡ INSTANT MATCH</Text>
+                </DopaminePressable>
+                <DopaminePressable style={[s.roleBtn, !autoApprove && s.roleBtnActive, { flex: 1 }]} onPress={() => setAutoApprove(false)} sound="click" activeScale={0.95}>
+                  <Text style={[s.roleBtnTextLabel, !autoApprove && s.roleBtnTextLabelActive]}>🛡️ MANUAL APPROVAL</Text>
+                </DopaminePressable>
               </View>
 
               <Text style={[s.formLabel, { color: txt }]}>NOTES (OPTIONAL)</Text>

@@ -9,39 +9,18 @@ const { getBirthdayCelebrationModel } = require('../models/BirthdayCelebration')
 const { getBirthdayWishModel } = require('../models/BirthdayWish');
 const { getCommunityPostModel } = require('../models/CommunityPost');
 const { protect, admin } = require('../middleware/authMiddleware');
-const { sendPushToTopic } = require('../utils/push');
+const { sendPushToTopic, sendPushToTokens } = require('../utils/push');
 
-// Helper to save base64 payload to local disk in /uploads/
-function saveUploadedImage(base64Payload) {
+// Helper: Store photo directly in the database as base64 data URI.
+// Render's filesystem is ephemeral — files in /uploads/ are lost on restart.
+// Storing in the DB column (TEXT type) ensures persistence across deploys.
+function processPhoto(base64Payload) {
   if (!base64Payload) return null;
-  // If it's already a URL or doesn't look like base64, return it directly
-  if (!base64Payload.startsWith('data:image')) {
+  // If it's already a data URI or regular URL, keep it as-is
+  if (base64Payload.startsWith('data:image') || base64Payload.startsWith('http')) {
     return base64Payload;
   }
-
-  try {
-    const matches = base64Payload.match(/^data:image\/([A-Za-z+0-9]+);base64,(.+)$/);
-    if (!matches || matches.length !== 3) {
-      return null;
-    }
-
-    const ext = matches[1];
-    const dataBuffer = Buffer.from(matches[2], 'base64');
-    const filename = `birthday_${uuidv4()}.${ext}`;
-    const destPath = path.join(__dirname, '../uploads', filename);
-
-    // Ensure uploads directory exists
-    const dir = path.dirname(destPath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-
-    fs.writeFileSync(destPath, dataBuffer);
-    return `/uploads/${filename}`;
-  } catch (err) {
-    console.error('[IMAGE_SAVE_ERROR] Failed to save birthday image to disk:', err);
-    return null;
-  }
+  return null;
 }
 
 // POST /api/birthdays - Submit birthday celebration request
@@ -55,8 +34,8 @@ router.post('/', protect, async (req, res) => {
       return res.status(400).json({ message: 'Candidate name and date are required.' });
     }
 
-    // Save image to disk if base64, otherwise keep url
-    const candidatePhotoUrl = saveUploadedImage(candidatePhoto);
+    // Store photo as base64 data URI directly in database (survives server restarts)
+    const candidatePhotoUrl = processPhoto(candidatePhoto);
 
     // Create pending celebration
     const celebration = await BirthdayCelebration.create({
@@ -133,17 +112,74 @@ router.put('/:id/approve', protect, admin, async (req, res) => {
       expiresAt: expiresAt
     });
 
-    // Fire FCM topic notification
-    await sendPushToTopic(
-      'birthdays',
-      `🎉 Celebrate ${celebration.candidateName}'s Birthday! 🎂`,
-      `Tap here to wish them and join the campus celebration! 🎁✨`,
-      {
-        type: 'BIRTHDAY_ALERT',
-        celebrationId: celebration.id,
-        candidateName: celebration.candidateName
+    // Broadcast push notification to all active users' FCM tokens
+    try {
+      const { getUserModel } = require('../models/User');
+      const User = getUserModel();
+      if (User) {
+        const activeUsers = await User.findAll({ where: { isActive: true } });
+        let allTokens = [];
+        activeUsers.forEach(user => {
+          if (user.fcmTokens) {
+            let tokenList = user.fcmTokens;
+            if (typeof tokenList === 'string') {
+              try { tokenList = JSON.parse(tokenList); } catch { tokenList = [tokenList]; }
+            }
+            if (Array.isArray(tokenList)) {
+              tokenList.forEach(t => {
+                const tokenStr = typeof t === 'string' ? t : t?.token;
+                if (tokenStr) allTokens.push(tokenStr);
+              });
+            }
+          }
+        });
+        allTokens = [...new Set(allTokens.filter(Boolean))];
+
+        if (allTokens.length > 0) {
+          await sendPushToTokens(
+            allTokens,
+            `🎉 Celebrate ${celebration.candidateName}'s Birthday! 🎂`,
+            `Tap here to wish them and join the campus celebration! 🎁✨`,
+            {
+              type: 'BIRTHDAY_ALERT',
+              celebrationId: String(celebration.id),
+              candidateName: celebration.candidateName
+            }
+          );
+        }
       }
-    );
+    } catch (pushErr) {
+      console.error('Failed to send birthday push to user tokens:', pushErr);
+    }
+
+    // Fire FCM topic notification as fallback/topic broadcast
+    try {
+      await sendPushToTopic(
+        'birthdays',
+        `🎉 Celebrate ${celebration.candidateName}'s Birthday! 🎂`,
+        `Tap here to wish them and join the campus celebration! 🎁✨`,
+        {
+          type: 'BIRTHDAY_ALERT',
+          celebrationId: String(celebration.id),
+          candidateName: celebration.candidateName
+        }
+      );
+    } catch (topicErr) {
+      console.error('Failed to send birthday push to topic:', topicErr);
+    }
+
+    // Broadcast via Socket.io so active users get live toast & save to notification history
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('global_announcement', {
+          message: `🎉 Celebrate ${celebration.candidateName}'s Birthday! 🎂 Tap here to wish them and join the campus celebration! 🎁✨`,
+          type: 'promo'
+        });
+      }
+    } catch (sockErr) {
+      console.error('Failed to emit birthday socket announcement:', sockErr);
+    }
 
     res.json({ message: 'Birthday approved successfully.', celebration });
   } catch (err) {

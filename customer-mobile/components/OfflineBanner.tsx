@@ -11,6 +11,9 @@ export default function OfflineBanner() {
 
   // Connection check method using AbortController for reliable timeout
   const checkConnection = async (): Promise<boolean> => {
+    if (Platform.OS === 'web') {
+      return typeof navigator !== 'undefined' ? navigator.onLine : true;
+    }
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3500);
     try {
@@ -88,6 +91,7 @@ export default function OfflineBanner() {
     };
   }, [isOffline, slideAnim]);
 
+  if (Platform.OS === 'web') return null;
   if (!isOffline) return null;
 
   return (

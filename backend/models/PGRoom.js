@@ -21,7 +21,7 @@ const initPGRoomModel = (sequelize) => {
     images: {
       type: DataTypes.TEXT,
       defaultValue: '[]',
-      get() { const v = this.getDataValue('images'); return v ? JSON.parse(v) : []; },
+      get() { const v = this.getDataValue('images'); try { return v ? JSON.parse(v) : []; } catch { return []; } },
       set(v) { this.setDataValue('images', JSON.stringify(v)); }
     },
     isActive: { type: DataTypes.BOOLEAN, defaultValue: true }

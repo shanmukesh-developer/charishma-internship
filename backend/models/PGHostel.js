@@ -18,41 +18,41 @@ const initPGHostelModel = (sequelize) => {
     amenities: {
       type: DataTypes.TEXT,
       defaultValue: '[]',
-      get() { const v = this.getDataValue('amenities'); return v ? JSON.parse(v) : []; },
+      get() { const v = this.getDataValue('amenities'); try { return v ? JSON.parse(v) : []; } catch { return []; } },
       set(v) { this.setDataValue('amenities', JSON.stringify(v)); }
     },
     images: {
       type: DataTypes.TEXT,
       defaultValue: '[]',
-      get() { const v = this.getDataValue('images'); return v ? JSON.parse(v) : []; },
+      get() { const v = this.getDataValue('images'); try { return v ? JSON.parse(v) : []; } catch { return []; } },
       set(v) { this.setDataValue('images', JSON.stringify(v)); }
     },
     // Weekly mess menu: { Monday: { breakfast: '', lunch: '', dinner: '' }, ... }
     messMenu: {
       type: DataTypes.TEXT,
       defaultValue: '{}',
-      get() { const v = this.getDataValue('messMenu'); return v ? JSON.parse(v) : {}; },
+      get() { const v = this.getDataValue('messMenu'); try { return v ? JSON.parse(v) : {}; } catch { return {}; } },
       set(v) { this.setDataValue('messMenu', JSON.stringify(v)); }
     },
     // Daily meal timings: { breakfast: { start, end }, lunch: {...}, dinner: {...} }
     foodTimetable: {
       type: DataTypes.TEXT,
       defaultValue: '{}',
-      get() { const v = this.getDataValue('foodTimetable'); return v ? JSON.parse(v) : {}; },
+      get() { const v = this.getDataValue('foodTimetable'); try { return v ? JSON.parse(v) : {}; } catch { return {}; } },
       set(v) { this.setDataValue('foodTimetable', JSON.stringify(v)); }
     },
     // Array of rule strings
     rules: {
       type: DataTypes.TEXT,
       defaultValue: '[]',
-      get() { const v = this.getDataValue('rules'); return v ? JSON.parse(v) : []; },
+      get() { const v = this.getDataValue('rules'); try { return v ? JSON.parse(v) : []; } catch { return []; } },
       set(v) { this.setDataValue('rules', JSON.stringify(v)); }
     },
     // { phone, email, ownerName, warden }
     contactInfo: {
       type: DataTypes.TEXT,
       defaultValue: '{}',
-      get() { const v = this.getDataValue('contactInfo'); return v ? JSON.parse(v) : {}; },
+      get() { const v = this.getDataValue('contactInfo'); try { return v ? JSON.parse(v) : {}; } catch { return {}; } },
       set(v) { this.setDataValue('contactInfo', JSON.stringify(v)); }
     },
     isActive: { type: DataTypes.BOOLEAN, defaultValue: true },

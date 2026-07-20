@@ -24,7 +24,7 @@ const initConversationModel = (sequelize) => {
       allowNull: false,
       get() {
         const val = this.getDataValue('participants');
-        return val ? JSON.parse(val) : [];
+        try { return val ? JSON.parse(val) : []; } catch { return []; }
       },
       set(val) {
         this.setDataValue('participants', JSON.stringify(val));

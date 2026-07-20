@@ -9,6 +9,17 @@ const { sendWhatsAppMessage, formatOrderMessage } = require('../utils/whatsappUt
 const { calculateCustomizationCost } = require('../utils/pricingSchema');
 const { Op } = require('sequelize');
 
+const normalizeItems = (items) => {
+  if (typeof items === 'string') {
+    try {
+      return JSON.parse(items);
+    } catch {
+      return [];
+    }
+  }
+  return Array.isArray(items) ? items : [];
+};
+
 // @desc    Create a new order
 // @route   POST /api/orders
 const createOrder = async (req, res) => {
@@ -484,7 +495,7 @@ const createOrder = async (req, res) => {
       // Online Shop: Emit to Restaurant Portal
       io.to(`restaurant_${restaurant.id}`).emit('restaurant_newOrder', {
         id: createdOrder.id,
-        items: createdOrder.items,
+        items: normalizeItems(createdOrder.items),
         totalPrice: createdOrder.totalPrice,
         address: createdOrder.deliveryAddress
       });
@@ -555,7 +566,7 @@ const restaurantAcceptOrder = async (req, res) => {
         restaurant: restaurant ? restaurant.name : 'Unknown',
         restaurantAddress: restaurant ? restaurant.location : '',
         drop: order.deliveryAddress,
-        items: order.items,
+        items: normalizeItems(order.items),
         totalPrice: order.totalPrice,
         finalPrice: order.finalPrice,
         earnings: `₹${order.deliveryFee}`,
@@ -994,7 +1005,15 @@ const getOrderStats = async (req, res) => {
     // Top items
     const itemMap = {};
     orders.forEach(o => {
-      const items = Array.isArray(o.items) ? o.items : [];
+      let itemsList = o.items;
+      if (typeof itemsList === 'string') {
+        try {
+          itemsList = JSON.parse(itemsList);
+        } catch {
+          itemsList = [];
+        }
+      }
+      const items = Array.isArray(itemsList) ? itemsList : [];
       items.forEach(item => {
         const name = item.name || 'Unknown';
         if (!itemMap[name]) itemMap[name] = { name, count: 0, spend: 0 };

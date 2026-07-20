@@ -11,6 +11,7 @@ import CustomizeDrawer, { summarizeCustomizations } from '../../components/Custo
 import { saveRecentlyViewed } from '../../components/RecentlyViewed';
 import { StaggeredSection, BounceIn, FloatingPulse } from '../../components/AnimatedSection';
 import DopaminePressable, { CartPressable, ActionPressable, CardPressable } from '../../components/DopaminePressable';
+import SafeImage from '../../components/SafeImage';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -123,39 +124,56 @@ const MOCK_DETAILS: Record<string, any> = {
   }
 };
 
-const getRelatedProducts = (currentId: string) => {
-  const allRelated = [
-    { id: 'toys-monster-truck', name: '4x4 Monster Truck', price: 49, originalPrice: 499, weight: '1 pc', image: 'https://images.unsplash.com/photo-1594787318286-3d835c1d207f?w=300&q=80', brand: 'Kriiddaank' },
-    { id: 'toys-tablet', name: 'LCD Writing Tablet Board', price: 149, originalPrice: 699, weight: '1 pc', image: 'https://images.unsplash.com/photo-1516627145497-ae6968895b74?w=300&q=80', brand: 'Mattel' },
-    { id: 'toys-cricket', name: 'Kids Cricket Bat and Ball Set', price: 199, originalPrice: 499, weight: 'Pack of 1', image: 'https://images.unsplash.com/photo-1531565637446-32307b194362?w=300&q=80', brand: 'Sports' },
-    { id: 'toys-uno-card', name: 'Uno Original Card Game', price: 119, originalPrice: 149, weight: '108 pcs', image: 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=300&q=80', brand: 'Mattel' },
-    { id: 'seeds-tomato', name: 'Tomato Seeds', price: 40.8, originalPrice: 80, weight: '10 g', image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=300&q=80', brand: 'Bombay Seeds' },
-    { id: 'seeds-cucumber', name: 'Cucumber Khira Seeds', price: 59, originalPrice: 80, weight: '10 g', image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=300&q=80', brand: 'Bombay Seeds' },
-    { id: 'seeds-chilli', name: 'Chilli Hot Pepper Seeds', price: 59, originalPrice: 80, weight: '10 g', image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=300&q=80', brand: 'Bombay Seeds' },
-    { id: 'bb-carrot', name: 'Carrot - Local', price: 39, originalPrice: 56.16, weight: '500 g', image: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=300&q=80', brand: 'Fresho' },
-    { id: 'bb-lemon', name: 'Fresh Lemon', price: 10, originalPrice: 27, weight: '3 pcs', image: 'https://images.unsplash.com/photo-1590502593747-42a996133562?w=300&q=80', brand: 'Fresho' },
-    { id: 'brand-guava', name: 'B Natural Guava Beverage', price: 88, originalPrice: 115, weight: '1 L', image: 'https://images.unsplash.com/photo-1534531173927-aeb928d54385?w=300&q=80', brand: 'B Natural' },
-    { id: 'cat-oil-2', name: 'Amul Pure Cow Ghee Tin', price: 680, originalPrice: 720, weight: '1 L', image: 'https://images.unsplash.com/photo-1547514701-42782101795e?w=300&q=80', brand: 'Amul' },
-    { id: 'cat-atta-1', name: 'Aashirvaad Shudh Chakki Atta', price: 260, originalPrice: 290, weight: '5 kg', image: 'https://images.unsplash.com/photo-1574316071802-0d684efa7bf5?w=300&q=80', brand: 'Aashirvaad' }
+const getRelatedProducts = (currentId: string, currentProduct?: any) => {
+  const nameLower = (currentProduct?.name || currentId || '').toLowerCase();
+  const categoryLower = (currentProduct?.category || '').toLowerCase();
+
+  const isToy = currentId.startsWith('toys-') || categoryLower.includes('toy') || nameLower.includes('truck') || nameLower.includes('uno') || nameLower.includes('cube') || nameLower.includes('cricket') || nameLower.includes('board');
+  const isSeed = currentId.startsWith('seeds-') || categoryLower.includes('seed') || nameLower.includes('seed') || nameLower.includes('cucumber') || nameLower.includes('tomato') || nameLower.includes('chilli');
+  const isBeverage = categoryLower.includes('beverage') || categoryLower.includes('drink') || categoryLower.includes('juice') || categoryLower.includes('shake') || nameLower.includes('juice') || nameLower.includes('guava') || nameLower.includes('coke') || nameLower.includes('tea') || nameLower.includes('coffee');
+  const isFood = categoryLower.includes('food') || categoryLower.includes('snack') || nameLower.includes('burger') || nameLower.includes('pizza') || nameLower.includes('biryani') || nameLower.includes('fries') || nameLower.includes('roll') || nameLower.includes('wings');
+
+  const allRelatedPool = [
+    // Toys & Games
+    { id: 'toys-monster-truck', name: '4x4 Monster Truck', price: 49, originalPrice: 499, weight: '1 pc', image: 'https://images.unsplash.com/photo-1594787318286-3d835c1d207f?w=300&q=80', brand: 'Kriiddaank', cat: 'toys' },
+    { id: 'toys-tablet', name: 'LCD Writing Tablet Board', price: 149, originalPrice: 699, weight: '1 pc', image: 'https://images.unsplash.com/photo-1516627145497-ae6968895b74?w=300&q=80', brand: 'Mattel', cat: 'toys' },
+    { id: 'toys-cricket', name: 'Kids Cricket Bat Set', price: 199, originalPrice: 499, weight: 'Pack of 1', image: 'https://images.unsplash.com/photo-1531565637446-32307b194362?w=300&q=80', brand: 'Sports', cat: 'toys' },
+    { id: 'toys-uno-card', name: 'Uno Original Card Game', price: 119, originalPrice: 149, weight: '108 pcs', image: 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=300&q=80', brand: 'Mattel', cat: 'toys' },
+
+    // Seeds & Gardening
+    { id: 'seeds-tomato', name: 'Tomato Seeds', price: 40.8, originalPrice: 80, weight: '10 g', image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=300&q=80', brand: 'Bombay Seeds', cat: 'seeds' },
+    { id: 'seeds-cucumber', name: 'Cucumber Khira Seeds', price: 59, originalPrice: 80, weight: '10 g', image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=300&q=80', brand: 'Bombay Seeds', cat: 'seeds' },
+    { id: 'seeds-chilli', name: 'Chilli Hot Pepper Seeds', price: 59, originalPrice: 80, weight: '10 g', image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=300&q=80', brand: 'Bombay Seeds', cat: 'seeds' },
+
+    // Beverages
+    { id: 'brand-guava', name: 'B Natural Guava Beverage', price: 88, originalPrice: 115, weight: '1 L', image: 'https://images.unsplash.com/photo-1534531173927-aeb928d54385?w=300&q=80', brand: 'B Natural', cat: 'beverages' },
+    { id: 'bev-cold-brew', name: 'Cold Brew Coffee', price: 99, originalPrice: 149, weight: '300 ml', image: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300&q=80', brand: 'Zenvy Brews', cat: 'beverages' },
+    { id: 'bev-mango-shake', name: 'Alphonso Mango Shake', price: 119, originalPrice: 150, weight: '350 ml', image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=300&q=80', brand: 'Fresh Shakes', cat: 'beverages' },
+
+    // Food & Snacks
+    { id: 'snack-peri-fries', name: 'Crispy Peri Peri Fries', price: 89, originalPrice: 120, weight: '150 g', image: 'https://images.unsplash.com/photo-1576107232684-1279f3908594?w=300&q=80', brand: 'Zenvy Bites', cat: 'food' },
+    { id: 'snack-bbq-wings', name: 'Smokey BBQ Wings', price: 189, originalPrice: 240, weight: '6 pcs', image: 'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=300&q=80', brand: 'Zenvy Grill', cat: 'food' },
+
+    // Grocery & Produce
+    { id: 'bb-carrot', name: 'Fresh Organic Carrot', price: 39, originalPrice: 56.16, weight: '500 g', image: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=300&q=80', brand: 'Fresho', cat: 'grocery' },
+    { id: 'bb-lemon', name: 'Fresh Lemon', price: 10, originalPrice: 27, weight: '3 pcs', image: 'https://images.unsplash.com/photo-1590502593747-42a996133562?w=300&q=80', brand: 'Fresho', cat: 'grocery' },
+    { id: 'cat-oil-2', name: 'Amul Pure Cow Ghee', price: 680, originalPrice: 720, weight: '1 L', image: 'https://images.unsplash.com/photo-1547514701-42782101795e?w=300&q=80', brand: 'Amul', cat: 'grocery' },
+    { id: 'cat-atta-1', name: 'Aashirvaad Chakki Atta', price: 260, originalPrice: 290, weight: '5 kg', image: 'https://images.unsplash.com/photo-1574316071802-0d684efa7bf5?w=300&q=80', brand: 'Aashirvaad', cat: 'grocery' }
   ];
 
-  const isToy = currentId.startsWith('toys-') || currentId.includes('toys');
-  const isSeed = currentId.startsWith('seeds-') || currentId.includes('seeds');
+  let targetCat = 'grocery';
+  if (isToy) targetCat = 'toys';
+  else if (isSeed) targetCat = 'seeds';
+  else if (isBeverage) targetCat = 'beverages';
+  else if (isFood) targetCat = 'food';
 
-  let filtered = [];
-  if (isToy) {
-    filtered = allRelated.filter(p => p.id.startsWith('toys-'));
-  } else if (isSeed) {
-    filtered = allRelated.filter(p => p.id.startsWith('seeds-'));
-  } else {
-    filtered = allRelated.filter(p => !p.id.startsWith('toys-') && !p.id.startsWith('seeds-'));
-  }
-
+  const filtered = allRelatedPool.filter(p => p.cat === targetCat || (targetCat === 'food' && p.cat === 'beverages'));
   return filtered.filter(p => p.id !== currentId);
 };
 
 export default function ProductDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const cleanId = (Array.isArray(id) ? id[0] : id || '').replace(/\/$/, '');
   const router = useRouter();
   const { cart, addToCart, updateQuantity, removeFromCart } = useCart();
   const { isDark } = useTheme();
@@ -658,12 +676,11 @@ export default function ProductDetail() {
             )}
 
             {/* Related Products Slider */}
-            {/* Related Products Slider */}
-            {getRelatedProducts(productId).length > 0 && (
+            {getRelatedProducts(cleanId, product).length > 0 && (
               <View style={{ marginBottom: 24, marginTop: 12 }}>
                 <Text style={{ fontSize: 13, fontWeight: '900', color: textClr, marginBottom: 12, letterSpacing: 0.5 }}>Related Products</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 8 }}>
-                  {getRelatedProducts(productId).map((relProduct: any) => (
+                  {getRelatedProducts(cleanId, product).map((relProduct: any) => (
                     <TouchableOpacity
                       key={relProduct.id}
                       onPress={() => {
@@ -684,7 +701,7 @@ export default function ProductDetail() {
                       }}
                     >
                       <View style={{ width: '100%', height: 90, borderRadius: 10, overflow: 'hidden', backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-                        <Image source={{ uri: relProduct.image }} style={{ width: '90%', height: '90%', resizeMode: 'contain' }} />
+                        <SafeImage source={{ uri: relProduct.image }} style={{ width: '90%', height: '90%', resizeMode: 'contain' }} />
                       </View>
                       <View>
                         <Text style={{ fontSize: 7, fontWeight: '900', color: subTextClr, textTransform: 'uppercase' }}>{relProduct.brand}</Text>

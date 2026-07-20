@@ -24,7 +24,7 @@ const initBikePoolModel = (sequelize) => {
       defaultValue: '[]',
       get() {
         const val = this.getDataValue('recurringDays');
-        return val ? JSON.parse(val) : [];
+        try { return val ? JSON.parse(val) : []; } catch { return []; }
       },
       set(val) {
         this.setDataValue('recurringDays', JSON.stringify(val));
@@ -35,7 +35,7 @@ const initBikePoolModel = (sequelize) => {
       defaultValue: '[]',
       get() {
         const val = this.getDataValue('stopovers');
-        return val ? JSON.parse(val) : [];
+        try { return val ? JSON.parse(val) : []; } catch { return []; }
       },
       set(val) {
         this.setDataValue('stopovers', JSON.stringify(val));

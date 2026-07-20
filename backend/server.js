@@ -188,6 +188,8 @@ const io = new Server(server, {
   allowUpgrades: true
 });
 
+app.set('io', io);
+
 // 🛡️ Socket.io JWT Authentication Middleware
 const jwt = require('jsonwebtoken');
 io.use((socket, next) => {
@@ -236,11 +238,51 @@ io.use((socket, next) => {
 // Make io accessible to routes
 app.set('io', io);
 
-// Middleware
+// ═══════════════════════════════════════════════════════════════════════════════
+//  ZENVY FORTRESS — 10-Layer Security Middleware Stack
+// ═══════════════════════════════════════════════════════════════════════════════
+const {
+  requestTracer,
+  securityHeaders,
+  injectionGuard,
+  hppProtection,
+  botGuard,
+  requestTimeout,
+  sensitiveDataMask,
+  auditLogger
+} = require('./middleware/securityMiddleware');
+
+// Layer 0: Helmet (CSP, HSTS, XSS Protection headers)
 app.use(helmet({
   crossOriginResourcePolicy: false, // Allows cross-origin image loading
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      connectSrc: ["'self'", "https:", "wss:"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'self'"],
+      upgradeInsecureRequests: [],
+    },
+  },
 }));
-app.use(morgan('combined')); // Enterprise-grade API logging
+
+// Layer 1: Request Trace ID (unique ID for every request — essential for incident response)
+app.use(requestTracer);
+
+// Layer 2: Enhanced Security Response Headers (HSTS, Permissions-Policy, Referrer-Policy)
+app.use(securityHeaders);
+
+// Layer 3: Bot / Vulnerability Scanner Guard
+app.use(botGuard);
+
+// Layer 4: Morgan Enterprise Logging (with trace ID)
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms'));
+
+// Layer 5: CORS (Origin whitelist)
 app.use(cors({
   origin: function(origin, callback) {
     if (isAllowedOrigin(origin)) {
@@ -249,11 +291,29 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  exposedHeaders: ['X-Trace-Id'] // Allow clients to read trace IDs for error reporting
 }));
+
+// Layer 6: Compression & Parsing
 app.use(compression({ level: 6, threshold: 512 })); // Compress responses > 512 bytes
 app.use(cookieParser());
 app.use(express.json({ limit: '5mb' }));
+
+// Layer 7: HTTP Parameter Pollution Prevention
+app.use(hppProtection);
+
+// Layer 8: SQL/NoSQL Injection + Path Traversal Guard
+app.use(injectionGuard);
+
+// Layer 9: Sensitive Data Masking (strips passwords from logs)
+app.use(sensitiveDataMask);
+
+// Layer 10: Security Audit Logger (auth attempts, admin actions)
+app.use(auditLogger);
+
+// Layer 11: Request Timeout (30s — prevents Slow-Loris attacks)
+app.use(requestTimeout);
 
 // Custom In-Place XSS Sanitizer to prevent TypeError on Express 5 read-only req.query/req.params properties
 const sanitizeXSS = (data) => {
@@ -1156,7 +1216,9 @@ const startServer = async () => {
             conversationId: groupId,
             senderId: socket.user.id,
             senderName: data.senderName || 'Anonymous',
-            text
+            text,
+            replyTo: data.replyTo ? JSON.stringify(data.replyTo) : null,
+            reactions: '[]'
           });
           io.to(room).emit('receive_after_dark_message', newMsg);
 
@@ -1188,6 +1250,43 @@ const startServer = async () => {
         }
       });
 
+      socket.on('react_to_after_dark_message', async (data) => {
+        const { messageId, emoji, groupId } = data;
+        const room = `afterdark_${groupId}`;
+        try {
+          const { getMessageModel } = require('./models/Message');
+          const Message = getMessageModel();
+          const msg = await Message.findByPk(messageId);
+          if (msg) {
+            let currentReactions = [];
+            try {
+              currentReactions = msg.reactions ? JSON.parse(msg.reactions) : [];
+            } catch(e) {}
+            if (!Array.isArray(currentReactions)) currentReactions = [];
+            
+            // Remove existing reaction by this user
+            currentReactions = currentReactions.filter(r => r.userId !== socket.user.id);
+            
+            // Add new reaction
+            currentReactions.push({
+              emoji,
+              userId: socket.user.id,
+              userName: socket.user.name || 'Friend'
+            });
+            
+            msg.reactions = JSON.stringify(currentReactions);
+            await msg.save();
+            
+            io.to(room).emit('receive_message_reaction', {
+              messageId,
+              reactions: currentReactions
+            });
+          }
+        } catch(err) {
+          console.error('[REACT_MSG_ERR]', err);
+        }
+      });
+
       // Call Signaling (Limit 20)
       socket.on('join_after_dark_call', (data) => {
         if (!isAfterDark()) return;
@@ -1214,6 +1313,67 @@ const startServer = async () => {
           isSpeaker: data.isSpeaker !== undefined ? data.isSpeaker : true,
           requestToSpeak: false
         });
+
+        // If initiator starting the call, trigger background FCM push to the offline peer
+        if (roomMap.size === 1 && socket.user) {
+          // Broadcast incoming call signal via socket to all other users in the group
+          const groupRoom = `afterdark_${data.groupId}`;
+          socket.to(groupRoom).emit('incoming_call_signal', {
+            groupId: data.groupId,
+            callerName: userName,
+            mode: data.video ? 'video' : 'audio'
+          });
+          (async () => {
+            try {
+              const { getFriendshipModel } = require('./models/Friendship');
+              const Friendship = getFriendshipModel();
+              const friendship = await Friendship.findByPk(data.groupId);
+              if (friendship) {
+                const receiverId = friendship.requesterId === socket.user.id ? friendship.recipientId : friendship.requesterId;
+                const { getUserModel } = require('./models/User');
+                const User = getUserModel();
+                const receiver = await User.findByPk(receiverId);
+                if (receiver && receiver.fcmTokens && receiver.fcmTokens.length > 0) {
+                  const { sendPushToTokens } = require('./utils/push');
+                  await sendPushToTokens(
+                    receiver.fcmTokens,
+                    `📞 Incoming Zenvy Call`,
+                    `${userName} is calling you...`,
+                    { 
+                      type: 'call', 
+                      callerName: userName, 
+                      mode: data.video ? 'video' : 'audio', 
+                      groupId: String(data.groupId) 
+                    },
+                    {
+                      android: {
+                        priority: 'high',
+                        ttl: 60000,
+                        notification: {
+                          sound: 'default',
+                          channelId: 'incoming-calls',
+                          priority: 'max',
+                          visibility: 'public'
+                        }
+                      },
+                      apns: {
+                        payload: {
+                          aps: {
+                            sound: 'default',
+                            badge: 1
+                          }
+                        }
+                      }
+                    }
+                  );
+                  console.log(`[CALL_PUSH] Sent call signaling push from ${userName} to receiverId ${receiverId}`);
+                }
+              }
+            } catch (err) {
+              console.error('[CALL_PUSH_ERR]', err);
+            }
+          })();
+        }
         
         // Send list of all current participants to the joining user
         const participants = Array.from(roomMap.values());

@@ -244,11 +244,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     let userName = 'Guest Roommate';
     let userId = 'guest';
     try {
-      const stored = await AsyncStorage.getItem('user');
+      const stored = await AsyncStorage.getItem('zenvy_user');
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed.name) userName = parsed.name;
-        if (parsed._id) userId = parsed._id;
+        if (parsed._id || parsed.id) userId = parsed._id || parsed.id;
       }
     } catch {}
 

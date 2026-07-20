@@ -97,29 +97,29 @@ const protect = async (req, res, next) => {
 };
 
 const admin = (req, res, next) => {
-  if (req.user && req.user.role && req.user.role.toLowerCase() === 'admin') {
+  if (req.user && typeof req.user.role === 'string' && req.user.role.toLowerCase() === 'admin') {
     next();
   } else {
-    console.warn(`[SECURITY_WARN] User ${req.user.id} attempted to access Admin route.`);
+    console.warn(`[SECURITY_WARN] User ${req.user?.id} attempted to access Admin route.`);
     res.status(403).json({ message: 'Forbidden: Admin access required' });
   }
 };
 
 const rider = (req, res, next) => {
-  if (req.user && req.user.role && req.user.role.toLowerCase() === 'rider') {
+  if (req.user && typeof req.user.role === 'string' && req.user.role.toLowerCase() === 'rider') {
     next();
   } else {
-    console.warn(`[SECURITY_WARN] User ${req.user.id} attempted to access Rider route.`);
+    console.warn(`[SECURITY_WARN] User ${req.user?.id} attempted to access Rider route.`);
     res.status(403).json({ message: 'Forbidden: Delivery Partner access required' });
   }
 };
 
 const vendor = (req, res, next) => {
-  const role = req.user?.role?.toLowerCase();
-  if (role === 'restaurant' || role === 'admin') {
+  const role = req.user?.role;
+  if (typeof role === 'string' && (role.toLowerCase() === 'restaurant' || role.toLowerCase() === 'admin')) {
     next();
   } else {
-    console.warn(`[SECURITY_WARN] User ${req.user.id} attempted to access Vendor route.`);
+    console.warn(`[SECURITY_WARN] User ${req.user?.id} attempted to access Vendor route.`);
     res.status(403).json({ message: 'Forbidden: Restaurant or Admin access required' });
   }
 };

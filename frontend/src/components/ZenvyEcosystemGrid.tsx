@@ -8,7 +8,7 @@ import {
   Stethoscope, 
   WashingMachine, 
   Printer, 
-  Bicycle, 
+  Bike, 
   Cake, 
   Beef, 
   Apple 
@@ -18,7 +18,7 @@ const ECOSYSTEM_SERVICES = [
   { id: 'grocery', name: 'Fresh Groceries', icon: Apple, color: 'bg-green-500/10', textColor: 'text-green-500', label: 'Daily' },
   { id: 'meat', name: 'Raw Meat & Fish', icon: Beef, color: 'bg-red-500/10', textColor: 'text-red-500', label: 'Fresh' },
   { id: 'bakery', name: 'Cakes & Sweets', icon: Cake, color: 'bg-pink-500/10', textColor: 'text-pink-500', label: 'Party' },
-  { id: 'rentals', name: 'Rentals', icon: Bicycle, color: 'bg-blue-500/10', textColor: 'text-blue-500', label: 'Weekly' },
+  { id: 'rentals', name: 'Rentals', icon: Bike, color: 'bg-blue-500/10', textColor: 'text-blue-500', label: 'Weekly' },
   { id: 'pharmacy', name: 'Pharmacy SOS', icon: Stethoscope, color: 'bg-teal-500/10', textColor: 'text-teal-500', label: '15 Min' },
   { id: 'laundry', name: 'Wash & Fold', icon: WashingMachine, color: 'bg-indigo-500/10', textColor: 'text-indigo-500', label: '48 Hrs' },
   { id: 'print', name: 'Print & Drop', icon: Printer, color: 'bg-gray-500/10', textColor: 'text-gray-300', label: 'Academic' },
@@ -35,7 +35,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300 } }
+  show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300 } }
 };
 
 export default function ZenvyEcosystemGrid() {

@@ -49,7 +49,16 @@ const updateStreak = async (userId) => {
 // Calculate perks based on user badges
 const calculateBadgePerks = (user) => {
   if (!user) return { deliveryDiscount: 0, orderDiscount: 0, status: 'Guest Citizen' };
-  const badges = Array.isArray(user.badges) ? user.badges : JSON.parse(user.badges || '[]');
+  let badges = [];
+  if (Array.isArray(user.badges)) {
+    badges = user.badges;
+  } else {
+    try {
+      badges = JSON.parse(user.badges || '[]');
+    } catch {
+      badges = [];
+    }
+  }
   let deliveryDiscount = 0;
   let orderDiscount = 0;
   let status = 'Standard Citizen';

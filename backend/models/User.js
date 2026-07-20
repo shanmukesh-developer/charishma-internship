@@ -33,7 +33,7 @@ const initUserModel = (sequelize) => {
       defaultValue: '[]',
       get() {
         const val = this.getDataValue('fcmTokens');
-        return val ? JSON.parse(val) : [];
+        try { return val ? JSON.parse(val) : []; } catch { return []; }
       },
       set(val) {
         this.setDataValue('fcmTokens', JSON.stringify(val));
@@ -44,7 +44,7 @@ const initUserModel = (sequelize) => {
       defaultValue: '[]',
       get() {
         const val = this.getDataValue('badges');
-        return val ? JSON.parse(val) : [];
+        try { return val ? JSON.parse(val) : []; } catch { return []; }
       },
       set(val) {
         this.setDataValue('badges', JSON.stringify(val));

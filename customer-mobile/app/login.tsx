@@ -33,7 +33,14 @@ const IMAGES = [
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { setUser } = useAuth();
+  const { user, isLoading, setUser } = useAuth();
+  
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.replace('/(tabs)' as any);
+    }
+  }, [user, isLoading]);
+
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -121,6 +128,12 @@ export default function LoginScreen() {
   const slideUp = useRef(new Animated.Value(280)).current;
   const [isPeeked, setIsPeeked] = useState(false);
 
+  const peekOpacity = slideUp.interpolate({
+    inputRange: [0, 150, 330],
+    outputRange: [0, 0, 1],
+    extrapolate: 'clamp',
+  });
+
   useEffect(() => {
     // 1. Slideshow cycle loop
     const interval = setInterval(() => {
@@ -187,13 +200,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (loginMethod === 'otp') {
-      const digits = phone.replace(/\D/g, '').slice(-10);
-      if (digits === '9391955674') {
-        handleAuthMessage({ nativeEvent: { data: JSON.stringify({ type: 'OTP_SUCCESS', token: 'E2E_MOCK_TOKEN', phone: digits }) } });
-        return;
-      }
-      if (digits.length < 10) { setError('Please enter a valid 10-digit phone number'); return; }
-      if (phone.replace(/\D/g, '').slice(-10) === '9391955674') { handleAuthMessage({ nativeEvent: { data: JSON.stringify({ type: 'OTP_SUCCESS', token: 'E2E_MOCK_TOKEN', phone: '9391955674' }) } }); } else { handleNativeSendOtp(); };
+      // OTP flow is handled directly by handleNativeSendOtp button — this is for password mode only
       return;
     }
 
@@ -217,7 +224,7 @@ export default function LoginScreen() {
       if (e.message && (e.message.includes('Network') || e.message.includes('Failed to fetch') || e.message.includes('JSON'))) {
         setShowWakeup(true);
       } else {
-        setError(`Network error: ${e.message || 'Server waking up. Try again.'}`); 
+        setError(`Network error: ${e.message || 'Server waking up. Try again.'}`);
       }
     }
     finally { setLoading(false); }
@@ -279,9 +286,7 @@ export default function LoginScreen() {
       await GoogleSignin.hasPlayServices();
       const response = await GoogleSignin.signIn();
       const idToken = response.data?.idToken;
-      if (!idToken) {
-        throw new Error('Failed to retrieve ID token from native Google Sign-In');
-      }
+      if (!idToken) throw new Error('No ID token');
 
       const res = await fetch(`${API_URL}/api/users/google-login`, {
         method: 'POST',
@@ -296,28 +301,13 @@ export default function LoginScreen() {
         playSound('success');
         router.replace('/(tabs)' as any);
       } else {
-        setError(resData.message || 'Google Sign-In backend verification failed');
+        setError(resData.message || 'Google Sign-In failed. Please try again.');
       }
     } catch (err: any) {
-      console.warn('[NATIVE_GOOGLE_ERROR]', err);
-      // Fallback to secure WebView authentication
-      Alert.alert(
-        'Google Native Auth',
-        'Google native SDK authentication is not configured yet. Falling back to secure web authentication.\n\n(Developers: Register SHA-1 fingerprint 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25 in Firebase and update GOOGLE_WEB_CLIENT_ID).',
-        [
-          {
-            text: 'Continue to Web Login',
-            onPress: () => {
-              setError('');
-              if (phone.replace(/\D/g, '').slice(-10) === '9391955674') { handleAuthMessage({ nativeEvent: { data: JSON.stringify({ type: 'OTP_SUCCESS', token: 'E2E_MOCK_TOKEN', phone: '9391955674' }) } }); } else { handleNativeSendOtp(); };
-            }
-          },
-          {
-            text: 'Cancel',
-            style: 'cancel'
-          }
-        ]
-      );
+      // Native Google SDK failed — silently open the WebView auth modal as fallback
+      console.warn('[GOOGLE_NATIVE_FALLBACK] Opening WebView auth:', err.code || err.message);
+      setError('');
+      setAuthModalVisible(true);
     } finally {
       setLoading(false);
     }
@@ -375,7 +365,7 @@ export default function LoginScreen() {
       </View>
 
       {/* ── INTERACTIVE SNEAK PEEK VAULT (REVEALED ON SLIDE) ── */}
-      <View style={s.peekContainer} pointerEvents="none">
+      <Animated.View style={[s.peekContainer, { opacity: peekOpacity }]} pointerEvents={isPeeked ? "auto" : "none"}>
         <LinearGradient
           colors={['rgba(201,168,76,0.15)', 'transparent']}
           style={s.peekGradient}
@@ -400,7 +390,7 @@ export default function LoginScreen() {
             <Text style={s.peekCardDesc}>Instant Delivery</Text>
           </View>
         </View>
-      </View>
+      </Animated.View>
 
       <KeyboardAvoidingView style={{ flex: 1, zIndex: 10 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>

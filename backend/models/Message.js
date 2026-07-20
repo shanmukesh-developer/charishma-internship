@@ -38,6 +38,14 @@ const initMessageModel = (sequelize) => {
     attachmentUrl: {
       type: DataTypes.STRING,
       allowNull: true
+    },
+    replyTo: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    reactions: {
+      type: DataTypes.TEXT,
+      allowNull: true
     }
   }, { timestamps: true });
 

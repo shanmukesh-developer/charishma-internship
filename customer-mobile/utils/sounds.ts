@@ -42,22 +42,26 @@ async function playNativeSound(type: SoundType) {
     lastPlayTime[type] = now;
 
     const { createAudioPlayer } = require('expo-audio');
+    if (!createAudioPlayer) return;
+
     if (soundCache[type]) {
       try {
-        await soundCache[type].seekTo(0);
-        soundCache[type].play();
+        const p = soundCache[type];
+        if (p.seekTo) {
+          p.seekTo(0).catch(() => {});
+        }
+        p.play();
+        return;
       } catch {
-        const player = createAudioPlayer(NATIVE_SOUND_URLS[type]);
-        player.volume = type === 'click' ? 0.3 : 0.8;
-        player.play();
-        soundCache[type] = player;
+        soundCache[type] = null;
       }
-      return;
     }
     const player = createAudioPlayer(NATIVE_SOUND_URLS[type]);
-    player.volume = type === 'click' ? 0.3 : 0.8;
-    player.play();
-    soundCache[type] = player;
+    if (player) {
+      player.volume = type === 'click' ? 0.3 : 0.8;
+      player.play();
+      soundCache[type] = player;
+    }
   } catch (err) {
     // Fail silently in background to prevent native crashes
     console.warn('[SOUND_ERROR] Failed to play native sound safely:', err);
