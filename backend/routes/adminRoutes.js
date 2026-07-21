@@ -60,10 +60,15 @@ router.delete('/restaurants/:id', deleteRestaurant);
 // Fleet Management
 router.get('/riders', getAllRiders);
 router.put('/riders/:id/approve', approveRider);
-router.post('/riders/:id', (req, res, next) => {
-  const { updateRider } = require('../controllers/adminController');
-  updateRider(req, res, next);
-});
+router.route('/riders/:id')
+  .post((req, res, next) => {
+    const { updateRider } = require('../controllers/adminController');
+    updateRider(req, res, next);
+  })
+  .put((req, res, next) => {
+    const { updateRider } = require('../controllers/adminController');
+    updateRider(req, res, next);
+  });
 router.post('/riders/:id/reset-sos', (req, res, next) => {
   const { resetRiderSos } = require('../controllers/adminController');
   resetRiderSos(req, res, next);
