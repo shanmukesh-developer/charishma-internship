@@ -227,7 +227,7 @@ export default function AmbientBackground({ isStatic = false }: { isStatic?: boo
       {/* ── Aurora Orb 1 (Gold/Red Metamorphosis) ── */}
       <Animated.Image
         source={blurDotSource}
-        blurRadius={Platform.OS === 'ios' ? 70 : 20}
+        blurRadius={Platform.OS === 'ios' ? 70 : 0}
         style={[
           styles.orb,
           {
@@ -243,7 +243,7 @@ export default function AmbientBackground({ isStatic = false }: { isStatic?: boo
       {/* ── Aurora Orb 2 (Rose/Red) ── */}
       <Animated.Image
         source={blurDotSource}
-        blurRadius={Platform.OS === 'ios' ? 80 : 25}
+        blurRadius={Platform.OS === 'ios' ? 80 : 0}
         style={[
           styles.orb,
           {

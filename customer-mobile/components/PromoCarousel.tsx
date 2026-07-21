@@ -34,18 +34,20 @@ export default function PromoCarousel({ offers, containerStyle }: PromoCarouselP
     currentIndexRef.current = currentIndex;
   }, [currentIndex]);
 
-  // Auto-scroll loop (3 seconds interval for snappy ad-like slides)
+  // Auto-scroll loop (6 seconds interval for smooth performance)
   useEffect(() => {
     if (offers.length <= 1) return;
 
     const interval = setInterval(() => {
       const nextIndex = (currentIndexRef.current + 1) % offers.length;
       setCurrentIndex(nextIndex);
-      flatListRef.current?.scrollToIndex({
-        index: nextIndex,
-        animated: true,
-      });
-    }, 3000);
+      try {
+        flatListRef.current?.scrollToIndex({
+          index: nextIndex,
+          animated: true,
+        });
+      } catch (err) {}
+    }, 6000);
 
     return () => clearInterval(interval);
   }, [offers.length]);
