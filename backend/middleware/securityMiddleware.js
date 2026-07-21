@@ -27,7 +27,7 @@ const crypto = require('crypto');
 // ── 1. SQL Injection Pattern Detector ─────────────────────────────────────────
 const SQL_INJECTION_PATTERNS = [
   /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|CREATE|EXEC|EXECUTE)\b\s)/i,
-  /(--|;|\/\*|\*\/|xp_|sp_)/i,
+  /(--|\/\*|\*\/|xp_|sp_)/i,
   /(\b(OR|AND)\b\s+\d+\s*=\s*\d+)/i,     // OR 1=1, AND 1=1
   /(CONCAT\s*\(|CHAR\s*\(|0x[0-9a-f]+)/i, // Hex encoding attacks
   /(\bSLEEP\s*\(|\bBENCHMARK\s*\()/i,     // Time-based blind SQL injection
@@ -36,6 +36,8 @@ const SQL_INJECTION_PATTERNS = [
 
 const containsSQLInjection = (value) => {
   if (typeof value !== 'string') return false;
+  // Skip scanning base64/data URIs or extremely long strings to prevent false positives/ReDoS
+  if (value.startsWith('data:') || value.length > 50000) return false;
   return SQL_INJECTION_PATTERNS.some(pattern => pattern.test(value));
 };
 
@@ -65,6 +67,8 @@ const PATH_TRAVERSAL_PATTERNS = [
 
 const containsPathTraversal = (value) => {
   if (typeof value !== 'string') return false;
+  // Skip scanning base64/data URIs or extremely long strings to prevent false positives/ReDoS
+  if (value.startsWith('data:') || value.length > 50000) return false;
   return PATH_TRAVERSAL_PATTERNS.some(pattern => pattern.test(value));
 };
 
