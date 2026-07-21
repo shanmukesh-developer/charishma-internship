@@ -112,45 +112,8 @@ router.put('/:id/approve', protect, admin, async (req, res) => {
       expiresAt: expiresAt
     });
 
-    // Broadcast push notification to all active users' FCM tokens
-    try {
-      const { getUserModel } = require('../models/User');
-      const User = getUserModel();
-      if (User) {
-        const activeUsers = await User.findAll({ where: { isActive: true } });
-        let allTokens = [];
-        activeUsers.forEach(user => {
-          if (user.fcmTokens) {
-            let tokenList = user.fcmTokens;
-            if (typeof tokenList === 'string') {
-              try { tokenList = JSON.parse(tokenList); } catch { tokenList = [tokenList]; }
-            }
-            if (Array.isArray(tokenList)) {
-              tokenList.forEach(t => {
-                const tokenStr = typeof t === 'string' ? t : t?.token;
-                if (tokenStr) allTokens.push(tokenStr);
-              });
-            }
-          }
-        });
-        allTokens = [...new Set(allTokens.filter(Boolean))];
-
-        if (allTokens.length > 0) {
-          await sendPushToTokens(
-            allTokens,
-            `🎉 Celebrate ${celebration.candidateName}'s Birthday! 🎂`,
-            `Tap here to wish them and join the campus celebration! 🎁✨`,
-            {
-              type: 'BIRTHDAY_ALERT',
-              celebrationId: String(celebration.id),
-              candidateName: celebration.candidateName
-            }
-          );
-        }
-      }
-    } catch (pushErr) {
-      console.error('Failed to send birthday push to user tokens:', pushErr);
-    }
+    // Broadcast push notification via FCM topic
+    // (This automatically fans out to all subscribed devices without duplicate delivery)
 
     // Fire FCM topic notification as fallback/topic broadcast
     try {

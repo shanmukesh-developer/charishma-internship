@@ -140,12 +140,14 @@ const authPartner = async (req, res) => {
       name: partner.name, 
       phone: partner.phone,
       vehicleType: partner.vehicleType,
+      vehicleNumber: partner.vehicleNumber,
+      emergencyContact: partner.emergencyContact,
       isApproved: partner.isApproved,
       isAvailable: partner.isAvailable,
       walletBalance: partner.walletBalance,
-      zenPoints: partner.zenPoints,
-      completedDeliveries: partner.completedDeliveries,
-      rating: partner.rating,
+      zenPoints: partner.zenPoints || 0,
+      completedDeliveries: partner.completedDeliveries || 0,
+      rating: partner.averageRating || 5.0,
       loginStreak: partner.loginStreak || 1,
       token 
     });
