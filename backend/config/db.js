@@ -477,6 +477,19 @@ const connectDB = async () => {
             console.log(`✅ [SQLite_MIGRATION] Added ${col.name} column to Orders.`);
           } catch (_err) {}
         }
+        
+        // Friendships new fields migration
+        const friendshipCols = [
+          { name: 'streakCount', type: 'INTEGER DEFAULT 0' },
+          { name: 'lastInteractionAt', type: 'DATETIME' },
+          { name: 'theme', type: "VARCHAR(255) DEFAULT 'friendship'" }
+        ];
+        for (const col of friendshipCols) {
+          try {
+            await sequelize.query(`ALTER TABLE "Friendships" ADD COLUMN "${col.name}" ${col.type};`);
+            console.log(`✅ [SQLite_MIGRATION] Added ${col.name} column to Friendships.`);
+          } catch (_err) {}
+        }
         // Self-Healing SQLite Migration Guard: Ensure Messages table does not have old foreign key to Conversations
         try {
           const [results] = await sequelize.query("PRAGMA foreign_key_list('Messages');");

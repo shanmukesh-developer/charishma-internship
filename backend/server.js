@@ -1108,6 +1108,12 @@ const startServer = async () => {
         log(`[JOIN_ROOM] ${socket.id} -> ${room}`);
       });
 
+      socket.on('joinConversation', async (conversationId) => {
+        const room = `conversation-${conversationId}`;
+        await socket.join(room);
+        log(`[JOIN_CONVERSATION] ${socket.id} (User: ${socket.user?.id}) -> ${room}`);
+      });
+
       socket.on('cart_change', (data) => {
         const room = String(data.roomCode).trim();
         // 🛡️ Security Check: Validate that emitter belongs to the cart room

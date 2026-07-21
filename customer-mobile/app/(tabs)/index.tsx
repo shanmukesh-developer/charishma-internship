@@ -415,32 +415,46 @@ export default function HomeScreen() {
       return 0;
     });
 
-  const carouselOffers = promos.map(p => ({
-    id: p.id,
-    imageUrl: p.img,
-    tagline: p.tagline,
-    title1: p.title,
-    title2: p.subtitle,
-    description: p.desc,
-    buttonText: p.btn,
-    redirectAction: () => {
-      if (p.redirectUrl) {
-        if (p.redirectUrl.startsWith('/')) {
-           router.push(p.redirectUrl as any);
-        } else {
-           Linking.openURL(p.redirectUrl).catch(err => console.error("Couldn't open external URL", err));
+  const carouselOffers = [
+    ...promos.map(p => ({
+      id: p.id,
+      imageUrl: p.img,
+      tagline: p.tagline,
+      title1: p.title,
+      title2: p.subtitle,
+      description: p.desc,
+      buttonText: p.btn,
+      redirectAction: () => {
+        if (p.redirectUrl) {
+          if (p.redirectUrl.startsWith('/')) {
+             router.push(p.redirectUrl as any);
+          } else {
+             Linking.openURL(p.redirectUrl).catch(err => console.error("Couldn't open external URL", err));
+          }
+        } else if (p.id === 'kfc') {
+          router.push('/restaurant/kfc' as any);
+        } else if (p.id === 'ride') {
+          router.push({ pathname: '/(tabs)/others', params: { tab: 'coride' } } as any);
+        } else if (p.id === 'stays') {
+          router.push({ pathname: '/(tabs)/others', params: { tab: 'pg' } } as any);
+        } else if (p.id === 'elite') {
+          router.push('/(tabs)/profile' as any);
         }
-      } else if (p.id === 'kfc') {
-        router.push('/restaurant/kfc' as any);
-      } else if (p.id === 'ride') {
-        router.push({ pathname: '/(tabs)/others', params: { tab: 'coride' } } as any);
-      } else if (p.id === 'stays') {
-        router.push({ pathname: '/(tabs)/others', params: { tab: 'pg' } } as any);
-      } else if (p.id === 'elite') {
-        router.push('/(tabs)/profile' as any);
+      }
+    })),
+    {
+      id: 'friends',
+      imageUrl: 'https://images.unsplash.com/photo-1614064641938-3bbee52942c7?q=80&w=600',
+      tagline: '🔒 SECURE LOUNGE',
+      title1: 'ENCRYPTED CHATS',
+      title2: '& STREAKS',
+      description: 'Sync contacts to start secure 1-on-1 chats & daily fire streaks.',
+      buttonText: 'ENTER LOUNGE',
+      redirectAction: () => {
+        router.push('/friends' as any);
       }
     }
-  }));
+  ];
   const cardBg = isDark ? 'rgba(255, 255, 255, 0.08)' : COLORS.bgLightCard;
   const txt = isDark ? COLORS.textPrimary : COLORS.textDark;
   const txtSec = isDark ? COLORS.textSecondary : COLORS.textDarkSecondary;

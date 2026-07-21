@@ -72,5 +72,15 @@ export const ENDPOINTS = {
   birthdaysReject: (id: string) => `${API_URL}/api/birthdays/${id}/reject`,
   birthdaysWish: (id: string) => `${API_URL}/api/birthdays/${id}/wish`,
   birthdaysWishes: (id: string) => `${API_URL}/api/birthdays/${id}/wishes`,
+
+  // Friends & Secure Chat
+  friendsList: `${API_URL}/api/friends`,
+  friendsContacts: `${API_URL}/api/friends/contacts`,
+  friendsRequest: `${API_URL}/api/friends/request`,
+  friendsAccept: `${API_URL}/api/friends/accept`,
+  friendsPending: `${API_URL}/api/friends/pending`,
+  friendsTheme: (id: string) => `${API_URL}/api/friends/${id}/theme`,
+  friendsSendMessage: `${API_URL}/api/friends/message`,
+  friendsMessages: (convId: string) => `${API_URL}/api/friends/messages/${convId}`,
 };
 

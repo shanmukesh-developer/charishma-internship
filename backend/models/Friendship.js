@@ -22,6 +22,18 @@ const initFriendshipModel = (sequelize) => {
     status: {
       type: DataTypes.ENUM('pending', 'accepted', 'blocked'),
       defaultValue: 'pending'
+    },
+    streakCount: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0
+    },
+    lastInteractionAt: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    theme: {
+      type: DataTypes.STRING,
+      defaultValue: 'friendship'
     }
   }, {
     timestamps: true,

@@ -440,17 +440,17 @@ export default function App() {
 
       const token = data.token;
       const userProfile: RiderProfile = {
-        id: data._id || data.id || 'rider_1',
-        name: data.name || 'Agent Test Rider',
-        email: data.email || loginEmail,
-        phone: data.phone || loginEmail,
-        rating: data.rating || 4.9,
-        totalEarnings: data.totalEarnings || 0,
-        completedCount: data.completedCount || 0,
-        vehicleNumber: data.vehicleNumber || 'AP 16 Z 8821',
-        vehicleType: data.vehicleType || 'Electric Bike',
-        zenPoints: data.zenPoints || 120,
-        emergencyContact: '+91 9900011223 (Campus Warden)',
+        id: data._id || data.id,
+        name: data.name,
+        email: data.email || `${data.phone}@zenvy.com`,
+        phone: data.phone,
+        rating: data.rating !== undefined ? data.rating : 5.0,
+        totalEarnings: data.walletBalance || data.totalEarnings || 0,
+        completedCount: data.completedDeliveries || data.completedCount || 0,
+        vehicleNumber: data.vehicleNumber || 'Not Registered',
+        vehicleType: data.vehicleType || 'Not Registered',
+        zenPoints: data.zenPoints !== undefined ? data.zenPoints : 0,
+        emergencyContact: data.emergencyContact || 'Not Registered',
       };
 
       setAuthToken(token);

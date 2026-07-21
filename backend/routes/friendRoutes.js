@@ -1,17 +1,27 @@
 const express = require('express');
-const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
 const {
+  searchContacts,
   sendFriendRequest,
-  handleFriendRequest,
-  getFriendsList,
-  getPendingRequests
+  acceptFriendRequest,
+  getFriends,
+  getPendingRequests,
+  updateFriendshipTheme,
+  sendFriendMessage,
+  getFriendMessages
 } = require('../controllers/friendController');
 
-// All friend routes require authentication
-router.post('/request', protect, sendFriendRequest);
-router.post('/handle', protect, handleFriendRequest);
-router.get('/list', protect, getFriendsList);
-router.get('/pending', protect, getPendingRequests);
+const router = express.Router();
+
+router.use(protect); // Ensure all friends endpoints are authenticated
+
+router.post('/contacts', searchContacts);
+router.post('/request', sendFriendRequest);
+router.post('/accept', acceptFriendRequest);
+router.get('/', getFriends);
+router.get('/pending', getPendingRequests);
+router.put('/:id/theme', updateFriendshipTheme);
+router.post('/message', sendFriendMessage);
+router.get('/messages/:conversationId', getFriendMessages);
 
 module.exports = router;
