@@ -79,21 +79,23 @@ export default function FriendsScreen() {
 
   // Load friends and pending requests
   useEffect(() => {
-    if (!user) return;
     loadFriendsData();
     const interval = setInterval(loadFriendsData, 8000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, []);
 
   // Handle Socket connections for chat messages
+  const activeConversationId = activeChat?.conversationId;
+  const activeFriendshipId = activeChat?.friendshipId;
+
   useEffect(() => {
-    if (!activeChat || !activeChat.conversationId) return;
+    if (!activeConversationId) return;
 
     const socket = connectSocket();
-    socket.emit('joinConversation', activeChat.conversationId);
+    socket.emit('joinConversation', activeConversationId);
 
     const onNewMessage = (msg: any) => {
-      if (msg.conversationId === activeChat.conversationId) {
+      if (msg.conversationId === activeConversationId) {
         setChatMessages(prev => {
           // Prevent duplicates
           if (prev.some(m => m.id === msg.id)) return prev;
@@ -109,7 +111,7 @@ export default function FriendsScreen() {
     };
 
     const onThemeUpdated = (data: any) => {
-      if (data.friendshipId === activeChat.friendshipId) {
+      if (data.friendshipId === activeFriendshipId) {
         setChatTheme(data.theme);
         Alert.alert('Theme Updated', `Friend updated chat theme to ${data.theme.toUpperCase()}`);
       }
@@ -119,13 +121,13 @@ export default function FriendsScreen() {
     socket.on('friendship_theme_updated', onThemeUpdated);
 
     // Fetch initial chat history
-    fetchChatHistory(activeChat.conversationId);
+    fetchChatHistory(activeConversationId);
 
     return () => {
       socket.off('new_friend_message', onNewMessage);
       socket.off('friendship_theme_updated', onThemeUpdated);
     };
-  }, [activeChat]);
+  }, [activeConversationId, activeFriendshipId]);
 
   const loadFriendsData = async () => {
     try {
@@ -484,14 +486,15 @@ export default function FriendsScreen() {
       </ScrollView>
 
       {/* FULL CHAT VIEWER MODAL */}
-      <Modal visible={!!activeChat} animationType="slide" transparent={false}>
-        <KeyboardAvoidingView
-          style={{ flex: 1, backgroundColor: getThemeGradient()[0] }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-        >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={[s.chatContainer, { backgroundColor: getThemeGradient()[0] }]}>
+      {activeChat && (
+        <Modal visible={!!activeChat} animationType="slide" transparent={false}>
+          <KeyboardAvoidingView
+            style={{ flex: 1, backgroundColor: getThemeGradient()[0] }}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          >
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <View style={[s.chatContainer, { backgroundColor: getThemeGradient()[0] }]}>
             
             {/* Chat header */}
             <View style={[s.chatHeader, { borderBottomColor: 'rgba(255,255,255,0.08)' }]}>
@@ -620,10 +623,11 @@ export default function FriendsScreen() {
                 )}
               </TouchableOpacity>
             </View>
-          </View>
+            </View>
           </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
       </Modal>
+      )}
 
     </View>
   );

@@ -1,6 +1,6 @@
 // ── Zenvy Mobile API Config ──────────────────────────────────────────────────
 // Same backend as the website — no backend changes needed.
-export const API_URL = 'https://hostelbites-backend-jwmt.onrender.com';
+export const API_URL = 'http://localhost:5005';
 
 export const ENDPOINTS = {
   // Auth
