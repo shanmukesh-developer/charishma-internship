@@ -490,7 +490,8 @@ export default function FriendsScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
-          <View style={[s.chatContainer, { backgroundColor: getThemeGradient()[0] }]}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={[s.chatContainer, { backgroundColor: getThemeGradient()[0] }]}>
             
             {/* Chat header */}
             <View style={[s.chatHeader, { borderBottomColor: 'rgba(255,255,255,0.08)' }]}>
@@ -619,9 +620,9 @@ export default function FriendsScreen() {
                 )}
               </TouchableOpacity>
             </View>
-
           </View>
-        </TouchableWithoutFeedback>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </Modal>
 
     </View>
