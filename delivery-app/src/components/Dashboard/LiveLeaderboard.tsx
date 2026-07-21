@@ -22,7 +22,10 @@ export default function LiveLeaderboard({ apiUrl, token, driverId }: LiveLeaderb
   const fetchLeaderboard = useCallback(async () => {
     try {
       const res = await fetch(`${apiUrl}/api/delivery/leaderboard`, {
-        });
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (res.ok) {
         const data: LeaderboardEntry[] = await res.json();
         const rank = data.findIndex((e: LeaderboardEntry & { id?: string }) => e.id === driverId);

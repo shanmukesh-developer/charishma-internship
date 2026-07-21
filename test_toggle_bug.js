@@ -1,7 +1,7 @@
 const http = require('http');
 const https = require('https');
 
-const API_BASE = 'https://hostelbites-backend-jwmt.onrender.com/api';
+const API_BASE = process.env.API_BASE || 'http://localhost:5005/api';
 
 async function request(endpoint, method = 'GET', body = null, token = null) {
   const url = `${API_BASE}${endpoint}`;
@@ -15,7 +15,7 @@ async function request(endpoint, method = 'GET', body = null, token = null) {
   if (body) options.body = JSON.stringify(body);
 
   try {
-    const res = await fetch(urapkl, options);
+    const res = await fetch(url, options);
     let data;
     try {
       data = await res.json();

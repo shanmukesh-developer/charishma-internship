@@ -142,6 +142,11 @@ export default function DashboardContainer({ driver, onLogout, apiUrl }: Dashboa
   const playNotificationSound = useCallback(() => {
     if (typeof window === 'undefined') return;
     try {
+      if (navigator.vibrate) {
+        navigator.vibrate([100, 100, 300]);
+      }
+    } catch (e) {}
+    try {
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioContextClass) return;
       const audioCtx = new AudioContextClass();

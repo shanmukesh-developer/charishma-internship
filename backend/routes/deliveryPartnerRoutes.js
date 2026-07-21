@@ -1,5 +1,5 @@
 const express = require('express');
-const { registerPartner, authPartner, acceptOrder, getPendingOrders, getActiveOrders, updateOrderStatus, toggleOnline, getOrderHistory, saveFcmToken, getLeaderboard, getRiderProfile, updateRiderProfile, getPublicRiderProfile, getTodayStats, cancelOrderByRider, changePassword, notifyArrivalAtGate } = require('../controllers/deliveryPartnerController');
+const { registerPartner, authPartner, acceptOrder, getPendingOrders, getActiveOrders, updateOrderStatus, toggleOnline, getOrderHistory, saveFcmToken, getLeaderboard, getRiderProfile, updateRiderProfile, getPublicRiderProfile, getTodayStats, cancelOrderByRider, changePassword, notifyArrivalAtGate, createTestOrder } = require('../controllers/deliveryPartnerController');
 const { protect, rider } = require('../middleware/authMiddleware');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
@@ -30,5 +30,6 @@ router.put('/status/:orderId', protect, rider, updateOrderStatus);
 router.put('/arrive/:orderId', protect, rider, notifyArrivalAtGate);
 router.put('/cancel/:orderId', protect, rider, cancelOrderByRider);
 router.put('/online', protect, rider, toggleOnline);
+router.post('/orders/create-test', protect, rider, createTestOrder);
 
 module.exports = router;

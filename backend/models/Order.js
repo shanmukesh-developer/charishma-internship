@@ -27,7 +27,7 @@ const initOrderModel = (sequelize) => {
     gateDiscount: { type: DataTypes.FLOAT, defaultValue: 0 },
     finalPrice: { type: DataTypes.FLOAT, allowNull: false },
     status: {
-      type: DataTypes.ENUM('Pending', 'Accepted', 'Preparing', 'ReadyForPickup', 'PickedUp', 'Delivered', 'Cancelled'),
+      type: DataTypes.STRING,
       defaultValue: 'Pending'
     },
     cancellationReason: { type: DataTypes.STRING },
@@ -57,7 +57,29 @@ const initOrderModel = (sequelize) => {
     proofImage: { type: DataTypes.TEXT },
     proofTimestamp: { type: DataTypes.DATE },
     payoutSettled: { type: DataTypes.BOOLEAN, defaultValue: false },
-    riderPayoutSettled: { type: DataTypes.BOOLEAN, defaultValue: false }
+    riderPayoutSettled: { type: DataTypes.BOOLEAN, defaultValue: false },
+    
+    // Mega Basket & Kirana pre-purchase approval properties
+    isPurchasingApprovedByCustomer: { type: DataTypes.BOOLEAN, defaultValue: false },
+    itemPhotoUrl: { type: DataTypes.TEXT },
+    billProofUrl: { type: DataTypes.TEXT },
+    billAmount: { type: DataTypes.FLOAT },
+    isBillApproved: { type: DataTypes.BOOLEAN, defaultValue: false },
+    
+    // Categories and multi-restaurant stops properties
+    category: { type: DataTypes.STRING, defaultValue: 'Food' },
+    isMultiRestaurant: { type: DataTypes.BOOLEAN, defaultValue: false },
+    pickupStops: {
+      type: DataTypes.JSON,
+      defaultValue: [],
+      get() {
+        const rawValue = this.getDataValue('pickupStops');
+        if (typeof rawValue === 'string') {
+          try { return JSON.parse(rawValue); } catch { return []; }
+        }
+        return rawValue || [];
+      }
+    }
   }, { 
     timestamps: true,
     indexes: [
@@ -71,12 +93,18 @@ const initOrderModel = (sequelize) => {
           if (typeof order.items !== 'string') {
             order.items = JSON.stringify(order.items);
           }
+          if (typeof order.pickupStops !== 'string') {
+            order.pickupStops = JSON.stringify(order.pickupStops || []);
+          }
         }
       },
       beforeUpdate: (order) => {
         if (sequelize.getDialect() === 'sqlite') {
           if (typeof order.items !== 'string') {
             order.items = JSON.stringify(order.items);
+          }
+          if (typeof order.pickupStops !== 'string') {
+            order.pickupStops = JSON.stringify(order.pickupStops || []);
           }
         }
       }

@@ -45,16 +45,16 @@ const getOrderSection = (order: Order): 'Fruits' | 'Food' | 'Groceries' => {
   return 'Groceries';
 };
 
-const getOrderTimeSlot = (order: Order): 'Before 7:30 AM' | 'After 7:30 AM' | '1:00 PM to 6:00 PM' => {
+const getOrderTimeSlot = (order: Order): 'Before 7:30 PM' | 'After 7:30 PM' | '1:00 PM to 6:00 PM' => {
   const slot = (order.deliverySlot || '').toLowerCase();
   if (slot.includes('before 7:30') || slot.includes('breakfast') || slot.includes('early morning')) {
-    return 'Before 7:30 AM';
+    return 'Before 7:30 PM';
   }
   if (slot.includes('1pm') || slot.includes('1 pm') || slot.includes('afternoon') || slot.includes('1pm to 6pm') || slot.includes('1pm-6pm')) {
     return '1:00 PM to 6:00 PM';
   }
   if (slot.includes('after 7:30')) {
-    return 'After 7:30 AM';
+    return 'After 7:30 PM';
   }
 
   // Fallback to createdAt time
@@ -64,16 +64,16 @@ const getOrderTimeSlot = (order: Order): 'Before 7:30 AM' | 'After 7:30 AM' | '1
     const minutes = date.getMinutes();
     const decimalTime = hours + minutes / 60;
     
-    if (decimalTime < 7.5) {
-      return 'Before 7:30 AM';
+    if (decimalTime < 19.5) {
+      return 'Before 7:30 PM';
     } else if (decimalTime >= 13 && decimalTime <= 18) {
       return '1:00 PM to 6:00 PM';
     } else {
-      return 'After 7:30 AM';
+      return 'After 7:30 PM';
     }
   }
   
-  return 'After 7:30 AM'; // Default fallback
+  return 'After 7:30 PM'; // Default fallback
 };
 
 const isBulkOrder = (order: Order): boolean => {
@@ -88,7 +88,7 @@ export function TaskCard({ order, sequence, onAccept, onDecline, onShowDetails }
 
   const getSlotStyle = (slot: string) => {
     switch (slot) {
-      case 'Before 7:30 AM':
+      case 'Before 7:30 PM':
         return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
       case '1:00 PM to 6:00 PM':
         return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
@@ -234,8 +234,8 @@ export default function OrdersList({ orders, orderTimers, activeTab, onAccept, o
 
   // Group current category's orders by time slots
   const groupedByTimeSlot = {
-    'Before 7:30 AM': [] as Order[],
-    'After 7:30 AM': [] as Order[],
+    'Before 7:30 PM': [] as Order[],
+    'After 7:30 PM': [] as Order[],
     '1:00 PM to 6:00 PM': [] as Order[]
   };
 
@@ -319,8 +319,8 @@ export default function OrdersList({ orders, orderTimers, activeTab, onAccept, o
             className="space-y-8"
           >
              {activeTab === 'pending' ? (
-               // Group and display slots with priority: Before 7:30 AM first, then After 7:30 AM, then 1:00 PM to 6:00 PM
-               (['Before 7:30 AM', 'After 7:30 AM', '1:00 PM to 6:00 PM'] as const).map(slotName => {
+               // Group and display slots with priority: Before 7:30 PM first, then After 7:30 PM, then 1:00 PM to 6:00 PM
+               (['Before 7:30 PM', 'After 7:30 PM', '1:00 PM to 6:00 PM'] as const).map(slotName => {
                  const slotOrders = groupedByTimeSlot[slotName];
                  if (slotOrders.length === 0) return null;
 

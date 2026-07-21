@@ -38,8 +38,9 @@ const createOrder = async (req, res) => {
   });
   const currentIstHour = parseInt(formatter.format(new Date()), 10);
 
-  // Block orders from 9:00 PM (21) to 6:00 AM (6)
-  if (currentIstHour >= 21 || currentIstHour < 6) {
+  // Block orders from 9:00 PM (21) to 6:00 AM (6) (only in production)
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
+  if (isProduction && (currentIstHour >= 21 || currentIstHour < 6)) {
     return res.status(403).json({ 
       message: 'Campus ordering is closed for the night! 🌙 We will be back at 6 AM.' 
     });
@@ -1145,4 +1146,103 @@ const restaurantReadyOrder = async (req, res) => {
   }
 };
 
-module.exports = { createOrder, getOrderById, getMyOrders, rateOrder, getAllOrders, cancelOrder, updateOrderStatus, getSurgeStatus, restaurantAcceptOrder, verifyUPIPayment, restaurantReadyOrder, getOrderStats };
+// @desc    Rider uploads pre-purchase item photo / estimate for Mega Basket
+const uploadItemPhoto = async (req, res) => {
+  const { itemPhotoUrl } = req.body;
+  try {
+    const Order = getOrderModel();
+    const order = await Order.findByPk(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    order.itemPhotoUrl = itemPhotoUrl;
+    order.status = 'Shopping'; // Transition status to Shopping
+    await order.save();
+
+    const io = req.app.get('io');
+    io.to(order.id.toString()).emit('statusUpdated', { 
+      id: order.id, 
+      status: 'Shopping',
+      itemPhotoUrl,
+      isPurchasingApprovedByCustomer: order.isPurchasingApprovedByCustomer 
+    });
+
+    res.json({ message: 'Item photo uploaded successfully', order });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @desc    Customer approves pre-purchase photo & estimate to proceed with purchasing
+const approvePurchase = async (req, res) => {
+  try {
+    const Order = getOrderModel();
+    const order = await Order.findByPk(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    order.isPurchasingApprovedByCustomer = true;
+    await order.save();
+
+    const io = req.app.get('io');
+    io.to(order.id.toString()).emit('statusUpdated', { 
+      id: order.id, 
+      status: order.status,
+      isPurchasingApprovedByCustomer: true 
+    });
+
+    res.json({ message: 'Purchase approved by customer', order });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @desc    Rider uploads final store bill receipt & bill amount
+const uploadBillProof = async (req, res) => {
+  const { billProofUrl, billAmount } = req.body;
+  try {
+    const Order = getOrderModel();
+    const order = await Order.findByPk(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    order.billProofUrl = billProofUrl;
+    order.billAmount = billAmount;
+    await order.save();
+
+    const io = req.app.get('io');
+    io.to(order.id.toString()).emit('statusUpdated', { 
+      id: order.id, 
+      status: order.status,
+      billProofUrl,
+      billAmount,
+      isBillApproved: order.isBillApproved
+    });
+
+    res.json({ message: 'Bill proof uploaded successfully', order });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @desc    Customer approves final store bill and confirms reimbursement
+const approveBill = async (req, res) => {
+  try {
+    const Order = getOrderModel();
+    const order = await Order.findByPk(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    order.isBillApproved = true;
+    await order.save();
+
+    const io = req.app.get('io');
+    io.to(order.id.toString()).emit('statusUpdated', { 
+      id: order.id, 
+      status: order.status,
+      isBillApproved: true 
+    });
+
+    res.json({ message: 'Bill reimbursement approved by customer', order });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+module.exports = { createOrder, getOrderById, getMyOrders, rateOrder, getAllOrders, cancelOrder, updateOrderStatus, getSurgeStatus, restaurantAcceptOrder, verifyUPIPayment, restaurantReadyOrder, getOrderStats, uploadItemPhoto, approvePurchase, uploadBillProof, approveBill };

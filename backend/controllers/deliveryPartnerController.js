@@ -42,7 +42,14 @@ const registerPartner = async (req, res) => {
     const partnerExists = await DeliveryPartner.findOne({ where: { phone: cleanPhone } });
     if (partnerExists) return res.status(400).json({ message: 'Partner already exists' });
 
-    const partner = await DeliveryPartner.create({ name, phone: cleanPhone, password, vehicleType });
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
+    const partner = await DeliveryPartner.create({ 
+      name, 
+      phone: cleanPhone, 
+      password, 
+      vehicleType,
+      isApproved: !isProduction
+    });
     const token = generateToken(partner.id);
     
     // Check if request is made by an Admin to avoid overwriting their session cookie
@@ -314,7 +321,7 @@ const getOrderHistory = async (req, res) => {
 const updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    const validStatuses = ['PickedUp', 'Delivered'];
+    const validStatuses = ['PickedUp', 'ArrivedAtGate', 'Delivered'];
     if (!validStatuses.includes(status)) return res.status(400).json({ message: 'Invalid status' });
 
     const Order = getOrderModel();
@@ -325,8 +332,8 @@ const updateOrderStatus = async (req, res) => {
     if (status === 'PickedUp' && !['Accepted', 'Preparing', 'ReadyForPickup'].includes(order.status)) {
       return res.status(400).json({ message: 'Order must be Accepted or Ready by restaurant first' });
     }
-    if (status === 'Delivered' && order.status !== 'PickedUp') {
-      return res.status(400).json({ message: 'Must be PickedUp first' });
+    if (status === 'Delivered' && !['PickedUp', 'ArrivedAtGate'].includes(order.status)) {
+      return res.status(400).json({ message: 'Must be PickedUp or ArrivedAtGate first' });
     }
 
     // ── Delivery PIN Validation ──────────────────────
@@ -787,16 +794,57 @@ const notifyArrivalAtGate = async (req, res) => {
       console.warn('[WHATSAPP_NOTIFY_WARN] Failed to send WhatsApp gate arrival update:', e.message);
     }
 
+    // Update order status in DB
+    order.status = 'ArrivedAtGate';
+    await order.save();
+
     // Emit socket event to the order room
     const io = req.app.get('io');
     io.to(order.id.toString()).emit('driverAtGate', {
       message: 'Your rider is waiting at the hostel gate!'
     });
+    io.to(order.id.toString()).emit('statusUpdated', {
+      id: order.id,
+      status: 'ArrivedAtGate'
+    });
 
-    res.json({ message: 'Gate arrival notification sent successfully' });
+    res.json({ message: 'Gate arrival notification sent successfully', status: 'ArrivedAtGate' });
   } catch (error) {
     console.error('[GATE_ARRIVAL_ERROR]', error);
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @desc Create real test order in DB for live delivery boy testing
+const createTestOrder = async (req, res) => {
+  try {
+    const Order = getOrderModel();
+    const orderId = 'ORD-' + Math.floor(1000 + Math.random() * 9000);
+    const pin = Math.floor(1000 + Math.random() * 9000).toString();
+
+    const order = await Order.create({
+      id: orderId,
+      userId: req.user?.id || 'demo_user_1',
+      restaurantId: 'rest_1',
+      items: [
+        { name: 'Special Chicken Biryani', quantity: 2, price: 220 },
+        { name: 'Butter Naan', quantity: 3, price: 35 },
+        { name: 'Chilled Thums Up (750ml)', quantity: 1, price: 50 },
+        { name: 'Gulab Jamun (2 pcs)', quantity: 1, price: 60 }
+      ],
+      totalAmount: 620,
+      totalPrice: 620,
+      finalPrice: 620,
+      status: 'Accepted',
+      deliveryAddress: 'Ganga Hostel, Block C - Room 314',
+      deliveryPin: pin,
+      deliveryPartnerId: null
+    });
+
+    res.json({ message: 'Real test order created in backend DB', orderId, pin, order });
+  } catch (err) {
+    console.error('[CREATE_TEST_ORDER_ERROR]', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
@@ -804,5 +852,5 @@ module.exports = {
   registerPartner, authPartner, acceptOrder, getPendingOrders, getActiveOrders, 
   updateOrderStatus, toggleOnline, getOrderHistory, saveFcmToken, getLeaderboard,
   getRiderProfile, updateRiderProfile, getPublicRiderProfile, getTodayStats,
-  cancelOrderByRider, changePassword, notifyArrivalAtGate
+  cancelOrderByRider, changePassword, notifyArrivalAtGate, createTestOrder
 };

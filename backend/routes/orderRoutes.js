@@ -1,5 +1,5 @@
 const express = require('express');
-const { createOrder, getOrderById, getMyOrders, rateOrder, cancelOrder, getAllOrders, updateOrderStatus, getSurgeStatus, restaurantAcceptOrder, verifyUPIPayment, restaurantReadyOrder, getOrderStats } = require('../controllers/orderController');
+const { createOrder, getOrderById, getMyOrders, rateOrder, cancelOrder, getAllOrders, updateOrderStatus, getSurgeStatus, restaurantAcceptOrder, verifyUPIPayment, restaurantReadyOrder, getOrderStats, uploadItemPhoto, approvePurchase, uploadBillProof, approveBill } = require('../controllers/orderController');
 const { protect, admin } = require('../middleware/authMiddleware');
 const router = express.Router();
 
@@ -34,6 +34,12 @@ router.put('/:id/status', protect, admin, updateOrderStatus);
 router.put('/:id/restaurant-accept', protect, restaurantAcceptOrder);
 router.put('/:id/restaurant-ready', protect, restaurantReadyOrder);
 router.put('/:id/verify-upi', protect, admin, verifyUPIPayment);
+
+// Mega Basket Kirana pre-purchase and final bill approval endpoints
+router.put('/:id/upload-item-photo', protect, uploadItemPhoto);
+router.put('/:id/approve-purchase', protect, approvePurchase);
+router.put('/:id/upload-bill-proof', protect, uploadBillProof);
+router.put('/:id/approve-bill', protect, approveBill);
 
 module.exports = router;
 

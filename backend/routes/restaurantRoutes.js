@@ -21,11 +21,11 @@ router.get('/', getRestaurants);
 router.get('/:id/menu', getRestaurantMenu);
 router.post('/login', authLimiter, accountLockout, restaurantLogin);
 router.get('/:id/orders', protect, vendor, getRestaurantOrders); 
-router.put('/:id/offline', protect, admin, toggleRestaurantOffline);
-router.post('/menu', protect, admin, createMenuItem);
-router.put('/menu/:itemId', protect, admin, updateMenuItem);
-router.put('/menu/:itemId/toggle', protect, admin, toggleMenuItemAvailability);
-router.put('/menu/:itemId/tags', protect, admin, updateMenuItemTags);
+router.put('/:id/offline', protect, vendor, toggleRestaurantOffline);
+router.post('/menu', protect, vendor, createMenuItem);
+router.put('/menu/:itemId', protect, vendor, updateMenuItem);
+router.put('/menu/:itemId/toggle', protect, vendor, toggleMenuItemAvailability);
+router.put('/menu/:itemId/tags', protect, vendor, updateMenuItemTags);
 router.post('/', protect, admin, createRestaurant);
 
 module.exports = router;

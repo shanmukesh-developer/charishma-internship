@@ -459,6 +459,24 @@ const connectDB = async () => {
             console.log(`✅ [SQLite_MIGRATION] Added ${col.name} column to PGRooms.`);
           } catch (_err) {}
         }
+        
+        // Orders new fields migration
+        const orderCols = [
+          { name: 'isPurchasingApprovedByCustomer', type: 'BOOLEAN DEFAULT 0' },
+          { name: 'itemPhotoUrl', type: 'TEXT' },
+          { name: 'billProofUrl', type: 'TEXT' },
+          { name: 'billAmount', type: 'FLOAT' },
+          { name: 'isBillApproved', type: 'BOOLEAN DEFAULT 0' },
+          { name: 'category', type: "VARCHAR(255) DEFAULT 'Food'" },
+          { name: 'isMultiRestaurant', type: 'BOOLEAN DEFAULT 0' },
+          { name: 'pickupStops', type: "TEXT DEFAULT '[]'" }
+        ];
+        for (const col of orderCols) {
+          try {
+            await sequelize.query(`ALTER TABLE "Orders" ADD COLUMN "${col.name}" ${col.type};`);
+            console.log(`✅ [SQLite_MIGRATION] Added ${col.name} column to Orders.`);
+          } catch (_err) {}
+        }
         // Self-Healing SQLite Migration Guard: Ensure Messages table does not have old foreign key to Conversations
         try {
           const [results] = await sequelize.query("PRAGMA foreign_key_list('Messages');");

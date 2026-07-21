@@ -12,7 +12,8 @@ import {
   Alert,
   Share,
   Linking,
-  Animated
+  Animated,
+  Image
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { COLORS, SHADOWS, RADIUS } from '../../constants/theme';
@@ -288,6 +289,12 @@ interface OrderInfo {
   items?: { name: string; quantity: number }[];
   riderOtherOrders?: number;
   createdAt?: string;
+  category?: string;
+  isPurchasingApprovedByCustomer?: boolean;
+  itemPhotoUrl?: string;
+  billProofUrl?: string;
+  billAmount?: number;
+  isBillApproved?: boolean;
   deliveryPartner?: {
     id: string;
     _id?: string;
@@ -494,6 +501,36 @@ export default function TrackingScreen() {
     }
   };
 
+  const handleApprovePurchase = async () => {
+    try {
+      const res = await apiFetch(`${API_URL}/api/orders/${orderId}/approve-purchase`, { method: 'PUT' });
+      if (res.ok) {
+        Alert.alert('🟢 Purchase Approved', 'Rider is notified to proceed with shopping items.');
+        const updated = await res.json();
+        setOrderInfo(prev => prev ? { ...prev, ...updated.order } : prev);
+      } else {
+        Alert.alert('Error', 'Failed to approve purchase. Please try again.');
+      }
+    } catch {
+      Alert.alert('Error', 'Network error. Please check connection.');
+    }
+  };
+
+  const handleApproveBill = async () => {
+    try {
+      const res = await apiFetch(`${API_URL}/api/orders/${orderId}/approve-bill`, { method: 'PUT' });
+      if (res.ok) {
+        Alert.alert('💸 Reimbursement Confirmed', 'Reimbursement payment processed successfully! Checklist unlocked for rider.');
+        const updated = await res.json();
+        setOrderInfo(prev => prev ? { ...prev, ...updated.order } : prev);
+      } else {
+        Alert.alert('Error', 'Failed to approve bill. Please try again.');
+      }
+    } catch {
+      Alert.alert('Error', 'Network error. Please check connection.');
+    }
+  };
+
   // Submit Rating handler
   const handleSubmitRating = async () => {
     setSubmittingRating(true);
@@ -653,6 +690,110 @@ export default function TrackingScreen() {
             )}
           </View>
         </StaggeredSection>
+
+        {/* ── MEGA BASKET KIRANA APPROVAL PANEL ── */}
+        {orderInfo?.category === 'Mega Basket' && (
+          <StaggeredSection delay={80} direction="up">
+            <View style={{ backgroundColor: cardBg, borderColor: COLORS.goldBorder, borderWidth: 1, padding: 16, borderRadius: 20, marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <View style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', padding: 8, borderRadius: 10 }}>
+                  <Text style={{ fontSize: 16 }}>🧺</Text>
+                </View>
+                <View>
+                  <Text style={{ fontSize: 9, fontWeight: '900', color: '#F59E0B', letterSpacing: 2 }}>MEGA BASKET ACTIVE WORKFLOW</Text>
+                  <Text style={{ fontSize: 13, fontWeight: 'bold', color: txt }}>Household Kirana Verification</Text>
+                </View>
+              </View>
+
+              {/* Step 1: Pre-Purchase Item/Estimate Approval */}
+              <View style={{ borderBottomWidth: 1, borderBottomColor: border, paddingBottom: 14, marginBottom: 14 }}>
+                <Text style={{ fontSize: 10, fontWeight: 'bold', color: txtSec, marginBottom: 4 }}>STEP 1: PRE-PURCHASE APPROVAL</Text>
+                {!orderInfo.itemPhotoUrl ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 }}>
+                    <ActivityIndicator size="small" color="#F59E0B" />
+                    <Text style={{ fontSize: 11, color: txtSec, fontStyle: 'italic' }}>
+                      Rider is checking items at the Kirana store...
+                    </Text>
+                  </View>
+                ) : (
+                  <View>
+                    <Text style={{ fontSize: 11, color: txt, marginBottom: 8 }}>
+                      Rider has uploaded a preview of the grocery items and price estimate:
+                    </Text>
+                    {orderInfo.itemPhotoUrl && (
+                      <View style={{ height: 160, borderRadius: 10, overflow: 'hidden', backgroundColor: '#222', marginBottom: 10 }}>
+                        <Image source={{ uri: orderInfo.itemPhotoUrl }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
+                      </View>
+                    )}
+
+                    {!orderInfo.isPurchasingApprovedByCustomer ? (
+                      <TouchableOpacity
+                        style={{ backgroundColor: '#F59E0B', paddingVertical: 10, borderRadius: 10, alignItems: 'center' }}
+                        onPress={handleApprovePurchase}
+                      >
+                        <Text style={{ color: '#000', fontWeight: 'bold', fontSize: 11 }}>🟢 AGREE & APPROVE PURCHASING</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ fontSize: 13 }}>🟢</Text>
+                        <Text style={{ fontSize: 11, fontWeight: 'bold', color: COLORS.emerald }}>
+                          Pre-Purchase Approved! Rider is building basket.
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+
+              {/* Step 2: Final Receipt Reimbursement Payment */}
+              {orderInfo.isPurchasingApprovedByCustomer && (
+                <View>
+                  <Text style={{ fontSize: 10, fontWeight: 'bold', color: txtSec, marginBottom: 4 }}>STEP 2: RECEIPT REIMBURSEMENT</Text>
+                  {!orderInfo.billProofUrl ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 }}>
+                      <ActivityIndicator size="small" color="#F59E0B" />
+                      <Text style={{ fontSize: 11, color: txtSec, fontStyle: 'italic' }}>
+                        Waiting for final billing/receipt upload...
+                      </Text>
+                    </View>
+                  ) : (
+                    <View>
+                      <Text style={{ fontSize: 11, color: txt, marginBottom: 4 }}>
+                        Rider uploaded the final receipt:
+                      </Text>
+                      <Text style={{ fontSize: 14, fontWeight: 'bold', color: COLORS.emerald, marginBottom: 8 }}>
+                        Total Amount: ₹{orderInfo.billAmount}
+                      </Text>
+                      {orderInfo.billProofUrl && (
+                        <View style={{ height: 160, borderRadius: 10, overflow: 'hidden', backgroundColor: '#222', marginBottom: 10 }}>
+                          <Image source={{ uri: orderInfo.billProofUrl }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
+                        </View>
+                      )}
+
+                      {!orderInfo.isBillApproved ? (
+                        <TouchableOpacity
+                          style={{ backgroundColor: COLORS.emerald, paddingVertical: 10, borderRadius: 10, alignItems: 'center' }}
+                          onPress={handleApproveBill}
+                        >
+                          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 11 }}>
+                            💸 CONFIRM REIMBURSEMENT & PAY ₹{orderInfo.billAmount}
+                          </Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={{ fontSize: 13 }}>🟢</Text>
+                          <Text style={{ fontSize: 11, fontWeight: 'bold', color: COLORS.emerald }}>
+                            Bill Reimbursed & Confirmed! Rider is in transit.
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+          </StaggeredSection>
+        )}
 
         {/* ── BATCH DISCOUNT BANNER ── */}
         {orderInfo?.riderOtherOrders && orderInfo.riderOtherOrders > 0 && (

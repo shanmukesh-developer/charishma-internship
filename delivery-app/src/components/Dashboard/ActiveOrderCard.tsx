@@ -63,6 +63,19 @@ export default function ActiveOrderCard({
     return false;
   });
 
+  const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
+
+  const toggleItemCheck = (index: number) => {
+    setCheckedItems(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+
+  const totalItemCount = order.items?.length || 0;
+  const checkedCount = Object.values(checkedItems).filter(Boolean).length;
+  const allItemsChecked = totalItemCount === 0 || checkedCount === totalItemCount;
+
   const handleArriveAtGate = async () => {
     if (gateNotified || gateLoading) return;
     setGateLoading(true);
@@ -183,19 +196,67 @@ export default function ActiveOrderCard({
           </div>
         </div>
 
-        {/* Order Items */}
-        <div className="bg-white/[0.025] rounded-2xl p-4 mb-6 border border-white/5">
-          <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-3">Order Items</p>
-          <div className="space-y-2">
-            {order.items?.slice(0, 4).map((item, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm">
-                <span className="text-blue-400 font-black text-xs w-5 shrink-0">{item.quantity}×</span>
-                <span className="text-slate-300 font-medium truncate">{item.name}</span>
-              </div>
-            ))}
-            {(order.items?.length || 0) > 4 && (
-              <p className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">+{(order.items?.length || 0) - 4} more items</p>
+        {/* Order Items Checklist */}
+        <div className="bg-white/[0.02] rounded-2xl p-5 mb-6 border border-white/5">
+          <div className="flex justify-between items-center mb-4">
+            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">
+              {isAtPickup ? '📦 PICKUP CHECKLIST' : '📝 ORDER ITEMS'}
+            </p>
+            {isAtPickup && (
+              <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${allItemsChecked ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+                {checkedCount}/{totalItemCount} VERIFIED
+              </span>
             )}
+          </div>
+
+          {/* Progress Bar */}
+          {isAtPickup && totalItemCount > 0 && (
+            <div className="w-full h-1 bg-white/5 rounded-full mb-4 overflow-hidden">
+              <motion.div 
+                className="h-full bg-emerald-500" 
+                initial={{ width: 0 }}
+                animate={{ width: `${(checkedCount / totalItemCount) * 100}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            {order.items?.map((item, i) => {
+              const isChecked = !!checkedItems[i];
+              if (isAtPickup) {
+                return (
+                  <button
+                    key={i}
+                    onClick={() => toggleItemCheck(i)}
+                    className={`w-full flex items-center justify-between p-3.5 rounded-xl border text-left transition-all ${isChecked ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400/80' : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] text-slate-200'}`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <span className={`text-xs font-black shrink-0 px-2 py-0.5 rounded-md ${isChecked ? 'bg-emerald-500/15 text-emerald-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                        {item.quantity}×
+                      </span>
+                      <span className={`text-xs font-bold truncate ${isChecked ? 'line-through text-slate-500' : 'text-slate-200'}`}>
+                        {item.name}
+                      </span>
+                    </div>
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${isChecked ? 'bg-emerald-500 border-emerald-400' : 'border-slate-600'}`}>
+                      {isChecked && (
+                        <span className="text-[9px] text-black font-black">✓</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              } else {
+                return (
+                  <div key={i} className="flex items-center gap-3 text-sm p-1">
+                    <span className="text-emerald-400/60 font-black text-xs px-2 py-0.5 rounded-md bg-emerald-500/5 border border-emerald-500/10 shrink-0">
+                      {item.quantity}×
+                    </span>
+                    <span className="text-slate-300 font-medium truncate text-xs">{item.name}</span>
+                  </div>
+                );
+              }
+            })}
           </div>
         </div>
 
@@ -253,17 +314,23 @@ export default function ActiveOrderCard({
         <div className="pt-6 border-t border-white/5">
           {isAtPickup ? (
             <motion.button
-              whileTap={{ scale: 0.98 }}
-              onClick={() => onPickUp(order.id)}
-              disabled={actionLoading}
-              className="w-full h-16 rounded-2xl bg-white text-black font-black text-[12px] uppercase tracking-widest transition-all hover:bg-slate-100 disabled:opacity-40 shadow-lg"
+              whileTap={allItemsChecked ? { scale: 0.98 } : {}}
+              onClick={() => {
+                if (allItemsChecked) onPickUp(order.id);
+              }}
+              disabled={actionLoading || !allItemsChecked}
+              className={`w-full h-16 rounded-2xl font-black text-[12px] uppercase tracking-widest transition-all shadow-lg ${
+                allItemsChecked 
+                  ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-blue-600/25 cursor-pointer' 
+                  : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-white/5'
+              }`}
             >
               {actionLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
                   Processing...
                 </span>
-              ) : '✅ Confirm Pickup'}
+              ) : allItemsChecked ? '✅ Confirm Pickup' : `⚠️ Verify Items (${checkedCount}/${totalItemCount})`}
             </motion.button>
           ) : (
             <div className="space-y-4">
