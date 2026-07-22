@@ -431,8 +431,8 @@ export default function TrackingScreen() {
       else if (s === 'Preparing' || s === 'ReadyForPickup') { setStatus(3); fetchOrder(); }
       else if (s === 'PickedUp') { setStatus(4); fetchOrder(); }
       else if (s === 'ArrivedAtGate') { setStatus(5); fetchOrder(); }
-      else if (s === 'Delivered') { setStatus(6); setShowDeliveryOverlay(true); }
-      else if (s === 'Cancelled') setStatus(-1);
+      else if (s === 'Delivered') { setStatus(6); setShowDeliveryOverlay(true); fetchOrder(); }
+      else if (s === 'Cancelled') { setStatus(-1); fetchOrder(); }
     });
 
     socket.on('checkpointUpdated', (d: { currentCheckpoint: string }) => {
@@ -812,7 +812,7 @@ export default function TrackingScreen() {
         )}
 
         {/* ── GATE VERIFICATION PIN ── */}
-        {orderInfo?.deliveryPin && (
+        {orderInfo?.deliveryPin && status < 6 && (
           <StaggeredSection delay={170} direction="up">
             <View style={[s.pinCard, { backgroundColor: cardBg, borderColor: border }]}>
               <View style={s.pinHeader}>
