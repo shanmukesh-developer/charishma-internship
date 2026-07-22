@@ -389,8 +389,13 @@ export default function App() {
         apiFetch('/delivery/stats/today')
       ]);
 
-      if (activeRes.status === 'fulfilled' && Array.isArray(activeRes.value)) {
-        const formatted = activeRes.value.map(formatOrder);
+      if (activeRes.status === 'fulfilled') {
+        const rawOrders = Array.isArray(activeRes.value)
+          ? activeRes.value
+          : (activeRes.value && typeof activeRes.value === 'object' && Array.isArray((activeRes.value as any).orders)
+              ? (activeRes.value as any).orders
+              : []);
+        const formatted = rawOrders.map(formatOrder);
         setActiveOrders(formatted);
         
         // Sync local Mega Basket approval states with DB fields
