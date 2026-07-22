@@ -128,6 +128,8 @@ export default function GlobalAnnouncement() {
         try {
           const { actionIdentifier, notification } = response;
           const data = notification.request.content.data;
+          const { router } = require('expo-router');
+
           if (data?.type === 'call') {
             if (actionIdentifier === 'ANSWER' || actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
               // Store auto-answer request
@@ -136,9 +138,28 @@ export default function GlobalAnnouncement() {
                 mode: data.mode || 'audio'
               }));
               // Redirect to community Tab
-              const { router } = require('expo-router');
               router.push('/community');
             }
+          } else if (data?.type === 'BIRTHDAY_ALERT') {
+            // Navigate to community section
+            router.push('/community');
+          } else if (data?.type === 'promo' || data?.type === 'offer') {
+            // Navigate to offers/others section
+            router.push('/others');
+          } else if (data?.type === 'badge') {
+            // Navigate to rewards section
+            router.push('/rewards');
+          } else if (data?.type === 'order') {
+            // Navigate to tracking page or orders tab
+            const orderIdStr = data.orderId || data.id;
+            if (orderIdStr) {
+              router.push(`/tracking/${orderIdStr}`);
+            } else {
+              router.push('/(tabs)/orders');
+            }
+          } else if (data?.type === 'chat_message') {
+            // Navigate to friends chat section
+            router.push('/friends');
           }
         } catch (err) {
           console.warn('Error handling notification response:', err);

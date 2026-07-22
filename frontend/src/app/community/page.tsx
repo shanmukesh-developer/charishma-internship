@@ -372,7 +372,7 @@ export default function CommunityPage() {
                 </div>
 
                 {/* Expiry Countdown */}
-                {!isReply && (() => {
+                {!isReply && post.postType !== 'review' && (() => {
                   const { label, urgent } = getTimeLeft(post.expiresAt);
                   return (
                     <div className={`shrink-0 whitespace-nowrap flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest ${urgent ? 'text-orange-500 border-orange-300 bg-orange-50' : 'text-black/30 border-black/10 bg-white/60'}`}>

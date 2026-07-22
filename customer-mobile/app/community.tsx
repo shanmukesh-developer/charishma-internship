@@ -870,9 +870,11 @@ export default function CommunityScreen() {
                           <Text style={[s.authorName, { color: txt }]} numberOfLines={1}>{post.userName.toUpperCase()}</Text>
                           <Text style={s.postTime}>{formatTime(post.createdAt)}</Text>
                         </View>
-                        <View style={s.expiryBadge}>
-                          <Text style={s.expiryText}>{getTimeLeft(post.expiresAt)}</Text>
-                        </View>
+                        {post.postType !== 'review' && (
+                          <View style={s.expiryBadge}>
+                            <Text style={s.expiryText}>{getTimeLeft(post.expiresAt)}</Text>
+                          </View>
+                        )}
                       </View>
 
                       {/* Actions */}
