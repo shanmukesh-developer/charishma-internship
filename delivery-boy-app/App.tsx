@@ -427,6 +427,15 @@ export default function App() {
         const newPending = pendingRes.value.map(formatOrder);
         if (newPending.length > previousPendingCount.current) {
           Vibration.vibrate([0, 300, 150, 300]);
+          Notifications.scheduleNotificationAsync({
+            content: {
+              title: '🛵 New Order Available!',
+              body: 'A new order is available for pickup. Open Zenvy Rider to accept!',
+              sound: 'alert.wav',
+              priority: Notifications.AndroidNotificationPriority.MAX,
+            },
+            trigger: null,
+          }).catch(() => {});
         }
         previousPendingCount.current = newPending.length;
         setPendingOrders(newPending);

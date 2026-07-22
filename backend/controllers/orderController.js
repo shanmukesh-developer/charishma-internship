@@ -427,6 +427,37 @@ const createOrder = async (req, res) => {
     }
 
     // (Rider notification has been moved to restaurantAcceptOrder to enforce sequential lifecycle)
+    if (createdOrder.status === 'Accepted' || restaurant.isOffline) {
+      try {
+        const { getCoordsForAddress, getHaversineDistance } = require('../utils/distance');
+        const DeliveryPartner = getDeliveryPartnerModel();
+        const onlineRiders = await DeliveryPartner.findAll({ where: { isOnline: true } });
+        
+        const restCoords = getCoordsForAddress(restaurant ? restaurant.location : '');
+        const ridersWithDist = onlineRiders.map(rider => {
+          const riderCoords = rider.lastLocation || { lat: 16.5062, lon: 80.6480 };
+          const dist = getHaversineDistance(restCoords.lat, restCoords.lon, riderCoords.lat, riderCoords.lon);
+          return { rider, dist };
+        }).sort((a, b) => a.dist - b.dist);
+
+        const targetRiders = ridersWithDist.slice(0, 5);
+        const riderTokens = [];
+        targetRiders.forEach(({ rider }) => {
+          if (rider.fcmTokens) riderTokens.push(...rider.fcmTokens.map(t => t.token));
+        });
+
+        if (riderTokens.length > 0) {
+          await sendPushToTokens(
+            riderTokens, 
+            '🛵 New Order Ready!', 
+            `${restaurant?.name || 'Restaurant'} is ready for pickup. Closest to you!`, 
+            { orderId: createdOrder.id.toString(), distance: (createdOrder.distance || 0).toString(), type: 'NEW_ORDER' }
+          );
+        }
+      } catch (dispatchErr) {
+        console.error('[AUTO_DISPATCH_ERROR]', dispatchErr.message);
+      }
+    }
     
     // 3. Notify Admin Command Terminal
     io.to('admin-room').emit('admin_newOrder', {
