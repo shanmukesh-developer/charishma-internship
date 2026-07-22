@@ -59,29 +59,48 @@ const sendPushToUser = async (userId, title, body, data = {}) => {
 // 1. Scan/Search contacts
 exports.searchContacts = async (req, res) => {
   try {
-    const { contacts } = req.body;
-    if (!Array.isArray(contacts)) {
-      return res.status(400).json({ message: 'contacts array is required.' });
-    }
+    const { contacts, query } = req.body;
 
     const User = getUserModel();
     const Friendship = getFriendshipModel();
     if (!User || !Friendship) return res.status(500).json({ message: 'Models not loaded' });
 
-    // Normalize phone numbers
-    const cleanNumbers = contacts.map(num => normalizePhone(num)).filter(Boolean);
-    if (cleanNumbers.length === 0) {
-      return res.json([]);
-    }
+    let matchedUsers = [];
 
-    // Query matching users
-    const matchedUsers = await User.findAll({
-      where: {
-        phone: { [Op.in]: cleanNumbers },
-        id: { [Op.ne]: req.user.id } // Exclude self
-      },
-      attributes: ['id', 'name', 'phone', 'profileImage']
-    });
+    if (query && query.trim().length > 0) {
+      const searchStr = query.trim();
+      const isPostgres = User.sequelize.options.dialect === 'postgres';
+      const matchOp = isPostgres ? Op.iLike : Op.like;
+
+      matchedUsers = await User.findAll({
+        where: {
+          id: { [Op.ne]: req.user.id }, // Exclude self
+          [Op.or]: [
+            { name: { [matchOp]: `%${searchStr}%` } },
+            { phone: { [Op.like]: `%${searchStr}%` } }
+          ]
+        },
+        attributes: ['id', 'name', 'phone', 'profileImage'],
+        limit: 15
+      });
+    } else if (Array.isArray(contacts)) {
+      // Normalize phone numbers
+      const cleanNumbers = contacts.map(num => normalizePhone(num)).filter(Boolean);
+      if (cleanNumbers.length === 0) {
+        return res.json([]);
+      }
+
+      // Query matching users
+      matchedUsers = await User.findAll({
+        where: {
+          phone: { [Op.in]: cleanNumbers },
+          id: { [Op.ne]: req.user.id } // Exclude self
+        },
+        attributes: ['id', 'name', 'phone', 'profileImage']
+      });
+    } else {
+      return res.status(400).json({ message: 'Either contacts array or query string is required.' });
+    }
 
     // Check friendship status for each matched user
     const results = [];
