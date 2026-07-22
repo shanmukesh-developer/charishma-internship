@@ -378,9 +378,9 @@ exports.updateFriendshipTheme = async (req, res) => {
 // 7. Send Encrypted Message
 exports.sendFriendMessage = async (req, res) => {
   try {
-    const { conversationId, text } = req.body;
-    if (!conversationId || !text) {
-      return res.status(400).json({ message: 'conversationId and text are required.' });
+    let { conversationId, text, friendshipId } = req.body;
+    if (!text) {
+      return res.status(400).json({ message: 'text is required.' });
     }
 
     const Conversation = getConversationModel();
@@ -388,12 +388,37 @@ exports.sendFriendMessage = async (req, res) => {
     const Friendship = getFriendshipModel();
     if (!Conversation || !Message || !Friendship) return res.status(500).json({ message: 'Models not loaded' });
 
-    const conversation = await Conversation.findByPk(conversationId);
-    if (!conversation) return res.status(404).json({ message: 'Conversation not found.' });
+    let conversation;
+    if (conversationId) {
+      conversation = await Conversation.findByPk(conversationId);
+    }
 
-    const parts = conversation.participants;
-    if (!parts.includes(req.user.id)) {
-      return res.status(403).json({ message: 'You are not a participant in this conversation.' });
+    // Fallback: If conversationId is missing or null, resolve/create conversation via friendshipId
+    if (!conversation && friendshipId) {
+      const friendship = await Friendship.findByPk(friendshipId);
+      if (friendship && friendship.status === 'accepted') {
+        const participants = [friendship.requesterId, friendship.recipientId];
+        // Find or create conversation
+        conversation = await Conversation.findOne({
+          where: { isGroup: false, participants: JSON.stringify(participants) }
+        });
+        if (!conversation) {
+          conversation = await Conversation.findOne({
+            where: { isGroup: false, participants: JSON.stringify([friendship.recipientId, friendship.requesterId]) }
+          });
+        }
+        if (!conversation) {
+          conversation = await Conversation.create({
+            isGroup: false,
+            participants
+          });
+        }
+        conversationId = conversation.id;
+      }
+    }
+
+    if (!conversation) {
+      return res.status(400).json({ message: 'Valid conversationId or friendshipId is required.' });
     }
 
     // Encrypt cleartext
@@ -414,6 +439,7 @@ exports.sendFriendMessage = async (req, res) => {
     await conversation.save();
 
     // Update daily streak
+    const parts = conversation.participants;
     const otherUserId = parts.find(p => p !== req.user.id);
     const friendship = await Friendship.findOne({
       where: {
