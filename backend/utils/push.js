@@ -30,7 +30,7 @@ const sendPushToTokens = async (tokens, title, body, data = {}, extraFCMOptions 
       priority: 'high',
       notification: {
         sound: 'alert',
-        channelId: 'delivery-alerts',
+        channelId: 'delivery-alerts-v2',
       },
       ...(extraFCMOptions.android || {})
     },
@@ -69,7 +69,7 @@ const sendPushToTopic = async (topic, title, body, data = {}, extraFCMOptions = 
       priority: 'high',
       notification: {
         sound: 'alert',
-        channelId: 'delivery-alerts',
+        channelId: 'delivery-alerts-v2',
       },
       ...(extraFCMOptions.android || {})
     },

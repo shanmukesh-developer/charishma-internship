@@ -265,7 +265,7 @@ export default function App() {
       const { status } = await Notifications.requestPermissionsAsync();
       if (status === 'granted') {
         if (Platform.OS === 'android') {
-          await Notifications.setNotificationChannelAsync('delivery-alerts', {
+          await Notifications.setNotificationChannelAsync('delivery-alerts-v2', {
             name: 'Delivery Alerts',
             importance: Notifications.AndroidImportance.MAX,
             vibrationPattern: [0, 250, 250, 250, 250, 250, 250, 250],
@@ -433,6 +433,9 @@ export default function App() {
               body: 'A new order is available for pickup. Open Zenvy Rider to accept!',
               sound: 'alert',
               priority: Notifications.AndroidNotificationPriority.MAX,
+              android: {
+                channelId: 'delivery-alerts-v2',
+              },
             },
             trigger: null,
           }).catch(() => {});
