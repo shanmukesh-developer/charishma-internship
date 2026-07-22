@@ -22,6 +22,7 @@ import {
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Contacts from 'expo-contacts';
 import { COLORS, SHADOWS } from '../constants/theme';
 import { ENDPOINTS, API_URL } from '../constants/api';
 import { apiFetch } from '../utils/auth';
@@ -592,20 +593,57 @@ export default function FriendsScreen() {
   const handleContactsSync = async () => {
     setSyncing(true);
     try {
-      const mockDeviceContacts = [
-        '7788994455', '5544998877', '9988776655', '9876543210', '8899001122', '9000011223'
-      ];
-      const res = await apiFetch(ENDPOINTS.friendsContacts, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contacts: mockDeviceContacts })
+      const { status } = await Contacts.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Permission to access contacts is required to scan for friends on Zenvy.');
+        setSyncing(false);
+        return;
+      }
+
+      const { data } = await Contacts.getContactsAsync({
+        fields: [Contacts.Fields.PhoneNumbers],
       });
-      if (res.ok) {
-        const data = await res.json();
-        setSyncedContacts(data);
-        Vibration.vibrate([0, 80, 40, 80]);
+
+      if (data && data.length > 0) {
+        const phoneNumbers = [];
+        data.forEach(contact => {
+          if (contact.phoneNumbers) {
+            contact.phoneNumbers.forEach(p => {
+              if (p.number) {
+                // Strip whitespace & formatting before collecting
+                const cleanNum = p.number.replace(/\s+/g, '').replace(/[-()]/g, '');
+                if (cleanNum) phoneNumbers.push(cleanNum);
+              }
+            });
+          }
+        });
+
+        const uniqueNumbers = [...new Set(phoneNumbers.filter(Boolean))];
+        
+        if (uniqueNumbers.length === 0) {
+          Alert.alert('No Contacts Found', 'No contacts with valid phone numbers were detected.');
+          setSyncing(false);
+          return;
+        }
+
+        const res = await apiFetch(ENDPOINTS.friendsContacts, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contacts: uniqueNumbers })
+        });
+        
+        if (res.ok) {
+          const matched = await res.json();
+          setSyncedContacts(matched);
+          Vibration.vibrate([0, 80, 40, 80]);
+        } else {
+          Alert.alert('Error', 'Failed to scan matching users from contacts.');
+        }
+      } else {
+        Alert.alert('No Contacts', 'No contacts found on this device.');
       }
     } catch (e) {
+      console.error(e);
       Alert.alert('Error', 'Could not sync contacts.');
     } finally {
       setSyncing(false);
