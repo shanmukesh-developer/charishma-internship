@@ -160,11 +160,19 @@ const toggleMenuItemAvailability = async (req, res) => {
        return res.status(403).json({ message: 'Not authorized to manage this asset' });
     }
 
-    item.isAvailable = !item.isAvailable;
-    if (req.body.outOfStockUntil && !item.isAvailable) {
+    if (req.body.outOfStockUntil) {
+      item.isAvailable = false;
       item.outOfStockUntil = new Date(req.body.outOfStockUntil);
+    } else if (req.body.isAvailable !== undefined) {
+      item.isAvailable = req.body.isAvailable;
+      if (item.isAvailable) {
+        item.outOfStockUntil = null;
+      }
     } else {
-      item.outOfStockUntil = null;
+      item.isAvailable = !item.isAvailable;
+      if (item.isAvailable) {
+        item.outOfStockUntil = null;
+      }
     }
     await item.save();
 

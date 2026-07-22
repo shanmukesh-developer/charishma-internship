@@ -38,6 +38,9 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldVibrate: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldSetBadge: false,
   }),
 });
 
@@ -188,6 +191,16 @@ export default function App() {
   useEffect(() => {
     if (authToken) {
       registerPushToken();
+      // Auto-set rider online in DB so they are queried for push routing
+      apiFetch('/delivery/online', {
+        method: 'PUT',
+        body: JSON.stringify({ isOnline: true })
+      })
+      .then(() => {
+        setIsOnline(true);
+        console.log('[ONLINE_STATUS] Auto-set rider online on startup/login');
+      })
+      .catch((err) => console.warn('[ONLINE_STATUS] Auto-set failed:', err.message));
     }
   }, [authToken]);
 
@@ -425,7 +438,7 @@ export default function App() {
         setActiveOrders(formatted);
         
         // Sync local Mega Basket approval states with DB fields
-        formatted.forEach(o => {
+        formatted.forEach((o: Order) => {
           if (o.itemPhotoUrl) setItemPhotoUploadedMap(prev => ({ ...prev, [o.id]: true }));
           if (o.isPurchasingApprovedByCustomer) setPurchaseApprovedMap(prev => ({ ...prev, [o.id]: true }));
           if (o.billProofUrl) setBillProofUploadedMap(prev => ({ ...prev, [o.id]: true }));
@@ -442,10 +455,8 @@ export default function App() {
               body: 'A new order is available for pickup. Open Zenvy Rider to accept!',
               sound: 'alert',
               priority: Notifications.AndroidNotificationPriority.MAX,
-              android: {
-                channelId: 'delivery-alerts-v2',
-              },
-            },
+              channelId: 'delivery-alerts-v2',
+            } as any,
             trigger: null,
           }).catch(() => {});
         }
@@ -528,6 +539,14 @@ export default function App() {
         text: 'Logout',
         style: 'destructive',
         onPress: async () => {
+          try {
+            if (authToken) {
+              await apiFetch('/delivery/online', {
+                method: 'PUT',
+                body: JSON.stringify({ isOnline: false })
+              }).catch(() => {});
+            }
+          } catch (e) {}
           await AsyncStorage.removeItem(STORAGE_TOKEN_KEY);
           await AsyncStorage.removeItem(STORAGE_PROFILE_KEY);
           setAuthToken(null);
@@ -968,9 +987,20 @@ export default function App() {
             </Text>
             <Switch
               value={isOnline}
-              onValueChange={(val) => {
+              onValueChange={async (val) => {
                 Vibration.vibrate(50);
                 setIsOnline(val);
+                try {
+                  if (authToken) {
+                    await apiFetch('/delivery/online', {
+                      method: 'PUT',
+                      body: JSON.stringify({ isOnline: val })
+                    });
+                    console.log('[ONLINE_STATUS] Synced isOnline with server:', val);
+                  }
+                } catch (e: any) {
+                  console.warn('[ONLINE_STATUS] Failed to sync status:', e.message);
+                }
               }}
               trackColor={{ false: '#374151', true: '#059669' }}
               thumbColor={isOnline ? '#10B981' : '#D1D5DB'}

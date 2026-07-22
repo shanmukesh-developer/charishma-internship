@@ -13,9 +13,6 @@ const nextConfig = {
     unoptimized: true,
   },
   typescript: { ignoreBuildErrors: true },
-  turbopack: {
-    root: path.resolve(__dirname, '..'),
-  },
 };
 
 export default nextConfig;

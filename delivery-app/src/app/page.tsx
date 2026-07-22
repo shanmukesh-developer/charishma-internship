@@ -33,7 +33,22 @@ export default function Home() {
     setInitializing(false);
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      const savedToken = localStorage.getItem('driverToken');
+      if (savedToken) {
+        await fetch(`${API_URL}/api/delivery/online`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${savedToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ isOnline: false })
+        }).catch(() => {});
+      }
+    } catch (err) {
+      console.error('Failed to set offline on logout:', err);
+    }
     localStorage.removeItem('driverToken');
     localStorage.removeItem('driver');
     setDriver(null);
