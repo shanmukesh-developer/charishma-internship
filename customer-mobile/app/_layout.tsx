@@ -1,6 +1,7 @@
 import React from 'react';
 import { Stack } from 'expo-router';
-import { StatusBar, Platform, View, StyleSheet, Alert } from 'react-native';
+import { Platform, View, StyleSheet, Alert } from 'react-native';
+import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider } from '../context/AuthContext';
@@ -57,7 +58,7 @@ function AppContainer() {
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1, backgroundColor: isDark ? '#0A0A0B' : '#F5F5F7' }}>
-        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={isDark ? "#0A0A0B" : "#F5F5F7"} />
+        <ExpoStatusBar style={isDark ? "light" : "dark"} backgroundColor="transparent" translucent={true} />
         <WorldTransitionProvider>
           <AuthProvider>
           <CartProvider>

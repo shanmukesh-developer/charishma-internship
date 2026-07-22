@@ -64,7 +64,9 @@ const initUserModel = (sequelize) => {
     gender: { type: DataTypes.STRING, defaultValue: 'Prefer not to say' },
     genderPreference: { type: DataTypes.STRING, defaultValue: 'Any' },
     karmaPoints: { type: DataTypes.INTEGER, defaultValue: 0 },
-    friendCode: { type: DataTypes.STRING(10), unique: true, allowNull: true }
+    friendCode: { type: DataTypes.STRING(10), unique: true, allowNull: true },
+    statusText: { type: DataTypes.STRING, allowNull: true },
+    statusEmoji: { type: DataTypes.STRING, allowNull: true }
   }, { timestamps: true });
 
   // Auto-generate referral code

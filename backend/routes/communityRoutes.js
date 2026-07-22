@@ -97,6 +97,11 @@ router.post('/', protect, async (req, res) => {
       productName: isReview ? (productName || null) : null
     });
 
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('community_new_post', newPost);
+    }
+
     // --- BIRTHDAY BROADCAST LOGIC ---
     // If the post is explicitly marked as a birthday or contains birthday keywords,
     // we trigger an automatic specially themed broadcast to all users!
@@ -243,7 +248,14 @@ router.delete('/:id', protect, async (req, res) => {
 
     // Optional: Destroy children replies
     await CommunityPost.destroy({ where: { parentId: post.id } });
+    const postId = post.id;
+    const parentId = post.parentId;
     await post.destroy();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('community_post_deleted', { id: postId, parentId });
+    }
 
     res.json({ message: 'Post deleted successfully.' });
   } catch (error) {
@@ -274,6 +286,11 @@ router.put('/:id/like', protect, async (req, res) => {
     
     post.likedBy = likedBy;
     await post.save();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('community_post_liked', { id: post.id, likes: post.likes, likedBy: post.likedBy });
+    }
 
     res.json(post);
   } catch (error) {

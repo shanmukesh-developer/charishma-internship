@@ -11,6 +11,7 @@ import { useTheme } from '../context/ThemeContext';
 import { StaggeredSection, FloatingPulse, BounceIn, PulseGlow } from '../components/AnimatedSection';
 import DopaminePressable, { CardPressable, ActionPressable } from '../components/DopaminePressable';
 import { LinearGradient } from 'expo-linear-gradient';
+import { connectSocket } from '../utils/socket';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -344,11 +345,80 @@ export default function CommunityScreen() {
   useEffect(() => {
     fetchPosts();
     fetchBirthdays();
+
+    const socket = connectSocket();
+
+    const onNewPost = (newPost: any) => {
+      if (newPost.parentId) {
+        setPosts(prev => prev.map(p => {
+          if (p.id === newPost.parentId) {
+            const currentReplies = p.replies || [];
+            if (currentReplies.some(r => r.id === newPost.id)) return p;
+            return {
+              ...p,
+              replyCount: (p.replyCount || 0) + 1,
+              replies: [...currentReplies, newPost]
+            };
+          }
+          return p;
+        }));
+      } else {
+        setPosts(prev => {
+          if (prev.some(p => p.id === newPost.id)) return prev;
+          const isReview = newPost.postType === 'review';
+          if (activeTab === 'reviews' && !isReview) return prev;
+          return [newPost, ...prev];
+        });
+      }
+    };
+
+    const onPostLiked = (data: { id: string; likes: number; likedBy: string[] }) => {
+      setPosts(prev => prev.map(p => {
+        if (p.id === data.id) {
+          return { ...p, likes: data.likes, likedBy: data.likedBy };
+        }
+        if (p.replies && p.replies.some(r => r.id === data.id)) {
+          return {
+            ...p,
+            replies: p.replies.map(r => r.id === data.id ? { ...r, likes: data.likes, likedBy: data.likedBy } : r)
+          };
+        }
+        return p;
+      }));
+    };
+
+    const onPostDeleted = (data: { id: string; parentId: string | null }) => {
+      if (data.parentId) {
+        setPosts(prev => prev.map(p => {
+          if (p.id === data.parentId) {
+            return {
+              ...p,
+              replyCount: Math.max((p.replyCount || 1) - 1, 0),
+              replies: (p.replies || []).filter(r => r.id !== data.id)
+            };
+          }
+          return p;
+        }));
+      } else {
+        setPosts(prev => prev.filter(p => p.id !== data.id));
+      }
+    };
+
+    socket.on('community_new_post', onNewPost);
+    socket.on('community_post_liked', onPostLiked);
+    socket.on('community_post_deleted', onPostDeleted);
+
     const interval = setInterval(() => {
       fetchPosts();
       fetchBirthdays();
     }, 10000);
-    return () => clearInterval(interval);
+
+    return () => {
+      clearInterval(interval);
+      socket.off('community_new_post', onNewPost);
+      socket.off('community_post_liked', onPostLiked);
+      socket.off('community_post_deleted', onPostDeleted);
+    };
   }, [activeTab]);
 
   const fetchPosts = async () => {
