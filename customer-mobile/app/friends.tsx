@@ -148,6 +148,7 @@ export default function FriendsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { isDark } = useTheme();
+  const myUserId = user?.id || user?._id;
 
   // Core list state
   const [friends, setFriends] = useState<any[]>([]);
@@ -213,10 +214,10 @@ export default function FriendsScreen() {
 
   // Global user socket listener for real-time buddy notifications
   useEffect(() => {
-    if (!user?.id) return;
+    if (!myUserId) return;
     const socket = connectSocket();
-    socket.emit('joinRoom', `user-${user.id}`);
-
+    socket.emit('joinRoom', `user-${myUserId}`);
+    
     const onIncomingRequest = (data: any) => {
       Vibration.vibrate([0, 100, 50, 100]);
       triggerToast('⚡ FRIEND REQUEST', `${data.requester?.name || 'Someone'} requested to join your orbit!`);
@@ -244,7 +245,7 @@ export default function FriendsScreen() {
       socket.off('friend_request_accepted', onRequestAccepted);
       socket.off('friend_nudge', onNudge);
     };
-  }, [user?.id]);
+  }, [myUserId]);
 
   // Socket listener for messaging integration
   const activeConversationId = activeChat?.conversationId;
@@ -264,10 +265,17 @@ export default function FriendsScreen() {
       if (msg.conversationId === activeConversationId) {
         setChatMessages(prev => {
           if (prev.some(m => m.id === msg.id)) return prev;
+          
+          // Deduplicate optimistic messages with same text
+          const hasOptimistic = prev.some(m => m.id.startsWith('temp-') && m.text === msg.text);
+          if (hasOptimistic) {
+            // Replace the optimistic message with the real one
+            return prev.map(m => (m.id.startsWith('temp-') && m.text === msg.text) ? msg : m);
+          }
           return [...prev, msg];
         });
         setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 100);
-        if (msg.senderId !== user?.id) {
+        if (msg.senderId !== myUserId) {
           Vibration.vibrate(80);
         }
       }
@@ -280,13 +288,13 @@ export default function FriendsScreen() {
     };
 
     const onFriendTypingStart = (data: any) => {
-      if (data.senderId !== user?.id) {
+      if (data.senderId !== myUserId) {
         setIsFriendTyping(true);
       }
     };
 
     const onFriendTypingEnd = (data: any) => {
-      if (data.senderId !== user?.id) {
+      if (data.senderId !== myUserId) {
         setIsFriendTyping(false);
       }
     };
@@ -505,7 +513,7 @@ export default function FriendsScreen() {
 
     const optimisticMsg = {
       id: `temp-${Date.now()}`,
-      senderId: user?.id,
+      senderId: myUserId,
       senderName: user?.name,
       text: text.trim(),
       createdAt: new Date().toISOString()
@@ -745,7 +753,7 @@ export default function FriendsScreen() {
           >
             <View style={[s.storyAvatarOutline, s.storyUserOutline]}>
               <Image
-                source={{ uri: getAvatarUrl(user?.profileImage || null, user?.id || 'self') }}
+                source={{ uri: getAvatarUrl(user?.profileImage || null, myUserId || 'self') }}
                 style={s.storyAvatar}
               />
               <View style={s.storyUserAddBadge}>
@@ -982,7 +990,7 @@ export default function FriendsScreen() {
                   </View>
                 ) : (
                   chatMessages.map((msg, index) => {
-                    const isMe = msg.senderId === user?.id;
+                    const isMe = msg.senderId === myUserId;
                     const isSticker = ZENVY_STICKERS.includes(msg.text);
                     const isTruth = msg.text.startsWith('[TRUTH]');
                     const isDare = msg.text.startsWith('[DARE]');
