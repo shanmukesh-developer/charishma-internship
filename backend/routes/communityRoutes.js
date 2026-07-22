@@ -162,19 +162,57 @@ router.get('/reviews', async (req, res) => {
     const CommunityPost = getCommunityPostModel();
     if (!CommunityPost) return res.status(500).json({ message: 'DB disconnected.' });
 
+    const { Op } = require('sequelize');
+    const now = new Date();
+
     let reviews;
     try {
       reviews = await CommunityPost.findAll({
-        where: { postType: 'review', parentId: null },
+        where: {
+          postType: 'review',
+          parentId: null,
+          [Op.or]: [
+            { expiresAt: null },
+            { expiresAt: { [Op.gt]: now } }
+          ]
+        },
         order: [['createdAt', 'DESC']],
         limit: 50
       });
     } catch {
-      // postType column may not exist yet
-      reviews = [];
+      // postType column may not exist yet or expiresAt fails
+      try {
+        reviews = await CommunityPost.findAll({
+          where: { parentId: null },
+          order: [['createdAt', 'DESC']],
+          limit: 50
+        });
+      } catch {
+        reviews = [];
+      }
     }
 
-    res.json(reviews);
+    const reviewIds = reviews.map(p => p.id);
+    let allReplies = [];
+    if (reviewIds.length > 0) {
+      try {
+        allReplies = await CommunityPost.findAll({
+          where: {
+            parentId: { [Op.in]: reviewIds },
+            [Op.or]: [{ expiresAt: null }, { expiresAt: { [Op.gt]: now } }]
+          },
+          order: [['createdAt', 'ASC']]
+        });
+      } catch { /* parentId column missing, no replies */ }
+    }
+
+    const reviewsJSON = reviews.map(p => {
+      const pj = p.toJSON();
+      pj.replies = allReplies.filter(r => r.parentId === pj.id).map(r => r.toJSON());
+      return pj;
+    });
+
+    res.json(reviewsJSON);
   } catch (error) {
     console.error('Fetch reviews error:', error);
     res.status(500).json({ message: 'Failed to fetch reviews.' });

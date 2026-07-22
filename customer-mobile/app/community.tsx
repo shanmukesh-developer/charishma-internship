@@ -202,7 +202,7 @@ export default function CommunityScreen() {
         const data = await res.json();
         setBirthdays(data);
       }
-      if (user?.role === 'admin') {
+      if (user?.role?.toLowerCase() === 'admin') {
         const resPending = await apiFetch((ENDPOINTS as any).birthdaysPending);
         if (resPending.ok) {
           const dataPending = await resPending.json();
@@ -612,7 +612,7 @@ export default function CommunityScreen() {
         <View style={s.birthdaySection}>
           <View style={s.birthdaySectionHeader}>
             <Text style={[s.birthdaySectionTitle, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>🎂 TODAY'S CELEBRATIONS</Text>
-            {user?.role === 'admin' && pendingBirthdays.length > 0 && (
+            {user?.role?.toLowerCase() === 'admin' && pendingBirthdays.length > 0 && (
               <TouchableOpacity onPress={() => setShowAdminPanelModal(true)}>
                 <Text style={[s.adminBadgeText, { color: COLORS.red }]}>ADMIN QUEUE ({pendingBirthdays.length})</Text>
               </TouchableOpacity>
