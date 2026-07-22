@@ -24,7 +24,24 @@ const sendPushToTokens = async (tokens, title, body, data = {}, extraFCMOptions 
     },
     data,
     tokens: validTokens,
-    ...extraFCMOptions
+    android: {
+      priority: 'high',
+      notification: {
+        sound: 'alert.wav',
+        channelId: 'delivery-alerts',
+      },
+      ...(extraFCMOptions.android || {})
+    },
+    apns: {
+      payload: {
+        aps: {
+          sound: 'alert.wav',
+        },
+        ...(extraFCMOptions.apns?.payload || {})
+      },
+      ...(extraFCMOptions.apns || {})
+    },
+    ...Object.fromEntries(Object.entries(extraFCMOptions).filter(([k]) => k !== 'android' && k !== 'apns'))
   };
 
   try {
@@ -44,7 +61,24 @@ const sendPushToTopic = async (topic, title, body, data = {}, extraFCMOptions = 
     notification: { title, body },
     data,
     topic,
-    ...extraFCMOptions
+    android: {
+      priority: 'high',
+      notification: {
+        sound: 'alert.wav',
+        channelId: 'delivery-alerts',
+      },
+      ...(extraFCMOptions.android || {})
+    },
+    apns: {
+      payload: {
+        aps: {
+          sound: 'alert.wav',
+        },
+        ...(extraFCMOptions.apns?.payload || {})
+      },
+      ...(extraFCMOptions.apns || {})
+    },
+    ...Object.fromEntries(Object.entries(extraFCMOptions).filter(([k]) => k !== 'android' && k !== 'apns'))
   };
 
   try {

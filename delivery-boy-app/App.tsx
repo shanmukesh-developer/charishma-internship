@@ -33,6 +33,14 @@ import {
   OfflineAction,
 } from './src/services/offlineQueue';
 
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldVibrate: true,
+  }),
+});
+
 const { width: SW, height: SH } = Dimensions.get('window');
 
 // Persistent Storage Keys
@@ -256,6 +264,15 @@ export default function App() {
     try {
       const { status } = await Notifications.requestPermissionsAsync();
       if (status === 'granted') {
+        if (Platform.OS === 'android') {
+          await Notifications.setNotificationChannelAsync('delivery-alerts', {
+            name: 'Delivery Alerts',
+            importance: Notifications.AndroidImportance.MAX,
+            vibrationPattern: [0, 250, 250, 250, 250, 250, 250, 250],
+            lightColor: '#FF231F7A',
+            sound: 'alert.wav',
+          });
+        }
         let fcmToken = '';
         try {
           const deviceTokenData = await Notifications.getDevicePushTokenAsync();
