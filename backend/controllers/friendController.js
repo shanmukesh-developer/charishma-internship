@@ -260,7 +260,7 @@ exports.getFriends = async (req, res) => {
     for (const fs of friendships) {
       const friendId = fs.requesterId === req.user.id ? fs.recipientId : fs.requesterId;
       const friend = await User.findByPk(friendId, {
-        attributes: ['id', 'name', 'phone', 'profileImage']
+        attributes: ['id', 'name', 'phone', 'profileImage', 'statusText', 'statusEmoji']
       });
 
       if (!friend) continue;
@@ -292,7 +292,9 @@ exports.getFriends = async (req, res) => {
         streakCount: fs.streakCount || 0,
         lastInteractionAt: fs.lastInteractionAt,
         theme: fs.theme || 'friendship',
-        conversationId: conversation ? conversation.id : null
+        conversationId: conversation ? conversation.id : null,
+        statusText: friend.statusText || null,
+        statusEmoji: friend.statusEmoji || null
       });
     }
 
@@ -591,5 +593,36 @@ exports.sendFriendNudge = async (req, res) => {
   } catch (error) {
     console.error('[SEND_NUDGE_ERROR]', error);
     res.status(500).json({ message: 'Server error sending nudge.' });
+  }
+};
+
+// 11. Update User Status (Story/Status feature)
+exports.updateUserStatus = async (req, res) => {
+  try {
+    const { statusText, statusEmoji } = req.body;
+    const User = getUserModel();
+    if (!User) return res.status(500).json({ message: 'Model not loaded' });
+
+    const user = await User.findByPk(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.statusText = statusText || null;
+    user.statusEmoji = statusEmoji || null;
+    await user.save();
+
+    // Broadcast status change to all friends list via socket
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('friend_status_updated', {
+        userId: req.user.id,
+        statusText: user.statusText,
+        statusEmoji: user.statusEmoji
+      });
+    }
+
+    res.json({ message: 'Status updated successfully.', statusText: user.statusText, statusEmoji: user.statusEmoji });
+  } catch (error) {
+    console.error('[UPDATE_STATUS_ERROR]', error);
+    res.status(500).json({ message: 'Server error updating status.' });
   }
 };
