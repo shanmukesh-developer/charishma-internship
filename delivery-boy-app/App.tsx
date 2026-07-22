@@ -184,6 +184,13 @@ export default function App() {
     setupSensors();
   }, []);
 
+  // Register push token whenever user logs in or app is bootstrapped
+  useEffect(() => {
+    if (authToken) {
+      registerPushToken();
+    }
+  }, [authToken]);
+
   // 2. Poll Orders Periodically when Online
   useEffect(() => {
     if (!authToken || !isOnline) return;
@@ -285,8 +292,10 @@ export default function App() {
         if (fcmToken && authToken) {
           apiFetch('/delivery/fcm-token', {
             method: 'POST',
-            body: JSON.stringify({ token: fcmToken })
-          }).catch(() => {});
+            body: JSON.stringify({ fcmToken, token: fcmToken, appVersion: 'native-1.0.0' })
+          })
+          .then(() => console.log('[PUSH_REGISTER] Successfully registered token:', fcmToken))
+          .catch((err) => console.warn('[PUSH_REGISTER] Registration failed:', err.message));
         }
       }
     } catch (e) {
