@@ -171,7 +171,7 @@ const acceptOrder = async (req, res) => {
     // 2. Atomic Claim: Use a conditional update to prevent race conditions (Rider A vs Rider B)
     const [updatedRows] = await Order.update(
       { deliveryPartnerId: req.user.id },
-      { where: { id: req.params.orderId, deliveryPartnerId: null, status: { [Op.in]: ['Accepted', 'Preparing', 'ReadyForPickup'] } } }
+      { where: { id: req.params.orderId, deliveryPartnerId: null, status: { [Op.in]: ['Pending', 'Accepted', 'Preparing', 'ReadyForPickup'] } } }
     );
 
     if (updatedRows === 0) {
@@ -240,7 +240,7 @@ const getPendingOrders = async (req, res) => {
     const Restaurant = getRestaurantModel();
     const orders = await Order.findAll({ 
       where: { 
-        status: { [Op.in]: ['Accepted', 'Preparing', 'ReadyForPickup'] },
+        status: { [Op.in]: ['Pending', 'Accepted', 'Preparing', 'ReadyForPickup'] },
         deliveryPartnerId: null
       }, 
       order: [['createdAt', 'DESC']],
@@ -491,7 +491,11 @@ const toggleOnline = async (req, res) => {
 
 // @desc    Save FCM Token for partner
 const saveFcmToken = async (req, res) => {
-  const { fcmToken, appVersion } = req.body;
+  const fcmToken = req.body.fcmToken || req.body.token;
+  const appVersion = req.body.appVersion || 'native-1.0.0';
+  if (!fcmToken) {
+    return res.status(400).json({ message: 'Token is required' });
+  }
   try {
     const DeliveryPartner = getDeliveryPartnerModel();
     const partner = await DeliveryPartner.findByPk(req.user.id);
