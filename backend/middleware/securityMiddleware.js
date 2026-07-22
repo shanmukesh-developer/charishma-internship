@@ -121,6 +121,10 @@ const injectionGuard = (req, res, next) => {
   const scanObject = (obj, location) => {
     if (!obj || typeof obj !== 'object') return false;
     for (const [key, value] of Object.entries(obj)) {
+      // Skip scanning passwords/tokens/verification codes as they contain arbitrary special characters
+      if (['password', 'oldPassword', 'newPassword', 'confirmPassword', 'token', 'accessToken', 'refreshToken', 'code'].includes(key)) {
+        continue;
+      }
       if (typeof value === 'string') {
         if (containsSQLInjection(value)) {
           console.warn(`🛡️ [SECURITY_BLOCK] SQL injection detected in ${location}.${key} from IP ${req.ip} | TraceId: ${req.traceId}`);

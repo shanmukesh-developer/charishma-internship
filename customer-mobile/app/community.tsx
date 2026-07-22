@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { StaggeredSection, FloatingPulse, BounceIn, PulseGlow } from '../components/AnimatedSection';
 import DopaminePressable, { CardPressable, ActionPressable } from '../components/DopaminePressable';
-import ZenvyAfterDarkLounge from '../components/ZenvyAfterDarkLounge';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -605,8 +605,47 @@ export default function CommunityScreen() {
       </View>
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        {/* 🌙 ZENVY AFTER DARK */}
-        <ZenvyAfterDarkLounge />
+        {/* 👥 SECURE FRIENDS UPLINK */}
+        <DopaminePressable
+          style={[
+            s.friendsCard,
+            {
+              backgroundColor: cardBg,
+              borderColor: isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 90, 43, 0.15)',
+              shadowColor: isDark ? '#D4AF37' : '#8b5a2b',
+            }
+          ]}
+          onPress={() => router.push('/friends' as any)}
+          sound="click"
+          activeScale={0.97}
+        >
+          <LinearGradient
+            colors={isDark ? ['rgba(212, 175, 55, 0.08)', 'rgba(0, 0, 0, 0)'] : ['rgba(139, 90, 43, 0.04)', 'rgba(0, 0, 0, 0)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={s.friendsGradient}
+          />
+          <View style={s.friendsCardHeader}>
+            <View style={s.friendsIconContainer}>
+              <Text style={{ fontSize: 20 }}>👥</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.friendsCardTitle, { color: txt }]}>Secure Friends Uplink</Text>
+              <Text style={[s.friendsCardSub, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>END-TO-END ENCRYPTED CHATS</Text>
+            </View>
+            <View style={s.streakPulseContainer}>
+              <FloatingPulse color="#FF5A00">
+                <Text style={{ fontSize: 10 }}>🔥</Text>
+              </FloatingPulse>
+            </View>
+          </View>
+          <Text style={[s.friendsCardBody, { color: txtSec }]}>
+            Connect with campus friends, chat securely, and build daily fire streaks. Sync your contacts to see who is online!
+          </Text>
+          <View style={s.friendsFooter}>
+            <Text style={[s.friendsFooterText, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>ENTER THE SECURE VAULT →</Text>
+          </View>
+        </DopaminePressable>
 
         {/* ── BIRTHDAY CELEBRATIONS STORY ROW ── */}
         <View style={s.birthdaySection}>
@@ -1406,4 +1445,66 @@ const s = StyleSheet.create({
   adminQueueActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 10 },
   adminRejectBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
   adminApproveBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  
+  // Friends Secure Uplink Card
+  friendsCard: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 16,
+    position: 'relative',
+    overflow: 'hidden',
+    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+  },
+  friendsGradient: {
+    ...StyleSheet.absoluteFill,
+  },
+  friendsCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
+  },
+  friendsIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  friendsCardTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: -0.2,
+  },
+  friendsCardSub: {
+    fontSize: 7,
+    fontWeight: '900',
+    letterSpacing: 1,
+    marginTop: 1,
+  },
+  streakPulseContainer: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  friendsCardBody: {
+    fontSize: 9,
+    lineHeight: 13,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  friendsFooter: {
+    alignSelf: 'flex-start',
+  },
+  friendsFooterText: {
+    fontSize: 8,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
 });

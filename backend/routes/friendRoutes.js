@@ -8,7 +8,10 @@ const {
   getPendingRequests,
   updateFriendshipTheme,
   sendFriendMessage,
-  getFriendMessages
+  getFriendMessages,
+  updateFriendshipNickname,
+  sendFriendNudge,
+  removeFriend
 } = require('../controllers/friendController');
 
 const router = express.Router();
@@ -21,6 +24,9 @@ router.post('/accept', acceptFriendRequest);
 router.get('/', getFriends);
 router.get('/pending', getPendingRequests);
 router.put('/:id/theme', updateFriendshipTheme);
+router.put('/:id/nickname', updateFriendshipNickname);
+router.post('/nudge', sendFriendNudge);
+router.delete('/:id', removeFriend);
 router.post('/message', sendFriendMessage);
 router.get('/messages/:conversationId', getFriendMessages);
 

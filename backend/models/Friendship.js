@@ -34,6 +34,10 @@ const initFriendshipModel = (sequelize) => {
     theme: {
       type: DataTypes.STRING,
       defaultValue: 'friendship'
+    },
+    nickname: {
+      type: DataTypes.STRING,
+      allowNull: true
     }
   }, {
     timestamps: true,

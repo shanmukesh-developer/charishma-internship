@@ -284,7 +284,9 @@ exports.getFriends = async (req, res) => {
       list.push({
         friendshipId: fs.id,
         friendId: friend.id,
-        name: friend.name,
+        name: fs.nickname || friend.name,
+        originalName: friend.name,
+        nickname: fs.nickname || null,
         phone: friend.phone,
         profileImage: friend.profileImage,
         streakCount: fs.streakCount || 0,
@@ -436,16 +438,16 @@ exports.sendFriendMessage = async (req, res) => {
     const io = req.app.get('io');
     if (io) {
       io.to(`conversation-${conversationId}`).emit('new_friend_message', decryptedMessage);
-    }
-
-    // Push notification to recipient
-    if (otherUserId) {
-      await sendPushToUser(
-        otherUserId,
-        `${req.user.name} (Zenvy Secure)`,
-        '💬 Sent you an encrypted message.',
-        { type: 'NEW_CHAT_MESSAGE', conversationId }
-      );
+      // Push notification to recipient with actual message content preview
+      if (otherUserId) {
+        const previewText = text ? (text.length > 50 ? text.substring(0, 50) + '...' : text) : '💬 Sent a sticker';
+        await sendPushToUser(
+          otherUserId,
+          `${req.user.name}`,
+          previewText,
+          { type: 'NEW_CHAT_MESSAGE', conversationId }
+        );
+      }
     }
 
     res.status(201).json(decryptedMessage);
@@ -466,35 +468,102 @@ exports.getFriendMessages = async (req, res) => {
     const conversation = await Conversation.findByPk(conversationId);
     if (!conversation) return res.status(404).json({ message: 'Conversation not found.' });
 
-    const parts = conversation.participants;
-    if (!parts.includes(req.user.id)) {
-      return res.status(403).json({ message: 'Access denied.' });
+    if (!conversation.participants.includes(req.user.id)) {
+      return res.status(403).json({ message: 'Not a participant of this conversation.' });
     }
 
-    // Fetch messages (only not expired)
-    const now = new Date();
     const messages = await Message.findAll({
-      where: {
-        conversationId,
-        [Op.or]: [
-          { expiresAt: null },
-          { expiresAt: { [Op.gt]: now } }
-        ]
-      },
-      order: [['createdAt', 'ASC']],
-      limit: 100
+      where: { conversationId },
+      order: [['createdAt', 'ASC']]
     });
 
-    // Decrypt text content on-the-fly
-    const decryptedList = messages.map(msg => {
-      const item = msg.toJSON();
-      item.text = decryptText(msg.text);
-      return item;
-    });
+    const decrypted = messages.map(m => ({
+      ...m.toJSON(),
+      text: decryptText(m.text)
+    }));
 
-    res.json(decryptedList);
+    res.json(decrypted);
   } catch (error) {
     console.error('[GET_CHAT_MESSAGES_ERROR]', error);
     res.status(500).json({ message: 'Server error fetching messages.' });
+  }
+};
+
+exports.updateFriendshipNickname = async (req, res) => {
+  try {
+    const Friendship = getFriendshipModel();
+    if (!Friendship) return res.status(500).json({ message: 'Models not loaded' });
+
+    const friendship = await Friendship.findByPk(req.params.id);
+    if (!friendship) return res.status(404).json({ message: 'Friendship not found' });
+
+    const nickname = (req.body.nickname || '').trim();
+    friendship.nickname = nickname || null;
+    await friendship.save();
+
+    res.json({ message: 'Nickname updated successfully', nickname: friendship.nickname });
+  } catch (error) {
+    console.error('[UPDATE_NICKNAME_ERROR]', error);
+    res.status(500).json({ message: 'Server error updating nickname.' });
+  }
+};
+
+// 9. Remove friend from circle
+exports.removeFriend = async (req, res) => {
+  try {
+    const Friendship = getFriendshipModel();
+    if (!Friendship) return res.status(500).json({ message: 'Models not loaded' });
+
+    const friendship = await Friendship.findByPk(req.params.id);
+    if (!friendship) return res.status(404).json({ message: 'Friendship not found' });
+
+    if (friendship.requesterId !== req.user.id && friendship.recipientId !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized to remove this friend' });
+    }
+
+    await friendship.destroy();
+    res.json({ message: 'Friend removed from circle successfully' });
+  } catch (error) {
+    console.error('[REMOVE_FRIEND_ERROR]', error);
+    res.status(500).json({ message: 'Server error removing friend.' });
+  }
+};
+
+// 10. Send Orbit Nudge
+exports.sendFriendNudge = async (req, res) => {
+  try {
+    const { friendshipId } = req.body;
+    if (!friendshipId) return res.status(400).json({ message: 'friendshipId is required.' });
+
+    const Friendship = getFriendshipModel();
+    if (!Friendship) return res.status(500).json({ message: 'Models not loaded' });
+
+    const friendship = await Friendship.findByPk(friendshipId);
+    if (!friendship) return res.status(404).json({ message: 'Friendship not found.' });
+
+    const otherUserId = friendship.requesterId === req.user.id ? friendship.recipientId : friendship.requesterId;
+    await updateFriendshipStreak(friendship);
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user-${otherUserId}`).emit('friend_nudge', {
+        friendshipId,
+        senderId: req.user.id,
+        senderName: req.user.name,
+        streakCount: friendship.streakCount
+      });
+    }
+
+    await sendPushToUser(
+      otherUserId,
+      `⚡ ${req.user.name} (Nudge!)`,
+      `🔥 Sent a flame nudge! Your streak is ${friendship.streakCount} days.`,
+      { type: 'FRIEND_NUDGE', friendshipId }
+    );
+
+    res.json({ message: 'Nudge transmitted!', streakCount: friendship.streakCount });
+  } catch (error) {
+    console.error('[SEND_NUDGE_ERROR]', error);
+    res.status(500).json({ message: 'Server error sending nudge.' });
   }
 };
