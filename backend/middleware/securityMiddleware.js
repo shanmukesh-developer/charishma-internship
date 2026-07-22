@@ -27,9 +27,9 @@ const crypto = require('crypto');
 // ── 1. SQL Injection Pattern Detector ─────────────────────────────────────────
 const SQL_INJECTION_PATTERNS = [
   /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|CREATE|EXEC|EXECUTE)\b\s)/i,
-  /(--|\/\*|\*\/|xp_|sp_)/i,
+  /(--\s|\/\*|\*\/|\bxp_|\bsp_)/i,   // -- must be followed by space (real SQL comment), xp_/sp_ need word boundary
   /(\b(OR|AND)\b\s+\d+\s*=\s*\d+)/i,     // OR 1=1, AND 1=1
-  /(CONCAT\s*\(|CHAR\s*\(|0x[0-9a-f]+)/i, // Hex encoding attacks
+  /(CONCAT\s*\(|CHAR\s*\(|0x[0-9a-f]{4,})/i, // Hex encoding attacks (require 4+ hex digits to avoid matching short strings)
   /(\bSLEEP\s*\(|\bBENCHMARK\s*\()/i,     // Time-based blind SQL injection
   /(\bINFORMATION_SCHEMA\b)/i,            // Schema enumeration
 ];
@@ -122,7 +122,7 @@ const injectionGuard = (req, res, next) => {
     if (!obj || typeof obj !== 'object') return false;
     for (const [key, value] of Object.entries(obj)) {
       // Skip scanning passwords/tokens/verification codes as they contain arbitrary special characters
-      if (['password', 'oldPassword', 'newPassword', 'confirmPassword', 'token', 'accessToken', 'refreshToken', 'code'].includes(key)) {
+      if (['password', 'oldPassword', 'newPassword', 'confirmPassword', 'token', 'accessToken', 'refreshToken', 'firebaseToken', 'idToken', 'code'].includes(key)) {
         continue;
       }
       if (typeof value === 'string') {
