@@ -532,7 +532,7 @@ const getActiveOrders = async (req, res) => {
     const orders = await Order.findAll({
       where: { 
         deliveryPartnerId: req.user.id,
-        status: ['Accepted', 'PickedUp', 'Preparing']
+        status: { [Op.notIn]: ['Delivered', 'Cancelled'] }
       },
       order: [['createdAt', 'ASC']]
     });

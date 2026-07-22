@@ -256,11 +256,19 @@ export default function App() {
     try {
       const { status } = await Notifications.requestPermissionsAsync();
       if (status === 'granted') {
-        const tokenData = await Notifications.getExpoPushTokenAsync();
-        if (tokenData?.data && authToken) {
+        let fcmToken = '';
+        try {
+          const deviceTokenData = await Notifications.getDevicePushTokenAsync();
+          fcmToken = deviceTokenData.data;
+        } catch (deviceError) {
+          console.warn('FCM native token failed, trying Expo fallback:', deviceError);
+          const tokenData = await Notifications.getExpoPushTokenAsync();
+          fcmToken = tokenData.data;
+        }
+        if (fcmToken && authToken) {
           apiFetch('/delivery/fcm-token', {
             method: 'POST',
-            body: JSON.stringify({ token: tokenData.data })
+            body: JSON.stringify({ token: fcmToken })
           }).catch(() => {});
         }
       }
