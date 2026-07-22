@@ -44,23 +44,134 @@ const ZENVY_STICKERS = [
 ];
 
 const CAMPUS_TRUTHS = [
-  "Have you ever slept through a midterm exam?",
-  "What is the most embarrassing thing you've done in the library?",
-  "Who is your secret crush in the hostel?",
-  "Which canteen food do you secretly despise but eat anyway?",
-  "Have you ever snuck someone into the hostel after curfew?",
-  "What is the funniest rumor you've heard about yourself?",
-  "Which class do you skip the most often?"
+  "If the hostel warden was a movie villain, who would they be?",
+  "Which classmate's GPA is lower than the chances of you passing tomorrow's exam?",
+  "What is the most disgusting thing you've eaten in the canteen just because it was free?",
+  "Have you ever blamed a terrible room smell on your roommate when it was actually you?",
+  "What is the longest period you've gone without taking a shower during exam week?",
+  "Which professor's voice is the absolute best cure for your insomnia?",
+  "If you could erase one embarrassing thing you did in front of your crush, what would it be?",
+  "How many times have you pretended to be asleep when your roommate wanted to talk?",
+  "What is the most ridiculous lie you told the warden to get out of the hostel after curfew?",
+  "Who is the one person in this hostel you would never trust with your Netflix password?",
+  "Which subject do you officially know absolutely nothing about despite attending every lecture?",
+  "What's the maximum number of days you've worn the same pair of socks?",
+  "What is the most useless thing you have ever spent your hostel pocket money on?",
+  "Have you ever stolen someone else's labeled food from the shared fridge?",
+  "If you were forced to date the person you skip classes with, how bad would it be?",
+  "Who in this class has the most punchable face when they ask the professor for extra homework?",
+  "What's the most desperate thing you've done to get a signature on a proxy attendance sheet?",
+  "How many times have you used Google Translate to write a paragraph for your English assignments?",
+  "What is the weirdest thing you have ever searched on the campus Wi-Fi?",
+  "Which of your friends is most likely to get arrested for accidentally doing something stupid?",
+  "What was the worst meal you ever cooked in the hostel room using only a kettle?",
+  "If you had to trade your roommate for a bag of chips, what flavor of chips would you choose?",
+  "Have you ever kept a library book so long that the fine was higher than the book's price?",
+  "Which hostel roommate has the absolute worst snoring habits in history?",
+  "What is the most embarrassing nickname your parents call you in front of your campus friends?",
+  "Have you ever fake-laughed at a professor's terrible joke just to score internal marks?",
+  "What is the most awkward text you've accidentally sent to a class WhatsApp group?",
+  "If your study group was a sinking ship, who would you throw overboard first to save yourself?",
+  "What is the highest number of alarm snoozes you've had before actually waking up for class?",
+  "Have you ever worn your roommate's clothes without asking and then put them back dirty?",
+  "Which canteen food item should be classified as a chemical weapon?",
+  "What is the most pathetic excuse you've ever given for not submitting an assignment?",
+  "Who is the biggest gossip queen/king in your department?",
+  "Have you ever secretly muted your friend's notifications because they text too much?",
+  "What's the most hours you have wasted scrolling Reels when you should have been studying?",
+  "If you could replace the college dean with a celebrity, who would it be?",
+  "Which friend of yours is the worst driver/rider on campus?",
+  "Have you ever pretended to understand a concept during a group study session when you had no clue?",
+  "What is the longest you've gone without checking your phone?",
+  "If your phone history was projected on the classroom screen, how fast would you run out?",
+  "Which class do you sit in the back row specifically to play mobile games?",
+  "What is the most useless advice a senior has ever given you?",
+  "Have you ever lied about having an emergency just to avoid hanging out with someone?",
+  "What is the most amount of money you have spent on canteen coffee in a single week?",
+  "If your hostel room caught fire, what is the first non-living thing you would save?",
+  "Which exam did you pass purely by relying on the genius sitting next to you?",
+  "What is the most embarrassing thing you've said out loud while half-asleep in the hostel?",
+  "Have you ever copied an assignment so fast that you accidentally copied the other person's name?",
+  "Who is the most dramatic person in your close circle?",
+  "If you could change your department to anything else right now, what would it be?",
+  "If {friendName} was a movie villain, which professor would they try to destroy first?",
+  "Which class do you and {friendName} skip the most often?",
+  "What is the most disgusting food you've seen {friendName} eat in the canteen?",
+  "If you had to trade {friendName} for a plate of samosas, would you choose potato or paneer samosa?",
+  "Who has a lower GPA: you or {friendName}?",
+  "What is the most embarrassing rumor you have heard about {friendName}?",
+  "If {friendName} was caught sneaking into the hostel after curfew, who would they blame?",
+  "Who would win in a fight with the warden: you or {friendName}?",
+  "If you were stranded in the hostel elevator with {friendName}, who would panic first?",
+  "Which subject does {friendName} secretly know absolutely nothing about?",
+  "What is the weirdest habit of {friendName} that you know of?",
+  "If {friendName} became the hostel warden, what is the first rule they would change?",
+  "Who is more likely to fall asleep during a midterm exam: you or {friendName}?",
+  "If {friendName} was a canteen dish, what food item would they be?",
+  "What is the most embarrassing nickname you could give {friendName}?"
 ];
 
 const CAMPUS_DARES = [
-  "Send a selfie making the most ridiculous face right now!",
-  "Text your crush 'I forgot my homework, can I have your smile instead?'",
-  "Post a status saying 'I am the absolute ruler of this hostel!'",
-  "Do 20 squats right now and confirm once you are done!",
-  "Sing the chorus of your favorite song in a voice note and send it!",
-  "Eat a spoonful of hot sauce or chili powder right now!",
-  "Confess your most bizarre habit to your roommate right now!"
+  "Send a text to your roommate saying 'We need to talk about the missing sock' and don't reply for 1 hour.",
+  "Send a screenshot of your screen time for today to this chat right now.",
+  "Change your WhatsApp status to 'Calculating the speed of hostel gossips' for the next 24 hours.",
+  "Text your crush 'Did it hurt? When you fell from the library stairs?' and screenshot it.",
+  "Take a selfie looking extremely confused and send it right now.",
+  "Voice note yourself whispering 'The warden is watching' in a creepy voice and send it here.",
+  "Text your senior 'Can you explain why 1+1 is not 3?' and send the screenshot.",
+  "Send a message to your class group chat saying 'Is tomorrow's exam cancelled?' and delete it 5 seconds later.",
+  "Change your profile name to 'Hostel Legend' for the next 2 hours.",
+  "Voice note a 10-second dramatic reading of the most boring sentence from your textbook.",
+  "Text a random contact 'I know what you did last semester' and screenshot the reply.",
+  "Send a photo of the messiest corner of your room right now.",
+  "Change your keyboard language to something completely different and type the next message in that language.",
+  "Text your best friend 'I'm moving to Mars, do you want anything?' and send the screenshot.",
+  "Voice note yourself singing the alphabet song backwards as fast as possible.",
+  "Write a 3-line poem about how terrible the hostel food is and send it here.",
+  "Send a selfie holding a spoon like a microphone.",
+  "Text your roommate 'The kettle has achieved self-awareness' right now.",
+  "Change your profile picture to a potato or a meme of a potato for the next 1 hour.",
+  "Voice note yourself doing a dramatic evil laugh for 5 seconds.",
+  "Text your group chat 'I am the chosen one' and do not explain.",
+  "Send a photo of your desk or bed right now, no cleaning up allowed.",
+  "Text your senior 'Do you think the canteen food is actually edible?' and screenshot their reply.",
+  "Voice note yourself saying 'Subscribe to my channel for hostel survival tips' in an announcer voice.",
+  "Text a contact 'You owe me a plate of samosas' and screenshot the reaction.",
+  "Change your WhatsApp display name to 'Offline' for the next 3 hours.",
+  "Voice note a 10-second review of the last canteen meal you had as if you were a Michelin-star critic.",
+  "Text your roommate 'Please lock the door, the ghosts are active tonight' and screenshot it.",
+  "Send a photo of the oldest food container or wrapper currently in your room.",
+  "Text your group chat 'Which class are we skipping tomorrow?' even if there is no class.",
+  "Change your status to 'Sleeping until graduation' for 12 hours.",
+  "Voice note yourself making a sound like a microwave beep.",
+  "Send a selfie wearing your sunglasses indoors.",
+  "Text your crush/friend 'Are you a library book? Because I can't stop checking you out' and screenshot it.",
+  "Write a formal apology letter to the kettle for abusing it and send the photo here.",
+  "Text a random friend 'Quick! What is the capital of hostel life?' and screenshot it.",
+  "Change your display font size to the absolute maximum and send a screenshot of the chat.",
+  "Voice note yourself saying 'Attention hostelers: the canteen tea is actually warm water' in a whispering voice.",
+  "Text your best friend 'I lost my phone, can you call it?' and screenshot their response.",
+  "Send a photo of your shoes and rate their cleanliness out of 10.",
+  "Text a classmate 'Do you have the notes for the exam we had last week?' and screenshot it.",
+  "Change your status to 'Searching for my lost motivation' for 24 hours.",
+  "Voice note yourself reading a grocery list in an extremely dramatic voice.",
+  "Text your roommate 'The fan is spinning too fast, it might launch' and screenshot the response.",
+  "Send a selfie with a book on your head.",
+  "Text your senior 'Is it true that seniors get free canteen tea from juniors?' and screenshot it.",
+  "Write 'Zenvy is the only thing keeping me sane' on a piece of paper, take a photo, and send it.",
+  "Voice note yourself saying 'I am declaring a hostel emergency' and whisper the reason.",
+  "Text a friend 'I accidentally bought a bicycle' and screenshot the reaction.",
+  "Change your WhatsApp status to 'Currently under warden observation' for 4 hours.",
+  "Text {friendName}: 'The kettle has achieved self-awareness' and screenshot the reply.",
+  "Text {friendName}: 'Did it hurt? When you fell from the library stairs?' and screenshot it.",
+  "Text {friendName}: 'I know what you did last semester' and screenshot the response.",
+  "Text {friendName}: 'You owe me a plate of samosas' and screenshot the reaction.",
+  "Text {friendName}: 'The ghosts in block {blockName} are active tonight' and screenshot it.",
+  "Text {friendName}: 'Are you a library book? Because I can't stop checking you out' and screenshot it.",
+  "Text {friendName}: 'I lost my phone, can you call it?' and screenshot their response.",
+  "Text {friendName}: 'The fan in room {roomNumber} is spinning too fast' and screenshot the response.",
+  "Text {friendName}: 'I accidentally bought a bicycle' and screenshot the reaction.",
+  "Text {friendName}: 'Is tomorrow's exam cancelled?' and screenshot the response."
 ];
 
 const CHAT_THEMES = [
@@ -169,6 +280,8 @@ export default function FriendsScreen() {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
   const [showGames, setShowGames] = useState(false);
+  const [usedTruths, setUsedTruths] = useState<number[]>([]);
+  const [usedDares, setUsedDares] = useState<number[]>([]);
   
   // Nickname Editing State
   const [isEditingNickname, setIsEditingNickname] = useState(false);
@@ -444,6 +557,46 @@ export default function FriendsScreen() {
     setActiveChat(null);
     setIsEditingNickname(false);
     loadFriendsData();
+  };
+
+  const getUniqueQuestion = (type: 'truth' | 'dare') => {
+    const pool = type === 'truth' ? CAMPUS_TRUTHS : CAMPUS_DARES;
+    const used = type === 'truth' ? usedTruths : usedDares;
+    const setUsed = type === 'truth' ? setUsedTruths : setUsedDares;
+
+    // Filter out indices that were used recently
+    let availableIndices = pool.map((_, i) => i).filter(i => !used.includes(i));
+    
+    // If we've run out of unique questions, reset the used history
+    if (availableIndices.length === 0) {
+      availableIndices = pool.map((_, i) => i);
+      setUsed([]);
+    }
+
+    const randomIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+    
+    // Add to used list
+    setUsed(prev => [...prev, randomIndex]);
+
+    let question = pool[randomIndex];
+
+    // Dynamic variable substitutions
+    if (question.includes('{friendName}')) {
+      const friendPool = friends.map(f => f.name).filter(Boolean);
+      const randomFriend = friendPool.length > 0 ? friendPool[Math.floor(Math.random() * friendPool.length)] : 'your roommate';
+      question = question.replace(/{friendName}/g, randomFriend);
+    }
+    if (question.includes('{blockName}')) {
+      const blocks = ['A', 'B', 'C', 'D', 'LH', 'MH'];
+      const randomBlock = blocks[Math.floor(Math.random() * blocks.length)];
+      question = question.replace(/{blockName}/g, randomBlock);
+    }
+    if (question.includes('{roomNumber}')) {
+      const randomRoom = Math.floor(Math.random() * 400 + 100).toString();
+      question = question.replace(/{roomNumber}/g, randomRoom);
+    }
+
+    return question;
   };
 
   // Optimistic UI interaction handlers
@@ -1070,8 +1223,8 @@ export default function FriendsScreen() {
                     <TouchableOpacity
                       style={[s.stickerBubbleBtn, { width: 110, backgroundColor: '#8E2DE2', flexDirection: 'row', gap: 6, paddingHorizontal: 12, height: 44, borderRadius: 22 }]}
                       onPress={() => {
-                        const randomTruth = CAMPUS_TRUTHS[Math.floor(Math.random() * CAMPUS_TRUTHS.length)];
-                        handleSendMessage(`[TRUTH] ${randomTruth}`);
+                        const uniqueTruth = getUniqueQuestion('truth');
+                        handleSendMessage(`[TRUTH] ${uniqueTruth}`);
                       }}
                     >
                       <Text style={{ fontSize: 20 }}>💡</Text>
@@ -1081,8 +1234,8 @@ export default function FriendsScreen() {
                     <TouchableOpacity
                       style={[s.stickerBubbleBtn, { width: 110, backgroundColor: '#DD2476', flexDirection: 'row', gap: 6, paddingHorizontal: 12, height: 44, borderRadius: 22 }]}
                       onPress={() => {
-                        const randomDare = CAMPUS_DARES[Math.floor(Math.random() * CAMPUS_DARES.length)];
-                        handleSendMessage(`[DARE] ${randomDare}`);
+                        const uniqueDare = getUniqueQuestion('dare');
+                        handleSendMessage(`[DARE] ${uniqueDare}`);
                       }}
                     >
                       <Text style={{ fontSize: 20 }}>😈</Text>
