@@ -399,8 +399,9 @@ export default function TrackingScreen() {
         else if (data.status === 'Accepted') setStatus(2);
         else if (data.status === 'Preparing' || data.status === 'ReadyForPickup') setStatus(3);
         else if (data.status === 'PickedUp') setStatus(4);
+        else if (data.status === 'ArrivedAtGate') setStatus(5);
         else if (data.status === 'Delivered') { 
-          setStatus(5); 
+          setStatus(6); 
           if (!data.rating) setShowRatingModal(true); 
         }
         else if (data.status === 'Cancelled') setStatus(-1);
@@ -429,7 +430,8 @@ export default function TrackingScreen() {
       else if (s === 'Accepted') { setStatus(2); fetchOrder(); }
       else if (s === 'Preparing' || s === 'ReadyForPickup') { setStatus(3); fetchOrder(); }
       else if (s === 'PickedUp') { setStatus(4); fetchOrder(); }
-      else if (s === 'Delivered') { setStatus(5); setShowDeliveryOverlay(true); }
+      else if (s === 'ArrivedAtGate') { setStatus(5); fetchOrder(); }
+      else if (s === 'Delivered') { setStatus(6); setShowDeliveryOverlay(true); }
       else if (s === 'Cancelled') setStatus(-1);
     });
 
@@ -671,7 +673,7 @@ export default function TrackingScreen() {
         <StaggeredSection delay={50} direction="up">
           <View style={[s.currentStageCard, { backgroundColor: cardBg, borderColor: COLORS.goldBorder }]}>
             <Text style={s.stageEmoji}>
-              {status === 1 ? '⏳' : status === 2 ? '✅' : status === 3 ? '🍳' : status === 4 ? '🛵' : '🎉'}
+              {status === 1 ? '⏳' : status === 2 ? '✅' : status === 3 ? '🍳' : status === 4 ? '🛵' : status === 5 ? '🔔' : '🎉'}
             </Text>
             <View style={{ flex: 1 }}>
               <Text style={[s.stageLabel, { color: txtSec }]}>CURRENT STATUS</Text>
@@ -680,7 +682,8 @@ export default function TrackingScreen() {
                 {status === 2 && 'Order accepted — rider assigning'}
                 {status === 3 && 'Kitchen is preparing your fresh meal'}
                 {status === 4 && `Rider is on the way to ${currentCheckpoint}`}
-                {status >= 5 && 'Order delivered successfully!'}
+                {status === 5 && 'Rider has arrived at your gate!'}
+                {status >= 6 && 'Order delivered successfully!'}
               </Text>
             </View>
             {eta && eta !== 'Calculating...' && (
@@ -871,7 +874,7 @@ export default function TrackingScreen() {
               <View
                 style={[
                   s.progressBar,
-                  { width: `${status === 1 ? 10 : status === 2 ? 30 : status === 3 ? 55 : status === 4 ? 85 : 100}%` }
+                  { width: `${status === 1 ? 10 : status === 2 ? 30 : status === 3 ? 55 : status === 4 ? 75 : status === 5 ? 92 : 100}%` }
                 ]}
               />
             </View>
