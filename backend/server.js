@@ -1146,7 +1146,7 @@ const startServer = async () => {
             const Order = getOrderModel();
             const order = await Order.findByPk(room);
             if (order && order.deliveryPartnerId === socket.user.id) {
-              io.to(room).emit('checkpointUpdated', { currentCheckpoint: data.currentCheckpoint });
+              io.to(room).emit('checkpointUpdated', { orderId: room, currentCheckpoint: data.currentCheckpoint });
               log(`[CHECKPOINT] ${data.orderId} → ${data.currentCheckpoint}`);
             } else {
               console.warn(`[SOCKET_DENIED] Rider ${socket.user.id} not assigned to order ${room} for location update`);
@@ -1613,7 +1613,7 @@ const startServer = async () => {
           });
           // Also emit to specific order room for customer tracking
           if (data.activeOrderId) {
-              io.to(String(data.activeOrderId)).emit('checkpointUpdated', { currentCheckpoint: data.currentCheckpoint });
+              io.to(String(data.activeOrderId)).emit('checkpointUpdated', { orderId: String(data.activeOrderId), currentCheckpoint: data.currentCheckpoint });
           }
           log(`[GPS] Rider ${data.riderName} at ${data.currentCheckpoint}`);
         } else {

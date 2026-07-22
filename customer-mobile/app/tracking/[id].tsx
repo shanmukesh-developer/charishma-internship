@@ -435,7 +435,8 @@ export default function TrackingScreen() {
       else if (s === 'Cancelled') { setStatus(-1); fetchOrder(); }
     });
 
-    socket.on('checkpointUpdated', (d: { currentCheckpoint: string }) => {
+    socket.on('checkpointUpdated', (d: { orderId?: string; currentCheckpoint: string }) => {
+      if (d.orderId && String(d.orderId) !== String(orderId)) return;
       setCurrentCheckpoint(prev => prev === d.currentCheckpoint ? prev : d.currentCheckpoint);
     });
 
