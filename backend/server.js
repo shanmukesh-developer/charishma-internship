@@ -1191,6 +1191,14 @@ const startServer = async () => {
         socket.to(String(data.orderId)).emit('typing_end', { sender: data.sender });
       });
 
+      socket.on('friend_typing_start', (data) => {
+        socket.to(`conversation-${data.conversationId}`).emit('friend_typing_start', { senderId: socket.user.id });
+      });
+
+      socket.on('friend_typing_end', (data) => {
+        socket.to(`conversation-${data.conversationId}`).emit('friend_typing_end', { senderId: socket.user.id });
+      });
+
       // --- Zenvy After Dark Social Engine ---
       
       const isAfterDark = () => {
