@@ -22,12 +22,14 @@ const sendPushToTokens = async (tokens, title, body, data = {}, extraFCMOptions 
       title,
       body
     },
-    data,
+    data: Object.fromEntries(
+      Object.entries(data || {}).map(([k, v]) => [k, v !== undefined && v !== null ? String(v) : ''])
+    ),
     tokens: validTokens,
     android: {
       priority: 'high',
       notification: {
-        sound: 'alert.wav',
+        sound: 'alert',
         channelId: 'delivery-alerts',
       },
       ...(extraFCMOptions.android || {})
@@ -59,12 +61,14 @@ const sendPushToTopic = async (topic, title, body, data = {}, extraFCMOptions = 
 
   const message = {
     notification: { title, body },
-    data,
+    data: Object.fromEntries(
+      Object.entries(data || {}).map(([k, v]) => [k, v !== undefined && v !== null ? String(v) : ''])
+    ),
     topic,
     android: {
       priority: 'high',
       notification: {
-        sound: 'alert.wav',
+        sound: 'alert',
         channelId: 'delivery-alerts',
       },
       ...(extraFCMOptions.android || {})

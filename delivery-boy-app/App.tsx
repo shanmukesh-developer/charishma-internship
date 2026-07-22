@@ -270,7 +270,7 @@ export default function App() {
             importance: Notifications.AndroidImportance.MAX,
             vibrationPattern: [0, 250, 250, 250, 250, 250, 250, 250],
             lightColor: '#FF231F7A',
-            sound: 'alert.wav',
+            sound: 'alert',
           });
         }
         let fcmToken = '';
@@ -431,7 +431,7 @@ export default function App() {
             content: {
               title: '🛵 New Order Available!',
               body: 'A new order is available for pickup. Open Zenvy Rider to accept!',
-              sound: 'alert.wav',
+              sound: 'alert',
               priority: Notifications.AndroidNotificationPriority.MAX,
             },
             trigger: null,
