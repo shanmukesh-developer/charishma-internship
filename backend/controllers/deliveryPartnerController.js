@@ -181,6 +181,11 @@ const acceptOrder = async (req, res) => {
     // Since we successfully updated, we fetch the updated order object
     const updatedOrder = await Order.findByPk(req.params.orderId);
     
+    if (updatedOrder && updatedOrder.status === 'Pending') {
+      updatedOrder.status = 'Accepted';
+      await updatedOrder.save();
+    }
+    
     // (Status advancement is strictly controlled by the Restaurant Portal until picked up)
     
     if (partner) { 
@@ -331,7 +336,7 @@ const updateOrderStatus = async (req, res) => {
     if (!order) return res.status(404).json({ message: 'Order not found' });
     if (order.deliveryPartnerId !== req.user.id) return res.status(403).json({ message: 'Unauthorized' });
 
-    if (status === 'PickedUp' && !['Accepted', 'Preparing', 'ReadyForPickup'].includes(order.status)) {
+    if (status === 'PickedUp' && !['Pending', 'Accepted', 'Preparing', 'ReadyForPickup'].includes(order.status)) {
       return res.status(400).json({ message: 'Order must be Accepted or Ready by restaurant first' });
     }
     if (status === 'Delivered' && !['PickedUp', 'ArrivedAtGate'].includes(order.status)) {
