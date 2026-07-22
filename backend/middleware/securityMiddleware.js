@@ -127,11 +127,13 @@ const injectionGuard = (req, res, next) => {
       }
       if (typeof value === 'string') {
         if (containsSQLInjection(value)) {
-          console.warn(`🛡️ [SECURITY_BLOCK] SQL injection detected in ${location}.${key} from IP ${req.ip} | TraceId: ${req.traceId}`);
+          const matchedPattern = SQL_INJECTION_PATTERNS.find(pat => pat.test(value));
+          console.warn(`🛡️ [SECURITY_BLOCK] SQL injection detected in ${location}.${key} value "${value}" (Matched: ${matchedPattern}) from IP ${req.ip} | TraceId: ${req.traceId}`);
           return true;
         }
         if (containsPathTraversal(value)) {
-          console.warn(`🛡️ [SECURITY_BLOCK] Path traversal detected in ${location}.${key} from IP ${req.ip} | TraceId: ${req.traceId}`);
+          const matchedPattern = PATH_TRAVERSAL_PATTERNS.find(pat => pat.test(value));
+          console.warn(`🛡️ [SECURITY_BLOCK] Path traversal detected in ${location}.${key} value "${value}" (Matched: ${matchedPattern}) from IP ${req.ip} | TraceId: ${req.traceId}`);
           return true;
         }
       }
