@@ -108,7 +108,17 @@ const CAMPUS_TRUTHS = [
   "If {friendName} became the hostel warden, what is the first rule they would change?",
   "Who is more likely to fall asleep during a midterm exam: you or {friendName}?",
   "If {friendName} was a canteen dish, what food item would they be?",
-  "What is the most embarrassing nickname you could give {friendName}?"
+  "What is the most embarrassing nickname you could give {friendName}?",
+  "If {friendName} caught you stealing {canteenFood} in the {locationName}, first em ani arusthav?",
+  "Nuvvu {friendName} kalisi {locationName} lo edhaina block-list activity chesthe, evarini throw chesthav?",
+  "Ae subject kante {friendName} icche free advice waste anukuntunnav: {subjectName} aa leka normal aa?",
+  "If you, {friendName}, and {professorRole} were locked in {locationName}, first evaru gattiga edustharu?",
+  "GPA ranking lo {friendName} kante nee {subjectName} skills better aa kadha?",
+  "If the {professorRole} catches you with {itemName} in the class, direct ga {locationName} ki send chesthara?",
+  "{friendName} room lo {itemName} dhochi {canteenFood} thinadam direct ga crime aa kadha?",
+  "Dean/Warden room lo {friendName} with {itemName} unte, clear ga photo petti expose chesthava?",
+  "Ae {subjectName} exam roju nuvvu {friendName} kante ekkuva sleep veshav?",
+  "{friendName} dynamic personality character low aa leka canteen {canteenFood} low aa?"
 ];
 
 const CAMPUS_DARES = [
@@ -171,7 +181,17 @@ const CAMPUS_DARES = [
   "Text {friendName}: 'I lost my phone, can you call it?' and screenshot their response.",
   "Text {friendName}: 'The fan in room {roomNumber} is spinning too fast' and screenshot the response.",
   "Text {friendName}: 'I accidentally bought a bicycle' and screenshot the reaction.",
-  "Text {friendName}: 'Is tomorrow's exam cancelled?' and screenshot the response."
+  "Text {friendName}: 'Is tomorrow's exam cancelled?' and screenshot the response.",
+  "Text {friendName}: 'I lost my {itemName} in {locationName}, can you search it?' and screenshot it.",
+  "Text {friendName}: 'Please buy me {canteenFood} right now, naku low sugar vundi' and screenshot it.",
+  "Change your WhatsApp status to 'Currently learning {subjectName} from {friendName}' for 4 hours.",
+  "Text {friendName}: 'Warden has detected your {itemName} in {locationName}' and screenshot the reaction.",
+  "Text {friendName}: 'I am declaring {itemName} as national hostel item' and screenshot it.",
+  "Voice note {friendName}: whisper '{canteenFood} smell is coming from {locationName}' in a scary tone.",
+  "Text {friendName}: 'I accidentally dropped your {itemName} in canteen {canteenFood}' and screenshot the reaction.",
+  "Write 'I love {subjectName} and {friendName}' on a paper, take a photo and send it.",
+  "Text {friendName}: 'Let's skip {subjectName} class and go to {locationName}' and screenshot it.",
+  "Text {friendName}: 'Can you explain why {professorRole} is searching for your {itemName}?' and screenshot it."
 ];
 
 const CHAT_THEMES = [
@@ -190,6 +210,12 @@ const STATUS_GRADIENTS = [
   ['#11998e', '#38ef7d'],
   ['#0E1116', '#171B22'],
 ];
+
+const CANTEEN_FOODS = ['samosa', 'maggi', 'canteen tea', 'fried rice', 'dosa', 'veg puff', 'aloo bajji', 'biryani', 'watery dal', 'burnt chapati', 'cement idli', 'diluted milk', 'chemical paneer', 'half-boiled egg', 'mystery gravy', 'rubber parotta', 'yellow drinking water', 'undercooked noodles', 'smelly boiled rice', 'expired tomato ketchup', 'diluted rasam', 'sour curd', 'plastic cup tea', 'half-fried onion samosa', 'dusty peanuts', 'uncooked maggi crumbs'];
+const SUBJECTS = ['Maths', 'Physics', 'Coding', 'DBMS', 'OS', 'English', 'Data Structures', 'Chemistry', 'Boring Lecture 101', 'Proxy Attendance Class', 'Copy-Paste Lab', 'Sleeping Session', 'Seniors Ragging Class', 'Exam Hall Torture', 'Viva Voce Disaster', 'Seminar Presentation Boredom', 'Assigned Project Failure', 'Assignment Copying Hour', 'Last Bench Gaming session', 'Record Book Writing marathon'];
+const PROFESSOR_ROLES = ['HOD', 'lab assistant', 'dean', 'librarian', 'warden', 'maths prof', 'physics prof', 'security guard', 'canteen owner', 'exam supervisor', 'proxy checker', 'gatekeeper', 'fees collector', 'attendance monitor', 'record book signature manager', 'external examiner', 'internship coordinator', 'canteen cashier'];
+const LOCATIONS = ['library', 'girls hostel', 'canteen back area', 'seminar hall', 'dean office', 'hostel terrace', 'main gate', 'exam hall bench', 'warden checking post', 'hostel washroom', 'seniors corner', 'dark alley near gate', 'class back row', 'canteen queue', 'admin cell queue', 'security check gate', 'attendance office desk', 'common room television bench', 'hostel lobby elevator', 'parking slot back'];
+const ITEMS = ['kettle', 'missing sock', 'cheat sheet', 'hot sauce', 'sunglasses', 'bicycle', 'slipper', 'broken plastic mug', 'empty wallet', '2-rupee coin', 'stolen assignment book', 'mosquito bat', 'expired noodle pack', 'wifi password paper', 'fake medical certificate', 'one-side earphone', 'torn textbook', 'empty water bottle', 'crushed tea cup', 'proxy signature pen', 'dirty bedsheet', 'broken charger cable', 'stolen hanger', 'lost library card', 'used face mask'];
 
 // Helper to resolve profile image fallbacks using premium Unsplash avatars
 const getAvatarUrl = (profileImage: string | null, id: string) => {
@@ -594,6 +620,26 @@ export default function FriendsScreen() {
     if (question.includes('{roomNumber}')) {
       const randomRoom = Math.floor(Math.random() * 400 + 100).toString();
       question = question.replace(/{roomNumber}/g, randomRoom);
+    }
+    if (question.includes('{canteenFood}')) {
+      const randomFood = CANTEEN_FOODS[Math.floor(Math.random() * CANTEEN_FOODS.length)];
+      question = question.replace(/{canteenFood}/g, randomFood);
+    }
+    if (question.includes('{subjectName}')) {
+      const randomSubject = SUBJECTS[Math.floor(Math.random() * SUBJECTS.length)];
+      question = question.replace(/{subjectName}/g, randomSubject);
+    }
+    if (question.includes('{professorRole}')) {
+      const randomProf = PROFESSOR_ROLES[Math.floor(Math.random() * PROFESSOR_ROLES.length)];
+      question = question.replace(/{professorRole}/g, randomProf);
+    }
+    if (question.includes('{locationName}')) {
+      const randomLoc = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
+      question = question.replace(/{locationName}/g, randomLoc);
+    }
+    if (question.includes('{itemName}')) {
+      const randomItem = ITEMS[Math.floor(Math.random() * ITEMS.length)];
+      question = question.replace(/{itemName}/g, randomItem);
     }
 
     return question;
