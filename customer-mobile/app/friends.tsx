@@ -161,6 +161,8 @@ export default function FriendsScreen() {
   
   // Interactive nodes state
   const [activeChat, setActiveChat] = useState<any | null>(null);
+  const activeChatRef = useRef<any>(null);
+  activeChatRef.current = activeChat;
   const [popoverPending, setPopoverPending] = useState<any | null>(null);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [draftMessage, setDraftMessage] = useState('');
@@ -331,8 +333,8 @@ export default function FriendsScreen() {
         setFriends(data);
         
         // Sync activeChat state if open to update dynamic fields (like conversationId and streakCount)
-        if (activeChat) {
-          const updated = data.find((f: any) => f.friendshipId === activeChat.friendshipId);
+        if (activeChatRef.current) {
+          const updated = data.find((f: any) => f.friendshipId === activeChatRef.current.friendshipId);
           if (updated) {
             setActiveChat(updated);
           }
@@ -423,6 +425,7 @@ export default function FriendsScreen() {
                 method: 'DELETE'
               });
               if (res.ok) {
+                activeChatRef.current = null;
                 setActiveChat(null);
                 loadFriendsData();
                 Alert.alert('Removed', 'Friend removed from your orbit.');
@@ -434,6 +437,13 @@ export default function FriendsScreen() {
         }
       ]
     );
+  };
+
+  const handleCloseChat = () => {
+    activeChatRef.current = null;
+    setActiveChat(null);
+    setIsEditingNickname(false);
+    loadFriendsData();
   };
 
   // Optimistic UI interaction handlers
@@ -885,7 +895,7 @@ export default function FriendsScreen() {
 
       {/* SLIDE-UP BOTTOM SHEET FOR SECURE CHATS */}
       {activeChat && (
-        <Modal visible={!!activeChat} animationType="slide" transparent={true} onRequestClose={() => setActiveChat(null)}>
+        <Modal visible={!!activeChat} animationType="slide" transparent={true} onRequestClose={handleCloseChat}>
           <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -901,7 +911,7 @@ export default function FriendsScreen() {
 
                 {/* Header Row: Navigation & Actions */}
                 <View style={s.chatHeaderRow}>
-                  <TouchableOpacity style={s.chatCloseBtn} onPress={() => { setActiveChat(null); setIsEditingNickname(false); loadFriendsData(); }}>
+                  <TouchableOpacity style={s.chatCloseBtn} onPress={handleCloseChat}>
                     <Text style={s.chatCloseText}>✕ CLOSE</Text>
                   </TouchableOpacity>
 
