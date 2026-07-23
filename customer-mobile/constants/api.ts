@@ -1,13 +1,18 @@
+import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-// For local testing on emulator/device, dynamically retrieve the host IP address.
-// In production or browser, fallback to localhost.
+// ADB reverse port forwarding tunnels localhost:5005 on the phone
+// directly to your PC's backend over USB. No WiFi/firewall needed.
+// To set up: adb reverse tcp:5005 tcp:5005
+
 const getDevHost = () => {
+  // 1. If Metro is running, expo-constants gives us the host IP automatically
   const hostUri = Constants.expoConfig?.hostUri;
   if (hostUri) {
     return `http://${hostUri.split(':')[0]}:5005`;
   }
-  return 'http://localhost:5005';
+  // 2. Standalone APK / Production fallback → use Live Render server
+  return 'https://hostelbites-backend-jwmt.onrender.com';
 };
 
 export const API_URL = getDevHost();
