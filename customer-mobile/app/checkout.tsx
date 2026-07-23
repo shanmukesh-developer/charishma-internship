@@ -11,8 +11,8 @@ import {
   Linking,
   Image,
   Alert,
-  Clipboard
 } from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 import { useRouter } from 'expo-router';
 import { COLORS, SHADOWS } from '../constants/theme';
 import { API_URL, ENDPOINTS } from '../constants/api';

@@ -80,14 +80,16 @@ export function ShimmerSkeleton({ width, height, borderRadius = 12, style }: Shi
   const shimmerAnim = useRef(new Animated.Value(-1)).current;
 
   useEffect(() => {
-    Animated.loop(
+    const loop = Animated.loop(
       Animated.timing(shimmerAnim, {
         toValue: 2,
         duration: 1500,
         easing: Easing.linear,
         useNativeDriver: true,
       })
-    ).start();
+    );
+    loop.start();
+    return () => loop.stop();
   }, []);
 
   const translateX = shimmerAnim.interpolate({
@@ -137,7 +139,7 @@ export function PulseGlow({ size, color = '#EF4F5F', children, style }: PulseGlo
   const pulseOpacity = useRef(new Animated.Value(0.6)).current;
 
   useEffect(() => {
-    Animated.loop(
+    const loop = Animated.loop(
       Animated.parallel([
         Animated.sequence([
           Animated.timing(pulseScale, { toValue: 1.25, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
@@ -148,7 +150,9 @@ export function PulseGlow({ size, color = '#EF4F5F', children, style }: PulseGlo
           Animated.timing(pulseOpacity, { toValue: 0.6, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ]),
       ])
-    ).start();
+    );
+    loop.start();
+    return () => loop.stop();
   }, []);
 
   return (
@@ -183,7 +187,7 @@ export function FloatingPulse({ children, color = '#EF4F5F', style }: FloatingPu
   const breathOpacity = useRef(new Animated.Value(0.15)).current;
 
   useEffect(() => {
-    Animated.loop(
+    const loop = Animated.loop(
       Animated.parallel([
         Animated.sequence([
           Animated.timing(breathScale, { toValue: 1.15, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
@@ -194,7 +198,9 @@ export function FloatingPulse({ children, color = '#EF4F5F', style }: FloatingPu
           Animated.timing(breathOpacity, { toValue: 0.08, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ]),
       ])
-    ).start();
+    );
+    loop.start();
+    return () => loop.stop();
   }, []);
 
   return (

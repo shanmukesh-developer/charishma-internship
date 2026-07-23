@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SHADOWS } from '../../constants/theme';
 import { API_URL } from '../../constants/api';
 import { useCart } from '../../context/CartContext';
+import { apiFetch } from '../../utils/auth';
 import { useTheme } from '../../context/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import CustomizeDrawer, { summarizeCustomizations } from '../../components/CustomizeDrawer';
@@ -219,7 +220,7 @@ export default function ProductDetail() {
 
     const fetchProduct = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/users/products/${cleanId}`);
+        const res = await apiFetch(`${API_URL}/api/users/products/${cleanId}`);
         if (res.ok) {
           const data = await res.json();
           if (data && (data.name || data.id)) {

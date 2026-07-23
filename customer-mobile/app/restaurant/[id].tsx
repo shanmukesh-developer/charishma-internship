@@ -121,7 +121,9 @@ export default function RestaurantDetail() {
           try {
             const favs = JSON.parse(favsStr);
             setIsFavorite(Array.isArray(favs) ? favs.includes(id) : false);
-          } catch(e) {}
+          } catch(e) {
+            console.error('[FAVORITES_PARSE_ERROR]', e);
+          }
         }
         const userStr = await AsyncStorage.getItem('user');
         if (userStr) {
@@ -135,7 +137,9 @@ export default function RestaurantDetail() {
             if (parsed && parsed.mode) {
               setDietMode(parsed.mode);
             }
-          } catch(e) {}
+          } catch(e) {
+            console.error('[DIET_PREFS_PARSE_ERROR]', e);
+          }
         }
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
@@ -187,7 +191,9 @@ export default function RestaurantDetail() {
       let favs = [];
       try {
         favs = favsStr ? JSON.parse(favsStr) : [];
-      } catch(e) {}
+      } catch(e) {
+        console.error('[FAVORITES_TOGGLE_PARSE_ERROR]', e);
+      }
       if (Array.isArray(favs) && favs.includes(id)) {
         favs = favs.filter((f: string) => f !== id);
         setIsFavorite(false);

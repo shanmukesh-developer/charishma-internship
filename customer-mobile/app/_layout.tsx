@@ -2,6 +2,7 @@ import React from 'react';
 import { Stack } from 'expo-router';
 import { Platform, View, StyleSheet, Alert } from 'react-native';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
+import { StatusBar as RNStatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider } from '../context/AuthContext';
@@ -29,6 +30,17 @@ function AppContainer() {
   const { isDark } = useTheme();
   const [showIntro, setShowIntro] = React.useState(true);
   const [checkingIntro, setCheckingIntro] = React.useState(true);
+
+  // Fix status bar blinking: use imperative API to set once, not on every render
+  React.useEffect(() => {
+    if (Platform.OS === 'android') {
+      RNStatusBar.setBarStyle(isDark ? 'light-content' : 'dark-content', false);
+      RNStatusBar.setBackgroundColor('transparent', false);
+      RNStatusBar.setTranslucent(true);
+    } else {
+      RNStatusBar.setBarStyle(isDark ? 'light-content' : 'dark-content', false);
+    }
+  }, [isDark]);
 
   // Hide scrollbars on web only (safe: runs at runtime, not module load)
   React.useEffect(() => {
@@ -58,7 +70,6 @@ function AppContainer() {
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1, backgroundColor: isDark ? '#0A0A0B' : '#F5F5F7' }}>
-        <ExpoStatusBar style={isDark ? "light" : "dark"} backgroundColor="transparent" translucent={true} />
         <WorldTransitionProvider>
           <AuthProvider>
           <CartProvider>

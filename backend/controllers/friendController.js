@@ -154,6 +154,20 @@ exports.sendFriendRequest = async (req, res) => {
       return res.status(400).json({ message: `Friendship already exists with status: ${existing.status}` });
     }
 
+    // Strict check: count accepted friends for sender
+    const requesterFriendsCount = await Friendship.count({
+      where: {
+        status: 'accepted',
+        [Op.or]: [
+          { requesterId: req.user.id },
+          { recipientId: req.user.id }
+        ]
+      }
+    });
+    if (requesterFriendsCount >= 10) {
+      return res.status(400).json({ message: 'Your orbit is full (10 close friends max).' });
+    }
+
     const friendship = await Friendship.create({
       requesterId: req.user.id,
       recipientId,
@@ -202,6 +216,34 @@ exports.acceptFriendRequest = async (req, res) => {
 
     if (friendship.recipientId !== req.user.id) {
       return res.status(403).json({ message: 'Only recipient can accept friend requests.' });
+    }
+
+    // Strict check: count accepted friends for requester
+    const requesterFriendsCount = await Friendship.count({
+      where: {
+        status: 'accepted',
+        [Op.or]: [
+          { requesterId: friendship.requesterId },
+          { recipientId: friendship.requesterId }
+        ]
+      }
+    });
+    if (requesterFriendsCount >= 10) {
+      return res.status(400).json({ message: 'The requester has reached the maximum limit of 10 close friends.' });
+    }
+
+    // Strict check: count accepted friends for recipient (current user)
+    const recipientFriendsCount = await Friendship.count({
+      where: {
+        status: 'accepted',
+        [Op.or]: [
+          { requesterId: req.user.id },
+          { recipientId: req.user.id }
+        ]
+      }
+    });
+    if (recipientFriendsCount >= 10) {
+      return res.status(400).json({ message: 'Your orbit is full (10 close friends max).' });
     }
 
     friendship.status = 'accepted';
@@ -279,7 +321,7 @@ exports.getFriends = async (req, res) => {
     for (const fs of friendships) {
       const friendId = fs.requesterId === req.user.id ? fs.recipientId : fs.requesterId;
       const friend = await User.findByPk(friendId, {
-        attributes: ['id', 'name', 'phone', 'profileImage', 'statusText', 'statusEmoji']
+        attributes: ['id', 'name', 'phone', 'profileImage', 'statusText', 'statusEmoji', 'statusSeenBy']
       });
 
       if (!friend) continue;
@@ -313,7 +355,8 @@ exports.getFriends = async (req, res) => {
         theme: fs.theme || 'friendship',
         conversationId: conversation ? conversation.id : null,
         statusText: friend.statusText || null,
-        statusEmoji: friend.statusEmoji || null
+        statusEmoji: friend.statusEmoji || null,
+        statusSeenBy: friend.statusSeenBy || []
       });
     }
 
@@ -627,6 +670,7 @@ exports.updateUserStatus = async (req, res) => {
 
     user.statusText = statusText || null;
     user.statusEmoji = statusEmoji || null;
+    user.statusSeenBy = [];
     await user.save();
 
     // Broadcast status change to all friends list via socket
@@ -643,5 +687,70 @@ exports.updateUserStatus = async (req, res) => {
   } catch (error) {
     console.error('[UPDATE_STATUS_ERROR]', error);
     res.status(500).json({ message: 'Server error updating status.' });
+  }
+};
+
+// 12. Mark Status As Seen
+exports.markStatusAsSeen = async (req, res) => {
+  try {
+    const { friendId } = req.body;
+    const User = getUserModel();
+    const Friendship = getFriendshipModel();
+    if (!User || !Friendship) return res.status(500).json({ message: 'Models not loaded' });
+
+    const friend = await User.findByPk(friendId);
+    if (!friend) return res.status(404).json({ message: 'User not found' });
+
+    if (!friend.statusText && !friend.statusEmoji) {
+      return res.json({ message: 'No status to mark as seen' });
+    }
+
+    // Add req.user.id to statusSeenBy list if not already there
+    const seenBy = Array.isArray(friend.statusSeenBy) ? [...friend.statusSeenBy] : [];
+    if (!seenBy.includes(req.user.id)) {
+      seenBy.push(req.user.id);
+      friend.statusSeenBy = seenBy;
+      friend.changed('statusSeenBy', true);
+      await friend.save();
+    }
+
+    // Find all accepted friends of the friend to see if everyone has seen it
+    const { Op } = require('sequelize');
+    const friendships = await Friendship.findAll({
+      where: {
+        status: 'accepted',
+        [Op.or]: [
+          { requesterId: friendId },
+          { recipientId: friendId }
+        ]
+      }
+    });
+
+    const friendIds = friendships.map(fs => fs.requesterId === friendId ? fs.recipientId : fs.requesterId);
+
+    // Check if everyone has seen it
+    const allSeen = friendIds.every(id => seenBy.includes(id));
+    if (allSeen && friendIds.length > 0) {
+      // Clear status!
+      friend.statusText = null;
+      friend.statusEmoji = null;
+      friend.statusSeenBy = [];
+      await friend.save();
+
+      // Broadcast status change (cleared) via socket
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('friend_status_updated', {
+          userId: friendId,
+          statusText: null,
+          statusEmoji: null
+        });
+      }
+    }
+
+    res.json({ message: 'Status marked as seen successfully', allSeen });
+  } catch (error) {
+    console.error('[MARK_STATUS_SEEN_ERROR]', error);
+    res.status(500).json({ message: 'Server error marking status as seen.' });
   }
 };

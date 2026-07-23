@@ -5,6 +5,7 @@ import { COLORS, RADIUS, SHADOWS } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
 import { API_URL } from '../constants/api';
 import { useCart } from '../context/CartContext';
+import { apiFetch } from '../utils/auth';
 
 const GROCERY_ITEMS = [
   { id: 'cat-atta-1', name: 'Aashirvaad Shudh Chakki Atta', price: 260, originalPrice: 290, weight: '5 kg', image: 'https://images.unsplash.com/photo-1574316071802-0d684efa7bf5?w=200&q=80', isVeg: true, discount: '10% OFF' },
@@ -70,7 +71,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
     const delayDebounceFn = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${API_URL}/api/users/search?q=${encodeURIComponent(query)}`);
+        const res = await apiFetch(`${API_URL}/api/users/search?q=${encodeURIComponent(query)}`);
         if (res.ok) {
           const data = await res.json();
           setResults(data);

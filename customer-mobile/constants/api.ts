@@ -1,6 +1,16 @@
-// ── Zenvy Mobile API Config ──────────────────────────────────────────────────
-// Same backend as the website — no backend changes needed.
-export const API_URL = 'https://hostelbites-backend-jwmt.onrender.com';
+import Constants from 'expo-constants';
+
+// For local testing on emulator/device, dynamically retrieve the host IP address.
+// In production or browser, fallback to localhost.
+const getDevHost = () => {
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    return `http://${hostUri.split(':')[0]}:5005`;
+  }
+  return 'http://localhost:5005';
+};
+
+export const API_URL = getDevHost();
 
 export const ENDPOINTS = {
   // Auth

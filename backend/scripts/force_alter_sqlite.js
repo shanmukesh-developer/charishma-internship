@@ -13,6 +13,13 @@ const run = async () => {
   }
 
   try {
+    await sequelize.query('ALTER TABLE Users ADD COLUMN statusSeenBy TEXT;');
+    console.log('Added statusSeenBy to Users');
+  } catch (e) {
+    console.log('statusSeenBy might already exist or failed:', e.message);
+  }
+
+  try {
     await sequelize.query('ALTER TABLE Messages ADD COLUMN expiresAt DATETIME;');
     console.log('Added expiresAt to Messages');
   } catch (e) {

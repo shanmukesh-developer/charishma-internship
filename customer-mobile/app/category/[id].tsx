@@ -5,6 +5,7 @@ import { COLORS, SHADOWS, RADIUS } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useCart } from '../../context/CartContext';
 import { API_URL } from '../../constants/api';
+import { apiFetch } from '../../utils/auth';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -156,7 +157,7 @@ export default function CategoryScreen() {
           laundry: 'laundry'
         };
         const searchTerm = queryMap[id] || id;
-        const res = await fetch(`${API_URL}/api/search?q=${encodeURIComponent(searchTerm)}`);
+        const res = await apiFetch(`${API_URL}/api/search?q=${encodeURIComponent(searchTerm)}`);
         if (res.ok) {
           const data = await res.json();
           let fetchedItems = data.items || [];

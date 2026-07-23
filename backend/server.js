@@ -12,6 +12,7 @@ const multer = require('multer');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const { initEphemeralPurge } = require('./cron/ephemeralPurge');
+const { initStreakNudge } = require('./cron/streakNudge');
 // xss-clean removed due to Express 5 query getter incompatibility; custom safeXssMiddleware used instead.
 
 // ── Global Bulletproof Shield (Prevents any Node.js Crash in Dev, Restarts in Prod) ──────────────
@@ -121,6 +122,19 @@ const isAllowedOrigin = (origin) => {
 
 const app = express();
 
+// Layer 0: CORS (Origin whitelist) - Handled at the very top to prevent rate-limiter preflight blockers
+app.use(cors({
+  origin: function(origin, callback) {
+    if (isAllowedOrigin(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  exposedHeaders: ['X-Trace-Id'] // Allow clients to read trace IDs for error reporting
+}));
+
 // Enable trust proxy to correctly identify client IPs behind reverse proxies (like Render, Nginx, or Cloudflare)
 app.set('trust proxy', 1);
 
@@ -130,6 +144,7 @@ const rateLimit = require('express-rate-limit');
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 2000, // 2000 requests per IP per 15 min — generous for shared campus Wi-Fi
+  skip: (req, res) => process.env.NODE_ENV !== 'production' && process.env.RENDER !== 'true',
   message: { message: 'Too many requests from this IP, please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -139,6 +154,7 @@ const globalLimiter = rateLimit({
 const orderRateLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 10, // Max 10 order submissions per minute per IP
+  skip: (req, res) => process.env.NODE_ENV !== 'production' && process.env.RENDER !== 'true',
   message: { message: 'Too many orders placed. Please wait a minute.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -148,6 +164,7 @@ const orderRateLimiter = rateLimit({
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 50, // 50 auth attempts per IP per 15 min — prevents brute force but allows shared WiFi retries
+  skip: (req, res) => process.env.NODE_ENV !== 'production' && process.env.RENDER !== 'true',
   message: { message: 'Too many authentication attempts, please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -281,19 +298,6 @@ app.use(botGuard);
 
 // Layer 4: Morgan Enterprise Logging (with trace ID)
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms'));
-
-// Layer 5: CORS (Origin whitelist)
-app.use(cors({
-  origin: function(origin, callback) {
-    if (isAllowedOrigin(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  exposedHeaders: ['X-Trace-Id'] // Allow clients to read trace IDs for error reporting
-}));
 
 // Layer 6: Compression & Parsing
 app.use(compression({ level: 6, threshold: 512 })); // Compress responses > 512 bytes
@@ -1825,6 +1829,13 @@ try {
   initEphemeralPurge();
 } catch (e) {
   console.warn('[CRON] Failed to init Ephemeral Purge:', e.message);
+}
+
+// ── Daily Fire Streak Nudge ──
+try {
+  initStreakNudge();
+} catch (e) {
+  console.warn('[CRON] Failed to init Streak Nudge:', e.message);
 }
 
 module.exports = { 

@@ -8,6 +8,7 @@ const router = express.Router();
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 50, // 50 auth attempts per IP per 15 min — prevents brute force while accommodating shared campus WiFi
+  skip: (req, res) => process.env.NODE_ENV !== 'production' && process.env.RENDER !== 'true',
   message: { message: 'Too many authentication attempts, please try again after 15 minutes.' }
 });
 

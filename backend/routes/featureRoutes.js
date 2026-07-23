@@ -438,4 +438,16 @@ router.post('/push/abandoned-cart', async (req, res) => {
   }
 });
 
+// POST /api/features/streak/nudge-trigger - Trigger daily fire streak reminders manually (admin/test)
+router.post('/streak/nudge-trigger', protect, async (req, res) => {
+  try {
+    const { runStreakNudgeLogic } = require('../cron/streakNudge');
+    await runStreakNudgeLogic();
+    res.json({ message: 'Streak nudge checks executed successfully.' });
+  } catch (error) {
+    console.error('[STREAK_NUDGE_TRIGGER_ERROR]', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 module.exports = router;

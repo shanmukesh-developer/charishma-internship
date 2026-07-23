@@ -13,16 +13,26 @@ const initEphemeralPurge = () => {
       const now = new Date();
 
       if (Message) {
-        // Hard delete all messages that have expired (12h TTL)
+        // Hard delete all messages that have expired (TTL) OR are older than 30 days
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         const deletedMessages = await Message.destroy({
           where: {
-            expiresAt: {
-              [Op.lt]: now
-            }
+            [Op.or]: [
+              {
+                expiresAt: {
+                  [Op.lt]: now
+                }
+              },
+              {
+                createdAt: {
+                  [Op.lt]: thirtyDaysAgo
+                }
+              }
+            ]
           }
         });
         if (deletedMessages > 0) {
-          console.log(`[EPHEMERAL PURGE] Hard-deleted ${deletedMessages} expired messages.`);
+          console.log(`[EPHEMERAL PURGE] Hard-deleted ${deletedMessages} expired/old messages.`);
         }
       }
 

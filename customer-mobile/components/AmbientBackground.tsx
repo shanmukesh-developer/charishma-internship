@@ -85,7 +85,7 @@ function MeteorComponent({ anim, startLeft, startTop, color }: MeteorProps) {
   );
 }
 
-export default function AmbientBackground({ isStatic = false }: { isStatic?: boolean }) {
+export default function AmbientBackground({ isStatic = Platform.OS === 'android' }: { isStatic?: boolean }) {
   const { isDark } = useTheme();
 
   // ── Drifting Aurora Orbs ──
@@ -117,34 +117,43 @@ export default function AmbientBackground({ isStatic = false }: { isStatic?: boo
 
   useEffect(() => {
     if (isStatic) return;
-    // ── Orb Drift Loops ──
-    const driftLoop = (
-      animX: Animated.Value, animY: Animated.Value,
-      targets: { x1: number; y1: number; x2: number; y2: number },
-      dur1: number, dur2: number
-    ) => {
-      const run = () => {
-        Animated.sequence([
-          Animated.parallel([
-            Animated.timing(animX, { toValue: targets.x1, duration: dur1, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-            Animated.timing(animY, { toValue: targets.y1, duration: dur1, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          ]),
-          Animated.parallel([
-            Animated.timing(animX, { toValue: targets.x2, duration: dur2, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-            Animated.timing(animY, { toValue: targets.y2, duration: dur2, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          ]),
-        ]).start(run);
-      };
-      run();
-    };
 
-    driftLoop(orb1X, orb1Y, { x1: SW * 0.2, y1: SH * 0.15, x2: -80, y2: -60 }, 18000, 22000);
-    driftLoop(orb2X, orb2Y, { x1: SW * 0.45, y1: SH * 0.55, x2: SW - 120, y2: SH - 280 }, 20000, 18000);
+    const activeAnims: Animated.CompositeAnimation[] = [];
+
+    // ── Orb Drift Loops ──
+    const orb1Loop = Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(orb1X, { toValue: SW * 0.2, duration: 18000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(orb1Y, { toValue: SH * 0.15, duration: 18000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ]),
+        Animated.parallel([
+          Animated.timing(orb1X, { toValue: -80, duration: 22000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(orb1Y, { toValue: -60, duration: 22000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ]),
+      ])
+    );
+    orb1Loop.start();
+    activeAnims.push(orb1Loop);
+
+    const orb2Loop = Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(orb2X, { toValue: SW * 0.45, duration: 20000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(orb2Y, { toValue: SH * 0.55, duration: 20000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ]),
+        Animated.parallel([
+          Animated.timing(orb2X, { toValue: SW - 120, duration: 18000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(orb2Y, { toValue: SH - 280, duration: 18000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ]),
+      ])
+    );
+    orb2Loop.start();
+    activeAnims.push(orb2Loop);
 
     // ── Dust Breathing Loops ──
-    // Only opacity + float per dust (no scale for perf)
     dustAnims.forEach((dust, i) => {
-      Animated.loop(
+      const opacityLoop = Animated.loop(
         Animated.sequence([
           Animated.timing(dust.opacity, {
             toValue: 0.5 + Math.random() * 0.3,
@@ -159,9 +168,11 @@ export default function AmbientBackground({ isStatic = false }: { isStatic?: boo
             useNativeDriver: true,
           }),
         ])
-      ).start();
+      );
+      opacityLoop.start();
+      activeAnims.push(opacityLoop);
 
-      Animated.loop(
+      const translateLoop = Animated.loop(
         Animated.sequence([
           Animated.timing(dust.translateY, {
             toValue: -12,
@@ -176,12 +187,14 @@ export default function AmbientBackground({ isStatic = false }: { isStatic?: boo
             useNativeDriver: true,
           }),
         ])
-      ).start();
+      );
+      translateLoop.start();
+      activeAnims.push(translateLoop);
     });
 
     // ── Mesh Line Pulse ──
     meshAnims.forEach((mesh, i) => {
-      Animated.loop(
+      const meshLoop = Animated.loop(
         Animated.sequence([
           Animated.timing(mesh, {
             toValue: 0.09 + Math.random() * 0.07,
@@ -196,12 +209,15 @@ export default function AmbientBackground({ isStatic = false }: { isStatic?: boo
             useNativeDriver: true,
           }),
         ])
-      ).start();
+      );
+      meshLoop.start();
+      activeAnims.push(meshLoop);
     });
 
-    // Meteors removed for performance
-
-  }, []);
+    return () => {
+      activeAnims.forEach(anim => anim.stop());
+    };
+  }, [isStatic]);
 
   // ── Theme Colors ──
   const gradientColors: [string, string] = isDark

@@ -44,71 +44,71 @@ const ZENVY_STICKERS = [
 ];
 
 const CAMPUS_TRUTHS = [
-  "If the hostel warden was a movie villain, who would they be?",
-  "Which classmate's GPA is lower than the chances of you passing tomorrow's exam?",
-  "What is the most disgusting thing you've eaten in the canteen just because it was free?",
-  "Have you ever blamed a terrible room smell on your roommate when it was actually you?",
-  "What is the longest period you've gone without taking a shower during exam week?",
-  "Which professor's voice is the absolute best cure for your insomnia?",
-  "If you could erase one embarrassing thing you did in front of your crush, what would it be?",
-  "How many times have you pretended to be asleep when your roommate wanted to talk?",
-  "What is the most ridiculous lie you told the warden to get out of the hostel after curfew?",
-  "Who is the one person in this hostel you would never trust with your Netflix password?",
-  "Which subject do you officially know absolutely nothing about despite attending every lecture?",
-  "What's the maximum number of days you've worn the same pair of socks?",
-  "What is the most useless thing you have ever spent your hostel pocket money on?",
-  "Have you ever stolen someone else's labeled food from the shared fridge?",
-  "If you were forced to date the person you skip classes with, how bad would it be?",
-  "Who in this class has the most punchable face when they ask the professor for extra homework?",
-  "What's the most desperate thing you've done to get a signature on a proxy attendance sheet?",
-  "How many times have you used Google Translate to write a paragraph for your English assignments?",
-  "What is the weirdest thing you have ever searched on the campus Wi-Fi?",
-  "Which of your friends is most likely to get arrested for accidentally doing something stupid?",
-  "What was the worst meal you ever cooked in the hostel room using only a kettle?",
-  "If you had to trade your roommate for a bag of chips, what flavor of chips would you choose?",
-  "Have you ever kept a library book so long that the fine was higher than the book's price?",
-  "Which hostel roommate has the absolute worst snoring habits in history?",
-  "What is the most embarrassing nickname your parents call you in front of your campus friends?",
-  "Have you ever fake-laughed at a professor's terrible joke just to score internal marks?",
-  "What is the most awkward text you've accidentally sent to a class WhatsApp group?",
-  "If your study group was a sinking ship, who would you throw overboard first to save yourself?",
-  "What is the highest number of alarm snoozes you've had before actually waking up for class?",
-  "Have you ever worn your roommate's clothes without asking and then put them back dirty?",
-  "Which canteen food item should be classified as a chemical weapon?",
-  "What is the most pathetic excuse you've ever given for not submitting an assignment?",
-  "Who is the biggest gossip queen/king in your department?",
-  "Have you ever secretly muted your friend's notifications because they text too much?",
-  "What's the most hours you have wasted scrolling Reels when you should have been studying?",
-  "If you could replace the college dean with a celebrity, who would it be?",
-  "Which friend of yours is the worst driver/rider on campus?",
-  "Have you ever pretended to understand a concept during a group study session when you had no clue?",
-  "What is the longest you've gone without checking your phone?",
-  "If your phone history was projected on the classroom screen, how fast would you run out?",
-  "Which class do you sit in the back row specifically to play mobile games?",
-  "What is the most useless advice a senior has ever given you?",
-  "Have you ever lied about having an emergency just to avoid hanging out with someone?",
-  "What is the most amount of money you have spent on canteen coffee in a single week?",
-  "If your hostel room caught fire, what is the first non-living thing you would save?",
-  "Which exam did you pass purely by relying on the genius sitting next to you?",
-  "What is the most embarrassing thing you've said out loud while half-asleep in the hostel?",
-  "Have you ever copied an assignment so fast that you accidentally copied the other person's name?",
-  "Who is the most dramatic person in your close circle?",
-  "If you could change your department to anything else right now, what would it be?",
-  "If {friendName} was a movie villain, which professor would they try to destroy first?",
-  "Which class do you and {friendName} skip the most often?",
-  "What is the most disgusting food you've seen {friendName} eat in the canteen?",
-  "If you had to trade {friendName} for a plate of samosas, would you choose potato or paneer samosa?",
-  "Who has a lower GPA: you or {friendName}?",
-  "What is the most embarrassing rumor you have heard about {friendName}?",
-  "If {friendName} was caught sneaking into the hostel after curfew, who would they blame?",
-  "Who would win in a fight with the warden: you or {friendName}?",
-  "If you were stranded in the hostel elevator with {friendName}, who would panic first?",
-  "Which subject does {friendName} secretly know absolutely nothing about?",
-  "What is the weirdest habit of {friendName} that you know of?",
-  "If {friendName} became the hostel warden, what is the first rule they would change?",
-  "Who is more likely to fall asleep during a midterm exam: you or {friendName}?",
-  "If {friendName} was a canteen dish, what food item would they be?",
-  "What is the most embarrassing nickname you could give {friendName}?",
+  "Hostel warden movie villain aithe, vaallu evariki matching?",
+  "Nee classmate GPA entha low ante, repati exam pass ayye chances kante thakkuva?",
+  "Canteen lo free ga dorukuthundi ani thinna chetha food ento cheppu?",
+  "Room lo vachina gubulu vasanani, nee roommate meedha thosesi thappinchukunnava?",
+  "Exam week lo snanam cheyakunda enni rojulu unnav?",
+  "Ae professor voice vinte neeku ventane nidra vasthundi?",
+  "Nee crush mundhu nuvvu chesina goppa comedy panento gurthunda?",
+  "Roommate sodhi chepthanu ante, act cheyataniki eppudaina padukunnattu natinchava?",
+  "Curfew time tharwatha bayataki velladaniki warden ki cheppina peddha abaddham enti?",
+  "Nee Netflix password evariki isthe nuvvu safe kadhu anukuntunnav?",
+  "Classes ki regular ga vellina, ae subject lo neeku 'zero knowledge' undi?",
+  "Oke jodu socks ni enni rojulu thodigaav?",
+  "Hostel pocket money tho nuvvu konna parama chetha vasthuuvu enti?",
+  "Shared fridge lo unna pakkanolla food ni eppudaina dhochi thinnava?",
+  "Nuvvu classes bunk kotte companion tho date ki vellalsi vasthe, pararisthithi entha ghoranga untundi?",
+  "Class lo extra homework adige aadini chusthe neeku ae range lo kopam vasthundi?",
+  "Proxy sign kosam senior padhaalu eppudaina patte range lo try chesava?",
+  "English assignments kosam entha mandhi Google Translate ni vaaduthunnaru?",
+  "Campus Wi-Fi lo nuvvu search chesina weirdest vishayam enti?",
+  "Ae friend accident ga edhoka pichi pani chesi police case varaku velthadu?",
+  "Room lo kettle vaadi nuvvu chesina ghoramaina vanta enti?",
+  "If you had to trade your roommate for a bag of Lays, ae flavor choose chesukuntavu?",
+  "Library book return cheyakunda fine book cost kante ekkuva chesava?",
+  "Nee friends circle lo evari guraka valla hostel shake avthundi?",
+  "Nee parents ninnu piliche embarrassing pet name enti?",
+  "Internal marks kosam professor chese chetha joke ki navvaka thappaledha?",
+  "Class WhatsApp group lo nuvvu accidental ga send chesina awkward message enti?",
+  "Study group munigipoye badava aithe, ninnu nuvvu kapadukovadaniki evarini thosesthavu?",
+  "Class ki level up avvadaniki enni sarlu alarm snooze chesav?",
+  "Roommate clothes valla permission lekunda vesukuni dirty ga return chesava?",
+  "Ae canteen food tinte direct ga emergency ward ki pampinchochu?",
+  "Assignment submit cheyakunda cheppina worst reason enti?",
+  "Nee department lo active gossip partner evaru?",
+  "Frustrate ayyi ae friend messages naina mute chesava?",
+  "Study time lo Reels scroll cheyataniki enni hours waste chesav?",
+  "Dean badhulu oka movie star ni dean ga pedithe, evarini pedathav?",
+  "Campus lo bike riding cheyyadam rani worst rider evaru?",
+  "Group study session lo emi ardham kakapoina 'ardhamaindi' ani thala oopava?",
+  "Phone muttukokunda nuvvu unna maximum time entha?",
+  "Nee search history screen meedha play chesthe, campus nundi entha fast ga paripothav?",
+  "Back bench lo kurchuni gaming aade target class edhi?",
+  "Seniors neeku cheppina absolute waste advice enti?",
+  "Roommate tho velladam ishtam leka, eppudaina fake emergency drama aadav?",
+  "Canteen tea kosam oka week lo spend chesina highest money entha?",
+  "Hostel room thagalabadithe, pranam leni ae vasthuvuni first save chesthav?",
+  "Ae exam ni pakkana unna genius paper chusi copy kotti pass ayyav?",
+  "Nidra lo eppudaina hostel lo gattiga edhaina embarrassing ga arichava?",
+  "Assignment fast ga rayadaniki pakkanolla peru tho paatu copy kottava?",
+  "Nee gang lo overaction star evaru?",
+  "Ae department ki convert avvadaniki ready ga unnav?",
+  "If {friendName} movie villain aithe, first ae professor ni target chestharu?",
+  "Nuvvu, {friendName} classes ni skip chesi ae canteen lo spend chestharu?",
+  "{friendName} canteen lo thinna ghoramaina food item enti?",
+  "{friendName} ni oka plate samosa badhulu trade chesi paneer samosa choose chesthava?",
+  "GPA lo evaru topper: nuvva leka {friendName} aa?",
+  "{friendName} gurinchi nuvvu vinna worst gossip enti?",
+  "{friendName} hostel rule break chesthe evari meedha blame thosestharu?",
+  "Warden tho fight chesthe evaru win avtharu: nuvva, {friendName} aa?",
+  "{friendName} tho elevator lo irukkapothe first evaru gattiga edustharu?",
+  "Ae subject gurinchi {friendName} ki absolute ga emi theliyadhu?",
+  "{friendName} unna weirdest habit enti?",
+  "If {friendName} hostel warden aithe, first change chese rule enti?",
+  "Exam hall lo nidrapoye chance evariki ekkuva undi: neeka leka {friendName} ka?",
+  "{friendName} canteen lo unna ae food ki sync avtharu?",
+  "{friendName} ki nuvvu iche embarrassing nickname edinaina?",
   "If {friendName} caught you stealing {canteenFood} in the {locationName}, first em ani arusthav?",
   "Nuvvu {friendName} kalisi {locationName} lo edhaina block-list activity chesthe, evarini throw chesthav?",
   "Ae subject kante {friendName} icche free advice waste anukuntunnav: {subjectName} aa leka normal aa?",
@@ -122,66 +122,61 @@ const CAMPUS_TRUTHS = [
 ];
 
 const CAMPUS_DARES = [
-  "Send a text to your roommate saying 'We need to talk about the missing sock' and don't reply for 1 hour.",
-  "Send a screenshot of your screen time for today to this chat right now.",
-  "Change your WhatsApp status to 'Calculating the speed of hostel gossips' for the next 24 hours.",
-  "Text your crush 'Did it hurt? When you fell from the library stairs?' and screenshot it.",
-  "Take a selfie looking extremely confused and send it right now.",
-  "Voice note yourself whispering 'The warden is watching' in a creepy voice and send it here.",
-  "Text your senior 'Can you explain why 1+1 is not 3?' and send the screenshot.",
-  "Send a message to your class group chat saying 'Is tomorrow's exam cancelled?' and delete it 5 seconds later.",
-  "Change your profile name to 'Hostel Legend' for the next 2 hours.",
-  "Voice note a 10-second dramatic reading of the most boring sentence from your textbook.",
-  "Text a random contact 'I know what you did last semester' and screenshot the reply.",
-  "Send a photo of the messiest corner of your room right now.",
-  "Change your keyboard language to something completely different and type the next message in that language.",
-  "Text your best friend 'I'm moving to Mars, do you want anything?' and send the screenshot.",
-  "Voice note yourself singing the alphabet song backwards as fast as possible.",
-  "Write a 3-line poem about how terrible the hostel food is and send it here.",
-  "Send a selfie holding a spoon like a microphone.",
-  "Text your roommate 'The kettle has achieved self-awareness' right now.",
-  "Change your profile picture to a potato or a meme of a potato for the next 1 hour.",
-  "Voice note yourself doing a dramatic evil laugh for 5 seconds.",
-  "Text your group chat 'I am the chosen one' and do not explain.",
-  "Send a photo of your desk or bed right now, no cleaning up allowed.",
-  "Text your senior 'Do you think the canteen food is actually edible?' and screenshot their reply.",
-  "Voice note yourself saying 'Subscribe to my channel for hostel survival tips' in an announcer voice.",
-  "Text a contact 'You owe me a plate of samosas' and screenshot the reaction.",
-  "Change your WhatsApp display name to 'Offline' for the next 3 hours.",
-  "Voice note a 10-second review of the last canteen meal you had as if you were a Michelin-star critic.",
-  "Text your roommate 'Please lock the door, the ghosts are active tonight' and screenshot it.",
-  "Send a photo of the oldest food container or wrapper currently in your room.",
-  "Text your group chat 'Which class are we skipping tomorrow?' even if there is no class.",
-  "Change your status to 'Sleeping until graduation' for 12 hours.",
-  "Voice note yourself making a sound like a microwave beep.",
-  "Send a selfie wearing your sunglasses indoors.",
-  "Text your crush/friend 'Are you a library book? Because I can't stop checking you out' and screenshot it.",
-  "Write a formal apology letter to the kettle for abusing it and send the photo here.",
-  "Text a random friend 'Quick! What is the capital of hostel life?' and screenshot it.",
-  "Change your display font size to the absolute maximum and send a screenshot of the chat.",
-  "Voice note yourself saying 'Attention hostelers: the canteen tea is actually warm water' in a whispering voice.",
-  "Text your best friend 'I lost my phone, can you call it?' and screenshot their response.",
-  "Send a photo of your shoes and rate their cleanliness out of 10.",
-  "Text a classmate 'Do you have the notes for the exam we had last week?' and screenshot it.",
-  "Change your status to 'Searching for my lost motivation' for 24 hours.",
-  "Voice note yourself reading a grocery list in an extremely dramatic voice.",
-  "Text your roommate 'The fan is spinning too fast, it might launch' and screenshot the response.",
-  "Send a selfie with a book on your head.",
-  "Text your senior 'Is it true that seniors get free canteen tea from juniors?' and screenshot it.",
-  "Write 'Zenvy is the only thing keeping me sane' on a piece of paper, take a photo, and send it.",
-  "Voice note yourself saying 'I am declaring a hostel emergency' and whisper the reason.",
-  "Text a friend 'I accidentally bought a bicycle' and screenshot the reaction.",
-  "Change your WhatsApp status to 'Currently under warden observation' for 4 hours.",
-  "Text {friendName}: 'The kettle has achieved self-awareness' and screenshot the reply.",
-  "Text {friendName}: 'Did it hurt? When you fell from the library stairs?' and screenshot it.",
-  "Text {friendName}: 'I know what you did last semester' and screenshot the response.",
-  "Text {friendName}: 'You owe me a plate of samosas' and screenshot the reaction.",
-  "Text {friendName}: 'The ghosts in block {blockName} are active tonight' and screenshot it.",
-  "Text {friendName}: 'Are you a library book? Because I can't stop checking you out' and screenshot it.",
-  "Text {friendName}: 'I lost my phone, can you call it?' and screenshot their response.",
-  "Text {friendName}: 'The fan in room {roomNumber} is spinning too fast' and screenshot the response.",
-  "Text {friendName}: 'I accidentally bought a bicycle' and screenshot the reaction.",
-  "Text {friendName}: 'Is tomorrow's exam cancelled?' and screenshot the response.",
+  "Roommate ki 'Room lo unna sock ekkado cheppu' ani message petti 1 hour follow up cheyyaku.",
+  "Eroju nee phone Screen Time screenshot ni ee chat ki send chey.",
+  "WhatsApp status 'Hostel gossip speed calculator' ga 24 hours change chey.",
+  "Crush ki 'Library stairs nundi padinapudu emaina debba thagilindha?' ani text petti screenshot pettu.",
+  "Extreme confusion face selfie petti send chey.",
+  "Creepy voice lo 'Warden chusthunnaru' ani voice note pettu.",
+  "Senior ki '1+1 endhuku 3 kadhu?' ani text petti reaction screenshot pettu.",
+  "Class WhatsApp group lo 'Exam cancel ayyindha?' ani message petti 5 seconds lo delete chey.",
+  "Profile name ni 'Hostel Legend' ga change chesi 2 hours unchu.",
+  "Textbook lo unna oka bore line ni voice note lo full dramatic ga read chey.",
+  "Kotha number ki 'Nuvvu last semester chesindi naku thelsu' ani text petti screenshot pettu.",
+  "Nee room messiest corner photo petti send chey right now.",
+  "Keyboard language change chesi kotha language lo message pettu.",
+  "Best friend ki 'Nenu Mars ki vellipothunna, emaina kavala?' ani message petti screenshot pettu.",
+  "Alphabet song reverse lo voice note pettu fast ga.",
+  "Hostel food gurinchi 3 lines bad kavitha rasi send chey.",
+  "Spoon microphone ga petti selfie pettu.",
+  "Roommate ki 'Room lo unna kettle key dynamic ga configure ayyi automatic ga alert isthundi' ani text pettu.",
+  "WhatsApp profile pic okka potato image ga 1 hour change chey.",
+  "Evil laugh note pettu for 5 seconds.",
+  "Class group chat lo 'Nene design chesina champion' ani petti, reason cheppaku.",
+  "Desk photo cleanup cheyakunda pettu.",
+  "Senior ki 'Canteen tea lo actual ga warm water kaluputhara?' ani adigi reply screenshot pettu.",
+  "Voice note lo 'Zenvy tips kosam subscribe cheyandi' ani radio jockey la cheppu.",
+  "Best friend ki 'Naku plate samosa kurchovali nuvvu' ani message petti reaction pettu.",
+  "WhatsApp status 'Currently under warden investigation' ga change chey.",
+  "Canteen food gurinchi voice note lo Michelin star chef style lo review cheppu.",
+  "Roommate ki 'Room door lock chesuko, eroju dheyyaalu active ga unnayi' ani text pettu.",
+  "Room lo unna patha plastic container wrapper photo pettu.",
+  "Group chat lo 'Repu ae class bunk kodudham?' ani text pettu.",
+  "WhatsApp status 'Sleeping until graduation' ga 12 hours change chey.",
+  "Microwave oven sound voice note pettu.",
+  "Selfie indoors sunglasses to petti send chey.",
+  "Crush ki 'Nuvvu library book va? Ninnu check out cheyakunda undalenu' ani message petti screenshot pettu.",
+  "Kettle ki apology letter rasina photo pettu.",
+  "Classmate ki 'Last week exam notes kavali' ani text petti screenshot pettu.",
+  "WhatsApp status 'Motivation missing' ga 24 hours change chey.",
+  "Grocery list ni voice note lo complete mass voice lo read chey.",
+  "Roommate ki 'Fan chala fast ga thiruguthundi, launch ayye la undi' ani message petti screenshot pettu.",
+  "Book thala meedha petti selfie send chey.",
+  "Senior ki 'Seniors ki tea bill juniors ye kadathara?' ani adigi screenshot pettu.",
+  "Paper meedha 'Zenvy helps my survival' ani rasi photo send chey.",
+  "Hostel emergency warning voice note pettu.",
+  "Friend ki 'Accidental ga bike konna' ani cheppi screenshot pettu.",
+  "WhatsApp status 'Warden tracking me' ga 4 hours update chey.",
+  "Text {friendName}: 'Room kettle automatic ga sound chesthundi' ani petti screenshot pettu.",
+  "Text {friendName}: 'Library stairs nundi padinapudu emaina debba thagilindha?' ani adigi screenshot pettu.",
+  "Text {friendName}: 'Last semester chesindi naku thelsu' ani text petti screenshot pettu.",
+  "Text {friendName}: 'Naku plate samosa buy cheyali nuvvu' ani message petti screenshot pettu.",
+  "Text {friendName}: 'Block {blockName} lo dheyyaalu unnayanta ga' ani petti screenshot pettu.",
+  "Text {friendName}: 'Nuvvu library book va? Ninnu check out cheyakunda undalenu' ani message petti screenshot pettu.",
+  "Text {friendName}: 'Phone missing, call chey naku' ani petti screenshot pettu.",
+  "Text {friendName}: 'Room {roomNumber} lo fan launch avthundi' ani text petti screenshot pettu.",
+  "Text {friendName}: 'Nenu bullet bandi konna' ani message petti screenshot pettu.",
+  "Text {friendName}: 'Repati exam cancel ayyindha?' ani message petti screenshot pettu.",
   "Text {friendName}: 'I lost my {itemName} in {locationName}, can you search it?' and screenshot it.",
   "Text {friendName}: 'Please buy me {canteenFood} right now, naku low sugar vundi' and screenshot it.",
   "Change your WhatsApp status to 'Currently learning {subjectName} from {friendName}' for 4 hours.",
@@ -201,7 +196,7 @@ const CHAT_THEMES = [
   { name: 'graphite', colors: ['#0E1116', '#171B22', '#0E1116'], accent: '#6E5BFF' }
 ];
 
-const STATUS_GRADIENTS = [
+const STATUS_GRADIENTS: readonly (readonly [string, string])[] = [
   ['#FF512F', '#DD2476'],
   ['#4776E6', '#8E54E9'],
   ['#00B4DB', '#0083B0'],
@@ -283,7 +278,7 @@ function useOrbitLayout(
 
 export default function FriendsScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { isDark } = useTheme();
   const myUserId = user?.id || user?._id;
 
@@ -315,6 +310,7 @@ export default function FriendsScreen() {
 
   // Status Modal & Values
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [activeStatusView, setActiveStatusView] = useState<any | null>(null);
   const [statusText, setStatusText] = useState(user?.statusText || '');
   const [statusEmoji, setStatusEmoji] = useState(user?.statusEmoji || '');
   const [statusBgIndex, setStatusBgIndex] = useState(0);
@@ -327,6 +323,42 @@ export default function FriendsScreen() {
   
   // Real-Time Buddy Notifications Toast State
   const [activeToast, setActiveToast] = useState<{ title: string; text: string } | null>(null);
+
+  const progressAnim = useRef(new Animated.Value(0)).current;
+
+  const markStatusAsSeen = async (friendId: string) => {
+    try {
+      await apiFetch(`${API_URL}/api/friends/status/seen`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ friendId })
+      });
+      loadFriendsData();
+    } catch (error) {
+      console.error('[MARK_SEEN_ERROR]', error);
+    }
+  };
+
+  useEffect(() => {
+    if (activeStatusView) {
+      progressAnim.setValue(0);
+      Animated.timing(progressAnim, {
+        toValue: 1,
+        duration: 5000,
+        useNativeDriver: false
+      }).start();
+
+      if (!activeStatusView.isSelf) {
+        markStatusAsSeen(activeStatusView.friendId);
+      }
+
+      const timer = setTimeout(() => {
+        setActiveStatusView(null);
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [activeStatusView]);
 
   const triggerToast = (title: string, text: string) => {
     setActiveToast({ title, text });
@@ -463,6 +495,7 @@ export default function FriendsScreen() {
 
   const loadFriendsData = async () => {
     try {
+      refreshUser();
       const res = await apiFetch(ENDPOINTS.friendsList);
       if (res.ok) {
         let data = await res.json();
@@ -688,11 +721,19 @@ export default function FriendsScreen() {
     }
   };
 
-  const handleDeclineFriend = (friendshipId: string) => {
+  const handleDeclineFriend = async (friendshipId: string) => {
     setPopoverPending(null);
     Vibration.vibrate(50);
     // Optimistic removal
     setPendingRequests(prev => prev.filter(p => p.friendshipId !== friendshipId));
+    try {
+      await apiFetch(`${API_URL}/api/friends/${friendshipId}`, {
+        method: 'DELETE'
+      });
+    } catch (e) {
+      console.error('[DECLINE_FRIEND_ERROR]', e);
+      loadFriendsData();
+    }
   };
 
   const handleThemeDotPress = async (themeName: string) => {
@@ -795,6 +836,7 @@ export default function FriendsScreen() {
       if (res.ok) {
         Alert.alert('Status Set! 🚀', 'Your status has been updated across your orbit!');
         setShowStatusModal(false);
+        await refreshUser();
         loadFriendsData();
       } else {
         Alert.alert('Error', 'Failed to update status.');
@@ -822,7 +864,7 @@ export default function FriendsScreen() {
       });
 
       if (data && data.length > 0) {
-        const phoneNumbers = [];
+        const phoneNumbers: string[] = [];
         data.forEach(contact => {
           if (contact.phoneNumbers) {
             contact.phoneNumbers.forEach(p => {
@@ -955,52 +997,101 @@ export default function FriendsScreen() {
           <TouchableOpacity
             style={s.storyItem}
             onPress={() => {
-              setStatusText(user?.statusText || '');
-              setStatusEmoji(user?.statusEmoji || '');
-              setShowStatusModal(true);
+              if (user?.statusText || user?.statusEmoji) {
+                setActiveStatusView({
+                  name: 'Your Status',
+                  profileImage: user?.profileImage,
+                  statusText: user?.statusText,
+                  statusEmoji: user?.statusEmoji,
+                  isSelf: true
+                });
+              } else {
+                setStatusText('');
+                setStatusEmoji('');
+                setShowStatusModal(true);
+              }
             }}
           >
-            <View style={[s.storyAvatarOutline, s.storyUserOutline]}>
-              <Image
-                source={{ uri: getAvatarUrl(user?.profileImage || null, myUserId || 'self') }}
-                style={s.storyAvatar}
-              />
-              <View style={s.storyUserAddBadge}>
-                <Text style={s.storyUserAddText}>{user?.statusEmoji || '+'}</Text>
+            {user?.statusText || user?.statusEmoji ? (
+              <View>
+                <LinearGradient
+                  colors={['#6E5BFF', '#FF7A59', '#FF1493']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={s.storyAvatarOutline}
+                >
+                  <Image
+                    source={{ uri: getAvatarUrl(user?.profileImage || null, myUserId || 'self') }}
+                    style={[s.storyAvatar, { borderWidth: 2, borderColor: '#07090C' }]}
+                  />
+                </LinearGradient>
+                {user?.statusEmoji && (
+                  <View style={s.storyEmojiBadge}>
+                    <Text style={s.storyEmojiBadgeText}>{user.statusEmoji}</Text>
+                  </View>
+                )}
               </View>
-            </View>
+            ) : (
+              <View style={[s.storyAvatarOutline, s.storyUserOutline]}>
+                <Image
+                  source={{ uri: getAvatarUrl(user?.profileImage || null, myUserId || 'self') }}
+                  style={s.storyAvatar}
+                />
+                <View style={s.storyUserAddBadge}>
+                  <Text style={s.storyUserAddText}>+</Text>
+                </View>
+              </View>
+            )}
             <Text style={s.storyName} numberOfLines={1}>Your Status</Text>
           </TouchableOpacity>
 
           {/* Friends Avatars */}
-          {friends.map((friend) => (
-            <TouchableOpacity
-              key={friend.friendshipId}
-              style={s.storyItem}
-              onPress={() => {
-                setActiveChat(friend);
-                setChatTheme(friend.theme || 'graphite');
-              }}
-            >
-              <LinearGradient
-                colors={['#6E5BFF', '#FF7A59', '#FF1493']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={s.storyAvatarOutline}
+          {friends.map((friend) => {
+            const hasStatus = !!(friend.statusText || friend.statusEmoji);
+            const isSeen = friend.statusSeenBy && friend.statusSeenBy.includes(myUserId);
+
+            return (
+              <TouchableOpacity
+                key={friend.friendshipId}
+                style={s.storyItem}
+                onPress={() => {
+                  if (hasStatus) {
+                    setActiveStatusView(friend);
+                  } else {
+                    setActiveChat(friend);
+                    setChatTheme(friend.theme || 'graphite');
+                  }
+                }}
               >
-                <Image
-                  source={{ uri: getAvatarUrl(friend.profileImage, friend.friendId) }}
-                  style={[s.storyAvatar, { borderWidth: 2, borderColor: '#07090C' }]}
-                />
-              </LinearGradient>
-              {friend.statusEmoji && (
-                <View style={s.storyEmojiBadge}>
-                  <Text style={s.storyEmojiBadgeText}>{friend.statusEmoji}</Text>
-                </View>
-              )}
-              <Text style={s.storyName} numberOfLines={1}>{friend.name}</Text>
-            </TouchableOpacity>
-          ))}
+                {hasStatus ? (
+                  <LinearGradient
+                    colors={isSeen ? ['#444752', '#2E323A'] : ['#6E5BFF', '#FF7A59', '#FF1493']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={s.storyAvatarOutline}
+                  >
+                    <Image
+                      source={{ uri: getAvatarUrl(friend.profileImage, friend.friendId) }}
+                      style={[s.storyAvatar, { borderWidth: 2, borderColor: '#07090C' }]}
+                    />
+                  </LinearGradient>
+                ) : (
+                  <View style={[s.storyAvatarOutline, { padding: 0 }]}>
+                    <Image
+                      source={{ uri: getAvatarUrl(friend.profileImage, friend.friendId) }}
+                      style={s.storyAvatar}
+                    />
+                  </View>
+                )}
+                {friend.statusEmoji && hasStatus && (
+                  <View style={s.storyEmojiBadge}>
+                    <Text style={s.storyEmojiBadgeText}>{friend.statusEmoji}</Text>
+                  </View>
+                )}
+                <Text style={s.storyName} numberOfLines={1}>{friend.name}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
 
@@ -1578,6 +1669,124 @@ export default function FriendsScreen() {
             </SafeAreaView>
           </LinearGradient>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Immersive Instagram-style Status Viewer Modal */}
+      <Modal visible={activeStatusView !== null} animationType="fade" transparent={false} onRequestClose={() => setActiveStatusView(null)}>
+        {activeStatusView && (() => {
+          // Select gradient index based on user ID or deterministic logic
+          const indexSeed = activeStatusView.friendId || (activeStatusView.isSelf ? 'self' : 'seed');
+          let hash = 0;
+          for (let i = 0; i < indexSeed.length; i++) {
+            hash = indexSeed.charCodeAt(i) + ((hash << 5) - hash);
+          }
+          const bgIndex = Math.abs(hash) % STATUS_GRADIENTS.length;
+          
+          return (
+            <View style={{ flex: 1, backgroundColor: '#000' }}>
+              <LinearGradient
+                colors={STATUS_GRADIENTS[bgIndex]}
+                style={{ flex: 1 }}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <SafeAreaView style={{ flex: 1 }}>
+                  {/* Progress Indicator */}
+                  <View style={{ height: 3, backgroundColor: 'rgba(255,255,255,0.25)', marginHorizontal: 16, marginTop: Platform.OS === 'ios' ? 10 : 30, borderRadius: 2, overflow: 'hidden' }}>
+                    <Animated.View style={{ height: '100%', backgroundColor: '#FFF', width: progressAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) }} />
+                  </View>
+
+                  {/* Header Row */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginTop: 16 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <Image
+                        source={{ uri: getAvatarUrl(activeStatusView.profileImage, activeStatusView.friendId || 'self') }}
+                        style={{ width: 36, height: 36, borderRadius: 18, borderWidth: 1.5, borderColor: '#FFF' }}
+                      />
+                      <View>
+                        <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 14 }}>{activeStatusView.name}</Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>TRANSMITTING LIVE</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      {activeStatusView.isSelf && (
+                        <TouchableOpacity
+                          onPress={async () => {
+                            setActiveStatusView(null);
+                            try {
+                              const res = await apiFetch(`${API_URL}/api/friends/status`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ statusText: '', statusEmoji: '' })
+                              });
+                              if (res.ok) {
+                                await refreshUser();
+                                loadFriendsData();
+                                Alert.alert('Status Deleted', 'Your status has been cleared.');
+                              }
+                            } catch (err) {
+                              console.error(err);
+                            }
+                          }}
+                          style={{ padding: 8, backgroundColor: 'rgba(255, 0, 0, 0.25)', borderRadius: 16 }}
+                        >
+                          <Text style={{ color: '#FF7B7B', fontSize: 11, fontWeight: '700' }}>🗑️ Delete</Text>
+                        </TouchableOpacity>
+                      )}
+                      <TouchableOpacity onPress={() => setActiveStatusView(null)} style={{ padding: 8, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 20 }}>
+                        <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '700' }}>✕ Close</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Center Content: Status Text & Emoji */}
+                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 30 }}>
+                    {activeStatusView.statusEmoji ? (
+                      <Text style={{ fontSize: 72, marginBottom: 20 }}>{activeStatusView.statusEmoji}</Text>
+                    ) : null}
+                    <Text style={{ color: '#FFF', fontSize: 26, fontWeight: '900', textAlign: 'center', lineHeight: 36, letterSpacing: 0.5, textShadowColor: 'rgba(0,0,0,0.25)', textShadowOffset: { width: 1, height: 2 }, textShadowRadius: 6 }}>
+                      {activeStatusView.statusText || 'No transmission.'}
+                    </Text>
+                  </View>
+
+                  {/* Footer message indicator or Seen By list */}
+                  {!activeStatusView.isSelf ? (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setActiveStatusView(null);
+                        setActiveChat(activeStatusView);
+                      }}
+                      style={{ padding: 16, backgroundColor: 'rgba(255,255,255,0.12)', margin: 20, borderRadius: 20, alignItems: 'center' }}
+                    >
+                      <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 13 }}>💬 Send Encrypted Message</Text>
+                    </TouchableOpacity>
+                  ) : (() => {
+                    const seenBy = user?.statusSeenBy || [];
+                    const seenNames = seenBy
+                      .map(id => friends.find(f => f.friendId === id)?.name)
+                      .filter(Boolean);
+                    if (seenNames.length === 0) {
+                      return (
+                        <View style={{ padding: 16, backgroundColor: 'rgba(255,255,255,0.08)', margin: 20, borderRadius: 20, alignItems: 'center' }}>
+                          <Text style={{ color: 'rgba(255,255,255,0.6)', fontWeight: '600', fontSize: 13 }}>👁️ No views yet</Text>
+                        </View>
+                      );
+                    }
+                    return (
+                      <View style={{ padding: 16, backgroundColor: 'rgba(255,255,255,0.12)', margin: 20, borderRadius: 20 }}>
+                        <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 11, letterSpacing: 1, marginBottom: 6 }}>👁️ SEEN BY ({seenNames.length})</Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, lineHeight: 18 }}>
+                          {seenNames.join(', ')}
+                        </Text>
+                      </View>
+                    );
+                  })()}
+                </SafeAreaView>
+              </LinearGradient>
+            </View>
+          );
+        })()}
       </Modal>
     </SafeAreaView>
   );

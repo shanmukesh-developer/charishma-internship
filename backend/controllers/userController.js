@@ -290,6 +290,8 @@ const getUserProfile = async (req, res) => {
         _id: user.id,
         name: user.name,
         phone: user.phone,
+        email: user.email || '',
+        about: user.about || '',
         hostelBlock: user.hostelBlock,
         roomNumber: user.roomNumber,
         walletBalance: user.walletBalance,
@@ -306,6 +308,9 @@ const getUserProfile = async (req, res) => {
         gender: user.gender || 'Prefer not to say',
         genderPreference: user.genderPreference || 'Any',
         friendCode: user.friendCode,
+        statusText: user.statusText || null,
+        statusEmoji: user.statusEmoji || null,
+        statusSeenBy: user.statusSeenBy || [],
         createdAt: user.createdAt
       });
     } else {
@@ -325,6 +330,11 @@ const updateUserProfile = async (req, res) => {
     const user = await User.findByPk(req.user.id);
     if (user) {
       if (req.body.name) user.name = req.body.name;
+      if (req.body.phone) user.phone = req.body.phone;
+      if (req.body.email) user.email = req.body.email;
+      if (req.body.statusText !== undefined) user.statusText = req.body.statusText;
+      if (req.body.statusEmoji !== undefined) user.statusEmoji = req.body.statusEmoji;
+      if (req.body.about !== undefined) user.about = req.body.about;
       if (req.body.hostelBlock) user.hostelBlock = req.body.hostelBlock;
       if (req.body.roomNumber) user.roomNumber = req.body.roomNumber;
       if (req.body.address) user.address = req.body.address;
@@ -341,6 +351,10 @@ const updateUserProfile = async (req, res) => {
         _id: user.id,
         name: user.name,
         phone: user.phone,
+        email: user.email,
+        statusText: user.statusText,
+        statusEmoji: user.statusEmoji,
+        about: user.about || '',
         hostelBlock: user.hostelBlock,
         roomNumber: user.roomNumber,
         isElite: user.isElite,
@@ -356,6 +370,7 @@ const updateUserProfile = async (req, res) => {
         gender: user.gender,
         genderPreference: user.genderPreference,
         friendCode: user.friendCode,
+        statusSeenBy: user.statusSeenBy || [],
         token: generateToken(user.id, user.role)
       });
     } else {

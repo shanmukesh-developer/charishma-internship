@@ -11,9 +11,9 @@ import {
   TextInput,
   Switch,
   Alert,
-  Clipboard,
   ActivityIndicator,
 } from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -82,6 +82,9 @@ export default function ProfileScreen() {
 
   // Edit fields
   const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editAbout, setEditAbout] = useState('');
   const [editAddress, setEditAddress] = useState('');
   const [editCity, setEditCity] = useState('Amaravathi');
   const [editProfileImage, setEditProfileImage] = useState<string | null>(null);
@@ -117,7 +120,7 @@ export default function ProfileScreen() {
       fetchData();
       handleEnablePush(true);
     }
-  }, [user]);
+  }, [user?.id]);
 
   const loadLocalPreferences = async () => {
     try {
@@ -142,10 +145,15 @@ export default function ProfileScreen() {
       if (profileRes.ok) {
         const data = await profileRes.json();
         setUser({ ...user, ...data });
-        setEditName(data.name || '');
-        setEditAddress(data.address || '');
-        setEditCity(data.city || 'Amaravathi');
-        setEditProfileImage(data.profileImage || null);
+        if (!isEditing) {
+          setEditName(data.name || '');
+          setEditPhone(data.phone || '');
+          setEditEmail(data.email || '');
+          setEditAbout(data.about || '');
+          setEditAddress(data.address || '');
+          setEditCity(data.city || 'Amaravathi');
+          setEditProfileImage(data.profileImage || null);
+        }
       }
 
       // 2. Spending Stats
@@ -336,6 +344,9 @@ export default function ProfileScreen() {
         method: 'PUT',
         body: JSON.stringify({
           name: editName,
+          phone: editPhone,
+          email: editEmail,
+          about: editAbout,
           address: editAddress,
           city: editCity,
           profileImage: editProfileImage,
@@ -497,6 +508,33 @@ export default function ProfileScreen() {
               </Text>
               <Text style={[s.editAddrText, { color: goldColor }]}>EDIT</Text>
             </TouchableOpacity>
+
+            {/* User Bio and Contact Telemetry Widget */}
+            <View style={{ width: '100%', gap: 10, marginVertical: 12 }}>
+              {/* Bio/About */}
+              <View style={{ padding: 12, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB', borderRadius: 12, borderWidth: 1, borderColor: border }}>
+                <Text style={{ fontSize: 10, fontWeight: '800', color: goldColor, letterSpacing: 1.5, marginBottom: 4 }}>ABOUT ME</Text>
+                <Text style={{ fontSize: 13, color: txt, fontStyle: user?.about ? 'normal' : 'italic', lineHeight: 18 }}>
+                  {user?.about || 'No bio written yet. Tap edit to write something about yourself!'}
+                </Text>
+              </View>
+
+              {/* Mobile & Email Row */}
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <View style={{ flex: 1, padding: 12, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB', borderRadius: 12, borderWidth: 1, borderColor: border }}>
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: txtSec, letterSpacing: 1, marginBottom: 4 }}>MOBILE</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: txt }} numberOfLines={1}>
+                    {user?.phone || 'Not set'}
+                  </Text>
+                </View>
+                <View style={{ flex: 1, padding: 12, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB', borderRadius: 12, borderWidth: 1, borderColor: border }}>
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: txtSec, letterSpacing: 1, marginBottom: 4 }}>EMAIL</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: txt }} numberOfLines={1}>
+                    {user?.email || 'Not set'}
+                  </Text>
+                </View>
+              </View>
+            </View>
 
             {/* Identity Telemetry Grid */}
             <View style={[s.telemetryContainer, { backgroundColor: isDark ? '#1C1B1F' : '#FAFAFA', borderColor: border }]}>
@@ -1061,6 +1099,40 @@ export default function ProfileScreen() {
                 placeholder="Name"
                 placeholderTextColor="#555"
                 style={s.modalInput}
+              />
+
+              {/* Mobile Number */}
+              <Text style={s.inputLabel}>MOBILE NUMBER</Text>
+              <TextInput
+                value={editPhone}
+                onChangeText={setEditPhone}
+                placeholder="Mobile number"
+                placeholderTextColor="#555"
+                keyboardType="phone-pad"
+                style={s.modalInput}
+              />
+
+              {/* Email */}
+              <Text style={s.inputLabel}>EMAIL ADDRESS</Text>
+              <TextInput
+                value={editEmail}
+                onChangeText={setEditEmail}
+                placeholder="Email address"
+                placeholderTextColor="#555"
+                keyboardType="email-address"
+                style={s.modalInput}
+              />
+
+              {/* Bio/About */}
+              <Text style={s.inputLabel}>ABOUT ME (BIO)</Text>
+              <TextInput
+                value={editAbout}
+                onChangeText={setEditAbout}
+                placeholder="Write something about yourself..."
+                placeholderTextColor="#555"
+                multiline
+                numberOfLines={3}
+                style={[s.modalInput, { height: 80, textAlignVertical: 'top', paddingTop: 10 }]}
               />
 
               {/* Delivery Address Auto-complete */}

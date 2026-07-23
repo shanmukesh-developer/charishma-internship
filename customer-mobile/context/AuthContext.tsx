@@ -7,6 +7,8 @@ interface User {
   name: string;
   email: string;
   phone?: string;
+  mobile?: string;
+  about?: string;
   isElite?: boolean;
   zenPoints?: number;
   walletBalance?: number;
@@ -24,6 +26,9 @@ interface User {
   friendCode?: string;
   createdAt?: string;
   role?: string;
+  statusText?: string;
+  statusEmoji?: string;
+  statusSeenBy?: string[];
 }
 
 interface AuthContextType {

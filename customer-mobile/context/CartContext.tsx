@@ -250,7 +250,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         if (parsed.name) userName = parsed.name;
         if (parsed._id || parsed.id) userId = parsed._id || parsed.id;
       }
-    } catch {}
+    } catch (err) {
+      console.error('[CART_USER_INFO_LOAD_ERROR]', err);
+    }
 
     const itemWithQty: CartItem = {
       ...item,

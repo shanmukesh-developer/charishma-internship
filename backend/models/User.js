@@ -66,7 +66,19 @@ const initUserModel = (sequelize) => {
     karmaPoints: { type: DataTypes.INTEGER, defaultValue: 0 },
     friendCode: { type: DataTypes.STRING(10), unique: true, allowNull: true },
     statusText: { type: DataTypes.STRING, allowNull: true },
-    statusEmoji: { type: DataTypes.STRING, allowNull: true }
+    statusEmoji: { type: DataTypes.STRING, allowNull: true },
+    about: { type: DataTypes.STRING, allowNull: true },
+    statusSeenBy: { 
+      type: DataTypes.TEXT, 
+      defaultValue: '[]',
+      get() {
+        const val = this.getDataValue('statusSeenBy');
+        try { return val ? JSON.parse(val) : []; } catch { return []; }
+      },
+      set(val) {
+        this.setDataValue('statusSeenBy', JSON.stringify(val));
+      }
+    }
   }, { timestamps: true });
 
   // Auto-generate referral code

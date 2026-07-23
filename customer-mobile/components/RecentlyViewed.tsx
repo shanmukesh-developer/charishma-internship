@@ -67,7 +67,9 @@ export default function RecentlyViewed() {
             setItems(parsed);
           }
         }
-      } catch {}
+      } catch (err) {
+        console.error('[RECENTLY_VIEWED_LOAD_ERROR]', err);
+      }
     }, 2000);
     return () => clearInterval(interval);
   }, [items.length]);
