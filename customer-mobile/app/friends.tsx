@@ -316,6 +316,13 @@ export default function FriendsScreen() {
   const [statusBgIndex, setStatusBgIndex] = useState(0);
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
+  useEffect(() => {
+    if (user) {
+      setStatusText(user.statusText || '');
+      setStatusEmoji(user.statusEmoji || '');
+    }
+  }, [user]);
+
   // Typing status states
   const [isFriendTyping, setIsFriendTyping] = useState(false);
   const [isTypingLocal, setIsTypingLocal] = useState(false);
@@ -409,14 +416,20 @@ export default function FriendsScreen() {
       loadFriendsData();
     };
 
+    const onFriendStatusUpdated = () => {
+      loadFriendsData();
+    };
+
     socket.on('incoming_friend_request', onIncomingRequest);
     socket.on('friend_request_accepted', onRequestAccepted);
     socket.on('friend_nudge', onNudge);
+    socket.on('friend_status_updated', onFriendStatusUpdated);
 
     return () => {
       socket.off('incoming_friend_request', onIncomingRequest);
       socket.off('friend_request_accepted', onRequestAccepted);
       socket.off('friend_nudge', onNudge);
+      socket.off('friend_status_updated', onFriendStatusUpdated);
     };
   }, [myUserId]);
 
@@ -472,15 +485,10 @@ export default function FriendsScreen() {
       }
     };
 
-    const onFriendStatusUpdated = () => {
-      loadFriendsData();
-    };
-
     socket.on('new_friend_message', onNewMessage);
     socket.on('friendship_theme_updated', onThemeUpdated);
     socket.on('friend_typing_start', onFriendTypingStart);
     socket.on('friend_typing_end', onFriendTypingEnd);
-    socket.on('friend_status_updated', onFriendStatusUpdated);
 
     fetchChatHistory(activeConversationId);
 
@@ -489,7 +497,6 @@ export default function FriendsScreen() {
       socket.off('friendship_theme_updated', onThemeUpdated);
       socket.off('friend_typing_start', onFriendTypingStart);
       socket.off('friend_typing_end', onFriendTypingEnd);
-      socket.off('friend_status_updated', onFriendStatusUpdated);
     };
   }, [activeConversationId, activeFriendshipId]);
 
@@ -1711,28 +1718,41 @@ export default function FriendsScreen() {
                     
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                       {activeStatusView.isSelf && (
-                        <TouchableOpacity
-                          onPress={async () => {
-                            setActiveStatusView(null);
-                            try {
-                              const res = await apiFetch(`${API_URL}/api/friends/status`, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ statusText: '', statusEmoji: '' })
-                              });
-                              if (res.ok) {
-                                await refreshUser();
-                                loadFriendsData();
-                                Alert.alert('Status Deleted', 'Your status has been cleared.');
+                        <>
+                          <TouchableOpacity
+                            onPress={() => {
+                              setActiveStatusView(null);
+                              setStatusText(user?.statusText || '');
+                              setStatusEmoji(user?.statusEmoji || '');
+                              setShowStatusModal(true);
+                            }}
+                            style={{ padding: 8, backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: 16, marginRight: 6 }}
+                          >
+                            <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>✏️ Edit</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={async () => {
+                              setActiveStatusView(null);
+                              try {
+                                const res = await apiFetch(`${API_URL}/api/friends/status`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ statusText: '', statusEmoji: '' })
+                                });
+                                if (res.ok) {
+                                  await refreshUser();
+                                  loadFriendsData();
+                                  Alert.alert('Status Deleted', 'Your status has been cleared.');
+                                }
+                              } catch (err) {
+                                console.error(err);
                               }
-                            } catch (err) {
-                              console.error(err);
-                            }
-                          }}
-                          style={{ padding: 8, backgroundColor: 'rgba(255, 0, 0, 0.25)', borderRadius: 16 }}
-                        >
-                          <Text style={{ color: '#FF7B7B', fontSize: 11, fontWeight: '700' }}>🗑️ Delete</Text>
-                        </TouchableOpacity>
+                            }}
+                            style={{ padding: 8, backgroundColor: 'rgba(255, 0, 0, 0.25)', borderRadius: 16 }}
+                          >
+                            <Text style={{ color: '#FF7B7B', fontSize: 11, fontWeight: '700' }}>🗑️ Delete</Text>
+                          </TouchableOpacity>
+                        </>
                       )}
                       <TouchableOpacity onPress={() => setActiveStatusView(null)} style={{ padding: 8, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 20 }}>
                         <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '700' }}>✕ Close</Text>
