@@ -13,6 +13,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const { initEphemeralPurge } = require('./cron/ephemeralPurge');
 const { initStreakNudge } = require('./cron/streakNudge');
+const { initWallCron } = require('./cron/wallCron');
 // xss-clean removed due to Express 5 query getter incompatibility; custom safeXssMiddleware used instead.
 
 // ── Global Bulletproof Shield (Prevents any Node.js Crash in Dev, Restarts in Prod) ──────────────
@@ -411,6 +412,7 @@ app.get('/api/health', async (req, res) => {
 const startServer = async () => {
   try {
     await connectDB();
+    try { initWallCron(); } catch (e) { console.error('[WALL_CRON_INIT_ERR]', e); }
 
     app.get('/auth-helper', (req, res) => {
       res.send(`
@@ -868,6 +870,7 @@ const startServer = async () => {
     app.use('/api/bikepool', require('./routes/bikePoolRoutes'));
     app.use('/api/pg', require('./routes/pgRoutes'));
     app.use('/api/mega-basket', require('./routes/megaBasketRoutes'));
+    app.use('/api/wall', require('./routes/wallRoutes'));
 
     // 🚀 Auto-Seed: DEVELOPMENT ONLY — Never overwrite production data
     const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';

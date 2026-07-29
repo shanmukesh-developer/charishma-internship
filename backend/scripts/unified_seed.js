@@ -963,6 +963,72 @@ const unifiedSeed = async () => {
     }
   }
 
+  // Seed Wall Event & Submissions
+  try {
+    const WallEvent = sequelize.models.WallEvent;
+    const WallSubmission = sequelize.models.WallSubmission;
+    const WallLike = sequelize.models.WallLike;
+
+    if (WallEvent && WallSubmission) {
+      await WallEvent.destroy({ where: {} });
+      await WallSubmission.destroy({ where: {} });
+      if (WallLike) await WallLike.destroy({ where: {} });
+
+      const adminUser = await User.findOne({ where: { role: 'admin' } });
+      const studentUser = await User.findOne({ where: { role: 'student' } });
+      const adminId = adminUser ? adminUser.id : (studentUser ? studentUser.id : 'admin');
+      const studentId = studentUser ? studentUser.id : adminId;
+
+      // 1. Hall of Fame (Ended Event)
+      const pastEvent = await WallEvent.create({
+        title: 'Best Midnight Snack & Vibes 🌙',
+        description: 'Show us your late night hostel food setup!',
+        startTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        endTime: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+        status: 'ENDED',
+        couponCode: 'WALL-SNACK150',
+        couponValue: 150,
+        winnerUserId: studentId
+      });
+
+      await WallSubmission.create({
+        eventId: pastEvent.id,
+        userId: studentId,
+        imageUrl: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?q=80&w=800',
+        likeCount: 42,
+        isApproved: true
+      });
+
+      // 2. Active Live Wall Event
+      const activeEvent = await WallEvent.create({
+        title: 'Campus Food Aesthetics 📸',
+        description: 'Snap your best food presentation to win a ₹200 discount coupon!',
+        startTime: new Date(),
+        endTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h from now
+        status: 'ACTIVE',
+        couponValue: 200
+      });
+
+      const samplePhotos = [
+        { url: 'https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=800', likes: 18, userId: studentId },
+        { url: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?q=80&w=800', likes: 29, userId: adminId }
+      ];
+
+      for (const p of samplePhotos) {
+        await WallSubmission.create({
+          eventId: activeEvent.id,
+          userId: p.userId,
+          imageUrl: p.url,
+          likeCount: p.likes,
+          isApproved: true
+        });
+      }
+      console.log('✅ Seeded Wall Event, Hall of Fame & Sample Mosaic Submissions');
+    }
+  } catch (wErr) {
+    console.error('❌ Error seeding Wall events:', wErr.message);
+  }
+
   try {
     await sequelize.query('PRAGMA foreign_keys = ON;');
   } catch (e) {}

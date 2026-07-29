@@ -97,5 +97,16 @@ export const ENDPOINTS = {
   friendsTheme: (id: string) => `${API_URL}/api/friends/${id}/theme`,
   friendsSendMessage: `${API_URL}/api/friends/message`,
   friendsMessages: (convId: string) => `${API_URL}/api/friends/messages/${convId}`,
+
+  // The Wall Photo Contest
+  wallActive: `${API_URL}/api/wall/events/active`,
+  wallHistory: `${API_URL}/api/wall/events/history`,
+  wallSubmit: (id: string) => `${API_URL}/api/wall/events/${id}/submit`,
+  wallLike: (id: string) => `${API_URL}/api/wall/submissions/${id}/like`,
+  wallLeaderboard: (id: string) => `${API_URL}/api/wall/events/${id}/leaderboard`,
+  wallAdminPending: `${API_URL}/api/wall/admin/pending`,
+  wallApprove: (id: string) => `${API_URL}/api/wall/admin/submissions/${id}/approve`,
+  wallReject: (id: string) => `${API_URL}/api/wall/admin/submissions/${id}/reject`,
+  wallCreateEvent: `${API_URL}/api/wall/events`,
 };
 

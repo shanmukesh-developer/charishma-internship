@@ -122,9 +122,32 @@ export default function CommunityScreen() {
   const [posts, setPosts] = useState<PostType[]>([]);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'all' | 'reviews'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'wall'>('all');
   const [search, setSearch] = useState('');
   const [onlineCount] = useState(Math.floor(Math.random() * 20) + 8);
+
+  // ── THE WALL STATE ──
+  const [wallSubTab, setWallSubTab] = useState<'live' | 'hof'>('live');
+  const [activeWallEvent, setActiveWallEvent] = useState<any | null>(null);
+  const [wallSubmissions, setWallSubmissions] = useState<any[]>([]);
+  const [userLikedWallSubmissionIds, setUserLikedWallSubmissionIds] = useState<string[]>([]);
+  const [userWallSubmission, setUserWallSubmission] = useState<any | null>(null);
+  const [wallHistory, setWallHistory] = useState<any[]>([]);
+  const [loadingWall, setLoadingWall] = useState(false);
+  const [wallTimeLeft, setWallTimeLeft] = useState<string>('');
+
+  // Modals & Form
+  const [showWallSubmitModal, setShowWallSubmitModal] = useState(false);
+  const [wallSubmitImage, setWallSubmitImage] = useState<string | null>(null);
+  const [submittingWallPhoto, setSubmittingWallPhoto] = useState(false);
+
+  const [showWallAdminModal, setShowWallAdminModal] = useState(false);
+  const [pendingWallSubmissions, setPendingWallSubmissions] = useState<any[]>([]);
+  const [newWallTitle, setNewWallTitle] = useState('');
+  const [newWallDesc, setNewWallDesc] = useState('');
+  const [newWallHours, setNewWallHours] = useState('24');
+  const [newWallCouponVal, setNewWallCouponVal] = useState('200');
+  const [submittingNewWallEvent, setSubmittingNewWallEvent] = useState(false);
   
   // Composer states
   const [showComposer, setShowComposer] = useState(false);
@@ -342,6 +365,231 @@ export default function CommunityScreen() {
     }
   };
 
+  // ── THE WALL HANDLERS ──
+  const fetchWallActive = async () => {
+    try {
+      setLoadingWall(true);
+      const res = await apiFetch((ENDPOINTS as any).wallActive);
+      if (res.ok) {
+        const data = await res.json();
+        setActiveWallEvent(data.activeEvent);
+        setWallSubmissions(data.submissions || []);
+        setUserLikedWallSubmissionIds(data.userLikedSubmissionIds || []);
+        setUserWallSubmission(data.userSubmission || null);
+      }
+    } catch (e) {
+      console.error('[FETCH_WALL_ERR]', e);
+    } finally {
+      setLoadingWall(false);
+    }
+  };
+
+  const fetchWallHistory = async () => {
+    try {
+      const res = await apiFetch((ENDPOINTS as any).wallHistory);
+      if (res.ok) {
+        const data = await res.json();
+        setWallHistory(data);
+      }
+    } catch (e) {
+      console.error('[FETCH_WALL_HISTORY_ERR]', e);
+    }
+  };
+
+  const fetchWallAdminPending = async () => {
+    if (user?.role?.toLowerCase() !== 'admin') return;
+    try {
+      const res = await apiFetch((ENDPOINTS as any).wallAdminPending);
+      if (res.ok) {
+        const data = await res.json();
+        setPendingWallSubmissions(data);
+      }
+    } catch (e) {
+      console.error('[FETCH_WALL_PENDING_ERR]', e);
+    }
+  };
+
+  const handleWallLike = async (submissionId: string) => {
+    if (!user) {
+      Alert.alert('Authentication Required', 'Sign in to vote on The Wall photos!');
+      return;
+    }
+
+    const isAlreadyLiked = userLikedWallSubmissionIds.includes(submissionId);
+    setUserLikedWallSubmissionIds(prev =>
+      isAlreadyLiked ? prev.filter(id => id !== submissionId) : [...prev, submissionId]
+    );
+
+    setWallSubmissions(prev =>
+      prev.map(sub => {
+        if (sub.id === submissionId) {
+          return {
+            ...sub,
+            likeCount: isAlreadyLiked ? Math.max(0, sub.likeCount - 1) : sub.likeCount + 1
+          };
+        }
+        return sub;
+      })
+    );
+
+    try {
+      const res = await apiFetch((ENDPOINTS as any).wallLike(submissionId), { method: 'POST' });
+      if (!res.ok) {
+        const err = await res.json();
+        Alert.alert('Vote Failed', err.message || 'Could not register vote.');
+        fetchWallActive();
+      }
+    } catch (e) {
+      fetchWallActive();
+    }
+  };
+
+  const pickWallPhoto = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      aspect: [1, 1],
+      quality: 0.15,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets && result.assets[0].base64) {
+      const b64 = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      setWallSubmitImage(b64);
+    }
+  };
+
+  const submitWallPhoto = async () => {
+    if (!activeWallEvent) return;
+    if (!wallSubmitImage) {
+      Alert.alert('Validation Error', 'Please select a photo to upload.');
+      return;
+    }
+
+    setSubmittingWallPhoto(true);
+    try {
+      const res = await apiFetch((ENDPOINTS as any).wallSubmit(activeWallEvent.id), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: wallSubmitImage })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        Alert.alert('Photo Submitted! 📸', data.message || 'Your entry has been submitted.');
+        setWallSubmitImage(null);
+        setShowWallSubmitModal(false);
+        fetchWallActive();
+      } else {
+        const err = await res.json();
+        Alert.alert('Submission Failed', err.message || 'Failed to submit photo.');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Network error uploading photo.');
+    } finally {
+      setSubmittingWallPhoto(false);
+    }
+  };
+
+  const approveWallSubmission = async (id: string) => {
+    try {
+      const res = await apiFetch((ENDPOINTS as any).wallApprove(id), { method: 'PUT' });
+      if (res.ok) {
+        Alert.alert('Approved! 📸', 'Photo is now live on The Wall!');
+        fetchWallAdminPending();
+        fetchWallActive();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const rejectWallSubmission = async (id: string) => {
+    try {
+      const res = await apiFetch((ENDPOINTS as any).wallReject(id), { method: 'PUT' });
+      if (res.ok) {
+        Alert.alert('Rejected', 'Submission removed from queue.');
+        fetchWallAdminPending();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const createWallEvent = async () => {
+    if (!newWallTitle.trim()) {
+      Alert.alert('Validation Error', 'Please enter event title.');
+      return;
+    }
+
+    setSubmittingNewWallEvent(true);
+    try {
+      const hrs = parseInt(newWallHours || '24', 10);
+      const startTime = new Date();
+      const endTime = new Date(Date.now() + hrs * 60 * 60 * 1000);
+
+      const res = await apiFetch((ENDPOINTS as any).wallCreateEvent, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newWallTitle,
+          description: newWallDesc,
+          startTime,
+          endTime,
+          couponValue: parseInt(newWallCouponVal || '200', 10)
+        })
+      });
+
+      if (res.ok) {
+        Alert.alert('Event Created! 📸', 'New Wall photo contest is live!');
+        setNewWallTitle('');
+        setNewWallDesc('');
+        setShowWallAdminModal(false);
+        fetchWallActive();
+      } else {
+        const err = await res.json();
+        Alert.alert('Error', err.message || 'Failed to create Wall event.');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Network error creating Wall event.');
+    } finally {
+      setSubmittingNewWallEvent(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'wall') {
+      fetchWallActive();
+      fetchWallHistory();
+      if (user?.role?.toLowerCase() === 'admin') {
+        fetchWallAdminPending();
+      }
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (!activeWallEvent || !activeWallEvent.endTime) {
+      setWallTimeLeft('');
+      return;
+    }
+
+    const updateTimer = () => {
+      const ms = new Date(activeWallEvent.endTime).getTime() - Date.now();
+      if (ms <= 0) {
+        setWallTimeLeft('CONTEST ENDED');
+      } else {
+        const hours = Math.floor(ms / 3600000);
+        const mins = Math.floor((ms % 3600000) / 60000);
+        const secs = Math.floor((ms % 60000) / 1000);
+        setWallTimeLeft(`${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+      }
+    };
+
+    updateTimer();
+    const tInterval = setInterval(updateTimer, 1000);
+    return () => clearInterval(tInterval);
+  }, [activeWallEvent]);
+
   useEffect(() => {
     fetchPosts();
     fetchBirthdays();
@@ -366,7 +614,7 @@ export default function CommunityScreen() {
         setPosts(prev => {
           if (prev.some(p => p.id === newPost.id)) return prev;
           const isReview = newPost.postType === 'review';
-          if (activeTab === 'reviews' && !isReview) return prev;
+          if (activeTab === 'wall' && !isReview) return prev;
           return [newPost, ...prev];
         });
       }
@@ -423,7 +671,7 @@ export default function CommunityScreen() {
 
   const fetchPosts = async () => {
     try {
-      const url = activeTab === 'reviews' ? ENDPOINTS.communityReviews : ENDPOINTS.communityPosts;
+      const url = ENDPOINTS.communityPosts;
       const res = await apiFetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -655,26 +903,263 @@ export default function CommunityScreen() {
             <Text style={[s.tabLabel, activeTab === 'all' && [s.tabLabelActive, { color: isDark ? '#000' : '#fff' }], { paddingVertical: 8 }]}>ALL POSTS</Text>
           </DopaminePressable>
           <DopaminePressable 
-            style={[s.tabBtn, activeTab === 'reviews' && [s.tabBtnActive, { backgroundColor: isDark ? COLORS.gold : '#3e2723' }], { flex: 1 }]} 
-            onPress={() => setActiveTab('reviews')}
+            style={[s.tabBtn, activeTab === 'wall' && [s.tabBtnActive, { backgroundColor: isDark ? COLORS.gold : '#3e2723' }], { flex: 1 }]} 
+            onPress={() => setActiveTab('wall')}
             sound="tabSwitch"
             activeScale={0.96}
           >
-            <Text style={[s.tabLabel, activeTab === 'reviews' && [s.tabLabelActive, { color: isDark ? '#000' : '#fff' }], { paddingVertical: 8 }]}>FOOD REVIEWS</Text>
+            <Text style={[s.tabLabel, activeTab === 'wall' && [s.tabLabelActive, { color: isDark ? '#000' : '#fff' }], { paddingVertical: 8 }]}>📸 THE WALL</Text>
           </DopaminePressable>
         </View>
 
         {/* Search */}
-        <TextInput 
-          style={[s.searchBar, { backgroundColor: cardBg, borderColor: border, color: txt }]} 
-          placeholder="Search stories..." 
-          placeholderTextColor="#888" 
-          value={search} 
-          onChangeText={setSearch} 
-        />
+        {activeTab === 'all' && (
+          <TextInput 
+            style={[s.searchBar, { backgroundColor: cardBg, borderColor: border, color: txt }]} 
+            placeholder="Search stories..." 
+            placeholderTextColor="#888" 
+            value={search} 
+            onChangeText={setSearch} 
+          />
+        )}
       </View>
 
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+      {activeTab === 'wall' ? (
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16 }}>
+          {/* Wall Sub-Tab Selector */}
+          <View style={{ flexDirection: 'row', backgroundColor: cardBg, borderRadius: 16, borderWidth: 1, borderColor: border, padding: 4, marginBottom: 14 }}>
+            <TouchableOpacity
+              style={{ flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center', backgroundColor: wallSubTab === 'live' ? (isDark ? COLORS.gold : '#3e2723') : 'transparent' }}
+              onPress={() => setWallSubTab('live')}
+            >
+              <Text style={{ fontSize: 10, fontWeight: '900', color: wallSubTab === 'live' ? (isDark ? '#000' : '#fff') : txtSec, letterSpacing: 1 }}>📸 LIVE CONTEST</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center', backgroundColor: wallSubTab === 'hof' ? (isDark ? COLORS.gold : '#3e2723') : 'transparent' }}
+              onPress={() => setWallSubTab('hof')}
+            >
+              <Text style={{ fontSize: 10, fontWeight: '900', color: wallSubTab === 'hof' ? (isDark ? '#000' : '#fff') : txtSec, letterSpacing: 1 }}>🏆 HALL OF FAME</Text>
+            </TouchableOpacity>
+          </View>
+
+          {wallSubTab === 'live' ? (
+            <View style={{ flex: 1 }}>
+              {/* Active Contest Banner */}
+              {activeWallEvent ? (
+                <View style={[s.wallEventCard, { backgroundColor: cardBg, borderColor: isDark ? 'rgba(212,175,55,0.3)' : 'rgba(139,90,43,0.2)' }]}>
+                  <LinearGradient
+                    colors={isDark ? ['rgba(212, 175, 55, 0.12)', 'rgba(0, 0, 0, 0)'] : ['rgba(139, 90, 43, 0.06)', 'rgba(0, 0, 0, 0)']}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 2 }}>
+                    <View style={{ flex: 1, paddingRight: 10 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <Text style={{ fontSize: 12 }}>🔥</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '900', color: txt }}>{activeWallEvent.title}</Text>
+                      </View>
+                      <Text style={{ fontSize: 10, fontWeight: '600', color: txtSec, marginBottom: 10 }}>{activeWallEvent.description || 'Submit your photo & vote for the best entries!'}</Text>
+                    </View>
+
+                    {user?.role?.toLowerCase() === 'admin' && (
+                      <TouchableOpacity style={{ backgroundColor: 'rgba(239,79,95,0.15)', borderWidth: 1, borderColor: '#EF4F5F', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 6 }} onPress={() => setShowWallAdminModal(true)}>
+                        <Text style={{ fontSize: 8, fontWeight: '900', color: '#EF4F5F' }}>ADMIN ({pendingWallSubmissions.length})</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: border, paddingTop: 10, marginTop: 4, zIndex: 2 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={{ fontSize: 14 }}>⏱️</Text>
+                      <View>
+                        <Text style={{ fontSize: 7, fontWeight: '900', color: txtSec, letterSpacing: 0.5 }}>TIME REMAINING</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '900', color: isDark ? COLORS.gold : '#8b5a2b' }}>{wallTimeLeft || '24:00:00'}</Text>
+                      </View>
+                    </View>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={{ fontSize: 14 }}>🎁</Text>
+                      <View>
+                        <Text style={{ fontSize: 7, fontWeight: '900', color: txtSec, letterSpacing: 0.5 }}>PRIZE REWARD</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '900', color: '#4ADE80' }}>₹{activeWallEvent.couponValue || 200} COUPON</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {userWallSubmission && (
+                    <View style={{ marginTop: 10, padding: 8, borderRadius: 10, backgroundColor: userWallSubmission.isApproved ? 'rgba(74,222,128,0.1)' : 'rgba(250,204,21,0.1)', borderWidth: 1, borderColor: userWallSubmission.isApproved ? '#4ADE80' : '#FACC15', alignItems: 'center', zIndex: 2 }}>
+                      <Text style={{ fontSize: 9, fontWeight: '900', color: userWallSubmission.isApproved ? '#4ADE80' : '#FACC15' }}>
+                        {userWallSubmission.isApproved ? '✅ YOUR PHOTO IS LIVE ON THE WALL!' : '⏳ YOUR SUBMISSION IS PENDING ADMIN MODERATION'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                <View style={{ padding: 20, alignItems: 'center', backgroundColor: cardBg, borderRadius: 20, marginBottom: 14, borderWidth: 1, borderColor: border }}>
+                  <Text style={{ fontSize: 32, marginBottom: 8 }}>📸</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '900', color: txt }}>NO ACTIVE CONTEST</Text>
+                  <Text style={{ fontSize: 10, color: txtSec, textAlign: 'center', marginTop: 4 }}>Check back soon or view past winners in the Hall of Fame!</Text>
+                  {user?.role?.toLowerCase() === 'admin' && (
+                    <TouchableOpacity style={{ marginTop: 12, backgroundColor: isDark ? COLORS.gold : '#3e2723', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 }} onPress={() => setShowWallAdminModal(true)}>
+                      <Text style={{ fontSize: 10, fontWeight: '900', color: isDark ? '#000' : '#fff' }}>+ CREATE NEW CONTEST</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {/* Dynamic Masonry Mosaic Grid */}
+              {loadingWall ? (
+                <ActivityIndicator size="large" color={isDark ? COLORS.gold : '#8b5a2b'} style={{ marginVertical: 36 }} />
+              ) : wallSubmissions.length === 0 ? (
+                <View style={s.emptyState}>
+                  <Text style={{ fontSize: 40, marginBottom: 8 }}>🖼️</Text>
+                  <Text style={[s.emptyTitle, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>THE WALL IS EMPTY</Text>
+                  <Text style={[s.emptySubtitle, { color: txtSec }]}>Be the first student to upload a photo for this contest!</Text>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10, paddingBottom: 80 }}>
+                  {wallSubmissions.map((sub, index) => {
+                    const rank = index + 1;
+                    const isTop = rank === 1;
+                    const isLiked = userLikedWallSubmissionIds.includes(sub.id);
+
+                    return (
+                      <View
+                        key={sub.id}
+                        style={[
+                          s.mosaicTile,
+                          {
+                            width: isTop ? '100%' : '48%',
+                            height: isTop ? 240 : 170,
+                            backgroundColor: cardBg,
+                            borderColor: isTop ? (isDark ? COLORS.gold : '#8b5a2b') : border,
+                            borderWidth: isTop ? 2 : 1,
+                            shadowColor: isTop ? '#D4AF37' : '#000',
+                            shadowOpacity: isTop ? 0.4 : 0.1,
+                            shadowRadius: isTop ? 12 : 4,
+                            elevation: isTop ? 8 : 2,
+                            borderRadius: 16,
+                            overflow: 'hidden',
+                            position: 'relative'
+                          }
+                        ]}
+                      >
+                        <TouchableOpacity activeOpacity={0.9} style={{ flex: 1 }} onPress={() => setSelectedImage(sub.imageUrl)}>
+                          <Image source={{ uri: getImageUrl(sub.imageUrl) }} style={{ width: '100%', height: '100%', borderRadius: 16 }} />
+
+                          {/* Rank Badge */}
+                          <View style={{ position: 'absolute', top: 10, left: 10, backgroundColor: isTop ? '#FFD700' : 'rgba(0,0,0,0.6)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            {isTop && <Text style={{ fontSize: 12 }}>👑</Text>}
+                            <Text style={{ fontSize: 9, fontWeight: '900', color: isTop ? '#000' : '#FFF' }}>#{rank}</Text>
+                          </View>
+
+                          {/* Heart Vote Button */}
+                          <TouchableOpacity
+                            style={{ position: 'absolute', top: 10, right: 10, backgroundColor: isLiked ? 'rgba(239,79,95,0.95)' : 'rgba(0,0,0,0.6)', width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }}
+                            onPress={() => handleWallLike(sub.id)}
+                          >
+                            <Text style={{ fontSize: 14 }}>{isLiked ? '❤️' : '🤍'}</Text>
+                          </TouchableOpacity>
+
+                          {/* Bottom User & Vote Count Gradient Overlay */}
+                          <LinearGradient
+                            colors={['transparent', 'rgba(0,0,0,0.85)']}
+                            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 10, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}
+                          >
+                            <View style={{ flex: 1, paddingRight: 6 }}>
+                              <Text style={{ fontSize: 11, fontWeight: '900', color: '#FFF' }} numberOfLines={1}>
+                                {sub.user?.name || 'Student'}
+                              </Text>
+                            </View>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                              <Text style={{ fontSize: 11, fontWeight: '900', color: '#FF5A00' }}>🔥 {sub.likeCount}</Text>
+                            </View>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+
+              {/* Floating Submission Action Button */}
+              {activeWallEvent && (!userWallSubmission || user?.role?.toLowerCase() === 'admin') && (
+                <TouchableOpacity
+                  style={s.wallFabBtn}
+                  onPress={() => checkAuthAndRun(() => setShowWallSubmitModal(true))}
+                >
+                  <Text style={{ fontSize: 18, color: '#000' }}>📸</Text>
+                  <Text style={s.wallFabText}>SUBMIT PHOTO</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            /* HALL OF FAME VIEW */
+            <View style={{ flex: 1, paddingBottom: 40 }}>
+              {wallHistory.length === 0 ? (
+                <View style={s.emptyState}>
+                  <Text style={{ fontSize: 40, marginBottom: 8 }}>🏛️</Text>
+                  <Text style={[s.emptyTitle, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>HALL OF FAME</Text>
+                  <Text style={[s.emptySubtitle, { color: txtSec }]}>Past contest winners will be archived here once active events finish.</Text>
+                </View>
+              ) : (
+                <View style={{ gap: 14 }}>
+                  {wallHistory.map((item, index) => {
+                    const isRecent = index === 0;
+                    return (
+                      <View
+                        key={item.event.id}
+                        style={[
+                          s.hofCard,
+                          {
+                            backgroundColor: cardBg,
+                            borderColor: isRecent ? (isDark ? COLORS.gold : '#8b5a2b') : border,
+                            borderWidth: isRecent ? 2 : 1,
+                            padding: 16,
+                            borderRadius: 20
+                          }
+                        ]}
+                      >
+                        {isRecent && (
+                          <View style={{ alignSelf: 'flex-start', backgroundColor: isDark ? COLORS.gold : '#3e2723', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginBottom: 8 }}>
+                            <Text style={{ fontSize: 8, fontWeight: '900', color: isDark ? '#000' : '#FFF', letterSpacing: 1 }}>🏆 RECENT CHAMPION</Text>
+                          </View>
+                        )}
+
+                        <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
+                          <View style={{ width: 70, height: 70, borderRadius: 35, overflow: 'hidden', borderWidth: 2, borderColor: '#FFD700', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' }}>
+                            {item.winningSubmission?.imageUrl ? (
+                              <Image source={{ uri: getImageUrl(item.winningSubmission.imageUrl) }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
+                            ) : (
+                              <Text style={{ fontSize: 30 }}>👑</Text>
+                            )}
+                          </View>
+
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 13, fontWeight: '900', color: txt }}>{item.event.title}</Text>
+                            <Text style={{ fontSize: 10, fontWeight: '700', color: isDark ? COLORS.gold : '#8b5a2b', marginTop: 2 }}>
+                              WINNER: {item.winner?.name || 'Community Member'} 🏆
+                            </Text>
+                            <Text style={{ fontSize: 8, fontWeight: '600', color: txtSec, marginTop: 4 }}>
+                              Votes: {item.winningSubmission?.likeCount || 0} Likes • Concluded {new Date(item.event.endTime).toLocaleDateString()}
+                            </Text>
+
+                            {item.event.couponCode && (
+                              <View style={{ marginTop: 6, alignSelf: 'flex-start', backgroundColor: 'rgba(74,222,128,0.12)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: '#4ADE80' }}>
+                                <Text style={{ fontSize: 8, fontWeight: '900', color: '#4ADE80' }}>PRIZE: ₹{item.event.couponValue || 150} COUPON ({item.event.couponCode})</Text>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          )}
+        </ScrollView>
+      ) : (
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         {/* 👥 SECURE FRIENDS UPLINK */}
         <DopaminePressable
           style={[
@@ -932,6 +1417,7 @@ export default function CommunityScreen() {
           </View>
         )}
       </ScrollView>
+    )}
 
       {/* Floating Compose Button */}
       <FloatingPulse color={isDark ? COLORS.gold : '#8b5a2b'} style={s.composeFabWrap}>
@@ -1343,6 +1829,113 @@ export default function CommunityScreen() {
         </View>
       </Modal>
 
+      {/* ── WALL SUBMIT PHOTO MODAL ── */}
+      <Modal visible={showWallSubmitModal} transparent={true} animationType="slide">
+        <View style={s.bdayOverlay}>
+          <TouchableWithoutFeedback onPress={() => setShowWallSubmitModal(false)}>
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'padding'} style={s.bdayCardWrapper}>
+            <View style={[s.bdayCard, { backgroundColor: isDark ? '#141416' : '#fff' }]}>
+              <Text style={[s.modalTitle, { color: txt }]}>SUBMIT CONTEST PHOTO 📸</Text>
+              <Text style={[s.modalSubtitle, { color: txtSec }]}>Upload your photo entry for "{activeWallEvent?.title}". Top voted photo wins ₹{activeWallEvent?.couponValue || 200}!</Text>
+
+              <TouchableOpacity style={[s.bdayPhotoSelector, { borderColor: border }]} onPress={pickWallPhoto}>
+                {wallSubmitImage ? (
+                  <Image source={{ uri: wallSubmitImage }} style={s.bdayPhotoPreview} />
+                ) : (
+                  <View style={{ alignItems: 'center' }}>
+                    <Text style={{ fontSize: 32 }}>📷</Text>
+                    <Text style={{ color: isDark ? COLORS.gold : '#8b5a2b', fontSize: 10, fontWeight: '700', marginTop: 4 }}>Select Photo from Gallery</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <View style={s.modalActionsRow}>
+                <TouchableOpacity style={[s.modalCancelBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} onPress={() => setShowWallSubmitModal(false)}>
+                  <Text style={[s.modalCancelText, { color: txtSec }]}>CANCEL</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[s.modalSubmitBtn, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b' }]} onPress={submitWallPhoto} disabled={submittingWallPhoto}>
+                  {submittingWallPhoto ? (
+                    <ActivityIndicator size="small" color={isDark ? '#000' : '#fff'} />
+                  ) : (
+                    <Text style={[s.modalSubmitText, { color: isDark ? '#000' : '#fff' }]}>UPLOAD ENTRY 🚀</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      {/* ── WALL ADMIN PANEL & MODERATION MODAL ── */}
+      <Modal visible={showWallAdminModal} transparent={true} animationType="slide">
+        <View style={s.bdayOverlay}>
+          <TouchableWithoutFeedback onPress={() => setShowWallAdminModal(false)}>
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+
+          <View style={[s.bdayCard, { backgroundColor: isDark ? '#141416' : '#fff', maxHeight: '85%' }]}>
+            <Text style={[s.modalTitle, { color: txt }]}>WALL ADMIN CONTROL PANEL 🛠️</Text>
+            <Text style={[s.modalSubtitle, { color: txtSec }]}>Approve student submissions & create new photo contest events.</Text>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ width: '100%', marginVertical: 10 }}>
+              {/* Create Event Form */}
+              <View style={{ padding: 12, borderRadius: 16, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderWidth: 1, borderColor: border, marginBottom: 16 }}>
+                <Text style={{ fontSize: 11, fontWeight: '900', color: isDark ? COLORS.gold : '#8b5a2b', marginBottom: 8 }}>+ CREATE NEW CONTEST</Text>
+                <TextInput style={[s.reviewInputField, { backgroundColor: isDark ? '#222' : '#fff', borderColor: border, color: txt }]} placeholder="Event Title (e.g. Campus Sunset Food)" placeholderTextColor="#888" value={newWallTitle} onChangeText={setNewWallTitle} />
+                <TextInput style={[s.reviewInputField, { backgroundColor: isDark ? '#222' : '#fff', borderColor: border, color: txt }]} placeholder="Event Description..." placeholderTextColor="#888" value={newWallDesc} onChangeText={setNewWallDesc} />
+
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                  <TextInput style={[s.reviewInputField, { flex: 1, backgroundColor: isDark ? '#222' : '#fff', borderColor: border, color: txt }]} placeholder="Duration (Hrs)" placeholderTextColor="#888" keyboardType="numeric" value={newWallHours} onChangeText={setNewWallHours} />
+                  <TextInput style={[s.reviewInputField, { flex: 1, backgroundColor: isDark ? '#222' : '#fff', borderColor: border, color: txt }]} placeholder="Coupon Value (₹)" placeholderTextColor="#888" keyboardType="numeric" value={newWallCouponVal} onChangeText={setNewWallCouponVal} />
+                </View>
+
+                <TouchableOpacity style={{ marginTop: 8, backgroundColor: isDark ? COLORS.gold : '#8b5a2b', paddingVertical: 10, borderRadius: 10, alignItems: 'center' }} onPress={createWallEvent} disabled={submittingNewWallEvent}>
+                  {submittingNewWallEvent ? (
+                    <ActivityIndicator size="small" color={isDark ? '#000' : '#fff'} />
+                  ) : (
+                    <Text style={{ fontSize: 10, fontWeight: '900', color: isDark ? '#000' : '#fff' }}>PUBLISH CONTEST 🚀</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* Pending Queue */}
+              <Text style={{ fontSize: 11, fontWeight: '900', color: txt, marginBottom: 8 }}>MODERATION QUEUE ({pendingWallSubmissions.length})</Text>
+              {pendingWallSubmissions.length === 0 ? (
+                <Text style={{ color: txtSec, fontSize: 10, fontWeight: '700', textAlign: 'center', marginVertical: 12 }}>No pending photo submissions in moderation. ✨</Text>
+              ) : (
+                pendingWallSubmissions.map((sub) => (
+                  <View key={sub.id} style={[s.adminQueueCard, { borderColor: border, backgroundColor: isDark ? '#1C1B1F' : '#fcfcfc' }]}>
+                    <View style={s.adminQueueRow}>
+                      <Image source={{ uri: getImageUrl(sub.imageUrl) }} style={{ width: 50, height: 50, borderRadius: 10 }} />
+                      <View style={{ flex: 1, paddingLeft: 10 }}>
+                        <Text style={[s.adminQueueName, { color: txt }]}>{sub.user?.name || 'Student'}</Text>
+                        <Text style={[s.adminQueueDate, { color: txtSec }]}>Contest: {sub.event?.title || 'Wall'}</Text>
+                      </View>
+                    </View>
+
+                    <View style={s.adminQueueActions}>
+                      <TouchableOpacity style={[s.adminRejectBtn, { backgroundColor: COLORS.red + '22' }]} onPress={() => rejectWallSubmission(sub.id)}>
+                        <Text style={{ color: COLORS.red, fontSize: 10, fontWeight: '900' }}>REJECT ❌</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[s.adminApproveBtn, { backgroundColor: COLORS.emerald + '22' }]} onPress={() => approveWallSubmission(sub.id)}>
+                        <Text style={{ color: COLORS.emerald, fontSize: 10, fontWeight: '900' }}>APPROVE ✅</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+
+            <TouchableOpacity style={[s.modalCancelBtn, { width: '100%', backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} onPress={() => setShowWallAdminModal(false)}>
+              <Text style={[s.modalCancelText, { color: txtSec }]}>CLOSE</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -1578,5 +2171,54 @@ const s = StyleSheet.create({
     fontSize: 8,
     fontWeight: '900',
     letterSpacing: 1,
+  },
+
+  // ── THE WALL STYLING ──
+  wallEventCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 14,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  mosaicTile: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  wallFabBtn: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#FFD700',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 25,
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
+    zIndex: 999,
+  },
+  wallFabText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#000',
+    letterSpacing: 1,
+  },
+  hofCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 16,
   },
 });

@@ -30,6 +30,9 @@ const { initMessageModel } = require('../models/Message');
 const { initFriendshipModel } = require('../models/Friendship');
 const { initRoomModel } = require('../models/Room');
 const { initRoomParticipantModel } = require('../models/RoomParticipant');
+const { initWallEventModel } = require('../models/WallEvent');
+const { initWallSubmissionModel } = require('../models/WallSubmission');
+const { initWallLikeModel } = require('../models/WallLike');
 
 const initializeAllModels = (instance) => {
   initUserModel(instance);
@@ -58,6 +61,9 @@ const initializeAllModels = (instance) => {
   initFriendshipModel(instance);
   initRoomModel(instance);
   initRoomParticipantModel(instance);
+  initWallEventModel(instance);
+  initWallSubmissionModel(instance);
+  initWallLikeModel(instance);
 
   // Define Associations
   const Restaurant = instance.models.Restaurant;
@@ -174,6 +180,25 @@ const initializeAllModels = (instance) => {
   if (MegaBasket && MegaBasketItem) {
     MegaBasket.hasMany(MegaBasketItem, { foreignKey: 'basketId', as: 'items' });
     MegaBasketItem.belongsTo(MegaBasket, { foreignKey: 'basketId', as: 'basket' });
+  }
+
+  const WallEvent = instance.models.WallEvent;
+  const WallSubmission = instance.models.WallSubmission;
+  const WallLike = instance.models.WallLike;
+
+  if (WallEvent && WallSubmission) {
+    WallEvent.hasMany(WallSubmission, { foreignKey: 'eventId', as: 'submissions' });
+    WallSubmission.belongsTo(WallEvent, { foreignKey: 'eventId', as: 'event' });
+  }
+
+  if (WallSubmission && User) {
+    WallSubmission.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    User.hasMany(WallSubmission, { foreignKey: 'userId', as: 'wallSubmissions' });
+  }
+
+  if (WallSubmission && WallLike) {
+    WallSubmission.hasMany(WallLike, { foreignKey: 'submissionId', as: 'likes' });
+    WallLike.belongsTo(WallSubmission, { foreignKey: 'submissionId', as: 'submission' });
   }
 };
 
