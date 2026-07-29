@@ -109,6 +109,13 @@ function playTone(
   osc.connect(gain);
   gain.connect(ctx.destination);
 
+  osc.onended = () => {
+    try {
+      osc.disconnect();
+      gain.disconnect();
+    } catch (e) {}
+  };
+
   osc.start(startTime);
   osc.stop(endTime + fadeOut);
 }

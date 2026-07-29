@@ -50,7 +50,7 @@ export default function DopaminePressable({
   }, []);
 
   const handleTouch = useCallback((e: any) => {
-    if (!tilt || !layout.width || !layout.height) return;
+    if (!tilt || Platform.OS === 'web' || !layout.width || !layout.height) return;
     const { locationX, locationY } = e.nativeEvent;
 
     // Clamp coordinates within layout boundaries

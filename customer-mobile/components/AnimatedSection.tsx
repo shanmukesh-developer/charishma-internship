@@ -235,8 +235,13 @@ export function AnimatedCounter({ target, duration = 1500, prefix = '', suffix =
 
   useEffect(() => {
     animValue.setValue(0);
+    let lastTime = 0;
     const listener = animValue.addListener(({ value }) => {
-      setDisplayValue(Math.round(value));
+      const now = Date.now();
+      if (now - lastTime > 40 || value === target) {
+        lastTime = now;
+        setDisplayValue(Math.round(value));
+      }
     });
 
     Animated.timing(animValue, {

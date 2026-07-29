@@ -210,7 +210,7 @@ export default function App() {
     fetchDashboardData();
     const interval = setInterval(() => {
       fetchDashboardData(true);
-    }, 6000);
+    }, 10000);
     return () => clearInterval(interval);
   }, [authToken, isOnline, apiHost]);
 
@@ -437,13 +437,23 @@ export default function App() {
         const formatted = rawOrders.map(formatOrder);
         setActiveOrders(formatted);
         
-        // Sync local Mega Basket approval states with DB fields
+        // Batch sync local Mega Basket approval states with DB fields in single updates
+        const newItemPhotoMap: Record<string, boolean> = {};
+        const newPurchaseApprovedMap: Record<string, boolean> = {};
+        const newBillProofMap: Record<string, boolean> = {};
+        const newBillApprovedMap: Record<string, boolean> = {};
+
         formatted.forEach((o: Order) => {
-          if (o.itemPhotoUrl) setItemPhotoUploadedMap(prev => ({ ...prev, [o.id]: true }));
-          if (o.isPurchasingApprovedByCustomer) setPurchaseApprovedMap(prev => ({ ...prev, [o.id]: true }));
-          if (o.billProofUrl) setBillProofUploadedMap(prev => ({ ...prev, [o.id]: true }));
-          if (o.isBillApproved) setBillApprovedMap(prev => ({ ...prev, [o.id]: true }));
+          if (o.itemPhotoUrl) newItemPhotoMap[o.id] = true;
+          if (o.isPurchasingApprovedByCustomer) newPurchaseApprovedMap[o.id] = true;
+          if (o.billProofUrl) newBillProofMap[o.id] = true;
+          if (o.isBillApproved) newBillApprovedMap[o.id] = true;
         });
+
+        if (Object.keys(newItemPhotoMap).length > 0) setItemPhotoUploadedMap(prev => ({ ...prev, ...newItemPhotoMap }));
+        if (Object.keys(newPurchaseApprovedMap).length > 0) setPurchaseApprovedMap(prev => ({ ...prev, ...newPurchaseApprovedMap }));
+        if (Object.keys(newBillProofMap).length > 0) setBillProofUploadedMap(prev => ({ ...prev, ...newBillProofMap }));
+        if (Object.keys(newBillApprovedMap).length > 0) setBillApprovedMap(prev => ({ ...prev, ...newBillApprovedMap }));
       }
       if (pendingRes.status === 'fulfilled' && Array.isArray(pendingRes.value)) {
         const newPending = pendingRes.value.map(formatOrder);

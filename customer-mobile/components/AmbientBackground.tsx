@@ -85,7 +85,7 @@ function MeteorComponent({ anim, startLeft, startTop, color }: MeteorProps) {
   );
 }
 
-export default function AmbientBackground({ isStatic = Platform.OS === 'android' }: { isStatic?: boolean }) {
+const AmbientBackground = React.memo(function AmbientBackground({ isStatic = Platform.OS === 'android' }: { isStatic?: boolean }) {
   const { isDark } = useTheme();
 
   // ── Drifting Aurora Orbs ──
@@ -342,3 +342,5 @@ const styles = StyleSheet.create({
     })
   },
 });
+
+export default AmbientBackground;
