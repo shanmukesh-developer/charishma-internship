@@ -744,11 +744,13 @@ export default function HomeScreen() {
           {filtered.map((r, i) => {
             const id = r._id || r.id;
             const rating = Number(r.rating) || 4.0;
-            const time = `${30 + Math.floor(Math.random()*30)}-${50 + Math.floor(Math.random()*20)} min`;
+            const nameSeed = (r.name || '').length + (id || '').charCodeAt(0);
+            const deliveryMin = 25 + (nameSeed % 11);
+            const deliveryMax = deliveryMin + 15;
+            const time = `${deliveryMin}-${deliveryMax} min`;
             const img = r.imageUrl || r.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400';
             
             // Stable pseudo-random offers & pricing to match web portal behaviour
-            const nameSeed = (r.name || '').length + (id || '').charCodeAt(0);
             const priceForTwo = 150 + (nameSeed * 7) % 201;
             const offers = ["50% OFF up to ₹100", "Flat ₹75 OFF", "Free Delivery", "60% OFF up to ₹120", "Buy 1 Get 1 Free"];
             const offer = offers[nameSeed % offers.length];

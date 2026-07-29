@@ -14,9 +14,10 @@ interface User {
   walletBalance?: number;
   defaultAddress?: string;
   avatar?: string;
-  profileImage?: string;
+  profileImage?: string | null;
   streakCount?: number;
   totalOrders?: number;
+  completedOrders?: number;
   address?: string;
   hostelBlock?: string;
   karmaPoints?: number;
@@ -77,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email: prev?.email || '',
           ...prev,
           ...u,
+          profileImage: u.profileImage !== undefined ? u.profileImage : (prev?.profileImage ?? null),
           statusText: u.statusText !== undefined ? u.statusText : (prev?.statusText ?? null),
           statusEmoji: u.statusEmoji !== undefined ? u.statusEmoji : (prev?.statusEmoji ?? null),
           statusSeenBy: u.statusSeenBy !== undefined ? u.statusSeenBy : (prev?.statusSeenBy ?? null),

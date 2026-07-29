@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Image, ImageProps, ImageSourcePropType, View, StyleSheet } from 'react-native';
+import { Image, ImageProps, ImageSourcePropType } from 'react-native';
 
 const FALLBACK_IMAGE_URI = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80';
 
@@ -18,6 +18,9 @@ export default function SafeImage({
   const [hasError, setHasError] = useState(false);
   const [imgSource, setImgSource] = useState<ImageSourcePropType>({ uri: fallbackUri });
 
+  // Extract primitive key to prevent infinite useEffect loops on inline object references {{ uri: '...' }}
+  const uriKey = typeof source === 'number' ? source : (typeof source === 'object' && source && 'uri' in source ? (source.uri || '') : '');
+
   useEffect(() => {
     setHasError(false);
     if (!source) {
@@ -26,7 +29,6 @@ export default function SafeImage({
     }
 
     if (typeof source === 'number') {
-      // Local asset require(...)
       setImgSource(source);
     } else if (typeof source === 'object' && 'uri' in source) {
       if (!source.uri || typeof source.uri !== 'string' || source.uri.trim() === '') {
@@ -37,7 +39,7 @@ export default function SafeImage({
     } else {
       setImgSource({ uri: fallbackUri });
     }
-  }, [source, fallbackUri]);
+  }, [uriKey, fallbackUri]);
 
   const handleError = (e: any) => {
     if (!hasError) {

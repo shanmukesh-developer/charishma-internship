@@ -315,7 +315,7 @@ const AmbientBackground = React.memo(function AmbientBackground({ isStatic = Pla
       })}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   orb: {

@@ -11,8 +11,8 @@ const getDevHost = () => {
   if (hostUri) {
     return `http://${hostUri.split(':')[0]}:5005`;
   }
-  // 2. Standalone APK / Production fallback → use Live Render server
-  return 'https://hostelbites-backend-jwmt.onrender.com';
+  // 2. Default to ADB reverse port forwarding localhost:5005 over USB
+  return 'http://localhost:5005';
 };
 
 export const API_URL = getDevHost();

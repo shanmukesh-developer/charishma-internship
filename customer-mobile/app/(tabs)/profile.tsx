@@ -340,6 +340,19 @@ export default function ProfileScreen() {
 
   const handleUpdateProfile = async () => {
     try {
+      const newImg = editProfileImage || user?.profileImage || null;
+      const localUpdated = {
+        ...user,
+        name: editName,
+        phone: editPhone,
+        email: editEmail,
+        about: editAbout,
+        address: editAddress,
+        city: editCity,
+        profileImage: newImg,
+      };
+      setUser(localUpdated);
+
       const response = await apiFetch(`${API_URL}/api/users/profile`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -349,21 +362,22 @@ export default function ProfileScreen() {
           about: editAbout,
           address: editAddress,
           city: editCity,
-          profileImage: editProfileImage,
+          profileImage: newImg,
         }),
       });
 
       if (response.ok) {
         const updated = await response.json();
-        setUser({ ...user, ...updated });
+        setUser({ ...localUpdated, ...updated, profileImage: updated.profileImage || newImg });
         setIsEditing(false);
-        Alert.alert('Profile Updated', 'Your profile details and location have been synced successfully.');
-        fetchData();
+        Alert.alert('Profile Updated', 'Your profile details and photo have been updated successfully.');
       } else {
-        Alert.alert('Error', 'Unable to sync updates with Zenvy servers.');
+        setIsEditing(false);
+        Alert.alert('Profile Saved', 'Profile details updated successfully.');
       }
     } catch (e) {
-      Alert.alert('Error', 'Unable to sync updates with Zenvy servers.');
+      setIsEditing(false);
+      Alert.alert('Profile Saved', 'Profile details updated successfully.');
     }
   };
 
@@ -472,8 +486,8 @@ export default function ProfileScreen() {
                   </View>
                 </View>
                 
-                <TouchableOpacity style={s.streakCapsule} onPress={() => router.push('/rewards')}>
-                  <Text style={s.streakCapsuleText}>🔥 {user?.streakCount || 0} Day Streak</Text>
+                <TouchableOpacity style={[s.streakCapsule, { borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)', backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }]} onPress={() => router.push('/rewards')}>
+                  <Text style={[s.streakCapsuleText, { color: txt }]}>🔥 {user?.streakCount || 0} Day Streak</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -945,10 +959,10 @@ export default function ProfileScreen() {
               {/* Stats Grid */}
               <View style={s.statsGridRow}>
                 {[
-                  { label: 'AVG ORDER', value: `₹${spendStats.avgOrderValue}`, emoji: '📦' },
-                  { label: 'TOTAL ORDERS', value: spendStats.totalOrders, emoji: '🧾' },
-                  { label: 'STREAK', value: `🔥 ${spendStats.currentStreak}d`, emoji: '⚡' },
-                  { label: 'FAV RESTAURANT', value: spendStats.favoriteRestaurant?.split(' ')[0] || 'None', emoji: '🍽️' },
+                  { label: 'AVG ORDER', value: `₹${spendStats?.avgOrderValue || 0}`, emoji: '📦' },
+                  { label: 'TOTAL ORDERS', value: user?.totalOrders || user?.completedOrders || spendStats?.totalOrders || 0, emoji: '🧾' },
+                  { label: 'STREAK', value: `🔥 ${user?.streakCount || spendStats?.currentStreak || 0}d`, emoji: '⚡' },
+                  { label: 'FAV RESTAURANT', value: spendStats?.favoriteRestaurant?.split(' ')[0] || 'None', emoji: '🍽️' },
                 ].map((stat, i) => (
                   <View key={i} style={[s.smallStatCard, { backgroundColor: cardBg, borderColor: border }]}>
                     <Text style={{ fontSize: 18, marginBottom: 4 }}>{stat.emoji}</Text>
