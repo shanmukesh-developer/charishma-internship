@@ -278,7 +278,7 @@ function useOrbitLayout(
 
 export default function FriendsScreen() {
   const router = useRouter();
-  const { user, refreshUser } = useAuth();
+  const { user, setUser, refreshUser } = useAuth();
   const { isDark } = useTheme();
   const myUserId = user?.id || user?._id;
 
@@ -841,6 +841,12 @@ export default function FriendsScreen() {
         body: JSON.stringify({ statusText: statusText.trim(), statusEmoji: statusEmoji.trim() })
       });
       if (res.ok) {
+        const resData = await res.json();
+        // Immediately update client-side status cache
+        setUser({
+          statusText: resData.statusText,
+          statusEmoji: resData.statusEmoji
+        });
         Alert.alert('Status Set! 🚀', 'Your status has been updated across your orbit!');
         setShowStatusModal(false);
         await refreshUser();
@@ -1740,6 +1746,11 @@ export default function FriendsScreen() {
                                   body: JSON.stringify({ statusText: '', statusEmoji: '' })
                                 });
                                 if (res.ok) {
+                                  // Immediately clear client-side status cache
+                                  setUser({
+                                    statusText: null,
+                                    statusEmoji: null
+                                  });
                                   await refreshUser();
                                   loadFriendsData();
                                   Alert.alert('Status Deleted', 'Your status has been cleared.');

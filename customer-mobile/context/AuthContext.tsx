@@ -26,15 +26,15 @@ interface User {
   friendCode?: string;
   createdAt?: string;
   role?: string;
-  statusText?: string;
-  statusEmoji?: string;
-  statusSeenBy?: string[];
+  statusText?: string | null;
+  statusEmoji?: string | null;
+  statusSeenBy?: string[] | null;
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  setUser: (user: User | null) => void;
+  setUser: (user: Partial<User> | null) => void;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -69,10 +69,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   };
 
-  const setUser = async (u: User | null) => {
-    setUserState(u);
-    if (u) await saveUser(u);
-    else await removeUser();
+  const setUser = (u: Partial<User> | null) => {
+    if (u) {
+      setUserState(prev => {
+        const merged: User = {
+          name: prev?.name || '',
+          email: prev?.email || '',
+          ...prev,
+          ...u,
+          statusText: u.statusText !== undefined ? u.statusText : (prev?.statusText ?? null),
+          statusEmoji: u.statusEmoji !== undefined ? u.statusEmoji : (prev?.statusEmoji ?? null),
+          statusSeenBy: u.statusSeenBy !== undefined ? u.statusSeenBy : (prev?.statusSeenBy ?? null),
+        };
+        saveUser(merged).catch(() => {});
+        return merged;
+      });
+    } else {
+      setUserState(null);
+      removeUser().catch(() => {});
+    }
   };
 
   const logout = async () => {
@@ -107,8 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiFetch(`${API_URL}/api/users/profile`);
       if (response.ok) {
         const data = await response.json();
-        setUserState(data);
-        await saveUser(data);
+        setUser(data);
       } else if (response.status === 401) {
         // Token has expired or is invalid -> force logout immediately to prevent redirect loop
         await logout();
