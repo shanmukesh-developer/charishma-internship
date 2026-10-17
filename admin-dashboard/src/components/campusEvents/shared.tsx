@@ -127,7 +127,8 @@ export function EventPreview({ ev, slots }: { ev: AdminEvent; slots?: Slot[] | n
           <KV k="Pricing" v={ev.price.isFree ? 'Free' : <>{inr(ev.price.amount)}{ev.price.extraCharges.length ? ` + ${ev.price.extraCharges.map((c) => `${c.label} ${inr(c.amount)}`).join(', ')}` : ''} = <b>{inr(ev.price.total)}</b> · pay by {ev.paymentModesConfigured.map(label).join(', ') || '—'}</>} />
           <KV k="Eligibility" v={[el.years?.length ? `years ${el.years.join(', ')}` : null, el.branches?.length ? `branches ${el.branches.join(', ')}` : null, el.adultOnly ? '18+ only' : null].filter(Boolean).join(' · ') || 'All verified students'} />
           <KV k="Approval" v={ev.approvalRequired ? 'Organizer approves each registration' : 'Automatic'} />
-          <KV k="Waitlist" v={ev.waitlistEnabled ? 'On' : 'Off'} />
+          <KV k="Waitlist" v={ev.waitlistEnabled ? `On · offers stay open ${ev.waitlistOfferMinutes ?? 'the default'}${ev.waitlistOfferMinutes ? ' min' : ''}` : 'Off'} />
+          <KV k="Minimum participants" v={ev.minParticipants ? String(ev.minParticipants) : 'None'} />
           <KV k="Cancellation" v={`${pol.userCancelUntilHours ?? 'default'} h before start · refund ${pol.refundPct ?? 'default'}%${pol.text ? ` · ${pol.text}` : ''}`} />
           <KV k="Entry opens" v={`${ev.entryOpensBeforeMin} min before start`} />
           {ev.contactText && <KV k="Contact" v={ev.contactText} />}
@@ -188,7 +189,7 @@ export function ChangesDiff({ ev }: { ev: AdminEvent }) {
   );
 }
 
-/** Finds a user (GET /api/admin/users?search=). Shows name + masked phone only. */
+/** Finds a user (GET /api/admin/campus-events/users?q=). Shows name, masked phone / e-mail, campus and verified only. */
 export function UserPicker({ onPick, placeholder, picked, clear }: { onPick: (u: UserHit) => void; placeholder?: string; picked?: UserHit | null; clear?: () => void }) {
   const [q, setQ] = useState('');
   const [hits, setHits] = useState<UserHit[]>([]);
@@ -197,7 +198,9 @@ export function UserPicker({ onPick, placeholder, picked, clear }: { onPick: (u:
   if (picked) {
     return (
       <div className="flex items-center gap-3 border border-sky-400/30 bg-sky-400/5 p-2 text-sm">
-        <span className="font-bold">{picked.name || 'Unnamed'}</span><span className="text-xs text-gray-400">{maskPhone(picked.phone)}</span><span className="font-mono text-xs text-gray-500">#{short(picked.id)}</span>
+        <span className="font-bold">{picked.name || 'Unnamed'}</span><span className="text-xs text-gray-400">{picked.phoneMasked || maskPhone(picked.phone)}</span>
+        {picked.campus && <span className="text-xs text-gray-400">{picked.campus.name}</span>}
+        {picked.verified !== undefined && <span className={`text-xs ${picked.verified ? 'text-emerald-300' : 'text-amber-300'}`}>{picked.verified ? 'verified' : 'not verified'}</span>}<span className="font-mono text-xs text-gray-500">#{short(picked.id)}</span>
         {clear && <button type="button" onClick={clear} className="ml-auto text-xs font-bold underline">Change</button>}
       </div>
     );
@@ -226,7 +229,11 @@ export function UserPicker({ onPick, placeholder, picked, clear }: { onPick: (u:
             <li key={u.id}>
               <button type="button" onClick={() => { onPick(u); setHits([]); setQ(''); }} className="w-full px-3 py-2 text-left hover:bg-white/5">
                 <span className="text-sm font-bold">{u.name || 'Unnamed'}</span>
-                <span className="ml-2 text-xs text-gray-500">{maskPhone(u.phone)}</span>
+                <span className="ml-2 text-xs text-gray-500">{u.phoneMasked || maskPhone(u.phone)}</span>
+                {u.emailMasked && <span className="ml-2 text-xs text-gray-500">{u.emailMasked}</span>}
+                {u.campus && <span className="ml-2 text-xs text-gray-400">{u.campus.name}</span>}
+                {u.verified !== undefined && <span className={`ml-2 text-xs ${u.verified ? 'text-emerald-300' : 'text-amber-300'}`}>{u.verified ? '✓ verified' : 'not verified'}</span>}
+                {u.organizerStatus && <span className="ml-2 text-xs text-sky-300">organizer: {u.organizerStatus.toLowerCase()}</span>}
                 {u.role && u.role !== 'student' && u.role !== 'customer' && <span className="ml-2 text-xs text-amber-300">{u.role}</span>}
                 <span className="ml-2 font-mono text-xs text-gray-600">#{short(u.id)}</span>
               </button>

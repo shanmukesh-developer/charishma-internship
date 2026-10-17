@@ -155,7 +155,7 @@ const confirm = async (req, res) => {
     const reg = await M().Reg.findByPk(reg0.id, { transaction: t });
     if (!reg || reg.status !== R.HELD) { expiredNow = true; return { reg }; }
     if (prep.paymentMode === E.PAYMENT_MODE.VENUE) await payments.assertVenueQuota(req.user.id, t);
-    await reg.update({ answers: prep.answers, rulesVersion: prep.rulesVersion, rulesAcceptedAt: clock.now(), paymentMode: prep.paymentMode, amount: prep.price.amount, extras: prep.price.extras, total: prep.price.total }, { transaction: t });
+    await reg.update({ answers: prep.answers, questionsSnapshot: V.questionsSnapshot(ev.questions), rulesVersion: prep.rulesVersion, rulesAcceptedAt: clock.now(), paymentMode: prep.paymentMode, amount: prep.price.amount, extras: prep.price.extras, total: prep.price.total }, { transaction: t });
     await cap.finalize(ev, reg, t);
     return { reg };
   });

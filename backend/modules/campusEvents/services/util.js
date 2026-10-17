@@ -115,6 +115,8 @@ const RATE = {
   organizer_write: { max: 200, windowMs: 60 * 60 * 1000, message: 'Too many changes. Please slow down and try again in a while.' },
   apply: { max: 5, windowMs: 24 * 60 * 60 * 1000, message: 'Too many organizer applications today.' },
   join: { max: 30, windowMs: 10 * 60 * 1000, message: 'Too many join attempts. Please wait a few minutes.' },
+  join_preview: { max: Number(process.env.CAMPUS_EVENTS_JOIN_PREVIEW_PER_10MIN) || 30, windowMs: 10 * 60 * 1000, message: 'Too many join links opened. Please wait a few minutes.' },
+  user_search: { max: 120, windowMs: 10 * 60 * 1000, message: 'Too many searches. Please wait a minute.' },
 };
 
 /** Throws 429 when over the limit, otherwise records the hit. cfg overrides the named limit. */
@@ -170,7 +172,58 @@ const paginate = (rows, p) => {
 
 const noStore = (req, res, next) => { res.set('Cache-Control', 'private, no-store'); next(); };
 
+/** Admin-only contact masks: last 4 digits of a phone, first letter + domain of an e-mail. */
+const maskPhone = (p) => {
+  const d = String(p || '').replace(/\D/g, '');
+  return d.length >= 4 ? `******${d.slice(-4)}` : null;
+};
+const maskEmail = (e) => {
+  const s = String(e || '').trim();
+  const at = s.indexOf('@');
+  if (at < 1) return null;
+  return `${s[0]}***${s.slice(at)}`;
+};
+
+/**
+ * Canonical form for "did this field really change?" checks: empty string / null / undefined / [] are all
+ * "empty"; dates compare by instant; nested objects ignore key order and empty / false members (so
+ * { adultOnly: false, years: [] } equals {}); numbers compare by value.
+ */
+const canon = (v) => {
+  if (v === undefined || v === null || v === '') return null;
+  if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v.toISOString();
+  if (Array.isArray(v)) { const a = v.map((x) => canon(x)); return a.length ? a : null; }
+  if (typeof v === 'object') {
+    const out = {};
+    for (const k of Object.keys(v).sort()) {
+      const c = canon(v[k]);
+      if (c === null || c === false) continue;
+      out[k] = c;
+    }
+    return Object.keys(out).length ? out : null;
+  }
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  return v;
+};
+/** Dates may arrive as ISO strings on one side (pendingChanges JSON): compare instants when both parse. */
+const sameValue = (a, b) => {
+  const ta = a instanceof Date ? a.getTime() : null;
+  const tb = b instanceof Date ? b.getTime() : null;
+  if (ta !== null || tb !== null) {
+    const x = ta !== null ? ta : (a ? new Date(a).getTime() : null);
+    const y = tb !== null ? tb : (b ? new Date(b).getTime() : null);
+    return (x === null || Number.isNaN(x) ? null : x) === (y === null || Number.isNaN(y) ? null : y);
+  }
+  return JSON.stringify(canon(jsonish(a))) === JSON.stringify(canon(jsonish(b)));
+};
+// A JSON column can read back as its text (SQLite defaults): compare the parsed value.
+const jsonish = (v) => {
+  if (typeof v !== 'string' || !/^\s*[[{]/.test(v)) return v;
+  try { return JSON.parse(v); } catch { return v; }
+};
+
 module.exports = {
+  maskPhone, maskEmail, canon, sameValue,
   CampusEventsError, fail, sendError, handler, isUniqueError, cleanText, isUuid, assertUuid, num, money, toPaise, parseTime, optTime,
   bool, iso, ms, newRegCode, newTicketCode, normalizeTicketCode, sha256, safeEqual, hit, resetLimits, RATE, adminAudit, pageOpts,
   paginate, noStore, UUID_RE,

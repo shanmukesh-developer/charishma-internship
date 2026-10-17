@@ -165,6 +165,9 @@ const initCampusEventsModels = (sequelize) => {
     cancelReason: str(500, null),
     expiredAt: date(),
     answers: json(null),
+    // The event's questions as the student saw them when answering ([{ id, label, type }]), so answers keep
+    // their labels after the organizer edits the form. Older rows: null (labels come from the event).
+    questionsSnapshot: json(null),
     rulesAcceptedAt: date(),
     rulesVersion: int(null),
     // Price snapshot at registration (rupees): amount + extras = total. Never from the client.

@@ -19,6 +19,7 @@ const { withEventLock, retryOnConflict } = require('./locks');
 const tickets = require('./tickets');
 const payments = require('./payments');
 const flag = require('./flag');
+const { questionsSnapshot } = require('./validate');
 
 const R = E.REG_STATUS;
 const P = E.PAYMENT_STATUS;
@@ -218,7 +219,8 @@ const allocate = async (t, input) => {
   const now = clock.now();
   const base = {
     code: await uniqueRegCode(t), eventId: event.id, slotId: slot ? slot.id : null, teamId: input.teamId || null, capacityKey: key,
-    type: input.type, userId: input.userId, answers: input.answers || null, rulesAcceptedAt: input.rulesVersion ? now : null,
+    type: input.type, userId: input.userId, answers: input.answers || null,
+    questionsSnapshot: input.answers ? questionsSnapshot(event.questions) : null, rulesAcceptedAt: input.rulesVersion ? now : null,
     rulesVersion: input.rulesVersion || null, amount: input.price.amount, extras: input.price.extras, total: input.price.total,
     paymentMode: input.paymentMode, paymentStatus: P.NONE, idempotencyKey: input.idempotencyKey || null,
   };

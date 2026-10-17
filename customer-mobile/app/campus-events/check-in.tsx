@@ -118,7 +118,7 @@ export default function CheckInScreen() {
               <TouchableOpacity key={e.id} onPress={() => { setEventId(e.id); reset(); }} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${e.title}, ${e.checkedIn} of ${e.confirmed} checked in`}
                 style={{ minHeight: 56, padding: 12, borderRadius: 14, borderWidth: 1.5, borderColor: on ? p.accent : p.border, backgroundColor: on ? p.accentSoft : p.card, marginBottom: 8 }}>
                 <Text style={{ fontSize: 14, fontWeight: '900', color: p.text }}>{e.title}</Text>
-                <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>{fmtWhen(e.startAt)}{e.venue ? ` · ${e.venue}` : ''} · {e.checkedIn}/{e.confirmed} in</Text>
+                <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>{fmtWhen(e.startAt)}{e.venue ? ` · ${e.venue}` : ''} · {e.status === 'APPROVED' ? `scheduled${e.publishAt ? `, goes live ${fmtWhen(e.publishAt)}` : ''}` : `${e.checkedIn}/${e.confirmed} in`}</Text>
               </TouchableOpacity>
             );
           })}

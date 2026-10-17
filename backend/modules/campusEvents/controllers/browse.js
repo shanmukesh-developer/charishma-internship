@@ -18,12 +18,18 @@ const status = async (req, res) => {
   const enabled = await flag.readFlag();
   const s = await flag.readSettings();
   let organizer = null;
+  let isStaff = false;
   try {
     const o = await M().Organizer.findOne({ where: { userId: req.user.id } });
     organizer = o ? { status: o.status } : null;
+    isStaff = await hasCheckInAccess(req.user);
   } catch { /* table missing during boot */ }
   res.json({
     enabled,
+    // isOrganizer: may create / manage events. isStaff: may open entry check-in (an ACTIVE staff grant,
+    // the organizer of an approved / live / just-finished event, or an admin).
+    isOrganizer: !!(organizer && organizer.status === E.ORGANIZER_STATUS.ACTIVE),
+    isStaff,
     walletEnabled: enabled && (await flag.readWalletFlag()),
     onlinePayEnabled: enabled && (await payments.razorpay.configured()),
     ticketsReady: require('../services/tickets').configured(),
@@ -31,6 +37,15 @@ const status = async (req, res) => {
     settings: { holdMinutes: s.holdMinutes, paymentMinutes: s.paymentMinutes, maxUnpaidVenueReservations: s.maxUnpaidVenueReservations },
     categories: E.CATEGORIES.map((c) => ({ key: c, label: E.CATEGORY_LABELS[c] })),
   });
+};
+
+/** Any reason to show the Check-in shortcut (cheap: two indexed lookups). */
+const hasCheckInAccess = async (user) => {
+  if (String(user.role || '').toLowerCase() === 'admin') return true;
+  const grant = await M().Staff.findOne({ where: { userId: user.id, status: E.STAFF_STATUS.ACTIVE }, attributes: ['id'] });
+  if (grant) return true;
+  const own = await M().Event.findOne({ where: { organizerUserId: user.id, status: { [Op.in]: E.CHECKIN_EVENT_STATUSES } }, attributes: ['id'] });
+  return !!own;
 };
 
 const viewerCampus = async (userId) => {
@@ -93,7 +108,9 @@ const queryEvents = async (campusId, q, { limit = 20, offset = 0 } = {}) => {
   if (q.entityId) where.entityId = String(q.entityId);
   if (q.organizerId) where.organizerId = String(q.organizerId);
   if (bool(q.featured)) where.featured = true;
-  if (q.status === 'open') and.push({ [Op.or]: [{ regOpensAt: null }, { regOpensAt: { [Op.lte]: now } }] }, { [Op.or]: [{ regClosesAt: null }, { regClosesAt: { [Op.gt]: now } }] });
+  const deadline = q.sort === 'deadline';
+  // sort=deadline lists open registrations only (a closed or not-yet-open event has no deadline to beat).
+  if (q.status === 'open' || deadline) and.push({ [Op.or]: [{ regOpensAt: null }, { regOpensAt: { [Op.lte]: now } }] }, { [Op.or]: [{ regClosesAt: null }, { regClosesAt: { [Op.gt]: now } }] });
   else if (q.status === 'upcoming') and.push({ regOpensAt: { [Op.gt]: now } });
   else if (q.status === 'closed') and.push({ regClosesAt: { [Op.lte]: now } });
   const text = cleanText(q.q, 60);
@@ -102,8 +119,13 @@ const queryEvents = async (campusId, q, { limit = 20, offset = 0 } = {}) => {
     const pat = `%${text.replace(/[%_\\]/g, '')}%`;
     and.push({ [Op.or]: [{ title: { [like]: pat } }, { venue: { [like]: pat } }] });
   }
+  if (deadline) and.push({ [Op.or]: [{ format: E.FORMAT.SLOT }, { startAt: { [Op.gt]: now } }] });
   if (and.length) where[Op.and] = and;
-  const order = q.sort === 'recent' ? [['publishedAt', 'DESC'], ['id', 'ASC']] : [['startAt', 'ASC'], ['id', 'ASC']];
+  // Registration without a closing time closes when the event starts (slot events: per slot) -> COALESCE.
+  const closesAt = () => Event.sequelize.fn('COALESCE', Event.sequelize.col('regClosesAt'), Event.sequelize.col('startAt'));
+  const order = q.sort === 'recent' ? [['publishedAt', 'DESC'], ['id', 'ASC']]
+    : deadline ? [[closesAt(), 'ASC'], ['startAt', 'ASC'], ['id', 'ASC']]
+      : [['startAt', 'ASC'], ['id', 'ASC']];
   let rows = await Event.findAll({ where, order, limit: bool(q.available) ? 500 : limit + 1, offset: bool(q.available) ? 0 : offset });
   if (bool(q.available)) {
     const slotsLeft = await slotsLeftFor(rows);
@@ -126,6 +148,27 @@ const browse = async (req, res) => {
   const page = rows.slice(0, limit);
   res.json({ events: await cards(req, page), nextCursor: rows.length > limit ? encodeCursor(offset + limit) : null });
 };
+
+// GET /clubs   verified clubs (FriendsEntity) of my campus that have published, not-yet-ended events
+const clubs = async (req, res) => {
+  const ctx = await viewerCampus(req.user.id);
+  const ent = require('./common').Entity();
+  if (!ctx.campusId || !ent) return res.json({ clubs: [] });
+  const rows = await M().Event.findAll({ where: { campusId: ctx.campusId, status: E.EVENT_STATUS.PUBLISHED, endAt: { [Op.gt]: clock.now() }, entityId: { [Op.ne]: null } }, attributes: ['entityId'], limit: 2000 });
+  const counts = new Map();
+  for (const r of rows) counts.set(String(r.entityId), (counts.get(String(r.entityId)) || 0) + 1);
+  if (!counts.size) return res.json({ clubs: [] });
+  const ents = await ent.findAll({ where: { id: { [Op.in]: [...counts.keys()] }, verified: true }, attributes: ['id', 'name', 'type', 'verified', 'status', 'campusId'] });
+  res.json({
+    clubs: ents
+      .filter((e) => e.status !== 'suspended' && (!e.campusId || String(e.campusId) === String(ctx.campusId)))
+      .map((e) => ({ id: e.id, name: e.name, type: e.type, verified: true, eventCount: counts.get(String(e.id)) || 0 }))
+      .sort((a, b) => String(a.name).localeCompare(String(b.name))),
+  });
+};
+
+// GET /categories   fixed list (labels + icons + landing section)
+const categories = (req, res) => res.json({ categories: E.categoryList(), sections: E.SECTIONS.map((s) => ({ key: s.key, label: s.label, categories: s.categories })) });
 
 // GET /sections   landing: featured, upcoming, per-category sections, my counts
 const sections = async (req, res) => {
@@ -269,4 +312,4 @@ const announcements = async (req, res) => {
   res.json({ announcements: rows.map((a) => ({ id: a.id, kind: a.kind, title: a.title, body: a.body, createdAt: iso(a.createdAt) })) });
 };
 
-module.exports = { status, browse, sections, detail, slots, availability, announcements, computeCta, loadVisible, myCounts, byIds };
+module.exports = { status, clubs, categories, hasCheckInAccess, browse, sections, detail, slots, availability, announcements, computeCta, loadVisible, myCounts, byIds };

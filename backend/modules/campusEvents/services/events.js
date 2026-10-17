@@ -7,7 +7,7 @@
 const { Op } = require('sequelize');
 const { getModel } = require('../index');
 const E = require('../enums');
-const { fail, money } = require('./util');
+const { fail, money, sameValue } = require('./util');
 const clock = require('./clock');
 const cap = require('./capacity');
 const media = require('./media');
@@ -108,7 +108,22 @@ const organizerEdit = async (req, ev0, body) => {
   if (![ES.APPROVED, ES.PUBLISHED, ES.UNPUBLISHED].includes(ev0.status)) throw fail(409, 'EVENT_CLOSED', 'This event can no longer be edited.');
   const cosmetic = {};
   const material = {};
-  for (const [k, v] of Object.entries(fields)) (E.COSMETIC_FIELDS.includes(k) ? cosmetic : material)[k] = v;
+  // Only real changes count: a form that re-sends every field must not queue unchanged ones for review.
+  // A material field set back to its live value drops out of any earlier pending request.
+  const reverted = [];
+  for (const [k, v] of Object.entries(fields)) {
+    if (sameValue(v, ev0[k])) { if (!E.COSMETIC_FIELDS.includes(k)) reverted.push(k); continue; }
+    (E.COSMETIC_FIELDS.includes(k) ? cosmetic : material)[k] = v;
+  }
+  const prevFields = ev0.pendingChanges && ev0.pendingChanges.fields ? ev0.pendingChanges.fields : null;
+  const dropped = prevFields ? reverted.filter((k) => Object.prototype.hasOwnProperty.call(prevFields, k)) : [];
+  if (dropped.length && !Object.keys(material).length) {
+    const rest = { ...prevFields };
+    for (const k of dropped) delete rest[k];
+    await ev0.update({ pendingChanges: Object.keys(rest).length ? { ...ev0.pendingChanges, fields: rest } : null });
+    await audit.fromReq(req, { eventId: ev0.id, action: 'event.request_changes_revert', details: { fields: dropped } }, null, 'organizer');
+    notify.admin('updated', ev0.id);
+  }
   if (Object.keys(cosmetic).length) {
     await ev0.update({ ...cosmetic, version: (Number(ev0.version) || 1) + 1 });
     await audit.fromReq(req, { eventId: ev0.id, action: 'event.edit_live', details: { fields: Object.keys(cosmetic) } }, null, 'organizer');
@@ -118,7 +133,8 @@ const organizerEdit = async (req, ev0, body) => {
     if (material.format !== undefined && material.format !== ev0.format) throw fail(409, 'HAS_REGISTRATIONS', 'The format of a published event cannot change.', { field: 'format' });
     await cap.inLock(ev0.id, async (t, ev) => { await assertCapacityChange(ev, material, t); return {}; });
     V.checkEventShape(merged(ev0, material));
-    const prev = ev0.pendingChanges && ev0.pendingChanges.fields ? ev0.pendingChanges.fields : {};
+    const prev = { ...(prevFields || {}) };
+    for (const k of dropped) delete prev[k];
     const pendingChanges = { fields: { ...prev, ...serializable(material) }, requestedAt: clock.now().toISOString(), requestedBy: String(req.user.id) };
     await ev0.update({ pendingChanges });
     await audit.fromReq(req, { eventId: ev0.id, action: 'event.request_changes', details: { fields: Object.keys(material) } }, null, 'organizer');

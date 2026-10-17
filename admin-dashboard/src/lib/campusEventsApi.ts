@@ -77,6 +77,8 @@ export interface AdminEvent {
   eligibility: Eligibility; rules: string; rulesVersion: number; questions: Question[]; equipment: string | null; contactText: string | null;
   instructions: string | null; cancellationPolicy: CancellationPolicy; team: TeamRules | null; maxBookingsPerStudent: number;
   approvalRequired: boolean; waitlistEnabled: boolean; entryOpensBeforeMin: number; status: string;
+  /** null = platform default / no minimum (older servers: undefined). */
+  minParticipants?: number | null; waitlistOfferMinutes?: number | null;
   publishAt: string | null; submittedAt: string | null; reviewedAt: string | null; reviewNote: string | null; rejectionReason: string | null;
   pendingChanges: PendingChanges | null; cancelReason: string | null;
   counters: { unitsLive: number; confirmed: number; waitlist: number; checkedIn: number };
@@ -96,12 +98,13 @@ export interface EventStats {
 export interface StaffRow { id: string; role: string; name: string; createdAt: string | null }
 export interface EventDetail { event: AdminEvent; slots: Slot[]; stats: EventStats; staff: StaffRow[] }
 
-export interface TicketBrief { id: string; kind: string; status: string; ticketCode: string; usedAt: string | null }
+export interface TicketBrief { id: string; kind: string; status: string; ticketCode: string; usedAt: string | null; /** = ticketCode (admin registrations list). */ code?: string }
+export interface AnswerDetail { id: string; label: string; type: string | null; value: unknown }
 export interface PaymentBlock { mode: string; status: string; amount: number; extras: number; total: number; paidAt: string | null; refundAmount: number; refundedAt: string | null; payBy?: string | null }
 /** serialize.registrationForOrganizer(forAdmin) (+ event/payment on the global list). */
 export interface Registration {
   id: string; code: string; type: string; status: string; name: string; userId: string; team: { id: string; name: string } | null;
-  slotId: string | null; unitNo: number | null; answers: Record<string, unknown>; paymentMode: string; paymentStatus: string; total: number;
+  slotId: string | null; unitNo: number | null; answers: Record<string, unknown>; answerDetails?: AnswerDetail[]; phoneMasked?: string | null; paymentMode: string; paymentStatus: string; total: number;
   ticket: TicketBrief | null; waitlistAt: string | null; createdAt: string | null; confirmedAt: string | null; cancelledAt: string | null;
   eventId?: string; eventTitle?: string | null; payment?: PaymentBlock; refundAttempts?: number;
 }
@@ -132,10 +135,17 @@ export interface Reports {
   from: string; to: string; events: ReportRow[];
   totals: { registrations: number; confirmed: number; checkedIn: number; collected: { VENUE: number; WALLET: number; ONLINE: number }; refunded: number; dueAtVenue: number };
 }
-export interface AuditRow { id: string; eventId: string | null; teamId: string | null; registrationId: string | null; actorUserId: string | null; actorRole: string | null; action: string; details: unknown; at: string | null }
+export interface AuditRow { id: string; eventId: string | null; teamId: string | null; registrationId: string | null; actorUserId: string | null; actorName?: string | null; actorRole: string | null; action: string; details: unknown; at: string | null }
+export const AUDIT_ROLES = ['admin', 'organizer', 'staff', 'user', 'system'] as const;
+export const AUDIT_FAMILIES = ['event', 'registration', 'payment', 'ticket', 'team', 'slot', 'staff', 'organizer', 'settings', 'announcement'] as const;
+export interface CategoryOption { key: string; label: string; icon: string; section: string | null }
 
 /** Admin user search (GET /api/admin/users?search=). Only id + name + masked contact are ever shown. */
-export interface UserHit { id: string; name: string | null; phone?: string | null; email?: string | null; role?: string | null }
+export interface UserHit {
+  id: string; name: string | null; phone?: string | null; email?: string | null; role?: string | null;
+  /** GET /api/admin/campus-events/users (narrow search): masked contact, campus, verified, organizer status. */
+  phoneMasked?: string | null; emailMasked?: string | null; campus?: { id: string; name: string } | null; verified?: boolean; active?: boolean; organizerStatus?: string | null;
+}
 /** FriendsEntity (GET /api/campus/mod/entities). */
 export interface Club { id: string; campusId: string | null; type: string; name: string; handle: string | null; verified: boolean; managerIds: string[]; status: string }
 
@@ -157,7 +167,7 @@ export interface Verdict {
   result: CheckInResult; label: string; admit: boolean; paymentDue?: number; entryOpensAt?: string; ticket: StaffView | null;
   admitted?: boolean; collected?: number; code?: string; message?: string;
 }
-export interface CheckInEvent { id: string; title: string; startAt: string | null; endAt: string | null; venue: string | null; format: string; checkedIn: number; confirmed: number }
+export interface CheckInEvent { id: string; title: string; startAt: string | null; endAt: string | null; venue: string | null; format: string; checkedIn: number; confirmed: number; status?: string; publishAt?: string | null }
 export interface RecentScan { id: string; action: 'VALIDATE' | 'CONFIRM'; result: string; method: 'QR' | 'CODE'; at: string | null; ticketCode: string | null; collectedPayment: boolean }
 
 /** Thrown when the server cannot be reached: the gate must NOT admit. */
@@ -230,7 +240,7 @@ export const campusEventsApi = {
   summary: () => get<Summary>('/summary'),
   reviewQueue: () => get<{ events: AdminEvent[] }>('/review-queue'),
 
-  events: (opts: { bucket?: string; status?: string; q?: string; campusId?: string } & PageOpts = {}) => get<{ events: AdminEvent[]; pagination: Pagination }>(`/events${qs({ ...opts })}`),
+  events: (opts: { bucket?: string; status?: string; q?: string; campusId?: string; category?: string; entityId?: string } & PageOpts = {}) => get<{ events: AdminEvent[]; pagination: Pagination }>(`/events${qs({ ...opts })}`),
   event: (eventId: string) => get<EventDetail>(`/events/${id(eventId)}`),
   editEvent: (eventId: string, body: EventEdit) => send<{ event: AdminEvent }>('PATCH', `/events/${id(eventId)}`, body),
   approve: (eventId: string, body: { publishAt?: string | null; note?: string } = {}) => send<{ event: AdminEvent }>('POST', `/events/${id(eventId)}/approve`, body),
@@ -244,10 +254,13 @@ export const campusEventsApi = {
   rejectChanges: (eventId: string, note: string) => send<{ event: AdminEvent }>('POST', `/events/${id(eventId)}/changes/reject`, { note }),
   eventRegistrations: (eventId: string, opts: { status?: string; slotId?: string } = {}) => get<{ registrations: Registration[] }>(`/events/${id(eventId)}/registrations${qs({ ...opts })}`),
 
-  registrations: (opts: { eventId?: string; status?: string; paymentStatus?: string; paymentMode?: string } & PageOpts = {}) => get<{ registrations: Registration[]; pagination: Pagination }>(`/registrations${qs({ ...opts })}`),
+  /** q: registration code, student name or the phone's last 4 digits. */
+  registrations: (opts: { eventId?: string; status?: string; paymentStatus?: string; paymentMode?: string; q?: string } & PageOpts = {}) => get<{ registrations: Registration[]; pagination: Pagination }>(`/registrations${qs({ ...opts })}`),
   cancelRegistration: (regId: string, reason: string) => send<{ registration: { id: string; status: string; paymentStatus: string } }>('POST', `/registrations/${id(regId)}/cancel`, { reason }),
   /** Idempotent: a second call answers 409 NO_REFUND_DUE (nothing is paid twice). Pay-at-venue = cash handed back. */
   refund: (regId: string) => send<{ registration: { id: string; paymentStatus: string; refundAmount: number }; refunded: number }>('POST', `/registrations/${id(regId)}/refund`),
+  approveRegistration: (regId: string) => send<{ registration: { id: string; status: string; paymentStatus: string } }>('POST', `/registrations/${id(regId)}/approve`),
+  rejectRegistration: (regId: string, reason: string) => send<{ registration: { id: string; status: string; paymentStatus: string } }>('POST', `/registrations/${id(regId)}/reject`, { reason }),
   markPaid: (regId: string) => send<{ registration: { id: string; paymentStatus: string } }>('POST', `/registrations/${id(regId)}/mark-paid`),
   payments: (status?: string, page: PageOpts = {}) => get<{ payments: PaymentRow[]; pagination: Pagination }>(`/payments${qs({ status, ...page })}`),
 
@@ -271,10 +284,20 @@ export const campusEventsApi = {
   putSettings: (body: { enabled?: boolean; walletEnabled?: boolean; onlinePayEnabled?: boolean; settings?: Partial<SettingsValues> }) => send<Settings>('PUT', '/settings', body),
 
   reports: (from?: string, to?: string) => get<Reports>(`/reports${qs({ from, to })}`),
-  audit: (eventId?: string, page: PageOpts = {}) => get<{ audit: AuditRow[]; pagination: Pagination }>(`/audit${qs({ eventId, ...page })}`),
+  audit: (eventId?: string, page: PageOpts & { action?: string; actorRole?: string } = {}) => get<{ audit: AuditRow[]; pagination: Pagination }>(`/audit${qs({ eventId, ...page })}`),
+  categories: () => get<{ categories: CategoryOption[] }>('/categories'),
 
   // Shared admin lookups used by the pickers.
-  searchUsers: (term: string) => adminRequest<{ users?: UserHit[] }>(`/api/admin/users${qs({ limit: 10, search: term })}`),
+  /** Narrow Campus Events lookup (masked contact, campus, verified); falls back to the general admin search on older servers. */
+  searchUsers: async (term: string): Promise<{ users?: UserHit[] }> => {
+    try {
+      return await get<{ users: UserHit[] }>(`/users${qs({ q: term })}`);
+    } catch (e) {
+      // Older server without the route: 404 -> the general admin user search.
+      if (/\(404\)|not found/i.test(e instanceof Error ? e.message : '')) return adminRequest<{ users?: UserHit[] }>(`/api/admin/users${qs({ limit: 10, search: term })}`);
+      throw e;
+    }
+  },
   clubs: (q?: string) => adminRequest<{ items: Club[] }>(`/api/campus/mod/entities${qs({ q })}`),
 
   // Check-in (any admin may check in at any event).

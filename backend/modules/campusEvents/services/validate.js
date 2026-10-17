@@ -78,6 +78,30 @@ const cleanAnswers = (questions, raw) => {
   return out;
 };
 
+/** The questions as answered (id, label, type, options) stored on the registration with the answers. */
+const questionsSnapshot = (questions) => (Array.isArray(questions) && questions.length
+  ? questions.map((q) => ({ id: q.id, label: q.label, type: q.type, ...(Array.isArray(q.options) ? { options: q.options } : {}) }))
+  : null);
+
+/**
+ * Answers with their labels, in question order: [{ id, label, type, value }]. Labels come from the snapshot
+ * taken at registration (fallback: the event's current questions, for rows saved before snapshots); an
+ * answer whose question is gone is still listed with its id as the label.
+ */
+const labelAnswers = (answers, snapshot, fallbackQuestions) => {
+  const a = answers && typeof answers === 'object' && !Array.isArray(answers) ? answers : {};
+  const qs = Array.isArray(snapshot) && snapshot.length ? snapshot : (Array.isArray(fallbackQuestions) ? fallbackQuestions : []);
+  const out = [];
+  const seen = new Set();
+  for (const q of qs) {
+    if (!q || !Object.prototype.hasOwnProperty.call(a, q.id)) continue;
+    seen.add(q.id);
+    out.push({ id: q.id, label: q.label, type: q.type, value: a[q.id] });
+  }
+  for (const k of Object.keys(a)) if (!seen.has(k)) out.push({ id: k, label: k, type: null, value: a[k] });
+  return out;
+};
+
 /** Rules acceptance: required whenever the event has rules; must match the current rulesVersion. */
 const checkRules = (event, body) => {
   if (!event.rules || !String(event.rules).trim()) return Number(event.rulesVersion) || 1;
@@ -194,4 +218,4 @@ const checkEventShape = (ev, { forSubmit = false } = {}) => {
   }
 };
 
-module.exports = { cleanQuestions, cleanAnswers, checkRules, cleanEventInput, checkEventShape };
+module.exports = { questionsSnapshot, labelAnswers, cleanQuestions, cleanAnswers, checkRules, cleanEventInput, checkEventShape };

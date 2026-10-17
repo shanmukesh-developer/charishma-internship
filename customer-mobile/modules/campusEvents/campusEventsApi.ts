@@ -44,6 +44,10 @@ export interface StatusResponse {
   onlinePayEnabled: boolean;
   ticketsReady: boolean;
   organizer: { status: OrganizerStatus } | null;
+  /** ACTIVE organizer (may create / manage events). Older servers: undefined. */
+  isOrganizer?: boolean;
+  /** May open entry check-in (staff grant, organizer of an approved / live event, admin). Older servers: undefined. */
+  isStaff?: boolean;
   settings: { holdMinutes: number; paymentMinutes: number; maxUnpaidVenueReservations: number };
   categories: { key: Category; label: string }[];
 }
@@ -147,6 +151,10 @@ export interface EventDetail extends EventCard {
   maxBookingsPerStudent: number;
   approvalRequired: boolean;
   waitlistEnabled: boolean;
+  /** Minutes a waitlist offer stays open (null = platform default). */
+  waitlistOfferMinutes?: number | null;
+  /** Minimum participants the organizer needs (null = none). */
+  minParticipants?: number | null;
   /** Payment modes the server will accept right now (wallet / online only when switched on). */
   paymentModes: PaymentMode[];
   entryOpensBeforeMin: number;
@@ -192,6 +200,9 @@ export interface PaymentBlock {
   payBy?: string | null;
 }
 
+/** An answer with the question label it was given under (snapshot at registration time). */
+export interface AnswerDetail { id: string; label: string; type: QuestionType | null; value: any }
+
 export interface TicketBrief { id: string; kind: TicketKind; status: TicketStatus; ticketCode: string; usedAt: string | null }
 
 export interface Registration {
@@ -213,6 +224,7 @@ export interface Registration {
   cancelReason?: string | null;
   rejectedReason?: string | null;
   answers?: Record<string, any>;
+  answerDetails?: AnswerDetail[];
   tickets: TicketBrief[];
   ticketStatus: 'AVAILABLE' | 'ISSUING' | 'NOT_ISSUED' | TicketStatus;
   canCancel: boolean;
@@ -300,7 +312,19 @@ export interface CheckInReply {
   collected?: number;
 }
 
-export interface CheckInEvent { id: string; title: string; startAt: string | null; endAt: string | null; venue: string | null; format: EventFormat; checkedIn: number; confirmed: number }
+export interface CheckInEvent { id: string; title: string; startAt: string | null; endAt: string | null; venue: string | null; format: EventFormat; checkedIn: number; confirmed: number; status?: EventStatus; publishAt?: string | null }
+
+export interface ClubOption { id: string; name: string; type: string; verified: boolean; eventCount: number }
+export interface CategoryOption { key: Category; label: string; icon: string; section: string | null }
+export interface JoinPreview {
+  team: { name: string; status: TeamStatus; rosterCount: number; teamMin: number | null; teamMax: number | null; captainFirstName: string };
+  event: { id: string; title: string; startAt: string | null; venue: string | null; category: Category };
+  expiresAt: string | null;
+  alreadyMember: boolean;
+  canJoin: boolean;
+  reason: string | null;
+  message: string | null;
+}
 
 export interface OrganizerOwn {
   id: string; status: OrganizerStatus; displayName: string; entityId: string | null; campusId: string | null; reviewNote: string | null; grantedAt: string | null; createdAt: string | null;
@@ -342,6 +366,7 @@ export interface Participant {
   slotId: string | null;
   unitNo: number | null;
   answers: Record<string, any>;
+  answerDetails?: AnswerDetail[];
   paymentMode: PaymentMode;
   paymentStatus: PaymentStatus;
   total: number;
@@ -479,7 +504,8 @@ export interface BrowseFilter {
   entityId?: string | null;
   status?: 'open' | 'upcoming' | 'closed' | null;
   featured?: boolean | null;
-  sort?: 'date' | 'recent' | null;
+  /** deadline = open registrations, closing soonest first (server-side). */
+  sort?: 'date' | 'recent' | 'deadline' | null;
   cursor?: string | null;
   limit?: number | null;
 }
@@ -499,8 +525,11 @@ export const campusEventsApi = {
   sections: () => call<SectionsResponse>(`${CE}/sections`),
   browse: (f: BrowseFilter = {}) => {
     const { sort, ...rest } = f;
-    return call<{ events: EventCard[]; nextCursor: string | null; reason?: string; message?: string }>(`${CE}${qs({ ...(rest as any), sort: sort === 'recent' ? 'recent' : null })}`);
+    return call<{ events: EventCard[]; nextCursor: string | null; reason?: string; message?: string }>(`${CE}${qs({ ...(rest as any), sort: sort === 'recent' || sort === 'deadline' ? sort : null })}`);
   },
+  /** Verified clubs of my campus that have published events (filter options). */
+  clubs: () => call<{ clubs: ClubOption[] }>(`${CE}/clubs`),
+  categories: () => call<{ categories: CategoryOption[]; sections: { key: string; label: string; categories: Category[] }[] }>(`${CE}/categories`),
   event: (id: string) => call<{ event: EventDetail }>(`${CE}/${enc(id)}`),
   slots: (id: string) => call<SlotsResponse>(`${CE}/${enc(id)}/slots`),
   availability: (id: string) => call<{ eventId: string; registrationState: RegistrationState; capacity: CapacityBlock; slots?: { id: string; remaining: number; capacity: number; state: Slot['state'] }[] }>(`${CE}/${enc(id)}/availability`),
@@ -531,6 +560,8 @@ export const campusEventsApi = {
   myTeams: () => call<{ teams: Team[] }>(`${CE}/my/teams`),
   invitations: () => call<{ invitations: Invitation[] }>(`${CE}/team-invitations`),
   respondInvitation: (id: string, accept: boolean) => post<{ team?: Team; invitation?: { id: string; status: MemberStatus } }>(`${CE}/team-invitations/${enc(id)}/respond`, { accept }),
+  /** What a join link joins (team, event, roster count, captain first name) before consenting. 404 INVALID_LINK. */
+  joinPreview: (token: string) => call<{ preview: JoinPreview }>(`${CE}/team-join/preview${qs({ t: token })}`),
   joinByLink: (token: string) => post<{ team: Team; already: boolean }>(`${CE}/team-join`, { token }),
   createTeam: (eventId: string, name: string) => post<{ team: Team }>(`${CE}/${enc(eventId)}/teams`, { name }),
   /** Accepted members get { team }; an invitee gets { invitation }. */
@@ -587,6 +618,16 @@ export const campusEventsApi = {
 };
 
 // ── Display helpers ─────────────────────────────────────────────────────────
+/** Answers as label / text rows: labels from the registration's snapshot (answerDetails), else the given questions, else the id. */
+export const answerRows = (r: { answers?: Record<string, any>; answerDetails?: AnswerDetail[] }, questions?: Question[]): { id: string; label: string; text: string }[] => {
+  const show = (v: any) => (Array.isArray(v) ? v.join(', ') : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v));
+  if (r.answerDetails && r.answerDetails.length) return r.answerDetails.map((a) => ({ id: a.id, label: a.label, text: show(a.value) }));
+  const a = r.answers || {};
+  const qs = questions || [];
+  const known = qs.filter((q) => a[q.id] !== undefined).map((q) => ({ id: q.id, label: q.label, text: show(a[q.id]) }));
+  return [...known, ...Object.keys(a).filter((k) => !qs.some((q) => q.id === k)).map((k) => ({ id: k, label: k, text: show(a[k]) }))];
+};
+
 export const inr = (n: number | null | undefined) => {
   const v = Number(n) || 0;
   return `₹${(Math.round(v * 100) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;

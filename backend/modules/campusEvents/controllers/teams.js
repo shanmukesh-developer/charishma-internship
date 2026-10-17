@@ -262,6 +262,44 @@ const revokeJoinLink = async (req, res) => {
   res.json({ ok: true });
 };
 
+// GET /team-join/preview?t=<token>   what the link joins, before the student consents. No PII: team name,
+// event title / time / venue, accepted roster count + size limits, the captain's first name only. Same
+// 404 INVALID_LINK as joining for a bad / expired / revoked link or a blocked captain. Rate-limited.
+const joinPreview = async (req, res) => {
+  hit('join_preview', req.user.id);
+  const token = String((req.query && (req.query.t || req.query.token)) || '').trim();
+  if (!/^[A-Za-z0-9_-]{30,64}$/.test(token)) throw fail(404, 'INVALID_LINK', 'This join link is not valid.');
+  const team = await M().Team.findOne({ where: { joinTokenHash: sha256(token) } });
+  if (!team || team.status === TS.CANCELLED || !team.joinTokenExpiresAt || new Date(team.joinTokenExpiresAt).getTime() <= clock.nowMs()) throw fail(404, 'INVALID_LINK', 'This join link is not valid or has expired.');
+  const { isBlockedBetween } = require('../../campus/campusHelpers');
+  if (await isBlockedBetween(team.captainUserId, req.user.id)) throw fail(404, 'INVALID_LINK', 'This join link is not valid.');
+  const ev = await M().Event.findByPk(team.eventId);
+  const ctx = await elig.loadContext(req.user.id);
+  if (!ev || (ev.campusId && String(ev.campusId) !== String(ctx.campusId))) throw fail(404, 'INVALID_LINK', 'This join link is not valid.');
+  const [rosterCount, mine, captain] = await Promise.all([
+    acceptedCount(team.id),
+    M().Member.findOne({ where: { teamId: team.id, userId: req.user.id, status: MS.ACCEPTED }, attributes: ['id'] }),
+    usersById([team.captainUserId]),
+  ]);
+  const reasons = elig.eventReasons(ctx, ev);
+  let blocker = null;
+  if (mine) blocker = 'ALREADY_MEMBER';
+  else if (ev.status !== E.EVENT_STATUS.PUBLISHED) blocker = 'REGISTRATION_CLOSED';
+  else if (reasons.length) blocker = reasons[0];
+  else if (ev.teamMax && rosterCount >= Number(ev.teamMax)) blocker = 'TEAM_FULL';
+  res.json({
+    preview: {
+      team: { name: team.name, status: team.status, rosterCount, teamMin: ev.teamMin || null, teamMax: ev.teamMax || null, captainFirstName: S.firstName((captain.get(String(team.captainUserId)) || {}).name) },
+      event: { id: ev.id, title: ev.title, startAt: iso(ev.startAt), venue: ev.venue, category: ev.category },
+      expiresAt: iso(team.joinTokenExpiresAt),
+      alreadyMember: !!mine,
+      canJoin: !blocker,
+      reason: blocker,
+      message: blocker ? ({ ALREADY_MEMBER: 'You are already in this team.', REGISTRATION_CLOSED: 'This event is not open.', TEAM_FULL: 'This team is full.' }[blocker] || elig.REASON_MESSAGES[blocker] || 'You cannot join this team.') : null,
+    },
+  });
+};
+
 // POST /team-join   { token }   (the joiner's own action = consent)
 const joinByLink = async (req, res) => {
   hit('join', req.user.id);
@@ -439,4 +477,4 @@ const cancelTeam = async (req, res) => {
   res.json({ team: { id: team0.id, status: TS.CANCELLED } });
 };
 
-module.exports = { createTeam, myTeams, getTeam, history, invite, myInvitations, respond, joinLink, revokeJoinLink, joinByLink, removeMember, leave, transferCaptain, submit, cancelTeam };
+module.exports = { createTeam, myTeams, getTeam, history, invite, myInvitations, respond, joinLink, revokeJoinLink, joinPreview, joinByLink, removeMember, leave, transferCaptain, submit, cancelTeam };

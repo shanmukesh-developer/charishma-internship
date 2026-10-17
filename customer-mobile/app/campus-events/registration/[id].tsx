@@ -6,7 +6,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-  campusEventsApi, CampusEventsError, errorCopy, fmtWhen, fmtRange, fmtClock, inr, mmss, PAYMENT_MODE_LABEL, PAYMENT_STATUS_LABEL, TICKET_STATUS_META,
+  campusEventsApi, CampusEventsError, errorCopy, answerRows, fmtWhen, fmtRange, fmtClock, inr, mmss, PAYMENT_MODE_LABEL, PAYMENT_STATUS_LABEL, TICKET_STATUS_META,
   type Registration, type Announcement, type EventDetail, type PaymentMode,
 } from '../../../modules/campusEvents/campusEventsApi';
 import { EHeader, usePalette, Card, Btn, ErrorState, StateView, Notice, Row, Pill, RegStatusPill, SectionTitle, Chips, useNow, refreshCampusEventsStatus } from '../../../modules/campusEvents/ui';
@@ -184,10 +184,10 @@ export default function RegistrationScreen() {
           </>
         ) : r.type === 'TEAM' ? <Notice icon="🔒">Payment details are visible to the captain who registered the team.</Notice> : null}
 
-        {r.answers && Object.keys(r.answers).length ? (
+        {answerRows(r).length ? (
           <>
             <SectionTitle>Your answers</SectionTitle>
-            <Card>{Object.entries(r.answers).map(([k, v]) => <Row key={k} label={k} value={Array.isArray(v) ? v.join(', ') : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v)} />)}</Card>
+            <Card>{answerRows(r).map((a) => <Row key={a.id} label={a.label} value={a.text} />)}</Card>
           </>
         ) : null}
 

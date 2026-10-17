@@ -187,7 +187,7 @@ export default function CampusEventsScanPage() {
         <>
           <label className="block text-xs font-bold uppercase tracking-wider text-gray-400">Event
             <select value={eventId} onChange={(e) => setEventId(e.target.value)} className="mt-1 w-full border border-white/10 bg-[#111318] p-3 text-base font-normal normal-case text-white">
-              {events.map((e) => <option key={e.id} value={e.id}>{e.title} · {when(e.startAt)}</option>)}
+              {events.map((e) => <option key={e.id} value={e.id}>{e.title} · {when(e.startAt)}{e.status === 'APPROVED' ? ' · scheduled (not live yet)' : ''}</option>)}
             </select>
           </label>
           {ev && <p className="text-sm text-gray-400">{ev.venue || '—'} · {when(ev.startAt)} → {timeOnly(ev.endAt)} · <b className="text-white">{ev.checkedIn}</b> of {ev.confirmed} confirmed checked in</p>}

@@ -16,12 +16,24 @@ const EVENT_STATUS = {
 };
 const EDITABLE_EVENT_STATUSES = [EVENT_STATUS.DRAFT, EVENT_STATUS.CHANGES_REQUESTED, EVENT_STATUS.REJECTED];
 const LIVE_EVENT_STATUSES = [EVENT_STATUS.APPROVED, EVENT_STATUS.PUBLISHED, EVENT_STATUS.UNPUBLISHED];
+// Events whose gate can be staffed: approved-but-scheduled (APPROVED, waiting for publishAt), live, and
+// just-finished ones (the check-in list keeps them for 24 h after the end).
+const CHECKIN_EVENT_STATUSES = [EVENT_STATUS.APPROVED, EVENT_STATUS.PUBLISHED, EVENT_STATUS.UNPUBLISHED, EVENT_STATUS.COMPLETED];
 
 const CATEGORIES = ['SPORTS', 'TOURNAMENT', 'CLUB', 'WORKSHOP', 'SEMINAR', 'TALK', 'COMPETITION', 'HACKATHON', 'CULTURAL', 'RECREATION', 'OTHER'];
 const CATEGORY_LABELS = {
   SPORTS: 'Sports', TOURNAMENT: 'Tournament', CLUB: 'Club activity', WORKSHOP: 'Workshop', SEMINAR: 'Seminar', TALK: 'Talk',
   COMPETITION: 'Competition', HACKATHON: 'Hackathon', CULTURAL: 'Cultural', RECREATION: 'Recreational', OTHER: 'Other',
 };
+const CATEGORY_ICONS = {
+  SPORTS: '⚽', TOURNAMENT: '🏆', CLUB: '🎯', WORKSHOP: '🛠️', SEMINAR: '🎤', TALK: '💬',
+  COMPETITION: '🥇', HACKATHON: '💻', CULTURAL: '🎭', RECREATION: '🎮', OTHER: '✨',
+};
+/** Fixed category list for pickers / filters (GET /categories on the student + admin routers). */
+const categoryList = () => CATEGORIES.map((key) => {
+  const section = SECTIONS.find((s) => s.categories.includes(key));
+  return { key, label: CATEGORY_LABELS[key], icon: CATEGORY_ICONS[key], section: section ? section.key : null };
+});
 // Landing sections (spec §1) -> categories.
 const SECTIONS = [
   { key: 'sports', label: 'Sports & tournaments', categories: ['SPORTS', 'TOURNAMENT'] },
@@ -167,7 +179,7 @@ const NOTIFY = {
 };
 
 module.exports = {
-  EVENT_STATUS, EDITABLE_EVENT_STATUSES, LIVE_EVENT_STATUSES, CATEGORIES, CATEGORY_LABELS, SECTIONS, FORMAT, PRICE_TYPE,
+  EVENT_STATUS, EDITABLE_EVENT_STATUSES, LIVE_EVENT_STATUSES, CHECKIN_EVENT_STATUSES, CATEGORIES, CATEGORY_LABELS, CATEGORY_ICONS, categoryList, SECTIONS, FORMAT, PRICE_TYPE,
   REG_STATUS, LIVE_REG_STATUSES, OPEN_REG_STATUSES, ENDED_REG_STATUSES, REG_TYPE, PAYMENT_MODE, PAID_MODES, PAYMENT_STATUS,
   TEAM_STATUS, MEMBER_STATUS, OPEN_MEMBER_STATUSES, MEMBER_ROLE, TICKET_KIND, TICKET_STATUS, LIVE_TICKET_STATUSES,
   CHECKIN_RESULT, CHECKIN_LABELS, ORGANIZER_STATUS, STAFF_STATUS, PAYMENT_PROVIDER, PAY_ROW_STATUS, ANNOUNCEMENT_KIND,

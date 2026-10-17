@@ -1,7 +1,7 @@
 // Zenvy Campus Events: full list. Search, filter sheet (category, date, free / paid, format, available places,
-// club / organizer, registration status) and sort (date, recently published, registration deadline), with
-// cursor paging from GET /api/campus-events. Opened from Others > Campus Events (see all / search / filters).
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+// club / organizer from GET /clubs, registration status) and sort (date, recently published, registration
+// deadline: all server-side), with cursor paging from GET /api/campus-events. Opened from Others > Campus Events (see all / search / filters).
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, Modal, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { campusEventsApi, CampusEventsError, CATEGORIES, CATEGORY_META, istDate, type BrowseFilter, type Category, type EventCard as EventCardT } from '../../modules/campusEvents/campusEventsApi';
@@ -65,18 +65,34 @@ export default function CampusEventsList() {
     price: f.price === 'any' ? null : f.price,
     format: f.format === 'any' ? null : f.format,
     available: f.available || null,
-    status: f.sort === 'deadline' ? 'open' : f.status === 'any' ? null : f.status,
+    // sort=deadline lists open registrations only (server-side); other sorts keep the status filter.
+    status: f.sort === 'deadline' ? null : f.status === 'any' ? null : f.status,
     entityId: f.entityId,
     featured: featured || null,
-    sort: f.sort === 'recent' ? 'recent' : 'date',
+    sort: f.sort,
     limit: 20,
   }), [query, featured]);
 
-  const remember = (list: EventCardT[]) => setClubs((cur) => {
-    const map = new Map(cur.map((c) => [c.id, c]));
-    for (const e of list) if (e.organizer?.club?.id) map.set(e.organizer.club.id, { id: e.organizer.club.id, name: e.organizer.club.name });
-    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
-  });
+  // Club filter options: verified clubs of this campus with published events (server list). If that call
+  // fails (older server), clubs seen on loaded cards still fill the filter.
+  const clubsFromServer = useRef(false);
+  useEffect(() => {
+    let alive = true;
+    campusEventsApi.clubs().then((r) => {
+      if (!alive) return;
+      clubsFromServer.current = true;
+      setClubs(r.clubs.map((c) => ({ id: c.id, name: c.name })));
+    }).catch(() => { /* fallback below */ });
+    return () => { alive = false; };
+  }, []);
+  const remember = (list: EventCardT[]) => {
+    if (clubsFromServer.current) return;
+    setClubs((cur) => {
+      const map = new Map(cur.map((c) => [c.id, c]));
+      for (const e of list) if (e.organizer?.club?.id) map.set(e.organizer.club.id, { id: e.organizer.club.id, name: e.organizer.club.name });
+      return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+    });
+  };
 
   const load = useCallback(async () => {
     const my = ++reqId.current;
@@ -117,13 +133,8 @@ export default function CampusEventsList() {
     }
   };
 
-  // Registration deadline: the server sorts by start date; open events are ordered by closing time here.
-  const shown = useMemo(() => {
-    if (!events) return null;
-    if (filters.sort !== 'deadline') return events;
-    const t = (e: EventCardT) => (e.regClosesAt ? new Date(e.regClosesAt).getTime() : e.startAt ? new Date(e.startAt).getTime() : Infinity);
-    return [...events].sort((a, b) => t(a) - t(b));
-  }, [events, filters.sort]);
+  // Every sort (incl. registration deadline) comes from the server, so paging keeps the order.
+  const shown = events;
 
   const n = activeCount(filters) + (featured ? 1 : 0);
   const applySheet = () => { setFilters(draft); setSheet(false); };

@@ -257,7 +257,7 @@ const participantRows = async (ev, query, { forAdmin = false } = {}) => {
   const tks = rows.length ? await M().Ticket.findAll({ where: { registrationId: { [Op.in]: rows.map((r) => r.id) }, holderKey: { [Op.in]: ['TEAM', ...rows.map((r) => String(r.userId))] } } }) : [];
   const tByReg = new Map();
   for (const tk of tks) if (!tByReg.has(String(tk.registrationId)) || tk.status === E.TICKET_STATUS.USED || tk.status === E.TICKET_STATUS.ACTIVE) tByReg.set(String(tk.registrationId), tk);
-  return rows.map((r) => S.registrationForOrganizer(r, { user: users.get(String(r.userId)), team: teams.get(String(r.teamId)), ticket: tByReg.get(String(r.id)), forAdmin }));
+  return rows.map((r) => S.registrationForOrganizer(r, { user: users.get(String(r.userId)), team: teams.get(String(r.teamId)), ticket: tByReg.get(String(r.id)), forAdmin, eventQuestions: ev.questions }));
 };
 
 // GET /events/:id/registrations?status&slotId

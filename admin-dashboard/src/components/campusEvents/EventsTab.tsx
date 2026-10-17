@@ -1,6 +1,6 @@
 "use client";
 
-// Events: filter by bucket / status / title (server) and category / club (on the loaded page), detail with
+// Events: filter by bucket / status / title / category / club (all server-side), detail with
 // stats + audit history, audited edit, unpublish / republish, cancel (shows the refund / ticket effect), feature.
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -22,12 +22,12 @@ export default function EventsTab({ tick, onChanged, bucket, setBucket }: { tick
   const [club, setClub] = useState('');
   const [page, setPage] = useState(1);
   const [openId, setOpenId] = useState<string | null>(null);
-  const key = `${bucket}|${status}|${query}|${page}`;
-  useEffect(() => { setPage(1); }, [bucket, status, query]);
-  const { data, loading, error, reload } = useLoader(key, tick, () => campusEventsApi.events({ bucket: bucket || undefined, status: status || undefined, q: query || undefined, page, limit: PAGE }));
-  const all = useMemo(() => data?.events || [], [data]);
-  const clubs = useMemo(() => [...new Set(all.map((e) => e.organizer?.club?.name || e.organizer?.name).filter(Boolean) as string[])].sort(), [all]);
-  const rows = all.filter((e) => (!category || e.category === category) && (!club || (e.organizer?.club?.name || e.organizer?.name) === club));
+  const key = `${bucket}|${status}|${query}|${category}|${club}|${page}`;
+  useEffect(() => { setPage(1); }, [bucket, status, query, category, club]);
+  const { data, loading, error, reload } = useLoader(key, tick, () => campusEventsApi.events({ bucket: bucket || undefined, status: status || undefined, q: query || undefined, category: category || undefined, entityId: club || undefined, page, limit: PAGE }));
+  const clubList = useLoader('events-clubs', tick, () => campusEventsApi.clubs());
+  const clubs = useMemo(() => (clubList.data?.items || []).filter((c) => c.verified && c.type !== 'vendor').map((c) => ({ value: c.id, label: c.name })).sort((a, b) => a.label.localeCompare(b.label)), [clubList.data]);
+  const rows = useMemo(() => data?.events || [], [data]);
 
   if (openId) return <EventDetailPanel id={openId} tick={tick} onChanged={() => { onChanged(); reload(); }} back={() => setOpenId(null)} />;
 
@@ -37,16 +37,15 @@ export default function EventsTab({ tick, onChanged, bucket, setBucket }: { tick
         <Select name="Bucket" value={bucket} onChange={(v) => setBucket(v as BucketKey | '')} options={[{ value: '', label: 'All events' }, ...BUCKETS.map((b) => ({ value: b.key, label: b.label })), ...EXTRA_BUCKETS.map((b) => ({ value: b.key, label: b.label }))]} />
         <Select name="Status" value={status} onChange={setStatus} options={['', ...EVENT_STATUSES]} allLabel="Any" />
         <Select name="Category" value={category} onChange={setCategory} options={[{ value: '', label: 'Any' }, ...CATEGORIES.map((c) => ({ value: c, label: catLabel(c) }))]} />
-        <Select name="Club / organizer" value={club} onChange={setClub} options={[{ value: '', label: 'Any' }, ...clubs.map((c) => ({ value: c, label: c }))]} />
+        <Select name="Club" value={club} onChange={setClub} options={[{ value: '', label: 'Any' }, ...clubs]} />
         <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); setQuery(q.trim()); }}>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title" maxLength={60} className="w-48 border border-white/10 bg-[#111318] p-2 text-sm text-white" aria-label="Search title" />
           <Btn type="submit">Search</Btn>
           {query && <Btn onClick={() => { setQ(''); setQuery(''); }}>Clear</Btn>}
         </form>
       </Toolbar>
-      {(category || club) && <p className="text-xs text-gray-500">Category and club filters apply to the {all.length} event(s) on this page.</p>}
       {error && <ErrorBox text={error} retry={reload} />}
-      {loading && !data ? <Loading text="Loading events…" /> : rows.length === 0 ? <Empty text={all.length ? 'No events on this page match the category / club filter.' : 'No events in this view yet.'} /> : (
+      {loading && !data ? <Loading text="Loading events…" /> : rows.length === 0 ? <Empty text={category || club || query ? 'No events match these filters.' : 'No events in this view yet.'} /> : (
         <div className="overflow-x-auto border border-white/10">
           <table className="w-full text-left text-sm">
             <thead className="bg-white/[0.03] text-xs uppercase tracking-wider text-gray-400"><tr><th className="p-3">Event</th><th className="p-3">Organizer</th><th className="p-3">When</th><th className="p-3">Price</th><th className="p-3">Places</th><th className="p-3">Registration</th><th className="p-3">Status</th></tr></thead>
@@ -66,7 +65,7 @@ export default function EventsTab({ tick, onChanged, bucket, setBucket }: { tick
           </table>
         </div>
       )}
-      {data && <PageNav page={data.pagination.page} hasMore={data.pagination.hasMore} onPage={setPage} count={all.length} noun="events" />}
+      {data && <PageNav page={data.pagination.page} hasMore={data.pagination.hasMore} onPage={setPage} count={rows.length} noun="events" />}
     </section>
   );
 }

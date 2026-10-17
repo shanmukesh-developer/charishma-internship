@@ -7,6 +7,7 @@
 //  - The QR token is only in the holder's own ticket payload (team ticket: accepted members).
 const E = require('../enums');
 const { iso, money } = require('./util');
+const { labelAnswers } = require('./validate');
 const clock = require('./clock');
 
 const R = E.REG_STATUS;
@@ -113,6 +114,9 @@ const eventDetail = (req, ev, extra = {}) => ({
   maxBookingsPerStudent: Number(ev.maxBookingsPerStudent) || 1,
   approvalRequired: !!ev.approvalRequired,
   waitlistEnabled: !!ev.waitlistEnabled,
+  // null = the platform default (settings.waitlistOfferMinutes) / no minimum.
+  waitlistOfferMinutes: ev.waitlistOfferMinutes === null || ev.waitlistOfferMinutes === undefined ? null : Number(ev.waitlistOfferMinutes),
+  minParticipants: ev.minParticipants === null || ev.minParticipants === undefined ? null : Number(ev.minParticipants),
   paymentModes: extra.paymentModes || [],
   entryOpensBeforeMin: Number(ev.entryOpensBeforeMin) || 0,
   status: ev.status,
@@ -150,6 +154,7 @@ const registrationOwn = (req, reg, { event, slot, team, tickets = [], viewerId, 
   cancelReason: reg.cancelReason,
   rejectedReason: reg.rejectedReason,
   answers: String(reg.userId) === String(viewerId) ? reg.answers || {} : undefined,
+  answerDetails: String(reg.userId) === String(viewerId) ? labelAnswers(reg.answers, reg.questionsSnapshot, event && event.questions) : undefined,
   tickets: tickets.map(ticketBrief),
   ticketStatus: tickets.length ? (tickets.some((t) => t.status === E.TICKET_STATUS.ACTIVE) ? 'AVAILABLE' : tickets[0].status) : (reg.status === R.CONFIRMED ? 'ISSUING' : 'NOT_ISSUED'),
   canCancel: !!canCancel,
@@ -158,7 +163,7 @@ const registrationOwn = (req, reg, { event, slot, team, tickets = [], viewerId, 
 });
 
 /** Organizer / admin participant row (no phone / e-mail / user id for organizers). */
-const registrationForOrganizer = (reg, { user, team, ticket, forAdmin = false } = {}) => ({
+const registrationForOrganizer = (reg, { user, team, ticket, forAdmin = false, eventQuestions = null } = {}) => ({
   id: reg.id,
   code: reg.code,
   type: reg.type,
@@ -169,6 +174,7 @@ const registrationForOrganizer = (reg, { user, team, ticket, forAdmin = false } 
   slotId: reg.slotId,
   unitNo: reg.unitNo,
   answers: reg.answers || {},
+  answerDetails: labelAnswers(reg.answers, reg.questionsSnapshot, eventQuestions),
   paymentMode: reg.paymentMode,
   paymentStatus: reg.paymentStatus,
   total: money(reg.total),

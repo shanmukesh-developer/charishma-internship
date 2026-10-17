@@ -7,7 +7,7 @@ import { View, Text, ScrollView, RefreshControl, Alert, TouchableOpacity, TextIn
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { KeyboardAvoidingView } from '../../../components/KeyboardAvoidingView';
 import {
-  campusEventsApi, CampusEventsError, errorCopy, fmtWhen, fmtRange, fmtClock, dayLabel, istDate, istYmd, inr, EVENT_STATUS_META, PAYMENT_STATUS_LABEL, REG_STATUS_META,
+  campusEventsApi, CampusEventsError, errorCopy, answerRows, fmtWhen, fmtRange, fmtClock, dayLabel, istDate, istYmd, inr, EVENT_STATUS_META, PAYMENT_STATUS_LABEL, REG_STATUS_META,
   type OrganizerEvent, type Participant, type Question, type Slot, type EventStats, type StaffGrant, type Announcement, type AnnouncementKind, type RegStatus,
 } from '../../../modules/campusEvents/campusEventsApi';
 import { EHeader, usePalette, Card, Btn, Field, Chips, ErrorState, StateView, Notice, Row, Pill, RegStatusPill, SectionTitle, Poster } from '../../../modules/campusEvents/ui';
@@ -232,10 +232,10 @@ export default function OrganizerEventScreen() {
                   </View>
                   {r.paymentStatus !== 'NONE' ? <Text style={{ fontSize: 12, color: p.text, marginTop: 6 }}>{inr(r.total)} · {PAYMENT_STATUS_LABEL[r.paymentStatus]}</Text> : null}
                   {r.ticket ? <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }}>Ticket {r.ticket.ticketCode} · {r.ticket.status === 'USED' ? 'checked in' : r.ticket.status.toLowerCase()}</Text> : null}
-                  {regs.questions.length && Object.keys(r.answers || {}).length ? (
+                  {answerRows(r, regs.questions).length ? (
                     <View style={{ marginTop: 6 }}>
-                      {regs.questions.filter((q) => r.answers[q.id] !== undefined).map((q) => (
-                        <Text key={q.id} style={{ fontSize: 12, color: p.sub }}>• {q.label}: <Text style={{ color: p.text }}>{Array.isArray(r.answers[q.id]) ? r.answers[q.id].join(', ') : typeof r.answers[q.id] === 'boolean' ? (r.answers[q.id] ? 'Yes' : 'No') : String(r.answers[q.id])}</Text></Text>
+                      {answerRows(r, regs.questions).map((a) => (
+                        <Text key={a.id} style={{ fontSize: 12, color: p.sub }}>• {a.label}: <Text style={{ color: p.text }}>{a.text}</Text></Text>
                       ))}
                     </View>
                   ) : null}

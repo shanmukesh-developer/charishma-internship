@@ -38,12 +38,14 @@ export default function CampusEventsSection() {
     } catch (e: any) {
       setError(e instanceof CampusEventsError ? e : new CampusEventsError(e?.message || 'Could not load events.'));
     }
-    const [inv, chk] = await Promise.allSettled([campusEventsApi.invitations(), campusEventsApi.checkInEvents()]);
+    // Check-in shortcut: GET /status isStaff. Only an older server (no isStaff) needs the event list call.
+    const needList = !status || typeof status.isStaff !== 'boolean';
+    const [inv, chk] = await Promise.allSettled([campusEventsApi.invitations(), needList ? campusEventsApi.checkInEvents() : Promise.resolve(null)]);
     setExtras({
       invitations: inv.status === 'fulfilled' ? inv.value.invitations.length : 0,
-      checkIn: chk.status === 'fulfilled' ? chk.value.events.length : 0,
+      checkIn: chk.status === 'fulfilled' && chk.value ? chk.value.events.length : 0,
     });
-  }, [uid, cacheKey]);
+  }, [uid, cacheKey, status]);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,12 +70,13 @@ export default function CampusEventsSection() {
     );
   }
 
-  const organizerActive = status?.organizer?.status === 'ACTIVE';
+  const organizerActive = typeof status?.isOrganizer === 'boolean' ? status.isOrganizer : status?.organizer?.status === 'ACTIVE';
+  const showCheckIn = typeof status?.isStaff === 'boolean' ? status.isStaff : extras.checkIn > 0;
   const quick: { icon: string; label: string; badge?: number; href: string; a11y: string }[] = [
     { icon: '🧾', label: 'My registrations', badge: data?.my.registrations, href: '/campus-events/my', a11y: 'My registrations' },
     { icon: '🎟️', label: 'My tickets', badge: data?.my.tickets, href: '/campus-events/tickets', a11y: 'My tickets' },
     ...(extras.invitations ? [{ icon: '✉️', label: 'Team invites', badge: extras.invitations, href: '/campus-events/invitations', a11y: `${extras.invitations} team invitations` }] : []),
-    ...(extras.checkIn ? [{ icon: '🛂', label: 'Check-in', href: '/campus-events/check-in', a11y: 'Entry check-in for staff' }] : []),
+    ...(showCheckIn ? [{ icon: '🛂', label: 'Check-in', href: '/campus-events/check-in', a11y: 'Entry check-in for staff' }] : []),
     { icon: organizerActive ? '🗂️' : '📣', label: organizerActive ? 'My events' : 'Host an event', href: '/campus-events/organizer', a11y: organizerActive ? 'Organizer dashboard' : 'Host an event as a club or organizer' },
   ];
 

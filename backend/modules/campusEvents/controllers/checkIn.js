@@ -144,10 +144,11 @@ const myEvents = async (req, res) => {
   const { Op } = require('sequelize');
   const isAdmin = String(req.user.role || '').toLowerCase() === 'admin';
   const staff = await M().Staff.findAll({ where: { userId: req.user.id, status: E.STAFF_STATUS.ACTIVE }, attributes: ['eventId'] });
-  const where = { status: { [Op.in]: [E.EVENT_STATUS.PUBLISHED, E.EVENT_STATUS.UNPUBLISHED, E.EVENT_STATUS.COMPLETED] }, endAt: { [Op.gt]: new Date(clock.nowMs() - 24 * 60 * 60 * 1000) } };
+  // APPROVED = approved but scheduled (publishAt in the future): staff can be set up and test the gate early.
+  const where = { status: { [Op.in]: E.CHECKIN_EVENT_STATUSES }, endAt: { [Op.gt]: new Date(clock.nowMs() - 24 * 60 * 60 * 1000) } };
   if (!isAdmin) where[Op.or] = [{ organizerUserId: req.user.id }, { id: { [Op.in]: staff.map((s) => s.eventId) } }];
   const rows = await M().Event.findAll({ where, order: [['startAt', 'ASC']], limit: 100 });
-  res.json({ events: rows.map((ev) => ({ id: ev.id, title: ev.title, startAt: iso(ev.startAt), endAt: iso(ev.endAt), venue: ev.venue, format: ev.format, checkedIn: ev.checkedInCount || 0, confirmed: ev.unitsConfirmed || 0 })) });
+  res.json({ events: rows.map((ev) => ({ id: ev.id, title: ev.title, startAt: iso(ev.startAt), endAt: iso(ev.endAt), venue: ev.venue, format: ev.format, status: ev.status, publishAt: iso(ev.publishAt), checkedIn: ev.checkedInCount || 0, confirmed: ev.unitsConfirmed || 0 })) });
 };
 
 // GET /events/:id/recent   (last admissions / attempts, staff-limited view)

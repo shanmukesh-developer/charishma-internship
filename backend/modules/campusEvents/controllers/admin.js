@@ -2,7 +2,7 @@
 // audited in CeAuditLog and mirrored into VerificationLog (the admin panel's audit table).
 const { Op } = require('sequelize');
 const E = require('../enums');
-const { fail, assertUuid, cleanText, iso, optTime, adminAudit, pageOpts, paginate, money, bool } = require('../services/util');
+const { fail, assertUuid, cleanText, iso, optTime, adminAudit, pageOpts, paginate, money, bool, hit, isUuid, maskPhone, maskEmail } = require('../services/util');
 const S = require('../services/serialize');
 const clock = require('../services/clock');
 const flag = require('../services/flag');
@@ -14,7 +14,7 @@ const notify = require('../services/notify');
 const outcomes = require('../services/outcomes');
 const audit = require('../services/audit');
 const O = require('./organizer');
-const { M, loadEvent, usersById, byIds, organizerContext, Entity } = require('./common');
+const { M, User, loadEvent, usersById, byIds, organizerContext, Entity } = require('./common');
 
 const ES = E.EVENT_STATUS;
 const OS = E.ORGANIZER_STATUS;
@@ -76,18 +76,24 @@ const reviewQueue = async (req, res) => {
   res.json({ events: out });
 };
 
-// GET /events?status&bucket&q&page&limit
+// GET /events?status&bucket&q&category&entityId&campusId&page&limit
 const events = async (req, res) => {
   const now = clock.now();
   const q = req.query || {};
   const p = pageOpts(q, 50);
   let rows;
-  if (q.bucket === 'fully_booked') rows = (await fullyBooked(now)).slice(p.offset, p.offset + p.fetch);
-  else {
+  const cats = q.category ? String(q.category).toUpperCase().split(',').filter((c) => E.CATEGORIES.includes(c)) : null;
+  if (cats && !cats.length) throw fail(400, 'INVALID_INPUT', 'Unknown category.', { field: 'category' });
+  const entityId = q.entityId ? assertUuid(String(q.entityId), 'club') : null;
+  if (q.bucket === 'fully_booked') {
+    rows = (await fullyBooked(now)).filter((ev) => (!cats || cats.includes(ev.category)) && (!entityId || String(ev.entityId) === entityId)).slice(p.offset, p.offset + p.fetch);
+  } else {
     const where = q.bucket ? (BUCKETS[q.bucket] ? BUCKETS[q.bucket](now) : null) : {};
     if (!where) throw fail(400, 'INVALID_INPUT', 'Unknown bucket.', { field: 'bucket' });
     if (q.status) where.status = String(q.status).toUpperCase();
     if (q.campusId) where.campusId = String(q.campusId);
+    if (cats) where.category = cats.length === 1 ? cats[0] : { [Op.in]: cats };
+    if (entityId) where.entityId = entityId;
     const text = cleanText(q.q, 60);
     if (text) where.title = { [require('../services/locks').isPg() ? Op.iLike : Op.like]: `%${text.replace(/[%_\\]/g, '')}%` };
     rows = await M().Event.findAll({ where, order: [['startAt', 'DESC']], limit: p.fetch, offset: p.offset });
@@ -223,7 +229,7 @@ const eventRegistrations = async (req, res) => {
   res.json({ registrations: await O.participantRows(ev, req.query || {}, { forAdmin: true }) });
 };
 
-// GET /registrations?eventId&status&paymentStatus&page&limit
+// GET /registrations?eventId&status&paymentStatus&paymentMode&q&page&limit   (q: code / name / phone last 4)
 const registrations = async (req, res) => {
   const q = req.query || {};
   const p = pageOpts(q, 100, 500);
@@ -232,17 +238,122 @@ const registrations = async (req, res) => {
   if (q.status) where.status = String(q.status).toUpperCase();
   if (q.paymentStatus) where.paymentStatus = String(q.paymentStatus).toUpperCase();
   if (q.paymentMode) where.paymentMode = String(q.paymentMode).toUpperCase();
+  const search = await registrationSearch(q.q);
+  if (search === false) return res.json({ registrations: [], pagination: { page: p.page, limit: p.limit, hasMore: false } });
+  if (search) where[Op.or] = search;
   const rows = await M().Reg.findAll({ where, order: [['createdAt', 'DESC']], limit: p.fetch, offset: p.offset });
   const pg = paginate(rows, p);
-  const users = await usersById(pg.rows.map((r) => r.userId));
+  const users = await byIds(User(), pg.rows.map((r) => r.userId), ['id', 'name', 'phone']);
   const evs = await byIds(M().Event, pg.rows.map((r) => r.eventId));
+  const tks = pg.rows.length ? await M().Ticket.findAll({ where: { registrationId: { [Op.in]: pg.rows.map((r) => r.id) } }, order: [['createdAt', 'ASC']] }) : [];
+  const ticketOf = (r) => {
+    const mine = tks.filter((tk) => String(tk.registrationId) === String(r.id));
+    // The registration's main ticket: the team ticket, else the registrant's own; live before ended.
+    const main = mine.filter((tk) => tk.holderKey === 'TEAM' || String(tk.userId) === String(r.userId));
+    const list = main.length ? main : mine;
+    return list.find((tk) => E.LIVE_TICKET_STATUSES.includes(tk.status)) || list[list.length - 1] || null;
+  };
   res.json({
-    registrations: pg.rows.map((r) => ({
-      ...S.registrationForOrganizer(r, { user: users.get(String(r.userId)), forAdmin: true }), eventId: r.eventId, eventTitle: (evs.get(String(r.eventId)) || {}).title || null,
-      payment: S.paymentBlock(r), refundAttempts: r.refundAttempts || 0,
-    })),
+    registrations: pg.rows.map((r) => {
+      const u = users.get(String(r.userId));
+      const ev = evs.get(String(r.eventId)) || {};
+      const tk = ticketOf(r);
+      return {
+        ...S.registrationForOrganizer(r, { user: u, forAdmin: true, ticket: tk, eventQuestions: ev.questions }), eventId: r.eventId, eventTitle: ev.title || null,
+        phoneMasked: u ? maskPhone(u.phone) : null,
+        // Ticket summary: { id, code, status } (+ kind / usedAt; ticketCode kept for older clients).
+        ticket: tk ? { ...S.ticketBrief(tk), code: tk.ticketCode } : null,
+        payment: S.paymentBlock(r), refundAttempts: r.refundAttempts || 0,
+      };
+    }),
     pagination: pg.pagination,
   });
+};
+
+/**
+ * ?q= on the admin registrations list -> an Op.or list, null (no search) or false (nothing can match):
+ * registration code (EV-XXXXXX with or without "EV-", partial), student name (contains), or the last 4
+ * digits of the phone (exactly 4 digits). Never searches full phone numbers or e-mails.
+ */
+const registrationSearch = async (raw) => {
+  const safe = cleanText(raw, 60).replace(/[%_\\]/g, '');
+  if (!safe) return null;
+  const like = require('../services/locks').isPg() ? Op.iLike : Op.like;
+  const or = [];
+  const codeish = safe.toUpperCase().replace(/^EV-?/, '');
+  if (/^[A-Z0-9]{2,6}$/.test(codeish)) or.push({ code: { [like]: `%${codeish}%` } });
+  const ids = new Set();
+  if (/^\d{4}$/.test(safe)) {
+    for (const u of await User().findAll({ where: { phone: { [Op.like]: `%${safe}` } }, attributes: ['id'], limit: 500 })) ids.add(String(u.id));
+  }
+  if (safe.length >= 2 && !/^\d+$/.test(safe)) {
+    for (const u of await User().findAll({ where: { name: { [like]: `%${safe}%` } }, attributes: ['id'], limit: 500 })) ids.add(String(u.id));
+  }
+  if (ids.size) or.push({ userId: { [Op.in]: [...ids] } });
+  return or.length ? or : false;
+};
+
+// POST /registrations/:id/approve | /reject { reason }   PENDING_APPROVAL only; the organizer flow's
+// service (organizer.decide: event lock, ticket issue / unit release + waitlist, CeAuditLog) + VerificationLog.
+const decideRegistration = (approve) => async (req, res) => {
+  const reg0 = await M().Reg.findByPk(assertUuid(req.params.id, 'registration'));
+  if (!reg0) throw fail(404, 'NOT_FOUND', 'This registration was not found.');
+  const ev = await loadEvent(reg0.eventId);
+  let reason = null;
+  if (approve) tickets.assertConfigured();
+  else {
+    reason = cleanText(req.body && req.body.reason, 300);
+    if (reason.length < 3) throw fail(400, 'INVALID_INPUT', 'Give a reason (the student sees it).', { field: 'reason' });
+  }
+  const reg = await O.decide(req, ev, reg0.id, approve, reason);
+  await adminAudit(req, reg.id, `campus_events.registration.${approve ? 'approve' : 'reject'}`, approve ? {} : { reason });
+  res.json({ registration: { id: reg.id, status: reg.status, paymentStatus: reg.paymentStatus } });
+};
+const approveRegistration = decideRegistration(true);
+const rejectRegistration = decideRegistration(false);
+
+// GET /users?q=   narrow lookup for organizer / staff grants: id, name, masked phone + e-mail, campus,
+// verified (+ organizerStatus). Customer accounts only (no partner / rider / driver), 2+ characters, 20 rows.
+const searchUsers = async (req, res) => {
+  hit('user_search', req.user.id);
+  const text = cleanText(req.query && req.query.q, 60).replace(/[%_\\]/g, '');
+  if (text.length < 2) throw fail(400, 'INVALID_INPUT', 'Type at least 2 characters.', { field: 'q' });
+  const like = require('../services/locks').isPg() ? Op.iLike : Op.like;
+  const or = [{ name: { [like]: `%${text}%` } }];
+  const digits = text.replace(/\D/g, '');
+  if (digits.length >= 4 && digits.length === text.replace(/[\s+-]/g, '').length) or.push({ phone: { [Op.like]: `%${digits}%` } });
+  if (text.includes('@')) or.push({ email: { [like]: `%${text.toLowerCase()}%` } });
+  if (isUuid(text)) or.push({ id: text });
+  const rows = await User().findAll({
+    where: { [Op.or]: or, role: { [Op.notIn]: ['restaurant', 'rider', 'auto_driver'] } },
+    attributes: ['id', 'name', 'phone', 'email', 'isActive'], order: [['name', 'ASC']], limit: 20,
+  });
+  const profiles = await profilesFor(rows.map((u) => u.id));
+  const campuses = await campusesById([...new Set([...profiles.values()].map((x) => x.campusId).filter(Boolean))]);
+  const orgs = rows.length ? await M().Organizer.findAll({ where: { userId: { [Op.in]: rows.map((u) => u.id) } }, attributes: ['userId', 'status'] }) : [];
+  const orgBy = new Map(orgs.map((o) => [String(o.userId), o.status]));
+  res.json({
+    users: rows.map((u) => {
+      const pr = profiles.get(String(u.id));
+      const c = pr && pr.campusId ? campuses.get(String(pr.campusId)) : null;
+      return {
+        id: u.id, name: String(u.name || 'Student').slice(0, 80), phoneMasked: maskPhone(u.phone), emailMasked: maskEmail(u.email),
+        campus: c ? { id: c.id, name: c.name } : null, verified: !!(pr && pr.verificationStatus === 'verified'),
+        active: u.isActive !== false, organizerStatus: orgBy.get(String(u.id)) || null,
+      };
+    }),
+  });
+};
+const profilesFor = async (ids) => {
+  if (!ids.length) return new Map();
+  const CP = require('../../campus/models/CampusProfile').getCampusProfileModel();
+  if (!CP) return new Map();
+  const rows = await CP.findAll({ where: { userId: { [Op.in]: ids } }, attributes: ['userId', 'campusId', 'verificationStatus'] });
+  return new Map(rows.map((r) => [String(r.userId), r]));
+};
+const campusesById = async (ids) => {
+  const Campus = require('../../campus/models/Campus').getCampusModel();
+  return ids.length && Campus ? byIds(Campus, ids, ['id', 'name']) : new Map();
 };
 
 // POST /registrations/:id/cancel   { reason }   (admin override: full refund)
@@ -431,6 +542,11 @@ const getSettings = async (req, res) => {
 };
 const putSettings = async (req, res) => {
   const b = req.body || {};
+  // Turning the feature on in production without CAMPUS_EVENTS_TICKET_SECRET would let students register for
+  // events whose tickets can never be issued: refuse (dev / test always have a per-process secret).
+  if (b.enabled !== undefined && bool(b.enabled) && !tickets.configured()) {
+    throw fail(409, 'TICKET_SECRET_MISSING', 'Set CAMPUS_EVENTS_TICKET_SECRET (16+ characters) on the server before turning Campus Events on.', { ticketsReady: false });
+  }
   if (b.enabled !== undefined) { await flag.writeFlag(bool(b.enabled)); await logBoth(req, { action: 'settings.flag', details: { enabled: bool(b.enabled) } }); }
   if (b.walletEnabled !== undefined) { await flag.writeWalletFlag(bool(b.walletEnabled)); await logBoth(req, { action: 'settings.wallet', details: { enabled: bool(b.walletEnabled) } }); }
   if (b.onlinePayEnabled !== undefined) { await flag.writeOnlineFlag(bool(b.onlinePayEnabled)); await logBoth(req, { action: 'settings.online_pay', details: { enabled: bool(b.onlinePayEnabled) } }); }
@@ -454,19 +570,33 @@ const reports = async (req, res) => {
   res.json({ from: iso(from), to: iso(to), events: out, totals });
 };
 
-// GET /audit?eventId&limit
+// GET /audit?eventId&action&actorRole&page&limit
 const auditLog = async (req, res) => {
   const where = {};
-  if (req.query.eventId) where.eventId = assertUuid(req.query.eventId, 'event');
-  const p = pageOpts(req.query, 100, 500);
+  const q = req.query || {};
+  if (q.eventId) where.eventId = assertUuid(q.eventId, 'event');
+  if (q.actorRole) where.actorRole = cleanText(q.actorRole, 12).toLowerCase();
+  // action: exact ("event.approve") or a family ("event" / "event." -> every event.* action).
+  const action = cleanText(q.action, 60).replace(/[%\\]/g, '').replace(/\.$/, '');
+  if (action) where[Op.or] = [{ action }, { action: { [Op.like]: `${action}.%` } }];
+  const p = pageOpts(q, 100, 500);
   const rows = await M().Audit.findAll({ where, order: [['at', 'DESC']], limit: p.fetch, offset: p.offset });
   const pg = paginate(rows, p);
-  res.json({ audit: pg.rows.map((r) => ({ id: r.id, eventId: r.eventId, teamId: r.teamId, registrationId: r.registrationId, actorUserId: r.actorUserId, actorRole: r.actorRole, action: r.action, details: r.details, at: iso(r.at) })), pagination: pg.pagination });
+  const users = await usersById(pg.rows.map((r) => r.actorUserId));
+  res.json({
+    audit: pg.rows.map((r) => ({
+      id: r.id, eventId: r.eventId, teamId: r.teamId, registrationId: r.registrationId, actorUserId: r.actorUserId,
+      actorName: r.actorUserId && users.get(String(r.actorUserId)) ? S.firstName(users.get(String(r.actorUserId)).name) : null,
+      actorRole: r.actorRole, action: r.action, details: r.details, at: iso(r.at),
+    })),
+    pagination: pg.pagination,
+  });
 };
 
 module.exports = {
   summary, reviewQueue, events, eventDetail, approve, reject, requestChanges, unpublish, republish, cancelEvent, feature, editEvent,
   approveChanges, rejectChanges, eventRegistrations, registrations, cancelRegistration, refund, markPaid, paymentsList, organizers,
   createOrganizer, approveOrganizer, rejectOrganizer, suspendOrganizer, reinstateOrganizer, revokeOrganizer, bulkGrant, staff, addStaff,
-  removeStaff, voidTicket, reissueTicket, getSettings, putSettings, reports, auditLog,
+  removeStaff, voidTicket, reissueTicket, getSettings, putSettings, reports, auditLog, approveRegistration, rejectRegistration,
+  searchUsers, registrationSearch,
 };
