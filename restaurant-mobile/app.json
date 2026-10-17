@@ -1,5 +1,8 @@
 {
   "expo": {
+    "extra": {
+      "trustedApiHosts": ["hostelbites-backend-jwmt.onrender.com"]
+    },
     "name": "Zenvy Restaurant",
     "slug": "restaurant-mobile",
     "version": "1.0.0",

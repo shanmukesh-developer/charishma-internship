@@ -92,9 +92,10 @@ const put = (key, entry) => {
 
 const acceptsGzip = (req) => /\bgzip\b/i.test(String(req.headers['accept-encoding'] || ''));
 
-const sendEntry = (req, res, entry, status) => {
+// cc: Cache-Control from utils/cacheHeaders ('no-cache' unless EDGE_CACHE=1 and the group may be shared by a CDN).
+const sendEntry = (req, res, entry, status, cc = 'no-cache') => {
   res.status(200);
-  res.set('Cache-Control', 'no-cache');
+  res.set('Cache-Control', cc);
   res.set('ETag', entry.etag);
   res.set('X-Cache', status);
   res.vary('Accept-Encoding');
@@ -134,13 +135,13 @@ const cacheGet = (group, { ttlMs = 30 * 1000, key, bypass } = {}) => (req, res, 
   if (req.method !== 'GET' && req.method !== 'HEAD') return next();
   if (typeof bypass === 'function' && hasCredential(req)) {
     return Promise.resolve(bypass(req)).then((skip) => {
-      if (!skip) return serve(group, ttlMs, key, req, res, next);
+      if (!skip) return serve(group, ttlMs, key, req, res, next, true);
       res.set('Cache-Control', 'no-store');
       res.set('X-Cache', 'BYPASS');
       return next();
-    }, () => serve(group, ttlMs, key, req, res, next));
+    }, () => serve(group, ttlMs, key, req, res, next, true));
   }
-  return serve(group, ttlMs, key, req, res, next);
+  return serve(group, ttlMs, key, req, res, next, typeof bypass === 'function');
 };
 
 // key -> { gen, waiters: [fn(entry|null)] } for the request currently building that entry.
@@ -148,11 +149,15 @@ const inflight = new Map();
 const COALESCE_WAIT_MS = 5000;
 const MAX_WAITERS = 2000;
 
-const serve = (group, ttlMs, key, req, res, next) => {
+const cacheHeaders = require('./cacheHeaders');
+
+// bypassable: the route has a per-caller bypass, so a CDN must never share its responses.
+const serve = (group, ttlMs, key, req, res, next, bypassable = false) => {
+  const cc = cacheHeaders.forCachedGroup(group, { bypassable });
   const cacheKey = `${group}|${key ? key(req) : canonicalUrl(req)}`;
   const gen = genOf(group);
   const hit = store.get(cacheKey);
-  if (hit && hit.gen === gen && Date.now() - hit.at < hit.ttl) return sendEntry(req, res, hit, 'HIT');
+  if (hit && hit.gen === gen && Date.now() - hit.at < hit.ttl) return sendEntry(req, res, hit, 'HIT', cc);
   if (hit) store.delete(cacheKey);
 
   // Another request is already building this entry (same generation): wait for it.
@@ -166,7 +171,7 @@ const serve = (group, ttlMs, key, req, res, next) => {
         clearTimeout(timer);
         try {
           if (entry) {
-            if (!res.headersSent) sendEntry(req, res, entry, 'HIT');
+            if (!res.headersSent) sendEntry(req, res, entry, 'HIT', cc);
           } else {
             next(); // the leader's response was not cacheable: run the handler for this request
           }
@@ -216,7 +221,7 @@ const serve = (group, ttlMs, key, req, res, next) => {
       // response, but do not keep it.
       if (genOf(group) === gen) put(cacheKey, entry);
       try {
-        if (!res.headersSent) sendEntry(req, res, entry, 'MISS');
+        if (!res.headersSent) sendEntry(req, res, entry, 'MISS', cc);
       } finally { release(entry); }
     });
     return res;

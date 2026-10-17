@@ -44,9 +44,13 @@ exports.getConfig = async (req, res) => {
 
     let isAdmin = false;
     try { isAdmin = await require('../middleware/authMiddleware').isLiveAdminRequest(req); } catch { isAdmin = false; }
+    // Own-domain move (utils/publicUrl): apiBaseUrl / socketUrl appear only while PUBLIC_API_URL is set,
+    // so the response is unchanged until then. The apps read GET /api/config/endpoints (same values).
+    const ep = require('../utils/publicUrl').advertisedEndpoints();
     res.status(200).json({
       success: true,
-      config: isAdmin ? config : publicConfig(config)
+      config: isAdmin ? config : publicConfig(config),
+      ...(ep.apiBaseUrl ? { apiBaseUrl: ep.apiBaseUrl, socketUrl: ep.socketUrl } : {}),
     });
   } catch (error) {
     console.error('Error fetching config:', error);

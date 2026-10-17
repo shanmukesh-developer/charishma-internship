@@ -1,5 +1,8 @@
 {
   "expo": {
+    "extra": {
+      "trustedApiHosts": ["hostelbites-backend-jwmt.onrender.com"]
+    },
     "name": "Zenvy Rider",
     "slug": "zenvy-rider",
     "version": "1.0.0",

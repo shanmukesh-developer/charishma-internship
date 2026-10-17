@@ -8,3 +8,4 @@ logs/
 logs.txt
 *.log
 scratch/
+scripts/.migrate_media_state*.json

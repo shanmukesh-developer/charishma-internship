@@ -1,7 +1,39 @@
 // App-wide constants. ONE backend only (Render).
+import {
+  readExtraTrustedHosts,
+  refreshEndpointOverride,
+  resolveEndpoint,
+  trustedHostsFrom,
+} from './services/endpointOverride';
 
-/** The one Zenvy backend. */
-export const API_URL = 'https://hostelbites-backend-jwmt.onrender.com/api';
+/** Built-in address of the one Zenvy backend. */
+export const BUILT_IN_API_BASE = 'https://hostelbites-backend-jwmt.onrender.com';
+
+/**
+ * Hosts the app may move to when the backend advertises a new address (GET /api/config/endpoints):
+ * built-in host + app.json extra.trustedApiHosts + EXPO_PUBLIC_TRUSTED_API_HOSTS ("api.zenvy.in" or
+ * "*.zenvy.in"). Put the future domain here BEFORE building the store release.
+ */
+export const TRUSTED_API_HOSTS = trustedHostsFrom(BUILT_IN_API_BASE, process.env.EXPO_PUBLIC_TRUSTED_API_HOSTS, readExtraTrustedHosts());
+
+// Built-in address, or a verified trusted address the backend advertised on an earlier launch
+// (src/services/endpointOverride.ts). Never changes mid-session.
+const ACTIVE_ENDPOINT = resolveEndpoint({ builtIn: BUILT_IN_API_BASE, trusted: TRUSTED_API_HOSTS });
+
+/** The one Zenvy backend (REST base, ends in /api). */
+export const API_URL = `${ACTIVE_ENDPOINT.api}/api`;
+/** socket.io address (same host as API_URL unless the backend advertises a separate one). */
+export const SOCKET_URL = ACTIVE_ENDPOINT.socket;
+
+let endpointCheckStarted = false;
+/** Once per launch, a few seconds after start: learn / verify / self-heal the API address for the next launch. */
+export function scheduleApiEndpointCheck(delayMs = 4000): void {
+  if (endpointCheckStarted) return;
+  endpointCheckStarted = true;
+  setTimeout(() => {
+    refreshEndpointOverride({ builtIn: BUILT_IN_API_BASE, active: ACTIVE_ENDPOINT, trusted: TRUSTED_API_HOSTS }).catch(() => {});
+  }, delayMs);
+}
 
 /** Strip trailing /api for the Socket.io base URL. */
 export function socketBaseUrl(apiUrl: string): string {

@@ -14,6 +14,7 @@ import { color } from './src/theme';
 import LoginScreen from './src/screens/LoginScreen';
 import MainScreen, { RootStack } from './src/screens/MainScreen';
 import OrderDetailScreen from './src/screens/OrderDetailScreen';
+import { scheduleApiEndpointCheck } from './src/config';
 
 const Stack = createNativeStackNavigator<RootStack>();
 const navTheme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: color.bg, card: color.surface, text: color.text, primary: color.text } };
@@ -47,6 +48,8 @@ function Root() {
 }
 
 export default function App() {
+  // Own-domain move: learn / verify / self-heal the API address for the NEXT launch (src/config.ts).
+  useEffect(() => { scheduleApiEndpointCheck(); }, []);
   useEffect(() => { initVoice(); }, []);
   return (
     <SafeAreaProvider>

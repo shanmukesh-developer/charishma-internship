@@ -44,7 +44,8 @@ const SCAN_TIMEOUT_MS = 120 * 1000; // per batch scan (see withStatementTimeout 
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const apiBase = () => String(process.env.PUBLIC_API_URL || process.env.RENDER_EXTERNAL_URL || '').trim().replace(/\/+$/, '');
+// utils/publicUrl: PUBLIC_API_URL, else RENDER_EXTERNAL_URL (no request here), else ''.
+const apiBase = () => require('../utils/publicUrl').apiBase(null, { renderFallback: true });
 
 const runBase64MediaMigration = async ({ log = console.log } = {}) => {
   const base = apiBase();

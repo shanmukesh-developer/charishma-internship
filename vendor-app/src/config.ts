@@ -1,6 +1,38 @@
 // App-wide constants. ONE backend: /c/hostel-bite/backend on Render.
 // For local testing of writes set EXPO_PUBLIC_API_URL=http://<lan-ip>:5000 (never test writes on production).
-export const API_URL = (process.env.EXPO_PUBLIC_API_URL || 'https://hostelbites-backend-jwmt.onrender.com').replace(/\/+$/, '');
+import {
+  readExtraTrustedHosts,
+  refreshEndpointOverride,
+  resolveEndpoint,
+  trustedHostsFrom,
+} from './lib/endpointOverride';
+
+/** Built-in address of the one Zenvy backend. */
+export const BUILT_IN_API_URL = 'https://hostelbites-backend-jwmt.onrender.com';
+
+/**
+ * Hosts the app may move to when the backend advertises a new address (GET /api/config/endpoints):
+ * built-in host + app.json extra.trustedApiHosts + EXPO_PUBLIC_TRUSTED_API_HOSTS ("api.zenvy.in" or
+ * "*.zenvy.in"). Put the future domain here BEFORE building the store release.
+ */
+export const TRUSTED_API_HOSTS = trustedHostsFrom(BUILT_IN_API_URL, process.env.EXPO_PUBLIC_TRUSTED_API_HOSTS, readExtraTrustedHosts());
+
+// EXPO_PUBLIC_API_URL (dev) wins; else the built-in address, or a verified trusted address the backend
+// advertised on an earlier launch (src/lib/endpointOverride.ts). Never changes mid-session.
+const ACTIVE_ENDPOINT = resolveEndpoint({ builtIn: BUILT_IN_API_URL, devOverride: process.env.EXPO_PUBLIC_API_URL, trusted: TRUSTED_API_HOSTS });
+export const API_URL = ACTIVE_ENDPOINT.api;
+/** socket.io address (same as API_URL unless the backend advertises a separate one). */
+export const SOCKET_URL = ACTIVE_ENDPOINT.socket;
+
+let endpointCheckStarted = false;
+/** Once per launch, a few seconds after start: learn / verify / self-heal the API address for the next launch. */
+export function scheduleApiEndpointCheck(delayMs = 4000): void {
+  if (endpointCheckStarted) return;
+  endpointCheckStarted = true;
+  setTimeout(() => {
+    refreshEndpointOverride({ builtIn: BUILT_IN_API_URL, active: ACTIVE_ENDPOINT, trusted: TRUSTED_API_HOSTS }).catch(() => {});
+  }, delayMs);
+}
 
 /** Zenvy partner support. Digits only, with country code. */
 export const SUPPORT_PHONE = '919391955674';

@@ -23,15 +23,9 @@ const PURPOSES = new Set(['id_card', 'chat', 'lost_found', 'avatar', 'post', 'ot
   // Zenvy Campus Events posters / gallery (public; modules/campusEvents/services/media.js).
   'event_poster']);
 
-const publicBase = (req) => {
-  const env = String(process.env.PUBLIC_API_URL || '').trim().replace(/\/+$/, '');
-  if (env) return env;
-  if (!req || typeof req.get !== 'function') {
-    // No request (socket handlers, jobs): Render's own public URL, else a relative path.
-    return String(process.env.RENDER_EXTERNAL_URL || '').trim().replace(/\/+$/, '');
-  }
-  return `${req.protocol}://${req.get('host')}`;
-};
+// utils/publicUrl: PUBLIC_API_URL, else the request's host; no request (socket handlers, jobs): Render's own
+// public URL, else a relative path.
+const publicBase = (req) => require('./publicUrl').apiBase(req, { renderFallback: true });
 
 const sniffImage = (buf) => {
   if (!buf || buf.length < 12) return null;
@@ -86,7 +80,8 @@ const saveImageBytes = async (buf, { ownerId, purpose = 'other', isPrivate = fal
   const p = PURPOSES.has(purpose) ? purpose : 'other';
   const sha256 = crypto.createHash('sha256').update(buf).digest('hex');
   let row = await Media.findOne({ where: { ownerId: owner, sha256, purpose: p }, attributes: ['id'] });
-  if (!row) row = await Media.create({ ownerId: owner, purpose: p.slice(0, 20), mime, size: buf.length, sha256, isPrivate: !!isPrivate, bytes: buf });
+  // utils/mediaStorage: bytes in this row ('db', default) or in R2 ('s3'); same row, same URL either way.
+  if (!row) row = await require('./mediaStorage').createMediaRow(Media, { ownerId: owner, purpose: p.slice(0, 20), mime, size: buf.length, sha256, isPrivate: !!isPrivate }, buf);
   return { id: row.id, mime, size: buf.length };
 };
 

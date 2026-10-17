@@ -1,5 +1,8 @@
 {
   "expo": {
+    "extra": {
+      "trustedApiHosts": ["hostelbites-backend-jwmt.onrender.com"]
+    },
     "name": "Zenvy Vendor",
     "slug": "zenvy-vendor",
     "version": "1.0.0",

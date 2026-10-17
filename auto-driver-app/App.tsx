@@ -25,6 +25,7 @@ import TripDetailScreen from './src/screens/TripDetail';
 import CheckInScreen from './src/screens/CheckIn';
 import RequestsScreen from './src/screens/Requests';
 import { EarningsScreen, HistoryScreen, NotificationsScreen, ProfileScreen, QueueScreen, SettingsScreen, SupportScreen } from './src/screens/More';
+import { scheduleApiEndpointCheck } from './src/config';
 
 const Stack = createNativeStackNavigator<RootStack>();
 const navRef = createNavigationContainerRef<RootStack>();
@@ -121,6 +122,8 @@ function Root() {
 }
 
 export default function App() {
+  // Own-domain move: learn / verify / self-heal the API address for the NEXT launch (src/config.ts).
+  useEffect(() => { scheduleApiEndpointCheck(); }, []);
   return (
     <SafeAreaProvider>
       <KeyboardProvider statusBarTranslucent navigationBarTranslucent>

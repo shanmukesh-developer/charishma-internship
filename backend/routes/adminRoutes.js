@@ -158,6 +158,9 @@ router.get('/metrics/perf', async (req, res) => {
   // B1: fresh Redis round-trip time (no-op without REDIS_URL; bounded by the command timeout).
   try { await require('../utils/redis').ping(); } catch { /* reported as not ready */ }
   const snap = perf.snapshot();
+  // Infra switch-over checks (docs/INFRA_SWITCHOVER.md): DB host kind + a fresh measured round trip,
+  // media storage driver, public URL settings. No URLs with credentials, no keys.
+  snap.infra = await perf.infraSnapshot();
   if (String(req.query.reset || '') === '1') perf.resetRoutes();
   res.set('Cache-Control', 'no-store');
   res.json(snap);

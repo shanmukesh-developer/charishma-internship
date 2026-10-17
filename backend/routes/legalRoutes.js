@@ -147,13 +147,25 @@ const DELETE = page('Delete your account', `
 </ul>
 `);
 
-const send = (html) => (req, res) => {
-  res.set('Cache-Control', 'public, max-age=3600');
-  res.type('html').send(html);
+// Links inside the pages stay relative (they work on every address the API answers on). With
+// PUBLIC_API_URL set (own domain), a canonical link tells search engines / Play which address is the real one.
+const withCanonical = (html, path) => {
+  const base = require('../utils/publicUrl').envBase('PUBLIC_API_URL');
+  if (!base) return html;
+  const href = `${base}${path}`.replace(/"/g, '%22');
+  return html.replace('</head>', `<link rel="canonical" href="${href}">\n</head>`);
 };
 
-router.get('/privacy', send(PRIVACY));
+const send = (html, path) => {
+  const body = withCanonical(html, path);
+  return (req, res) => {
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.type('html').send(body);
+  };
+};
+
+router.get('/privacy', send(PRIVACY, '/legal/privacy'));
 router.get('/privacy-policy', (req, res) => res.redirect(301, '/legal/privacy'));
-router.get('/delete-account', send(DELETE));
+router.get('/delete-account', send(DELETE, '/legal/delete-account'));
 
 module.exports = router;

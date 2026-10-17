@@ -1,8 +1,8 @@
 import { io, Socket } from 'socket.io-client';
-import { API_URL } from '../constants/api';
+import { SOCKET_URL } from '../constants/api';
 import { getToken } from './auth';
 
-const socketUrl = API_URL.replace(/\/$/, "");
+const socketUrl = SOCKET_URL.replace(/\/$/, "");
 
 // ── Lazy Socket ─────────────────────────────────────────────────────────────
 // Do NOT auto-connect on import — this caused the 12000ms timeout crash

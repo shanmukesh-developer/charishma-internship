@@ -1363,7 +1363,7 @@ const notifyArrivalAtGate = async (req, res) => {
       if (customer && customer.phone) {
         await sendWhatsAppMessage(
           customer.phone,
-          `🛎️ *Rider Arrived at Gate!*\n\nYour Zenvy rider is waiting at your hostel gate. Please collect your order.\n\n📍 *Tracking:* ${process.env.FRONTEND_URL || 'https://zenvy.app'}/orders/${order.id}`,
+          `🛎️ *Rider Arrived at Gate!*\n\nYour Zenvy rider is waiting at your hostel gate. Please collect your order.\n\n📍 *Tracking:* ${require('../utils/publicUrl').orderTrackingUrl(order.id)}`,
           'GATE_ARRIVAL'
         );
       }

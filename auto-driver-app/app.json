@@ -1,5 +1,8 @@
 {
   "expo": {
+    "extra": {
+      "trustedApiHosts": ["hostelbites-backend-jwmt.onrender.com"]
+    },
     "name": "Zenvy Auto Driver",
     "slug": "zenvy-auto-driver",
     "version": "1.0.0",

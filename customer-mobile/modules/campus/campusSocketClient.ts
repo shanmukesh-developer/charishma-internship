@@ -1,8 +1,8 @@
 import { io, Socket } from 'socket.io-client';
-import { API_URL } from '../../constants/api';
+import { SOCKET_URL } from '../../constants/api';
 import { getToken } from '../../utils/auth';
 
-const baseUrl = API_URL.replace(/\/$/, '');
+const baseUrl = SOCKET_URL.replace(/\/$/, '');
 const campusSocketUrl = `${baseUrl}/campus`;
 
 let _campusSocket: Socket | null = null;

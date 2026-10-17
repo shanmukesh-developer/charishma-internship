@@ -4,12 +4,8 @@ const { Op } = require('sequelize');
 
 // ── Public URLs ─────────────────────────────────────────────────────────────
 // Absolute origin of this API (Render sits behind a proxy; app has trust proxy = 1).
-const publicBase = (req) => {
-  const env = String(process.env.PUBLIC_API_URL || '').trim().replace(/\/+$/, '');
-  if (env) return env;
-  if (!req) return '';
-  return `${req.protocol}://${req.get('host')}`;
-};
+// utils/publicUrl: PUBLIC_API_URL, else the request's host, else '' (relative paths without a request).
+const publicBase = (req) => require('../../utils/publicUrl').apiBase(req, { renderFallback: false });
 
 const MEDIA_PATH_RE = /^\/api\/campus\/media\/[0-9a-f-]{36}$/i;
 

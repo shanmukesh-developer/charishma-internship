@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { io, Socket } from 'socket.io-client';
-import { API_URL } from '../constants/api';
+import { API_URL, SOCKET_URL } from '../constants/api';
 import { apiFetch, getToken } from '../utils/auth';
 import { useLiveSync, affectsAny } from '../utils/useLiveSync';
 import { useAuth } from './AuthContext';
@@ -231,7 +231,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setRoomMessage(null);
     try {
       const token = await getToken();
-      const socket = io(API_URL, {
+      const socket = io(SOCKET_URL, {
         withCredentials: true,
         transports: ['websocket', 'polling'],
         auth: token ? { token } : {},

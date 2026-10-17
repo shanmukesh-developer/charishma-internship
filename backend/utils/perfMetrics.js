@@ -332,4 +332,51 @@ const startLogger = () => {
 };
 const stopLogger = () => { if (logTimer) clearInterval(logTimer); logTimer = null; };
 
-module.exports = { middleware, instrumentSequelize, setDevDbLatencyMs, snapshot, startLogger, stopLogger, logLine, resetRoutes, poolStats, routeKey, _als: als };
+// Infra switch-over view for GET /api/admin/metrics/perf: instance, Redis, DB host kind + a fresh measured
+// round trip (one SELECT 1, 2 s cap), media storage driver, public URL settings. No secrets.
+const infraSnapshot = async () => {
+  const out = { instanceId: null, redis: 'off', db: null, mediaStorage: null, publicUrls: null, edgeCache: null, trustCloudflare: false };
+  try {
+    const redis = require('./redis');
+    out.instanceId = redis.INSTANCE_ID;
+    out.redis = redis.isConfigured() ? (redis.isReady() ? 'ok' : 'down') : 'off';
+  } catch { /* optional */ }
+  try {
+    const dbSettings = require('../config/dbSettings');
+    const sequelize = require('../config/db').getSequelize();
+    let roundTripMs = null;
+    let error = null;
+    if (sequelize) {
+      const t0 = process.hrtime.bigint();
+      let timer = null;
+      try {
+        await Promise.race([
+          sequelize.query('SELECT 1'),
+          new Promise((_, rej) => { timer = setTimeout(() => rej(new Error('timed out after 2000 ms')), 2000); }),
+        ]);
+        roundTripMs = Math.round(Number(process.hrtime.bigint() - t0) / 1e5) / 10;
+      } catch (e) { error = String(e.message || e).slice(0, 120); } finally { if (timer) clearTimeout(timer); }
+    }
+    let cachedPingMs = null;
+    try { cachedPingMs = (await require('./lifecycle').getDbStatus()).latencyMs; } catch { /* optional */ }
+    out.db = {
+      dialect: sequelize ? sequelize.getDialect() : null,
+      hostType: dbSettings.dbHostType(),
+      pooler: dbSettings.dbPoolerMode(),
+      ssl: dbSettings.sslMode(),
+      roundTripMs,
+      cachedPingMs,
+      ...(error ? { error } : {}),
+    };
+  } catch { /* optional */ }
+  try { out.mediaStorage = require('./mediaStorage').status(); } catch { /* optional */ }
+  try {
+    const pu = require('./publicUrl');
+    out.publicUrls = { apiBaseUrl: pu.envBase('PUBLIC_API_URL') || null, webUrl: pu.webBase() || null, advertised: !!pu.advertisedEndpoints().apiBaseUrl };
+  } catch { /* optional */ }
+  try { const ch = require('./cacheHeaders').current(); out.edgeCache = ch.enabled ? { sMaxAge: ch.sMaxAge, swr: ch.swr, groups: Array.from(ch.groups) } : null; } catch { /* optional */ }
+  out.trustCloudflare = ['1', 'true', 'yes', 'on'].includes(String(process.env.TRUST_CLOUDFLARE || '').trim().toLowerCase());
+  return out;
+};
+
+module.exports = { middleware, instrumentSequelize, setDevDbLatencyMs, snapshot, infraSnapshot, startLogger, stopLogger, logLine, resetRoutes, poolStats, routeKey, _als: als };

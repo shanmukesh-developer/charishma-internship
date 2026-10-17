@@ -28,7 +28,7 @@ const formatOrderMessage = (order, type = 'CUSTOMER_CONFIRMATION') => {
   }
   const items = parsedItems.map(i => `• ${i.name || 'Item'} x${i.quantity || 1}`).join('\n');
   const restaurant = order.restaurant?.name || 'Zenvy Partner';
-  const trackUrl = `${process.env.FRONTEND_URL || 'https://zenvy.app'}/orders/${order._id || order.id || ''}`;
+  const trackUrl = require('./publicUrl').orderTrackingUrl(order._id || order.id || '');
 
   if (type === 'CUSTOMER_CONFIRMATION') {
     return `🛍️ *Order Confirmed!* #${orderId}\n\nHi! Your order from *${restaurant}* is now being prepared.\n\n*Items:*\n${items}\n\n*Total:* ₹${order.finalPrice || order.totalPrice}\n\n📍 *Tracking:* ${trackUrl}\n\n_Thank you for choosing Zenvy!_`;

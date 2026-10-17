@@ -1,20 +1,49 @@
 
-// Production Cloud API URL (Render)
+import {
+  readExtraTrustedHosts,
+  refreshEndpointOverride,
+  resolveEndpoint,
+  trustedHostsFrom,
+  type RefreshResult,
+} from '../utils/endpointOverride';
+
+// Production Cloud API URL (Render) — the built-in address.
 export const PROD_API_URL = 'https://hostelbites-backend-jwmt.onrender.com';
 
 // Local / Development Port 8080 API URL
 export const DEV_PORT = 8080;
 export const LOCAL_API_URL = 'http://localhost:8080';
 
-// The app always talks to the one Zenvy backend on Render. To point a dev build at a local
-// backend, set EXPO_PUBLIC_API_URL (e.g. http://192.168.1.5:8080) — never a silent switch.
-const getApiUrl = () => {
-  const override = (process.env.EXPO_PUBLIC_API_URL || '').trim().replace(/\/$/, '');
-  if (override && /^https?:\/\//.test(override)) return override;
-  return PROD_API_URL;
-};
+// Hosts the app may move to when the backend advertises a new address (GET /api/config/endpoints):
+// the built-in host + app.json extra.trustedApiHosts + EXPO_PUBLIC_TRUSTED_API_HOSTS (comma list, e.g.
+// "api.zenvy.in" or "*.zenvy.in"). Put the future domain here BEFORE building the store release.
+export const TRUSTED_API_HOSTS = trustedHostsFrom(PROD_API_URL, process.env.EXPO_PUBLIC_TRUSTED_API_HOSTS, readExtraTrustedHosts());
 
-export const API_URL = getApiUrl();
+// The app talks to the one Zenvy backend: the built-in address, or a verified trusted address the backend
+// advertised on an earlier launch (utils/endpointOverride.ts). To point a dev build at a local backend,
+// set EXPO_PUBLIC_API_URL (e.g. http://192.168.1.5:8080) — never a silent switch.
+const devOverride = (() => {
+  const override = (process.env.EXPO_PUBLIC_API_URL || '').trim().replace(/\/$/, '');
+  return override && /^https?:\/\//.test(override) ? override : '';
+})();
+const ACTIVE_ENDPOINT = resolveEndpoint({ builtIn: PROD_API_URL, devOverride, trusted: TRUSTED_API_HOSTS });
+
+export const API_URL = ACTIVE_ENDPOINT.api;
+/** socket.io address (same as API_URL unless the backend advertises a separate one). */
+export const SOCKET_URL = ACTIVE_ENDPOINT.socket;
+export const API_URL_SOURCE = ACTIVE_ENDPOINT.source;
+
+let endpointCheckStarted = false;
+/** Once per launch, a few seconds after start: learn / verify / self-heal the API address for the next launch. */
+export function scheduleApiEndpointCheck(delayMs = 4000): void {
+  if (endpointCheckStarted) return;
+  endpointCheckStarted = true;
+  setTimeout(() => {
+    refreshEndpointOverride({ builtIn: PROD_API_URL, active: ACTIVE_ENDPOINT, trusted: TRUSTED_API_HOSTS })
+      .then((r: RefreshResult) => { if (r.action !== 'none' && r.action !== 'skip-dev') console.log('[API_ENDPOINT]', r.action, r.api || ''); })
+      .catch(() => {});
+  }, delayMs);
+}
 
 // Official Campus Support & WhatsApp Concierge
 export const ZENVY_SUPPORT_PHONE = '919391955674';

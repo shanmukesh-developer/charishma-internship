@@ -6,7 +6,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { io, Socket } from 'socket.io-client';
-import { API_URL, OFFLINE_AFTER_MS } from '../config';
+import { SOCKET_URL, OFFLINE_AFTER_MS } from '../config';
 
 export type ConnStatus = 'connecting' | 'online' | 'reconnecting' | 'offline';
 export interface DriverEvent { kind: string; id: string; status?: string; at?: string }
@@ -31,7 +31,7 @@ export function SocketProvider({ token, onAuthError, children }: { token: string
   authErrRef.current = onAuthError;
 
   useEffect(() => {
-    const s = io(API_URL, {
+    const s = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,

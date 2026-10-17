@@ -70,11 +70,61 @@ const withStatementTimeout = async (sequelize, ms, fn) => {
   });
 };
 
+// ── SSL (DB_SSL) ─────────────────────────────────────────────────────────────────────────────────
+//   auto     (default, unchanged) SSL without certificate check for every host with a dot (Supabase,
+//            Render external URL, ...); no SSL for a host without a dot (Render internal URL dpg-xxxx-a,
+//            which refuses SSL). This is exactly what config/db.js always did.
+//   disable  never SSL (a local Postgres, or a private network that refuses SSL under another name)
+//   require  always SSL, no certificate check
+//   verify   always SSL with certificate check; DB_SSL_CA = the CA certificate PEM (literal, \n allowed)
+// Unknown values fall back to auto.
+const sslMode = (env = process.env) => {
+  const m = String(env.DB_SSL || '').trim().toLowerCase();
+  return ['auto', 'disable', 'require', 'verify'].includes(m) ? m : 'auto';
+};
+
+/** dialectOptions.ssl for a host (null = no SSL). isInternal: host has no dot (Render private network). */
+const getSslOptions = (hostname, env = process.env) => {
+  const mode = sslMode(env);
+  const internal = !String(hostname || '').includes('.');
+  if (mode === 'disable') return null;
+  if (mode === 'verify') {
+    const ca = String(env.DB_SSL_CA || '').replace(/\\n/g, '\n').trim();
+    return ca ? { require: true, rejectUnauthorized: true, ca } : { require: true, rejectUnauthorized: true };
+  }
+  if (mode === 'require') return { require: true, rejectUnauthorized: false };
+  return internal ? null : { require: true, rejectUnauthorized: false };
+};
+
+/**
+ * Kind of database host, for health / metrics (never the URL or a secret):
+ * 'supabase' | 'render' | 'local' | 'other' | 'sqlite' (no DATABASE_URL).
+ */
+const dbHostType = (dbUrl = process.env.DATABASE_URL) => {
+  if (!dbUrl) return 'sqlite';
+  let host = '';
+  try { host = new URL(String(dbUrl)).hostname.toLowerCase(); } catch { return 'other'; }
+  if (!host) return 'other';
+  if (host.endsWith('.supabase.co') || host.endsWith('.supabase.com')) return 'supabase';
+  if (/^dpg-[a-z0-9-]+$/.test(host) || host.endsWith('.render.com')) return 'render';
+  if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return 'local';
+  return 'other';
+};
+
+/** Supabase pooler mode from the port: 6543 = transaction pooler, 5432 = session / direct. */
+const dbPoolerMode = (dbUrl = process.env.DATABASE_URL) => {
+  try {
+    const u = new URL(String(dbUrl || ''));
+    if (!/pooler\.supabase\.com$/i.test(u.hostname)) return null;
+    return u.port === '6543' ? 'transaction' : 'session';
+  } catch { return null; }
+};
+
 /** One line for the boot log (no secrets). */
 const describe = (env = process.env) => {
   const p = getPoolConfig(env);
   const st = getStatementTimeoutMs(env);
-  return `pool max=${p.max} min=${p.min} acquire=${p.acquire}ms idle=${p.idle}ms evict=${p.evict}ms; statement_timeout=${st > 0 ? `${st}ms` : 'off'}; idle_in_transaction_session_timeout=${DEFAULTS.idleInTransactionMs}ms`;
+  return `pool max=${p.max} min=${p.min} acquire=${p.acquire}ms idle=${p.idle}ms evict=${p.evict}ms; statement_timeout=${st > 0 ? `${st}ms` : 'off'}; idle_in_transaction_session_timeout=${DEFAULTS.idleInTransactionMs}ms; ssl=${sslMode(env)}; host=${dbHostType(env.DATABASE_URL)}`;
 };
 
-module.exports = { DEFAULTS, intEnv, getPoolConfig, getStatementTimeoutMs, getPgTimeoutOptions, withStatementTimeout, describe };
+module.exports = { DEFAULTS, intEnv, getPoolConfig, getStatementTimeoutMs, getPgTimeoutOptions, withStatementTimeout, describe, sslMode, getSslOptions, dbHostType, dbPoolerMode };

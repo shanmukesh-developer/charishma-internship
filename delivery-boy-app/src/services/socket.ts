@@ -1,8 +1,7 @@
 // Rider socket: live location for the customer map / admin, plus rider-room and order-room events.
 // The server auto-joins `rider_<id>`; order rooms need joinOrder (membership-checked server-side).
 import { io, Socket } from 'socket.io-client';
-import { getApiBase } from './apiClient';
-import { socketBaseUrl } from '../config';
+import { SOCKET_URL } from '../config';
 
 export interface RiderSocketHandlers {
   onOrderCancelled?: (p: { orderId: string; reason?: string }) => void;
@@ -66,7 +65,8 @@ export function connectSocket(token: string): void {
   if (socket) return;
   joined = new Set();
   currentToken = token;
-  const s = io(socketBaseUrl(getApiBase()), {
+  // SOCKET_URL = the API host without /api (src/config.ts), or a separate socket address the backend advertised.
+  const s = io(SOCKET_URL, {
     // Callback form: evaluated on every handshake, never a stale token captured at connect time.
     auth: (cb) => {
       handshakeToken = currentToken;

@@ -21,6 +21,7 @@ import ThemedAlert, { showGlobalAlert } from '../components/ThemedAlert';
 import OfflineBanner from '../components/OfflineBanner';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { preloadSounds } from '../utils/sounds';
+import { scheduleApiEndpointCheck } from '../constants/api';
 
 // Global interceptor to theme all native Alert.alert calls across the codebase automatically
 const originalAlert = Alert.alert;
@@ -42,6 +43,9 @@ function AppContainer() {
   const [fontsLoaded, fontError] = useFonts({
     ...Ionicons.font,
   });
+
+  // Own-domain move: learn / verify / self-heal the API address for the NEXT launch (constants/api.ts).
+  React.useEffect(() => { scheduleApiEndpointCheck(); }, []);
 
   // Fix status bar blinking: use imperative API to set once, not on every render
   React.useEffect(() => {

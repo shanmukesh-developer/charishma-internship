@@ -186,37 +186,13 @@ setInterval(() => {
 
 // Periodic cleanup and check for all zones
 
-// Exact production origins. Add more (comma-separated) in the ALLOWED_ORIGINS env var on Render.
-// No substring / wildcard matching: anyone can create a *.onrender.com service with 'zenvy' in its name.
-const PRODUCTION_ORIGINS = [
-  'https://hostelbites-admin-iyoy.onrender.com',
-  'https://hostelbites-backend-jwmt.onrender.com',
-  'https://hostelbites-customer.onrender.com',
-  ...String(process.env.ALLOWED_ORIGINS || '').split(',').map((o) => o.trim().replace(/\/+$/, '')).filter(Boolean),
-];
-
-const ALLOWED_ORIGINS = [
-  ...PRODUCTION_ORIGINS,
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:3002',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:3001',
-  'http://127.0.0.1:3002'
-];
-
+// Exact production origins (utils/origins.js). Add more (comma-separated) in the ALLOWED_ORIGINS env var on
+// Render; PUBLIC_WEB_URL / PUBLIC_API_URL origins are added automatically when set. No substring / wildcard
+// matching: anyone can create a *.onrender.com service with 'zenvy' in its name.
+const originsCfg = require('./utils/origins');
+const PRODUCTION_ORIGINS = originsCfg.productionOrigins();
 // 🌐 Production-Resilient CORS Handler
-const isAllowedOrigin = (origin) => {
-  if (!origin) return true;
-  if (ALLOWED_ORIGINS.includes(origin)) return true;
-  // Strict match for local dev / mobile schemes to prevent domain spoofing
-  if (/^https?:\/\/(localhost|127\.0\.0\.1|[a-z0-9-]+\.localhost)(:\d+)?$/.test(origin)) return true;
-  if (origin.startsWith('capacitor://') || origin.startsWith('exp://')) return true;
-  if (/\.onrender\.com$/.test(origin)) {
-    console.warn(`[CORS] Refused ${origin}. Add it to ALLOWED_ORIGINS if it is a real Zenvy app.`);
-  }
-  return false;
-};
+const isAllowedOrigin = originsCfg.makeOriginChecker();
 
 const app = express();
 
@@ -260,7 +236,18 @@ app.use(cors({
 }));
 
 // Enable trust proxy to correctly identify client IPs behind reverse proxies (like Render, Nginx, or Cloudflare)
-app.set('trust proxy', 1);
+// utils/clientIp.js: TRUST_PROXY (hop count, default 1 = unchanged); TRUST_CLOUDFLARE=1 makes req.ip the
+// CF-Connecting-IP header, only for requests that really arrived from a Cloudflare edge address.
+const clientIp = require('./utils/clientIp');
+app.set('trust proxy', clientIp.trustProxySetting());
+{
+  const cfIp = clientIp.cloudflareIpMiddleware();
+  if (cfIp) app.use(cfIp);
+  // EDGE_CACHE=1 (utils/cacheHeaders.js): /api responses without their own Cache-Control get
+  // `private, no-store` (signed in) / `no-store`, so a CDN never stores anything user-specific. Off = nothing.
+  const edgeDefaults = require('./utils/cacheHeaders').apiDefaultsMiddleware();
+  if (edgeDefaults) app.use(edgeDefaults);
+}
 
 const rateLimit = require('express-rate-limit');
 // Rate limits skip only outside production (unless RATE_LIMIT_ENFORCE=1) or for a load-test request
@@ -727,7 +714,27 @@ app.get('/api/health', async (req, res) => {
     body.instance = redisLayer.INSTANCE_ID;
     body.redis = redisLayer.isConfigured() ? (redisLayer.isReady() ? 'ok' : 'down') : 'off';
   }
+  // Infra switch-over checks (docs/INFRA_SWITCHOVER.md), only with ?infra=1 so the default shape that
+  // monitors rely on stays exactly the same. No secrets: the kind of DB host, the last cached DB ping
+  // round trip (no extra query), where new uploads go.
+  if (String(req.query.infra || '') === '1') try {
+    const lastPing = await lifecycle.getDbStatus();
+    body.infra = {
+      instance: redisLayer.INSTANCE_ID,
+      redis: redisLayer.isConfigured() ? (redisLayer.isReady() ? 'ok' : 'down') : 'off',
+      dbType: require('./config/dbSettings').dbHostType(),
+      dbMs: lastPing && Number.isFinite(lastPing.latencyMs) ? lastPing.latencyMs : null,
+      media: require('./utils/mediaStorage').driverName(),
+    };
+  } catch { /* health never fails because of these extras */ }
   res.json(body);
+});
+
+// Own-domain move (utils/publicUrl.advertisedEndpoints): the apps ask where the API lives. Every field is
+// null until PUBLIC_API_URL is set (the apps then keep their built-in address). Answers without the DB.
+app.get('/api/config/endpoints', (req, res) => {
+  res.set('Cache-Control', 'no-cache');
+  res.json(require('./utils/publicUrl').advertisedEndpoints());
 });
 
 app.get(['/api/ping', '/ping'], (req, res) => {
@@ -2663,7 +2670,8 @@ const startServer = () => {
     // Per process, no data written. KEEPALIVE=false switches it off (paid plans never sleep).
     if (isProductionEnv() && String(process.env.KEEPALIVE || '').trim().toLowerCase() !== 'false') {
       const KEEP_ALIVE_INTERVAL = 14 * 60 * 1000; // 14 minutes (Render sleeps at 15 min)
-      const selfUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+      // Render's own address (never PUBLIC_API_URL: the ping must reach this service, not a CDN).
+      const selfUrl = require('./utils/publicUrl').selfUrl(PORT);
       setInterval(async () => {
         try {
           const https = require('https');

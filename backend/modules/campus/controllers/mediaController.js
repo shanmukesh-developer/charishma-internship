@@ -120,15 +120,15 @@ const uploadMedia = async (req, res) => {
     // Same user, same bytes, same purpose -> reuse (retries after a timeout do not duplicate).
     let row = await Media.findOne({ where: { ownerId: req.user.id, sha256, purpose }, attributes: ['id', 'mime', 'size'] });
     if (!row) {
-      row = await Media.create({
+      // utils/mediaStorage: bytes in this row ('db', default) or in R2 ('s3'); the row and URL are the same.
+      row = await require('../../../utils/mediaStorage').createMediaRow(Media, {
         ownerId: req.user.id,
         purpose,
         mime,
         size: buf.length,
         sha256,
         isPrivate: PRIVATE_PURPOSES.has(purpose),
-        bytes: buf,
-      });
+      }, buf);
     }
 
     const path = `/api/campus/media/${row.id}`;
@@ -190,12 +190,48 @@ const serveMedia = async (req, res) => {
       res.set('ETag', etag);
       return res.status(304).end();
     }
+    // Bytes in R2 (utils/mediaStorage, only rows written while MEDIA_STORAGE=s3): CDN / presigned redirect
+    // or a stream with the same headers as below. Rows with their bytes in the database are unchanged.
+    const storage = require('../../../utils/mediaStorage');
+    if (storage.isExternal(row)) return serveExternal(req, res, storage, row, etag);
     const bytes = Buffer.isBuffer(row.bytes) ? row.bytes : Buffer.from(row.bytes || []);
     return sendBytes(req, res, { bytes, mime: row.mime, etag, maxAge: 31536000, isPrivate: row.isPrivate });
   } catch (err) {
     console.error('[CAMPUS_MEDIA_SERVE_ERR]', err.message);
     res.status(500).json({ message: 'Could not load that photo.' });
   }
+};
+
+const serveExternal = async (req, res, storage, row, etag) => {
+  const plan = storage.deliveryPlan(row);
+  if (plan.redirect) {
+    res.set('Cache-Control', plan.cacheControl);
+    res.set('Referrer-Policy', 'no-referrer');
+    return res.redirect(302, plan.redirect);
+  }
+  let obj = null;
+  try { obj = await storage.readExternal(row); } catch (err) {
+    console.error('[CAMPUS_MEDIA_R2_ERR]', err.message);
+    return res.status(502).json({ message: 'Could not load that photo.' });
+  }
+  if (!obj) return res.status(404).json({ message: 'Not found' });
+  const size = Number(obj.size) || Number(row.size) || null;
+  res.set({
+    'Content-Type': row.mime,
+    ...(size ? { 'Content-Length': String(size) } : {}),
+    'Cache-Control': row.isPrivate ? 'private, max-age=86400' : 'public, max-age=31536000, immutable',
+    ETag: etag,
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Security-Policy': "default-src 'none'",
+    'Cross-Origin-Resource-Policy': 'cross-origin',
+  });
+  res.status(200);
+  if (req.method === 'HEAD') { obj.stream.destroy(); return res.end(); }
+  obj.stream.on('error', (err) => {
+    console.error('[CAMPUS_MEDIA_R2_STREAM_ERR]', err.message);
+    res.destroy(err);
+  });
+  return obj.stream.pipe(res);
 };
 
 // ── Signed links for private media ───────────────────────────────────────────

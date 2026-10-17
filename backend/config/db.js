@@ -337,12 +337,10 @@ const connectDB = async () => {
       // default 30 s, 0 = off) and idle_in_transaction_session_timeout (30 s), sent as connection
       // startup options (never a session SET, so nothing leaks behind a transaction-mode pooler).
       const dialectOptions = dbSettings.getPgTimeoutOptions();
-      if (!isInternal) {
-        dialectOptions.ssl = {
-          require: true,
-          rejectUnauthorized: false
-        };
-      }
+      // DB_SSL (config/dbSettings.js): auto (default) = SSL for hosts with a dot, none for the Render
+      // internal host (exactly the old rule); disable / require / verify (+ DB_SSL_CA) override it.
+      const ssl = dbSettings.getSslOptions(urlInfo ? urlInfo.hostname : (isInternal ? '' : 'x.y'));
+      if (ssl) dialectOptions.ssl = ssl;
 
       sequelize = new Sequelize(currentUrl, {
         dialect: 'postgres',

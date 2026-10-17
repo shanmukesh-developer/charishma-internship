@@ -4,7 +4,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { io, Socket } from 'socket.io-client';
-import { API_URL, OFFLINE_AFTER_MS } from '../config';
+import { SOCKET_URL, OFFLINE_AFTER_MS } from '../config';
 import type { ConnStatus } from '../types';
 
 interface SocketCtx {
@@ -31,7 +31,7 @@ export function SocketProvider({ token, restaurantId, onAuthError, children }: {
   authErrRef.current = onAuthError;
 
   useEffect(() => {
-    const s = io(API_URL, {
+    const s = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
