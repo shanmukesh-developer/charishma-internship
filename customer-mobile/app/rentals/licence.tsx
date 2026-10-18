@@ -4,7 +4,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, Ale
 import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
 import { useRouter } from 'expo-router';
 import { pickAndUploadImage, alertUploadError } from '../../utils/imageUpload';
-import { rentalsApi, type Licence, LICENCE_CLASSES } from '../../modules/rentals/rentalsApi';
+import { rentalsApi, type Licence, LICENCE_CLASSES, istDate } from '../../modules/rentals/rentalsApi';
 import { RHeader, usePalette, Card, Btn, Field, Chips, Notice, StateView, Badge, useRentalLive } from '../../modules/rentals/ui';
 
 type Img = { ref: string; preview: string };
@@ -60,12 +60,14 @@ export default function LicenceScreen() {
     const n = number.toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (!/^[A-Z]{2}[0-9A-Z]{8,18}$/.test(n)) return Alert.alert('Licence number', 'Enter the number exactly as printed, e.g. AP07 20190012345.');
     if (!classes.length) return Alert.alert('Vehicle classes', 'Pick the classes printed on your licence (e.g. MCWG, LMV).');
-    if (expiry && !/^\d{4}-\d{2}-\d{2}$/.test(expiry)) return Alert.alert('Expiry date', 'Use the format YYYY-MM-DD, e.g. 2034-05-31.');
+    // C7: the expiry ("valid till") date is required, and an expired licence cannot be used.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(expiry) || Number.isNaN(Date.parse(expiry))) return Alert.alert('Valid till date', 'Enter the expiry date printed on your licence as YYYY-MM-DD, e.g. 2034-05-31.');
+    if (expiry < istDate(0)) return Alert.alert('Licence expired', 'This licence has already expired. Upload your renewed licence.');
     const frontRef = front?.ref || null;
     if (!frontRef) return Alert.alert('Photo needed', 'Add a clear photo of the front of your licence.');
     setSaving(true);
     try {
-      const res = await rentalsApi.saveLicence({ licenceNumber: n, classes, frontImage: frontRef, backImage: back?.ref || null, expiresOn: expiry || null });
+      const res = await rentalsApi.saveLicence({ licenceNumber: n, classes, frontImage: frontRef, backImage: back?.ref || null, expiresOn: expiry });
       setLic(res.licence);
       setEditing(false);
       Alert.alert('Licence sent ✅', res.message, [{ text: 'OK', onPress: () => (router.canGoBack() ? router.back() : null) }]);
@@ -98,9 +100,10 @@ export default function LicenceScreen() {
                 <Badge label={STATUS[lic.status].label.toUpperCase()} color={STATUS[lic.status].color} />
               </View>
               <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 8 }}>Classes: {(lic.verifiedClasses || lic.classes).join(', ')}{lic.status === 'VERIFIED' && lic.verifiedClasses ? ' (verified)' : ''}</Text>
-              {lic.expiresOn ? <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 2 }}>Valid till {lic.expiresOn}</Text> : null}
+              {lic.expiresOn ? <Text style={{ fontSize: 12.5, color: lic.expiresOn < istDate(0) ? p.danger : p.sub, marginTop: 2 }}>Valid till {lic.expiresOn}{lic.expiresOn < istDate(0) ? ' (expired)' : ''}</Text> : null}
               {lic.frontImage ? <Image source={{ uri: lic.frontImage }} style={{ width: '100%', height: 160, borderRadius: 12, marginTop: 12 }} resizeMode="cover" accessibilityLabel="Your licence photo" /> : null}
             </Card>
+            {!lic.expiresOn ? <Notice tone="warn">Add your licence's "valid till" date to keep booking: tap Update licence and save it again.</Notice> : lic.expiresOn < istDate(0) ? <Notice tone="danger">Your licence has expired. Upload your renewed licence to book vehicles.</Notice> : null}
             {lic.status === 'PENDING' ? <Notice tone="info">Zenvy is checking your licence. You can already send booking requests; owners can accept once it is verified.</Notice> : null}
             {lic.status === 'REJECTED' ? <Notice tone="danger">Not accepted{lic.rejectionReason ? `: ${lic.rejectionReason}` : ''}. Upload it again.</Notice> : null}
             {lic.status === 'VERIFIED' ? <Notice tone="success">You can rent {[(lic.verifiedClasses || []).some((c) => c.startsWith('MC')) ? 'bikes / scooters' : null, (lic.verifiedClasses || []).some((c) => c.startsWith('LMV') || c === 'TRANS') ? 'cars' : null].filter(Boolean).join(' and ') || 'vehicles'}.</Notice> : null}
@@ -110,12 +113,12 @@ export default function LicenceScreen() {
 
         {editing && lic !== undefined ? (
           <>
-            <Notice tone="info">🔒 Your licence is private: only you and the Zenvy team see it. Owners only see that it is verified.</Notice>
+            <Notice tone="info">🔒 Your licence is private: only you and the Zenvy team see it. Owners and lenders only see that it is verified. One licence can be linked to one Zenvy account.</Notice>
             <Field label="Licence number" value={number} onChangeText={(t) => setNumber(t.toUpperCase().slice(0, 24))} autoCapitalize="characters" placeholder="AP07 20190012345" />
             <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginBottom: 6 }}>CLASSES ON YOUR LICENCE</Text>
             <Chips<string> multi options={LICENCE_CLASSES} value={classes} onChange={setClasses} />
             <Text style={{ fontSize: 11, color: p.muted, marginTop: 6, marginBottom: 14 }}>Bikes need MCWG (gearless: MCWOG also works), scooters MCWG or MCWOG, cars LMV.</Text>
-            <Field label="Valid till (optional)" value={expiry} onChangeText={(t) => setExpiry(t.replace(/[^\d-]/g, '').slice(0, 10))} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" />
+            <Field label="Valid till (required)" value={expiry} onChangeText={(t) => setExpiry(t.replace(/[^\d-]/g, '').slice(0, 10))} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" />
             <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginBottom: 6 }}>PHOTOS</Text>
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
               {photo('front', front, 'Front (required)')}

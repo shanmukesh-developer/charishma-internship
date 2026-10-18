@@ -1,4 +1,4 @@
-// "Rent out your vehicle": multi-step listing form (create, or edit with ?id=). Saves a draft as you go;
+// "Rent out or lend your vehicle": multi-step listing form (create, or edit with ?id=). Saves a draft as you go;
 // the last step sends it for admin review. Photos / documents go through the campus media upload
 // (documents are private: only you and Zenvy admins can see them).
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -228,7 +228,7 @@ export default function ListVehicle() {
   if (gate && !editId) {
     return (
       <View style={{ flex: 1, backgroundColor: p.bg }}>
-        <RHeader title="Rent out your vehicle" />
+        <RHeader title="Rent out or lend your vehicle" />
         <StateView kind="empty" icon="🎓" title="One step first" message={gate} actionLabel="Verify my college" onAction={() => router.push('/friends?screen=verification' as any)} />
       </View>
     );
@@ -254,7 +254,7 @@ export default function ListVehicle() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: p.bg }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <RHeader title={editId ? 'Edit vehicle' : 'Rent out your vehicle'} subtitle={`Step ${step + 1} of ${STEPS.length} · ${STEPS[step]}`} />
+      <RHeader title={editId ? 'Edit vehicle' : 'Rent out or lend your vehicle'} subtitle={`Step ${step + 1} of ${STEPS.length} · ${STEPS[step]}`} />
       <View style={{ flexDirection: 'row', gap: 4, paddingHorizontal: 16, paddingTop: 10 }}>
         {STEPS.map((s, i) => (
           <TouchableOpacity key={s} style={{ flex: 1 }} onPress={() => (i < step || listingId ? setStep(i) : null)} accessibilityRole="button" accessibilityLabel={`Step ${i + 1}: ${s}`}>
@@ -287,8 +287,14 @@ export default function ListVehicle() {
             <Field label="Registration number" value={form.registrationNumber} onChangeText={(t) => set('registrationNumber', t.toUpperCase().slice(0, 16))} autoCapitalize="characters" placeholder="AP 07 AB 1234"
               hint="Shown to students as AP 07 •• 1234. The full number is shared only with your confirmed renter." />
             <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginBottom: 6 }}>NUMBER PLATE</Text>
-            <Chips<PlateType> options={[{ key: 'PRIVATE', label: 'White (private)', hint: 'Personal vehicle' }, { key: 'COMMERCIAL_RENTAL', label: 'Black / yellow', hint: 'Commercial rental permit' }]} value={form.plateType} onChange={(v) => set('plateType', v)} />
-            <Text style={{ fontSize: 11, color: p.muted, marginTop: 8, lineHeight: 16 }}>Be honest: Zenvy reviews this. Renting a private vehicle for money may not be allowed by your insurance or the transport rules; you are responsible for that.</Text>
+            <Chips<PlateType> options={[{ key: 'PRIVATE', label: 'White (private)', hint: 'Students BORROW it' }, { key: 'COMMERCIAL_RENTAL', label: 'Black / yellow', hint: 'Students RENT it' }]} value={form.plateType} onChange={(v) => set('plateType', v)} />
+            <Text style={{ fontSize: 11, color: p.muted, marginTop: 8, lineHeight: 16 }}>
+              {form.plateType === 'PRIVATE'
+                ? 'Private (white plate): you LEND your personal vehicle and students BORROW it on a non-commercial basis (sharing costs such as fuel), never as a business. Check that your insurance allows another driver; you are responsible for that.'
+                : form.plateType === 'COMMERCIAL_RENTAL'
+                  ? 'Commercial (black / yellow plate): students RENT it from you. You are responsible for a valid rental permit and insurance.'
+                  : 'Be honest: Zenvy reviews this. Private vehicles are lent and borrowed between students (not rented for profit); commercial-plate vehicles are rented.'}
+            </Text>
           </View>
         )}
 
@@ -344,7 +350,7 @@ export default function ListVehicle() {
               <Field label="₹ per extra km" value={form.extraPerKm} onChangeText={(t) => set('extraPerKm', decimal(t))} keyboardType="decimal-pad" placeholder="Optional" style={{ flex: 1 }} />
             </View>
             <Field label="Fuel policy" value={form.fuelPolicy} onChangeText={(t) => set('fuelPolicy', t.slice(0, 300))} placeholder="Return with the same fuel level" />
-            <Notice tone="success">💵 Renters pay you the rent and deposit in cash at pickup. Zenvy does not take a cut or hold the money.</Notice>
+            <Notice tone="success">{form.plateType === 'PRIVATE' ? '💵 Borrowers pay you the agreed cost share and deposit in cash at pickup.' : '💵 Renters pay you the rent and deposit in cash at pickup.'} Zenvy does not take a cut or hold the money.</Notice>
           </View>
         )}
 
@@ -390,7 +396,7 @@ export default function ListVehicle() {
             <Card>
               <Row label="Vehicle" value={`${form.vehicleType ? VEHICLE_META[form.vehicleType].icon : ''} ${form.make} ${form.model} · ${form.year}`} />
               <Row label="Registration" value={form.registrationNumber.toUpperCase()} />
-              <Row label="Plate" value={form.plateType === 'COMMERCIAL_RENTAL' ? 'Commercial rental' : 'Private'} />
+              <Row label="Plate" value={form.plateType === 'COMMERCIAL_RENTAL' ? 'Commercial rental · students rent it' : 'Private · students borrow it'} />
               <Row label="Photos" value={`${form.photos.length}`} />
               <Row label="Documents" value={`${['rc', 'insurance', 'licence'].filter((k) => (form.docs as any)[k]).length}/3`} />
               <Row label="Price" value={[form.pricePerHour ? `₹${form.pricePerHour}/hr` : null, form.pricePerDay ? `₹${form.pricePerDay}/day` : null].filter(Boolean).join(' · ') || '—'} />

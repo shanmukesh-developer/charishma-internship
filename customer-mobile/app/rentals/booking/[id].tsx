@@ -1,20 +1,46 @@
-// One rental booking, for the renter or the owner: status, money, contact (after confirmation),
-// PIN handover / return, accept / decline / cancel / complete, rate and report.
+// One rental / borrowing booking, for the renter / borrower or the owner / lender: status, money, contact
+// (after confirmation), PIN handover / return, accept / decline / cancel / complete, rate and report.
+// C7 safety: worded for the booking's mode (RENT: owner / renter; BORROW: lender / borrower), terms
+// acceptance for bookings made from an older app, pickup / return condition photos + odometer (required
+// from the owner / lender before each PIN step when the admin switch is on), and the extra-charges claim
+// the renter / borrower accepts or disputes.
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, ScrollView, RefreshControl, Alert, Linking, Modal, TextInput } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, Alert, Linking, Modal, TextInput, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { KeyboardAvoidingView } from '../../../components/KeyboardAvoidingView';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import SafeImage from '../../../components/SafeImage';
-import { rentalsApi, type Booking, BOOKING_STATUS_META, inr, fmtDateTime, fmtHours, RentalsError } from '../../../modules/rentals/rentalsApi';
+import { pickAndUploadImage, alertUploadError } from '../../../utils/imageUpload';
+import {
+  rentalsApi, type Booking, type ConditionRecord, BOOKING_STATUS_META, CHARGES_STATUS_LABEL, inr, fmtDateTime, fmtHours, RentalsError, wordsOf, bookingStatusLabel,
+} from '../../../modules/rentals/rentalsApi';
 import { VEHICLE_FALLBACK, RHeader, usePalette, Card, SectionTitle, Badge, Btn, Row, Notice, StateView, Field, useRentalLive } from '../../../modules/rentals/ui';
 
-const until = (iso: string | null) => {
+const until = (iso: string | null | undefined) => {
   if (!iso) return '';
   const ms = new Date(iso).getTime() - Date.now();
   if (ms <= 0) return 'now';
   const m = Math.round(ms / 60000);
   return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`;
 };
+const MIN_PHOTOS = 2;
+const MAX_PHOTOS = 6;
+type Pic = { ref: string; preview: string };
+
+/** Read-only row of (signed, private) photos. */
+function Thumbs({ uris, size = 64 }: { uris: string[]; size?: number }) {
+  const p = usePalette();
+  if (!uris.length) return null;
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 6 }}>
+      {uris.map((u, i) => (
+        <TouchableOpacity key={`${u}-${i}`} onPress={() => Linking.openURL(u).catch(() => {})} accessibilityRole="imagebutton" accessibilityLabel={`Photo ${i + 1}`}
+          style={{ width: size, height: size, borderRadius: 10, overflow: 'hidden', backgroundColor: p.card2 }}>
+          <Image source={{ uri: u }} style={{ width: '100%', height: '100%' }} />
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+}
 
 export default function RentalBookingScreen() {
   const params = useLocalSearchParams<{ id: string | string[] }>();
@@ -31,6 +57,17 @@ export default function RentalBookingScreen() {
   const [closeNote, setCloseNote] = useState('');
   const [prompt, setPrompt] = useState<null | { kind: 'decline' | 'cancel'; required: boolean }>(null);
   const [reason, setReason] = useState('');
+  // C7 state
+  const [termsTicked, setTermsTicked] = useState(false);
+  const [condPics, setCondPics] = useState<Pic[]>([]);
+  const [odometer, setOdometer] = useState('');
+  const [condNote, setCondNote] = useState('');
+  const [condOpen, setCondOpen] = useState(false);
+  const [evidence, setEvidence] = useState<Pic[]>([]);
+  const [uploading, setUploading] = useState<string | null>(null);
+  const [disputeOpen, setDisputeOpen] = useState(false);
+  const [disputeNote, setDisputeNote] = useState('');
+  const [disputePics, setDisputePics] = useState<Pic[]>([]);
 
   const load = useCallback(async () => {
     try {
@@ -45,18 +82,34 @@ export default function RentalBookingScreen() {
   useRentalLive((e) => { if (!e.id || e.id === id || e.kind === 'reconnect') load(); });
 
   const run = async (key: string, fn: () => Promise<{ booking: Booking }>, done?: string) => {
-    if (busy) return;
+    if (busy) return false;
     setBusy(key);
     try {
       const res = await fn();
       setB(res.booking);
       setPin('');
       if (done) Alert.alert('Done', done);
+      return true;
     } catch (e: any) {
       Alert.alert('Could not update', e?.message || 'Please try again.');
-      if (e?.code === 'INVALID_STATE' || e?.code === 'EXPIRED') load();
+      if (['INVALID_STATE', 'EXPIRED', 'CONDITION_REQUIRED', 'TERMS_PENDING', 'CHARGES_CLOSED'].includes(e?.code)) load();
+      return false;
     } finally {
       setBusy(null);
+    }
+  };
+
+  /** Picks + uploads one private photo (rental_condition) into `setter` (max `max`). */
+  const addPic = async (key: string, list: Pic[], setter: (f: (cur: Pic[]) => Pic[]) => void, max: number) => {
+    if (uploading || list.length >= max) return;
+    setUploading(key);
+    try {
+      const up = await pickAndUploadImage('rental_condition', { maxEdge: 1600 });
+      if (up) setter((cur) => [...cur.filter((x) => x.ref !== up.url), { ref: up.url, preview: up.previewUrl || up.localUri }].slice(0, max));
+    } catch (e) {
+      alertUploadError(e, () => addPic(key, list, setter, max));
+    } finally {
+      setUploading(null);
     }
   };
 
@@ -69,20 +122,39 @@ export default function RentalBookingScreen() {
     );
   }
 
-  const meta = BOOKING_STATUS_META[b.status];
+  const w = wordsOf(b);
+  const meta = { ...(BOOKING_STATUS_META[b.status] || BOOKING_STATUS_META.REQUESTED), label: bookingStatusLabel(b.status, b) };
   const isOwner = b.role === 'OWNER';
   const other = b.counterpart;
   const beforeStart = new Date(b.startAt).getTime() > Date.now();
+  const photosRequired = b.conditionPhotosRequired !== false;
+  const ownPickup = b.pickupCondition?.owner || null;
+  const ownReturn = b.returnCondition?.owner || null;
+  // Stage the owner / lender must record before the next PIN step (null = nothing pending).
+  const ownerStage: 'PICKUP' | 'RETURN' | null = isOwner && photosRequired
+    ? (b.status === 'ACCEPTED' && !ownPickup ? 'PICKUP' : b.status === 'ACTIVE' && !ownReturn ? 'RETURN' : null)
+    : null;
+  // Stage the renter / borrower may (optionally) add their own photos to.
+  const renterStage: 'PICKUP' | 'RETURN' | null = isOwner ? null
+    : b.status === 'ACCEPTED' ? 'PICKUP'
+      : b.status === 'ACTIVE' || b.status === 'RETURNED' ? 'RETURN' : null;
+  const charges = b.charges;
   const guidance = (() => {
     switch (b.status) {
-      case 'REQUESTED': return isOwner ? `Answer within ${until(b.respondBy)} or the request expires.` : `Waiting for the owner. They have ${until(b.respondBy)} to answer.`;
-      case 'ACCEPTED': return isOwner ? 'At pickup: check the renter\'s licence, collect the cash, then type the 4-digit pickup PIN the renter shows you.' : 'At pickup: show this PIN to the owner after you pay the cash. Check the vehicle and take photos before you ride.';
-      case 'ACTIVE': return isOwner ? 'When the vehicle is back, check it and type the renter\'s return PIN. Then return the deposit.' : 'Enjoy the ride. When you return the vehicle, show the owner this return PIN and collect your deposit.';
-      case 'RETURNED': return isOwner ? 'Close the trip: add any extra km or charges you agreed, or just complete it.' : 'Returned. The owner is closing the trip.';
-      case 'COMPLETED': return 'Trip completed. Rate each other to help the community.';
-      case 'DECLINED': return b.declineReason ? `Declined: ${b.declineReason}` : 'The owner could not take this booking.';
+      case 'REQUESTED': return isOwner ? `Answer within ${until(b.respondBy)} or the request expires.` : `Waiting for the ${w.giver}. They have ${until(b.respondBy)} to answer.`;
+      case 'ACCEPTED': return isOwner
+        ? `At pickup: check the ${w.taker}'s licence, collect the cash, ${photosRequired ? 'take 2-6 photos of the vehicle and note the odometer, ' : ''}then type the 4-digit pickup PIN the ${w.taker} shows you.`
+        : `At pickup: show this PIN to the ${w.giver} after you pay the cash. Check the vehicle and the ${w.giver}'s photos before you ride.`;
+      case 'ACTIVE': return isOwner
+        ? `When the vehicle is back, check it, ${photosRequired ? 'take return photos with the odometer, ' : ''}and type the ${w.taker}'s return PIN. Then return the deposit.`
+        : `Enjoy the ride. When you return the vehicle, show the ${w.giver} this return PIN and collect your deposit.`;
+      case 'RETURNED': return isOwner ? 'Close the trip: add any extra km or charges, or just complete it.' : `Returned. The ${w.giver} is closing the trip.`;
+      case 'COMPLETED': return charges?.status === 'PENDING'
+        ? (isOwner ? `Trip completed. Your extra charges wait for the ${w.taker} to accept (until ${fmtDateTime(charges.respondBy)}).` : 'Trip completed. Review the extra charges below: accept them or dispute them.')
+        : 'Trip completed. Rate each other to help the community.';
+      case 'DECLINED': return b.declineReason ? `Declined: ${b.declineReason}` : `The ${w.giver} could not take this booking.`;
       case 'EXPIRED': return 'This request expired.';
-      case 'CANCELLED': return `Cancelled by ${b.cancelledBy === 'OWNER' ? 'the owner' : 'the renter'}${b.cancelReason ? `: ${b.cancelReason}` : '.'}`;
+      case 'CANCELLED': return `Cancelled by ${b.cancelledBy === 'OWNER' ? `the ${w.giver}` : `the ${w.taker}`}${b.cancelReason ? `: ${b.cancelReason}` : '.'}`;
       default: return '';
     }
   })();
@@ -97,14 +169,39 @@ export default function RentalBookingScreen() {
   const confirmPrompt = () => {
     if (!prompt) return;
     const r = reason.trim();
-    if (prompt.required && r.length < 5) { Alert.alert('Add a reason', 'Tell the renter why (at least 5 characters).'); return; }
+    if (prompt.required && r.length < 5) { Alert.alert('Add a reason', `Tell the ${w.taker} why (at least 5 characters).`); return; }
     const kind = prompt.kind;
     setPrompt(null);
     setReason('');
     run(kind, () => (kind === 'decline' ? rentalsApi.decline(b.id, r || undefined) : rentalsApi.cancel(b.id, r || undefined)), kind === 'decline' ? 'Request declined.' : 'Booking cancelled.');
   };
 
-  // Render helpers (plain functions, not components: the PIN input must keep focus while typing).
+  const saveCondition = async (stage: 'PICKUP' | 'RETURN') => {
+    if (condPics.length < MIN_PHOTOS) { Alert.alert('Add photos', `Take at least ${MIN_PHOTOS} photos (front, back, sides, odometer).`); return; }
+    const odo = odometer.trim() ? Number(odometer) : undefined;
+    if (isOwner && (odo === undefined || !Number.isFinite(odo))) { Alert.alert('Odometer', 'Enter the odometer reading in km.'); return; }
+    const ok = await run('condition', () => rentalsApi.condition(b.id, { stage, photos: condPics.map((x) => x.ref), odometer: odo, note: condNote.trim() || undefined }),
+      isOwner ? `${stage === 'PICKUP' ? 'Pickup' : 'Return'} photos saved. Now type the ${w.taker}'s PIN.` : 'Your photos are saved on this booking.');
+    if (ok) { setCondPics([]); setOdometer(''); setCondNote(''); setCondOpen(false); }
+  };
+
+  const completeTrip = () => {
+    const km = extraKm ? Number(extraKm) : 0;
+    const other = otherCharges ? Number(otherCharges) : 0;
+    if (b.otherChargesCap !== undefined && other > b.otherChargesCap) { Alert.alert('Too high', `Other charges can be at most ${inr(b.otherChargesCap)} for this trip. For bigger damage, report a problem.`); return; }
+    if ((km > 0 || other > 0) && closeNote.trim().length < 5) { Alert.alert('Explain the charges', `Add a note for the ${w.taker} (at least 5 characters).`); return; }
+    run('complete', () => rentalsApi.complete(b.id, { extraKm: km, otherCharges: other, note: closeNote.trim() || undefined, photos: evidence.map((x) => x.ref) }),
+      km > 0 || other > 0 ? `Trip completed. The ${w.taker} can now accept or dispute the extra charges.` : `Trip completed. Rate your ${w.taker}!`)
+      .then((ok) => { if (ok) setEvidence([]); });
+  };
+
+  const sendDispute = async () => {
+    if (disputeNote.trim().length < 10) { Alert.alert('Explain why', 'Tell the Zenvy team why you dispute the charges (at least 10 characters).'); return; }
+    const ok = await run('dispute', () => rentalsApi.respondCharges(b.id, { action: 'DISPUTE', note: disputeNote.trim(), photos: disputePics.map((x) => x.ref) }), 'Dispute sent. The Zenvy team will review both sides and tell you the outcome.');
+    if (ok) { setDisputeOpen(false); setDisputeNote(''); setDisputePics([]); }
+  };
+
+  // Render helpers (plain functions, not components: inputs must keep focus while typing).
   const pinBox = (value: string | null | undefined, label: string, hint: string) => (
     <Card style={{ alignItems: 'center', borderColor: p.accent, backgroundColor: p.accentSoft }}>
       <Text style={{ fontSize: 11, fontWeight: '900', color: p.accent, letterSpacing: 1 }}>{label}</Text>
@@ -124,17 +221,126 @@ export default function RentalBookingScreen() {
     </Card>
   );
 
+  const picGrid = (key: string, list: Pic[], setter: (f: (cur: Pic[]) => Pic[]) => void, max: number) => (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+      {list.map((ph) => (
+        <TouchableOpacity key={ph.ref} onPress={() => setter((cur) => cur.filter((x) => x.ref !== ph.ref))} accessibilityRole="button" accessibilityLabel="Remove photo"
+          style={{ width: 70, height: 70, borderRadius: 12, overflow: 'hidden' }}>
+          <Image source={{ uri: ph.preview }} style={{ width: '100%', height: '100%' }} />
+        </TouchableOpacity>
+      ))}
+      {list.length < max ? (
+        <TouchableOpacity onPress={() => addPic(key, list, setter, max)} accessibilityRole="button" accessibilityLabel="Add photo"
+          style={{ width: 70, height: 70, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: p.accent, alignItems: 'center', justifyContent: 'center' }}>
+          {uploading === key ? <ActivityIndicator color={p.accent} /> : <Text style={{ color: p.accent, fontSize: 22 }}>＋</Text>}
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+
+  const conditionForm = (stage: 'PICKUP' | 'RETURN', required: boolean) => (
+    <Card style={required ? { borderColor: p.warn } : undefined}>
+      <Text style={{ fontSize: 13, fontWeight: '900', color: p.text }}>📸 {stage === 'PICKUP' ? 'Pickup' : 'Return'} condition{required ? ' (required)' : ' (optional)'}</Text>
+      <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 4, marginBottom: 8, lineHeight: 16 }}>
+        {required ? `Take ${MIN_PHOTOS}-${MAX_PHOTOS} clear photos (all sides + odometer) before the ${stage === 'PICKUP' ? 'pickup' : 'return'} PIN. Both of you and the Zenvy team can see them.` : `Add your own ${MIN_PHOTOS}-${MAX_PHOTOS} photos so both sides have a record. Private to the two of you and the Zenvy team.`}
+      </Text>
+      {picGrid(`cond-${stage}`, condPics, setCondPics, MAX_PHOTOS)}
+      <Field label={isOwner ? 'Odometer (km)' : 'Odometer (km, optional)'} value={odometer} onChangeText={(t) => setOdometer(t.replace(/\D/g, '').slice(0, 7))} keyboardType="number-pad" placeholder="e.g. 12500" />
+      <Field label="Note (optional)" value={condNote} onChangeText={(t) => setCondNote(t.slice(0, 300))} placeholder="e.g. Small scratch on the left mirror" />
+      <Btn label="Save photos" onPress={() => saveCondition(stage)} loading={busy === 'condition'} disabled={condPics.length < MIN_PHOTOS || !!uploading} />
+    </Card>
+  );
+
+  const conditionView = (rec: ConditionRecord | null | undefined, title: string) => (rec && (rec.owner || rec.renter) ? (
+    <Card>
+      <Text style={{ fontSize: 12.5, fontWeight: '900', color: p.text }}>{title}</Text>
+      {rec.owner ? (
+        <View style={{ marginTop: 6 }}>
+          <Text style={{ fontSize: 11.5, color: p.sub }}>{w.Giver}{rec.owner.odometer !== null ? ` · odometer ${rec.owner.odometer} km` : ''}{rec.owner.at ? ` · ${fmtDateTime(rec.owner.at)}` : ''}</Text>
+          <Thumbs uris={rec.owner.photos} />
+          {rec.owner.note ? <Text style={{ fontSize: 11.5, color: p.text }}>“{rec.owner.note}”</Text> : null}
+        </View>
+      ) : null}
+      {rec.renter ? (
+        <View style={{ marginTop: 6 }}>
+          <Text style={{ fontSize: 11.5, color: p.sub }}>{w.Taker}{rec.renter.odometer !== null ? ` · odometer ${rec.renter.odometer} km` : ''}{rec.renter.at ? ` · ${fmtDateTime(rec.renter.at)}` : ''}</Text>
+          <Thumbs uris={rec.renter.photos} />
+          {rec.renter.note ? <Text style={{ fontSize: 11.5, color: p.text }}>“{rec.renter.note}”</Text> : null}
+        </View>
+      ) : null}
+    </Card>
+  ) : null);
+
+  const termsCard = () => (
+    <Card style={{ borderColor: p.warn }}>
+      <Text style={{ fontSize: 13, fontWeight: '900', color: p.text }}>Accept the {w.verb === 'Rent' ? 'rental' : 'borrowing'} terms</Text>
+      <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 4, marginBottom: 8 }}>This booking was sent from an older version of the app. Accept the terms before pickup.</Text>
+      {(b.safety?.terms || []).map((t) => <Text key={t} style={{ fontSize: 12, color: p.text, lineHeight: 17, marginBottom: 5 }}>• {t}</Text>)}
+      {b.safety?.disclaimer ? <Text style={{ fontSize: 11.5, color: p.sub, lineHeight: 16, marginTop: 2 }}>🛡️ {b.safety.disclaimer}</Text> : null}
+      <TouchableOpacity onPress={() => setTermsTicked((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked: termsTicked }} accessibilityLabel="I accept these booking terms"
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 }}>
+        <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: termsTicked ? p.accent : p.inputBorder, backgroundColor: termsTicked ? p.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+          {termsTicked ? <Text style={{ color: '#fff', fontWeight: '900', fontSize: 13 }}>✓</Text> : null}
+        </View>
+        <Text style={{ flex: 1, fontSize: 12.5, fontWeight: '800', color: p.text }}>I accept these terms for this booking</Text>
+      </TouchableOpacity>
+      <Btn label="Accept terms" disabled={!termsTicked} loading={busy === 'terms'} onPress={() => run('terms', () => rentalsApi.acceptTerms(b.id), 'Terms accepted. You are ready for pickup.')} />
+    </Card>
+  );
+
+  const chargesCard = () => {
+    if (!charges || charges.status === 'NONE') return null;
+    const final = ['ACCEPTED', 'AUTO_ACCEPTED', 'UPHELD', 'REDUCED', 'VOIDED'].includes(charges.status);
+    return (
+      <>
+        <SectionTitle>Extra charges</SectionTitle>
+        <Card style={charges.status === 'PENDING' && !isOwner ? { borderColor: p.warn } : undefined}>
+          <Row label={`Claimed by the ${w.giver}`} value={inr(charges.claimed)} />
+          {b.extraBreakdown?.extraKm ? <Text style={{ fontSize: 11.5, color: p.sub }}>{b.extraBreakdown.extraKm} extra km{b.extraBreakdown.perKm ? ` × ₹${b.extraBreakdown.perKm}` : ''}{b.extraBreakdown.otherCharges ? ` + other ${inr(b.extraBreakdown.otherCharges)}` : ''}</Text> : null}
+          {charges.note ? <Text style={{ fontSize: 12, color: p.text, marginTop: 4 }}>“{charges.note}”</Text> : null}
+          <Thumbs uris={charges.photos} />
+          <Row label="Status" value={CHARGES_STATUS_LABEL[charges.status] || charges.status} />
+          {final ? <Row label="Counts towards the final amount" value={inr(charges.counted)} strong /> : null}
+          {charges.status === 'PENDING' ? <Text style={{ fontSize: 11, color: p.muted, marginTop: 4 }}>{isOwner ? `The ${w.taker} can accept or dispute until ${fmtDateTime(charges.respondBy)}. If they do not answer, the charges count as accepted.` : `Answer by ${fmtDateTime(charges.respondBy)} (${until(charges.respondBy)} left). If you do not answer, the charges count as accepted.`}</Text> : null}
+          {charges.disputeNote ? <Text style={{ fontSize: 12, color: p.text, marginTop: 6 }}>{w.Taker}'s dispute: “{charges.disputeNote}”</Text> : null}
+          <Thumbs uris={charges.disputePhotos} />
+          {charges.resolution ? <Notice tone="info">Zenvy team decision: {charges.resolution.outcome === 'UPHOLD' ? 'charges upheld' : charges.resolution.outcome === 'VOID' ? 'charges cancelled' : `reduced to ${inr(charges.resolution.amount)}`}{charges.resolution.reason ? `. ${charges.resolution.reason}` : ''}</Notice> : null}
+          {b.canRespondToCharges ? (
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+              <Btn label="Dispute" kind="secondary" onPress={() => setDisputeOpen(true)} style={{ flex: 1 }} loading={busy === 'dispute'} />
+              <Btn label={`Accept ${inr(charges.claimed)}`} kind="success" onPress={() => run('accept-charges', () => rentalsApi.respondCharges(b.id, { action: 'ACCEPT' }), `Accepted. Settle ${inr(charges.claimed)} in cash with the ${w.giver}.`)} style={{ flex: 1.4 }} loading={busy === 'accept-charges'} />
+            </View>
+          ) : null}
+        </Card>
+      </>
+    );
+  };
+
+  const pendingClaim = charges?.status === 'PENDING' || charges?.status === 'DISPUTED';
+
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: p.bg }}>
-      <RHeader title={b.vehicleTitle} subtitle={isOwner ? 'Your vehicle' : 'Your rental'} right={<Badge label={meta.label.toUpperCase()} color={meta.color} />} />
+      <RHeader title={b.vehicleTitle} subtitle={isOwner ? (w.verb === 'Rent' ? 'Your vehicle · rented out' : 'Your vehicle · lent') : (w.verb === 'Rent' ? 'Your rental' : 'You are borrowing')} right={<Badge label={meta.label.toUpperCase()} color={meta.color} />} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 50 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />} keyboardShouldPersistTaps="handled">
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <Badge label={w.badge} color={w.color} />
+          <Text style={{ fontSize: 11.5, color: p.sub, flex: 1 }}>{w.verb === 'Rent' ? 'Commercial rental vehicle' : 'Private vehicle, borrowed between students'}</Text>
+        </View>
         {guidance ? <Notice tone={['DECLINED', 'CANCELLED', 'EXPIRED'].includes(b.status) ? 'warn' : 'info'}>{guidance}</Notice> : null}
 
-        {!isOwner && b.status === 'ACCEPTED' ? pinBox(b.pickupPin, 'PICKUP PIN', 'Show this to the owner at pickup, only after you get the vehicle keys.') : null}
-        {!isOwner && b.status === 'ACTIVE' ? pinBox(b.returnPin, 'RETURN PIN', 'Show this to the owner when you hand the vehicle back and get your deposit.') : null}
+        {!isOwner && b.termsPending && ['REQUESTED', 'ACCEPTED'].includes(b.status) ? termsCard() : null}
+        {isOwner && b.termsPending && ['REQUESTED', 'ACCEPTED'].includes(b.status) ? <Notice tone="warn">The {w.taker} has not accepted the booking terms yet (older app). Pickup can start once they accept them in the app.</Notice> : null}
 
-        {isOwner && b.status === 'ACCEPTED' ? pinEntry("Renter's pickup PIN", () => run('pin', () => rentalsApi.handover(b.id, pin), 'Trip started. Return is due ' + fmtDateTime(b.endAt) + '.')) : null}
-        {isOwner && b.status === 'ACTIVE' ? pinEntry("Renter's return PIN", () => run('pin', () => rentalsApi.markReturned(b.id, pin), 'Vehicle returned. Give back the deposit, then complete the trip.')) : null}
+        {!isOwner && b.status === 'ACCEPTED' ? pinBox(b.pickupPin, 'PICKUP PIN', `Show this to the ${w.giver} at pickup, only after you get the vehicle keys.`) : null}
+        {!isOwner && b.status === 'ACTIVE' ? pinBox(b.returnPin, 'RETURN PIN', `Show this to the ${w.giver} when you hand the vehicle back and get your deposit.`) : null}
+
+        {ownerStage ? conditionForm(ownerStage, true) : null}
+        {isOwner && b.status === 'ACCEPTED' && !ownerStage ? pinEntry(`${w.Taker}'s pickup PIN`, () => run('pin', () => rentalsApi.handover(b.id, pin), 'Trip started. Return is due ' + fmtDateTime(b.endAt) + '.')) : null}
+        {isOwner && b.status === 'ACTIVE' && !ownerStage ? pinEntry(`${w.Taker}'s return PIN`, () => run('pin', () => rentalsApi.markReturned(b.id, pin), 'Vehicle returned. Give back the deposit, then complete the trip.')) : null}
+
+        {renterStage ? (condOpen ? conditionForm(renterStage, false) : (
+          <Btn label={`Add my ${renterStage === 'PICKUP' ? 'pickup' : 'return'} photos (optional)`} icon="📸" kind="ghost" onPress={() => { setCondPics([]); setCondOpen(true); }} style={{ marginBottom: 10 }} />
+        )) : null}
 
         <Card style={{ flexDirection: 'row', gap: 12 }}>
           <View style={{ width: 70, height: 70, borderRadius: 12, overflow: 'hidden', backgroundColor: p.card2 }}>
@@ -143,7 +349,7 @@ export default function RentalBookingScreen() {
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 14.5, fontWeight: '900', color: p.text }}>{b.vehicleTitle}</Text>
             {b.registration ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>🔢 {b.registration}</Text> : null}
-            <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>📍 {b.pickupLocation || 'Pickup point shared by the owner'}</Text>
+            <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>📍 {b.pickupLocation || `Pickup point shared by the ${w.giver}`}</Text>
             {b.vehicleType !== 'CAR' ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>⛑️ {b.helmetIncluded ? 'Helmet included' : 'Bring your own helmet'}</Text> : null}
           </View>
         </Card>
@@ -157,21 +363,26 @@ export default function RentalBookingScreen() {
 
         <SectionTitle>Payment (cash, between you two)</SectionTitle>
         <Card>
-          <Row label="Rent" value={inr(b.rentAmount)} />
+          <Row label={w.Price} value={inr(b.rentAmount)} />
           <Row label="Refundable deposit" value={inr(b.depositAmount)} />
           <Row label="Cash at pickup" value={inr(b.payAtHandover)} strong />
           {b.status === 'COMPLETED' ? (
             <>
               <View style={{ height: 1, backgroundColor: p.border, marginVertical: 6 }} />
-              {b.extraCharges > 0 ? <Row label={`Extras${b.extraBreakdown?.extraKm ? ` (${b.extraBreakdown.extraKm} km)` : ''}`} value={inr(b.extraCharges)} /> : null}
-              {b.extraBreakdown?.note ? <Text style={{ fontSize: 11.5, color: p.sub }}>Note: {b.extraBreakdown.note}</Text> : null}
-              <Row label="Final rent" value={inr(b.finalAmount ?? b.rentAmount)} strong />
-              <Text style={{ fontSize: 11, color: p.muted }}>The deposit of {inr(b.depositAmount)} goes back to the renter.</Text>
+              {b.extraCharges > 0 ? <Row label="Extra charges" value={inr(b.extraCharges)} /> : null}
+              {pendingClaim ? <Row label="Extra charges (not final yet)" value={inr(charges?.claimed)} /> : null}
+              <Row label={`Final ${w.price}`} value={inr(b.finalAmount ?? b.rentAmount)} strong />
+              <Text style={{ fontSize: 11, color: p.muted }}>The deposit of {inr(b.depositAmount)} goes back to the {w.taker}.</Text>
             </>
-          ) : <Text style={{ fontSize: 11, color: p.muted, marginTop: 4 }}>Zenvy does not collect rental money. The deposit is returned in cash at drop-off.</Text>}
+          ) : <Text style={{ fontSize: 11, color: p.muted, marginTop: 4 }}>Zenvy does not collect this money. The deposit is returned in cash at drop-off.</Text>}
         </Card>
 
-        <SectionTitle>{isOwner ? 'Renter' : 'Owner'}</SectionTitle>
+        {chargesCard()}
+
+        {conditionView(b.pickupCondition, '📸 Pickup condition')}
+        {conditionView(b.returnCondition, '📸 Return condition')}
+
+        <SectionTitle>{isOwner ? w.Taker : w.Giver}</SectionTitle>
         <Card>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: p.card2, alignItems: 'center', justifyContent: 'center' }}>
@@ -195,7 +406,7 @@ export default function RentalBookingScreen() {
               <Btn label="Call" icon="📞" small kind="success" onPress={() => call(other.phone)} style={{ flex: 1 }} />
               <Btn label="WhatsApp" icon="💬" small kind="secondary" onPress={() => call(other.phone, true)} style={{ flex: 1 }} />
             </View>
-          ) : <Text style={{ fontSize: 11, color: p.muted, marginTop: 10 }}>{['REQUESTED'].includes(b.status) ? 'Phone numbers are shared once the owner accepts.' : 'Phone numbers are visible only during a confirmed trip.'}</Text>}
+          ) : <Text style={{ fontSize: 11, color: p.muted, marginTop: 10 }}>{['REQUESTED'].includes(b.status) ? `Phone numbers are shared once the ${w.giver} accepts.` : 'Phone numbers are visible only during a confirmed trip.'}</Text>}
         </Card>
 
         {b.fuelPolicy || b.rules ? (
@@ -208,16 +419,27 @@ export default function RentalBookingScreen() {
           </>
         ) : null}
 
+        {b.safety?.disclaimer && ['REQUESTED', 'ACCEPTED', 'ACTIVE'].includes(b.status) && !b.termsPending ? (
+          <Text style={{ fontSize: 11, color: p.muted, lineHeight: 16, marginTop: 4, marginBottom: 8 }}>🛡️ {b.safety.disclaimer}{b.termsAcceptedAt ? ` You accepted the booking terms on ${fmtDateTime(b.termsAcceptedAt)}.` : ''}</Text>
+        ) : null}
+
         {isOwner && b.status === 'RETURNED' ? (
           <>
             <SectionTitle>Close the trip</SectionTitle>
             <Card>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <Field label="Extra km driven" value={extraKm} onChangeText={(t) => setExtraKm(t.replace(/\D/g, '').slice(0, 4))} keyboardType="number-pad" placeholder="0" style={{ flex: 1 }} hint={b.priceBreakdown?.extraPerKm ? `₹${b.priceBreakdown.extraPerKm}/km` : 'No km charge set'} />
-                <Field label="Other charges ₹" value={otherCharges} onChangeText={(t) => setOtherCharges(t.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1').slice(0, 7))} keyboardType="decimal-pad" placeholder="0" style={{ flex: 1 }} hint="Fuel, late fee…" />
+                <Field label="Other charges ₹" value={otherCharges} onChangeText={(t) => setOtherCharges(t.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1').slice(0, 7))} keyboardType="decimal-pad" placeholder="0" style={{ flex: 1 }} hint={b.otherChargesCap !== undefined ? `Fuel, late fee… max ${inr(b.otherChargesCap)}` : 'Fuel, late fee…'} />
               </View>
-              <Field label="Note for the renter" value={closeNote} onChangeText={(t) => setCloseNote(t.slice(0, 300))} placeholder="Optional" />
-              <Btn label="Complete trip" kind="success" loading={busy === 'complete'} onPress={() => run('complete', () => rentalsApi.complete(b.id, { extraKm: extraKm ? Number(extraKm) : 0, otherCharges: otherCharges ? Number(otherCharges) : 0, note: closeNote.trim() || undefined }), 'Trip completed. Rate your renter!')} />
+              <Field label={extraKm || otherCharges ? `Explain the charges for the ${w.taker} (required)` : `Note for the ${w.taker}`} value={closeNote} onChangeText={(t) => setCloseNote(t.slice(0, 300))} placeholder={extraKm || otherCharges ? 'e.g. 40 km over the limit, fuel top-up' : 'Optional'} />
+              {Number(otherCharges) > 0 || Number(extraKm) > 0 ? (
+                <>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginBottom: 6 }}>EVIDENCE PHOTOS (OPTIONAL, PRIVATE)</Text>
+                  {picGrid('evidence', evidence, setEvidence, 4)}
+                  <Text style={{ fontSize: 11, color: p.muted, marginBottom: 10, lineHeight: 16 }}>Extra charges only count once the {w.taker} accepts them (or does not answer in time). They can dispute them, and the Zenvy team then decides.</Text>
+                </>
+              ) : null}
+              <Btn label="Complete trip" kind="success" loading={busy === 'complete'} onPress={completeTrip} />
             </Card>
           </>
         ) : null}
@@ -226,13 +448,13 @@ export default function RentalBookingScreen() {
           {isOwner && b.status === 'REQUESTED' ? (
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <Btn label="Decline" kind="secondary" onPress={() => setPrompt({ kind: 'decline', required: false })} style={{ flex: 1 }} loading={busy === 'decline'} />
-              <Btn label="Accept" onPress={() => run('accept', () => rentalsApi.accept(b.id), 'Confirmed. The renter can now see your number and their pickup PIN.')} style={{ flex: 2 }} loading={busy === 'accept'}
+              <Btn label="Accept" onPress={() => run('accept', () => rentalsApi.accept(b.id), `Confirmed. The ${w.taker} can now see your number and their pickup PIN.`)} style={{ flex: 2 }} loading={busy === 'accept'}
                 disabled={b.renterLicence ? b.renterLicence.status !== 'VERIFIED' : false} />
             </View>
           ) : null}
           {!isOwner && (b.status === 'REQUESTED' || (b.status === 'ACCEPTED' && beforeStart)) ? <Btn label={b.status === 'REQUESTED' ? 'Withdraw request' : 'Cancel booking'} kind="secondary" onPress={() => setPrompt({ kind: 'cancel', required: false })} loading={busy === 'cancel'} /> : null}
           {isOwner && b.status === 'ACCEPTED' ? <Btn label="Cancel booking" kind="secondary" onPress={() => setPrompt({ kind: 'cancel', required: true })} loading={busy === 'cancel'} /> : null}
-          {b.canRate ? <Btn label={isOwner ? 'Rate the renter' : 'Rate your trip'} icon="⭐" onPress={() => router.push(`/rentals/rate/${b.id}` as any)} /> : null}
+          {b.canRate ? <Btn label={isOwner ? `Rate the ${w.taker}` : 'Rate your trip'} icon="⭐" onPress={() => router.push(`/rentals/rate/${b.id}` as any)} /> : null}
           {b.rated ? <Text style={{ color: p.success, fontSize: 12, textAlign: 'center', fontWeight: '800' }}>✓ You rated this trip. Thanks!</Text> : null}
           {b.canReport ? <Btn label="Report a problem" kind="ghost" onPress={() => router.push(`/rentals/report/${b.id}` as any)} style={{ borderColor: p.danger }} /> : null}
           <Btn label="View vehicle" kind="ghost" onPress={() => router.push(`/rentals/${b.listingId}` as any)} />
@@ -247,6 +469,22 @@ export default function RentalBookingScreen() {
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <Btn label="Back" kind="secondary" onPress={() => { setPrompt(null); setReason(''); }} style={{ flex: 1 }} />
               <Btn label={prompt?.kind === 'decline' ? 'Decline' : 'Cancel booking'} kind="danger" onPress={confirmPrompt} style={{ flex: 1 }} />
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal visible={disputeOpen} transparent animationType="slide" onRequestClose={() => setDisputeOpen(false)}>
+        <KeyboardAvoidingView style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View style={{ backgroundColor: p.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 18, paddingBottom: 30 }}>
+            <Text style={{ fontSize: 16, fontWeight: '900', color: p.text, marginBottom: 6 }}>Dispute {inr(charges?.claimed)} of extra charges</Text>
+            <Text style={{ fontSize: 11.5, color: p.sub, marginBottom: 10, lineHeight: 16 }}>The Zenvy team sees both sides, the pickup / return photos and your evidence, then upholds, reduces or cancels the charges. Until then they do not count.</Text>
+            <Field label="Why do you dispute them? (required)" value={disputeNote} onChangeText={(t) => setDisputeNote(t.slice(0, 1000))} placeholder="e.g. The scratch is visible in the pickup photos" multiline />
+            <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginBottom: 6 }}>PHOTOS (OPTIONAL, PRIVATE)</Text>
+            {picGrid('dispute', disputePics, setDisputePics, 4)}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <Btn label="Back" kind="secondary" onPress={() => setDisputeOpen(false)} style={{ flex: 1 }} />
+              <Btn label="Send dispute" kind="danger" onPress={sendDispute} loading={busy === 'dispute'} disabled={disputeNote.trim().length < 10 || !!uploading} style={{ flex: 1.4 }} />
             </View>
           </View>
         </KeyboardAvoidingView>

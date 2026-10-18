@@ -3,7 +3,8 @@
 const { Op } = require('sequelize');
 const { getModel } = require('../index');
 const E = require('../enums');
-const { fail, cleanText, isUuid, audit } = require('../services/util');
+const { fail, cleanText, isUuid, audit, num, money } = require('../services/util');
+const safety = require('../services/safety');
 const S = require('../services/serialize');
 const notify = require('../services/notify');
 const { readFlag, writeFlag } = require('../services/eligibility');
@@ -39,15 +40,16 @@ const reasonOf = (body, min = 5) => {
 // GET /api/admin/rentals/summary
 const summary = async (req, res) => {
   const { Listing, Licence, Report, Booking } = M();
-  const [pendingListings, liveListings, pendingLicences, openReports, openBookings, enabled] = await Promise.all([
+  const [pendingListings, liveListings, pendingLicences, openReports, openBookings, enabled, openDisputes] = await Promise.all([
     Listing.count({ where: { status: E.LISTING_STATUS.PENDING_REVIEW } }),
     Listing.count({ where: { status: E.LISTING_STATUS.APPROVED } }),
     Licence.count({ where: { status: E.LICENCE_STATUS.PENDING } }),
     Report.count({ where: { status: { [Op.in]: ['OPEN', 'REVIEWING'] } } }),
     Booking.count({ where: { status: { [Op.in]: E.OPEN_STATUSES } } }),
     readFlag({ fresh: true }),
+    Booking.count({ where: { chargesStatus: E.CHARGES_STATUS.DISPUTED } }),
   ]);
-  res.json({ pendingListings, liveListings, pendingLicences, openReports, openBookings, enabled });
+  res.json({ pendingListings, liveListings, pendingLicences, openReports, openBookings, enabled, openDisputes });
 };
 
 // GET /api/admin/rentals/listings?status=PENDING_REVIEW|APPROVED|...|ALL&q=
@@ -89,7 +91,7 @@ const declinePending = async (listing, reason) => {
     );
     if (n) {
       b.status = E.BOOKING_STATUS.DECLINED;
-      notify.booking(b, { to: 'renter', title: 'Rental request declined', body: `${b.vehicleTitle || 'The vehicle'} is not available any more.`, type: 'RENTAL_DECLINED' });
+      notify.booking(b, { to: 'renter', title: `${E.wordsFor(b.rentalMode).Request} declined`, body: `${b.vehicleTitle || 'The vehicle'} is not available any more.`, type: 'RENTAL_DECLINED' });
     }
   }
 };
@@ -249,18 +251,93 @@ const updateReport = async (req, res) => {
   res.json({ report: S.reportAdmin(req, row, {}) });
 };
 
-// GET/PUT /api/admin/rentals/settings { enabled }
-const getSettings = async (req, res) => res.json({ enabled: await readFlag({ fresh: true }) });
+// GET /api/admin/rentals/disputes?status=OPEN|RESOLVED|ALL  (C7: extra charges the renter / borrower disputed)
+const RESOLVED_CHARGES = [E.CHARGES_STATUS.UPHELD, E.CHARGES_STATUS.REDUCED, E.CHARGES_STATUS.VOIDED];
+const disputes = async (req, res) => {
+  const { Booking, Listing } = M();
+  const status = String(req.query.status || 'OPEN').toUpperCase();
+  let where;
+  if (status === 'OPEN') where = { chargesStatus: E.CHARGES_STATUS.DISPUTED };
+  else if (status === 'RESOLVED') where = { chargesStatus: { [Op.in]: RESOLVED_CHARGES } };
+  else if (status === 'ALL') where = { chargesStatus: { [Op.in]: [E.CHARGES_STATUS.DISPUTED, ...RESOLVED_CHARGES] } };
+  else throw fail(400, 'INVALID_INPUT', 'Status must be OPEN, RESOLVED or ALL.');
+  const rows = await Booking.findAll({ where, order: [[status === 'OPEN' ? 'chargesRespondedAt' : 'updatedAt', status === 'OPEN' ? 'ASC' : 'DESC']], limit: 200 });
+  const users = await usersById(rows.flatMap((r) => [r.ownerId, r.renterId]));
+  const lIds = [...new Set(rows.map((r) => r.listingId))];
+  const ls = lIds.length ? await Listing.findAll({ where: { id: { [Op.in]: lIds } } }) : [];
+  const lById = new Map(ls.map((l) => [String(l.id), l]));
+  res.json({
+    disputes: rows.map((r) => S.bookingAdmin(req, r, { owner: users.get(String(r.ownerId)), renter: users.get(String(r.renterId)), listing: lById.get(String(r.listingId)) })),
+  });
+};
+
+// POST /api/admin/rentals/disputes/:id/resolve { outcome: UPHOLD | REDUCE | VOID, amount? (REDUCE), reason }
+const resolveDispute = async (req, res) => {
+  const { Booking } = M();
+  const reason = reasonOf(req.body);
+  const outcome = String((req.body && req.body.outcome) || '').toUpperCase();
+  const STATUS = { UPHOLD: E.CHARGES_STATUS.UPHELD, REDUCE: E.CHARGES_STATUS.REDUCED, VOID: E.CHARGES_STATUS.VOIDED };
+  if (!STATUS[outcome]) throw fail(400, 'INVALID_INPUT', 'Outcome must be UPHOLD, REDUCE or VOID.', { field: 'outcome' });
+  const row = await byId(Booking, req.params.id, 'Booking');
+  if (row.chargesStatus !== E.CHARGES_STATUS.DISPUTED) throw fail(409, 'INVALID_STATE', 'This booking has no open dispute.');
+  const claimed = Number(row.chargesClaimed) || 0;
+  let amount = outcome === 'UPHOLD' ? claimed : 0;
+  if (outcome === 'REDUCE') {
+    amount = num(req.body && req.body.amount, { min: 0, max: claimed, field: 'amount', label: 'Reduced amount' });
+    if (amount === null || amount >= claimed) throw fail(400, 'INVALID_INPUT', `Enter the reduced amount (less than the ₹${claimed} claimed).`, { field: 'amount' });
+  }
+  const now = new Date();
+  const [n] = await Booking.update({
+    chargesStatus: STATUS[outcome],
+    extraCharges: money(amount),
+    finalAmount: money((Number(row.rentAmount) || 0) + amount),
+    chargesResolution: { outcome, amount: money(amount), claimed, reason, by: String(req.user.id), at: now.toISOString() },
+    chargesResolvedAt: now,
+  }, { where: { id: row.id, chargesStatus: E.CHARGES_STATUS.DISPUTED } });
+  if (!n) throw fail(409, 'INVALID_STATE', 'Someone else already resolved this dispute.');
+  await row.reload();
+  await audit(req, row.id, 'RENTAL_CHARGES_DISPUTE_RESOLVED', { outcome, claimed, amount: money(amount), reason, ownerId: row.ownerId, renterId: row.renterId });
+  const words = E.wordsFor(row.rentalMode);
+  const what = outcome === 'UPHOLD' ? `upheld the charges: ₹${claimed} stands` : outcome === 'VOID' ? 'cancelled the charges: nothing extra is due' : `reduced the charges to ₹${money(amount)}`;
+  notify.booking(row, { to: 'both', title: 'Extra charges dispute resolved', body: `${row.vehicleTitle}: the Zenvy team ${what}. Reason: ${reason}`, type: 'RENTAL_CHARGES' });
+  notify.admin('rental_dispute', 'updated', row.id);
+  const users = await usersById([row.ownerId, row.renterId]);
+  res.json({
+    booking: S.bookingAdmin(req, row, { owner: users.get(String(row.ownerId)), renter: users.get(String(row.renterId)) }),
+    message: `Resolved. Both the ${words.giver} and the ${words.taker} were notified.`,
+  });
+};
+
+// GET/PUT /api/admin/rentals/settings { enabled?, safety?: { conditionPhotosRequired, otherChargesCap, chargesResponseHours, disclaimer } }
+const getSettings = async (req, res) => {
+  const [enabled, s, biz] = await Promise.all([readFlag({ fresh: true }), safety.readSettings({ fresh: true }), safety.businessName()]);
+  res.json({ enabled, safety: s, defaultDisclaimer: safety.defaultDisclaimer(biz) });
+};
 const putSettings = async (req, res) => {
-  const v = req.body && req.body.enabled;
-  if (typeof v !== 'boolean') throw fail(400, 'INVALID_INPUT', 'enabled must be true or false.', { field: 'enabled' });
-  const enabled = await writeFlag(v);
-  await audit(req, 'VEHICLE_RENTALS_ENABLED', 'RENTALS_FEATURE_TOGGLED', { enabled });
-  notify.listingChanged(null);
-  res.json({ enabled });
+  const body = req.body || {};
+  const v = body.enabled;
+  const hasSafety = body.safety !== undefined;
+  if (v === undefined && !hasSafety) throw fail(400, 'INVALID_INPUT', 'enabled must be true or false.', { field: 'enabled' });
+  if (v !== undefined && typeof v !== 'boolean') throw fail(400, 'INVALID_INPUT', 'enabled must be true or false.', { field: 'enabled' });
+  if (hasSafety && (!body.safety || typeof body.safety !== 'object' || Array.isArray(body.safety))) throw fail(400, 'INVALID_INPUT', 'safety must be an object.', { field: 'safety' });
+  let s = null;
+  if (hasSafety) {
+    const before = await safety.readSettings({ fresh: true });
+    s = await safety.writeSettings(body.safety);
+    await audit(req, safety.KEY, 'RENTALS_SAFETY_SETTINGS_UPDATED', { before, after: s });
+  }
+  let enabled;
+  if (v !== undefined) {
+    enabled = await writeFlag(v);
+    await audit(req, 'VEHICLE_RENTALS_ENABLED', 'RENTALS_FEATURE_TOGGLED', { enabled });
+    notify.listingChanged(null);
+  } else {
+    enabled = await readFlag({ fresh: true });
+  }
+  res.json({ enabled, safety: s || (await safety.readSettings()) });
 };
 
 module.exports = {
   summary, listings, listingDetail, approve, reject, licences, verifyLicence, rejectLicence,
-  bookings, reports, updateReport, getSettings, putSettings,
+  bookings, reports, updateReport, getSettings, putSettings, disputes, resolveDispute,
 };

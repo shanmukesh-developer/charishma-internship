@@ -37,7 +37,7 @@ const ADMIN_TYPES = new Set([...PUBLIC_TYPES, 'order', 'ticket', 'verification',
   // Zenvy Friends moderation queue (admin /moderation page)
   'friends_report', 'friends_appeal', 'friends_review',
   // Rentals admin queues (admin /rentals page)
-  'rental_listing', 'rental_licence', 'rental_booking', 'rental_report',
+  'rental_listing', 'rental_licence', 'rental_booking', 'rental_report', 'rental_dispute',
   // Auto-Ride admin queues (drivers, vehicles, routes, bookings, full-auto requests, incidents)
   'auto_driver', 'auto_vehicle', 'auto_route', 'auto_booking', 'auto_private_request', 'auto_incident',
   // Campus Events admin queues (review queue, organizers, registrations, refunds)

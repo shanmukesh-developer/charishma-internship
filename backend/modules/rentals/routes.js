@@ -46,6 +46,10 @@ router.post('/bookings/:id/return', partyOnly, handler(B.markReturned, 'RENTALS_
 router.post('/bookings/:id/complete', partyOnly, handler(B.complete, 'RENTALS_COMPLETE'));
 router.post('/bookings/:id/rate', partyOnly, handler(B.rate, 'RENTALS_RATE'));
 router.post('/bookings/:id/report', partyOnly, handler(B.report, 'RENTALS_REPORT'));
+// C7 safety: per-booking terms (older app builds), pickup / return condition, extra-charges answer.
+router.post('/bookings/:id/terms', partyOnly, handler(B.acceptTerms, 'RENTALS_TERMS'));
+router.post('/bookings/:id/condition', partyOnly, handler(B.condition, 'RENTALS_CONDITION'));
+router.post('/bookings/:id/charges', partyOnly, handler(B.respondCharges, 'RENTALS_CHARGES'));
 
 // ── Admin ───────────────────────────────────────────────────────────────────
 const adminRouter = express.Router();
@@ -61,6 +65,8 @@ adminRouter.post('/licences/:id/reject', handler(A.rejectLicence, 'RENTALS_ADMIN
 adminRouter.get('/bookings', handler(A.bookings, 'RENTALS_ADMIN'));
 adminRouter.get('/reports', handler(A.reports, 'RENTALS_ADMIN'));
 adminRouter.post('/reports/:id/status', handler(A.updateReport, 'RENTALS_ADMIN'));
+adminRouter.get('/disputes', handler(A.disputes, 'RENTALS_ADMIN'));
+adminRouter.post('/disputes/:id/resolve', handler(A.resolveDispute, 'RENTALS_ADMIN'));
 adminRouter.get('/settings', handler(A.getSettings, 'RENTALS_ADMIN'));
 adminRouter.put('/settings', handler(A.putSettings, 'RENTALS_ADMIN'));
 

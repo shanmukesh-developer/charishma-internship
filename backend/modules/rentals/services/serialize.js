@@ -6,7 +6,7 @@
 //  - phone numbers: only between the two students of an ACCEPTED/ACTIVE/RETURNED booking.
 //  - pickup / return PINs: only to the renter.
 const { absolutize, avatarUrlFor } = require('../../campus/campusHelpers');
-const { CONTACT_STATUSES, BOOKING_STATUS } = require('../enums');
+const { CONTACT_STATUSES, BOOKING_STATUS, CHARGES_STATUS, rentalMode } = require('../enums');
 
 const signed = (req, path) => {
   if (!path) return null;
@@ -42,6 +42,46 @@ const firstName = (name) => String(name || 'Student').trim().split(/\s+/)[0].sli
 const titleOf = (l) => [l.make, l.model].filter(Boolean).join(' ').trim() || (l.vehicleType === 'CAR' ? 'Car' : l.vehicleType === 'SCOOTER' ? 'Scooter' : 'Bike');
 const iso = (d) => (d ? new Date(d).toISOString() : null);
 const plain = (row) => (row && typeof row.get === 'function' ? row.get({ plain: true }) : row || {});
+const jsonOf = (v) => {
+  if (typeof v === 'string') { try { return JSON.parse(v); } catch { return null; } }
+  return v && typeof v === 'object' ? v : null;
+};
+
+/** C7: RENT / BORROW for a booking (its snapshot, else the listing's plate type). */
+const modeOfBooking = (b, l) => (b.rentalMode === 'RENT' || b.rentalMode === 'BORROW' ? b.rentalMode : rentalMode(l ? l.plateType : null));
+
+/** C7 pickup / return condition record -> { owner, renter } with 1-hour signed photo links. */
+const conditionOut = (req, raw) => {
+  const c = jsonOf(raw);
+  if (!c) return null;
+  const side = (x) => (x && typeof x === 'object' ? {
+    photos: (Array.isArray(x.photos) ? x.photos : []).map((p) => signed(req, p)).filter(Boolean),
+    odometer: x.odometer === undefined || x.odometer === null ? null : Number(x.odometer),
+    note: x.note || null,
+    at: x.at || null,
+  } : null);
+  const out = { owner: side(c.OWNER), renter: side(c.RENTER) };
+  return out.owner || out.renter ? out : null;
+};
+
+/** C7 extra-charges claim, as both students and the admin see it. */
+const chargesOut = (req, b) => {
+  const status = b.chargesStatus || CHARGES_STATUS.NONE;
+  const signedList = (v) => (Array.isArray(jsonOf(v)) ? jsonOf(v) : []).map((p) => signed(req, p)).filter(Boolean);
+  const res = jsonOf(b.chargesResolution);
+  return {
+    status,
+    claimed: Number(b.chargesClaimed) || 0,
+    counted: Number(b.extraCharges) || 0,
+    note: b.chargesNote || null,
+    photos: signedList(b.chargesPhotos),
+    respondBy: iso(b.chargesRespondBy),
+    respondedAt: iso(b.chargesRespondedAt),
+    disputeNote: b.disputeNote || null,
+    disputePhotos: signedList(b.disputePhotos),
+    resolution: res ? { outcome: res.outcome || null, amount: res.amount != null ? Number(res.amount) : null, reason: res.reason || null, at: res.at || null } : null,
+  };
+};
 
 const userBrief = (req, user, { full = false } = {}) => (user ? {
   id: user.id,
@@ -52,6 +92,8 @@ const userBrief = (req, user, { full = false } = {}) => (user ? {
 const commonListing = (req, l) => ({
   id: l.id,
   title: titleOf(l),
+  // C7: RENT (commercial plate) or BORROW (private plate); the apps label and badge with it.
+  rentalMode: rentalMode(l.plateType),
   vehicleType: l.vehicleType,
   make: l.make || null,
   model: l.model || null,
@@ -145,10 +187,13 @@ const bookingFor = (req, row, viewerId, ctx = {}) => {
   const contact = CONTACT_STATUSES.includes(b.status);
   const other = isRenter ? ctx.owner : ctx.renter;
   const l = ctx.listing ? plain(ctx.listing) : null;
+  const mode = modeOfBooking(b, l);
+  const charges = chargesOut(req, b);
   const out = {
     id: b.id,
     role: isRenter ? 'RENTER' : isOwner ? 'OWNER' : 'VIEWER',
     status: b.status,
+    rentalMode: mode,
     listingId: b.listingId,
     vehicleTitle: b.vehicleTitle || (l ? titleOf(l) : 'Vehicle'),
     vehicleType: b.vehicleType || (l ? l.vehicleType : null),
@@ -193,7 +238,19 @@ const bookingFor = (req, row, viewerId, ctx = {}) => {
     } : null,
     contactVisible: contact,
     pinLocked: !!(b.pinLockedUntil && new Date(b.pinLockedUntil).getTime() > Date.now()),
+    // C7 safety
+    termsAcceptedAt: iso(b.termsAcceptedAt),
+    termsVersion: b.termsVersion || null,
+    termsPending: !!b.termsPending,
+    pickupCondition: conditionOut(req, b.pickupCondition),
+    returnCondition: conditionOut(req, b.returnCondition),
+    charges,
+    canRespondToCharges: isRenter && charges.status === CHARGES_STATUS.PENDING && !!b.chargesRespondBy && new Date(b.chargesRespondBy).getTime() > Date.now(),
   };
+  if (ctx.safety) {
+    out.conditionPhotosRequired = !!ctx.safety.conditionPhotosRequired;
+    if (isOwner) out.otherChargesCap = require('./safety').otherChargesCapFor(ctx.safety, b.depositAmount);
+  }
   if (isRenter) {
     out.pickupPin = b.status === BOOKING_STATUS.ACCEPTED ? b.pickupPin || null : null;
     out.returnPin = b.status === BOOKING_STATUS.ACTIVE ? b.returnPin || null : null;
@@ -216,6 +273,7 @@ const bookingAdmin = (req, row, { owner, renter, listing } = {}) => {
   return {
     id: b.id,
     status: b.status,
+    rentalMode: modeOfBooking(b, l),
     listingId: b.listingId,
     vehicleTitle: b.vehicleTitle,
     vehicleType: b.vehicleType,
@@ -242,6 +300,15 @@ const bookingAdmin = (req, row, { owner, renter, listing } = {}) => {
     createdAt: iso(b.createdAt),
     owner: owner ? { id: owner.id, name: owner.name, phone: owner.phone || null } : { id: b.ownerId },
     renter: renter ? { id: renter.id, name: renter.name, phone: renter.phone || null } : { id: b.renterId },
+    // C7: terms, condition evidence and the extra-charges claim / dispute.
+    termsAcceptedAt: iso(b.termsAcceptedAt),
+    termsVersion: b.termsVersion || null,
+    termsPending: !!b.termsPending,
+    pickupCondition: conditionOut(req, b.pickupCondition),
+    returnCondition: conditionOut(req, b.returnCondition),
+    extraBreakdown: jsonOf(b.extraBreakdown) || {},
+    charges: chargesOut(req, b),
+    chargesResolvedAt: iso(b.chargesResolvedAt),
   };
 };
 
@@ -297,4 +364,5 @@ const reportAdmin = (req, row, { reporter, against, booking } = {}) => {
 module.exports = {
   maskReg, prettyReg, maskLicence, titleOf, firstName, userBrief,
   listingPublic, listingOwner, listingAdmin, bookingFor, bookingAdmin, licenceOwn, licenceAdmin, reportAdmin, signed,
+  modeOfBooking, conditionOut, chargesOut, jsonOf,
 };

@@ -9,9 +9,16 @@ const { checkRefs } = require('../services/media');
 const { quote, scheduleProblem, validateWindow, parseTime, HOUR } = require('../services/pricing');
 const S = require('../services/serialize');
 const notify = require('../services/notify');
+const safety = require('../services/safety');
 const { assertLicenceFor } = require('./licence');
 
 const B = E.BOOKING_STATUS;
+const CH = E.CHARGES_STATUS;
+/** C7: RENT / BORROW of a booking (snapshot taken at request time; very old rows fall back to BORROW). */
+const modeOf = (b) => (b && (b.rentalMode === E.RENTAL_MODES.RENT || b.rentalMode === E.RENTAL_MODES.BORROW) ? b.rentalMode : E.RENTAL_MODES.BORROW);
+const Wb = (b) => E.wordsFor(modeOf(b));
+const cap1 = (x) => x.charAt(0).toUpperCase() + x.slice(1);
+const fmtIst = (d) => new Date(d).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' });
 const M = () => ({
   Listing: getModel('RentalListing'),
   Booking: getModel('RentalBooking'),
@@ -82,14 +89,18 @@ const present = async (req, booking, viewerId) => {
     User.findByPk(booking.renterId, { attributes: USER_ATTRS }),
   ]);
   const isOwner = String(viewerId) === String(booking.ownerId);
-  const ctx = { listing, owner, renter };
+  const ctx = { listing, owner, renter, safety: await safety.readSettings() };
   if (isOwner) {
     ctx.renterLicence = await Licence.findOne({ where: { userId: booking.renterId } });
     ctx.renterRating = await ratingOf(booking.renterId, 'OWNER');
   } else {
     ctx.ownerRating = await ratingOf(booking.ownerId, 'RENTER');
   }
-  return S.bookingFor(req, booking, viewerId, ctx);
+  const out = S.bookingFor(req, booking, viewerId, ctx);
+  // C7: the booking terms (shown again to accept them when an older app skipped it) + the disclaimer.
+  const info = await safety.safetyInfo(modeOf(booking));
+  out.safety = { termsVersion: info.termsVersion, terms: info.terms, disclaimer: info.disclaimer };
+  return out;
 };
 
 /** Loads a booking the caller is a party to (404 otherwise, so ids cannot be probed). */
@@ -103,7 +114,15 @@ const loadParty = async (req, t) => {
   return row;
 };
 const asOwner = (row, req) => {
-  if (String(row.ownerId) !== String(req.user.id)) throw fail(403, 'OWNER_ONLY', 'Only the vehicle owner can do this.');
+  if (String(row.ownerId) !== String(req.user.id)) throw fail(403, 'OWNER_ONLY', `Only the vehicle's ${Wb(row).giver} can do this.`);
+};
+const asRenter = (row, req) => {
+  if (String(row.renterId) !== String(req.user.id)) throw fail(403, 'RENTER_ONLY', `Only the ${Wb(row).taker} can do this.`);
+};
+/** The owner / lender's record of a condition stage (photos + odometer), or null. */
+const ownerSide = (raw) => {
+  const c = S.jsonOf(raw);
+  return c && c.OWNER && typeof c.OWNER === 'object' ? c.OWNER : null;
 };
 
 /** Expires a REQUESTED booking whose answer window has passed. Returns true if it did. */
@@ -117,9 +136,15 @@ const expireIfStale = async (row, t) => {
 
 // ── Handlers ────────────────────────────────────────────────────────────────
 
-// POST /api/rentals/bookings { listingId, startAt, endAt, note? }
+// POST /api/rentals/bookings { listingId, startAt, endAt, note?, acceptTerms: true }
+// C7: acceptTerms must be true. Older app builds that do not send the field at all still create the
+// booking, flagged termsPending: the renter / borrower accepts in the app before the handover.
 const create = async (req, res) => {
   const body = req.body || {};
+  const termsSent = Object.prototype.hasOwnProperty.call(body, 'acceptTerms');
+  if (termsSent && body.acceptTerms !== true) {
+    throw fail(400, 'TERMS_REQUIRED', 'Tick the box to accept the booking terms before sending the request.', { field: 'acceptTerms' });
+  }
   const listingId = String(body.listingId || '');
   if (!isUuid(listingId)) throw fail(400, 'INVALID_INPUT', 'Pick a vehicle to book.', { field: 'listingId' });
   const start = parseTime(body.startAt, 'startAt');
@@ -141,7 +166,7 @@ const create = async (req, res) => {
     const owner = await User.findByPk(listing.ownerId, { attributes: ['id', 'isActive'], transaction: t });
     if (!owner || owner.isActive === false) throw fail(404, 'NOT_FOUND', 'This vehicle is not available any more.');
     const lic = await Licence.findOne({ where: { userId: renterId }, transaction: t });
-    assertLicenceFor(lic, listing, { at: end });
+    assertLicenceFor(lic, listing, { at: end, requireExpiry: true });
     const problem = scheduleProblem(listing, start, end);
     if (problem) throw fail(409, problem.code, problem.message);
     const clash = await overlapping(Booking, listing.id, start, end, t);
@@ -169,13 +194,19 @@ const create = async (req, res) => {
       vehicleType: listing.vehicleType,
       renterNote: note,
       respondBy,
+      rentalMode: E.rentalMode(listing.plateType),
+      termsAcceptedAt: termsSent ? new Date() : null,
+      termsVersion: termsSent ? E.TERMS_VERSION : null,
+      termsPending: !termsSent,
+      chargesStatus: CH.NONE,
     }, { transaction: t });
   }));
 
+  const W = Wb(booking);
   notify.booking(booking, {
     to: 'owner',
-    title: 'New rental request 🚗',
-    body: `${S.firstName(ctx.user && ctx.user.name)} wants your ${booking.vehicleTitle}. Answer within 2 hours.`,
+    title: `New ${W.request} 🚗`,
+    body: `${S.firstName(ctx.user && ctx.user.name)} wants to ${W.verb.toLowerCase()} your ${booking.vehicleTitle}. Answer within 2 hours.`,
     type: 'RENTAL_REQUEST',
   });
   notify.admin('rental_booking', 'created', booking.id);
@@ -200,9 +231,10 @@ const list = async (req, res) => {
   ]);
   const lById = new Map(listings.map((l) => [String(l.id), l]));
   const uById = new Map(users.map((u) => [String(u.id), u]));
+  const settings = await safety.readSettings();
   res.json({
     bookings: rows.map((r) => S.bookingFor(req, r, uid, {
-      listing: lById.get(String(r.listingId)), owner: uById.get(String(r.ownerId)), renter: uById.get(String(r.renterId)),
+      listing: lById.get(String(r.listingId)), owner: uById.get(String(r.ownerId)), renter: uById.get(String(r.renterId)), safety: settings,
     })),
   });
 };
@@ -249,14 +281,15 @@ const accept = async (req, res) => {
     await b.update({ status: B.ACCEPTED, acceptedAt: new Date(), pickupPin, returnPin: newPin(pickupPin), pinAttempts: 0 }, { transaction: t });
     return b;
   });
+  const W = Wb(row);
   if (expired) {
-    notify.booking(row, { to: 'renter', title: 'Rental request expired', body: `The owner did not answer in time for ${row.vehicleTitle}.`, type: 'RENTAL_EXPIRED' });
+    notify.booking(row, { to: 'renter', title: `${W.Request} expired`, body: `The ${W.giver} did not answer in time for ${row.vehicleTitle}.`, type: 'RENTAL_EXPIRED' });
     throw fail(409, 'EXPIRED', 'This request expired before you answered.');
   }
   notify.booking(row, {
     to: 'renter',
-    title: 'Rental confirmed ✅',
-    body: `Your ${row.vehicleTitle} booking is confirmed. Pay ₹${row.payAtHandover} in cash at pickup (incl. refundable deposit).`,
+    title: `${cap1(W.booking)} confirmed ✅`,
+    body: `Your ${row.vehicleTitle} booking is confirmed. Pay ₹${row.payAtHandover} in cash at pickup (${W.price} + refundable deposit).${row.termsPending ? ' Open the booking and accept the terms before pickup.' : ''}`,
     type: 'RENTAL_ACCEPTED',
   });
   res.json({ booking: await present(req, row, req.user.id) });
@@ -272,7 +305,8 @@ const decline = async (req, res) => {
     await b.update({ status: B.DECLINED, declinedAt: new Date(), declineReason: reason }, { transaction: t });
     return b;
   });
-  notify.booking(row, { to: 'renter', title: 'Rental request declined', body: `The owner could not rent ${row.vehicleTitle} for those times${reason ? `: ${reason}` : '.'}`, type: 'RENTAL_DECLINED' });
+  const W = Wb(row);
+  notify.booking(row, { to: 'renter', title: `${W.Request} declined`, body: `The ${W.giver} could not ${modeOf(row) === E.RENTAL_MODES.RENT ? 'rent out' : 'lend'} ${row.vehicleTitle} for those times${reason ? `: ${reason}` : '.'}`, type: 'RENTAL_DECLINED' });
   res.json({ booking: await present(req, row, req.user.id) });
 };
 
@@ -284,20 +318,21 @@ const cancel = async (req, res) => {
     const isRenter = String(b.renterId) === String(req.user.id);
     if (isRenter) {
       if (![B.REQUESTED, B.ACCEPTED].includes(b.status)) throw fail(409, 'INVALID_STATE', 'This booking can no longer be cancelled.');
-      if (new Date(b.startAt).getTime() <= Date.now()) throw fail(409, 'TOO_LATE', 'The pickup time has passed. Ask the owner to cancel, or report a problem.');
+      if (new Date(b.startAt).getTime() <= Date.now()) throw fail(409, 'TOO_LATE', `The pickup time has passed. Ask the ${Wb(b).giver} to cancel, or report a problem.`);
       by = 'RENTER';
     } else {
       if (b.status === B.REQUESTED) throw fail(409, 'USE_DECLINE', 'Decline the request instead.');
       if (b.status !== B.ACCEPTED) throw fail(409, 'INVALID_STATE', b.status === B.ACTIVE ? 'The trip has started. Complete the return instead.' : 'This booking can no longer be cancelled.');
-      if (!reason || reason.length < 5) throw fail(400, 'REASON_REQUIRED', 'Tell the renter why you are cancelling (at least 5 characters).', { field: 'reason' });
+      if (!reason || reason.length < 5) throw fail(400, 'REASON_REQUIRED', `Tell the ${Wb(b).taker} why you are cancelling (at least 5 characters).`, { field: 'reason' });
       by = 'OWNER';
     }
     await b.update({ status: B.CANCELLED, cancelledAt: new Date(), cancelledBy: by, cancelReason: reason }, { transaction: t });
     return b;
   });
+  const W = Wb(row);
   notify.booking(row, by === 'RENTER'
-    ? { to: 'owner', title: 'Rental cancelled', body: `The renter cancelled ${row.vehicleTitle}${reason ? `: ${reason}` : '.'}`, type: 'RENTAL_CANCELLED' }
-    : { to: 'renter', title: 'Rental cancelled by owner', body: `${row.vehicleTitle}: ${reason}`, type: 'RENTAL_CANCELLED' });
+    ? { to: 'owner', title: `${cap1(W.booking)} cancelled`, body: `The ${W.taker} cancelled ${row.vehicleTitle}${reason ? `: ${reason}` : '.'}`, type: 'RENTAL_CANCELLED' }
+    : { to: 'renter', title: `${cap1(W.booking)} cancelled by the ${W.giver}`, body: `${row.vehicleTitle}: ${reason}`, type: 'RENTAL_CANCELLED' });
   res.json({ booking: await present(req, row, req.user.id) });
 };
 
@@ -321,12 +356,15 @@ const checkPin = async (b, pin, expected, t) => {
 };
 
 // Wrong-PIN counters must persist even though the request fails: commit first, then throw.
-const pinStep = async (req, res, { from, to, pinField, stampField, early, push }) => {
+const pinStep = async (req, res, { from, to, pinField, stampField, early, gate, push }) => {
   let pinError = null;
+  const settings = await safety.readSettings();
   const row = await mutate(req, async (b, t) => {
     asOwner(b, req);
     if (b.status !== from) throw fail(409, 'INVALID_STATE', from === B.ACCEPTED ? 'This booking is not ready for pickup.' : 'This trip is not in progress.');
     if (early) early(b);
+    // C7 gates run before the PIN is checked, so they never use up PIN attempts.
+    if (gate) gate(b, settings);
     const r = await checkPin(b, req.body && req.body.pin, b[pinField], t);
     if (r.error) { pinError = r.error; return b; }
     await b.update({ status: to, [stampField]: new Date(), ...r }, { transaction: t });
@@ -347,7 +385,16 @@ const handover = (req, res) => pinStep(req, res, {
     if (Date.now() < new Date(b.startAt).getTime() - HOUR) throw fail(409, 'TOO_EARLY', 'Pickup opens 1 hour before the booked time.');
     if (Date.now() > new Date(b.endAt).getTime()) throw fail(409, 'TOO_LATE', 'This booking has already ended.');
   },
-  push: (b) => ({ to: 'renter', title: 'Trip started 🔑', body: `Enjoy the ride! Return ${b.vehicleTitle} by ${new Date(b.endAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })}.`, type: 'RENTAL_STARTED' }),
+  gate: (b, settings) => {
+    const W = Wb(b);
+    if (b.termsPending) {
+      throw fail(409, 'TERMS_PENDING', `The ${W.taker} has not accepted the booking terms yet. Ask them to open this booking in the Zenvy app (update the app if needed) and accept the terms before pickup.`);
+    }
+    if (settings.conditionPhotosRequired && !ownerSide(b.pickupCondition)) {
+      throw fail(409, 'CONDITION_REQUIRED', `Add ${E.LIMITS.MIN_CONDITION_PHOTOS}-${E.LIMITS.MAX_CONDITION_PHOTOS} pickup photos of the vehicle and the odometer reading before starting the trip.`, { stage: 'PICKUP' });
+    }
+  },
+  push: (b) => ({ to: 'renter', title: 'Trip started 🔑', body: `Enjoy the ride! Return ${b.vehicleTitle} by ${fmtIst(b.endAt)}.`, type: 'RENTAL_STARTED' }),
 });
 
 // POST /api/rentals/bookings/:id/return { pin }  (owner enters the renter's return PIN)
@@ -356,6 +403,11 @@ const markReturned = (req, res) => pinStep(req, res, {
   to: B.RETURNED,
   pinField: 'returnPin',
   stampField: 'returnedAt',
+  gate: (b, settings) => {
+    if (settings.conditionPhotosRequired && !ownerSide(b.returnCondition)) {
+      throw fail(409, 'CONDITION_REQUIRED', `Add ${E.LIMITS.MIN_CONDITION_PHOTOS}-${E.LIMITS.MAX_CONDITION_PHOTOS} return photos of the vehicle and the odometer reading before closing the return.`, { stage: 'RETURN' });
+    }
+  },
   push: (b) => ({ to: 'renter', title: 'Vehicle returned', body: `Thanks for returning ${b.vehicleTitle}. Collect your ₹${b.depositAmount} deposit in cash.`, type: 'RENTAL_RETURNED' }),
 });
 
@@ -365,15 +417,26 @@ const bumpTripCount = async (listingId, t) => {
   await Listing.increment('tripCount', { by: 1, where: { id: listingId }, transaction: t });
 };
 
-// POST /api/rentals/bookings/:id/complete { extraKm?, otherCharges?, note? }
+// POST /api/rentals/bookings/:id/complete { extraKm?, otherCharges?, note?, photos? }
+// C7: other charges are capped (setting, and at most 2 x the deposit), need a note when anything extra is
+// claimed, and only count once the renter / borrower accepts them (or does not answer within the window,
+// or the admin upholds them on a dispute). finalAmount = rent + the charges that count.
 const complete = async (req, res) => {
   const body = req.body || {};
   const extraKm = num(body.extraKm, { min: 0, max: 5000, int: true, field: 'extraKm', label: 'Extra km' }) || 0;
   const otherCharges = num(body.otherCharges, { min: 0, max: 50000, field: 'otherCharges', label: 'Other charges' }) || 0;
   const note = cleanText(body.note, 300) || null;
+  const settings = await safety.readSettings();
+  const evidence = await checkRefs(req.user.id, body.photos, { purposes: ['rental_condition', 'rental_report'], field: 'photos', max: E.LIMITS.MAX_EVIDENCE_PHOTOS, label: 'photo' });
   const row = await mutate(req, async (b, t) => {
     asOwner(b, req);
+    const W = Wb(b);
     if (b.status !== B.RETURNED) throw fail(409, 'INVALID_STATE', 'Mark the vehicle as returned first.');
+    const cap = safety.otherChargesCapFor(settings, b.depositAmount);
+    if (otherCharges > cap) {
+      const viaDeposit = Number(b.depositAmount) > 0 && cap < Number(settings.otherChargesCap);
+      throw fail(400, 'CHARGES_OVER_CAP', `Other charges can be at most ₹${cap} for this trip${viaDeposit ? ' (2 × the deposit)' : ''}. For bigger damage, report a problem from the booking.`, { field: 'otherCharges', cap });
+    }
     // B22: the per-km rate agreed when the trip was booked (the quote stored on the booking), not
     // whatever the owner set on the listing afterwards. Older bookings without it use the listing.
     let pb = b.priceBreakdown;
@@ -382,25 +445,171 @@ const complete = async (req, res) => {
     const listing = agreed === null ? await M().Listing.findByPk(b.listingId, { transaction: t }) : null;
     const perKm = agreed !== null ? (agreed > 0 ? agreed : 0) : (listing && Number(listing.extraPerKm) > 0 ? Number(listing.extraPerKm) : 0);
     if (extraKm > 0 && !perKm) throw fail(400, 'NO_KM_RATE', 'This vehicle has no extra-km charge set.', { field: 'extraKm' });
+    // C7: with both odometer readings on record, extra km cannot exceed what was really driven.
+    const pick = ownerSide(b.pickupCondition);
+    const ret = ownerSide(b.returnCondition);
+    const odo = (x) => (x && x.odometer !== null && x.odometer !== undefined && Number.isFinite(Number(x.odometer)) ? Number(x.odometer) : null);
+    if (extraKm > 0 && odo(pick) !== null && odo(ret) !== null) {
+      const driven = Math.max(0, odo(ret) - odo(pick));
+      const allowance = Number(b.kmAllowance) || 0;
+      const maxExtra = Math.max(0, driven - allowance);
+      if (extraKm > maxExtra) {
+        throw fail(400, 'EXTRA_KM_TOO_HIGH', `The odometer shows ${driven} km driven${allowance ? ` with ${allowance} km included` : ''}, so at most ${maxExtra} extra km can be charged.`, { field: 'extraKm', maxExtraKm: maxExtra });
+      }
+    }
     const kmCharge = money(extraKm * perKm);
-    const extras = money(kmCharge + otherCharges);
+    const claimed = money(kmCharge + otherCharges);
+    if (claimed > 0 && (!note || note.length < 5)) {
+      throw fail(400, 'NOTE_REQUIRED', `Explain the extra charges for the ${W.taker} (at least 5 characters).`, { field: 'note' });
+    }
+    const pending = claimed > 0;
+    const now = Date.now();
     await b.update({
       status: B.COMPLETED,
-      completedAt: new Date(),
-      extraCharges: extras,
-      extraBreakdown: { extraKm, perKm: perKm || null, kmCharge, otherCharges, note },
-      finalAmount: money((Number(b.rentAmount) || 0) + extras),
+      completedAt: new Date(now),
+      extraCharges: 0,
+      extraBreakdown: { extraKm, perKm: perKm || null, kmCharge, otherCharges, note, claimed },
+      finalAmount: money(Number(b.rentAmount) || 0),
       ownerNote: note,
+      chargesStatus: pending ? CH.PENDING : CH.NONE,
+      chargesClaimed: claimed,
+      chargesNote: pending ? note : null,
+      chargesPhotos: pending ? evidence : null,
+      chargesRespondBy: pending ? new Date(now + settings.chargesResponseHours * HOUR) : null,
     }, { transaction: t });
     await bumpTripCount(b.listingId, t);
     return b;
   });
-  notify.booking(row, {
-    to: 'renter',
-    title: 'Trip completed ⭐',
-    body: row.extraCharges > 0 ? `Extra charges of ₹${row.extraCharges} were added by the owner. Rate your trip.` : `How was ${row.vehicleTitle}? Rate your trip.`,
-    type: 'RENTAL_COMPLETED',
+  const W = Wb(row);
+  if (row.chargesStatus === CH.PENDING) {
+    notify.booking(row, {
+      to: 'renter',
+      title: 'Extra charges to review',
+      body: `The ${W.giver} added ₹${row.chargesClaimed} of extra charges for ${row.vehicleTitle}: "${row.chargesNote}". Accept or dispute by ${fmtIst(row.chargesRespondBy)}, otherwise they are accepted automatically.`,
+      type: 'RENTAL_CHARGES',
+    });
+    notify.push(row.ownerId, 'Trip completed', `Your extra charges of ₹${row.chargesClaimed} are waiting for the ${W.taker} to accept.`, { type: 'RENTAL_CHARGES', bookingId: row.id, screen: 'rental_booking' });
+  } else {
+    notify.booking(row, { to: 'renter', title: 'Trip completed ⭐', body: `How was ${row.vehicleTitle}? Rate your trip.`, type: 'RENTAL_COMPLETED' });
+  }
+  res.json({ booking: await present(req, row, req.user.id) });
+};
+
+/** Charges that count once accepted (by the renter, by the timeout, or upheld / reduced by the admin). */
+const chargesFinal = (b, amount) => ({ extraCharges: money(amount), finalAmount: money((Number(b.rentAmount) || 0) + (Number(amount) || 0)) });
+
+/**
+ * Auto-accepts PENDING extra charges whose window has passed (lifecycle job + a late answer).
+ * Conditional UPDATE: a renter answering at the same moment wins cleanly. Returns true if it changed.
+ */
+const autoAcceptCharges = async (b, t, now = new Date()) => {
+  const { Booking } = M();
+  const fin = chargesFinal(b, b.chargesClaimed);
+  const [n] = await Booking.update(
+    { chargesStatus: CH.AUTO_ACCEPTED, chargesRespondedAt: now, ...fin },
+    { where: { id: b.id, chargesStatus: CH.PENDING }, ...(t ? { transaction: t } : {}) },
+  );
+  if (n) {
+    // Keep the in-memory row in step without marking it dirty (it may be saved again by the caller).
+    for (const [k, v] of Object.entries({ chargesStatus: CH.AUTO_ACCEPTED, chargesRespondedAt: now, ...fin })) {
+      if (typeof b.setDataValue === 'function') b.setDataValue(k, v); else b[k] = v;
+    }
+  }
+  return n > 0;
+};
+
+// POST /api/rentals/bookings/:id/charges { action: ACCEPT | DISPUTE, note?, photos? }  (renter / borrower)
+const respondCharges = async (req, res) => {
+  const body = req.body || {};
+  const action = String(body.action || '').toUpperCase();
+  if (!['ACCEPT', 'DISPUTE'].includes(action)) throw fail(400, 'INVALID_INPUT', 'Choose to accept or dispute the charges.', { field: 'action' });
+  const note = cleanText(body.note, 1000, { multiline: true }) || null;
+  if (action === 'DISPUTE' && (!note || note.length < 10)) {
+    throw fail(400, 'NOTE_REQUIRED', 'Explain why you dispute the charges (at least 10 characters).', { field: 'note' });
+  }
+  const photos = action === 'DISPUTE'
+    ? await checkRefs(req.user.id, body.photos, { purposes: ['rental_condition', 'rental_report'], field: 'photos', max: E.LIMITS.MAX_EVIDENCE_PHOTOS, label: 'photo' })
+    : [];
+  let late = false;
+  const row = await mutate(req, async (b, t) => {
+    asRenter(b, req);
+    if (b.chargesStatus !== CH.PENDING) throw fail(409, 'CHARGES_CLOSED', 'These charges have already been answered.');
+    if (!b.chargesRespondBy || new Date(b.chargesRespondBy).getTime() <= Date.now()) {
+      late = await autoAcceptCharges(b, t);
+      return b;
+    }
+    const now = new Date();
+    if (action === 'ACCEPT') {
+      await b.update({ chargesStatus: CH.ACCEPTED, chargesRespondedAt: now, ...chargesFinal(b, b.chargesClaimed) }, { transaction: t });
+    } else {
+      await b.update({ chargesStatus: CH.DISPUTED, chargesRespondedAt: now, disputeNote: note, disputePhotos: photos }, { transaction: t });
+    }
+    return b;
   });
+  const W = Wb(row);
+  if (late) {
+    notify.booking(row, { to: 'both', title: 'Extra charges accepted', body: `The answer window passed, so the ₹${row.chargesClaimed} extra charges for ${row.vehicleTitle} were accepted automatically.`, type: 'RENTAL_CHARGES' });
+    throw fail(409, 'CHARGES_CLOSED', 'The answer window has passed, so the charges were accepted automatically. Report a problem from the booking if something is wrong.');
+  }
+  if (row.chargesStatus === CH.ACCEPTED) {
+    notify.booking(row, { to: 'owner', title: 'Extra charges accepted ✅', body: `The ${W.taker} accepted ₹${row.chargesClaimed} of extra charges for ${row.vehicleTitle}. Settle them in cash between you.`, type: 'RENTAL_CHARGES' });
+  } else {
+    notify.booking(row, { to: 'owner', title: 'Extra charges disputed', body: `The ${W.taker} disputed the ₹${row.chargesClaimed} extra charges for ${row.vehicleTitle}. The Zenvy team will review both sides.`, type: 'RENTAL_CHARGES' });
+    notify.push(row.renterId, 'Dispute received', `The Zenvy team will review the extra charges for ${row.vehicleTitle} and tell you both the outcome.`, { type: 'RENTAL_CHARGES', bookingId: row.id, screen: 'rental_booking' });
+    notify.admin('rental_dispute', 'created', row.id);
+  }
+  res.json({ booking: await present(req, row, req.user.id) });
+};
+
+// POST /api/rentals/bookings/:id/terms { acceptTerms: true }  (renter / borrower; bookings made by older apps)
+const acceptTerms = async (req, res) => {
+  if (!req.body || req.body.acceptTerms !== true) throw fail(400, 'TERMS_REQUIRED', 'Tick the box to accept the booking terms.', { field: 'acceptTerms' });
+  const row = await mutate(req, async (b, t) => {
+    asRenter(b, req);
+    if (!b.termsPending && b.termsAcceptedAt) return b;
+    if (![B.REQUESTED, B.ACCEPTED].includes(b.status)) throw fail(409, 'INVALID_STATE', 'The booking terms can only be accepted before pickup.');
+    await b.update({ termsAcceptedAt: new Date(), termsVersion: E.TERMS_VERSION, termsPending: false }, { transaction: t });
+    return b;
+  });
+  notify.booking(row, {});
+  res.json({ booking: await present(req, row, req.user.id) });
+};
+
+// POST /api/rentals/bookings/:id/condition { stage: PICKUP | RETURN, photos[2-6], odometer, note? }
+// Owner / lender: required (when the admin switch is on) before the pickup / return PIN step, odometer
+// required. Renter / borrower: optional, their own record. Photos are private media (rental_condition),
+// shown to both students and the admin through signed links.
+const condition = async (req, res) => {
+  const body = req.body || {};
+  const stage = String(body.stage || '').toUpperCase();
+  if (!E.CONDITION_STAGES.includes(stage)) throw fail(400, 'INVALID_INPUT', 'Stage must be PICKUP or RETURN.', { field: 'stage' });
+  const odometer = num(body.odometer, { min: 0, max: E.LIMITS.MAX_ODOMETER, int: true, field: 'odometer', label: 'Odometer reading' });
+  const note = cleanText(body.note, 300) || null;
+  const photos = await checkRefs(req.user.id, body.photos, {
+    purposes: ['rental_condition'], field: 'photos', min: E.LIMITS.MIN_CONDITION_PHOTOS, max: E.LIMITS.MAX_CONDITION_PHOTOS, label: 'photo',
+  });
+  const row = await mutate(req, async (b, t) => {
+    const isOwner = String(b.ownerId) === String(req.user.id);
+    const allowed = stage === 'PICKUP'
+      ? (isOwner ? [B.ACCEPTED] : [B.ACCEPTED, B.ACTIVE])
+      : (isOwner ? [B.ACTIVE] : [B.ACTIVE, B.RETURNED]);
+    if (!allowed.includes(b.status)) {
+      throw fail(409, 'INVALID_STATE', stage === 'PICKUP' ? 'Pickup photos can be added from confirmation until the trip starts.' : 'Return photos can be added while the vehicle is out, before the return is closed.');
+    }
+    if (isOwner && odometer === null) throw fail(400, 'INVALID_INPUT', 'Enter the odometer reading (km).', { field: 'odometer' });
+    if (stage === 'RETURN' && odometer !== null) {
+      const start = ownerSide(b.pickupCondition);
+      if (start && start.odometer !== null && start.odometer !== undefined && odometer < Number(start.odometer)) {
+        throw fail(400, 'ODOMETER_BACKWARDS', `The return reading must be at least the pickup reading (${start.odometer} km).`, { field: 'odometer' });
+      }
+    }
+    const field = stage === 'PICKUP' ? 'pickupCondition' : 'returnCondition';
+    const cur = S.jsonOf(b[field]) || {};
+    const next = { ...cur, [isOwner ? 'OWNER' : 'RENTER']: { photos, odometer, note, at: new Date().toISOString() } };
+    await b.update({ [field]: next }, { transaction: t });
+    return b;
+  });
+  notify.booking(row, {});
   res.json({ booking: await present(req, row, req.user.id) });
 };
 
@@ -481,5 +690,6 @@ const report = async (req, res) => {
 
 module.exports = {
   create, list, getOne, accept, decline, cancel, handover, markReturned, complete, rate, report,
-  withListingLock, bumpTripCount, recomputeListingRating, expireIfStale, ratingOf,
+  respondCharges, acceptTerms, condition, autoAcceptCharges, chargesFinal,
+  withListingLock, bumpTripCount, recomputeListingRating, expireIfStale, ratingOf, modeOf,
 };

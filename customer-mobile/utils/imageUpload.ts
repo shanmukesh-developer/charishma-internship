@@ -39,10 +39,12 @@ export type MediaPurpose =
   | 'rental_doc'
   | 'rental_licence'
   | 'rental_report'
+  // C7: pickup / return condition photos and extra-charge evidence (private, both students + admin).
+  | 'rental_condition'
   // Campus Events: event posters / gallery images (public, served to every student of the campus).
   | 'event_poster';
 
-export const PRIVATE_MEDIA_PURPOSES: readonly MediaPurpose[] = ['id_card', 'connect', 'liveness_selfie', 'rental_doc', 'rental_licence', 'rental_report'];
+export const PRIVATE_MEDIA_PURPOSES: readonly MediaPurpose[] = ['id_card', 'connect', 'liveness_selfie', 'rental_doc', 'rental_licence', 'rental_report', 'rental_condition'];
 
 export interface UploadedImage {
   /** Short relative path, e.g. /api/campus/media/<id>. Store this for campus features. */

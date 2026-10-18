@@ -92,7 +92,7 @@ const precheck = async (sequelize, user) => {
     const open = await RentalBooking.count({
       where: { status: OPEN_RENTAL_STATUSES, [Op.or]: [{ renterId: user.id }, { ownerId: user.id }] }
     }).catch(() => 0);
-    if (open > 0) blockers.push({ code: 'ACTIVE_RENTALS', message: 'You have a rental booking in progress. Please finish or cancel it first.' });
+    if (open > 0) blockers.push({ code: 'ACTIVE_RENTALS', message: 'You have a vehicle rental or borrowing in progress. Please finish or cancel it first.' });
   }
   return blockers;
 };

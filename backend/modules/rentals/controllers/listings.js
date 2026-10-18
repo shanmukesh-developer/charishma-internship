@@ -8,6 +8,20 @@ const { quote, scheduleProblem, validateWindow, parseTime, HHMM_RE } = require('
 const S = require('../services/serialize');
 const notify = require('../services/notify');
 const { loadContext, readFlag, REASON_MESSAGES } = require('../services/eligibility');
+const safety = require('../services/safety');
+
+/**
+ * C7 (security P2): a listing is only visible / priceable to students of its own campus (same rule as
+ * browse). Viewers without a campus profile see what browse shows them. The owner always sees their own.
+ * 404 (not 403) so ids from another campus cannot be probed.
+ */
+const assertSameCampus = (req, row) => {
+  const ctx = req.rentals && req.rentals.ctx;
+  const viewerCampus = ctx && ctx.campusId;
+  if (row.campusId && viewerCampus && String(row.campusId) !== String(viewerCampus)) {
+    throw fail(404, 'NOT_FOUND', 'This vehicle is not available any more.');
+  }
+};
 
 const M = () => ({
   Listing: getModel('RentalListing'),
@@ -289,9 +303,10 @@ const detail = async (req, res) => {
   if (!row || row.status === E.LISTING_STATUS.DELETED || (!mine && row.status !== E.LISTING_STATUS.APPROVED)) {
     throw fail(404, 'NOT_FOUND', 'This vehicle is not available any more.');
   }
+  if (!mine) assertSameCampus(req, row);
   const owner = await User.findByPk(row.ownerId, { attributes: USER_ATTRS });
   if (!mine && (!owner || owner.isActive === false)) throw fail(404, 'NOT_FOUND', 'This vehicle is not available any more.');
-  const [busy, reviews, ownerRating] = await Promise.all([
+  const [busy, reviews, ownerRating, safetyInfo] = await Promise.all([
     Booking.findAll({
       where: { listingId: row.id, status: { [Op.in]: E.HOLDING_STATUSES }, endAt: { [Op.gt]: new Date() } },
       attributes: ['startAt', 'endAt', 'status'],
@@ -300,6 +315,7 @@ const detail = async (req, res) => {
     }),
     Review.findAll({ where: { listingId: row.id, role: 'RENTER', isHidden: { [Op.not]: true } }, order: [['createdAt', 'DESC']], limit: 10 }),
     ownerRatingOf(row.ownerId),
+    safety.safetyInfo(E.rentalMode(row.plateType)),
   ]);
   const reviewers = reviews.length ? await User.findAll({ where: { id: { [Op.in]: reviews.map((r) => r.reviewerId) } }, attributes: ['id', 'name', 'profileImage'] }) : [];
   const byId = new Map(reviewers.map((u) => [String(u.id), u]));
@@ -307,6 +323,8 @@ const detail = async (req, res) => {
   if (mine) listing.owner = { ...S.userBrief(req, owner), verified: true, rating: ownerRating };
   res.json({
     listing,
+    // C7: mode-specific booking terms + the insurance / liability disclaimer (listing detail + booking review).
+    safety: safetyInfo,
     busy: busy.map((b) => ({ startAt: new Date(b.startAt).toISOString(), endAt: new Date(b.endAt).toISOString(), pending: b.status === E.BOOKING_STATUS.REQUESTED })),
     reviews: reviews.map((r) => ({
       id: r.id,
@@ -325,6 +343,7 @@ const getQuote = async (req, res) => {
   const { Listing, Booking } = M();
   const row = await Listing.findByPk(id);
   if (!row || row.status !== E.LISTING_STATUS.APPROVED) throw fail(404, 'NOT_FOUND', 'This vehicle is not available any more.');
+  if (String(row.ownerId) !== String(req.user.id)) assertSameCampus(req, row);
   const start = parseTime(req.query.startAt, 'startAt');
   const end = parseTime(req.query.endAt, 'endAt');
   validateWindow(start, end);
@@ -484,7 +503,7 @@ const remove = async (req, res) => {
   }));
   if (alreadyGone) return res.json({ ok: true, message: 'Vehicle removed.' });
   for (const b of declined) {
-    notify.booking(b, { to: 'renter', title: 'Rental request declined', body: `${b.vehicleTitle || 'The vehicle'} is no longer listed.`, type: 'RENTAL_DECLINED' });
+    notify.booking(b, { to: 'renter', title: `${E.wordsFor(b.rentalMode).Request} declined`, body: `${b.vehicleTitle || 'The vehicle'} is no longer listed.`, type: 'RENTAL_DECLINED' });
   }
   if (wasVisible) notify.listingChanged(row.id);
   notify.admin('rental_listing', 'deleted', row.id);
@@ -493,5 +512,5 @@ const remove = async (req, res) => {
 
 module.exports = {
   eligibility, browse, detail, getQuote, myListings, create, update, submit, pause, resume, remove,
-  missingFor, assertComplete, toPath, ownerRatingOf,
+  missingFor, assertComplete, toPath, ownerRatingOf, assertSameCampus,
 };

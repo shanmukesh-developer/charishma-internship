@@ -9,6 +9,9 @@ export type VehicleType = 'BIKE' | 'SCOOTER' | 'CAR';
 export type Fuel = 'PETROL' | 'DIESEL' | 'EV' | 'CNG';
 export type Transmission = 'MANUAL' | 'AUTOMATIC';
 export type PlateType = 'COMMERCIAL_RENTAL' | 'PRIVATE';
+/** C7: commercial plate -> RENT (owner / renter); private plate -> BORROW (lender / borrower). From the server. */
+export type RentalMode = 'RENT' | 'BORROW';
+export type ChargesStatus = 'NONE' | 'PENDING' | 'ACCEPTED' | 'AUTO_ACCEPTED' | 'DISPUTED' | 'UPHELD' | 'REDUCED' | 'VOIDED';
 export type ListingStatus = 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'PAUSED' | 'DELETED';
 export type BookingStatus = 'REQUESTED' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'ACTIVE' | 'RETURNED' | 'COMPLETED' | 'CANCELLED';
 export type LicenceStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
@@ -28,6 +31,8 @@ export interface PersonBrief {
 export interface Listing {
   id: string;
   title: string;
+  /** C7: RENT (commercial plate) or BORROW (private plate). Older servers omit it: treat as BORROW. */
+  rentalMode?: RentalMode;
   vehicleType: VehicleType;
   make: string | null;
   model: string | null;
@@ -94,6 +99,32 @@ export interface Quote {
   paymentNote: string;
 }
 
+/** C7: terms + disclaimer shown on the listing detail and the booking review. */
+export interface SafetyInfo {
+  rentalMode: RentalMode;
+  termsVersion: string;
+  terms: string[];
+  disclaimer: string;
+  conditionPhotosRequired: boolean;
+  chargesResponseHours: number;
+  otherChargesCap: number;
+}
+
+export interface ConditionSide { photos: string[]; odometer: number | null; note: string | null; at: string | null }
+export interface ConditionRecord { owner: ConditionSide | null; renter: ConditionSide | null }
+export interface ChargesInfo {
+  status: ChargesStatus;
+  claimed: number;
+  counted: number;
+  note: string | null;
+  photos: string[];
+  respondBy: string | null;
+  respondedAt: string | null;
+  disputeNote: string | null;
+  disputePhotos: string[];
+  resolution: { outcome: 'UPHOLD' | 'REDUCE' | 'VOID' | null; amount: number | null; reason: string | null; at: string | null } | null;
+}
+
 export interface Review {
   id: string;
   rating: number;
@@ -106,6 +137,7 @@ export interface Booking {
   id: string;
   role: 'RENTER' | 'OWNER' | 'VIEWER';
   status: BookingStatus;
+  rentalMode?: RentalMode;
   listingId: string;
   vehicleTitle: string;
   vehicleType: VehicleType | null;
@@ -126,7 +158,7 @@ export interface Booking {
   kmAllowance: number | null;
   priceBreakdown: Partial<Quote>;
   extraCharges: number;
-  extraBreakdown: { extraKm?: number; perKm?: number | null; kmCharge?: number; otherCharges?: number; note?: string | null; auto?: boolean };
+  extraBreakdown: { extraKm?: number; perKm?: number | null; kmCharge?: number; otherCharges?: number; note?: string | null; auto?: boolean; claimed?: number };
   finalAmount: number | null;
   renterNote: string | null;
   ownerNote: string | null;
@@ -150,6 +182,18 @@ export interface Booking {
   canRate: boolean;
   rated: boolean;
   canReport: boolean;
+  // C7 safety (optional: older servers do not send them)
+  termsAcceptedAt?: string | null;
+  termsVersion?: string | null;
+  termsPending?: boolean;
+  pickupCondition?: ConditionRecord | null;
+  returnCondition?: ConditionRecord | null;
+  charges?: ChargesInfo;
+  canRespondToCharges?: boolean;
+  conditionPhotosRequired?: boolean;
+  otherChargesCap?: number;
+  /** Single-booking views only: the terms for this booking's mode + the insurance disclaimer. */
+  safety?: { termsVersion: string; terms: string[]; disclaimer: string };
 }
 
 export interface Licence {
@@ -217,7 +261,7 @@ export const rentalsApi = {
   eligibility: () => call<Eligibility>(`${R}/eligibility`),
   browse: (f: { type?: VehicleType | null; maxPricePerHour?: number | null; maxPricePerDay?: number | null; startAt?: string | null; endAt?: string | null; sort?: string; q?: string }) =>
     call<{ listings: Listing[]; count: number; campus: { id: string; name: string } | null }>(`${R}/listings${qs(f as any)}`),
-  listing: (id: string) => call<{ listing: Listing | OwnListing; busy: { startAt: string; endAt: string; pending: boolean }[]; reviews: Review[] }>(`${R}/listings/${encodeURIComponent(id)}`),
+  listing: (id: string) => call<{ listing: Listing | OwnListing; safety?: SafetyInfo; busy: { startAt: string; endAt: string; pending: boolean }[]; reviews: Review[] }>(`${R}/listings/${encodeURIComponent(id)}`),
   quote: (id: string, startAt: string, endAt: string) =>
     call<{ quote: Quote; available: boolean; reason: { code: string; message: string } | null }>(`${R}/listings/${encodeURIComponent(id)}/quote${qs({ startAt, endAt })}`),
   myListings: () => call<{ listings: OwnListing[] }>(`${R}/my/listings`),
@@ -230,7 +274,7 @@ export const rentalsApi = {
   licence: () => call<{ licence: Licence | null }>(`${R}/licence`),
   saveLicence: (body: { licenceNumber: string; classes: string[]; frontImage: string; backImage?: string | null; expiresOn?: string | null }) =>
     call<{ licence: Licence; message: string }>(`${R}/licence`, { method: 'PUT', body: JSON.stringify(body) }),
-  requestBooking: (body: { listingId: string; startAt: string; endAt: string; note?: string }) => post<{ booking: Booking }>(`${R}/bookings`, body),
+  requestBooking: (body: { listingId: string; startAt: string; endAt: string; note?: string; acceptTerms: true }) => post<{ booking: Booking }>(`${R}/bookings`, body),
   bookings: (role?: 'renter' | 'owner', scope?: 'open' | 'past') => call<{ bookings: Booking[] }>(`${R}/bookings${qs({ role, scope })}`),
   booking: (id: string) => call<{ booking: Booking }>(`${R}/bookings/${encodeURIComponent(id)}`),
   accept: (id: string) => post<{ booking: Booking }>(`${R}/bookings/${encodeURIComponent(id)}/accept`),
@@ -238,12 +282,37 @@ export const rentalsApi = {
   cancel: (id: string, reason?: string) => post<{ booking: Booking }>(`${R}/bookings/${encodeURIComponent(id)}/cancel`, { reason }),
   handover: (id: string, pin: string) => post<{ booking: Booking }>(`${R}/bookings/${encodeURIComponent(id)}/handover`, { pin }),
   markReturned: (id: string, pin: string) => post<{ booking: Booking }>(`${R}/bookings/${encodeURIComponent(id)}/return`, { pin }),
-  complete: (id: string, body: { extraKm?: number; otherCharges?: number; note?: string }) => post<{ booking: Booking }>(`${R}/bookings/${encodeURIComponent(id)}/complete`, body),
+  complete: (id: string, body: { extraKm?: number; otherCharges?: number; note?: string; photos?: string[] }) => post<{ booking: Booking }>(`${R}/bookings/${encodeURIComponent(id)}/complete`, body),
+  // C7 safety
+  acceptTerms: (id: string) => post<{ booking: Booking }>(`${R}/bookings/${encodeURIComponent(id)}/terms`, { acceptTerms: true }),
+  condition: (id: string, body: { stage: 'PICKUP' | 'RETURN'; photos: string[]; odometer?: number; note?: string }) => post<{ booking: Booking }>(`${R}/bookings/${encodeURIComponent(id)}/condition`, body),
+  respondCharges: (id: string, body: { action: 'ACCEPT' | 'DISPUTE'; note?: string; photos?: string[] }) => post<{ booking: Booking }>(`${R}/bookings/${encodeURIComponent(id)}/charges`, body),
   rate: (id: string, rating: number, text?: string) => post<{ booking: Booking; message: string }>(`${R}/bookings/${encodeURIComponent(id)}/rate`, { rating, text }),
   report: (id: string, body: { category: string; description: string; photos?: string[] }) => post<{ report: { id: string }; message: string }>(`${R}/bookings/${encodeURIComponent(id)}/report`, body),
 };
 
 // ── Display helpers ─────────────────────────────────────────────────────────
+/** C7 wording: RENT -> Rent / owner / renter / rent; BORROW -> Borrow / lender / borrower / cost share. */
+export const modeOf = (x?: { rentalMode?: RentalMode | null } | null): RentalMode => (x && x.rentalMode === 'RENT' ? 'RENT' : 'BORROW');
+export const MODE_WORDS: Record<RentalMode, { verb: string; giver: string; taker: string; Giver: string; Taker: string; price: string; Price: string; badge: string; color: string; booking: string }> = {
+  RENT: { verb: 'Rent', giver: 'owner', taker: 'renter', Giver: 'Owner', Taker: 'Renter', price: 'rent', Price: 'Rent', badge: 'RENT', color: '#F59E0B', booking: 'rental' },
+  BORROW: { verb: 'Borrow', giver: 'lender', taker: 'borrower', Giver: 'Lender', Taker: 'Borrower', price: 'cost share', Price: 'Cost share', badge: 'BORROW', color: '#10B981', booking: 'borrowing' },
+};
+export const wordsOf = (x?: { rentalMode?: RentalMode | null } | null) => MODE_WORDS[modeOf(x)];
+/** Booking status label in the right words ("Waiting for lender" / "Waiting for owner"). */
+export const bookingStatusLabel = (status: BookingStatus, x?: { rentalMode?: RentalMode | null } | null) =>
+  (status === 'REQUESTED' ? `Waiting for ${wordsOf(x).giver}` : (BOOKING_STATUS_META[status] || BOOKING_STATUS_META.REQUESTED).label);
+export const CHARGES_STATUS_LABEL: Record<ChargesStatus, string> = {
+  NONE: 'No extra charges',
+  PENDING: 'Waiting for your answer',
+  ACCEPTED: 'Accepted',
+  AUTO_ACCEPTED: 'Accepted (no answer in time)',
+  DISPUTED: 'Disputed: Zenvy team reviewing',
+  UPHELD: 'Upheld by Zenvy',
+  REDUCED: 'Reduced by Zenvy',
+  VOIDED: 'Cancelled by Zenvy',
+};
+
 export const VEHICLE_META: Record<VehicleType, { label: string; icon: string }> = {
   BIKE: { label: 'Bike', icon: '🏍️' },
   SCOOTER: { label: 'Scooter', icon: '🛵' },

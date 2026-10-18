@@ -1,13 +1,16 @@
 // Vehicle detail: photos, specs, availability, ratings, live price calculator and the booking request.
+// C7: worded for its mode (RENT: owner / renter / rent; BORROW: lender / borrower / cost share), with the
+// insurance disclaimer, and the request needs the booking terms ticked (sent as acceptTerms: true).
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Dimensions, RefreshControl, Modal, TouchableOpacity, Alert, Platform } from 'react-native';
 import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import SafeImage from '../../components/SafeImage';
 import {
-  rentalsApi, type Listing, type Quote, type Review, type Eligibility, VEHICLE_META, FUEL_LABEL, DAY_NAMES,
-  inr, fmtDateTime, fmtHours, fmtTime, istDate, istInstant, priceLabel, RentalsError,
+  rentalsApi, type Listing, type Quote, type Review, type Eligibility, type SafetyInfo, VEHICLE_META, FUEL_LABEL, DAY_NAMES,
+  inr, fmtDateTime, fmtHours, fmtTime, istDate, istInstant, priceLabel, RentalsError, wordsOf,
 } from '../../modules/rentals/rentalsApi';
+import { openLegal } from '../../utils/legal';
 import { VEHICLE_FALLBACK, RHeader, usePalette, Card, SectionTitle, Badge, Btn, Stars, Row, Notice, StateView, DateTimeSelect, Field, useRentalLive } from '../../modules/rentals/ui';
 
 const { width: SW } = Dimensions.get('window');
@@ -17,7 +20,7 @@ export default function RentalDetail() {
   const id = String(Array.isArray(params.id) ? params.id[0] : params.id || '');
   const router = useRouter();
   const p = usePalette();
-  const [data, setData] = useState<{ listing: Listing; busy: { startAt: string; endAt: string; pending: boolean }[]; reviews: Review[] } | null>(null);
+  const [data, setData] = useState<{ listing: Listing; safety?: SafetyInfo; busy: { startAt: string; endAt: string; pending: boolean }[]; reviews: Review[] } | null>(null);
   const [error, setError] = useState<RentalsError | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [elig, setElig] = useState<Eligibility | null>(null);
@@ -67,6 +70,8 @@ export default function RentalDetail() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [note, setNote] = useState('');
   const [sending, setSending] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const words = wordsOf(listing);
 
   const startRequest = () => {
     if (elig && !elig.eligible) {
@@ -77,12 +82,20 @@ export default function RentalDetail() {
       return;
     }
     if (elig && (!elig.licence || elig.licence.status === 'REJECTED')) {
-      Alert.alert('Driving licence needed', elig.licence ? 'Your licence was not accepted. Upload it again to rent.' : 'Add your driving licence once. Zenvy verifies it before owners can accept.', [
+      Alert.alert('Driving licence needed', elig.licence ? `Your licence was not accepted. Upload it again to ${words.verb.toLowerCase()}.` : `Add your driving licence once. Zenvy verifies it before the ${words.giver} can accept.`, [
         { text: 'Later', style: 'cancel' },
         { text: 'Add licence', onPress: () => router.push('/rentals/licence' as any) },
       ]);
       return;
     }
+    if (elig && elig.licence && (!elig.licence.expiresOn || elig.licence.expiresOn < istDate(0))) {
+      Alert.alert('Update your licence', elig.licence.expiresOn ? 'Your driving licence has expired. Upload your renewed licence to book.' : 'Add the "valid till" date of your driving licence before booking.', [
+        { text: 'Later', style: 'cancel' },
+        { text: 'Update licence', onPress: () => router.push('/rentals/licence' as any) },
+      ]);
+      return;
+    }
+    setAgreed(false);
     setConfirmOpen(true);
   };
 
@@ -90,16 +103,17 @@ export default function RentalDetail() {
   const sendingRef = useRef(false);
   const sendRequest = async () => {
     if (sendingRef.current) return;
+    if (!agreed) { Alert.alert('Booking terms', 'Tick the box to accept the booking terms first.'); return; }
     sendingRef.current = true;
     setSending(true);
     try {
-      const res = await rentalsApi.requestBooking({ listingId: id, startAt: startIso, endAt: endIso, note: note.trim() || undefined });
+      const res = await rentalsApi.requestBooking({ listingId: id, startAt: startIso, endAt: endIso, note: note.trim() || undefined, acceptTerms: true });
       setConfirmOpen(false);
       setNote('');
       router.replace(`/rentals/booking/${res.booking.id}` as any);
     } catch (e: any) {
       const err = e as RentalsError;
-      if (err.code === 'LICENCE_REQUIRED' || err.code === 'LICENCE_REJECTED' || err.code === 'LICENCE_EXPIRED' || err.code === 'LICENCE_CLASS_MISMATCH') {
+      if (err.code === 'LICENCE_REQUIRED' || err.code === 'LICENCE_REJECTED' || err.code === 'LICENCE_EXPIRED' || err.code === 'LICENCE_EXPIRY_REQUIRED' || err.code === 'LICENCE_CLASS_MISMATCH') {
         setConfirmOpen(false);
         Alert.alert('Driving licence', err.message, [{ text: 'Later', style: 'cancel' }, { text: 'Update licence', onPress: () => router.push('/rentals/licence' as any) }]);
       } else {
@@ -122,6 +136,9 @@ export default function RentalDetail() {
   }
   const l = data.listing;
   const meta = VEHICLE_META[l.vehicleType];
+  const w = wordsOf(l);
+  const safety = data.safety;
+  const openTerms = () => openLegal('terms');
   const weekly = Object.entries(l.weeklyHours || {}).filter(([, v]) => !!v) as [string, { start: string; end: string }][];
 
   return (
@@ -140,6 +157,10 @@ export default function RentalDetail() {
 
         <View style={{ padding: 16 }}>
           {l.isMine && l.status !== 'APPROVED' ? <Notice tone="warn">This is your vehicle. It is {l.status === 'PAUSED' ? 'paused' : l.status === 'PENDING_REVIEW' ? 'waiting for review' : l.status.toLowerCase().replace('_', ' ')} and not visible to other students.</Notice> : null}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <Badge label={w.badge} color={w.color} />
+            <Text style={{ fontSize: 11.5, color: p.sub, flex: 1 }}>{w.verb === 'Rent' ? 'Commercial rental vehicle (rental number plate)' : 'Private vehicle, lent between students (non-commercial)'}</Text>
+          </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ fontSize: 20, fontWeight: '900', color: p.success }}>{priceLabel(l)}</Text>
             {l.ratingCount > 0 ? <View style={{ alignItems: 'flex-end' }}><Stars value={l.ratingAvg} /><Text style={{ fontSize: 11, color: p.sub, marginTop: 2 }}>{l.ratingAvg.toFixed(1)} · {l.ratingCount} rating{l.ratingCount === 1 ? '' : 's'} · {l.tripCount} trips</Text></View> : <Badge label="NEW" color="#0EA5E9" />}
@@ -158,8 +179,8 @@ export default function RentalDetail() {
                 {l.owner.avatar ? <SafeImage source={{ uri: l.owner.avatar }} style={{ width: 42, height: 42 }} fallback={<Text style={{ fontSize: 18 }}>🧑‍🎓</Text>} /> : <Text style={{ fontSize: 18 }}>🧑‍🎓</Text>}
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 14, fontWeight: '900', color: p.text }}>{l.owner.name} <Text style={{ color: p.success, fontSize: 12 }}>✓ verified student</Text></Text>
-                <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }}>{l.owner.rating && l.owner.rating.avg ? `★ ${l.owner.rating.avg} from ${l.owner.rating.count} renter${l.owner.rating.count === 1 ? '' : 's'}` : 'No ratings yet'} · phone shared after you are confirmed</Text>
+                <Text style={{ fontSize: 14, fontWeight: '900', color: p.text }}>{l.owner.name} <Text style={{ color: p.success, fontSize: 12 }}>✓ verified student · {w.giver}</Text></Text>
+                <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }}>{l.owner.rating && l.owner.rating.avg ? `★ ${l.owner.rating.avg} from ${l.owner.rating.count} student${l.owner.rating.count === 1 ? '' : 's'}` : 'No ratings yet'} · phone shared after you are confirmed</Text>
               </View>
             </Card>
           ) : null}
@@ -183,7 +204,7 @@ export default function RentalDetail() {
             ) : null}
           </Card>
 
-          {l.rules ? <><SectionTitle>Owner's rules</SectionTitle><Card><Text style={{ fontSize: 12.5, color: p.text, lineHeight: 19 }}>{l.rules}</Text></Card></> : null}
+          {l.rules ? <><SectionTitle>{`${w.Giver}'s rules`}</SectionTitle><Card><Text style={{ fontSize: 12.5, color: p.text, lineHeight: 19 }}>{l.rules}</Text></Card></> : null}
 
           {canBook ? (
             <>
@@ -194,14 +215,25 @@ export default function RentalDetail() {
                 {quoteErr ? <Notice tone="danger">{quoteErr}</Notice> : quote ? (
                   <View>
                     {!quote.available && quote.reason ? <Notice tone="warn">{quote.reason.message}</Notice> : null}
-                    <Row label={`Rent · ${fmtHours(quote.quote.hours)}${quote.quote.minHoursApplied ? ' (minimum)' : ''}`} value={inr(quote.quote.rent)} />
+                    <Row label={`${w.Price} · ${fmtHours(quote.quote.hours)}${quote.quote.minHoursApplied ? ' (minimum)' : ''}`} value={inr(quote.quote.rent)} />
                     <Row label="Refundable deposit" value={inr(quote.quote.deposit)} />
                     {quote.quote.kmAllowance ? <Row label="Km included" value={`${quote.quote.kmAllowance} km${quote.quote.extraPerKm ? ` · then ₹${quote.quote.extraPerKm}/km` : ''}`} /> : null}
                     <View style={{ height: 1, backgroundColor: p.border, marginVertical: 6 }} />
                     <Row label="Pay in cash at pickup" value={inr(quote.quote.payAtHandover)} strong />
-                    <Text style={{ fontSize: 11, color: p.muted, marginTop: 6, lineHeight: 16 }}>{quote.quote.paymentNote} Zenvy does not collect rental money.</Text>
+                    <Text style={{ fontSize: 11, color: p.muted, marginTop: 6, lineHeight: 16 }}>{quote.quote.paymentNote} Zenvy does not collect this money.</Text>
                   </View>
                 ) : <Text style={{ color: p.sub, fontSize: 12 }}>{quoting ? 'Calculating…' : 'Pick your times to see the price.'}</Text>}
+              </Card>
+            </>
+          ) : null}
+
+          {safety ? (
+            <>
+              <SectionTitle>Insurance & responsibility</SectionTitle>
+              <Card>
+                <Text style={{ fontSize: 12.5, color: p.text, lineHeight: 18 }}>🛡️ {safety.disclaimer}</Text>
+                {safety.conditionPhotosRequired ? <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 8, lineHeight: 17 }}>📸 The {w.giver} records photos and the odometer at pickup and at return. You can add your own too.</Text> : null}
+                <TouchableOpacity onPress={openTerms} accessibilityRole="link"><Text style={{ fontSize: 11.5, color: p.accent, fontWeight: '800', marginTop: 8 }}>Read the full Terms ›</Text></TouchableOpacity>
               </Card>
             </>
           ) : null}
@@ -225,23 +257,37 @@ export default function RentalDetail() {
             <Text style={{ fontSize: 11, color: p.sub }}>{quote ? `${fmtHours(quote.quote.hours)} · pay at pickup` : 'Pick times above'}</Text>
             <Text style={{ fontSize: 18, fontWeight: '900', color: p.text }}>{quote ? inr(quote.quote.payAtHandover) : '—'}</Text>
           </View>
-          <Btn label="Request booking" onPress={startRequest} disabled={!quote || !quote.available || quoting} style={{ flex: 1.3 }} />
+          <Btn label={`Request to ${w.verb.toLowerCase()}`} onPress={startRequest} disabled={!quote || !quote.available || quoting} style={{ flex: 1.3 }} />
         </View>
       ) : null}
 
       <Modal visible={confirmOpen} transparent animationType="slide" onRequestClose={() => setConfirmOpen(false)}>
         <KeyboardAvoidingView style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={{ backgroundColor: p.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 18, paddingBottom: 30 }}>
-            <Text style={{ fontSize: 17, fontWeight: '900', color: p.text }}>Send request to {l.owner?.name || 'the owner'}</Text>
-            <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 4, marginBottom: 12 }}>{fmtDateTime(startIso)} → {fmtDateTime(endIso)}</Text>
-            {quote ? <Card><Row label="Rent" value={inr(quote.quote.rent)} /><Row label="Deposit (returned at drop-off)" value={inr(quote.quote.deposit)} /><Row label="Cash at pickup" value={inr(quote.quote.payAtHandover)} strong /></Card> : null}
-            <Field label="Message to owner (optional)" value={note} onChangeText={(t) => setNote(t.slice(0, 500))} placeholder="e.g. Going to Vijayawada, back by evening" multiline />
-            {elig?.licence && elig.licence.status === 'PENDING' ? <Notice tone="info">Your licence is being verified. The owner can accept once Zenvy verifies it.</Notice> : null}
-            <Text style={{ fontSize: 11, color: p.muted, marginBottom: 12 }}>The owner has up to 2 hours to answer. The final price is calculated by Zenvy when you send the request.</Text>
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <Btn label="Back" kind="secondary" onPress={() => setConfirmOpen(false)} style={{ flex: 1 }} />
-              <Btn label="Send request" loading={sending} onPress={sendRequest} style={{ flex: 2 }} />
-            </View>
+          <View style={{ backgroundColor: p.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 18, paddingBottom: 30, maxHeight: '92%' }}>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <Text style={{ fontSize: 17, fontWeight: '900', color: p.text }}>{w.verb === 'Rent' ? 'Rental' : 'Borrow'} request to {l.owner?.name || `the ${w.giver}`}</Text>
+              <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 4, marginBottom: 12 }}>{fmtDateTime(startIso)} → {fmtDateTime(endIso)}</Text>
+              {quote ? <Card><Row label={w.Price} value={inr(quote.quote.rent)} /><Row label="Deposit (returned at drop-off)" value={inr(quote.quote.deposit)} /><Row label="Cash at pickup" value={inr(quote.quote.payAtHandover)} strong /></Card> : null}
+              <Field label={`Message to the ${w.giver} (optional)`} value={note} onChangeText={(t) => setNote(t.slice(0, 500))} placeholder="e.g. Going to Vijayawada, back by evening" multiline />
+              {elig?.licence && elig.licence.status === 'PENDING' ? <Notice tone="info">Your licence is being verified. The {w.giver} can accept once Zenvy verifies it.</Notice> : null}
+              <Text style={{ fontSize: 11, fontWeight: '900', color: p.sub, marginBottom: 6, letterSpacing: 0.5 }}>{w.verb === 'Rent' ? 'RENTAL TERMS' : 'BORROWING TERMS'}</Text>
+              <Card>
+                {(safety?.terms || []).map((t) => <Text key={t} style={{ fontSize: 12, color: p.text, lineHeight: 17, marginBottom: 6 }}>• {t}</Text>)}
+                {safety?.disclaimer ? <Text style={{ fontSize: 11.5, color: p.sub, lineHeight: 16, marginTop: 4 }}>🛡️ {safety.disclaimer}</Text> : null}
+              </Card>
+              <TouchableOpacity onPress={() => setAgreed((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked: agreed }} accessibilityLabel="I accept these booking terms"
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, marginBottom: 6 }}>
+                <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: agreed ? p.accent : p.inputBorder, backgroundColor: agreed ? p.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+                  {agreed ? <Text style={{ color: '#fff', fontWeight: '900', fontSize: 13 }}>✓</Text> : null}
+                </View>
+                <Text style={{ flex: 1, fontSize: 12.5, fontWeight: '800', color: p.text }}>I accept these {w.verb === 'Rent' ? 'rental' : 'borrowing'} terms for this booking</Text>
+              </TouchableOpacity>
+              <Text style={{ fontSize: 11, color: p.muted, marginBottom: 12 }}>The {w.giver} has up to 2 hours to answer. The final price is calculated by Zenvy when you send the request.</Text>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <Btn label="Back" kind="secondary" onPress={() => setConfirmOpen(false)} style={{ flex: 1 }} />
+                <Btn label="Send request" loading={sending} onPress={sendRequest} disabled={!agreed} style={{ flex: 2 }} />
+              </View>
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>

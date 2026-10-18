@@ -82,6 +82,10 @@ const gather = async (env = process.env) => {
 
   const retention = await safe(() => require('../cron/retentionCron').getRetentionPolicy(), { chatDays: 7, pulseDays: 30 });
 
+  // C7: rentals safety settings (condition photos, extra-charges cap and answer window).
+  const rentalsSafety = require('../modules/rentals/services/safety');
+  const rentals = await safe(() => rentalsSafety.readSettings(), { ...rentalsSafety.DEFAULTS });
+
   const friendsCfg = await safe(() => require('../modules/friends/services/featureFlags').getConfig(), null);
   const sla = (friendsCfg && friendsCfg.slaHours) || { low: 72, medium: 48, high: 24, critical: 4 };
   const autoHide = (friendsCfg && friendsCfg.autoHideThreshold) || 3;
@@ -94,6 +98,7 @@ const gather = async (env = process.env) => {
     events,
     eventsWallet,
     retention,
+    rentals,
     connectChatDays: num(env.CONNECT_CHAT_RETENTION_DAYS, 1, 365, 30),
     ugcAutoHide: num(env.UGC_AUTO_HIDE_REPORTS, 2, 50, 3),
     friendsAutoHide: autoHide,

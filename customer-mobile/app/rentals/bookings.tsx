@@ -1,9 +1,10 @@
-// My rental bookings: as renter (vehicles I rent) and as owner (requests for my vehicles), upcoming / past.
+// My rental bookings: as renter / borrower (vehicles I rent or borrow) and as owner / lender (requests for my
+// vehicles), upcoming / past. C7: every row is worded for its mode (Rent or Borrow) and badged.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import SafeImage from '../../components/SafeImage';
-import { rentalsApi, type Booking, BOOKING_STATUS_META, VEHICLE_META, inr, fmtDateTime } from '../../modules/rentals/rentalsApi';
+import { rentalsApi, type Booking, BOOKING_STATUS_META, VEHICLE_META, inr, fmtDateTime, wordsOf, bookingStatusLabel } from '../../modules/rentals/rentalsApi';
 import { VEHICLE_FALLBACK, RHeader, usePalette, Chips, Badge, StateView, useRentalLive } from '../../modules/rentals/ui';
 
 export default function RentalBookings() {
@@ -34,7 +35,7 @@ export default function RentalBookings() {
 
   return (
     <View style={{ flex: 1, backgroundColor: p.bg }}>
-      <RHeader title="Rental bookings" subtitle="Cash at pickup · PIN handover" />
+      <RHeader title="My bookings" subtitle="Rent & borrow · cash at pickup · PIN handover" />
       <FlatList
         data={items || []}
         keyExtractor={(b) => b.id}
@@ -42,7 +43,7 @@ export default function RentalBookings() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}
         ListHeaderComponent={
           <View style={{ marginBottom: 12, gap: 10 }}>
-            <Chips<'renter' | 'owner'> options={[{ key: 'renter', label: '🧳 I am renting' }, { key: 'owner', label: '🔑 My vehicles' }]} value={role} onChange={setRole} />
+            <Chips<'renter' | 'owner'> options={[{ key: 'renter', label: '🧳 I am renting / borrowing' }, { key: 'owner', label: '🔑 My vehicles' }]} value={role} onChange={setRole} />
             <Chips<'open' | 'past'> options={[{ key: 'open', label: 'Upcoming & active' }, { key: 'past', label: 'Past' }]} value={scope} onChange={setScope} />
           </View>
         }
@@ -54,7 +55,9 @@ export default function RentalBookings() {
                 actionLabel={role === 'renter' ? 'Browse vehicles' : 'My vehicles'} onAction={() => router.push((role === 'renter' ? '/rentals' : '/rentals/my-listings') as any)} />
         }
         renderItem={({ item: b }) => {
-          const baseMeta = BOOKING_STATUS_META[b.status] || { ...BOOKING_STATUS_META.REQUESTED, label: String(b.status || 'Booking') };
+          const w = wordsOf(b);
+          const known = !!BOOKING_STATUS_META[b.status];
+          const baseMeta = known ? { ...BOOKING_STATUS_META[b.status], label: bookingStatusLabel(b.status, b) } : { ...BOOKING_STATUS_META.REQUESTED, label: String(b.status || 'Booking') };
           const needsAction = b.role === 'OWNER' && b.status === 'REQUESTED';
           // The owner is the one who has to answer: never show them "waiting for owner".
           const meta = needsAction ? { ...baseMeta, label: 'New request' } : baseMeta;
@@ -67,11 +70,13 @@ export default function RentalBookings() {
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
                   <Badge label={meta.label.toUpperCase()} color={meta.color} />
+                  <Badge label={w.badge} color={w.color} />
                   {needsAction ? <Badge label="ANSWER NOW" color="#EF4444" /> : null}
+                  {b.role === 'RENTER' && (b.canRespondToCharges || b.termsPending) ? <Badge label={b.termsPending ? 'ACCEPT TERMS' : 'REVIEW CHARGES'} color="#EF4444" /> : null}
                 </View>
                 <Text style={{ fontSize: 14, fontWeight: '900', color: p.text, marginTop: 4 }} numberOfLines={1}>{b.vehicleTitle}</Text>
                 <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }} numberOfLines={1}>{fmtDateTime(b.startAt)} → {fmtDateTime(b.endAt)}</Text>
-                <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }} numberOfLines={1}>{b.role === 'OWNER' ? `Renter: ${b.counterpart?.name || 'Student'}` : `Owner: ${b.counterpart?.name || 'Student'}`} · {inr(b.payAtHandover)} cash at pickup</Text>
+                <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }} numberOfLines={1}>{b.role === 'OWNER' ? `${w.Taker}: ${b.counterpart?.name || 'Student'}` : `${w.Giver}: ${b.counterpart?.name || 'Student'}`} · {inr(b.payAtHandover)} cash at pickup</Text>
               </View>
             </TouchableOpacity>
           );

@@ -121,7 +121,7 @@ export default function RentalsBrowse() {
             : error ? (error.code === 'FEATURE_OFF'
               ? <StateView kind="empty" icon="⏸️" title="Rentals are paused" message={error.message} />
               : <StateView kind="error" title="Could not load vehicles" message={error.message} actionLabel="Retry" onAction={load} />)
-              : <StateView kind="empty" title={isDefault ? 'No student vehicles yet' : 'Nothing matches'} message={isDefault ? 'List yours and be the first on campus.' : 'Try other dates or remove a filter.'} actionLabel={isDefault ? 'Rent out your vehicle' : 'Clear filters'} onAction={() => (isDefault ? router.push('/rentals/new' as any) : setFilters({ type: 'ALL', maxHour: '', maxDay: '', when: null, sort: 'recent' }))} />
+              : <StateView kind="empty" title={isDefault ? 'No student vehicles yet' : 'Nothing matches'} message={isDefault ? 'List yours and be the first on campus.' : 'Try other dates or remove a filter.'} actionLabel={isDefault ? 'Rent out or lend your vehicle' : 'Clear filters'} onAction={() => (isDefault ? router.push('/rentals/new' as any) : setFilters({ type: 'ALL', maxHour: '', maxDay: '', when: null, sort: 'recent' }))} />
         }
       />
       <DatesSheet visible={showDates} onClose={() => setShowDates(false)} onApply={(when) => { setFilters((f) => ({ ...f, when })); setShowDates(false); }} />

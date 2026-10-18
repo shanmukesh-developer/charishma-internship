@@ -107,6 +107,29 @@ const initRentalsModels = (sequelize) => {
     lateNoticeSentAt: { type: DataTypes.DATE, allowNull: true },
     renterRatedAt: { type: DataTypes.DATE, allowNull: true },
     ownerRatedAt: { type: DataTypes.DATE, allowNull: true },
+    // ── C7 safety (all nullable / defaulted: added on boot by addMissingColumns) ──
+    // RENT (commercial plate) | BORROW (private plate), snapshot at request time (enums.rentalMode).
+    rentalMode: { type: DataTypes.STRING(6), allowNull: true },
+    // Per-booking terms the renter / borrower ticked. termsPending = an older app build sent no
+    // acceptTerms: the booking is stored, but the handover waits until the terms are accepted.
+    termsAcceptedAt: { type: DataTypes.DATE, allowNull: true },
+    termsVersion: { type: DataTypes.STRING(20), allowNull: true },
+    termsPending: { type: DataTypes.BOOLEAN, allowNull: true, defaultValue: false },
+    // { OWNER: { photos[], odometer, note, at }, RENTER: { ... } } photos = private media (rental_condition).
+    pickupCondition: json(null),
+    returnCondition: json(null),
+    // Extra-charges claim: extraCharges / finalAmount only count accepted / upheld charges.
+    chargesStatus: { type: DataTypes.STRING(14), allowNull: true },
+    chargesClaimed: { type: DataTypes.FLOAT, allowNull: true },
+    chargesNote: { type: DataTypes.STRING(500), allowNull: true },
+    chargesPhotos: json(null),
+    chargesRespondBy: { type: DataTypes.DATE, allowNull: true },
+    chargesRespondedAt: { type: DataTypes.DATE, allowNull: true },
+    disputeNote: { type: DataTypes.STRING(1000), allowNull: true },
+    disputePhotos: json(null),
+    // { outcome: UPHOLD|REDUCE|VOID, amount, reason, by, at }
+    chargesResolution: json(null),
+    chargesResolvedAt: { type: DataTypes.DATE, allowNull: true },
   }, {
     tableName: 'RentalBookings',
     timestamps: true,

@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Alert, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import SafeImage from '../../components/SafeImage';
-import { rentalsApi, type OwnListing, LISTING_STATUS_META, VEHICLE_META, priceLabel } from '../../modules/rentals/rentalsApi';
+import { rentalsApi, type OwnListing, LISTING_STATUS_META, VEHICLE_META, priceLabel, wordsOf } from '../../modules/rentals/rentalsApi';
 import { VEHICLE_FALLBACK, RHeader, usePalette, Card, Badge, Btn, StateView, Notice, Stars, useRentalLive } from '../../modules/rentals/ui';
 
 const MISSING_LABEL: Record<string, string> = {
@@ -80,6 +80,7 @@ export default function MyListings() {
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     <Badge label={meta.label.toUpperCase()} color={meta.color} />
+                    {l.plateType ? <Badge label={wordsOf(l).badge} color={wordsOf(l).color} /> : null}
                     {(l.pendingRequests || 0) > 0 ? <Badge label={`${l.pendingRequests} REQUEST${l.pendingRequests === 1 ? '' : 'S'}`} color="#EF4444" /> : null}
                   </View>
                   <Text style={{ fontSize: 14.5, fontWeight: '900', color: p.text, marginTop: 5 }} numberOfLines={1}>{l.title}{l.year ? ` · ${l.year}` : ''}</Text>

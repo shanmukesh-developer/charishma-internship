@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import SafeImage from '../../components/SafeImage';
 import { useAuth } from '../../context/AuthContext';
 import { readCache, writeCache } from '../../utils/swrCache';
-import { rentalsApi, type Eligibility, type Listing, VEHICLE_META, priceLabel, RentalsError } from './rentalsApi';
+import { rentalsApi, type Eligibility, type Listing, VEHICLE_META, priceLabel, RentalsError, wordsOf } from './rentalsApi';
 import { usePalette, Btn, Badge, Stars, useRentalLive, GRAD, VEHICLE_FALLBACK } from './ui';
 
 const { width: SW } = Dimensions.get('window');
@@ -128,12 +128,12 @@ function Hero({ onCta, eligible = true }: { onCta: () => void; eligible?: boolea
   return (
     <LinearGradient colors={GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 22, padding: 18, marginBottom: 12, marginTop: 4 }}>
       <Text style={{ fontSize: 9, fontWeight: '900', color: 'rgba(255,255,255,0.85)', letterSpacing: 1.5 }}>ZENVY RENTALS · PEER TO PEER</Text>
-      <Text style={{ fontSize: 21, fontWeight: '900', color: '#fff', marginTop: 4, letterSpacing: -0.4 }}>Rent a ride from a classmate 🏍️🚗</Text>
-      <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 6, lineHeight: 17 }}>Bikes, scooters and cars from college-verified students. Pick up with a PIN, pay cash at pickup.</Text>
-      <TouchableOpacity onPress={onCta} accessibilityRole="button" accessibilityLabel="Rent out your vehicle" activeOpacity={0.9}
+      <Text style={{ fontSize: 21, fontWeight: '900', color: '#fff', marginTop: 4, letterSpacing: -0.4 }}>Rent or borrow a ride from a classmate 🏍️🚗</Text>
+      <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 6, lineHeight: 17 }}>Bikes, scooters and cars from college-verified students. Commercial-plate vehicles are rented, private ones are borrowed. Pick up with a PIN, pay cash at pickup.</Text>
+      <TouchableOpacity onPress={onCta} accessibilityRole="button" accessibilityLabel="Rent out or lend your vehicle" activeOpacity={0.9}
         style={{ marginTop: 14, backgroundColor: '#fff', borderRadius: 14, paddingVertical: 13, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View>
-          <Text style={{ fontSize: 14.5, fontWeight: '900', color: '#0F172A' }}>Rent out your vehicle</Text>
+          <Text style={{ fontSize: 14.5, fontWeight: '900', color: '#0F172A' }}>Rent out or lend your vehicle</Text>
           <Text style={{ fontSize: 11, color: '#475569', marginTop: 1 }}>{eligible ? 'List it in 5 minutes · you set the price' : 'Verify your college first'}</Text>
         </View>
         <Text style={{ fontSize: 20, color: '#0EA5E9', fontWeight: '900' }}>→</Text>
@@ -156,12 +156,14 @@ function Quick({ icon, label, onPress, badge }: { icon: string; label: string; o
 export function MiniCard({ l, onPress, width = CARD_W }: { l: Listing; onPress: () => void; width?: number }) {
   const p = usePalette();
   const meta = VEHICLE_META[l.vehicleType];
+  const w = wordsOf(l);
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.9} accessibilityRole="button" accessibilityLabel={`${l.title}, ${priceLabel(l)}`}
+    <TouchableOpacity onPress={onPress} activeOpacity={0.9} accessibilityRole="button" accessibilityLabel={`${w.verb}: ${l.title}, ${priceLabel(l)}`}
       style={{ width, borderRadius: 18, borderWidth: 1, borderColor: p.border, backgroundColor: p.card, overflow: 'hidden' }}>
       <View style={{ height: 120, backgroundColor: p.card2 }}>
         {l.photos[0] ? <SafeImage source={{ uri: l.photos[0] }} style={{ width: '100%', height: '100%' }} contentFit="cover" fallbackUri={VEHICLE_FALLBACK} /> : <Text style={{ fontSize: 40, textAlign: 'center', marginTop: 34 }}>{meta.icon}</Text>}
         <View style={{ position: 'absolute', top: 8, left: 8 }}><Badge label={`${meta.icon} ${meta.label.toUpperCase()}`} color="#0EA5E9" /></View>
+        <View style={{ position: 'absolute', bottom: 8, left: 8 }}><Badge label={w.badge} color={w.color} /></View>
         {l.isMine ? <View style={{ position: 'absolute', top: 8, right: 8 }}><Badge label="YOURS" color="#8B5CF6" /></View> : null}
       </View>
       <View style={{ padding: 10 }}>
