@@ -16,7 +16,8 @@
     "test:infra": "node tests/infra/run.js",
     "test:c3": "node tests/c3/run.js",
     "test:c4": "node tests/c4/run.js",
-    "test:c5": "node tests/c5/run.js"
+    "test:c5": "node tests/c5/run.js",
+    "test:c6": "node tests/c6/run.js"
   },
   "keywords": [],
   "author": "",

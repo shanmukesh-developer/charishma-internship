@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { API_URL } from '@/lib/config';
+import RiderCashPanel from '@/components/finance/RiderCashPanel';
+import PayoutsPanel from '@/components/finance/PayoutsPanel';
 
 // ─── Types (GET /api/admin/finance, /finance/payouts, /finance/disputes) ───
 interface Transaction {
@@ -19,20 +21,12 @@ interface FinanceReport {
   totalRevenue: number;
   totalCommission: number;
   totalDeliveryFees: number;
+  /** C6: one earnings rule (delivery fee, ₹30 when it is 0). */
+  totalRiderEarnings?: number;
+  /** C6: delivered orders without a commission snapshot (settled before C6; current rate shown). */
+  commissionEstimatedOrders?: number;
   total: number;
   pages: number;
-}
-
-interface Payout {
-  restaurantId: string;
-  restaurantName: string;
-  vendorType: string;
-  totalOrders: number;
-  totalGMV: number;
-  totalCommission: number;
-  netPayout: number;
-  /** When the server built this list (newer backends); sent back as `upTo` when settling. */
-  asOf?: string;
 }
 
 interface Dispute {
@@ -50,7 +44,7 @@ interface Dispute {
   createdAt: string;
 }
 
-type Tab = 'ledger' | 'payouts' | 'disputes';
+type Tab = 'ledger' | 'payouts' | 'cash' | 'disputes';
 type Notice = { kind: 'success' | 'error'; text: string } | null;
 
 const rupees = (n: number | null | undefined) => `₹${Math.round(Number(n || 0)).toLocaleString('en-IN')}`;
@@ -135,9 +129,6 @@ export default function FinanceConsole() {
   const [reportError, setReportError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [payouts, setPayouts] = useState<Payout[]>([]);
-  const [payoutsLoading, setPayoutsLoading] = useState(true);
-  const [payoutsError, setPayoutsError] = useState<string | null>(null);
 
   const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [disputesLoading, setDisputesLoading] = useState(true);
@@ -145,8 +136,6 @@ export default function FinanceConsole() {
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const inFlight = useRef(false);
-  /** Browser time just before the payout list was requested (fallback `upTo` until the server sends `asOf`). */
-  const payoutsLoadedAt = useRef<string>(new Date().toISOString());
   const [notice, setNotice] = useState<Notice>(null);
   const [search, setSearch] = useState('');
 
@@ -161,21 +150,6 @@ export default function FinanceConsole() {
       setReportError(err instanceof Error ? err.message : 'Could not load the ledger.');
     } finally {
       setReportLoading(false);
-    }
-  }, []);
-
-  const fetchPayouts = useCallback(async () => {
-    setPayoutsLoading(true);
-    try {
-      const loadedAt = new Date().toISOString();
-      const data = await requestJson<Payout[]>(`${API_URL}/api/admin/finance/payouts`);
-      payoutsLoadedAt.current = loadedAt;
-      setPayouts(Array.isArray(data) ? data : []);
-      setPayoutsError(null);
-    } catch (err) {
-      setPayoutsError(err instanceof Error ? err.message : 'Could not load payouts.');
-    } finally {
-      setPayoutsLoading(false);
     }
   }, []);
 
@@ -195,9 +169,8 @@ export default function FinanceConsole() {
   useEffect(() => {
     if (!isAuthed) return;
     fetchFinanceData(1);
-    fetchPayouts();
     fetchDisputes();
-  }, [isAuthed, fetchFinanceData, fetchPayouts, fetchDisputes]);
+  }, [isAuthed, fetchFinanceData, fetchDisputes]);
 
   const exportCSV = () => {
     if (!report || report.transactions.length === 0) return;
@@ -244,38 +217,19 @@ export default function FinanceConsole() {
     });
   };
 
-  const handleMarkSettled = (p: Payout) => {
-    if (!confirm(`Mark ${rupees(p.netPayout)} for ${p.restaurantName} (${p.totalOrders} delivered orders) as paid out?\n\nOrders delivered after this list loaded are not included. Only do this after the money has been transferred to the store.`)) return;
-    runAction(p.restaurantId, async () => {
-      const data = await requestJson<{ message?: string; updatedOrdersCount?: number }>(`${API_URL}/api/admin/finance/settle-restaurant`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // Upper bound: settle only the orders this screen showed (delivered up to the list's `asOf`).
-        body: JSON.stringify({ restaurantId: p.restaurantId, upTo: p.asOf || payoutsLoadedAt.current, expectedOrders: p.totalOrders }),
-      });
-      fetchPayouts();
-      const settled = data?.updatedOrdersCount;
-      if (typeof settled === 'number' && settled !== p.totalOrders) {
-        throw new Error(`${p.restaurantName}: ${settled} orders were marked as settled, but ${p.totalOrders} were shown. Recheck this store's payout before paying anything more.`);
-      }
-      return `${p.restaurantName}: ${settled ?? p.totalOrders} orders marked as settled.`;
-    });
-  };
-
   if (!isAuthed) return <div className="p-20 text-center font-black text-white uppercase tracking-widest animate-pulse">Checking access…</div>;
 
   const q = search.trim().toLowerCase();
   const filteredTransactions = (report?.transactions || []).filter(tx =>
     !q || String(tx.restaurantName || '').toLowerCase().includes(q) || String(tx.orderId || '').toLowerCase().includes(q)
   );
-  const totalPayoutOwed = payouts.reduce((s, p) => s + (p.netPayout || 0), 0);
 
   return (
     <div className="space-y-10 animate-fade-in relative pb-20">
       <header className="flex flex-wrap justify-between items-center gap-6 bg-white/5 p-8 rounded-[40px] border border-white/5 glass">
         <div>
           <h2 className="text-3xl font-black text-white tracking-tighter uppercase">Finance</h2>
-          <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mt-1">Delivered-order ledger, store payouts and refunds</p>
+          <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mt-1">Delivered-order ledger, payouts, rider cash and refunds</p>
         </div>
         <div className="glass px-10 py-4 rounded-3xl border border-white/10 flex flex-col">
           <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1">Platform commission (all time)</span>
@@ -293,7 +247,8 @@ export default function FinanceConsole() {
       <div className="flex gap-4 border-b border-white/10 pb-4">
         {([
           { id: 'ledger', label: 'Ledger' },
-          { id: 'payouts', label: 'Store payouts' },
+          { id: 'payouts', label: 'Payouts' },
+          { id: 'cash', label: 'Rider cash' },
           { id: 'disputes', label: 'Cancellations & refunds' },
         ] as { id: Tab; label: string }[]).map(tab => (
           <button
@@ -316,10 +271,11 @@ export default function FinanceConsole() {
             <div className="glass-card p-8 bg-emerald-600/5">
               <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-2">Commission</p>
               <h4 className="text-2xl font-black text-white">{report ? rupees(report.totalCommission) : '—'}</h4>
+              {report && (report.commissionEstimatedOrders || 0) > 0 && <p className="text-[10px] text-gray-500 mt-1">Fixed per order; {report.commissionEstimatedOrders} older settled order(s) use today&apos;s rate.</p>}
             </div>
             <div className="glass-card p-8 bg-[var(--zenvy-gold)]/5">
-              <p className="text-[9px] font-black text-[var(--zenvy-gold)] uppercase tracking-widest mb-2">Delivery fees (rider earnings)</p>
-              <h4 className="text-2xl font-black text-white">{report ? rupees(report.totalDeliveryFees) : '—'}</h4>
+              <p className="text-[9px] font-black text-[var(--zenvy-gold)] uppercase tracking-widest mb-2">Rider earnings</p>
+              <h4 className="text-2xl font-black text-white">{report ? rupees(report.totalRiderEarnings ?? report.totalDeliveryFees) : '—'}</h4>
             </div>
             <div className="glass-card p-8 bg-white/5">
               <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">Delivered orders</p>
@@ -392,49 +348,9 @@ export default function FinanceConsole() {
         </>
       )}
 
-      {activeTab === 'payouts' && (
-        <div className="glass-card overflow-hidden">
-          <div className="p-8 border-b border-white/5 flex flex-wrap gap-4 justify-between items-center bg-white/[0.01]">
-            <div>
-              <h4 className="text-lg font-black text-white uppercase tracking-tight">Unsettled store payouts</h4>
-              <p className="text-[11px] text-gray-500 mt-1">Delivered orders not yet paid out to the store, after commission. Total owed: <span className="text-white font-bold">{rupees(totalPayoutOwed)}</span>. Rider payouts are under Fleet.</p>
-            </div>
-            <button onClick={fetchPayouts} disabled={payoutsLoading} className="px-4 py-2 bg-blue-500/10 text-blue-400 rounded-xl text-[10px] font-black uppercase disabled:opacity-30">↻ Refresh</button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-white/[0.03]">
-                  {['Store', 'Orders', 'Order value', 'Commission', 'Payout owed', ''].map(h => (
-                    <th key={h} className="px-8 py-4 text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/5">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.02]">
-                <SectionState colSpan={6} loading={payoutsLoading} error={payoutsError} onRetry={fetchPayouts} empty={payouts.length === 0} emptyText="Nothing to settle. Every delivered order has been paid out." />
-                {!payoutsLoading && !payoutsError && payouts.map(p => (
-                  <tr key={p.restaurantId} className="hover:bg-white/[0.02]">
-                    <td className="px-8 py-4 text-sm font-bold text-white">{p.restaurantName} <span className="block text-[8px] text-gray-500 uppercase">{p.vendorType}</span></td>
-                    <td className="px-8 py-4 text-sm text-gray-300 font-mono">{p.totalOrders}</td>
-                    <td className="px-8 py-4 text-sm text-gray-300 font-mono">{rupees(p.totalGMV)}</td>
-                    <td className="px-8 py-4 text-sm text-red-400 font-mono">−{rupees(p.totalCommission)}</td>
-                    <td className="px-8 py-4 text-lg font-black text-emerald-400">{rupees(p.netPayout)}</td>
-                    <td className="px-8 py-4">
-                      <button
-                        onClick={() => handleMarkSettled(p)}
-                        disabled={actionLoading !== null}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[9px] font-black uppercase disabled:opacity-40"
-                      >
-                        {actionLoading === p.restaurantId ? 'Saving…' : 'Mark paid'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      {activeTab === 'payouts' && <PayoutsPanel />}
+
+      {activeTab === 'cash' && <RiderCashPanel />}
 
       {activeTab === 'disputes' && (
         <div className="glass-card overflow-hidden">

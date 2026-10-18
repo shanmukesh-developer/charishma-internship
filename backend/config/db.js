@@ -44,6 +44,8 @@ const { initNotificationModel } = require('../models/Notification');
 const { initIdempotencyKeyModel } = require('../models/IdempotencyKey');
 const { initSmsDailyCountModel } = require('../models/SmsDailyCount');
 const { initWalletTransactionModel } = require('../models/WalletTransaction');
+const { initRiderCashEntryModel } = require('../models/RiderCashEntry');
+const { initPayoutModel } = require('../models/Payout');
 const { initCampusModels } = require('../modules/campus/models');
 const { initFriendsModels } = require('../modules/friends');
 const { initRentalsModels } = require('../modules/rentals');
@@ -94,6 +96,9 @@ const initializeAllModels = (instance) => {
   initSmsDailyCountModel(instance);
   // C5 wallet ledger (WalletTransactions).
   initWalletTransactionModel(instance);
+  // C6 rider cash ledger (RiderCashEntries) + payout statements (Payouts).
+  initRiderCashEntryModel(instance);
+  initPayoutModel(instance);
   // Zenvy Friends tables (after Users / campus / chat models they reference).
   initFriendsModels(instance);
   // Zenvy Rentals: peer-to-peer student vehicle rentals (Others > Rentals).
@@ -641,6 +646,9 @@ const connectDB = async () => {
       // C5 wallet ledger: named indexes + one-time OPENING_BALANCE rows (additive, idempotent, never
       // changes a balance). Never throws.
       await require('../utils/walletLedger').runWalletLedgerMigrations(sequelize);
+      // C6: rider cash ledger indexes, ledger start marker, one-time commission snapshot of unsettled
+      // orders (current rate). Additive, idempotent, never changes money. Never throws.
+      await require('../utils/financeMigrations').runFinanceMigrations(sequelize);
     } else {
       // Production: no sync({ alter: true }) on every boot. Sequelize v6 alter re-adds UNIQUE
       // constraints each run (duplicate *_key indexes pile up), slows startup (API is 503 until
@@ -698,6 +706,9 @@ const connectDB = async () => {
       // C5 wallet ledger: named indexes + one-time OPENING_BALANCE rows (additive, idempotent, never
       // changes a balance). Never throws.
       await require('../utils/walletLedger').runWalletLedgerMigrations(sequelize);
+      // C6: rider cash ledger indexes, ledger start marker, one-time commission snapshot of unsettled
+      // orders (current rate). Additive, idempotent, never changes money. Never throws.
+      await require('../utils/financeMigrations').runFinanceMigrations(sequelize);
       
       // Auto-check for empty DB to help user identify missing data
       const Restaurant = sequelize.models.Restaurant;

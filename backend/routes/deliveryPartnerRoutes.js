@@ -33,6 +33,13 @@ router.get('/support', protect, rider, getRiderTickets);
 router.get('/profile', protect, rider, getRiderProfile);
 // C5: rider wallet (customer tips, payouts) history.
 router.get('/wallet/transactions', protect, rider, require('../controllers/walletController').getRiderWalletTransactions);
+// C6: cash held for Zenvy (COD) + limit + net position, cash history, payout statements.
+{
+  const fc = require('../controllers/financeController');
+  router.get('/cash', protect, rider, fc.getMyCash);
+  router.get('/cash/entries', protect, rider, fc.getMyCashEntries);
+  router.get('/payouts', protect, rider, fc.getMyPayouts);
+}
 router.put('/profile', protect, rider, updateRiderProfile);
 router.put('/profile/password', protect, rider, changePassword);
 router.get('/profile/:id/public', protect, getPublicRiderProfile);

@@ -10,6 +10,8 @@ const { sendWhatsAppMessage } = require('../utils/whatsappUtil');
 
 const { normalizePhone } = require('../utils/phoneUtils');
 const realtime = require('../utils/realtime');
+const riderCash = require('../utils/riderCash');
+const { Transaction } = require('sequelize');
 
 // ── Constants ────────────────────────────────────────────────────────────
 const MAX_PIN_ATTEMPTS = 5; // wrong delivery PINs before the handover is locked for support
@@ -17,6 +19,7 @@ const MAX_ACTIVE_ORDERS = Math.max(1, parseInt(process.env.RIDER_MAX_ACTIVE_ORDE
 
 // What the rider earns for an order (shared with the admin/support "mark delivered" path).
 const { riderPayout, pushNearestRiders, refreshRiderCurrentOrder } = require('../utils/riderDispatch');
+const { sumEarningsPaise } = require('../utils/riderEarnings');
 
 const normalizeItems = (items) => {
   if (typeof items === 'string') {
@@ -331,6 +334,9 @@ const claimForRider = async (riderId, orderId, opts = {}) => {
     ...tx,
   });
   if (activeCount >= MAX_ACTIVE_ORDERS) return { activeCount, updatedRows: 0 };
+  // C6: a rider holding cash >= RIDER_CASH_LIMIT may not take a NEW COD order (prepaid orders are fine).
+  const cashBlocked = await riderCash.claimBlockedByCash({ sequelize: Order.sequelize, riderId, orderId, transaction: opts.transaction || null });
+  if (cashBlocked) return { activeCount, updatedRows: 0, cashBlocked };
   // Atomic Claim: Only orders already accepted by restaurant/system can be claimed
   const [updatedRows] = await Order.update(
     { deliveryPartnerId: riderId },
@@ -374,8 +380,12 @@ const acceptOrderLocked = async (req, res) => {
 
     // Active-order limit + atomic claim (Postgres: under the rider row lock; fail open to the
     // unlocked statements, which is the single-process behaviour).
-    const { activeCount, updatedRows } = (await claimForRiderLocked(req.user.id, req.params.orderId))
+    const { activeCount, updatedRows, cashBlocked } = (await claimForRiderLocked(req.user.id, req.params.orderId))
       || (await claimForRider(req.user.id, req.params.orderId));
+    if (cashBlocked) {
+      // Same 409 family as MAX_ACTIVE: older rider apps show the message; newer ones also show the banner.
+      return res.status(409).json(cashBlocked);
+    }
     if (activeCount >= MAX_ACTIVE_ORDERS) {
       return res.status(409).json({
         code: 'MAX_ACTIVE',
@@ -593,7 +603,7 @@ const updateOrderStatus = async (req, res) => {
     const RIDER_STEP_RANK = { Picking: 1, PickedUp: 2, ArrivedAtGate: 3 };
     const afterResponse = []; // slow pushes, run once the rider has the answer
     if (status !== 'Delivered' && RIDER_STEP_RANK[order.status] && RIDER_STEP_RANK[order.status] >= RIDER_STEP_RANK[status]) {
-      const { deliveryPin, deliveryPinAttempts, upiUTR, upiScreenshot, upiStatus, payoutSettled, riderPayoutSettled, ...safeOrder } = order.toJSON(); // eslint-disable-line no-unused-vars
+      const { deliveryPin, deliveryPinAttempts, upiUTR, upiScreenshot, upiStatus, payoutSettled, riderPayoutSettled, commissionRate, commissionType, commissionAmountPaise, storeNetPaise, commissionSource, payoutId, riderPayoutId, ...safeOrder } = order.toJSON(); // eslint-disable-line no-unused-vars
       return res.json({ ...safeOrder, _id: order.id, riderEarning: riderPayout(order), alreadyApplied: true });
     }
 
@@ -663,10 +673,17 @@ const updateOrderStatus = async (req, res) => {
       // Exactly-once: only the request that flips the order to Delivered credits anyone
       // (a double tap or an offline-queue replay must not pay the rider twice).
       const { Op } = require('sequelize');
-      const [flipped] = await Order.update(
-        { status: 'Delivered', deliveredAt: new Date(), ...(order.paymentMethod === 'COD' ? { paymentStatus: 'Completed' } : {}) },
-        { where: { id: order.id, deliveryPartnerId: req.user.id, status: { [Op.in]: ['PickedUp', 'ArrivedAtGate'] } } }
-      );
+      // C6: the flip and the rider's COD cash row commit together (or not at all): exactly one
+      // COD_COLLECTED row per order, even under a double tap / parallel requests (only the request that
+      // flips the order writes it; the unique keys are the backstop).
+      const flipped = await Order.sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async (t) => {
+        const [n] = await Order.update(
+          { status: 'Delivered', deliveredAt: new Date(), ...(order.paymentMethod === 'COD' ? { paymentStatus: 'Completed' } : {}) },
+          { where: { id: order.id, deliveryPartnerId: req.user.id, status: { [Op.in]: ['PickedUp', 'ArrivedAtGate'] } }, transaction: t }
+        );
+        if (n === 1) await riderCash.recordCodDelivery({ t, orderId: order.id, actor: { type: 'rider', id: String(req.user.id) } });
+        return n;
+      });
       if (flipped === 0) {
         const now = await Order.findByPk(order.id, { attributes: ['status'] });
         if (now && now.status === 'Delivered') return res.status(409).json({ code: 'ALREADY_DELIVERED', message: 'This order is already marked delivered.' });
@@ -743,7 +760,7 @@ const updateOrderStatus = async (req, res) => {
     }
     {
       // Never hand the customer's delivery PIN to the rider.
-      const { deliveryPin, deliveryPinAttempts, upiUTR, upiScreenshot, upiStatus, payoutSettled, riderPayoutSettled, ...safeOrder } = order.toJSON(); // eslint-disable-line no-unused-vars
+      const { deliveryPin, deliveryPinAttempts, upiUTR, upiScreenshot, upiStatus, payoutSettled, riderPayoutSettled, commissionRate, commissionType, commissionAmountPaise, storeNetPaise, commissionSource, payoutId, riderPayoutId, ...safeOrder } = order.toJSON(); // eslint-disable-line no-unused-vars
       res.json({ ...safeOrder, _id: order.id, riderEarning: riderPayout(order) });
     }
 
@@ -1076,7 +1093,7 @@ const deliveredSince = (riderId, since) => getOrderModel().findAll({
       { deliveredAt: null, updatedAt: { [Op.gte]: since } }
     ]
   },
-  attributes: ['id', 'deliveryFee', 'finalPrice', 'paymentMethod', 'deliveredAt', 'updatedAt']
+  attributes: ['id', 'deliveryFee', 'finalPrice', 'paymentMethod', 'fulfilment', 'deliveredAt', 'updatedAt']
 });
 
 // @desc    Get today's stats for current rider ("today" = IST calendar day)
@@ -1084,13 +1101,16 @@ const getTodayStats = async (req, res) => {
   try {
     const orders = await deliveredSince(req.user.id, istStartOfDay());
 
-    const earnings = orders.reduce((sum, o) => sum + riderPayout(o), 0);
+    // C6: one earnings rule (utils/riderEarnings), summed in paise.
+    const earnings = sumEarningsPaise(orders) / 100;
     const count = orders.length;
     // Cash the rider collected at the door today (COD orders they delivered).
     const codCollected = orders.filter(o => o.paymentMethod === 'COD').reduce((sum, o) => sum + (Number(o.finalPrice) || 0), 0);
     const DeliveryPartner = getDeliveryPartnerModel();
-    const partner = await DeliveryPartner.findByPk(req.user.id, { attributes: ['loginStreak'] });
-    res.json({ earnings, orders: count, zenPoints: count * 5, streak: partner?.loginStreak || 0, codCollected });
+    const partner = await DeliveryPartner.findByPk(req.user.id, { attributes: ['loginStreak', 'cashHeldPaise'] });
+    // C6: cash held for Zenvy (rider cash ledger) and the COD limit, for the "Deposit ₹X" banner.
+    const cash = riderCash.cashStatus(partner?.cashHeldPaise || 0, await riderCash.getCashLimitPaise(DeliveryPartner.sequelize));
+    res.json({ earnings, orders: count, zenPoints: count * 5, streak: partner?.loginStreak || 0, codCollected, cash });
   } catch (error) {
     serverError(res, '[RIDER_TODAY_ERROR]', error);
   }

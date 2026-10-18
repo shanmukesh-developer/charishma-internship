@@ -34,7 +34,10 @@ const RETENTION = [
 // Internal one-time markers the backend reads (not settings) are hidden from the list below too.
 // APP_VERSION_POLICY is edited in the App Versions card below (PUT /api/admin/app-versions);
 // LEGAL_SETTINGS in the Legal & Compliance card (PUT /api/admin/legal-settings).
-const MANAGED_KEYS: string[] = [...RETENTION.map(r => r.key), 'CAMPUS_SPOTS_DEFAULTS_RETIRED', 'APP_VERSION_POLICY', 'LEGAL_SETTINGS'];
+// C6: RIDER_CASH_LIMIT is edited in the Rider cash limit card; the other two are server markers.
+const CASH_LIMIT_KEY = 'RIDER_CASH_LIMIT';
+const MAX_CASH_LIMIT = 100000;
+const MANAGED_KEYS: string[] = [...RETENTION.map(r => r.key), 'CAMPUS_SPOTS_DEFAULTS_RETIRED', 'APP_VERSION_POLICY', 'LEGAL_SETTINGS', CASH_LIMIT_KEY, 'RIDER_CASH_LEDGER_START', 'C6_COMMISSION_BACKFILL'];
 // Keys the backend DOES read, but that are edited on their own page (listing them under "not read"
 // told admins the rentals on/off switch did nothing).
 const MANAGED_ELSEWHERE: Record<string, { label: string; href: string }> = {
@@ -65,6 +68,10 @@ export default function ConfigTerminal() {
   const [feeError, setFeeError] = useState<string | null>(null);
   const [feeNotice, setFeeNotice] = useState<string | null>(null);
 
+  const [limitInput, setLimitInput] = useState('');
+  const [savingLimit, setSavingLimit] = useState(false);
+  const [limitMsg, setLimitMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+
   const [retInputs, setRetInputs] = useState<Record<string, string>>({});
   const [savingRet, setSavingRet] = useState<string | null>(null);
   const [retError, setRetError] = useState<string | null>(null);
@@ -83,6 +90,7 @@ export default function ConfigTerminal() {
       setServiceability(svc);
       const fee = list.find(c => c.key === DELIVERY_FEE_KEY)?.value;
       setFeeInput(String(fee ?? DEFAULT_DELIVERY_FEE));
+      setLimitInput(String(list.find(c => c.key === CASH_LIMIT_KEY)?.value ?? 0));
       const ret: Record<string, string> = {};
       for (const r of RETENTION) ret[r.key] = String(list.find(c => c.key === r.key)?.value ?? r.def);
       setRetInputs(ret);
@@ -174,6 +182,26 @@ export default function ConfigTerminal() {
       setFeeError(err instanceof Error ? err.message : 'Could not save the delivery fee.');
     } finally {
       setSavingFee(false);
+    }
+  };
+
+  const currentLimit = Number(configs.find(c => c.key === CASH_LIMIT_KEY)?.value ?? 0) || 0;
+  const handleSaveLimit = async () => {
+    if (savingLimit) return;
+    setLimitMsg(null);
+    const n = limitInput.trim() === '' ? NaN : Number(limitInput);
+    if (!Number.isInteger(n) || n < 0 || n > MAX_CASH_LIMIT) { setLimitMsg({ kind: 'err', text: `Enter a whole number of rupees from 0 to ${MAX_CASH_LIMIT} (0 = off).` }); return; }
+    if (n === currentLimit) { setLimitMsg({ kind: 'ok', text: 'No change to save.' }); return; }
+    if (n > 0 && !confirm(`Turn on a ₹${n} cash limit? Riders holding ₹${n} or more of COD cash will not be able to take new COD orders until they deposit.`)) return;
+    setSavingLimit(true);
+    try {
+      await apiRequest('/api/admin/config', { method: 'POST', body: JSON.stringify({ key: CASH_LIMIT_KEY, value: n }) });
+      setLimitMsg({ kind: 'ok', text: n === 0 ? 'Cash limit is off: riders are never blocked.' : `Cash limit is now ₹${n}.` });
+      await fetchAll();
+    } catch (err) {
+      setLimitMsg({ kind: 'err', text: err instanceof Error ? err.message : 'Could not save the cash limit.' });
+    } finally {
+      setSavingLimit(false);
     }
   };
 
@@ -285,6 +313,32 @@ export default function ConfigTerminal() {
             <p className="text-xs text-gray-500">Could not read the live ordering status.</p>
           )}
         </div>
+      </div>
+
+      {/* C6 rider cash limit: read by the rider claim path (0 = off, the default) */}
+      <div className="glass-card p-10 space-y-6">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-amber-600/20 rounded-xl flex items-center justify-center text-xl">💵</div>
+          <div>
+            <h4 className="text-lg font-black text-white uppercase tracking-tight">Rider cash limit</h4>
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">COD cash a rider may hold before new COD orders are blocked · 0 = off</p>
+          </div>
+        </div>
+        <div className="flex items-end gap-4 max-w-md">
+          <div className="flex-1 space-y-2">
+            <label htmlFor="cash-limit" className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Limit (₹)</label>
+            <input id="cash-limit" type="number" min={0} max={MAX_CASH_LIMIT} step={1} value={limitInput}
+              onChange={(e) => { setLimitInput(e.target.value); setLimitMsg(null); }}
+              className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-black" />
+          </div>
+          <button onClick={handleSaveLimit} disabled={savingLimit} className="px-6 py-4 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white">
+            {savingLimit ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+        <p className="text-[11px] text-gray-500">
+          Current: {currentLimit > 0 ? `₹${currentLimit}` : 'Off (riders are never blocked; the rider app only shows the cash they hold)'}. Cash held and deposits are on Finance → Rider cash.
+        </p>
+        {limitMsg && <p className={`text-xs font-bold ${limitMsg.kind === 'err' ? 'text-red-400' : 'text-emerald-400'}`}>{limitMsg.text}</p>}
       </div>
 
       {/* Data retention: read by the backend's hourly cleanup job */}

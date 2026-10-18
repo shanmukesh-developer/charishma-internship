@@ -2,7 +2,7 @@
 import { ApiError, apiFetch } from './apiClient';
 import { normalizeOrder, normalizeOrders, toNumber } from './orderModel';
 import { APP_PUSH_VERSION } from '../config';
-import type { RiderOrder, RiderProfile, SupportTicket, TodayStats, WeekStats } from '../types';
+import type { CashEntry, CashStatus, RiderCash, RiderOrder, RiderProfile, SupportTicket, TodayStats, WeekStats } from '../types';
 
 export function toProfile(raw: any, prev?: RiderProfile | null): RiderProfile {
   const str = (v: unknown) => {
@@ -92,7 +92,58 @@ export async function fetchToday(): Promise<TodayStats> {
     zenPoints: toNumber(d?.zenPoints) ?? undefined,
     streak: toNumber(d?.streak) ?? undefined,
     codCollected: toNumber(d?.codCollected) ?? undefined,
+    cash: toCashStatus(d?.cash) ?? undefined,
   };
+}
+
+function toCashStatus(c: any): CashStatus | null {
+  if (!c || typeof c !== 'object' || toNumber(c.cashHeld) === null) return null;
+  return {
+    cashHeld: toNumber(c.cashHeld) ?? 0,
+    limit: toNumber(c.limit) ?? 0,
+    limitEnabled: c.limitEnabled === true,
+    overLimit: c.overLimit === true,
+    depositNeeded: toNumber(c.depositNeeded) ?? 0,
+    message: typeof c.message === 'string' && c.message ? c.message : null,
+  };
+}
+
+function toCashEntry(e: any): CashEntry {
+  return {
+    id: String(e?.id ?? ''),
+    type: String(e?.type ?? ''),
+    label: String(e?.label ?? 'Cash change'),
+    amount: toNumber(e?.amount) ?? 0,
+    balanceAfter: toNumber(e?.balanceAfter) ?? 0,
+    method: e?.method ? String(e.method) : null,
+    reference: e?.reference ? String(e.reference) : null,
+    note: e?.note ? String(e.note) : null,
+    createdAt: String(e?.createdAt ?? ''),
+  };
+}
+
+/** GET /delivery/cash (C6 servers). Null when the server does not have it yet. */
+export async function fetchCash(): Promise<RiderCash | null> {
+  try {
+    const d = await apiFetch<any>('/delivery/cash');
+    const status = toCashStatus(d);
+    if (!status) return null;
+    const p = d?.position ?? {};
+    return {
+      status,
+      position: {
+        cashHeld: toNumber(p.cashHeld) ?? status.cashHeld,
+        zenvyOwes: toNumber(p.zenvyOwes) ?? 0,
+        earnings: toNumber(p.earnings) ?? 0,
+        tips: toNumber(p.tips) ?? 0,
+        net: toNumber(p.net) ?? 0,
+      },
+      recentDeposits: Array.isArray(d?.recentDeposits) ? d.recentDeposits.map(toCashEntry) : [],
+    };
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
 }
 
 /** GET /delivery/stats/week (newer servers). Returns null when the server does not have it yet. */

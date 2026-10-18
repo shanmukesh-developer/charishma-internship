@@ -77,12 +77,43 @@ export interface RiderProfile {
   walletBalance: number | null;
 }
 
+/** C6: COD cash the rider holds for Zenvy (rider cash ledger). The limit is off unless an admin sets one. */
+export interface CashStatus {
+  cashHeld: number;
+  limit: number;
+  limitEnabled: boolean;
+  overLimit: boolean;
+  depositNeeded: number;
+  /** "Deposit ₹X to keep taking COD orders." only when a limit is on and reached; else null. */
+  message: string | null;
+}
+
+export interface CashEntry {
+  id: string;
+  type: string;
+  label: string;
+  amount: number;
+  balanceAfter: number;
+  method: string | null;
+  reference: string | null;
+  note: string | null;
+  createdAt: string;
+}
+
+/** GET /delivery/cash: cash held + what Zenvy owes (earnings + tips), never netted automatically. */
+export interface RiderCash {
+  status: CashStatus;
+  position: { cashHeld: number; zenvyOwes: number; earnings: number; tips: number; net: number };
+  recentDeposits: CashEntry[];
+}
+
 export interface TodayStats {
   earnings: number;
   orders: number;
   zenPoints?: number;
   streak?: number;
   codCollected?: number;
+  cash?: CashStatus;
 }
 
 export interface WeekDay {

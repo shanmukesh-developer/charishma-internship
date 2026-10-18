@@ -167,13 +167,14 @@ test('tip: TIP_SENT on the customer + TIP_RECEIVED on the rider, once; admin pay
   assert.equal(hist.body.balance, 20);
   assert.equal(hist.body.transactions[0].label, 'Tip from a customer');
 
-  const pay = await api('POST', '/api/admin/finance/settle-rider', admin.token, { riderId: d.id, includeTips: true, tipsAmount: 20, upTo: new Date().toISOString() });
+  const pay = await api('POST', '/api/admin/finance/settle-rider', admin.token, { riderId: d.id, includeTips: true, tipsAmount: 20, upTo: new Date().toISOString(), utr: 'UTR-C5-TIPS' }); // C6: payouts need a UTR
   assert.equal(pay.status, 200, JSON.stringify(pay.body));
   assert.equal(pay.body.tipsSettled, 20);
   const rows = await H.ledger('rider', d.id);
   assert.deepEqual(rows.map((x) => [x.type, x.amountPaise, x.balanceAfterPaise, x.actorType, x.actorId]).slice(-1), [['TIP_PAYOUT', -2000, 0, 'admin', admin.id]]);
-  const pay2 = await api('POST', '/api/admin/finance/settle-rider', admin.token, { riderId: d.id, includeTips: true, tipsAmount: 20 });
-  assert.equal(pay2.body.tipsSettled, 0, 'nothing left to pay out');
+  const pay2 = await api('POST', '/api/admin/finance/settle-rider', admin.token, { riderId: d.id, includeTips: true, tipsAmount: 20, utr: 'UTR-C5-TIPS-2' });
+  assert.equal(pay2.status, 400, 'nothing left to pay out'); // C6: no empty Payout record
+  assert.equal(pay2.body.code, 'NOTHING_TO_PAY');
   assert.equal((await H.ledger('rider', d.id)).length, 2);
   await inSync('rider', d.id);
 });

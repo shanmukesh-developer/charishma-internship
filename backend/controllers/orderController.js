@@ -404,6 +404,10 @@ const createOrder = async (req, res) => {
           status: !isVendorOrder && riderBuys ? 'Accepted' : 'Pending',
           ...(!isVendorOrder && riderBuys ? { acceptedAt: new Date() } : {}),
           fulfilment: isVendorOrder ? 'VENDOR' : 'ZENVY',
+          // C6: commission fixed now from the store's current rate (never recomputed later), and whether the
+          // rider pays the shop at the counter (buy-at-store: not paid out by Zenvy, rider cash ledger).
+          ...require('../utils/commission').snapshotFields(restaurant, quote.subtotal),
+          storePaidByRider: !isVendorOrder && !!riderBuys,
           idempotencyKey: idemRaw || null,
           // The stall hands the order over itself: no delivery PIN.
           deliveryPin: isVendorOrder ? null : String(crypto.randomInt(1000, 10000))
@@ -734,7 +738,9 @@ const MY_ORDER_FIELDS = [
   'category', 'isMultiRestaurant', 'createdAt', 'updatedAt',
 ];
 // Never sent to the customer / rider on the single-order view either (admin only).
-const ORDER_INTERNAL_FIELDS = ['deliveryPinAttempts', 'upiUTR', 'upiScreenshot', 'upiStatus', 'payoutSettled', 'riderPayoutSettled'];
+const ORDER_INTERNAL_FIELDS = ['deliveryPinAttempts', 'upiUTR', 'upiScreenshot', 'upiStatus', 'payoutSettled', 'riderPayoutSettled',
+  // C6 settlement internals (commission snapshot, payout statements).
+  'commissionRate', 'commissionType', 'commissionAmountPaise', 'storeNetPaise', 'commissionSource', 'payoutId', 'riderPayoutId'];
 // One row of the customer's order list (whitelist: MY_ORDER_FIELDS).
 function customerOrderJson(o) {
   const json = o && typeof o.toJSON === 'function' ? o.toJSON() : { ...(o || {}) };
@@ -1366,10 +1372,18 @@ const updateOrderStatus = async (req, res) => {
     let justDelivered = false;
     if (status === 'Delivered') {
       // Only the request that actually flips the order to Delivered awards points (no double credit).
-      const [n] = await Order.update(
-        { status: 'Delivered', deliveredAt: new Date(), ...(order.paymentMethod === 'COD' ? { paymentStatus: 'Completed' } : {}) },
-        { where: { id: order.id, status: { [Op.notIn]: ['Delivered', 'Cancelled'] } } }
-      );
+      // C6: support completing a rider's COD order records the cash that rider collected, in the same
+      // transaction as the flip (exactly once per order; stall orders have no rider and record nothing).
+      const n = await Order.sequelize.transaction(MONEY_TX, async (t) => {
+        const [flipped] = await Order.update(
+          { status: 'Delivered', deliveredAt: new Date(), ...(order.paymentMethod === 'COD' ? { paymentStatus: 'Completed' } : {}) },
+          { where: { id: order.id, status: { [Op.notIn]: ['Delivered', 'Cancelled'] } }, transaction: t }
+        );
+        if (flipped === 1) {
+          await require('../utils/riderCash').recordCodDelivery({ t, orderId: order.id, actor: { type: 'admin', id: req.user && req.user.id ? String(req.user.id) : null } });
+        }
+        return flipped;
+      });
       justDelivered = n === 1;
       if (!justDelivered) {
         // Lost the race: either already delivered (no second push / credit) or cancelled meanwhile.

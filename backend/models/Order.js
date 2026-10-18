@@ -89,6 +89,19 @@ const initOrderModel = (sequelize) => {
     proofTimestamp: { type: DataTypes.DATE },
     payoutSettled: { type: DataTypes.BOOLEAN, defaultValue: false },
     riderPayoutSettled: { type: DataTypes.BOOLEAN, defaultValue: false },
+    // C6 commission snapshot (utils/commission): taken from the store's rate when the order is created and
+    // never recomputed. Null on orders settled before C6 (unsettled ones are backfilled once at startup).
+    commissionRate: { type: DataTypes.FLOAT, allowNull: true },
+    commissionType: { type: DataTypes.STRING(16), allowNull: true }, // percentage | flat
+    commissionAmountPaise: { type: DataTypes.INTEGER, allowNull: true },
+    storeNetPaise: { type: DataTypes.INTEGER, allowNull: true }, // item subtotal - commission
+    commissionSource: { type: DataTypes.STRING(16), allowNull: true }, // order | backfill
+    // Buy-at-store shop (utils/riderPurchase) at order time: the rider paid the shop at the counter, so the
+    // shop is not paid out by Zenvy and the rider's cash ledger records what they paid. Null on older rows.
+    storePaidByRider: { type: DataTypes.BOOLEAN, allowNull: true },
+    // C6 payout statements this order is on (models/Payout). Null = not on any statement yet.
+    payoutId: { type: DataTypes.UUID, allowNull: true },
+    riderPayoutId: { type: DataTypes.UUID, allowNull: true },
     // Set once when an admin manual refund is credited (idempotency guard; nullable).
     refundedAt: { type: DataTypes.DATE, allowNull: true },
     

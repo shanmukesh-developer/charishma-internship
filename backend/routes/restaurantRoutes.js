@@ -28,6 +28,8 @@ router.get('/:id/menu', catalogCache, getRestaurantMenu);
 router.post('/login', authLimiter, accountLockout, restaurantLogin);
 router.post('/refresh-token', protect, refreshStoreToken); // sliding store / vendor session (B28)
 router.get('/:id/orders', protect, vendor, getRestaurantOrders); 
+// C6: the store's own payout statements (API only; the partner apps have no earnings screen yet).
+router.get('/:id/payouts', protect, vendor, require('../controllers/financeController').getStorePayouts);
 router.put('/:id/offline', protect, vendor, toggleRestaurantOffline);
 router.put('/:id/open', protect, vendor, setRestaurantOpen);
 router.put('/:id/hours', protect, vendor, setRestaurantHours);

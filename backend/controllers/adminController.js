@@ -1187,6 +1187,22 @@ exports.updateGlobalConfig = async (req, res) => {
       realtime.publish('config', 'updated', key, { scope: 'retention' });
       return res.json({ key, value: n, created: createdR });
     }
+    // C6: rider cash limit (whole rupees, 0 = off) and the ledger start marker (never edited).
+    const riderCash = require('../utils/riderCash');
+    if (key === riderCash.START_KEY || key === 'C6_COMMISSION_BACKFILL') {
+      return res.status(400).json({ message: `${key} is set by the server and cannot be edited.` });
+    }
+    if (key === riderCash.LIMIT_KEY) {
+      const n = typeof value === 'number' || (typeof value === 'string' && value.trim() !== '') ? Number(value) : NaN;
+      if (!Number.isInteger(n) || n < 0 || n > riderCash.MAX_LIMIT_RUPEES) {
+        return res.status(400).json({ message: `${key} must be a whole number of rupees from 0 to ${riderCash.MAX_LIMIT_RUPEES} (0 turns the limit off).` });
+      }
+      const [, createdL] = await GlobalConfig.upsert({ key, value: n, description: description || 'Cash (₹) a rider may hold before they cannot take new COD orders (0 = no limit)' });
+      await logAuditAction(req, key, 'RIDER_CASH_LIMIT_SET', { value: n });
+      broadcastSystemUpdate(req, 'GLOBAL_CONFIG_UPDATED', { key, value: n });
+      realtime.publish('config', 'updated', key, { scope: 'global' });
+      return res.json({ key, value: n, created: createdL });
+    }
     const [_config, created] = await GlobalConfig.upsert({ key, value, description });
     broadcastSystemUpdate(req, 'GLOBAL_CONFIG_UPDATED', { key, value });
     realtime.publish('config', 'updated', key, { scope: 'global' });
@@ -1250,51 +1266,69 @@ exports.getDashboardStats = async (req, res) => {
   }
 };
 
+// C6: commission = the per-order snapshot taken when the order was placed (Order.commissionAmountPaise,
+// item-subtotal base, the same number store payouts use). Orders settled before C6 have no snapshot: they
+// fall back to the store's current rate on the item subtotal (marked commissionEstimated) — that is what
+// their payout used at the time unless the rate changed since.
 exports.getFinanceReport = async (req, res) => {
   try {
     const Order = getOrderModel();
     const Restaurant = getRestaurantModel();
-    const { page = 1, limit = 50 } = req.query;
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const { computeCommission } = require('../utils/commission');
+    const { earningPaise } = require('../utils/riderEarnings');
+    const lim = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
+    const pg = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const offset = (pg - 1) * lim;
 
-    // Get total stats (non-paginated)
-    const allDelivered = await Order.findAll({ 
+    const allDelivered = await Order.findAll({
       where: { status: 'Delivered' },
-      attributes: ['totalPrice', 'finalPrice', 'restaurantId', 'deliveryFee']
+      attributes: ['totalPrice', 'finalPrice', 'restaurantId', 'deliveryFee', 'fulfilment', 'deliveryPartnerId', 'commissionAmountPaise'],
+      raw: true,
     });
-
-    const restaurants = await Restaurant.findAll();
+    const restaurants = await Restaurant.findAll({ attributes: ['id', 'name', 'commissionRate', 'commissionType'], raw: true });
     const restaurantMap = restaurants.reduce((acc, r) => ({ ...acc, [r.id]: r }), {});
 
-    // Commission uses each store's own rate/type; orders without a known store earn none.
     const orderAmount = (o) => Number(o.finalPrice ?? o.totalPrice) || 0;
-    const commissionFor = (o) => {
+    const commissionPaiseFor = (o) => {
+      if (o.commissionAmountPaise !== null && o.commissionAmountPaise !== undefined) return { paise: Number(o.commissionAmountPaise) || 0, estimated: false };
       const rest = restaurantMap[o.restaurantId];
-      if (!rest) return 0;
-      const rate = Number(rest.commissionRate) || 0;
-      return rest.commissionType === 'flat' ? rate : orderAmount(o) * (rate / 100);
+      if (!rest) return { paise: 0, estimated: true };
+      return { paise: computeCommission({ subtotal: o.totalPrice, rate: rest.commissionRate, type: rest.commissionType }).commissionAmountPaise, estimated: true };
     };
 
+    let commissionPaise = 0;
+    let estimatedCount = 0;
+    let riderEarningsPaise = 0;
+    for (const o of allDelivered) {
+      const c = commissionPaiseFor(o);
+      commissionPaise += c.paise;
+      if (c.estimated) estimatedCount++;
+      if (o.deliveryPartnerId) riderEarningsPaise += earningPaise(o);
+    }
     const totalRevenue = allDelivered.reduce((s, o) => s + orderAmount(o), 0);
     const totalDeliveryFees = allDelivered.reduce((s, o) => s + (Number(o.deliveryFee) || 0), 0);
-    const totalCommission = allDelivered.reduce((s, o) => s + commissionFor(o), 0);
 
-    // Get paginated transactions
     const { count, rows: orders } = await Order.findAndCountAll({
       where: { status: 'Delivered' },
+      attributes: ['id', 'restaurantId', 'totalPrice', 'finalPrice', 'deliveryFee', 'createdAt', 'commissionAmountPaise', 'commissionRate', 'commissionType'],
       order: [['createdAt', 'DESC']],
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+      limit: lim,
+      offset,
     });
 
     const transactions = orders.map(order => {
       const restaurant = restaurantMap[order.restaurantId];
+      const c = commissionPaiseFor(order);
       return {
         _id: order.id,
         orderId: order.id.slice(-6),
         restaurantName: restaurant ? restaurant.name : 'Unknown store',
         totalAmount: orderAmount(order),
-        commissionEarned: Math.round(commissionFor(order)),
+        commissionEarned: Math.round(c.paise / 100),
+        commissionPaise: c.paise,
+        commissionRate: order.commissionRate ?? null,
+        commissionType: order.commissionType ?? null,
+        commissionEstimated: c.estimated,
         deliveryFee: Number(order.deliveryFee) || 0,
         timestamp: order.createdAt
       };
@@ -1303,10 +1337,13 @@ exports.getFinanceReport = async (req, res) => {
     res.json({
       transactions,
       totalRevenue: Math.round(totalRevenue),
-      totalCommission: Math.round(totalCommission),
+      totalCommission: Math.round(commissionPaise / 100),
+      totalCommissionPaise: commissionPaise,
+      commissionEstimatedOrders: estimatedCount,
       totalDeliveryFees: Math.round(totalDeliveryFees),
+      totalRiderEarnings: Math.round(riderEarningsPaise / 100),
       total: count,
-      pages: Math.ceil(count / limit)
+      pages: Math.ceil(count / lim)
     });
   } catch (error) {
     sendServerError(res, error, '[ADMINCONTROLLER_ERROR]');
@@ -1891,100 +1928,78 @@ exports.deleteCoupon = async (req, res) => {
 };
 
 // ─── Finance & Operations (Payouts & Refunds) ────────────────
-// Delivered at or before `upTo` (older rows without deliveredAt fall back to updatedAt).
-const deliveredUpTo = (upTo) => ({
-  [Op.and]: [{ [Op.or]: [{ deliveredAt: { [Op.lte]: upTo } }, { deliveredAt: null, updatedAt: { [Op.lte]: upTo } }] }],
-});
+// (C6: the period filters live in utils/payouts.)
 
+// C6: the unsettled store list comes from the per-order commission snapshot (never the store's current
+// rate) and leaves out orders already on a payout statement. Same row shape as before, plus partnerType,
+// adjustments (cash a stall collected itself) and paise fields.
 exports.getRestaurantPayouts = async (req, res) => {
   try {
-    const Order = getOrderModel();
-    const Restaurant = getRestaurantModel();
-    
-    // Group only Delivered, unsettled orders to calculate real earnings. `asOf` is sent back as
-    // `upTo` when settling, so a delivery finished after this list was built stays unpaid.
+    const payouts = require('../utils/payouts');
     const asOf = new Date();
-    const deliveredOrders = await Order.findAll({
-      where: { status: 'Delivered', payoutSettled: false, ...deliveredUpTo(asOf) },
-      attributes: ['id', 'restaurantId', 'totalPrice'],
-    });
-    const restaurants = await Restaurant.findAll();
-    const restMap = restaurants.reduce((acc, r) => ({ ...acc, [r.id]: r }), {});
-
-    const payouts = {};
-    deliveredOrders.forEach(o => {
-      const rest = restMap[o.restaurantId];
-      if (!rest) return;
-      // Store GMV is the item subtotal: finalPrice also contains the rider's delivery fee (and
-      // platform coupon discounts), which is not the store's money.
-      const price = Number(o.totalPrice) || 0;
-      // Same rule as getFinanceReport: the store's own rate (0% stays 0%) and 'flat' = ₹ per order.
-      const commissionRate = Number(rest.commissionRate) || 0;
-      const commission = rest.commissionType === 'flat' ? Math.min(commissionRate, price) : price * (commissionRate / 100);
-      
-      if (!payouts[rest.id]) {
-        payouts[rest.id] = {
-          restaurantId: rest.id,
-          restaurantName: rest.name,
-          vendorType: rest.vendorType,
-          totalOrders: 0,
-          totalGMV: 0,
-          totalCommission: 0,
-          netPayout: 0
-        };
-      }
-      payouts[rest.id].totalOrders += 1;
-      payouts[rest.id].totalGMV += price;
-      payouts[rest.id].totalCommission += commission;
-      payouts[rest.id].netPayout += (price - commission);
-    });
-
-    res.json(Object.values(payouts).map(p => ({
-      ...p,
+    const rows = await payouts.pendingPartners({ sequelize: getOrderModel().sequelize, partnerType: 'store', to: asOf });
+    res.set('Cache-Control', 'no-store');
+    res.json(rows.map((p) => ({
+      restaurantId: p.partnerId,
+      restaurantName: p.partnerName,
+      vendorType: p.vendorType,
+      partnerType: p.partnerType,
+      totalOrders: p.orders,
+      totalGMV: Math.round(p.grossPaise / 100),
+      totalCommission: Math.round(p.commissionPaise / 100),
+      adjustments: Math.round(p.adjustmentsPaise / 100),
+      netPayout: Math.round(p.netPaise / 100),
+      grossPaise: p.grossPaise,
+      commissionPaise: p.commissionPaise,
+      adjustmentsPaise: p.adjustmentsPaise,
+      netPaise: p.netPaise,
+      oldestDeliveredAt: p.oldestDeliveredAt,
       asOf: asOf.toISOString(),
-      totalGMV: Math.round(p.totalGMV),
-      totalCommission: Math.round(p.totalCommission),
-      netPayout: Math.round(p.netPayout)
     })));
   } catch (error) {
     sendServerError(res, error, '[ADMINCONTROLLER_ERROR]');
   }
 };
 
+const payoutErrorReply = (res, error) => {
+  const payouts = require('../utils/payouts');
+  if (payouts.isPayoutError(error)) {
+    const { status, code, message, name, stack, ...extra } = error; // eslint-disable-line no-unused-vars
+    return res.status(status).json({ code, message: error.message, ...extra });
+  }
+  return null;
+};
+exports.payoutErrorReply = payoutErrorReply;
+
+// C6: "settle" is no longer a bare flag flip. It saves a Payout record (amounts from the commission
+// snapshot, the UTR, who / when) and sets payoutSettled on exactly those orders, in one transaction.
+// UTR is required (400 UTR_REQUIRED). The Finance page uses the statement flow (/api/admin/payouts).
 exports.settleRestaurantPayout = async (req, res) => {
   try {
-    const Order = getOrderModel();
+    const payouts = require('../utils/payouts');
     const { restaurantId } = req.body || {};
     if (!restaurantId || !UUID_RE.test(String(restaurantId))) return res.status(400).json({ message: 'restaurantId is required' });
-
-    // Settle only what the admin saw: deliveries up to `upTo` (the list's `asOf`). Without it
-    // (older dashboards) everything delivered so far is settled, as before.
     const upToRaw = req.body.upTo || req.body.asOf;
-    const upTo = upToRaw ? new Date(String(upToRaw)) : null;
+    const upTo = upToRaw ? new Date(String(upToRaw)) : new Date();
     if (upToRaw && Number.isNaN(upTo.getTime())) return res.status(400).json({ message: 'upTo must be a date.', code: 'INVALID_INPUT' });
-    const where = { restaurantId, status: 'Delivered', payoutSettled: false, ...(upTo ? deliveredUpTo(upTo) : {}) };
-
-    const { getSequelize } = require('../config/db');
-    const result = await getSequelize().transaction(async (t) => {
-      // The screen showed `expectedOrders`: if that changed (another admin settled some, or a
-      // late-arriving row), refuse and let the admin reload instead of paying a different amount.
-      const expected = req.body.expectedOrders;
-      if (expected !== undefined && expected !== null) {
-        const n = await Order.count({ where, transaction: t });
-        if (Number(expected) !== n) return { mismatch: n };
-      }
-      const [updatedCount] = await Order.update({ payoutSettled: true }, { where, transaction: t });
-      return { updatedCount };
+    const utr = String(req.body.utr || req.body.reference || '').trim();
+    if (utr.length < 3) return res.status(400).json({ code: 'UTR_REQUIRED', message: 'Enter the UTR / payment reference of the transfer to record this payout.' });
+    const sequelize = getOrderModel().sequelize;
+    const store = await getRestaurantModel().findByPk(restaurantId, { attributes: ['id', 'name', 'vendorType'], raw: true });
+    if (!store) return res.status(404).json({ message: 'Store not found.' });
+    const adminId = req.user?.id ? String(req.user.id) : null;
+    const result = await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async (t) => {
+      const payout = await payouts.createStatement({
+        sequelize, partnerType: payouts.storeKind(store), partnerId: restaurantId, to: upTo,
+        expectedOrders: req.body.expectedOrders, adminId, notes: req.body.notes, transaction: t,
+      });
+      const paid = await payouts.markPaid({ sequelize, payoutId: payout.id, utr, method: req.body.method || 'bank', adminId, transaction: t });
+      return { payout: paid.payout, settled: paid.settledOrders };
     });
-    if (result.mismatch !== undefined) {
-      return res.status(409).json({ code: 'PAYOUT_CHANGED', currentOrders: result.mismatch, message: `This payout now covers ${result.mismatch} order${result.mismatch === 1 ? '' : 's'}, not ${req.body.expectedOrders}. Refresh and check it before settling.` });
-    }
-    const updatedCount = result.updatedCount;
-
-    await logAuditAction(req, restaurantId, 'RESTAURANT_PAYOUT_SETTLED', { restaurantId, updatedOrdersCount: updatedCount, upTo: upTo ? upTo.toISOString() : null });
-
-    res.json({ message: 'Restaurant payout marked as settled successfully', updatedOrdersCount: updatedCount });
+    await logAuditAction(req, restaurantId, 'RESTAURANT_PAYOUT_SETTLED', { restaurantId, payoutId: result.payout.id, updatedOrdersCount: result.settled, netPaise: result.payout.netPaise, utr, upTo: upTo.toISOString() });
+    res.json({ message: 'Restaurant payout recorded and marked paid', updatedOrdersCount: result.settled, payoutId: result.payout.id, payout: payouts.payoutJson(result.payout) });
   } catch (error) {
+    if (payoutErrorReply(res, error)) return;
     sendServerError(res, error, '[ADMINCONTROLLER_ERROR]');
   }
 };
@@ -2259,113 +2274,67 @@ exports.deleteReview = async (req, res) => {
   }
 };
 
+// C6: rider earnings use the one rule (utils/riderEarnings: delivery fee, ₹30 when it is 0) instead of the
+// raw SUM(deliveryFee), leave out orders already on a statement, and show the cash each rider holds next to
+// what Zenvy owes them (never netted: cash is settled by deposits). Same row shape as before.
 exports.getRiderPayouts = async (req, res) => {
   try {
-    const Order = getOrderModel();
-    const DeliveryPartner = getDeliveryPartnerModel();
-    const { fn, col } = require('sequelize');
-    // The admin settles exactly what this screen shows: everything delivered up to `asOf`.
+    const payouts = require('../utils/payouts');
     const asOf = new Date();
-
-    // Aggregated in SQL (no full order rows / photos in memory). NULL riderPayoutSettled (rows
-    // from before the default existed) counts as unsettled.
-    const grouped = await Order.findAll({
-      where: { status: 'Delivered', riderPayoutSettled: { [Op.not]: true }, deliveryPartnerId: { [Op.ne]: null } },
-      attributes: [
-        'deliveryPartnerId',
-        [fn('COUNT', col('id')), 'totalDeliveries'],
-        [fn('SUM', col('deliveryFee')), 'totalDeliveryFees'],
-      ],
-      group: ['deliveryPartnerId'],
-      raw: true,
-    });
-
-    const riderIds = new Set(grouped.map((g) => String(g.deliveryPartnerId)));
-    const riders = await DeliveryPartner.findAll({
-      where: { [Op.or]: [{ id: { [Op.in]: [...riderIds] } }, { walletBalance: { [Op.gt]: 0 } }] },
-      attributes: ['id', 'name', 'phone', 'walletBalance'],
-    });
-    const riderMap = new Map(riders.map((r) => [String(r.id), r]));
-
-    const payouts = {};
-    for (const g of grouped) {
-      const rid = String(g.deliveryPartnerId);
-      const rider = riderMap.get(rid);
-      payouts[rid] = {
-        riderId: g.deliveryPartnerId,
-        riderName: rider ? rider.name : 'Unknown Rider',
-        riderPhone: rider ? rider.phone : '',
-        totalDeliveries: Number(g.totalDeliveries) || 0,
-        totalDeliveryFees: Number(g.totalDeliveryFees) || 0,
-      };
-    }
-
-    // Customer tips are credited to DeliveryPartner.walletBalance (rateOrder) and were invisible
-    // here. Show the unpaid tip balance too, including riders with tips but no unsettled orders.
-    riders.forEach((r) => {
-      const tips = Number(r.walletBalance) || 0;
-      if (tips <= 0) return;
-      if (!payouts[r.id]) {
-        payouts[r.id] = { riderId: r.id, riderName: r.name, riderPhone: r.phone || '', totalDeliveries: 0, totalDeliveryFees: 0 };
-      }
-      payouts[r.id].unsettledTips = tips;
-    });
-
-    res.json(Object.values(payouts).map(p => ({
-      ...p,
+    const rows = await payouts.pendingPartners({ sequelize: getOrderModel().sequelize, partnerType: 'rider', to: asOf });
+    res.set('Cache-Control', 'no-store');
+    res.json(rows.filter((p) => p.orders > 0 || p.tipsPaise > 0).map((p) => ({
+      riderId: p.partnerId,
+      riderName: p.partnerName || 'Unknown Rider',
+      riderPhone: p.phone || '',
+      totalDeliveries: p.orders,
+      totalDeliveryFees: Math.round(p.grossPaise / 100), // rider earnings (C6 rule)
+      earningsPaise: p.grossPaise,
+      unsettledTips: Math.round(p.tipsPaise / 100),
+      tipsPaise: p.tipsPaise,
+      totalPayout: Math.round(p.netPaise / 100),
+      netPaise: p.netPaise,
+      cashHeldPaise: p.cashHeldPaise,
+      cashHeld: p.cashHeldPaise / 100,
+      netPositionPaise: p.netPositionPaise,
       asOf: asOf.toISOString(), // send back as `upTo` when settling
-      totalDeliveryFees: Math.round(p.totalDeliveryFees),
-      unsettledTips: Math.round(p.unsettledTips || 0),
-      totalPayout: Math.round(p.totalDeliveryFees + (p.unsettledTips || 0))
     })));
   } catch (error) {
     sendServerError(res, error, '[ADMINCONTROLLER_ERROR]');
   }
 };
 
+// C6: records a rider Payout (earnings of exactly these orders + the tips the admin saw, UTR required) and
+// sets riderPayoutSettled / takes the tips out of the wallet (TIP_PAYOUT) in ONE transaction.
 exports.settleRiderPayout = async (req, res) => {
   try {
-    const Order = getOrderModel();
+    const payouts = require('../utils/payouts');
     const { riderId } = req.body || {};
-    if (!riderId) return res.status(400).json({ message: 'riderId is required' });
-
-    // Settle only what the admin saw: explicit orderIds, or every delivery up to `upTo` (the
-    // `asOf` the payout list returned). A delivery completed after the screen loaded stays unpaid.
-    const where = { deliveryPartnerId: riderId, status: 'Delivered', riderPayoutSettled: { [Op.not]: true } };
-    const ids = Array.isArray(req.body.orderIds) ? req.body.orderIds.map(String).filter((x) => /^[0-9a-f-]{36}$/i.test(x)).slice(0, 5000) : null;
+    if (!riderId || !UUID_RE.test(String(riderId))) return res.status(400).json({ message: 'riderId is required' });
+    const utr = String(req.body.utr || req.body.reference || '').trim();
+    if (utr.length < 3) return res.status(400).json({ code: 'UTR_REQUIRED', message: 'Enter the UTR / payment reference of the transfer to record this payout.' });
+    const ids = Array.isArray(req.body.orderIds) ? req.body.orderIds.map(String).filter((x) => UUID_RE.test(x)).slice(0, 5000) : null;
     const upToRaw = req.body.upTo || req.body.asOf;
-    const upTo = upToRaw ? new Date(String(upToRaw)) : null;
-    if (ids && ids.length) {
-      where.id = { [Op.in]: ids };
-    } else if (upTo && !Number.isNaN(upTo.getTime())) {
-      where[Op.or] = [{ deliveredAt: { [Op.lte]: upTo } }, { deliveredAt: null, updatedAt: { [Op.lte]: upTo } }];
-    } else {
-      // Older dashboards send neither: settle up to now (previous behaviour) and say so in the audit log.
-      where[Op.or] = [{ deliveredAt: { [Op.lte]: new Date() } }, { deliveredAt: null }];
-    }
-    const [updatedCount] = await Order.update({ riderPayoutSettled: true }, { where });
-    // Tips are cleared only when the admin says they were paid too (body.includeTips === true),
-    // and only by the amount they saw, atomically, so a tip arriving now is not wiped.
-    let tipsSettled = 0;
+    const upTo = upToRaw ? new Date(String(upToRaw)) : new Date();
+    if (Number.isNaN(upTo.getTime())) return res.status(400).json({ message: 'upTo must be a date.', code: 'INVALID_INPUT' });
+    // Tips only when the admin says they were paid too, and at most the amount they saw.
     const tipsSeen = Number(req.body.tipsAmount);
-    if (req.body.includeTips === true && Number.isFinite(tipsSeen) && tipsSeen > 0) {
-      // C5: the payout leaves the rider's tip wallet through the ledger (TIP_PAYOUT, actor = this admin).
-      const { getSequelize } = require('../config/db');
-      try {
-        await getSequelize().transaction({ type: Transaction.TYPES.IMMEDIATE }, (t) => walletLedger.applyWalletChange({
-          t, ownerType: 'rider', ownerId: String(riderId), amountPaise: -walletLedger.toPaise(tipsSeen), type: walletLedger.TYPES.TIP_PAYOUT,
-          actor: { type: 'admin', id: req.user?.id ? String(req.user.id) : 'admin_default' }, reason: 'Tips paid out with the rider payout',
-        }));
-        tipsSettled = tipsSeen;
-      } catch (err) {
-        if (!walletLedger.isInsufficient(err) && !(err && err.code === 'OWNER_NOT_FOUND')) throw err;
-      }
-    }
-
-    await logAuditAction(req, riderId, 'RIDER_PAYOUT_SETTLED', { riderId, updatedOrdersCount: updatedCount, tipsSettled, upTo: upTo && !Number.isNaN(upTo.getTime()) ? upTo.toISOString() : null, orderIds: ids ? ids.length : 0 });
-
-    res.json({ message: 'Rider payout marked as settled successfully', updatedOrdersCount: updatedCount, tipsSettled });
+    const includeTips = req.body.includeTips === true && Number.isFinite(tipsSeen) && tipsSeen > 0;
+    const sequelize = getOrderModel().sequelize;
+    const adminId = req.user?.id ? String(req.user.id) : null;
+    const result = await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async (t) => {
+      const payout = await payouts.createStatement({
+        sequelize, partnerType: 'rider', partnerId: riderId, to: upTo, orderIds: ids && ids.length ? ids : null,
+        includeTips, tipsPaise: includeTips ? walletLedger.toPaise(tipsSeen) : 0, adminId, notes: req.body.notes, transaction: t,
+      });
+      const paid = await payouts.markPaid({ sequelize, payoutId: payout.id, utr, method: req.body.method || 'bank', adminId, transaction: t });
+      return { payout: paid.payout, settled: paid.settledOrders };
+    });
+    const tipsSettled = result.payout.tipsPaise / 100;
+    await logAuditAction(req, riderId, 'RIDER_PAYOUT_SETTLED', { riderId, payoutId: result.payout.id, updatedOrdersCount: result.settled, tipsSettled, netPaise: result.payout.netPaise, utr, upTo: upTo.toISOString(), orderIds: ids ? ids.length : 0 });
+    res.json({ message: 'Rider payout recorded and marked paid', updatedOrdersCount: result.settled, tipsSettled, payoutId: result.payout.id, payout: payouts.payoutJson(result.payout) });
   } catch (error) {
+    if (payoutErrorReply(res, error)) return;
     sendServerError(res, error, '[ADMINCONTROLLER_ERROR]');
   }
 };

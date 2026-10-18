@@ -6,9 +6,9 @@ const { getDeliveryPartnerModel } = require('../models/DeliveryPartner');
 const { sendPushToTokens } = require('./push');
 const { getCoordsForAddress, getHaversineDistance } = require('./distance');
 
-// What the rider earns for an order: its stored delivery fee (₹30 for old orders without one).
-const BASE_DELIVERY_FEE = 30;
-const riderPayout = (order) => (Number(order?.deliveryFee) > 0 ? Number(order.deliveryFee) : BASE_DELIVERY_FEE);
+// What the rider earns for an order (rupees): the one C6 rule in utils/riderEarnings (stored delivery fee,
+// ₹30 when it is 0; stall orders earn nothing). Kept under this name for the existing callers.
+const { BASE_DELIVERY_FEE, earningRupees: riderPayout } = require('./riderEarnings');
 
 // Orders one rider may hold at once (same env as the claim check in deliveryPartnerController).
 const MAX_ACTIVE_ORDERS = Math.max(1, parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS, 10) || 3);

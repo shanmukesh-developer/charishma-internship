@@ -46,6 +46,8 @@ interface Payout {
   asOf?: string;
   riderName?: string;
   riderPhone?: string;
+  /** C6: COD cash this rider holds for Zenvy (never deducted from a payout; collected on Finance → Rider cash). */
+  cashHeld?: number;
 }
 
 const RiderRow = memo(({ rider, busy, onEdit, onToggleApproval, onResetSos }: {
@@ -229,7 +231,10 @@ export default function FleetManagement() {
     if (settlingId) return;
     const tips = Math.max(0, Number(p.unsettledTips) || 0);
     const total = (Number(p.totalDeliveryFees) || 0) + tips;
-    if (!confirm(`Mark ₹${total} as paid out to ${riderName}?\n• ₹${p.totalDeliveryFees} delivery fees (${p.totalDeliveries} deliveries)${tips ? `\n• ₹${tips} customer tips` : ''}\n\nDeliveries completed after this list loaded are not included. Only do this after the money has actually been paid.`)) return;
+    // C6: a payout is recorded with the UTR of the transfer (required by the server).
+    const utr = prompt(`Record ₹${total} paid to ${riderName}?\n• ₹${p.totalDeliveryFees} earnings (${p.totalDeliveries} deliveries)${tips ? `\n• ₹${tips} customer tips` : ''}${(Number(p.cashHeld) || 0) > 0 ? `\n\nThey also hold ₹${p.cashHeld} COD cash: NOT deducted here, collect it on Finance → Rider cash.` : ''}\n\nDeliveries completed after this list loaded are not included. Enter the UTR / payment reference of the transfer:`);
+    if (utr === null) return;
+    if (utr.trim().length < 3) { setNotice({ kind: 'error', text: 'A UTR / payment reference (at least 3 characters) is required to record a payout.' }); return; }
     setSettlingId(p.riderId);
     setNotice(null);
     try {
@@ -239,6 +244,7 @@ export default function FleetManagement() {
         // Settle only what this screen showed: deliveries up to the list's `asOf`, plus the tips seen.
         body: JSON.stringify({
           riderId: p.riderId,
+          utr: utr.trim(),
           ...(p.asOf ? { upTo: p.asOf } : {}),
           ...(tips > 0 ? { includeTips: true, tipsAmount: tips } : {}),
         }),
@@ -251,7 +257,7 @@ export default function FleetManagement() {
       const tipsNote = tips > 0 && Number(data.tipsSettled) !== tips ? ' Tips were NOT cleared (the balance changed); check the rider\'s tips again.' : '';
       setNotice({
         kind: mismatch || tipsNote ? 'error' : 'ok',
-        text: `Payout for ${riderName} marked as settled${settledOrders !== null ? ` (${settledOrders} of ${p.totalDeliveries} orders shown)` : ''}.${mismatch ? ' The count differs from what was shown; recheck this rider\'s payouts.' : ''}${tipsNote}`,
+        text: `Payout for ${riderName} recorded (UTR ${utr.trim()}) and marked as settled${settledOrders !== null ? ` (${settledOrders} of ${p.totalDeliveries} orders shown)` : ''}.${mismatch ? ' The count differs from what was shown; recheck this rider\'s payouts.' : ''}${tipsNote}`,
       });
       setPayouts(prev => prev.filter(x => x.riderId !== p.riderId));
       fetchPayouts();
@@ -471,7 +477,7 @@ export default function FleetManagement() {
                 <tr className="bg-white/[0.03]">
                   <th className="px-8 py-4 text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/5">Rider ID</th>
                   <th className="px-8 py-4 text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/5">Total Deliveries</th>
-                  <th className="px-8 py-4 text-[9px] font-black text-blue-400 uppercase tracking-widest border-b border-white/5">Unsettled earnings (delivery fees)</th>
+                  <th className="px-8 py-4 text-[9px] font-black text-blue-400 uppercase tracking-widest border-b border-white/5">Unsettled earnings (delivery fee, ₹30 min)</th>
                   <th className="px-8 py-4 text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/5">Action</th>
                 </tr>
               </thead>
@@ -494,6 +500,7 @@ export default function FleetManagement() {
                       <td className="px-8 py-4 text-lg font-black text-emerald-400">
                         ₹{p.totalDeliveryFees}
                         {(Number(p.unsettledTips) || 0) > 0 && <span className="block text-[10px] font-bold text-amber-300">+ ₹{p.unsettledTips} tips</span>}
+                        {(Number(p.cashHeld) || 0) > 0 && <span className="block text-[10px] font-bold text-gray-400">Holds ₹{p.cashHeld} COD cash (not deducted)</span>}
                       </td>
                       <td className="px-8 py-4">
                         <button disabled={!!settlingId} onClick={() => handleMarkSettled(p, riderName)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[9px] font-black uppercase disabled:opacity-40">{settlingId === p.riderId ? 'Settling…' : 'Mark Settled'}</button>

@@ -31,6 +31,9 @@ const initDeliveryPartnerModel = (sequelize) => {
     completedDeliveries: { type: DataTypes.INTEGER, defaultValue: 0 },
     currentOrderId: { type: DataTypes.UUID },
     totalEarnings: { type: DataTypes.FLOAT, defaultValue: 0 },
+    // C6: cash this rider holds for Zenvy (COD collected minus deposits), integer paise. Changed only by
+    // utils/riderCash.applyCashChange together with a RiderCashEntries row. Separate from walletBalance.
+    cashHeldPaise: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
     zenPoints: { type: DataTypes.INTEGER, defaultValue: 0 },
     // null until the first real customer rating (new riders are not shown invented stars)
     averageRating: { type: DataTypes.FLOAT, allowNull: true, defaultValue: null },

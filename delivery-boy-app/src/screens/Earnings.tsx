@@ -2,7 +2,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { C, R, S, T, shadow } from '../theme';
-import { Card, EmptyState, ErrorState, Label, ScreenHeader, Segmented, Skeleton } from '../ui/kit';
+import { Banner, Card, EmptyState, ErrorState, Label, ScreenHeader, Segmented, Skeleton } from '../ui/kit';
+import * as api from '../services/deliveryApi';
+import type { RiderCash } from '../types';
 import { useRider } from '../state/RiderStore';
 import { dayLabel, istDayKey, lastNDayKeys, rupees, shortWeekday, timeIST, todayKey } from '../services/format';
 import { OrderLine } from './History';
@@ -11,9 +13,13 @@ export function EarningsScreen() {
   const r = useRider();
   const [seg, setSeg] = useState<'today' | 'week'>('today');
   const [refreshing, setRefreshing] = useState(false);
+  // C6: cash held for Zenvy (COD) + what Zenvy owes, from GET /delivery/cash. Null on older servers.
+  const [cashInfo, setCashInfo] = useState<RiderCash | null>(null);
+  const loadCash = () => api.fetchCash().then(setCashInfo).catch(() => {});
 
   useEffect(() => {
     r.refreshEarnings();
+    loadCash();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -46,7 +52,7 @@ export function EarningsScreen() {
           onRefresh={async () => {
             setRefreshing(true);
             try {
-              await r.refreshEarnings();
+              await Promise.all([r.refreshEarnings(), loadCash()]);
             } finally {
               setRefreshing(false);
             }
@@ -83,6 +89,8 @@ export function EarningsScreen() {
             </View>
           </View>
         )}
+
+        {cashInfo ? <CashCard cash={cashInfo} /> : null}
 
         {seg === 'week' && w ? (
           <Card style={{ gap: S.md }}>
@@ -126,6 +134,46 @@ export function EarningsScreen() {
         ) : null}
       </View>
     </ScrollView>
+  );
+}
+
+// C6: informational. Cash collected for COD orders is handed over to Zenvy separately (deposits); it is
+// never taken out of earnings. The deposit banner shows only when an admin has turned on a cash limit.
+function CashCard({ cash }: { cash: RiderCash }) {
+  const { status, position, recentDeposits } = cash;
+  return (
+    <Card style={{ gap: S.sm }}>
+      {status.limitEnabled && status.overLimit && status.message ? <Banner text={status.message} tone="amber" icon="cash-lock" /> : null}
+      <Label>CASH WITH YOU</Label>
+      <Text style={[T.money, { color: C.cash }]}>{rupees(status.cashHeld)}</Text>
+      <Text style={[T.small, { color: C.muted }]}>COD cash you collected and have not deposited to Zenvy yet.</Text>
+      <View style={{ gap: 4, marginTop: S.sm }}>
+        <Line label="Cash you hold" value={rupees(position.cashHeld)} />
+        <Line label="Zenvy owes you (earnings + tips)" value={rupees(position.zenvyOwes)} />
+        <Line label={position.net >= 0 ? 'Net: Zenvy owes you' : 'Net: you owe Zenvy'} value={rupees(Math.abs(position.net))} strong />
+      </View>
+      {recentDeposits.length ? (
+        <View style={{ gap: 4, marginTop: S.sm }}>
+          <Label>DEPOSITS</Label>
+          {recentDeposits.map((d) => (
+            <Line
+              key={d.id}
+              label={`${d.label}${d.method ? ` · ${d.method.toUpperCase()}` : ''} · ${dayLabel(istDayKey(d.createdAt))}`}
+              value={`${d.amount < 0 ? '−' : '+'}${rupees(Math.abs(d.amount))}`}
+            />
+          ))}
+        </View>
+      ) : null}
+    </Card>
+  );
+}
+
+function Line({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: S.md }}>
+      <Text style={[T.small, { color: C.ink, flex: 1, fontWeight: strong ? '800' : '600' }]} numberOfLines={1}>{label}</Text>
+      <Text style={[T.small, { color: C.ink, fontWeight: strong ? '800' : '700' }]}>{value}</Text>
+    </View>
   );
 }
 

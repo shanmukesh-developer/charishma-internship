@@ -283,6 +283,8 @@ const JOBS = [
   },
   // C5: daily wallet check (ledger sum vs balance for every owner). Read-only; mismatches -> admin alert.
   { name: 'wallet.reconcile', schedule: { cron: '30 4 * * *', timezone: IST }, run: (c) => require('../utils/walletLedger').runReconcileJob(c), timeoutMs: 30 * MIN },
+  // C6: daily rider cash check (ledger sum vs cash held; every delivered COD order has exactly one cash row). Read-only; problems -> admin alert.
+  { name: 'riderCash.reconcile', schedule: { cron: '45 4 * * *', timezone: IST }, run: (c) => require('../utils/riderCash').runReconcileJob(c), timeoutMs: 30 * MIN },
   {
     name: 'media.base64Migration', schedule: { onceAfterMs: 60 * SEC, retryLockedMs: 10 * MIN }, run: runBase64Migration, timeoutMs: 60 * MIN,
     enabled: () => String(process.env.DISABLE_BASE64_MIGRATION || '').toLowerCase() !== 'true',

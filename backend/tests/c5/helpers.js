@@ -68,6 +68,8 @@ const setup = async () => {
   r('models/ProductReview').initProductReviewModel(sequelize);
   r('models/IdempotencyKey').initIdempotencyKeyModel(sequelize);
   r('models/WalletTransaction').initWalletTransactionModel(sequelize);
+  r('models/RiderCashEntry').initRiderCashEntryModel(sequelize); // C6 (settle-rider records a Payout)
+  r('models/Payout').initPayoutModel(sequelize);
   const M = sequelize.models;
   M.Order.belongsTo(M.Restaurant, { foreignKey: 'restaurantId', as: 'restaurant' });
   M.Order.belongsTo(M.DeliveryPartner, { foreignKey: 'deliveryPartnerId', as: 'deliveryPartner' });

@@ -960,6 +960,13 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
         return true;
       } catch (e) {
         // Too many orders on hand: the offer is still valid, so keep it in the list.
+        // C6: an admin-set cash limit was reached (off by default): the order stays offered, prepaid ones still work.
+        if (e instanceof ApiError && e.status === 409 && e.code === 'CASH_LIMIT') {
+          showToast(errorMessage(e), 'info');
+          refreshPending();
+          refreshToday();
+          return false;
+        }
         if (e instanceof ApiError && e.status === 409 && e.code === 'MAX_ACTIVE') {
           showToast('You are carrying the most orders allowed. Deliver one, then take this order.', 'info');
           refreshPending();
@@ -975,7 +982,7 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
     },
-    [connected, dismiss, refreshActive, refreshPending, showToast],
+    [connected, dismiss, refreshActive, refreshPending, refreshToday, showToast],
   );
 
   const advance = useCallback(

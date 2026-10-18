@@ -163,6 +163,23 @@ router.get('/finance/payouts', getRestaurantPayouts);
 router.post('/finance/settle-restaurant', settleRestaurantPayout);
 router.post('/finance/settle-rider', settleRiderPayout);
 router.get('/finance/disputes', getDisputedOrders);
+// C6: rider cash ledger + payout statements (controllers/financeController).
+{
+  const fc = require('../controllers/financeController');
+  router.get('/rider-cash', fc.getRiderCashHoldings);
+  router.get('/rider-cash/reconcile', fc.getRiderCashReconcile);
+  router.post('/rider-cash/orders/:orderId/record', fc.recordMissingCodRow);
+  router.get('/rider-cash/:riderId/entries', fc.getRiderCashEntries);
+  router.post('/rider-cash/:riderId/deposit', fc.recordRiderDeposit);
+  router.post('/rider-cash/:riderId/adjust', fc.adjustRiderCash);
+  router.get('/payouts/pending', fc.getPendingPayouts);
+  router.get('/payouts/preview', fc.previewPayout);
+  router.get('/payouts', fc.listPayouts);
+  router.post('/payouts', fc.createPayout);
+  router.get('/payouts/:id', fc.getPayout);
+  router.post('/payouts/:id/mark-paid', fc.markPayoutPaid);
+  router.post('/payouts/:id/cancel', fc.cancelPayout);
+}
 router.post('/finance/refund/:orderId', processManualRefund);
 
 // Reviews & Analytics
@@ -182,6 +199,8 @@ router.get('/metrics/perf', async (req, res) => {
   snap.infra = await perf.infraSnapshot();
   // C5: last wallet reconciliation (owners checked, mismatches, alerts sent).
   try { snap.wallet = require('../utils/walletLedger').reconcileStatus(); } catch { /* optional */ }
+  // C6: last rider cash reconciliation (riders / COD orders checked, problems, alerts sent).
+  try { snap.riderCash = require('../utils/riderCash').reconcileStatus(); } catch { /* optional */ }
   if (String(req.query.reset || '') === '1') perf.resetRoutes();
   res.set('Cache-Control', 'no-store');
   res.json(snap);

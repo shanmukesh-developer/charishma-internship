@@ -74,6 +74,9 @@ export function HomeScreen() {
 
         <DutySwitch online={r.isOnline} busy={r.dutyBusy} onPress={toggleDuty} />
         <TodayStrip />
+        {r.today.data?.cash?.limitEnabled && r.today.data.cash.overLimit && r.today.data.cash.message ? (
+          <Banner text={r.today.data.cash.message} tone="amber" icon="cash-lock" />
+        ) : null}
 
         {r.locationDenied ? <Banner tone="blue" icon="crosshairs-off" text="Location is off. Turn it on so customers can see you." /> : null}
         {!r.locationDenied && r.backgroundLocationOff ? (
@@ -185,7 +188,8 @@ function TodayStrip() {
   const tiles: { label: string; value: string; color: string }[] = [
     { label: 'EARNED TODAY', value: t ? rupees(t.earnings) : '—', color: C.greenDark },
     { label: 'ORDERS', value: t ? String(t.orders) : '—', color: C.ink },
-    { label: 'CASH IN HAND', value: t && t.codCollected !== undefined ? rupees(t.codCollected) : '—', color: C.cash },
+    // C6: cash held for Zenvy (ledger) when the server sends it; older servers: COD collected today.
+    { label: 'CASH WITH YOU', value: t?.cash ? rupees(t.cash.cashHeld) : t && t.codCollected !== undefined ? rupees(t.codCollected) : '—', color: C.cash },
   ];
   return (
     <Pressable accessibilityRole="button" accessibilityLabel="Open earnings" onPress={() => r.setTab('earnings')} style={styles.strip}>
