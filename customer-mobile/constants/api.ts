@@ -84,6 +84,8 @@ export const ENDPOINTS = {
   communityGuidelines: `${API_URL}/legal/community-guidelines`,
   legalInfo: `${API_URL}/api/config/legal`,
   legalAccept: `${API_URL}/api/users/legal/accept`,
+  // C5 wallet history (newest first, ?page=&limit=)
+  walletTransactions: `${API_URL}/api/users/wallet/transactions`,
 
   // Restaurants
   restaurants: `${API_URL}/api/users/restaurants`,

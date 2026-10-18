@@ -119,6 +119,12 @@ router.get('/fleet/payouts', getRiderPayouts);
 router.get('/users', getAllUsers);
 router.put('/users/:userId/elite', setEliteStatus);
 router.post('/users/:userId/wallet', updateUserWallet);
+// C5 wallet ledger: per-owner history (user | rider) and the read-only reconciliation check.
+{
+  const ac = require('../controllers/adminController');
+  router.get('/wallet/reconcile', ac.getWalletReconcile);
+  router.get('/wallet/:ownerType/:ownerId/transactions', ac.getWalletTransactions);
+}
 router.put('/users/:userId/ban', toggleUserBan);
 
 // Coupon Management
@@ -174,6 +180,8 @@ router.get('/metrics/perf', async (req, res) => {
   // Infra switch-over checks (docs/INFRA_SWITCHOVER.md): DB host kind + a fresh measured round trip,
   // media storage driver, public URL settings. No URLs with credentials, no keys.
   snap.infra = await perf.infraSnapshot();
+  // C5: last wallet reconciliation (owners checked, mismatches, alerts sent).
+  try { snap.wallet = require('../utils/walletLedger').reconcileStatus(); } catch { /* optional */ }
   if (String(req.query.reset || '') === '1') perf.resetRoutes();
   res.set('Cache-Control', 'no-store');
   res.json(snap);

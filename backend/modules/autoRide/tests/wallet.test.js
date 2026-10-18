@@ -42,6 +42,7 @@ test('S14 failed payment (insufficient wallet) leaves the hold unconfirmed; aban
   assert.equal(b.body.booking.trip.heldSeats, 2);
   await u.reload();
   assert.equal(u.walletBalance, 100, 'nothing debited');
+  assert.equal(await H.ctx.M('WalletTransaction').count({ where: { ownerId: u.id } }), 0, 'C5: no ledger row for a failed debit');
   H.advance(6 * H.MIN);
   await H.r('modules/autoRide/jobs').runAutoRideJobs(new Date(H.now()));
   const after2 = await api('GET', `/api/auto-ride/bookings/${h.body.booking.id}`, u.token);
@@ -69,6 +70,13 @@ test('S15 wallet: debit exactly the server amount; cancel before departure confi
   await H.r('modules/autoRide/jobs').runAutoRideJobs(new Date(H.now()));
   await u.reload();
   assert.equal(u.walletBalance, 300, 'job does not refund again');
+  // C5 ledger: opening 300, AUTORIDE_PAYMENT -110, exactly one AUTORIDE_REFUND +110 (3 parallel cancels + the job).
+  const rows = (await H.ctx.M('WalletTransaction').findAll({ where: { ownerType: 'user', ownerId: u.id }, order: [['createdAt', 'ASC']] })).map((x) => [x.type, x.amountPaise, x.balanceAfterPaise, x.refType, x.refId]);
+  assert.deepEqual(rows, [
+    ['OPENING_BALANCE', 30000, 30000, null, null],
+    ['AUTORIDE_PAYMENT', -11000, 19000, 'AUTO_BOOKING', r.booking.id],
+    ['AUTORIDE_REFUND', 11000, 30000, 'AUTO_BOOKING', r.booking.id],
+  ]);
 });
 
 test('refund policy: customer cancel after the driver confirmed departure -> 0 %; driver cancel -> 100 %', async () => {

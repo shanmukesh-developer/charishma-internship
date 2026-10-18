@@ -5,20 +5,16 @@
 //  - refund exactly once: the booking is first marked REFUND_PENDING (same transaction as the
 //    cancellation), then processRefund flips REFUND_PENDING -> REFUNDED with a conditional UPDATE and
 //    credits the wallet in that same transaction. A failure leaves REFUND_PENDING for the lifecycle job.
-const { Op, Transaction } = require('sequelize');
+const { Transaction } = require('sequelize');
 const { getModel, getSequelize } = require('../index');
 const E = require('../enums');
 const { fail, money } = require('./util');
 const clock = require('./clock');
 const { readWalletFlag } = require('./flag');
+const walletLedger = require('../../../utils/walletLedger');
 
 const B = E.BOOKING_STATUS;
 const P = E.PAYMENT_STATUS;
-
-const User = () => {
-  const { getUserModel } = require('../../../models/User');
-  return getUserModel();
-};
 
 /** Payment methods currently offered to customers. */
 const enabledMethods = async () => ((await readWalletFlag()) ? [E.PAYMENT_METHODS.CASH, E.PAYMENT_METHODS.WALLET] : [E.PAYMENT_METHODS.CASH]);
@@ -35,16 +31,20 @@ const pickMethod = async (raw) => {
  * Charges a booking being confirmed (inside transaction t). Returns the columns to set.
  * WALLET: conditional decrement; throws 402 INSUFFICIENT_WALLET (nothing changes) when short.
  */
-const charge = async ({ userId, amount, method, t }) => {
+const charge = async ({ userId, amount, method, t, ref = null }) => {
   const amt = money(amount);
   if (method === E.PAYMENT_METHODS.WALLET) {
     if (amt > 0) {
-      const sequelize = getSequelize();
-      const [n] = await User().update(
-        { walletBalance: sequelize.literal(`"walletBalance" - ${amt}`) },
-        { where: { id: userId, walletBalance: { [Op.gte]: amt } }, transaction: t },
-      );
-      if (!n) throw fail(402, 'INSUFFICIENT_WALLET', `Not enough Zenvy Wallet balance for ₹${amt}. Pay in cash or add money to your wallet.`);
+      // C5: conditional debit + AUTORIDE_PAYMENT ledger row in the trip transaction.
+      try {
+        await walletLedger.applyWalletChange({
+          t, ownerType: 'user', ownerId: userId, amountPaise: -walletLedger.toPaise(amt), type: walletLedger.TYPES.AUTORIDE_PAYMENT,
+          ref, actor: { type: 'user', id: userId },
+        });
+      } catch (err) {
+        if (walletLedger.isInsufficient(err)) throw fail(402, 'INSUFFICIENT_WALLET', `Not enough Zenvy Wallet balance for ₹${amt}. Pay in cash or add money to your wallet.`);
+        throw err;
+      }
     }
     return { paymentMethod: method, paymentStatus: P.PAID, walletDebited: amt };
   }
@@ -75,7 +75,13 @@ const processRefund = async (bookingId) => {
         { where: { id: b.id, status: B.REFUND_PENDING, refundedAt: null }, transaction: t },
       );
       if (!n) return 0;
-      if (amt > 0) await User().increment('walletBalance', { by: amt, where: { id: b.userId }, transaction: t });
+      // C5: credit + AUTORIDE_REFUND ledger row, in the transaction that flipped REFUND_PENDING -> REFUNDED.
+      if (amt > 0) {
+        await walletLedger.applyWalletChange({
+          t, ownerType: 'user', ownerId: b.userId, amountPaise: walletLedger.toPaise(amt), type: walletLedger.TYPES.AUTORIDE_REFUND,
+          ref: { type: 'AUTO_BOOKING', id: b.id }, actor: { type: 'system' },
+        });
+      }
       return amt;
     });
   } catch (err) {

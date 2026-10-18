@@ -144,7 +144,7 @@ const finalize = async (event, reg, t) => {
     cols.paymentStatus = P.DUE_AT_VENUE;
     cols.status = event.approvalRequired ? R.PENDING_APPROVAL : R.CONFIRMED;
   } else if (reg.paymentMode === PM.WALLET) {
-    const debited = await payments.debitWallet(reg.userId, total, t);
+    const debited = await payments.debitWallet(reg.userId, total, t, { type: 'EVENT_REGISTRATION', id: reg.id });
     cols.walletDebited = debited; cols.paymentStatus = P.SUCCESS; cols.paidAt = now;
     cols.status = event.approvalRequired ? R.PENDING_APPROVAL : R.CONFIRMED;
   } else if (reg.paymentMode === PM.ONLINE) {

@@ -6,7 +6,8 @@ const { getOrderModel } = require('../models/Order');
 const { getVaultItemModel } = require('../models/VaultItem');
 const { getGlobalConfigModel } = require('../models/GlobalConfig');
 const { getVerificationLogModel } = require('../models/VerificationLog');
-const { Op } = require('sequelize');
+const { Op, Transaction } = require('sequelize');
+const walletLedger = require('../utils/walletLedger');
 
 const { getStoreOpenState, normalizeOperatingHours } = require('../utils/storeHours');
 const { STORE_VENDOR_TYPES, isLocalVendorStore, isServiceVendorType } = require('../utils/vendorTypes');
@@ -1018,37 +1019,105 @@ exports.setEliteStatus = async (req, res) => {
   }
 };
 
+// C5: admin wallet adjustment. A reason is required (min 5 characters); the balance change, its
+// WalletTransactions row (ADMIN_CREDIT / ADMIN_DEBIT, actor = this admin) and the WALLET_UPDATE audit
+// row are written in ONE transaction, so a failed audit write leaves no balance change behind.
+// Optional Idempotency-Key header (or body.idempotencyKey): a repeated submit returns the first result.
 exports.updateUserWallet = async (req, res) => {
   try {
     const User = getUserModel();
-    const { amount } = req.body;
-    const user = await User.findByPk(req.params.userId);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    
- 
-    const delta = Number(amount);
+    const body = req.body || {};
+    const delta = Number(body.amount);
     if (!Number.isFinite(delta) || delta === 0) {
-      return res.status(400).json({ message: 'Invalid amount value' });
+      return res.status(400).json({ message: 'Invalid amount value', code: 'INVALID_AMOUNT' });
     }
-    // Atomic, conditional adjustment: an order debit, tip or refund landing at the same moment is
-    // never overwritten (the old read-modify-write could wipe it out).
-    const [changed] = await User.update(
-      { walletBalance: User.sequelize.literal(`COALESCE("walletBalance", 0) + ${delta}`) },
-      { where: { id: user.id, ...(delta < 0 ? { walletBalance: { [Op.gte]: -delta } } : {}) } }
-    );
-    if (changed === 0) {
-      return res.status(400).json({ message: 'Wallet balance cannot be negative' });
+    const amountPaise = walletLedger.toPaise(Math.abs(delta)) * Math.sign(delta);
+    if (!amountPaise || Math.abs(delta) > 100000) {
+      return res.status(400).json({ message: 'Amount must be between ₹0.01 and ₹1,00,000.', code: 'INVALID_AMOUNT' });
     }
-    await user.reload({ attributes: ['id', 'walletBalance', 'email'] });
-    const newBalance = Number(user.walletBalance) || 0;
-    
-    await logAuditAction(req, user.id, 'WALLET_UPDATE', { email: user.email, added: amount, newBalance });
+    const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
+    if (reason.length < 5) {
+      return res.status(400).json({ code: 'REASON_REQUIRED', field: 'reason', message: 'Please enter a reason for this wallet change (at least 5 characters). It is saved in the wallet history and the audit log. If you do not see a reason box, refresh the admin dashboard.' });
+    }
+    if (reason.length > 300) return res.status(400).json({ code: 'REASON_TOO_LONG', field: 'reason', message: 'Keep the reason under 300 characters.' });
+    const user = await User.findByPk(req.params.userId, { attributes: ['id', 'email', 'phone', 'name'] });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const rawKey = String(req.get('Idempotency-Key') || body.idempotencyKey || '').trim().slice(0, 100);
+    const VerificationLog = getVerificationLogModel();
+    const adminId = req.user?.id ? String(req.user.id) : 'admin_default';
+
+    const { getSequelize } = require('../config/db');
+    let result;
+    try {
+      result = await getSequelize().transaction({ type: Transaction.TYPES.IMMEDIATE }, async (t) => {
+        const r = await walletLedger.applyWalletChange({
+          t, ownerType: 'user', ownerId: user.id, amountPaise,
+          type: amountPaise > 0 ? walletLedger.TYPES.ADMIN_CREDIT : walletLedger.TYPES.ADMIN_DEBIT,
+          actor: { type: 'admin', id: adminId }, reason, idempotencyKey: rawKey ? `admin:${rawKey}` : null,
+        });
+        if (r.applied) {
+          await VerificationLog.create({
+            adminId,
+            targetId: String(user.id),
+            action: 'WALLET_UPDATE',
+            details: JSON.stringify({ email: user.email, added: delta, amountPaise, reason, newBalance: r.balance, transactionId: r.row.id }).slice(0, 8000),
+          }, { transaction: t });
+        }
+        return r;
+      });
+    } catch (err) {
+      if (walletLedger.isInsufficient(err)) return res.status(400).json({ code: 'INSUFFICIENT_BALANCE', message: 'Wallet balance cannot be negative' });
+      throw err;
+    }
+    const newBalance = result.balance;
+    clearCachedUser(user.id);
     broadcastSystemUpdate(req, 'USER_UPDATED', { userId: user.id, walletBalance: newBalance });
     realtime.notifyAdmin('user', 'updated', user.id);
-    
-    res.json({ message: 'Wallet updated', walletBalance: newBalance });
+
+    res.json({ message: 'Wallet updated', walletBalance: newBalance, transactionId: result.row.id, ...(result.duplicate ? { duplicate: true } : {}) });
   } catch (error) {
-    sendServerError(res, error, '[ADMINCONTROLLER_ERROR]');
+    sendServerError(res, error, '[ADMIN_WALLET_ERROR]');
+  }
+};
+
+// C5: GET /api/admin/wallet/:ownerType/:ownerId/transactions?page=&limit=   (ownerType: user | rider)
+exports.getWalletTransactions = async (req, res) => {
+  try {
+    const ownerType = String(req.params.ownerType || '').toLowerCase();
+    if (!walletLedger.OWNER_TYPES.includes(ownerType)) return res.status(400).json({ code: 'INVALID_OWNER_TYPE', message: 'ownerType must be user or rider.' });
+    const ownerId = String(req.params.ownerId || '');
+    if (!UUID_RE.test(ownerId)) return res.status(400).json({ code: 'INVALID_ID', message: 'Invalid owner id.' });
+    const Owner = ownerType === 'user' ? getUserModel() : getDeliveryPartnerModel();
+    const owner = await Owner.findByPk(ownerId, { attributes: ['id', 'name', 'phone', 'walletBalance'] });
+    if (!owner) return res.status(404).json({ message: ownerType === 'user' ? 'User not found' : 'Rider not found' });
+    const { rows, page, limit, hasMore } = await walletLedger.listFor({ ownerType, ownerId, page: req.query.page, limit: req.query.limit });
+    const { getSequelize } = require('../config/db');
+    const WT = getSequelize().models.WalletTransaction;
+    const ledgerPaise = Number(await WT.sum('amountPaise', { where: { ownerType, ownerId } })) || 0;
+    const count = await WT.count({ where: { ownerType, ownerId } });
+    const balancePaise = walletLedger.toPaise(owner.walletBalance);
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      owner: { id: owner.id, ownerType, name: owner.name, phone: owner.phone, walletBalance: walletLedger.toRupees(balancePaise), balancePaise },
+      ledgerPaise,
+      // No rows yet + a balance: it predates the ledger (recorded on its next change / next startup).
+      inSync: count === 0 ? balancePaise === 0 : ledgerPaise === balancePaise,
+      transactions: rows.map(walletLedger.toAdmin),
+      page, limit, hasMore, total: count,
+    });
+  } catch (error) {
+    sendServerError(res, error, '[ADMIN_WALLET_ERROR]');
+  }
+};
+
+// C5: GET /api/admin/wallet/reconcile?limit=   Read-only check: ledger sum vs balance for every owner.
+exports.getWalletReconcile = async (req, res) => {
+  try {
+    const r = await walletLedger.reconcile({ limit: req.query.limit });
+    res.set('Cache-Control', 'no-store');
+    res.json({ ...r, ok: r.mismatchCount === 0 && r.withoutHistoryCount === 0, status: walletLedger.reconcileStatus() });
+  } catch (error) {
+    sendServerError(res, error, '[ADMIN_WALLET_ERROR]');
   }
 };
 
@@ -1978,7 +2047,12 @@ exports.processManualRefund = async (req, res) => {
         { where: { id: order.id, refundedAt: null, status: 'Cancelled', paymentMethod: { [Op.notIn]: ['COD', 'Wallet'] } }, transaction: t }
       );
       if (!flipped) return false;
-      await User.increment('walletBalance', { by: refundAmount, where: { id: user.id }, transaction: t });
+      // C5: credit + ORDER_REFUND ledger row (actor = this admin) in the same transaction.
+      await walletLedger.applyWalletChange({
+        t, ownerType: 'user', ownerId: user.id, amountPaise: walletLedger.toPaise(refundAmount), type: walletLedger.TYPES.ORDER_REFUND,
+        ref: { type: 'ORDER', id: order.id }, actor: { type: 'admin', id: req.user?.id ? String(req.user.id) : 'admin_default' },
+        reason: 'Manual refund of a cancelled order', idempotencyKey: `manual-refund:${order.id}`,
+      });
       if (VerificationLog) {
         await VerificationLog.create({
           adminId: req.user?.id ? String(req.user.id) : 'admin_default',
@@ -2275,12 +2349,17 @@ exports.settleRiderPayout = async (req, res) => {
     let tipsSettled = 0;
     const tipsSeen = Number(req.body.tipsAmount);
     if (req.body.includeTips === true && Number.isFinite(tipsSeen) && tipsSeen > 0) {
-      const DeliveryPartner = getDeliveryPartnerModel();
-      const [n] = await DeliveryPartner.update(
-        { walletBalance: DeliveryPartner.sequelize.literal(`"walletBalance" - ${tipsSeen}`) },
-        { where: { id: riderId, walletBalance: { [Op.gte]: tipsSeen } } }
-      );
-      if (n > 0) tipsSettled = tipsSeen;
+      // C5: the payout leaves the rider's tip wallet through the ledger (TIP_PAYOUT, actor = this admin).
+      const { getSequelize } = require('../config/db');
+      try {
+        await getSequelize().transaction({ type: Transaction.TYPES.IMMEDIATE }, (t) => walletLedger.applyWalletChange({
+          t, ownerType: 'rider', ownerId: String(riderId), amountPaise: -walletLedger.toPaise(tipsSeen), type: walletLedger.TYPES.TIP_PAYOUT,
+          actor: { type: 'admin', id: req.user?.id ? String(req.user.id) : 'admin_default' }, reason: 'Tips paid out with the rider payout',
+        }));
+        tipsSettled = tipsSeen;
+      } catch (err) {
+        if (!walletLedger.isInsufficient(err) && !(err && err.code === 'OWNER_NOT_FOUND')) throw err;
+      }
     }
 
     await logAuditAction(req, riderId, 'RIDER_PAYOUT_SETTLED', { riderId, updatedOrdersCount: updatedCount, tipsSettled, upTo: upTo && !Number.isNaN(upTo.getTime()) ? upTo.toISOString() : null, orderIds: ids ? ids.length : 0 });

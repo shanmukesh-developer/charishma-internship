@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { API_URL } from '@/lib/config';
 import { useLiveSync } from '@/lib/useLiveSync';
+import { WalletLedgerModal, WalletReconcileCard } from '@/components/wallet/WalletLedger';
 
 interface User {
   _id: string;
@@ -56,23 +57,27 @@ const isAdminRole = (u: User) => String(u.role || '').toLowerCase() === 'admin';
 
 const money = (n: number | null | undefined) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
-const UserCard = memo(({ user, busy, isSelf, onToggleElite, onToggleBan, onAdjustWallet }: {
+const UserCard = memo(({ user, busy, isSelf, onToggleElite, onToggleBan, onAdjustWallet, onShowWallet }: {
   user: User;
   busy: boolean;
   /** The signed-in admin's own account. */
   isSelf: boolean;
   onToggleElite: (user: User) => void;
   onToggleBan: (user: User) => void;
-  onAdjustWallet: (user: User, amount: number) => Promise<boolean>;
+  onAdjustWallet: (user: User, amount: number, reason: string) => Promise<boolean>;
+  onShowWallet: (user: User) => void;
 }) => {
   const [amount, setAmount] = useState<string>('');
+  const [reason, setReason] = useState<string>('');
   const parsed = Number(amount);
   const amountValid = amount.trim() !== '' && Number.isFinite(parsed) && parsed !== 0 && Math.abs(parsed) <= 10000;
+  // C5: every admin wallet change needs a reason (saved in the wallet history + audit log).
+  const reasonValid = reason.trim().length >= 5 && reason.trim().length <= 300;
 
   const submitWallet = async () => {
-    if (!amountValid || busy) return;
-    const ok = await onAdjustWallet(user, parsed);
-    if (ok) setAmount('');
+    if (!amountValid || !reasonValid || busy) return;
+    const ok = await onAdjustWallet(user, parsed, reason.trim());
+    if (ok) { setAmount(''); setReason(''); }
   };
 
   return (
@@ -127,12 +132,30 @@ const UserCard = memo(({ user, busy, isSelf, onToggleElite, onToggleBan, onAdjus
           placeholder="e.g. 100 or -50"
         />
         <button
-          disabled={busy || !amountValid}
+          disabled={busy || !amountValid || !reasonValid}
           onClick={submitWallet}
           className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-emerald-500/10 disabled:hover:text-emerald-400"
         >
           {busy ? 'Saving…' : 'Apply'}
         </button>
+      </div>
+      <label className="sr-only" htmlFor={`wallet-reason-${user._id}`}>Reason for the wallet change</label>
+      <input
+        id={`wallet-reason-${user._id}`}
+        type="text"
+        value={reason}
+        maxLength={300}
+        onChange={(e) => setReason(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') submitWallet(); }}
+        className="w-full -mt-4 mb-2 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-emerald-500/30 transition-all"
+        placeholder="Reason (required, e.g. refund for missing item)"
+        aria-invalid={amount.trim() !== '' && !reasonValid}
+      />
+      <div className="flex justify-between items-center mb-6">
+        <span className={`text-[9px] font-bold ${amount.trim() !== '' && !reasonValid ? 'text-amber-400' : 'text-gray-600'}`}>
+          {amount.trim() !== '' && !reasonValid ? 'Add a reason of at least 5 characters.' : 'Shown to the customer in their wallet history.'}
+        </span>
+        <button onClick={() => onShowWallet(user)} className="text-[9px] font-black uppercase tracking-widest text-[var(--zenvy-gold)] hover:underline">History</button>
       </div>
       <div className="pt-6 border-t border-white/5 flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
         <span className="text-gray-500">{[user.role || 'student', user.hostelBlock].filter(Boolean).join(' · ')}</span>
@@ -162,7 +185,8 @@ export default function UserManagement() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState<'roster' | 'audit'>('roster');
+  const [activeTab, setActiveTab] = useState<'roster' | 'audit' | 'wallet'>('roster');
+  const [walletOf, setWalletOf] = useState<User | null>(null);
 
   // The search runs on the server (name, phone or email across ALL users), not just the loaded page.
   const searchRef = useRef('');
@@ -300,20 +324,22 @@ export default function UserManagement() {
     );
   };
 
-  const adjustWallet = (user: User, amount: number) => {
+  const adjustWallet = (user: User, amount: number, reason: string) => {
     const current = Number(user.walletBalance || 0);
     if (current + amount < 0) {
       setNotice({ kind: 'error', text: `Cannot deduct ${money(Math.abs(amount))}: ${user.name || 'this user'} only has ${money(current)}.` });
       return Promise.resolve(false);
     }
     const verb = amount > 0 ? `Add ${money(amount)} to` : `Deduct ${money(Math.abs(amount))} from`;
-    if (!confirm(`${verb} ${user.name || user.phone || 'this user'}'s wallet?\nNew balance: ${money(current + amount)}`)) return Promise.resolve(false);
+    if (!confirm(`${verb} ${user.name || user.phone || 'this user'}'s wallet?\nReason: ${reason}\nNew balance: ${money(current + amount)}`)) return Promise.resolve(false);
+    // One key per confirmed change: a retried / double-sent request is applied once.
+    const key = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     return runAction(
       user,
       () => fetch(`${API_URL}/api/admin/users/${user._id}/wallet`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount }),
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key },
+        body: JSON.stringify({ amount, reason }),
       }),
       (data) => patchUser(user._id, { walletBalance: typeof data.walletBalance === 'number' ? data.walletBalance : current + amount }),
       `Wallet updated for ${user.name || 'user'}.`,
@@ -327,7 +353,8 @@ export default function UserManagement() {
   handlersRef.current = { toggleElite, toggleBan, adjustWallet };
   const onToggleElite = useCallback((u: User) => handlersRef.current.toggleElite(u), []);
   const onToggleBan = useCallback((u: User) => handlersRef.current.toggleBan(u), []);
-  const onAdjustWallet = useCallback((u: User, amount: number) => handlersRef.current.adjustWallet(u, amount), []);
+  const onAdjustWallet = useCallback((u: User, amount: number, reason: string) => handlersRef.current.adjustWallet(u, amount, reason), []);
+  const onShowWallet = useCallback((u: User) => setWalletOf(u), []);
 
   const filteredUsers = users;
 
@@ -343,6 +370,7 @@ export default function UserManagement() {
         <div className="flex gap-2 bg-black/40 p-1.5 rounded-2xl border border-white/5">
           <button onClick={() => setActiveTab('roster')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'roster' ? 'bg-[var(--zenvy-gold)] text-black' : 'text-gray-500 hover:text-white'}`}>All users</button>
           <button onClick={() => setActiveTab('audit')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'audit' ? 'bg-[var(--zenvy-gold)] text-black' : 'text-gray-500 hover:text-white'}`}>Admin audit log</button>
+          <button onClick={() => setActiveTab('wallet')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'wallet' ? 'bg-[var(--zenvy-gold)] text-black' : 'text-gray-500 hover:text-white'}`}>Wallet check</button>
         </div>
       </header>
 
@@ -353,7 +381,11 @@ export default function UserManagement() {
         </div>
       )}
 
-      {activeTab === 'roster' ? (
+      {walletOf && <WalletLedgerModal ownerType="user" ownerId={walletOf._id} title={walletOf.name || walletOf.phone || undefined} onClose={() => setWalletOf(null)} />}
+
+      {activeTab === 'wallet' ? (
+        <WalletReconcileCard />
+      ) : activeTab === 'roster' ? (
         <div className="glass-card p-6">
           <div className="flex flex-col md:flex-row gap-3 md:items-center mb-10">
             <input type="text" placeholder="Search all users by name, email or phone…" className="flex-1 bg-white/5 border border-white/10 rounded-2xl py-4 px-8 text-white font-black outline-none" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -380,6 +412,7 @@ export default function UserManagement() {
                   onToggleElite={onToggleElite}
                   onToggleBan={onToggleBan}
                   onAdjustWallet={onAdjustWallet}
+                  onShowWallet={onShowWallet}
                 />
               ))}
             </div>

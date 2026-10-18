@@ -43,6 +43,7 @@ const { initCatalogueImportLedgerModel } = require('../models/CatalogueImportLed
 const { initNotificationModel } = require('../models/Notification');
 const { initIdempotencyKeyModel } = require('../models/IdempotencyKey');
 const { initSmsDailyCountModel } = require('../models/SmsDailyCount');
+const { initWalletTransactionModel } = require('../models/WalletTransaction');
 const { initCampusModels } = require('../modules/campus/models');
 const { initFriendsModels } = require('../modules/friends');
 const { initRentalsModels } = require('../modules/rentals');
@@ -91,6 +92,8 @@ const initializeAllModels = (instance) => {
   initNotificationModel(instance);
   initIdempotencyKeyModel(instance);
   initSmsDailyCountModel(instance);
+  // C5 wallet ledger (WalletTransactions).
+  initWalletTransactionModel(instance);
   // Zenvy Friends tables (after Users / campus / chat models they reference).
   initFriendsModels(instance);
   // Zenvy Rentals: peer-to-peer student vehicle rentals (Others > Rentals).
@@ -635,6 +638,9 @@ const connectDB = async () => {
       } catch (ceErr) {
         console.warn('⚠️ [CAMPUS_EVENTS_MIGRATION_WARN]', ceErr.message);
       }
+      // C5 wallet ledger: named indexes + one-time OPENING_BALANCE rows (additive, idempotent, never
+      // changes a balance). Never throws.
+      await require('../utils/walletLedger').runWalletLedgerMigrations(sequelize);
     } else {
       // Production: no sync({ alter: true }) on every boot. Sequelize v6 alter re-adds UNIQUE
       // constraints each run (duplicate *_key indexes pile up), slows startup (API is 503 until
@@ -689,6 +695,9 @@ const connectDB = async () => {
       } catch (ceErr) {
         console.warn('⚠️ [CAMPUS_EVENTS_MIGRATION_WARN]', ceErr.message);
       }
+      // C5 wallet ledger: named indexes + one-time OPENING_BALANCE rows (additive, idempotent, never
+      // changes a balance). Never throws.
+      await require('../utils/walletLedger').runWalletLedgerMigrations(sequelize);
       
       // Auto-check for empty DB to help user identify missing data
       const Restaurant = sequelize.models.Restaurant;

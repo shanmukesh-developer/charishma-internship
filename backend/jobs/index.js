@@ -281,6 +281,8 @@ const JOBS = [
     name: 'friends.spaces', schedule: { custom: 'spaces' }, run: runSpacesDb, quietWhenIdle: true, emits: true,
     enabled: () => notTest() && process.env.FRIENDS_SPACE_JOBS !== 'off',
   },
+  // C5: daily wallet check (ledger sum vs balance for every owner). Read-only; mismatches -> admin alert.
+  { name: 'wallet.reconcile', schedule: { cron: '30 4 * * *', timezone: IST }, run: (c) => require('../utils/walletLedger').runReconcileJob(c), timeoutMs: 30 * MIN },
   {
     name: 'media.base64Migration', schedule: { onceAfterMs: 60 * SEC, retryLockedMs: 10 * MIN }, run: runBase64Migration, timeoutMs: 60 * MIN,
     enabled: () => String(process.env.DISABLE_BASE64_MIGRATION || '').toLowerCase() !== 'true',

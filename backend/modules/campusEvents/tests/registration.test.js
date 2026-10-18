@@ -118,6 +118,7 @@ test('#4 paid registration: pay at venue (DUE_AT_VENUE, mark paid audited, max 3
   const short = await H.register(e2.id, poor, { paymentMode: 'WALLET' });
   assert.equal(short.status, 402);
   assert.equal((await H.ctx.M('CeRegistration').count({ where: { userId: poor.id } })), 0, 'nothing kept after a failed debit');
+  assert.equal(await H.ctx.M('WalletTransaction').count({ where: { ownerId: poor.id } }), 0, 'C5: no ledger row for a failed debit');
   const rich = await H.mkStudent({ wallet: 400 });
   const ok = await H.register(e2.id, rich, { paymentMode: 'WALLET' });
   assert.equal(ok.status, 201);
@@ -133,6 +134,13 @@ test('#4 paid registration: pay at venue (DUE_AT_VENUE, mark paid audited, max 3
   const pay = H.r('modules/campusEvents/services/payments');
   assert.equal(await pay.processRefund(after.id), 0, 'second refund is a no-op');
   assert.equal(Number((await H.ctx.M('User').findByPk(rich.id)).walletBalance), 325);
+  // C5 ledger: opening 400, EVENT_PAYMENT -150, exactly one EVENT_REFUND +75; history sums to the balance.
+  const rows = (await H.ctx.M('WalletTransaction').findAll({ where: { ownerType: 'user', ownerId: rich.id }, order: [['createdAt', 'ASC']] })).map((x) => [x.type, x.amountPaise, x.balanceAfterPaise, x.refType, x.refId]);
+  assert.deepEqual(rows, [
+    ['OPENING_BALANCE', 40000, 40000, null, null],
+    ['EVENT_PAYMENT', -15000, 25000, 'EVENT_REGISTRATION', ok.body.registration.id],
+    ['EVENT_REFUND', 7500, 32500, 'EVENT_REGISTRATION', ok.body.registration.id],
+  ]);
   await H.setWallet(false);
 });
 

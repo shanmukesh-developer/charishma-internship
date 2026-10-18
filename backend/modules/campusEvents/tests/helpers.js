@@ -91,6 +91,7 @@ const setup = async ({ label = 'campusevents' } = {}) => {
   };
   await sequelize.query('PRAGMA journal_mode=WAL;');
   r('models/User').initUserModel(sequelize);
+  r('models/WalletTransaction').initWalletTransactionModel(sequelize); // C5: wallet debits / refunds write ledger rows
   r('models/GlobalConfig').initGlobalConfigModel(sequelize);
   r('models/VerificationLog').initVerificationLogModel(sequelize);
   r('models/Notification').initNotificationModel(sequelize);

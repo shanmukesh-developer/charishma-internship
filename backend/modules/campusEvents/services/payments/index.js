@@ -14,10 +14,10 @@ const { fail, money, toPaise } = require('../util');
 const clock = require('../clock');
 const flag = require('../flag');
 const razorpay = require('./razorpay');
+const walletLedger = require('../../../../utils/walletLedger');
 
 const M = E.PAYMENT_MODE;
 const P = E.PAYMENT_STATUS;
-const User = () => require('../../../../models/User').getUserModel();
 
 /** { amount, extras, total } for one registration (team: the team price). */
 const priceFor = (event, slot) => {
@@ -64,14 +64,19 @@ const assertVenueQuota = async (userId, t) => {
 };
 
 /** Wallet debit inside t (conditional decrement). Throws 402 when short; nothing changes then. */
-const debitWallet = async (userId, amount, t) => {
+const debitWallet = async (userId, amount, t, ref = null) => {
   const amt = money(amount);
   if (!(amt > 0)) return 0;
-  const [n] = await User().update(
-    { walletBalance: getSequelize().literal(`"walletBalance" - ${amt}`) },
-    { where: { id: userId, walletBalance: { [Op.gte]: amt } }, transaction: t },
-  );
-  if (!n) throw fail(402, 'INSUFFICIENT_WALLET', `Not enough Zenvy Wallet balance for ₹${amt}.`);
+  // C5: conditional debit + EVENT_PAYMENT ledger row in the event transaction.
+  try {
+    await walletLedger.applyWalletChange({
+      t, ownerType: 'user', ownerId: userId, amountPaise: -walletLedger.toPaise(amt), type: walletLedger.TYPES.EVENT_PAYMENT,
+      ref, actor: { type: 'user', id: userId },
+    });
+  } catch (err) {
+    if (walletLedger.isInsufficient(err)) throw fail(402, 'INSUFFICIENT_WALLET', `Not enough Zenvy Wallet balance for ₹${amt}.`);
+    throw err;
+  }
   return amt;
 };
 
@@ -128,7 +133,13 @@ const processRefund = async (regId) => {
       const amt = money(reg.refundAmount);
       const [n] = await Reg.update({ paymentStatus: P.REFUNDED, refundedAt: clock.now() }, { where: { id: reg.id, paymentStatus: P.REFUND_PENDING, refundedAt: null }, transaction: t });
       if (!n) return 0;
-      if (amt > 0) await User().increment('walletBalance', { by: amt, where: { id: reg.userId }, transaction: t });
+      // C5: credit + EVENT_REFUND ledger row, in the transaction that flipped REFUND_PENDING -> REFUNDED.
+      if (amt > 0) {
+        await walletLedger.applyWalletChange({
+          t, ownerType: 'user', ownerId: reg.userId, amountPaise: walletLedger.toPaise(amt), type: walletLedger.TYPES.EVENT_REFUND,
+          ref: { type: 'EVENT_REGISTRATION', id: reg.id }, actor: { type: 'system' },
+        });
+      }
       return amt;
     });
   } catch (err) {

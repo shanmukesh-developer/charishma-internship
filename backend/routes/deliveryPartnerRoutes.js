@@ -31,6 +31,8 @@ router.get('/stats/week', protect, rider, getWeekStats);
 router.post('/support', protect, rider, createRiderTicket);
 router.get('/support', protect, rider, getRiderTickets);
 router.get('/profile', protect, rider, getRiderProfile);
+// C5: rider wallet (customer tips, payouts) history.
+router.get('/wallet/transactions', protect, rider, require('../controllers/walletController').getRiderWalletTransactions);
 router.put('/profile', protect, rider, updateRiderProfile);
 router.put('/profile/password', protect, rider, changePassword);
 router.get('/profile/:id/public', protect, getPublicRiderProfile);

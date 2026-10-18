@@ -95,6 +95,8 @@ router.get('/profile', protect, getUserProfile);
 router.get('/legal/status', protect, require('../controllers/legalController').getMyLegalStatus);
 router.post('/legal/accept', protect, require('../controllers/legalController').acceptTerms);
 router.put('/profile', protect, updateUserProfile);
+// C5: my wallet history (newest first, paginated, human labels + order / booking links).
+router.get('/wallet/transactions', protect, require('../controllers/walletController').getMyWalletTransactions);
 
 // Public Asset Discovery (short server cache + ETag; cleared on every store / product / config write)
 const { cacheGet } = require('../utils/responseCache');

@@ -748,12 +748,18 @@ export default function ProfileScreen() {
                   <Text style={s.telemetryLabel}>ZEN POINTS</Text>
                   <Text style={[s.telemetryVal, { color: goldColor }]}>{Number(user?.zenPoints) || 0}</Text>
                 </View>
-                <View style={s.telemetryItem}>
+                <TouchableOpacity
+                  style={s.telemetryItem}
+                  onPress={() => router.push('/wallet-history' as any)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Wallet balance ₹${Number(user?.walletBalance) || 0}. Open wallet history`}
+                >
                   <Text style={s.telemetryLabel}>WALLET</Text>
                   <Text style={[s.telemetryVal, { color: goldColor, fontSize: 13 }]}>
                     ₹{Number(user?.walletBalance) || 0}
                   </Text>
-                </View>
+                  <Text style={[s.telemetryLabel, { color: goldColor, marginTop: 2 }]}>HISTORY ›</Text>
+                </TouchableOpacity>
               </View>
 
               <View style={s.progressContainer}>

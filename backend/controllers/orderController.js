@@ -11,6 +11,7 @@ const { computeOrderQuote, PricingError, activeCouponWhere, normalizePaymentMeth
 const { getCampusServiceability } = require('../utils/storeHours');
 const { getHaversineDistance } = require('../utils/distance');
 const realtime = require('../utils/realtime');
+const walletLedger = require('../utils/walletLedger');
 const { pushNearestRiders, riderPayout, refreshRiderCurrentOrder } = require('../utils/riderDispatch');
 
 // Money transactions (wallet debit / refund, coupon claim). IMMEDIATE takes the SQLite write lock up
@@ -336,6 +337,8 @@ const createOrder = async (req, res) => {
     const { getSequelize } = require('../config/db');
     const sequelize = getSequelize();
     let createdOrder;
+    // The id is chosen up front so the wallet ledger row can point at the order it paid for.
+    const newOrderId = crypto.randomUUID();
     try {
       createdOrder = await sequelize.transaction(MONEY_TX, async (t) => {
         if (quote.coupon) {
@@ -346,17 +349,22 @@ const createOrder = async (req, res) => {
         }
         if (paymentMethod === 'Wallet' && quote.finalPrice > 0) {
           const amount = Number(quote.finalPrice);
-          const [debited] = await User.update(
-            { walletBalance: sequelize.literal(`"walletBalance" - ${amount}`) },
-            { where: { id: currentUser.id, walletBalance: { [Op.gte]: amount } }, transaction: t }
-          );
-          if (debited === 0) {
+          // C5: conditional debit + ledger row (ORDER_PAYMENT) in this transaction.
+          try {
+            await walletLedger.applyWalletChange({
+              t, ownerType: 'user', ownerId: currentUser.id, amountPaise: -walletLedger.toPaise(amount),
+              type: walletLedger.TYPES.ORDER_PAYMENT, ref: { type: 'ORDER', id: newOrderId },
+              actor: { type: 'user', id: currentUser.id }, idempotencyKey: `order-pay:${newOrderId}`,
+            });
+          } catch (err) {
+            if (!walletLedger.isInsufficient(err)) throw err;
             throw new PricingError(400, 'INSUFFICIENT_WALLET',
               `Not enough Wallet balance — this order needs ₹${amount} and you have ₹${money(currentUser.walletBalance)}. Choose Cash on Delivery or add money to your Wallet.`,
               { needed: amount, walletBalance: money(currentUser.walletBalance) });
           }
         }
         return Order.create({
+          id: newOrderId,
           userId: currentUser.id,
           restaurantId: quote.store.id,
           items: quote.lines,
@@ -888,16 +896,23 @@ const rateOrder = async (req, res) => {
             const { getSequelize } = require('../config/db');
             const sequelize = getSequelize();
             await sequelize.transaction(MONEY_TX, async (t) => {
-              const [debited] = await User.update(
-                { walletBalance: sequelize.literal(`"walletBalance" - ${Number(tip)}`) },
-                { where: { id: req.user.id, walletBalance: { [Op.gte]: tip } }, transaction: t }
-              );
-              if (debited === 0) {
+              // C5: customer debit (TIP_SENT) + rider credit (TIP_RECEIVED), both recorded, all or nothing.
+              const tipPaise = walletLedger.toPaise(tip);
+              try {
+                await walletLedger.applyWalletChange({
+                  t, ownerType: 'user', ownerId: req.user.id, amountPaise: -tipPaise, type: walletLedger.TYPES.TIP_SENT,
+                  ref: { type: 'ORDER', id: order.id }, actor: { type: 'user', id: req.user.id }, idempotencyKey: `tip:${order.id}`,
+                });
+              } catch (e) {
+                if (!walletLedger.isInsufficient(e)) throw e;
                 const err = new Error(`Not enough Wallet balance for a ₹${tip} tip.`);
                 err.userFacing = true;
                 throw err;
               }
-              await DeliveryPartner.increment('walletBalance', { by: tip, where: { id: partner.id }, transaction: t });
+              await walletLedger.applyWalletChange({
+                t, ownerType: 'rider', ownerId: partner.id, amountPaise: tipPaise, type: walletLedger.TYPES.TIP_RECEIVED,
+                ref: { type: 'ORDER', id: order.id }, actor: { type: 'user', id: req.user.id }, idempotencyKey: `tip:${order.id}`,
+              });
             });
             tipApplied = true;
             const io = req.app.get('io');
@@ -1042,8 +1057,12 @@ const cancelAndRefund = async (order, { reason = null, onlyFromStatuses = null, 
     if (fresh.paymentMethod === 'Wallet') {
       const amount = money(fresh.finalPrice != null ? fresh.finalPrice : fresh.totalPrice);
       if (amount > 0) {
-        const User = getUserModel();
-        await User.increment('walletBalance', { by: amount, where: { id: order.userId }, transaction: t });
+        // C5: credit + ORDER_REFUND row in this transaction (the status flip above makes it exactly once).
+        await walletLedger.applyWalletChange({
+          t, ownerType: 'user', ownerId: order.userId, amountPaise: walletLedger.toPaise(amount), type: walletLedger.TYPES.ORDER_REFUND,
+          ref: { type: 'ORDER', id: order.id }, actor: { type: 'system', id: null },
+          reason: reason ? String(reason).slice(0, 200) : null, idempotencyKey: `order-refund:${order.id}`,
+        });
         refunded = amount;
       }
     }
@@ -2011,7 +2030,6 @@ const approveBill = async (req, res) => {
     if (order.isBillApproved) return res.json({ message: 'Bill already approved', order: withoutPin(order), amountPayable: order.finalPrice });
 
     const Order = getOrderModel();
-    const User = getUserModel();
     const { getSequelize } = require('../config/db');
     const sequelize = getSequelize();
     let newFinal = 0;
@@ -2040,14 +2058,17 @@ const approveBill = async (req, res) => {
           { where: { id: order.id, isBillApproved: { [Op.not]: true }, status: { [Op.notIn]: ['Cancelled', 'Delivered'] } }, transaction: t } // older rows may hold NULL
         );
         if (n === 0) throw new PricingError(409, 'ALREADY_APPROVED', 'Bill already approved.');
-        if (order.paymentMethod === 'Wallet' && diff > 0) {
-          const [debited] = await User.update(
-            { walletBalance: sequelize.literal(`"walletBalance" - ${Number(diff)}`) },
-            { where: { id: order.userId, walletBalance: { [Op.gte]: diff } }, transaction: t }
-          );
-          if (debited === 0) throw new PricingError(400, 'INSUFFICIENT_WALLET', `The bill is ₹${diff} more than you paid and your Wallet doesn't have enough. Please add money to your Wallet and approve again.`, { needed: diff });
-        } else if (order.paymentMethod === 'Wallet' && diff < 0) {
-          await User.increment('walletBalance', { by: -diff, where: { id: order.userId }, transaction: t });
+        // C5: the difference moves through the ledger (BILL_DIFFERENCE, signed), once per order.
+        if (order.paymentMethod === 'Wallet' && diff !== 0) {
+          try {
+            await walletLedger.applyWalletChange({
+              t, ownerType: 'user', ownerId: order.userId, amountPaise: -walletLedger.toPaise(diff), type: walletLedger.TYPES.BILL_DIFFERENCE,
+              ref: { type: 'ORDER', id: order.id }, actor: { type: 'user', id: req.user.id }, idempotencyKey: `bill:${order.id}`,
+            });
+          } catch (e) {
+            if (!walletLedger.isInsufficient(e)) throw e;
+            throw new PricingError(400, 'INSUFFICIENT_WALLET', `The bill is ₹${diff} more than you paid and your Wallet doesn't have enough. Please add money to your Wallet and approve again.`, { needed: diff });
+          }
         }
       });
     } catch (err) {

@@ -328,13 +328,29 @@ router.post('/gift', protect, async (req, res, next) => {
       if (!recipient) throw giftError('No Zenvy account uses that phone number.');
       if (recipient.id === sender.id) throw giftError('Cannot gift yourself');
 
-      sender.walletBalance = (sender.walletBalance || 0) - amount;
+      // C5: both sides move through the wallet ledger (GIFT_SENT / GIFT_RECEIVED) in this transaction.
+      // walletBalance is never assigned on the instances, so save() below does not overwrite it.
+      const walletLedger = require('../utils/walletLedger');
+      const giftPaise = walletLedger.toPaise(amount);
+      const ledgerKey = giftKey ? `gift:${giftKey}` : null;
+      let debit;
+      try {
+        debit = await walletLedger.applyWalletChange({
+          t, ownerType: 'user', ownerId: sender.id, amountPaise: -giftPaise, type: walletLedger.TYPES.GIFT_SENT,
+          ref: { type: 'USER', id: recipient.id }, actor: { type: 'user', id: sender.id }, idempotencyKey: ledgerKey,
+        });
+      } catch (e) {
+        if (walletLedger.isInsufficient(e)) throw giftError('Insufficient wallet balance');
+        throw e;
+      }
+      await walletLedger.applyWalletChange({
+        t, ownerType: 'user', ownerId: recipient.id, amountPaise: giftPaise, type: walletLedger.TYPES.GIFT_RECEIVED,
+        ref: { type: 'USER', id: sender.id }, actor: { type: 'user', id: sender.id }, idempotencyKey: ledgerKey,
+      });
       sender.eliteGiftsUsedThisMonth = (sender.eliteGiftsUsedThisMonth || 0) + 1;
       if (giftKey) sender.lastGiftKey = giftKey;
       await sender.save({ transaction: t });
-
-      recipient.walletBalance = (recipient.walletBalance || 0) + amount;
-      await recipient.save({ transaction: t });
+      sender.setDataValue('walletBalance', debit.balance);
 
       updatedSender = sender;
       recipientName = recipient.name;

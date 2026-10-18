@@ -240,7 +240,7 @@ const confirm = async ({ bookingId, userId, paymentMethod }) => {
     }
     const okStatus = E.BOOKABLE_STATUSES.includes(trip.status) || (trip.status === T.DELAYED && E.BOOKABLE_STATUSES.includes(trip.statusBeforeDelay));
     if (!okStatus || trip.mode !== E.MODE.SHARED) throw fail(409, 'BOOKING_CLOSED', 'Booking is closed for this auto.', { status: trip.status });
-    const pay = await payments.charge({ userId, amount: b.amount, method, t });
+    const pay = await payments.charge({ userId, amount: b.amount, method, t, ref: { type: 'AUTO_BOOKING', id: b.id } });
     const now = clock.now();
     const [n] = await Booking.update(
       { status: B.CONFIRMED, confirmedAt: now, holdExpiresAt: null, boardingPin: newPin(), ...pay },
@@ -403,7 +403,7 @@ const acceptPrivateRequest = async ({ requestId, driverId }) => {
       return { request: r, trip, conflict: true };
     }
     const cap = Number(trip.capacity) || 0;
-    const pay = await payments.charge({ userId: r.userId, amount: r.fare, method: r.paymentMethod || E.PAYMENT_METHODS.CASH, t }).catch(async (err) => {
+    const pay = await payments.charge({ userId: r.userId, amount: r.fare, method: r.paymentMethod || E.PAYMENT_METHODS.CASH, t, ref: { type: 'AUTO_PRIVATE_REQUEST', id: r.id } }).catch(async (err) => {
       if (err && err.code === 'INSUFFICIENT_WALLET') return { failed: true };
       throw err;
     });
