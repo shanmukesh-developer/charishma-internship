@@ -23,6 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Clipboard from '@react-native-clipboard/clipboard';
 import SafeImage from '../../components/SafeImage';
 import ShimmerLoader from '../../components/ShimmerLoader';
+import { PgListSection } from '../../modules/pg/PgListSection';
 import { useLiveSync, hasType } from '../../utils/useLiveSync';
 import RentalsSection from '../../modules/rentals/RentalsSection';
 import AutoRideSection from '../../modules/autoRide/AutoRideSection';
@@ -898,9 +899,6 @@ export default function OthersScreen() {
   const [pgs, setPgs] = useState<any[]>([]);
   const [loadingPgs, setLoadingPgs] = useState(false);
   const [pgError, setPgError] = useState<string | null>(null);
-  const [genderFilter, setGenderFilter] = useState('All'); // 'All', 'Boys', 'Girls', 'Co-ed'
-  const [budgetFilter, setBudgetFilter] = useState('All'); // 'All', '5000', '8000', '10000', '15000'
-  const [distanceFilter, setDistanceFilter] = useState('All'); // 'All', '1', '3', '5', '10'
 
   // ── Co-Ride States ──
   const [corideTab, setCorideTab] = useState<'browse' | 'my-rides' | 'auto'>('browse');
@@ -1101,20 +1099,6 @@ export default function OthersScreen() {
       if (isMountedRef.current) setRefreshing(false);
     }
   }, [loadActiveTab]);
-
-  // PG Filters
-  const filteredPGs = pgs.filter(item => {
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const matchesName = (item.name || '').toLowerCase().includes(q);
-      const matchesAddr = (item.address || '').toLowerCase().includes(q);
-      if (!matchesName && !matchesAddr) return false;
-    }
-    if (genderFilter !== 'All' && (item.genderType || 'Co-ed') !== genderFilter) return false;
-    if (budgetFilter !== 'All' && Number(item.baseRent) > parseInt(budgetFilter, 10)) return false;
-    if (distanceFilter !== 'All' && Number(item.distanceFromCollege) > parseFloat(distanceFilter)) return false;
-    return true;
-  });
 
   // ── Co-Ride actions (confirmations + one action at a time) ──
   const runRideAction = async (rideId: string, request: () => Promise<Response>, successTitle: string, fallback: string, successBody?: string) => {
@@ -1922,7 +1906,7 @@ export default function OthersScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.red} colors={[COLORS.red]} />}
         >
           {/* ── HERO CAROUSEL CARD ── */}
-          {!(activeTab === 'food' && groceryMode === 'categories') && activeTab !== 'events' && (
+          {!(activeTab === 'food' && groceryMode === 'categories') && activeTab !== 'events' && activeTab !== 'pg' && (
             <View style={[s.heroCarouselCard, { borderColor: border }]}>
               <PromoCarousel offers={carouselOffers} containerStyle={s.heroCarousel} />
             </View>
@@ -2385,116 +2369,9 @@ export default function OthersScreen() {
         {/* ── CAMPUS EVENTS TAB: discovery, registrations, tickets (only while the server enables it) ── */}
         {activeTab === 'events' && campusEventsOn && <CampusEventsSection />}
 
-        {/* ── PG & HOMES TAB ── */}
+        {/* ── PG STAYS TAB (modules/pg) ── */}
         {activeTab === 'pg' && (
-          <View style={{ paddingHorizontal: 16 }}>
-            <View style={[s.searchWrap, { backgroundColor: cardBg, borderColor: border, marginHorizontal: 0 }]}>
-              <Text style={{ fontSize: 16 }}>🔍 </Text>
-              <TextInput style={[s.searchInput, { color: txt }]} placeholder="Search by PG name or location..." placeholderTextColor={txtSec} value={searchQuery} onChangeText={setSearchQuery} />
-            </View>
-
-            <Text style={[s.filterLabel, { color: txt }]}>GENDER TYPE</Text>
-            <View style={s.rowFilters}>
-              {['All', 'Boys', 'Girls', 'Co-ed'].map(g => (
-                <DopaminePressable key={g} style={[s.chip, { backgroundColor: cardBg }, genderFilter === g && s.chipActive, { borderColor: border }]} onPress={() => setGenderFilter(g)} sound="click" activeScale={0.93}>
-                  <Text style={[s.chipText, { color: colors.textSecondary }, genderFilter === g && s.chipTextActive]}>{g.toUpperCase()}</Text>
-                </DopaminePressable>
-              ))}
-            </View>
-
-            <Text style={[s.filterLabel, { color: txt }]}>MAX RENT BUDGET</Text>
-            <View style={s.rowFilters}>
-              {['All', '5000', '8000', '10000', '15000'].map(b => (
-                <DopaminePressable key={b} style={[s.chip, { backgroundColor: cardBg }, budgetFilter === b && s.chipActive, { borderColor: border }]} onPress={() => setBudgetFilter(b)} sound="click" activeScale={0.93}>
-                  <Text style={[s.chipText, { color: colors.textSecondary }, budgetFilter === b && s.chipTextActive]}>{b === 'All' ? 'ANY' : `₹${b}`}</Text>
-                </DopaminePressable>
-              ))}
-            </View>
-
-            <Text style={[s.filterLabel, { color: txt }]}>CAMPUS PROXIMITY</Text>
-            <View style={s.rowFilters}>
-              {['All', '1', '3', '5', '10'].map(d => (
-                <DopaminePressable key={d} style={[s.chip, { backgroundColor: cardBg }, distanceFilter === d && s.chipActive, { borderColor: border }]} onPress={() => setDistanceFilter(d)} sound="click" activeScale={0.93}>
-                  <Text style={[s.chipText, { color: colors.textSecondary }, distanceFilter === d && s.chipTextActive]}>{d === 'All' ? 'ANY' : `< ${d} km`}</Text>
-                </DopaminePressable>
-              ))}
-            </View>
-
-            <View style={{ marginTop: 20 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-                <Text style={{ fontSize: 10, fontWeight: '800', color: COLORS.red, letterSpacing: 2 }}>STUDENT ACCOMMODATIONS</Text>
-                {!pgError && !(loadingPgs && pgs.length === 0) && <Text style={{ fontSize: 10, fontWeight: '800', color: txtSec }}>{filteredPGs.length} FOUND</Text>}
-              </View>
-
-              {loadingPgs && pgs.length === 0 ? (
-                renderListSkeleton(200)
-              ) : pgError && pgs.length === 0 ? (
-                renderLoadError(pgError, () => fetchPGs())
-              ) : filteredPGs.length > 0 ? (
-                filteredPGs.map((pg, idx) => {
-                  const pgImg = Array.isArray(pg.images) && pg.images.length > 0 ? pg.images[0] : 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400';
-                  const g = pg.genderType || 'Co-ed';
-                  const dist = Number(pg.distanceFromCollege);
-                  return (
-                    <StaggeredSection key={pg.id} delay={50 + (idx % 6) * 50} direction="up">
-                      <CardPressable style={[s.pgCard, { backgroundColor: cardBg, borderColor: border }]} onPress={() => router.push(`/pg/${pg.id}` as any)} sound="pgTransition" tilt={true}>
-                        <Image source={{ uri: pgImg }} style={s.pgCardImg} />
-                        <View style={s.pgCardOverlay} />
-
-                        <View style={s.pgCardContent}>
-                          <View style={s.pgCardGenderRow}>
-                            <Text style={[s.pgCardGender, { color: g === 'Boys' ? '#60A5FA' : g === 'Girls' ? '#F472B6' : '#A78BFA' }]}>
-                              ● {g === 'Co-ed' ? 'CO-ED' : `${String(g).toUpperCase()} ONLY`}
-                            </Text>
-                            {Number.isFinite(dist) && <Text style={s.pgCardDistance}>🏃 {dist} KM FROM CAMPUS</Text>}
-                          </View>
-                          <Text style={s.pgCardName}>{pg.name}</Text>
-                          <Text style={s.pgCardAddr} numberOfLines={1}>📍 {pg.address}</Text>
-
-                          <View style={s.pgCardPriceRow}>
-                            <View>
-                              <Text style={s.pgCardPriceLabel}>RENT STARTS FROM</Text>
-                              <Text style={[s.pgCardPrice, { color: goldColor }]}>₹{Number(pg.baseRent) || 0}<Text style={{ fontSize: 9, fontWeight: '600', color: '#ccc' }}>/mo</Text></Text>
-                            </View>
-                            <View style={s.pgCardBookBtn}>
-                              <Text style={s.pgCardBookText}>VIEW DETAILS →</Text>
-                            </View>
-                          </View>
-                        </View>
-                      </CardPressable>
-                    </StaggeredSection>
-                  );
-                })
-              ) : pgs.length === 0 ? (
-                <View style={s.emptyState}>
-                  <Text style={{ fontSize: 32, marginBottom: 8 }}>🏢</Text>
-                  <Text style={{ color: txt, fontSize: 12, fontWeight: '900', letterSpacing: 1, marginBottom: 4 }}>NO PG LISTINGS YET</Text>
-                  <Text style={{ color: txtSec, fontSize: 10, fontWeight: '600', textAlign: 'center' }}>
-                    The Zenvy housing team is adding stays near campus. Pull down to check again soon.
-                  </Text>
-                </View>
-              ) : (
-                <View style={s.emptyState}>
-                  <Text style={{ fontSize: 32, marginBottom: 8 }}>🏢</Text>
-                  <Text style={{ color: txt, fontSize: 12, fontWeight: '900', letterSpacing: 1, marginBottom: 4 }}>NO RESIDENCES MATCHING FILTERS</Text>
-                  <Text style={{ color: txtSec, fontSize: 10, fontWeight: '600', textAlign: 'center', marginBottom: 14 }}>
-                    Try expanding your budget, distance from campus, or gender preference.
-                  </Text>
-                  <TouchableOpacity
-                    style={[s.resetBtn, { backgroundColor: goldColor }]}
-                    onPress={() => {
-                      setGenderFilter('All');
-                      setBudgetFilter('All');
-                      setDistanceFilter('All');
-                      setSearchQuery('');
-                    }}
-                  >
-                    <Text style={[s.resetBtnText, { color: isDark ? '#000' : '#fff' }]}>RESET PG FILTERS</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          </View>
+          <PgListSection pgs={pgs} loading={loadingPgs} error={pgError} onRetry={() => fetchPGs()} />
         )}
 
         {/* ── CO-RIDE (BIKEPOOL) TAB ── */}
@@ -3780,23 +3657,6 @@ const s = StyleSheet.create({
   chipText: { fontSize: 8, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 1 },
   chipTextActive: { color: '#fff' },
 
-  // PG Cards
-  pgCard: { width: '100%', height: 200, borderRadius: 24, overflow: 'hidden', borderWidth: 1, marginBottom: 16, position: 'relative', ...SHADOWS.card },
-  pgCardImg: { ...StyleSheet.absoluteFill, width: '100%', height: '100%', resizeMode: 'cover' },
-  pgCardOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.45)' },
-  pgCardVerified: { position: 'absolute', top: 12, right: 12, backgroundColor: COLORS.greenRating, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  pgCardVerifiedText: { fontSize: 8, fontWeight: '900', color: '#fff', letterSpacing: 1.5 },
-  pgCardContent: { flex: 1, justifyContent: 'flex-end', padding: 16, zIndex: 2 },
-  pgCardGenderRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  pgCardGender: { fontSize: 8, fontWeight: '900', letterSpacing: 1 },
-  pgCardDistance: { fontSize: 8, fontWeight: '900', color: '#fff', letterSpacing: 1 },
-  pgCardName: { fontSize: 18, fontWeight: '900', color: '#fff' },
-  pgCardAddr: { fontSize: 9, fontWeight: '600', color: '#bbb', marginTop: 2, marginBottom: 12 },
-  pgCardPriceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  pgCardPriceLabel: { fontSize: 7, fontWeight: '800', color: '#aaa', letterSpacing: 1 },
-  pgCardPrice: { fontSize: 18, fontWeight: '900', color: COLORS.gold },
-  pgCardBookBtn: { backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-  pgCardBookText: { fontSize: 8, fontWeight: '900', color: '#000', letterSpacing: 1 },
   emptyState: { padding: 48, alignItems: 'center', justifyContent: 'center' },
   resetBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   resetBtnText: { fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },

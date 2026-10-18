@@ -5,17 +5,20 @@ import { FIELD, LABEL, PGRoom, pgRequest } from './pgApi';
 type RoomDraft = {
   roomNumber: string; sharingType: string; pricePerBed: string; totalBeds: string; availableBeds: string;
   floorNumber: string; furnishing: string; hasAttachedBathroom: boolean; hasAC: boolean; hasBalcony: boolean; isActive: boolean;
+  roomType: string; securityDeposit: string;
 };
 
 const NEW_ROOM: RoomDraft = {
   roomNumber: '', sharingType: '2', pricePerBed: '', totalBeds: '2', availableBeds: '2', floorNumber: '1',
   furnishing: 'Fully Furnished', hasAttachedBathroom: true, hasAC: false, hasBalcony: false, isActive: true,
+  roomType: '', securityDeposit: '',
 };
 
 const toDraft = (r: PGRoom): RoomDraft => ({
   roomNumber: r.roomNumber, sharingType: String(r.sharingType), pricePerBed: String(r.pricePerBed), totalBeds: String(r.totalBeds),
   availableBeds: String(r.availableBeds), floorNumber: String(r.floorNumber ?? 0), furnishing: r.furnishing || 'Fully Furnished',
   hasAttachedBathroom: !!r.hasAttachedBathroom, hasAC: !!r.hasAC, hasBalcony: !!r.hasBalcony, isActive: r.isActive !== false,
+  roomType: r.roomType || '', securityDeposit: r.securityDeposit === null || r.securityDeposit === undefined ? '' : String(r.securityDeposit),
 });
 
 function toPayload(d: RoomDraft): { payload?: Record<string, unknown>; error?: string } {
@@ -30,10 +33,14 @@ function toPayload(d: RoomDraft): { payload?: Record<string, unknown>; error?: s
   if (!(totalBeds >= 1 && totalBeds <= 20)) return { error: 'Total beds must be between 1 and 20.' };
   if (!(availableBeds >= 0 && availableBeds <= totalBeds)) return { error: 'Available beds must be between 0 and the total beds.' };
   if (!Number.isInteger(floorNumber) || floorNumber < 0 || floorNumber > 50) return { error: 'Floor must be a whole number between 0 and 50.' };
+  const deposit = d.securityDeposit.trim() === '' ? null : Number(d.securityDeposit);
+  if (deposit !== null && (!Number.isFinite(deposit) || deposit < 0 || deposit > 500000)) return { error: 'Deposit must be between ₹0 and ₹500000, or blank to use the PG deposit.' };
+  if (d.roomType.trim().length > 48) return { error: 'Room type name must be at most 48 characters.' };
   return {
     payload: {
       roomNumber: d.roomNumber.trim(), sharingType, pricePerBed, totalBeds, availableBeds, floorNumber,
       furnishing: d.furnishing, hasAttachedBathroom: d.hasAttachedBathroom, hasAC: d.hasAC, hasBalcony: d.hasBalcony, isActive: d.isActive,
+      roomType: d.roomType.trim() || null, securityDeposit: deposit,
     },
   };
 }
@@ -58,6 +65,10 @@ function RoomFields({ draft, onChange }: { draft: RoomDraft; onChange: (d: RoomD
             <option>Fully Furnished</option><option>Semi Furnished</option><option>Unfurnished</option>
           </select>
         </label>
+      </div>
+      <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-[2fr_1fr]">
+        <label className={LABEL}>Room type name (optional)<input className={FIELD} maxLength={48} placeholder="e.g. Deluxe twin. Blank = grouped by sharing, AC and bath" value={draft.roomType} onChange={e => set({ roomType: e.target.value })} /></label>
+        <label className={LABEL}>Deposit (₹, optional)<input inputMode="numeric" className={FIELD} placeholder="Blank = PG deposit" value={draft.securityDeposit} onChange={e => set({ securityDeposit: e.target.value })} /></label>
       </div>
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-300">
         <label className="flex items-center gap-2"><input type="checkbox" checked={draft.hasAttachedBathroom} onChange={e => set({ hasAttachedBathroom: e.target.checked })} className="h-4 w-4 accent-blue-500" /> Attached bath</label>

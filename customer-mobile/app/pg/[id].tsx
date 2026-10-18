@@ -1,78 +1,35 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Platform, ActivityIndicator, Alert, Linking, RefreshControl } from 'react-native';
+/**
+ * PG detail. Order: photos, name / place / key facts, room types, about, photos by category, room tour
+ * videos, amenities, mess timings, timings, house rules, contact. A bar at the bottom keeps the rent and
+ * the two actions in reach: Enquire (WhatsApp the PG or the Zenvy housing desk) and Request a bed (the
+ * existing booking request: POST /api/pg/:roomId/book; nothing is charged in the app).
+ * Data: GET /api/pg/:id (backend/utils/pgContent.publicPg); live-synced on 'pg' events.
+ */
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Linking, Alert, Modal, ActivityIndicator, useWindowDimensions, Platform, Animated } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { COLORS, SHADOWS, RADIUS } from '../../constants/theme';
 import { API_URL, ENDPOINTS, ZENVY_SUPPORT_WHATSAPP } from '../../constants/api';
-import { apiFetch } from '../../utils/auth';
+import { apiFetch, readJson } from '../../utils/auth';
 import { useLiveSync } from '../../utils/useLiveSync';
-import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { StaggeredSection } from '../../components/AnimatedSection';
-
-const { width: SW } = Dimensions.get('window');
-
-interface Room {
-  id: string;
-  roomNumber: string;
-  sharingType: number;
-  pricePerBed: number;
-  totalBeds: number;
-  availableBeds: number;
-  floorNumber: number;
-  hasAttachedBathroom: boolean;
-  hasAC: boolean;
-  hasBalcony: boolean;
-  furnishing: string;
-  images: string[];
-}
-
-type MealSlot = string | { start?: string; end?: string } | null | undefined;
-
-interface PG {
-  id: string;
-  name: string;
-  address: string;
-  genderType: string;
-  distanceFromCollege: number;
-  baseRent: number;
-  securityDeposit: number;
-  description: string;
-  amenities: string[];
-  images: string[];
-  messMenu: Record<string, { breakfast?: string; lunch?: string; dinner?: string }>;
-  foodTimetable: { breakfast?: MealSlot; lunch?: MealSlot; dinner?: MealSlot };
-  rules: string[];
-  totalRooms?: number;
-  contactInfo: {
-    phone?: string;
-    email?: string;
-    ownerName?: string;
-    wardenName?: string;
-    warden?: string; // legacy admin-dashboard field
-    emergencyContact?: string;
-    lat?: number | string;
-    lng?: number | string;
-  };
-  rooms?: Room[];
-}
-
-interface MyBooking {
-  id: string;
-  status: 'Pending' | 'Confirmed' | 'Cancelled';
-  checkInDate: string;
-  hostel?: { id: string; name: string } | null;
-  room?: { id: string; roomNumber: string; sharingType: number; pricePerBed: number } | null;
-}
+import {
+  distanceLabel, genderLabel, inr, mapsUrl, sharingLabel,
+  type MyPgBooking, type PgDetail, type PgPhoto, type PgRoomType,
+} from '../../modules/pg/pgApi';
+import {
+  usePgPalette, PgHeader, Press, SectionHeading, Divider, PgImage, Skeleton, StateMessage, amenityIcon, amenityLabel, PG_HOME,
+  IconBadgeCheck, IconMapPin, IconPhone, IconMessage, IconAlert, IconCheck, ICON, s as ui,
+} from '../../modules/pg/ui';
+import { PgHero, PgPhotoSection, PhotoViewer } from '../../modules/pg/PgGallery';
+import { PgVideoSection } from '../../modules/pg/PgVideos';
+import { PgMessSection, PgTimingsSection } from '../../modules/pg/PgMess';
 
 /** Local (device-time) YYYY-MM-DD, so the default is never "yesterday" before 5:30 AM IST. */
 function toLocalYmd(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
-
 /** Next 30 days, starting today, for the check-in date picker. */
 function buildCheckInOptions(): { ymd: string; top: string; bottom: string }[] {
   const out: { ymd: string; top: string; bottom: string }[] = [];
@@ -83,838 +40,563 @@ function buildCheckInOptions(): { ymd: string; top: string; bottom: string }[] {
     d.setDate(base.getDate() + i);
     out.push({
       ymd: toLocalYmd(d),
-      top: i === 0 ? 'TODAY' : i === 1 ? 'TMRW' : d.toLocaleDateString('en-IN', { weekday: 'short' }).toUpperCase(),
+      top: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-IN', { weekday: 'short' }),
       bottom: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
     });
   }
   return out;
 }
-
 function prettyDate(ymd: string): string {
   const [y, m, d] = ymd.split('-').map(Number);
   if (!y || !m || !d) return ymd;
-  return new Date(y, m - 1, d, 12).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(y, m - 1, d, 12).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
 }
-
-function mealText(slot: MealSlot): string | null {
-  if (!slot) return null;
-  if (typeof slot === 'string') return slot.trim() || null;
-  if (typeof slot === 'object') {
-    const start = (slot.start || '').trim();
-    const end = (slot.end || '').trim();
-    if (start && end) return `${start} - ${end}`;
-    return start || end || null;
-  }
-  return null;
-}
-
-function toNum(v: any): number | null {
-  const n = typeof v === 'string' ? parseFloat(v) : v;
-  return typeof n === 'number' && Number.isFinite(n) ? n : null;
-}
-
-function formatInr(n: any): string {
-  const v = Number(n);
-  return Number.isFinite(v) ? v.toLocaleString('en-IN') : '0';
-}
+const rentText = (t: PgRoomType) => (t.rentFrom === null ? '' : t.rentTo !== null && t.rentTo !== t.rentFrom ? `${inr(t.rentFrom)}–${inr(t.rentTo).slice(1)}` : inr(t.rentFrom));
+const roomFacts = (t: PgRoomType) => [
+  t.hasAC ? 'AC' : 'Non-AC',
+  t.hasAttachedBathroom ? 'Attached bath' : 'Shared bath',
+  t.hasBalcony ? 'Balcony' : '',
+  t.furnishing ? t.furnishing.charAt(0).toUpperCase() + t.furnishing.slice(1).toLowerCase() : '',
+].filter(Boolean).join(' · ');
+const roomTitle = (t: PgRoomType) => (t.label && !/^\d+-sharing( AC)?$/.test(t.label) ? t.label : sharingLabel(t.sharingType));
 
 export default function PGDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const pgId = (Array.isArray(id) ? id[0] : id || '').trim();
   const router = useRouter();
-  const { isDark } = useTheme();
+  const p = usePgPalette();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const { user } = useAuth();
 
-  const mountedRef = useRef(true);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    };
-  }, []);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const heroH = Math.round(width * 0.75);
+  // The name in the header fades in once the on-page name has scrolled under it.
+  const titleOpacity = scrollY.interpolate({ inputRange: [heroH + 8, heroH + 48], outputRange: [0, 1], extrapolate: 'clamp' });
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
-  const [pg, setPg] = useState<PG | null>(null);
-  const pgRef = useRef<PG | null>(null);
-  useEffect(() => { pgRef.current = pg; }, [pg]);
+  const [pg, setPg] = useState<PgDetail | null>(null);
+  const pgRef = useRef<PgDetail | null>(null);
+  pgRef.current = pg;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<'notfound' | 'error' | null>(null);
-  const [activeImageIdx, setActiveImageIdx] = useState(0);
-  const [mainImageFailed, setMainImageFailed] = useState(false);
-  const [bookingRoomId, setBookingRoomId] = useState('');
-  const bookingRef = useRef(false);
+  const [myBooking, setMyBooking] = useState<MyPgBooking | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [viewer, setViewer] = useState<{ list: PgPhoto[]; index: number } | null>(null);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [checkInOptions] = useState(buildCheckInOptions);
   const [checkInDate, setCheckInDate] = useState(() => toLocalYmd(new Date()));
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [myBooking, setMyBooking] = useState<MyBooking | null>(null);
-  const [cancellingBooking, setCancellingBooking] = useState(false);
+  const [sending, setSending] = useState(false);
+  const sendingRef = useRef(false);
 
   const loadMyBooking = useCallback(async () => {
     if (!pgId) return;
     try {
       const res = await apiFetch(`${API_URL}/api/pg/bookings/mine`);
-      if (!res.ok) return; // guests / errors: just don't show the banner
-      const list = await res.json();
-      if (!mountedRef.current || !Array.isArray(list)) return;
-      const open = list.find((b: any) => (b.hostel?.id === pgId || b.hostelId === pgId) && (b.status === 'Pending' || b.status === 'Confirmed'));
+      if (!res.ok) return; // guests / errors: no status card
+      const list = await readJson(res);
+      if (!mounted.current || !Array.isArray(list)) return;
+      const open = list.find((b: MyPgBooking) => (b.hostel?.id === pgId || b.hostelId === pgId) && (b.status === 'Pending' || b.status === 'Confirmed'));
       setMyBooking(open || null);
-    } catch {
-      // non-critical
-    }
+    } catch { /* non-critical */ }
   }, [pgId]);
 
-  const fetchDetails = useCallback(async (mode: 'initial' | 'refresh' | 'silent' = 'initial') => {
-    if (!pgId) {
-      setLoading(false);
-      setLoadError('notfound');
-      return;
-    }
+  const load = useCallback(async (mode: 'initial' | 'refresh' | 'silent' = 'initial') => {
+    if (!pgId) { setLoading(false); setLoadError('notfound'); return; }
     if (mode === 'initial') setLoading(true);
     if (mode === 'refresh') setRefreshing(true);
     try {
       const res = await apiFetch(ENDPOINTS.pgDetail(pgId));
-      if (!mountedRef.current) return;
-      if (res.ok) {
-        const data = await res.json();
-        if (!mountedRef.current) return;
-        setPg(data);
-        setLoadError(null);
-      } else if (res.status === 404) {
-        setPg(null);
-        setLoadError('notfound');
-      } else if (mode !== 'silent' || !pgRef.current) {
-        if (mode === 'refresh' && pgRef.current) showToast("Couldn't refresh. Pull down to try again.");
-        else setLoadError('error');
-      }
-    } catch (err) {
-      console.warn('[PG_DETAIL]', err);
-      if (!mountedRef.current) return;
-      if (mode === 'refresh' && pgRef.current) showToast('No connection. Pull down to try again.');
-      else if (mode !== 'silent') setLoadError('error');
+      const data = await readJson(res);
+      if (!mounted.current) return;
+      if (res.ok && data && data.id) { setPg(data); setLoadError(null); }
+      else if (res.status === 404) { setPg(null); setLoadError('notfound'); }
+      else if (!pgRef.current) setLoadError('error');
+    } catch {
+      if (mounted.current && !pgRef.current) setLoadError('error');
     } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-        setRefreshing(false);
-      }
+      if (mounted.current) { setLoading(false); setRefreshing(false); }
     }
     loadMyBooking();
   }, [pgId, loadMyBooking]);
 
-  useEffect(() => {
-    fetchDetails('initial');
-  }, [fetchDetails]);
-
-  // Live sync: room / price / bed-availability edits for this stay refresh it in place
-  useLiveSync({
-    types: ['pg'],
-    filter: (e) => e.id == null || String(e.id) === String(pgId),
-    onChange: () => { fetchDetails('silent'); },
-  });
-
-  // Signing in (or out) from this screen changes whose request banner we show
+  useEffect(() => { load('initial'); }, [load]);
+  useLiveSync({ types: ['pg'], filter: (e) => e.id == null || String(e.id) === String(pgId), onChange: () => { load('silent'); } });
   const userKey = (user as any)?.id || (user as any)?._id || null;
-  useEffect(() => {
-    if (userKey) loadMyBooking();
-    else setMyBooking(null);
-  }, [userKey, loadMyBooking]);
+  useEffect(() => { if (userKey) loadMyBooking(); else setMyBooking(null); }, [userKey, loadMyBooking]);
 
-  const showToast = (msg: string) => {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setToastMessage(msg);
-    toastTimerRef.current = setTimeout(() => {
-      if (mountedRef.current) setToastMessage(null);
-    }, 4000);
+  const roomTypes = pg?.roomTypes || [];
+  const bookable = roomTypes.filter((t) => t.bookRoomId);
+  // Keep a valid selection: the chosen type while it has a free bed, else the cheapest one that does.
+  const selected = roomTypes.find((t) => t.key === selectedType && t.bookRoomId) || bookable[0] || null;
+  const roomTypeLabels = useMemo(() => Object.fromEntries(roomTypes.map((t) => [t.key, `${roomTitle(t)} · ${t.hasAC ? 'AC' : 'Non-AC'}`])), [roomTypes]);
+  const photosByType = useMemo(() => {
+    const m: Record<string, PgPhoto[]> = {};
+    (pg?.photos || []).forEach((ph) => { if (ph.roomType) (m[ph.roomType] = m[ph.roomType] || []).push(ph); });
+    return m;
+  }, [pg?.photos]);
+  const heroPhotos = useMemo(() => {
+    const list = pg?.photos || [];
+    const cover = list.find((x) => x.isCover);
+    return cover ? [cover, ...list.filter((x) => x !== cover)] : list;
+  }, [pg?.photos]);
+
+  const promptLogin = () => Alert.alert('Log in to continue', 'Log in to send a booking request.', [
+    { text: 'Not now', style: 'cancel' },
+    { text: 'Log in', onPress: () => router.push('/login' as any) },
+  ]);
+
+  const openRequest = () => {
+    if (!pg) return;
+    if (!user) { promptLogin(); return; }
+    if (!selected) return;
+    Haptics.selectionAsync().catch(() => {});
+    setSheetOpen(true);
   };
 
-  const goBack = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/(tabs)/others' as any);
-  };
-
-  const submitBooking = async (room: Room) => {
-    if (bookingRef.current) return;
-    bookingRef.current = true;
-    setBookingRoomId(room.id);
+  const sendRequest = async () => {
+    if (!pg || !selected?.bookRoomId || sendingRef.current) return;
+    sendingRef.current = true;
+    setSending(true);
     try {
-      const res = await apiFetch(ENDPOINTS.pgBook(room.id), {
-        method: 'POST',
-        body: JSON.stringify({ checkInDate }),
-      });
-      const data = await res.json().catch(() => ({} as any));
-      if (!mountedRef.current) return;
-      if (res.status === 401) {
-        Alert.alert('Please log in', 'Log in to request a bed at this residence.', [
-          { text: 'Not now', style: 'cancel' },
-          { text: 'Log in', onPress: () => router.push('/login' as any) },
-        ]);
-        return;
-      }
+      const res = await apiFetch(ENDPOINTS.pgBook(selected.bookRoomId), { method: 'POST', body: JSON.stringify({ checkInDate }) });
+      const data = await readJson(res);
+      if (!mounted.current) return;
+      if (res.status === 401) { setSheetOpen(false); promptLogin(); return; }
       if (!res.ok) {
-        if (data?.code === 'BOOKING_EXISTS') loadMyBooking();
-        Alert.alert(
-          data?.code === 'BOOKING_EXISTS' ? 'Request already sent' : 'Could not send request',
-          data?.message || 'Something went wrong. Please try again.'
-        );
+        if (data?.code === 'BOOKING_EXISTS') { loadMyBooking(); setSheetOpen(false); }
+        Alert.alert(data?.code === 'BOOKING_EXISTS' ? 'Request already sent' : 'Could not send the request', data?.message || 'Please try again.');
+        if (res.status === 400) load('silent'); // e.g. the last bed went meanwhile
         return;
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      fetchDetails('silent');
+      setSheetOpen(false);
+      load('silent');
       const buttons: any[] = [{ text: 'Done', style: 'cancel' }];
-      if (data?.whatsappUrl) {
-        buttons.unshift({
-          text: 'Message housing desk',
-          onPress: () => Linking.openURL(data.whatsappUrl).catch(() => showToast('WhatsApp is not available on this device.')),
-        });
-      }
-      Alert.alert(
-        '🏠 Request sent!',
-        `${data?.message || 'Booking request received. The Zenvy housing team will confirm it with you.'}\n\nRoom ${room.roomNumber} • Check-in ${prettyDate(checkInDate)}`,
-        buttons
-      );
-    } catch (err) {
-      if (mountedRef.current) Alert.alert('No connection', 'Could not reach Zenvy. Check your internet and try again.');
+      if (data?.whatsappUrl) buttons.unshift({ text: 'Message housing desk', onPress: () => Linking.openURL(data.whatsappUrl).catch(() => {}) });
+      Alert.alert('Request sent', `${data?.message || 'The Zenvy housing team will confirm it with you.'}\n\n${roomTitle(selected)} · check-in ${prettyDate(checkInDate)}`, buttons);
+    } catch {
+      if (mounted.current) Alert.alert('No connection', 'Check your internet and try again.');
     } finally {
-      bookingRef.current = false;
-      if (mountedRef.current) setBookingRoomId('');
+      sendingRef.current = false;
+      if (mounted.current) setSending(false);
     }
   };
 
-  const handleBookRoom = (room: Room) => {
-    if (bookingRef.current || !pg) return;
-    if (!user) {
-      Alert.alert('Please log in', 'Log in to request a bed at this residence.', [
-        { text: 'Not now', style: 'cancel' },
-        { text: 'Log in', onPress: () => router.push('/login' as any) },
-      ]);
-      return;
-    }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    const deposit = Number(pg.securityDeposit) > 0 ? `\nSecurity deposit: ₹${formatInr(pg.securityDeposit)}` : '';
-    Alert.alert(
-      'Confirm booking request',
-      `${pg.name}\nRoom ${room.roomNumber} • ${room.sharingType}-sharing\nRent: ₹${formatInr(room.pricePerBed)} / month per bed${deposit}\nCheck-in: ${prettyDate(checkInDate)}\n\nThe housing team will call you to confirm. Nothing is charged in the app.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Send request', onPress: () => submitBooking(room) },
-      ]
-    );
-  };
-
-  const handleCancelMyBooking = () => {
-    if (!myBooking || cancellingBooking) return;
-    Alert.alert('Cancel your request?', 'Your booking request for this residence will be withdrawn.', [
+  const cancelMyBooking = () => {
+    if (!myBooking || cancelling) return;
+    Alert.alert('Cancel your request?', 'Your booking request for this PG will be withdrawn.', [
       { text: 'Keep it', style: 'cancel' },
       {
-        text: 'Cancel request',
-        style: 'destructive',
-        onPress: async () => {
-          setCancellingBooking(true);
+        text: 'Cancel request', style: 'destructive', onPress: async () => {
+          setCancelling(true);
           try {
             const res = await apiFetch(`${API_URL}/api/pg/bookings/${myBooking.id}/cancel`, { method: 'PUT' });
-            const data = await res.json().catch(() => ({} as any));
-            if (!mountedRef.current) return;
-            if (res.ok) {
-              setMyBooking(null);
-              showToast(data?.message || 'Booking request cancelled.');
-              fetchDetails('silent');
-            } else {
-              Alert.alert('Could not cancel', data?.message || 'Please try again.');
-            }
+            const data = await readJson(res);
+            if (!mounted.current) return;
+            if (res.ok) { setMyBooking(null); load('silent'); } else Alert.alert('Could not cancel', data?.message || 'Please try again.');
           } catch {
-            if (mountedRef.current) Alert.alert('No connection', 'Check your internet and try again.');
+            if (mounted.current) Alert.alert('No connection', 'Check your internet and try again.');
           } finally {
-            if (mountedRef.current) setCancellingBooking(false);
+            if (mounted.current) setCancelling(false);
           }
         },
       },
     ]);
   };
 
-  const getAmenityEmoji = (amenity: string) => {
-    const lower = String(amenity || '').toLowerCase();
-    if (lower.includes('wifi') || lower.includes('wi-fi')) return '📶';
-    if (/\bac\b/.test(lower) || lower.includes('air con')) return '❄️';
-    if (lower.includes('washing') || lower.includes('laundry')) return '🧺';
-    if (lower.includes('housekeeping') || lower.includes('clean')) return '🧹';
-    if (lower.includes('power') || lower.includes('backup')) return '🔋';
-    if (lower.includes('gym')) return '🏋️';
-    if (lower.includes('lounge')) return '🛋️';
-    if (lower.includes('security') || lower.includes('cctv')) return '📹';
-    if (lower.includes('biometric')) return '🔐';
-    if (lower.includes('nurse') || lower.includes('medical')) return '🩺';
-    if (lower.includes('kitchen') || lower.includes('mess') || lower.includes('food')) return '🍳';
-    if (lower.includes('tv')) return '📺';
-    if (lower.includes('co-working') || lower.includes('study')) return '📚';
-    if (lower.includes('bed')) return '🛏️';
-    if (lower.includes('bathroom') || lower.includes('washroom')) return '🚿';
-    if (lower.includes('parking')) return '🅿️';
-    return '✨';
-  };
-
-  const bg = isDark ? COLORS.bgDark : COLORS.bgLight;
-
-  if (loading) {
+  // ── Loading / error ────────────────────────────────────────────────────────────────────────────
+  if (loading && !pg) {
+    const h = Math.round(width * 0.75);
     return (
-      <View style={[s.center, { backgroundColor: bg }]}>
-        <ActivityIndicator size="large" color={COLORS.red} />
-        <Text style={[s.loadingText, { color: isDark ? COLORS.textSecondary : COLORS.textDarkSecondary }]}>
-          LOADING RESIDENCE...
-        </Text>
+      <View style={{ flex: 1, backgroundColor: p.bg }}>
+        <PgHeader />
+        <View accessibilityLabel="Loading PG" accessibilityRole="progressbar">
+          <Skeleton style={{ width, height: h, borderRadius: 0 }} />
+          <View style={{ padding: 16 }}>
+            <Skeleton style={{ width: '70%', height: 24 }} />
+            <Skeleton style={{ width: '50%', height: 14, marginTop: 10 }} />
+            <Skeleton style={{ width: '100%', height: 64, marginTop: 20, borderRadius: 12 }} />
+            <Skeleton style={{ width: '40%', height: 18, marginTop: 28 }} />
+            <Skeleton style={{ width: '100%', height: 96, marginTop: 12, borderRadius: 12 }} />
+          </View>
+        </View>
       </View>
     );
   }
-
   if (!pg) {
-    const isNetwork = loadError === 'error';
+    const network = loadError === 'error';
     return (
-      <View style={[s.center, { backgroundColor: bg, paddingHorizontal: 32 }]}>
-        <Text style={{ fontSize: 40, marginBottom: 12 }}>{isNetwork ? '📡' : '🏠'}</Text>
-        <Text style={{ color: isDark ? '#fff' : '#000', fontWeight: '900', letterSpacing: 1, fontSize: 15, textAlign: 'center' }}>
-          {isNetwork ? "Couldn't load this residence" : 'Residence not found'}
-        </Text>
-        <Text style={{ color: isDark ? COLORS.textSecondary : COLORS.textDarkSecondary, fontSize: 12, textAlign: 'center', marginTop: 8, lineHeight: 18 }}>
-          {isNetwork ? 'Check your internet connection and try again.' : 'It may have been removed or is not taking bookings right now.'}
-        </Text>
-        {isNetwork ? (
-          <TouchableOpacity style={s.backNavBtn} onPress={() => fetchDetails('initial')}>
-            <Text style={s.backNavBtnText}>RETRY</Text>
-          </TouchableOpacity>
-        ) : null}
-        <TouchableOpacity style={[s.backNavBtn, isNetwork && { backgroundColor: 'transparent', marginTop: 10 }]} onPress={goBack}>
-          <Text style={[s.backNavBtnText, isNetwork && { color: COLORS.red }]}>BROWSE RESIDENCES</Text>
-        </TouchableOpacity>
+      <View style={{ flex: 1, backgroundColor: p.bg }}>
+        <PgHeader />
+        <StateMessage
+          icon={<IconAlert size={28} color={p.muted} strokeWidth={ICON.stroke} />}
+          title={network ? "Couldn't load this PG" : 'PG not found'}
+          body={network ? 'Check your connection and try again.' : 'It may have been removed or is not taking requests right now.'}
+          actionLabel={network ? 'Try again' : 'See all PGs'}
+          onAction={network ? () => load('initial') : () => router.replace(PG_HOME as any)}
+        />
       </View>
     );
   }
 
-  const images = Array.isArray(pg.images) ? pg.images.filter((u) => typeof u === 'string' && u.trim()) : [];
-  const activeImg = images[activeImageIdx] || images[0] || null;
-  const cardBg = isDark ? COLORS.bgCard : COLORS.bgLightCard;
-  const txt = isDark ? COLORS.textPrimary : COLORS.textDark;
-  const txtSec = isDark ? COLORS.textSecondary : COLORS.textDarkSecondary;
-  const border = isDark ? COLORS.borderDark : COLORS.borderLight;
-
-  const genderType = pg.genderType || 'Co-ed';
-  let genderColor: string = COLORS.red;
-  if (genderType === 'Boys') genderColor = '#3B82F6';
-  if (genderType === 'Girls') genderColor = '#EC4899';
-  if (genderType === 'Co-ed') genderColor = '#8B5CF6';
-
-  const amenities = Array.isArray(pg.amenities) ? pg.amenities.filter(Boolean) : [];
-  const rules = Array.isArray(pg.rules) ? pg.rules.filter(Boolean) : [];
-  const rooms = Array.isArray(pg.rooms) ? pg.rooms : [];
-  const bedsLeft = rooms.reduce((acc, r) => acc + (Number(r.availableBeds) || 0), 0);
-
-  const timetable = pg.foodTimetable || {};
-  const timetableRows = [
-    { icon: '🍳', label: 'BREAKFAST', value: mealText(timetable.breakfast) },
-    { icon: '🍲', label: 'LUNCH', value: mealText(timetable.lunch) },
-    { icon: '🍛', label: 'DINNER', value: mealText(timetable.dinner) },
-  ].filter((r) => !!r.value);
-
-  const messMenuEntries = pg.messMenu && typeof pg.messMenu === 'object'
-    ? Object.entries(pg.messMenu).filter(([, meal]) => meal && (meal.breakfast || meal.lunch || meal.dinner))
-    : [];
-
+  // ── Detail ─────────────────────────────────────────────────────────────────────────────────────
   const contact = pg.contactInfo || {};
-  const wardenName = (contact.wardenName || contact.warden || '').trim();
-  const ownerName = (contact.ownerName || '').trim();
-  const pgPhone = (contact.phone || '').trim();
-  const emergency = (contact.emergencyContact || '').trim();
-  const lat = toNum(contact.lat);
-  const lng = toNum(contact.lng);
-  const hasCoords = lat !== null && lng !== null;
-  const mapsUrl = hasCoords
-    ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
-    : pg.address
-      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${pg.name}, ${pg.address}`)}`
-      : null;
+  const phone = (contact.phone || '').trim();
+  const maps = mapsUrl(pg);
+  const amenities = pg.amenities.map((a) => ({ raw: a, label: amenityLabel(a) })).filter((a) => a.label);
+  const rentFrom = pg.rentFrom ?? pg.baseRent;
+  const barRent = selected?.rentFrom ?? rentFrom;
+  const myOpen = myBooking && (myBooking.status === 'Pending' || myBooking.status === 'Confirmed') ? myBooking : null;
+  const hasRooms = roomTypes.length > 0;
+  const bottomBarH = 72 + insets.bottom;
+  const deposit = pg.securityDeposit;
 
-  const adminRows = [
-    ownerName ? { icon: '👤', label: 'OWNER', value: ownerName, color: txt } : null,
-    wardenName ? { icon: '🛡️', label: 'WARDEN', value: wardenName, color: txt } : null,
-    pgPhone ? { icon: '📞', label: 'PHONE', value: pgPhone, color: txt } : null,
-    emergency ? { icon: '🚨', label: 'EMERGENCY', value: emergency, color: COLORS.red } : null,
-  ].filter(Boolean) as { icon: string; label: string; value: string; color: string }[];
-
-  const openWhatsApp = () => {
-    let phone = (pgPhone || ZENVY_SUPPORT_WHATSAPP).replace(/\D/g, '');
-    if (phone.length === 10) phone = `91${phone}`;
-    const msg = `Hi, I am interested in visiting/booking a room at ${pg.name} (${genderType}) on Zenvy. Could you please share the current availability and visiting timings?`;
-    Linking.openURL(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`).catch(() => showToast('WhatsApp is not available on this device.'));
+  const enquire = () => {
+    let to = (phone || ZENVY_SUPPORT_WHATSAPP).replace(/\D/g, '');
+    if (to.length === 10) to = `91${to}`;
+    const msg = `Hi, I found ${pg.name} on Zenvy. Could you share current availability and a time to visit?`;
+    Linking.openURL(`https://wa.me/${to}?text=${encodeURIComponent(msg)}`).catch(() => Alert.alert('WhatsApp is not available', phone ? `You can call ${phone} instead.` : 'Please try again later.'));
   };
 
-  const myBookingHere = myBooking && (myBooking.status === 'Pending' || myBooking.status === 'Confirmed') ? myBooking : null;
+  const contactRows = [
+    contact.ownerName ? { label: 'Owner', value: contact.ownerName } : null,
+    contact.wardenName ? { label: 'Warden', value: contact.wardenName } : null,
+    phone ? { label: 'Phone', value: phone } : null,
+    contact.emergencyContact ? { label: 'Emergency', value: contact.emergencyContact } : null,
+  ].filter(Boolean) as { label: string; value: string }[];
 
   return (
-    <View style={[s.container, { backgroundColor: bg }]}>
-      {toastMessage && (
-        <View style={s.toastContainer} pointerEvents="none">
-          <Text style={s.toastText}>{toastMessage}</Text>
-        </View>
-      )}
-
-      {/* Header bar */}
-      <View style={[s.headerBar, { borderBottomColor: border }]}>
-        <TouchableOpacity style={s.backArrow} onPress={goBack} accessibilityLabel="Go back">
-          <Text style={[s.backArrowText, { color: txt }]}>◀ BACK</Text>
-        </TouchableOpacity>
-        <Text style={[s.headerTitle, { color: txt }]} numberOfLines={1}>{(pg.name || '').toUpperCase()}</Text>
-        <View style={{ width: 60 }} />
-      </View>
-
-      <ScrollView
+    <View style={{ flex: 1, backgroundColor: p.bg }}>
+      <PgHeader title={pg.name} titleOpacity={titleOpacity} />
+      <Animated.ScrollView
+        contentContainerStyle={{ paddingBottom: bottomBarH + 24 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchDetails('refresh')} tintColor={COLORS.red} colors={[COLORS.red]} />}
+        scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load('refresh')} tintColor={p.sub} colors={[p.accentFill]} />}
       >
-        {/* Gallery */}
-        <View style={s.galleryContainer}>
-          {activeImg && !mainImageFailed ? (
-            <Image source={{ uri: activeImg }} style={s.mainImage} onError={() => setMainImageFailed(true)} />
-          ) : (
-            <View style={[s.mainImage, { alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#1A1D24' : '#E2E8F0' }]}>
-              <Text style={{ fontSize: 56 }}>🏠</Text>
-              <Text style={{ fontSize: 10, fontWeight: '800', color: txtSec, marginTop: 6, letterSpacing: 1 }}>NO PHOTOS YET</Text>
-            </View>
-          )}
-          <View style={s.galleryOverlay} pointerEvents="none" />
+        <PgHero photos={heroPhotos} topInset={0} onOpen={(list, index) => setViewer({ list, index })} />
 
-          <View style={{ position: 'absolute', top: 12, left: 12, right: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View style={[s.genderTag, { backgroundColor: genderColor, position: 'relative', top: 0, left: 0 }]}>
-              <Text style={s.genderTagText}>{genderType.toUpperCase()}</Text>
-            </View>
+        {/* Name, place, key facts */}
+        <View style={st.pad}>
+          <View style={st.titleRow}>
+            <Text style={[st.title, { color: p.text }]} accessibilityRole="header">{pg.name}</Text>
           </View>
-
-          {images.length > 1 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.thumbScroll}>
-              {images.map((img, idx) => (
-                <TouchableOpacity
-                  key={`${idx}-${img}`}
-                  onPress={() => {
-                    setMainImageFailed(false);
-                    setActiveImageIdx(idx);
-                  }}
-                  style={[s.thumbWrap, activeImageIdx === idx && { borderColor: '#3B82F6', borderWidth: 2.5 }]}
-                >
-                  <Image source={{ uri: img }} style={s.thumbImg} />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
-        </View>
-
-        {/* Title details */}
-        <StaggeredSection delay={50} direction="up">
-        <View style={[s.sectionCard, { backgroundColor: cardBg, borderColor: border }]}>
-          <Text style={[s.pgName, { color: txt }]}>{pg.name}</Text>
-          {pg.address ? <Text style={[s.pgAddress, { color: txtSec }]}>📍 {pg.address}</Text> : null}
-          {toNum(pg.distanceFromCollege) !== null && (
-            <View style={s.proximityBadge}>
-              <Text style={{ fontSize: 20 }}>🏃</Text>
-              <View>
-                <Text style={s.proximityLabel}>DISTANCE FROM CAMPUS</Text>
-                <Text style={[s.proximityValue, { color: COLORS.red }]}>{pg.distanceFromCollege} km</Text>
+          <View style={st.metaRow}>
+            {pg.isVerified ? (
+              <View style={st.verified} accessibilityLabel="Verified by Zenvy">
+                <IconBadgeCheck size={14} color={p.success} strokeWidth={2} />
+                <Text style={[ui.small, { color: p.success, fontWeight: '600' }]}>Verified</Text>
               </View>
+            ) : null}
+            <Text style={[ui.small, { color: p.sub }]}>{genderLabel(pg.genderType)}</Text>
+            {pg.area ? <Text style={[ui.small, { color: p.sub }]}>· {pg.area}</Text> : null}
+          </View>
+          {pg.address ? (
+            <View style={st.addressRow}>
+              <IconMapPin size={16} color={p.sub} strokeWidth={ICON.stroke} style={{ marginTop: 2 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={[ui.body, { color: p.text }]}>{pg.address}</Text>
+                {distanceLabel(pg.distanceFromCollege) ? <Text style={[ui.small, { color: p.muted, marginTop: 2 }]}>{distanceLabel(pg.distanceFromCollege)}</Text> : null}
+              </View>
+              {maps ? (
+                <Press onPress={() => Linking.openURL(maps).catch(() => Alert.alert('Could not open Maps'))} accessibilityRole="link" accessibilityLabel="Open in Maps" style={[st.smallBtn, { borderColor: p.line }]}>
+                  <Text style={[ui.small, { color: p.text, fontWeight: '600' }]}>Open in Maps</Text>
+                </Press>
+              ) : null}
             </View>
-          )}
-          {pg.description ? <Text style={[s.pgDesc, { color: txt }]}>{pg.description}</Text> : null}
-        </View>
-        </StaggeredSection>
+          ) : null}
 
-        {/* Quick Stats Grid (real values only) */}
-        <StaggeredSection delay={100} direction="up">
-        <View style={s.statsGrid}>
-          <View style={[s.statBox, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={s.statEmoji}>🏷️</Text>
-            <Text style={s.statLabel}>RENT FROM</Text>
-            <Text style={[s.statVal, { color: txt }]}>₹{formatInr(pg.baseRent)}</Text>
-            <Text style={s.statDesc}>per month</Text>
+          <View style={[st.facts, { borderColor: p.line, backgroundColor: p.card }]}>
+            <Fact label="Rent from" value={rentFrom ? inr(rentFrom) : '—'} sub="per month" />
+            <View style={[st.factSep, { backgroundColor: p.line }]} />
+            <Fact label="Deposit" value={Number(deposit) > 0 ? inr(deposit) : 'None'} sub={roomTypes.some((t) => t.deposit !== null && t.deposit !== deposit) ? 'varies by room' : Number(deposit) > 0 ? 'one time' : ' '} />
+            <View style={[st.factSep, { backgroundColor: p.line }]} />
+            <Fact label="Beds free" value={hasRooms ? String(pg.bedsAvailable) : '—'} sub={hasRooms ? `${roomTypes.length} room type${roomTypes.length === 1 ? '' : 's'}` : 'no rooms listed'} />
           </View>
-          <View style={[s.statBox, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={s.statEmoji}>💰</Text>
-            <Text style={s.statLabel}>DEPOSIT</Text>
-            <Text style={[s.statVal, { color: txt }]}>{Number(pg.securityDeposit) > 0 ? `₹${formatInr(pg.securityDeposit)}` : 'None'}</Text>
-            <Text style={s.statDesc}>Security deposit</Text>
-          </View>
-          <View style={[s.statBox, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={s.statEmoji}>👥</Text>
-            <Text style={s.statLabel}>FOR</Text>
-            <Text style={[s.statVal, { color: txt }]}>{genderType}</Text>
-            <Text style={s.statDesc}>Residents</Text>
-          </View>
-          <View style={[s.statBox, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={s.statEmoji}>🛏️</Text>
-            <Text style={s.statLabel}>BEDS FREE</Text>
-            <Text style={[s.statVal, { color: bedsLeft > 0 ? COLORS.emerald : '#EF4444' }]}>{bedsLeft}</Text>
-            <Text style={s.statDesc}>across {rooms.length} room{rooms.length === 1 ? '' : 's'}</Text>
-          </View>
-        </View>
-        </StaggeredSection>
 
-        {/* Room Inventory */}
-        <StaggeredSection delay={150} direction="up">
-        <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
-          <Text style={[s.blockTitle, { color: txt }]}>ROOMS</Text>
-          <Text style={[s.blockSub, { color: txtSec }]}>AVAILABLE BEDS • PULL DOWN TO REFRESH</Text>
-
-          {myBookingHere && (
-            <View style={[s.checkInWrap, { backgroundColor: myBookingHere.status === 'Confirmed' ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)', borderColor: myBookingHere.status === 'Confirmed' ? 'rgba(16,185,129,0.4)' : 'rgba(245,158,11,0.4)' }]}>
-              <View style={{ flex: 1, paddingRight: 8 }}>
-                <Text style={[s.checkInLabel, { color: txt }]}>
-                  {myBookingHere.status === 'Confirmed' ? '✅ BOOKING CONFIRMED' : '⏳ REQUEST PENDING'}
-                </Text>
-                <Text style={{ fontSize: 10, color: txtSec, marginTop: 3, fontWeight: '600' }}>
-                  {myBookingHere.room?.roomNumber ? `Room ${myBookingHere.room.roomNumber} • ` : ''}
-                  {myBookingHere.checkInDate ? `Check-in ${new Date(myBookingHere.checkInDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}
+          {myOpen ? (
+            <View style={[st.notice, { borderColor: myOpen.status === 'Confirmed' ? p.success : p.line, backgroundColor: myOpen.status === 'Confirmed' ? p.successSoft : p.sunken }]} accessibilityLiveRegion="polite">
+              <View style={{ flex: 1 }}>
+                <Text style={[ui.body, { color: p.text, fontWeight: '600' }]}>{myOpen.status === 'Confirmed' ? 'Your bed is confirmed' : 'Request sent'}</Text>
+                <Text style={[ui.small, { color: p.sub, marginTop: 2 }]}>
+                  {[myOpen.room?.roomNumber ? `Room ${myOpen.room.roomNumber}` : '', myOpen.checkInDate ? `check-in ${new Date(myOpen.checkInDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : '', myOpen.status === 'Pending' ? 'the housing team will call you' : ''].filter(Boolean).join(' · ')}
                 </Text>
               </View>
-              {myBookingHere.status === 'Pending' && (
-                <TouchableOpacity onPress={handleCancelMyBooking} disabled={cancellingBooking} style={{ paddingHorizontal: 10, paddingVertical: 6 }}>
-                  {cancellingBooking ? <ActivityIndicator size="small" color={COLORS.red} /> : <Text style={{ color: COLORS.red, fontSize: 10, fontWeight: '900' }}>CANCEL</Text>}
-                </TouchableOpacity>
-              )}
+              {myOpen.status === 'Pending' ? (
+                <Press onPress={cancelMyBooking} disabled={cancelling} accessibilityLabel="Cancel request" style={st.textBtn}>
+                  {cancelling ? <ActivityIndicator color={p.sub} /> : <Text style={[ui.small, { color: p.accent, fontWeight: '600' }]}>Cancel</Text>}
+                </Press>
+              ) : null}
             </View>
-          )}
+          ) : null}
+        </View>
 
-          {rooms.length > 0 && (
-            <View style={[s.checkInWrap, { backgroundColor: cardBg, borderColor: border, flexDirection: 'column', alignItems: 'stretch' }]}>
-              <Text style={[s.checkInLabel, { color: txt, marginBottom: 10 }]}>CHECK-IN DATE • {prettyDate(checkInDate)}</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                {checkInOptions.map((opt) => {
-                  const selected = opt.ymd === checkInDate;
-                  return (
-                    <TouchableOpacity
-                      key={opt.ymd}
-                      onPress={() => {
-                        Haptics.selectionAsync().catch(() => {});
-                        setCheckInDate(opt.ymd);
-                      }}
-                      style={{
-                        width: 58,
-                        paddingVertical: 8,
-                        borderRadius: 12,
-                        alignItems: 'center',
-                        borderWidth: 1,
-                        borderColor: selected ? COLORS.red : border,
-                        backgroundColor: selected ? COLORS.red : 'transparent',
-                      }}
-                    >
-                      <Text style={{ fontSize: 8, fontWeight: '900', letterSpacing: 1, color: selected ? '#fff' : txtSec }}>{opt.top}</Text>
-                      <Text style={{ fontSize: 11, fontWeight: '800', marginTop: 2, color: selected ? '#fff' : txt }}>{opt.bottom}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </View>
-          )}
-
-          {rooms.length > 0 ? (
-            rooms.map(room => (
-              <View key={room.id} style={[s.roomCard, { backgroundColor: cardBg, borderColor: border }]}>
-                <View style={s.roomCardLeft}>
-                  <Text style={[s.roomTitle, { color: txt }]}>{room.sharingType}-Sharing Room</Text>
-                  <Text style={[s.roomNo, { color: txtSec }]}>
-                    Room {room.roomNumber}{room.floorNumber !== undefined && room.floorNumber !== null ? ` • Floor ${room.floorNumber}` : ''}
+        {/* Room types */}
+        <View style={st.section}>
+          <SectionHeading title="Rooms" detail={hasRooms ? 'Rent per bed' : undefined} />
+          {hasRooms ? roomTypes.map((t) => {
+            const on = selected?.key === t.key;
+            const full = !t.bookRoomId;
+            const photos = photosByType[t.key] || [];
+            return (
+              <Press
+                key={t.key}
+                onPress={full ? undefined : () => setSelectedType(t.key)}
+                disabled={full}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on, disabled: full }}
+                accessibilityLabel={`${roomTitle(t)}. ${roomFacts(t)}. ${rentText(t)} a month. ${full ? 'Full' : `${t.availableBeds} bed${t.availableBeds === 1 ? '' : 's'} free`}`}
+                style={[st.roomCard, { backgroundColor: p.card, borderColor: on ? p.text : p.line, borderWidth: on ? 1.5 : StyleSheet.hairlineWidth }, full && { opacity: 0.6 }]}
+              >
+                <View style={st.roomTop}>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={[st.roomTitle, { color: p.text }]} numberOfLines={1}>{roomTitle(t)}</Text>
+                    <Text style={[ui.small, { color: p.sub, marginTop: 2 }]} numberOfLines={2}>{roomFacts(t)}</Text>
+                  </View>
+                  <View style={[st.radio, { borderColor: on ? p.text : p.line, backgroundColor: on ? p.text : 'transparent' }]}>
+                    {on ? <IconCheck size={14} color={p.bg} strokeWidth={2.5} /> : null}
+                  </View>
+                </View>
+                {photos.length ? (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }} style={{ marginTop: 12 }}>
+                    {photos.slice(0, 8).map((ph, i) => (
+                      <Press key={ph.id} onPress={() => setViewer({ list: photos, index: i })} accessibilityRole="imagebutton" accessibilityLabel={`${roomTitle(t)} photo ${i + 1}`} style={{ width: 72, height: 54 }}>
+                        <PgImage uri={ph.url} style={{ width: 72, height: 54, borderRadius: 6 }} recyclingKey={`rt-${ph.id}`} priority="low" />
+                      </Press>
+                    ))}
+                  </ScrollView>
+                ) : null}
+                <View style={st.roomBottom}>
+                  <Text style={[st.roomPrice, { color: p.text }]}>{rentText(t)}<Text style={[ui.small, { color: p.sub, fontWeight: '400' }]}>/month</Text></Text>
+                  <Text style={[ui.small, { color: full ? p.muted : p.success, fontWeight: '600' }]}>
+                    {full ? 'Full' : `${t.availableBeds} of ${t.totalBeds} bed${t.totalBeds === 1 ? '' : 's'} free`}
                   </Text>
-
-                  <View style={s.roomBadgeRow}>
-                    <View style={s.roomBadge}><Text style={s.roomBadgeText}>{room.hasAC ? '❄️ AC' : '🌬️ Non-AC'}</Text></View>
-                    <View style={s.roomBadge}><Text style={s.roomBadgeText}>{room.hasAttachedBathroom ? '🚿 Attached Bath' : '🚪 Shared Bath'}</Text></View>
-                    {room.hasBalcony ? <View style={s.roomBadge}><Text style={s.roomBadgeText}>🌇 Balcony</Text></View> : null}
-                    {room.furnishing ? <View style={s.roomBadge}><Text style={s.roomBadgeText}>🪑 {room.furnishing}</Text></View> : null}
-                  </View>
-
-                  <View style={{ marginTop: 12 }}>
-                    <Text style={{ fontSize: 8, color: txtSec, fontWeight: '700' }}>RENT PER BED</Text>
-                    <Text style={s.roomPrice}>₹{formatInr(room.pricePerBed)}<Text style={{ fontSize: 9, color: txtSec }}> / month</Text></Text>
-                  </View>
                 </View>
-
-                <View style={s.roomCardRight}>
-                  <View style={[s.bedsBadge, { backgroundColor: room.availableBeds > 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)' }]}>
-                    <Text style={[s.bedsBadgeText, { color: room.availableBeds > 0 ? COLORS.emerald : '#EF4444' }]}>
-                      {room.availableBeds > 0 ? `${room.availableBeds} bed${room.availableBeds === 1 ? '' : 's'} left` : 'No beds'}
-                    </Text>
-                  </View>
-
-                  {myBookingHere && room.availableBeds > 0 ? (
-                    // One open request per residence (server: 409 BOOKING_EXISTS)
-                    <View style={s.bookedBtn}>
-                      <Text style={s.bookedBtnText}>{myBookingHere.room?.id === room.id ? 'REQUESTED' : 'REQUEST SENT'}</Text>
-                    </View>
-                  ) : room.availableBeds > 0 ? (
-                    <TouchableOpacity
-                      style={[s.bookBtn, { backgroundColor: COLORS.red }, !!bookingRoomId && bookingRoomId !== room.id && { opacity: 0.5 }]}
-                      onPress={() => handleBookRoom(room)}
-                      disabled={!!bookingRoomId}
-                    >
-                      {bookingRoomId === room.id ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                      ) : (
-                        <Text style={s.bookBtnText}>REQUEST BED</Text>
-                      )}
-                    </TouchableOpacity>
-                  ) : (
-                    <View style={s.bookedBtn}>
-                      <Text style={s.bookedBtnText}>FULL</Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-            ))
-          ) : (
-            <View style={[s.emptyBox, { backgroundColor: cardBg }]}>
-              <Text style={{ fontSize: 26, marginBottom: 6 }}>🛏️</Text>
-              <Text style={[s.emptyBoxText, { color: txtSec, textAlign: 'center' }]}>No rooms are listed yet. Chat with us to ask about availability.</Text>
-            </View>
+                {t.deposit && t.deposit !== pg.securityDeposit ? <Text style={[ui.small, { color: p.muted, marginTop: 2 }]}>Deposit {inr(t.deposit)}</Text> : null}
+              </Press>
+            );
+          }) : (
+            <Text style={[ui.body, { color: p.sub }]}>No rooms are listed yet. Use Enquire to ask the housing team about availability.</Text>
           )}
         </View>
-        </StaggeredSection>
 
-        {/* Amenities */}
-        {amenities.length > 0 && (
-          <StaggeredSection delay={200} direction="up">
-          <View style={[s.sectionCard, { backgroundColor: cardBg }]}>
-            <Text style={[s.blockTitle, { color: txt, borderBottomWidth: 1, borderBottomColor: border, paddingBottom: 8, marginBottom: 12 }]}>AMENITIES</Text>
-            <View style={s.amenitiesGrid}>
-              {amenities.map((amenity, idx) => (
-                <View key={idx} style={[s.amenityCell, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]}>
-                  <Text style={{ fontSize: 24, marginBottom: 4 }}>{getAmenityEmoji(amenity)}</Text>
-                  <Text style={[s.amenityText, { color: txt }]} numberOfLines={2}>{amenity}</Text>
-                </View>
-              ))}
-            </View>
+        {pg.description ? (
+          <View style={st.section}>
+            <SectionHeading title="About" />
+            <Text style={[ui.body, { color: p.text }]}>{pg.description}</Text>
           </View>
-          </StaggeredSection>
-        )}
+        ) : null}
 
-        {/* Meal timings */}
-        {timetableRows.length > 0 && (
-          <StaggeredSection delay={250} direction="up">
-          <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
-            <Text style={[s.blockTitle, { color: txt }]}>MEAL TIMINGS</Text>
-            <View style={[s.scheduleCard, { backgroundColor: cardBg }]}>
-              {timetableRows.map((row) => (
-                <View key={row.label} style={s.scheduleRow}>
-                  <Text style={s.scheduleDot}>{row.icon}</Text>
-                  <View>
-                    <Text style={s.scheduleTitle}>{row.label}</Text>
-                    <Text style={[s.scheduleTime, { color: txt }]}>{row.value}</Text>
+        {pg.photos.length > 1 ? <View style={st.section}><PgPhotoSection photos={pg.photos} onOpen={(list, index) => setViewer({ list, index })} /></View> : null}
+
+        {pg.videos.length ? <View style={st.section}><PgVideoSection videos={pg.videos} roomTypeLabels={roomTypeLabels} /></View> : null}
+
+        {amenities.length ? (
+          <View style={st.section}>
+            <SectionHeading title="Amenities" />
+            <View style={st.amenities}>
+              {amenities.map((a) => {
+                const Icon = amenityIcon(a.raw);
+                return (
+                  <View key={a.raw} style={[st.amenity, { width: (width - 32 - 8) / 2 }]} accessibilityLabel={a.label}>
+                    <Icon size={ICON.size} color={p.sub} strokeWidth={ICON.stroke} />
+                    <Text style={[ui.body, { color: p.text, flex: 1 }]} numberOfLines={2}>{a.label}</Text>
                   </View>
-                </View>
-              ))}
+                );
+              })}
             </View>
           </View>
-          </StaggeredSection>
-        )}
+        ) : null}
 
-        {/* Mess menu */}
-        {messMenuEntries.length > 0 && (
-          <StaggeredSection delay={300} direction="up">
-          <View style={[s.sectionCard, { backgroundColor: cardBg }]}>
-            <Text style={[s.blockTitle, { color: txt, borderBottomWidth: 1, borderBottomColor: border, paddingBottom: 8, marginBottom: 12 }]}>MESS MENU</Text>
-            {messMenuEntries.map(([day, meal]) => (
-              <View key={day} style={[s.menuRow, { borderBottomColor: border }]}>
-                <Text style={[s.menuDay, { color: txt }]}>{day.substring(0, 3).toUpperCase()}</Text>
-                <View style={s.menuDetails}>
-                  {meal.breakfast ? <Text style={[s.menuMeal, { color: txtSec }]}><Text style={{ color: COLORS.gold, fontWeight: '800' }}>BF: </Text>{meal.breakfast}</Text> : null}
-                  {meal.lunch ? <Text style={[s.menuMeal, { color: txtSec }]}><Text style={{ color: '#3B82F6', fontWeight: '800' }}>LN: </Text>{meal.lunch}</Text> : null}
-                  {meal.dinner ? <Text style={[s.menuMeal, { color: txtSec }]}><Text style={{ color: COLORS.emerald, fontWeight: '800' }}>DN: </Text>{meal.dinner}</Text> : null}
-                </View>
+        <View style={st.section}><PgMessSection timetable={pg.messTimetable} /></View>
+
+        {pg.timings ? <View style={st.section}><PgTimingsSection timings={pg.timings} /></View> : null}
+
+        {pg.rules.length ? (
+          <View style={st.section}>
+            <SectionHeading title="House rules" />
+            {pg.rules.map((r, i) => (
+              <View key={`${i}-${r}`} style={st.ruleRow}>
+                <Text style={[ui.body, { color: p.muted, width: 20 }]}>{i + 1}.</Text>
+                <Text style={[ui.body, { color: p.text, flex: 1 }]}>{r}</Text>
               </View>
             ))}
           </View>
-          </StaggeredSection>
-        )}
+        ) : null}
 
-        {/* House rules */}
-        {rules.length > 0 && (
-          <StaggeredSection delay={350} direction="up">
-          <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
-            <Text style={[s.blockTitle, { color: txt }]}>HOUSE RULES</Text>
-            <View style={[s.rulesCard, { backgroundColor: cardBg }]}>
-              {rules.map((rule, idx) => (
-                <View key={idx} style={s.ruleRow}>
-                  <Text style={s.ruleNumber}>{String(idx + 1).padStart(2, '0')}</Text>
-                  <Text style={[s.ruleText, { color: txt }]}>{rule}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-          </StaggeredSection>
-        )}
-
-        {/* Location */}
-        {mapsUrl && (
-          <StaggeredSection delay={400} direction="up">
-          <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
-            <Text style={[s.blockTitle, { color: txt }]}>LOCATION</Text>
-            <View style={[s.mapCard, { backgroundColor: cardBg }]}>
-              <Text style={[s.mapCoordinates, { color: txt, textAlign: 'center' }]}>
-                {hasCoords ? `${lat!.toFixed(5)}, ${lng!.toFixed(5)}` : pg.address}
-              </Text>
-              <TouchableOpacity
-                style={s.directionsBtn}
-                onPress={() => Linking.openURL(mapsUrl).catch(() => showToast('Could not open Maps on this device.'))}
-              >
-                <Text style={s.directionsBtnText}>{hasCoords ? 'GET DIRECTIONS 🗺️' : 'OPEN IN MAPS 🗺️'}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          </StaggeredSection>
-        )}
-
-        {/* Contact */}
-        <StaggeredSection delay={450} direction="up">
-        <View style={[s.sectionCard, { backgroundColor: cardBg, marginBottom: 40 }]}>
-          <Text style={[s.blockTitle, { color: txt, borderBottomWidth: 1, borderBottomColor: border, paddingBottom: 8, marginBottom: 12 }]}>CONTACT</Text>
-
-          {adminRows.length > 0 ? (
-            <View style={s.adminGrid}>
-              {adminRows.map((row) => (
-                <View key={row.label} style={s.adminItem}>
-                  <Text style={{ fontSize: 18 }}>{row.icon}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.adminLabel}>{row.label}</Text>
-                    <Text style={[s.adminVal, { color: row.color }]} numberOfLines={1}>{row.value}</Text>
+        <View style={st.section}>
+          <SectionHeading title="Contact" />
+          {contactRows.length ? (
+            <View style={[st.table, { borderColor: p.line, backgroundColor: p.card }]}>
+              {contactRows.map((r, i) => (
+                <View key={r.label}>
+                  {i > 0 ? <Divider /> : null}
+                  <View style={st.contactRow}>
+                    <Text style={[ui.small, { color: p.muted, width: 84 }]}>{r.label}</Text>
+                    <Text style={[ui.body, { color: p.text, flex: 1 }]} numberOfLines={1} selectable>{r.value}</Text>
                   </View>
                 </View>
               ))}
             </View>
           ) : (
-            <Text style={{ fontSize: 11, color: txtSec, marginBottom: 14, lineHeight: 16 }}>
-              The Zenvy housing desk handles visits and bookings for this residence.
-            </Text>
+            <Text style={[ui.body, { color: p.sub }]}>The Zenvy housing desk handles visits and requests for this PG.</Text>
           )}
+          {phone ? (
+            <Press onPress={() => Linking.openURL(`tel:${phone.replace(/[^\d+]/g, '')}`).catch(() => {})} accessibilityLabel={`Call ${phone}`} style={[ui.secondaryBtn, st.callBtn, { borderColor: p.line }]}>
+              <IconPhone size={16} color={p.text} strokeWidth={ICON.stroke} />
+              <Text style={[ui.btnLabel, { color: p.text }]}>Call</Text>
+            </Press>
+          ) : null}
+        </View>
+      </Animated.ScrollView>
 
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
-            <TouchableOpacity
-              style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 14, backgroundColor: '#25D366' }}
-              onPress={openWhatsApp}
-            >
-              <Text style={{ fontSize: 14 }}>💬</Text>
-              <Text style={{ color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 1 }}>
-                {pgPhone ? 'WHATSAPP PG' : 'ZENVY SUPPORT'}
-              </Text>
-            </TouchableOpacity>
+      {/* Bottom bar */}
+      <View style={[st.bar, { paddingBottom: insets.bottom + 12, backgroundColor: p.bg, borderTopColor: p.line }]}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={[ui.small, { color: p.sub }]} numberOfLines={1}>{selected ? roomTitle(selected) : 'Rent from'}</Text>
+          <Text style={[st.barPrice, { color: p.text }]} numberOfLines={1}>{barRent ? inr(barRent) : '—'}<Text style={[ui.small, { color: p.sub, fontWeight: '400' }]}>/month</Text></Text>
+        </View>
+        <Press onPress={enquire} accessibilityLabel={phone ? 'Enquire on WhatsApp' : 'Enquire with the Zenvy housing desk on WhatsApp'} style={[st.barBtn, { borderColor: p.line, borderWidth: 1 }]}>
+          <IconMessage size={16} color={p.text} strokeWidth={ICON.stroke} />
+          <Text style={[ui.btnLabel, { color: p.text }]}>Enquire</Text>
+        </Press>
+        {myOpen ? (
+          <View style={[st.barBtn, { backgroundColor: p.sunken }]} accessibilityLabel={myOpen.status === 'Confirmed' ? 'Booked' : 'Request sent'}>
+            <Text style={[ui.btnLabel, { color: p.sub }]}>{myOpen.status === 'Confirmed' ? 'Booked' : 'Requested'}</Text>
+          </View>
+        ) : (
+          <Press onPress={openRequest} disabled={!selected} accessibilityLabel={selected ? 'Request a bed' : 'No beds free'} style={[st.barBtn, { backgroundColor: p.accentFill }]}>
+            <Text style={[ui.btnLabel, { color: '#fff' }]}>{selected ? 'Request a bed' : hasRooms ? 'Full' : 'Request a bed'}</Text>
+          </Press>
+        )}
+      </View>
 
-            {pgPhone ? (
-              <TouchableOpacity
-                style={[s.callBtn, { flex: 1, marginTop: 0, borderColor: border }]}
-                onPress={() => Linking.openURL(`tel:${pgPhone.replace(/[^\d+]/g, '')}`).catch(() => showToast('Calling is not available on this device.'))}
-              >
-                <Text style={[s.callBtnText, { color: txt }]}>CALL 📞</Text>
-              </TouchableOpacity>
+      {/* Request sheet: room type + check-in date + summary (the existing booking request) */}
+      <Modal visible={sheetOpen} transparent animationType="slide" onRequestClose={() => !sending && setSheetOpen(false)} statusBarTranslucent>
+        <View style={st.sheetBackdrop}>
+          <Press onPress={() => !sending && setSheetOpen(false)} accessibilityLabel="Close" style={{ flex: 1 }}><View /></Press>
+          <View style={[st.sheet, { backgroundColor: p.bg, paddingBottom: insets.bottom + 16 }]}>
+            <View style={[st.grabber, { backgroundColor: p.line }]} />
+            <Text style={[st.sheetTitle, { color: p.text }]} accessibilityRole="header">Request a bed</Text>
+            <Text style={[ui.small, { color: p.sub, marginTop: 2 }]} numberOfLines={1}>{pg.name}</Text>
+
+            {bookable.length > 1 ? (
+              <>
+                <Text style={[st.sheetLabel, { color: p.sub }]}>Room</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  {bookable.map((t) => {
+                    const on = selected?.key === t.key;
+                    return (
+                      <Press key={t.key} onPress={() => setSelectedType(t.key)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${roomTitle(t)}, ${rentText(t)} a month`}
+                        style={[st.option, { borderColor: on ? p.text : p.line, backgroundColor: on ? p.text : 'transparent' }]}>
+                        <Text style={[ui.small, { color: on ? p.bg : p.text, fontWeight: '600' }]} numberOfLines={1}>{roomTitle(t)}</Text>
+                        <Text style={[ui.small, { color: on ? p.bg : p.sub }]}>{inr(t.rentFrom)}</Text>
+                      </Press>
+                    );
+                  })}
+                </ScrollView>
+              </>
             ) : null}
+
+            <Text style={[st.sheetLabel, { color: p.sub }]}>Check-in</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {checkInOptions.map((o) => {
+                const on = o.ymd === checkInDate;
+                return (
+                  <Press key={o.ymd} onPress={() => setCheckInDate(o.ymd)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${o.top}, ${o.bottom}`}
+                    style={[st.dateChip, { borderColor: on ? p.text : p.line, backgroundColor: on ? p.text : 'transparent' }]}>
+                    <Text style={[ui.small, { color: on ? p.bg : p.sub }]}>{o.top}</Text>
+                    <Text style={[ui.small, { color: on ? p.bg : p.text, fontWeight: '600', marginTop: 2 }]}>{o.bottom}</Text>
+                  </Press>
+                );
+              })}
+            </ScrollView>
+
+            {selected ? (
+              <View style={[st.table, { borderColor: p.line, marginTop: 16 }]}>
+                <SummaryRow label="Room" value={`${roomTitle(selected)} · ${selected.hasAC ? 'AC' : 'Non-AC'}`} />
+                <Divider />
+                <SummaryRow label="Rent" value={`${inr(selected.rentFrom)}/month`} />
+                <Divider />
+                <SummaryRow label="Deposit" value={Number(selected.deposit) > 0 ? inr(selected.deposit) : 'None'} />
+                <Divider />
+                <SummaryRow label="Check-in" value={prettyDate(checkInDate)} />
+              </View>
+            ) : null}
+            <Text style={[ui.small, { color: p.muted, marginTop: 12 }]}>Nothing is charged in the app. The Zenvy housing team will call you to confirm and arrange payment at the PG.</Text>
+
+            <Press onPress={sendRequest} disabled={sending || !selected} accessibilityLabel="Send request" accessibilityState={{ busy: sending }} style={[st.primary, { backgroundColor: p.accentFill }]}>
+              {sending ? <ActivityIndicator color="#fff" /> : <Text style={[ui.btnLabel, { color: '#fff' }]}>Send request</Text>}
+            </Press>
           </View>
         </View>
-        </StaggeredSection>
-      </ScrollView>
+      </Modal>
+
+      {viewer ? <PhotoViewer photos={viewer.list} index={viewer.index} onClose={() => setViewer(null)} /> : null}
     </View>
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, paddingTop: Platform.OS === 'android' ? 40 : 50 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { fontSize: 9, fontWeight: '900', letterSpacing: 2, marginTop: 16 },
-  backNavBtn: { marginTop: 24, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, backgroundColor: COLORS.red },
-  backNavBtnText: { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 2 },
-  
-  toastContainer: { position: 'absolute', bottom: 30, left: 16, right: 16, backgroundColor: '#11111A', padding: 14, borderRadius: 16, borderWidth: 1, borderColor: COLORS.goldBorder, zIndex: 999 },
-  toastText: { color: COLORS.gold, fontSize: 10, fontWeight: '800', textAlign: 'center', letterSpacing: 1.5 },
-  
-  headerBar: { height: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, borderBottomWidth: 1 },
-  backArrow: { width: 60 },
-  backArrowText: { fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
-  headerTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 2, textAlign: 'center', flex: 1 },
+function Fact({ label, value, sub }: { label: string; value: string; sub: string }) {
+  const p = usePgPalette();
+  return (
+    <View style={{ flex: 1, paddingHorizontal: 12, paddingVertical: 12 }} accessible accessibilityLabel={`${label} ${value} ${sub}`}>
+      <Text style={[ui.small, { color: p.muted }]} numberOfLines={1}>{label}</Text>
+      <Text style={{ fontSize: 17, fontWeight: '700', color: p.text, marginTop: 2 }} numberOfLines={1}>{value}</Text>
+      <Text style={[ui.small, { color: p.muted }]} numberOfLines={1}>{sub}</Text>
+    </View>
+  );
+}
 
-  galleryContainer: { position: 'relative', width: SW, height: 260, marginBottom: 12 },
-  mainImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-  galleryOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.3)' },
-  verifiedTag: { position: 'absolute', top: 12, right: 12, backgroundColor: COLORS.greenRating, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  verifiedTagText: { fontSize: 8, fontWeight: '900', color: '#fff', letterSpacing: 1.5 },
-  genderTag: { position: 'absolute', top: 12, left: 12, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  genderTagText: { fontSize: 8, fontWeight: '900', color: '#fff', letterSpacing: 2 },
-  thumbScroll: { position: 'absolute', bottom: 12, left: 12, right: 12 },
-  thumbWrap: { width: 50, height: 50, borderRadius: 8, borderWidth: 2, borderColor: 'transparent', overflow: 'hidden', marginRight: 8 },
-  thumbImg: { width: '100%', height: '100%' },
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  const p = usePgPalette();
+  return (
+    <View style={st.contactRow}>
+      <Text style={[ui.small, { color: p.muted, width: 84 }]}>{label}</Text>
+      <Text style={[ui.body, { color: p.text, flex: 1, textAlign: 'right' }]} numberOfLines={1}>{value}</Text>
+    </View>
+  );
+}
 
-  sectionCard: { marginHorizontal: 16, padding: 20, borderRadius: 24, marginBottom: 16, borderWidth: 1, borderColor: COLORS.borderDark },
-  pgName: { fontSize: 20, fontWeight: '900', letterSpacing: -0.5, marginBottom: 4 },
-  pgAddress: { fontSize: 10, fontWeight: '700', marginBottom: 12 },
-  proximityBadge: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(239,79,95,0.06)', padding: 12, borderRadius: 16, marginBottom: 16 },
-  proximityLabel: { fontSize: 8, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.5 },
-  proximityValue: { fontSize: 15, fontWeight: '900' },
-  pgDesc: { fontSize: 11, fontWeight: '500', lineHeight: 16 },
-
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 8, marginBottom: 16 },
-  statBox: { width: (SW - 40) / 2, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderDark },
-  statEmoji: { fontSize: 22, marginBottom: 6 },
-  statLabel: { fontSize: 8, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1 },
-  statVal: { fontSize: 14, fontWeight: '900', marginVertical: 2 },
-  statDesc: { fontSize: 8, fontWeight: '600', color: COLORS.textMuted },
-
-  blockTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 2, marginBottom: 4 },
-  blockSub: { fontSize: 8, fontWeight: '700', letterSpacing: 1.5, marginBottom: 12 },
-  checkInWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.borderDark },
-  checkInLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-  checkInInput: { width: 120, height: 36, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, fontSize: 11, fontWeight: '700', textAlign: 'center' },
-
-  roomCard: { flexDirection: 'row', padding: 16, borderRadius: 20, borderWidth: 1, marginBottom: 10, justifyContent: 'space-between' },
-  roomCardLeft: { flex: 1, paddingRight: 10 },
-  roomTitle: { fontSize: 14, fontWeight: '800' },
-  roomNo: { fontSize: 9, fontWeight: '600', marginTop: 2, marginBottom: 8 },
-  roomBadgeRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  roomBadge: { backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  roomBadgeText: { fontSize: 8, fontWeight: '800', color: COLORS.textMuted },
-  roomPrice: { fontSize: 18, fontWeight: '900', color: COLORS.red },
-  roomCardRight: { alignItems: 'flex-end', justifyContent: 'space-between', width: 100 },
-  bedsBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  bedsBadgeText: { fontSize: 8, fontWeight: '800', letterSpacing: 1 },
-  bookBtn: { width: '100%', paddingVertical: 10, borderRadius: 12, alignItems: 'center', justifyContent: 'center', ...SHADOWS.redGlow },
-  bookBtnText: { color: '#fff', fontSize: 8, fontWeight: '900', letterSpacing: 1.5 },
-  bookedBtn: { width: '100%', paddingVertical: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-  bookedBtnText: { color: COLORS.textMuted, fontSize: 8, fontWeight: '900' },
-  emptyBox: { padding: 24, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  emptyBoxText: { fontSize: 10, fontWeight: '600' },
-
-  amenitiesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  amenityCell: { width: (SW - 40 - 16) / 3, paddingVertical: 14, alignItems: 'center', borderRadius: 16 },
-  amenityText: { fontSize: 9, fontWeight: '800', width: '90%', textAlign: 'center' },
-  amenitySub: { fontSize: 7, fontWeight: '600', color: COLORS.textMuted, marginTop: 2 },
-
-  scheduleCard: { padding: 16, borderRadius: 20 },
-  scheduleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  scheduleDot: { fontSize: 20 },
-  scheduleTitle: { fontSize: 8, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1 },
-  scheduleTime: { fontSize: 13, fontWeight: '800', marginTop: 1 },
-
-  menuRow: { flexDirection: 'row', paddingVertical: 12, borderBottomWidth: 1 },
-  menuDay: { width: 50, fontSize: 12, fontWeight: '900', letterSpacing: 1 },
-  menuDetails: { flex: 1, gap: 4 },
-  menuMeal: { fontSize: 10, fontWeight: '600' },
-
-  rulesCard: { padding: 16, borderRadius: 20 },
-  ruleRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
-  ruleNumber: { fontSize: 11, fontWeight: '900', color: COLORS.textMuted },
-  ruleText: { fontSize: 11, fontWeight: '600', flex: 1 },
-
-  mapCard: { padding: 16, borderRadius: 20, alignItems: 'center' },
-  mapCoordinates: { fontSize: 10, fontWeight: '800', letterSpacing: 1, marginBottom: 12 },
-  directionsBtn: { backgroundColor: '#3B82F6', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 12 },
-  directionsBtnText: { color: '#fff', fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },
-
-  adminGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
-  adminItem: { width: (SW - 40 - 12) / 2, flexDirection: 'row', gap: 8, alignItems: 'center' },
-  adminLabel: { fontSize: 7, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1 },
-  adminVal: { fontSize: 11, fontWeight: '800', marginTop: 1 },
-  callBtn: { width: '100%', paddingVertical: 12, borderRadius: 16, borderWidth: 1.5, alignItems: 'center' },
-  callBtnText: { fontSize: 10, fontWeight: '900', letterSpacing: 2 },
-
-  termsCard: { padding: 16, borderRadius: 20, borderWidth: 1, borderColor: COLORS.goldBorder },
-  termTitle: { fontSize: 8, fontWeight: '900', letterSpacing: 1.5, marginBottom: 4 },
-  termText: { fontSize: 9, fontWeight: '600', lineHeight: 14 },
+const st = StyleSheet.create({
+  pad: { paddingHorizontal: 16, paddingTop: 16 },
+  section: { paddingHorizontal: 16, marginTop: 32 },
+  titleRow: { flexDirection: 'row', alignItems: 'center' },
+  title: { fontSize: 22, fontWeight: '700', letterSpacing: -0.3, flex: 1 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+  verified: { flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 4 },
+  addressRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 12 },
+  smallBtn: { minHeight: 36, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  facts: { flexDirection: 'row', borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, marginTop: 16 },
+  factSep: { width: StyleSheet.hairlineWidth, marginVertical: 12 },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, paddingLeft: 16, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, marginTop: 16 },
+  textBtn: { paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
+  roomCard: { borderRadius: 12, padding: 16, marginBottom: 12 },
+  roomTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  roomTitle: { fontSize: 16, fontWeight: '600' },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  roomBottom: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 12 },
+  roomPrice: { fontSize: 17, fontWeight: '700' },
+  amenities: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 8, rowGap: 12 },
+  amenity: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  ruleRow: { flexDirection: 'row', gap: 4, marginBottom: 8 },
+  table: { borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
+  contactRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, minHeight: 44, paddingVertical: 10 },
+  callBtn: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
+  barPrice: { fontSize: 18, fontWeight: '700', marginTop: 1 },
+  barBtn: { minHeight: 48, paddingHorizontal: 16, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  sheet: { borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingHorizontal: 16, paddingTop: 8, ...(Platform.OS === 'android' ? { elevation: 12 } : {}) },
+  grabber: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginBottom: 12 },
+  sheetTitle: { fontSize: 18, fontWeight: '700' },
+  sheetLabel: { fontSize: 12, fontWeight: '600', marginTop: 16, marginBottom: 8 },
+  option: { minHeight: 52, minWidth: 104, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, justifyContent: 'center' },
+  dateChip: { width: 76, minHeight: 52, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  primary: { minHeight: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
 });

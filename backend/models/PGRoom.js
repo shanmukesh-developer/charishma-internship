@@ -24,7 +24,11 @@ const initPGRoomModel = (sequelize) => {
       get() { const v = this.getDataValue('images'); try { return v ? JSON.parse(v) : []; } catch { return []; } },
       set(v) { this.setDataValue('images', JSON.stringify(v)); }
     },
-    isActive: { type: DataTypes.BOOLEAN, defaultValue: true }
+    isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
+    // Optional room type name ("Deluxe twin"); rooms without one group by sharing + AC + bathroom.
+    roomType: { type: DataTypes.STRING(48), allowNull: true },
+    // Per-room deposit; null = the PG's securityDeposit.
+    securityDeposit: { type: DataTypes.FLOAT, allowNull: true }
   }, { timestamps: true });
 
   return PGRoom;

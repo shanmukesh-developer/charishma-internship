@@ -2,6 +2,14 @@ const { DataTypes } = require('sequelize');
 
 let PGHostel;
 
+// Nullable JSON-in-TEXT column (null when never set).
+const jsonCol = (name, fallback) => ({
+  type: DataTypes.TEXT,
+  allowNull: true,
+  get() { const v = this.getDataValue(name); if (v === null || v === undefined || v === '') return fallback; try { return JSON.parse(v); } catch { return fallback; } },
+  set(v) { this.setDataValue(name, v === null || v === undefined ? null : JSON.stringify(v)); }
+});
+
 const initPGHostelModel = (sequelize) => {
   if (!sequelize) return null;
 
@@ -56,7 +64,20 @@ const initPGHostelModel = (sequelize) => {
       set(v) { this.setDataValue('contactInfo', JSON.stringify(v)); }
     },
     isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
-    description: { type: DataTypes.TEXT, allowNull: true }
+    description: { type: DataTypes.TEXT, allowNull: true },
+    // Premium listing content (utils/pgContent.js validates every write; nullable, added at startup).
+    // Gallery: [{ id, url, category, caption, order, roomType, isCover }] (max 20). `images` mirrors it.
+    photos: jsonCol('photos', null),
+    // Room tour videos on Zenvy's YouTube channel (admin only): [{ id, youtubeId, title, roomType, order }]
+    videos: jsonCol('videos', null),
+    // { meals: [{ key, label, start, end }], days: { mon: { <mealKey>: { menu, tag, start?, end? } } }, notes }
+    messTimetable: jsonCol('messTimetable', null),
+    // { gateOpen, gateClose, visitorFrom, visitorTo, checkIn, checkOut, quietFrom, quietTo, curfewNote }
+    timings: jsonCol('timings', null),
+    // Locality shown on list cards ("Neerukonda").
+    area: { type: DataTypes.STRING(80), allowNull: true },
+    // Set by the Zenvy housing team after a site visit.
+    isVerified: { type: DataTypes.BOOLEAN, defaultValue: false }
   }, { timestamps: true });
 
   return PGHostel;

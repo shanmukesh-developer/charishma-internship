@@ -7,6 +7,7 @@ const { getPGBookingModel } = require('../models/PGBooking');
 const { getUserModel } = require('../models/User');
 const { Op } = require('sequelize');
 
+const pgContent = require('../utils/pgContent');
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Zenvy housing desk WhatsApp number (students can message it from the app). Override on Render.
 const PG_DESK_WHATSAPP = (process.env.PG_DESK_WHATSAPP || '9391955674').replace(/\D/g, '').slice(-10);
@@ -44,13 +45,21 @@ router.get('/', async (req, res) => {
       where: { isActive: true },
       order: [['distanceFromCollege', 'ASC']]
     });
-    res.json(pgs);
+    // Active rooms of these PGs in one query (rent-from, free beds, room types on the cards).
+    const ids = pgs.map((p) => p.id);
+    const rooms = ids.length ? await getPGRoomModel().findAll({ where: { hostelId: { [Op.in]: ids }, isActive: true } }) : [];
+    const byPg = new Map();
+    for (const r of rooms) {
+      if (!byPg.has(r.hostelId)) byPg.set(r.hostelId, []);
+      byPg.get(r.hostelId).push(r);
+    }
+    res.json(pgs.map((p) => pgContent.publicPgListItem(p, byPg.get(p.id) || [])));
   } catch (err) {
     sendServerError(res, err, '[PGROUTES_ERROR]');
   }
 });
 
-// GET PG details & rooms
+// GET PG details & rooms (public shape: utils/pgContent.publicPg; no owner account id)
 router.get('/:id', async (req, res) => {
   try {
     const PGHostel = getPGHostelModel();
@@ -60,7 +69,7 @@ router.get('/:id', async (req, res) => {
       include: [{ model: PGRoom, as: 'rooms', where: { isActive: true }, required: false }]
     });
     if (!pg || (pg.isActive === false && !(await viewerIsAdmin(req)))) return res.status(404).json({ message: 'PG not found.' });
-    res.json(pg);
+    res.json(pgContent.publicPg(pg, pg.rooms || []));
   } catch (err) {
     console.error('[PG_DETAIL_ERROR]', err);
     res.status(500).json({ message: 'Could not load this residence right now.' });
@@ -409,6 +418,8 @@ const roomError = (b, current = null) => {
   if (badNumber(b.totalBeds, { min: 1, max: 20, int: true })) return 'Total beds must be a whole number from 1 to 20.';
   if (badNumber(b.availableBeds, { min: 0, max: 20, int: true })) return 'Available beds must be a whole number from 0 to 20.';
   if (badNumber(b.floorNumber, { min: -2, max: 100, int: true })) return 'Floor must be a whole number.';
+  if (badNumber(b.securityDeposit, { max: 500000 })) return 'Deposit must be between ₹0 and ₹500000.';
+  if (b.roomType !== undefined && b.roomType !== null && (typeof b.roomType !== 'string' || b.roomType.trim().length > 48)) return 'Room type name must be at most 48 characters.';
   const total = b.totalBeds !== undefined && b.totalBeds !== null && b.totalBeds !== '' ? Number(b.totalBeds) : (current ? Number(current.totalBeds) : null);
   const avail = b.availableBeds !== undefined && b.availableBeds !== null && b.availableBeds !== '' ? Number(b.availableBeds) : (current ? Number(current.availableBeds) : null);
   if (total !== null && avail !== null && Number.isFinite(total) && Number.isFinite(avail) && avail > total) return 'Available beds cannot be more than total beds.';
@@ -423,15 +434,30 @@ router.param('bookingId', (req, res, next, id) => (UUID_RE.test(String(id || '')
 const cleanPgImages = (images, req) =>
   require('../utils/imageStore').storeImageList(images, { req, ownerId: req.user && req.user.id, purpose: 'pg', maxItems: 12 });
 
+const cleanArea = (v) => (typeof v === 'string' && v.trim() ? v.replace(/\s+/g, ' ').trim().slice(0, 80) : null);
+const areaError = (v) => (v !== undefined && v !== null && typeof v !== 'string' ? 'Area must be text.' : typeof v === 'string' && v.trim().length > 80 ? 'Area must be at most 80 characters.' : null);
+const cleanRoomType = (v) => (typeof v === 'string' && v.trim() ? v.replace(/\s+/g, ' ').trim().slice(0, 48) : null);
+const optNumber = (v) => (v === undefined || v === null || v === '' ? null : Number(v));
+
+// Admin edits to listings are audited (VerificationLogs, same table as every other admin action).
+const auditPg = async (req, pgId, action, details) => {
+  try {
+    const { getVerificationLogModel } = require('../models/VerificationLog');
+    const Log = getVerificationLogModel();
+    if (!Log) return;
+    await Log.create({ adminId: String((req.user && req.user.id) || 'unknown'), targetId: String(pgId), action, details: JSON.stringify(details || {}).slice(0, 8000) });
+  } catch (e) { console.error('[AUDIT_LOG_ERROR]', e.message); }
+};
+
 // POST Create a PG (Admin only: listings are curated by the Zenvy team)
 router.post('/', protect, admin, async (req, res) => {
   try {
     const PGHostel = getPGHostelModel();
     const {
       name, address, distanceFromCollege, genderType, baseRent, securityDeposit,
-      amenities, images, description, messMenu, foodTimetable, rules, contactInfo, isActive
+      amenities, images, description, messMenu, foodTimetable, rules, contactInfo, isActive, area, isVerified
     } = req.body;
-    const numErr = pgNumbersError(req.body || {});
+    const numErr = pgNumbersError(req.body || {}) || areaError(area);
     if (numErr) return res.status(400).json({ message: numErr });
 
     const imgs = await cleanPgImages(images, req);
@@ -439,8 +465,10 @@ router.post('/', protect, admin, async (req, res) => {
     const pg = await PGHostel.create({
       ownerId: req.user.id,
       name, address, distanceFromCollege, genderType, baseRent, securityDeposit,
-      amenities, images: imgs.value, description, messMenu, foodTimetable, rules, contactInfo, isActive: isActive ?? true
+      amenities, images: imgs.value, description, messMenu, foodTimetable, rules, contactInfo, isActive: isActive ?? true,
+      area: cleanArea(area), isVerified: isVerified === true
     });
+    await auditPg(req, pg.id, 'PG_CREATED', { name: pg.name });
     realtime.publish('pg', 'created', pg.id);
     res.status(201).json(pg);
   } catch (err) {
@@ -470,20 +498,27 @@ router.put('/:id', protect, admin, async (req, res) => {
 
     const {
       name, address, distanceFromCollege, genderType, baseRent, securityDeposit,
-      amenities, images, description, messMenu, foodTimetable, rules, contactInfo, isActive
+      amenities, images, description, messMenu, foodTimetable, rules, contactInfo, isActive, area, isVerified
     } = req.body;
-    const numErr = pgNumbersError(req.body || {});
+    const numErr = pgNumbersError(req.body || {}) || areaError(area);
     if (numErr) return res.status(400).json({ message: numErr });
     let cleanImages;
-    if (images !== undefined) {
+    // Once a structured gallery exists it is the source of truth (PUT /:id/photos); `images` follows it.
+    const hasGallery = Array.isArray(pg.photos) && pg.photos.length > 0;
+    if (images !== undefined && !hasGallery) {
       const imgs = await cleanPgImages(images, req);
       if (!imgs.ok) return res.status(imgs.status || 400).json({ message: imgs.message });
       cleanImages = imgs.value;
     }
-    await pg.update({
+    // Only the fields sent are written (a partial PUT never blanks the rest).
+    const patch = Object.fromEntries(Object.entries({
       name, address, distanceFromCollege, genderType, baseRent, securityDeposit,
-      amenities, ...(cleanImages !== undefined ? { images: cleanImages } : {}), description, messMenu, foodTimetable, rules, contactInfo, isActive
-    });
+      amenities, images: cleanImages, description, messMenu, foodTimetable, rules, contactInfo, isActive,
+      area: area === undefined ? undefined : cleanArea(area),
+      isVerified: isVerified === undefined ? undefined : isVerified === true,
+    }).filter(([, v]) => v !== undefined));
+    await pg.update(patch);
+    await auditPg(req, pg.id, 'PG_UPDATED', { name: pg.name, fields: Object.keys(patch) });
     realtime.publish('pg', 'updated', pg.id);
     res.json(pg);
   } catch (err) {
@@ -498,6 +533,7 @@ router.delete('/:id', protect, admin, async (req, res) => {
     const pg = await PGHostel.findByPk(req.params.id);
     if (!pg) return res.status(404).json({ message: 'PG not found.' });
     await pg.destroy();
+    await auditPg(req, req.params.id, 'PG_DELETED', { name: pg.name });
     realtime.publish('pg', 'deleted', req.params.id);
     res.json({ message: 'PG deleted successfully.' });
   } catch (err) {
@@ -522,13 +558,14 @@ router.get('/:id/rooms-all', protect, admin, async (req, res) => {
 router.post('/:id/rooms', protect, admin, async (req, res) => {
   try {
     const PGRoom = getPGRoomModel();
-    const { roomNumber, sharingType, pricePerBed, totalBeds, availableBeds, floorNumber, hasAttachedBathroom, hasAC, hasBalcony, furnishing, isActive } = req.body;
+    const { roomNumber, sharingType, pricePerBed, totalBeds, availableBeds, floorNumber, hasAttachedBathroom, hasAC, hasBalcony, furnishing, isActive, roomType, securityDeposit } = req.body;
     const err = roomError(req.body || {});
     if (err) return res.status(400).json({ message: err });
     if (!(await getPGHostelModel().findByPk(req.params.id, { attributes: ['id'] }))) return res.status(404).json({ message: 'PG not found.' });
     const room = await PGRoom.create({
       hostelId: req.params.id,
-      roomNumber, sharingType, pricePerBed, totalBeds, availableBeds, floorNumber, hasAttachedBathroom, hasAC, hasBalcony, furnishing, isActive: isActive ?? true
+      roomNumber, sharingType, pricePerBed, totalBeds, availableBeds, floorNumber, hasAttachedBathroom, hasAC, hasBalcony, furnishing, isActive: isActive ?? true,
+      roomType: cleanRoomType(roomType), securityDeposit: optNumber(securityDeposit)
     });
     realtime.publish('pg', 'updated', req.params.id, { scope: 'room' });
     res.status(201).json(room);
@@ -546,12 +583,14 @@ router.put('/:id/rooms/:roomId', protect, admin, async (req, res) => {
     });
     if (!room) return res.status(404).json({ message: 'Room not found.' });
 
-    const { roomNumber, sharingType, pricePerBed, totalBeds, availableBeds, floorNumber, hasAttachedBathroom, hasAC, hasBalcony, furnishing, isActive } = req.body;
+    const { roomNumber, sharingType, pricePerBed, totalBeds, availableBeds, floorNumber, hasAttachedBathroom, hasAC, hasBalcony, furnishing, isActive, roomType, securityDeposit } = req.body;
     const err = roomError(req.body || {}, room);
     if (err) return res.status(400).json({ message: err });
-    await room.update({
-      roomNumber, sharingType, pricePerBed, totalBeds, availableBeds, floorNumber, hasAttachedBathroom, hasAC, hasBalcony, furnishing, isActive
-    });
+    await room.update(Object.fromEntries(Object.entries({
+      roomNumber, sharingType, pricePerBed, totalBeds, availableBeds, floorNumber, hasAttachedBathroom, hasAC, hasBalcony, furnishing, isActive,
+      roomType: roomType === undefined ? undefined : cleanRoomType(roomType),
+      securityDeposit: securityDeposit === undefined ? undefined : optNumber(securityDeposit),
+    }).filter(([, v]) => v !== undefined)));
     realtime.publish('pg', 'updated', req.params.id, { scope: 'room' });
     res.json(room);
   } catch (err) {
@@ -575,4 +614,109 @@ router.delete('/:id/rooms/:roomId', protect, admin, async (req, res) => {
   }
 });
 
+// ── Premium listing content (admin only; PG owners have no Zenvy accounts, the housing team curates) ──
+// Each section has its own endpoint so a save never overwrites another section, and each write is audited.
+const sendContentError = (res, err) => {
+  if (err instanceof pgContent.PgInputError) {
+    res.status(err.status || 400).json({ code: err.code, field: err.field, message: err.message });
+    return true;
+  }
+  return false;
+};
+const loadPgOr404 = async (req, res) => {
+  const pg = await getPGHostelModel().findByPk(req.params.id);
+  if (!pg) res.status(404).json({ message: 'PG not found.' });
+  return pg;
+};
+const afterContentSave = async (req, pg, action, details) => {
+  await auditPg(req, pg.id, action, { name: pg.name, ...details });
+  realtime.publish('pg', 'updated', pg.id, { scope: 'content' });
+  const rooms = await getPGRoomModel().findAll({ where: { hostelId: pg.id, isActive: true } });
+  return pgContent.publicPg(pg, rooms);
+};
+
+// PUT /api/pg/:id/photos  { photos: [{ url, category, caption?, order?, roomType?, isCover? }] }  (max 20)
+// url: an uploaded media URL (/api/upload), a hosted https image or inline base64 (stored as PUBLIC 'pg'
+// media). Private media (ID cards, chat photos, bills ...) is refused.
+router.put('/:id/photos', protect, admin, async (req, res) => {
+  try {
+    const pg = await loadPgOr404(req, res);
+    if (!pg) return;
+    const imageStore = require('../utils/imageStore');
+    const { loadMediaMeta } = require('../utils/mediaAccess');
+    let photos;
+    try {
+      photos = await pgContent.validatePhotos((req.body || {}).photos, {
+        storeUrl: (url) => imageStore.storeImageRef(url, { req, ownerId: req.user.id, purpose: 'pg', maxBytes: 5 * 1024 * 1024 }),
+        isPrivateMedia: async (url) => {
+          const id = imageStore.mediaIdOf(String(url).split('?')[0]);
+          if (!id) return false;
+          const m = (await loadMediaMeta([id])).get(id);
+          return !!(m && m.isPrivate);
+        },
+      });
+    } catch (err) {
+      if (sendContentError(res, err)) return;
+      throw err;
+    }
+    const before = (Array.isArray(pg.photos) ? pg.photos : []).length;
+    await pg.update({ photos: photos.length ? photos : null, images: pgContent.imagesFromPhotos(photos) });
+    res.json(await afterContentSave(req, pg, 'PG_PHOTOS_UPDATED', { before, after: photos.length, cover: (photos.find((p) => p.isCover) || {}).id || null }));
+  } catch (err) {
+    sendServerError(res, err, '[PG_PHOTOS_ERROR]');
+  }
+});
+
+// PUT /api/pg/:id/videos  { videos: [{ youtubeUrl, title?, roomType?, order? }] }  (admin only, YouTube only)
+router.put('/:id/videos', protect, admin, async (req, res) => {
+  try {
+    const pg = await loadPgOr404(req, res);
+    if (!pg) return;
+    let videos;
+    try { videos = pgContent.validateVideos((req.body || {}).videos); } catch (err) {
+      if (sendContentError(res, err)) return;
+      throw err;
+    }
+    await pg.update({ videos: videos.length ? videos : null });
+    res.json(await afterContentSave(req, pg, 'PG_VIDEOS_UPDATED', { videos: videos.map((v) => v.youtubeId) }));
+  } catch (err) {
+    sendServerError(res, err, '[PG_VIDEOS_ERROR]');
+  }
+});
+
+// PUT /api/pg/:id/mess  { messTimetable: { meals, days, notes } | null }
+router.put('/:id/mess', protect, admin, async (req, res) => {
+  try {
+    const pg = await loadPgOr404(req, res);
+    if (!pg) return;
+    let mess;
+    try { mess = pgContent.validateMessTimetable((req.body || {}).messTimetable); } catch (err) {
+      if (sendContentError(res, err)) return;
+      throw err;
+    }
+    await pg.update({ messTimetable: mess });
+    res.json(await afterContentSave(req, pg, 'PG_MESS_UPDATED', { meals: mess ? mess.meals.map((m) => m.key) : [], days: mess ? Object.keys(mess.days) : [] }));
+  } catch (err) {
+    sendServerError(res, err, '[PG_MESS_ERROR]');
+  }
+});
+
+// PUT /api/pg/:id/timings  { timings: { gateOpen, gateClose, visitorFrom, visitorTo, checkIn, checkOut, quietFrom, quietTo, curfewNote } | null }
+router.put('/:id/timings', protect, admin, async (req, res) => {
+  try {
+    const pg = await loadPgOr404(req, res);
+    if (!pg) return;
+    let timings;
+    try { timings = pgContent.validateTimings((req.body || {}).timings); } catch (err) {
+      if (sendContentError(res, err)) return;
+      throw err;
+    }
+    await pg.update({ timings });
+    res.json(await afterContentSave(req, pg, 'PG_TIMINGS_UPDATED', { fields: timings ? Object.keys(timings) : [] }));
+  } catch (err) {
+    sendServerError(res, err, '[PG_TIMINGS_ERROR]');
+  }
+});
+
 module.exports = router;
+

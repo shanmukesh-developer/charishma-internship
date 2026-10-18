@@ -20,7 +20,8 @@
     "test:c6": "node tests/c6/run.js",
     "test:c7": "node tests/c7/run.js",
     "test:c8": "node tests/c8/run.js",
-    "test:s0": "node tests/s0/run.js"
+    "test:s0": "node tests/s0/run.js",
+    "test:pg": "node tests/pg/run.js"
   },
   "keywords": [],
   "author": "",

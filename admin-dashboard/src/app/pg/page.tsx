@@ -7,6 +7,13 @@ import { useLiveSync, useFreshIds, liveLabel, FRESH_ROW_CLASS } from '@/lib/useL
 import { PgForm } from './PgForm';
 import { RoomsPanel } from './RoomsPanel';
 import { BookingsPanel } from './BookingsPanel';
+import { PhotosPanel } from './PhotosPanel';
+import { VideosPanel } from './VideosPanel';
+import { MessPanel } from './MessPanel';
+import { TimingsPanel } from './TimingsPanel';
+
+type ManageTab = 'details' | 'rooms' | 'photos' | 'videos' | 'mess' | 'timings';
+const MANAGE_TABS: [ManageTab, string][] = [['details', 'Details'], ['rooms', 'Rooms'], ['photos', 'Photos'], ['videos', 'Videos'], ['mess', 'Mess timetable'], ['timings', 'Timings']];
 
 type View = 'listings' | 'bookings';
 
@@ -19,7 +26,7 @@ export default function PGAdminPage() {
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const [creating, setCreating] = useState(false);
   const [managing, setManaging] = useState<PGHostel | null>(null);
-  const [manageTab, setManageTab] = useState<'details' | 'rooms'>('details');
+  const [manageTab, setManageTab] = useState<ManageTab>('details');
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [pendingCount, setPendingCount] = useState<number | null>(null);
 
@@ -108,6 +115,12 @@ export default function PGAdminPage() {
     setManaging(pg);
     setNotice({ kind: 'ok', text: `${pg.name} saved.` });
   };
+
+  // A content tab saved: keep the list card and the open dialog in step.
+  const onContentSaved = useCallback((id: string, patch: Partial<PGHostel>) => {
+    setPgs(prev => prev.map(p => (p.id === id ? { ...p, ...patch } : p)));
+    setManaging(cur => (cur && cur.id === id ? { ...cur, ...patch } : cur));
+  }, []);
 
   const toggleActive = async (pg: PGHostel) => {
     if (busy[pg.id]) return;
@@ -212,11 +225,20 @@ export default function PGAdminPage() {
                       <div><dt className="text-xs text-gray-500">From</dt><dd className="font-semibold">₹{Number(pg.baseRent).toLocaleString('en-IN')}/mo</dd></div>
                     </dl>
                     {!!pg.amenities?.length && <p className="mt-3 text-xs text-gray-400">{pg.amenities.join(' · ')}</p>}
-                    {!pg.images?.length && <p className="mt-2 text-xs text-amber-300">No photos yet</p>}
+                    <p className="mt-2 text-xs text-gray-500">
+                      {[
+                        pg.photos?.length ? `${pg.photos.length} photo${pg.photos.length === 1 ? '' : 's'}` : pg.images?.length ? `${pg.images.length} photo${pg.images.length === 1 ? '' : 's'} (no categories)` : '',
+                        pg.videos?.length ? `${pg.videos.length} video${pg.videos.length === 1 ? '' : 's'}` : '',
+                        pg.messTimetable?.meals?.length ? 'Mess timetable' : '',
+                        pg.isVerified ? 'Verified' : '',
+                      ].filter(Boolean).join(' · ')}
+                      {!pg.photos?.length && !pg.images?.length && <span className="text-amber-300">No photos yet</span>}
+                    </p>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <button type="button" onClick={() => { setManaging(pg); setManageTab('details'); }} className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-white/15">Edit details</button>
                     <button type="button" onClick={() => { setManaging(pg); setManageTab('rooms'); }} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-gray-300 hover:text-white">Rooms</button>
+                    <button type="button" onClick={() => { setManaging(pg); setManageTab('photos'); }} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-gray-300 hover:text-white">Photos</button>
                     <button type="button" disabled={!!busy[pg.id]} onClick={() => toggleActive(pg)} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-gray-300 hover:text-white disabled:opacity-50">{pg.isActive ? 'Hide' : 'List'}</button>
                     <button type="button" disabled={!!busy[pg.id]} onClick={() => deletePg(pg)} className="ml-auto rounded-lg px-2 py-1.5 text-xs font-semibold text-red-400/70 hover:text-red-300 disabled:opacity-50">Delete</button>
                   </div>
@@ -235,9 +257,9 @@ export default function PGAdminPage() {
               <button type="button" onClick={() => { setCreating(false); setManaging(null); }} className="rounded-lg border border-white/10 px-3 py-1.5 text-sm text-gray-300 hover:text-white">Close</button>
             </div>
             {managing && !creating && (
-              <div className="mb-5 flex gap-1 border-b border-white/10" role="tablist">
-                {(['details', 'rooms'] as const).map(tab => (
-                  <button key={tab} type="button" role="tab" aria-selected={manageTab === tab} onClick={() => setManageTab(tab)} className={`-mb-px border-b-2 px-4 py-2 text-sm font-semibold ${manageTab === tab ? 'border-blue-500 text-white' : 'border-transparent text-gray-400 hover:text-white'}`}>{tab === 'details' ? 'Details' : 'Rooms'}</button>
+              <div className="mb-5 flex gap-1 overflow-x-auto border-b border-white/10" role="tablist">
+                {MANAGE_TABS.map(([tab, label]) => (
+                  <button key={tab} type="button" role="tab" aria-selected={manageTab === tab} onClick={() => setManageTab(tab)} className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2 text-sm font-semibold ${manageTab === tab ? 'border-blue-500 text-white' : 'border-transparent text-gray-400 hover:text-white'}`}>{label}</button>
                 ))}
               </div>
             )}
@@ -245,6 +267,14 @@ export default function PGAdminPage() {
               <PgForm initial={null} onCancel={() => setCreating(false)} onSave={createPg} />
             ) : managing && manageTab === 'details' ? (
               <PgForm key={managing.id} initial={managing} onCancel={() => setManaging(null)} onSave={updatePg} />
+            ) : managing && manageTab === 'photos' ? (
+              <PhotosPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+            ) : managing && manageTab === 'videos' ? (
+              <VideosPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+            ) : managing && manageTab === 'mess' ? (
+              <MessPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+            ) : managing && manageTab === 'timings' ? (
+              <TimingsPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
             ) : managing ? (
               <RoomsPanel pgId={managing.id} liveTick={roomsTick} />
             ) : null}
