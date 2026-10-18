@@ -12,6 +12,7 @@ import { testVoice, updateVoiceSettings } from '../voice/voice';
 import { hasKitchenService } from '../voice/kitchenService';
 import { color, font, radius, space, touch } from '../theme';
 import { Button, Card, IconName, Sheet } from '../ui/kit';
+import { LEGAL_LABELS, SETTINGS_PAGES, openLegal } from '../lib/legal';
 
 function LinkRow({ icon, label, sub, onPress }: { icon: IconName; label: string; sub?: string; onPress: () => void }) {
   return (
@@ -136,6 +137,16 @@ export default function SettingsScreen() {
         <LinkRow icon="call" label="Call Zenvy support" sub={SUPPORT_PHONE_DISPLAY} onPress={() => Linking.openURL(`tel:+${SUPPORT_PHONE}`).catch(() => {})} />
         <View style={{ height: 1, backgroundColor: color.surfaceAlt }} />
         <LinkRow icon="logo-whatsapp" label="WhatsApp support" sub="Menu, hours, payouts, anything else" onPress={wa} />
+      </Card>
+
+      <Text style={[font.label, { color: color.textMuted }]}>LEGAL</Text>
+      <Card style={{ paddingVertical: 0 }}>
+        {SETTINGS_PAGES.map((p, i) => (
+          <View key={p}>
+            {i > 0 ? <View style={{ height: 1, backgroundColor: color.surfaceAlt }} /> : null}
+            <LinkRow icon="document-text-outline" label={LEGAL_LABELS[p]} onPress={() => openLegal(p)} />
+          </View>
+        ))}
       </Card>
 
       <Button label="Log out" icon="log-out-outline" variant="rejectOutline" size="secondary" onPress={() => { setCloseErr(null); setConfirmOut(true); }} />

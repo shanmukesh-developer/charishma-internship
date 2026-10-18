@@ -8,6 +8,7 @@ import { useRider } from '../state/RiderStore';
 import { ApiError, NetworkError, errorMessage } from '../services/apiClient';
 import * as links from '../services/links';
 import { SUPPORT_PHONE } from '../config';
+import { LegalLine } from '../services/legal';
 
 const logo = require('../../assets/icon.png');
 
@@ -128,6 +129,7 @@ export function LoginScreen() {
         ) : null}
 
         <Btn title="Log in" icon="login" onPress={submit} loading={busy} disabled={!canSubmit} />
+        <LegalLine />
         <Btn
           title="Forgot password? Call Zenvy"
           icon="phone"

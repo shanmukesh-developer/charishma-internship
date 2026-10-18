@@ -91,6 +91,9 @@ router.post('/fcm-token', protect, saveFcmToken);
 router.delete('/fcm-token', protect, removeFcmToken);
 router.post('/fcm-token/remove', protect, removeFcmToken);
 router.get('/profile', protect, getUserProfile);
+// C4 legal: has this account accepted the current Terms? / record acceptance (never blocks the account).
+router.get('/legal/status', protect, require('../controllers/legalController').getMyLegalStatus);
+router.post('/legal/accept', protect, require('../controllers/legalController').acceptTerms);
 router.put('/profile', protect, updateUserProfile);
 
 // Public Asset Discovery (short server cache + ETag; cleared on every store / product / config write)

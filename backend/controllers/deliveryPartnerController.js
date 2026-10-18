@@ -194,12 +194,15 @@ const registerPartner = async (req, res) => {
     }
 
     // ── Create partner ───────────────────────────────────────────────────
+    // C4: a self sign-up that sends { acceptTerms: true, termsVersion } is recorded (admin-created riders are not).
+    const consent = isAdminRequest ? {} : await require('../utils/legalSettings').consentFromBody(req.body);
     const partner = await DeliveryPartner.create({
       name: cleanName,
       phone: cleanPhone,
       password,
       vehicleType,
-      isApproved: isAdminRequest
+      isApproved: isAdminRequest,
+      ...consent
     });
     const token = generateToken(partner.id, partner.tokenVersion);
 

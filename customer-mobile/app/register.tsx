@@ -11,6 +11,8 @@ import { setToken, postAuth, normalizePhone, isValidIndianMobile, NETWORK_ERROR_
 import { usePhoneOtp, PhoneProof } from '../utils/phoneOtp';
 import DopaminePressable, { ActionPressable } from '../components/DopaminePressable';
 import ServerWakeupOverlay from '../components/ServerWakeupOverlay';
+import TermsConsent from '../components/TermsConsent';
+import { consentFields } from '../utils/legal';
 
 import { useTheme } from '../context/ThemeContext';
 
@@ -49,6 +51,8 @@ export default function RegisterScreen() {
   const [showWakeup, setShowWakeup] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [otp, setOtp] = useState('');
+  // C4: required Terms / Privacy checkbox on account creation.
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const busyRef = useRef(false);
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
@@ -135,6 +139,10 @@ export default function RegisterScreen() {
       setError('Password must be at least 6 characters (or leave it empty to sign in with OTP).');
       return false;
     }
+    if (!acceptedTerms) {
+      setError('Please tick the box to agree to the Terms of Service and Privacy Policy.');
+      return false;
+    }
     return true;
   };
 
@@ -186,6 +194,7 @@ export default function RegisterScreen() {
     if (password) payload.password = password;
     if (email.trim()) payload.email = email.trim().toLowerCase();
     if (referralCode.trim()) payload.referralCode = referralCode.trim().toUpperCase();
+    Object.assign(payload, await consentFields());
 
     const r = await postAuth(ENDPOINTS.register, payload);
     if (r.ok && r.data?.token) {
@@ -506,6 +515,8 @@ export default function RegisterScreen() {
 
               {info && !error ? <Text style={s.info}>{info}</Text> : null}
               {error ? <Text style={s.error}>{error}</Text> : null}
+
+              <TermsConsent isDark={isDark} checked={acceptedTerms} onToggle={() => { setAcceptedTerms(v => !v); if (error) setError(''); }} disabled={busy} />
 
               {phoneVerified || isOtpSent ? (
                 <ActionPressable style={[s.regBtn, busy && { opacity: 0.7 }]} onPress={handleRegister} disabled={busy} sound="click">

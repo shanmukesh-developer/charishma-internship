@@ -136,6 +136,12 @@ router.post('/config', updateGlobalConfig);
   router.get('/app-versions', appVersions.getAdminAppVersions);
   router.put('/app-versions', appVersions.updateAdminAppVersions);
 }
+// C4 legal: business + grievance officer details and policy version for the /legal pages (validated, audited).
+{
+  const legalCtl = require('../controllers/legalController');
+  router.get('/legal-settings', legalCtl.getAdminLegalSettings);
+  router.put('/legal-settings', legalCtl.updateAdminLegalSettings);
+}
 
 // Zenvy Vault Control
 router.get('/vault', getVaultItems);

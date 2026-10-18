@@ -27,6 +27,9 @@ const initUserModel = (sequelize) => {
     isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
     // Bumped on every password change: sessions signed with an older `tv` are revoked.
     tokenVersion: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
+    // C4: Terms / Privacy version this account accepted, and when (null = never recorded; asked once after sign-in).
+    termsAcceptedVersion: { type: DataTypes.STRING(20), allowNull: true },
+    termsAcceptedAt: { type: DataTypes.DATE, allowNull: true },
     address: { type: DataTypes.STRING, allowNull: true },
     city: { type: DataTypes.STRING, defaultValue: 'Amaravathi' },
     profileImage: { type: DataTypes.TEXT, allowNull: true },

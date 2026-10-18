@@ -1101,6 +1101,10 @@ exports.updateGlobalConfig = async (req, res) => {
     if (key === require('../utils/appVersionPolicy').POLICY_KEY) {
       return res.status(400).json({ message: 'App versions are edited on Config → App versions (PUT /api/admin/app-versions).' });
     }
+    // C4: legal settings are only written through PUT /api/admin/legal-settings (validated + audited).
+    if (key === require('../utils/legalSettings').KEY) {
+      return res.status(400).json({ message: 'Legal settings are edited on Config → Legal (PUT /api/admin/legal-settings).' });
+    }
     // Retention windows (cron/retentionCron.js): whole days, at least 1.
     const retention = require('../cron/retentionCron');
     if (key === retention.KEYS.chat || key === retention.KEYS.pulse) {

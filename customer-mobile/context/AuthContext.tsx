@@ -58,6 +58,11 @@ interface User {
   friendCode?: string;
   createdAt?: string;
   role?: string;
+  // C4: Terms / Privacy acceptance (server-computed; termsUpdateRequired drives the "updated Terms" sheet).
+  termsAcceptedVersion?: string | null;
+  termsAcceptedAt?: string | null;
+  termsCurrentVersion?: string;
+  termsUpdateRequired?: boolean;
   isVeg?: boolean;
   statusText?: string | null;
   statusEmoji?: string | null;

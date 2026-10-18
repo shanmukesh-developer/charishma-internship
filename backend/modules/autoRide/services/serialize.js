@@ -272,6 +272,8 @@ const driverSelf = (req, d) => ({
   submittedAt: iso(d.submittedAt),
   reviewedAt: iso(d.reviewedAt),
   createdAt: iso(d.createdAt),
+  termsAcceptedVersion: d.termsAcceptedVersion || null,
+  termsAcceptedAt: iso(d.termsAcceptedAt),
 });
 const driverAdmin = (req, d) => ({ ...driverSelf(req, d), reviewedBy: d.reviewedBy || null, lastOnlineAt: iso(d.lastOnlineAt), lastLoginAt: iso(d.lastLoginAt) });
 

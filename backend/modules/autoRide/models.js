@@ -18,6 +18,9 @@ const initAutoRideModels = (sequelize) => {
     phone: { type: DataTypes.STRING(16), allowNull: false },
     password: { type: DataTypes.STRING(100), allowNull: false },
     tokenVersion: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
+    // C4: Terms version accepted at sign-up (null for accounts created before C4 / by older app builds).
+    termsAcceptedVersion: { type: DataTypes.STRING(20), allowNull: true },
+    termsAcceptedAt: { type: DataTypes.DATE, allowNull: true },
     campusId: { type: DataTypes.UUID, allowNull: true },
     status: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'PENDING_DOCS' },
     rejectionReason: { type: DataTypes.STRING(500), allowNull: true },

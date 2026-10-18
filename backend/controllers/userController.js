@@ -6,6 +6,7 @@ const admin = require('../config/firebase'); // eslint-disable-line no-unused-va
 const { getAuth } = require('firebase-admin/auth');
 const { normalizePhone } = require('../utils/phoneUtils');
 const pgLock = require('../utils/pgLock');
+const legalSettings = require('../utils/legalSettings');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared helpers
@@ -97,6 +98,8 @@ const sanitizeUser = (user) => {
     statusEmoji: user.statusEmoji || null,
     statusSeenBy: user.statusSeenBy || [],
     googleLinked: !!user.googleId,
+    termsAcceptedVersion: user.termsAcceptedVersion || null,
+    termsAcceptedAt: user.termsAcceptedAt || null,
     createdAt: user.createdAt
   };
 };
@@ -108,6 +111,17 @@ const setSessionCookie = (res, token) => {
     sameSite: 'none',
     maxAge: SESSION_COOKIE_MAX_AGE
   });
+};
+
+// C4: { termsCurrentVersion, termsUpdateRequired } next to the user; a settings read failure never blocks sign-in.
+const legalStatus = async (user) => {
+  try {
+    const s = await legalSettings.getSettings();
+    const { termsCurrentVersion, termsUpdateRequired } = legalSettings.acceptanceStatus(user, s);
+    return { termsCurrentVersion, termsUpdateRequired };
+  } catch {
+    return {};
+  }
 };
 
 /** Issues a session for `user` and sends `{ ...sanitizeUser(user), token }`. */
@@ -128,7 +142,7 @@ const sendSession = async (res, user, status = 200, { skipCookie = false } = {})
       setSessionCookie(res, token);
     }
   }
-  return res.status(status).json({ ...sanitizeUser(user), token });
+  return res.status(status).json({ ...sanitizeUser(user), ...(await legalStatus(user)), token });
 };
 
 // ── Phone-verified registration token ───────────────────────────────────────
@@ -398,6 +412,10 @@ const registerUser = async (req, res) => {
     const proof = await verifyPhoneProof({ phone: cleanPhone, firebaseToken, registrationToken, otp, purpose: 'auth' });
     if (!proof.ok) return res.status(proof.status).json(proof.body);
 
+    // C4: { acceptTerms: true, termsVersion } is recorded on the new account. Older app builds that do not
+    // send it still register; they are asked once after sign-in (termsUpdateRequired).
+    const consent = await legalSettings.consentFromBody(req.body);
+
     const { getSequelize } = require('../config/db');
     const sequelize = getSequelize();
 
@@ -415,6 +433,7 @@ const registerUser = async (req, res) => {
         : null;
 
       const user = await User.create({
+        ...consent,
         name,
         phone: cleanPhone,
         email: cleanEmail || null,
@@ -579,7 +598,7 @@ const getUserProfile = async (req, res) => {
     const user = await User.findByPk(req.user.id);
     if (!user) return res.status(401).json({ message: 'Account not found. Please log in again.' });
     await ensureFriendCode(user);
-    res.json(sanitizeUser(user));
+    res.json({ ...sanitizeUser(user), ...(await legalStatus(user)) });
   } catch (error) {
     console.error('[PROFILE_ERROR]', error);
     res.status(500).json({ message: 'Internal Server Error' });
@@ -819,9 +838,13 @@ const googleComplete = async (req, res) => {
       ? !(await User.findOne({ where: { email: google.email } }))
       : false;
 
+    // C4: the finish screen shows the Terms box; a tick is recorded whether this links or creates.
+    const consent = await legalSettings.consentFromBody(req.body);
+
     if (linked && !linkedHasRealPhone) {
       // Replace the old placeholder number with the verified one
       linked.phone = cleanPhone;
+      Object.assign(linked, consent);
       await linked.save();
       return sendSession(res, linked);
     }
@@ -829,11 +852,13 @@ const googleComplete = async (req, res) => {
     if (phoneUser) {
       phoneUser.googleId = google.googleId;
       if (!phoneUser.email && emailFree) phoneUser.email = google.email;
+      Object.assign(phoneUser, consent);
       await phoneUser.save();
       return sendSession(res, phoneUser);
     }
 
     const user = await User.create({
+      ...consent,
       name,
       phone: cleanPhone,
       email: emailFree ? google.email : null,

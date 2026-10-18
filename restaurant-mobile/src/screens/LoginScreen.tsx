@@ -13,6 +13,7 @@ import { useSession } from '../state/SessionProvider';
 import { KeyboardAvoidingView } from '../ui/KeyboardAvoidingView';
 import { color, font, radius, space, touch } from '../theme';
 import { Button } from '../ui/kit';
+import { LegalLine } from '../lib/legal';
 
 type ServerState = 'checking' | 'up' | 'waking';
 
@@ -168,6 +169,9 @@ export default function LoginScreen() {
             disabled={locked}
             style={{ marginTop: space.md }}
           />
+          <View style={{ marginTop: space.sm }}>
+            <LegalLine prefix="By logging in you agree to the" />
+          </View>
         </View>
 
         <View style={styles.server}>

@@ -17,6 +17,7 @@ import { WorldTransitionProvider } from '../context/WorldTransitionContext';
 import WorldTransitionOverlay from '../components/WorldTransitionOverlay';
 import IntroOverlay from '../components/IntroOverlay';
 import GlobalAnnouncement from '../components/GlobalAnnouncement';
+import TermsUpdateSheet from '../components/TermsUpdateSheet';
 import ThemedAlert, { showGlobalAlert } from '../components/ThemedAlert';
 import OfflineBanner from '../components/OfflineBanner';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -120,6 +121,8 @@ function AppContainer() {
             <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
             <WorldTransitionOverlay />
             <GlobalAnnouncement />
+            {/* C4: one-time, non-blocking "We've updated our Terms" sheet */}
+            <TermsUpdateSheet />
             <ThemedAlert />
             <OfflineBanner />
           </CartProvider>

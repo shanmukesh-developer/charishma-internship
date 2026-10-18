@@ -47,8 +47,11 @@ const register = async (req, res) => {
   }
   let driver;
   try {
+    // C4: { acceptTerms: true, termsVersion } from the sign-up screen is recorded; older builds without it still sign up.
+    const consent = await require('../../../utils/legalSettings').consentFromBody(body);
     driver = await Driver().create({
       name, phone, password: await bcrypt.hash(password, 10), status: E.DRIVER_STATUS.PENDING_DOCS, tokenVersion: 0, lastLoginAt: clock.now(),
+      ...consent,
     });
   } catch (err) {
     if (isUniqueError(err)) throw fail(409, 'PHONE_TAKEN', 'A driver account already uses this number. Sign in instead.');

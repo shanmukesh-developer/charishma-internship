@@ -15,6 +15,9 @@ router.get('/', cacheGet('config', { ttlMs: 60 * 1000, bypass: liveAdminBypass }
 // Cached 30 s per app; an admin change (PUT /api/admin/app-versions) publishes 'config', which clears it.
 router.get('/app-version', cacheGet('config', { ttlMs: 30 * 1000 }), require('../controllers/appVersionController').getPublicAppVersion);
 
+// C4 legal: current policy version + absolute links to Terms / Privacy / Refunds / Grievance / Guidelines.
+router.get('/legal', cacheGet('config', { ttlMs: 30 * 1000 }), require('../controllers/legalController').getPublicLegal);
+
 // Update global app configuration (admin only)
 router.put('/', protect, admin, appConfigController.updateConfig);
 

@@ -16,6 +16,7 @@ import { ApiError, NetworkError, errorMessage } from '../lib/http';
 import { loadSavedPhone, setSavedPhone } from '../lib/storage';
 import { SUPPORT_PHONE } from '../config';
 import type { ScreenProps } from '../nav';
+import { LegalLine, getPolicyVersion, openLegal } from '../lib/legal';
 
 const logo = require('../../assets/icon.png');
 
@@ -107,6 +108,7 @@ export function LoginScreen({ navigation }: ScreenProps<'Login'>) {
       <PasswordField label="Password" value={password} onChange={(v) => { setPassword(v); setError(null); }} onSubmit={submit} />
       {error ? <Banner tone="error" text={error} /> : null}
       <Button label="Sign in" icon="log-in" onPress={submit} loading={busy} disabled={!valid} />
+      <LegalLine />
       <Button label="New driver? Create account" icon="person-add" variant="secondary" onPress={() => navigation.navigate('Register')} />
       <Button label="Forgot password? Call Zenvy" icon="call" variant="ghost" size="secondary" onPress={() => call(`+${SUPPORT_PHONE}`)} />
     </Shell>
@@ -129,6 +131,8 @@ export function RegisterScreen({ navigation }: ScreenProps<'Register'>) {
   const [resendAt, setResendAt] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [taken, setTaken] = useState(false);
+  // C4: required Terms / Privacy tick on account creation (recorded by the server with the policy version).
+  const [agreed, setAgreed] = useState(false);
 
   useEffect(() => {
     if (step !== 'otp') return;
@@ -161,14 +165,15 @@ export function RegisterScreen({ navigation }: ScreenProps<'Register'>) {
 
   const pwErr = password ? passwordProblem(password) : null;
   const confirmErr = confirm && confirm !== password ? 'The two passwords are different.' : null;
-  const detailsOk = name.trim().length >= 2 && !!password && !pwErr && confirm === password;
+  const detailsOk = name.trim().length >= 2 && !!password && !pwErr && confirm === password && agreed;
 
   const create = async () => {
     if (!p || !detailsOk || busy) return;
     setBusy(true);
     setError(null);
     try {
-      const r = await driverApi.register({ name: name.trim(), phone: p, password, otp });
+      const termsVersion = await getPolicyVersion();
+      const r = await driverApi.register({ name: name.trim(), phone: p, password, otp, acceptTerms: true, ...(termsVersion ? { termsVersion } : {}) });
       await setSavedPhone(p);
       await signIn(r.token, r.driver);
     } catch (e) {
@@ -211,6 +216,22 @@ export function RegisterScreen({ navigation }: ScreenProps<'Register'>) {
           <PasswordField label="New password" value={password} onChange={(v) => { setPassword(v); setError(null); }} error={pwErr} />
           <PasswordField label="Type the password again" value={confirm} onChange={(v) => { setConfirm(v); setError(null); }} error={confirmErr} onSubmit={create} />
           <Text style={[font.small, { color: color.textMuted }]}>8 or more characters, with letters and numbers.</Text>
+          <Pressable
+            onPress={() => setAgreed((v) => !v)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: agreed }}
+            accessibilityLabel="I agree to the Terms of Service and Privacy Policy"
+            style={{ flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, minHeight: 48 }}
+          >
+            <Ionicons name={agreed ? 'checkbox' : 'square-outline'} size={28} color={agreed ? color.openDark : color.textMuted} />
+            <Text style={[font.small, { color: color.textSecondary, flex: 1 }]}>
+              I agree to the{' '}
+              <Text style={{ color: color.info, fontWeight: '800', textDecorationLine: 'underline' }} onPress={() => openLegal('terms')}>Terms of Service</Text>
+              {' and '}
+              <Text style={{ color: color.info, fontWeight: '800', textDecorationLine: 'underline' }} onPress={() => openLegal('privacy')}>Privacy Policy</Text>
+              , including the Auto-Ride driver rules (valid licence and vehicle papers, cash fares collected by me, safe driving).
+            </Text>
+          </Pressable>
           {error ? <Banner tone="error" text={error} /> : null}
           <Button label="Create account" icon="checkmark-circle" variant="accept" onPress={create} loading={busy} disabled={!detailsOk} />
           {taken ? <Button label="Sign in instead" icon="log-in" variant="secondary" onPress={() => navigation.navigate('Login')} /> : null}

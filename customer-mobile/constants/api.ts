@@ -76,6 +76,14 @@ export const ENDPOINTS = {
   accountDelete: `${API_URL}/api/users/account/delete`,
   privacyPolicy: `${API_URL}/legal/privacy`,
   deleteAccountInfo: `${API_URL}/legal/delete-account`,
+  // C4 legal pages + consent
+  legalIndex: `${API_URL}/legal`,
+  terms: `${API_URL}/legal/terms`,
+  refundPolicy: `${API_URL}/legal/refunds`,
+  grievance: `${API_URL}/legal/grievance`,
+  communityGuidelines: `${API_URL}/legal/community-guidelines`,
+  legalInfo: `${API_URL}/api/config/legal`,
+  legalAccept: `${API_URL}/api/users/legal/accept`,
 
   // Restaurants
   restaurants: `${API_URL}/api/users/restaurants`,

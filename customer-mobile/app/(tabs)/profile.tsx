@@ -41,6 +41,7 @@ import Constants from 'expo-constants';
 import { pickAndUploadImage, alertUploadError } from '../../utils/imageUpload';
 import DeleteAccountModal from '../../components/DeleteAccountModal';
 import { cleanRoom, cleanBlock, formatHostel, useCampusHostelBlocks, HOSTEL_BLOCK_MAX, ROOM_NUMBER_MAX } from '../../utils/hostel';
+import { openLegal, LEGAL_LABELS, LegalPage } from '../../utils/legal';
 
 const PHONE_RE = /^[6-9]\d{9}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -1196,6 +1197,19 @@ export default function ProfileScreen() {
               <Text style={[s.supportBtnTitle, { color: txt }]}>PRIVACY POLICY</Text>
               <Text style={[s.supportBtnDesc, { color: txtSec }]}>What we collect & why</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={[s.supportBtn, { backgroundColor: cardBg, borderColor: border }]} onPress={() => openLegal('terms')} accessibilityRole="link">
+              <Text style={{ fontSize: 20 }}>📜</Text>
+              <Text style={[s.supportBtnTitle, { color: txt }]}>TERMS OF SERVICE</Text>
+              <Text style={[s.supportBtnDesc, { color: txtSec }]}>Orders, wallet & rules</Text>
+            </TouchableOpacity>
+          </View>
+          {/* C4: the remaining policies (Refunds, Grievance, Community Guidelines) */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: -6, marginBottom: 20, marginHorizontal: 20 }}>
+            {(['refunds', 'grievance', 'community', 'index'] as LegalPage[]).map((p) => (
+              <TouchableOpacity key={p} onPress={() => openLegal(p)} accessibilityRole="link" hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                <Text style={{ color: COLORS.gold, fontSize: 12, fontWeight: '800' }}>{LEGAL_LABELS[p]} ↗</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </StaggeredSection>
 

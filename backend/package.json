@@ -14,7 +14,8 @@
     "test:autoride": "node modules/autoRide/tests/run.js",
     "test:events": "node modules/campusEvents/tests/run.js",
     "test:infra": "node tests/infra/run.js",
-    "test:c3": "node tests/c3/run.js"
+    "test:c3": "node tests/c3/run.js",
+    "test:c4": "node tests/c4/run.js"
   },
   "keywords": [],
   "author": "",

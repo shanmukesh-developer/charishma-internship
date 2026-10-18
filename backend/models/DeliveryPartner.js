@@ -54,6 +54,9 @@ const initDeliveryPartnerModel = (sequelize) => {
     isApproved: { type: DataTypes.BOOLEAN, defaultValue: false },
     // Bumped on every password change: sessions signed with an older `tv` are revoked.
     tokenVersion: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
+    // C4: Terms version accepted at sign-up (null for accounts created before C4, by the admin, or by older builds).
+    termsAcceptedVersion: { type: DataTypes.STRING(20), allowNull: true },
+    termsAcceptedAt: { type: DataTypes.DATE, allowNull: true },
     // C1-7: set when an APPROVED rider is deactivated by the admin (isApproved true -> false); cleared
     // on approval. While set the rider login is refused. New sign-ups waiting for approval are not
     // suspended (they still log in and see "waiting for approval"). Added on boot by addMissingColumns.

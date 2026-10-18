@@ -35,7 +35,7 @@ export const driverApi = {
   sendOtp: (phone: string) =>
     apiFetch<{ success: boolean; message: string; expiresIn: number; resendAfter: number }>('/api/users/send-otp', { method: 'POST', body: { phone, purpose: 'auth' }, auth: false, timeoutMs: 45000 }),
   /** POST /auth/register { name, phone, password, otp } -> 201 { token, driver } (409 PHONE_TAKEN, 400 OTP_INVALID { attemptsLeft } / WEAK_PASSWORD, 429 OTP_LOCKED { attemptsLeft: 0 }). */
-  register: (input: { name: string; phone: string; password: string; otp: string }) =>
+  register: (input: { name: string; phone: string; password: string; otp: string; acceptTerms?: boolean; termsVersion?: string }) =>
     apiFetch<AuthResult>(`${D}/auth/register`, { method: 'POST', body: input, auth: false, timeoutMs: 45000 }),
   /** POST /auth/login { phone, password } (401 INVALID_CREDENTIALS, 403 DRIVER_SUSPENDED, 429 lockout). */
   login: (phone: string, password: string) =>

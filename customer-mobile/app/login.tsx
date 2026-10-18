@@ -15,6 +15,8 @@ import { usePhoneOtp, PhoneProof } from '../utils/phoneOtp';
 import DopaminePressable, { ActionPressable } from '../components/DopaminePressable';
 import ServerWakeupOverlay from '../components/ServerWakeupOverlay';
 import CampusServicesMapModal from '../components/CampusServicesMapModal';
+import TermsConsent from '../components/TermsConsent';
+import { consentFields } from '../utils/legal';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -94,6 +96,7 @@ export default function LoginScreen() {
 
   // Google sign-in waiting for a verified phone number
   const [googlePending, setGooglePending] = useState<GooglePending | null>(null);
+  const [googleTermsAccepted, setGoogleTermsAccepted] = useState(false);
   const [googleName, setGoogleName] = useState('');
 
   // WebView fallback (only when the native Google SDK genuinely fails)
@@ -208,6 +211,10 @@ export default function LoginScreen() {
       setError('Enter the 6-digit code we sent you.');
       return;
     }
+    if (googlePending && !googleTermsAccepted) {
+      setError('Please tick the box to agree to the Terms of Service and Privacy Policy.');
+      return;
+    }
     Keyboard.dismiss();
     runGuarded(async () => {
       const proof = await phoneOtp.getProof(otp);
@@ -254,11 +261,18 @@ export default function LoginScreen() {
 
   const completeGoogle = async (phone10: string, proof: PhoneProof) => {
     if (!googlePending) return;
+    // C4: finishing Google sign-in may create the account, so the Terms box is required here.
+    if (!googleTermsAccepted) {
+      setError('Please tick the box to agree to the Terms of Service and Privacy Policy.');
+      phoneOtp.allowAutoRetry();
+      return;
+    }
     const r = await postAuth(ENDPOINTS.googleComplete, {
       googleToken: googlePending.googleToken,
       phone: phone10,
       ...proof,
       ...(googleName.trim() ? { name: googleName.trim() } : {}),
+      ...(await consentFields()),
     });
     if (r.ok && r.data?.token) {
       setGooglePending(null);
@@ -569,6 +583,8 @@ export default function LoginScreen() {
                     </>
                   ) : null}
 
+                  <TermsConsent isDark={isDark} checked={googleTermsAccepted} onToggle={() => { setGoogleTermsAccepted(v => !v); if (error) setError(''); }} disabled={busy} />
+
                   {renderOtpSection()}
 
                   {info && !error ? <Text style={s.info}>{info}</Text> : null}
@@ -680,6 +696,8 @@ export default function LoginScreen() {
                       </DopaminePressable>
                     </>
                   )}
+
+                  <TermsConsent isDark={isDark} />
 
                   <DopaminePressable onPress={() => router.push('/register' as any)} style={s.switchLink} sound="click">
                     <Text style={s.switchText}>Don't have an account? <Text style={{ color: COLORS.gold, fontWeight: '800' }}>REGISTER</Text></Text>

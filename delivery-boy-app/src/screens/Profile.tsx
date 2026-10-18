@@ -13,6 +13,7 @@ import * as links from '../services/links';
 import { errorMessage } from '../services/apiClient';
 import { indianMobileDigits } from '../services/orderModel';
 import { SUPPORT_PHONE } from '../config';
+import { LEGAL_LABELS, SETTINGS_PAGES, openLegal } from '../services/legal';
 
 const VEHICLES = ['Bicycle', 'Scooter', 'Motorcycle', 'E-bike'];
 
@@ -110,6 +111,12 @@ export function ProfileScreen() {
           <Row icon="lifebuoy" label="Help & support" value="Raise a ticket, see replies" onPress={() => r.setOverlay({ kind: 'support' })} />
           <Row icon="phone-outline" label="Call Zenvy" value="Talk to the fleet team" onPress={() => links.callNumber(`+${SUPPORT_PHONE}`)} />
           <Row icon="lock-reset" label="Change password" onPress={() => setPwd(true)} />
+        </Card>
+
+        <Card style={{ paddingVertical: S.xs }}>
+          {SETTINGS_PAGES.map((p) => (
+            <Row key={p} icon="file-document-outline" label={LEGAL_LABELS[p]} onPress={() => openLegal(p)} />
+          ))}
         </Card>
 
         <Btn title="Emergency 112" icon="phone-alert" variant="red" size="mid" onPress={() => links.callNumber('112')} />

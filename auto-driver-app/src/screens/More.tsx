@@ -19,6 +19,7 @@ import { API_URL, EMERGENCY_NUMBER, SUPPORT_PHONE, SUPPORT_PHONE_DISPLAY } from 
 import { INCIDENT_CATEGORIES, type DriverNotification, type IncidentCategory } from '../types';
 import { STATUS_TONE } from './Home';
 import type { ScreenProps } from '../nav';
+import { LEGAL_LABELS, SETTINGS_PAGES, openLegal } from '../lib/legal';
 
 // ── Notifications (GET /notifications; every push is also saved here) ───────────
 export function NotificationsScreen({ navigation }: ScreenProps<'Notifications'>) {
@@ -352,6 +353,9 @@ export function SettingsScreen({ navigation }: ScreenProps<'Settings'>) {
       <Banner tone={pushState === 'ok' ? 'ok' : 'warn'} title="Push notifications" text={pushText} />
       <Banner tone="info" text="This app does not use your location. Trip actions are only for when the auto is stopped." />
       <ListRow icon="person-circle" title="Profile and password" onPress={() => navigation.navigate('Profile')} />
+      {SETTINGS_PAGES.map((p) => (
+        <ListRow key={p} icon="document-text" title={LEGAL_LABELS[p]} onPress={() => openLegal(p)} />
+      ))}
       <Button label="Sign out" icon="log-out" variant="rejectOutline" onPress={logout} loading={busy} />
     </Screen>
   );
