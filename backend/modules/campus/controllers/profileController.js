@@ -645,8 +645,9 @@ const submitIdCard = async (req, res) => {
       const { getCampusMediaModel } = require('../models/CampusMedia');
       const Media = getCampusMediaModel && getCampusMediaModel();
       if (mid && Media) {
-        const row = await Media.findByPk(mid, { attributes: ['id', 'ownerId'] });
-        if (!row || String(row.ownerId) !== String(req.user.id)) {
+        const row = await Media.findByPk(mid, { attributes: ['id', 'ownerId', 'isPrivate'] });
+        // S0: and it must be a PRIVATE upload (purpose id_card): a public photo would be served to anyone.
+        if (!row || String(row.ownerId) !== String(req.user.id) || !row.isPrivate) {
           return res.status(400).json({ code: 'ID_IMAGE_REQUIRED', message: 'Upload a photo of your own student ID card.' });
         }
       }

@@ -28,6 +28,25 @@ const getBasketFees = (req, res) => {
   res.json({ shoppingFee: MEGA_BASKET_SHOPPING_FEE, deliveryFee: MEGA_BASKET_DELIVERY_FEE, currency: 'INR' });
 };
 
+// S0: item proof photos are private media ('basket'); the basket's customer, rider and admins get
+// short-lived signed links.
+const signBasketItems = async (req, baskets) => {
+  const list = (Array.isArray(baskets) ? baskets : [baskets]).map((b) => (b && typeof b.toJSON === 'function' ? b.toJSON() : b));
+  const items = [];
+  for (const b of list) if (b && Array.isArray(b.items)) items.push(...b.items);
+  if (items.length) {
+    const { signMediaFields, ORDER_PURPOSES } = require('../utils/mediaAccess');
+    await signMediaFields(req, items, ['photoProofUrl'], { purposes: ORDER_PURPOSES });
+  }
+  return Array.isArray(baskets) ? list : list[0];
+};
+const signItem = async (req, item) => {
+  const j = item && typeof item.toJSON === 'function' ? item.toJSON() : item;
+  const { signMediaFields, ORDER_PURPOSES } = require('../utils/mediaAccess');
+  if (j) await signMediaFields(req, j, ['photoProofUrl'], { purposes: ORDER_PURPOSES });
+  return j;
+};
+
 const withoutPin = (basket) => {
   if (!basket) return basket;
   const json = typeof basket.toJSON === 'function' ? basket.toJSON() : { ...basket };
@@ -266,7 +285,7 @@ const getBasket = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to view this basket' });
     }
 
-    res.json(basket.userId === req.user.id || role === 'admin' ? basket : withoutPin(basket));
+    res.json(await signBasketItems(req, basket.userId === req.user.id || role === 'admin' ? basket : withoutPin(basket)));
   } catch (error) {
     serverError(res, '[MEGA_BASKET_ERROR]', error);
   }
@@ -289,7 +308,7 @@ const getCustomerBaskets = async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
 
-    res.json(baskets);
+    res.json(await signBasketItems(req, baskets));
   } catch (error) {
     serverError(res, '[MEGA_BASKET_ERROR]', error);
   }
@@ -452,10 +471,10 @@ const updateItemStatus = async (req, res) => {
 
     const io = req.app.get('io');
     if (io) {
-      io.to(basket.id.toString()).emit('basket_item_updated', item);
+      io.to(basket.id.toString()).emit('basket_item_updated', await signItem(req, item));
     }
 
-    res.json({ message: 'Item status updated', item });
+    res.json({ message: 'Item status updated', item: await signItem(req, item) });
   } catch (error) {
     serverError(res, '[MEGA_BASKET_ERROR]', error);
   }
@@ -665,7 +684,7 @@ const getActiveBaskets = async (req, res) => {
       limit: 50
     });
 
-    res.json(baskets.map(withoutPin));
+    res.json(await signBasketItems(req, baskets.map(withoutPin)));
   } catch (error) {
     serverError(res, '[MEGA_BASKET_ERROR]', error);
   }
@@ -707,7 +726,7 @@ const getAllBaskets = async (req, res) => {
       limit: 50 // Keep response size manageable for admin dash
     });
 
-    res.json(baskets);
+    res.json(await signBasketItems(req, baskets));
   } catch (error) {
     serverError(res, '[MEGA_BASKET_ERROR]', error);
   }

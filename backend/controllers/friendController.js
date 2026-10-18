@@ -93,6 +93,11 @@ const sendPushToUser = async (userId, title, body, data = {}) => {
 const friendLimiter = require('../modules/friends/services/limiter');
 friendLimiter.define('friend_request', 20, 60 * 60 * 1000); // per sender per hour
 friendLimiter.define('friend_request_pair', 3, 24 * 60 * 60 * 1000); // per sender -> recipient per day
+// S0: name / friend-code search budget (Redis-shared via the Friends limiter store when REDIS_URL is set),
+// so one account cannot walk the whole student list two letters at a time.
+const CONTACT_TEXT_SEARCH_DAILY = 60;
+const CONTACT_TEXT_MIN = 3;
+friendLimiter.define('contact_text_search', CONTACT_TEXT_SEARCH_DAILY, 24 * 60 * 60 * 1000);
 const VIBE_MAX = 30;
 const ICEBREAKER_MAX = 300;
 
@@ -128,7 +133,8 @@ exports.searchContacts = async (req, res) => {
     if (typeof query === 'string' && query.trim().length > 0) {
       // LIKE wildcards in the query are literal characters, not patterns.
       const searchStr = query.trim().slice(0, 40).replace(/[\\%_]/g, (c) => `\\${c}`);
-      if (searchStr.length < 2) return res.json([]);
+      // S0: at least 3 characters (was 2).
+      if (query.trim().length < CONTACT_TEXT_MIN) return res.json([]);
       const isPostgres = User.sequelize.options.dialect === 'postgres';
       const matchOp = isPostgres ? Op.iLike : Op.like;
       // Phone lookup only by the FULL number (partial digits would let anyone harvest numbers).
@@ -139,6 +145,14 @@ exports.searchContacts = async (req, res) => {
       // path maps phone numbers to accounts without the 3000/day cap.
       if (exactPhone && !takeContactBudget(req.user.id, 1)) {
         return res.status(429).json({ code: 'CONTACT_SYNC_LIMIT', message: 'Contact sync limit reached for today. Try again tomorrow.' });
+      }
+      // S0: text (name / friend code) searches have their own daily budget.
+      if (!exactPhone) {
+        const r = friendLimiter.take(String(req.user.id), 'contact_text_search');
+        if (!r.ok) {
+          res.set('Retry-After', String(r.retryAfterSec));
+          return res.status(429).json({ code: 'SEARCH_LIMIT', message: 'You have searched a lot today. Try again tomorrow, or add friends by their friend code or QR.', retryAfter: r.retryAfterSec });
+        }
       }
 
       matchedUsers = await User.findAll({
@@ -208,12 +222,13 @@ exports.searchContacts = async (req, res) => {
       const friendship = friendshipByPeer.get(String(matchedUser.id)) || null;
 
       // Full number only for accepted friends, synced contacts (the caller already has it)
-      // or an exact-number search; everyone else sees the last 4 digits.
+      // or an exact-number search; everyone else gets no phone at all (S0: the last 4 digits, joined
+      // with name searches, helped re-identify people).
       const showPhone = !!(friendship && friendship.status === 'accepted') || !query || (exactPhone && matchedUser.phone === exactPhone);
       results.push({
         id: matchedUser.id,
         name: matchedUser.name,
-        phone: showPhone ? matchedUser.phone : (matchedUser.phone ? `•••••• ${String(matchedUser.phone).slice(-4)}` : null),
+        phone: showPhone ? matchedUser.phone : null,
         friendCode: matchedUser.friendCode,
         profileImage: matchedUser.profileImage,
         friendshipStatus: friendship ? friendship.status : 'none',
@@ -759,6 +774,15 @@ exports.sendFriendMessage = async (req, res) => {
     if (conversation.refType || conversation.closedAt) {
       return res.status(403).json({ code: 'CHAT_CLOSED', message: 'You cannot message this chat from here.' });
     }
+    // S0 (P1-3): this legacy endpoint is the After Dark / Friends 1:1 chat. Group chats only take
+    // messages through the campus socket (message:send), which enforces onlyAdminsCanSend, blocks and
+    // sanctions; posting here used to skip all three.
+    if (conversation.isGroup) {
+      return res.status(403).json({ code: 'GROUP_USE_CHAT', message: 'Send group messages from the Chats tab.' });
+    }
+    // C2-style sanction check (suspended / muted authors cannot post).
+    const sanction = await require('../modules/friends/services/ugc').postGuard(req.user.id);
+    if (sanction) return res.status(sanction.status).json(sanction.body);
     // 1:1 chats need a live (accepted, not blocked) friendship.
     if (!conversation.isGroup) {
       const peerId = members.find(p => p !== req.user.id);
@@ -906,6 +930,9 @@ exports.getFriendMessages = async (req, res) => {
       }
       return { ...j, text: decryptText(m.text) };
     }).reverse(); // Reverse back to ASC for the client UI
+    // S0: chat photos are private media: participants get short-lived signed links.
+    const { signMediaFields, CHAT_PURPOSES } = require('../utils/mediaAccess');
+    await signMediaFields(req, decrypted, ['mediaUrl', 'attachmentUrl'], { purposes: CHAT_PURPOSES });
 
     if (connectIdent) {
       const { maskFor } = require('../modules/friends/services/connectChatIdentity');

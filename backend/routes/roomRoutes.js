@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/authMiddleware');
+const { protect: authProtect, studentOnly } = require('../middleware/authMiddleware');
+// S0: student accounts only.
+const protect = [authProtect, studentOnly];
 const {
   createRoom,
   joinRoom,

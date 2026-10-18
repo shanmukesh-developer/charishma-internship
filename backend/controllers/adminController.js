@@ -191,6 +191,25 @@ exports.getRestaurants = async (req, res) => {
   }
 };
 
+// S0: the store itself (restaurant / vendor app token for this id) or a live admin. Used to show an
+// inactive (suspended / unlisted) store only to them; everyone else gets 404.
+const storeViewerPrivileged = async (req, storeId) => {
+  try {
+    const h = String((req.headers && req.headers.authorization) || '');
+    const raw = h.startsWith('Bearer ') ? h.slice(7) : (req.cookies && req.cookies.token) || '';
+    if (!raw || !process.env.JWT_SECRET) return false;
+    const decoded = require('jsonwebtoken').verify(String(raw).replace(/['"]+/g, '').trim(), process.env.JWT_SECRET);
+    if (decoded && String(decoded.role || '').toLowerCase() === 'restaurant' && String(decoded.id) === String(storeId)) {
+      const row = await getRestaurantModel().findByPk(storeId, { attributes: ['id', 'tokenVersion'] });
+      return !!row && (Number(decoded.tv) || 0) === (Number(row.tokenVersion) || 0);
+    }
+    return await require('../middleware/authMiddleware').isLiveAdminRequest(req);
+  } catch {
+    return false;
+  }
+};
+exports.storeViewerPrivileged = storeViewerPrivileged;
+
 exports.getRestaurantById = async (req, res) => {
   try {
     const Restaurant = getRestaurantModel();
@@ -203,6 +222,10 @@ exports.getRestaurantById = async (req, res) => {
       MenuItem.findAll({ where: { restaurantId: req.params.id }, attributes: { exclude: ITEM_LISTING_EXCLUDE } }),
     ]);
     if (!restaurant) return res.status(404).json({ message: 'Restaurant not found' });
+    // S0: an inactive store is not public (the store's own app and admins still read it).
+    if (restaurant.isActive === false && !(await storeViewerPrivileged(req, restaurant.id))) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
     const resObj = restaurant.toJSON();
     stripStoreSecrets(resObj);
     applyFeaturedExpiry(resObj);
@@ -1217,6 +1240,25 @@ exports.getGlobalConfig = async (req, res) => {
     const GlobalConfig = getGlobalConfigModel();
     const configs = await GlobalConfig.findAll();
     res.json(configs.map(c => ({ ...c.toJSON(), _id: c.id })));
+  } catch (error) {
+    sendServerError(res, error, '[ADMINCONTROLLER_ERROR]');
+  }
+};
+
+// S0: GET /api/users/config is public (no auth). It used to return EVERY GlobalConfig row (Auto-Ride /
+// Campus Events / rider-cash settings, legal settings, internal flags). Anonymous and non-admin callers
+// now get only these public keys; a live admin (same route, cache bypassed) still gets every row.
+// No shipped app reads this route today; the keys below are the feature switches the apps show / hide.
+const PUBLIC_CONFIG_KEYS = new Set([
+  'AFTER_DARK_ENABLED', 'CAMPUS_WHISPERS_ENABLED', 'AUTO_RIDE_ENABLED', 'CAMPUS_EVENTS_ENABLED', 'VEHICLE_RENTALS_ENABLED',
+]);
+exports.PUBLIC_CONFIG_KEYS = PUBLIC_CONFIG_KEYS;
+exports.getPublicConfig = async (req, res) => {
+  try {
+    if (await require('../middleware/authMiddleware').isLiveAdminRequest(req)) return exports.getGlobalConfig(req, res);
+    const GlobalConfig = getGlobalConfigModel();
+    const configs = await GlobalConfig.findAll({ where: { key: { [Op.in]: [...PUBLIC_CONFIG_KEYS] } } });
+    res.json(configs.map((c) => ({ id: c.id, _id: c.id, key: c.key, value: c.value })));
   } catch (error) {
     sendServerError(res, error, '[ADMINCONTROLLER_ERROR]');
   }

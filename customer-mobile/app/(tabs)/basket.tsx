@@ -128,7 +128,7 @@ export default function BasketScreen() {
                   <View style={s.joinInputRow}>
                     <TextInput
                       style={[s.joinInput, { color: txt, borderColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F4F8' }]}
-                      placeholder="ENTER ROOM CODE (e.g. ZN-8B2A4KQ7)"
+                      placeholder="ENTER ROOM CODE (e.g. ZN-8B2A4KQ7XM)"
                       placeholderTextColor={txtSec}
                       value={inputCode}
                       onChangeText={setInputCode}

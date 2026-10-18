@@ -644,6 +644,16 @@ const restaurantAcceptOrder = async (req, res) => {
 
 // @desc    Get order by ID
 // Rider-facing order payloads never carry the customer's delivery PIN.
+// S0: bill / item photos / delivery proof are private media; the people who may see the order (customer,
+// assigned rider, store, admin) get short-lived signed links in every response / socket payload.
+const ORDER_MEDIA_FIELDS = ['proofImage', 'itemPhotoUrl', 'billProofUrl'];
+const signOrderMedia = async (req, rows) => {
+  const { signMediaFields, ORDER_PURPOSES } = require('../utils/mediaAccess');
+  await signMediaFields(req, rows, ORDER_MEDIA_FIELDS, { purposes: ORDER_PURPOSES });
+  return rows;
+};
+const withoutPinSigned = async (req, order) => signOrderMedia(req, withoutPin(order));
+
 const withoutPin = (order) => {
   const json = order && typeof order.toJSON === 'function' ? order.toJSON() : { ...order };
   delete json.deliveryPin;
@@ -719,6 +729,7 @@ const getOrderById = async (req, res) => {
       orderData.riderOtherOrders = otherOrders;
     }
 
+    await signOrderMedia(req, orderData);
     res.json({ ...orderData, _id: order.id });
   } catch (error) {
     console.error('[GET_ORDER_ERROR]', error);
@@ -773,7 +784,7 @@ const getMyOrders = async (req, res) => {
     });
     // Customer-facing fields only: PIN attempt counters, UPI proof, payout flags, rider id and
     // pickup internals stayed in this list before.
-    res.json(orders.map(customerOrderJson));
+    res.json(await signOrderMedia(req, orders.map(customerOrderJson)));
   } catch (error) {
     console.error('[MY_ORDERS_ERROR]', error);
     res.status(500).json({ message: 'We could not load your orders right now. Please pull to refresh.' });
@@ -1963,13 +1974,13 @@ const uploadItemPhoto = async (req, res) => {
     if (!saved) return res.status(409).json({ message: 'This order was just updated. Please refresh.' });
     order.itemPhotoUrl = itemPhotoUrl; // status is unchanged ('Shopping' is not an order status)
 
-    broadcastOrderStatus(req, order, {
+    broadcastOrderStatus(req, order, await signOrderMedia(req, {
       id: order.id,
       status: order.status,
       itemPhotoUrl,
       isPurchasingApprovedByCustomer: order.isPurchasingApprovedByCustomer
-    });
-    res.json({ message: 'Item photo uploaded successfully', order: withoutPin(order) });
+    }));
+    res.json({ message: 'Item photo uploaded successfully', order: await withoutPinSigned(req, order) });
   } catch (error) {
     console.error('[UPLOAD_ITEM_PHOTO_ERROR]', error);
     res.status(500).json({ message: 'Could not upload the photo. Please try again.' });
@@ -1984,7 +1995,7 @@ const approvePurchase = async (req, res) => {
     order.isPurchasingApprovedByCustomer = true;
     await order.save();
     broadcastOrderStatus(req, order, { id: order.id, status: order.status, isPurchasingApprovedByCustomer: true });
-    res.json({ message: 'Purchase approved', order: ownerOrderJson(order) });
+    res.json({ message: 'Purchase approved', order: await signOrderMedia(req, ownerOrderJson(order)) });
   } catch (error) {
     console.error('[APPROVE_PURCHASE_ERROR]', error);
     res.status(500).json({ message: 'Could not approve right now. Please try again.' });
@@ -2019,14 +2030,14 @@ const uploadBillProof = async (req, res) => {
     order.billProofUrl = billProofUrl;
     order.billAmount = money(billAmount);
 
-    broadcastOrderStatus(req, order, {
+    broadcastOrderStatus(req, order, await signOrderMedia(req, {
       id: order.id,
       status: order.status,
       billProofUrl,
       billAmount: order.billAmount,
       isBillApproved: order.isBillApproved
-    });
-    res.json({ message: 'Bill proof uploaded successfully', order: withoutPin(order) });
+    }));
+    res.json({ message: 'Bill proof uploaded successfully', order: await withoutPinSigned(req, order) });
   } catch (error) {
     console.error('[UPLOAD_BILL_ERROR]', error);
     res.status(500).json({ message: 'Could not upload the bill. Please try again.' });
@@ -2041,7 +2052,7 @@ const approveBill = async (req, res) => {
     if (!order) return;
     if (!isBuyForMeOrder(order)) return notBuyForMe(res);
     if (!(Number(order.billAmount) > 0)) return res.status(400).json({ message: 'The rider has not uploaded the bill yet.' });
-    if (order.isBillApproved) return res.json({ message: 'Bill already approved', order: withoutPin(order), amountPayable: order.finalPrice });
+    if (order.isBillApproved) return res.json({ message: 'Bill already approved', order: await withoutPinSigned(req, order), amountPayable: order.finalPrice });
 
     const Order = getOrderModel();
     const { getSequelize } = require('../config/db');
@@ -2096,7 +2107,7 @@ const approveBill = async (req, res) => {
     const msg = order.paymentMethod === 'Wallet'
       ? (diff > 0 ? `Bill approved. ₹${diff} was taken from your Wallet.` : diff < 0 ? `Bill approved. ₹${-diff} was returned to your Wallet.` : 'Bill approved.')
       : `Bill approved. Pay ₹${newFinal} in cash when your order arrives.`;
-    res.json({ message: msg, order: withoutPin(order), amountPayable: newFinal });
+    res.json({ message: msg, order: await withoutPinSigned(req, order), amountPayable: newFinal });
   } catch (error) {
     console.error('[APPROVE_BILL_ERROR]', error);
     res.status(500).json({ message: 'Could not approve the bill right now. Please try again.' });

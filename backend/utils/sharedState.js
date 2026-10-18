@@ -2,15 +2,16 @@
 // function resolves null / does nothing otherwise and the caller keeps its in-memory state, which is
 // today's single-instance behaviour). Everything here is tiny and expires on its own.
 //
-//   Shared carts      'zenvy:cart:<room>:m'    SET of member ids          (6 h, refreshed on activity)
-//                     'zenvy:cart:<room>:snap' latest basket JSON         (6 h)
+//   Shared carts      'zenvy:cart:<room>:m'    SET of member ids          (30 min, refreshed on activity)
+//                     'zenvy:cart:<room>:snap' latest basket JSON         (30 min)
 //   Surge             'zenvy:surge:z:<zone>'   ZSET of order timestamps   (window + 1 min)
 //                     'zenvy:surge:on:<zone>'  "1" while the zone surges   (2 windows + 1 min, refreshed)
 //   Campus presence   'zenvy:cpres:i:<inst>'   SET of user ids per instance (refreshed every 60 s)
 const redis = require('./redis');
 
-const CART_TTL_MS = 6 * 60 * 60 * 1000;
-const MAX_CART_SNAPSHOT_BYTES = 64 * 1024;
+// S0: shared-cart state lives 30 min after the last activity (was 6 h); snapshots are at most 32 KB.
+const CART_TTL_MS = 30 * 60 * 1000;
+const MAX_CART_SNAPSHOT_BYTES = 32 * 1024;
 
 const parse = (s) => { try { return JSON.parse(s); } catch { return null; } };
 const execOk = (res) => Array.isArray(res) && res.every((r) => !r[0]);

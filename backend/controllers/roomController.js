@@ -144,6 +144,21 @@ const kickUser = async (req, res) => {
     );
     if (!kicked) return res.status(404).json({ message: 'That person is not in this room.' });
 
+    // S0 (P1-2): take the removed person's live sockets out of the room's chat and call rooms on every
+    // instance (socketsLeave goes through the Redis adapter when it is on).
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        const chatRoom = `afterdark_${roomId}`;
+        const callRoom = `afterdark_call_${roomId}`;
+        io.in(`user_${targetUserId}`).socketsLeave([chatRoom, callRoom]);
+        io.to(`user_${targetUserId}`).emit('after_dark_removed', { groupId: roomId });
+        io.to(callRoom).emit('user_left_call', { userId: targetUserId, userName: 'Friend', removed: true });
+      }
+    } catch (err) {
+      console.warn('[KICK_SOCKET_LEAVE_WARN]', err.message);
+    }
+
     res.status(200).json({ message: 'User kicked from room.' });
   } catch (error) {
     console.error('[KICK_USER_ERROR]', error);

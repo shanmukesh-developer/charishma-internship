@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { protect, admin } = require('../../middleware/authMiddleware');
+const { protect, admin, studentOnly } = require('../../middleware/authMiddleware');
+// S0: student-only social writes (riders / stores / drivers get 403).
+const student = [protect, studentOnly];
 const {
   getCampuses,
   getCampusProfile,
@@ -114,7 +116,7 @@ router.get('/avatar/:userId', serveAvatar);
 
 // People & clubs
 router.get('/search', protect, searchCampus);
-router.post('/dm', protect, openDm);
+router.post('/dm', student, openDm);
 
 // Chats (list + cursor-paginated history). Messaging itself is socket-driven (/campus ns).
 router.get('/chats', protect, getChats);
@@ -122,23 +124,23 @@ router.get('/chats/:id/messages', protect, getChatMessages);
 
 // Profile & Verification
 router.get('/profile', protect, getCampusProfile);
-router.put('/profile', protect, updateCampusProfile);
+router.put('/profile', student, updateCampusProfile);
 router.get('/verify/methods', protect, getVerificationMethods);
 router.get('/verify/status', protect, getVerificationStatus);
-router.post('/verify/email-otp', protect, requestEmailOtp);
-router.post('/verify/confirm-otp', protect, confirmEmailOtp);
-router.post('/verify/upload-id', protect, submitIdCard);
+router.post('/verify/email-otp', student, requestEmailOtp);
+router.post('/verify/confirm-otp', student, confirmEmailOtp);
+router.post('/verify/upload-id', student, submitIdCard);
 router.get('/verify/requests', protect, getVerificationRequests);
 router.post('/verify/:id/review', protect, reviewVerification);
 
 // Groups & Classroom
 router.get('/groups/mine', protect, getMyGroups);
-router.post('/groups', protect, createGroup);
-router.post('/groups/join', protect, joinGroupByCode);
+router.post('/groups', student, createGroup);
+router.post('/groups/join', student, joinGroupByCode);
 router.get('/groups/preview/:code', previewGroupByCode);
 router.post('/groups/:id/code/reset', protect, resetJoinCode);
 router.put('/groups/:id/discoverable', protect, setGroupDiscoverable);
-router.post('/groups/:id/join-open', protect, joinOpenGroup);
+router.post('/groups/:id/join-open', student, joinOpenGroup);
 
 // Classwork & Announcements
 router.get('/assignments', protect, getMyAssignments);
@@ -168,18 +170,18 @@ router.post('/ride-pool/:id/leave', protect, leaveRidePool);
 // Phase 5: Proximity Rooms (location-bound live chat)
 router.get('/proximity/rooms', protect, getProximityRooms);
 router.get('/proximity/rooms/:slug/messages', protect, getProximityMessages);
-router.post('/proximity/rooms/:slug/messages', protect, postProximityMessage);
+router.post('/proximity/rooms/:slug/messages', student, postProximityMessage);
 
 // Pulse: Today on Campus, 9 PM Question, Whispers, Branch Wars (all real, DB-backed)
 router.get('/pulse/today', protect, getToday);
 router.get('/pulse/question', protect, getDailyQuestion);
-router.post('/pulse/question/answer', protect, answerDailyQuestion);
-router.post('/pulse/question/answer/:id/upvote', protect, upvoteAnswer);
+router.post('/pulse/question/answer', student, answerDailyQuestion);
+router.post('/pulse/question/answer/:id/upvote', student, upvoteAnswer);
 // C2: Whispers kill switch (GlobalConfig CAMPUS_WHISPERS_ENABLED, admin Friends moderation > switches).
 const featureSwitches = require('../../utils/featureSwitches');
-router.get('/pulse/whispers', protect, featureSwitches.requireOn('whispers'), getWhispers);
-router.post('/pulse/whispers', protect, featureSwitches.requireOn('whispers'), createWhisper);
-router.post('/pulse/whispers/:id/react', protect, featureSwitches.requireOn('whispers'), reactWhisper);
+router.get('/pulse/whispers', student, featureSwitches.requireOn('whispers'), getWhispers);
+router.post('/pulse/whispers', student, featureSwitches.requireOn('whispers'), createWhisper);
+router.post('/pulse/whispers/:id/react', student, featureSwitches.requireOn('whispers'), reactWhisper);
 router.get('/pulse/branch-wars', protect, getBranchLeaderboard);
 // Board counts for the Pulse cards (no photos downloaded)
 router.get('/pulse/counts', protect, async (req, res) => {

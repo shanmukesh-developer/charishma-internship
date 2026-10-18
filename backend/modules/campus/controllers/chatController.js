@@ -242,8 +242,13 @@ const getChatMessages = async (req, res) => {
       if (blocked.size) ascending = ascending.filter((m) => !blocked.has(String(m.senderId)));
     }
 
+    // S0: chat photos are private media: participants get short-lived signed links.
+    const serialized = ascending.map((m) => serializeMessage(m, userId));
+    const { signMediaFields, CHAT_PURPOSES } = require('../../../utils/mediaAccess');
+    await signMediaFields(req, serialized, ['mediaUrl'], { purposes: CHAT_PURPOSES });
+
     res.json({
-      messages: ascending.map((m) => maskFor(serializeMessage(m, userId), userId, ident)),
+      messages: serialized.map((m) => maskFor(m, userId, ident)),
       nextCursor,
       hasMore,
     });

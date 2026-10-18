@@ -79,9 +79,12 @@ const saveImageBytes = async (buf, { ownerId, purpose = 'other', isPrivate = fal
   const owner = ownerId && new RegExp(`^${UUID}$`, 'i').test(String(ownerId)) ? String(ownerId) : '00000000-0000-0000-0000-000000000000';
   const p = PURPOSES.has(purpose) ? purpose : 'other';
   const sha256 = crypto.createHash('sha256').update(buf).digest('hex');
-  let row = await Media.findOne({ where: { ownerId: owner, sha256, purpose: p }, attributes: ['id'] });
+  // S0: chat photos, bills, basket photos and delivery proof are always private (utils/mediaAccess). A
+  // public row saved before S0 for the same bytes is not reused for a private reference.
+  const priv = !!isPrivate || require('./mediaAccess').PRIVATE_PURPOSES.has(p);
+  let row = await Media.findOne({ where: { ownerId: owner, sha256, purpose: p, ...(priv ? { isPrivate: true } : {}) }, attributes: ['id'] });
   // utils/mediaStorage: bytes in this row ('db', default) or in R2 ('s3'); same row, same URL either way.
-  if (!row) row = await require('./mediaStorage').createMediaRow(Media, { ownerId: owner, purpose: p.slice(0, 20), mime, size: buf.length, sha256, isPrivate: !!isPrivate }, buf);
+  if (!row) row = await require('./mediaStorage').createMediaRow(Media, { ownerId: owner, purpose: p.slice(0, 20), mime, size: buf.length, sha256, isPrivate: priv }, buf);
   return { id: row.id, mime, size: buf.length };
 };
 
@@ -99,7 +102,16 @@ const storeImageRef = async (value, opts = {}) => {
   const v = value.trim();
   if (!v) return { ok: true, value: null };
   const mid = mediaIdOf(v);
-  if (mid) return { ok: true, value: `${publicBase(req)}/api/campus/media/${mid}` };
+  if (mid) {
+    // S0: someone else's PRIVATE upload (ID card, chat photo, bill ...) can never be attached: the row it
+    // lands on would hand out signed links to it. Admins may re-attach anything.
+    const owner = ownerId || (req && req.user && req.user.id);
+    const isAdmin = !!(req && req.user && String(req.user.role || '').toLowerCase() === 'admin');
+    let allowed = true;
+    try { allowed = await require('./mediaAccess').mayAttach(v, owner, { isAdmin }); } catch { allowed = false; }
+    if (!allowed) return { ok: false, status: 400, code: 'BAD_IMAGE', message: 'Upload the photo first, then attach it.' };
+    return { ok: true, value: `${publicBase(req)}/api/campus/media/${mid}` };
+  }
   if (HTTP_URL_RE.test(v)) {
     if (!allowExternal) return { ok: false, status: 400, code: 'BAD_IMAGE', message: 'Upload the photo first, then attach it.' };
     return { ok: true, value: v };

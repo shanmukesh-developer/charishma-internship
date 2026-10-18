@@ -100,9 +100,10 @@ router.get('/wallet/transactions', protect, require('../controllers/walletContro
 
 // Public Asset Discovery (short server cache + ETag; cleared on every store / product / config write)
 const { cacheGet } = require('../utils/responseCache');
-router.get('/config', cacheGet('config', { ttlMs: 60 * 1000, bypass: require('../utils/responseCache').liveAdminBypass }), require('../controllers/adminController').getGlobalConfig);
+router.get('/config', cacheGet('config', { ttlMs: 60 * 1000, bypass: require('../utils/responseCache').liveAdminBypass }), require('../controllers/adminController').getPublicConfig); // S0: public allow-list (admins: every row)
 router.get('/restaurants', cacheGet('catalog', { ttlMs: 30 * 1000 }), require('../controllers/adminController').getRestaurants);
-router.get('/restaurants/:id', cacheGet('catalog', { ttlMs: 30 * 1000 }), require('../controllers/adminController').getRestaurantById);
+// S0: the store's own token / a live admin skip the shared cache (they may read an inactive store).
+router.get('/restaurants/:id', cacheGet('catalog', { ttlMs: 30 * 1000, bypass: (req) => require('../controllers/adminController').storeViewerPrivileged(req, req.params.id) }), require('../controllers/adminController').getRestaurantById);
 // Same handler + cache key as GET /api/search (public, no per-user data; 'catalog' group).
 router.get('/search', cacheGet('catalog', { ttlMs: 30 * 1000, key: require('../controllers/searchController').searchCacheKey }), require('../controllers/searchController').globalSearch);
 

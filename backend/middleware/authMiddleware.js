@@ -5,23 +5,33 @@ const AUTH_CACHE = new Map();
 const AUTH_CACHE_TTL = 60 * 1000; // 60 seconds
 const AUTH_CACHE_MAX = 2000; // Max entries to prevent memory bloat
 
-const getCachedUser = (userId) => {
-  const entry = AUTH_CACHE.get(userId);
+// S0: entries are keyed by account table + id (`restaurant:<id>`, `rider:<id>`, `user:<id>`), so a token of
+// one account type can never be answered from another type's cached row.
+const ACCOUNT_CLASSES = ['restaurant', 'rider', 'user'];
+const accountClass = (role) => {
+  const r = String(role || '').toLowerCase();
+  return r === 'restaurant' || r === 'rider' ? r : 'user';
+};
+const cacheKey = (cls, userId) => `${cls}:${userId}`;
+
+const getCachedUser = (cls, userId) => {
+  const key = cacheKey(cls, userId);
+  const entry = AUTH_CACHE.get(key);
   if (!entry) return null;
   if (Date.now() - entry.ts > AUTH_CACHE_TTL) {
-    AUTH_CACHE.delete(userId);
+    AUTH_CACHE.delete(key);
     return null;
   }
   return entry.user;
 };
 
-const setCachedUser = (userId, user) => {
+const setCachedUser = (cls, userId, user) => {
   // Evict oldest entries if cache is full
   if (AUTH_CACHE.size >= AUTH_CACHE_MAX) {
     const firstKey = AUTH_CACHE.keys().next().value;
     AUTH_CACHE.delete(firstKey);
   }
-  AUTH_CACHE.set(userId, { user, ts: Date.now() });
+  AUTH_CACHE.set(cacheKey(cls, userId), { user, ts: Date.now() });
 };
 
 // Drop a cached account right after a ban / role change / approval change so it applies at once
@@ -29,7 +39,7 @@ const setCachedUser = (userId, user) => {
 // B1: with REDIS_URL set the other instances drop the same entry (suspension / role / password
 // changes take effect everywhere at once, not after the 60 s TTL). utils/cacheBus.
 const clearCachedUser = require('../utils/cacheBus').wrap('auth.user', (userId) => {
-  if (userId !== undefined && userId !== null) AUTH_CACHE.delete(userId);
+  if (userId !== undefined && userId !== null) for (const cls of ACCOUNT_CLASSES) AUTH_CACHE.delete(cacheKey(cls, userId));
 }, { resync: () => AUTH_CACHE.clear() });
 
 const protect = async (req, res, next) => {
@@ -56,12 +66,20 @@ const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, secret);
     
     // Check cache first (avoids DB hit for 500+ concurrent users)
-    const cached = getCachedUser(decoded.id);
-    if (cached) {
+    // S0: an Auto-Ride driver token is never a customer / rider / store session (its own protectDriver).
+    if (String(decoded.role || '').toLowerCase() === 'auto_driver') {
+      return res.status(401).json({ message: 'Not authorized, token failed' });
+    }
+    const tokenClass = accountClass(decoded.role);
+    const cached = getCachedUser(tokenClass, decoded.id);
+    // S0: the cached row must be the same account type as the token, and a suspended account is refused
+    // on the cached path too (not only on a cache miss).
+    if (cached && accountClass(cached.role) === tokenClass) {
       // Sessions from before a password change (older tokenVersion) are signed out.
       if ((Number(decoded.tv) || 0) !== (Number(cached.tokenVersion) || 0)) {
         return res.status(401).json({ message: 'Your password was changed. Please sign in again.', code: 'SESSION_REVOKED' });
       }
+      if (cached.isActive === false) return res.status(403).json({ message: 'Account suspended. Please contact support.' });
       const { tokenVersion: _tv, ...user } = cached;
       req.user = user;
       return next();
@@ -74,7 +92,7 @@ const protect = async (req, res, next) => {
          const dbRest = await Restaurant.findByPk(decoded.id, { attributes: ['id', 'name', 'tokenVersion'] });
          if (!dbRest) return res.status(401).json({ message: 'Restaurant not found' });
          const tokenVersion = Number(dbRest.tokenVersion) || 0;
-         setCachedUser(decoded.id, { id: dbRest.id, role: 'restaurant', name: dbRest.name, tokenVersion });
+         setCachedUser('restaurant', decoded.id, { id: dbRest.id, role: 'restaurant', name: dbRest.name, tokenVersion });
          if ((Number(decoded.tv) || 0) !== tokenVersion) {
            return res.status(401).json({ message: 'Your password was changed. Please sign in again.', code: 'SESSION_REVOKED' });
          }
@@ -90,7 +108,7 @@ const protect = async (req, res, next) => {
          const dbRider = await DeliveryPartner.findByPk(decoded.id, { attributes: ['id', 'name', 'tokenVersion'] });
          if (!dbRider) return res.status(401).json({ message: 'Rider not found' });
          const tokenVersion = Number(dbRider.tokenVersion) || 0;
-         setCachedUser(decoded.id, { id: dbRider.id, role: 'rider', name: dbRider.name, tokenVersion });
+         setCachedUser('rider', decoded.id, { id: dbRider.id, role: 'rider', name: dbRider.name, tokenVersion });
          if ((Number(decoded.tv) || 0) !== tokenVersion) {
            return res.status(401).json({ message: 'Your password was changed. Please sign in again.', code: 'SESSION_REVOKED' });
          }
@@ -119,7 +137,7 @@ const protect = async (req, res, next) => {
         isActive: dbUser.isActive
       };
       req.user = userPayload;
-      setCachedUser(decoded.id, { ...userPayload, tokenVersion: Number(dbUser.tokenVersion) || 0 });
+      setCachedUser('user', decoded.id, { ...userPayload, tokenVersion: Number(dbUser.tokenVersion) || 0 });
     } else {
       req.user = decoded;
     }
@@ -202,4 +220,14 @@ const isLiveAdminRequest = async (req) => {
   }
 };
 
-module.exports = { protect, admin, rider, vendor, approvedRider, clearCachedUser, isLiveAdminRequest };
+// S0: student social features (Friends, After Dark chat / rooms, campus Pulse / Whispers / spots / groups,
+// campus profile + ID verification) are for customer accounts only. Rider, store and Auto-Ride driver
+// tokens get 403 (they used to reach e.g. the contacts lookup that maps phone numbers to students).
+const STUDENT_ROLES = new Set(['student', 'admin', 'user', 'customer']);
+const studentOnly = (req, res, next) => {
+  const role = String((req.user && req.user.role) || '').toLowerCase();
+  if (req.user && STUDENT_ROLES.has(role)) return next();
+  return res.status(403).json({ code: 'STUDENTS_ONLY', message: 'This part of Zenvy is only for student accounts.' });
+};
+
+module.exports = { protect, admin, rider, vendor, approvedRider, clearCachedUser, isLiveAdminRequest, studentOnly, STUDENT_ROLES };

@@ -39,17 +39,37 @@ const serializeMessage = (m) => {
   return { ...json, text: decryptText(json.text), replyTo: replyTo || null };
 };
 
+// S0 (P1-1): this legacy list used to return every Conversation row the caller is in, raw: Connect / task
+// chats (participants = the real account ids behind a Connect alias), group join codes and admin lists.
+// Now: linked chats (refType task / Connect) are left out (they live in Friends > Connect / Tasks, which
+// mask identities), and group internals are only for that group's admins.
+const legacyConversationJson = (c, userId) => {
+  const j = typeof c.toJSON === 'function' ? c.toJSON() : { ...c };
+  const admins = Array.isArray(j.adminIds) ? j.adminIds.map(String) : [];
+  if (j.isGroup && !admins.includes(String(userId))) {
+    const count = Array.isArray(j.participants) ? j.participants.length : 0;
+    delete j.participants;
+    delete j.joinCode;
+    delete j.adminIds;
+    j.participantCount = count;
+  }
+  j.groupAvatar = typeof j.groupAvatar === 'string' && j.groupAvatar.startsWith('data:') ? null : (j.groupAvatar || null);
+  return { ...j, _id: j.id };
+};
+
 const getConversations = async (req, res) => {
   try {
     const Conversation = getConversationModel();
 
     // participants is serialized JSON text: narrow with LIKE, then confirm exact membership
     const convos = await Conversation.findAll({
-      where: { participants: { [Op.like]: `%${req.user.id}%` } },
+      where: { participants: { [Op.like]: `%${req.user.id}%` }, refType: null },
       order: [['lastMessageAt', 'DESC']]
     });
 
-    res.json(convos.filter(c => (c.participants || []).includes(req.user.id)));
+    res.json(convos
+      .filter(c => (c.participants || []).includes(req.user.id) && !c.refType)
+      .map(c => legacyConversationJson(c, req.user.id)));
   } catch (error) {
     console.error('[CHAT_GET_CONVOS_ERROR]', error);
     res.status(500).json({ message: 'Could not load your chats right now.' });
@@ -59,6 +79,10 @@ const getConversations = async (req, res) => {
 // GET /api/chat/conversations/:conversationId/messages?limit=50&before=<ISO date>
 // The id is an After Dark chat (accepted Friendship id or lounge Room id) or a Conversation
 // the caller participates in. Returns decrypted messages, oldest first.
+// S0 (P1-1): same rules as GET /api/campus/chats/:id/messages: linked chats go through conversationGuard
+// and Connect identity masking, expired / deleted-for-me messages are left out, deleted / moderated
+// messages never show their content, group messages from blocked people are left out, and chat photos
+// come back as signed links.
 const getMessages = async (req, res) => {
   try {
     const conversationId = String(req.params.conversationId || '').trim();
@@ -67,16 +91,31 @@ const getMessages = async (req, res) => {
     }
 
     let allowed = !!(await getAfterDarkAccess(req.user.id, conversationId));
+    let convo = null;
     if (!allowed) {
-      const convo = await getConversationModel().findByPk(conversationId);
+      convo = await getConversationModel().findByPk(conversationId);
       allowed = !!convo && (convo.participants || []).includes(req.user.id);
     }
     if (!allowed) {
       return res.status(403).json({ code: 'NOT_A_PARTICIPANT', message: 'You are not part of this chat.' });
     }
+    let ident = null;
+    if (convo) {
+      const { conversationGuard } = require('../modules/friends/guards');
+      const guard = await conversationGuard(convo, req.user.id, 'join');
+      if (!guard.ok) return res.status(403).json({ code: guard.code, message: guard.error });
+      ident = await require('../modules/friends/services/connectChatIdentity').identityFor(convo);
+    }
 
+    const uid = String(req.user.id);
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
-    const where = { conversationId };
+    const where = {
+      conversationId,
+      [Op.and]: [
+        { [Op.or]: [{ expiresAt: null }, { expiresAt: { [Op.gt]: new Date() } }] },
+        { [Op.or]: [{ deletedFor: null }, { deletedFor: { [Op.notLike]: `%${uid}%` } }] },
+      ],
+    };
     if (req.query.before) {
       const before = new Date(req.query.before);
       if (!Number.isNaN(before.getTime())) where.createdAt = { [Op.lt]: before };
@@ -88,7 +127,24 @@ const getMessages = async (req, res) => {
       limit
     });
 
-    res.json(messages.reverse().map(serializeMessage));
+    let rows = messages.reverse().map(serializeMessage).map((m) => {
+      delete m.deletedFor;
+      if (m.isDeletedForEveryone) {
+        return { ...m, text: 'This message was deleted', mediaUrl: null, attachmentUrl: null, mediaMetadata: null, replyTo: null };
+      }
+      return m;
+    });
+    if (convo && convo.isGroup) {
+      const blocked = await require('../modules/friends/services/ugc').blockedIds(req.user.id);
+      if (blocked.size) rows = rows.filter((m) => !blocked.has(String(m.senderId)));
+    }
+    const { signMediaFields, CHAT_PURPOSES } = require('../utils/mediaAccess');
+    await signMediaFields(req, rows, ['mediaUrl', 'attachmentUrl'], { purposes: CHAT_PURPOSES });
+    if (ident) {
+      const { maskFor } = require('../modules/friends/services/connectChatIdentity');
+      rows = maskFor(rows, req.user.id, ident);
+    }
+    res.json(rows);
   } catch (error) {
     console.error('[CHAT_GET_MESSAGES_ERROR]', error);
     res.status(500).json({ message: 'Could not load messages right now.' });

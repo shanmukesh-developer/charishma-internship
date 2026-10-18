@@ -1,5 +1,5 @@
 const express = require('express');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, studentOnly } = require('../middleware/authMiddleware');
 const {
   searchContacts,
   sendFriendRequest,
@@ -27,6 +27,7 @@ const {
 const router = express.Router();
 
 router.use(protect); // Ensure all friends endpoints are authenticated
+router.use(studentOnly); // S0: rider / store / driver tokens never reach the student social graph
 
 router.post('/contacts', searchContacts);
 // Request inbox (preferred shape). The older /pending, /accept and /decline stay for old app builds.

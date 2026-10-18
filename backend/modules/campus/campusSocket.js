@@ -372,7 +372,9 @@ const initCampusSocket = (io) => {
         let cleanMedia = null;
         if (mediaUrl) {
           const { storeImageRef } = require('../../utils/imageStore');
-          const img = await storeImageRef(mediaUrl, { ownerId: userId, purpose: 'chat', maxBytes: MAX_INLINE_DATA_URL });
+          // S0: our own media (or inline bytes) only: no external links (tracking pixels / IP grabbers), and
+          // someone else's private upload is refused by storeImageRef.
+          const img = await storeImageRef(mediaUrl, { ownerId: userId, purpose: 'chat', maxBytes: MAX_INLINE_DATA_URL, allowExternal: false });
           cleanMedia = img.ok ? img.value : null;
           if (!cleanMedia) {
             if (ack) ack({ error: 'That photo could not be sent. Please try again.', code: 'BAD_MEDIA' });
@@ -436,6 +438,12 @@ const initCampusSocket = (io) => {
           readBy: newMsg.readBy,
           deliveredTo: newMsg.deliveredTo,
         };
+
+        // S0: chat photos are private media: the room (participants only) gets a signed link.
+        if (messagePayload.mediaUrl) {
+          const { signMediaFields, CHAT_PURPOSES } = require('../../utils/mediaAccess');
+          await signMediaFields(null, messagePayload, ['mediaUrl'], { purposes: CHAT_PURPOSES });
+        }
 
         // Broadcast to chat room
         await emitToChat(chatId, 'message:new', messagePayload, { conversation, skip: skipIds });
@@ -742,9 +750,9 @@ const initCampusSocket = (io) => {
         if (typeof roomSlug !== 'string' || roomSlug.length > 80) return;
         const room = await getProximityRoomModel().findOne({ where: { slug: roomSlug } });
         // Campus spots belong to one campus (or to every campus when campusId is empty).
-        const { spotVisibleTo } = require('./controllers/proximityController');
-        const { campusScopeFor } = require('./campusHelpers');
-        if (!spotVisibleTo(room, room && room.campusId ? (await campusScopeFor(userId)).campusId : null)) {
+        // S0: campus-only spots need a VERIFIED membership of that campus.
+        const { spotVisibleTo, verifiedCampusOf } = require('./controllers/proximityController');
+        if (!spotVisibleTo(room, room && room.campusId ? await verifiedCampusOf(userId) : null)) {
           if (ack) ack({ error: 'Room not found' });
           return;
         }
@@ -784,7 +792,9 @@ const initCampusSocket = (io) => {
         const ProximityMessage = getProximityMessageModel();
 
         const room = await ProximityRoom.findOne({ where: { slug: roomSlug } });
-        if (!room || room.isActive === false) {
+        // S0: re-check the campus rule on every post (verification can be revoked after joining).
+        const { spotVisibleTo, verifiedCampusOf } = require('./controllers/proximityController');
+        if (!room || !spotVisibleTo(room, room.campusId ? await verifiedCampusOf(userId) : null)) {
           if (ack) ack({ error: 'Room not found' });
           return;
         }

@@ -27,9 +27,10 @@ const getAfterDarkAccess = async (userId, groupId) => {
   const RoomParticipant = getRoomParticipantModel && getRoomParticipantModel();
   if (Room && RoomParticipant) {
     const room = await Room.findByPk(id);
-    if (!room) return null;
+    if (!room || room.isActive === false) return null;
     if (room.expiresAt && new Date(room.expiresAt).getTime() < Date.now()) return null;
-    const membership = await RoomParticipant.findOne({ where: { roomId: id, userId } });
+    // S0 (P1-2): a member the room admin removed (kickedAt set) has no access any more.
+    const membership = await RoomParticipant.findOne({ where: { roomId: id, userId, kickedAt: null } });
     return membership ? { type: 'room', room } : null;
   }
   return null;

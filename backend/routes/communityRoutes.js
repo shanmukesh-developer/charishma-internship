@@ -33,6 +33,8 @@ const shapePost = (row, likedIds) => {
   const j = typeof row.toJSON === 'function' ? row.toJSON() : { ...row };
   const legacy = legacyLikers(row);
   delete j.likedBy;
+  // S0: stored /api/campus/avatar links get the signature the avatar endpoint now requires.
+  if (j.userAvatar) j.userAvatar = require('../modules/campus/campusHelpers').resignAvatarUrl(j.userAvatar);
   return { ...j, likedByMe: likedIds ? likedIds.has(String(j.id)) : false, _legacyLiked: legacy };
 };
 const finish = (p, viewerId) => {
@@ -112,7 +114,19 @@ router.get('/', async (req, res) => {
         order: [['createdAt', 'DESC']],
         limit: 50
       });
-      return res.json(rootPosts.map((p) => ({ ...finish(shapePost(p, null), null), replies: [] })));
+      // S0: the fallback path applies the same moderation (hidden / pending review / removed) and block
+      // filters as the normal path.
+      const viewerId = optionalUserId(req);
+      try {
+        const ugc = require('../modules/friends/services/ugc');
+        const hidden = await ugc.hiddenIds('community_post', rootPosts.map((p) => p.id));
+        const blocked = viewerId ? await ugc.blockedIds(viewerId) : new Set();
+        rootPosts = rootPosts.filter((p) => !hidden.has(String(p.id)) && !blocked.has(String(p.userId)));
+      } catch (err) {
+        console.warn('[COMMUNITY_UGC_FILTER_WARN]', err.message);
+        return res.json([]); // fail closed: never show moderated posts because the filter failed
+      }
+      return res.json(rootPosts.map((p) => ({ ...finish(shapePost(p, null), viewerId), replies: [] })));
     }
 
     res.json(await withReplies(req, CommunityPost, rootPosts, now));
@@ -264,7 +278,13 @@ router.post('/', protect, async (req, res) => {
     const out = finish(shapePost(newPost, null), null);
     const io = req.app.get('io');
     if (io) {
-      io.emit('community_new_post', out);
+      // S0: every socket gets this, so only the public card fields the anonymous GET /api/community list
+      // shows (no author account id, order id, store id, likers). The app upserts by id / parentId and
+      // refetches the feed for the rest.
+      const PUBLIC_POST_FIELDS = ['id', 'parentId', 'userName', 'userAvatar', 'content', 'imageUrl', 'likes', 'replyCount', 'postType', 'starRating', 'restaurantName', 'productName', 'expiresAt', 'createdAt', 'updatedAt'];
+      const pub = { likedByMe: false };
+      for (const k of PUBLIC_POST_FIELDS) if (out[k] !== undefined) pub[k] = out[k];
+      io.emit('community_new_post', pub);
     }
 
     // Birthday pushes go out only for admin-approved celebrations (POST /api/birthdays/:id/approve),

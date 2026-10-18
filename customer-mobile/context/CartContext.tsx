@@ -97,7 +97,8 @@ const CartActionsContext = createContext<CartActions | undefined>(undefined);
 const CartStateContext = createContext<CartState | undefined>(undefined);
 
 export const MAX_ITEM_QTY = 20;
-const ROOM_CODE_RE = /^ZN-[A-Z0-9]{4,8}$/;
+// Codes from older builds (4-8 characters) still work; new rooms get 10 characters (server accepts 4-12).
+const ROOM_CODE_RE = /^ZN-[A-Z0-9]{4,12}$/;
 
 /** Mega Basket "custom request" lines (free-text items a rider shops for). They are placed via /api/mega-basket, never /api/orders. */
 export const isCustomRequest = (item: Pick<CartItem, 'id'>) => String(item.id || '').startsWith('custom-');
@@ -295,8 +296,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const handleHostRoom = useCallback(async () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = 'ZN-';
-    // 8 characters (~1e12 codes) so live baskets can't be found by guessing codes.
-    for (let i = 0; i < 8; i++) {
+    // 10 characters (~1e15 codes) so live baskets can't be found by guessing codes (the server also
+    // rate-limits joins).
+    for (let i = 0; i < 10; i++) {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     setRoomCode(code);
@@ -311,7 +313,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     let formatted = inputCode.trim().toUpperCase().replace(/\s+/g, '');
     if (!formatted.startsWith('ZN-')) formatted = `ZN-${formatted.replace(/^ZN/, '')}`;
     if (!ROOM_CODE_RE.test(formatted)) {
-      Alert.alert('Check the code', 'Room codes look like ZN-8B2A4KQ7. Please check with your roommate and try again.');
+      Alert.alert('Check the code', 'Room codes look like ZN-8B2A4KQ7XM. Please check with your roommate and try again.');
       return;
     }
     setRoomCode(formatted);

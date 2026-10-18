@@ -15,9 +15,12 @@ const PURPOSES = new Set(['id_card', 'chat', 'lost_found', 'avatar', 'post', 'ot
   // Zenvy Auto-Ride driver documents (private; drivers upload via /api/auto-ride/driver/media).
   'auto_driver_doc',
   // Zenvy Campus Events posters / gallery (public: shown on event cards to every student).
-  'event_poster']);
+  'event_poster',
+  // S0: order bill / item photos / delivery proof (private, like the /api/upload proof path).
+  'bill', 'basket', 'delivery_proof']);
 // Served only to the owner, admins, or through a signed link (Connect photos are shown via signed URLs).
-const PRIVATE_PURPOSES = new Set(['id_card', 'connect', 'liveness_selfie', 'rental_doc', 'rental_licence', 'rental_report', 'rental_condition', 'auto_driver_doc']);
+// S0: chat photos and order bills / basket photos / delivery proof are private too (utils/mediaAccess).
+const { PRIVATE_PURPOSES } = require('../../../utils/mediaAccess');
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Per-user upload budget (in memory; resets on restart, which is fine for abuse control).
@@ -119,7 +122,8 @@ const uploadMedia = async (req, res) => {
     const sha256 = crypto.createHash('sha256').update(buf).digest('hex');
 
     // Same user, same bytes, same purpose -> reuse (retries after a timeout do not duplicate).
-    let row = await Media.findOne({ where: { ownerId: req.user.id, sha256, purpose }, attributes: ['id', 'mime', 'size'] });
+    // (S0: a public row saved before a purpose became private is never reused for a private upload.)
+    let row = await Media.findOne({ where: { ownerId: req.user.id, sha256, purpose, ...(PRIVATE_PURPOSES.has(purpose) ? { isPrivate: true } : {}) }, attributes: ['id', 'mime', 'size'] });
     if (!row) {
       // utils/mediaStorage: bytes in this row ('db', default) or in R2 ('s3'); the row and URL are the same.
       row = await require('../../../utils/mediaStorage').createMediaRow(Media, {
@@ -239,6 +243,16 @@ const serveExternal = async (req, res, storage, row, etag) => {
 const SIGN_TTL_S = 60 * 60;
 const signKey = () => crypto.createHash('sha256').update(`campus-media:${process.env.JWT_SECRET || ''}`).digest();
 const sigFor = (id, exp) => crypto.createHmac('sha256', signKey()).update(`${id}.${exp}`).digest('hex').slice(0, 32);
+// S0: avatar links (GET /api/campus/avatar/:userId?v=&s=) carry a signature over (userId, v) so the
+// endpoint is no longer an open "photo of any user id" lookup. Links are issued by campusHelpers.avatarUrlFor
+// only where the viewer is already shown that person (never for Connect-masked peers).
+const avatarSig = (userId, v) => crypto.createHmac('sha256', signKey()).update(`avatar.${String(userId).toLowerCase()}.${String(v || '')}`).digest('hex').slice(0, 24);
+const verifyAvatarSig = (userId, v, s) => {
+  if (!process.env.JWT_SECRET || typeof s !== 'string' || s.length !== 24) return false;
+  const want = Buffer.from(avatarSig(userId, typeof v === 'string' ? v : ''));
+  const got = Buffer.from(s);
+  return want.length === got.length && crypto.timingSafeEqual(want, got);
+};
 const verifySignature = (id, exp, sig) => {
   if (!process.env.JWT_SECRET || typeof exp !== 'string' || typeof sig !== 'string' || sig.length !== 32) return false;
   const e = Number(exp);
@@ -288,22 +302,30 @@ const serveAvatar = async (req, res) => {
   try {
     const userId = String(req.params.userId || '');
     if (!UUID_RE.test(userId)) return res.status(404).json({ message: 'Not found' });
+    // S0: a signed link from an API response (avatarUrlFor) or a signed-in account; never anonymous by id.
+    let allowed = verifyAvatarSig(userId, req.query.v, req.query.s);
+    if (!allowed) allowed = !!(await viewerFrom(req));
+    if (!allowed) return res.status(404).json({ message: 'No photo' });
     const User = getUserModel();
     const user = await User.findByPk(userId, { attributes: ['id', 'profileImage'] });
     const img = user && typeof user.profileImage === 'string' ? user.profileImage : '';
     if (!img) return res.status(404).json({ message: 'No photo' });
-    // Redirect only to our own media rows or well-known photo hosts (never an open redirect).
+    // Redirect only to our own PUBLIC media rows or well-known photo hosts (never an open redirect, and
+    // never a private row such as an ID card or Connect photo).
     const { mediaIdOf } = require('../../../utils/imageStore');
     const mid = mediaIdOf(img);
     if (mid) {
-      res.set('Cache-Control', 'public, max-age=3600');
+      const Media = getCampusMediaModel();
+      const row = Media ? await Media.findByPk(mid, { attributes: ['id', 'isPrivate'] }) : null;
+      if (!row || row.isPrivate) return res.status(404).json({ message: 'No photo' });
+      res.set('Cache-Control', 'private, max-age=3600');
       return res.redirect(302, `/api/campus/media/${mid}`);
     }
     if (/^https:\/\//i.test(img)) {
       let host = '';
       try { host = new URL(img).hostname.toLowerCase(); } catch { host = ''; }
       if (AVATAR_REDIRECT_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))) {
-        res.set('Cache-Control', 'public, max-age=3600');
+        res.set('Cache-Control', 'private, max-age=3600');
         return res.redirect(302, img);
       }
       return res.status(404).json({ message: 'No photo' });
@@ -315,11 +337,11 @@ const serveAvatar = async (req, res) => {
     if (!mime) return res.status(404).json({ message: 'No photo' });
     const etag = `"a-${crypto.createHash('sha1').update(bytes).digest('hex').slice(0, 16)}"`;
     // ?v= changes whenever the photo changes, so a long cache is safe.
-    return sendBytes(req, res, { bytes, mime, etag, maxAge: req.query.v ? 604800 : 300, isPrivate: false });
+    return sendBytes(req, res, { bytes, mime, etag, maxAge: req.query.v ? 604800 : 300, isPrivate: true });
   } catch (err) {
     console.error('[CAMPUS_AVATAR_ERR]', err.message);
     res.status(500).json({ message: 'Could not load that photo.' });
   }
 };
 
-module.exports = { parseUpload, uploadMedia, serveMedia, serveAvatar, sniffImage, signedMediaUrl };
+module.exports = { parseUpload, uploadMedia, serveMedia, serveAvatar, sniffImage, signedMediaUrl, sigFor, verifySignature, avatarSig, verifyAvatarSig };

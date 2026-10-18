@@ -40,9 +40,20 @@ const avatarUrlFor = (req, user) => {
   if (!img || typeof img !== 'string') return null;
   if (img.startsWith('data:')) {
     const v = crypto.createHash('sha1').update(img.slice(-64) + String(img.length)).digest('hex').slice(0, 10);
-    return `${publicBase(req)}/api/campus/avatar/${user.id}?v=${v}`;
+    // S0: signed (s=) so the avatar endpoint is not an anonymous lookup by user id.
+    const s = require('./controllers/mediaController').avatarSig(user.id, v);
+    return `${publicBase(req)}/api/campus/avatar/${user.id}?v=${v}&s=${s}`;
   }
   return absolutize(req, img);
+};
+
+/** S0: re-signs a stored /api/campus/avatar/<id>?v= link (e.g. community posts written before S0). */
+const AVATAR_LINK_RE = /^(.*\/api\/campus\/avatar\/([0-9a-f-]{36}))\?v=([0-9a-f]{1,32})(?:&s=[0-9a-f]*)?$/i;
+const resignAvatarUrl = (url) => {
+  if (typeof url !== 'string') return url;
+  const m = AVATAR_LINK_RE.exec(url);
+  if (!m) return url;
+  return `${m[1]}?v=${m[3]}&s=${require('./controllers/mediaController').avatarSig(m[2], m[3])}`;
 };
 
 // ── Legacy friend-DM encryption ─────────────────────────────────────────────
@@ -167,6 +178,7 @@ module.exports = {
   absolutize,
   cleanImageRef,
   avatarUrlFor,
+  resignAvatarUrl,
   readableText,
   isBlockedBetween,
   blockedIdsFor,

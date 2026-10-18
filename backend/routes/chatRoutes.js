@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/authMiddleware');
+const { protect, studentOnly } = require('../middleware/authMiddleware');
 const {
   checkAfterDarkHours,
   getAfterDarkStatus,
@@ -14,6 +14,7 @@ router.get('/status', getAfterDarkStatus);
 
 // All other chat routes are protected and gated by After Dark hours
 router.use(protect);
+router.use(studentOnly); // S0
 router.use(checkAfterDarkHours);
 
 router.get('/conversations', getConversations);

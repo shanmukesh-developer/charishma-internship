@@ -36,7 +36,8 @@ test('#25 shared wiring is additive: routers, webhook before express.json, jobs,
   const store = read('utils/imageStore.js');
   for (const p of ["'rental_photo'", "'auto_driver_doc'", "'event_poster'"]) assert.ok(media.includes(p), `mediaController ${p}`);
   assert.ok(store.includes("'event_poster'") && store.includes("'auto_driver_doc'"));
-  const privMatch = /PRIVATE_PURPOSES = new Set\(\[([^\]]+)\]\)/.exec(media);
+  // S0: the private-purpose list moved to utils/mediaAccess (mediaController imports it).
+  const privMatch = /PRIVATE_PURPOSES = new Set\(\[([^\]]+)\]\)/.exec(read('utils/mediaAccess.js'));
   assert.ok(privMatch && !privMatch[1].includes('event_poster'), 'posters are public');
   const db = read('config/db.js');
   assert.equal((db.match(/runCampusEventsMigrations\(sequelize\)/g) || []).length, 2, 'migrations in both branches');

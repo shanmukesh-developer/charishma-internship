@@ -1504,7 +1504,9 @@ const initializeApp = async () => {
         }
       }
 
-      res.json({ imageUrl, mediaId });
+      // S0: delivery proof is private media: the uploader gets a signed preview link to show it now.
+      const previewUrl = isProof && mediaId ? require('./utils/mediaAccess').signedUrlForId(req, mediaId) : undefined;
+      res.json({ imageUrl, mediaId, ...(previewUrl ? { previewUrl } : {}) });
     });
 
     // Basic Health Check
@@ -1520,13 +1522,15 @@ const initializeApp = async () => {
 
     // Socket.io
     const afterDarkMod = require('./utils/afterDark');
-    const activeCartRooms = new Map(); // roomCode -> Set of userId
+    // S0: shared-cart rooms are bounded (utils/cartRooms): LRU cap, 30 min snapshot TTL, per-socket caps.
+    const cartRooms = require('./utils/cartRooms');
+    const cartRegistry = cartRooms.createRegistry({ liveSize: (room) => (io.sockets.adapter.rooms.get(room) || { size: 0 }).size });
+    const activeCartRooms = cartRegistry.members; // roomCode -> Set of userId
     const activeCallRooms = new Map(); // callRoom -> Map of socketId -> { userId, userName }
-    const roomCartSnapshots = new Map(); // roomCode -> { cart, at } (latest shared basket, for late joiners)
     const callHosts = new Map(); // callRoom -> socketId of the participant who started the call
     // B1: while Redis is up (REDIS_URL set) call rooms live in Redis instead (utils/afterDarkCalls).
     const afterDarkCalls = require('./utils/afterDarkCalls');
-    const CART_ROOM_PATTERN = /^ZN-[A-Z0-9]{4,8}$/;
+    const CART_ROOM_PATTERN = cartRooms.CODE_RE; // ZN- + 4-12 (new builds: 10; older builds: 8)
     // B1: shared-cart members + latest basket mirrored in Redis when REDIS_URL is set (utils/sharedState).
     const sharedState = require('./utils/redis').isConfigured() ? require('./utils/sharedState') : null;
     const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -1537,17 +1541,8 @@ const initializeApp = async () => {
     // adapter (Phase 2).
     const socketsHere = servesApi(PROCESS_ROLE);
 
-    // Forget shared-cart snapshots once nobody has been in the room for 6 hours.
-    if (socketsHere) setInterval(() => {
-      const cutoff = Date.now() - 6 * 60 * 60 * 1000;
-      for (const [room, snap] of roomCartSnapshots.entries()) {
-        const live = io.sockets.adapter.rooms.get(room);
-        if ((!live || live.size === 0) && snap.at < cutoff) {
-          roomCartSnapshots.delete(room);
-          activeCartRooms.delete(room);
-        }
-      }
-    }, 30 * 60 * 1000).unref?.();
+    // Forget expired shared-cart snapshots (30 min) and rooms nobody is in (S0: also never-snapshotted ones).
+    if (socketsHere) setInterval(() => cartRegistry.sweep(), 5 * 60 * 1000).unref?.();
 
     // ── Rider presence: closing the app must not leave a rider "online" forever ──
     // When a rider's last socket drops, wait RIDER_OFFLINE_GRACE_MINUTES (default 30, long enough that a
@@ -1741,23 +1736,33 @@ const initializeApp = async () => {
         const room = String(roomName || '').trim();
         try {
           if (CART_ROOM_PATTERN.test(room)) {
+            // S0: per-socket cart-room cap, token bucket and join budget (guessing codes is rate limited).
+            const mine = socket.__cartRooms || (socket.__cartRooms = new Set());
+            if (!mine.has(room) && mine.size >= cartRooms.MAX_ROOMS_PER_SOCKET) {
+              return reply({ ok: false, code: 'TOO_MANY_BASKETS', message: 'Leave another shared basket first.' });
+            }
+            if (!cartRooms.takeToken(socket)) return reply({ ok: false, code: 'RATE_LIMITED', message: 'Too fast. Please try again.' });
+            if (!mine.has(room) && !cartRooms.joinAllowed(socket)) {
+              return reply({ ok: false, code: 'RATE_LIMITED', message: 'Too many basket codes tried. Please wait a few minutes.' });
+            }
             const userId = isGuestSocket() ? socket.id : socket.user.id;
             let existed = activeCartRooms.has(room) && activeCartRooms.get(room).size > 0;
-            if (!activeCartRooms.has(room)) activeCartRooms.set(room, new Set());
+            if (!cartRegistry.open(room)) return reply({ ok: false, code: 'BUSY', message: 'Shared baskets are busy right now. Please try again soon.' });
             activeCartRooms.get(room).add(userId);
+            mine.add(room);
             socket.effectiveCartId = userId;
             // B1: members / latest basket of this room on EVERY instance (null without Redis).
             const shared = sharedState ? await sharedState.cartJoin(room, userId) : null;
             await socket.join(room);
             // Late joiners get the room's current basket straight away instead of an empty one.
-            let snapshot = roomCartSnapshots.get(room);
+            let snapshot = cartRegistry.snapshot(room);
             let members = activeCartRooms.get(room).size;
             if (shared) {
               existed = existed || shared.existed;
               members = Math.max(members, shared.members);
               if (shared.snapshot && (!snapshot || shared.snapshot.at > snapshot.at)) snapshot = shared.snapshot;
             }
-            if (snapshot) socket.emit('cart_updated', snapshot.cart);
+            if (snapshot) socket.emit('cart_updated', cartRooms.sanitizeCart(snapshot.cart) || []);
             log(`[JOIN_ROOM] ${socket.id} -> ${room}`);
             return reply({ ok: true, room, exists: existed, members });
           }
@@ -1812,9 +1817,12 @@ const initializeApp = async () => {
           console.warn(`[SOCKET_DENIED] User ${userId} not authorized to broadcast to room ${room}`);
           return;
         }
-        const cart = Array.isArray(data.cart) ? data.cart.slice(0, 100) : [];
+        // S0: token bucket + whitelisted, bounded items (<= 100 lines, <= 32 KB).
+        if (!cartRooms.takeToken(socket)) return;
+        const cart = cartRooms.sanitizeCart(data.cart);
+        if (!cart) return;
         const snapAt = Date.now();
-        roomCartSnapshots.set(room, { cart, at: snapAt });
+        cartRegistry.save(room, cart, snapAt);
         if (sharedState) sharedState.cartSaveSnapshot(room, cart, snapAt);
         socket.to(room).emit('cart_updated', cart);
         log(`[CART_SYNC] Room ${room} sync: ${cart.length} items`);
@@ -2042,6 +2050,12 @@ const initializeApp = async () => {
         if (!socket.rooms.has(room)) return; // must have passed join_after_dark_group
         let text = typeof data?.text === 'string' ? data.text.trim().slice(0, 2000) : '';
         if (!text) return;
+        // S0 (P1-2): access can end after joining (unfriended, removed from the room, room closed).
+        if (!(await isFriendshipMember(groupId))) {
+          socket.leave(room);
+          socket.emit('after_dark_error', { code: 'NOT_A_PARTICIPANT', message: 'You are not part of this chat any more.' });
+          return;
+        }
         // C2: slurs / threats refused, profanity masked.
         const afterDarkFilter = require('./utils/contentFilter').analyse(text);
         if (afterDarkFilter.action === 'block') {
@@ -2054,12 +2068,28 @@ const initializeApp = async () => {
           const senderName = await getDisplayName();
           const { getMessageModel } = require('./models/Message');
           const Message = getMessageModel();
+          // S0: a quoted reply is rebuilt from the quoted message of THIS chat (never the client's object).
+          let cleanReplyTo = null;
+          const quotedId = data.replyTo && typeof data.replyTo === 'object' ? data.replyTo.id : null;
+          if (typeof quotedId === 'string' && UUID_PATTERN.test(quotedId)) {
+            const quoted = await Message.findOne({ where: { id: quotedId, conversationId: groupId } });
+            if (quoted) {
+              let qText = '';
+              try { qText = String(require('./modules/campus/campusHelpers').readableText(quoted.text) || ''); } catch { qText = ''; }
+              cleanReplyTo = {
+                id: quoted.id,
+                senderId: quoted.senderId,
+                senderName: quoted.senderName || 'Friend',
+                text: quoted.isDeletedForEveryone ? 'This message was deleted' : qText.slice(0, 200),
+              };
+            }
+          }
           const newMsg = await Message.create({
             conversationId: groupId,
             senderId: socket.user.id,
             senderName,
             text,
-            replyTo: data.replyTo ? JSON.stringify(data.replyTo) : null,
+            replyTo: cleanReplyTo ? JSON.stringify(cleanReplyTo) : null,
             reactions: '[]'
           });
           io.to(room).emit('receive_after_dark_message', newMsg);
@@ -2095,6 +2125,9 @@ const initializeApp = async () => {
         const groupId = String(data?.groupId || '').trim();
         const room = `afterdark_${groupId}`;
         if (!socket.rooms.has(room) || typeof emoji !== 'string' || emoji.length > 16) return;
+        if (!UUID_PATTERN.test(String(messageId || ''))) return;
+        // S0 (P1-2): re-check access (removed from the room / unfriended since joining).
+        if (!(await isFriendshipMember(groupId))) { socket.leave(room); return; }
         try {
           const { getMessageModel } = require('./models/Message');
           const Message = getMessageModel();

@@ -18,7 +18,8 @@
     "test:c4": "node tests/c4/run.js",
     "test:c5": "node tests/c5/run.js",
     "test:c6": "node tests/c6/run.js",
-    "test:c7": "node tests/c7/run.js"
+    "test:c7": "node tests/c7/run.js",
+    "test:s0": "node tests/s0/run.js"
   },
   "keywords": [],
   "author": "",

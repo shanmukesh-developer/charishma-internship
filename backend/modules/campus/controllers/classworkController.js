@@ -118,7 +118,31 @@ const getAssignments = async (req, res) => {
 // @route   POST /api/campus/assignments/:id/submit
 const submitAssignment = async (req, res) => {
   try {
-    const { submissionText, fileUrl } = req.body;
+    const { submissionText } = req.body || {};
+    // S0: fileUrl must be our own media link (a private one only when it is the student's own upload)
+    // or a plain https link (GitHub / Drive, what the app's "paste a link" field sends). No other schemes
+    // (javascript:, data:, http:), nothing over 2048 characters.
+    let fileUrl = req.body ? req.body.fileUrl : undefined;
+    if (fileUrl !== undefined && fileUrl !== null && fileUrl !== '') {
+      const v = typeof fileUrl === 'string' ? fileUrl.trim() : '';
+      const { mediaIdOf, publicBase } = require('../../../utils/imageStore');
+      const mid = mediaIdOf(v);
+      if (mid) {
+        if (!(await require('../../../utils/mediaAccess').mayAttach(v, req.user.id))) {
+          return res.status(400).json({ code: 'BAD_FILE_URL', message: 'Attach your own upload or an https link.' });
+        }
+        fileUrl = `${publicBase(req)}/api/campus/media/${mid}`;
+      } else if (/^https:\/\/[^\s"'<>]{3,2040}$/i.test(v) && v.length <= 2048) {
+        fileUrl = v;
+      } else {
+        return res.status(400).json({ code: 'BAD_FILE_URL', message: 'Links should start with https://' });
+      }
+    } else {
+      fileUrl = undefined;
+    }
+    if (submissionText !== undefined && submissionText !== null && typeof submissionText !== 'string') {
+      return res.status(400).json({ message: 'Your answer must be text.' });
+    }
     const ClassAssignment = getClassAssignmentModel();
     const ClassSubmission = getClassSubmissionModel();
 

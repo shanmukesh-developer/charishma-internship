@@ -29,6 +29,16 @@ const spotVisibleTo = (room, campusId) =>
 
 const spotOrder = [['sortOrder', 'ASC'], ['name', 'ASC']];
 
+/**
+ * S0: the campus a user may see campus-only spots of. Only a VERIFIED campus membership counts (the
+ * campus on an unverified profile is self-set, so anyone could pick any campus and read its spots).
+ */
+const verifiedCampusOf = async (userId) => {
+  const { campusScopeFor } = require('../campusHelpers');
+  const s = await campusScopeFor(userId);
+  return s.verified ? s.campusId : null;
+};
+
 // Haversine formula: distance in meters between two lat/lng points
 const haversineDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371000; // Earth radius in meters
@@ -48,8 +58,7 @@ const haversineDistance = (lat1, lon1, lat2, lon2) => {
 const getProximityRooms = async (req, res) => {
   try {
     const ProximityRoom = getProximityRoomModel();
-    const { campusScopeFor } = require('../campusHelpers');
-    const { campusId } = await campusScopeFor(req.user.id);
+    const campusId = await verifiedCampusOf(req.user.id);
     const rooms = await ProximityRoom.findAll({
       where: {
         isActive: true,
@@ -103,8 +112,7 @@ const getProximityMessages = async (req, res) => {
     const ProximityMessage = getProximityMessageModel();
 
     const room = await ProximityRoom.findOne({ where: { slug: String(req.params.slug || '').slice(0, 80) } });
-    const { campusScopeFor } = require('../campusHelpers');
-    if (!spotVisibleTo(room, (await campusScopeFor(req.user.id)).campusId)) return res.status(404).json({ message: 'Room not found' });
+    if (!spotVisibleTo(room, room && room.campusId ? await verifiedCampusOf(req.user.id) : null)) return res.status(404).json({ message: 'Room not found' });
 
     const limit = Math.min(parseInt(req.query.limit) || 50, 100);
 
@@ -161,8 +169,7 @@ const postProximityMessage = async (req, res) => {
     const ProximityMessage = getProximityMessageModel();
 
     const room = await ProximityRoom.findOne({ where: { slug: String(req.params.slug || '').slice(0, 80) } });
-    const { campusScopeFor } = require('../campusHelpers');
-    if (!spotVisibleTo(room, (await campusScopeFor(req.user.id)).campusId)) return res.status(404).json({ message: 'Room not found' });
+    if (!spotVisibleTo(room, room && room.campusId ? await verifiedCampusOf(req.user.id) : null)) return res.status(404).json({ message: 'Room not found' });
 
     const { text } = req.body || {};
     if (typeof text !== 'string' || !text.trim()) {
@@ -208,6 +215,7 @@ const postProximityMessage = async (req, res) => {
 };
 
 module.exports = {
+  verifiedCampusOf,
   getProximityRooms,
   getProximityMessages,
   postProximityMessage,

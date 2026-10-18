@@ -36,7 +36,7 @@ const createLostFound = async (req, res) => {
     let cleanImage = null;
     if (imageUrl) {
       const { storeImageRef } = require('../../../utils/imageStore');
-      const img = await storeImageRef(imageUrl, { req, ownerId: req.user.id, purpose: 'lost_found', maxBytes: 3 * 1024 * 1024 });
+      const img = await storeImageRef(imageUrl, { req, ownerId: req.user.id, purpose: 'lost_found', maxBytes: 3 * 1024 * 1024, allowExternal: false }); // S0: no external image links
       if (!img.ok || !img.value) return res.status(img.status && img.status !== 500 ? img.status : 400).json({ code: img.code || 'BAD_IMAGE', message: img.message || 'That photo could not be attached. Please pick it again.' });
       cleanImage = img.value;
     }
