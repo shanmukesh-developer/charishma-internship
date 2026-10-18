@@ -36,14 +36,14 @@ const globalSearch = async (req, res) => {
       // Independent reads: one round trip of wall time, not two.
       const [trendingRestaurants, trendingItems] = await Promise.all([
         Restaurant.findAll({
-          where: { isActive: true },
+          where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()) },
           order: [['rating', 'DESC NULLS LAST']], // Postgres puts NULL first on plain DESC
           limit: 4
         }),
         MenuItem.findAll({
           where: { isAvailable: true },
           limit: 6,
-          include: [{ model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'imageUrl', 'vendorType'], where: { isActive: true } }]
+          include: [{ model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'imageUrl', 'vendorType'], where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()) } }]
         }),
       ]);
 
@@ -68,7 +68,7 @@ const globalSearch = async (req, res) => {
     const [restaurants, menuItems] = await Promise.all([Restaurant.findAll({
       where: {
         name: { [likeOp]: `%${q}%` },
-        isActive: true
+        isActive: true, ...(await require('../utils/receiptSettings').listingWhere())
       },
       limit: 5
     }), MenuItem.findAll({
@@ -84,7 +84,7 @@ const globalSearch = async (req, res) => {
           }
         ]
       },
-      include: [{ model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'imageUrl', 'vendorType'], where: { isActive: true } }],
+      include: [{ model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'imageUrl', 'vendorType'], where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()) } }],
       limit: 15
     })]);
 

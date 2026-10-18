@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import {
-  STATUS_META, Store, adminRequest, formatINR, formatWhatsapp, isLocalVendorType, isValidIndianMobile, readBrandTheme,
+  FSSAI_STATUS_META, STATUS_META, Store, adminRequest, fssaiStatusOf, formatINR, formatWhatsapp, isLocalVendorType, isValidIndianMobile, readBrandTheme,
   storeId, storeStatus, tenDigits, vendorLabel,
 } from '@/app/restaurants/catalogue';
 import { useLiveSync } from '@/lib/useLiveSync';
@@ -11,6 +11,7 @@ import {
 } from './helpers';
 import { WeeklyHoursEditor } from './inputs';
 import { MenuManager } from './MenuManager';
+import { ComplianceTab } from './ComplianceTab';
 import { StorePreviewCard } from './StorePreviewCard';
 import { StepKey } from './StoreWizard';
 import { hasStoreBanner, patchStore, removeStoreBanner, upsertStoreBanner } from './storeActions';
@@ -20,7 +21,7 @@ import {
   cx, useToast,
 } from './ui';
 
-export type DrawerTab = 'overview' | 'menu' | 'hours' | 'login' | 'promote' | 'activity';
+export type DrawerTab = 'overview' | 'menu' | 'hours' | 'login' | 'compliance' | 'promote' | 'activity';
 
 const STATUS_TONE = { live: 'green', closed: 'amber', draft: 'slate', inactive: 'red' } as const;
 
@@ -43,11 +44,14 @@ export function StoreDrawer({ store, tab, onTab, onClose, onEdit, onChanged, onT
   const local = isLocalVendorType(store.vendorType);
   const { orders, state: ordersState } = useStoreOrders(storeId(store));
   const noLogin = !store.hasPassword && !store.isOffline;
+  const fssai = fssaiStatusOf(store);
+  const fssaiAlert = fssai.status === 'MISSING' || fssai.status === 'EXPIRED' || fssai.expiringSoon;
   const tabs: { value: DrawerTab; label: string; badge?: React.ReactNode }[] = [
     { value: 'overview', label: 'Overview' },
     { value: 'menu', label: 'Menu', badge: <span className="rounded bg-white/10 px-1.5 text-[10px] text-gray-300">{store.itemCount ?? 0}</span> },
     { value: 'hours', label: 'Hours' },
     { value: 'login', label: local ? 'Vendor login' : 'Partner login', badge: noLogin ? <span className="rounded bg-amber-500/20 px-1.5 text-[10px] text-amber-300">!</span> : undefined },
+    { value: 'compliance', label: 'Licences & tax', badge: fssaiAlert ? <span className="rounded bg-amber-500/20 px-1.5 text-[10px] text-amber-300">!</span> : undefined },
     ...(local ? [] : [{ value: 'promote' as DrawerTab, label: 'Promote' }]),
     { value: 'activity', label: 'Activity' },
   ];
@@ -65,6 +69,8 @@ export function StoreDrawer({ store, tab, onTab, onClose, onEdit, onChanged, onT
               {store.isFeatured && <Chip tone="amber">✨ {store.featuredBadge || 'Featured'}</Chip>}
               {store.isOffline && <Chip>Managed by Zenvy</Chip>}
               {local && <Chip tone="sky" title="Customers pay the stall cash; the stall delivers">Stall delivers · COD</Chip>}
+              <Chip tone={FSSAI_STATUS_META[fssai.status].tone} title={FSSAI_STATUS_META[fssai.status].help}>{FSSAI_STATUS_META[fssai.status].label}</Chip>
+              {fssai.expiringSoon && <Chip tone="amber">FSSAI expires soon</Chip>}
               {noLogin && <Chip tone="amber" title={local ? 'The stall cannot see its orders until it can sign in to Zenvy Vendor' : 'The partner cannot accept orders in the app'}>No login yet</Chip>}
             </div>
             <p className="mt-1 truncate text-sm text-gray-400">{vendorLabel(store.vendorType)} · {[store.location, store.campus].filter(Boolean).join(' · ')}</p>
@@ -94,6 +100,7 @@ export function StoreDrawer({ store, tab, onTab, onClose, onEdit, onChanged, onT
         {current === 'menu' && <MenuManager store={store} />}
         {current === 'hours' && <HoursTab store={store} onChanged={onChanged} />}
         {current === 'login' && <LoginTab store={store} onChanged={onChanged} />}
+        {current === 'compliance' && <ComplianceTab store={store} onChanged={onChanged} />}
         {current === 'promote' && <PromoteTab store={store} onChanged={onChanged} onEdit={onEdit} />}
         {current === 'activity' && <ActivityTab store={store} orders={orders} />}
       </div>

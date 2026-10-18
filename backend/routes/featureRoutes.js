@@ -207,7 +207,7 @@ router.get('/recommendations', protect, async (req, res) => {
     // Only items of live stores (B1); public item rows never carry owner phone / commission.
     const allItems = await MenuItem.findAll({
       where: { isAvailable: true },
-      include: [{ model: getRestaurantModel(), as: 'restaurant', attributes: ['id', 'name', 'imageUrl', 'vendorType'], where: { isActive: true } }],
+      include: [{ model: getRestaurantModel(), as: 'restaurant', attributes: ['id', 'name', 'imageUrl', 'vendorType'], where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()) } }],
       limit: 200
     });
 

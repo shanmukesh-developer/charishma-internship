@@ -1227,6 +1227,8 @@ const initializeApp = async () => {
     // Self-service account deletion (Google Play requirement) + public legal pages for the Play listing
     app.use('/api/users/account', require('./routes/accountRoutes'));
     app.use('/legal', require('./routes/legalRoutes'));
+    // C8: printable order receipt behind a signed, 15-minute link (opened from the apps / admin).
+    app.get('/receipts/:token', require('./controllers/receiptController').renderReceiptPage);
     const ticketRoutes = require('./routes/ticketRoutes');
     const systemRoutes = require('./routes/systemRoutes');
     const appConfigRoutes = require('./routes/appConfigRoutes');

@@ -5,6 +5,7 @@ import { adminRequest as apiRequest } from '@/lib/api';
 import Link from 'next/link';
 import AppVersionsCard from '@/components/config/AppVersionsCard';
 import LegalCard from '@/components/config/LegalCard';
+import ReceiptsCard from '@/components/config/ReceiptsCard';
 
 interface ConfigRow {
   _id: string;
@@ -387,6 +388,8 @@ export default function ConfigTerminal() {
       <AppVersionsCard />
 
       <LegalCard />
+
+      <ReceiptsCard />
 
       {/* Other stored keys: shown honestly as not enforced */}
       <div className="glass-card p-10 space-y-6">

@@ -18,6 +18,7 @@ import { API_URL } from '../../constants/api';
 import { useCartActions, useCartState, MAX_ITEM_QTY } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import FssaiLine from '../../components/FssaiLine';
 import { useDietary } from '../../context/DietaryContext';
 import CustomizeDrawer, { isCustomizable } from '../../components/CustomizeDrawer';
 import { saveRecentlyViewed } from '../../components/RecentlyViewed';
@@ -527,6 +528,7 @@ export default function RestaurantDetail() {
               </TouchableOpacity>
             )}
           </View>
+          <FssaiLine number={restaurant.fssaiLicenseNumber} color={txtSec} />
         </View>
 
         {isLocalVendor && (

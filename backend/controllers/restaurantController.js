@@ -17,7 +17,7 @@ const clearPublicRestaurantsCache = () => {
 const { stripStoreSecrets, stripItemSecrets, applyFeaturedExpiry } = require('../utils/publicFields');
 
 // Columns that public listings strip anyway (stripStoreSecrets / stripItemSecrets): not selected at all.
-const PUBLIC_STORE_EXCLUDE = ['password', 'fcmTokens', 'tokenVersion', 'commissionRate', 'commissionType', 'phone'];
+const PUBLIC_STORE_EXCLUDE = ['password', 'fcmTokens', 'tokenVersion', 'commissionRate', 'commissionType', 'phone', ...require('../utils/publicFields').STORE_PRIVATE_FIELDS];
 const PUBLIC_ITEM_EXCLUDE = ['customCommission', 'ownerName', 'ownerPhone'];
 // Menu rows grouped by store id, keeping their (already sorted) order: O(items) instead of a
 // per-store filter over every item.
@@ -36,9 +36,14 @@ const publicStoreJson = (restaurant) => {
   delete json.password;
   delete json.fcmTokens;
   delete json.tokenVersion;
+  // C8: the owner's own compliance details (PAN masked, never the full number).
+  const compliance = require('../utils/storeCompliance').privateView(json);
+  delete json.pan;
   const state = getStoreOpenState(restaurant);
   return {
     ...json,
+    panMasked: compliance.panMasked,
+    compliance,
     _id: json.id,
     partnerPhone: json.phone || null,
     pushDevices,
@@ -303,7 +308,7 @@ const getRestaurants = async (req, res) => {
     // Both queries are independent: run them together (one DB round trip of wall time, not two).
     const [restaurants, menuRows] = await Promise.all([
       Restaurant.findAll({
-        where: { isActive: true },
+        where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()) },
         attributes: { exclude: ['imageUrl', 'logoUrl', ...PUBLIC_STORE_EXCLUDE], include: dataUrlSafeColumns('Restaurant', ['imageUrl', 'logoUrl']) },
       }),
       // Stitch all valid menu items into the restaurants array for catalog rendering
@@ -709,7 +714,7 @@ const getLocalVendors = async (req, res) => {
     const MenuItem = getMenuItemModel();
     const { campus } = req.query;
 
-    const where = { vendorType: { [Op.in]: LOCAL_VENDOR_TYPES }, isActive: true };
+    const where = { vendorType: { [Op.in]: LOCAL_VENDOR_TYPES }, isActive: true, ...(await require('../utils/receiptSettings').listingWhere()) };
     if (campus) where.campus = String(campus);
 
     // Public list: legacy inline base64 photos are nulled in SQL (media URLs pass through).

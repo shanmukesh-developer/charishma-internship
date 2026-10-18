@@ -28,6 +28,7 @@ import { safeId } from '../../utils/ids';
 import { StaggeredSection } from '../../components/AnimatedSection';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import LiveOrderCockpit from '../../components/LiveOrderCockpit';
+import FssaiLine from '../../components/FssaiLine';
 import { isVendorFulfilled, vendorCallNumber, callVendor, stallPayCopy } from '../../utils/localVendor';
 
 const MAX_TIP = 500;
@@ -81,6 +82,8 @@ interface OrderInfo {
   rating?: number | null;
   refundedToWallet?: number;
   cancellationReason?: string | null;
+  /** C8: set once the order is delivered (GET /api/orders/:id/receipt opens the printable receipt). */
+  receiptNumber?: string | null;
   /** 'VENDOR' = a CampusBites stall delivers it itself (no rider, no PIN, cash to the stall). */
   fulfilment?: string | null;
   deliveryPartner?: {
@@ -156,6 +159,29 @@ export default function TrackingScreen() {
   const refetchQueuedRef = useRef(false);
   // A retry cannot fix "no such order" (bad link / another account): no TRY AGAIN for those.
   const [orderErrorRetryable, setOrderErrorRetryable] = useState(true);
+  const [receiptLoading, setReceiptLoading] = useState(false);
+
+  // C8: signed 15-minute link to the printable receipt (only for this customer's delivered order).
+  const openReceipt = useCallback(async () => {
+    if (!orderId || receiptLoading) return;
+    setReceiptLoading(true);
+    try {
+      const res = await apiFetch(`${API_URL}/api/orders/${encodeURIComponent(orderId)}/receipt`);
+      const data = await readJson(res);
+      if (!res.ok || !data || typeof data.url !== 'string' || !data.url) {
+        Alert.alert('Receipt', (data && typeof data.message === 'string' && data.message) || 'The receipt is not available right now. Please try again.');
+        return;
+      }
+      if (data.receipt?.receiptNumber) {
+        setOrderInfo(prev => (prev && !prev.receiptNumber ? { ...prev, receiptNumber: String(data.receipt.receiptNumber) } : prev));
+      }
+      await Linking.openURL(data.url);
+    } catch {
+      Alert.alert('Receipt', "Can't reach Zenvy right now. Check your internet and try again.");
+    } finally {
+      setReceiptLoading(false);
+    }
+  }, [orderId, receiptLoading]);
   const ratingPromptedRef = useRef(false);
   const confettiShownRef = useRef(false);
   const gateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -742,6 +768,30 @@ export default function TrackingScreen() {
           </View>
         </StaggeredSection>
 
+        {/* ── RECEIPT (C8): delivered orders only ── */}
+        {orderInfo?.status === 'Delivered' && (
+          <StaggeredSection delay={80} direction="up">
+            <View style={[s.receiptCard, { backgroundColor: cardBg, borderColor: COLORS.goldBorder }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.stageLabel, { color: txtSec }]}>RECEIPT</Text>
+                <Text style={{ color: txt, fontSize: 13, fontWeight: '800', marginTop: 2 }}>
+                  {orderInfo.receiptNumber ? `No. ${orderInfo.receiptNumber}` : 'Your order receipt'}
+                </Text>
+                <FssaiLine number={orderInfo.restaurant ? (orderInfo.restaurant.fssaiLicenseNumber ?? null) : undefined} color={txtSec} style={{ marginTop: 2 }} />
+              </View>
+              <TouchableOpacity
+                style={[s.receiptBtn, receiptLoading && { opacity: 0.6 }]}
+                onPress={openReceipt}
+                disabled={receiptLoading}
+                accessibilityRole="button"
+                accessibilityLabel="View receipt"
+              >
+                {receiptLoading ? <ActivityIndicator size="small" color="#000" /> : <Text style={s.receiptBtnText}>VIEW RECEIPT</Text>}
+              </TouchableOpacity>
+            </View>
+          </StaggeredSection>
+        )}
+
         {/* ── RIDER IS DELIVERING ANOTHER ORDER ON THE WAY ── */}
         {(orderInfo?.riderOtherOrders ?? 0) > 0 && status < 6 && (
           <StaggeredSection delay={110} direction="up">
@@ -1157,6 +1207,9 @@ export default function TrackingScreen() {
 }
 
 const s = StyleSheet.create({
+  receiptCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 12 },
+  receiptBtn: { backgroundColor: COLORS.gold, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, minWidth: 110, alignItems: 'center' },
+  receiptBtnText: { color: '#000', fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
   container: { flex: 1, width: '100%', maxWidth: 600, alignSelf: 'center' },
 
   // Rider-at-gate banner

@@ -109,3 +109,37 @@ export interface ItemInput {
 }
 
 export type ConnStatus = 'connecting' | 'online' | 'reconnecting' | 'offline';
+
+// ── Store compliance (FSSAI licence, tax, read-only payout) ─────────────────
+export type FssaiType = 'BASIC' | 'STATE' | 'CENTRAL';
+export type FssaiStatus = 'MISSING' | 'EXPIRED' | 'PENDING' | 'VERIFIED';
+
+/** GET /api/restaurants/:id/compliance → compliance (the owner's private view). */
+export interface Compliance {
+  legalName: string | null;
+  fssaiLicenseNumber: string | null;
+  fssaiLicenseType: FssaiType | null;
+  /** YYYY-MM-DD */
+  fssaiExpiry: string | null;
+  fssaiSubmittedAt: string | null;
+  fssaiVerifiedAt: string | null;
+  fssaiStatus: FssaiStatus;
+  fssaiExpiringSoon: boolean;
+  fssaiText: string | null;
+  gstin: string | null;
+  panMasked: string | null;
+  hasPan: boolean;
+  payoutUpiId: string | null;
+  bankAccountHolder: string | null;
+  bankAccountLast4: string | null;
+  bankIfsc: string | null;
+}
+
+/** The only fields the owner may change (PAN / payout are admin-only: never send them). */
+export interface ComplianceEdit {
+  legalName?: string | null;
+  fssaiLicenseNumber?: string | null;
+  fssaiLicenseType?: FssaiType | null;
+  fssaiExpiry?: string | null;
+  gstin?: string | null;
+}

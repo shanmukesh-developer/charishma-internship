@@ -20,6 +20,7 @@ import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { COLORS } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import FssaiLine from '../../components/FssaiLine';
 import { useAuth } from '../../context/AuthContext';
 import { useCart, MAX_ITEM_QTY, newIdempotencyKey } from '../../context/CartContext';
 import { API_URL } from '../../constants/api';
@@ -96,7 +97,7 @@ interface CatalogueItem {
   inStock: boolean;
 }
 
-interface StoreInfo { id: string; name: string; isOpen: boolean; opensAt: string | null; closedReason: string | null }
+interface StoreInfo { id: string; name: string; isOpen: boolean; opensAt: string | null; closedReason: string | null; fssaiLicenseNumber: string | null }
 
 const cleanRoom = (room: any) => String(room || '').replace(/^\s*room\s*/i, '').trim();
 
@@ -243,6 +244,7 @@ export default function CategoryDetailScreen() {
         isOpen: st.isOpen !== false,
         opensAt: st.opensAt || null,
         closedReason: st.closedReason || null,
+        fssaiLicenseNumber: typeof st.fssaiLicenseNumber === 'string' && st.fssaiLicenseNumber ? st.fssaiLicenseNumber : null,
       };
     });
     setStores(storeMap);
@@ -645,6 +647,19 @@ export default function CategoryDetailScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.red} colors={[COLORS.red]} />}
+          ListFooterComponent={!isServiceCategory && Object.keys(stores).length > 0 ? (
+            <View style={{ paddingTop: 8, paddingBottom: 4 }}>
+              {Object.values(stores).map((st) => (
+                <FssaiLine
+                  key={st.id}
+                  number={st.fssaiLicenseNumber}
+                  storeName={Object.keys(stores).length > 1 ? st.name || undefined : undefined}
+                  color={txtSec}
+                  style={{ textAlign: 'center', marginTop: 2 }}
+                />
+              ))}
+            </View>
+          ) : null}
           renderItem={({ item }) => {
             const isService = isServiceCategory || item.bookingOnly;
             const line = isService ? undefined : lineFor(item.id);

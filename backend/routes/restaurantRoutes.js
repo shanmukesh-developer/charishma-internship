@@ -30,6 +30,9 @@ router.post('/refresh-token', protect, refreshStoreToken); // sliding store / ve
 router.get('/:id/orders', protect, vendor, getRestaurantOrders); 
 // C6: the store's own payout statements (API only; the partner apps have no earnings screen yet).
 router.get('/:id/payouts', protect, vendor, require('../controllers/financeController').getStorePayouts);
+// C8: the store's own legal name / FSSAI licence / GSTIN (PAN + payout details: admin only).
+router.get('/:id/compliance', protect, vendor, require('../controllers/complianceController').getStoreCompliance);
+router.put('/:id/compliance', protect, vendor, require('../controllers/complianceController').updateStoreCompliance);
 router.put('/:id/offline', protect, vendor, toggleRestaurantOffline);
 router.put('/:id/open', protect, vendor, setRestaurantOpen);
 router.put('/:id/hours', protect, vendor, setRestaurantHours);

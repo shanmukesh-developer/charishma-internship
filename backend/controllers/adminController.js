@@ -33,7 +33,7 @@ exports.onRestaurantsCacheClear = (fn) => { if (typeof fn === 'function') extraC
 
 // Columns public store / menu reads never return (stripStoreSecrets / stripItemSecrets drop them
 // after the fact): leaving them out of the SELECT saves the DB round-trip payload and parsing.
-const STORE_LISTING_EXCLUDE = ['password', 'fcmTokens', 'tokenVersion', 'commissionRate', 'commissionType', 'phone'];
+const STORE_LISTING_EXCLUDE = ['password', 'fcmTokens', 'tokenVersion', 'commissionRate', 'commissionType', 'phone', ...require('../utils/publicFields').STORE_PRIVATE_FIELDS];
 const ITEM_LISTING_EXCLUDE = ['customCommission', 'ownerName', 'ownerPhone'];
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -124,7 +124,7 @@ exports.getRestaurants = async (req, res) => {
 
     // Batch-fetch all restaurants and their menu items in 2 queries (eliminates N+1)
     // Secrets are stripped from the response anyway: never read them (or push tokens) per listing.
-    const restaurants = await Restaurant.findAll({ where: { isActive: true }, attributes: { exclude: STORE_LISTING_EXCLUDE } });
+    const restaurants = await Restaurant.findAll({ where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()) }, attributes: { exclude: STORE_LISTING_EXCLUDE } });
     const restaurantIds = restaurants.map(r => r.id);
 
     const allMenuItems = restaurantIds.length > 0
@@ -209,6 +209,8 @@ const storeViewerPrivileged = async (req, storeId) => {
   }
 };
 exports.storeViewerPrivileged = storeViewerPrivileged;
+exports.logAuditAction = logAuditAction;
+exports.publicRestaurant = (r) => publicRestaurant(r);
 
 exports.getRestaurantById = async (req, res) => {
   try {
@@ -355,7 +357,7 @@ exports.searchAll = async (req, res) => {
     const matchedRestaurants = await Restaurant.findAll({
       where: {
         name: { [matchOp]: `%${q}%` },
-        isActive: true
+        isActive: true, ...(await require('../utils/receiptSettings').listingWhere())
       }
     });
 
@@ -448,9 +450,14 @@ const publicRestaurant = (r) => {
   delete json.password;
   delete json.fcmTokens;
   delete json.tokenVersion;
+  // C8: PAN never leaves the server unmasked; the compliance block carries the FSSAI status for badges.
+  const compliance = require('../utils/storeCompliance').privateView(json);
+  delete json.pan;
   return {
     ...json,
     _id: json.id,
+    panMasked: compliance.panMasked,
+    compliance,
     partnerPhone: json.phone || null, // admin UI name for the same login phone
     hasPassword,
     pushDevices,
@@ -611,6 +618,7 @@ const assertUniqueStore = async ({ name, phone }, selfId = null) => {
 
 const sendAdminError = (res, error, fallback) => {
   if (error instanceof AdminInputError) return res.status(400).json({ message: error.message });
+  if (error instanceof require('../utils/storeCompliance').ComplianceInputError) return res.status(400).json({ code: error.code, field: error.field, message: error.message });
   if (error instanceof AdminConflictError) return res.status(409).json({ message: error.message, code: 'CONFLICT' });
   if (error && error.name === 'SequelizeValidationError') return res.status(400).json({ message: error.errors?.[0]?.message || fallback });
   console.error('[ADMIN_CATALOGUE_ERROR]', error);
@@ -741,7 +749,12 @@ exports.createRestaurant = async (req, res) => {
       data.password = req.body.password.trim(); // hashed by the model hook
     }
     await assertUniqueStore({ name: data.name, phone: data.phone });
+    // C8: seller compliance fields (legal name, FSSAI, GSTIN, PAN, payout) are validated and audited.
+    const comp = require('../utils/storeCompliance');
+    const { patch: compPatch, changes: compChanges } = comp.hasComplianceInput(req.body) ? comp.validateCompliance(req.body, {}, { actor: 'admin' }) : { patch: {}, changes: {} };
+    Object.assign(data, compPatch);
     const restaurant = await Restaurant.create(data);
+    if (Object.keys(compChanges).length) await logAuditAction(req, restaurant.id, 'STORE_COMPLIANCE_UPDATED', { name: restaurant.name, changes: compChanges });
     clearRestaurantsCache();
     broadcastSystemUpdate(req, 'RESTAURANT_CREATED', publicRestaurant(restaurant));
     realtime.publish('store', 'created', restaurant.id, { storeId: restaurant.id });
@@ -763,6 +776,10 @@ exports.updateRestaurant = async (req, res) => {
     if (req.body.password && typeof req.body.password === 'string' && req.body.password.trim().length >= 6) {
       updateData.password = req.body.password.trim(); // hashed by the model hook
     }
+    // C8: seller compliance fields from the store edit form (validated, audited below).
+    const comp = require('../utils/storeCompliance');
+    const { patch: compPatch, changes: compChanges } = comp.hasComplianceInput(req.body) ? comp.validateCompliance(req.body, restaurant, { actor: 'admin' }) : { patch: {}, changes: {} };
+    Object.assign(updateData, compPatch);
     await assertUniqueStore({
       name: updateData.name !== undefined && updateData.name.toLowerCase() !== String(restaurant.name || '').toLowerCase() ? updateData.name : null,
       phone: updateData.phone && updateData.phone !== restaurant.phone ? updateData.phone : null,
@@ -799,7 +816,8 @@ exports.updateRestaurant = async (req, res) => {
     clearRestaurantsCache();
     broadcastSystemUpdate(req, 'RESTAURANT_UPDATED', publicRestaurant(restaurant));
     realtime.publish('store', 'updated', restaurant.id, { storeId: restaurant.id });
-    await logAuditAction(req, restaurant.id, 'UPDATE_RESTAURANT', { name: restaurant.name, fields: Object.keys(updateData).filter(k => k !== 'password') });
+    await logAuditAction(req, restaurant.id, 'UPDATE_RESTAURANT', { name: restaurant.name, fields: Object.keys(updateData).filter(k => k !== 'password' && !(k in compPatch)) });
+    if (Object.keys(compChanges).length) await logAuditAction(req, restaurant.id, 'STORE_COMPLIANCE_UPDATED', { name: restaurant.name, changes: compChanges });
     res.json(publicRestaurant(restaurant));
   } catch (error) {
     sendAdminError(res, error, 'Could not update the store.');
@@ -1196,6 +1214,10 @@ exports.updateGlobalConfig = async (req, res) => {
     // C4: legal settings are only written through PUT /api/admin/legal-settings (validated + audited).
     if (key === require('../utils/legalSettings').KEY) {
       return res.status(400).json({ message: 'Legal settings are edited on Config → Legal (PUT /api/admin/legal-settings).' });
+    }
+    // C8: receipt / tax display settings only through PUT /api/admin/receipt-settings (validated + audited).
+    if (key === require('../utils/receiptSettings').KEY) {
+      return res.status(400).json({ message: 'Receipt settings are edited on Config → Receipts (PUT /api/admin/receipt-settings).' });
     }
     // Retention windows (cron/retentionCron.js): whole days, at least 1.
     const retention = require('../cron/retentionCron');
@@ -2568,6 +2590,8 @@ exports.duplicateRestaurant = async (req, res) => {
     const copyMenu = (req.body || {}).copyMenu !== false && (req.body || {}).copyMenu !== 'false';
     const src = source.toJSON();
     for (const k of ['id', 'createdAt', 'updatedAt', 'password', 'phone', 'fcmTokens', 'tokenVersion', 'publishedAt', 'clickCount', 'rating', 'isFeatured', 'featuredUntil']) delete src[k];
+    // C8: a copy is not the same legal seller: licence, tax ids and payout details are never copied.
+    for (const k of [...require('../utils/storeCompliance').STORED_FIELDS, 'fssaiSubmittedAt', 'fssaiVerifiedAt', 'fssaiVerifiedBy']) delete src[k];
     const { getSequelize } = require('../config/db');
     const { copy, count } = await getSequelize().transaction(async (t) => {
       const created = await Restaurant.create({ ...src, name, isActive: false }, { transaction: t });

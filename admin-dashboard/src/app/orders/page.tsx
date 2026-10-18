@@ -56,6 +56,8 @@ interface Order {
   estDuration?: number | string | null;
   deliveryPartnerId?: string | null;
   deliveryPinAttempts?: number;
+  /** C8: set when the order is delivered (null before). */
+  receiptNumber?: string | null;
   createdAt: string;
 }
 
@@ -117,6 +119,44 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   }
   return body as T;
 }
+
+/**
+ * C8 receipt: GET /api/orders/:id/receipt returns a signed 15-minute link to the printable receipt.
+ * 409 RECEIPT_NOT_READY (not delivered / cancelled) is shown as the server's message.
+ */
+const ReceiptPanel = ({ order }: { order: Order }) => {
+  const [state, setState] = useState<{ loading: boolean; error: string | null; url: string | null }>({ loading: false, error: null, url: null });
+  const open = async () => {
+    if (state.loading) return;
+    setState({ loading: true, error: null, url: null });
+    try {
+      const data = await requestJson<{ url?: string }>(`${API_URL}/api/orders/${encodeURIComponent(orderId(order))}/receipt`);
+      const url = typeof data.url === 'string' && /^https?:\/\//i.test(data.url) ? data.url : null;
+      if (!url) throw new Error('The receipt link was not returned. Please try again.');
+      window.open(url, '_blank', 'noopener,noreferrer');
+      setState({ loading: false, error: null, url });
+    } catch (err) {
+      setState({ loading: false, error: err instanceof Error ? err.message : 'Could not open the receipt.', url: null });
+    }
+  };
+  return (
+    <div className="mt-3 space-y-2">
+      {order.receiptNumber && (
+        <p className="text-[10px] text-gray-400">Receipt no. <span className="font-mono font-bold text-white">{order.receiptNumber}</span></p>
+      )}
+      <button onClick={open} disabled={state.loading} className="px-3 py-1.5 bg-white/5 text-gray-200 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-white/10 disabled:opacity-30">
+        {state.loading ? 'Opening…' : 'View receipt'}
+      </button>
+      {!TERMINAL.includes(order.status) && !state.error && <p className="text-[10px] text-gray-500">A receipt is issued once the order is delivered.</p>}
+      {state.error && <p className="text-[10px] font-bold text-amber-400">{state.error}</p>}
+      {state.url && (
+        <p className="text-[10px] text-gray-500">
+          Did not open? <a href={state.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">Open receipt ↗</a> (link valid for 15 minutes)
+        </p>
+      )}
+    </div>
+  );
+};
 
 const getStatusStyle = (status: string) => {
   switch (status) {
@@ -687,6 +727,7 @@ export default function OrdersPage() {
                 <div>
                   <h5 className="text-[9px] font-black text-blue-500 uppercase tracking-[0.2em] mb-2">Payment</h5>
                   <PaymentBadge order={selectedOrder} />
+                  <ReceiptPanel key={orderId(selectedOrder)} order={selectedOrder} />
                   {selectedOrder.cancellationReason && (
                     <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400">
                       <span className="text-[8px] font-black uppercase tracking-widest block mb-1">Cancellation reason</span>

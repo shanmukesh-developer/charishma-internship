@@ -9,7 +9,7 @@ const { sortMenuItems } = require('../utils/menuSort');
 
 const MAX_LIMIT = 200;
 // Columns never part of a public store / product (secrets and push tokens): not selected at all.
-const STORE_EXCLUDE = ['password', 'fcmTokens', 'tokenVersion', 'commissionRate', 'commissionType', 'phone'];
+const STORE_EXCLUDE = ['password', 'fcmTokens', 'tokenVersion', 'commissionRate', 'commissionType', 'phone', ...require('../utils/publicFields').STORE_PRIVATE_FIELDS];
 const ITEM_EXCLUDE = ['customCommission', 'ownerName', 'ownerPhone'];
 
 const likeOp = (model) => (model.sequelize.getDialect() === 'postgres' ? Op.iLike : Op.like);
@@ -45,6 +45,8 @@ const shapeStore = (store, itemCount) => {
     logoUrl: s.logoUrl || null,
     packagingFee: Number(s.packagingFee) || 0,
     minOrderValue: Number(s.minOrderValue) || 0,
+    // C8: FSSAI licence number shown on the store page (null = "FSSAI licence not provided").
+    fssaiLicenseNumber: s.fssaiLicenseNumber || null,
     ...(itemCount !== undefined ? { itemCount } : {})
   };
 };
@@ -98,8 +100,8 @@ const shapeItem = (item, store) => {
   };
 };
 
-const storeWhere = (types) => {
-  const where = { isActive: true };
+const storeWhere = async (types) => {
+  const where = { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()) };
   where.vendorType = types ? { [Op.in]: types } : { [Op.in]: STORE_VENDOR_TYPES };
   return where;
 };
@@ -109,7 +111,7 @@ const storeWhere = (types) => {
 const getTypes = async (req, res) => {
   try {
     const Restaurant = getRestaurantModel();
-    const stores = await Restaurant.findAll({ where: storeWhere(null), attributes: ['vendorType'] });
+    const stores = await Restaurant.findAll({ where: await storeWhere(null), attributes: ['vendorType'] });
     const counts = {};
     for (const s of stores) counts[s.vendorType] = (counts[s.vendorType] || 0) + 1;
     res.json(Object.entries(counts).map(([vendorType, storeCount]) => ({ vendorType, storeCount })));
@@ -126,7 +128,7 @@ const getStores = async (req, res) => {
     const Restaurant = getRestaurantModel();
     const MenuItem = getMenuItemModel();
     const types = resolveVendorTypes(req.query.type);
-    const where = types ? { isActive: true, vendorType: { [Op.in]: types } } : storeWhere(null);
+    const where = types ? { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()), vendorType: { [Op.in]: types } } : await storeWhere(null);
     if (req.query.campus) where.campus = String(req.query.campus);
     const stores = await Restaurant.findAll({ where, order: [['name', 'ASC']], attributes: { exclude: STORE_EXCLUDE } });
     const ids = stores.map(s => s.id);
@@ -156,7 +158,7 @@ const getItems = async (req, res) => {
     const MenuItem = getMenuItemModel();
     const types = resolveVendorTypes(req.query.type);
 
-    const storeFilter = { isActive: true };
+    const storeFilter = { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()) };
     if (types) storeFilter.vendorType = { [Op.in]: types };
     else if (!req.query.storeId) storeFilter.vendorType = { [Op.in]: STORE_VENDOR_TYPES };
     if (req.query.storeId) {
@@ -225,7 +227,7 @@ const getMinPrices = async (req, res) => {
     const typeMap = requested.map((type) => [type, resolveVendorTypes(type)]).filter(([, vts]) => vts && vts.length);
     const allVendorTypes = [...new Set(typeMap.flatMap(([, vts]) => vts))];
     if (allVendorTypes.length) {
-      const stores = await Restaurant.findAll({ where: { isActive: true, vendorType: { [Op.in]: allVendorTypes } }, attributes: ['id', 'vendorType'], raw: true });
+      const stores = await Restaurant.findAll({ where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()), vendorType: { [Op.in]: allVendorTypes } }, attributes: ['id', 'vendorType'], raw: true });
       if (stores.length) {
         // Same "in stock" rule as /items (unavailable items whose restock time has passed count again).
         const rows = await MenuItem.findAll({

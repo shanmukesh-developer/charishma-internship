@@ -38,6 +38,7 @@ import { StaggeredSection, FloatingPulse, BounceIn } from '../components/Animate
 import DopaminePressable, { ActionPressable } from '../components/DopaminePressable';
 import { stallErrorMessage, stallPayCopy } from '../utils/localVendor';
 import { cleanBlock, cleanRoom as cleanRoomNo, saveHostelToProfile } from '../utils/hostel';
+import FssaiLine from '../components/FssaiLine';
 
 type CampusKey = 'srmap' | 'vitap' | 'amrita';
 type PayMethod = 'COD' | 'Wallet';
@@ -1175,6 +1176,7 @@ export default function CheckoutScreen() {
                 {quote.totalDiscount > 0 && (
                   <Text style={[s.savingsText]}>🎉 You save {rupees(quote.totalDiscount)} on this order</Text>
                 )}
+                <FssaiLine number={quote.store?.fssaiLicenseNumber} storeName={quote.store?.name || undefined} color={txtSec} />
               </View>
             )}
 

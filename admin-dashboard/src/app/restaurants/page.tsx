@@ -3,7 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { useLiveSync, useFreshIds, FRESH_ROW_CLASS } from '@/lib/useLiveSync';
 import {
-  STATUS_META, Store, StoreStatus, adminRequest, formatINR, isLocalVendorType, readTags, storeId, storeStatus, vendorLabel,
+  FSSAI_STATUS_META, FssaiStatus, STATUS_META, Store, StoreStatus, adminRequest, formatINR, fssaiStatusOf, isLocalVendorType, readTags,
+  storeId, storeStatus, vendorLabel,
 } from './catalogue';
 import {
   Button, Callout, Chip, ConfirmModal, EmptyState, Field, INPUT, MenuButton, Modal, Skeleton, Thumb, Toggle,
@@ -44,8 +45,17 @@ const SORTS: { value: SortKey; label: string }[] = [
 ];
 const STATUS_TONE = { live: 'green', closed: 'amber', draft: 'slate', inactive: 'red' } as const;
 
-interface Filters { search: string; type: string; campus: string; status: StatusFilter; sort: SortKey }
-const DEFAULT_FILTERS: Filters = { search: '', type: 'ALL', campus: 'ALL', status: 'all', sort: 'name' };
+type FssaiFilter = 'ALL' | FssaiStatus;
+const FSSAI_FILTERS: { value: FssaiFilter; label: string }[] = [
+  { value: 'ALL', label: 'FSSAI: all' },
+  { value: 'MISSING', label: 'FSSAI: missing' },
+  { value: 'EXPIRED', label: 'FSSAI: expired' },
+  { value: 'PENDING', label: 'FSSAI: pending check' },
+  { value: 'VERIFIED', label: 'FSSAI: verified' },
+];
+
+interface Filters { search: string; type: string; campus: string; status: StatusFilter; fssai: FssaiFilter; sort: SortKey }
+const DEFAULT_FILTERS: Filters = { search: '', type: 'ALL', campus: 'ALL', status: 'all', fssai: 'ALL', sort: 'name' };
 
 export default function StoresPage() {
   return (
@@ -86,6 +96,7 @@ function StoresScreen() {
           type: typeof saved.type === 'string' ? saved.type : 'ALL',
           campus: typeof saved.campus === 'string' ? saved.campus : 'ALL',
           status: STATUS_FILTERS.includes(saved.status) ? saved.status : 'all',
+          fssai: FSSAI_FILTERS.some(o => o.value === saved.fssai) ? saved.fssai : 'ALL',
           sort: SORTS.some(o => o.value === saved.sort) ? saved.sort : 'name',
         });
       }
@@ -160,6 +171,11 @@ function StoresScreen() {
     stores.forEach(s => { c[storeStatus(s)]++; });
     return c;
   }, [stores]);
+  const fssaiCounts = useMemo(() => {
+    const c: Record<FssaiStatus, number> = { MISSING: 0, EXPIRED: 0, PENDING: 0, VERIFIED: 0 };
+    stores.forEach(s => { c[fssaiStatusOf(s).status]++; });
+    return c;
+  }, [stores]);
 
   const visible = useMemo(() => {
     const q = filters.search.trim().toLowerCase();
@@ -168,6 +184,7 @@ function StoresScreen() {
       if (filters.type !== 'ALL' && type !== filters.type) return false;
       if (filters.campus !== 'ALL' && (s.campus || '').trim() !== filters.campus) return false;
       if (filters.status === 'hidden' ? !isHidden(s) : filters.status !== 'all' && storeStatus(s) !== filters.status) return false;
+      if (filters.fssai !== 'ALL' && fssaiStatusOf(s).status !== filters.fssai) return false;
       return !q || [s.name, s.location, s.campus, vendorLabel(type), ...(s.tags || [])].some(v => String(v || '').toLowerCase().includes(q));
     });
     const attention = (s: Store) => (storeStatus(s) === 'draft' ? 0 : !s.imageUrl || (s.itemCount ?? 0) === 0 || (!s.hasPassword && !s.isOffline) ? 1 : storeStatus(s) === 'inactive' ? 2 : 3);
@@ -183,7 +200,7 @@ function StoresScreen() {
     return [...list].sort((a, b) => by[filters.sort](a, b) || a.name.localeCompare(b.name));
   }, [stores, filters, stats]);
 
-  const filtered = filters.search.trim() !== '' || filters.type !== 'ALL' || filters.campus !== 'ALL' || filters.status !== 'all';
+  const filtered = filters.search.trim() !== '' || filters.type !== 'ALL' || filters.campus !== 'ALL' || filters.status !== 'all' || filters.fssai !== 'ALL';
   const visibleIds = visible.map(storeId);
   const allSelected = visibleIds.length > 0 && visibleIds.every(id => selected.has(id));
   const drawerStore = drawer ? stores.find(s => storeId(s) === drawer.id) || null : null;
@@ -409,6 +426,9 @@ function StoresScreen() {
           <option value="ALL">All campuses</option>
           {campusOptions.map(([c, n]) => <option key={c} value={c}>{c} ({n})</option>)}
         </select>
+        <select value={filters.fssai} onChange={e => setF({ fssai: e.target.value as FssaiFilter })} aria-label="FSSAI licence" className={cx(INPUT, 'w-auto py-2')}>
+          {FSSAI_FILTERS.map(o => <option key={o.value} value={o.value}>{o.label}{o.value !== 'ALL' ? ` (${fssaiCounts[o.value]})` : ''}</option>)}
+        </select>
         <select value={filters.sort} onChange={e => setF({ sort: e.target.value as SortKey })} aria-label="Sort by" className={cx(INPUT, 'w-auto py-2')}>
           {SORTS.map(s => <option key={s.value} value={s.value}>Sort: {s.label}</option>)}
         </select>
@@ -480,6 +500,7 @@ function StoresScreen() {
                         {store.isFeatured && <Chip tone="amber">✨ {store.featuredBadge || 'Featured'}</Chip>}
                         {store.isOffline && !local && <Chip title="No partner app; Zenvy handles orders">Managed</Chip>}
                         {local && <Chip tone="sky" title="Customers pay the stall cash; the stall delivers with Zenvy Vendor">Stall · COD</Chip>}
+                        <FssaiChip store={store} />
                         {!store.hasPassword && !(store.isOffline && !local) && <Chip tone="amber" title={local ? 'The stall cannot see its orders until it can sign in to Zenvy Vendor' : 'The partner cannot sign in to accept orders'}>No login</Chip>}
                       </span>
                       <span className="mt-0.5 block truncate text-xs text-gray-400">
@@ -509,6 +530,7 @@ function StoresScreen() {
                       { label: 'Menu', onSelect: () => setDrawer({ id, tab: 'menu' }) },
                       { label: 'Hours', onSelect: () => setDrawer({ id, tab: 'hours' }) },
                       { label: local ? 'Vendor login' : 'Partner login', onSelect: () => setDrawer({ id, tab: 'login' as DrawerTab }) },
+                      { label: 'Licences, tax & payout', onSelect: () => setDrawer({ id, tab: 'compliance' as DrawerTab }) },
                       ...(local ? [] : [{ label: 'Promote', onSelect: () => setDrawer({ id, tab: 'promote' as DrawerTab }) }]),
                       'divider',
                       { label: 'Duplicate store', onSelect: () => setDuplicating(store) },
@@ -592,6 +614,19 @@ function StoresScreen() {
         <ConfirmModal title={confirm.title} body={confirm.body} actionLabel={confirm.action} tone={confirm.danger ? 'danger' : 'primary'} onClose={() => setConfirm(null)} onConfirm={confirm.run} />
       )}
     </div>
+  );
+}
+
+// ─── FSSAI badge ─────────────────────────────────────────────────────────────
+function FssaiChip({ store }: { store: Store }) {
+  const { status, expiringSoon } = fssaiStatusOf(store);
+  const meta = FSSAI_STATUS_META[status];
+  const expiry = store.compliance?.fssaiExpiry ?? store.fssaiExpiry;
+  return (
+    <>
+      <Chip tone={meta.tone} title={`${meta.help}${expiry ? ` Expiry: ${expiry}.` : ''}`}>{meta.label}</Chip>
+      {expiringSoon && <Chip tone="amber" title={expiry ? `The FSSAI licence expires on ${expiry} (within 30 days).` : 'The FSSAI licence expires within 30 days.'}>FSSAI expires soon</Chip>}
+    </>
   );
 }
 

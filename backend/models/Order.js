@@ -102,6 +102,12 @@ const initOrderModel = (sequelize) => {
     // C6 payout statements this order is on (models/Payout). Null = not on any statement yet.
     payoutId: { type: DataTypes.UUID, allowNull: true },
     riderPayoutId: { type: DataTypes.UUID, allowNull: true },
+    // C8 receipt (utils/receipts): number from the per-financial-year counter (ZNV/2026-27/000123), assigned
+    // once when the order is Delivered and never changed (model hooks below refuse it). receiptSnapshot =
+    // seller + platform details as they were at issue (the receipt never changes after that).
+    receiptNumber: { type: DataTypes.STRING(40), allowNull: true },
+    receiptIssuedAt: { type: DataTypes.DATE, allowNull: true },
+    receiptSnapshot: { type: DataTypes.TEXT, allowNull: true },
     // Set once when an admin manual refund is credited (idempotency guard; nullable).
     refundedAt: { type: DataTypes.DATE, allowNull: true },
     
@@ -156,6 +162,51 @@ const initOrderModel = (sequelize) => {
         }
       }
     }
+  });
+
+  // C8: receipt fields are write-once. Only utils/receipts.assignReceiptNumber (option c8ReceiptAssign, which
+  // also requires receiptNumber IS NULL in its WHERE) may set them; every other write that touches them fails.
+  const RECEIPT_FIELDS = ['receiptNumber', 'receiptIssuedAt', 'receiptSnapshot'];
+  Order.beforeUpdate((order, options) => {
+    if (options && options.c8ReceiptAssign) return;
+    for (const f of RECEIPT_FIELDS) {
+      if (order.changed(f) && order.previous(f) !== null && order.previous(f) !== undefined) {
+        throw new Error(`Order.${f} is immutable once a receipt is issued.`);
+      }
+    }
+  });
+  Order.beforeBulkUpdate((options) => {
+    if (options && options.c8ReceiptAssign) return;
+    const fields = Object.keys((options && options.attributes) || {});
+    if (RECEIPT_FIELDS.some((f) => fields.includes(f))) {
+      throw new Error('Order receipt fields can only be set by the receipt service.');
+    }
+  });
+  // Delivered flips (rider / admin / stall paths all use a conditional static update by id) issue the
+  // receipt number right after the flip commits. Fire-and-forget: GET /api/orders/:id/receipt assigns it
+  // too if this ever fails.
+  const scheduleReceipt = (ids, options) => {
+    if (!ids.length) return;
+    const run = () => setTimeout(() => {
+      try {
+        const receipts = require('../utils/receipts');
+        for (const id of ids) receipts.assignReceiptNumber(id).catch((err) => console.warn('[RECEIPT_ASSIGN_WARN]', id, err.message));
+      } catch (err) { console.warn('[RECEIPT_ASSIGN_WARN]', err.message); }
+    });
+    const t = options && options.transaction;
+    if (t && typeof t.afterCommit === 'function') t.afterCommit(run); else run();
+  };
+  Order.afterBulkUpdate((options) => {
+    if (!options || options.c8ReceiptAssign) return;
+    const attrs = options.attributes || {};
+    if (attrs.status !== 'Delivered') return;
+    const w = options.where || {};
+    const ids = typeof w.id === 'string' ? [w.id] : Array.isArray(w.id) ? w.id.filter((x) => typeof x === 'string').slice(0, 50) : [];
+    scheduleReceipt(ids, options);
+  });
+  Order.afterUpdate((order, options) => {
+    if (options && options.c8ReceiptAssign) return;
+    if (order.changed('status') && order.status === 'Delivered' && !order.receiptNumber) scheduleReceipt([order.id], options);
   });
 
   return Order;

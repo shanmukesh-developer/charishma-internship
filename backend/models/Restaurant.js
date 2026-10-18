@@ -90,6 +90,24 @@ const initRestaurantModel = (sequelize) => {
     stallDescription: { type: DataTypes.TEXT, allowNull: true },
     promoOffer: { type: DataTypes.STRING, allowNull: true }, // e.g. 'Buy 2 Get 1 Free'
     clickCount: { type: DataTypes.INTEGER, defaultValue: 0 },
+    // ── C8 seller compliance (all nullable; added on boot by addMissingColumns) ──────────
+    // Public on the store page / checkout / receipt: legal name, FSSAI licence number + type + expiry,
+    // GSTIN (when the seller has one). Validated in utils/storeCompliance.js (owner + admin edits).
+    legalName: { type: DataTypes.STRING(200), allowNull: true },
+    fssaiLicenseNumber: { type: DataTypes.STRING(14), allowNull: true }, // exactly 14 digits
+    fssaiLicenseType: { type: DataTypes.STRING(16), allowNull: true }, // BASIC | STATE | CENTRAL
+    fssaiExpiry: { type: DataTypes.DATEONLY, allowNull: true },
+    fssaiSubmittedAt: { type: DataTypes.DATE, allowNull: true }, // last change to number / type / expiry
+    fssaiVerifiedAt: { type: DataTypes.DATE, allowNull: true }, // admin checked the licence (cleared on change)
+    fssaiVerifiedBy: { type: DataTypes.STRING(64), allowNull: true }, // admin user id
+    gstin: { type: DataTypes.STRING(15), allowNull: true },
+    // PRIVATE (never in public reads: utils/publicFields STORE_PRIVATE_FIELDS). PAN is shown masked only.
+    // Payout: UPI ID and bank last-4 + IFSC only. A full bank account number is never stored.
+    pan: { type: DataTypes.STRING(10), allowNull: true },
+    payoutUpiId: { type: DataTypes.STRING(120), allowNull: true },
+    bankAccountHolder: { type: DataTypes.STRING(120), allowNull: true },
+    bankAccountLast4: { type: DataTypes.STRING(4), allowNull: true },
+    bankIfsc: { type: DataTypes.STRING(11), allowNull: true },
     brandTheme: {
       type: DataTypes.TEXT,
       allowNull: true,

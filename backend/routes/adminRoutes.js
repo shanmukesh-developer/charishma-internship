@@ -148,6 +148,17 @@ router.post('/config', updateGlobalConfig);
   router.get('/legal-settings', legalCtl.getAdminLegalSettings);
   router.put('/legal-settings', legalCtl.updateAdminLegalSettings);
 }
+// C8: receipt tax display / platform GSTIN / hide stores without FSSAI (validated, audited); store compliance
+// (legal name, FSSAI, GSTIN, PAN, payout) edits and FSSAI verification (audited).
+{
+  const receiptCtl = require('../controllers/receiptController');
+  router.get('/receipt-settings', receiptCtl.getAdminReceiptSettings);
+  router.put('/receipt-settings', receiptCtl.updateAdminReceiptSettings);
+  const complianceCtl = require('../controllers/complianceController');
+  router.get('/restaurants/:id/compliance', complianceCtl.getStoreCompliance);
+  router.put('/restaurants/:id/compliance', complianceCtl.adminUpdateCompliance);
+  router.post('/restaurants/:id/fssai-verification', complianceCtl.adminVerifyFssai);
+}
 
 // Zenvy Vault Control
 router.get('/vault', getVaultItems);

@@ -64,7 +64,59 @@ export interface Store {
   logoUrl?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  // C8 seller compliance (PAN is never sent in full: only panMasked).
+  legalName?: string | null;
+  fssaiLicenseNumber?: string | null;
+  fssaiLicenseType?: FssaiLicenseType | null;
+  fssaiExpiry?: string | null;
+  fssaiSubmittedAt?: string | null;
+  fssaiVerifiedAt?: string | null;
+  fssaiVerifiedBy?: string | null;
+  gstin?: string | null;
+  payoutUpiId?: string | null;
+  bankAccountHolder?: string | null;
+  bankAccountLast4?: string | null;
+  bankIfsc?: string | null;
+  panMasked?: string | null;
+  compliance?: StoreCompliance | null;
 }
+
+export type FssaiLicenseType = 'BASIC' | 'STATE' | 'CENTRAL';
+export type FssaiStatus = 'MISSING' | 'EXPIRED' | 'PENDING' | 'VERIFIED';
+
+/** Admin view of a store's compliance fields (backend utils/storeCompliance privateView). */
+export interface StoreCompliance {
+  legalName: string | null;
+  fssaiLicenseNumber: string | null;
+  fssaiLicenseType: FssaiLicenseType | null;
+  fssaiExpiry: string | null;
+  fssaiSubmittedAt: string | null;
+  fssaiVerifiedAt: string | null;
+  fssaiVerifiedBy: string | null;
+  fssaiStatus: FssaiStatus;
+  fssaiExpiringSoon: boolean;
+  fssaiText: string;
+  gstin: string | null;
+  panMasked: string | null;
+  hasPan: boolean;
+  payoutUpiId: string | null;
+  bankAccountHolder: string | null;
+  bankAccountLast4: string | null;
+  bankIfsc: string | null;
+}
+
+export const FSSAI_STATUS_META: Record<FssaiStatus, { label: string; tone: 'green' | 'amber' | 'red' | 'sky'; help: string }> = {
+  MISSING: { label: 'FSSAI missing', tone: 'amber', help: 'No FSSAI licence number on file.' },
+  EXPIRED: { label: 'FSSAI expired', tone: 'red', help: 'The FSSAI licence expiry date has passed. Ask the store for the renewed licence.' },
+  PENDING: { label: 'FSSAI pending check', tone: 'sky', help: 'A licence number is on file but an admin has not checked it yet.' },
+  VERIFIED: { label: 'FSSAI verified', tone: 'green', help: 'An admin checked the FSSAI licence.' },
+};
+/** FSSAI status of a store row (from `compliance`, falling back to the flat fields). */
+export const fssaiStatusOf = (s: Store): { status: FssaiStatus; expiringSoon: boolean } => {
+  if (s.compliance?.fssaiStatus) return { status: s.compliance.fssaiStatus, expiringSoon: !!s.compliance.fssaiExpiringSoon };
+  if (!s.fssaiLicenseNumber) return { status: 'MISSING', expiringSoon: false };
+  return { status: s.fssaiVerifiedAt ? 'VERIFIED' : 'PENDING', expiringSoon: false };
+};
 
 export interface Product {
   _id: string;

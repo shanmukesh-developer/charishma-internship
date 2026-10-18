@@ -4,7 +4,7 @@
 import { Platform } from 'react-native';
 import { apiFetch, ApiError } from './http';
 import { normalizeMenuItem, normalizeOrder, normalizeStore } from './model';
-import type { MenuItem, OperatingHours, Order, StoreState } from '../types';
+import type { Compliance, ComplianceEdit, MenuItem, OperatingHours, Order, StoreState } from '../types';
 
 const enc = encodeURIComponent;
 
@@ -188,4 +188,24 @@ export async function refreshSession(): Promise<{ token: string; restaurant?: an
     if (e instanceof ApiError && (e.status === 404 || e.status === 405)) refreshUnsupported = true;
     return null;
   }
+}
+
+// ── Compliance (FSSAI licence, legal name, GSTIN; payout details are read-only) ──
+export interface ComplianceReply { compliance: Compliance; changed?: string[] }
+
+/** GET /api/restaurants/:id/compliance (own store only). */
+export async function getCompliance(id: string): Promise<Compliance> {
+  const res = await apiFetch<any>(`/api/restaurants/${enc(id)}/compliance`, { no401Logout: true });
+  if (!res?.compliance) throw new ApiError(500, 'Could not load your licence details. Please try again.', res);
+  return res.compliance as Compliance;
+}
+
+/**
+ * PUT /api/restaurants/:id/compliance. null / '' clears a field. 400 { code: 'INVALID_COMPLIANCE', field, message }
+ * is thrown as ApiError (read e.data.field). A new licence number / type / expiry goes back to PENDING.
+ */
+export async function saveCompliance(id: string, body: ComplianceEdit): Promise<ComplianceReply> {
+  const res = await apiFetch<any>(`/api/restaurants/${enc(id)}/compliance`, { method: 'PUT', body, no401Logout: true, timeoutMs: 30000 });
+  if (!res?.compliance) throw new ApiError(500, 'Saved, but the reply was empty. Pull down to refresh.', res);
+  return { compliance: res.compliance as Compliance, changed: Array.isArray(res.changed) ? res.changed : undefined };
 }

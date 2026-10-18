@@ -1,7 +1,9 @@
 // Fields that public (unauthenticated) store / menu endpoints must never return.
 // Admin endpoints (/api/admin/*) keep the full rows.
 // phone = the partner's private login phone (customers call the stall on whatsappNumber).
-const STORE_SECRET_FIELDS = ['password', 'commissionRate', 'commissionType', 'phone', 'tokenVersion', 'fcmTokens'];
+// C8: PAN, payout UPI / bank details and the verifying admin's id are private to the store and admins.
+const STORE_PRIVATE_FIELDS = ['pan', 'payoutUpiId', 'bankAccountHolder', 'bankAccountLast4', 'bankIfsc', 'fssaiVerifiedBy'];
+const STORE_SECRET_FIELDS = ['password', 'commissionRate', 'commissionType', 'phone', 'tokenVersion', 'fcmTokens', ...STORE_PRIVATE_FIELDS];
 const ITEM_SECRET_FIELDS = ['password', 'customCommission', 'ownerName', 'ownerPhone'];
 
 const strip = (obj, fields) => {
@@ -35,4 +37,4 @@ const campusLabel = (address) => {
   return 'Delivered by a Zenvy rider';
 };
 
-module.exports = { stripStoreSecrets, stripItemSecrets, applyFeaturedExpiry, STORE_SECRET_FIELDS, ITEM_SECRET_FIELDS, customerFirstName, campusLabel };
+module.exports = { stripStoreSecrets, stripItemSecrets, applyFeaturedExpiry, STORE_SECRET_FIELDS, STORE_PRIVATE_FIELDS, ITEM_SECRET_FIELDS, customerFirstName, campusLabel };

@@ -1,4 +1,4 @@
-// Settings: voice announcements (on/off, language, test), store info, support, log out.
+// Settings: voice announcements (on/off, language, test), store info, licences & tax, support, log out.
 import React, { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,7 @@ import { hasKitchenService } from '../voice/kitchenService';
 import { color, font, radius, space, touch } from '../theme';
 import { Button, Card, IconName, Sheet } from '../ui/kit';
 import { LEGAL_LABELS, SETTINGS_PAGES, openLegal } from '../lib/legal';
+import CompliancePanel from '../components/CompliancePanel';
 
 function LinkRow({ icon, label, sub, onPress }: { icon: IconName; label: string; sub?: string; onPress: () => void }) {
   return (
@@ -131,6 +132,8 @@ export default function SettingsScreen() {
         </Text>
         <Text style={[font.small, { color: color.textMuted }]} selectable>ID: {restaurant.id}</Text>
       </Card>
+
+      <CompliancePanel />
 
       <Text style={[font.label, { color: color.textMuted }]}>HELP</Text>
       <Card style={{ paddingVertical: 0 }}>

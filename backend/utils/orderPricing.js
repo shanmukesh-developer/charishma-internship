@@ -200,6 +200,8 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
 
   const isElite = !!(user && (user.isElite || (Array.isArray(user.badges) && user.badges.some(b => typeof b === 'string' && b.includes('Elite')))));
   const bookingOnly = [];
+  // C8 (admin Config → Receipts, default off): stores without an FSSAI licence number take no new orders.
+  const fssaiRequired = await require('./receiptSettings').hideStoresWithoutFssai();
   for (const line of lines) {
     const dbItem = itemMap.get(line.id);
     const store = dbItem && restMap.get(dbItem.restaurantId);
@@ -211,7 +213,7 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
     specs = specs && typeof specs === 'object' ? specs : {};
     if (specs.bookingOnly || isServiceVendorType(store.vendorType)) { bookingOnly.push(dbItem.name); continue; }
     if (!isItemAvailable(dbItem) || !(Number(dbItem.price) > 0)) { problems.push({ id: dbItem.id, name: dbItem.name, reason: 'out_of_stock' }); continue; }
-    if (store.isActive === false) { problems.push({ id: dbItem.id, name: dbItem.name, reason: 'store_unavailable' }); continue; }
+    if (store.isActive === false || (fssaiRequired && !store.fssaiLicenseNumber)) { problems.push({ id: dbItem.id, name: dbItem.name, reason: 'store_unavailable' }); continue; }
     if (dbItem.isEliteOnly && !isElite) { problems.push({ id: dbItem.id, name: dbItem.name, reason: 'elite_only' }); continue; }
     line.dbItem = dbItem;
     line.store = store;
@@ -353,7 +355,7 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
 
   return {
     currency: 'INR',
-    store: { id: store.id, name: store.name, vendorType: store.vendorType, isOffline: !!store.isOffline, zone: store.zone, location: store.location, ...(isStall ? { whatsappNumber: store.whatsappNumber || null } : {}), minOrderValue },
+    store: { id: store.id, name: store.name, vendorType: store.vendorType, isOffline: !!store.isOffline, zone: store.zone, location: store.location, ...(isStall ? { whatsappNumber: store.whatsappNumber || null } : {}), minOrderValue, fssaiLicenseNumber: store.fssaiLicenseNumber || null },
     fulfilment: isStall ? 'VENDOR' : 'ZENVY',
     // Stalls and rider-purchase stores (offline / no partner login) are cash on delivery only.
     paymentMethods: isStall || require('./riderPurchase').isRiderPurchaseStore(store, 'computeOrderQuote') ? ['COD'] : ['COD', 'Wallet'],

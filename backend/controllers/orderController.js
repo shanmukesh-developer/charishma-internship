@@ -680,7 +680,7 @@ const getOrderById = async (req, res) => {
 
     const order = await Order.findByPk(id, {
       include: [
-        { model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'location', 'imageUrl', 'vendorType', 'whatsappNumber'] },
+        { model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'location', 'imageUrl', 'vendorType', 'whatsappNumber', 'fssaiLicenseNumber'] },
         { 
           model: DeliveryPartner, 
           as: 'deliveryPartner', 
@@ -746,12 +746,14 @@ const MY_ORDER_FIELDS = [
   'acceptedAt', 'readyAt', 'fulfilment', 'outForDeliveryAt', 'idempotencyKey', 'dropLat', 'dropLng',
   'isSurge', 'hostelGateDelivery', 'rating', 'review', 'deliveryPin', 'refundedAt',
   'isPurchasingApprovedByCustomer', 'itemPhotoUrl', 'billProofUrl', 'billAmount', 'isBillApproved',
-  'category', 'isMultiRestaurant', 'createdAt', 'updatedAt',
+  'category', 'isMultiRestaurant', 'createdAt', 'updatedAt', 'receiptNumber',
 ];
 // Never sent to the customer / rider on the single-order view either (admin only).
 const ORDER_INTERNAL_FIELDS = ['deliveryPinAttempts', 'upiUTR', 'upiScreenshot', 'upiStatus', 'payoutSettled', 'riderPayoutSettled',
   // C6 settlement internals (commission snapshot, payout statements).
-  'commissionRate', 'commissionType', 'commissionAmountPaise', 'storeNetPaise', 'commissionSource', 'payoutId', 'riderPayoutId'];
+  'commissionRate', 'commissionType', 'commissionAmountPaise', 'storeNetPaise', 'commissionSource', 'payoutId', 'riderPayoutId',
+  // C8: the frozen issuer details (served through GET /api/orders/:id/receipt instead).
+  'receiptSnapshot'];
 // One row of the customer's order list (whitelist: MY_ORDER_FIELDS).
 function customerOrderJson(o) {
   const json = o && typeof o.toJSON === 'function' ? o.toJSON() : { ...(o || {}) };

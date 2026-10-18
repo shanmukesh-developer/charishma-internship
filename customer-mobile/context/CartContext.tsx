@@ -593,7 +593,7 @@ export interface QuoteLine {
 
 export interface OrderQuote {
   currency: string;
-  store: { id: string; name: string; vendorType: string; isOffline: boolean; zone?: string; location?: string; whatsappNumber?: string | null; minOrderValue?: number };
+  store: { id: string; name: string; vendorType: string; isOffline: boolean; zone?: string; location?: string; whatsappNumber?: string | null; minOrderValue?: number; fssaiLicenseNumber?: string | null };
   /** 'VENDOR' = a CampusBites stall delivers it (cash to the stall, no rider, no PIN). */
   fulfilment?: 'VENDOR' | 'ZENVY';
   lines: QuoteLine[];
