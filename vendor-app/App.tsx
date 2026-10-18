@@ -15,6 +15,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import MainScreen, { RootStack } from './src/screens/MainScreen';
 import OrderDetailScreen from './src/screens/OrderDetailScreen';
 import { scheduleApiEndpointCheck } from './src/config';
+import UpdateGate from './src/lib/UpdateGate';
 
 const Stack = createNativeStackNavigator<RootStack>();
 const navTheme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: color.bg, card: color.surface, text: color.text, primary: color.text } };
@@ -57,9 +58,12 @@ export default function App() {
       <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
         <StatusBar style="dark" />
         <ToastProvider>
-          <SessionProvider>
-            <Root />
-          </SessionProvider>
+          {/* Force update: a retired version sees only the Update screen; a newer release shows a banner. */}
+          <UpdateGate>
+            <SessionProvider>
+              <Root />
+            </SessionProvider>
+          </UpdateGate>
         </ToastProvider>
       </KeyboardProvider>
     </SafeAreaProvider>

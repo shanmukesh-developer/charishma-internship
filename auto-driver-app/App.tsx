@@ -26,6 +26,7 @@ import CheckInScreen from './src/screens/CheckIn';
 import RequestsScreen from './src/screens/Requests';
 import { EarningsScreen, HistoryScreen, NotificationsScreen, ProfileScreen, QueueScreen, SettingsScreen, SupportScreen } from './src/screens/More';
 import { scheduleApiEndpointCheck } from './src/config';
+import UpdateGate from './src/lib/UpdateGate';
 
 const Stack = createNativeStackNavigator<RootStack>();
 const navRef = createNavigationContainerRef<RootStack>();
@@ -129,9 +130,12 @@ export default function App() {
       <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
         <StatusBar style="dark" />
         <ToastProvider>
-          <SessionProvider>
-            <Root />
-          </SessionProvider>
+          {/* Force update: a retired version sees only the Update screen; a newer release shows a banner. */}
+          <UpdateGate>
+            <SessionProvider>
+              <Root />
+            </SessionProvider>
+          </UpdateGate>
         </ToastProvider>
       </KeyboardProvider>
     </SafeAreaProvider>

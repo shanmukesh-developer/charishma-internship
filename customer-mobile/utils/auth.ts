@@ -102,6 +102,7 @@ export const removeUser = async (): Promise<void> => {
 };
 
 import { API_URL } from '../constants/api';
+import { reportUpgradeRequired, versionHeaders } from './forceUpdate';
 
 // ── Request helpers ───────────────────────────────────────────────────────────
 // Android's OkHttp client has no default timeout, so a dead connection would spin forever.
@@ -154,6 +155,7 @@ const apiFetchRaw = async (
   const token = knownToken !== undefined ? knownToken : await getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    ...versionHeaders(),
     ...(options.headers as Record<string, string>),
   };
   if (token) {
@@ -162,6 +164,10 @@ const apiFetchRaw = async (
   const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
   // No silent dev -> production retry: a dev build must never write test data to production.
   const res = await fetchWithTimeout(fullUrl, { ...options, headers });
+  // This app version was retired by the owner: show the Update screen (utils/UpdateGate.tsx).
+  if (res.status === 426) {
+    try { reportUpgradeRequired(await res.clone().json()); } catch { /* not JSON */ }
+  }
   // A signed request was rejected: let AuthContext re-check the session (it logs out only if
   // /api/users/profile also answers 401, so a route-specific 401 never signs the user out).
   if (res.status === 401 && token && !/\/api\/users\/(profile|logout|fcm-token)/.test(fullUrl)) {
@@ -212,7 +218,7 @@ export const postAuth = async (url: string, body: any, withToken = false): Promi
     } else {
       res = await fetchWithTimeout(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...versionHeaders() },
         body: JSON.stringify(body),
       });
     }

@@ -4,6 +4,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { io, Socket } from 'socket.io-client';
+import { reportSocketError, socketVersionAuth } from '../lib/forceUpdate';
 import { SOCKET_URL, OFFLINE_AFTER_MS } from '../config';
 import type { ConnStatus } from '../types';
 
@@ -32,7 +33,8 @@ export function SocketProvider({ token, restaurantId, onAuthError, children }: {
 
   useEffect(() => {
     const s = io(SOCKET_URL, {
-      auth: { token },
+      // appName / appVersion / appBuild: the server refuses a retired app version (force update).
+      auth: { token, ...socketVersionAuth() },
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: Infinity,
@@ -94,6 +96,8 @@ export function SocketProvider({ token, restaurantId, onAuthError, children }: {
       if (reason === 'io server disconnect') s.connect();
     });
     s.on('connect_error', (err: any) => {
+      // This app version was retired: the Update screen takes over (it unmounts this provider), never retry.
+      if (reportSocketError(err)) { clearRetry(); return; }
       // 'Please retry' = a passing server hiccup (DB busy), not a bad token: keep retrying, never log out.
       const msg = String(err?.message || '');
       if (/authentication error/i.test(msg) && !/please retry/i.test(msg)) {

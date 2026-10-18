@@ -129,6 +129,13 @@ router.delete('/coupons/:id', deleteCoupon);
 // Global Configuration
 router.get('/config', getGlobalConfig);
 router.post('/config', updateGlobalConfig);
+// C3 force-update: per-app minimum / latest versions (validated, audited). The generic POST /config
+// above refuses this key so it can only be written through these validated endpoints.
+{
+  const appVersions = require('../controllers/appVersionController');
+  router.get('/app-versions', appVersions.getAdminAppVersions);
+  router.put('/app-versions', appVersions.updateAdminAppVersions);
+}
 
 // Zenvy Vault Control
 router.get('/vault', getVaultItems);

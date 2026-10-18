@@ -6,6 +6,7 @@ import {
   trustedHostsFrom,
   type RefreshResult,
 } from '../utils/endpointOverride';
+import { configureForceUpdate } from '../utils/forceUpdate';
 
 // Production Cloud API URL (Render) — the built-in address.
 export const PROD_API_URL = 'https://hostelbites-backend-jwmt.onrender.com';
@@ -32,6 +33,9 @@ export const API_URL = ACTIVE_ENDPOINT.api;
 /** socket.io address (same as API_URL unless the backend advertises a separate one). */
 export const SOCKET_URL = ACTIVE_ENDPOINT.socket;
 export const API_URL_SOURCE = ACTIVE_ENDPOINT.source;
+
+// Force update (utils/forceUpdate.ts): version headers on every API call + 426 UPGRADE_REQUIRED handling.
+configureForceUpdate({ app: 'customer', apiBase: API_URL });
 
 let endpointCheckStarted = false;
 /** Once per launch, a few seconds after start: learn / verify / self-heal the API address for the next launch. */

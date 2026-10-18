@@ -11,6 +11,10 @@ const { protect, admin } = require('../middleware/authMiddleware');
 const { cacheGet, liveAdminBypass } = require('../utils/responseCache');
 router.get('/', cacheGet('config', { ttlMs: 60 * 1000, bypass: liveAdminBypass }), appConfigController.getConfig);
 
+// C3 force-update: one app's version policy (public, no auth). ?app=customer|rider|restaurant|vendor|autodriver
+// Cached 30 s per app; an admin change (PUT /api/admin/app-versions) publishes 'config', which clears it.
+router.get('/app-version', cacheGet('config', { ttlMs: 30 * 1000 }), require('../controllers/appVersionController').getPublicAppVersion);
+
 // Update global app configuration (admin only)
 router.put('/', protect, admin, appConfigController.updateConfig);
 

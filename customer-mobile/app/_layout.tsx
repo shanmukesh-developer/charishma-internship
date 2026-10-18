@@ -22,6 +22,7 @@ import OfflineBanner from '../components/OfflineBanner';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { preloadSounds } from '../utils/sounds';
 import { scheduleApiEndpointCheck } from '../constants/api';
+import UpdateGate from '../utils/UpdateGate';
 
 // Global interceptor to theme all native Alert.alert calls across the codebase automatically
 const originalAlert = Alert.alert;
@@ -112,6 +113,8 @@ function AppContainer() {
         {/* Real keyboard insets for every screen (Android edge-to-edge ignores adjustResize). */}
         <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
         <WorldTransitionProvider>
+          {/* Force update: a retired version sees only the Update screen; a newer release shows a banner. */}
+          <UpdateGate>
           <AuthProvider>
           <CartProvider>
             <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
@@ -119,10 +122,9 @@ function AppContainer() {
             <GlobalAnnouncement />
             <ThemedAlert />
             <OfflineBanner />
-            
-            
           </CartProvider>
         </AuthProvider>
+          </UpdateGate>
         </WorldTransitionProvider>
         </KeyboardProvider>
       </GestureHandlerRootView>

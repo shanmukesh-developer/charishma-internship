@@ -1,6 +1,7 @@
 // The one HTTP client for the rider app. Reads the token at call time (no stale closures),
 // times out after 15 s and turns every failure into ApiError (server answered) or NetworkError (it didn't).
 import { API_URL } from '../config';
+import { reportUpgradeRequired, versionHeaders } from './forceUpdate';
 
 export class ApiError extends Error {
   status: number;
@@ -77,7 +78,7 @@ interface RequestOptions {
 
 export async function apiFetch<T = unknown>(endpoint: string, opts: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, timeoutMs = 15000, auth = true } = opts;
-  const headers: Record<string, string> = { Accept: 'application/json' };
+  const headers: Record<string, string> = { Accept: 'application/json', ...versionHeaders() };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   const token = auth ? opts.token ?? getToken() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -110,6 +111,8 @@ export async function apiFetch<T = unknown>(endpoint: string, opts: RequestOptio
     }
   }
 
+  // This app version was retired by the owner: show the Update screen (src/services/UpdateGate.tsx).
+  if (res.status === 426) reportUpgradeRequired(data);
   if (!res.ok) {
     const serverMessage = data && typeof data.message === 'string' ? data.message : null;
     if (res.status === 401 && auth && token) {

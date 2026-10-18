@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { SOCKET_URL } from '../constants/api';
 import { getToken } from './auth';
+import { reportSocketError, socketVersionAuth } from './forceUpdate';
 
 const socketUrl = SOCKET_URL.replace(/\/$/, "");
 
@@ -56,8 +57,9 @@ export const getSocket = (): Socket => {
       reconnectionDelay: 2000,
       reconnectionDelayMax: 10000,
       timeout: 45000,
+      // appName / appVersion / appBuild: the server refuses a retired app version (force update).
       auth: (cb) => {
-        getToken().then(token => cb({ token })).catch(() => cb({}));
+        getToken().then(token => cb({ token, ...socketVersionAuth() })).catch(() => cb({ ...socketVersionAuth() }));
       }
     });
     s.onAnyOutgoing(trackOutgoing);
@@ -71,6 +73,8 @@ export const getSocket = (): Socket => {
     s.on('disconnect', () => { sentThisConnection.clear(); });
     s.on('connect_error', (err: Error & { data?: { retryAfter?: number } }) => {
       // socket.io keeps retrying transport errors on its own (active stays true).
+      // This app version was retired: show the Update screen, never retry.
+      if (reportSocketError(err)) return;
       if (s.active || manualRetryTimer) return;
       const msg = String(err?.message || '');
       // A suspended / deleted account will never be let in: retrying only spins the radio.

@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { SOCKET_URL } from '../../constants/api';
 import { getToken } from '../../utils/auth';
+import { socketVersionAuth } from '../../utils/forceUpdate';
 
 const baseUrl = SOCKET_URL.replace(/\/$/, '');
 const campusSocketUrl = `${baseUrl}/campus`;
@@ -71,8 +72,8 @@ export const getCampusSocket = (): Socket => {
       timeout: 30000,
       auth: (cb) => {
         getToken()
-          .then((token) => cb({ token }))
-          .catch(() => cb({ token: null }));
+          .then((token) => cb({ token, ...socketVersionAuth() }))
+          .catch(() => cb({ token: null, ...socketVersionAuth() }));
       },
     });
 

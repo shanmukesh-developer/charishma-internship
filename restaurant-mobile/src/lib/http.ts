@@ -1,6 +1,7 @@
 // The one HTTP client: timeout, Bearer token read at call time, JSON in/out, and every failure turned
 // into ApiError (the server answered) or NetworkError (it didn't). Messages are friendly, shown as-is.
 import { API_URL } from '../config';
+import { reportUpgradeRequired, versionHeaders } from './forceUpdate';
 
 export class ApiError extends Error {
   status: number;
@@ -69,7 +70,7 @@ export interface RequestOptions {
 
 export async function apiFetch<T = any>(path: string, opts: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, form, timeoutMs = 15000, auth = true, no401Logout = false } = opts;
-  const headers: Record<string, string> = { Accept: 'application/json', ...(opts.headers || {}) };
+  const headers: Record<string, string> = { Accept: 'application/json', ...versionHeaders(), ...(opts.headers || {}) };
   if (body !== undefined && !form) headers['Content-Type'] = 'application/json';
   const token = auth ? getToken() : null;
   if (auth && token) headers.Authorization = `Bearer ${token}`;
@@ -102,6 +103,8 @@ export async function apiFetch<T = any>(path: string, opts: RequestOptions = {})
     try { data = JSON.parse(text); } catch { data = null; }
   }
 
+  // This app version was retired by the owner: show the Update screen (src/lib/UpdateGate.tsx).
+  if (res.status === 426) reportUpgradeRequired(data);
   if (!res.ok) {
     if (res.status === 401 && auth && !no401Logout && onUnauthorized) onUnauthorized();
     const msg = (data && typeof data.message === 'string' && data.message) ||

@@ -13,7 +13,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:autoride": "node modules/autoRide/tests/run.js",
     "test:events": "node modules/campusEvents/tests/run.js",
-    "test:infra": "node tests/infra/run.js"
+    "test:infra": "node tests/infra/run.js",
+    "test:c3": "node tests/c3/run.js"
   },
   "keywords": [],
   "author": "",

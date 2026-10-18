@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { io, Socket } from 'socket.io-client';
 import { API_URL, SOCKET_URL } from '../constants/api';
 import { apiFetch, getToken } from '../utils/auth';
+import { socketVersionAuth } from '../utils/forceUpdate';
 import { useLiveSync, affectsAny } from '../utils/useLiveSync';
 import { useAuth } from './AuthContext';
 
@@ -234,7 +235,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const socket = io(SOCKET_URL, {
         withCredentials: true,
         transports: ['websocket', 'polling'],
-        auth: token ? { token } : {},
+        auth: token ? { token, ...socketVersionAuth() } : { ...socketVersionAuth() },
       });
 
       socketRef.current = socket;

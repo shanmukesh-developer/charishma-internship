@@ -429,6 +429,10 @@ io.use((socket, next) => {
   dbReadyWaiters.set(proceed, refuse);
 });
 
+// C3 force-update: a socket handshake whose auth/query names an app version below the minimum is refused
+// with err.data.code = 'UPGRADE_REQUIRED'. No appName in the handshake (or no policy) = unchanged.
+io.use(require('./utils/appVersionPolicy').socketGate);
+
 // 🛡️ Socket.io JWT Authentication Middleware
 const jwt = require('jsonwebtoken');
 io.use((socket, next) => {
@@ -756,6 +760,11 @@ app.use('/api', (req, res, next) => {
   res.set('Retry-After', String(STARTUP_RETRY_AFTER_SECONDS));
   res.status(503).json({ message: 'Server is starting, please retry in a moment', code: 'SERVER_STARTING', retryAfter: STARTUP_RETRY_AFTER_SECONDS });
 });
+
+// C3 force-update (utils/appVersionPolicy.js): an app that sends X-App-Name / X-App-Version below the admin's
+// minimum supported version gets 426 UPGRADE_REQUIRED (health, config, logout and account deletion still
+// answer). Requests without the header (web, admin, tests, older builds) pass. No policy set = no effect.
+app.use('/api', require('./utils/appVersionPolicy').gate);
 
 // Connect to PostgreSQL, then initialize routes. Runs AFTER the port is open (see startServer).
 const initializeApp = async () => {

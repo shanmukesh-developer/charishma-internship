@@ -9,6 +9,7 @@ import { RiderProvider, useRider } from './src/state/RiderStore';
 import { LoginScreen, PendingScreen, SplashScreen } from './src/screens/Auth';
 import { Shell } from './src/screens/Shell';
 import { scheduleApiEndpointCheck } from './src/config';
+import UpdateGate from './src/services/UpdateGate';
 
 function Root() {
   const { phase, toast, deliveryId, overlay } = useRider();
@@ -33,9 +34,12 @@ export default function App() {
   React.useEffect(() => { scheduleApiEndpointCheck(); }, []);
   return (
     <SafeAreaProvider>
-      <RiderProvider>
-        <Root />
-      </RiderProvider>
+      {/* Force update: a retired version sees only the Update screen; a newer release shows a banner. */}
+      <UpdateGate>
+        <RiderProvider>
+          <Root />
+        </RiderProvider>
+      </UpdateGate>
     </SafeAreaProvider>
   );
 }

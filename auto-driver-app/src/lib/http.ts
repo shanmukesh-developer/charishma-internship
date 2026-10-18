@@ -3,6 +3,7 @@
 // sendError, i.e. { code, message, ...extra }) or NetworkError (it didn't). Messages are shown as-is.
 // No React Native imports: the verification script runs this file under Node against the real routers.
 import { API_URL } from '../config';
+import { reportUpgradeRequired, versionHeaders } from './forceUpdate';
 
 export class ApiError extends Error {
   status: number;
@@ -74,7 +75,7 @@ export interface RequestOptions {
 
 export async function apiFetch<T = any>(path: string, opts: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, form, timeoutMs = 20000, auth = true } = opts;
-  const headers: Record<string, string> = { Accept: 'application/json', ...(opts.headers || {}) };
+  const headers: Record<string, string> = { Accept: 'application/json', ...versionHeaders(), ...(opts.headers || {}) };
   if (body !== undefined && !form) headers['Content-Type'] = 'application/json';
   const token = auth ? getToken() : null;
   if (auth && token) headers.Authorization = `Bearer ${token}`;
@@ -109,6 +110,8 @@ export async function apiFetch<T = any>(path: string, opts: RequestOptions = {})
     try { data = JSON.parse(text); } catch { data = null; }
   }
 
+  // This app version was retired by the owner: show the Update screen (src/lib/UpdateGate.tsx).
+  if (res.status === 426) reportUpgradeRequired(data);
   if (!res.ok) {
     const code = data && typeof data.code === 'string' ? data.code : undefined;
     if (res.status === 401 && auth && token && onUnauthorized) onUnauthorized(code);

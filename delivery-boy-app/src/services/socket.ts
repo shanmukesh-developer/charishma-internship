@@ -2,6 +2,7 @@
 // The server auto-joins `rider_<id>`; order rooms need joinOrder (membership-checked server-side).
 import { io, Socket } from 'socket.io-client';
 import { SOCKET_URL } from '../config';
+import { reportSocketError, socketVersionAuth } from './forceUpdate';
 
 export interface RiderSocketHandlers {
   onOrderCancelled?: (p: { orderId: string; reason?: string }) => void;
@@ -70,7 +71,8 @@ export function connectSocket(token: string): void {
     // Callback form: evaluated on every handshake, never a stale token captured at connect time.
     auth: (cb) => {
       handshakeToken = currentToken;
-      cb({ token: currentToken });
+      // appName / appVersion / appBuild: the server refuses a retired app version (force update).
+      cb({ token: currentToken, ...socketVersionAuth() });
     },
     transports: ['websocket'],
     reconnection: true,
@@ -93,6 +95,15 @@ export function connectSocket(token: string): void {
     if (reason === 'io server disconnect' && socket === s) s.connect();
   });
   s.on('connect_error', (err: any) => {
+    // This app version was retired: the Update screen takes over, never retry.
+    // Drop this socket so a later connectSocket() (after an update / the owner lowering the minimum) starts fresh.
+    if (reportSocketError(err)) {
+      clearRetry();
+      s.removeAllListeners();
+      s.disconnect();
+      if (socket === s) socket = null;
+      return;
+    }
     const msg = String(err?.message || '');
     if (/authentication error/i.test(msg) && !/please retry/i.test(msg)) {
       clearRetry();

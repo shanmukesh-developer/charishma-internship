@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { adminRequest as apiRequest } from '@/lib/api';
 import Link from 'next/link';
+import AppVersionsCard from '@/components/config/AppVersionsCard';
 
 interface ConfigRow {
   _id: string;
@@ -30,7 +31,8 @@ const RETENTION = [
   { key: 'PULSE_RETENTION_DAYS', label: 'Pulse posts', def: 30, hint: 'Whole threads (replies, likes, polls). Posts under an open report or appeal are kept until resolved.' },
 ] as const;
 // Internal one-time markers the backend reads (not settings) are hidden from the list below too.
-const MANAGED_KEYS: string[] = [...RETENTION.map(r => r.key), 'CAMPUS_SPOTS_DEFAULTS_RETIRED'];
+// APP_VERSION_POLICY is edited in the App Versions card below (PUT /api/admin/app-versions).
+const MANAGED_KEYS: string[] = [...RETENTION.map(r => r.key), 'CAMPUS_SPOTS_DEFAULTS_RETIRED', 'APP_VERSION_POLICY'];
 // Keys the backend DOES read, but that are edited on their own page (listing them under "not read"
 // told admins the rentals on/off switch did nothing).
 const MANAGED_ELSEWHERE: Record<string, { label: string; href: string }> = {
@@ -324,6 +326,9 @@ export default function ConfigTerminal() {
         {retError && <p className="text-xs font-bold text-red-400">{retError}</p>}
         {retNotice && <p className="text-xs font-bold text-emerald-400">{retNotice}</p>}
       </div>
+
+      {/* Force update: per-app minimum / latest versions */}
+      <AppVersionsCard />
 
       {/* Other stored keys: shown honestly as not enforced */}
       <div className="glass-card p-10 space-y-6">

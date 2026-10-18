@@ -5,6 +5,7 @@ import {
   resolveEndpoint,
   trustedHostsFrom,
 } from './services/endpointOverride';
+import { configureForceUpdate } from './services/forceUpdate';
 
 /** Built-in address of the one Zenvy backend. */
 export const BUILT_IN_API_BASE = 'https://hostelbites-backend-jwmt.onrender.com';
@@ -24,6 +25,9 @@ const ACTIVE_ENDPOINT = resolveEndpoint({ builtIn: BUILT_IN_API_BASE, trusted: T
 export const API_URL = `${ACTIVE_ENDPOINT.api}/api`;
 /** socket.io address (same host as API_URL unless the backend advertises a separate one). */
 export const SOCKET_URL = ACTIVE_ENDPOINT.socket;
+
+// Force update (src/services/forceUpdate.ts): version headers on every API call + 426 UPGRADE_REQUIRED handling.
+configureForceUpdate({ app: 'rider', apiBase: ACTIVE_ENDPOINT.api });
 
 let endpointCheckStarted = false;
 /** Once per launch, a few seconds after start: learn / verify / self-heal the API address for the next launch. */

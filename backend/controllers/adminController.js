@@ -1097,6 +1097,10 @@ exports.updateGlobalConfig = async (req, res) => {
     const key = typeof req.body?.key === 'string' ? req.body.key.trim() : '';
     if (!key || key.length > 100) return res.status(400).json({ message: 'Config key is required (up to 100 characters).' });
     if (value === undefined) return res.status(400).json({ message: 'Config value is required.' });
+    // C3: the force-update policy is only written through PUT /api/admin/app-versions (validated + audited).
+    if (key === require('../utils/appVersionPolicy').POLICY_KEY) {
+      return res.status(400).json({ message: 'App versions are edited on Config → App versions (PUT /api/admin/app-versions).' });
+    }
     // Retention windows (cron/retentionCron.js): whole days, at least 1.
     const retention = require('../cron/retentionCron');
     if (key === retention.KEYS.chat || key === retention.KEYS.pulse) {
