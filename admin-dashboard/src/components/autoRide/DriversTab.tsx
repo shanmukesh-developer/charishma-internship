@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { autoRideApi, DRIVER_STATUSES, DRIVER_DOC_KEYS, REQUIRED_DRIVER_DOCS, type Driver } from '@/lib/autoRideApi';
 import { useLoader } from './hooks';
-import { Btn, ConfirmDialog, Doc, Empty, ErrorBox, Expiry, Loading, Msg, Pill, Select, Toolbar, maskPhone, short, when } from './ui';
+import { Btn, ConfirmDialog, Doc, Empty, ErrorBox, Expiry, Field, Loading, Msg, Pill, Select, Toolbar, errText, inputCls, maskPhone, short, when } from './ui';
 
 const DOC_NAMES: Record<string, string> = { photo: 'Profile photo', licenceFront: 'Licence (front)', licenceBack: 'Licence (back)', badge: 'Auto badge', policeVerification: 'Police verification' };
 const MISSING_NAMES: Record<string, string> = {
@@ -20,8 +20,13 @@ export default function DriversTab({ tick, onChanged, openVehicle }: { tick: num
   const key = `${status}|${query}`;
   const { data, loading, error, reload } = useLoader(key, tick, () => autoRideApi.drivers(status, query || undefined));
   const rows = data?.drivers || [];
+  const [adding, setAdding] = useState(false);
   return (
     <section className="space-y-4" aria-label="Drivers">
+      <div className="flex justify-end">
+        <Btn tone="primary" onClick={() => setAdding((v) => !v)}>{adding ? 'Close' : 'Add driver'}</Btn>
+      </div>
+      {adding && <AddDriverForm onCreated={() => { setStatus('PENDING_DOCS'); onChanged(); reload(); }} />}
       <Toolbar>
         <Select name="Status" value={status} onChange={setStatus} options={[...DRIVER_STATUSES, 'ALL']} />
         <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Search
@@ -46,6 +51,63 @@ export default function DriversTab({ tick, onChanged, openVehicle }: { tick: num
           </div>
         )}
     </section>
+  );
+}
+
+// Plan B sign-up (like Zenvy Rider): the admin creates the account; the driver signs in with this number and the
+// temporary password, uploads documents in the app and submits for review. Same password rule as self sign-up.
+function AddDriverForm({ onCreated }: { onCreated: () => void }) {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const digits = phone.replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '');
+  const phoneOk = /^[6-9]\d{9}$/.test(digits);
+  const pwOk = password.length >= 8 && password.length <= 72 && /[A-Za-z]/.test(password) && /\d/.test(password);
+  const ok = name.trim().length >= 2 && phoneOk && pwOk;
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!ok || busy) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await autoRideApi.createDriver({ name: name.trim(), phone: digits, password });
+      setMsg({ ok: true, text: `${r.driver.name} can now sign in to Zenvy Auto Driver with ${digits} and the temporary password. Ask them to change it in the app under More > Profile and password.` });
+      setName(''); setPhone(''); setPassword(''); setShow(false);
+      onCreated();
+    } catch (err) {
+      setMsg({ ok: false, text: errText(err, 'Could not create the driver account.') });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form onSubmit={submit} className="space-y-4 border border-white/10 bg-white/[0.02] p-4" aria-label="Add driver">
+      <div>
+        <h3 className="text-base font-black">Add driver</h3>
+        <p className="mt-1 text-sm text-gray-400">Creates the account with a temporary password. The driver signs in with this number and password, uploads documents in the app and submits for verification. No SMS is needed.</p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Field name="Full name" hint="As on the driving licence">
+          <input value={name} onChange={(e) => setName(e.target.value.slice(0, 80))} className={inputCls} autoComplete="off" />
+        </Field>
+        <Field name="Mobile number" hint={phone && !phoneOk ? 'Enter a 10-digit Indian mobile number.' : '10 digits, without +91'}>
+          <input value={phone} onChange={(e) => setPhone(e.target.value.slice(0, 14))} inputMode="numeric" className={inputCls} autoComplete="off" />
+        </Field>
+        <Field name="Temporary password" hint={password && !pwOk ? 'Use 8 to 72 characters with letters and numbers.' : '8 or more characters, with letters and numbers'}>
+          <div className="flex gap-2">
+            <input type={show ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} autoComplete="new-password" />
+            <Btn onClick={() => setShow((s) => !s)}>{show ? 'Hide' : 'Show'}</Btn>
+          </div>
+        </Field>
+      </div>
+      <div className="flex items-center gap-3">
+        <Btn type="submit" tone="good" disabled={!ok || busy}>{busy ? 'Creating…' : 'Create account'}</Btn>
+        <Msg msg={msg} />
+      </div>
+    </form>
   );
 }
 

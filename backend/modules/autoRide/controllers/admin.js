@@ -108,6 +108,35 @@ const driverDetail = async (req, res) => {
     missing: require('./driverProfile').missingForReview(d, vehicles),
   });
 };
+// POST /api/admin/auto-ride/drivers { name, phone, password }: plan B sign-up (like the Zenvy Rider app). The admin
+// creates the account with a temporary password; the driver signs in with phone + password (no SMS needed),
+// then uploads documents + submits for review in the app (same PENDING_DOCS start as a self sign-up) and can
+// change the password from More -> Change password.
+const createDriver = async (req, res) => {
+  const { Driver } = M();
+  const { checkPassword, MOBILE_RE } = require('./driverAuth');
+  const body = req.body || {};
+  const phone = require('../../../utils/phoneUtils').normalizePhone(body.phone);
+  if (!MOBILE_RE.test(phone)) throw fail(400, 'INVALID_PHONE', 'Enter a valid 10-digit mobile number.', { field: 'phone' });
+  const name = cleanText(body.name, 80);
+  if (name.length < 2) throw fail(400, 'INVALID_INPUT', "Enter the driver's full name as on the driving licence.", { field: 'name' });
+  const password = checkPassword(body.password);
+  if (await Driver.findOne({ where: { phone }, attributes: ['id'] })) {
+    throw fail(409, 'PHONE_TAKEN', 'A driver account already uses this number.');
+  }
+  let d;
+  try {
+    d = await Driver.create({
+      name, phone, password: await require('bcryptjs').hash(password, 10), status: D.PENDING_DOCS, tokenVersion: 0,
+    });
+  } catch (err) {
+    if (require('../services/util').isUniqueError(err)) throw fail(409, 'PHONE_TAKEN', 'A driver account already uses this number.');
+    throw err;
+  }
+  await audit(req, d.id, 'AUTO_DRIVER_CREATED_BY_ADMIN', { phoneLast4: phone.slice(-4) });
+  notify.admin('auto_driver', 'created', d.id);
+  res.status(201).json({ driver: S.driverAdmin(req, d), message: `Account created. The driver can now sign in with ${phone} and the temporary password.` });
+};
 const verifyDriver = async (req, res) => {
   const { Driver, Vehicle } = M();
   const d = await byId(Driver, req.params.id, 'Driver');
@@ -625,7 +654,7 @@ const auditLog = async (req, res) => {
   });
 };
 
-module.exports = {
+module.exports = { createDriver,
   summary, drivers, driverDetail, verifyDriver, rejectDriver, suspendDriver, unsuspendDriver,
   vehicles, vehicleDetail, approveVehicle, rejectVehicle, suspendVehicle, listRoutes, createRoute, updateRoute, createPickup, updatePickup,
   trips, tripDetail, cancelTrip, queues, bookings, cancelBooking, retryRefund, privateRequests, incidents, updateIncident,

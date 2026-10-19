@@ -89,6 +89,7 @@ export function VerificationScreen({ navigation }: ScreenProps<'Verification'>) 
       <ListRow icon="person" title="2. Licence and emergency contact" sub={d.licenceNumber ? `Licence ${d.licenceNumber}` : 'Licence number, expiry date, emergency contact'} onPress={() => navigation.navigate('Profile')} />
       <ListRow icon="car" title="3. Your auto" sub={me.vehicles.length ? me.vehicles.map((v) => `${v.registration || v.registrationNumber}: ${VEHICLE_BADGE[v.status].text.toLowerCase()}`).join(' · ') : 'Add registration, seats and papers'} onPress={() => navigation.navigate('Vehicles')} />
       <SectionTitle text="More" />
+      <ListRow icon="key" title="Change password" sub="Set your own password if Zenvy gave you a temporary one" onPress={() => navigation.navigate('Profile')} />
       <ListRow icon="notifications" title="Notifications" onPress={() => navigation.navigate('Notifications')} />
       <ListRow icon="help-buoy" title="Help and support" onPress={() => navigation.navigate('Support')} />
       <ListRow icon="settings" title="Settings" onPress={() => navigation.navigate('Settings')} />

@@ -106,7 +106,7 @@ export function LoginScreen({ navigation }: ScreenProps<'Login'>) {
   };
 
   return (
-    <Shell subtitle="Sign in with your mobile number and password.">
+    <Shell subtitle="Log in with the number your Zenvy admin registered.">
       {notice ? <Banner tone="warn" text={notice} /> : null}
       <Field label="Mobile number" prefix="+91" value={phone} onChangeText={(v) => { setPhone(digits(v)); setError(null); }}
         keyboardType="phone-pad" autoComplete="tel" placeholder="10-digit mobile" maxLength={14} />
@@ -114,13 +114,15 @@ export function LoginScreen({ navigation }: ScreenProps<'Login'>) {
       {error ? <Banner tone="error" text={error} /> : null}
       <Button label="Sign in" icon="log-in" onPress={submit} loading={busy} disabled={!valid} />
       <LegalLine />
-      <Button label="New driver? Create account" icon="person-add" variant="secondary" onPress={() => navigation.navigate('Register')} />
+      <Button label="New driver? Sign up with your mobile number" variant="ghost" size="secondary" onPress={() => navigation.navigate('Register')} />
       <Button label="Forgot password? Call Zenvy" icon="call" variant="ghost" size="secondary" onPress={() => call(`+${SUPPORT_PHONE}`)} />
     </Shell>
   );
 }
 
 type Step = 'phone' | 'otp' | 'details';
+
+const NO_SMS_MESSAGE = "We couldn't send a code to this number. Ask your Zenvy admin to create your account, then sign in with your number and password.";
 
 export function RegisterScreen({ navigation }: ScreenProps<'Register'>) {
   const { signIn } = useSession();
@@ -136,6 +138,8 @@ export function RegisterScreen({ navigation }: ScreenProps<'Register'>) {
   const [resendAt, setResendAt] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [taken, setTaken] = useState(false);
+  // Plan B: no code could be sent at all -> point the driver to Sign in with an admin-created account.
+  const [noSms, setNoSms] = useState(false);
   // C4: required Terms / Privacy tick on account creation (recorded by the server with the policy version).
   const [agreed, setAgreed] = useState(false);
   // 'firebase' = Firebase sent the code (proof = Firebase ID token); 'sms' = Zenvy SMS fallback (proof = typed code).
@@ -165,10 +169,10 @@ export function RegisterScreen({ navigation }: ScreenProps<'Register'>) {
     setBusy(true);
     setError(null);
     setTaken(false);
+    setNoSms(false);
     try {
-      // Primary: Firebase phone auth (free). A problem with the number itself, the per-device limit or no
-      // internet stops here (the fallback would fail the same way); anything else (Firebase missing in this
-      // build, app not authorised) falls back to Zenvy SMS.
+      // Primary: Firebase phone auth (free). Only a problem with the number itself stops here; anything else
+      // (Firebase missing in this build, app not authorised, quota, no internet) tries Zenvy SMS next.
       const fb = await sendFirebaseCode(p);
       if (fb && fb.ok) {
         confirmationRef.current = fb.confirmation;
@@ -179,7 +183,7 @@ export function RegisterScreen({ navigation }: ScreenProps<'Register'>) {
         setStep('otp');
         return;
       }
-      if (fb && !fb.ok && [...FIREBASE_NUMBER_ERRORS, 'auth/too-many-requests', 'auth/network-request-failed'].includes(String(fb.code))) {
+      if (fb && !fb.ok && FIREBASE_NUMBER_ERRORS.includes(String(fb.code))) {
         setError(fb.message);
         return;
       }
@@ -187,8 +191,13 @@ export function RegisterScreen({ navigation }: ScreenProps<'Register'>) {
       try {
         r = await driverApi.sendOtp(p);
       } catch (e) {
-        // Both channels failed: prefer Firebase's plain reason when it had one.
-        if (fb && !fb.ok && e instanceof ApiError && e.code === 'SMS_UNAVAILABLE') throw new Error(fb.message);
+        // Plan B: neither Firebase nor Zenvy SMS could send. The admin creates the account instead (no SMS).
+        const smsDown = !(e instanceof NetworkError) && !(e instanceof ApiError && ['OTP_COOLDOWN', 'INVALID_PHONE'].includes(String(e.code)));
+        if (smsDown) {
+          setNoSms(true);
+          setError(NO_SMS_MESSAGE);
+          return;
+        }
         throw e;
       }
       confirmationRef.current = null;
@@ -279,11 +288,13 @@ export function RegisterScreen({ navigation }: ScreenProps<'Register'>) {
     <Shell subtitle={step === 'phone' ? 'Step 1 of 3: your mobile number' : step === 'otp' ? 'Step 2 of 3: SMS code' : 'Step 3 of 3: name and password'}>
       {step === 'phone' ? (
         <>
-          <Field label="Mobile number" prefix="+91" value={phone} onChangeText={(v) => { setPhone(digits(v)); setError(null); }}
+          <Field label="Mobile number" prefix="+91" value={phone} onChangeText={(v) => { setPhone(digits(v)); setError(null); setNoSms(false); }}
             keyboardType="phone-pad" autoComplete="tel" placeholder="10-digit mobile" maxLength={14}
             hint="We send a 6-digit code by SMS to prove the number is yours." />
           {error ? <Banner tone="error" text={error} /> : null}
-          <Button label="Send code" icon="chatbubble-ellipses" onPress={sendCode} loading={busy} disabled={!p} />
+          {noSms ? <Button label="Go to Sign in" icon="log-in" onPress={() => navigation.navigate('Login')} /> : null}
+          <Button label={noSms ? 'Try sending the code again' : 'Send code'} icon="chatbubble-ellipses" variant={noSms ? 'secondary' : undefined}
+            onPress={sendCode} loading={busy} disabled={!p} />
         </>
       ) : null}
       {step === 'otp' ? (

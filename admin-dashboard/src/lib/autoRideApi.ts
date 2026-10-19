@@ -153,6 +153,8 @@ export const autoRideApi = {
 
   drivers: (status = 'PENDING_REVIEW', q?: string, page: PageOpts = {}) => get<{ drivers: Driver[]; pagination?: Pagination }>(`/drivers${qs({ status, q, ...page })}`),
   driver: (driverId: string) => get<{ driver: Driver; vehicles: Vehicle[]; trips: (TripStatusBlock & { id: string; routeId: string })[]; missing: string[] }>(`/drivers/${id(driverId)}`),
+  /** Plan B sign-up: create a driver account with a temporary password (the driver signs in with phone + password). */
+  createDriver: (body: { name: string; phone: string; password: string }) => send<{ driver: Driver; message: string }>('POST', '/drivers', body),
   verifyDriver: (driverId: string) => send<{ driver: Driver }>('POST', `/drivers/${id(driverId)}/verify`),
   rejectDriver: (driverId: string, reason: string) => send<{ driver: Driver }>('POST', `/drivers/${id(driverId)}/reject`, { reason }),
   suspendDriver: (driverId: string, reason: string) => send<{ driver: Driver; tripsEnded: number }>('POST', `/drivers/${id(driverId)}/suspend`, { reason }),

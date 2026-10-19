@@ -105,6 +105,17 @@ adminRouter.use(protect, admin, noStore);
 const a = (fn) => handler(fn, 'AUTORIDE_ADMIN');
 adminRouter.get('/summary', a(A.summary));
 adminRouter.get('/drivers', a(A.drivers));
+// Plan B sign-up: the admin creates the driver account (phone + temporary password), no SMS needed.
+const adminCreateDriverLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.AUTO_ADMIN_CREATE_DRIVER_MAX) || 60,
+  skip: (req) => skipRateLimit(req),
+  message: { code: 'RATE_LIMITED', message: 'Too many accounts created. Please try again in 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  ...require('../../utils/sharedRateLimit').expressStore('autoride.adminCreateDriverLimiter'),
+});
+adminRouter.post('/drivers', adminCreateDriverLimiter, a(A.createDriver));
 adminRouter.get('/drivers/:id', a(A.driverDetail));
 adminRouter.post('/drivers/:id/verify', a(A.verifyDriver));
 adminRouter.post('/drivers/:id/reject', a(A.rejectDriver));

@@ -108,4 +108,4 @@ const removeFcmToken = async (req, res) => {
   res.json({ ok: true });
 };
 
-module.exports = { register, login, refresh, changePassword, saveFcmToken, removeFcmToken };
+module.exports = { register, login, refresh, changePassword, saveFcmToken, removeFcmToken, checkPassword, MOBILE_RE };
