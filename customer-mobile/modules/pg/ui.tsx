@@ -39,6 +39,50 @@ export { default as IconCheck } from 'lucide-react-native/icons/check';
 export { default as IconAlert } from 'lucide-react-native/icons/circle-alert';
 export { default as IconBuilding } from 'lucide-react-native/icons/building';
 export { default as IconRefresh } from 'lucide-react-native/icons/refresh-cw';
+export { default as IconShare } from 'lucide-react-native/icons/share-2';
+export { default as IconStar } from 'lucide-react-native/icons/star';
+export { default as IconChevronDown } from 'lucide-react-native/icons/chevron-down';
+export { default as IconChevronUp } from 'lucide-react-native/icons/chevron-up';
+export { default as IconShieldCheck } from 'lucide-react-native/icons/shield-check';
+export { default as IconCctvCam } from 'lucide-react-native/icons/cctv';
+export { default as IconFingerprint } from 'lucide-react-native/icons/fingerprint-pattern';
+export { default as IconFireExtinguisher } from 'lucide-react-native/icons/fire-extinguisher';
+export { default as IconFirstAid } from 'lucide-react-native/icons/briefcase-medical';
+export { default as IconUserRound } from 'lucide-react-native/icons/user-round';
+export { default as IconClipboard } from 'lucide-react-native/icons/clipboard-list';
+export { default as IconFileText } from 'lucide-react-native/icons/file-text';
+export { default as IconWallet } from 'lucide-react-native/icons/wallet';
+export { default as IconCalendarDays } from 'lucide-react-native/icons/calendar-days';
+export { default as IconBan } from 'lucide-react-native/icons/ban';
+export { default as IconWrench } from 'lucide-react-native/icons/wrench';
+export { default as IconHospital } from 'lucide-react-native/icons/hospital';
+export { default as IconPill } from 'lucide-react-native/icons/pill';
+export { default as IconLandmark } from 'lucide-react-native/icons/landmark';
+export { default as IconBus } from 'lucide-react-native/icons/bus';
+export { default as IconCart } from 'lucide-react-native/icons/shopping-cart';
+export { default as IconUtensilsCrossed } from 'lucide-react-native/icons/utensils-crossed';
+export { default as IconDumbbellPlace } from 'lucide-react-native/icons/dumbbell';
+export { default as IconGraduation } from 'lucide-react-native/icons/graduation-cap';
+export { default as IconFlag } from 'lucide-react-native/icons/flag';
+export { default as IconCigaretteOff } from 'lucide-react-native/icons/cigarette-off';
+export { default as IconVolumeX } from 'lucide-react-native/icons/volume-x';
+export { default as IconPaw } from 'lucide-react-native/icons/paw-print';
+export { default as IconSparklesRule } from 'lucide-react-native/icons/sparkles';
+export { default as IconWasher } from 'lucide-react-native/icons/washing-machine';
+export { default as IconPlug } from 'lucide-react-native/icons/plug-zap';
+export { default as IconMore } from 'lucide-react-native/icons/ellipsis';
+export { default as IconSliders } from 'lucide-react-native/icons/sliders-horizontal';
+export { default as IconCircleCheck } from 'lucide-react-native/icons/circle-check';
+export { default as IconCircleMinus } from 'lucide-react-native/icons/circle-minus';
+export { default as IconKey } from 'lucide-react-native/icons/key-round';
+export { default as IconIdCard } from 'lucide-react-native/icons/id-card';
+export { default as IconListChecks } from 'lucide-react-native/icons/list-checks';
+export { default as IconPackage } from 'lucide-react-native/icons/package';
+export { default as IconColumns } from 'lucide-react-native/icons/columns-3';
+export { default as IconSiren } from 'lucide-react-native/icons/siren';
+export { default as IconMap } from 'lucide-react-native/icons/map';
+export { default as IconSearch } from 'lucide-react-native/icons/search';
+export { default as IconSort } from 'lucide-react-native/icons/arrow-up-down';
 import IconWifi from 'lucide-react-native/icons/wifi';
 import IconSnow from 'lucide-react-native/icons/snowflake';
 import IconShirt from 'lucide-react-native/icons/washing-machine';
@@ -64,6 +108,11 @@ import IconBuildingFallback from 'lucide-react-native/icons/building';
 import IconArrowLeftRaw from 'lucide-react-native/icons/arrow-left';
 
 export const ICON = { size: 18, stroke: 1.75 } as const;
+/**
+ * Type scale for every PG screen: one title, one heading size, body and small. Nothing else.
+ * Spacing follows a 4 / 8 grid: 16 page gutter, 32 between sections, 12 / 8 inside cards.
+ */
+export const TYPE = { title: 20, heading: 16, body: 14, small: 12 } as const;
 
 export const usePgPalette = () => {
   const { isDark, colors } = useTheme();
@@ -121,7 +170,7 @@ export const amenityLabel = (name: string) => String(name || '').replace(/[\u{1F
  * Back button + optional title. `titleOpacity` (an Animated value) lets a screen fade the title in once
  * its own heading has scrolled away, so the name is never shown twice at once.
  */
-export function PgHeader({ title, onBack, titleOpacity }: { title?: string; onBack?: () => void; titleOpacity?: Animated.AnimatedInterpolation<number> | Animated.Value }) {
+export function PgHeader({ title, onBack, titleOpacity, right }: { title?: string; onBack?: () => void; titleOpacity?: Animated.AnimatedInterpolation<number> | Animated.Value; right?: React.ReactNode }) {
   const p = usePgPalette();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -134,7 +183,7 @@ export function PgHeader({ title, onBack, titleOpacity }: { title?: string; onBa
       {title ? (
         <Animated.Text style={[s.headerTitle, { color: p.text, opacity: titleOpacity ?? 1 }]} numberOfLines={1} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>{title}</Animated.Text>
       ) : <View style={{ flex: 1 }} />}
-      <View style={s.headerBtn} />
+      {right || <View style={s.headerBtn} />}
     </View>
   );
 }
@@ -241,7 +290,7 @@ export const s = StyleSheet.create({
   headerBtn: { width: 44, height: 48, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { flex: 1, fontSize: 16, fontWeight: '600', textAlign: 'center' },
   sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 12 },
-  sectionTitle: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', letterSpacing: -0.1 },
   body: { fontSize: 14, lineHeight: 20 },
   small: { fontSize: 12, lineHeight: 16 },
   state: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 32 },

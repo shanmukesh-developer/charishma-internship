@@ -55,6 +55,8 @@ const setup = async () => {
   r('models/PGHostel').initPGHostelModel(sequelize);
   r('models/PGRoom').initPGRoomModel(sequelize);
   r('models/PGBooking').initPGBookingModel(sequelize);
+  r('models/PGReview').initPGReviewModel(sequelize);
+  r('models/PgPromotion').initPgPromotionModel(sequelize);
   r('models/VerificationLog').initVerificationLogModel(sequelize);
   r('modules/campus/models/CampusMedia').initCampusMediaModel(sequelize);
   const M = sequelize.models;

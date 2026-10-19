@@ -11,11 +11,25 @@ import { PhotosPanel } from './PhotosPanel';
 import { VideosPanel } from './VideosPanel';
 import { MessPanel } from './MessPanel';
 import { TimingsPanel } from './TimingsPanel';
+import { OverviewPanel } from './OverviewPanel';
+import { RulesPanel } from './RulesPanel';
+import { PoliciesPanel } from './PoliciesPanel';
+import { SafetyPanel } from './SafetyPanel';
+import { MoveInPanel } from './MoveInPanel';
+import { LocationPanel } from './LocationPanel';
+import { FaqPanel } from './FaqPanel';
+import { ReviewsPanel } from './ReviewsPanel';
+import { PromotionsPanel } from './PromotionsPanel';
 
-type ManageTab = 'details' | 'rooms' | 'photos' | 'videos' | 'mess' | 'timings';
-const MANAGE_TABS: [ManageTab, string][] = [['details', 'Details'], ['rooms', 'Rooms'], ['photos', 'Photos'], ['videos', 'Videos'], ['mess', 'Mess timetable'], ['timings', 'Timings']];
+type ManageTab = 'details' | 'rooms' | 'photos' | 'videos' | 'mess' | 'timings'
+  | 'overview' | 'houseRules' | 'policies' | 'safety' | 'moveIn' | 'location' | 'faq' | 'reviews';
+const MANAGE_TABS: [ManageTab, string][] = [
+  ['details', 'Details'], ['rooms', 'Rooms'], ['photos', 'Photos'], ['videos', 'Videos'], ['mess', 'Mess timetable'], ['timings', 'Timings'],
+  ['overview', 'Overview'], ['houseRules', 'House rules'], ['policies', 'Policies'], ['safety', 'Safety'], ['moveIn', 'Move-in'],
+  ['location', 'Location & nearby'], ['faq', 'FAQ'], ['reviews', 'Reviews'],
+];
 
-type View = 'listings' | 'bookings';
+type View = 'listings' | 'bookings' | 'promotions';
 
 export default function PGAdminPage() {
   const { isAuthed } = useAdminAuth();
@@ -68,6 +82,7 @@ export default function PGAdminPage() {
   const { mark: markFresh, isFresh } = useFreshIds();
   const [roomsTick, setRoomsTick] = useState(0);
   const [bookingsTick, setBookingsTick] = useState(0);
+  const [promotionsTick, setPromotionsTick] = useState(0);
   const managingIdRef = useRef<string | null>(null);
   managingIdRef.current = managing?.id ?? null;
 
@@ -77,6 +92,8 @@ export default function PGAdminPage() {
     const bookingEvents = events.filter(e => e.type === 'pg_booking');
     if (reconnect || pgEvents.length) {
       loadPgs(true);
+      // Promotion writes arrive as { type: 'pg', id: null, scope: 'promotions' }; the Promotions view reloads on any pg event.
+      setPromotionsTick(t => t + 1);
       const openId = managingIdRef.current;
       if (reconnect || pgEvents.some(e => e.id === null || String(e.id) === openId)) setRoomsTick(t => t + 1);
     }
@@ -168,7 +185,7 @@ export default function PGAdminPage() {
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-blue-400">Housing</p>
           <h1 className="mt-1 text-2xl font-black">PG &amp; hostels</h1>
-          <p className="mt-2 text-sm text-gray-400">Curate PG listings and rooms, and confirm students&apos; booking requests.</p>
+          <p className="mt-2 text-sm text-gray-400">Curate PG listings and rooms, run promotions, and confirm students&apos; booking requests.</p>
         </div>
         {view === 'listings' && (
           <div className="flex items-center gap-3">
@@ -179,7 +196,7 @@ export default function PGAdminPage() {
       </header>
 
       <div className="flex gap-1 border-b border-white/10" role="tablist">
-        {([['listings', `Listings (${pgs.length})`], ['bookings', `Booking requests${pendingCount ? ` · ${pendingCount} pending` : ''}`]] as [View, string][]).map(([key, label]) => (
+        {([['listings', `Listings (${pgs.length})`], ['bookings', `Booking requests${pendingCount ? ` · ${pendingCount} pending` : ''}`], ['promotions', 'Promotions']] as [View, string][]).map(([key, label]) => (
           <button key={key} type="button" role="tab" aria-selected={view === key} onClick={() => setView(key)} className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold ${view === key ? 'border-blue-500 text-white' : 'border-transparent text-gray-400 hover:text-white'}`}>{label}</button>
         ))}
       </div>
@@ -193,6 +210,8 @@ export default function PGAdminPage() {
 
       {view === 'bookings' ? (
         <BookingsPanel onPendingCount={onPendingCount} liveTick={bookingsTick} isFresh={isFresh} />
+      ) : view === 'promotions' ? (
+        <PromotionsPanel pgs={pgs} liveTick={promotionsTick} />
       ) : (
         <>
           {loadError && (
@@ -275,6 +294,22 @@ export default function PGAdminPage() {
               <MessPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
             ) : managing && manageTab === 'timings' ? (
               <TimingsPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+            ) : managing && manageTab === 'overview' ? (
+              <OverviewPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+            ) : managing && manageTab === 'houseRules' ? (
+              <RulesPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+            ) : managing && manageTab === 'policies' ? (
+              <PoliciesPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+            ) : managing && manageTab === 'safety' ? (
+              <SafetyPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+            ) : managing && manageTab === 'moveIn' ? (
+              <MoveInPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+            ) : managing && manageTab === 'location' ? (
+              <LocationPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+            ) : managing && manageTab === 'faq' ? (
+              <FaqPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+            ) : managing && manageTab === 'reviews' ? (
+              <ReviewsPanel key={managing.id} pg={managing} liveTick={roomsTick} />
             ) : managing ? (
               <RoomsPanel pgId={managing.id} liveTick={roomsTick} />
             ) : null}

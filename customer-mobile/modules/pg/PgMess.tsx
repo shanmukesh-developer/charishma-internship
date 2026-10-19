@@ -54,7 +54,7 @@ export function PgMessSection({ timetable }: { timetable: MessTimetable | null }
 
   return (
     <View>
-      <SectionHeading title="Mess timings" detail="Times in IST" />
+      <SectionHeading title="Mess" detail="Times in IST" />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4 }} accessibilityRole="tablist" style={{ marginBottom: 12 }}>
         {DAY_KEYS.map((d) => {
           const on = d === day;
@@ -103,8 +103,18 @@ export function PgMessSection({ timetable }: { timetable: MessTimetable | null }
 
 // ── House timings ───────────────────────────────────────────────────────────────────────────────
 export function PgTimingsSection({ timings }: { timings: PgTimings | null }) {
-  const p = usePgPalette();
   if (!timings) return null;
+  return (
+    <View>
+      <SectionHeading title="Timings" />
+      <TimingsCard timings={timings} />
+    </View>
+  );
+}
+
+/** Gate, visitors, check-in / out, quiet hours and the curfew note as one card (no heading). */
+export function TimingsCard({ timings }: { timings: PgTimings }) {
+  const p = usePgPalette();
   const rows = [
     timings.gateOpen || timings.gateClose ? { icon: IconDoorOpen, label: 'Gate', value: timings.gateOpen && timings.gateClose ? `Opens ${fmtTime(timings.gateOpen)} · closes ${fmtTime(timings.gateClose)}` : '' } : null,
     timings.visitorFrom ? { icon: IconUsers, label: 'Visitors', value: fmtRange(timings.visitorFrom, timings.visitorTo) } : null,
@@ -118,7 +128,6 @@ export function PgTimingsSection({ timings }: { timings: PgTimings | null }) {
   if (!rows.length && !timings.curfewNote) return null;
   return (
     <View>
-      <SectionHeading title="Timings" />
       <View style={[st.table, { borderColor: p.line, backgroundColor: p.card }]}>
         {rows.map((r, i) => {
           const Icon = r.icon;
@@ -155,12 +164,12 @@ export function PgTimingsSection({ timings }: { timings: PgTimings | null }) {
 const st = StyleSheet.create({
   dayTab: { width: 52, minHeight: 52, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 6 },
   dayText: { fontSize: 14, fontWeight: '600' },
-  todayText: { fontSize: 10, fontWeight: '600', marginTop: 2 },
+  todayText: { fontSize: 12, fontWeight: '600', marginTop: 2 },
   table: { borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   row: { paddingHorizontal: 16, paddingVertical: 12 },
   liveBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3 },
   rowHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 },
-  meal: { fontSize: 15, fontWeight: '600' },
+  meal: { fontSize: 14, fontWeight: '600' },
   live: { fontSize: 12, fontWeight: '600', marginTop: 2 },
   mark: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   markBox: { width: 12, height: 12, borderWidth: 1.25, borderRadius: 2, alignItems: 'center', justifyContent: 'center' },

@@ -24,6 +24,7 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import SafeImage from '../../components/SafeImage';
 import ShimmerLoader from '../../components/ShimmerLoader';
 import { PgListSection } from '../../modules/pg/PgListSection';
+import type { PgHome } from '../../modules/pg/pgApi';
 import { useLiveSync, hasType } from '../../utils/useLiveSync';
 import RentalsSection from '../../modules/rentals/RentalsSection';
 import AutoRideSection from '../../modules/autoRide/AutoRideSection';
@@ -899,6 +900,8 @@ export default function OthersScreen() {
   const [pgs, setPgs] = useState<any[]>([]);
   const [loadingPgs, setLoadingPgs] = useState(false);
   const [pgError, setPgError] = useState<string | null>(null);
+  // PG list page extras (promotions, room tours, rails) from GET /api/pg/home; null on older servers.
+  const [pgHome, setPgHome] = useState<PgHome | null>(null);
 
   // ── Co-Ride States ──
   const [corideTab, setCorideTab] = useState<'browse' | 'my-rides' | 'auto'>('browse');
@@ -993,11 +996,15 @@ export default function OthersScreen() {
     const silent = !!opts?.silent;
     if (!silent) setLoadingPgs(true);
     try {
-      const res = await apiFetch(ENDPOINTS.pgList);
-      const data = await readJson(res);
+      // One request for the whole PG page; the plain list is the fallback for an older server.
+      let res = await apiFetch(`${API_URL}/api/pg/home`);
+      let data = await readJson(res);
+      const home = res.ok && data && Array.isArray(data.pgs) ? (data as PgHome) : null;
+      if (!home && res.status === 404) { res = await apiFetch(ENDPOINTS.pgList); data = await readJson(res); }
       if (!isMountedRef.current) return;
       if (res.ok) {
-        setPgs(Array.isArray(data) ? data : []);
+        setPgs(home ? home.pgs : Array.isArray(data) ? data : []);
+        setPgHome(home);
         setPgError(null);
       } else if (!silent) {
         setPgError(friendlyError(res, data, 'We could not load PG stays right now.'));
@@ -2371,7 +2378,7 @@ export default function OthersScreen() {
 
         {/* ── PG STAYS TAB (modules/pg) ── */}
         {activeTab === 'pg' && (
-          <PgListSection pgs={pgs} loading={loadingPgs} error={pgError} onRetry={() => fetchPGs()} />
+          <PgListSection pgs={pgs} home={pgHome} loading={loadingPgs} error={pgError} onRetry={() => fetchPGs()} />
         )}
 
         {/* ── CO-RIDE (BIKEPOOL) TAB ── */}

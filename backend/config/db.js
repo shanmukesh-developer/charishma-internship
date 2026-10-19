@@ -22,6 +22,8 @@ const { initPoolRequestModel } = require('../models/PoolRequest');
 const { initPGHostelModel } = require('../models/PGHostel');
 const { initPGRoomModel } = require('../models/PGRoom');
 const { initPGBookingModel } = require('../models/PGBooking');
+const { initPGReviewModel } = require('../models/PGReview');
+const { initPgPromotionModel } = require('../models/PgPromotion');
 const { initMegaBasketModel } = require('../models/MegaBasket');
 const { initMegaBasketItemModel } = require('../models/MegaBasketItem');
 const { initAppConfigModel } = require('../models/AppConfig');
@@ -75,6 +77,9 @@ const initializeAllModels = (instance) => {
   initPGHostelModel(instance);
   initPGRoomModel(instance);
   initPGBookingModel(instance);
+  // PG v2: stay reviews (one per confirmed booking) + list-page promotions (admin curated).
+  initPGReviewModel(instance);
+  initPgPromotionModel(instance);
   initMegaBasketModel(instance);
   initMegaBasketItemModel(instance);
   initBirthdayCelebrationModel(instance);

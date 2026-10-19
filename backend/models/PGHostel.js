@@ -77,7 +77,22 @@ const initPGHostelModel = (sequelize) => {
     // Locality shown on list cards ("Neerukonda").
     area: { type: DataTypes.STRING(80), allowNull: true },
     // Set by the Zenvy housing team after a site visit.
-    isVerified: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isVerified: { type: DataTypes.BOOLEAN, defaultValue: false },
+    // v2 listing sections (utils/pgContent.js SECTION_WRITERS validates; null = section hidden in the app).
+    // ['5 min walk to Gate 1', ...] (max 6)
+    highlights: jsonCol('highlights', null),
+    // [{ category: 'visitors' | 'overnight' | 'gate' | ..., rules: ['...'] }]
+    houseRules: jsonCol('houseRules', null),
+    // { booking, rent, deposit, stay, cancellation, included, extraCharges, maintenance }
+    policies: jsonCol('policies', null),
+    // { cctv, entry, guard, guardFrom, guardTo, fireExtinguishers, firstAid, wardenName, wardenAvailability, emergency }
+    safety: jsonCol('safety', null),
+    // { documents, bring, provided, steps }
+    moveIn: jsonCol('moveIn', null),
+    // { howToReach, nearby: [{ name, category, distanceM, walkMinutes }] }
+    locationGuide: jsonCol('locationGuide', null),
+    // [{ id, q, a }] (max 20)
+    faq: jsonCol('faq', null)
   }, { timestamps: true });
 
   return PGHostel;

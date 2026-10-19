@@ -12,57 +12,89 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PHOTO_CATEGORY_LABEL, type PgPhoto, type PhotoCategory } from './pgApi';
 import { usePgPalette, PgImage, Press, SectionHeading, IconX, IconImageOff, ICON, s as ui } from './ui';
+import { SubHeading } from './blocks';
 
 const HERO_RATIO = 3 / 4; // height / width; fixed so nothing jumps while photos load
 
 // ── Hero ──────────────────────────────────────────────────────────────────────────────────────
+/**
+ * Edge-to-edge photos in a fixed 4:3 frame, a small counter, and below it a quiet row of the photo
+ * categories ("Rooms 4  Bathrooms 2  Mess 3") that jumps the hero to that category; the current
+ * photo's category is the active one.
+ */
 export function PgHero({ photos, onOpen, topInset }: { photos: PgPhoto[]; onOpen: (list: PgPhoto[], index: number) => void; topInset: number }) {
   const p = usePgPalette();
   const { width } = useWindowDimensions();
   const height = Math.round(width * HERO_RATIO);
   const [index, setIndex] = useState(0);
+  const listRef = useRef<FlatList<PgPhoto>>(null);
   const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const i = Math.round(e.nativeEvent.contentOffset.x / Math.max(1, width));
     setIndex((cur) => (cur === i ? cur : i));
   }, [width]);
+  const cats = useMemo(() => {
+    const out: { cat: PhotoCategory; first: number; count: number }[] = [];
+    photos.forEach((ph, i) => {
+      const c = out.find((x) => x.cat === ph.category);
+      if (c) c.count++;
+      else out.push({ cat: ph.category, first: i, count: 1 });
+    });
+    return out;
+  }, [photos]);
 
   if (!photos.length) {
     return (
       <View style={{ width, height, backgroundColor: p.sunken, alignItems: 'center', justifyContent: 'center', paddingTop: topInset }} accessibilityLabel="No photos yet">
         <IconImageOff size={24} color={p.muted} strokeWidth={ICON.stroke} />
-        <Text style={[ui.small, { color: p.muted, marginTop: 8 }]}>No photos yet</Text>
+        <Text style={[ui.small, { color: p.muted, marginTop: 8 }]}>Photos will appear here once the housing team adds them</Text>
       </View>
     );
   }
   const current = photos[Math.min(index, photos.length - 1)];
+  const jump = (i: number) => {
+    listRef.current?.scrollToOffset({ offset: i * width, animated: true });
+    setIndex(i);
+  };
   return (
-    <View style={{ width, height }}>
-      <FlatList
-        data={photos}
-        keyExtractor={(x) => x.id}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={32}
-        initialNumToRender={2}
-        windowSize={3}
-        getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
-        renderItem={({ item, index: i }) => (
-          <Press onPress={() => onOpen(photos, i)} accessibilityRole="imagebutton" accessibilityLabel={`Photo ${i + 1} of ${photos.length}${item.caption ? `, ${item.caption}` : ''}. Opens full screen`} style={{ width, height }}>
-            <PgImage uri={item.url} style={{ width, height }} recyclingKey={item.id} priority={i === 0 ? 'high' : 'normal'} />
-          </Press>
-        )}
-      />
-      {photos.length > 1 ? (
-        <View style={[st.counter, { backgroundColor: p.overlay }]} pointerEvents="none">
-          <Text style={st.counterText}>{index + 1} / {photos.length}</Text>
-        </View>
-      ) : null}
-      {current?.caption ? (
-        <View style={[st.heroCaption, { backgroundColor: p.overlay }]} pointerEvents="none">
-          <Text style={st.counterText} numberOfLines={1}>{current.caption}</Text>
-        </View>
+    <View>
+      <View style={{ width, height }}>
+        <FlatList
+          ref={listRef}
+          data={photos}
+          keyExtractor={(x) => x.id}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={32}
+          initialNumToRender={2}
+          windowSize={3}
+          getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
+          renderItem={({ item, index: i }) => (
+            <Press onPress={() => onOpen(photos, i)} accessibilityRole="imagebutton" accessibilityLabel={`Photo ${i + 1} of ${photos.length}, ${PHOTO_CATEGORY_LABEL[item.category]}${item.caption ? `, ${item.caption}` : ''}. Opens full screen`} style={{ width, height }}>
+              <PgImage uri={item.url} style={{ width, height }} recyclingKey={item.id} priority={i === 0 ? 'high' : 'normal'} />
+            </Press>
+          )}
+        />
+        {photos.length > 1 ? (
+          <View style={st.counter} pointerEvents="none">
+            <Text style={st.counterText}>{index + 1}/{photos.length}</Text>
+          </View>
+        ) : null}
+      </View>
+      {cats.length > 1 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.jumpRow} style={{ borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: p.line }} accessibilityRole="tablist" accessibilityLabel="Photo categories">
+          {cats.map((c) => {
+            const on = current?.category === c.cat;
+            return (
+              <Press key={c.cat} onPress={() => jump(c.first)} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={`${PHOTO_CATEGORY_LABEL[c.cat]}, ${c.count} photo${c.count === 1 ? '' : 's'}`} style={st.jump}>
+                <Text style={[st.jumpText, { color: on ? p.text : p.sub, fontWeight: on ? '600' : '400' }]}>
+                  {PHOTO_CATEGORY_LABEL[c.cat]} <Text style={{ color: p.muted, fontWeight: '400' }}>{c.count}</Text>
+                </Text>
+              </Press>
+            );
+          })}
+        </ScrollView>
       ) : null}
     </View>
   );
@@ -71,7 +103,7 @@ export function PgHero({ photos, onOpen, topInset }: { photos: PgPhoto[]; onOpen
 // ── Photos section: category chips + grid ────────────────────────────────────────────────────
 const GRID_GAP = 4;
 const GRID_PREVIEW = 9;
-export function PgPhotoSection({ photos, onOpen }: { photos: PgPhoto[]; onOpen: (list: PgPhoto[], index: number) => void }) {
+export function PgPhotoSection({ photos, onOpen, sub }: { photos: PgPhoto[]; onOpen: (list: PgPhoto[], index: number) => void; sub?: boolean }) {
   const p = usePgPalette();
   const { width } = useWindowDimensions();
   const [cat, setCat] = useState<PhotoCategory | 'ALL'>('ALL');
@@ -89,7 +121,7 @@ export function PgPhotoSection({ photos, onOpen }: { photos: PgPhoto[]; onOpen: 
   if (!photos.length) return null;
   return (
     <View>
-      <SectionHeading title="Photos" detail={`${photos.length} photo${photos.length === 1 ? '' : 's'}`} />
+      {sub ? <SubHeading title={`All photos (${photos.length})`} /> : <SectionHeading title="Photos" detail={`${photos.length} photo${photos.length === 1 ? '' : 's'}`} />}
       {cats.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 12 }} accessibilityRole="tablist">
           {[['ALL', `All ${photos.length}`] as const, ...cats.map((c) => [c, `${PHOTO_CATEGORY_LABEL[c]} ${counts.get(c)}`] as const)].map(([key, label]) => {
@@ -239,11 +271,13 @@ export function PhotoViewer({ photos, index, onClose }: { photos: PgPhoto[]; ind
 }
 
 const st = StyleSheet.create({
-  counter: { position: 'absolute', right: 16, bottom: 16, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
-  heroCaption: { position: 'absolute', left: 16, bottom: 16, maxWidth: '65%', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
-  counterText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  counter: { position: 'absolute', right: 12, bottom: 12, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: 'rgba(0,0,0,0.5)' },
+  counterText: { color: '#fff', fontSize: 12, fontWeight: '500', fontVariant: ['tabular-nums'] },
+  jumpRow: { paddingHorizontal: 8 },
+  jump: { paddingHorizontal: 8, justifyContent: 'center' },
+  jumpText: { fontSize: 14 },
   chip: { minHeight: 36, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  chipText: { fontSize: 13, fontWeight: '600' },
+  chipText: { fontSize: 14, fontWeight: '500' },
   viewerTop: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, backgroundColor: 'rgba(0,0,0,0.35)' },
   viewerCount: { color: '#fff', fontSize: 14, fontWeight: '600' },
   viewerClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: -10 },

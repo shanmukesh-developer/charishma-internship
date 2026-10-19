@@ -26,6 +26,14 @@ export interface PGHostel {
   videos?: PgVideo[] | null;
   messTimetable?: MessTimetable | null;
   timings?: PgTimings | null;
+  // v2 sections (null / missing when empty; the app then hides the section).
+  highlights?: string[] | null;
+  houseRules?: HouseRuleGroup[] | null;
+  policies?: PgPolicies | null;
+  safety?: PgSafety | null;
+  moveIn?: PgMoveIn | null;
+  locationGuide?: PgLocationGuide | null;
+  faq?: PgFaqItem[] | null;
 }
 
 // ── Listing content (backend/utils/pgContent.js validates; these mirror its shapes) ──
@@ -46,6 +54,89 @@ export interface MessTimetable { meals: MessMeal[]; days: Partial<Record<DayKey,
 export interface PgTimings {
   gateOpen?: string; gateClose?: string; visitorFrom?: string; visitorTo?: string;
   checkIn?: string; checkOut?: string; quietFrom?: string; quietTo?: string; curfewNote?: string;
+}
+
+// ── v2 sections (backend/utils/pgContent.js validateHighlights … validateFaq; same limits) ──
+export const MAX_HIGHLIGHTS = 6;
+export const RULE_CATEGORIES = ['visitors', 'overnight', 'gate', 'smoking', 'noise', 'cooking', 'pets', 'cleanliness', 'laundry', 'electricity', 'other'] as const;
+export type RuleCategory = typeof RULE_CATEGORIES[number];
+export const RULE_CATEGORY_LABEL: Record<RuleCategory, string> = {
+  visitors: 'Visitors & guests', overnight: 'Overnight stays', gate: 'Gate & curfew', smoking: 'Smoking & alcohol',
+  noise: 'Noise & quiet hours', cooking: 'Cooking & food', pets: 'Pets', cleanliness: 'Cleanliness', laundry: 'Laundry',
+  electricity: 'Electricity & appliances', other: 'Other',
+};
+export const MAX_RULES_PER_GROUP = 10;
+/** `label` is only present on the public (read) shape. */
+export interface HouseRuleGroup { category: RuleCategory; rules: string[]; label?: string }
+
+export const PAYMENT_METHODS = ['cash', 'upi', 'bank'] as const;
+export type PaymentMethod = typeof PAYMENT_METHODS[number];
+export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = { cash: 'Cash', upi: 'UPI', bank: 'Bank transfer' };
+export const INCLUDED_KEYS = ['food', 'wifi', 'electricity', 'water', 'housekeeping', 'laundry', 'maintenance'] as const;
+export type IncludedKey = typeof INCLUDED_KEYS[number];
+export const INCLUDED_LABEL: Record<IncludedKey, string> = { food: 'Food', wifi: 'WiFi', electricity: 'Electricity', water: 'Water', housekeeping: 'Housekeeping', laundry: 'Laundry', maintenance: 'Maintenance' };
+export const CHARGE_UNITS = ['month', 'unit', 'use', 'day', 'kg', 'once'] as const;
+export type ChargeUnit = typeof CHARGE_UNITS[number];
+export const CHARGE_UNIT_LABEL: Record<ChargeUnit, string> = { month: 'per month', unit: 'per unit', use: 'per use', day: 'per day', kg: 'per kg', once: 'one time' };
+export const MAX_EXTRA_CHARGES = 12;
+export type LateFeeUnit = 'once' | 'day';
+export interface ExtraCharge { item: string; amount: number; unit: ChargeUnit }
+export interface PgPolicies {
+  booking?: { steps?: string; tokenAmount?: number; confirmation?: string };
+  rent?: { dueDay?: number; lateFee?: number; lateFeeUnit?: LateFeeUnit; methods?: PaymentMethod[]; notes?: string };
+  deposit?: { amount?: number; refundDays?: number; deductions?: string };
+  stay?: { noticeMonths?: number; lockInMonths?: number; notes?: string };
+  cancellation?: { freeCancelDays?: number; refundPercent?: number; text?: string };
+  included?: IncludedKey[];
+  extraCharges?: ExtraCharge[];
+  maintenance?: { responseHours?: number; notes?: string };
+}
+
+export const ENTRY_TYPES = ['biometric', 'keycard', 'key'] as const;
+export type EntryType = typeof ENTRY_TYPES[number];
+export const ENTRY_LABEL: Record<EntryType, string> = { biometric: 'Biometric', keycard: 'Key card', key: 'Key' };
+export const GUARD_MODES = ['24x7', 'night', 'hours'] as const;
+export type GuardMode = typeof GUARD_MODES[number];
+export const GUARD_LABEL: Record<GuardMode, string> = { '24x7': 'Round the clock', night: 'Night only', hours: 'Set hours' };
+export interface PgSafety {
+  cctv?: boolean; entry?: EntryType; guard?: GuardMode; guardFrom?: string; guardTo?: string;
+  fireExtinguishers?: boolean; firstAid?: boolean; wardenName?: string; wardenAvailability?: string; emergency?: string;
+}
+
+export interface PgMoveIn { documents?: string[]; bring?: string[]; provided?: string[]; steps?: string[] }
+
+export const NEARBY_CATEGORIES = ['college', 'hospital', 'pharmacy', 'atm', 'bus_stop', 'supermarket', 'restaurant', 'gym', 'other'] as const;
+export type NearbyCategory = typeof NEARBY_CATEGORIES[number];
+export const NEARBY_LABEL: Record<NearbyCategory, string> = { college: 'College', hospital: 'Hospital', pharmacy: 'Pharmacy', atm: 'ATM', bus_stop: 'Bus stop', supermarket: 'Supermarket', restaurant: 'Restaurant', gym: 'Gym', other: 'Other' };
+export const MAX_NEARBY = 20;
+export interface NearbyPlace { name: string; category: NearbyCategory; distanceM: number; walkMinutes?: number }
+export interface PgLocationGuide { howToReach?: string; nearby?: NearbyPlace[] }
+
+export const MAX_FAQ = 20;
+export interface PgFaqItem { id?: string; q: string; a: string }
+
+// ── Reviews (admin moderation) ──
+export interface PgReviewReport { userId: string; reason: string; at: string }
+export interface PgReview {
+  id: string; hostelId: string; userId: string; bookingId: string; rating: number; text: string; firstName: string;
+  status: 'visible' | 'hidden'; hiddenReason: string | null; reports: PgReviewReport[]; reportCount: number;
+  createdAt: string; hostelName: string | null;
+}
+export const REVIEW_REPORT_LABEL: Record<string, string> = { spam: 'Spam', offensive: 'Offensive', fake: 'Fake', personal_info: 'Personal information', other: 'Other' };
+
+// ── Promotions (cards on the PG list page) ──
+export type PromoType = 'IMAGE' | 'VIDEO';
+export type PromoCta = 'VIEW_PG' | 'WATCH_TOUR' | 'BOOK_VISIT';
+export type PromoLabel = 'FEATURED' | 'SPONSORED';
+export type PromoState = 'live' | 'scheduled' | 'ended' | 'paused';
+export const PROMO_CTA_LABEL: Record<PromoCta, string> = { VIEW_PG: 'View PG', WATCH_TOUR: 'Watch tour', BOOK_VISIT: 'Book a visit' };
+export const PROMO_LABEL_TEXT: Record<PromoLabel, string> = { FEATURED: 'Featured', SPONSORED: 'Sponsored' };
+export const PROMO_STATE_LABEL: Record<PromoState, string> = { live: 'Live', scheduled: 'Scheduled', ended: 'Ended', paused: 'Paused' };
+export const MAX_PROMO_DAYS = 366;
+export interface PgPromotion {
+  id: string; type: PromoType; imageUrl: string | null; youtubeId: string | null; headline: string; subline: string | null;
+  hostelId: string; cta: PromoCta; label: PromoLabel; startsAt: string; endsAt: string; priority: number; isActive: boolean;
+  state: PromoState; pgName: string | null; ctaLabel: string;
 }
 
 /** Same rules as backend parseYouTubeId: youtube.com/watch?v=, youtu.be/ and youtube.com/shorts/ links only. */

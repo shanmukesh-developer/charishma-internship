@@ -35,14 +35,19 @@ export interface PgDetail {
   isActive: boolean; isVerified: boolean; amenities: string[]; rules: string[];
   images: string[]; photos: PgPhoto[]; coverPhoto: string | null; videos: PgVideo[];
   messTimetable: MessTimetable | null; timings: PgTimings | null;
-  contactInfo: { ownerName?: string; phone?: string; email?: string; wardenName?: string; emergencyContact?: string; lat?: number; lng?: number };
+  contactInfo: { ownerName?: string; wardenName?: string; lat?: number; lng?: number };
   location: { lat: number; lng: number } | null;
   rooms: PgRoom[]; roomTypes: PgRoomType[]; bedsAvailable: number;
+  // v2 sections (older servers omit them: treat as empty).
+  highlights?: string[]; houseRules?: PgRuleGroup[]; policies?: PgPolicies | null; safety?: PgSafety | null;
+  moveIn?: PgMoveIn | null; locationGuide?: PgLocationGuide | null; faq?: PgFaq[]; reviewSummary?: ReviewSummary;
+  sections?: SectionKey[]; createdAt?: string | null;
 }
 export interface PgListItem {
   id: string; name: string; address: string; area?: string | null; distanceFromCollege: number; genderType: string;
   baseRent: number; rentFrom?: number | null; isVerified?: boolean; amenities?: string[]; coverPhoto?: string | null;
   images?: string[]; photoCount?: number; videoCount?: number; hasMess?: boolean; bedsAvailable?: number; hasRooms?: boolean;
+  hasAC?: boolean; foodIncluded?: boolean; highlights?: string[]; reviewSummary?: ReviewSummary; createdAt?: string | null;
 }
 export interface MyPgBooking {
   id: string; status: 'Pending' | 'Confirmed' | 'Cancelled'; checkInDate: string; hostelId?: string;
@@ -151,3 +156,94 @@ export const mapsUrl = (pg: Pick<PgDetail, 'name' | 'address' | 'location'>) => 
   if (pg.address) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${pg.name}, ${pg.address}`)}`;
   return null;
 };
+
+// ── v2 sections (backend/utils/pgContent.js validates every field) ─────────────────────────────
+export type SectionKey = 'overview' | 'rooms' | 'mess' | 'rules' | 'policies' | 'safety' | 'location' | 'faq' | 'reviews';
+export const SECTION_LABEL: Record<SectionKey, string> = {
+  overview: 'Overview', rooms: 'Rooms', mess: 'Mess', rules: 'Rules', policies: 'Policies',
+  safety: 'Safety', location: 'Location', faq: 'FAQ', reviews: 'Reviews',
+};
+export type RuleCategory = 'visitors' | 'overnight' | 'gate' | 'smoking' | 'noise' | 'cooking' | 'pets' | 'cleanliness' | 'laundry' | 'electricity' | 'other';
+export interface PgRuleGroup { category: RuleCategory; label: string; rules: string[] }
+export type IncludedKey = 'food' | 'wifi' | 'electricity' | 'water' | 'housekeeping' | 'laundry' | 'maintenance';
+export const INCLUDED_LABEL: Record<IncludedKey, string> = {
+  food: 'Food', wifi: 'WiFi', electricity: 'Electricity', water: 'Water', housekeeping: 'Housekeeping', laundry: 'Laundry', maintenance: 'Maintenance',
+};
+export const INCLUDED_KEYS = Object.keys(INCLUDED_LABEL) as IncludedKey[];
+export type ChargeUnit = 'month' | 'unit' | 'use' | 'day' | 'kg' | 'once';
+export interface PgExtraCharge { item: string; amount: number; unit: ChargeUnit }
+export interface PgPolicies {
+  booking?: { steps?: string; tokenAmount?: number; confirmation?: string };
+  rent?: { dueDay?: number; lateFee?: number; lateFeeUnit?: 'once' | 'day'; methods?: ('cash' | 'upi' | 'bank')[]; notes?: string };
+  deposit?: { amount?: number; refundDays?: number; deductions?: string };
+  stay?: { noticeMonths?: number; lockInMonths?: number; notes?: string };
+  cancellation?: { freeCancelDays?: number; refundPercent?: number; text?: string };
+  included?: IncludedKey[];
+  extraCharges?: PgExtraCharge[];
+  maintenance?: { responseHours?: number; notes?: string };
+}
+export interface PgSafety {
+  cctv?: boolean; entry?: 'biometric' | 'keycard' | 'key'; guard?: '24x7' | 'night' | 'hours'; guardFrom?: string; guardTo?: string;
+  fireExtinguishers?: boolean; firstAid?: boolean; wardenName?: string; wardenAvailability?: string; emergency?: string;
+}
+export interface PgMoveIn { documents?: string[]; bring?: string[]; provided?: string[]; steps?: string[] }
+export type NearbyCategory = 'college' | 'hospital' | 'pharmacy' | 'atm' | 'bus_stop' | 'supermarket' | 'restaurant' | 'gym' | 'other';
+export const NEARBY_LABEL: Record<NearbyCategory, string> = {
+  college: 'College', hospital: 'Hospital', pharmacy: 'Pharmacy', atm: 'ATM', bus_stop: 'Bus stop',
+  supermarket: 'Supermarket', restaurant: 'Restaurant', gym: 'Gym', other: 'Place',
+};
+export interface PgNearby { name: string; category: NearbyCategory; distanceM: number; walkMinutes?: number }
+export interface PgLocationGuide { howToReach?: string; nearby?: PgNearby[] }
+export interface PgFaq { id: string; q: string; a: string }
+export interface ReviewSummary { average: number | null; count: number }
+export interface PgReview { id: string; rating: number; text: string; firstName: string; createdAt: string }
+export interface PgReviewPage { summary: ReviewSummary & { distribution: Record<string, number> }; items: PgReview[]; page: number; hasMore: boolean }
+export interface PgReviewEligibility { canReview: boolean; reason: string | null; myReviews: (PgReview & { status: string })[] }
+
+/** Sections to show: the server's list when present, else worked out from the data (older servers). */
+export const sectionsOf = (pg: PgDetail): SectionKey[] => {
+  if (Array.isArray(pg.sections) && pg.sections.length) return pg.sections;
+  return [
+    'overview',
+    pg.roomTypes.length ? 'rooms' : null,
+    pg.messTimetable && pg.messTimetable.meals.length ? 'mess' : null,
+    pg.rules.length || pg.timings ? 'rules' : null,
+    pg.location ? 'location' : null,
+  ].filter(Boolean) as SectionKey[];
+};
+
+/** 1 -> "1st", 22 -> "22nd". */
+export const ordinal = (n: number) => {
+  const v = Math.abs(Math.round(n));
+  const t = v % 100;
+  const sfx = t >= 11 && t <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[v % 10] || 'th';
+  return `${v}${sfx}`;
+};
+/** 350 -> "350 m", 1200 -> "1.2 km". */
+export const metres = (m: number) => (m < 1000 ? `${Math.round(m / 10) * 10 || m} m` : `${(m / 1000).toFixed(m % 1000 === 0 ? 0 : 1)} km`);
+export const CHARGE_UNIT_LABEL: Record<ChargeUnit, string> = { month: '/month', unit: '/unit', use: '/use', day: '/day', kg: '/kg', once: ' one time' };
+/** "₹10/unit", "₹500 one time". */
+export const chargeText = (c: PgExtraCharge) => `${inr(c.amount)}${CHARGE_UNIT_LABEL[c.unit] || ''}`;
+export const months = (n: number) => (n === 0 ? 'None' : `${n} month${n === 1 ? '' : 's'}`);
+export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+/** "Oct 2026". */
+export const monthYear = (iso: string) => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+};
+/** One decimal, "4.0" kept so ratings line up. */
+export const ratingText = (n: number | null | undefined) => (typeof n === 'number' && Number.isFinite(n) ? n.toFixed(1) : '');
+
+// ── List page (GET /api/pg/home) ────────────────────────────────────────────────────────────────
+export interface PgPromotion {
+  id: string; type: 'IMAGE' | 'VIDEO'; headline: string; subline: string; label: 'FEATURED' | 'SPONSORED'; labelText: string;
+  cta: 'VIEW_PG' | 'WATCH_TOUR' | 'BOOK_VISIT'; ctaLabel: string; imageUrl: string;
+  video: { youtubeId: string; thumbnailUrl: string; embedUrl: string; watchUrl: string } | null;
+  pg: { id: string; name: string; area: string | null; rentFrom: number | null; genderType: string; isVerified: boolean } | null;
+}
+export interface PgTour { pgId: string; pgName: string; area: string | null; rentFrom: number | null; video: PgVideo }
+export interface PgRail { key: string; title: string; ids: string[] }
+export interface PgHome { promotions: PgPromotion[]; tours: PgTour[]; rails: PgRail[]; pgs: PgListItem[] }
+
+/** Deep link that opens a PG in the app (app.json scheme "zenvy"). */
+export const pgLink = (id: string) => `zenvy://pg/${encodeURIComponent(id)}`;

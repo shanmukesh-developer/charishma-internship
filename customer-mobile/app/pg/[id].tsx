@@ -1,12 +1,13 @@
 /**
- * PG detail. Order: photos, name / place / key facts, room types, about, photos by category, room tour
- * videos, amenities, mess timings, timings, house rules, contact. A bar at the bottom keeps the rent and
- * the two actions in reach: Enquire (WhatsApp the PG or the Zenvy housing desk) and Request a bed (the
- * existing booking request: POST /api/pg/:roomId/book; nothing is charged in the app).
- * Data: GET /api/pg/:id (backend/utils/pgContent.publicPg); live-synced on 'pg' events.
+ * PG detail. Top to bottom: photos (with category quick-jump), name and key place facts, a sticky
+ * section bar (Overview · Rooms · Mess · Rules · Policies · Safety · Location · FAQ · Reviews, only the
+ * sections this PG has; it follows the scroll and jumps on tap), then the sections themselves.
+ * A bar at the bottom keeps the rent and two actions in reach: Enquire (WhatsApp the Zenvy housing desk;
+ * no personal numbers are shown) and Request a bed (POST /api/pg/:roomId/book; nothing is charged in
+ * the app). Data: GET /api/pg/:id (backend/utils/pgContent.publicPg); live-synced on 'pg' events.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Linking, Alert, Modal, ActivityIndicator, useWindowDimensions, Platform, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Linking, Alert, Modal, ActivityIndicator, useWindowDimensions, Platform, Animated, Share, type LayoutChangeEvent } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -15,16 +16,20 @@ import { apiFetch, readJson } from '../../utils/auth';
 import { useLiveSync } from '../../utils/useLiveSync';
 import { useAuth } from '../../context/AuthContext';
 import {
-  distanceLabel, genderLabel, inr, mapsUrl, sharingLabel,
-  type MyPgBooking, type PgDetail, type PgPhoto, type PgRoomType,
+  distanceLabel, genderLabel, inr, mapsUrl, pgLink, plural, ratingText, sectionsOf,
+  type MyPgBooking, type PgDetail, type PgPhoto, type PgReviewEligibility, type SectionKey,
 } from '../../modules/pg/pgApi';
 import {
-  usePgPalette, PgHeader, Press, SectionHeading, Divider, PgImage, Skeleton, StateMessage, amenityIcon, amenityLabel, PG_HOME,
-  IconBadgeCheck, IconMapPin, IconPhone, IconMessage, IconAlert, IconCheck, ICON, s as ui,
+  usePgPalette, PgHeader, Press, Divider, Skeleton, StateMessage, PG_HOME, TYPE,
+  IconBadgeCheck, IconMessage, IconAlert, IconShare, IconStar, IconMapPin, ICON, s as ui,
 } from '../../modules/pg/ui';
 import { PgHero, PgPhotoSection, PhotoViewer } from '../../modules/pg/PgGallery';
 import { PgVideoSection } from '../../modules/pg/PgVideos';
-import { PgMessSection, PgTimingsSection } from '../../modules/pg/PgMess';
+import { PgMessSection } from '../../modules/pg/PgMess';
+import { PgSectionNav, SECTION_NAV_H } from '../../modules/pg/PgSectionNav';
+import { RoomsSection, roomTitle } from '../../modules/pg/PgRooms';
+import { KeyFacts, Highlights, About, Amenities, RulesSection, PoliciesSection, SafetySection, LocationSection, FaqSection } from '../../modules/pg/PgSections';
+import { ReviewsSection } from '../../modules/pg/PgReviews';
 
 /** Local (device-time) YYYY-MM-DD, so the default is never "yesterday" before 5:30 AM IST. */
 function toLocalYmd(d: Date): string {
@@ -51,14 +56,7 @@ function prettyDate(ymd: string): string {
   if (!y || !m || !d) return ymd;
   return new Date(y, m - 1, d, 12).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
 }
-const rentText = (t: PgRoomType) => (t.rentFrom === null ? '' : t.rentTo !== null && t.rentTo !== t.rentFrom ? `${inr(t.rentFrom)}–${inr(t.rentTo).slice(1)}` : inr(t.rentFrom));
-const roomFacts = (t: PgRoomType) => [
-  t.hasAC ? 'AC' : 'Non-AC',
-  t.hasAttachedBathroom ? 'Attached bath' : 'Shared bath',
-  t.hasBalcony ? 'Balcony' : '',
-  t.furnishing ? t.furnishing.charAt(0).toUpperCase() + t.furnishing.slice(1).toLowerCase() : '',
-].filter(Boolean).join(' · ');
-const roomTitle = (t: PgRoomType) => (t.label && !/^\d+-sharing( AC)?$/.test(t.label) ? t.label : sharingLabel(t.sharingType));
+const deskUrl = (text: string) => `https://wa.me/${ZENVY_SUPPORT_WHATSAPP.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`;
 
 export default function PGDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -70,9 +68,10 @@ export default function PGDetailScreen() {
   const { user } = useAuth();
 
   const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<ScrollView>(null);
   const heroH = Math.round(width * 0.75);
   // The name in the header fades in once the on-page name has scrolled under it.
-  const titleOpacity = scrollY.interpolate({ inputRange: [heroH + 8, heroH + 48], outputRange: [0, 1], extrapolate: 'clamp' });
+  const titleOpacity = scrollY.interpolate({ inputRange: [heroH + 24, heroH + 72], outputRange: [0, 1], extrapolate: 'clamp' });
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
@@ -83,6 +82,7 @@ export default function PGDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<'notfound' | 'error' | null>(null);
   const [myBooking, setMyBooking] = useState<MyPgBooking | null>(null);
+  const [eligibility, setEligibility] = useState<PgReviewEligibility | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [viewer, setViewer] = useState<{ list: PgPhoto[]; index: number } | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -92,16 +92,25 @@ export default function PGDetailScreen() {
   const [sending, setSending] = useState(false);
   const sendingRef = useRef(false);
 
-  const loadMyBooking = useCallback(async () => {
+  const userKey = (user as any)?.id || (user as any)?._id || null;
+
+  const loadMine = useCallback(async () => {
     if (!pgId) return;
     try {
       const res = await apiFetch(`${API_URL}/api/pg/bookings/mine`);
-      if (!res.ok) return; // guests / errors: no status card
-      const list = await readJson(res);
-      if (!mounted.current || !Array.isArray(list)) return;
-      const open = list.find((b: MyPgBooking) => (b.hostel?.id === pgId || b.hostelId === pgId) && (b.status === 'Pending' || b.status === 'Confirmed'));
-      setMyBooking(open || null);
-    } catch { /* non-critical */ }
+      if (res.ok) {
+        const list = await readJson(res);
+        if (mounted.current && Array.isArray(list)) {
+          const open = list.find((b: MyPgBooking) => (b.hostel?.id === pgId || b.hostelId === pgId) && (b.status === 'Pending' || b.status === 'Confirmed'));
+          setMyBooking(open || null);
+        }
+      }
+    } catch { /* non-critical: no status card */ }
+    try {
+      const res = await apiFetch(`${API_URL}/api/pg/${pgId}/reviews/eligibility`);
+      const body = res.ok ? await readJson(res) : null;
+      if (mounted.current) setEligibility(body && typeof body.canReview === 'boolean' ? body : null);
+    } catch { /* non-critical: no review prompt */ }
   }, [pgId]);
 
   const load = useCallback(async (mode: 'initial' | 'refresh' | 'silent' = 'initial') => {
@@ -120,31 +129,62 @@ export default function PGDetailScreen() {
     } finally {
       if (mounted.current) { setLoading(false); setRefreshing(false); }
     }
-    loadMyBooking();
-  }, [pgId, loadMyBooking]);
+    if (userKey) loadMine();
+  }, [pgId, loadMine, userKey]);
 
   useEffect(() => { load('initial'); }, [load]);
   useLiveSync({ types: ['pg'], filter: (e) => e.id == null || String(e.id) === String(pgId), onChange: () => { load('silent'); } });
-  const userKey = (user as any)?.id || (user as any)?._id || null;
-  useEffect(() => { if (userKey) loadMyBooking(); else setMyBooking(null); }, [userKey, loadMyBooking]);
+  useEffect(() => { if (!userKey) { setMyBooking(null); setEligibility(null); } }, [userKey]);
 
+  // ── Sections + scroll-spy ──────────────────────────────────────────────────────────────────────
+  const sections = useMemo<SectionKey[]>(() => {
+    if (!pg) return [];
+    const list = sectionsOf(pg);
+    // A student who stayed here can write the first review even before any exist.
+    return eligibility?.canReview && !list.includes('reviews') ? [...list, 'reviews'] : list;
+  }, [pg, eligibility?.canReview]);
+  const sectionY = useRef<Partial<Record<SectionKey, number>>>({});
+  const viewport = useRef({ h: 0, content: 0 });
+  const [active, setActive] = useState<SectionKey>('overview');
+  const activeRef = useRef<SectionKey>('overview');
+  const spyLockUntil = useRef(0);
+  const setActiveIfChanged = (k: SectionKey) => { if (activeRef.current !== k) { activeRef.current = k; setActive(k); } };
+
+  const onScrollJS = useCallback((y: number) => {
+    if (Date.now() < spyLockUntil.current) return;
+    const { h, content } = viewport.current;
+    if (h && content && y + h >= content - 8 && sections.length) { setActiveIfChanged(sections[sections.length - 1]); return; }
+    let cur: SectionKey = sections[0] || 'overview';
+    for (const k of sections) {
+      const top = sectionY.current[k];
+      if (top !== undefined && top - SECTION_NAV_H - 32 <= y) cur = k;
+    }
+    setActiveIfChanged(cur);
+  }, [sections]);
+
+  const goTo = (k: SectionKey) => {
+    const y = sectionY.current[k];
+    if (y === undefined) return;
+    Haptics.selectionAsync().catch(() => {});
+    setActiveIfChanged(k);
+    spyLockUntil.current = Date.now() + 700; // let the smooth scroll finish before the spy takes over again
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - SECTION_NAV_H), animated: true });
+  };
+  const onSectionLayout = (k: SectionKey) => (e: LayoutChangeEvent) => { sectionY.current[k] = e.nativeEvent.layout.y; };
+
+  // ── Rooms / booking ────────────────────────────────────────────────────────────────────────────
   const roomTypes = pg?.roomTypes || [];
   const bookable = roomTypes.filter((t) => t.bookRoomId);
   // Keep a valid selection: the chosen type while it has a free bed, else the cheapest one that does.
   const selected = roomTypes.find((t) => t.key === selectedType && t.bookRoomId) || bookable[0] || null;
   const roomTypeLabels = useMemo(() => Object.fromEntries(roomTypes.map((t) => [t.key, `${roomTitle(t)} · ${t.hasAC ? 'AC' : 'Non-AC'}`])), [roomTypes]);
-  const photosByType = useMemo(() => {
-    const m: Record<string, PgPhoto[]> = {};
-    (pg?.photos || []).forEach((ph) => { if (ph.roomType) (m[ph.roomType] = m[ph.roomType] || []).push(ph); });
-    return m;
-  }, [pg?.photos]);
   const heroPhotos = useMemo(() => {
     const list = pg?.photos || [];
     const cover = list.find((x) => x.isCover);
     return cover ? [cover, ...list.filter((x) => x !== cover)] : list;
   }, [pg?.photos]);
 
-  const promptLogin = () => Alert.alert('Log in to continue', 'Log in to send a booking request.', [
+  const promptLogin = (why = 'Log in to send a booking request.') => Alert.alert('Log in to continue', why, [
     { text: 'Not now', style: 'cancel' },
     { text: 'Log in', onPress: () => router.push('/login' as any) },
   ]);
@@ -167,7 +207,7 @@ export default function PGDetailScreen() {
       if (!mounted.current) return;
       if (res.status === 401) { setSheetOpen(false); promptLogin(); return; }
       if (!res.ok) {
-        if (data?.code === 'BOOKING_EXISTS') { loadMyBooking(); setSheetOpen(false); }
+        if (data?.code === 'BOOKING_EXISTS') { loadMine(); setSheetOpen(false); }
         Alert.alert(data?.code === 'BOOKING_EXISTS' ? 'Request already sent' : 'Could not send the request', data?.message || 'Please try again.');
         if (res.status === 400) load('silent'); // e.g. the last bed went meanwhile
         return;
@@ -210,18 +250,18 @@ export default function PGDetailScreen() {
 
   // ── Loading / error ────────────────────────────────────────────────────────────────────────────
   if (loading && !pg) {
-    const h = Math.round(width * 0.75);
     return (
       <View style={{ flex: 1, backgroundColor: p.bg }}>
         <PgHeader />
         <View accessibilityLabel="Loading PG" accessibilityRole="progressbar">
-          <Skeleton style={{ width, height: h, borderRadius: 0 }} />
+          <Skeleton style={{ width, height: heroH, borderRadius: 0 }} />
           <View style={{ padding: 16 }}>
             <Skeleton style={{ width: '70%', height: 24 }} />
-            <Skeleton style={{ width: '50%', height: 14, marginTop: 10 }} />
-            <Skeleton style={{ width: '100%', height: 64, marginTop: 20, borderRadius: 12 }} />
-            <Skeleton style={{ width: '40%', height: 18, marginTop: 28 }} />
-            <Skeleton style={{ width: '100%', height: 96, marginTop: 12, borderRadius: 12 }} />
+            <Skeleton style={{ width: '50%', height: 14, marginTop: 12 }} />
+            <Skeleton style={{ width: '100%', height: 40, marginTop: 24, borderRadius: 8 }} />
+            <Skeleton style={{ width: '100%', height: 72, marginTop: 24, borderRadius: 12 }} />
+            <Skeleton style={{ width: '60%', height: 14, marginTop: 24 }} />
+            <Skeleton style={{ width: '80%', height: 14, marginTop: 12 }} />
           </View>
         </View>
       </View>
@@ -244,80 +284,130 @@ export default function PGDetailScreen() {
   }
 
   // ── Detail ─────────────────────────────────────────────────────────────────────────────────────
-  const contact = pg.contactInfo || {};
-  const phone = (contact.phone || '').trim();
-  const maps = mapsUrl(pg);
-  const amenities = pg.amenities.map((a) => ({ raw: a, label: amenityLabel(a) })).filter((a) => a.label);
   const rentFrom = pg.rentFrom ?? pg.baseRent;
   const barRent = selected?.rentFrom ?? rentFrom;
   const myOpen = myBooking && (myBooking.status === 'Pending' || myBooking.status === 'Confirmed') ? myBooking : null;
   const hasRooms = roomTypes.length > 0;
   const bottomBarH = 72 + insets.bottom;
-  const deposit = pg.securityDeposit;
+  const summary = pg.reviewSummary || { average: null, count: 0 };
+  const showLocation = sections.includes('location');
+  const maps = mapsUrl(pg);
+  const meta = [genderLabel(pg.genderType), pg.area, distanceLabel(pg.distanceFromCollege)].filter(Boolean).join(' · ');
 
   const enquire = () => {
-    let to = (phone || ZENVY_SUPPORT_WHATSAPP).replace(/\D/g, '');
-    if (to.length === 10) to = `91${to}`;
-    const msg = `Hi, I found ${pg.name} on Zenvy. Could you share current availability and a time to visit?`;
-    Linking.openURL(`https://wa.me/${to}?text=${encodeURIComponent(msg)}`).catch(() => Alert.alert('WhatsApp is not available', phone ? `You can call ${phone} instead.` : 'Please try again later.'));
+    Linking.openURL(deskUrl(`Hi, I found ${pg.name} on Zenvy. Could you share current availability and a time to visit?`))
+      .catch(() => Alert.alert('WhatsApp is not available', 'Please try again later.'));
+  };
+  const contactWarden = () => {
+    Linking.openURL(deskUrl(`Hi, I have a question for the warden at ${pg.name}.`)).catch(() => Alert.alert('WhatsApp is not available', 'Please try again later.'));
+  };
+  const share = () => {
+    Share.share({ message: `${pg.name}${pg.area ? `, ${pg.area}` : ''} on Zenvy\n${pgLink(pg.id)}` }).catch(() => {});
   };
 
-  const contactRows = [
-    contact.ownerName ? { label: 'Owner', value: contact.ownerName } : null,
-    contact.wardenName ? { label: 'Warden', value: contact.wardenName } : null,
-    phone ? { label: 'Phone', value: phone } : null,
-    contact.emergencyContact ? { label: 'Emergency', value: contact.emergencyContact } : null,
-  ].filter(Boolean) as { label: string; value: string }[];
+  const block = (k: SectionKey, i: number, children: React.ReactNode) => (
+    <View key={k} onLayout={onSectionLayout(k)} style={[st.section, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.line, marginTop: 32 }]}>
+      {children}
+    </View>
+  );
+  const render = (k: SectionKey, i: number) => {
+    switch (k) {
+      case 'overview':
+        return block(k, i, (
+          <View>
+            <KeyFacts pg={pg} />
+            <Highlights items={pg.highlights || []} />
+            <About text={pg.description} />
+            <Amenities items={pg.amenities} />
+            {pg.photos.length > 1 ? <PgPhotoSection sub photos={pg.photos} onOpen={(list, index) => setViewer({ list, index })} /> : null}
+            {!hasRooms && pg.videos.length ? <View style={{ marginTop: 24 }}><PgVideoSection videos={pg.videos} roomTypeLabels={roomTypeLabels} /></View> : null}
+          </View>
+        ));
+      case 'rooms':
+        return block(k, i, <RoomsSection pg={pg} selectedKey={selected?.key || null} onSelect={setSelectedType} onOpenPhotos={(list, index) => setViewer({ list, index })} roomTypeLabels={roomTypeLabels} />);
+      case 'mess':
+        return block(k, i, <PgMessSection timetable={pg.messTimetable} />);
+      case 'rules':
+        return block(k, i, <RulesSection groups={pg.houseRules || []} timings={pg.timings} />);
+      case 'policies':
+        return block(k, i, <PoliciesSection policies={pg.policies || null} moveIn={pg.moveIn || null} pgDeposit={pg.securityDeposit} />);
+      case 'safety':
+        return pg.safety ? block(k, i, <SafetySection safety={pg.safety} onContactDesk={contactWarden} />) : null;
+      case 'location':
+        return block(k, i, <LocationSection pg={pg} guide={pg.locationGuide || null} />);
+      case 'faq':
+        return block(k, i, <FaqSection items={pg.faq || []} />);
+      case 'reviews':
+        return block(k, i, (
+          <ReviewsSection
+            pgId={pg.id}
+            summary={summary}
+            eligibility={eligibility}
+            signedIn={!!user}
+            onLoginNeeded={() => promptLogin('Log in to report a review.')}
+            onReviewed={() => load('silent')}
+          />
+        ));
+      default:
+        return null;
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: p.bg }}>
-      <PgHeader title={pg.name} titleOpacity={titleOpacity} />
+      <PgHeader
+        title={pg.name}
+        titleOpacity={titleOpacity}
+        right={(
+          <Press onPress={share} accessibilityLabel={`Share ${pg.name}`} style={st.headerBtn}>
+            <IconShare size={20} color={p.text} strokeWidth={ICON.stroke} />
+          </Press>
+        )}
+      />
       <Animated.ScrollView
-        contentContainerStyle={{ paddingBottom: bottomBarH + 24 }}
+        ref={scrollRef as any}
+        contentContainerStyle={{ paddingBottom: bottomBarH + 32 }}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+        stickyHeaderIndices={[2]}
+        onLayout={(e) => { viewport.current.h = e.nativeEvent.layout.height; }}
+        onContentSizeChange={(_, h) => { viewport.current.content = h; }}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true, listener: (e: any) => onScrollJS(e.nativeEvent.contentOffset.y) })}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load('refresh')} tintColor={p.sub} colors={[p.accentFill]} />}
       >
+        {/* 0: photos */}
         <PgHero photos={heroPhotos} topInset={0} onOpen={(list, index) => setViewer({ list, index })} />
 
-        {/* Name, place, key facts */}
+        {/* 1: name, place, rating, my request */}
         <View style={st.pad}>
-          <View style={st.titleRow}>
-            <Text style={[st.title, { color: p.text }]} accessibilityRole="header">{pg.name}</Text>
-          </View>
+          <Text style={[st.title, { color: p.text }]} accessibilityRole="header">{pg.name}</Text>
           <View style={st.metaRow}>
             {pg.isVerified ? (
-              <View style={st.verified} accessibilityLabel="Verified by Zenvy">
+              <View style={st.verified} accessibilityLabel="Verified by the Zenvy housing team">
                 <IconBadgeCheck size={14} color={p.success} strokeWidth={2} />
                 <Text style={[ui.small, { color: p.success, fontWeight: '600' }]}>Verified</Text>
               </View>
             ) : null}
-            <Text style={[ui.small, { color: p.sub }]}>{genderLabel(pg.genderType)}</Text>
-            {pg.area ? <Text style={[ui.small, { color: p.sub }]}>· {pg.area}</Text> : null}
+            <Text style={[ui.small, { color: p.sub, flexShrink: 1 }]} numberOfLines={2}>{meta}</Text>
           </View>
-          {pg.address ? (
+          {summary.count > 0 ? (
+            <Press onPress={() => goTo('reviews')} accessibilityLabel={`Rated ${ratingText(summary.average)} out of 5 from ${plural(summary.count, 'review')}. Opens reviews`} style={st.ratingRow}>
+              <IconStar size={14} color={p.text} fill={p.text} strokeWidth={1.5} />
+              <Text style={[ui.body, { color: p.text, fontWeight: '600' }]}>{ratingText(summary.average)}</Text>
+              <Text style={[ui.body, { color: p.sub, textDecorationLine: 'underline' }]}>{plural(summary.count, 'review')}</Text>
+            </Press>
+          ) : null}
+          {!showLocation && pg.address ? (
             <View style={st.addressRow}>
               <IconMapPin size={16} color={p.sub} strokeWidth={ICON.stroke} style={{ marginTop: 2 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={[ui.body, { color: p.text }]}>{pg.address}</Text>
-                {distanceLabel(pg.distanceFromCollege) ? <Text style={[ui.small, { color: p.muted, marginTop: 2 }]}>{distanceLabel(pg.distanceFromCollege)}</Text> : null}
-              </View>
+              <Text style={[ui.body, { color: p.text, flex: 1 }]}>{pg.address}</Text>
               {maps ? (
-                <Press onPress={() => Linking.openURL(maps).catch(() => Alert.alert('Could not open Maps'))} accessibilityRole="link" accessibilityLabel="Open in Maps" style={[st.smallBtn, { borderColor: p.line }]}>
+                <Press onPress={() => Linking.openURL(maps).catch(() => Alert.alert('Could not open Maps'))} accessibilityRole="link" accessibilityLabel="Open in Maps" style={st.textBtn}>
                   <Text style={[ui.small, { color: p.text, fontWeight: '600' }]}>Open in Maps</Text>
                 </Press>
               ) : null}
             </View>
           ) : null}
-
-          <View style={[st.facts, { borderColor: p.line, backgroundColor: p.card }]}>
-            <Fact label="Rent from" value={rentFrom ? inr(rentFrom) : '—'} sub="per month" />
-            <View style={[st.factSep, { backgroundColor: p.line }]} />
-            <Fact label="Deposit" value={Number(deposit) > 0 ? inr(deposit) : 'None'} sub={roomTypes.some((t) => t.deposit !== null && t.deposit !== deposit) ? 'varies by room' : Number(deposit) > 0 ? 'one time' : ' '} />
-            <View style={[st.factSep, { backgroundColor: p.line }]} />
-            <Fact label="Beds free" value={hasRooms ? String(pg.bedsAvailable) : '—'} sub={hasRooms ? `${roomTypes.length} room type${roomTypes.length === 1 ? '' : 's'}` : 'no rooms listed'} />
-          </View>
 
           {myOpen ? (
             <View style={[st.notice, { borderColor: myOpen.status === 'Confirmed' ? p.success : p.line, backgroundColor: myOpen.status === 'Confirmed' ? p.successSoft : p.sunken }]} accessibilityLiveRegion="polite">
@@ -336,123 +426,11 @@ export default function PGDetailScreen() {
           ) : null}
         </View>
 
-        {/* Room types */}
-        <View style={st.section}>
-          <SectionHeading title="Rooms" detail={hasRooms ? 'Rent per bed' : undefined} />
-          {hasRooms ? roomTypes.map((t) => {
-            const on = selected?.key === t.key;
-            const full = !t.bookRoomId;
-            const photos = photosByType[t.key] || [];
-            return (
-              <Press
-                key={t.key}
-                onPress={full ? undefined : () => setSelectedType(t.key)}
-                disabled={full}
-                accessibilityRole="button"
-                accessibilityState={{ selected: on, disabled: full }}
-                accessibilityLabel={`${roomTitle(t)}. ${roomFacts(t)}. ${rentText(t)} a month. ${full ? 'Full' : `${t.availableBeds} bed${t.availableBeds === 1 ? '' : 's'} free`}`}
-                style={[st.roomCard, { backgroundColor: p.card, borderColor: on ? p.text : p.line, borderWidth: on ? 1.5 : StyleSheet.hairlineWidth }, full && { opacity: 0.6 }]}
-              >
-                <View style={st.roomTop}>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={[st.roomTitle, { color: p.text }]} numberOfLines={1}>{roomTitle(t)}</Text>
-                    <Text style={[ui.small, { color: p.sub, marginTop: 2 }]} numberOfLines={2}>{roomFacts(t)}</Text>
-                  </View>
-                  <View style={[st.radio, { borderColor: on ? p.text : p.line, backgroundColor: on ? p.text : 'transparent' }]}>
-                    {on ? <IconCheck size={14} color={p.bg} strokeWidth={2.5} /> : null}
-                  </View>
-                </View>
-                {photos.length ? (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }} style={{ marginTop: 12 }}>
-                    {photos.slice(0, 8).map((ph, i) => (
-                      <Press key={ph.id} onPress={() => setViewer({ list: photos, index: i })} accessibilityRole="imagebutton" accessibilityLabel={`${roomTitle(t)} photo ${i + 1}`} style={{ width: 72, height: 54 }}>
-                        <PgImage uri={ph.url} style={{ width: 72, height: 54, borderRadius: 6 }} recyclingKey={`rt-${ph.id}`} priority="low" />
-                      </Press>
-                    ))}
-                  </ScrollView>
-                ) : null}
-                <View style={st.roomBottom}>
-                  <Text style={[st.roomPrice, { color: p.text }]}>{rentText(t)}<Text style={[ui.small, { color: p.sub, fontWeight: '400' }]}>/month</Text></Text>
-                  <Text style={[ui.small, { color: full ? p.muted : p.success, fontWeight: '600' }]}>
-                    {full ? 'Full' : `${t.availableBeds} of ${t.totalBeds} bed${t.totalBeds === 1 ? '' : 's'} free`}
-                  </Text>
-                </View>
-                {t.deposit && t.deposit !== pg.securityDeposit ? <Text style={[ui.small, { color: p.muted, marginTop: 2 }]}>Deposit {inr(t.deposit)}</Text> : null}
-              </Press>
-            );
-          }) : (
-            <Text style={[ui.body, { color: p.sub }]}>No rooms are listed yet. Use Enquire to ask the housing team about availability.</Text>
-          )}
-        </View>
+        {/* 2: sticky section bar */}
+        {sections.length > 1 ? <PgSectionNav sections={sections} active={active} onPress={goTo} /> : <View />}
 
-        {pg.description ? (
-          <View style={st.section}>
-            <SectionHeading title="About" />
-            <Text style={[ui.body, { color: p.text }]}>{pg.description}</Text>
-          </View>
-        ) : null}
-
-        {pg.photos.length > 1 ? <View style={st.section}><PgPhotoSection photos={pg.photos} onOpen={(list, index) => setViewer({ list, index })} /></View> : null}
-
-        {pg.videos.length ? <View style={st.section}><PgVideoSection videos={pg.videos} roomTypeLabels={roomTypeLabels} /></View> : null}
-
-        {amenities.length ? (
-          <View style={st.section}>
-            <SectionHeading title="Amenities" />
-            <View style={st.amenities}>
-              {amenities.map((a) => {
-                const Icon = amenityIcon(a.raw);
-                return (
-                  <View key={a.raw} style={[st.amenity, { width: (width - 32 - 8) / 2 }]} accessibilityLabel={a.label}>
-                    <Icon size={ICON.size} color={p.sub} strokeWidth={ICON.stroke} />
-                    <Text style={[ui.body, { color: p.text, flex: 1 }]} numberOfLines={2}>{a.label}</Text>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        ) : null}
-
-        <View style={st.section}><PgMessSection timetable={pg.messTimetable} /></View>
-
-        {pg.timings ? <View style={st.section}><PgTimingsSection timings={pg.timings} /></View> : null}
-
-        {pg.rules.length ? (
-          <View style={st.section}>
-            <SectionHeading title="House rules" />
-            {pg.rules.map((r, i) => (
-              <View key={`${i}-${r}`} style={st.ruleRow}>
-                <Text style={[ui.body, { color: p.muted, width: 20 }]}>{i + 1}.</Text>
-                <Text style={[ui.body, { color: p.text, flex: 1 }]}>{r}</Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
-
-        <View style={st.section}>
-          <SectionHeading title="Contact" />
-          {contactRows.length ? (
-            <View style={[st.table, { borderColor: p.line, backgroundColor: p.card }]}>
-              {contactRows.map((r, i) => (
-                <View key={r.label}>
-                  {i > 0 ? <Divider /> : null}
-                  <View style={st.contactRow}>
-                    <Text style={[ui.small, { color: p.muted, width: 84 }]}>{r.label}</Text>
-                    <Text style={[ui.body, { color: p.text, flex: 1 }]} numberOfLines={1} selectable>{r.value}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <Text style={[ui.body, { color: p.sub }]}>The Zenvy housing desk handles visits and requests for this PG.</Text>
-          )}
-          {phone ? (
-            <Press onPress={() => Linking.openURL(`tel:${phone.replace(/[^\d+]/g, '')}`).catch(() => {})} accessibilityLabel={`Call ${phone}`} style={[ui.secondaryBtn, st.callBtn, { borderColor: p.line }]}>
-              <IconPhone size={16} color={p.text} strokeWidth={ICON.stroke} />
-              <Text style={[ui.btnLabel, { color: p.text }]}>Call</Text>
-            </Press>
-          ) : null}
-        </View>
+        {/* 3+: sections */}
+        {sections.map((k, i) => render(k, i))}
       </Animated.ScrollView>
 
       {/* Bottom bar */}
@@ -461,7 +439,7 @@ export default function PGDetailScreen() {
           <Text style={[ui.small, { color: p.sub }]} numberOfLines={1}>{selected ? roomTitle(selected) : 'Rent from'}</Text>
           <Text style={[st.barPrice, { color: p.text }]} numberOfLines={1}>{barRent ? inr(barRent) : '—'}<Text style={[ui.small, { color: p.sub, fontWeight: '400' }]}>/month</Text></Text>
         </View>
-        <Press onPress={enquire} accessibilityLabel={phone ? 'Enquire on WhatsApp' : 'Enquire with the Zenvy housing desk on WhatsApp'} style={[st.barBtn, { borderColor: p.line, borderWidth: 1 }]}>
+        <Press onPress={enquire} accessibilityLabel="Enquire with the Zenvy housing desk on WhatsApp" style={[st.barBtn, { borderColor: p.line, borderWidth: 1 }]}>
           <IconMessage size={16} color={p.text} strokeWidth={ICON.stroke} />
           <Text style={[ui.btnLabel, { color: p.text }]}>Enquire</Text>
         </Press>
@@ -470,7 +448,7 @@ export default function PGDetailScreen() {
             <Text style={[ui.btnLabel, { color: p.sub }]}>{myOpen.status === 'Confirmed' ? 'Booked' : 'Requested'}</Text>
           </View>
         ) : (
-          <Press onPress={openRequest} disabled={!selected} accessibilityLabel={selected ? 'Request a bed' : 'No beds free'} style={[st.barBtn, { backgroundColor: p.accentFill }]}>
+          <Press onPress={openRequest} disabled={!selected} accessibilityLabel={selected ? 'Request a bed' : hasRooms ? 'No beds free' : 'Rooms not listed yet'} style={[st.barBtn, { backgroundColor: p.accentFill }]}>
             <Text style={[ui.btnLabel, { color: '#fff' }]}>{selected ? 'Request a bed' : hasRooms ? 'Full' : 'Request a bed'}</Text>
           </Press>
         )}
@@ -483,7 +461,7 @@ export default function PGDetailScreen() {
           <View style={[st.sheet, { backgroundColor: p.bg, paddingBottom: insets.bottom + 16 }]}>
             <View style={[st.grabber, { backgroundColor: p.line }]} />
             <Text style={[st.sheetTitle, { color: p.text }]} accessibilityRole="header">Request a bed</Text>
-            <Text style={[ui.small, { color: p.sub, marginTop: 2 }]} numberOfLines={1}>{pg.name}</Text>
+            <Text style={[ui.small, { color: p.sub, marginTop: 4 }]} numberOfLines={1}>{pg.name}</Text>
 
             {bookable.length > 1 ? (
               <>
@@ -492,7 +470,7 @@ export default function PGDetailScreen() {
                   {bookable.map((t) => {
                     const on = selected?.key === t.key;
                     return (
-                      <Press key={t.key} onPress={() => setSelectedType(t.key)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${roomTitle(t)}, ${rentText(t)} a month`}
+                      <Press key={t.key} onPress={() => setSelectedType(t.key)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${roomTitle(t)}, ${inr(t.rentFrom)} a month`}
                         style={[st.option, { borderColor: on ? p.text : p.line, backgroundColor: on ? p.text : 'transparent' }]}>
                         <Text style={[ui.small, { color: on ? p.bg : p.text, fontWeight: '600' }]} numberOfLines={1}>{roomTitle(t)}</Text>
                         <Text style={[ui.small, { color: on ? p.bg : p.sub }]}>{inr(t.rentFrom)}</Text>
@@ -528,7 +506,7 @@ export default function PGDetailScreen() {
                 <SummaryRow label="Check-in" value={prettyDate(checkInDate)} />
               </View>
             ) : null}
-            <Text style={[ui.small, { color: p.muted, marginTop: 12 }]}>Nothing is charged in the app. The Zenvy housing team will call you to confirm and arrange payment at the PG.</Text>
+            <Text style={[ui.small, { color: p.muted, marginTop: 12 }]}>Nothing is charged in the app. The Zenvy housing team will call you to confirm, and you pay at the PG.</Text>
 
             <Press onPress={sendRequest} disabled={sending || !selected} accessibilityLabel="Send request" accessibilityState={{ busy: sending }} style={[st.primary, { backgroundColor: p.accentFill }]}>
               {sending ? <ActivityIndicator color="#fff" /> : <Text style={[ui.btnLabel, { color: '#fff' }]}>Send request</Text>}
@@ -542,21 +520,10 @@ export default function PGDetailScreen() {
   );
 }
 
-function Fact({ label, value, sub }: { label: string; value: string; sub: string }) {
-  const p = usePgPalette();
-  return (
-    <View style={{ flex: 1, paddingHorizontal: 12, paddingVertical: 12 }} accessible accessibilityLabel={`${label} ${value} ${sub}`}>
-      <Text style={[ui.small, { color: p.muted }]} numberOfLines={1}>{label}</Text>
-      <Text style={{ fontSize: 17, fontWeight: '700', color: p.text, marginTop: 2 }} numberOfLines={1}>{value}</Text>
-      <Text style={[ui.small, { color: p.muted }]} numberOfLines={1}>{sub}</Text>
-    </View>
-  );
-}
-
 function SummaryRow({ label, value }: { label: string; value: string }) {
   const p = usePgPalette();
   return (
-    <View style={st.contactRow}>
+    <View style={st.summaryRow}>
       <Text style={[ui.small, { color: p.muted, width: 84 }]}>{label}</Text>
       <Text style={[ui.body, { color: p.text, flex: 1, textAlign: 'right' }]} numberOfLines={1}>{value}</Text>
     </View>
@@ -564,38 +531,26 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 }
 
 const st = StyleSheet.create({
-  pad: { paddingHorizontal: 16, paddingTop: 16 },
-  section: { paddingHorizontal: 16, marginTop: 32 },
-  titleRow: { flexDirection: 'row', alignItems: 'center' },
-  title: { fontSize: 22, fontWeight: '700', letterSpacing: -0.3, flex: 1 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 4 },
-  verified: { flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 4 },
-  addressRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 12 },
-  smallBtn: { minHeight: 36, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  facts: { flexDirection: 'row', borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, marginTop: 16 },
-  factSep: { width: StyleSheet.hairlineWidth, marginVertical: 12 },
+  headerBtn: { width: 44, height: 48, alignItems: 'center', justifyContent: 'center' },
+  pad: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 },
+  section: { marginHorizontal: 16, paddingTop: 32 },
+  title: { fontSize: TYPE.title, fontWeight: '700', letterSpacing: -0.2 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  verified: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
+  addressRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 8 },
   notice: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, paddingLeft: 16, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, marginTop: 16 },
   textBtn: { paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
-  roomCard: { borderRadius: 12, padding: 16, marginBottom: 12 },
-  roomTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  roomTitle: { fontSize: 16, fontWeight: '600' },
-  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-  roomBottom: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 12 },
-  roomPrice: { fontSize: 17, fontWeight: '700' },
-  amenities: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 8, rowGap: 12 },
-  amenity: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  ruleRow: { flexDirection: 'row', gap: 4, marginBottom: 8 },
   table: { borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
-  contactRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, minHeight: 44, paddingVertical: 10 },
-  callBtn: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, minHeight: 44, paddingVertical: 10 },
   bar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
-  barPrice: { fontSize: 18, fontWeight: '700', marginTop: 1 },
-  barBtn: { minHeight: 48, paddingHorizontal: 16, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  barPrice: { fontSize: TYPE.heading, fontWeight: '700', marginTop: 2 },
+  barBtn: { minHeight: 48, paddingHorizontal: 16, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingHorizontal: 16, paddingTop: 8, ...(Platform.OS === 'android' ? { elevation: 12 } : {}) },
   grabber: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginBottom: 12 },
-  sheetTitle: { fontSize: 18, fontWeight: '700' },
-  sheetLabel: { fontSize: 12, fontWeight: '600', marginTop: 16, marginBottom: 8 },
+  sheetTitle: { fontSize: TYPE.heading, fontWeight: '700' },
+  sheetLabel: { fontSize: TYPE.small, fontWeight: '600', marginTop: 16, marginBottom: 8 },
   option: { minHeight: 52, minWidth: 104, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, justifyContent: 'center' },
   dateChip: { width: 76, minHeight: 52, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   primary: { minHeight: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 16 },

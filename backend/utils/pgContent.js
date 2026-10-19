@@ -9,6 +9,10 @@
 //   videos        [{ id, youtubeId, title, roomType, order }]                   max 15, admin only
 //   messTimetable { meals: [{ key, label, start, end }], days: { mon: { <mealKey>: { menu, tag, start?, end? } } }, notes }
 //   timings       { gateOpen, gateClose, visitorFrom, visitorTo, checkIn, checkOut, quietFrom, quietTo, curfewNote }
+//   v2 sections (SECTION_WRITERS, one PUT each): highlights, houseRules, policies, safety, moveIn,
+//   locationGuide, faq. Public reads add `sections` (the keys the app shows, hidden when empty) and
+//   `reviewSummary`; phone numbers and emails from contactInfo are never public.
+// Also here: stay reviews (validateReview / publicReview) and list-page promotions (validatePromotion).
 // Legacy columns stay readable: `images` (kept in step with photos for older app builds), `messMenu`,
 // `foodTimetable` (shown through messTimetable when no structured timetable was saved yet).
 const crypto = require('crypto');
@@ -421,8 +425,406 @@ const buildRoomTypes = (rooms, pgDeposit) => {
   return out.sort((a, b) => (a.rentFrom ?? Infinity) - (b.rentFrom ?? Infinity));
 };
 
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+// v2 listing sections. Each validator returns the cleaned value, or null / [] when the section is empty
+// (the route then stores null and the app hides the section). Every free-text field refuses phone
+// numbers: students reach staff through the Zenvy housing desk, never a personal number on a listing.
+//
+// Errors carry `field` as the path in the request body, always the same style:
+//   highlights[1]   houseRules[0].rules[2]   policies.rent.lateFee   policies.extraCharges[0].unit
+//   safety.cctv     moveIn.documents[3]      locationGuide.nearby[0].distanceM   faq[2].q
+// The message names the field in words ("Late fee must be ...").
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+const PHONE_RE = /(?:\+?\d[\s().-]{0,2}){8,}/;
+// Decorative emoji / pictographs are dropped from listing text (plain, professional copy).
+const EMOJI_RE = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}\u{2B00}-\u{2BFF}]/gu;
+/** Text field: `label` names it in messages, `path` is the error field. */
+const txt = (v, max, label, path, opts = {}) => {
+  const raw = v === undefined || v === null ? '' : (typeof v === 'string' ? v.replace(EMOJI_RE, '') : v);
+  let s;
+  try { s = cleanText(raw, max, label, opts); } catch (e) { e.field = path; throw e; }
+  if (s && PHONE_RE.test(s)) fail(`${label}: phone numbers are not shown on listings. Students contact staff through the Zenvy housing desk.`, path);
+  return s;
+};
+const intIn = (v, min, max, label, path) => {
+  if (v === undefined || v === null || v === '') return null;
+  const n = Number(v);
+  if (!Number.isInteger(n) || n < min || n > max) fail(`${label} must be a whole number from ${min} to ${max}.`, path);
+  return n;
+};
+const amountIn = (v, max, label, path) => {
+  if (v === undefined || v === null || v === '') return null;
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < 0 || n > max) fail(`${label} must be an amount from ₹0 to ₹${max.toLocaleString('en-IN')}.`, path);
+  return Math.round(n);
+};
+const boolOrNull = (v, label, path) => {
+  if (v === undefined || v === null || v === '') return null;
+  if (typeof v !== 'boolean') fail(`${label} must be yes or no.`, path);
+  return v;
+};
+const listOf = (v, label, path, max) => {
+  if (v === undefined || v === null) return [];
+  if (!Array.isArray(v)) fail(`${label} must be a list.`, path);
+  if (v.length > max) fail(`${label}: at most ${max} items.`, path);
+  return v;
+};
+/** List of short unique lines (blank lines dropped). */
+const lines = (v, label, path, { max, len }) => {
+  const out = [];
+  const seen = new Set();
+  listOf(v, label, path, max).forEach((x, i) => {
+    const s = txt(x, len, `${label} (line ${i + 1})`, `${path}[${i}]`);
+    if (!s) return;
+    const k = s.toLowerCase();
+    if (seen.has(k)) fail(`${label}: "${s.slice(0, 40)}" is listed twice.`, `${path}[${i}]`);
+    seen.add(k);
+    out.push(s);
+  });
+  return out;
+};
+const oneOf = (v, allowed, label, path) => {
+  if (v === undefined || v === null || v === '') return null;
+  const s = String(v).trim().toLowerCase();
+  if (!allowed.includes(s)) fail(`${label} must be one of ${allowed.join(', ')}.`, path);
+  return s;
+};
+const compact = (o) => {
+  const out = {};
+  for (const [k, v] of Object.entries(o)) {
+    if (v === null || v === undefined || v === '' || (Array.isArray(v) && !v.length) || (isObj(v) && !Object.keys(v).length)) continue;
+    out[k] = v;
+  }
+  return out;
+};
+const objOrNull = (v, label, path) => {
+  if (v === undefined || v === null) return null;
+  if (!isObj(v)) fail(`${label} must be an object.`, path);
+  return v;
+};
+const timeAt = (v, label, path) => {
+  try { return parseTime(v, label); } catch (e) { e.field = path; throw e; }
+};
+
+// ── Highlights (overview) ──────────────────────────────────────────────────────────────────────
+const MAX_HIGHLIGHTS = 6;
+const validateHighlights = (v) => {
+  const out = lines(v, 'Highlights', 'highlights', { max: MAX_HIGHLIGHTS, len: 40 });
+  out.forEach((s, i) => { if (s.length < 3) fail(`Highlight "${s}" is too short.`, `highlights[${i}]`); });
+  return out;
+};
+
+// ── House rules by category ────────────────────────────────────────────────────────────────────
+const RULE_CATEGORIES = ['visitors', 'overnight', 'gate', 'smoking', 'noise', 'cooking', 'pets', 'cleanliness', 'laundry', 'electricity', 'other'];
+const RULE_CATEGORY_LABEL = {
+  visitors: 'Visitors & guests', overnight: 'Overnight stays', gate: 'Gate & curfew', smoking: 'Smoking & alcohol',
+  noise: 'Noise & quiet hours', cooking: 'Cooking & food', pets: 'Pets', cleanliness: 'Cleanliness', laundry: 'Laundry',
+  electricity: 'Electricity & appliances', other: 'Other',
+};
+const MAX_RULES_PER_GROUP = 10;
+const validateHouseRules = (v) => {
+  const groups = listOf(v, 'House rules', 'houseRules', RULE_CATEGORIES.length);
+  const out = [];
+  const seen = new Set();
+  groups.forEach((g, i) => {
+    const f = `houseRules[${i}]`;
+    if (!isObj(g)) fail('Each house rule group needs a category and rules.', f);
+    const category = oneOf(g.category, RULE_CATEGORIES, 'Rule category', `${f}.category`);
+    if (!category) fail('Choose a category for each group of rules.', `${f}.category`);
+    if (seen.has(category)) fail(`${RULE_CATEGORY_LABEL[category]} is listed twice.`, `${f}.category`);
+    seen.add(category);
+    const rules = lines(g.rules, `${RULE_CATEGORY_LABEL[category]} rules`, `${f}.rules`, { max: MAX_RULES_PER_GROUP, len: 160 });
+    if (rules.length) out.push({ category, rules });
+  });
+  return out.sort((a, b) => RULE_CATEGORIES.indexOf(a.category) - RULE_CATEGORIES.indexOf(b.category));
+};
+/** Public read: structured groups, else the legacy flat `rules` list as one group. */
+const houseRulesForRead = (pg) => {
+  const g = (Array.isArray(pg.houseRules) ? pg.houseRules : [])
+    .filter((x) => isObj(x) && RULE_CATEGORIES.includes(x.category) && Array.isArray(x.rules))
+    .map((x) => ({ category: x.category, label: RULE_CATEGORY_LABEL[x.category], rules: x.rules.filter((r) => typeof r === 'string' && r.trim()) }))
+    .filter((x) => x.rules.length);
+  if (g.length) return g;
+  const legacy = (Array.isArray(pg.rules) ? pg.rules : []).filter((r) => typeof r === 'string' && r.trim()).map((r) => r.replace(EMOJI_RE, '').trim()).filter(Boolean);
+  return legacy.length ? [{ category: 'other', label: 'General', rules: legacy }] : [];
+};
+
+// ── Policies ───────────────────────────────────────────────────────────────────────────────────
+const PAYMENT_METHODS = ['cash', 'upi', 'bank'];
+const INCLUDED_KEYS = ['food', 'wifi', 'electricity', 'water', 'housekeeping', 'laundry', 'maintenance'];
+const CHARGE_UNITS = ['month', 'unit', 'use', 'day', 'kg', 'once'];
+const LATE_FEE_UNITS = ['once', 'day'];
+const MAX_EXTRA_CHARGES = 12;
+const subset = (v, allowed, label, path) => {
+  const out = [];
+  listOf(v, label, path, allowed.length).forEach((x, i) => {
+    const s = oneOf(x, allowed, label, `${path}[${i}]`);
+    if (s && !out.includes(s)) out.push(s);
+  });
+  return allowed.filter((k) => out.includes(k));
+};
+const validatePolicies = (input) => {
+  const P = 'policies';
+  const v = objOrNull(input, 'Policies', P);
+  if (!v) return null;
+  const b = objOrNull(v.booking, 'Booking', `${P}.booking`) || {};
+  const r = objOrNull(v.rent, 'Rent payment', `${P}.rent`) || {};
+  const d = objOrNull(v.deposit, 'Security deposit', `${P}.deposit`) || {};
+  const s = objOrNull(v.stay, 'Notice period and lock-in', `${P}.stay`) || {};
+  const c = objOrNull(v.cancellation, 'Cancellation', `${P}.cancellation`) || {};
+  const m = objOrNull(v.maintenance, 'Maintenance', `${P}.maintenance`) || {};
+  const extraCharges = listOf(v.extraCharges, 'Extra charges', `${P}.extraCharges`, MAX_EXTRA_CHARGES).map((x, i) => {
+    const f = `${P}.extraCharges[${i}]`;
+    if (!isObj(x)) fail('Each extra charge needs an item, amount and unit.', f);
+    const item = txt(x.item, 40, 'Charge name', `${f}.item`);
+    const amount = amountIn(x.amount, 100000, `${item || 'Charge'} amount`, `${f}.amount`);
+    const unit = oneOf(x.unit, CHARGE_UNITS, `${item || 'Charge'} unit`, `${f}.unit`);
+    if (!item && amount === null) return null;
+    if (!item) fail('Name the charge (e.g. Electricity).', `${f}.item`);
+    if (amount === null) fail(`${item}: enter the amount.`, `${f}.amount`);
+    if (!unit) fail(`${item}: choose what the amount is per.`, `${f}.unit`);
+    return { item, amount, unit };
+  }).filter(Boolean);
+  const lateFee = amountIn(r.lateFee, 10000, 'Late fee', `${P}.rent.lateFee`);
+  const lateFeeUnit = oneOf(r.lateFeeUnit, LATE_FEE_UNITS, 'Late fee unit', `${P}.rent.lateFeeUnit`);
+  if (lateFee && !lateFeeUnit) fail('Late fee: choose once or per day.', `${P}.rent.lateFeeUnit`);
+  const out = compact({
+    booking: compact({
+      steps: txt(b.steps, 600, 'How to book', `${P}.booking.steps`, { multiline: true }),
+      tokenAmount: amountIn(b.tokenAmount, 100000, 'Token amount', `${P}.booking.tokenAmount`),
+      confirmation: txt(b.confirmation, 300, 'Confirmation', `${P}.booking.confirmation`, { multiline: true }),
+    }),
+    rent: compact({
+      dueDay: intIn(r.dueDay, 1, 28, 'Rent due day', `${P}.rent.dueDay`),
+      lateFee,
+      lateFeeUnit: lateFee ? lateFeeUnit : null,
+      methods: subset(r.methods, PAYMENT_METHODS, 'Payment methods', `${P}.rent.methods`),
+      notes: txt(r.notes, 300, 'Rent notes', `${P}.rent.notes`, { multiline: true }),
+    }),
+    deposit: compact({
+      amount: amountIn(d.amount, 500000, 'Deposit amount', `${P}.deposit.amount`),
+      refundDays: intIn(d.refundDays, 0, 180, 'Deposit refund days', `${P}.deposit.refundDays`),
+      deductions: txt(d.deductions, 400, 'Deposit deductions', `${P}.deposit.deductions`, { multiline: true }),
+    }),
+    stay: compact({
+      noticeMonths: intIn(s.noticeMonths, 0, 6, 'Notice period (months)', `${P}.stay.noticeMonths`),
+      lockInMonths: intIn(s.lockInMonths, 0, 24, 'Lock-in (months)', `${P}.stay.lockInMonths`),
+      notes: txt(s.notes, 300, 'Notice notes', `${P}.stay.notes`, { multiline: true }),
+    }),
+    cancellation: compact({
+      freeCancelDays: intIn(c.freeCancelDays, 0, 90, 'Free cancellation days', `${P}.cancellation.freeCancelDays`),
+      refundPercent: intIn(c.refundPercent, 0, 100, 'Refund percent', `${P}.cancellation.refundPercent`),
+      text: txt(c.text, 600, 'Cancellation policy', `${P}.cancellation.text`, { multiline: true }),
+    }),
+    included: subset(v.included, INCLUDED_KEYS, 'Included in rent', `${P}.included`),
+    extraCharges,
+    maintenance: compact({
+      responseHours: intIn(m.responseHours, 1, 168, 'Repair response (hours)', `${P}.maintenance.responseHours`),
+      notes: txt(m.notes, 300, 'Maintenance notes', `${P}.maintenance.notes`, { multiline: true }),
+    }),
+  });
+  return Object.keys(out).length ? out : null;
+};
+
+// ── Safety & staff ─────────────────────────────────────────────────────────────────────────────
+const ENTRY_TYPES = ['biometric', 'keycard', 'key'];
+const GUARD_MODES = ['24x7', 'night', 'hours'];
+const validateSafety = (input) => {
+  const P = 'safety';
+  const v = objOrNull(input, 'Safety', P);
+  if (!v) return null;
+  const guard = oneOf(v.guard, GUARD_MODES, 'Security guard', `${P}.guard`);
+  let guardFrom = null;
+  let guardTo = null;
+  if (guard === 'hours') {
+    guardFrom = timeAt(v.guardFrom, 'Guard from', `${P}.guardFrom`);
+    guardTo = timeAt(v.guardTo, 'Guard until', `${P}.guardTo`);
+    if (!guardFrom) fail('Security guard hours: enter both times.', `${P}.guardFrom`);
+    if (!guardTo) fail('Security guard hours: enter both times.', `${P}.guardTo`);
+  }
+  const out = compact({
+    cctv: boolOrNull(v.cctv, 'CCTV', `${P}.cctv`),
+    entry: oneOf(v.entry, ENTRY_TYPES, 'Entry', `${P}.entry`),
+    guard, guardFrom, guardTo,
+    fireExtinguishers: boolOrNull(v.fireExtinguishers, 'Fire extinguishers', `${P}.fireExtinguishers`),
+    firstAid: boolOrNull(v.firstAid, 'First aid', `${P}.firstAid`),
+    wardenName: txt(v.wardenName, 60, 'Warden name', `${P}.wardenName`),
+    wardenAvailability: txt(v.wardenAvailability, 120, 'Warden availability', `${P}.wardenAvailability`),
+    emergency: txt(v.emergency, 600, 'Emergency process', `${P}.emergency`, { multiline: true }),
+  });
+  return Object.keys(out).length ? out : null;
+};
+
+// ── Move-in ────────────────────────────────────────────────────────────────────────────────────
+const validateMoveIn = (input) => {
+  const P = 'moveIn';
+  const v = objOrNull(input, 'Move-in', P);
+  if (!v) return null;
+  const out = compact({
+    documents: lines(v.documents, 'Documents', `${P}.documents`, { max: 12, len: 80 }),
+    bring: lines(v.bring, 'What to bring', `${P}.bring`, { max: 15, len: 60 }),
+    provided: lines(v.provided, 'Provided', `${P}.provided`, { max: 15, len: 60 }),
+    steps: lines(v.steps, 'Move-in steps', `${P}.steps`, { max: 8, len: 200 }),
+  });
+  return Object.keys(out).length ? out : null;
+};
+
+// ── Location guide ─────────────────────────────────────────────────────────────────────────────
+const NEARBY_CATEGORIES = ['college', 'hospital', 'pharmacy', 'atm', 'bus_stop', 'supermarket', 'restaurant', 'gym', 'other'];
+const MAX_NEARBY = 20;
+const validateLocationGuide = (input) => {
+  const P = 'locationGuide';
+  const v = objOrNull(input, 'Location guide', P);
+  if (!v) return null;
+  const seen = new Set();
+  const nearby = listOf(v.nearby, 'Nearby places', `${P}.nearby`, MAX_NEARBY).map((x, i) => {
+    const f = `${P}.nearby[${i}]`;
+    if (!isObj(x)) fail('Each nearby place needs a name and distance.', f);
+    const name = txt(x.name, 60, 'Place name', `${f}.name`);
+    if (!name) return null;
+    const category = oneOf(x.category, NEARBY_CATEGORIES, `${name}: category`, `${f}.category`) || 'other';
+    const distanceM = intIn(x.distanceM, 1, 50000, `${name}: distance (metres)`, `${f}.distanceM`);
+    if (distanceM === null) fail(`${name}: enter the distance.`, `${f}.distanceM`);
+    const walkMinutes = intIn(x.walkMinutes, 1, 120, `${name}: walking minutes`, `${f}.walkMinutes`);
+    const k = name.toLowerCase();
+    if (seen.has(k)) fail(`${name} is listed twice.`, `${f}.name`);
+    seen.add(k);
+    return compact({ name, category, distanceM, walkMinutes });
+  }).filter(Boolean).sort((a, b) => a.distanceM - b.distanceM);
+  const out = compact({ howToReach: txt(v.howToReach, 600, 'How to reach', `${P}.howToReach`, { multiline: true }), nearby });
+  return Object.keys(out).length ? out : null;
+};
+
+// ── FAQ ────────────────────────────────────────────────────────────────────────────────────────
+const MAX_FAQ = 20;
+const validateFaq = (v) => {
+  const seen = new Set();
+  return listOf(v, 'FAQ', 'faq', MAX_FAQ).map((x, i) => {
+    const f = `faq[${i}]`;
+    if (!isObj(x)) fail('Each FAQ needs a question and an answer.', f);
+    const q = txt(x.q, 160, `Question ${i + 1}`, `${f}.q`);
+    const a = txt(x.a, 800, `Answer ${i + 1}`, `${f}.a`, { multiline: true });
+    if (!q && !a) return null;
+    if (!q) fail(`Question ${i + 1}: write the question.`, `${f}.q`);
+    if (!a) fail(`"${q.slice(0, 40)}": write the answer.`, `${f}.a`);
+    const k = q.toLowerCase();
+    if (seen.has(k)) fail(`"${q.slice(0, 40)}" is asked twice.`, `${f}.q`);
+    seen.add(k);
+    return { id: keepId(x.id), q, a };
+  }).filter(Boolean);
+};
+
+/** Sections a route writes: PUT /api/pg/:id/<path> { <field>: value } (each saved on its own, audited). */
+const SECTION_WRITERS = {
+  highlights: { field: 'highlights', validate: validateHighlights, audit: 'PG_HIGHLIGHTS_UPDATED' },
+  'house-rules': { field: 'houseRules', validate: validateHouseRules, audit: 'PG_RULES_UPDATED' },
+  policies: { field: 'policies', validate: validatePolicies, audit: 'PG_POLICIES_UPDATED' },
+  safety: { field: 'safety', validate: validateSafety, audit: 'PG_SAFETY_UPDATED' },
+  'move-in': { field: 'moveIn', validate: validateMoveIn, audit: 'PG_MOVEIN_UPDATED' },
+  'location-guide': { field: 'locationGuide', validate: validateLocationGuide, audit: 'PG_LOCATION_UPDATED' },
+  faq: { field: 'faq', validate: validateFaq, audit: 'PG_FAQ_UPDATED' },
+};
+
+// ── Reviews ────────────────────────────────────────────────────────────────────────────────────
+const REVIEW_REPORT_REASONS = ['spam', 'offensive', 'fake', 'personal_info', 'other'];
+const validateReview = (b) => {
+  const v = isObj(b) ? b : {};
+  const rating = Number(v.rating);
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) fail('Choose a rating from 1 to 5.', 'rating');
+  const text = txt(v.text, 1000, 'Review', 'text', { multiline: true });
+  if (text.length < 10) fail('Write at least a sentence about your stay (10 characters or more).', 'text');
+  return { rating, text };
+};
+const firstNameOf = (name) => {
+  const first = String(name || '').replace(EMOJI_RE, '').trim().split(/\s+/)[0] || '';
+  const clean = first.replace(/[^\p{L}'.-]/gu, '').slice(0, 20);
+  return clean ? clean.charAt(0).toUpperCase() + clean.slice(1) : 'Resident';
+};
+const publicReview = (r) => {
+  const x = plain(r);
+  return { id: x.id, rating: x.rating, text: x.text, firstName: x.firstName || 'Resident', createdAt: x.createdAt };
+};
+
+// ── Promotions (admin-curated cards on the PG list page) ───────────────────────────────────────
+const PROMO_TYPES = ['IMAGE', 'VIDEO'];
+const PROMO_CTAS = ['VIEW_PG', 'WATCH_TOUR', 'BOOK_VISIT'];
+const PROMO_CTA_LABEL = { VIEW_PG: 'View PG', WATCH_TOUR: 'Watch tour', BOOK_VISIT: 'Book a visit' };
+const PROMO_LABELS = ['FEATURED', 'SPONSORED'];
+const MAX_PROMO_DAYS = 366;
+const UUID_LIKE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// A plain date "2026-10-20" is an IST calendar day: a start date begins at 00:00 IST, an end date is
+// inclusive and runs to 23:59:59.999 IST that day. Full ISO timestamps (and stored dates) are taken as given.
+const parseDate = (v, label, path, { endOfDay = false } = {}) => {
+  if (v === undefined || v === null || v === '') fail(`${label}: choose a date.`, path);
+  const plainDay = typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+  const d = new Date(plainDay ? `${v}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}+05:30` : v);
+  if (Number.isNaN(d.getTime())) fail(`${label} is not a valid date.`, path);
+  return d;
+};
+/**
+ * Cleans a promotion write. `current` = the stored row on an update (fields not sent keep their value).
+ * Returns { values, imageUrl }; for IMAGE promos the route still stores imageUrl (utils/imageStore).
+ */
+const validatePromotion = (body, { current = null, now = new Date() } = {}) => {
+  const b = isObj(body) ? body : {};
+  const cur = current ? plain(current) : {};
+  const pick = (k) => (b[k] !== undefined ? b[k] : cur[k]);
+  const type = String(pick('type') || '').toUpperCase();
+  if (!PROMO_TYPES.includes(type)) fail('type must be IMAGE or VIDEO.', 'type');
+  const headline = txt(pick('headline'), 40, 'Headline', 'headline');
+  if (!headline) fail('Write a headline (up to 40 characters).', 'headline');
+  const subline = txt(pick('subline'), 60, 'Subline', 'subline');
+  const hostelId = String(pick('hostelId') || '');
+  if (!UUID_LIKE.test(hostelId)) fail('Choose the PG this promotion opens.', 'hostelId');
+  const cta = String(pick('cta') || 'VIEW_PG').toUpperCase();
+  if (!PROMO_CTAS.includes(cta)) fail(`cta must be one of ${PROMO_CTAS.join(', ')}.`, 'cta');
+  if (cta === 'WATCH_TOUR' && type !== 'VIDEO') fail('"Watch tour" needs a video promotion.', 'cta');
+  const label = String(pick('label') || 'FEATURED').toUpperCase();
+  if (!PROMO_LABELS.includes(label)) fail('label must be FEATURED or SPONSORED.', 'label');
+  let youtubeId = null;
+  let imageUrl = null;
+  if (type === 'VIDEO') {
+    const link = b.youtubeUrl !== undefined && b.youtubeUrl !== null && b.youtubeUrl !== '' ? b.youtubeUrl : null;
+    const stored = pick('youtubeId');
+    youtubeId = link ? parseYouTubeId(link) : (typeof stored === 'string' && YT_ID_RE.test(stored) ? stored : null);
+    if (!youtubeId) fail('Paste a YouTube link (youtube.com/watch?v=…, youtu.be/… or youtube.com/shorts/…).', 'youtubeUrl');
+  } else {
+    imageUrl = pick('imageUrl');
+    if (typeof imageUrl !== 'string' || !imageUrl.trim()) fail('Upload the promotion image.', 'imageUrl');
+  }
+  const startsAt = parseDate(pick('startsAt'), 'Start date', 'startsAt');
+  const endsAt = parseDate(pick('endsAt'), 'End date', 'endsAt', { endOfDay: true });
+  if (endsAt <= startsAt) fail('The end date cannot be before the start date.', 'endsAt');
+  if (endsAt - startsAt > MAX_PROMO_DAYS * 86400000) fail(`A promotion can run for at most ${MAX_PROMO_DAYS} days.`, 'endsAt');
+  if ((!current || b.endsAt !== undefined) && endsAt <= now) fail('The end date is already past.', 'endsAt');
+  const priority = intIn(pick('priority') ?? 0, 0, 999, 'Order', 'priority');
+  const active = pick('isActive');
+  return {
+    values: { type, headline, subline: subline || null, hostelId, cta, label, youtubeId, startsAt, endsAt, priority: priority || 0, isActive: active === undefined || active === null ? true : active === true },
+    imageUrl,
+  };
+};
+const promoLive = (p, now = Date.now()) => p.isActive !== false && new Date(p.startsAt).getTime() <= now && new Date(p.endsAt).getTime() > now;
+const publicPromotion = (row, pgItem) => {
+  const p = plain(row);
+  return {
+    id: p.id,
+    type: p.type,
+    headline: p.headline,
+    subline: p.subline || '',
+    label: p.label,
+    labelText: p.label === 'SPONSORED' ? 'Sponsored' : 'Featured',
+    cta: p.cta,
+    ctaLabel: PROMO_CTA_LABEL[p.cta] || 'View PG',
+    imageUrl: p.type === 'IMAGE' ? p.imageUrl : youtubeThumb(p.youtubeId),
+    video: p.type === 'VIDEO' ? { youtubeId: p.youtubeId, thumbnailUrl: youtubeThumb(p.youtubeId), embedUrl: youtubeEmbed(p.youtubeId), watchUrl: youtubeWatch(p.youtubeId) } : null,
+    pg: pgItem ? { id: pgItem.id, name: pgItem.name, area: pgItem.area, rentFrom: pgItem.rentFrom, genderType: pgItem.genderType, isVerified: pgItem.isVerified } : null,
+  };
+};
+
 // ── Public shapes ──────────────────────────────────────────────────────────────────────────────
-const CONTACT_FIELDS = ['ownerName', 'phone', 'email', 'wardenName', 'emergencyContact'];
+// Names only: phone numbers and emails stay internal (students reach staff through the Zenvy housing desk).
+const CONTACT_FIELDS = ['ownerName', 'wardenName'];
 const publicContact = (ci) => {
   const c = isObj(ci) ? ci : {};
   const out = {};
@@ -440,8 +842,49 @@ const locationOf = (pg) => {
 };
 const plain = (row) => (row && typeof row.get === 'function' ? row.get({ plain: true }) : row || {});
 
-/** Detail shape (GET /api/pg/:id). `rooms`: the active rooms. */
-const publicPg = (row, rooms = []) => {
+// Stored sections were validated on write; reads still keep to the known keys only.
+const pickKeys = (o, keys) => {
+  if (!isObj(o)) return null;
+  const out = {};
+  for (const k of keys) if (o[k] !== undefined && o[k] !== null && o[k] !== '') out[k] = o[k];
+  return Object.keys(out).length ? out : null;
+};
+const SAFETY_KEYS = ['cctv', 'entry', 'guard', 'guardFrom', 'guardTo', 'fireExtinguishers', 'firstAid', 'wardenName', 'wardenAvailability', 'emergency'];
+const safetyForRead = (pg) => {
+  const s = pickKeys(pg.safety, SAFETY_KEYS) || {};
+  // Warden name from the older contact fields when the safety section has none (never a phone number).
+  if (!s.wardenName) {
+    const c = isObj(pg.contactInfo) ? pg.contactInfo : {};
+    const w = typeof (c.wardenName || c.warden) === 'string' ? (c.wardenName || c.warden).trim().slice(0, 60) : '';
+    if (w && !PHONE_RE.test(w)) s.wardenName = w;
+  }
+  return Object.keys(s).length ? s : null;
+};
+const policiesForRead = (pg) => pickKeys(pg.policies, ['booking', 'rent', 'deposit', 'stay', 'cancellation', 'included', 'extraCharges', 'maintenance']);
+const moveInForRead = (pg) => pickKeys(pg.moveIn, ['documents', 'bring', 'provided', 'steps']);
+const locationGuideForRead = (pg) => pickKeys(pg.locationGuide, ['howToReach', 'nearby']);
+const highlightsForRead = (pg) => (Array.isArray(pg.highlights) ? pg.highlights.filter((h) => typeof h === 'string' && h.trim()).slice(0, MAX_HIGHLIGHTS) : []);
+const faqForRead = (pg) => (Array.isArray(pg.faq) ? pg.faq.filter((f) => isObj(f) && typeof f.q === 'string' && typeof f.a === 'string').map((f, i) => ({ id: typeof f.id === 'string' ? f.id : `f${i}`, q: f.q, a: f.a })) : []);
+const emptySummary = () => ({ average: null, count: 0 });
+
+/**
+ * Section keys the detail screen shows, in order (the section nav uses the same list). A section with no
+ * content is left out: the contract is "hidden when empty", never a placeholder.
+ */
+const sectionsOf = (d) => [
+  'overview',
+  d.roomTypes.length ? 'rooms' : null,
+  d.messTimetable && d.messTimetable.meals.length ? 'mess' : null,
+  d.houseRules.length || d.timings ? 'rules' : null,
+  d.policies || d.moveIn ? 'policies' : null,
+  d.safety ? 'safety' : null,
+  d.location || d.locationGuide ? 'location' : null,
+  d.faq.length ? 'faq' : null,
+  d.reviewSummary.count > 0 ? 'reviews' : null,
+].filter(Boolean);
+
+/** Detail shape (GET /api/pg/:id). `rooms`: the active rooms; `reviewSummary`: visible reviews only. */
+const publicPg = (row, rooms = [], { reviewSummary = null } = {}) => {
   const pg = plain(row);
   const roomList = rooms.map(plain);
   const photos = photosOf(pg);
@@ -449,7 +892,7 @@ const publicPg = (row, rooms = []) => {
   const roomTypes = buildRoomTypes(roomList, pg.securityDeposit);
   const prices = roomList.map((r) => num(r.pricePerBed)).filter((n) => n !== null && n > 0);
   const location = locationOf(pg);
-  return {
+  const d = {
     id: pg.id,
     name: pg.name,
     address: pg.address,
@@ -471,6 +914,15 @@ const publicPg = (row, rooms = []) => {
     videos: videosForRead(pg.videos),
     messTimetable: messForRead(pg),
     timings: timingsForRead(pg),
+    // v2 sections (null / [] when empty).
+    highlights: highlightsForRead(pg),
+    houseRules: houseRulesForRead(pg),
+    policies: policiesForRead(pg),
+    safety: safetyForRead(pg),
+    moveIn: moveInForRead(pg),
+    locationGuide: locationGuideForRead(pg),
+    faq: faqForRead(pg),
+    reviewSummary: reviewSummary || emptySummary(),
     // Legacy fields for older app builds.
     messMenu: isObj(pg.messMenu) ? pg.messMenu : {},
     foodTimetable: isObj(pg.foodTimetable) ? pg.foodTimetable : {},
@@ -479,13 +931,17 @@ const publicPg = (row, rooms = []) => {
     rooms: roomList.map(publicRoom),
     roomTypes,
     bedsAvailable: roomList.reduce((a, r) => a + (Number(r.availableBeds) || 0), 0),
+    createdAt: pg.createdAt || null,
     updatedAt: pg.updatedAt || null,
   };
+  d.sections = sectionsOf(d);
+  return d;
 };
 
-/** List card shape (GET /api/pg). */
-const publicPgListItem = (row, rooms = []) => {
-  const d = publicPg(row, rooms);
+/** List card shape (GET /api/pg, /api/pg/home). */
+const publicPgListItem = (row, rooms = [], opts = {}) => {
+  const d = publicPg(row, rooms, opts);
+  const included = d.policies && Array.isArray(d.policies.included) ? d.policies.included : [];
   return {
     id: d.id,
     name: d.name,
@@ -507,6 +963,12 @@ const publicPgListItem = (row, rooms = []) => {
     bedsAvailable: d.bedsAvailable,
     hasRooms: d.rooms.length > 0,
     location: d.location,
+    // Filters on the list page.
+    hasAC: d.roomTypes.some((t) => t.hasAC),
+    foodIncluded: included.includes('food'),
+    highlights: d.highlights.slice(0, 2),
+    reviewSummary: d.reviewSummary,
+    createdAt: d.createdAt,
   };
 };
 
@@ -516,4 +978,11 @@ module.exports = {
   validatePhotos, validateVideos, validateMessTimetable, validateTimings,
   photosOf, imagesFromPhotos, videosForRead, messForRead, legacyTimetable, timingsForRead,
   roomTypeKey, buildRoomTypes, publicRoom, publicPg, publicPgListItem, publicContact,
+  // v2
+  RULE_CATEGORIES, RULE_CATEGORY_LABEL, PAYMENT_METHODS, INCLUDED_KEYS, CHARGE_UNITS, ENTRY_TYPES, GUARD_MODES,
+  NEARBY_CATEGORIES, MAX_HIGHLIGHTS, MAX_FAQ, MAX_NEARBY, PHONE_RE,
+  validateHighlights, validateHouseRules, validatePolicies, validateSafety, validateMoveIn, validateLocationGuide, validateFaq,
+  houseRulesForRead, safetyForRead, SECTION_WRITERS, sectionsOf,
+  REVIEW_REPORT_REASONS, validateReview, firstNameOf, publicReview,
+  PROMO_TYPES, PROMO_CTAS, PROMO_CTA_LABEL, PROMO_LABELS, validatePromotion, promoLive, publicPromotion,
 };

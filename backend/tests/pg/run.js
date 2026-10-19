@@ -1,6 +1,7 @@
 // npm run test:pg -> every tests/pg/*.test.js through node:test (PG listing content: photo gallery limits /
 // categories / order / cover, YouTube link parsing, admin-only videos, mess timetable + timings validation,
-// public read shapes without private fields).
+// public read shapes without private fields; v2: sections, hidden-when-empty contract, reviews, promotions,
+// GET /api/pg/home).
 //   npm run test:pg -- content   (only files whose name contains "content")
 const { spawnSync } = require('child_process');
 const fs = require('fs');

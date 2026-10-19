@@ -79,17 +79,11 @@ export function PgForm({ initial, onCancel, onSave }: {
   onSave: (payload: Record<string, unknown>) => Promise<void>;
 }) {
   const [form, setForm] = useState<FormState>(() => toForm(initial));
-  const [newRule, setNewRule] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const set = (patch: Partial<FormState>) => setForm(prev => ({ ...prev, ...patch }));
   const setContact = (patch: Partial<FormState['contact']>) => setForm(prev => ({ ...prev, contact: { ...prev.contact, ...patch } }));
 
-  const addRule = () => {
-    if (!newRule.trim()) return;
-    set({ rules: [...form.rules, newRule.trim()] });
-    setNewRule('');
-  };
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (saving) return;
@@ -129,32 +123,16 @@ export function PgForm({ initial, onCancel, onSave }: {
         <legend className="mb-2 text-sm font-bold text-blue-300">Contact & location</legend>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <label className={LABEL}>Owner<input className={FIELD} value={form.contact.ownerName} onChange={e => setContact({ ownerName: e.target.value })} /></label>
-          <label className={LABEL}>Phone<input inputMode="tel" className={FIELD} value={form.contact.phone} onChange={e => setContact({ phone: e.target.value })} /></label>
-          <label className={LABEL}>Email<input type="email" className={FIELD} value={form.contact.email} onChange={e => setContact({ email: e.target.value })} /></label>
+          <label className={LABEL}>Phone<input inputMode="tel" className={FIELD} value={form.contact.phone} onChange={e => setContact({ phone: e.target.value })} /><span className="block text-[11px] font-normal normal-case tracking-normal text-gray-500">Internal: not shown in the app</span></label>
+          <label className={LABEL}>Email<input type="email" className={FIELD} value={form.contact.email} onChange={e => setContact({ email: e.target.value })} /><span className="block text-[11px] font-normal normal-case tracking-normal text-gray-500">Internal: not shown in the app</span></label>
           <label className={LABEL}>Warden<input className={FIELD} value={form.contact.wardenName} onChange={e => setContact({ wardenName: e.target.value })} /></label>
-          <label className={LABEL}>Emergency contact<input inputMode="tel" className={FIELD} value={form.contact.emergencyContact} onChange={e => setContact({ emergencyContact: e.target.value })} /></label>
+          <label className={LABEL}>Emergency contact<input inputMode="tel" className={FIELD} value={form.contact.emergencyContact} onChange={e => setContact({ emergencyContact: e.target.value })} /><span className="block text-[11px] font-normal normal-case tracking-normal text-gray-500">Internal: not shown in the app</span></label>
           <label className={LABEL}>Latitude<input inputMode="decimal" className={FIELD} value={form.contact.lat} onChange={e => setContact({ lat: e.target.value })} placeholder="e.g. 16.4632" /></label>
           <label className={LABEL}>Longitude<input inputMode="decimal" className={FIELD} value={form.contact.lng} onChange={e => setContact({ lng: e.target.value })} placeholder="e.g. 80.5064" /></label>
         </div>
       </fieldset>
 
-      <fieldset className="space-y-3">
-        <legend className="mb-2 text-sm font-bold text-blue-300">House rules</legend>
-        {form.rules.length > 0 && (
-          <ol className="space-y-1.5">
-            {form.rules.map((rule, i) => (
-              <li key={`${i}-${rule}`} className="flex items-center justify-between gap-3 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2 text-sm">
-                <span>{i + 1}. {rule}</span>
-                <button type="button" onClick={() => set({ rules: form.rules.filter((_, j) => j !== i) })} className="text-xs text-red-300 hover:underline">Remove</button>
-              </li>
-            ))}
-          </ol>
-        )}
-        <div className="flex gap-2">
-          <input className={`${FIELD} flex-1`} value={newRule} onChange={e => setNewRule(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addRule(); } }} placeholder="e.g. Gate closes at 10:00 PM" />
-          <button type="button" onClick={addRule} className="rounded-lg border border-white/10 px-3 py-2 text-sm text-gray-200 hover:bg-white/5">Add rule</button>
-        </div>
-      </fieldset>
+      <p className="text-xs text-gray-500">{initial ? 'House rules are edited on the House rules tab.' : 'Add house rules on the House rules tab after creating the PG.'}{form.rules.length ? ` The ${form.rules.length} rule${form.rules.length === 1 ? '' : 's'} from the older single list ${form.rules.length === 1 ? 'is' : 'are'} kept; that tab can move them into a group.` : ''}</p>
 
       <label className={LABEL}>Description<textarea className={`${FIELD} h-20 resize-none`} value={form.description} onChange={e => set({ description: e.target.value })} /></label>
 
@@ -178,7 +156,7 @@ export function PgForm({ initial, onCancel, onSave }: {
         <input type="checkbox" checked={form.isVerified} onChange={e => set({ isVerified: e.target.checked })} className="h-4 w-4 accent-emerald-500" />
         Verified by the Zenvy housing team (site visit done; shows a Verified mark)
       </label>
-      {initial ? <p className="text-xs text-gray-500">Photos, videos, mess timetable and timings have their own tabs above.</p> : <p className="text-xs text-gray-500">After creating the PG, add rooms, photos, videos, the mess timetable and timings from its tabs.</p>}
+      {initial ? <p className="text-xs text-gray-500">Rooms, photos, videos, mess timetable, timings, overview highlights, house rules, policies, safety, move-in, location and nearby, FAQ and reviews have their own tabs above.</p> : <p className="text-xs text-gray-500">After creating the PG, add rooms, photos, videos, the mess timetable, timings, highlights, house rules, policies, safety, move-in details, the location guide and FAQ from its tabs.</p>}
 
       {error && <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{error}</p>}
 
