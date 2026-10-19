@@ -1,6 +1,6 @@
 // Every backend call the Zenvy Auto Driver app makes. Paths, bodies and replies are the LIVE driver router
 // (backend/modules/autoRide/routes.js driverRouter, controllers/driverAuth.js / driverProfile.js /
-// driverTrips.js) plus POST /api/users/send-otp for the sign-up OTP. Fares, seats, queue numbers,
+// driverTrips.js) plus POST /api/users/send-otp for the sign-up OTP fallback (Firebase phone auth is primary). Fares, seats, queue numbers,
 // earnings and statuses always come from the server; the app only says what the driver wants.
 // No React Native imports: scratchpad verify script runs this file under Node against the real routers.
 import { DRIVER_API } from '../config';
@@ -34,8 +34,12 @@ export const driverApi = {
   /** POST /api/users/send-otp { phone, purpose: 'auth' } -> { message, expiresIn, resendAfter } (429 OTP_COOLDOWN { retryAfter }). */
   sendOtp: (phone: string) =>
     apiFetch<{ success: boolean; message: string; expiresIn: number; resendAfter: number }>('/api/users/send-otp', { method: 'POST', body: { phone, purpose: 'auth' }, auth: false, timeoutMs: 45000 }),
-  /** POST /auth/register { name, phone, password, otp } -> 201 { token, driver } (409 PHONE_TAKEN, 400 OTP_INVALID { attemptsLeft } / WEAK_PASSWORD, 429 OTP_LOCKED { attemptsLeft: 0 }). */
-  register: (input: { name: string; phone: string; password: string; otp: string; acceptTerms?: boolean; termsVersion?: string }) =>
+  /**
+   * POST /auth/register { name, phone, password, firebaseToken | otp } -> 201 { token, driver }.
+   * firebaseToken = Firebase phone-auth ID token (primary, free; src/lib/phoneVerify.ts); otp = Fast2SMS code (fallback).
+   * 409 PHONE_TAKEN, 401 PHONE_MISMATCH / VERIFICATION_EXPIRED, 400 OTP_INVALID { attemptsLeft } / WEAK_PASSWORD, 429 OTP_LOCKED { attemptsLeft: 0 }.
+   */
+  register: (input: { name: string; phone: string; password: string; otp?: string; firebaseToken?: string; acceptTerms?: boolean; termsVersion?: string }) =>
     apiFetch<AuthResult>(`${D}/auth/register`, { method: 'POST', body: input, auth: false, timeoutMs: 45000 }),
   /** POST /auth/login { phone, password } (401 INVALID_CREDENTIALS, 403 DRIVER_SUSPENDED, 429 lockout). */
   login: (phone: string, password: string) =>
@@ -52,8 +56,8 @@ export const driverApi = {
   deletionCheck: () => apiFetch<{ canDelete: boolean; blockers: { code: string; message: string }[]; phoneMasked: string }>(`${D}/account/deletion-check`),
   /** POST /account/delete-otp: SMS code to this account's own number (429 OTP_COOLDOWN { retryAfter }, 409 blocker). */
   sendDeleteOtp: () => apiFetch<{ success: boolean; message: string; resendAfter?: number }>(`${D}/account/delete-otp`, { method: 'POST', timeoutMs: 45000 }),
-  /** POST /account/delete { confirm: 'DELETE', password | otp } (401 WRONG_PASSWORD, 400 OTP_INVALID, 409 blocker). */
-  deleteAccount: (input: { password?: string; otp?: string; reason?: string }) =>
+  /** POST /account/delete { confirm: 'DELETE', password | otp | firebaseToken } (401 WRONG_PASSWORD / PHONE_MISMATCH, 400 OTP_INVALID, 409 blocker). */
+  deleteAccount: (input: { password?: string; otp?: string; firebaseToken?: string; reason?: string }) =>
     apiFetch<{ success: boolean; message: string }>(`${D}/account/delete`, { method: 'POST', body: { confirm: 'DELETE', ...input }, timeoutMs: 45000 }),
 
   // ── Account, documents, review ─────────────────────────────────────────

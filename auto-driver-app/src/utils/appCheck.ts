@@ -1,8 +1,8 @@
 /**
  * S1: Firebase App Check (Play Integrity) — client side, NOT ACTIVE in this app yet.
  *
- * This app does not ship React Native Firebase (@react-native-firebase/app), so there is no App Check native
- * module: getAppCheckToken() returns null and requests go out without the `X-Firebase-AppCheck` header.
+ * This app ships @react-native-firebase/app + /auth (phone sign-up, 1.0.2) but not /app-check, so there is no App
+ * Check native module: getAppCheckToken() returns null and requests go out without the `X-Firebase-AppCheck` header.
  * The backend (backend/utils/appCheck.js, env APP_CHECK_MODE) is off by default and fails open, so nothing
  * is blocked. Do NOT set APP_CHECK_MODE=enforce (or include this app's group, "partner", in
  * APP_CHECK_ENFORCE_GROUPS) until this app sends tokens.

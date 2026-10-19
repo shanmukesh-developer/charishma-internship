@@ -6,7 +6,7 @@
  *
  *   GET  /deletion-check  -> { canDelete, blockers[], phoneMasked }
  *   POST /delete-otp      -> SMS code to the account's OWN number (purpose 'delete_partner_account')
- *   POST /delete          -> body { confirm: 'DELETE', password | otp, reason? }
+ *   POST /delete          -> body { confirm: 'DELETE', password | otp | firebaseToken, reason? }
  *
  * Re-authentication on top of the session: the account password (5 wrong -> 15 min lock on this endpoint)
  * or the SMS code. Blockers are checked before the code is consumed. What is deleted vs kept:
@@ -39,7 +39,13 @@ const limiter = (name) => rateLimit({
 
 /** { ok } or { ok: false, status, body }. `checkPassword(pw)` resolves true / false. */
 const verifyReauth = async ({ key, phone, body, checkPassword }) => {
-  const { otp, password } = body || {};
+  const { otp, password, firebaseToken } = body || {};
+  // Firebase phone-auth ID token for the account's own number (free; no Fast2SMS needed).
+  if (typeof firebaseToken === 'string' && firebaseToken.length > 0) {
+    const { verifyPhoneProof } = require('../controllers/userController');
+    const r = await verifyPhoneProof({ phone: normalizePhone(String(phone || '')), firebaseToken });
+    return r.ok ? { ok: true } : r;
+  }
   if (otp !== undefined && otp !== null && otp !== '') {
     const { verifyPhoneProof } = require('../controllers/userController');
     const r = await verifyPhoneProof({ phone: normalizePhone(String(phone || '')), otp, purpose: OTP_PURPOSE });

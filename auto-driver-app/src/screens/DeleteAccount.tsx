@@ -1,21 +1,24 @@
 // C9: Settings -> Delete account (Google Play account-deletion requirement). Shows what is deleted / kept,
 // any blockers from the server (trip in progress, open full-auto request), then asks for the password (or an
 // SMS code sent to the account's own number) and DELETE. Backend: /api/auto-ride/driver/account/*.
-import React, { useEffect, useState } from 'react';
+// The SMS code is sent by Firebase phone auth (free; proof = Firebase ID token for the account's own number);
+// only when Firebase cannot run on this device does it fall back to POST /account/delete-otp (Fast2SMS).
+import React, { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { color, font, space } from '../theme';
 import { Button, Card, ErrorStrip, SkeletonCard } from '../ui/kit';
 import { Banner, Field, Screen } from '../ui/Screen';
 import { useSession } from '../state/SessionProvider';
 import { driverApi } from '../api/driverApi';
-import { errorMessage } from '../lib/http';
+import { ApiError, errorMessage } from '../lib/http';
+import { FIREBASE_NUMBER_ERRORS, confirmFirebaseCode, firebaseIdToken, sendFirebaseCode, signOutFirebase } from '../lib/phoneVerify';
 import { openLegal } from '../lib/legal';
 import type { ScreenProps } from '../nav';
 
 type Check = { canDelete: boolean; blockers: { code: string; message: string }[]; phoneMasked: string };
 
 export function DeleteAccountScreen({ navigation }: ScreenProps<'DeleteAccount'>) {
-  const { signOut } = useSession();
+  const { signOut, driver } = useSession();
   const [check, setCheck] = useState<Check | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [useCode, setUseCode] = useState(false);
@@ -25,6 +28,9 @@ export function DeleteAccountScreen({ navigation }: ScreenProps<'DeleteAccount'>
   const [codeInfo, setCodeInfo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [codeMode, setCodeMode] = useState<'firebase' | 'sms' | null>(null);
+  const confirmationRef = useRef<any>(null);
+  const ownPhone = /^\d{10}$/.test(String(driver?.phone || '')) ? String(driver?.phone) : null;
 
   const load = async () => {
     setLoadError(null);
@@ -36,9 +42,27 @@ export function DeleteAccountScreen({ navigation }: ScreenProps<'DeleteAccount'>
     setError(null);
     setBusy(true);
     try {
-      const r = await driverApi.sendDeleteOtp();
-      setCodeInfo(r.message || 'We sent a 6-digit code to your number.');
-    } catch (e) { setError(errorMessage(e)); } finally { setBusy(false); }
+      const fb = ownPhone ? await sendFirebaseCode(ownPhone) : null;
+      if (fb && fb.ok) {
+        confirmationRef.current = fb.confirmation;
+        setCodeMode('firebase');
+        setCodeInfo(`We sent a 6-digit code to ${check?.phoneMasked || 'your number'}.`);
+        return;
+      }
+      if (fb && !fb.ok && [...FIREBASE_NUMBER_ERRORS, 'auth/too-many-requests', 'auth/network-request-failed'].includes(String(fb.code))) {
+        setError(fb.message);
+        return;
+      }
+      try {
+        const r = await driverApi.sendDeleteOtp();
+        confirmationRef.current = null;
+        setCodeMode('sms');
+        setCodeInfo(r.message || 'We sent a 6-digit code to your number.');
+      } catch (e) {
+        if (fb && !fb.ok && e instanceof ApiError && e.code === 'SMS_UNAVAILABLE') setError(fb.message);
+        else setError(errorMessage(e));
+      }
+    } finally { setBusy(false); }
   };
 
   const proof = useCode ? /^\d{6}$/.test(otp) : password.length > 0;
@@ -48,10 +72,21 @@ export function DeleteAccountScreen({ navigation }: ScreenProps<'DeleteAccount'>
     setError(null);
     setBusy(true);
     try {
-      await driverApi.deleteAccount(useCode ? { otp } : { password });
+      let input: { otp: string } | { firebaseToken: string } | { password: string } = { password };
+      if (useCode && codeMode === 'firebase' && ownPhone) {
+        await confirmFirebaseCode(confirmationRef.current, otp, ownPhone);
+        const firebaseToken = await firebaseIdToken(ownPhone);
+        if (!firebaseToken) throw new Error('Your number is not verified yet. Tap Send the code again.');
+        input = { firebaseToken };
+      } else if (useCode) {
+        input = { otp };
+      }
+      await driverApi.deleteAccount(input);
+      await signOutFirebase();
       await signOut('Your Zenvy Auto Driver account has been deleted.');
     } catch (e) {
-      setError(errorMessage(e));
+      if (e instanceof ApiError || !(e instanceof Error) || !e.message) setError(errorMessage(e));
+      else setError(e.message);
       setBusy(false);
     }
   };

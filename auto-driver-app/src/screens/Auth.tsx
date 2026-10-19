@@ -1,7 +1,9 @@
-// Login (phone + password) and Register (phone -> SMS OTP -> name + password -> account). Layout from
-// delivery-boy-app/src/screens/Auth.tsx. The OTP is sent by POST /api/users/send-otp (purpose 'auth') and
-// checked by the server when the account is created (POST /api/auto-ride/driver/auth/register { otp }).
-import React, { useEffect, useState } from 'react';
+// Login (phone + password) and Register (phone -> SMS code -> name + password -> account). Layout from
+// delivery-boy-app/src/screens/Auth.tsx. The code is sent by Firebase phone auth (free; src/lib/phoneVerify.ts):
+// the typed code (or Android auto-verify) is confirmed with Firebase on the code step and the Firebase ID token
+// goes to POST /api/auto-ride/driver/auth/register { firebaseToken }. Only when Firebase cannot run on this
+// device does the app fall back to POST /api/users/send-otp (Fast2SMS) and send { otp } instead.
+import React, { useEffect, useRef, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +19,9 @@ import { loadSavedPhone, setSavedPhone } from '../lib/storage';
 import { SUPPORT_PHONE } from '../config';
 import type { ScreenProps } from '../nav';
 import { LegalLine, getPolicyVersion, openLegal } from '../lib/legal';
+import {
+  FIREBASE_NUMBER_ERRORS, confirmFirebaseCode, firebaseIdToken, firebaseVerified, onFirebaseVerified, sendFirebaseCode, signOutFirebase,
+} from '../lib/phoneVerify';
 
 const logo = require('../../assets/icon.png');
 
@@ -133,6 +138,9 @@ export function RegisterScreen({ navigation }: ScreenProps<'Register'>) {
   const [taken, setTaken] = useState(false);
   // C4: required Terms / Privacy tick on account creation (recorded by the server with the policy version).
   const [agreed, setAgreed] = useState(false);
+  // 'firebase' = Firebase sent the code (proof = Firebase ID token); 'sms' = Zenvy SMS fallback (proof = typed code).
+  const [mode, setMode] = useState<'firebase' | 'sms' | null>(null);
+  const confirmationRef = useRef<any>(null);
 
   useEffect(() => {
     if (step !== 'otp') return;
@@ -141,23 +149,81 @@ export function RegisterScreen({ navigation }: ScreenProps<'Register'>) {
   }, [step]);
 
   const p = normalizePhone(phone);
+
+  // Android can verify the number in the background (reads the SMS or verifies instantly): skip typing.
+  useEffect(() => {
+    if (step !== 'otp' || mode !== 'firebase' || !p) return;
+    return onFirebaseVerified(p, () => {
+      setError(null);
+      setInfo(null);
+      setStep('details');
+    });
+  }, [step, mode, p]);
+
   const sendCode = async () => {
     if (!p || busy) return;
     setBusy(true);
     setError(null);
     setTaken(false);
     try {
-      const r = await driverApi.sendOtp(p);
+      // Primary: Firebase phone auth (free). A problem with the number itself, the per-device limit or no
+      // internet stops here (the fallback would fail the same way); anything else (Firebase missing in this
+      // build, app not authorised) falls back to Zenvy SMS.
+      const fb = await sendFirebaseCode(p);
+      if (fb && fb.ok) {
+        confirmationRef.current = fb.confirmation;
+        setMode('firebase');
+        setInfo(`We sent a 6-digit code to +91 ${p}.`);
+        setResendAt(Date.now() + 60 * 1000);
+        setOtp('');
+        setStep('otp');
+        return;
+      }
+      if (fb && !fb.ok && [...FIREBASE_NUMBER_ERRORS, 'auth/too-many-requests', 'auth/network-request-failed'].includes(String(fb.code))) {
+        setError(fb.message);
+        return;
+      }
+      let r;
+      try {
+        r = await driverApi.sendOtp(p);
+      } catch (e) {
+        // Both channels failed: prefer Firebase's plain reason when it had one.
+        if (fb && !fb.ok && e instanceof ApiError && e.code === 'SMS_UNAVAILABLE') throw new Error(fb.message);
+        throw e;
+      }
+      confirmationRef.current = null;
+      setMode('sms');
       setInfo(r.message || `We sent a 6-digit code to +91 ${p}.`);
       setResendAt(Date.now() + (Number(r.resendAfter) || 60) * 1000);
       setOtp('');
       setStep('otp');
     } catch (e) {
       if (e instanceof ApiError && e.code === 'OTP_COOLDOWN') {
+        confirmationRef.current = null;
+        setMode('sms');
         setResendAt(Date.now() + (Number(e.data?.retryAfter) || 60) * 1000);
         setStep('otp');
       }
-      setError(errorMessage(e));
+      if (e instanceof NetworkError) setError('No internet, or Zenvy is waking up. Try again in a moment.');
+      else if (e instanceof ApiError) setError(errorMessage(e));
+      else setError(e instanceof Error && e.message ? e.message : errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Code step -> details. In Firebase mode the code is confirmed with Firebase here, so a wrong code is caught now.
+  const checkCode = async () => {
+    if (!p || busy) return;
+    setError(null);
+    if (mode !== 'firebase') { setStep('details'); return; }
+    setBusy(true);
+    try {
+      await confirmFirebaseCode(confirmationRef.current, otp, p);
+      setInfo(null);
+      setStep('details');
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : 'We could not check the code. Please try again.');
     } finally {
       setBusy(false);
     }
@@ -172,15 +238,37 @@ export function RegisterScreen({ navigation }: ScreenProps<'Register'>) {
     setBusy(true);
     setError(null);
     try {
+      let proof: { firebaseToken: string } | { otp: string };
+      if (mode === 'firebase') {
+        const firebaseToken = await firebaseIdToken(p);
+        if (!firebaseToken) {
+          setStep('otp');
+          setError('Your number is not verified yet. Type the code again, or tap Resend code.');
+          return;
+        }
+        proof = { firebaseToken };
+      } else {
+        proof = { otp };
+      }
       const termsVersion = await getPolicyVersion();
-      const r = await driverApi.register({ name: name.trim(), phone: p, password, otp, acceptTerms: true, ...(termsVersion ? { termsVersion } : {}) });
+      const r = await driverApi.register({ name: name.trim(), phone: p, password, ...proof, acceptTerms: true, ...(termsVersion ? { termsVersion } : {}) });
+      await signOutFirebase();
       await setSavedPhone(p);
       await signIn(r.token, r.driver);
     } catch (e) {
       const code = e instanceof ApiError ? e.code : undefined;
       if (code === 'OTP_INVALID' || code === 'OTP_EXPIRED' || code === 'OTP_LOCKED' || code === 'PHONE_VERIFICATION_REQUIRED') setStep('otp');
+      if (code === 'VERIFICATION_EXPIRED' || code === 'PHONE_MISMATCH') {
+        // The Firebase proof was not accepted: back to the code step for a fresh code.
+        await signOutFirebase();
+        confirmationRef.current = null;
+        setResendAt(0);
+        setOtp('');
+        setStep('otp');
+      }
       if (code === 'PHONE_TAKEN') setTaken(true);
-      setError(errorMessage(e));
+      if (e instanceof NetworkError) setError('No internet, or Zenvy is waking up. Try again in a moment.');
+      else setError(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -203,11 +291,13 @@ export function RegisterScreen({ navigation }: ScreenProps<'Register'>) {
           {info ? <Banner tone="info" text={info} /> : null}
           <Field label="6-digit code" value={otp} onChangeText={(v) => { setOtp(v.replace(/\D/g, '').slice(0, 6)); setError(null); }}
             keyboardType="number-pad" textContentType="oneTimeCode" autoComplete="sms-otp" placeholder="••••••" maxLength={6}
-            hint="We check the code when you create the account in the next step." />
+            hint={mode === 'firebase' ? 'On some phones the code is read automatically and this step is skipped.' : 'We check the code when you create the account in the next step.'} />
           {error ? <Banner tone="error" text={error} /> : null}
-          <Button label="Next" icon="arrow-forward" onPress={() => { setError(null); setStep('details'); }} disabled={otp.length !== 6} />
+          <Button label="Next" icon="arrow-forward" onPress={checkCode} loading={busy && mode === 'firebase'}
+            disabled={otp.length !== 6 && !(mode === 'firebase' && !!p && firebaseVerified(p))} />
           <Button label={wait ? `Resend code in ${wait}s` : 'Resend code'} icon="refresh" variant="secondary" onPress={sendCode} disabled={wait > 0} loading={busy} />
-          <Button label="Change number" variant="ghost" size="secondary" onPress={() => { setStep('phone'); setError(null); }} />
+          <Button label="Change number" variant="ghost" size="secondary"
+            onPress={() => { confirmationRef.current = null; setMode(null); setStep('phone'); setError(null); signOutFirebase(); }} />
         </>
       ) : null}
       {step === 'details' ? (
