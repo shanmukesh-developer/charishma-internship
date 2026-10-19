@@ -1,8 +1,9 @@
 // Menu: every item with a big AVAILABLE switch; tap an item to edit it, ADD ITEM to add one.
 import React, { memo, useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, RefreshControl, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FormMode, ItemForm } from '../components/ItemForm';
+import { NetImage } from '../components/NetImage';
 import { dietOf, rupees } from '../lib/model';
 import { useStore } from '../state/StoreProvider';
 import { color, font, radius, space, touch } from '../theme';
@@ -32,11 +33,12 @@ const MenuRow = memo(function MenuRow({ item, pending, onToggle, onEdit }: {
         style={({ pressed }) => [styles.rowMain, pressed && { opacity: 0.7 }]}
       >
         <View style={styles.thumb}>
-          {item.imageUrl ? (
-            <Image source={{ uri: item.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-          ) : (
-            <Ionicons name="fast-food-outline" size={24} color={color.textMuted} />
-          )}
+          <NetImage
+            uri={item.imageUrl}
+            thumbPx={160}
+            style={StyleSheet.absoluteFill}
+            fallback={<Ionicons name="fast-food-outline" size={24} color={color.textMuted} />}
+          />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>

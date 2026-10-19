@@ -2,7 +2,8 @@
 // Contract: scratchpad vendor_contract.md. Reuses the restaurant routes; local vendors are Restaurant rows
 // with vendorType LOCAL_VENDOR and log in with role "restaurant".
 import { Platform } from 'react-native';
-import { apiFetch, ApiError } from './http';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import { apiFetch, ApiError, apiUploadForm, NetworkError } from './http';
 import { normalizeMenuItem, normalizeOrder, normalizeStore } from './model';
 import type { Compliance, ComplianceEdit, MenuItem, OperatingHours, Order, StoreState } from '../types';
 
@@ -141,18 +142,43 @@ export async function deleteMenuItem(itemId: string): Promise<void> {
   await apiFetch(`/api/restaurants/menu/${enc(itemId)}`, { method: 'DELETE', no401Logout: true });
 }
 
-/** POST /api/upload (multipart field "image", JPEG/PNG/WEBP, max 2 MB). Returns the URL to save on the item. */
+/** JPEG data URL of a local photo (fallback upload body), or null when it cannot be read. */
+async function dataUrlOf(uri: string): Promise<string | null> {
+  try {
+    const ref = await ImageManipulator.manipulate(uri).renderAsync();
+    const out = await ref.saveAsync({ compress: 0.6, format: SaveFormat.JPEG, base64: true });
+    return out.base64 ? `data:image/jpeg;base64,${out.base64}` : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * POST /api/upload (multipart field "image", JPEG/PNG/WEBP, max 2 MB). Returns the URL to save on the item.
+ * Phone: multipart through XHR (see apiUploadForm); if that cannot reach the server, the same endpoint's
+ * JSON { image: dataUrl } form through fetch. Web: the browser's fetch sends a Blob part fine.
+ */
 export async function uploadPhoto(uri: string, mimeType = 'image/jpeg'): Promise<string> {
-  const form = new FormData();
   const ext = mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'jpg';
+  let res: { imageUrl?: string } | null = null;
   if (Platform.OS === 'web') {
+    const form = new FormData();
     const blob = await (await fetch(uri)).blob();
     form.append('image', blob, `item.${ext}`);
+    res = await apiFetch<{ imageUrl?: string }>('/api/upload', { method: 'POST', form, no401Logout: true, timeoutMs: 60000 });
   } else {
+    const form = new FormData();
     // React Native's FormData file shape.
     form.append('image', { uri, name: `item.${ext}`, type: mimeType } as any);
+    try {
+      res = await apiUploadForm<{ imageUrl?: string }>('/api/upload', form, 60000);
+    } catch (e) {
+      if (!(e instanceof NetworkError)) throw e;
+      const image = await dataUrlOf(uri);
+      if (!image) throw e;
+      res = await apiFetch<{ imageUrl?: string }>('/api/upload', { method: 'POST', body: { image }, no401Logout: true, timeoutMs: 60000 });
+    }
   }
-  const res = await apiFetch<{ imageUrl?: string }>('/api/upload', { method: 'POST', form, no401Logout: true, timeoutMs: 60000 });
   if (!res?.imageUrl) throw new ApiError(500, "The photo didn't upload. Please try again.", res);
   return res.imageUrl;
 }

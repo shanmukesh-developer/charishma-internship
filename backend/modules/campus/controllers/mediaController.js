@@ -170,15 +170,60 @@ const sendBytes = (req, res, { bytes, mime, etag, maxAge, isPrivate }) => {
   return res.status(200).end(bytes);
 };
 
+// ── Hot public photos in memory ─────────────────────────────────────────────
+// Store covers and menu photos are fetched by every phone, and each fetch was a full row read (bytes
+// included) from the database, often 1-3 s on the free plan. PUBLIC rows whose bytes live in the database
+// are kept here (bounded LRU, MEDIA_CACHE_MB, default 32; 0 turns it off) for a short time, so repeat
+// requests and 304 revalidations answer without the database. Private rows are never cached; the short
+// TTL bounds how long a deleted public photo can still be served by an instance.
+const HOT_TTL_MS = 10 * 60 * 1000;
+const HOT_ITEM_MAX = 2 * 1024 * 1024;
+const hotMaxBytes = () => {
+  const mb = Number(process.env.MEDIA_CACHE_MB);
+  return (Number.isFinite(mb) && mb >= 0 ? Math.min(mb, 256) : 32) * 1024 * 1024;
+};
+const hot = new Map(); // id -> { mime, bytes, at }
+let hotBytes = 0;
+const hotDrop = (id) => {
+  const e = hot.get(id);
+  if (e) { hotBytes -= e.bytes.length; hot.delete(id); }
+};
+const hotGet = (id) => {
+  const e = hot.get(id);
+  if (!e) return null;
+  if (Date.now() - e.at > HOT_TTL_MS) { hotDrop(id); return null; }
+  hot.delete(id); hot.set(id, e); // most recently used last
+  return e;
+};
+const hotPut = (id, mime, bytes) => {
+  const max = hotMaxBytes();
+  if (!max || !bytes || !bytes.length || bytes.length > Math.min(HOT_ITEM_MAX, max)) return;
+  hotDrop(id);
+  hot.set(id, { mime, bytes, at: Date.now() });
+  hotBytes += bytes.length;
+  for (const k of hot.keys()) {
+    if (hotBytes <= max) break;
+    hotDrop(k);
+  }
+};
+const hotStats = () => ({ entries: hot.size, bytes: hotBytes, maxBytes: hotMaxBytes() });
+const hotClear = () => { hot.clear(); hotBytes = 0; };
+
 // @desc    Serve an uploaded image (public by unguessable id; ID cards are owner/admin only)
 // @route   GET /api/campus/media/:id
 const serveMedia = async (req, res) => {
   try {
-    const id = String(req.params.id || '');
+    const id = String(req.params.id || '').toLowerCase();
     if (!UUID_RE.test(id)) return res.status(404).json({ message: 'Not found' });
     const etag = `"m-${id}"`;
+    const cached = hotGet(id);
+    if (cached) return sendBytes(req, res, { bytes: cached.bytes, mime: cached.mime, etag, maxAge: 31536000, isPrivate: false });
     const Media = getCampusMediaModel();
-    const row = await Media.findByPk(id);
+    // A revalidation (If-None-Match) only needs the access fields, not the photo bytes.
+    const revalidate = req.headers['if-none-match'] === etag;
+    const row = revalidate
+      ? await Media.findByPk(id, { attributes: ['id', 'ownerId', 'isPrivate'] })
+      : await Media.findByPk(id);
     if (!row) return res.status(404).json({ message: 'Not found' });
 
     if (row.isPrivate) {
@@ -191,8 +236,8 @@ const serveMedia = async (req, res) => {
       }
       if (!allowed) return res.status(404).json({ message: 'Not found' });
     }
-    if (req.headers['if-none-match'] === etag) {
-      res.set('ETag', etag);
+    if (revalidate) {
+      res.set({ ETag: etag, 'Cache-Control': row.isPrivate ? 'private, max-age=86400' : 'public, max-age=31536000, immutable' });
       return res.status(304).end();
     }
     // Bytes in R2 (utils/mediaStorage, only rows written while MEDIA_STORAGE=s3): CDN / presigned redirect
@@ -200,6 +245,7 @@ const serveMedia = async (req, res) => {
     const storage = require('../../../utils/mediaStorage');
     if (storage.isExternal(row)) return serveExternal(req, res, storage, row, etag);
     const bytes = Buffer.isBuffer(row.bytes) ? row.bytes : Buffer.from(row.bytes || []);
+    if (!row.isPrivate) hotPut(id, row.mime, bytes);
     return sendBytes(req, res, { bytes, mime: row.mime, etag, maxAge: 31536000, isPrivate: row.isPrivate });
   } catch (err) {
     console.error('[CAMPUS_MEDIA_SERVE_ERR]', err.message);
@@ -349,4 +395,4 @@ const serveAvatar = async (req, res) => {
   }
 };
 
-module.exports = { parseUpload, uploadMedia, serveMedia, serveAvatar, sniffImage, signedMediaUrl, sigFor, verifySignature, avatarSig, verifyAvatarSig };
+module.exports = { parseUpload, uploadMedia, serveMedia, serveAvatar, sniffImage, signedMediaUrl, sigFor, verifySignature, avatarSig, verifyAvatarSig, mediaHotCache: { stats: hotStats, clear: hotClear, drop: hotDrop } };

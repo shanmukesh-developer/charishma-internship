@@ -115,3 +115,38 @@ export async function apiFetch<T = any>(path: string, opts: RequestOptions = {})
   }
   return data as T;
 }
+
+/**
+ * Multipart POST through XMLHttpRequest. Expo SDK 57's global fetch (expo/fetch) cannot send React
+ * Native's { uri, name, type } FormData file parts: it throws before the request leaves the phone, which
+ * showed up as "No internet" on every photo. React Native's XHR streams the local file. A 401 here never
+ * logs out (the caller shows the message).
+ */
+export function apiUploadForm<T = any>(path: string, form: FormData, timeoutMs = 60000): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_URL}${path}`);
+    const headers: Record<string, string> = { Accept: 'application/json', ...versionHeaders() };
+    const token = getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    // No Content-Type: the networking layer adds multipart/form-data with its boundary.
+    for (const [k, v] of Object.entries(headers)) xhr.setRequestHeader(k, v);
+    xhr.timeout = timeoutMs;
+    xhr.onload = () => {
+      let data: any = null;
+      try { data = xhr.responseText ? JSON.parse(xhr.responseText) : null; } catch { data = null; }
+      if (xhr.status === 426) reportUpgradeRequired(data);
+      if (xhr.status === 0) { reject(new NetworkError()); return; }
+      if (xhr.status < 200 || xhr.status >= 300) {
+        const msg = (data && typeof data.message === 'string' && data.message) ||
+          (xhr.status >= 500 ? 'Zenvy is having trouble right now. Please try again in a moment.' : 'Request failed. Please try again.');
+        reject(new ApiError(xhr.status, msg, data));
+        return;
+      }
+      resolve(data as T);
+    };
+    xhr.onerror = () => reject(new NetworkError());
+    xhr.ontimeout = () => reject(new NetworkError('Zenvy is slow to answer. Please try again.'));
+    xhr.send(form as any);
+  });
+}

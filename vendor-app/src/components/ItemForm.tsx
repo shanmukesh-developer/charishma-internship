@@ -2,7 +2,7 @@
 // save button at the bottom that cannot be pressed twice.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import * as api from '../lib/api';
 import { dietOf } from '../lib/model';
 import { errorMessage } from '../lib/http';
 import { pickPhoto, PhotoSource } from '../lib/photo';
+import { NetImage } from './NetImage';
 import type { DeleteResult } from '../state/StoreProvider';
 import { color, font, radius, space, touch } from '../theme';
 import { Button, Chip, IconButton } from '../ui/kit';
@@ -236,11 +237,13 @@ export function ItemForm({ mode, categories, onClose, onSave, onDelete, onDuplic
           {/* Photo */}
           <View style={styles.photoRow}>
             <View style={styles.photo}>
-              {draft.imageUrl ? (
-                <Image source={{ uri: draft.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel="Item photo" />
-              ) : (
-                <Ionicons name="image-outline" size={34} color={color.textMuted} />
-              )}
+              <NetImage
+                uri={draft.imageUrl}
+                thumbPx={500}
+                style={StyleSheet.absoluteFill}
+                accessibilityLabel="Item photo"
+                fallback={<Ionicons name="image-outline" size={34} color={color.textMuted} />}
+              />
               {photoBusy ? (
                 <View style={styles.photoBusy}><ActivityIndicator color={color.textInverse} /></View>
               ) : null}

@@ -73,6 +73,8 @@ export default function LoginScreen() {
     } catch (e) {
       if (e instanceof ApiError && e.code === 'USE_VENDOR_APP') {
         setError('This is a stall account. Please log in with the Zenvy Vendor app.');
+      } else if (e instanceof ApiError && e.status === 401 && /invalid credentials/i.test(e.message)) {
+        setError('Wrong restaurant ID or password. Check and try again.');
       } else if (e instanceof ApiError) {
         setError(e.message);
         if (e.status === 429) {

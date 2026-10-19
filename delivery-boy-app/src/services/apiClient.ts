@@ -66,6 +66,9 @@ export function errorMessage(err: unknown, fallback = 'Something went wrong. Ple
   return fallback;
 }
 
+/** 401 codes that are about the request, never about the session (backend partnerAccountRoutes / appCheck). */
+const NOT_SESSION_401 = new Set(['WRONG_PASSWORD', 'PHONE_MISMATCH', 'VERIFICATION_EXPIRED', 'APP_CHECK_REQUIRED']);
+
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: unknown;
@@ -115,6 +118,12 @@ export async function apiFetch<T = unknown>(endpoint: string, opts: RequestOptio
   if (res.status === 426) reportUpgradeRequired(data);
   if (!res.ok) {
     const serverMessage = data && typeof data.message === 'string' ? data.message : null;
+    // A 401 that answers the request itself (wrong password while deleting the account, an SMS code
+    // that expired, App Check) is not an expired session: keep the rider signed in and show the reason.
+    const code = data && typeof data.code === 'string' ? data.code : '';
+    if (res.status === 401 && NOT_SESSION_401.has(code)) {
+      throw new ApiError(401, serverMessage || 'That did not work. Please try again.', data);
+    }
     if (res.status === 401 && auth && token) {
       onUnauthorized?.(token);
       throw new ApiError(401, 'Your session expired. Please log in again.', data);

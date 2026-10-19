@@ -1,16 +1,17 @@
 // Profile: identity, vehicle, documents status, voice, support, safety, account.
 import React, { useEffect, useState } from 'react';
-import { Image, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Constants from 'expo-constants';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { C, R, S, T } from '../theme';
 import { Badge, Btn, Card, Label, Row, ScreenHeader } from '../ui/kit';
 import { Sheet } from '../ui/Sheet';
+import { NetImage } from '../ui/NetImage';
 import { useRider } from '../state/RiderStore';
 import { useVoice } from '../voice/useVoice';
 import { LANG_LABEL } from '../voice/phrases';
 import * as links from '../services/links';
-import { errorMessage } from '../services/apiClient';
+import { ApiError, errorMessage } from '../services/apiClient';
 import * as api from '../services/deliveryApi';
 import { indianMobileDigits } from '../services/orderModel';
 import { SUPPORT_PHONE } from '../config';
@@ -57,13 +58,16 @@ export function ProfileScreen() {
       <ScreenHeader title="Profile" />
       <View style={styles.content}>
         <Card style={styles.idCard}>
-          {p.photoUrl ? (
-            <Image source={{ uri: p.photoUrl }} style={styles.avatar} accessibilityLabel="Profile photo" />
-          ) : (
-            <View style={[styles.avatar, { backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' }]}>
-              <Text style={[T.h1, { color: C.white }]}>{(p.name || '?').charAt(0).toUpperCase()}</Text>
-            </View>
-          )}
+          <NetImage
+            uri={p.photoUrl}
+            style={styles.avatar}
+            accessibilityLabel="Profile photo"
+            fallback={
+              <View style={[styles.avatar, { backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' }]}>
+                <Text style={[T.h1, { color: C.white }]}>{(p.name || '?').charAt(0).toUpperCase()}</Text>
+              </View>
+            }
+          />
           <View style={{ flex: 1, gap: 2 }}>
             <Text style={[T.h2, { color: C.ink }]} numberOfLines={1}>
               {p.name || '—'}
@@ -329,7 +333,13 @@ function DeleteAccountSheet({ visible, onClose }: { visible: boolean; onClose: (
     try {
       setCodeInfo(await api.sendDeleteOtp());
     } catch (e) {
-      setError(errorMessage(e));
+      if (e instanceof ApiError && (e.code === 'SMS_UNAVAILABLE' || e.code === 'SMS_BUDGET')) {
+        // SMS is switched off on the server: go back to the password, which always works.
+        setUseCode(false);
+        setError('SMS codes are not available right now. Confirm with your password, or call Zenvy support and we will close your account.');
+      } else {
+        setError(errorMessage(e));
+      }
     } finally {
       setBusy(false);
     }
@@ -405,6 +415,13 @@ function DeleteAccountSheet({ visible, onClose }: { visible: boolean; onClose: (
           </Text>
           <Field label="TYPE DELETE TO CONFIRM" value={confirm} onChangeText={setConfirm} autoCapitalize="characters" />
           <ErrorLine text={error} />
+          <Text
+            style={[T.small, { color: C.ink2 }]}
+            onPress={() => links.callNumber(`+${SUPPORT_PHONE}`)}
+            accessibilityRole="button"
+          >
+            Forgot your password and no SMS code? Call Zenvy support to close your account.
+          </Text>
         </>
       ) : null}
     </Sheet>

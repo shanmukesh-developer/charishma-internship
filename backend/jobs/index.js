@@ -254,6 +254,18 @@ const runBase64Migration = async () => {
   }
 };
 
+// Store / menu photos hotlinked from upload.wikimedia.org -> our media table (opt-in, see the script).
+const runWikimediaRehost = async () => {
+  try {
+    const r = await require('../scripts/rehost_wikimedia_images').runWikimediaRehost();
+    console.log('[WIKI_REHOST]', JSON.stringify(r));
+    return r;
+  } catch (err) {
+    console.warn('[WIKI_REHOST] failed:', err.message);
+    return { error: err.message };
+  }
+};
+
 // ── Registry ─────────────────────────────────────────────────────────────────────────────────────
 // schedule:
 //   { everyMs, firstMs }          setInterval(everyMs) from start + one extra run after firstMs
@@ -298,6 +310,11 @@ const JOBS = [
   {
     name: 'media.base64Migration', schedule: { onceAfterMs: 60 * SEC, retryLockedMs: 10 * MIN }, run: runBase64Migration, timeoutMs: 60 * MIN,
     enabled: () => String(process.env.DISABLE_BASE64_MIGRATION || '').toLowerCase() !== 'true',
+  },
+  {
+    // OFF unless REHOST_WIKIMEDIA_IMAGES=true. Each run copies at most 120 photos, 2 s apart.
+    name: 'media.wikimediaRehost', schedule: { everyMs: 6 * 60 * MIN, firstMs: 3 * MIN, chain: true }, run: runWikimediaRehost, timeoutMs: 30 * MIN,
+    enabled: () => notTest() && require('../scripts/rehost_wikimedia_images').enabled(),
   },
 ];
 const byName = new Map(JOBS.map((j) => [j.name, j]));

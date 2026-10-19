@@ -30,7 +30,8 @@ function friendly(e: unknown, serverWaking: boolean): string {
       return 'Wrong phone number or password. Check and try again.';
     }
     if (e.status === 403) return e.message || 'This account is not allowed to log in here. Call Zenvy support.';
-    if (e.status === 423 || e.status === 429) return 'Too many tries. Please wait a minute and try again.';
+    // The account lock lasts 15 minutes (the server says so); the network limiter is shorter.
+    if (e.status === 423 || e.status === 429) return /minutes/i.test(e.message) ? e.message : 'Too many tries. Please wait a minute and try again.';
     if (e.status === 400) return 'Enter your phone number and password.';
     return e.message;
   }

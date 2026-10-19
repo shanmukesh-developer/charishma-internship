@@ -929,6 +929,10 @@ const sendOtp = async (req, res) => {
     if (purpose === 'delete_partner_account' && req.partnerDeleteOtp !== true) {
       return res.status(400).json({ message: 'Invalid OTP purpose' });
     }
+    // A signed-in partner deleting their account is not logging in: point them at the password instead.
+    const smsDownMessage = purpose === 'delete_partner_account'
+      ? "We can't send SMS codes right now. Please confirm with your password instead."
+      : "We couldn't send the SMS right now. Please try again in a minute or log in with your password.";
 
     const User = getUserModel();
     if ((purpose === 'reset_password' || purpose === 'delete_account') && !(await User.findOne({ where: { phone: cleanPhone } }))) {
@@ -981,7 +985,7 @@ const sendOtp = async (req, res) => {
 
       if (!process.env.FAST2SMS_API_KEY) {
         console.error('[SEND_OTP] FAST2SMS_API_KEY is not configured');
-        return { refuse: { status: 502, body: { code: 'SMS_UNAVAILABLE', message: "We couldn't send the SMS right now. Please try again in a minute or log in with your password." } } };
+        return { refuse: { status: 502, body: { code: 'SMS_UNAVAILABLE', message: smsDownMessage } } };
       }
 
       const record = await OtpCode.create({
@@ -1015,7 +1019,7 @@ const sendOtp = async (req, res) => {
       await smsBudget.refund(budget.day);
       await record.destroy().catch(() => {});
       console.error(`[SEND_OTP] SMS provider failed for ${maskPhone(cleanPhone)}:`, sms.reason);
-      return res.status(502).json({ code: 'SMS_UNAVAILABLE', message: "We couldn't send the SMS right now. Please try again in a minute or log in with your password." });
+      return res.status(502).json({ code: 'SMS_UNAVAILABLE', message: smsDownMessage });
     }
 
     // The newest code supersedes older live codes for the same purpose

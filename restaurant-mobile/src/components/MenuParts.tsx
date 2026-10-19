@@ -1,8 +1,9 @@
 // Menu row with a big IN STOCK / OUT switch and a tappable price, plus the stock and price sheets.
 import React, { memo, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { errorMessage } from '../lib/http';
+import { NetImage } from './NetImage';
 import { clockIST, dietOf, nextISTTime, rupees } from '../lib/model';
 import type { StockChange } from '../state/StoreProvider';
 import { color, font, radius, space, touch } from '../theme';
@@ -32,12 +33,14 @@ function MenuRowBase({ item, pending, onToggle, onEditPrice, onEdit }: {
         accessibilityLabel={`${item.name}. Tap to edit`}
         style={({ pressed }) => [styles.thumb, pressed && { opacity: 0.7 }]}
       >
-        {item.imageUrl ? (
-          <>
-            <Image source={{ uri: item.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-            <View style={styles.thumbMark}><VegMark diet={diet} /></View>
-          </>
-        ) : <VegMark diet={diet} />}
+        <NetImage
+          uri={item.imageUrl}
+          thumbPx={160}
+          style={StyleSheet.absoluteFill}
+          fallback={<Ionicons name="restaurant-outline" size={22} color={color.textMuted} />}
+        />
+        {/* Veg mark in the corner whether or not the photo loads. */}
+        <View style={styles.thumbMark}><VegMark diet={diet} /></View>
       </Pressable>
       <View style={{ flex: 1, gap: 4 }}>
         <Pressable onPress={() => onEdit(item)} accessibilityRole="button" accessibilityLabel={`Edit ${item.name}`} hitSlop={6} style={styles.nameTap}>
