@@ -5,7 +5,7 @@
     },
     "name": "Zenvy Restaurant",
     "slug": "restaurant-mobile",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -21,7 +21,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.zenvy.restaurant",
-      "versionCode": 1,
+      "versionCode": 2,
       "allowBackup": false,
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",

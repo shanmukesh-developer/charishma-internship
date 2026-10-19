@@ -126,8 +126,7 @@ const PROMOS_PG = [
 
 const PROMOS_CORIDE = [
   { id: 'c1', tagline: 'STUDENT COMMUTE NETWORK 🏍️', title: 'PEER CO-RIDE', subtitle: 'FUEL SPLIT', desc: 'Share rides between Campus, Vijayawada & Guntur with fellow students and split the fuel.', btn: 'FIND OR POST RIDE →', img: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=1200&q=80' },
-  { id: 'c2', tagline: 'BIKE TAXI 🛵', title: 'NEED A QUICK RIDE?', subtitle: 'OPENS RAPIDO', desc: 'Book a bike taxi on Rapido to Neerukonda, Mangalagiri station and nearby stops.', btn: 'OPEN RAPIDO →', img: 'https://images.unsplash.com/photo-1558980394-0a06c4631733?w=1200&q=80' },
-  { id: 'c3', tagline: 'CABS & AUTOS 🚖', title: 'STATION & AIRPORT', subtitle: 'OPENS UBER', desc: 'Book a cab on Uber to Gannavaram Airport (VGA) or Vijayawada Junction (BZA).', btn: 'OPEN UBER →', img: 'https://images.unsplash.com/photo-1449965408869-ebd13bc9e5a8?w=1200&q=80' },
+  { id: 'c4', tagline: 'ZENVY AUTO 🛺', title: 'SHARED AUTOS', subtitle: 'BOOK YOUR SEAT', desc: 'Pick your seat in a shared auto with a verified Zenvy driver. Pay the driver at boarding.', btn: 'BOOK A SEAT →', img: 'https://images.unsplash.com/photo-1449965408869-ebd13bc9e5a8?w=1200&q=80' },
 ];
 
 const PROMOS_OFFERS = [
@@ -911,9 +910,6 @@ export default function OthersScreen() {
   useEffect(() => {
     if ((tab === 'coride' || tab === 'rides') && sub === 'auto') setCorideTab('auto');
   }, [tab, sub]);
-  useEffect(() => {
-    if (corideTab === 'auto' && autoRideStatus && !autoRideStatus.enabled) setCorideTab('browse');
-  }, [corideTab, autoRideStatus]);
   const [rides, setRides] = useState<any[]>([]);
   const [myRides, setMyRides] = useState<any[]>([]);
   const [loadingRides, setLoadingRides] = useState(false);
@@ -1518,8 +1514,7 @@ export default function OthersScreen() {
       case 'p1':
       case 'p2': scrollViewRef.current?.scrollTo({ y: 300, animated: true }); break;
       case 'c1': openCreateRide(); break;
-      case 'c2': openExternal('https://www.rapido.bike/', 'Rapido'); break;
-      case 'c3': openExternal('https://m.uber.com/looking', 'Uber'); break;
+      case 'c4': setCorideTab('auto'); break;
       case 'r1': router.push('/rentals' as any); break;
       case 'r2': router.push('/rentals/new' as any); break;
       case 'o1': scrollViewRef.current?.scrollTo({ y: 250, animated: true }); break;
@@ -2398,41 +2393,30 @@ export default function OthersScreen() {
               </View>
             </View>
 
-            {/* Quick links to ride apps */}
-            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
-              <TouchableOpacity
-                style={{ flex: 1, padding: 12, borderRadius: 14, backgroundColor: '#F59E0B15', borderWidth: 1.5, borderColor: '#F59E0B40' }}
-                onPress={() => openExternal('https://www.rapido.bike/', 'Rapido')}
-                activeOpacity={0.8}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                  <Text style={{ fontSize: 18 }}>🛵</Text>
-                  <Text style={{ fontSize: 12, fontWeight: '900', color: '#F59E0B' }}>RAPIDO</Text>
-                </View>
-                <Text style={{ fontSize: 9, color: txtSec }}>Opens Rapido ↗</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={{ flex: 1, padding: 12, borderRadius: 14, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6', borderWidth: 1.5, borderColor: isDark ? 'rgba(255,255,255,0.15)' : '#E5E7EB' }}
-                onPress={() => openExternal('https://m.uber.com/looking', 'Uber')}
-                activeOpacity={0.8}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                  <Text style={{ fontSize: 18 }}>🚗</Text>
-                  <Text style={{ fontSize: 12, fontWeight: '900', color: txt }}>UBER</Text>
-                </View>
-                <Text style={{ fontSize: 9, color: txtSec }}>Opens Uber ↗</Text>
-              </TouchableOpacity>
+            {/* Ride mode: student bike pool or Zenvy shared auto */}
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
+              {([
+                { key: 'pool', icon: 'bicycle-outline', title: 'Bike pool', sub: 'Ride with students and split the fuel' },
+                { key: 'auto', icon: 'car-outline', title: 'Zenvy Auto', sub: autoRideOn ? 'Book a seat in a shared auto' : 'Shared autos, starting soon' },
+              ] as const).map(m => {
+                const active = m.key === 'auto' ? corideTab === 'auto' : corideTab !== 'auto';
+                return (
+                  <TouchableOpacity
+                    key={m.key}
+                    style={{ flex: 1, minHeight: 92, padding: 14, borderRadius: 16, borderWidth: 1.5, backgroundColor: active ? (isDark ? 'rgba(239,68,68,0.12)' : '#FEF2F2') : cardBg, borderColor: active ? COLORS.red : border }}
+                    onPress={() => setCorideTab(m.key === 'auto' ? 'auto' : 'browse')}
+                    activeOpacity={0.85}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={`${m.title}. ${m.sub}`}
+                  >
+                    <Ionicons name={m.icon as any} size={22} color={active ? COLORS.red : txtSec} />
+                    <Text style={{ marginTop: 8, fontSize: 15, fontWeight: '800', color: txt }}>{m.title}</Text>
+                    <Text style={{ marginTop: 2, fontSize: 12, color: txtSec }} numberOfLines={2}>{m.sub}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
-
-            <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 14, backgroundColor: COLORS.red, marginBottom: 12, shadowColor: COLORS.red, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 4 }}
-              onPress={openCreateRide}
-              activeOpacity={0.85}
-            >
-              <Text style={{ fontSize: 16 }}>🛵</Text>
-              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '900', letterSpacing: 1.5 }}>+ POST A RIDE (OFFER / REQUEST)</Text>
-            </TouchableOpacity>
 
             {!myId ? (
               <View style={s.emptyState}>
@@ -2447,19 +2431,27 @@ export default function OthersScreen() {
               </View>
             ) : (
               <>
-                <View style={s.corideSubTabs}>
-                  <DopaminePressable style={[s.corideSubTabBtn, corideTab === 'browse' && s.corideSubTabBtnActive, { flex: 1 }]} onPress={() => setCorideTab('browse')} sound="tabSwitch">
-                    <Text style={[s.corideSubTabLabel, { color: colors.textSecondary }, corideTab === 'browse' && s.corideSubTabLabelActive]}>🚗 FIND A RIDE</Text>
-                  </DopaminePressable>
-                  <DopaminePressable style={[s.corideSubTabBtn, corideTab === 'my-rides' && s.corideSubTabBtnActive, { flex: 1 }]} onPress={() => setCorideTab('my-rides')} sound="tabSwitch">
-                    <Text style={[s.corideSubTabLabel, { color: colors.textSecondary }, corideTab === 'my-rides' && s.corideSubTabLabelActive]}>❤️ MY RIDES</Text>
-                  </DopaminePressable>
-                  {autoRideOn ? (
-                    <DopaminePressable style={[s.corideSubTabBtn, corideTab === 'auto' && s.corideSubTabBtnActive, { flex: 1 }]} onPress={() => setCorideTab('auto')} sound="tabSwitch" accessibilityLabel="Zenvy Auto-Ride, shared autos with verified drivers">
-                      <Text style={[s.corideSubTabLabel, { color: colors.textSecondary }, corideTab === 'auto' && s.corideSubTabLabelActive]}>🛺 AUTO</Text>
-                    </DopaminePressable>
-                  ) : null}
-                </View>
+                {corideTab !== 'auto' && (
+                  <>
+                    <View style={s.corideSubTabs}>
+                      <DopaminePressable style={[s.corideSubTabBtn, corideTab === 'browse' && s.corideSubTabBtnActive, { flex: 1 }]} onPress={() => setCorideTab('browse')} sound="tabSwitch">
+                        <Text style={[s.corideSubTabLabel, { color: colors.textSecondary }, corideTab === 'browse' && s.corideSubTabLabelActive]}>FIND A RIDE</Text>
+                      </DopaminePressable>
+                      <DopaminePressable style={[s.corideSubTabBtn, corideTab === 'my-rides' && s.corideSubTabBtnActive, { flex: 1 }]} onPress={() => setCorideTab('my-rides')} sound="tabSwitch">
+                        <Text style={[s.corideSubTabLabel, { color: colors.textSecondary }, corideTab === 'my-rides' && s.corideSubTabLabelActive]}>MY RIDES</Text>
+                      </DopaminePressable>
+                    </View>
+                    <TouchableOpacity
+                      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 48, borderRadius: 14, backgroundColor: COLORS.red, marginBottom: 16 }}
+                      onPress={openCreateRide}
+                      activeOpacity={0.85}
+                      accessibilityRole="button"
+                    >
+                      <Ionicons name="add" size={20} color="#fff" />
+                      <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800' }}>Post a ride</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
 
                 {/* BROWSE SUB-TAB */}
                 {corideTab === 'browse' && (
@@ -2736,11 +2728,15 @@ export default function OthersScreen() {
                 )}
 
                 {/* ZENVY AUTO-RIDE SUB-TAB (verified drivers, separate from the peer "Auto" pools above) */}
-                {corideTab === 'auto' && autoRideOn && <AutoRideSection />}
-
-                <ActionPressable style={s.floatingFab} onPress={openCreateRide} sound="click">
-                  <Text style={s.floatingFabText}>POST A RIDE +</Text>
-                </ActionPressable>
+                {corideTab === 'auto' && (autoRideOn ? <AutoRideSection /> : (
+                  <View style={[s.emptyState, { borderColor: border }]}>
+                    <Ionicons name="car-outline" size={32} color={txtSec} />
+                    <Text style={{ color: txt, fontSize: 15, fontWeight: '800', marginTop: 10, marginBottom: 4 }}>Zenvy Auto is not open yet</Text>
+                    <Text style={{ color: txtSec, fontSize: 13, textAlign: 'center' }}>
+                      Shared autos with verified drivers start soon. You will be able to pick your seat and pay the driver at boarding.
+                    </Text>
+                  </View>
+                ))}
               </>
             )}
           </View>

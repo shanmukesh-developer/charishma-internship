@@ -11,7 +11,7 @@ const ECOSYSTEM_SERVICES = [
   { id: 'print', name: 'Print & Xerox', emoji: '🖨️', color: '#10B981', bg: 'rgba(16, 185, 129, 0.15)', badge: '24/7', route: '/category/print' },
   { id: 'mattresses', name: 'Mattresses & Bed', emoji: '🛏️', color: '#EC4899', bg: 'rgba(236, 72, 153, 0.15)', badge: 'ROOM SET', route: '/category/mattresses' },
   { id: 'electronics', name: 'Electronics', emoji: '🔌', color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.15)', badge: 'HOT', route: '/category/electronics' },
-  { id: 'rides', name: 'Auto & Rapido', emoji: '🛺', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.15)', badge: 'INSTANT', route: '/others?tab=rides' },
+  { id: 'rides', name: 'Bike & Auto', emoji: '🛺', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.15)', badge: 'CO-RIDE', route: '/others?tab=rides' },
   { id: 'groceries', name: 'Kirana & Mart', emoji: '🛒', color: '#EAB308', bg: 'rgba(234, 179, 8, 0.15)', route: '/category/groceries' },
   { id: 'laundry', name: 'Wash & Fold', emoji: '🧺', color: '#06B6D4', bg: 'rgba(6, 182, 212, 0.15)', route: '/category/laundry' },
   { id: 'stays', name: 'Campus Stays', emoji: '🏨', color: '#6366F1', bg: 'rgba(99, 102, 241, 0.15)', route: '/others?tab=stays' },
