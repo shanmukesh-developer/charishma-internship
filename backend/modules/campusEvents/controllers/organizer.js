@@ -168,7 +168,7 @@ const cancelEvent = async (req, res) => {
 };
 
 // ── Slots ────────────────────────────────────────────────────────────────────
-const slotInput = (b, current) => {
+const slotInput = (b, current, maxPrice = 100000) => {
   const out = {};
   const has = (k) => Object.prototype.hasOwnProperty.call(b || {}, k);
   if (has('label')) out.label = cleanText(b.label, 80);
@@ -176,7 +176,8 @@ const slotInput = (b, current) => {
   if (has('endAt') || !current) out.endAt = parseTime(b.endAt, 'endAt');
   if (has('capacity') || !current) out.capacity = num(b.capacity, { min: 1, max: 1000, int: true, field: 'capacity' });
   if (!current && !out.capacity) throw fail(400, 'INVALID_INPUT', 'Set the slot capacity.', { field: 'capacity' });
-  if (has('price')) out.price = b.price === null || b.price === '' ? null : num(b.price, { min: 0, max: 100000, field: 'price' });
+  // S1: capped at the Campus Events settings.maxPrice (same cap as the event price).
+  if (has('price')) out.price = b.price === null || b.price === '' ? null : num(b.price, { min: 0, max: maxPrice, field: 'price' });
   const start = out.startAt || (current && current.startAt);
   const end = out.endAt || (current && current.endAt);
   if (new Date(end).getTime() <= new Date(start).getTime()) throw fail(400, 'INVALID_INPUT', 'A slot must end after it starts.', { field: 'endAt' });
@@ -202,16 +203,24 @@ const createSlots = async (req, res) => {
   assertSlotEditable(ev);
   const list = Array.isArray(req.body && req.body.slots) ? req.body.slots : [req.body || {}];
   if (!list.length || list.length > 100) throw fail(400, 'INVALID_INPUT', 'Send 1 to 100 slots.', { field: 'slots' });
-  const clean = list.map((b) => slotInput(b, null));
+  const s = await flag.readSettings();
+  const clean = list.map((b) => slotInput(b, null, s.maxPrice));
   for (const s of clean) {
     if (ev.startAt && new Date(s.startAt).getTime() < new Date(ev.startAt).getTime() - 60 * 1000) throw fail(400, 'INVALID_INPUT', 'Slots must be within the event dates.', { field: 'startAt' });
     if (ev.endAt && new Date(s.endAt).getTime() > new Date(ev.endAt).getTime() + 60 * 1000) throw fail(400, 'INVALID_INPUT', 'Slots must be within the event dates.', { field: 'endAt' });
   }
+  // S1: on a live event new slots wait for the Zenvy team (status PENDING, listed in pendingChanges).
+  const live = E.LIVE_EVENT_STATUSES.includes(ev.status);
   const rows = [];
-  for (const s of clean) rows.push(await M().Slot.create({ ...s, eventId: ev.id, status: 'OPEN' }));
-  await audit.fromReq(req, { eventId: ev.id, action: 'slot.create', details: { count: rows.length } }, null, 'organizer');
+  for (const c of clean) rows.push(await M().Slot.create({ ...c, eventId: ev.id, status: live ? 'PENDING' : 'OPEN' }));
+  await audit.fromReq(req, { eventId: ev.id, action: 'slot.create', details: { count: rows.length, pendingReview: live } }, null, 'organizer');
+  if (live) {
+    for (const r of rows) await EV.queueSlotChange(req, ev.id, { op: 'add', slotId: r.id, label: r.label || null, startAt: iso(r.startAt), endAt: iso(r.endAt), capacity: r.capacity, price: r.price === undefined ? null : r.price });
+    notify.admin('updated', ev.id);
+    return res.status(201).json({ slots: rows.map((r) => ({ ...S.slotPublic(ev, r), status: r.status })), pendingReview: true });
+  }
   notify.eventChanged(ev.id);
-  res.status(201).json({ slots: rows.map((s) => S.slotPublic(ev, s)) });
+  res.status(201).json({ slots: rows.map((r) => S.slotPublic(ev, r)) });
 };
 
 // PATCH /events/:id/slots/:slotId
@@ -220,11 +229,13 @@ const updateSlot = async (req, res) => {
   const ev0 = await ownEvent(req);
   assertSlotEditable(ev0);
   const slotId = assertUuid(req.params.slotId, 'slot');
+  const settings = await flag.readSettings();
+  if (E.LIVE_EVENT_STATUSES.includes(ev0.status)) return updateLiveSlot(req, res, ev0, slotId, settings);
   let timeChanged = false;
   const out = await cap.inLock(ev0.id, async (t, ev) => {
     const slot = await M().Slot.findByPk(slotId, { transaction: t });
     if (!slot || String(slot.eventId) !== String(ev.id) || slot.status !== 'OPEN') throw fail(404, 'NOT_FOUND', 'This slot was not found.');
-    const changes = slotInput(req.body || {}, slot);
+    const changes = slotInput(req.body || {}, slot, settings.maxPrice);
     if (changes.capacity !== undefined && changes.capacity < (Number(slot.unitsLive) || 0)) throw fail(409, 'CAPACITY_BELOW_TAKEN', `This slot already has ${slot.unitsLive} bookings.`, { field: 'capacity' });
     if (changes.price !== undefined && (Number(slot.unitsLive) || 0) + (Number(slot.waitlistCount) || 0) > 0) throw fail(409, 'HAS_REGISTRATIONS', 'The price cannot change once the slot has bookings.', { field: 'price' });
     timeChanged = ['startAt', 'endAt'].some((k) => changes[k] && new Date(changes[k]).getTime() !== new Date(slot[k]).getTime());
@@ -236,6 +247,33 @@ const updateSlot = async (req, res) => {
   outcomes.promoted(out.promoted, out.event);
   if (timeChanged) notify.eventBroadcast(out.event, { title: 'Slot time changed 🕒', body: `Your slot for ${out.event.title} has a new time. Open your booking for details.`, type: N.SLOT_CHANGED, slotId: out.slot.id, dedupe: String(out.slot.updatedAt && new Date(out.slot.updatedAt).getTime()) });
   res.json({ slot: S.slotPublic(out.event, out.slot) });
+};
+
+// S1: PATCH a slot of a live event: the label applies at once; time / capacity / price wait for an admin
+// (pendingChanges.fields.slotChanges, applied by POST /api/admin/campus-events/events/:id/changes/approve).
+const updateLiveSlot = async (req, res, ev, slotId, settings) => {
+  const slot = await M().Slot.findByPk(slotId);
+  if (!slot || String(slot.eventId) !== String(ev.id) || slot.status !== 'OPEN') throw fail(404, 'NOT_FOUND', 'This slot was not found.');
+  const changes = slotInput(req.body || {}, slot, settings.maxPrice);
+  const taken = Number(slot.unitsLive) || 0;
+  if (changes.capacity !== undefined && changes.capacity < taken) throw fail(409, 'CAPACITY_BELOW_TAKEN', `This slot already has ${slot.unitsLive} bookings.`, { field: 'capacity' });
+  if (changes.price !== undefined && taken + (Number(slot.waitlistCount) || 0) > 0) throw fail(409, 'HAS_REGISTRATIONS', 'The price cannot change once the slot has bookings.', { field: 'price' });
+  const material = {};
+  for (const k of EV.SLOT_MATERIAL) {
+    if (changes[k] === undefined) continue;
+    const same = ['startAt', 'endAt'].includes(k) ? new Date(changes[k]).getTime() === new Date(slot[k]).getTime() : String(changes[k]) === String(slot[k]);
+    if (!same) material[k] = ['startAt', 'endAt'].includes(k) ? iso(changes[k]) : changes[k];
+  }
+  if (changes.label !== undefined && changes.label !== slot.label) {
+    await slot.update({ label: changes.label });
+    await audit.fromReq(req, { eventId: ev.id, action: 'slot.edit', details: { slotId: slot.id, fields: ['label'] } }, null, 'organizer');
+    notify.eventChanged(ev.id);
+  }
+  if (Object.keys(material).length) {
+    await EV.queueSlotChange(req, ev.id, { op: 'edit', slotId: slot.id, changes: material });
+    notify.admin('updated', ev.id);
+  }
+  res.json({ slot: S.slotPublic(ev, slot), pendingReview: Object.keys(material) });
 };
 
 // POST /events/:id/slots/:slotId/cancel   { reason? }

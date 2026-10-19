@@ -267,7 +267,7 @@ const TABS = {
 // GET /my/registrations?tab=upcoming|pending|waitlisted|completed|cancelled   (team registrations included for members)
 const mine = async (req, res) => {
   const tab = String(req.query.tab || 'upcoming');
-  if (!TABS[tab]) throw fail(400, 'INVALID_INPUT', 'tab must be upcoming, pending, waitlisted, completed or cancelled.', { field: 'tab' });
+  if (!Object.hasOwn(TABS, tab)) throw fail(400, 'INVALID_INPUT', 'tab must be upcoming, pending, waitlisted, completed or cancelled.', { field: 'tab' });
   const now = clock.now();
   const { _future, _past, ...where } = TABS[tab](now);
   const teamIds = (await M().Member.findAll({ where: { userId: req.user.id, status: E.MEMBER_STATUS.ACCEPTED }, attributes: ['teamId'] })).map((m) => m.teamId);

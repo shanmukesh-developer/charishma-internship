@@ -40,6 +40,7 @@ const NAV_ITEMS: { href: string; icon: string; label: string }[] = [
   { href: '/friends', icon: '🫂', label: 'Friends Config' },
   { href: '/cms', icon: '🎨', label: 'Global CMS Layout' },
   { href: '/notifications', icon: '🔔', label: 'Push Notifications' },
+  { href: '/security', icon: '🔐', label: 'Account Security' },
 ];
 
 function AuthScreen({ title, detail, action }: { title: string; detail?: string; action?: React.ReactNode }) {
@@ -82,6 +83,13 @@ export default function NexusLayoutClient({
     const next = pathname && pathname !== '/' ? `?next=${encodeURIComponent(pathname)}` : '';
     router.replace(`/login${next}`);
   }, [isLoginPage, auth.status, pathname, router]);
+
+  // S1: 2-step sign-in is required and not set up yet: only the Account security page is usable.
+  const mustSetUp2fa = isAuthed && !!auth.user?.mfaSetupRequired;
+  const onSecurityPage = pathname.replace(/\/+$/, '') === '/security';
+  useEffect(() => {
+    if (mustSetUp2fa && !onSecurityPage) router.replace('/security');
+  }, [mustSetUp2fa, onSecurityPage, router]);
 
   const fetchHealth = useCallback(async () => {
     try {
@@ -127,6 +135,10 @@ export default function NexusLayoutClient({
 
   if (!isAuthed) {
     return <AuthScreen title="Redirecting to sign in" />;
+  }
+
+  if (mustSetUp2fa && !onSecurityPage) {
+    return <AuthScreen title="Set up 2-step sign-in" detail="Admin access needs 2-step sign-in. Opening Account security..." />;
   }
 
   return (

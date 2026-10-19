@@ -50,13 +50,21 @@ const slotsLeftFor = async (events) => {
   return out;
 };
 
+/** S1: does this user hold ACTIVE organizer access (CeOrganizer row)? */
+const activeOrganizer = async (userId) => {
+  const o = await M().Organizer.findOne({ where: { userId }, attributes: ['id', 'status'] });
+  return !!o && o.status === E.ORGANIZER_STATUS.ACTIVE;
+};
+
 /** Is this user the organizer of the event, an admin, or active staff for it? */
 const staffRole = async (user, event) => {
   if (!user) return null;
   if (String(user.role || '').toLowerCase() === 'admin') return 'admin';
-  if (String(event.organizerUserId) === String(user.id)) return 'organizer';
-  const s = await M().Staff.findOne({ where: { eventId: event.id, userId: user.id, status: E.STAFF_STATUS.ACTIVE }, attributes: ['id'] });
+  // S1: the event's organizer counts only while their CeOrganizer access is ACTIVE (a suspended / revoked
+  // organizer keeps no gate rights; an explicit staff grant for the event still applies below).
+  if (String(event.organizerUserId) === String(user.id) && await activeOrganizer(user.id)) return 'organizer';
+  const s =await M().Staff.findOne({ where: { eventId: event.id, userId: user.id, status: E.STAFF_STATUS.ACTIVE }, attributes: ['id'] });
   return s ? 'staff' : null;
 };
 
-module.exports = { M, User, Entity, byIds, usersById, loadEvent, organizerContext, slotsLeftFor, staffRole };
+module.exports = { M, User, Entity, byIds, usersById, loadEvent, organizerContext, slotsLeftFor, staffRole, activeOrganizer };

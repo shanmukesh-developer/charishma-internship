@@ -206,10 +206,13 @@ const editEvent = async (req, res) => {
 const approveChanges = async (req, res) => {
   const ev0 = await loadEvent(req.params.id);
   if (!ev0.pendingChanges || !ev0.pendingChanges.fields) throw fail(409, 'NO_PENDING_CHANGES', 'There are no changes waiting.');
-  const fields = EV.revive(ev0.pendingChanges.fields);
-  const ev = await EV.applyMaterial(req, ev0.id, fields, { action: 'event.changes_approve' });
+  // S1: slot changes of a live event (pendingChanges.fields.slotChanges) are applied after the event fields.
+  const { slotChanges, ...eventFields } = ev0.pendingChanges.fields;
+  const fields = EV.revive(eventFields);
+  let ev = Object.keys(fields).length ? await EV.applyMaterial(req, ev0.id, fields, { action: 'event.changes_approve' }) : ev0;
+  if (Array.isArray(slotChanges) && slotChanges.length) ev = (await EV.applySlotChanges(req, ev0.id, slotChanges)).event;
   await ev.update({ pendingChanges: null });
-  await adminAudit(req, ev.id, 'campus_events.event.changes_approve', { fields: Object.keys(fields) });
+  await adminAudit(req, ev.id, 'campus_events.event.changes_approve', { fields: Object.keys(fields), slotChanges: Array.isArray(slotChanges) ? slotChanges.length : 0 });
   notify.toOrganizer(ev, 'Changes approved ✅', `Your changes to ${ev.title} are live.`, N.CHANGES_APPROVED);
   res.json({ event: await eventOut(req, ev) });
 };
@@ -218,6 +221,7 @@ const rejectChanges = async (req, res) => {
   if (!ev.pendingChanges) throw fail(409, 'NO_PENDING_CHANGES', 'There are no changes waiting.');
   const note = cleanText(req.body && (req.body.note || req.body.reason), 500) || 'Not approved';
   await ev.update({ pendingChanges: null, reviewNote: note });
+  await EV.rejectPendingSlots(ev.id); // S1: slots added while live stay closed
   await logBoth(req, { eventId: ev.id, action: 'event.changes_reject', details: { note } });
   notify.toOrganizer(ev, 'Changes not approved', `${ev.title}: ${note.slice(0, 120)}`, N.EVENT_REJECTED);
   res.json({ event: await eventOut(req, ev) });

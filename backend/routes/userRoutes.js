@@ -81,6 +81,8 @@ const loginValidation = [
 
 router.post('/register', authLimiter, registerValidation, validate, registerUser);
 router.post('/login', authLimiter, accountLockout, loginValidation, validate, authUser);
+// S1: admin 2-step sign-in, second step ({ mfaToken, code | recoveryCode }); 5 wrong codes lock it 15 min.
+router.post('/login/mfa', authIpLimiter, require('../services/adminTwoFactor').loginMfa);
 router.post('/send-otp', authLimiter, otpSendIpLimiter, sendOtp);
 router.post('/verify-otp', authLimiter, verifyOtp);
 router.post('/google-login', authLimiter, googleLogin);

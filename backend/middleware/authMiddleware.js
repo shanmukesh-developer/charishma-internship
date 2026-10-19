@@ -80,8 +80,9 @@ const protect = async (req, res, next) => {
         return res.status(401).json({ message: 'Your password was changed. Please sign in again.', code: 'SESSION_REVOKED' });
       }
       if (cached.isActive === false) return res.status(403).json({ message: 'Account suspended. Please contact support.' });
-      const { tokenVersion: _tv, ...user } = cached;
-      req.user = user;
+      const { tokenVersion: _tv, twoFactorEnabled: _tf, ...user } = cached;
+      // S1: an admin session without the 2-step claim has no admin powers when 2FA is on / required.
+      req.user = tokenClass === 'user' ? require('../services/adminTwoFactor').applyTo(user, decoded, _tf) : user;
       return next();
     }
     
@@ -136,8 +137,11 @@ const protect = async (req, res, next) => {
         roomNumber: dbUser.roomNumber,
         isActive: dbUser.isActive
       };
-      req.user = userPayload;
-      setCachedUser('user', decoded.id, { ...userPayload, tokenVersion: Number(dbUser.tokenVersion) || 0 });
+      // S1: admins: is 2-step sign-in on? (cached with the row; enable / disable clear the cache)
+      const tf = require('../services/adminTwoFactor');
+      const twoFactorEnabled = String(userPayload.role).toLowerCase() === 'admin' ? await tf.isEnabled(dbUser.id) : false;
+      req.user = tf.applyTo(userPayload, decoded, twoFactorEnabled);
+      setCachedUser('user', decoded.id, { ...userPayload, tokenVersion: Number(dbUser.tokenVersion) || 0, twoFactorEnabled });
     } else {
       req.user = decoded;
     }
@@ -214,7 +218,9 @@ const isLiveAdminRequest = async (req) => {
     if (!User) return false;
     const u = await User.findByPk(decoded.id, { attributes: ['id', 'role', 'isActive', 'tokenVersion'] });
     return !!u && String(u.role || '').toLowerCase() === 'admin' && u.isActive !== false
-      && (Number(decoded.tv) || 0) === (Number(u.tokenVersion) || 0);
+      && (Number(decoded.tv) || 0) === (Number(u.tokenVersion) || 0)
+      // S1: and a 2-step session when 2FA is on / required
+      && (await require('../services/adminTwoFactor').effectiveRole('admin', decoded, u.id)) === 'admin';
   } catch {
     return false;
   }

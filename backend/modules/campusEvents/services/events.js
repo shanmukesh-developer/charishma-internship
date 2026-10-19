@@ -221,4 +221,71 @@ const cancelSlot = async (req, eventId, slotId, { by, reason }) => {
   return out.slot;
 };
 
-module.exports = { cleanFields, organizerEdit, applyMaterial, submit, cancelEvent, cancelSlot, revive, slugify, assertCapacityChange, merged };
+// ── S1: slot changes on a live event (APPROVED / PUBLISHED / UNPUBLISHED) wait for an admin ──────────────
+// New slots are stored as status PENDING (not bookable) and listed, with time / capacity / price edits of
+// OPEN slots, in pendingChanges.fields.slotChanges, so they show in the admin Review queue next to the event
+// fields. Approve -> applySlotChanges (re-checked in the event lock); reject -> pending slots REJECTED.
+const SLOT_MATERIAL = ['startAt', 'endAt', 'capacity', 'price'];
+
+/** Appends one slot change to the event's pendingChanges (edits of the same slot replace each other). */
+const queueSlotChange = async (req, eventId, entry) => cap.inLock(eventId, async (t, ev) => {
+  const pc = ev.pendingChanges && typeof ev.pendingChanges === 'object' ? ev.pendingChanges : null;
+  const fields = { ...((pc && pc.fields) || {}) };
+  let list = Array.isArray(fields.slotChanges) ? fields.slotChanges.slice() : [];
+  if (entry.op === 'edit') {
+    const add = list.find((c) => c.op === 'add' && c.slotId === entry.slotId);
+    if (add) Object.assign(add, entry.changes);
+    else list = [...list.filter((c) => !(c.op === 'edit' && c.slotId === entry.slotId)), entry];
+  } else list.push(entry);
+  fields.slotChanges = serializable(list.slice(-200));
+  await ev.update({ pendingChanges: { ...(pc || {}), fields, requestedAt: clock.now().toISOString(), requestedBy: String(req.user.id) } }, { transaction: t });
+  await audit.fromReq(req, { eventId: ev.id, action: 'slot.request_changes', details: { op: entry.op, slotId: entry.slotId } }, t, 'organizer');
+  return {};
+});
+
+/** Applies approved slot changes inside the event lock (capacity / bookings / maxPrice re-checked). */
+const applySlotChanges = async (req, eventId, list) => {
+  const s = await flag.readSettings();
+  const timeChanged = [];
+  const out = await cap.inLock(eventId, async (t, ev) => {
+    const promoted = [];
+    let applied = 0;
+    for (const c of Array.isArray(list) ? list : []) {
+      if (!c || !c.slotId) continue;
+      const slot = await M().Slot.findByPk(String(c.slotId), { transaction: t });
+      if (!slot || String(slot.eventId) !== String(ev.id)) continue;
+      if (c.op === 'add') {
+        if (slot.status !== 'PENDING') continue;
+        if (slot.price !== null && slot.price !== undefined && money(slot.price) > s.maxPrice) throw fail(400, 'INVALID_INPUT', `A slot price can be at most ₹${s.maxPrice}.`, { field: 'price' });
+        await slot.update({ status: 'OPEN' }, { transaction: t });
+        applied++;
+      } else if (c.op === 'edit') {
+        if (slot.status !== 'OPEN') continue;
+        const changes = {};
+        for (const k of SLOT_MATERIAL) if (c.changes && Object.prototype.hasOwnProperty.call(c.changes, k)) changes[k] = ['startAt', 'endAt'].includes(k) ? new Date(c.changes[k]) : c.changes[k];
+        const taken = Number(slot.unitsLive) || 0;
+        if (changes.capacity !== undefined && changes.capacity < taken) throw fail(409, 'CAPACITY_BELOW_TAKEN', `A slot already has ${taken} bookings.`, { field: 'capacity' });
+        if (changes.price !== undefined && taken + (Number(slot.waitlistCount) || 0) > 0) throw fail(409, 'HAS_REGISTRATIONS', 'The price of a slot with bookings cannot change.', { field: 'price' });
+        if (changes.price !== undefined && changes.price !== null && money(changes.price) > s.maxPrice) throw fail(400, 'INVALID_INPUT', `A slot price can be at most ₹${s.maxPrice}.`, { field: 'price' });
+        const start = changes.startAt || slot.startAt;
+        const end = changes.endAt || slot.endAt;
+        if (new Date(end).getTime() <= new Date(start).getTime()) throw fail(400, 'INVALID_INPUT', 'A slot must end after it starts.', { field: 'endAt' });
+        if (['startAt', 'endAt'].some((k) => changes[k] && changes[k].getTime() !== new Date(slot[k]).getTime())) timeChanged.push(slot.id);
+        await slot.update(changes, { transaction: t });
+        promoted.push(...(await cap.promote(ev, slot.id, t)));
+        applied++;
+      }
+    }
+    await audit.fromReq(req, { eventId: ev.id, action: 'slot.changes_apply', details: { applied } }, t);
+    return { promoted, applied };
+  });
+  outcomes.promoted(out.promoted, out.event);
+  for (const id of timeChanged) notify.eventBroadcast(out.event, { title: 'Slot time changed 🕒', body: `Your slot for ${out.event.title} has a new time. Open your booking for details.`, type: N.SLOT_CHANGED, slotId: id, dedupe: `a${clock.nowMs()}` });
+  if (out.applied && !timeChanged.length) notify.eventChanged(out.event.id);
+  return out;
+};
+
+/** Rejected changes: slots that were waiting are closed (never bookable). */
+const rejectPendingSlots = async (eventId) => M().Slot.update({ status: 'REJECTED' }, { where: { eventId, status: 'PENDING' } });
+
+module.exports = { cleanFields, organizerEdit, applyMaterial, submit, cancelEvent, cancelSlot, revive, slugify, assertCapacityChange, merged, queueSlotChange, applySlotChanges, rejectPendingSlots, SLOT_MATERIAL };

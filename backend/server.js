@@ -546,7 +546,9 @@ async function loadSocketAccount(decoded) {
   const u = await getUserModel().findByPk(id, { attributes: ['id', 'role', 'isActive', 'tokenVersion'] });
   if (!u) return null;
   if ((Number(decoded.tv) || 0) !== (Number(u.tokenVersion) || 0)) return null; // password changed
-  return { id: u.id, role: u.role || 'student', suspended: u.isActive === false };
+  // S1: an admin socket without a 2-step session (2FA on / required) joins as a plain customer.
+  const role = await require('./services/adminTwoFactor').effectiveRole(u.role || 'student', decoded, u.id);
+  return { id: u.id, role, suspended: u.isActive === false };
 }
 
 // io is already attached to app via app.set('io', io) above
@@ -580,7 +582,8 @@ const helmetMiddleware = helmet({
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         frameSrc: ["'self'", "https://www.google.com", "https://recaptcha.google.com", "https://*.firebaseapp.com"],
         objectSrc: ["'none'"],
-        frameAncestors: ["*"],
+        // S1: no page of the API may be framed by another site (was '*'). /auth-helper sets its own list.
+        frameAncestors: ["'none'"],
         upgradeInsecureRequests: [],
       },
     },
@@ -789,6 +792,11 @@ app.use('/api', (req, res, next) => {
 // answer). Requests without the header (web, admin, tests, older builds) pass. No policy set = no effect.
 app.use('/api', require('./utils/appVersionPolicy').gate);
 
+// S1: Firebase App Check (utils/appCheck.js). APP_CHECK_MODE=off (default) | monitor | enforce; only the
+// abuse-prone POSTs (OTP, sign-in, orders, wallet, event registration, Auto-Ride holds); fails open.
+require('./utils/appCheck').logStatus();
+app.use(require('./utils/appCheck').middleware());
+
 // Connect to PostgreSQL, then initialize routes. Runs AFTER the port is open (see startServer).
 const initializeApp = async () => {
   try {
@@ -796,13 +804,16 @@ const initializeApp = async () => {
     try {
       await require('./config/sweepMigrations').runSweepMigrations(require('./config/db').getSequelize());
     } catch (e) { console.warn('[SWEEP_MIGRATION_WARN]', e.message); }
+    // S1: admin 2-step sign-in table (AdminTwoFactors; CREATE TABLE IF NOT EXISTS, additive).
+    try { await require('./models/AdminTwoFactor').getAdminTwoFactorModel(); } catch (e) { console.warn('[ADMIN_2FA_MIGRATION_WARN]', e.message); }
     // Wall contest / media and chat + Pulse retention jobs: scheduled with the others (jobs/index.js) below.
 
     app.get('/auth-helper', (req, res) => {
       res.removeHeader('X-Frame-Options');
       // Only Zenvy's own web apps (and local dev) may frame this page: it hands a Firebase phone
       // token to its parent window, which POST /api/users/login turns into a session.
-      const frameAncestors = ["'self'", ...PRODUCTION_ORIGINS, 'http://localhost:*', 'http://127.0.0.1:*'].join(' ');
+      // S1: localhost framing only outside production.
+      const frameAncestors = ["'self'", ...PRODUCTION_ORIGINS, ...(require('./utils/env').isProduction() ? [] : ['http://localhost:*', 'http://127.0.0.1:*'])].join(' ');
       res.setHeader("Content-Security-Policy", `default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src * 'unsafe-inline'; frame-src *; style-src * 'unsafe-inline'; frame-ancestors ${frameAncestors};`);
       res.send(`
 <!DOCTYPE html>
@@ -1451,10 +1462,9 @@ const initializeApp = async () => {
     } catch (e) { console.error('[JOBS_INIT_ERR]', e); }
     
 
-    // Serve uploaded files statically
-    const uploadsDir = path.join(__dirname, 'uploads');
-    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-    app.use('/uploads', express.static(uploadsDir));
+    // S1: the old /uploads static mount is gone. Nothing writes to disk any more (multer memoryStorage ->
+    // DB / media storage), Render's disk is ephemeral, and old '/uploads/..' paths are cleared at startup
+    // (config/db.js). Serving a writable folder publicly was only a risk.
 
     // Persistent Base64 Image Storage (survives on Render)
     const storage = multer.memoryStorage();

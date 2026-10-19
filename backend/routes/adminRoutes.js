@@ -54,15 +54,25 @@ const { protect, admin } = require('../middleware/authMiddleware');
 
 // ─── Protected Admin Routes ──────────────────────────────────
 router.use(protect);
-router.use(admin);
+
+// S1: admin 2-step sign-in endpoints + the session check also accept an admin session that still has to
+// set up 2FA (ADMIN_2FA_REQUIRED): such a session has no admin powers anywhere else.
+const twoFactor = require('../services/adminTwoFactor');
+router.use('/2fa', twoFactor.requireAdminAccount, twoFactor.router());
 
 // Admin session check for the dashboard: 200 only for a valid admin token
-// (protect -> 401 without/with a bad token, admin -> 403 for non-admins).
-router.get('/me', (req, res) => {
-  const { id, name, phone, email, role } = req.user;
+// (protect -> 401 without/with a bad token, 403 for non-admins).
+router.get('/me', twoFactor.requireAdminAccount, async (req, res) => {
+  const { id, name, phone, email } = req.user;
   res.set('Cache-Control', 'no-store');
-  res.json({ id, name: name || 'Admin', phone: phone || null, email: email || null, role });
+  const pending = !!req.user.adminMfaPending;
+  const enabled = await twoFactor.isEnabled(id);
+  // 2FA is on but this session never passed the code: sign in again (with the code).
+  if (pending && enabled) return res.status(401).json({ code: 'MFA_REQUIRED', message: 'Sign in again with your 2-step code.' });
+  res.json({ id, name: name || 'Admin', phone: phone || null, email: email || null, role: 'admin', mfaSetupRequired: pending, twoFactorEnabled: enabled, twoFactorRequired: twoFactor.required() });
 });
+
+router.use(admin);
 
 // Mailer check: sends one demo email through Brevo so the admin can confirm BREVO_API_KEY/MAIL_FROM work.
 router.post('/mail/test', async (req, res) => {
@@ -212,6 +222,8 @@ router.get('/metrics/perf', async (req, res) => {
   try { snap.wallet = require('../utils/walletLedger').reconcileStatus(); } catch { /* optional */ }
   // C6: last rider cash reconciliation (riders / COD orders checked, problems, alerts sent).
   try { snap.riderCash = require('../utils/riderCash').reconcileStatus(); } catch { /* optional */ }
+  // S1: App Check counters (mode, valid / invalid / missing / unavailable / blocked per group).
+  try { snap.appCheck = require('../utils/appCheck').stats(); } catch { /* optional */ }
   if (String(req.query.reset || '') === '1') perf.resetRoutes();
   res.set('Cache-Control', 'no-store');
   res.json(snap);

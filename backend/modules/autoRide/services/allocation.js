@@ -515,10 +515,13 @@ const checkIn = async ({ tripId, driverId, bookingCode, pin, cashCollected }) =>
 /** Driver marks a confirmed passenger who did not turn up (after the departure time). */
 const markNoShow = async ({ tripId, driverId, bookingId }) => {
   const { Booking } = M();
+  // S1: a passenger can be marked no-show only noShowGraceMinutes after the departure time (late passengers
+  // keep their seat; starting the trip still closes unboarded bookings as before).
+  const graceMin = Number((await readSettings()).noShowGraceMinutes) || 0;
   return withTripLock(tripId, async (t, trip) => {
     if (String(trip.driverId) !== String(driverId)) throw fail(404, 'NOT_FOUND', 'Trip not found.');
     if (![T.DRIVER_CONFIRMED, T.BOARDING].includes(trip.status)) throw fail(409, 'INVALID_STATE', 'Passengers can be marked no-show only after you confirm departure.');
-    if (new Date(trip.departureAt).getTime() > clock.nowMs()) throw fail(409, 'TOO_EARLY', 'Wait until the departure time before marking a passenger as no-show.');
+    if (new Date(trip.departureAt).getTime() + graceMin * 60 * 1000 > clock.nowMs()) throw fail(409, 'TOO_EARLY', `Wait ${graceMin} minutes after the departure time before marking a passenger as no-show.`, { graceMinutes: graceMin });
     const b = await Booking.findByPk(bookingId, lockOpt(t));
     if (!b || String(b.tripId) !== String(trip.id)) throw fail(404, 'NOT_FOUND', 'Booking not found.');
     if (b.status !== B.CONFIRMED) throw fail(409, 'INVALID_STATE', `This booking is ${b.status.toLowerCase()}.`);

@@ -16,7 +16,7 @@ const SESSION_COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 const ADMIN_SESSION_TTL = /^\d+[smhd]$/.test(String(process.env.ADMIN_SESSION_TTL || '')) ? process.env.ADMIN_SESSION_TTL : '12h';
 
 // `tv` = tokenVersion: a password change bumps it and protect() rejects older sessions.
-const generateToken = (id, role, tokenVersion = 0) => {
+const generateToken = (id, role, tokenVersion = 0, extraClaims = undefined) => {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     console.error('[AUTH_FATAL] JWT_SECRET is not configured.');
@@ -25,7 +25,10 @@ const generateToken = (id, role, tokenVersion = 0) => {
   // Admin sessions are short (admin-7): a leaked dashboard token is useless after ADMIN_SESSION_TTL
   // (default 12 h) instead of 30 days. Customers keep 30-day phone sessions.
   const isAdminRole = String(role || '').toLowerCase() === 'admin';
-  return jwt.sign({ id, role, tv: Number(tokenVersion) || 0 }, secret, { expiresIn: isAdminRole ? ADMIN_SESSION_TTL : '30d' });
+  // S1: `mfa: 1` marks an admin session that passed the 2-step code (services/adminTwoFactor).
+  const claims = { id, role, tv: Number(tokenVersion) || 0 };
+  if (extraClaims && extraClaims.mfa) claims.mfa = 1;
+  return jwt.sign(claims, secret, { expiresIn: isAdminRole ? ADMIN_SESSION_TTL : '30d' });
 };
 
 // Indian mobile numbers only (10 digits, starting 6-9)
@@ -125,12 +128,29 @@ const legalStatus = async (user) => {
 };
 
 /** Issues a session for `user` and sends `{ ...sanitizeUser(user), token }`. */
-const sendSession = async (res, user, status = 200, { skipCookie = false } = {}) => {
+const sendSession = async (res, user, status = 200, { skipCookie = false, mfaVerified = false, extra = {} } = {}) => {
   if (user.isActive === false) {
     return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'This account has been suspended. Please contact Zenvy support.' });
   }
+  // S1: admin 2-step sign-in. An admin with 2FA on gets a short single-use challenge instead of a session
+  // (POST /api/users/login/mfa finishes it); with ADMIN_2FA_REQUIRED and no 2FA yet the session has no
+  // admin powers until 2FA is set up (mfaSetupRequired). Fails closed (503) if the 2FA state is unreadable.
+  let mfaSetupRequired = false;
+  if (String(user.role || '').toLowerCase() === 'admin' && !mfaVerified) {
+    let gate;
+    try {
+      gate = await require('../services/adminTwoFactor').loginGate(user);
+    } catch (err) {
+      console.error('[ADMIN_2FA_GATE_ERROR]', err.message);
+      return res.status(503).json({ code: 'MFA_UNAVAILABLE', message: 'Admin sign-in is temporarily unavailable. Please try again in a minute.' });
+    }
+    if (gate.mfaRequired) {
+      return res.status(200).json({ mfaRequired: true, mfaToken: gate.mfaToken, mfaExpiresIn: gate.expiresIn, message: 'Enter the 6-digit code from your authenticator app.' });
+    }
+    mfaSetupRequired = !!gate.setupRequired;
+  }
   await ensureFriendCode(user);
-  const token = generateToken(user.id, user.role, user.tokenVersion);
+  const token = generateToken(user.id, user.role, user.tokenVersion, mfaVerified ? { mfa: 1 } : undefined);
   if (!token) return res.status(500).json({ message: 'Server configuration error. Please try again later.' });
   if (!skipCookie) {
     if (String(user.role || '').toLowerCase() === 'admin') {
@@ -142,7 +162,7 @@ const sendSession = async (res, user, status = 200, { skipCookie = false } = {})
       setSessionCookie(res, token);
     }
   }
-  return res.status(status).json({ ...sanitizeUser(user), ...(await legalStatus(user)), token });
+  return res.status(status).json({ ...sanitizeUser(user), ...(await legalStatus(user)), ...(extra || {}), ...(mfaSetupRequired ? { mfaSetupRequired: true } : {}), token });
 };
 
 // ── Phone-verified registration token ───────────────────────────────────────
@@ -504,6 +524,11 @@ const authUser = async (req, res) => {
 
     if (!password) {
       return res.status(400).json({ message: 'Please enter your password, or log in with OTP.' });
+    }
+    // S1: the admin web sign-in (X-Zenvy-Client: admin-web, exempt from App Check) signs in admin accounts
+    // only; any other number gets the generic answer before the password is even checked.
+    if (String(req.headers['x-zenvy-client'] || '').toLowerCase() === 'admin-web' && (!user || String(user.role || '').toLowerCase() !== 'admin')) {
+      return res.status(401).json({ message: 'Invalid phone or password' });
     }
     if (!user) {
       return res.status(401).json({ code: 'ACCOUNT_NOT_FOUND', message: 'No Zenvy account uses this number. Create one to get started.' });
@@ -1103,5 +1128,7 @@ module.exports = {
   sendOtp,
   verifyOtp,
   sanitizeUser,
-  verifyPhoneProof
+  verifyPhoneProof,
+  sendSession,
+  generateToken
 };

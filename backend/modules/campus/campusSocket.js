@@ -183,17 +183,19 @@ const initCampusSocket = (io) => {
         return next(new Error('Session expired. Please sign in again.'));
       }
 
+      // S1: admin powers only with a 2-step admin session when 2FA is on / required.
+      const role = await require('../../services/adminTwoFactor').effectiveRole(user.role, decoded, user.id);
       socket.user = {
         id: user.id,
         name: user.name,
-        role: user.role,
+        role,
         hostelBlock: user.hostelBlock,
         // Token version, so a password reset / admin sign-out can drop exactly the old sessions
         // (utils/realtime.disconnectRevokedSockets).
         tv: Number(decoded.tv) || 0,
       };
       // B1: visible to fetchSockets() on other instances (socket.user is not).
-      socket.data.user = { id: user.id, role: user.role, tv: Number(decoded.tv) || 0 };
+      socket.data.user = { id: user.id, role, tv: Number(decoded.tv) || 0 };
 
       next();
     } catch (err) {

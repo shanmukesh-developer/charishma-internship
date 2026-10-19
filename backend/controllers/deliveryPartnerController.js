@@ -1269,7 +1269,24 @@ const getRiderTickets = async (req, res) => {
 };
 
 
-// @desc    Get public profile of a rider (customer tracking page, no auth)
+const canSeeRiderVehicle = async (viewer, riderId) => {
+  if (!viewer || !viewer.id) return false;
+  const role = String(viewer.role || '').toLowerCase();
+  if (role === 'admin') return true;
+  if (role === 'rider') return String(viewer.id) === String(riderId);
+  if (role === 'restaurant' || role === 'auto_driver') return false;
+  try {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const where = { userId: viewer.id, deliveryPartnerId: riderId, createdAt: { [Op.gt]: since } };
+    const order = await getOrderModel().findOne({ where: { ...where, status: { [Op.ne]: 'Cancelled' } }, attributes: ['id'] });
+    if (order) return true;
+    const MB = require('../models/MegaBasket').getMegaBasketModel ? require('../models/MegaBasket').getMegaBasketModel() : null;
+    if (MB && await MB.findOne({ where, attributes: ['id'] })) return true;
+  } catch (e) { console.warn('[RIDER_PUBLIC_VEHICLE_CHECK]', e.message); }
+  return false;
+};
+
+// @desc    Get public profile of a rider (customer tracking page)
 const getPublicRiderProfile = async (req, res) => {
   try {
     const DeliveryPartner = getDeliveryPartnerModel();
@@ -1277,7 +1294,11 @@ const getPublicRiderProfile = async (req, res) => {
       attributes: ['id', 'name', 'photoUrl', 'vehicleType', 'vehicleNumber', 'averageRating', 'totalRatings', 'bio']
     });
     if (!partner) return res.status(404).json({ message: 'Rider not found' });
-    res.json({ ...partner.toJSON(), _id: partner.id });
+    const out = { ...partner.toJSON(), _id: partner.id };
+    // S1: the vehicle number only for the rider, admins and customers this rider is (or in the last 24 h
+    // was) delivering to. Anyone else signed in sees name / photo / vehicle type / rating only.
+    if (!(await canSeeRiderVehicle(req.user, partner.id))) delete out.vehicleNumber;
+    res.json(out);
   } catch (error) {
     serverError(res, '[RIDER_ERROR]', error);
   }

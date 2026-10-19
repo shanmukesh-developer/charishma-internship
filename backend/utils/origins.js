@@ -33,16 +33,23 @@ const productionOrigins = (env = process.env) => {
   return out;
 };
 
-const allowedOrigins = (env = process.env) => [...productionOrigins(env), ...LOCAL_ORIGINS];
+// S1: localhost / 127.0.0.1 / *.localhost browser origins are accepted only outside production (NODE_ENV /
+// RENDER, as utils/env.isProduction), or in production with ALLOW_LOCAL_ORIGINS=1 (temporary local admin
+// debugging against the live API). Native apps send no Origin and are unaffected.
+const isProductionEnv = (env) => env.NODE_ENV === 'production' || env.RENDER === 'true';
+const localOriginsAllowed = (env = process.env) => !isProductionEnv(env) || String(env.ALLOW_LOCAL_ORIGINS || '') === '1';
+
+const allowedOrigins = (env = process.env) => [...productionOrigins(env), ...(localOriginsAllowed(env) ? LOCAL_ORIGINS : [])];
 
 /** Returns isAllowedOrigin(origin) bound to the list built from `env` (built once). */
 const makeOriginChecker = (env = process.env, { log = console } = {}) => {
   const list = allowedOrigins(env);
+  const local = localOriginsAllowed(env);
   return (origin) => {
     if (!origin) return true;
     if (list.includes(origin)) return true;
     // Strict match for local dev / mobile schemes to prevent domain spoofing
-    if (/^https?:\/\/(localhost|127\.0\.0\.1|[a-z0-9-]+\.localhost)(:\d+)?$/.test(origin)) return true;
+    if (local && /^https?:\/\/(localhost|127\.0\.0\.1|[a-z0-9-]+\.localhost)(:\d+)?$/.test(origin)) return true;
     if (origin.startsWith('capacitor://') || origin.startsWith('exp://')) return true;
     if (/\.onrender\.com$/.test(origin) && log) {
       log.warn(`[CORS] Refused ${origin}. Add it to ALLOWED_ORIGINS if it is a real Zenvy app.`);
@@ -51,4 +58,4 @@ const makeOriginChecker = (env = process.env, { log = console } = {}) => {
   };
 };
 
-module.exports = { BUILT_IN_PRODUCTION_ORIGINS, LOCAL_ORIGINS, parseList, productionOrigins, allowedOrigins, makeOriginChecker };
+module.exports = { BUILT_IN_PRODUCTION_ORIGINS, LOCAL_ORIGINS, parseList, productionOrigins, allowedOrigins, makeOriginChecker, localOriginsAllowed };

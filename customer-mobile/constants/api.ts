@@ -6,7 +6,8 @@ import {
   trustedHostsFrom,
   type RefreshResult,
 } from '../utils/endpointOverride';
-import { configureForceUpdate } from '../utils/forceUpdate';
+import { configureForceUpdate, getApiOrigin } from '../utils/forceUpdate';
+import { installAppCheckFetchHook } from '../utils/appCheck';
 
 // Production Cloud API URL (Render) — the built-in address.
 export const PROD_API_URL = 'https://hostelbites-backend-jwmt.onrender.com';
@@ -36,6 +37,8 @@ export const API_URL_SOURCE = ACTIVE_ENDPOINT.source;
 
 // Force update (utils/forceUpdate.ts): version headers on every API call + 426 UPGRADE_REQUIRED handling.
 configureForceUpdate({ app: 'customer', apiBase: API_URL });
+// S1: Firebase App Check header on the protected POSTs (utils/appCheck.ts; never blocks a request).
+installAppCheckFetchHook(getApiOrigin());
 
 let endpointCheckStarted = false;
 /** Once per launch, a few seconds after start: learn / verify / self-heal the API address for the next launch. */

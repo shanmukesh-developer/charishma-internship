@@ -210,7 +210,7 @@ const runAction = async ({ tripId, driverId, action, body = {} }) => {
     if (!['DRIVER', 'VEHICLE'].includes(kind)) throw fail(400, 'INVALID_INPUT', 'kind must be DRIVER or VEHICLE.', { field: 'kind' });
     return endTrip({ tripId, to: kind === 'DRIVER' ? T.DRIVER_UNAVAILABLE : T.VEHICLE_UNAVAILABLE, actor: 'driver', actorId: driverId, reason: body.reason, driverId });
   }
-  const fn = ACTIONS[action];
+  const fn = Object.hasOwn(ACTIONS, String(action)) ? ACTIONS[action] : null;
   if (!fn) throw fail(404, 'UNKNOWN_ACTION', 'Unknown trip action.');
   const out = await withTripLock(tripId, async (t, trip) => {
     loadOwn(trip, driverId);

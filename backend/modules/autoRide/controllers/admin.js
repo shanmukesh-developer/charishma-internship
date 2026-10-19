@@ -140,7 +140,7 @@ const suspendDriver = async (req, res) => {
   const reason = reasonOf(req.body);
   const d = await byId(Driver, req.params.id, 'Driver');
   if (d.status === D.SUSPENDED) throw fail(409, 'INVALID_STATE', 'This driver is already suspended.');
-  await d.update({ status: D.SUSPENDED, suspendedReason: reason, isOnline: false, tokenVersion: (Number(d.tokenVersion) || 0) + 1, reviewedBy: req.user.id, reviewedAt: clock.now() });
+  await d.update({ status: D.SUSPENDED, statusBeforeSuspension: d.status, suspendedReason: reason, isOnline: false, tokenVersion: (Number(d.tokenVersion) || 0) + 1, reviewedBy: req.user.id, reviewedAt: clock.now() });
   try { require('../../../utils/realtime').disconnectRevokedSockets(d.id, null); } catch { /* ignore */ }
   const active = await Trip.findAll({ where: { driverId: d.id, status: { [Op.in]: E.ACTIVE_TRIP_STATUSES.filter((s) => s !== T.IN_PROGRESS) } }, attributes: ['id'] });
   let tripsEnded = 0;
@@ -160,8 +160,11 @@ const unsuspendDriver = async (req, res) => {
   const { Driver } = M();
   const d = await byId(Driver, req.params.id, 'Driver');
   if (d.status !== D.SUSPENDED) throw fail(409, 'INVALID_STATE', 'This driver is not suspended.');
-  await d.update({ status: d.reviewedAt ? D.VERIFIED : D.PENDING_REVIEW, suspendedReason: null, reviewedBy: req.user.id, reviewedAt: clock.now() });
-  await audit(req, d.id, 'AUTO_DRIVER_REACTIVATED', {});
+  // S1: back to the status the suspension interrupted (a driver whose new documents were waiting for review
+  // stays PENDING_REVIEW, never VERIFIED). Rows suspended before S1 have no record: they are re-reviewed.
+  const prev = [D.PENDING_DOCS, D.PENDING_REVIEW, D.VERIFIED, D.REJECTED].includes(d.statusBeforeSuspension) ? d.statusBeforeSuspension : (d.submittedAt ? D.PENDING_REVIEW : D.PENDING_DOCS);
+  await d.update({ status: prev, statusBeforeSuspension: null, suspendedReason: null, reviewedBy: req.user.id, reviewedAt: clock.now() });
+  await audit(req, d.id, 'AUTO_DRIVER_REACTIVATED', { status: prev });
   notify.toDriver(d.id, 'Account reactivated', 'Your Zenvy Auto Driver account is active again. Please sign in.', { type: 'AUTO_DRIVER_REACTIVATED' });
   notify.admin('auto_driver', 'updated', d.id);
   res.json({ driver: S.driverAdmin(req, d) });

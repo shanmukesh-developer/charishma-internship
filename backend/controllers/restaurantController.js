@@ -792,6 +792,37 @@ const getLocalVendors = async (req, res) => {
   }
 };
 
+// S1: click dedupe (memory, per instance, bounded). Key = IST day + viewer + store; cleared when the day changes.
+const CLICK_DEDUPE_MAX = 50000;
+const clickDedupe = (() => {
+  let day = '';
+  let seen = new Set();
+  const istDay = () => new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return {
+    firstToday(viewer, storeId) {
+      const d = istDay();
+      if (d !== day) { day = d; seen = new Set(); }
+      const k = `${viewer}|${storeId}`;
+      if (seen.has(k)) return false;
+      if (seen.size >= CLICK_DEDUPE_MAX) seen.delete(seen.values().next().value);
+      seen.add(k);
+      return true;
+    },
+    reset() { day = ''; seen = new Set(); },
+  };
+})();
+const clickViewerKey = (req) => {
+  try {
+    const h = String((req.headers && req.headers.authorization) || '');
+    const raw = h.startsWith('Bearer ') ? h.slice(7) : (req.cookies && req.cookies.token) || null;
+    if (raw && process.env.JWT_SECRET) {
+      const d = require('jsonwebtoken').verify(String(raw).replace(/['"]+/g, '').trim(), process.env.JWT_SECRET);
+      if (d && d.id) return `u:${d.role || ''}:${d.id}`;
+    }
+  } catch { /* signed out / bad token: by IP */ }
+  return `ip:${req.ip || 'unknown'}`;
+};
+
 // ── CampusBites: Increment Click Counter ─────────────────────
 // @desc    Increment visitor click analytics for a stall
 // @route   POST /api/restaurants/:id/click
@@ -805,6 +836,10 @@ const incrementClickCount = async (req, res) => {
     const restaurant = await Restaurant.findByPk(req.params.id, { attributes: ['id', 'clickCount'] });
     if (!restaurant) return res.status(404).json({ message: 'Vendor not found' });
 
+    // S1: one counted click per store per viewer (signed-in account, else IP) per IST day.
+    if (!clickDedupe.firstToday(clickViewerKey(req), restaurant.id)) {
+      return res.json({ success: true, clickCount: restaurant.clickCount, counted: false });
+    }
     await restaurant.increment('clickCount');
     res.json({ success: true, clickCount: restaurant.clickCount + 1 });
   } catch (error) {
@@ -994,5 +1029,6 @@ module.exports = {
   setRestaurantHours,
   saveStoreFcmToken,
   getMenuItemById,
-  publicStoreJson
+  publicStoreJson,
+  _clickDedupe: clickDedupe,
 };

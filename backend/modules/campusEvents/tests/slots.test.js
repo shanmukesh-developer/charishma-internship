@@ -143,6 +143,10 @@ test('slots: organizer edits (capacity never below taken, time change notifies),
   assert.equal(low.status, 400);
   const t = await H.api('PATCH', `/api/campus-events/organizer/events/${event.id}/slots/${slots[0].id}`, organizer.token, { startAt: new Date(Date.parse(slots[0].startAt) + 30 * H.MIN).toISOString(), endAt: new Date(Date.parse(slots[0].endAt) + 30 * H.MIN).toISOString() });
   assert.equal(t.status, 200);
+  // S1: on a published event a slot time change waits for an admin; approving applies it and notifies.
+  assert.deepEqual(t.body.pendingReview, ['startAt', 'endAt']);
+  const ap = await H.api('POST', `/api/admin/campus-events/events/${event.id}/changes/approve`, (await H.admin()).token, {});
+  assert.equal(ap.status, 200, JSON.stringify(ap.body));
   assert.ok((await H.notificationsFor(s.id)).some((n) => n.type === 'CE_SLOT_CHANGED'));
   const c = await H.api('POST', `/api/campus-events/organizer/events/${event.id}/slots/${slots[0].id}/cancel`, organizer.token, { reason: 'Rain' });
   assert.equal(c.status, 200);

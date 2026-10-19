@@ -17,7 +17,7 @@ const cap = require('../services/capacity');
 const audit = require('../services/audit');
 const notify = require('../services/notify');
 const { tx } = require('../services/locks');
-const { M, loadEvent, usersById, staffRole } = require('./common');
+const { M, loadEvent, usersById, staffRole, activeOrganizer } = require('./common');
 
 const C = E.CHECKIN_RESULT;
 const R = E.REG_STATUS;
@@ -29,8 +29,9 @@ const loadStaffEvent = async (req, eventId) => {
   return { ev, role };
 };
 
-/** Finds the ticket for a QR token or a typed code. null = INVALID. */
-const findTicket = async (body) => {
+/** Finds the ticket for a QR token or a typed code. null = INVALID. S1: a typed code is looked up inside this
+ *  event only (no cross-event lookup by code); a signed QR token may still answer WRONG_EVENT. */
+const findTicket = async (body, ev) => {
   const Ticket = M().Ticket;
   if (body.token) {
     const p = tickets.parseToken(String(body.token));
@@ -41,7 +42,7 @@ const findTicket = async (body) => {
   }
   const code = normalizeTicketCode(body.code);
   if (code.length !== 10) return { ticket: null, method: 'CODE' };
-  return { ticket: await Ticket.findOne({ where: { ticketCode: code } }), method: 'CODE' };
+  return { ticket: await Ticket.findOne({ where: { ticketCode: code, eventId: ev.id } }), method: 'CODE' };
 };
 
 /** The verdict for a ticket at this event right now (no writes). */
@@ -87,7 +88,7 @@ const validate = async (req, res) => {
   const body = req.body || {};
   const { ev } = await loadStaffEvent(req, body.eventId);
   tickets.assertConfigured();
-  const { ticket, method } = await findTicket(body);
+  const { ticket, method } = await findTicket(body, ev);
   const v = await verdict(ev, ticket);
   await log({ eventId: ev.id, ticketId: ticket ? ticket.id : null, registrationId: v.reg ? v.reg.id : null, staffUserId: req.user.id, action: 'VALIDATE', method, result: v.result });
   res.json(await reply(ev, v));
@@ -99,7 +100,7 @@ const confirm = async (req, res) => {
   const body = req.body || {};
   const { ev, role } = await loadStaffEvent(req, body.eventId);
   tickets.assertConfigured();
-  const { ticket, method } = await findTicket(body);
+  const { ticket, method } = await findTicket(body, ev);
   const v = await verdict(ev, ticket);
   const base = { eventId: ev.id, ticketId: ticket ? ticket.id : null, registrationId: v.reg ? v.reg.id : null, staffUserId: req.user.id, action: 'CONFIRM', method };
   if (v.result !== C.VALID) {
@@ -146,7 +147,9 @@ const myEvents = async (req, res) => {
   const staff = await M().Staff.findAll({ where: { userId: req.user.id, status: E.STAFF_STATUS.ACTIVE }, attributes: ['eventId'] });
   // APPROVED = approved but scheduled (publishAt in the future): staff can be set up and test the gate early.
   const where = { status: { [Op.in]: E.CHECKIN_EVENT_STATUSES }, endAt: { [Op.gt]: new Date(clock.nowMs() - 24 * 60 * 60 * 1000) } };
-  if (!isAdmin) where[Op.or] = [{ organizerUserId: req.user.id }, { id: { [Op.in]: staff.map((s) => s.eventId) } }];
+  // S1: own events only while the organizer access is ACTIVE.
+  const ownOk = !isAdmin && await activeOrganizer(req.user.id);
+  if (!isAdmin) where[Op.or] = [...(ownOk ? [{ organizerUserId: req.user.id }] : []), { id: { [Op.in]: staff.map((s) => s.eventId) } }];
   const rows = await M().Event.findAll({ where, order: [['startAt', 'ASC']], limit: 100 });
   res.json({ events: rows.map((ev) => ({ id: ev.id, title: ev.title, startAt: iso(ev.startAt), endAt: iso(ev.endAt), venue: ev.venue, format: ev.format, status: ev.status, publishAt: iso(ev.publishAt), checkedIn: ev.checkedInCount || 0, confirmed: ev.unitsConfirmed || 0 })) });
 };

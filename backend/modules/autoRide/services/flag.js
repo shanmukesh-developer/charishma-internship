@@ -151,7 +151,8 @@ const clearCache = () => cache.clear();
 /** Customer gate: feature on (unless opts.allowWhenOff). protect() has already loaded a live account. */
 const requireCustomer = (opts = {}) => async (req, res, next) => {
   try {
-    if (!req.user || !req.user.id || String(req.user.role || '').toLowerCase() === 'auto_driver') {
+    // S1: rider (delivery partner) and store tokens are not customer accounts either (same rule as Campus Events).
+    if (!req.user || !req.user.id || ['auto_driver', 'rider', 'restaurant'].includes(String(req.user.role || '').toLowerCase())) {
       throw fail(401, 'NOT_AUTHORISED', 'Sign in with your Zenvy account.');
     }
     if (!opts.allowWhenOff && !(await readFlag())) {

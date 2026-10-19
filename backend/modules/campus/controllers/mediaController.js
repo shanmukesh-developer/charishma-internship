@@ -285,7 +285,12 @@ const viewerFrom = async (req) => {
     const User = getUserModel();
     const user = await User.findByPk(decoded.id, { attributes: ['id', 'role', 'isActive', 'tokenVersion'] });
     // Live account only (never the token's role claim), and not a session revoked by a password change.
-    if (user && user.isActive !== false && (Number(decoded.tv) || 0) === (Number(user.tokenVersion) || 0)) return user;
+    if (user && user.isActive !== false && (Number(decoded.tv) || 0) === (Number(user.tokenVersion) || 0)) {
+      // S1: admin media access only with a 2-step admin session when 2FA is on / required.
+      const role = await require('../../../services/adminTwoFactor').effectiveRole(user.role, decoded, user.id);
+      if (role !== user.role) user.setDataValue('role', role);
+      return user;
+    }
     return null;
   } catch {
     return null;

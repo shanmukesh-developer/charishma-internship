@@ -25,6 +25,8 @@ const initAutoRideModels = (sequelize) => {
     status: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'PENDING_DOCS' },
     rejectionReason: { type: DataTypes.STRING(500), allowNull: true },
     suspendedReason: { type: DataTypes.STRING(500), allowNull: true },
+    // S1: the status a suspension interrupted (unsuspend restores exactly that; null for rows suspended before S1).
+    statusBeforeSuspension: { type: DataTypes.STRING(20), allowNull: true },
     submittedAt: { type: DataTypes.DATE, allowNull: true },
     reviewedAt: { type: DataTypes.DATE, allowNull: true },
     reviewedBy: { type: DataTypes.UUID, allowNull: true },

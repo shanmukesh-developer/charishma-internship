@@ -13,6 +13,18 @@ const SERVICE_VENDOR_TYPES = ['REPAIRS', 'PRINT', 'LAUNDRY', 'TAILORING'];
 // Laundry is priced per kg / per piece: the student's quantity multiplies the card price.
 const MAX_SERVICE_QTY = 50;
 const cleanText = (v, max) => (typeof v === 'string' ? v.replace(/[<>]/g, '').trim().slice(0, max) : '');
+// S1: PATCH /:id/status driverDetails -> { name, phone, vehicleNumber, vehicleType, eta } (strings, capped).
+const DRIVER_DETAIL_FIELDS = { name: 60, phone: 16, vehicleNumber: 20, vehicleType: 30, eta: 40 };
+const cleanDriverDetails = (raw) => {
+  const out = {};
+  for (const [k, max] of Object.entries(DRIVER_DETAIL_FIELDS)) {
+    const v = Object.prototype.hasOwnProperty.call(raw, k) ? raw[k] : undefined;
+    const s = typeof v === 'number' ? String(v) : v;
+    const c = k === 'phone' ? cleanText(s, 32).replace(/[^\d+]/g, '').slice(0, max) : cleanText(s, max);
+    if (c) out[k] = c;
+  }
+  return out;
+};
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const VALID_SERVICE_TYPES = [
@@ -479,7 +491,11 @@ router.patch('/:id/status', protect, async (req, res) => {
       if (changes.quotedAmount === undefined) changes.quotedAmount = changes.finalAmount;
     }
     if (nextStatus !== current) changes.status = nextStatus;
-    if (driverDetails && typeof driverDetails === 'object' && !Array.isArray(driverDetails)) changes.driverDetails = driverDetails;
+    // S1: bounded shape (was any object stored as-is): known string fields only, each length-capped.
+    if (driverDetails && typeof driverDetails === 'object' && !Array.isArray(driverDetails)) {
+      const dd = cleanDriverDetails(driverDetails);
+      if (Object.keys(dd).length) changes.driverDetails = dd;
+    }
     if (assignedPartnerId && isAdmin) {
       if (!UUID_RE.test(String(assignedPartnerId))) return res.status(400).json({ success: false, message: 'assignedPartnerId is not valid.' });
       changes.assignedPartnerId = assignedPartnerId;

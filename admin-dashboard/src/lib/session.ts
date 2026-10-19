@@ -18,6 +18,9 @@ export interface AdminUser {
   phone: string | null;
   email: string | null;
   role: string;
+  /** S1: ADMIN_2FA_REQUIRED and 2-step sign-in not set up yet: only the Account security page works. */
+  mfaSetupRequired?: boolean;
+  twoFactorEnabled?: boolean;
 }
 
 export interface AuthState {
@@ -152,6 +155,8 @@ const toUser = (b: any): AdminUser => ({
   phone: b?.phone ?? null,
   email: b?.email || null,
   role: String(b?.role || ''),
+  mfaSetupRequired: !!b?.mfaSetupRequired,
+  twoFactorEnabled: !!b?.twoFactorEnabled,
 });
 
 async function runVerify(): Promise<AuthState> {
@@ -174,7 +179,9 @@ async function runVerify(): Promise<AuthState> {
     if (superseded()) return state;
 
     if (r.status === 401) {
-      clearSession('Your session has expired. Please sign in again.');
+      clearSession(r.body?.code === 'MFA_REQUIRED'
+        ? 'Sign in again with your 2-step code.'
+        : 'Your session has expired. Please sign in again.');
       return state;
     }
     if (r.status === 403) {

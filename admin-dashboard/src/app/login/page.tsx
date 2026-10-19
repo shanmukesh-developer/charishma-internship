@@ -30,12 +30,73 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // S1: second step of the admin sign-in (2-step code or a recovery code).
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState('');
+  const [useRecovery, setUseRecovery] = useState(false);
 
   // Explain why the admin landed here (expired session, non-admin account, ...).
   useEffect(() => {
     const reason = getAuthState().message;
     if (reason) setError(reason);
   }, []);
+
+  /** Session from a login / login-mfa answer. */
+  const finishLogin = (data: any, digits: string) => {
+    if (String(data.role || '').toLowerCase() !== 'admin') {
+      setError('This account does not have admin access.');
+      return;
+    }
+    startSession(data.token, {
+      id: String(data.id ?? data._id ?? ''),
+      name: data.name || 'Admin',
+      phone: data.phone ?? digits,
+      email: data.email || null,
+      role: data.role,
+      mfaSetupRequired: !!data.mfaSetupRequired,
+    });
+    setPassword('');
+    setMfaToken(null);
+    setMfaCode('');
+    router.replace(data.mfaSetupRequired ? '/security' : safeNext());
+  };
+
+  const handleMfa = async () => {
+    const code = mfaCode.trim();
+    if (!mfaToken) return;
+    if (!useRecovery && !/^[0-9]{6}$/.test(code.split(' ').join(''))) {
+      setError('Enter the 6-digit code from your authenticator app.');
+      return;
+    }
+    if (useRecovery && code.replace(/[^a-z0-9]/gi, '').length !== 10) {
+      setError('Enter one of your 10-character recovery codes.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch(`${API_URL}/api/users/login/mfa`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Zenvy-Client': 'admin-web' },
+        body: JSON.stringify(useRecovery ? { mfaToken, recoveryCode: code } : { mfaToken, code: code.split(' ').join('') }),
+      });
+      let data: any = {};
+      try { data = await response.json(); } catch { /* non-JSON */ }
+      if (response.ok && data.token) {
+        finishLogin(data, normalizePhone(phone));
+        return;
+      }
+      if (data.code === 'MFA_TOKEN_INVALID' || data.code === 'MFA_TOKEN_USED') {
+        setMfaToken(null);
+        setMfaCode('');
+      }
+      setError(data.message || 'That code did not work. Please try again.');
+    } catch {
+      setError('Could not reach the Zenvy server. Check your connection and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     const digits = normalizePhone(phone);
@@ -54,27 +115,22 @@ export default function AdminLoginPage() {
     try {
       const response = await fetch(`${API_URL}/api/users/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        // S1: the admin web marker (exempt from App Check; the server then signs in admin accounts only).
+        headers: { 'Content-Type': 'application/json', 'X-Zenvy-Client': 'admin-web' },
         body: JSON.stringify({ phone: digits, password }),
       });
 
       let data: any = {};
       try { data = await response.json(); } catch { /* non-JSON error page */ }
 
+      if (response.ok && data.mfaRequired && data.mfaToken) {
+        setMfaToken(data.mfaToken);
+        setMfaCode('');
+        setUseRecovery(false);
+        return;
+      }
       if (response.ok && data.token) {
-        if (String(data.role || '').toLowerCase() !== 'admin') {
-          setError('This account does not have admin access.');
-          return;
-        }
-        startSession(data.token, {
-          id: String(data.id ?? data._id ?? ''),
-          name: data.name || 'Admin',
-          phone: data.phone ?? digits,
-          email: data.email || null,
-          role: data.role,
-        });
-        setPassword('');
-        router.replace(safeNext());
+        finishLogin(data, digits);
         return;
       }
 
@@ -118,6 +174,37 @@ export default function AdminLoginPage() {
           <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.4em] mt-2">Administrative Command Terminal</p>
         </div>
 
+        {mfaToken ? (
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label htmlFor="admin-mfa" className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">{useRecovery ? 'Recovery code' : '2-step code'}</label>
+              <input
+                id="admin-mfa"
+                autoFocus
+                inputMode={useRecovery ? 'text' : 'numeric'}
+                autoComplete="one-time-code"
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleMfa()}
+                placeholder={useRecovery ? 'xxxxx-xxxxx' : '6-digit code'}
+                maxLength={useRecovery ? 16 : 7}
+                className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 px-6 text-white font-bold outline-none focus:border-blue-500/40 transition-all text-center tracking-[0.3em]"
+              />
+              <p className="text-xs text-gray-500 text-center">{useRecovery ? 'Each recovery code works once.' : 'Open your authenticator app (Google Authenticator) and enter the Zenvy Admin code.'}</p>
+            </div>
+            <button
+              onClick={handleMfa}
+              disabled={loading}
+              className="w-full bg-white text-black py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] hover:bg-gray-200 transition-all shadow-xl shadow-blue-500/5 disabled:opacity-50"
+            >
+              {loading ? 'Checking...' : 'Verify'}
+            </button>
+            <div className="flex justify-between text-xs">
+              <button type="button" onClick={() => { setUseRecovery((v) => !v); setMfaCode(''); setError(''); }} className="text-gray-400 hover:text-white">{useRecovery ? 'Use the authenticator code' : 'Use a recovery code'}</button>
+              <button type="button" onClick={() => { setMfaToken(null); setMfaCode(''); setError(''); }} className="text-gray-400 hover:text-white">Back</button>
+            </div>
+          </div>
+        ) : (
         <div className="space-y-6">
           <div className="space-y-2">
             <label htmlFor="admin-phone" className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Admin mobile number</label>
@@ -155,6 +242,7 @@ export default function AdminLoginPage() {
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </div>
+        )}
 
         {error && (
           <div

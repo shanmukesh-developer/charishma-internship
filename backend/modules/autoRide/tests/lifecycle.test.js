@@ -93,6 +93,10 @@ test('boarding PIN: 5 wrong tries lock the booking for 15 minutes; passenger no-
   H.advance(16 * H.MIN);
   const ok = await api('POST', `/api/auto-ride/driver/trips/${t.trip.id}/check-in`, t.token, { bookingCode: a.booking.bookingCode, pin: a.booking.boardingPin });
   assert.equal(ok.status, 200);
+  // S1: passenger no-show only noShowGraceMinutes (default 30) after the departure time.
+  const graceEarly = await api('POST', `/api/auto-ride/driver/trips/${t.trip.id}/bookings/${b.booking.id}/no-show`, t.token);
+  assert.equal(graceEarly.body.code, 'TOO_EARLY');
+  H.advance(25 * H.MIN);
   const ns = await api('POST', `/api/auto-ride/driver/trips/${t.trip.id}/bookings/${b.booking.id}/no-show`, t.token);
   assert.equal(ns.status, 200);
   assert.equal(ns.body.booking.status, 'NO_SHOW');
