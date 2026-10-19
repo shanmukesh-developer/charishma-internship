@@ -6,6 +6,7 @@ import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { driverApi } from '../api/driverApi';
+import { NetworkError } from './http';
 import type { MediaUpload } from '../types';
 
 const MAX_SIDE = 1600;
@@ -47,7 +48,21 @@ export async function pickPhoto(source: PhotoSource): Promise<PickResult> {
 
 export async function uploadPhoto(uri: string, mimeType: string): Promise<MediaUpload> {
   const form = new FormData();
-  // React Native's FormData file part.
+  // React Native's FormData file part (sent with XHR, see apiUploadXhr).
   form.append('image', { uri, name: `doc-${Date.now()}.jpg`, type: mimeType } as any);
-  return driverApi.uploadMedia(form);
+  try {
+    return await driverApi.uploadMedia(form);
+  } catch (err) {
+    if (!(err instanceof NetworkError)) throw err;
+    // Multipart did not leave the phone: send the same JPEG as base64 JSON (same endpoint, 5 MB cap).
+    let base64: string | undefined;
+    try {
+      const ref = await ImageManipulator.manipulate(uri).renderAsync();
+      base64 = (await ref.saveAsync({ compress: 0.72, format: SaveFormat.JPEG, base64: true })).base64;
+    } catch {
+      base64 = undefined;
+    }
+    if (!base64) throw err;
+    return driverApi.uploadMediaBase64(`data:image/jpeg;base64,${base64}`);
+  }
 }

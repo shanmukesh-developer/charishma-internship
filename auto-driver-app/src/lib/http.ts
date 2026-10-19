@@ -124,3 +124,40 @@ export async function apiFetch<T = any>(path: string, opts: RequestOptions = {})
   }
   return data as T;
 }
+
+/**
+ * Multipart upload through React Native's XMLHttpRequest. Expo's global fetch does not send
+ * React Native { uri, name, type } file parts (the request fails before it leaves the phone and looks
+ * like "no internet"), so photo uploads use XHR, the same way the customer app does.
+ */
+export function apiUploadXhr<T = any>(path: string, form: FormData, timeoutMs = 60000): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${baseUrl}${path}`);
+    const headers: Record<string, string> = { Accept: 'application/json', ...versionHeaders() };
+    const token = getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+    // No Content-Type: the networking layer adds multipart/form-data with its boundary.
+    xhr.timeout = timeoutMs;
+    xhr.onload = () => {
+      if (onNetwork) onNetwork(true);
+      let data: any = null;
+      try { data = xhr.responseText ? JSON.parse(xhr.responseText) : null; } catch { data = null; }
+      const status = xhr.status;
+      if (status === 426) reportUpgradeRequired(data);
+      if (status >= 200 && status < 300) { resolve(data as T); return; }
+      const code = data && typeof data.code === 'string' ? data.code : undefined;
+      if (status === 401 && token && onUnauthorized) onUnauthorized(code);
+      const msg = (data && typeof data.message === 'string' && data.message) ||
+        (status === 413 ? 'That photo is too large. Please pick a smaller one.'
+          : status === 429 ? 'Too many attempts. Please wait a minute and try again.'
+            : status >= 500 ? 'Zenvy is having trouble right now. Please try again in a moment.'
+              : 'Upload failed. Please try again.');
+      reject(new ApiError(status, msg, data));
+    };
+    xhr.onerror = () => reject(new NetworkError('Upload did not go through. Check mobile data and try again.'));
+    xhr.ontimeout = () => reject(new NetworkError('Zenvy is slow to answer. Please try again.'));
+    xhr.send(form as any);
+  });
+}

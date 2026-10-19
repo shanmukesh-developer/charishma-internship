@@ -4,7 +4,7 @@
 // earnings and statuses always come from the server; the app only says what the driver wants.
 // No React Native imports: scratchpad verify script runs this file under Node against the real routers.
 import { DRIVER_API } from '../config';
-import { apiFetch } from '../lib/http';
+import { apiFetch, apiUploadXhr } from '../lib/http';
 import type {
   BookingDriver, DriverAction, DriverNotification, DriverSelf, DriverSettings, Earnings, HomeResponse, Incident, IncidentCategory,
   MeResponse, MediaUpload, PrivateRequest, ProfileInput, QueueResponse, RouteFull, SeatMapResponse, Trip, TripInput, TripStatusBlock,
@@ -69,7 +69,7 @@ export const driverApi = {
   /** -> PENDING_REVIEW (409 INCOMPLETE { missing }). */
   submit: () => apiFetch<{ driver: DriverSelf; message: string }>(`${D}/me/submit`, { method: 'POST' }),
   /** Private upload (multipart field 'image', or JSON { image: base64 }). 201 { id, url, previewUrl (1-hour signed) }. */
-  uploadMedia: (form: FormData) => apiFetch<MediaUpload>(`${D}/media`, { method: 'POST', form, timeoutMs: 60000 }),
+  uploadMedia: (form: FormData) => apiUploadXhr<MediaUpload>(`${D}/media`, form, 60000),
   uploadMediaBase64: (image: string) => apiFetch<MediaUpload>(`${D}/media`, { method: 'POST', body: { image }, timeoutMs: 60000 }),
 
   // ── Duty ───────────────────────────────────────────────────────────────
