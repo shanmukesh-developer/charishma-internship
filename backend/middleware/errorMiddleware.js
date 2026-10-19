@@ -17,10 +17,21 @@ const errorHandler = (err, req, res, _next) => {
   const clientStatus = Number.isInteger(errStatus) && errStatus >= 400 && errStatus < 500 ? errStatus : null;
   const statusCode = clientStatus || (res.statusCode === 200 || res.statusCode < 400 ? 500 : res.statusCode);
   const known = err && err.type ? CLIENT_ERRORS[err.type] : null;
+  // A6: logged with the request id, redacted (no phones / emails / tokens / OTPs from messages or URLs);
+  // 5xx are counted and sent to the optional error webhook (utils/errorReporter, off by default).
+  const reqId = (req._perf && req._perf.reqId) || req.id || undefined;
+  const logger = require('../utils/logger');
   if (statusCode >= 500) {
-    console.error('[UNHANDLED_ROUTE_ERROR]', req.method, req.originalUrl, err && err.stack ? err.stack : err);
+    logger.logError('[UNHANDLED_ROUTE_ERROR]', err, { method: req.method, url: logger.redactUrl(req.originalUrl), reqId });
+    try {
+      const reporter = require('../utils/errorReporter');
+      reporter.countServerError();
+      let route = null;
+      try { route = require('../utils/perfMetrics').routeKey(req).replace(/^[A-Z]+ /, ''); } catch { route = null; }
+      reporter.report('route', err, { reqId, method: req.method, route, status: statusCode });
+    } catch { /* reporting never breaks the response */ }
   } else {
-    console.warn('[CLIENT_ERROR]', statusCode, req.method, req.originalUrl, (err && (err.type || err.message)) || '');
+    logger.logWarn('[CLIENT_ERROR]', (err && (err.type || err.message)) || '', { status: statusCode, method: req.method, url: logger.redactUrl(req.originalUrl), reqId });
   }
   if (res.headersSent) return undefined;
   res.status(statusCode);

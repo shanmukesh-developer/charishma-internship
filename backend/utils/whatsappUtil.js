@@ -7,6 +7,8 @@
 const axios = require('axios');
 
 const PROVIDER = process.env.WHATSAPP_PROVIDER || 'CONSOLE'; // CONSOLE, TWILIO, or WEBHOOK
+let waFailures = 0;
+let waLastLogAt = 0;
 
 /**
  * Formats order details into a clean WhatsApp-ready message
@@ -66,14 +68,20 @@ const sendWhatsAppMessage = async (to, messageContent, type = 'LOG') => {
   // Example Webhook Integration (UltraMsg/Wati pattern)
   if (PROVIDER === 'WEBHOOK') {
     try {
+      // A5: bounded (WHATSAPP_TIMEOUT_MS, default 8 s), no retries; failures logged at most once a minute.
       const response = await axios.post(process.env.WHATSAPP_WEBHOOK_URL, {
         to: to,
         body: messageContent
-      });
+      }, { timeout: Math.max(1000, Number(process.env.WHATSAPP_TIMEOUT_MS) || 8000) });
       return { success: true, response: response.data };
     } catch (err) {
-      console.error('[WHATSAPP_WEBHOOK_ERROR]', err.message);
-      return { success: false, error: err.message };
+      waFailures++;
+      if (Date.now() - waLastLogAt > 60000) {
+        waLastLogAt = Date.now();
+        console.error('[WHATSAPP_WEBHOOK_ERROR]', err.code === 'ECONNABORTED' ? 'timeout' : err.message, waFailures > 1 ? `(${waFailures} failures since last log)` : '');
+        waFailures = 0;
+      }
+      return { success: false, error: err.code === 'ECONNABORTED' ? 'timeout' : err.message };
     }
   }
 

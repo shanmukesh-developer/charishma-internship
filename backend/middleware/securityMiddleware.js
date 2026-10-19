@@ -88,7 +88,8 @@ const BLOCKED_USER_AGENTS = [
  * Attaches a unique request trace ID for audit logging and incident response.
  */
 const requestTracer = (req, res, next) => {
-  const traceId = crypto.randomUUID();
+  // A6: same value as X-Request-Id (utils/perfMetrics middleware), so one id ties every log line together.
+  const traceId = req.id || crypto.randomUUID();
   req.traceId = traceId;
   res.setHeader('X-Trace-Id', traceId);
   next();

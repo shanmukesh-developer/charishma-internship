@@ -23,7 +23,7 @@ test('#25 shared wiring is additive: routers, webhook before express.json, jobs,
     at = i;
   }
   const hook = server.indexOf("app.post('/api/campus-events/webhooks/razorpay', express.raw(");
-  const json = server.indexOf("app.use(express.json({ limit: '10mb' }));");
+  const json = server.indexOf("app.use(require('./utils/bodyLimits').bodyParsers());"); // A5: global JSON / form parsers
   assert.ok(hook > 0 && hook < json, 'raw-body webhook registered before the global express.json');
   const jobs = require(path.join(B, 'jobs')).listJobs().map((j) => j.name);
   for (const n of ['community.expiryCleanup', 'orders.autoCancel', 'orders.stallStuck', 'stores.featuredExpiry', 'menu.autoRestore', 'rentals.lifecycle', 'autoRide.lifecycle', 'wall.finalize', 'retention.chatPulse', 'idempotency.cleanup', 'media.base64Migration']) assert.ok(jobs.includes(n), n);

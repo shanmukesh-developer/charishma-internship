@@ -10,7 +10,6 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const helmet = require('helmet');
-const morgan = require('morgan');
 const { isProduction: isProductionEnv } = require('./utils/env'); // single production check (RENDER / NODE_ENV)
 // PROCESS_ROLE = all (default: API + sockets + jobs) | web (API + sockets) | worker (jobs + health only).
 // Scheduled jobs live in jobs/index.js and run single-runner (utils/jobs.runExclusive).
@@ -32,13 +31,25 @@ const PROCESS_ROLE = getProcessRole();
 })();
 
 // ── Global Bulletproof Shield (Prevents any Node.js Crash in Dev, Restarts in Prod) ──────────────
+// A6: both are counted ([PERF] line, /api/admin/metrics/perf), logged redacted and, only when
+// ERROR_WEBHOOK_URL is set, reported (utils/errorReporter). Behaviour is unchanged otherwise: exit(1) in
+// production after an uncaught exception (with a webhook: after the report, at most 2 s later).
 process.on('uncaughtException', (err) => {
-  console.error('🔥 [CRITICAL] Uncaught Exception:', err.message);
-  console.error(err.stack);
+  let reporting = null;
+  try {
+    const reporter = require('./utils/errorReporter');
+    reporter.countUncaughtException();
+    require('./utils/logger').logError('🔥 [CRITICAL] Uncaught Exception:', err);
+    if (reporter.isEnabled()) reporting = reporter.report('uncaughtException', err);
+  } catch {
+    console.error('🔥 [CRITICAL] Uncaught Exception:', err && err.message);
+  }
   const isProd = isProductionEnv();
   if (isProd) {
     console.error('🔥 Exiting process due to uncaught exception in production...');
-    process.exit(1);
+    if (!reporting) process.exit(1);
+    const t = setTimeout(() => process.exit(1), 2000);
+    reporting.finally(() => { clearTimeout(t); process.exit(1); });
   }
 });
 
@@ -46,8 +57,19 @@ process.on('uncaughtException', (err) => {
 // exiting here dropped every live socket, the in-memory idempotency keys and in-flight orders
 // for all students at once. Truly broken state still surfaces via uncaughtException above.
 process.on('unhandledRejection', (reason) => {
-  console.error('🔥 [CRITICAL] Unhandled Promise Rejection:', reason && reason.stack ? reason.stack : reason);
+  try {
+    const reporter = require('./utils/errorReporter');
+    reporter.countUnhandledRejection();
+    require('./utils/logger').logError('🔥 [CRITICAL] Unhandled Promise Rejection:', reason instanceof Error ? reason : new Error(String(reason)));
+    reporter.report('unhandledRejection', reason instanceof Error ? reason : new Error(String(reason)));
+  } catch {
+    console.error('🔥 [CRITICAL] Unhandled Promise Rejection');
+  }
 });
+
+// A5: safety net for outbound HTTP: any axios call without its own timeout gives up after
+// OUTBOUND_TIMEOUT_MS (default 10 s) instead of hanging forever. Calls that set one keep theirs.
+require('./utils/outbound').applyAxiosDefaultTimeout();
 
 // ── Async Buffered Logger (Non-Blocking) ──────────────────────
 const logFile = path.join(__dirname, 'socket_debug.txt');
@@ -586,10 +608,9 @@ app.use(botGuard);
 // ACCESS_LOG=all (default, one line per request, unchanged) | errors (only status >= 400) | off.
 // At hundreds of req/s the per-request line is a synchronous stdout write (pipes on Linux): set
 // ACCESS_LOG=errors on Render; the [PERF] line (utils/perfMetrics) still summarises traffic per minute.
-const ACCESS_LOG = String(process.env.ACCESS_LOG || 'all').trim().toLowerCase();
-app.use(morgan(':method :url :status :res[content-length] - :response-time ms', ACCESS_LOG === 'off'
-  ? { skip: () => true }
-  : (ACCESS_LOG === 'errors' ? { skip: (req, res) => res.statusCode < 400 } : {})));
+// A6 (utils/logger.js): LOG_FORMAT=text (default, the same morgan line; sensitive query values such as
+// phone / otp / token / email are masked) | json (one compact JSON line: reqId, method, route, status, ms, inst).
+app.use(require('./utils/logger').accessLogMiddleware());
 
 // Layer 6: Compression & Parsing
 // gzip level 6 (default speed/ratio); bodies under 1 KB go out as is (gzip framing ~20 B + CPU buys
@@ -603,8 +624,10 @@ app.post('/api/campus-events/webhooks/razorpay', express.raw({ type: '*/*', limi
   req.rawBody = Buffer.isBuffer(req.body) ? req.body : null;
   return require('./modules/campusEvents/controllers/payments').razorpayWebhook(req, res);
 });
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+// A5 (utils/bodyLimits.js): BODY_LIMIT (default 256 KB) for every route; UPLOAD_BODY_LIMIT / ADMIN_BODY_LIMIT
+// (default 10 MB, the old global value) only for routes that still take inline base64 photos or admin bulk
+// writes. Too large -> 413 { code: 'PAYLOAD_TOO_LARGE' } (middleware/errorMiddleware.js).
+app.use(require('./utils/bodyLimits').bodyParsers());
 
 // Layer 7: HTTP Parameter Pollution Prevention
 app.use(hppProtection);
@@ -2755,11 +2778,13 @@ const startServer = () => {
           const https = require('https');
           const httpModule = require('http');
           const mod = selfUrl.startsWith('https') ? https : httpModule;
-          mod.get(`${selfUrl}/api/health`, (res) => {
+          const pingReq = mod.get(`${selfUrl}/api/health`, (res) => {
+            res.resume();
             console.log(`[KEEP_ALIVE] Ping OK (${res.statusCode})`);
           }).on('error', (err) => {
             console.warn('[KEEP_ALIVE] Ping failed:', err.message);
           });
+          pingReq.setTimeout(10000, () => pingReq.destroy(new Error('timeout after 10000 ms')));
         } catch (err) {
           console.warn('[KEEP_ALIVE] Error:', err.message);
         }

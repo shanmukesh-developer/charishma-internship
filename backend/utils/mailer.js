@@ -10,7 +10,7 @@
 
 const BREVO_URL = 'https://api.brevo.com/v3/smtp/email';
 const DEFAULT_FROM = 'Zenvy <projectshanmukh@gmail.com>';
-const TIMEOUT_MS = 10000;
+const TIMEOUT_MS = () => Math.max(1000, Number(process.env.MAIL_TIMEOUT_MS) || 10000); // A5: env-tunable, default 10 s (unchanged)
 
 const isMailerConfigured = () => !!String(process.env.BREVO_API_KEY || '').trim();
 
@@ -43,7 +43,7 @@ const sendMail = async ({ to, subject, html, text }) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) return { ok: false, reason: 'invalid_recipient' };
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS());
   try {
     const res = await fetch(BREVO_URL, {
       method: 'POST',

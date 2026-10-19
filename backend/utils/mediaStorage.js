@@ -93,7 +93,7 @@ const client = () => {
     if (clientFactory) s3Client = clientFactory(c);
     else {
       const { S3Lite } = require('./s3Lite');
-      s3Client = new S3Lite({ endpoint: c.endpoint, region: c.region, accessKeyId: c.accessKeyId, secretAccessKey: c.secretAccessKey });
+      s3Client = new S3Lite({ endpoint: c.endpoint, region: c.region, accessKeyId: c.accessKeyId, secretAccessKey: c.secretAccessKey, timeoutMs: Math.max(1000, Number(process.env.MEDIA_STORAGE_TIMEOUT_MS) || 15000) });
     }
   }
   return s3Client;

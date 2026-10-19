@@ -78,8 +78,13 @@ const r1 = (n) => Math.round(n * 10) / 10;
 
 // ── middleware ────────────────────────────────────────────────────────────────
 const middleware = () => (req, res, next) => {
-  const ctx = { t0: nowMs(), dbMs: 0, queries: 0, poolWaitMs: 0 };
+  // A6: request id (X-Request-Id in -> kept if safe, else generated; always echoed back). Lives in this
+  // ALS context so utils/logger.currentRequestId() works anywhere inside the request.
+  const reqId = require('./logger').pickRequestId(req.headers['x-request-id']);
+  const ctx = { t0: nowMs(), dbMs: 0, queries: 0, poolWaitMs: 0, reqId };
   req._perf = ctx;
+  req.id = reqId;
+  try { res.setHeader('X-Request-Id', reqId); } catch { /* headers already sent */ }
   // Server-Timing must be set before the head goes out: patch this response's writeHead once.
   const origWriteHead = res.writeHead;
   res.writeHead = function patchedWriteHead(...args) {
@@ -290,12 +295,41 @@ const snapshot = () => {
     pool: poolStats(),
     memory: (() => { const m = process.memoryUsage(); return { rssMb: Math.round(m.rss / 1048576), heapUsedMb: Math.round(m.heapUsed / 1048576) }; })(),
     responseCache: cache,
+    push: extraStats().push,
+    errors: extraStats().errors,
     devDbLatencyMs: devLatency,
     routes: list,
   };
 };
 
 const resetRoutes = () => { routes.clear(); };
+
+// A5/A6: push queue counters, Redis state and error counters (both optional, never throw).
+const extraStats = () => {
+  const out = { push: null, errors: null, redis: 'off' };
+  try { out.push = require('./push').pushStats(); } catch { out.push = null; }
+  try { out.errors = require('./errorReporter').stats(); } catch { out.errors = null; }
+  try {
+    const redis = require('./redis');
+    out.redis = redis.isConfigured() ? (redis.isReady() ? 'ok' : 'down') : 'off';
+  } catch { out.redis = 'n/a'; }
+  return out;
+};
+// Error / push counters are cumulative; the [PERF] line shows the change since the previous line.
+let lastExtra = { sent: 0, failed: 0, queued: 0, dropped: 0, errors: 0, unhandled: 0 };
+const extraLine = () => {
+  const x = extraStats();
+  const p = x.push || {};
+  const e = x.errors || {};
+  const cur = {
+    sent: p.sent || 0, failed: p.failed || 0, queued: p.queued || 0, dropped: p.dropped || 0,
+    errors: e.serverErrors || 0, unhandled: (e.unhandledRejections || 0) + (e.uncaughtExceptions || 0),
+  };
+  const d = (k) => cur[k] - (lastExtra[k] || 0);
+  lastExtra = cur;
+  return ` push=q${d('queued')}/s${d('sent')}/f${d('failed')}${d('dropped') ? `/drop${d('dropped')}` : ''} pending=${(p.pending || 0) + (p.active || 0)}`
+    + ` redis=${x.redis} err5xx=${d('errors')} unhandled=${d('unhandled')}`;
+};
 
 // One line per minute (only after traffic): rps, latency, DB, CPU, event loop, pool, slowest routes.
 let logTimer = null;
@@ -315,7 +349,7 @@ const logLine = () => {
     + ` db=${Math.round(w.sumDbMs / w.count)}ms/req q=${r1(w.sumQueries / w.count)}/req 5xx=${w.s5xx}`
     + ` cpu=${loop.cpuPct}% cpu/req=${r1(loop.cpuMs / w.count)}ms elu=${loop.eventLoopUtilization ?? 'n/a'} lag_p99=${loop.lagP99Ms ?? 'n/a'}ms lag_max=${loop.lagMaxMs ?? 'n/a'}ms`
     + (p ? ` pool=${p.using}/${p.max || p.size} waiting_max=${w.poolWaitingMax} wait_max=${Math.round(w.poolWaitMax)}ms` : '')
-    + ` bgq=${background.queries} top=${top.join(',')}`;
+    + ` bgq=${background.queries}${(() => { try { return extraLine(); } catch { return ''; } })()} top=${top.join(',')}`;
   for (const r of routes.values()) r.win = { count: 0, sumMs: 0 };
   window.count = 0; window.sumMs = 0; window.sumDbMs = 0; window.sumQueries = 0; window.s5xx = 0; window.n = 0;
   window.poolWaitMax = 0; window.poolWaitingMax = 0;
@@ -379,4 +413,4 @@ const infraSnapshot = async () => {
   return out;
 };
 
-module.exports = { middleware, instrumentSequelize, setDevDbLatencyMs, snapshot, infraSnapshot, startLogger, stopLogger, logLine, resetRoutes, poolStats, routeKey, _als: als };
+module.exports = { middleware, extraStats, instrumentSequelize, setDevDbLatencyMs, snapshot, infraSnapshot, startLogger, stopLogger, logLine, resetRoutes, poolStats, routeKey, _als: als };
