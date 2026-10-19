@@ -312,7 +312,7 @@ const JOBS = [
     enabled: () => String(process.env.DISABLE_BASE64_MIGRATION || '').toLowerCase() !== 'true',
   },
   {
-    // OFF unless REHOST_WIKIMEDIA_IMAGES=true. Each run copies at most 120 photos, 2 s apart.
+    // ON unless REHOST_WIKIMEDIA_IMAGES=false (owner, 20 Oct). Each run copies at most 120 photos, 2 s apart.
     name: 'media.wikimediaRehost', schedule: { everyMs: 6 * 60 * MIN, firstMs: 3 * MIN, chain: true }, run: runWikimediaRehost, timeoutMs: 30 * MIN,
     enabled: () => notTest() && require('../scripts/rehost_wikimedia_images').enabled(),
   },

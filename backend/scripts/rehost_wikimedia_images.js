@@ -1,11 +1,11 @@
-// Store / menu photos that point at upload.wikimedia.org -> our own CampusMedia rows (OFF by default).
+// Store / menu photos that point at upload.wikimedia.org -> our own CampusMedia rows (ON by default since 20 Oct 2026, owner approved; REHOST_WIKIMEDIA_IMAGES=false turns it off).
 //
 // Why: Wikimedia refuses React Native's default User-Agent (403, robot policy T400119) and rate-limits
 // hotlinked thumbnails per IP (429 after ~15-20 requests, measured 19 Oct 2026). A campus Wi-Fi shares
 // one IP, so menu photos fail at random in every app. Copying each photo once into the media table
 // (served from /api/campus/media/<id> with immutable caching) removes the dependency.
 //
-// • Background job 'media.wikimediaRehost' (jobs/index.js): runs only with REHOST_WIKIMEDIA_IMAGES=true,
+// • Background job 'media.wikimediaRehost' (jobs/index.js): runs unless REHOST_WIKIMEDIA_IMAGES=false,
 //   3 min after boot and then every 6 h until nothing is left. Can also be run by hand:
 //     node scripts/rehost_wikimedia_images.js            dry run: counts only, nothing fetched or written
 //     node scripts/rehost_wikimedia_images.js --apply    fetch + store + rewrite the rows
@@ -34,7 +34,7 @@ const TARGETS = [
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const enabled = () => String(process.env.REHOST_WIKIMEDIA_IMAGES || '').toLowerCase() === 'true';
+const enabled = () => String(process.env.REHOST_WIKIMEDIA_IMAGES || '').trim().toLowerCase() !== 'false';
 
 /** 500 px thumbnail of a Commons file URL (thumb or original), or null when the URL has no such form. */
 const thumb500 = (url) => {
