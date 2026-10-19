@@ -64,6 +64,9 @@ const initDeliveryPartnerModel = (sequelize) => {
     // on approval. While set the rider login is refused. New sign-ups waiting for approval are not
     // suspended (they still log in and see "waiting for approval"). Added on boot by addMissingColumns.
     suspendedAt: { type: DataTypes.DATE, allowNull: true },
+    // C9: set when the rider deleted their own account in the app (row anonymised, login impossible).
+    // Added on boot by addMissingColumns.
+    accountDeletedAt: { type: DataTypes.DATE, allowNull: true },
     loginStreak: { type: DataTypes.INTEGER, defaultValue: 0 },
     lastLoginDate: { type: DataTypes.DATEONLY, defaultValue: null }
   }, { 

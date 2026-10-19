@@ -50,5 +50,7 @@ router.put('/cancel/:orderId', protect, rider, cancelOrderByRider);
 // Alias used by the rider app's "unassign" button (POST /api/delivery/orders/:orderId/cancel).
 router.post('/orders/:orderId/cancel', protect, rider, cancelOrderByRider);
 router.put('/online', protect, rider, toggleOnline);
+// C9: in-app account deletion (any signed-in rider, approved or not): /account/deletion-check, /delete-otp, /delete.
+router.use('/account', require('./partnerAccountRoutes').riderRouter);
 
 module.exports = router;

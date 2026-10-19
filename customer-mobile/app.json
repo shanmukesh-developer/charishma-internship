@@ -5,7 +5,7 @@
     },
     "name": "Zenvy – Food Delivery",
     "slug": "zenvy-customer",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -24,7 +24,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.srm.hostelbites",
-      "buildNumber": "6",
+      "buildNumber": "7",
       "infoPlist": {
         "NSCameraUsageDescription": "Zenvy uses the camera for campus video calls and ID verification.",
         "NSMicrophoneUsageDescription": "Zenvy uses the microphone for campus voice and video calls.",
@@ -38,7 +38,7 @@
       },
       "package": "com.srm.hostelbites",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 6,
+      "versionCode": 7,
       "compileSdkVersion": 36,
       "targetSdkVersion": 36,
       "minSdkVersion": 24,

@@ -20,6 +20,7 @@ export type RootStack = {
   Profile: undefined;
   Support: undefined;
   Settings: undefined;
+  DeleteAccount: undefined;
 };
 
 export type ScreenProps<K extends keyof RootStack> = NativeStackScreenProps<RootStack, K>;

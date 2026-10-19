@@ -34,6 +34,8 @@ const driverAuthLimiter = rateLimit({
 driverRouter.post('/auth/register', driverAuthLimiter, handler(DA.register, 'AUTORIDE_DRIVER_REGISTER'));
 driverRouter.post('/auth/login', driverAuthLimiter, accountLockout, handler(DA.login, 'AUTORIDE_DRIVER_LOGIN'));
 driverRouter.use(protectDriver);
+// C9: in-app account deletion: /account/deletion-check, /account/delete-otp, /account/delete.
+driverRouter.use('/account', require('../../routes/partnerAccountRoutes').driverRouter);
 driverRouter.post('/auth/refresh', handler(DA.refresh, 'AUTORIDE_DRIVER'));
 driverRouter.post('/auth/password', driverAuthLimiter, handler(DA.changePassword, 'AUTORIDE_DRIVER'));
 driverRouter.post('/fcm-token', handler(DA.saveFcmToken, 'AUTORIDE_DRIVER'));

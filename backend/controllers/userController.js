@@ -181,7 +181,10 @@ const OTP_PURPOSES = {
   auth: 'auth', login: 'auth', register: 'auth', link_google: 'auth',
   reset_password: 'reset_password', reset: 'reset_password',
   change_phone: 'change_phone',
-  delete_account: 'delete_account' // re-authentication before POST /api/users/account/delete
+  delete_account: 'delete_account', // re-authentication before POST /api/users/account/delete
+  // C9: rider / Auto-Ride driver account deletion. Sent only by the signed-in partner's own
+  // POST .../account/delete-otp (to the account's number), never through the public /send-otp.
+  delete_partner_account: 'delete_partner_account'
 };
 
 const normalizePurpose = (p) => (p === undefined || p === null || p === '' ? 'auth' : OTP_PURPOSES[String(p)] || null);
@@ -896,6 +899,10 @@ const sendOtp = async (req, res) => {
     if (!otpSecret()) {
       console.error('[SEND_OTP] Neither OTP_SECRET nor JWT_SECRET is configured');
       return res.status(500).json({ message: 'Server configuration error. Please try again later.' });
+    }
+
+    if (purpose === 'delete_partner_account' && req.partnerDeleteOtp !== true) {
+      return res.status(400).json({ message: 'Invalid OTP purpose' });
     }
 
     const User = getUserModel();

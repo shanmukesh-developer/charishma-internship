@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SUPPORT_PHONE, SUPPORT_PHONE_DISPLAY } from '../config';
+import { SUPPORT_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_DISPLAY } from '../config';
 import { formatHHMM } from '../lib/model';
 import { useSession } from '../state/SessionProvider';
 import { useStore } from '../state/StoreProvider';
@@ -35,6 +35,7 @@ export default function SettingsScreen() {
   const { signOut } = useSession();
   const voice = useVoice();
   const [confirmOut, setConfirmOut] = useState(false);
+  const [deleteInfo, setDeleteInfo] = useState(false);
   const [closing, setClosing] = useState(false);
   const [closeErr, setCloseErr] = useState<string | null>(null);
   // Logging out stops the ringing but not the store: offer to close it first, or orders keep coming in
@@ -150,9 +151,30 @@ export default function SettingsScreen() {
             <LinkRow icon="document-text-outline" label={LEGAL_LABELS[p]} onPress={() => openLegal(p)} />
           </View>
         ))}
+        <View style={{ height: 1, backgroundColor: color.surfaceAlt }} />
+        <LinkRow icon="trash-outline" label="Delete account" sub="Close this store account" onPress={() => setDeleteInfo(true)} />
       </Card>
 
       <Button label="Log out" icon="log-out-outline" variant="rejectOutline" size="secondary" onPress={() => { setCloseErr(null); setConfirmOut(true); }} />
+
+      {/* C9: store accounts are created by Zenvy, so the Zenvy team closes them (Play account-deletion policy). */}
+      <Sheet visible={deleteInfo} onClose={() => setDeleteInfo(false)} title="Delete account">
+        <Text style={[font.body, { color: color.textSecondary, marginBottom: space.sm }]}>
+          Store accounts are set up by Zenvy, so the Zenvy team closes them for you. Email us from the owner's registered email or
+          mobile number, or call support. We confirm the request with the owner, settle any payouts and close the account within
+          7 days. Order, payout and tax records are kept as the law requires.
+        </Text>
+        <View style={{ gap: space.xs }}>
+          <Button
+            label="Email Zenvy"
+            icon="mail-outline"
+            onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Close my Zenvy store account (${name})`)}`).catch(() => {})}
+          />
+          <Button label="Call Zenvy support" icon="call-outline" variant="secondary" size="secondary" onPress={() => Linking.openURL(`tel:+${SUPPORT_PHONE}`).catch(() => {})} />
+          <Button label="How account deletion works" variant="secondary" size="secondary" onPress={() => openLegal('deleteAccount')} />
+          <Button label="Cancel" variant="secondary" size="secondary" onPress={() => setDeleteInfo(false)} />
+        </View>
+      </Sheet>
 
       <Sheet visible={confirmOut} onClose={closeOut} title="Log out?">
         <Text style={[font.body, { color: color.textSecondary, marginBottom: space.md }]}>

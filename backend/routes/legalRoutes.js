@@ -374,7 +374,7 @@ ${f.thirdParties.map((t) => `<li><b>${esc(t.name)}</b>: ${esc(t.what)}.</li>`).j
 <p>We use encryption in transit, hashed passwords and codes, access controls and private storage with short-lived signed links for documents. No system is perfectly secure; if a breach affects you we will notify you and the authorities as the law requires.</p>
 
 <h2>9. Deleting your data</h2>
-<p>You can delete your account at any time in the app: <b>Profile → Delete my account</b>, or see <a href="/legal/delete-account">how to delete your account</a>. When you delete your account we delete your profile, photos, ID card and documents, chats, posts, friends, notifications and push tokens, and we remove your name, number, email, hostel and room from the order and payment records we must keep. Partner accounts (riders, auto drivers, stores) can ask for deletion by email.</p>
+<p>You can delete your account at any time in the app: <b>Profile → Delete my account</b>, or see <a href="/legal/delete-account">how to delete your account</a>. When you delete your account we delete your profile, photos, ID card and documents, chats, posts, friends, notifications and push tokens, and we remove your name, number, email, hostel and room from the order and payment records we must keep. Riders and auto drivers can delete their account in their app (Profile / Settings → Delete account); store accounts are closed by the Zenvy team on request. See <a href="/legal/delete-account">how to delete your account</a> for what partner records are kept.</p>
 
 <h2>10. Changes</h2>
 <p>We will update this page when our practices change and show the new version and date at the top. For significant changes we will ask you to review them in the app.</p>
@@ -545,7 +545,7 @@ const DELETE = (f) => {
   const biz = esc(s.businessName);
   return page(f, 'Delete your account', `
 <h1>Delete your ${biz} account</h1>
-<p class="muted">Applies to the Zenvy app (com.srm.hostelbites)</p>
+<p class="muted">Applies to the Zenvy app (com.srm.hostelbites) and the partner apps: Zenvy Rider (com.srm.hostelbitesdelivery), Zenvy Auto Driver (com.srm.zenvyautodriver), Zenvy Restaurant (com.zenvy.restaurant) and Zenvy Vendor (com.srm.zenvyvendor). <a href="#riders">Riders and auto drivers</a> · <a href="#stores">Restaurants and vendors</a></p>
 
 <h2>Option 1: in the app (fastest)</h2>
 <ol>
@@ -557,7 +557,7 @@ const DELETE = (f) => {
 <p>Your account is closed immediately and you are signed out on every device.</p>
 
 <h2>Option 2: by email</h2>
-<p>If you can't use the app, email ${mail(s.contactEmail, 'Delete my Zenvy account')} with the subject "Delete my Zenvy account" from the email linked to your account, or include the mobile number you signed up with. To protect you, we will confirm the request with an SMS code or a reply from that email before deleting. We complete requests within 7 days. Partner accounts (Zenvy Rider, Auto Driver, Restaurant and Vendor) can be deleted the same way by email.</p>
+<p>If you can't use the app, email ${mail(s.contactEmail, 'Delete my Zenvy account')} with the subject "Delete my Zenvy account" from the email linked to your account, or include the mobile number you signed up with. To protect you, we will confirm the request with an SMS code or a reply from that email before deleting. We complete requests within 7 days. Partner accounts can also be deleted by email (see below).</p>
 
 <div class="box">
 <p><b>Please note:</b> you must not have an order or rental in progress. Any Zenvy Wallet balance and reward points are forfeited when the account is deleted, so please use them first.</p>
@@ -576,6 +576,21 @@ const DELETE = (f) => {
 <li>Order, wallet, booking and payment records, with your name, number, address and notes removed, as required for accounting and tax law (up to 8 years).</li>
 <li>Safety and moderation records (for example reports about abuse), linked only to an anonymised account, to prevent fraud and abuse.</li>
 </ul>
+
+<h2 id="riders">Zenvy Rider and Zenvy Auto Driver accounts</h2>
+<p>Riders and auto drivers sign up in their app, so they can delete their account in the app too:</p>
+<ol>
+<li><b>Zenvy Rider</b>: open the <b>Profile</b> tab and tap <b>Delete account</b>. <b>Zenvy Auto Driver</b>: open <b>Menu → Settings</b> and tap <b>Delete account</b>.</li>
+<li>Read what will be deleted, type <b>DELETE</b> and confirm with your password or the SMS code we send to your number.</li>
+</ol>
+<p>Or email ${mail(s.contactEmail, 'Delete my Zenvy partner account')} from the mobile number's owner, as above. Before deleting you must finish or hand back any delivery or trip in progress, deposit cash you collected for ${biz}, and receive any money ${biz} still owes you; the app tells you what is left.</p>
+<ul>
+<li><b>Deleted</b>: name, mobile number, password, profile photo, bio, vehicle number (riders), emergency contact, live and last location, licence number, PSV badge, licence / police verification / document and vehicle photos (drivers), device push tokens, notifications, your order chat messages, support tickets not linked to an order, and sign-in codes. You are signed out on every device at once.</li>
+<li><b>Kept</b>, with your personal details removed: delivery and trip records, cash collected and deposits, earnings, payouts and wallet entries (accounting and tax law, up to 8 years); vehicle registration and capacity linked to past trips, safety incidents, SOS and trip event logs, and support tickets about an order (safety, disputes and fraud prevention). Order chat is deleted after 90 days in any case.</li>
+</ul>
+
+<h2 id="stores">Zenvy Restaurant and Zenvy Vendor accounts</h2>
+<p>Store accounts are created by the ${biz} team, so they are closed by the team: email ${mail(s.contactEmail, 'Close my Zenvy store account')} from the store owner's registered email or mobile number (or use <b>Settings → Delete account</b> in the store app, which opens this page). We confirm the request with the registered owner, settle any payouts, and close the account within 7 days. Order, payout, FSSAI / GST and tax records are kept as the law requires; the store login and device push tokens are removed.</p>
 `, { showVersion: false });
 };
 

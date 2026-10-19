@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 // ── Token Management (Encrypted via SecureStore) ──────────────────────────────
 // SecureStore uses Android Keystore / iOS Keychain for hardware-backed encryption.
-// Falls back to AsyncStorage on web where SecureStore is unavailable.
+// Web (no SecureStore) uses AsyncStorage; a phone never does (see C9 note below).
 
 const TOKEN_KEY = 'zenvy_token';
 
@@ -33,57 +33,70 @@ export const isTokenExpired = (token: string): boolean => {
   }
 };
 
-export const getToken = async (): Promise<string | null> => {
+// C9: on Android / iOS the token lives ONLY in SecureStore. If SecureStore fails (keystore error) it is kept
+// in memory for this run of the app, never written to AsyncStorage (plain text, could reach backups).
+// A token an older build left in AsyncStorage is moved into SecureStore on first read, then deleted there.
+// Web has no SecureStore: the browser build keeps using AsyncStorage (localStorage), as before.
+let memoryToken: string | null = null;
+
+const readNativeToken = async (): Promise<string | null> => {
+  let secure: string | null = null;
   try {
-    let token: string | null = null;
-    if (Platform.OS === 'web') {
-      token = await AsyncStorage.getItem(TOKEN_KEY);
-    } else {
-      token = await SecureStore.getItemAsync(TOKEN_KEY);
-    }
-    if (token && isTokenExpired(token)) {
-      await removeToken();
-      await removeUser();
-      emitSessionInvalid('expired');
-      return null;
-    }
-    return token;
+    secure = await SecureStore.getItemAsync(TOKEN_KEY);
   } catch {
-    // Fallback for environments where SecureStore isn't available
-    const token = await AsyncStorage.getItem(TOKEN_KEY);
-    if (token && isTokenExpired(token)) {
-      await removeToken();
-      await removeUser();
-      emitSessionInvalid('expired');
-      return null;
-    }
-    return token;
+    return memoryToken;
   }
+  if (secure) return secure;
+  if (memoryToken) return memoryToken;
+  let legacy: string | null = null;
+  try { legacy = await AsyncStorage.getItem(TOKEN_KEY); } catch { legacy = null; }
+  if (legacy) {
+    try {
+      await SecureStore.setItemAsync(TOKEN_KEY, legacy);
+    } catch {
+      memoryToken = legacy;
+    }
+    try { await AsyncStorage.removeItem(TOKEN_KEY); } catch {}
+  }
+  return legacy;
+};
+
+export const getToken = async (): Promise<string | null> => {
+  let token: string | null = null;
+  if (Platform.OS === 'web') {
+    try { token = await AsyncStorage.getItem(TOKEN_KEY); } catch { token = null; }
+  } else {
+    token = await readNativeToken();
+  }
+  if (token && isTokenExpired(token)) {
+    await removeToken();
+    await removeUser();
+    emitSessionInvalid('expired');
+    return null;
+  }
+  return token;
 };
 
 export const setToken = async (token: string): Promise<void> => {
-  try {
-    if (Platform.OS === 'web') {
-      await AsyncStorage.setItem(TOKEN_KEY, token);
-      return;
-    }
-    await SecureStore.setItemAsync(TOKEN_KEY, token);
-  } catch {
-    // Fallback for environments where SecureStore isn't available
+  if (Platform.OS === 'web') {
     await AsyncStorage.setItem(TOKEN_KEY, token);
+    return;
   }
+  try {
+    await SecureStore.setItemAsync(TOKEN_KEY, token);
+    memoryToken = null;
+  } catch {
+    memoryToken = token; // never AsyncStorage on a phone
+  }
+  try { await AsyncStorage.removeItem(TOKEN_KEY); } catch {}
 };
 
 export const removeToken = async (): Promise<void> => {
-  try {
-    if (Platform.OS === 'web') {
-      await AsyncStorage.removeItem(TOKEN_KEY);
-      return;
-    }
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
-  } catch {
-    await AsyncStorage.removeItem(TOKEN_KEY);
+  memoryToken = null;
+  if (Platform.OS !== 'web') {
+    try { await SecureStore.deleteItemAsync(TOKEN_KEY); } catch {}
   }
+  try { await AsyncStorage.removeItem(TOKEN_KEY); } catch {}
 };
 
 // ── User Management ───────────────────────────────────────────────────────────

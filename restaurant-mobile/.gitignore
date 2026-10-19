@@ -39,3 +39,12 @@ yarn-error.*
 # generated native folders (native code lives in plugins/, see plugins/withKitchenService.js)
 /ios
 /android
+
+# Secrets: NEVER commit (release signing: plugins/withReleaseSigning.js)
+google-services.json
+keystore.properties
+*.keystore
+*.jks
+.env
+*.apk
+*.aab

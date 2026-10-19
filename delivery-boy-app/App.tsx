@@ -10,6 +10,7 @@ import { LoginScreen, PendingScreen, SplashScreen } from './src/screens/Auth';
 import { Shell } from './src/screens/Shell';
 import { scheduleApiEndpointCheck } from './src/config';
 import UpdateGate from './src/services/UpdateGate';
+import { ErrorBoundary } from './src/ui/ErrorBoundary';
 
 function Root() {
   const { phase, toast, deliveryId, overlay } = useRider();
@@ -34,12 +35,15 @@ export default function App() {
   React.useEffect(() => { scheduleApiEndpointCheck(); }, []);
   return (
     <SafeAreaProvider>
-      {/* Force update: a retired version sees only the Update screen; a newer release shows a banner. */}
-      <UpdateGate>
-        <RiderProvider>
-          <Root />
-        </RiderProvider>
-      </UpdateGate>
+      {/* C9: a render error shows a calm "Something went wrong — Restart" screen instead of a crash. */}
+      <ErrorBoundary appName="Zenvy Rider">
+        {/* Force update: a retired version sees only the Update screen; a newer release shows a banner. */}
+        <UpdateGate>
+          <RiderProvider>
+            <Root />
+          </RiderProvider>
+        </UpdateGate>
+      </ErrorBoundary>
     </SafeAreaProvider>
   );
 }

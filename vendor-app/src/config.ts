@@ -41,6 +41,8 @@ export function scheduleApiEndpointCheck(delayMs = 4000): void {
 /** Zenvy partner support. Digits only, with country code. */
 export const SUPPORT_PHONE = '919391955674';
 export const SUPPORT_PHONE_DISPLAY = '+91 93919 55674';
+/** C9: account closure requests (same address as the legal pages). */
+export const SUPPORT_EMAIL = 'projectshanmukh@gmail.com';
 
 export const STORAGE = {
   token: '@zenvy_vendor_token',

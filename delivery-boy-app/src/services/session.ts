@@ -1,6 +1,6 @@
 // Session storage for the rider token, cached profile and small offline caches.
 // The bearer token lives in expo-secure-store (Android Keystore), not AsyncStorage, so it is not copied
-// into backups. A token left in AsyncStorage by an older build is moved over on first read.
+// into backups. A token left in AsyncStorage by an older build is moved over on first read (then deleted).
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { KEYS } from '../config';
@@ -36,16 +36,27 @@ async function secureDelete(): Promise<void> {
   }
 }
 
+/** C9: when SecureStore is unavailable (web / keystore error) the token lives in memory only, for this run
+ * of the app. It is never written to AsyncStorage (plain text, could reach backups). */
+let memoryToken: string | null = null;
+
+async function removeAsyncToken(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(KEYS.token);
+  } catch {
+    // ignore
+  }
+}
+
 async function loadToken(): Promise<string | null> {
   const secure = await secureGet();
   if (secure) return secure;
+  if (memoryToken) return memoryToken;
+  // A token an older build left in AsyncStorage: move it into SecureStore (or memory), then delete it there.
   const legacy = await safeGet(KEYS.token);
-  if (legacy && (await secureSet(legacy))) {
-    try {
-      await AsyncStorage.removeItem(KEYS.token);
-    } catch {
-      // ignore
-    }
+  if (legacy) {
+    if (!(await secureSet(legacy))) memoryToken = legacy;
+    await removeAsyncToken();
   }
   return legacy;
 }
@@ -82,15 +93,8 @@ export async function loadSession(): Promise<{ token: string | null; profile: Ri
 }
 
 export async function saveToken(token: string): Promise<void> {
-  if (await secureSet(token)) {
-    try {
-      await AsyncStorage.removeItem(KEYS.token);
-    } catch {
-      // ignore
-    }
-  } else {
-    await safeSet(KEYS.token, token); // web / keystore failure: keep the session working
-  }
+  memoryToken = (await secureSet(token)) ? null : token; // web / keystore failure: memory only
+  await removeAsyncToken();
 }
 
 export async function saveProfile(profile: RiderProfile): Promise<void> {
@@ -98,6 +102,7 @@ export async function saveProfile(profile: RiderProfile): Promise<void> {
 }
 
 export async function clearSession(): Promise<void> {
+  memoryToken = null;
   try {
     const keys = await AsyncStorage.getAllKeys();
     const ours = keys.filter((k) => k.startsWith(CACHE_PREFIX));

@@ -4,6 +4,8 @@
 //    file (alerts then only work while the app is open, and the app shows a banner saying so), but an EAS
 //    *production* build refuses to build without it. Set ALLOW_BUILD_WITHOUT_FCM=1 to override on purpose.
 //  - android.allowBackup=false: the session token must never be copied into Google / adb backups.
+//  - Release signing: plugins/withReleaseSigning.js (app.json; Play upload key from ~/.gradle/gradle.properties or
+//    android/keystore.properties, never the debug keystore). R8 / no cleartext / SDK 36: expo-build-properties (app.json).
 const fs = require('fs');
 const path = require('path');
 

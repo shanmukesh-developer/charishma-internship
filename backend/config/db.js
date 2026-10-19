@@ -49,6 +49,7 @@ const { initWalletTransactionModel } = require('../models/WalletTransaction');
 const { initRiderCashEntryModel } = require('../models/RiderCashEntry');
 const { initPayoutModel } = require('../models/Payout');
 const { initReceiptCounterModel } = require('../models/ReceiptCounter');
+const { initOrderMessageModel } = require('../models/OrderMessage');
 const { initCampusModels } = require('../modules/campus/models');
 const { initFriendsModels } = require('../modules/friends');
 const { initRentalsModels } = require('../modules/rentals');
@@ -107,6 +108,8 @@ const initializeAllModels = (instance) => {
   initPayoutModel(instance);
   // C8 receipt number counters (ReceiptCounters).
   initReceiptCounterModel(instance);
+  // C9 persisted order chat (OrderMessages, 90-day retention).
+  initOrderMessageModel(instance);
   // Zenvy Friends tables (after Users / campus / chat models they reference).
   initFriendsModels(instance);
   // Zenvy Rentals: peer-to-peer student vehicle rentals (Others > Rentals).

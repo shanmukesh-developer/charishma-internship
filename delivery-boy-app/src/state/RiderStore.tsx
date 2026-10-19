@@ -105,6 +105,8 @@ interface RiderContextValue {
   clearCancelNotice: () => void;
   saveProfileEdits: (p: ProfileEdits) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  /** C9: deletes the account on the server (password or SMS code), then signs out on this phone. */
+  deleteAccount: (proof: { password?: string; otp?: string }) => Promise<void>;
 }
 
 const Ctx = createContext<RiderContextValue | null>(null);
@@ -1139,6 +1141,16 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const deleteAccount = useCallback(
+    async (proof: { password?: string; otp?: string }) => {
+      await api.deleteAccount(proof);
+      // The server already ended every session and removed the push tokens: just clear this phone.
+      await endSession();
+      showToast('Your Zenvy Rider account has been deleted.', 'success');
+    },
+    [endSession, showToast],
+  );
+
   const openDelivery = useCallback((id: string) => setDeliveryId(id), []);
   const closeDelivery = useCallback(() => setDeliveryId(null), []);
   const clearCancelNotice = useCallback(() => setCancelNotice(null), []);
@@ -1193,6 +1205,7 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
       clearCancelNotice,
       saveProfileEdits,
       changePassword,
+      deleteAccount,
       backgroundLocationOff,
       allowBackgroundLocation,
       sendSos,
@@ -1245,6 +1258,7 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
       clearCancelNotice,
       saveProfileEdits,
       changePassword,
+      deleteAccount,
       backgroundLocationOff,
       allowBackgroundLocation,
       sendSos,

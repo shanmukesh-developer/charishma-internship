@@ -47,6 +47,15 @@ export const driverApi = {
   saveFcmToken: (token: string) => apiFetch<{ ok: boolean }>(`${D}/fcm-token`, { method: 'POST', body: { token } }),
   removeFcmToken: (token: string) => apiFetch<{ ok: boolean }>(`${D}/fcm-token/remove`, { method: 'POST', body: { token }, timeoutMs: 6000 }),
 
+  // ── C9: delete account (Play requirement) ─────────────────────────────
+  /** GET /account/deletion-check -> { canDelete, blockers: [{ code, message }], phoneMasked }. */
+  deletionCheck: () => apiFetch<{ canDelete: boolean; blockers: { code: string; message: string }[]; phoneMasked: string }>(`${D}/account/deletion-check`),
+  /** POST /account/delete-otp: SMS code to this account's own number (429 OTP_COOLDOWN { retryAfter }, 409 blocker). */
+  sendDeleteOtp: () => apiFetch<{ success: boolean; message: string; resendAfter?: number }>(`${D}/account/delete-otp`, { method: 'POST', timeoutMs: 45000 }),
+  /** POST /account/delete { confirm: 'DELETE', password | otp } (401 WRONG_PASSWORD, 400 OTP_INVALID, 409 blocker). */
+  deleteAccount: (input: { password?: string; otp?: string; reason?: string }) =>
+    apiFetch<{ success: boolean; message: string }>(`${D}/account/delete`, { method: 'POST', body: { confirm: 'DELETE', ...input }, timeoutMs: 45000 }),
+
   // ── Account, documents, review ─────────────────────────────────────────
   me: () => apiFetch<MeResponse>(`${D}/me`),
   updateProfile: (input: ProfileInput) => apiFetch<{ driver: DriverSelf }>(`${D}/me/profile`, { method: 'PATCH', body: input }),

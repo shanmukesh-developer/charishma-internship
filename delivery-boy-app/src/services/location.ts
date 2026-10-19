@@ -1,8 +1,8 @@
 // GPS for distance-to-store and live tracking. Runs only while on duty or holding an active order.
 // Foreground: watchPositionAsync. Background (the rider switched to Google Maps to navigate): a
 // location task with an Android foreground service, so the process and its socket stay alive and the
-// customer map / admin radar keep moving during the ride. Background permission is asked once, with an
-// explanation, only when tracking starts (on duty / holding an order); declining keeps foreground-only and
+// customer map / admin radar keep moving during the ride. Background permission is asked once, after the
+// in-app prominent disclosure (confirmBackgroundDisclosure, shown before EVERY background request), only when tracking starts (on duty / holding an order); declining keeps foreground-only and
 // the Home screen shows a banner to allow it later (requestBackgroundLocation).
 // Battery: 'idle' mode (on duty, no order) uses balanced accuracy every 30-60 s; 'active' (holding an order)
 // uses high accuracy. The foreground watch pauses while the app is in the background (the task covers it).
@@ -111,6 +111,38 @@ if (!TaskManager.isTaskDefined(BG_TASK)) {
   });
 }
 
+/**
+ * C9 (Google Play "prominent disclosure"): shown in the app BEFORE every request for background location
+ * (the system prompt or the app's settings page). Resolves true only on "Accept".
+ */
+export const BACKGROUND_DISCLOSURE_TITLE = 'Allow location in the background?';
+export const BACKGROUND_DISCLOSURE_TEXT =
+  'Zenvy Rider collects your location to assign nearby orders and share live location with customers during deliveries, ' +
+  'even when the app is closed or not in use (for example while you navigate in Google Maps). It is used only while you are ' +
+  'on duty or delivering, a notification shows whenever it is on, and it stops when you go offline. ' +
+  'On the next screen choose "Allow all the time".';
+
+export function confirmBackgroundDisclosure(): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    let done = false;
+    const finish = (v: boolean) => {
+      if (!done) {
+        done = true;
+        resolve(v);
+      }
+    };
+    Alert.alert(
+      BACKGROUND_DISCLOSURE_TITLE,
+      BACKGROUND_DISCLOSURE_TEXT,
+      [
+        { text: 'Not now', style: 'cancel', onPress: () => finish(false) },
+        { text: 'Accept', onPress: () => finish(true) },
+      ],
+      { cancelable: true, onDismiss: () => finish(false) },
+    );
+  });
+}
+
 async function ensureBackgroundPermission(): Promise<boolean> {
   try {
     const cur = await Location.getBackgroundPermissionsAsync();
@@ -122,17 +154,7 @@ async function ensureBackgroundPermission(): Promise<boolean> {
     // Asked once already: the Home banner offers "Allow" instead of a popup on every start.
     if (!cur.canAskAgain || (await getItem(BG_ASKED_KEY)) === '1') return false;
     await setItem(BG_ASKED_KEY, '1');
-    const ok = await new Promise<boolean>((resolve) => {
-      Alert.alert(
-        'Keep live tracking during rides',
-        'When you open Google Maps to navigate, Zenvy Rider needs "Allow all the time" location so the customer can still see you on the map. It is only used while you are on duty or delivering, and a notification shows whenever it is on.',
-        [
-          { text: 'Not now', style: 'cancel', onPress: () => resolve(false) },
-          { text: 'Continue', onPress: () => resolve(true) },
-        ],
-        { cancelable: true, onDismiss: () => resolve(false) },
-      );
-    });
+    const ok = await confirmBackgroundDisclosure();
     if (!ok) return false;
     const granted = (await Location.requestBackgroundPermissionsAsync()).status === 'granted';
     setBgState(granted ? 'granted' : 'denied');
@@ -150,7 +172,11 @@ export async function requestBackgroundLocation(): Promise<boolean> {
   try {
     const cur = await Location.getBackgroundPermissionsAsync();
     let granted = cur.status === 'granted';
-    if (!granted && cur.canAskAgain) granted = (await Location.requestBackgroundPermissionsAsync()).status === 'granted';
+    if (!granted) {
+      // Prominent disclosure first, every time (before the system prompt or the settings page).
+      if (!(await confirmBackgroundDisclosure())) return false;
+      if (cur.canAskAgain) granted = (await Location.requestBackgroundPermissionsAsync()).status === 'granted';
+    }
     if (!granted) {
       await Linking.openSettings().catch(() => {});
       return false;

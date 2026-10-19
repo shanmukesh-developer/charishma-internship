@@ -30,7 +30,8 @@ Every number on screen (fares, seats, queue numbers, earnings, statuses) comes f
 | Notifications, Trip history, Earnings (today / 7 days / month), Your queue | | `GET /notifications`, `POST /notifications/read`, `GET /trips?scope=past`, `GET /earnings`, `GET /home` |
 | Profile and vehicle | name, licence number + expiry, PSV badge no., emergency contact, preferred routes, change password | `PATCH /me/profile`, `POST /auth/password` |
 | Help and support / SOS | call 112, call Zenvy, report a problem (SOS = SAFETY incident linked to the trip) | `POST /incidents` |
-| Settings | push status, server, sign out (removes this phone's FCM token first) | `POST /fcm-token/remove` |
+| Settings | push status, server, policies, **Delete account**, sign out (removes this phone's FCM token first) | `POST /fcm-token/remove` |
+| Delete account (Settings) | what is deleted / kept, blockers (published trip, open full-auto request), password or SMS code + DELETE | `GET /account/deletion-check`, `POST /account/delete-otp`, `POST /account/delete` |
 
 Design rules: large controls, one main action per screen (pinned at the bottom), simple English with Telugu on
 the key labels, and a **"Only use while the auto is stopped"** reminder on every screen with trip actions.
@@ -90,29 +91,42 @@ Override on purpose only with `ALLOW_BUILD_WITHOUT_FCM=1`.
 ### 2. Upload keystore (release signing) — never commit it
 
 `android/` is generated (`expo prebuild`) and git-ignored, so signing is added on every prebuild by
-`plugins/withReleaseSigning.js` (same `ZENVY_UPLOAD_*` keys as `customer-mobile`). The release build is
-**never** signed with the debug keystore: without an upload key a local release build stops with an error
-(`ZENVY_ALLOW_UNSIGNED_RELEASE=1` makes an unsigned test build instead).
+`plugins/withReleaseSigning.js` (the same plugin in every partner app). This app uses its own prefix
+**`ZENVY_DRIVER_UPLOAD`**, so one `~/.gradle/gradle.properties` can hold every Zenvy key without an app ever being
+signed with another app's key. The release build is **never** signed with the debug keystore: without an upload key
+a local release build stops with an error (`ZENVY_ALLOW_UNSIGNED_RELEASE=1` makes an unsigned test build instead),
+and a key file named `debug.keystore` is refused.
 
 Create the key once (keep it and its passwords safe and backed up outside the repo; losing it means you can
 no longer update the app unless Play App Signing resets the upload key):
 
 ```bash
-keytool -genkeypair -v -storetype PKCS12 -keyalg RSA -keysize 2048 -validity 10000 \
-  -keystore C:/keys/zenvy-auto-driver-upload.jks -alias zenvy-auto-driver-upload
+keytool -genkeypair -v -storetype PKCS12 -keyalg RSA -keysize 2048 -validity 10000   -keystore C:/Users/Shanmukh/zenvy-keys/zenvy-auto-driver-upload.jks -alias zenvy-auto-driver-upload
 ```
 
-Then give Gradle the four values, either in `auto-driver-app/android/keystore.properties` (git-ignored, but
-deleted by `expo prebuild --clean`) or, better, in `%USERPROFILE%\.gradle\gradle.properties` (survives prebuild):
+Then give Gradle the four values in `%USERPROFILE%\.gradle\gradle.properties` (survives `prebuild --clean`):
 
 ```properties
-ZENVY_UPLOAD_STORE_FILE=C:/keys/zenvy-auto-driver-upload.jks
-ZENVY_UPLOAD_STORE_PASSWORD=********
-ZENVY_UPLOAD_KEY_ALIAS=zenvy-auto-driver-upload
-ZENVY_UPLOAD_KEY_PASSWORD=********
+ZENVY_DRIVER_UPLOAD_STORE_FILE=C:/Users/Shanmukh/zenvy-keys/zenvy-auto-driver-upload.jks
+ZENVY_DRIVER_UPLOAD_STORE_PASSWORD=********
+ZENVY_DRIVER_UPLOAD_KEY_ALIAS=zenvy-auto-driver-upload
+ZENVY_DRIVER_UPLOAD_KEY_PASSWORD=********
 ```
 
+or in `auto-driver-app/android/keystore.properties` (git-ignored, deleted by `expo prebuild --clean`). Backward
+compatible: the old `ZENVY_UPLOAD_*` names are still read, but **only** from this app's own
+`android/keystore.properties`, never from `~/.gradle/gradle.properties` (there `ZENVY_UPLOAD_*` would be the
+customer app's key).
+
 EAS builds (`EAS_BUILD=true`) use EAS-managed credentials instead (`npx eas-cli@latest credentials`).
+
+### 3. Hardening (app.json, re-applied on every prebuild)
+
+Version `1.0.1` / versionCode `2`. `expo-build-properties`: R8 minify + resource shrinking in release, keep rules
+for react-native-reanimated, `usesCleartextTraffic: false` (debug builds keep cleartext for a local backend),
+compile / target SDK 36, Hermes. `allowBackup: false`. The token is only in `expo-secure-store` (memory-only if
+that fails, never AsyncStorage). Release is never `debuggable`. Keep `android/app/build/outputs/mapping/release/mapping.txt`
+of every Play build.
 
 ## Build
 
@@ -158,6 +172,11 @@ npx expo export --platform android
   - `ACCESS_NETWORK_STATE` (networking libraries), `USE_BIOMETRIC` / `USE_FINGERPRINT` (declared by
     expo-secure-store; the app never asks for a fingerprint), install-referrer binding (Play)
   - (list taken from `aapt dump permissions` on a local unsigned release build, 17 Oct 2026)
+- **Account deletion** (drivers sign up in the app): Settings → **Delete account**. Web link for the Play form:
+  `https://<api host>/legal/delete-account#riders`. Driver name, phone, password, documents, licence / badge,
+  emergency contact, photos and push tokens are deleted; trips, bookings, incidents and the auto's registration are
+  kept without personal details.
+- Crashes: a root `ErrorBoundary` shows "Something went wrong — Restart" instead of a blank screen.
 - Data safety form: name, mobile number, driving licence / PSV badge / police verification photos, vehicle
   papers and photos, emergency contact. Documents are uploaded as private files only Zenvy's verification team
   can open; drivers see 1-hour signed previews. No Aadhaar is collected. Passenger phone numbers are never shown

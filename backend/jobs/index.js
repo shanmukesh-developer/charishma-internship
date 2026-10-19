@@ -186,7 +186,17 @@ const runCampusEvents = async () => {
   }
 };
 
-const runRetention = async () => require('../cron/retentionCron').runRetention();
+// + C9: order chat (OrderMessages) older than ORDER_CHAT_RETENTION_DAYS (default 90) is deleted in the same tick.
+const runRetention = async () => {
+  const out = await require('../cron/retentionCron').runRetention();
+  let orderChat = 0;
+  try {
+    orderChat = await require('../utils/orderMessages').purgeOldOrderMessages();
+  } catch (e) {
+    console.warn('[ORDER_CHAT_RETENTION] Error:', e.message);
+  }
+  return out && typeof out === 'object' ? { ...out, orderChat } : { result: out, orderChat };
+};
 
 // Daily abandoned-cart push (10:00 IST).
 const runAbandonedCart = async () => {

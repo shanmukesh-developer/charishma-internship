@@ -5,7 +5,7 @@
     },
     "name": "Zenvy Auto Driver",
     "slug": "zenvy-auto-driver",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,8 @@
     },
     "android": {
       "package": "com.srm.zenvyautodriver",
-      "versionCode": 1,
+      "versionCode": 2,
+      "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#0B0D12",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -35,7 +36,14 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "./plugins/withReleaseSigning",
+      [
+        "./plugins/withReleaseSigning",
+        {
+          "prefix": "ZENVY_DRIVER_UPLOAD",
+          "legacyPrefix": "ZENVY_UPLOAD",
+          "readme": "auto-driver-app/README.md"
+        }
+      ],
       [
         "expo-image-picker",
         {
@@ -52,6 +60,20 @@
             "./assets/sounds/alert.wav"
           ],
           "defaultChannel": "delivery-alerts-v2"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0",
+            "usesCleartextTraffic": false,
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "-keep class com.swmansion.reanimated.** { *; }\n-keep class com.facebook.react.turbomodule.** { *; }"
+          }
         }
       ]
     ]

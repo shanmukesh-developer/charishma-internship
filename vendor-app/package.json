@@ -9,6 +9,7 @@
     "@react-navigation/native-stack": "^7.19.1",
     "@types/react": "~19.2.4",
     "expo": "~57.0.23",
+    "expo-build-properties": "~57.0.22",
     "expo-haptics": "~57.0.3",
     "expo-image-manipulator": "~57.0.21",
     "expo-image-picker": "~57.0.20",

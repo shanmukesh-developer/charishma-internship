@@ -356,6 +356,7 @@ export function SettingsScreen({ navigation }: ScreenProps<'Settings'>) {
       {SETTINGS_PAGES.map((p) => (
         <ListRow key={p} icon="document-text" title={LEGAL_LABELS[p]} onPress={() => openLegal(p)} />
       ))}
+      <ListRow icon="trash" title="Delete account" sub="Close your driver account and delete your details" onPress={() => navigation.navigate('DeleteAccount')} />
       <Button label="Sign out" icon="log-out" variant="rejectOutline" onPress={logout} loading={busy} />
     </Screen>
   );

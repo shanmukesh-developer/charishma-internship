@@ -38,6 +38,8 @@ router.get('/myorders', protect, getMyOrders);
 router.get('/stats', protect, getOrderStats);
 router.get('/surge-status', getSurgeStatus);
 router.get('/:id', protect, getOrderById);
+// C9: persisted order chat history (customer of the order, its current rider, admins).
+router.get('/:id/messages', protect, require('../utils/orderMessages').getOrderMessagesRoute);
 // C8: structured receipt of a delivered order (customer / its store / admin) + a signed 15-min HTML link.
 router.get('/:id/receipt', protect, require('../controllers/receiptController').getOrderReceipt);
 router.put('/:id/rate', protect, rateOrder);

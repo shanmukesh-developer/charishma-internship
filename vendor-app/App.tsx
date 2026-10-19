@@ -16,6 +16,7 @@ import MainScreen, { RootStack } from './src/screens/MainScreen';
 import OrderDetailScreen from './src/screens/OrderDetailScreen';
 import { scheduleApiEndpointCheck } from './src/config';
 import UpdateGate from './src/lib/UpdateGate';
+import { ErrorBoundary } from './src/ui/ErrorBoundary';
 
 const Stack = createNativeStackNavigator<RootStack>();
 const navTheme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: color.bg, card: color.surface, text: color.text, primary: color.text } };
@@ -54,18 +55,21 @@ export default function App() {
   useEffect(() => { initVoice(); }, []);
   return (
     <SafeAreaProvider>
-      {/* Real keyboard insets for every screen and sheet (Android edge-to-edge ignores adjustResize). */}
-      <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
-        <StatusBar style="dark" />
-        <ToastProvider>
-          {/* Force update: a retired version sees only the Update screen; a newer release shows a banner. */}
-          <UpdateGate>
-            <SessionProvider>
-              <Root />
-            </SessionProvider>
-          </UpdateGate>
-        </ToastProvider>
-      </KeyboardProvider>
+      {/* C9: a render error shows a calm "Something went wrong — Restart" screen instead of a crash. */}
+      <ErrorBoundary appName="Zenvy Vendor">
+        {/* Real keyboard insets for every screen and sheet (Android edge-to-edge ignores adjustResize). */}
+        <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
+          <StatusBar style="dark" />
+          <ToastProvider>
+            {/* Force update: a retired version sees only the Update screen; a newer release shows a banner. */}
+            <UpdateGate>
+              <SessionProvider>
+                <Root />
+              </SessionProvider>
+            </UpdateGate>
+          </ToastProvider>
+        </KeyboardProvider>
+      </ErrorBoundary>
     </SafeAreaProvider>
   );
 }

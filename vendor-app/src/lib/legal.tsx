@@ -6,7 +6,7 @@ import { color } from '../theme';
 
 const ORIGIN = API_URL.replace(/\/+$/, '');
 
-export type LegalPage = 'terms' | 'privacy' | 'refunds' | 'grievance' | 'community' | 'index';
+export type LegalPage = 'terms' | 'privacy' | 'refunds' | 'grievance' | 'community' | 'index' | 'deleteAccount';
 const PATHS: Record<LegalPage, string> = {
   terms: '/legal/terms',
   privacy: '/legal/privacy',
@@ -14,6 +14,7 @@ const PATHS: Record<LegalPage, string> = {
   grievance: '/legal/grievance',
   community: '/legal/community-guidelines',
   index: '/legal',
+  deleteAccount: '/legal/delete-account',
 };
 export const LEGAL_LABELS: Record<LegalPage, string> = {
   terms: 'Terms of Service',
@@ -22,6 +23,7 @@ export const LEGAL_LABELS: Record<LegalPage, string> = {
   grievance: 'Grievance Redressal',
   community: 'Community Guidelines',
   index: 'All policies',
+  deleteAccount: 'Delete your account',
 };
 /** Pages shown in this app's settings. */
 export const SETTINGS_PAGES: LegalPage[] = ['terms', 'privacy', 'refunds', 'grievance', 'community'];

@@ -213,6 +213,34 @@ export async function changePassword(currentPassword: string, newPassword: strin
   return typeof d?.token === 'string' && d.token ? d.token : null;
 }
 
+// ── C9: delete account (Google Play requirement) ─────────────────────────────
+export interface DeletionCheck {
+  canDelete: boolean;
+  blockers: { code: string; message: string }[];
+  phoneMasked: string;
+}
+
+/** GET /delivery/account/deletion-check: deliveries in progress, cash to deposit, money still owed, pending payout. */
+export async function fetchDeletionCheck(): Promise<DeletionCheck> {
+  const d = await apiFetch<any>('/delivery/account/deletion-check');
+  return {
+    canDelete: !!d?.canDelete,
+    blockers: Array.isArray(d?.blockers) ? d.blockers.map((b: any) => ({ code: String(b?.code ?? ''), message: String(b?.message ?? '') })) : [],
+    phoneMasked: typeof d?.phoneMasked === 'string' ? d.phoneMasked : '',
+  };
+}
+
+/** POST /delivery/account/delete-otp: SMS code to the rider's own number. Resolves the server's message. */
+export async function sendDeleteOtp(): Promise<string> {
+  const d = await apiFetch<any>('/delivery/account/delete-otp', { method: 'POST', timeoutMs: 45000 });
+  return typeof d?.message === 'string' ? d.message : 'We sent a 6-digit code to your number.';
+}
+
+/** POST /delivery/account/delete { confirm: 'DELETE', password | otp }. */
+export async function deleteAccount(proof: { password?: string; otp?: string }): Promise<void> {
+  await apiFetch('/delivery/account/delete', { method: 'POST', body: { confirm: 'DELETE', ...proof }, timeoutMs: 45000 });
+}
+
 function toTicket(t: any): SupportTicket {
   return {
     id: String(t?.id ?? t?._id ?? ''),

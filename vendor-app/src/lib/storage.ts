@@ -28,16 +28,21 @@ const SECURE_TOKEN_KEY = 'zenvy_vendor_token';
 async function secureGetToken(): Promise<string | null> {
   try { return await SecureStore.getItemAsync(SECURE_TOKEN_KEY); } catch { return null; }
 }
-/** Stores the token; falls back to AsyncStorage only when SecureStore is unavailable (web / keystore error). */
+/** C9: when SecureStore is unavailable (web / keystore error) the token is kept in memory only, for this
+ * run of the app. It is never written to AsyncStorage (which is plain text and could reach backups). */
+let memoryToken: string | null = null;
+/** Stores the token in SecureStore, or in memory when that fails; always removes an AsyncStorage copy. */
 async function saveToken(token: string): Promise<void> {
   try {
     await SecureStore.setItemAsync(SECURE_TOKEN_KEY, token);
-    await safeRemove([STORAGE.token]);
+    memoryToken = null;
   } catch {
-    await safeSet(STORAGE.token, token);
+    memoryToken = token;
   }
+  await safeRemove([STORAGE.token]);
 }
 async function clearToken(): Promise<void> {
+  memoryToken = null;
   try { await SecureStore.deleteItemAsync(SECURE_TOKEN_KEY); } catch { /* ignore */ }
 }
 
@@ -58,9 +63,14 @@ export function pickProfile(raw: any): StoreProfile | null {
 
 export async function loadSession(): Promise<{ token: string | null; restaurant: StoreProfile | null }> {
   const secure = await secureGetToken();
-  const t = secure || (await safeGet(STORAGE.token));
+  // A token an older build left in AsyncStorage is moved into SecureStore (or memory) and deleted there.
+  const legacy = secure || memoryToken ? null : await safeGet(STORAGE.token);
+  const t = secure || memoryToken || legacy;
   const token = t ? t.replace(/['"]+/g, '').trim() || null : null;
-  if (token && !secure) await saveToken(token); // move a token an older build left in AsyncStorage
+  if (legacy) {
+    if (token) await saveToken(token);
+    else await safeRemove([STORAGE.token]);
+  }
   const raw = await safeGet(STORAGE.vendor);
   let restaurant: StoreProfile | null = null;
   if (raw) {

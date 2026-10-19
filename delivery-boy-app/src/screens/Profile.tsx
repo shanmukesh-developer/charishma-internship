@@ -11,6 +11,7 @@ import { useVoice } from '../voice/useVoice';
 import { LANG_LABEL } from '../voice/phrases';
 import * as links from '../services/links';
 import { errorMessage } from '../services/apiClient';
+import * as api from '../services/deliveryApi';
 import { indianMobileDigits } from '../services/orderModel';
 import { SUPPORT_PHONE } from '../config';
 import { LEGAL_LABELS, SETTINGS_PAGES, openLegal } from '../services/legal';
@@ -25,6 +26,7 @@ export function ProfileScreen() {
   const [edit, setEdit] = useState(false);
   const [pwd, setPwd] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     r.refreshProfile();
@@ -111,6 +113,7 @@ export function ProfileScreen() {
           <Row icon="lifebuoy" label="Help & support" value="Raise a ticket, see replies" onPress={() => r.setOverlay({ kind: 'support' })} />
           <Row icon="phone-outline" label="Call Zenvy" value="Talk to the fleet team" onPress={() => links.callNumber(`+${SUPPORT_PHONE}`)} />
           <Row icon="lock-reset" label="Change password" onPress={() => setPwd(true)} />
+          <Row icon="account-remove-outline" label="Delete account" value="Close your rider account" onPress={() => setDeleting(true)} />
         </Card>
 
         <Card style={{ paddingVertical: S.xs }}>
@@ -126,6 +129,7 @@ export function ProfileScreen() {
 
       <EditProfileSheet visible={edit} onClose={() => setEdit(false)} />
       <ChangePasswordSheet visible={pwd} onClose={() => setPwd(false)} />
+      <DeleteAccountSheet visible={deleting} onClose={() => setDeleting(false)} />
       <Sheet visible={confirmLogout} onClose={() => setConfirmLogout(false)} title="Log out?">
         <Text style={[T.body, { color: C.ink2 }]}>
           {r.active.data.length
@@ -279,6 +283,130 @@ function ChangePasswordSheet({ visible, onClose }: { visible: boolean; onClose: 
       <Field label="CURRENT PASSWORD" value={current} onChangeText={setCurrent} secureTextEntry autoCapitalize="none" />
       <Field label="NEW PASSWORD (6+ CHARACTERS)" value={next} onChangeText={setNext} secureTextEntry autoCapitalize="none" />
       <ErrorLine text={error} />
+    </Sheet>
+  );
+}
+
+// C9: Google Play account deletion. Server: /api/delivery/account/* (blockers, password or SMS code, DELETE).
+function DeleteAccountSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const { deleteAccount } = useRider();
+  const [check, setCheck] = useState<api.DeletionCheck | null>(null);
+  const [checkError, setCheckError] = useState<string | null>(null);
+  const [useCode, setUseCode] = useState(false);
+  const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [codeInfo, setCodeInfo] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = async () => {
+    setCheckError(null);
+    try {
+      setCheck(await api.fetchDeletionCheck());
+    } catch (e) {
+      setCheckError(errorMessage(e));
+    }
+  };
+  useEffect(() => {
+    if (visible) {
+      setCheck(null);
+      setUseCode(false);
+      setPassword('');
+      setOtp('');
+      setConfirm('');
+      setCodeInfo(null);
+      setError(null);
+      load();
+    }
+    // only when opening
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  const sendCode = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      setCodeInfo(await api.sendDeleteOtp());
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const ready = !!check?.canDelete && (useCode ? /^\d{6}$/.test(otp) : password.length > 0) && confirm.trim().toUpperCase() === 'DELETE';
+  const remove = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      await deleteAccount(useCode ? { otp } : { password });
+      onClose();
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Sheet
+      visible={visible}
+      onClose={onClose}
+      title="Delete account"
+      footer={check?.canDelete ? <Btn title="Delete my account" icon="delete-outline" variant="red" onPress={remove} disabled={!ready || busy} /> : undefined}
+    >
+      <Text style={[T.body, { color: C.ink2 }]}>
+        Deleted: your name, mobile number, password, photo, vehicle number, emergency contact, location, notifications, order chat
+        and push tokens. You are signed out on every phone.
+      </Text>
+      <Text style={[T.body, { color: C.ink2 }]}>
+        Kept without your personal details (the law requires it): past deliveries, cash deposits, earnings and payouts.
+      </Text>
+      <Text style={[T.body, { color: C.blue, fontWeight: '800' }]} onPress={() => openLegal('deleteAccount')} accessibilityRole="link">
+        Read the full details
+      </Text>
+      {!check && !checkError ? <Text style={[T.small, { color: C.muted }]}>Checking your account…</Text> : null}
+      {checkError ? (
+        <View style={{ gap: S.sm }}>
+          <ErrorLine text={checkError} />
+          <Btn title="Try again" variant="outline" size="mid" onPress={load} />
+        </View>
+      ) : null}
+      {check?.blockers.map((b) => (
+        <ErrorLine key={b.code + b.message} text={b.message} />
+      ))}
+      {check?.canDelete ? (
+        <>
+          {useCode ? (
+            <>
+              <Btn
+                title={codeInfo ? 'Send the code again' : `Send a code to ${check.phoneMasked || 'my number'}`}
+                variant="outline"
+                size="mid"
+                onPress={sendCode}
+                disabled={busy}
+              />
+              {codeInfo ? <Text style={[T.small, { color: C.ink2 }]}>{codeInfo}</Text> : null}
+              <Field label="SMS CODE" value={otp} onChangeText={(t) => setOtp(t.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" maxLength={6} />
+            </>
+          ) : (
+            <Field label="YOUR PASSWORD" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" />
+          )}
+          <Text
+            style={[T.body, { color: C.blue, fontWeight: '800' }]}
+            onPress={() => {
+              setUseCode(!useCode);
+              setError(null);
+            }}
+            accessibilityRole="button"
+          >
+            {useCode ? 'Use my password instead' : 'Forgot your password? Use an SMS code'}
+          </Text>
+          <Field label="TYPE DELETE TO CONFIRM" value={confirm} onChangeText={setConfirm} autoCapitalize="characters" />
+          <ErrorLine text={error} />
+        </>
+      ) : null}
     </Sheet>
   );
 }

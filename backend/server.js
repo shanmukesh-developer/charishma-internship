@@ -2370,21 +2370,38 @@ const initializeApp = async () => {
       const orderRoleLabel = () => (socketRole() === 'rider' ? 'rider' : socketRole() === 'admin' ? 'admin' : 'customer');
       const canTalkInOrderRoom = (room) => !isGuestSocket() && !!room && (socket.rooms.has(room) || isAdminSocket());
 
+      // C9: order chat is persisted (OrderMessages, utils/orderMessages) and report_issue opens a support
+      // ticket. For an order / Mega Basket room (UUID) the sender must STILL be the order's customer, its
+      // currently assigned rider or an admin (a rider taken off the order is refused even if still in the
+      // room). Payloads stay backward compatible: receiveMessage / issue_alert / admin_* keep their fields
+      // and only gain `id` / `ticketId`. Other joined rooms (shared-cart codes) are relayed as before.
+      const orderChat = require('./utils/orderMessages');
+      const isUuidRoom = (room) => UUID_PATTERN.test(room);
+
       socket.on('sendMessage', async (data) => {
         const room = String(data?.orderId || '').trim();
         if (!canTalkInOrderRoom(room)) {
           console.warn(`[SOCKET_DENIED] ${socket.user?.id || 'anonymous'} tried to chat in order room ${room.slice(0, 64)}`);
           return;
         }
-        const message = typeof data?.message === 'string' ? data.message.trim().slice(0, 1000) : '';
+        const message = typeof data?.message === 'string' ? data.message.trim().slice(0, orderChat.MAX_TEXT) : '';
         if (!message) return;
+        let saved = null;
+        if (isUuidRoom(room)) {
+          if (!(await orderChat.canAccessOrderChat(socket.user, room))) {
+            console.warn(`[SOCKET_DENIED] ${socket.user?.id || 'anonymous'} is no longer a party of order ${room.slice(0, 64)}`);
+            return;
+          }
+          saved = await orderChat.saveOrderMessage({ orderId: room, actor: socket.user, text: message });
+        }
         const chatData = {
           orderId: room,
           sender: await getDisplayName(),
           senderId: socket.user.id,
           senderRole: orderRoleLabel(),
           message,
-          timestamp: new Date()
+          timestamp: saved ? saved.createdAt : new Date(),
+          ...(saved ? { id: saved.id } : {})
         };
         log(`[CHAT] ${chatData.senderRole} in room ${room}`);
         io.to(room).emit('receiveMessage', chatData);
@@ -2398,6 +2415,10 @@ const initializeApp = async () => {
           console.warn(`[SOCKET_DENIED] ${socket.user?.id || 'anonymous'} tried to report an issue on ${room.slice(0, 64)}`);
           return;
         }
+        if (isUuidRoom(room) && !(await orderChat.canAccessOrderChat(socket.user, room))) {
+          console.warn(`[SOCKET_DENIED] ${socket.user?.id || 'anonymous'} is no longer a party of order ${room.slice(0, 64)}`);
+          return;
+        }
         const role = orderRoleLabel();
         const issue = {
           orderId: room,
@@ -2408,10 +2429,23 @@ const initializeApp = async () => {
           details: String(data?.details || '').slice(0, 1000),
           timestamp: new Date()
         };
-        log(`[ISSUE] ${issue.senderRole} reported: ${issue.issueType} for order ${room}`);
+        const ticket = isUuidRoom(room)
+          ? await orderChat.createIssueTicket({ orderId: room, actor: socket.user, issueType: issue.issueType, details: issue.details })
+          : null;
+        if (ticket) issue.ticketId = ticket.id;
+        log(`[ISSUE] ${issue.senderRole} reported: ${issue.issueType} for order ${room}${ticket ? ` (ticket ${ticket.id})` : ''}`);
         // Notify both parties in the room and the admin
         io.to(room).emit('issue_alert', issue);
         io.to('admin-room').emit('admin_issue_reported', issue);
+        if (ticket) {
+          try { require('./utils/realtime').notifyAdmin('ticket', 'created', ticket.id, { scope: 'order_issue', orderId: room }); } catch { /* best effort */ }
+          require('./utils/adminAlert').pushAdmins(
+            'Order issue reported',
+            `${issue.senderRole}: ${issue.issueType} (order ${room.slice(0, 8)})`,
+            { type: 'order_issue', ticketId: String(ticket.id), orderId: room },
+            { io }
+          ).catch(() => {});
+        }
       });
 
       // ── F6: Group Order Polls (shared-cart rooms only, members only) ────────────────────
