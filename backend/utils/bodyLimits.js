@@ -9,7 +9,9 @@
 //                                      /api/admin/menu-items/bulk ~300 rows/call, store / menu / vault / brand
 //                                      images) and the admin PG listing writes (up to 12 photos per listing)
 // Multipart uploads (multer: /api/upload, /api/campus/media, /api/auto-ride/driver/media) are not parsed
-// here and keep their own file-size limits.
+// here and keep their own file-size limits (they also get the longer UPLOAD_REQUEST_TIMEOUT_MS, see
+// middleware/securityMiddleware.js requestTimeout). tests/a5a6/07_upload_paths.test.js lists every route
+// that accepts an inline photo: a new one must be added here AND there.
 // A body over its cap is answered 413 { code: 'PAYLOAD_TOO_LARGE' } by middleware/errorMiddleware.js.
 
 const express = require('express');
@@ -49,6 +51,10 @@ const RAISED_ROUTES = [
   ['POST', '/api/pg', 'admin', 'admin PG create: up to 12 photos'],
   ['PUT', `/api/pg/${UUID}`, 'admin', 'admin PG update: up to 12 photos'],
   ['PUT', `/api/pg/${UUID}/photos`, 'admin', 'admin PG photo gallery'],
+  // PG promotions (routes/pgRoutes.js preparePromotion): imageUrl goes through storeImageRef (5 MB), so a
+  // pasted / legacy data URL must parse instead of answering 413 at the 256 KB global cap.
+  ['POST', '/api/pg/admin/promotions', 'admin', 'admin PG promotion create: imageUrl may be a data URL (5 MB)'],
+  ['PUT', `/api/pg/admin/promotions/${UUID}`, 'admin', 'admin PG promotion update: imageUrl may be a data URL (5 MB)'],
 ].map(([methods, path, tier, why]) => ({ methods: new Set(methods.split('|')), re: new RegExp(`^${path}$`), path, tier, why }));
 
 const limits = () => ({

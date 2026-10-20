@@ -17,9 +17,41 @@ export class ApiError extends Error {
 }
 
 export class NetworkError extends Error {
-  constructor(message = 'No internet. Check Wi-Fi or mobile data and try again.') {
+  /** true when the request ran out of time (slow network / server waking up), false for no answer at all. */
+  timeout: boolean;
+  constructor(message = 'No internet. Check Wi-Fi or mobile data and try again.', timeout = false) {
     super(message);
     this.name = 'NetworkError';
+    this.timeout = timeout;
+  }
+}
+
+/** Photo-upload messages: the real cause, never a blanket "No internet" while the phone is online. */
+export const UPLOAD_MESSAGES = {
+  tooLarge: 'That photo is too large. Please pick a smaller one.',
+  session: 'Your session has expired. Please log in again.',
+  waking: 'Zenvy is waking up, please try again in a few seconds.',
+  interrupted: 'The upload was interrupted. Please try again.',
+  unreachable: "Couldn't reach Zenvy. Check your Wi-Fi or mobile data, then try again.",
+} as const;
+
+/** 408 (server request timeout) and 502 / 503 / 504 (free Render instance waking up) are worth one retry. */
+export const isWakingStatus = (status: number) => status === 408 || (status >= 502 && status <= 504);
+
+/**
+ * After an upload got no HTTP answer: a quick GET /api/ping (8 s) tells "waking up" (slow / 5xx) from
+ * "the upload itself was cut off" (ping answers) from "nothing gets through" (ping fails at once).
+ */
+export async function probeServer(timeoutMs = 8000): Promise<'up' | 'waking' | 'unreachable'> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${API_URL}/api/ping`, { method: 'GET', headers: { Accept: 'application/json' }, signal: controller.signal });
+    return res.status >= 500 ? 'waking' : 'up';
+  } catch (e: any) {
+    return e?.name === 'AbortError' ? 'waking' : 'unreachable';
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -91,6 +123,7 @@ export async function apiFetch<T = any>(path: string, opts: RequestOptions = {})
       e?.name === 'AbortError'
         ? 'Zenvy is slow to answer. Please try again.'
         : 'No internet. Check Wi-Fi or mobile data and try again.',
+      e?.name === 'AbortError',
     );
   } finally {
     clearTimeout(timer);
@@ -116,13 +149,23 @@ export async function apiFetch<T = any>(path: string, opts: RequestOptions = {})
   return data as T;
 }
 
+/** The message for an upload the server answered with an error status. */
+export function uploadStatusMessage(status: number, data: any): string {
+  const code = data && typeof data.code === 'string' ? data.code : '';
+  if (status === 401) return UPLOAD_MESSAGES.session;
+  if (status === 413 || code === 'FILE_TOO_LARGE' || code === 'PAYLOAD_TOO_LARGE') return UPLOAD_MESSAGES.tooLarge;
+  if (isWakingStatus(status)) return UPLOAD_MESSAGES.waking;
+  return (data && typeof data.message === 'string' && data.message) ||
+    (status >= 500 ? 'Zenvy is having trouble right now. Please try again in a moment.' : 'Upload failed. Please try again.');
+}
+
 /**
  * Multipart POST through XMLHttpRequest. Expo SDK 57's global fetch (expo/fetch) cannot send React
  * Native's { uri, name, type } FormData file parts: it throws before the request leaves the phone, which
  * showed up as "No internet" on every photo. React Native's XHR streams the local file. A 401 here never
  * logs out (the caller shows the message).
  */
-export function apiUploadForm<T = any>(path: string, form: FormData, timeoutMs = 60000): Promise<T> {
+export function apiUploadForm<T = any>(path: string, form: FormData, timeoutMs = 90000): Promise<T> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${API_URL}${path}`);
@@ -136,17 +179,15 @@ export function apiUploadForm<T = any>(path: string, form: FormData, timeoutMs =
       let data: any = null;
       try { data = xhr.responseText ? JSON.parse(xhr.responseText) : null; } catch { data = null; }
       if (xhr.status === 426) reportUpgradeRequired(data);
-      if (xhr.status === 0) { reject(new NetworkError()); return; }
+      if (xhr.status === 0) { reject(new NetworkError(UPLOAD_MESSAGES.interrupted)); return; }
       if (xhr.status < 200 || xhr.status >= 300) {
-        const msg = (data && typeof data.message === 'string' && data.message) ||
-          (xhr.status >= 500 ? 'Zenvy is having trouble right now. Please try again in a moment.' : 'Request failed. Please try again.');
-        reject(new ApiError(xhr.status, msg, data));
+        reject(new ApiError(xhr.status, uploadStatusMessage(xhr.status, data), data));
         return;
       }
       resolve(data as T);
     };
-    xhr.onerror = () => reject(new NetworkError());
-    xhr.ontimeout = () => reject(new NetworkError('Zenvy is slow to answer. Please try again.'));
+    xhr.onerror = () => reject(new NetworkError(UPLOAD_MESSAGES.interrupted));
+    xhr.ontimeout = () => reject(new NetworkError(UPLOAD_MESSAGES.waking, true));
     xhr.send(form as any);
   });
 }

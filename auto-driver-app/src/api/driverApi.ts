@@ -69,8 +69,8 @@ export const driverApi = {
   /** -> PENDING_REVIEW (409 INCOMPLETE { missing }). */
   submit: () => apiFetch<{ driver: DriverSelf; message: string }>(`${D}/me/submit`, { method: 'POST' }),
   /** Private upload (multipart field 'image', or JSON { image: base64 }). 201 { id, url, previewUrl (1-hour signed) }. */
-  uploadMedia: (form: FormData) => apiUploadXhr<MediaUpload>(`${D}/media`, form, 60000),
-  uploadMediaBase64: (image: string) => apiFetch<MediaUpload>(`${D}/media`, { method: 'POST', body: { image }, timeoutMs: 60000 }),
+  uploadMedia: (form: FormData) => apiUploadXhr<MediaUpload>(`${D}/media`, form, 90000),
+  uploadMediaBase64: (image: string) => apiFetch<MediaUpload>(`${D}/media`, { method: 'POST', body: { image }, timeoutMs: 90000 }),
 
   // ── Duty ───────────────────────────────────────────────────────────────
   /** POST /online { online } (403 DRIVER_NOT_VERIFIED). Idempotent: safe to replay offline -> false. */

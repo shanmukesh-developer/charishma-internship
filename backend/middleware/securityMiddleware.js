@@ -197,6 +197,20 @@ const botGuard = (req, res, next) => {
  * Request timeout enforcement to prevent Slow-Loris / connection starvation attacks.
  * Terminates requests that take longer than 30 seconds to complete.
  */
+// 30 s for ordinary requests (JSON bodies are already read by the body parsers before this runs).
+// Multipart photo uploads are different: multer streams the file AFTER this middleware, so a 1-5 MB photo
+// on campus Wi-Fi / 4G could still be arriving at 30 s. Answering 408 mid-upload made Android report a
+// connection reset ("No internet"), so multipart requests get UPLOAD_REQUEST_TIMEOUT_MS (default 120 s).
+const envMs = (name, fallback) => {
+  const n = Number(process.env[name]);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+};
+const requestTimeoutMs = (req) => {
+  const ct = String((req.headers && req.headers['content-type']) || '').toLowerCase();
+  return ct.startsWith('multipart/form-data')
+    ? envMs('UPLOAD_REQUEST_TIMEOUT_MS', 120000)
+    : envMs('REQUEST_TIMEOUT_MS', 30000);
+};
 const requestTimeout = (req, res, next) => {
   const timeout = setTimeout(() => {
     if (!res.headersSent) {
@@ -207,7 +221,7 @@ const requestTimeout = (req, res, next) => {
         code: 'REQUEST_TIMEOUT'
       });
     }
-  }, 30000); // 30 seconds
+  }, requestTimeoutMs(req));
 
   res.on('finish', () => clearTimeout(timeout));
   res.on('close', () => clearTimeout(timeout));
@@ -284,6 +298,7 @@ module.exports = {
   hppProtection,
   botGuard,
   requestTimeout,
+  requestTimeoutMs,
   sensitiveDataMask,
   auditLogger,
   // Utility exports for custom route-level use

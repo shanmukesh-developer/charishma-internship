@@ -3,7 +3,7 @@
 // with vendorType LOCAL_VENDOR and log in with role "restaurant".
 import { Platform } from 'react-native';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
-import { apiFetch, ApiError, apiUploadForm, NetworkError } from './http';
+import { apiFetch, ApiError, apiUploadForm, isWakingStatus, NetworkError, probeServer, UPLOAD_MESSAGES, uploadStatusMessage } from './http';
 import { normalizeMenuItem, normalizeOrder, normalizeStore } from './model';
 import type { Compliance, ComplianceEdit, MenuItem, OperatingHours, Order, StoreState } from '../types';
 
@@ -153,30 +153,55 @@ async function dataUrlOf(uri: string): Promise<string | null> {
   }
 }
 
+const UPLOAD_TIMEOUT_MS = 90000;
+const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+/** No answer, a timeout, or a "waking up" status (408 / 502-504): worth the one automatic retry. */
+const retryable = (e: unknown) => e instanceof NetworkError || (e instanceof ApiError && isWakingStatus(e.status));
+/** Server errors from the JSON transport carry the upload wording too (too large, session expired, ...). */
+const asUploadError = (e: unknown) => (e instanceof ApiError ? new ApiError(e.status, uploadStatusMessage(e.status, e.data), e.data) : e);
+
 /**
  * POST /api/upload (multipart field "image", JPEG/PNG/WEBP, max 2 MB). Returns the URL to save on the item.
- * Phone: multipart through XHR (see apiUploadForm); if that cannot reach the server, the same endpoint's
- * JSON { image: dataUrl } form through fetch. Web: the browser's fetch sends a Blob part fine.
+ * Phone: attempt 1 = multipart through XHR (see apiUploadForm); after no answer, a timeout or a "waking up"
+ * status, ONE retry with the same endpoint's JSON { image: dataUrl } form through fetch (a different
+ * transport). Web: the browser's fetch sends a Blob part fine (retried once the same way).
+ * 90 s per attempt. A final failure says the real cause: waking up / interrupted / couldn't reach Zenvy.
  */
 export async function uploadPhoto(uri: string, mimeType = 'image/jpeg'): Promise<string> {
   const ext = mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'jpg';
-  let res: { imageUrl?: string } | null = null;
-  if (Platform.OS === 'web') {
+  const multipart = async (): Promise<{ imageUrl?: string }> => {
     const form = new FormData();
-    const blob = await (await fetch(uri)).blob();
-    form.append('image', blob, `item.${ext}`);
-    res = await apiFetch<{ imageUrl?: string }>('/api/upload', { method: 'POST', form, no401Logout: true, timeoutMs: 60000 });
-  } else {
-    const form = new FormData();
+    if (Platform.OS === 'web') {
+      const blob = await (await fetch(uri)).blob();
+      form.append('image', blob, `item.${ext}`);
+      return apiFetch<{ imageUrl?: string }>('/api/upload', { method: 'POST', form, no401Logout: true, timeoutMs: UPLOAD_TIMEOUT_MS });
+    }
     // React Native's FormData file shape.
     form.append('image', { uri, name: `item.${ext}`, type: mimeType } as any);
+    return apiUploadForm<{ imageUrl?: string }>('/api/upload', form, UPLOAD_TIMEOUT_MS);
+  };
+  const json = async (): Promise<{ imageUrl?: string } | null> => {
+    const image = await dataUrlOf(uri);
+    if (!image) return null;
+    return apiFetch<{ imageUrl?: string }>('/api/upload', { method: 'POST', body: { image }, no401Logout: true, timeoutMs: UPLOAD_TIMEOUT_MS });
+  };
+
+  let res: { imageUrl?: string } | null = null;
+  try {
+    res = await multipart();
+  } catch (first) {
+    if (!retryable(first)) throw asUploadError(first);
+    console.warn('[uploadPhoto] attempt 1 failed:', (first as Error)?.message);
+    await wait(1500);
     try {
-      res = await apiUploadForm<{ imageUrl?: string }>('/api/upload', form, 60000);
-    } catch (e) {
-      if (!(e instanceof NetworkError)) throw e;
-      const image = await dataUrlOf(uri);
-      if (!image) throw e;
-      res = await apiFetch<{ imageUrl?: string }>('/api/upload', { method: 'POST', body: { image }, no401Logout: true, timeoutMs: 60000 });
+      res = Platform.OS === 'web' ? await multipart() : await json();
+      if (!res) throw first; // the photo could not be re-encoded for the JSON form
+    } catch (second) {
+      console.warn('[uploadPhoto] attempt 2 failed:', (second as Error)?.message);
+      if (!(second instanceof NetworkError)) throw asUploadError(second);
+      if (second.timeout) throw new NetworkError(UPLOAD_MESSAGES.waking, true);
+      const state = await probeServer();
+      throw new NetworkError(state === 'waking' ? UPLOAD_MESSAGES.waking : state === 'up' ? UPLOAD_MESSAGES.interrupted : UPLOAD_MESSAGES.unreachable);
     }
   }
   if (!res?.imageUrl) throw new ApiError(500, "The photo didn't upload. Please try again.", res);

@@ -631,6 +631,12 @@ app.post('/api/campus-events/webhooks/razorpay', express.raw({ type: '*/*', limi
 // (default 10 MB, the old global value) only for routes that still take inline base64 photos or admin bulk
 // writes. Too large -> 413 { code: 'PAYLOAD_TOO_LARGE' } (middleware/errorMiddleware.js).
 app.use(require('./utils/bodyLimits').bodyParsers());
+// Body-parser refusals (413 too large, 400 bad JSON, aborted upload) answer JSON right here. The global
+// errorHandler is only registered at the end of the async startup, so during a cold start these fell
+// through to Express's default HTML error page, which the apps could not read.
+app.use((err, req, res, next) => (err && typeof err.type === 'string' && /^(entity|request|charset|encoding)\./.test(err.type)
+  ? require('./middleware/errorMiddleware').errorHandler(err, req, res, next)
+  : next(err)));
 
 // Layer 7: HTTP Parameter Pollution Prevention
 app.use(hppProtection);
@@ -1476,7 +1482,7 @@ const initializeApp = async () => {
         if (allowedTypes.includes(file.mimetype)) {
           cb(null, true);
         } else {
-          cb(new Error('Only JPEG, PNG, and WEBP image formats are allowed.'));
+          cb(Object.assign(new Error('Only JPEG, PNG, and WEBP image formats are allowed.'), { code: 'UNSUPPORTED_TYPE' }));
         }
       }
     });
@@ -1485,7 +1491,19 @@ const initializeApp = async () => {
     app.post('/api/upload', protectUpload, (req, res, next) => {
       upload.single('image')(req, res, (err) => {
         if (err) {
-          return res.status(400).json({ message: err.message });
+          // Clear JSON for every multer refusal (multer 2 has already drained the body, so the phone reads
+          // this answer instead of seeing a reset connection). A too-big file is 413, like /api/campus/media.
+          if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(413).json({ code: 'FILE_TOO_LARGE', message: 'That photo is larger than 2 MB. Please pick a smaller one.' });
+          }
+          if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+            return res.status(400).json({ code: 'BAD_FIELD', message: "Send the photo in the form field named 'image'." });
+          }
+          if (err.code === 'UNSUPPORTED_TYPE') {
+            return res.status(415).json({ code: 'UNSUPPORTED_TYPE', message: err.message });
+          }
+          console.warn('[UPLOAD_MULTER]', err.code || err.message);
+          return res.status(400).json({ code: 'BAD_UPLOAD', message: 'Could not read that photo. Please try again.' });
         }
         next();
       });

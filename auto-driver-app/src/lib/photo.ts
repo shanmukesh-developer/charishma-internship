@@ -6,7 +6,7 @@ import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { driverApi } from '../api/driverApi';
-import { NetworkError } from './http';
+import { ApiError, isWakingStatus, NetworkError, probeServer, UPLOAD_MESSAGES, uploadStatusMessage } from './http';
 import type { MediaUpload } from '../types';
 
 const MAX_SIDE = 1600;
@@ -46,6 +46,17 @@ export async function pickPhoto(source: PhotoSource): Promise<PickResult> {
   }
 }
 
+const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+/** No answer, a timeout, or a "waking up" status (408 / 502-504): worth the one automatic retry. */
+const retryable = (e: unknown) => e instanceof NetworkError || (e instanceof ApiError && isWakingStatus(e.status));
+/** Server errors from the JSON transport carry the upload wording too (too large, session expired, ...). */
+const asUploadError = (e: unknown) => (e instanceof ApiError ? new ApiError(e.status, uploadStatusMessage(e.status, e.data), e.data) : e);
+
+/**
+ * Attempt 1: multipart through XHR (apiUploadXhr, 90 s). After no answer, a timeout or a "waking up"
+ * status, ONE retry with the same JPEG as base64 JSON (same endpoint, 5 MB cap, a different transport).
+ * A final failure says the real cause: waking up / interrupted / couldn't reach Zenvy.
+ */
 export async function uploadPhoto(uri: string, mimeType: string): Promise<MediaUpload> {
   const form = new FormData();
   // React Native's FormData file part (sent with XHR, see apiUploadXhr).
@@ -53,8 +64,8 @@ export async function uploadPhoto(uri: string, mimeType: string): Promise<MediaU
   try {
     return await driverApi.uploadMedia(form);
   } catch (err) {
-    if (!(err instanceof NetworkError)) throw err;
-    // Multipart did not leave the phone: send the same JPEG as base64 JSON (same endpoint, 5 MB cap).
+    if (!retryable(err)) throw err;
+    console.warn('[uploadPhoto] attempt 1 failed:', (err as Error)?.message);
     let base64: string | undefined;
     try {
       const ref = await ImageManipulator.manipulate(uri).renderAsync();
@@ -62,7 +73,16 @@ export async function uploadPhoto(uri: string, mimeType: string): Promise<MediaU
     } catch {
       base64 = undefined;
     }
-    if (!base64) throw err;
-    return driverApi.uploadMediaBase64(`data:image/jpeg;base64,${base64}`);
+    await wait(1500);
+    try {
+      if (!base64) throw err; // could not re-encode: report the first failure
+      return await driverApi.uploadMediaBase64(`data:image/jpeg;base64,${base64}`);
+    } catch (second) {
+      console.warn('[uploadPhoto] attempt 2 failed:', (second as Error)?.message);
+      if (!(second instanceof NetworkError)) throw asUploadError(second);
+      if (second.timeout) throw new NetworkError(UPLOAD_MESSAGES.waking, true);
+      const state = await probeServer();
+      throw new NetworkError(state === 'waking' ? UPLOAD_MESSAGES.waking : state === 'up' ? UPLOAD_MESSAGES.interrupted : UPLOAD_MESSAGES.unreachable);
+    }
   }
 }
