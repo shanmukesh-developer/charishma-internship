@@ -3,7 +3,9 @@
 // (documents are private: only you and Zenvy admins can see them).
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Platform, ActivityIndicator, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
+import { formatINR } from '../../utils/format';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { pickAndUploadImage, alertUploadError, type MediaPurpose } from '../../utils/imageUpload';
 import {
@@ -78,11 +80,11 @@ const stepProblem = (step: number, f: Form): string | null => {
   if (step === 1 && f.photos.length < 1) return 'Add at least one photo of the vehicle.';
   if (step === 2 && (!f.docs.rc || !f.docs.insurance || !f.docs.licence)) return 'Add the RC, insurance and your driving licence.';
   if (step === 3) {
-    if (!(Number(f.pricePerHour) > 0) && !(Number(f.pricePerDay) > 0)) return 'Set a price per hour, per day, or both.';
+    if (!(Number(f.pricePerHour) > 0) && !(Number(f.pricePerDay) > 0)) return f.plateType === 'PRIVATE' ? 'Set a cost share per hour, per day, or both.' : 'Set the rent per hour, per day, or both.';
     if (Number(f.extraPerKm) > 0 && !(Number(f.kmLimitPerDay) > 0)) return 'Set a km limit per day for the extra-km charge.';
   }
   if (step === 4) {
-    if (f.pickupLocation.trim().length < 3) return 'Where should renters pick it up?';
+    if (f.pickupLocation.trim().length < 3) return 'Where do renters or borrowers pick it up?';
     if (f.fixedHours && (!f.days.length || f.openAt >= f.closeAt)) return 'Pick at least one day and an opening time before the closing time.';
   }
   return null;
@@ -205,7 +207,7 @@ export default function ListVehicle() {
       setSaving(true);
       try {
         const res = await rentalsApi.submitListing(saved.id);
-        Alert.alert('Sent for review ✅', res.message);
+        Alert.alert('Sent for review', res.message);
         router.replace('/rentals/my-listings' as any);
       } catch (e: any) {
         Alert.alert('Could not send for review', e?.message || 'Please try again.');
@@ -229,22 +231,32 @@ export default function ListVehicle() {
     return (
       <View style={{ flex: 1, backgroundColor: p.bg }}>
         <RHeader title="Rent out or lend your vehicle" />
-        <StateView kind="empty" icon="🎓" title="One step first" message={gate} actionLabel="Verify my college" onAction={() => router.push('/friends?screen=verification' as any)} />
+        <StateView kind="empty" icon="school-outline" title="One step first" message={gate} actionLabel="Verify my college" onAction={() => router.push('/friends?screen=verification' as any)} />
       </View>
     );
   }
 
   const isCar = form.vehicleType === 'CAR';
+  const isPrivate = form.plateType === 'PRIVATE';
+  // C7 wording: private plate = borrow (cost share), commercial plate = rent; not chosen yet = both.
+  const taker = isPrivate ? 'borrower' : form.plateType === 'COMMERCIAL_RENTAL' ? 'renter' : 'renter or borrower';
+  const takers = isPrivate ? 'borrowers' : form.plateType === 'COMMERCIAL_RENTAL' ? 'renters' : 'renters or borrowers';
+  const Takers = takers.charAt(0).toUpperCase() + takers.slice(1);
+  const stepName = (s: string) => (s === 'Price' && isPrivate ? 'Cost share' : s);
+  const lbl = { fontSize: 12, fontWeight: '800' as const, color: p.sub, marginBottom: 6 };
   const docTile = (k: 'rc' | 'insurance' | 'licence', label: string, hint: string) => {
     const img = form.docs[k];
     return (
       <TouchableOpacity key={k} accessibilityRole="button" accessibilityLabel={`Upload ${label}`} onPress={() => upload('rental_doc', (i) => setForm((f) => ({ ...f, docs: { ...f.docs, [k]: i } })), k)}
         style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: img ? p.success : p.border, backgroundColor: p.card, marginBottom: 10 }}>
         <View style={{ width: 54, height: 54, borderRadius: 10, backgroundColor: p.card2, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
-          {uploading === k ? <ActivityIndicator color={p.accent} /> : img?.preview ? <Image source={{ uri: img.preview }} style={{ width: 54, height: 54 }} /> : <Text style={{ fontSize: 22 }}>📄</Text>}
+          {uploading === k ? <ActivityIndicator color={p.accent} /> : img?.preview ? <Image source={{ uri: img.preview }} style={{ width: 54, height: 54 }} /> : <Ionicons name="document-text-outline" size={24} color={p.muted} />}
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 13.5, fontWeight: '900', color: p.text }}>{label} {img ? '✓' : ''}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={{ fontSize: 13.5, fontWeight: '900', color: p.text, flexShrink: 1 }}>{label}</Text>
+            {img ? <Ionicons name="checkmark-circle" size={16} color={p.success} accessibilityLabel="Added" /> : null}
+          </View>
           <Text style={{ fontSize: 11, color: p.sub, marginTop: 2 }}>{hint}</Text>
         </View>
         <Text style={{ color: p.accent, fontWeight: '900', fontSize: 12 }}>{img ? 'Replace' : 'Upload'}</Text>
@@ -254,12 +266,12 @@ export default function ListVehicle() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: p.bg }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <RHeader title={editId ? 'Edit vehicle' : 'Rent out or lend your vehicle'} subtitle={`Step ${step + 1} of ${STEPS.length} · ${STEPS[step]}`} />
+      <RHeader title={editId ? 'Edit vehicle' : 'Rent out or lend your vehicle'} subtitle={`Step ${step + 1} of ${STEPS.length} · ${stepName(STEPS[step])}`} />
       <View style={{ flexDirection: 'row', gap: 4, paddingHorizontal: 16, paddingTop: 10 }}>
         {STEPS.map((s, i) => (
-          <TouchableOpacity key={s} style={{ flex: 1 }} onPress={() => (i < step || listingId ? setStep(i) : null)} accessibilityRole="button" accessibilityLabel={`Step ${i + 1}: ${s}`}>
+          <TouchableOpacity key={s} style={{ flex: 1 }} onPress={() => (i < step || listingId ? setStep(i) : null)} accessibilityRole="button" accessibilityLabel={`Step ${i + 1}: ${stepName(s)}`}>
             <View style={{ height: 4, borderRadius: 2, backgroundColor: i <= step ? p.accent : p.border }} />
-            <Text style={{ fontSize: 9, fontWeight: '800', color: i === step ? p.accent : p.muted, marginTop: 4, textAlign: 'center' }}>{s}</Text>
+            <Text style={{ fontSize: 9, fontWeight: '800', color: i === step ? p.accent : p.muted, marginTop: 4, textAlign: 'center' }}>{stepName(s)}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -269,30 +281,30 @@ export default function ListVehicle() {
 
         {step === 0 && (
           <View>
-            <SectionTitle>What are you renting out?</SectionTitle>
-            <Chips<VehicleType> options={(Object.keys(VEHICLE_META) as VehicleType[]).map((k) => ({ key: k, label: `${VEHICLE_META[k].icon} ${VEHICLE_META[k].label}` }))} value={form.vehicleType} onChange={(v) => set('vehicleType', v)} />
+            <SectionTitle>What are you listing?</SectionTitle>
+            <Chips<VehicleType> options={(Object.keys(VEHICLE_META) as VehicleType[]).map((k) => ({ key: k, label: VEHICLE_META[k].label }))} value={form.vehicleType} onChange={(v) => set('vehicleType', v)} />
             <View style={{ height: 14 }} />
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <Field label="Make" value={form.make} onChangeText={(t) => set('make', t.slice(0, 40))} placeholder="Honda" style={{ flex: 1 }} />
               <Field label="Model" value={form.model} onChangeText={(t) => set('model', t.slice(0, 60))} placeholder="Activa 6G" style={{ flex: 1 }} />
             </View>
             <Field label="Year" value={form.year} onChangeText={(t) => set('year', digits(t, 4))} keyboardType="number-pad" placeholder="2022" />
-            <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginBottom: 6 }}>FUEL</Text>
+            <Text style={lbl}>Fuel</Text>
             <Chips<Fuel> options={[{ key: 'PETROL', label: 'Petrol' }, { key: 'DIESEL', label: 'Diesel' }, { key: 'EV', label: 'Electric' }, { key: 'CNG', label: 'CNG' }]} value={form.fuel} onChange={(v) => set('fuel', v)} />
             <View style={{ height: 14 }} />
-            <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginBottom: 6 }}>TRANSMISSION{isCar ? '' : ' (OPTIONAL)'}</Text>
+            <Text style={lbl}>Transmission{isCar ? '' : ' (optional)'}</Text>
             <Chips<Transmission> options={[{ key: 'MANUAL', label: isCar ? 'Manual' : 'Geared' }, { key: 'AUTOMATIC', label: isCar ? 'Automatic' : 'Gearless' }]} value={form.transmission} onChange={(v) => set('transmission', v)} />
             <View style={{ height: 14 }} />
             {isCar ? <Field label="Seats" value={form.seats} onChangeText={(t) => set('seats', digits(t, 1))} keyboardType="number-pad" placeholder="5" /> : null}
             <Field label="Registration number" value={form.registrationNumber} onChangeText={(t) => set('registrationNumber', t.toUpperCase().slice(0, 16))} autoCapitalize="characters" placeholder="AP 07 AB 1234"
-              hint="Shown to students as AP 07 •• 1234. The full number is shared only with your confirmed renter." />
-            <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginBottom: 6 }}>NUMBER PLATE</Text>
-            <Chips<PlateType> options={[{ key: 'PRIVATE', label: 'White (private)', hint: 'Students BORROW it' }, { key: 'COMMERCIAL_RENTAL', label: 'Black / yellow', hint: 'Students RENT it' }]} value={form.plateType} onChange={(v) => set('plateType', v)} />
+              hint={`Shown to students as AP 07 •• 1234. The full number is shared only with your confirmed ${taker}.`} />
+            <Text style={lbl}>Number plate</Text>
+            <Chips<PlateType> options={[{ key: 'PRIVATE', label: 'White (private)', hint: 'Students borrow it' }, { key: 'COMMERCIAL_RENTAL', label: 'Black / yellow', hint: 'Students rent it' }]} value={form.plateType} onChange={(v) => set('plateType', v)} />
             <Text style={{ fontSize: 11, color: p.muted, marginTop: 8, lineHeight: 16 }}>
               {form.plateType === 'PRIVATE'
-                ? 'Private (white plate): you LEND your personal vehicle and students BORROW it on a non-commercial basis (sharing costs such as fuel), never as a business. Check that your insurance allows another driver; you are responsible for that.'
+                ? 'Private (white plate): you lend your personal vehicle and students borrow it on a non-commercial basis (sharing costs such as fuel), never as a business. Check that your insurance allows another driver; you are responsible for that.'
                 : form.plateType === 'COMMERCIAL_RENTAL'
-                  ? 'Commercial (black / yellow plate): students RENT it from you. You are responsible for a valid rental permit and insurance.'
+                  ? 'Commercial (black / yellow plate): students rent it from you. You are responsible for a valid rental permit and insurance.'
                   : 'Be honest: Zenvy reviews this. Private vehicles are lent and borrowed between students (not rented for profit); commercial-plate vehicles are rented.'}
             </Text>
           </View>
@@ -310,7 +322,7 @@ export default function ListVehicle() {
                     style={{ position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.6)', width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
                     <Text style={{ color: '#fff', fontWeight: '900' }}>✕</Text>
                   </TouchableOpacity>
-                  {i === 0 ? <View style={{ position: 'absolute', bottom: 4, left: 4, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 6, paddingHorizontal: 5 }}><Text style={{ color: '#fff', fontSize: 9, fontWeight: '900' }}>COVER</Text></View> : null}
+                  {i === 0 ? <View style={{ position: 'absolute', bottom: 4, left: 4, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 6, paddingHorizontal: 5 }}><Text style={{ color: '#fff', fontSize: 9.5, fontWeight: '800' }}>Cover</Text></View> : null}
                 </View>
               ))}
               {form.photos.length < 6 ? (
@@ -326,23 +338,23 @@ export default function ListVehicle() {
         {step === 2 && (
           <View>
             <SectionTitle>Documents</SectionTitle>
-            <Notice tone="info">🔒 Only you and the Zenvy team can see these. They are never shown to renters.</Notice>
+            <Notice tone="info">Only you and the Zenvy team can see these. Renters and borrowers never see them.</Notice>
             {docTile('rc', 'Registration certificate (RC)', 'Front side, number clearly visible')}
             {docTile('insurance', 'Insurance', 'Current policy page with validity dates')}
-            {docTile('licence', 'Your driving licence', 'Proves you are the owner / allowed to rent it out')}
+            {docTile('licence', 'Your driving licence', 'Shows you own the vehicle or may rent it out or lend it')}
           </View>
         )}
 
         {step === 3 && (
           <View>
-            <SectionTitle>Price</SectionTitle>
-            <Text style={{ fontSize: 12, color: p.sub, marginBottom: 12 }}>Set an hourly price, a daily price, or both. Long trips use the daily price.</Text>
+            <SectionTitle>{isPrivate ? 'Cost share' : 'Price'}</SectionTitle>
+            <Text style={{ fontSize: 12, color: p.sub, marginBottom: 12 }}>{isPrivate ? 'Set an hourly or daily cost share (fuel and wear), or both. Long trips use the daily amount.' : 'Set an hourly price, a daily price, or both. Long trips use the daily price.'}</Text>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <Field label="₹ per hour" value={form.pricePerHour} onChangeText={(t) => set('pricePerHour', decimal(t))} keyboardType="decimal-pad" placeholder="50" style={{ flex: 1 }} />
               <Field label="₹ per day" value={form.pricePerDay} onChangeText={(t) => set('pricePerDay', decimal(t))} keyboardType="decimal-pad" placeholder="400" style={{ flex: 1 }} />
             </View>
             <View style={{ flexDirection: 'row', gap: 10 }}>
-              <Field label="Security deposit ₹" value={form.securityDeposit} onChangeText={(t) => set('securityDeposit', digits(t, 6))} keyboardType="number-pad" placeholder="1000" hint="Returned in cash at drop-off" style={{ flex: 1 }} />
+              <Field label="Security deposit ₹" value={form.securityDeposit} onChangeText={(t) => set('securityDeposit', digits(t, 6))} keyboardType="number-pad" placeholder="1000" hint="Returned in cash when the vehicle comes back" style={{ flex: 1 }} />
               <Field label="Minimum hours" value={form.minHours} onChangeText={(t) => set('minHours', digits(t, 2))} keyboardType="number-pad" placeholder="1" style={{ flex: 1 }} />
             </View>
             <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -350,7 +362,7 @@ export default function ListVehicle() {
               <Field label="₹ per extra km" value={form.extraPerKm} onChangeText={(t) => set('extraPerKm', decimal(t))} keyboardType="decimal-pad" placeholder="Optional" style={{ flex: 1 }} />
             </View>
             <Field label="Fuel policy" value={form.fuelPolicy} onChangeText={(t) => set('fuelPolicy', t.slice(0, 300))} placeholder="Return with the same fuel level" />
-            <Notice tone="success">{form.plateType === 'PRIVATE' ? '💵 Borrowers pay you the agreed cost share and deposit in cash at pickup.' : '💵 Renters pay you the rent and deposit in cash at pickup.'} Zenvy does not take a cut or hold the money.</Notice>
+            <Notice tone="success">{isPrivate ? 'Borrowers pay you the agreed cost share and deposit in cash at pickup.' : 'Renters pay you the rent and deposit in cash at pickup.'} Zenvy does not take a cut or hold the money.</Notice>
           </View>
         )}
 
@@ -358,21 +370,21 @@ export default function ListVehicle() {
           <View>
             <SectionTitle>Pickup & availability</SectionTitle>
             <Field label="Pickup point" value={form.pickupLocation} onChangeText={(t) => set('pickupLocation', t.slice(0, 200))} placeholder="e.g. Hostel B parking, near the main gate" />
-            <Toggle label="Only at fixed hours" hint={form.fixedHours ? 'Pickup and return only on these days and hours' : 'Renters can pick any time; you agree the exact time'} value={form.fixedHours} onChange={(v) => set('fixedHours', v)} />
+            <Toggle label="Only at fixed hours" hint={form.fixedHours ? 'Pickup and return only on these days and hours' : `${Takers} pick any time; you agree the exact time`} value={form.fixedHours} onChange={(v) => set('fixedHours', v)} />
             {form.fixedHours ? (
               <Card>
                 <Chips<string> multi options={DAY_NAMES.map((d, i) => ({ key: String(i), label: d }))} value={form.days} onChange={(v) => set('days', v)} />
-                <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginTop: 12, marginBottom: 6 }}>OPENS</Text>
+                <Text style={[lbl, { marginTop: 12 }]}>Opens</Text>
                 <Chips<string> wrap={false} options={TIME_SLOTS.filter((t) => t >= '05:00' && t <= '23:00').map((t) => ({ key: t, label: fmtTime(t) }))} value={form.openAt} onChange={(v) => set('openAt', v)} />
-                <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginTop: 12, marginBottom: 6 }}>CLOSES</Text>
+                <Text style={[lbl, { marginTop: 12 }]}>Closes</Text>
                 <Chips<string> wrap={false} options={TIME_SLOTS.filter((t) => t >= '06:00').map((t) => ({ key: t, label: fmtTime(t) }))} value={form.closeAt} onChange={(v) => set('closeAt', v)} />
               </Card>
             ) : null}
-            <SectionTitle>Dates you are not renting</SectionTitle>
+            <SectionTitle>Dates it is not available</SectionTitle>
             <Card>
-              <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginBottom: 6 }}>FROM</Text>
+              <Text style={lbl}>From</Text>
               <Chips<string> wrap={false} options={dateOptions.map((d) => ({ key: d, label: istDayLabel(d) }))} value={blkStart} onChange={(v) => { setBlkStart(v); if (v > blkEnd) setBlkEnd(v); }} />
-              <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginTop: 10, marginBottom: 6 }}>TO</Text>
+              <Text style={[lbl, { marginTop: 10 }]}>To</Text>
               <Chips<string> wrap={false} options={dateOptions.filter((d) => d >= blkStart).map((d) => ({ key: d, label: istDayLabel(d) }))} value={blkEnd} onChange={setBlkEnd} />
               <Btn label="Block these dates" kind="secondary" small style={{ marginTop: 10, alignSelf: 'flex-start' }} onPress={() => {
                 if (form.blockedDates.length >= 30) return Alert.alert('Limit reached', 'You can block up to 30 date ranges.');
@@ -380,12 +392,12 @@ export default function ListVehicle() {
               }} />
               {form.blockedDates.map((b, i) => (
                 <View key={`${b.start}-${b.end}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-                  <Text style={{ color: p.text, fontSize: 12.5 }}>🚫 {b.start === b.end ? istDayLabel(b.start) : `${istDayLabel(b.start)} → ${istDayLabel(b.end)}`}</Text>
+                  <Text style={{ color: p.text, fontSize: 12.5 }}>{b.start === b.end ? istDayLabel(b.start) : `${istDayLabel(b.start)} → ${istDayLabel(b.end)}`}</Text>
                   <TouchableOpacity accessibilityRole="button" accessibilityLabel="Remove blocked dates" onPress={() => set('blockedDates', form.blockedDates.filter((_, j) => j !== i))}><Text style={{ color: p.danger, fontWeight: '900' }}>Remove</Text></TouchableOpacity>
                 </View>
               ))}
             </Card>
-            <Field label="Rules for renters" value={form.rules} onChangeText={(t) => set('rules', t.slice(0, 1000))} placeholder="e.g. No triple riding. Park inside campus at night." multiline />
+            <Field label={`Rules for ${isPrivate ? 'borrowers' : form.plateType === 'COMMERCIAL_RENTAL' ? 'renters' : 'renters and borrowers'}`} value={form.rules} onChangeText={(t) => set('rules', t.slice(0, 1000))} placeholder="e.g. No triple riding. Park inside campus at night." multiline />
             {form.vehicleType !== 'CAR' ? <Toggle label="Helmet included" value={form.helmetIncluded} onChange={(v) => set('helmetIncluded', v)} /> : null}
           </View>
         )}
@@ -394,13 +406,13 @@ export default function ListVehicle() {
           <View>
             <SectionTitle>Review</SectionTitle>
             <Card>
-              <Row label="Vehicle" value={`${form.vehicleType ? VEHICLE_META[form.vehicleType].icon : ''} ${form.make} ${form.model} · ${form.year}`} />
+              <Row label="Vehicle" value={`${form.make} ${form.model} · ${form.year}`} />
               <Row label="Registration" value={form.registrationNumber.toUpperCase()} />
               <Row label="Plate" value={form.plateType === 'COMMERCIAL_RENTAL' ? 'Commercial rental · students rent it' : 'Private · students borrow it'} />
               <Row label="Photos" value={`${form.photos.length}`} />
               <Row label="Documents" value={`${['rc', 'insurance', 'licence'].filter((k) => (form.docs as any)[k]).length}/3`} />
-              <Row label="Price" value={[form.pricePerHour ? `₹${form.pricePerHour}/hr` : null, form.pricePerDay ? `₹${form.pricePerDay}/day` : null].filter(Boolean).join(' · ') || '—'} />
-              <Row label="Deposit" value={`₹${form.securityDeposit || 0}`} />
+              <Row label={isPrivate ? 'Cost share' : 'Rent'} value={[form.pricePerHour ? `${formatINR(form.pricePerHour)}/hr` : null, form.pricePerDay ? `${formatINR(form.pricePerDay)}/day` : null].filter(Boolean).join(' · ') || '—'} />
+              <Row label="Deposit" value={formatINR(form.securityDeposit || 0)} />
               <Row label="Pickup" value={form.pickupLocation || '—'} />
               <Row label="Hours" value={form.fixedHours ? `${form.days.map((d) => DAY_NAMES[Number(d)]).join(', ')} · ${fmtTime(form.openAt)}–${fmtTime(form.closeAt)}` : 'Any time'} />
             </Card>

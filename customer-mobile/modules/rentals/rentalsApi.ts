@@ -295,8 +295,8 @@ export const rentalsApi = {
 /** C7 wording: RENT -> Rent / owner / renter / rent; BORROW -> Borrow / lender / borrower / cost share. */
 export const modeOf = (x?: { rentalMode?: RentalMode | null } | null): RentalMode => (x && x.rentalMode === 'RENT' ? 'RENT' : 'BORROW');
 export const MODE_WORDS: Record<RentalMode, { verb: string; giver: string; taker: string; Giver: string; Taker: string; price: string; Price: string; badge: string; color: string; booking: string }> = {
-  RENT: { verb: 'Rent', giver: 'owner', taker: 'renter', Giver: 'Owner', Taker: 'Renter', price: 'rent', Price: 'Rent', badge: 'RENT', color: '#F59E0B', booking: 'rental' },
-  BORROW: { verb: 'Borrow', giver: 'lender', taker: 'borrower', Giver: 'Lender', Taker: 'Borrower', price: 'cost share', Price: 'Cost share', badge: 'BORROW', color: '#10B981', booking: 'borrowing' },
+  RENT: { verb: 'Rent', giver: 'owner', taker: 'renter', Giver: 'Owner', Taker: 'Renter', price: 'rent', Price: 'Rent', badge: 'Rent', color: '#F59E0B', booking: 'rental' },
+  BORROW: { verb: 'Borrow', giver: 'lender', taker: 'borrower', Giver: 'Lender', Taker: 'Borrower', price: 'cost share', Price: 'Cost share', badge: 'Borrow', color: '#10B981', booking: 'borrowing' },
 };
 export const wordsOf = (x?: { rentalMode?: RentalMode | null } | null) => MODE_WORDS[modeOf(x)];
 /** Booking status label in the right words ("Waiting for lender" / "Waiting for owner"). */
@@ -313,10 +313,11 @@ export const CHARGES_STATUS_LABEL: Record<ChargesStatus, string> = {
   VOIDED: 'Cancelled by Zenvy',
 };
 
+/** `icon` is an Ionicons glyph name (rendered with <Ionicons />, never as text). */
 export const VEHICLE_META: Record<VehicleType, { label: string; icon: string }> = {
-  BIKE: { label: 'Bike', icon: '🏍️' },
-  SCOOTER: { label: 'Scooter', icon: '🛵' },
-  CAR: { label: 'Car', icon: '🚗' },
+  BIKE: { label: 'Bike', icon: 'bicycle-outline' },
+  SCOOTER: { label: 'Scooter', icon: 'bicycle-outline' },
+  CAR: { label: 'Car', icon: 'car-outline' },
 };
 export const FUEL_LABEL: Record<Fuel, string> = { PETROL: 'Petrol', DIESEL: 'Diesel', EV: 'Electric', CNG: 'CNG' };
 export const LICENCE_CLASSES = [
@@ -326,13 +327,14 @@ export const LICENCE_CLASSES = [
   { key: 'LMV-NT', label: 'LMV-NT', hint: 'Car (non-transport)' },
   { key: 'TRANS', label: 'TRANS', hint: 'Transport vehicle' },
 ];
+/** `icon` is an Ionicons glyph name (the chips show the label only). */
 export const REPORT_CATEGORIES = [
-  { key: 'DAMAGE', label: 'Damage', icon: '🔧' },
-  { key: 'NO_SHOW', label: 'No-show', icon: '🚫' },
-  { key: 'LATE_RETURN', label: 'Late return', icon: '⏰' },
-  { key: 'SAFETY', label: 'Safety', icon: '🛡️' },
-  { key: 'PAYMENT', label: 'Payment', icon: '💵' },
-  { key: 'OTHER', label: 'Other', icon: '💬' },
+  { key: 'DAMAGE', label: 'Damage', icon: 'construct-outline' },
+  { key: 'NO_SHOW', label: 'No-show', icon: 'close-circle-outline' },
+  { key: 'LATE_RETURN', label: 'Late return', icon: 'time-outline' },
+  { key: 'SAFETY', label: 'Safety', icon: 'shield-checkmark-outline' },
+  { key: 'PAYMENT', label: 'Payment', icon: 'cash-outline' },
+  { key: 'OTHER', label: 'Other', icon: 'chatbubble-outline' },
 ];
 
 export const LISTING_STATUS_META: Record<ListingStatus, { label: string; color: string }> = {
@@ -344,7 +346,7 @@ export const LISTING_STATUS_META: Record<ListingStatus, { label: string; color: 
   DELETED: { label: 'Removed', color: '#64748B' },
 };
 export const BOOKING_STATUS_META: Record<BookingStatus, { label: string; color: string }> = {
-  REQUESTED: { label: 'Waiting for owner', color: '#F59E0B' },
+  REQUESTED: { label: 'Waiting for the owner or lender', color: '#F59E0B' },
   ACCEPTED: { label: 'Confirmed', color: '#10B981' },
   DECLINED: { label: 'Declined', color: '#EF4444' },
   EXPIRED: { label: 'Expired', color: '#64748B' },
@@ -392,19 +394,35 @@ export const fmtTime = (hhmm: string) => {
 };
 export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+/** "1 trip" / "3 trips". */
+export const tripsLabel = (n: number | null | undefined) => {
+  const c = Math.max(0, Math.round(Number(n) || 0));
+  return `${c} trip${c === 1 ? '' : 's'}`;
+};
+/** Rating average for display: "4.5" (one decimal), or '' when there is none. */
+export const ratingLabel = (avg: number | null | undefined) => (Number.isFinite(Number(avg)) && Number(avg) > 0 ? Number(avg).toFixed(1) : '');
+/** 'YYYY-MM-DD' -> "31 May 2034" (date-only, no time zone shift). '' if not a date. */
+export const fmtDateOnly = (date?: string | null) => {
+  if (!date || !/^\d{4}-\d{2}-\d{2}/.test(date)) return '';
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const m = Number(date.slice(5, 7));
+  if (!(m >= 1 && m <= 12)) return '';
+  return `${Number(date.slice(8, 10))} ${months[m - 1]} ${date.slice(0, 4)}`;
+};
+
 /** Short "from" price for cards. */
 export const priceLabel = (l: Pick<Listing, 'pricePerHour' | 'pricePerDay'>) => {
   const parts: string[] = [];
   if (l.pricePerHour) parts.push(`${inr(l.pricePerHour)}/hr`);
   if (l.pricePerDay) parts.push(`${inr(l.pricePerDay)}/day`);
-  return parts.join(' · ') || 'Price on request';
+  return parts.join(' · ') || 'Amount on request';
 };
 
 export const reasonToMessage = (code?: string) => {
   switch (code) {
     case 'VERIFICATION_REQUIRED':
     case 'CAMPUS_REQUIRED':
-      return 'Verify your college email or ID to list or rent vehicles.';
+      return 'Verify your college email or ID to list, rent or borrow vehicles.';
     case 'CAMPUS_INACTIVE':
       return 'Rentals are not open for your campus yet.';
     case 'ACCOUNT_SUSPENDED':

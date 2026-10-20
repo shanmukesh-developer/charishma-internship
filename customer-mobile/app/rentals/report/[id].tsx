@@ -50,11 +50,11 @@ export default function ReportRental() {
       <RHeader title="Report a problem" subtitle="Goes to the Zenvy team" />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         <Notice tone="warn">In an emergency or accident, call 112 first. Then tell us here so we can help and act on the account.</Notice>
-        <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginBottom: 6 }}>WHAT HAPPENED?</Text>
-        <Chips<string> options={REPORT_CATEGORIES.map((c) => ({ key: c.key, label: `${c.icon} ${c.label}` }))} value={category} onChange={setCategory} />
+        <Text style={{ fontSize: 12, fontWeight: '800', color: p.sub, marginBottom: 6 }}>What happened?</Text>
+        <Chips<string> options={REPORT_CATEGORIES.map((c) => ({ key: c.key, label: c.label }))} value={category} onChange={setCategory} />
         <View style={{ height: 14 }} />
         <Field label="Details" value={text} onChangeText={(t) => setText(t.slice(0, 2000))} placeholder="When, where, what was damaged or said…" multiline />
-        <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginBottom: 6 }}>PHOTOS (OPTIONAL, PRIVATE)</Text>
+        <Text style={{ fontSize: 12, fontWeight: '800', color: p.sub, marginBottom: 6 }}>Photos (optional, private)</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
           {photos.map((ph) => (
             <TouchableOpacity key={ph.ref} onPress={() => setPhotos((cur) => cur.filter((x) => x.ref !== ph.ref))} accessibilityRole="button" accessibilityLabel="Remove photo"

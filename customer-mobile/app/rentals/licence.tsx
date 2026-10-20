@@ -1,10 +1,11 @@
-// Driving licence for renting: uploaded once (private photos), verified by Zenvy.
+// Driving licence for renting or borrowing: uploaded once (private photos), verified by Zenvy.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
 import { useRouter } from 'expo-router';
 import { pickAndUploadImage, alertUploadError } from '../../utils/imageUpload';
-import { rentalsApi, type Licence, LICENCE_CLASSES, istDate } from '../../modules/rentals/rentalsApi';
+import { rentalsApi, type Licence, LICENCE_CLASSES, istDate, fmtDateOnly } from '../../modules/rentals/rentalsApi';
 import { RHeader, usePalette, Card, Btn, Field, Chips, Notice, StateView, Badge, useRentalLive } from '../../modules/rentals/ui';
 
 type Img = { ref: string; preview: string };
@@ -70,7 +71,7 @@ export default function LicenceScreen() {
       const res = await rentalsApi.saveLicence({ licenceNumber: n, classes, frontImage: frontRef, backImage: back?.ref || null, expiresOn: expiry });
       setLic(res.licence);
       setEditing(false);
-      Alert.alert('Licence sent ✅', res.message, [{ text: 'OK', onPress: () => (router.canGoBack() ? router.back() : null) }]);
+      Alert.alert('Licence sent', res.message, [{ text: 'OK', onPress: () => (router.canGoBack() ? router.back() : null) }]);
     } catch (e: any) {
       Alert.alert('Could not save', e?.message || 'Please try again.');
     } finally {
@@ -81,13 +82,13 @@ export default function LicenceScreen() {
   const photo = (side: 'front' | 'back', img: Img | null, label: string) => (
     <TouchableOpacity onPress={() => pick(side)} accessibilityRole="button" accessibilityLabel={`Upload ${label}`}
       style={{ flex: 1, height: 120, borderRadius: 14, borderWidth: 1.5, borderStyle: img ? 'solid' : 'dashed', borderColor: img ? p.success : p.accent, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: p.card2 }}>
-      {uploading === side ? <ActivityIndicator color={p.accent} /> : img ? <Image source={{ uri: img.preview }} style={{ width: '100%', height: '100%' }} /> : <><Text style={{ fontSize: 26 }}>🪪</Text><Text style={{ fontSize: 11.5, fontWeight: '800', color: p.accent, marginTop: 4 }}>{label}</Text></>}
+      {uploading === side ? <ActivityIndicator color={p.accent} /> : img ? <Image source={{ uri: img.preview }} style={{ width: '100%', height: '100%' }} /> : <><Ionicons name="card-outline" size={28} color={p.accent} /><Text style={{ fontSize: 11.5, fontWeight: '800', color: p.accent, marginTop: 4 }}>{label}</Text></>}
     </TouchableOpacity>
   );
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: p.bg }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <RHeader title="Driving licence" subtitle="Needed once to rent vehicles" />
+      <RHeader title="Driving licence" subtitle="Needed once to rent or borrow vehicles" />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         {lic === undefined && !error ? <StateView kind="loading" /> : null}
         {error && lic === undefined ? <StateView kind="error" title="Could not load" message={error} actionLabel="Retry" onAction={load} /> : null}
@@ -96,30 +97,30 @@ export default function LicenceScreen() {
           <>
             <Card>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontSize: 15, fontWeight: '900', color: p.text }}>🪪 {lic.licenceNumberMasked}</Text>
-                <Badge label={STATUS[lic.status].label.toUpperCase()} color={STATUS[lic.status].color} />
+                <Text style={{ fontSize: 15, fontWeight: '900', color: p.text }}>{lic.licenceNumberMasked || 'Your licence'}</Text>
+                <Badge label={(STATUS[lic.status] || STATUS.PENDING).label} color={(STATUS[lic.status] || STATUS.PENDING).color} />
               </View>
               <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 8 }}>Classes: {(lic.verifiedClasses || lic.classes).join(', ')}{lic.status === 'VERIFIED' && lic.verifiedClasses ? ' (verified)' : ''}</Text>
-              {lic.expiresOn ? <Text style={{ fontSize: 12.5, color: lic.expiresOn < istDate(0) ? p.danger : p.sub, marginTop: 2 }}>Valid till {lic.expiresOn}{lic.expiresOn < istDate(0) ? ' (expired)' : ''}</Text> : null}
+              {lic.expiresOn ? <Text style={{ fontSize: 12.5, color: lic.expiresOn < istDate(0) ? p.danger : p.sub, marginTop: 2 }}>Valid till {fmtDateOnly(lic.expiresOn) || lic.expiresOn}{lic.expiresOn < istDate(0) ? ' (expired)' : ''}</Text> : null}
               {lic.frontImage ? <Image source={{ uri: lic.frontImage }} style={{ width: '100%', height: 160, borderRadius: 12, marginTop: 12 }} resizeMode="cover" accessibilityLabel="Your licence photo" /> : null}
             </Card>
             {!lic.expiresOn ? <Notice tone="warn">Add your licence's "valid till" date to keep booking: tap Update licence and save it again.</Notice> : lic.expiresOn < istDate(0) ? <Notice tone="danger">Your licence has expired. Upload your renewed licence to book vehicles.</Notice> : null}
-            {lic.status === 'PENDING' ? <Notice tone="info">Zenvy is checking your licence. You can already send booking requests; owners can accept once it is verified.</Notice> : null}
+            {lic.status === 'PENDING' ? <Notice tone="info">Zenvy is checking your licence. You can already send booking requests; owners and lenders can accept once it is verified.</Notice> : null}
             {lic.status === 'REJECTED' ? <Notice tone="danger">Not accepted{lic.rejectionReason ? `: ${lic.rejectionReason}` : ''}. Upload it again.</Notice> : null}
-            {lic.status === 'VERIFIED' ? <Notice tone="success">You can rent {[(lic.verifiedClasses || []).some((c) => c.startsWith('MC')) ? 'bikes / scooters' : null, (lic.verifiedClasses || []).some((c) => c.startsWith('LMV') || c === 'TRANS') ? 'cars' : null].filter(Boolean).join(' and ') || 'vehicles'}.</Notice> : null}
+            {lic.status === 'VERIFIED' ? <Notice tone="success">You can rent or borrow {[(lic.verifiedClasses || []).some((c) => c.startsWith('MC')) ? 'bikes / scooters' : null, (lic.verifiedClasses || []).some((c) => c.startsWith('LMV') || c === 'TRANS') ? 'cars' : null].filter(Boolean).join(' and ') || 'vehicles'}.</Notice> : null}
             <Btn label={lic.status === 'REJECTED' ? 'Upload again' : 'Update licence'} kind={lic.status === 'REJECTED' ? 'primary' : 'secondary'} onPress={() => setEditing(true)} />
           </>
         ) : null}
 
         {editing && lic !== undefined ? (
           <>
-            <Notice tone="info">🔒 Your licence is private: only you and the Zenvy team see it. Owners and lenders only see that it is verified. One licence can be linked to one Zenvy account.</Notice>
+            <Notice tone="info">Your licence is private: only you and the Zenvy team see it. Owners and lenders only see that it is verified. One licence can be linked to one Zenvy account.</Notice>
             <Field label="Licence number" value={number} onChangeText={(t) => setNumber(t.toUpperCase().slice(0, 24))} autoCapitalize="characters" placeholder="AP07 20190012345" />
-            <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginBottom: 6 }}>CLASSES ON YOUR LICENCE</Text>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: p.sub, marginBottom: 6 }}>Classes on your licence</Text>
             <Chips<string> multi options={LICENCE_CLASSES} value={classes} onChange={setClasses} />
-            <Text style={{ fontSize: 11, color: p.muted, marginTop: 6, marginBottom: 14 }}>Bikes need MCWG (gearless: MCWOG also works), scooters MCWG or MCWOG, cars LMV.</Text>
+            <Text style={{ fontSize: 11, color: p.muted, marginTop: 6, marginBottom: 14 }}>Geared bikes need MCWG. Scooters and gearless bikes need MCWOG or MCWG. Cars need LMV.</Text>
             <Field label="Valid till (required)" value={expiry} onChangeText={(t) => setExpiry(t.replace(/[^\d-]/g, '').slice(0, 10))} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" />
-            <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginBottom: 6 }}>PHOTOS</Text>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: p.sub, marginBottom: 6 }}>Photos</Text>
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
               {photo('front', front, 'Front (required)')}
               {photo('back', back, 'Back (optional)')}

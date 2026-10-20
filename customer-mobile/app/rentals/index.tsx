@@ -1,10 +1,10 @@
-// Student vehicles: browse with filters (type, max price, free for given dates).
+// Student vehicles: browse with filters (type, max price, available for given dates).
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, FlatList, RefreshControl, TouchableOpacity, Dimensions, Modal, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { readCache, writeCache } from '../../utils/swrCache';
-import { rentalsApi, type Listing, type VehicleType, istDate, istInstant, fmtDateTime } from '../../modules/rentals/rentalsApi';
+import { rentalsApi, type Listing, type VehicleType, istDate, istInstant, fmtDateTime, inr } from '../../modules/rentals/rentalsApi';
 import { RHeader, usePalette, Chips, StateView, Btn, DateTimeSelect, Field, useRentalLive } from '../../modules/rentals/ui';
 import { MiniCard } from '../../modules/rentals/RentalsSection';
 
@@ -70,16 +70,21 @@ export default function RentalsBrowse() {
     <View style={{ paddingTop: 12 }}>
       <Chips<VehicleType | 'ALL'>
         wrap={false}
-        options={[{ key: 'ALL', label: 'All' }, { key: 'BIKE', label: '🏍️ Bikes' }, { key: 'SCOOTER', label: '🛵 Scooters' }, { key: 'CAR', label: '🚗 Cars' }]}
+        options={[{ key: 'ALL', label: 'All' }, { key: 'BIKE', label: 'Bikes' }, { key: 'SCOOTER', label: 'Scooters' }, { key: 'CAR', label: 'Cars' }]}
         value={filters.type}
         onChange={(v) => setFilters((f) => ({ ...f, type: v }))}
       />
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-        <TouchableOpacity onPress={() => setShowDates(true)} accessibilityRole="button" style={{ flex: 1, borderRadius: 12, borderWidth: 1, borderColor: filters.when ? p.accent : p.border, backgroundColor: filters.when ? p.accentSoft : p.card, padding: 10 }}>
-          <Text style={{ fontSize: 10, fontWeight: '900', color: p.sub }}>AVAILABLE FOR</Text>
+        <TouchableOpacity onPress={() => setShowDates(true)} accessibilityRole="button" accessibilityLabel="Pick dates" style={{ flex: 1, borderRadius: 12, borderWidth: 1, borderColor: filters.when ? p.accent : p.border, backgroundColor: filters.when ? p.accentSoft : p.card, padding: 10 }}>
+          <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub }}>Available for</Text>
           <Text style={{ fontSize: 12, fontWeight: '800', color: p.text, marginTop: 2 }} numberOfLines={1}>{filters.when ? `${fmtDateTime(filters.when.start)} → ${fmtDateTime(filters.when.end).split(' · ')[1]}` : 'Any time · tap to pick dates'}</Text>
         </TouchableOpacity>
-        {filters.when ? <Btn label="✕" kind="secondary" small onPress={() => setFilters((f) => ({ ...f, when: null }))} /> : null}
+        {filters.when ? (
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Clear dates" onPress={() => setFilters((f) => ({ ...f, when: null }))}
+            style={{ borderRadius: 14, borderWidth: 1, borderColor: p.border, backgroundColor: p.card2, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 14, fontWeight: '900', color: p.text }}>✕</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
         <Field label="Max ₹ / hour" value={filters.maxHour} onChangeText={(t) => setFilters((f) => ({ ...f, maxHour: t.replace(/\D/g, '').slice(0, 5) }))} keyboardType="number-pad" placeholder="Any" style={{ flex: 1, marginBottom: 6 }} />
@@ -113,13 +118,13 @@ export default function RentalsBrowse() {
         renderItem={({ item }) => (
           <View>
             <MiniCard l={item} width={CARD_W} onPress={() => router.push(`/rentals/${item.id}` as any)} />
-            {item.quote ? <Text style={{ fontSize: 11, color: p.sub, marginTop: 4, marginLeft: 4 }}>For your dates: <Text style={{ color: p.text, fontWeight: '900' }}>₹{item.quote.rent}</Text> + ₹{item.quote.deposit} deposit</Text> : null}
+            {item.quote ? <Text style={{ fontSize: 11, color: p.sub, marginTop: 4, marginLeft: 4 }}>For your dates: <Text style={{ color: p.text, fontWeight: '900' }}>{inr(item.quote.rent)}</Text> + {inr(item.quote.deposit)} deposit</Text> : null}
           </View>
         )}
         ListEmptyComponent={
           listings === null && !error ? <StateView kind="loading" message="Finding vehicles…" />
             : error ? (error.code === 'FEATURE_OFF'
-              ? <StateView kind="empty" icon="⏸️" title="Rentals are paused" message={error.message} />
+              ? <StateView kind="empty" icon="pause-circle-outline" title="Rentals are paused" message={error.message} />
               : <StateView kind="error" title="Could not load vehicles" message={error.message} actionLabel="Retry" onAction={load} />)
               : <StateView kind="empty" title={isDefault ? 'No student vehicles yet' : 'Nothing matches'} message={isDefault ? 'List yours and be the first on campus.' : 'Try other dates or remove a filter.'} actionLabel={isDefault ? 'Rent out or lend your vehicle' : 'Clear filters'} onAction={() => (isDefault ? router.push('/rentals/new' as any) : setFilters({ type: 'ALL', maxHour: '', maxDay: '', when: null, sort: 'recent' }))} />
         }
@@ -147,7 +152,7 @@ function DatesSheet({ visible, onClose, onApply }: { visible: boolean; onClose: 
             {!valid ? <Text style={{ color: p.danger, fontSize: 12, marginBottom: 8 }}>Return must be after pickup.</Text> : null}
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <Btn label="Cancel" kind="secondary" onPress={onClose} style={{ flex: 1 }} />
-              <Btn label="Show free vehicles" disabled={!valid} onPress={() => onApply({ start: startIso, end: endIso })} style={{ flex: 2 }} />
+              <Btn label="Show available vehicles" disabled={!valid} onPress={() => onApply({ start: startIso, end: endIso })} style={{ flex: 2 }} />
             </View>
           </ScrollView>
         </View>

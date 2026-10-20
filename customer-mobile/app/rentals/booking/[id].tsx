@@ -8,10 +8,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Alert, Linking, Modal, TextInput, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { KeyboardAvoidingView } from '../../../components/KeyboardAvoidingView';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import SafeImage from '../../../components/SafeImage';
+import { formatINR } from '../../../utils/format';
 import { pickAndUploadImage, alertUploadError } from '../../../utils/imageUpload';
 import {
-  rentalsApi, type Booking, type ConditionRecord, BOOKING_STATUS_META, CHARGES_STATUS_LABEL, inr, fmtDateTime, fmtHours, RentalsError, wordsOf, bookingStatusLabel,
+  rentalsApi, type Booking, type ConditionRecord, BOOKING_STATUS_META, CHARGES_STATUS_LABEL, inr, fmtDateTime, fmtHours, RentalsError, wordsOf, bookingStatusLabel, tripsLabel, ratingLabel,
 } from '../../../modules/rentals/rentalsApi';
 import { VEHICLE_FALLBACK, RHeader, usePalette, Card, SectionTitle, Badge, Btn, Row, Notice, StateView, Field, useRentalLive } from '../../../modules/rentals/ui';
 
@@ -166,6 +168,8 @@ export default function RentalBookingScreen() {
     Linking.openURL(url).catch(() => Alert.alert('Could not open', wa ? 'WhatsApp is not available.' : 'Calling is not available on this device.'));
   };
 
+  // The renter / borrower cancelling a request that is not answered yet is a "withdraw".
+  const withdrawing = !isOwner && b.status === 'REQUESTED';
   const confirmPrompt = () => {
     if (!prompt) return;
     const r = reason.trim();
@@ -173,7 +177,7 @@ export default function RentalBookingScreen() {
     const kind = prompt.kind;
     setPrompt(null);
     setReason('');
-    run(kind, () => (kind === 'decline' ? rentalsApi.decline(b.id, r || undefined) : rentalsApi.cancel(b.id, r || undefined)), kind === 'decline' ? 'Request declined.' : 'Booking cancelled.');
+    run(kind, () => (kind === 'decline' ? rentalsApi.decline(b.id, r || undefined) : rentalsApi.cancel(b.id, r || undefined)), kind === 'decline' ? 'Request declined.' : withdrawing ? 'Request withdrawn.' : 'Booking cancelled.');
   };
 
   const saveCondition = async (stage: 'PICKUP' | 'RETURN') => {
@@ -191,7 +195,7 @@ export default function RentalBookingScreen() {
     if (b.otherChargesCap !== undefined && other > b.otherChargesCap) { Alert.alert('Too high', `Other charges can be at most ${inr(b.otherChargesCap)} for this trip. For bigger damage, report a problem.`); return; }
     if ((km > 0 || other > 0) && closeNote.trim().length < 5) { Alert.alert('Explain the charges', `Add a note for the ${w.taker} (at least 5 characters).`); return; }
     run('complete', () => rentalsApi.complete(b.id, { extraKm: km, otherCharges: other, note: closeNote.trim() || undefined, photos: evidence.map((x) => x.ref) }),
-      km > 0 || other > 0 ? `Trip completed. The ${w.taker} can now accept or dispute the extra charges.` : `Trip completed. Rate your ${w.taker}!`)
+      km > 0 || other > 0 ? `Trip completed. The ${w.taker} can now accept or dispute the extra charges.` : `Trip completed. Rate your ${w.taker}.`)
       .then((ok) => { if (ok) setEvidence([]); });
   };
 
@@ -204,7 +208,7 @@ export default function RentalBookingScreen() {
   // Render helpers (plain functions, not components: inputs must keep focus while typing).
   const pinBox = (value: string | null | undefined, label: string, hint: string) => (
     <Card style={{ alignItems: 'center', borderColor: p.accent, backgroundColor: p.accentSoft }}>
-      <Text style={{ fontSize: 11, fontWeight: '900', color: p.accent, letterSpacing: 1 }}>{label}</Text>
+      <Text style={{ fontSize: 12, fontWeight: '800', color: p.accent, letterSpacing: 0.2 }}>{label}</Text>
       <Text style={{ fontSize: 42, fontWeight: '900', color: p.text, letterSpacing: 12, marginVertical: 6 }} accessibilityLabel={`${label} ${String(value || '').split('').join(' ')}`}>{value || '••••'}</Text>
       <Text style={{ fontSize: 11.5, color: p.sub, textAlign: 'center' }}>{hint}</Text>
     </Card>
@@ -240,7 +244,7 @@ export default function RentalBookingScreen() {
 
   const conditionForm = (stage: 'PICKUP' | 'RETURN', required: boolean) => (
     <Card style={required ? { borderColor: p.warn } : undefined}>
-      <Text style={{ fontSize: 13, fontWeight: '900', color: p.text }}>📸 {stage === 'PICKUP' ? 'Pickup' : 'Return'} condition{required ? ' (required)' : ' (optional)'}</Text>
+      <Text style={{ fontSize: 13, fontWeight: '900', color: p.text }}>{stage === 'PICKUP' ? 'Pickup' : 'Return'} condition{required ? ' (required)' : ' (optional)'}</Text>
       <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 4, marginBottom: 8, lineHeight: 16 }}>
         {required ? `Take ${MIN_PHOTOS}-${MAX_PHOTOS} clear photos (all sides + odometer) before the ${stage === 'PICKUP' ? 'pickup' : 'return'} PIN. Both of you and the Zenvy team can see them.` : `Add your own ${MIN_PHOTOS}-${MAX_PHOTOS} photos so both sides have a record. Private to the two of you and the Zenvy team.`}
       </Text>
@@ -276,11 +280,11 @@ export default function RentalBookingScreen() {
       <Text style={{ fontSize: 13, fontWeight: '900', color: p.text }}>Accept the {w.verb === 'Rent' ? 'rental' : 'borrowing'} terms</Text>
       <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 4, marginBottom: 8 }}>This booking was sent from an older version of the app. Accept the terms before pickup.</Text>
       {(b.safety?.terms || []).map((t) => <Text key={t} style={{ fontSize: 12, color: p.text, lineHeight: 17, marginBottom: 5 }}>• {t}</Text>)}
-      {b.safety?.disclaimer ? <Text style={{ fontSize: 11.5, color: p.sub, lineHeight: 16, marginTop: 2 }}>🛡️ {b.safety.disclaimer}</Text> : null}
+      {b.safety?.disclaimer ? <Text style={{ fontSize: 11.5, color: p.sub, lineHeight: 16, marginTop: 2 }}>{b.safety.disclaimer}</Text> : null}
       <TouchableOpacity onPress={() => setTermsTicked((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked: termsTicked }} accessibilityLabel="I accept these booking terms"
         style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 }}>
         <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: termsTicked ? p.accent : p.inputBorder, backgroundColor: termsTicked ? p.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-          {termsTicked ? <Text style={{ color: '#fff', fontWeight: '900', fontSize: 13 }}>✓</Text> : null}
+          {termsTicked ? <Ionicons name="checkmark" size={15} color="#fff" /> : null}
         </View>
         <Text style={{ flex: 1, fontSize: 12.5, fontWeight: '800', color: p.text }}>I accept these terms for this booking</Text>
       </TouchableOpacity>
@@ -296,7 +300,7 @@ export default function RentalBookingScreen() {
         <SectionTitle>Extra charges</SectionTitle>
         <Card style={charges.status === 'PENDING' && !isOwner ? { borderColor: p.warn } : undefined}>
           <Row label={`Claimed by the ${w.giver}`} value={inr(charges.claimed)} />
-          {b.extraBreakdown?.extraKm ? <Text style={{ fontSize: 11.5, color: p.sub }}>{b.extraBreakdown.extraKm} extra km{b.extraBreakdown.perKm ? ` × ₹${b.extraBreakdown.perKm}` : ''}{b.extraBreakdown.otherCharges ? ` + other ${inr(b.extraBreakdown.otherCharges)}` : ''}</Text> : null}
+          {b.extraBreakdown?.extraKm ? <Text style={{ fontSize: 11.5, color: p.sub }}>{b.extraBreakdown.extraKm} extra km{b.extraBreakdown.perKm ? ` × ${formatINR(b.extraBreakdown.perKm)}` : ''}{b.extraBreakdown.otherCharges ? ` + other ${inr(b.extraBreakdown.otherCharges)}` : ''}</Text> : null}
           {charges.note ? <Text style={{ fontSize: 12, color: p.text, marginTop: 4 }}>“{charges.note}”</Text> : null}
           <Thumbs uris={charges.photos} />
           <Row label="Status" value={CHARGES_STATUS_LABEL[charges.status] || charges.status} />
@@ -320,7 +324,7 @@ export default function RentalBookingScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: p.bg }}>
-      <RHeader title={b.vehicleTitle} subtitle={isOwner ? (w.verb === 'Rent' ? 'Your vehicle · rented out' : 'Your vehicle · lent') : (w.verb === 'Rent' ? 'Your rental' : 'You are borrowing')} right={<Badge label={meta.label.toUpperCase()} color={meta.color} />} />
+      <RHeader title={b.vehicleTitle} subtitle={isOwner ? (w.verb === 'Rent' ? 'Your vehicle · rented out' : 'Your vehicle · lent') : (w.verb === 'Rent' ? 'Your rental' : 'You are borrowing')} right={<Badge label={meta.label} color={meta.color} />} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 50 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />} keyboardShouldPersistTaps="handled">
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <Badge label={w.badge} color={w.color} />
@@ -331,15 +335,15 @@ export default function RentalBookingScreen() {
         {!isOwner && b.termsPending && ['REQUESTED', 'ACCEPTED'].includes(b.status) ? termsCard() : null}
         {isOwner && b.termsPending && ['REQUESTED', 'ACCEPTED'].includes(b.status) ? <Notice tone="warn">The {w.taker} has not accepted the booking terms yet (older app). Pickup can start once they accept them in the app.</Notice> : null}
 
-        {!isOwner && b.status === 'ACCEPTED' ? pinBox(b.pickupPin, 'PICKUP PIN', `Show this to the ${w.giver} at pickup, only after you get the vehicle keys.`) : null}
-        {!isOwner && b.status === 'ACTIVE' ? pinBox(b.returnPin, 'RETURN PIN', `Show this to the ${w.giver} when you hand the vehicle back and get your deposit.`) : null}
+        {!isOwner && b.status === 'ACCEPTED' ? pinBox(b.pickupPin, 'Pickup PIN', `Show this to the ${w.giver} at pickup, only after you get the vehicle keys.`) : null}
+        {!isOwner && b.status === 'ACTIVE' ? pinBox(b.returnPin, 'Return PIN', `Show this to the ${w.giver} when you hand the vehicle back and get your deposit.`) : null}
 
         {ownerStage ? conditionForm(ownerStage, true) : null}
         {isOwner && b.status === 'ACCEPTED' && !ownerStage ? pinEntry(`${w.Taker}'s pickup PIN`, () => run('pin', () => rentalsApi.handover(b.id, pin), 'Trip started. Return is due ' + fmtDateTime(b.endAt) + '.')) : null}
         {isOwner && b.status === 'ACTIVE' && !ownerStage ? pinEntry(`${w.Taker}'s return PIN`, () => run('pin', () => rentalsApi.markReturned(b.id, pin), 'Vehicle returned. Give back the deposit, then complete the trip.')) : null}
 
         {renterStage ? (condOpen ? conditionForm(renterStage, false) : (
-          <Btn label={`Add my ${renterStage === 'PICKUP' ? 'pickup' : 'return'} photos (optional)`} icon="📸" kind="ghost" onPress={() => { setCondPics([]); setCondOpen(true); }} style={{ marginBottom: 10 }} />
+          <Btn label={`Add my ${renterStage === 'PICKUP' ? 'pickup' : 'return'} photos (optional)`} icon="camera-outline" kind="ghost" onPress={() => { setCondPics([]); setCondOpen(true); }} style={{ marginBottom: 10 }} />
         )) : null}
 
         <Card style={{ flexDirection: 'row', gap: 12 }}>
@@ -348,9 +352,9 @@ export default function RentalBookingScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 14.5, fontWeight: '900', color: p.text }}>{b.vehicleTitle}</Text>
-            {b.registration ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>🔢 {b.registration}</Text> : null}
-            <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>📍 {b.pickupLocation || `Pickup point shared by the ${w.giver}`}</Text>
-            {b.vehicleType !== 'CAR' ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>⛑️ {b.helmetIncluded ? 'Helmet included' : 'Bring your own helmet'}</Text> : null}
+            {b.registration ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>{b.registration}</Text> : null}
+            <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>{b.pickupLocation || `Pickup point shared by the ${w.giver}`}</Text>
+            {b.vehicleType !== 'CAR' ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>{b.helmetIncluded ? 'Helmet included' : 'Bring your own helmet'}</Text> : null}
           </View>
         </Card>
 
@@ -374,37 +378,37 @@ export default function RentalBookingScreen() {
               <Row label={`Final ${w.price}`} value={inr(b.finalAmount ?? b.rentAmount)} strong />
               <Text style={{ fontSize: 11, color: p.muted }}>The deposit of {inr(b.depositAmount)} goes back to the {w.taker}.</Text>
             </>
-          ) : <Text style={{ fontSize: 11, color: p.muted, marginTop: 4 }}>Zenvy does not collect this money. The deposit is returned in cash at drop-off.</Text>}
+          ) : <Text style={{ fontSize: 11, color: p.muted, marginTop: 4 }}>Zenvy does not collect this money. The deposit is returned in cash when the vehicle comes back.</Text>}
         </Card>
 
         {chargesCard()}
 
-        {conditionView(b.pickupCondition, '📸 Pickup condition')}
-        {conditionView(b.returnCondition, '📸 Return condition')}
+        {conditionView(b.pickupCondition, 'Pickup condition')}
+        {conditionView(b.returnCondition, 'Return condition')}
 
         <SectionTitle>{isOwner ? w.Taker : w.Giver}</SectionTitle>
         <Card>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: p.card2, alignItems: 'center', justifyContent: 'center' }}>
-              {other?.avatar ? <SafeImage source={{ uri: other.avatar }} style={{ width: 44, height: 44 }} fallback={<Text style={{ fontSize: 18 }}>🧑‍🎓</Text>} /> : <Text style={{ fontSize: 18 }}>🧑‍🎓</Text>}
+              {other?.avatar ? <SafeImage source={{ uri: other.avatar }} style={{ width: 44, height: 44 }} fallback={<Ionicons name="person-outline" size={20} color={p.muted} />} /> : <Ionicons name="person-outline" size={20} color={p.muted} />}
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '900', color: p.text }}>{other?.name || 'Student'} <Text style={{ color: p.success, fontSize: 11.5 }}>✓ verified</Text></Text>
+              <Text style={{ fontSize: 14, fontWeight: '900', color: p.text }}>{other?.name || 'Student'} <Text style={{ color: p.success, fontSize: 11.5 }}>Verified</Text></Text>
               <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }}>
-                {other?.rating && other.rating.avg ? `★ ${other.rating.avg} (${other.rating.count})` : 'No ratings yet'}{other?.rating?.trips ? ` · ${other.rating.trips} trips` : ''}
+                {other?.rating && other.rating.avg ? `★ ${ratingLabel(other.rating.avg)} (${other.rating.count})` : 'No ratings yet'}{other?.rating?.trips ? ` · ${tripsLabel(other.rating.trips)}` : ''}
               </Text>
             </View>
           </View>
           {isOwner && b.renterLicence ? (
             <Text style={{ fontSize: 12, color: b.renterLicence.status === 'VERIFIED' ? p.success : p.warn, marginTop: 10 }}>
-              🪪 Driving licence: {b.renterLicence.status === 'VERIFIED' ? `verified by Zenvy (${b.renterLicence.classes.join(', ')})` : b.renterLicence.status === 'PENDING' ? 'being verified by Zenvy, you can accept once verified' : b.renterLicence.status.toLowerCase()}
+              Driving licence: {b.renterLicence.status === 'VERIFIED' ? `verified by Zenvy (${b.renterLicence.classes.join(', ')})` : b.renterLicence.status === 'PENDING' ? 'being verified by Zenvy, you can accept once verified' : b.renterLicence.status === 'REJECTED' ? 'not accepted by Zenvy' : 'not added yet'}
             </Text>
           ) : null}
-          {b.renterNote ? <Text style={{ fontSize: 12.5, color: p.text, marginTop: 10 }}>💬 “{b.renterNote}”</Text> : null}
+          {b.renterNote ? <Text style={{ fontSize: 12.5, color: p.text, marginTop: 10 }}>“{b.renterNote}”</Text> : null}
           {b.contactVisible && other?.phone ? (
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-              <Btn label="Call" icon="📞" small kind="success" onPress={() => call(other.phone)} style={{ flex: 1 }} />
-              <Btn label="WhatsApp" icon="💬" small kind="secondary" onPress={() => call(other.phone, true)} style={{ flex: 1 }} />
+              <Btn label="Call" icon="call-outline" small kind="success" onPress={() => call(other.phone)} style={{ flex: 1 }} />
+              <Btn label="WhatsApp" icon="logo-whatsapp" small kind="secondary" onPress={() => call(other.phone, true)} style={{ flex: 1 }} />
             </View>
           ) : <Text style={{ fontSize: 11, color: p.muted, marginTop: 10 }}>{['REQUESTED'].includes(b.status) ? `Phone numbers are shared once the ${w.giver} accepts.` : 'Phone numbers are visible only during a confirmed trip.'}</Text>}
         </Card>
@@ -413,14 +417,14 @@ export default function RentalBookingScreen() {
           <>
             <SectionTitle>Rules</SectionTitle>
             <Card>
-              {b.fuelPolicy ? <Text style={{ fontSize: 12.5, color: p.text }}>⛽ {b.fuelPolicy}</Text> : null}
+              {b.fuelPolicy ? <Text style={{ fontSize: 12.5, color: p.text }}>Fuel: {b.fuelPolicy}</Text> : null}
               {b.rules ? <Text style={{ fontSize: 12.5, color: p.text, marginTop: 6, lineHeight: 18 }}>{b.rules}</Text> : null}
             </Card>
           </>
         ) : null}
 
         {b.safety?.disclaimer && ['REQUESTED', 'ACCEPTED', 'ACTIVE'].includes(b.status) && !b.termsPending ? (
-          <Text style={{ fontSize: 11, color: p.muted, lineHeight: 16, marginTop: 4, marginBottom: 8 }}>🛡️ {b.safety.disclaimer}{b.termsAcceptedAt ? ` You accepted the booking terms on ${fmtDateTime(b.termsAcceptedAt)}.` : ''}</Text>
+          <Text style={{ fontSize: 11, color: p.muted, lineHeight: 16, marginTop: 4, marginBottom: 8 }}>{b.safety.disclaimer}{b.termsAcceptedAt ? ` You accepted the booking terms on ${fmtDateTime(b.termsAcceptedAt)}.` : ''}</Text>
         ) : null}
 
         {isOwner && b.status === 'RETURNED' ? (
@@ -428,13 +432,13 @@ export default function RentalBookingScreen() {
             <SectionTitle>Close the trip</SectionTitle>
             <Card>
               <View style={{ flexDirection: 'row', gap: 10 }}>
-                <Field label="Extra km driven" value={extraKm} onChangeText={(t) => setExtraKm(t.replace(/\D/g, '').slice(0, 4))} keyboardType="number-pad" placeholder="0" style={{ flex: 1 }} hint={b.priceBreakdown?.extraPerKm ? `₹${b.priceBreakdown.extraPerKm}/km` : 'No km charge set'} />
+                <Field label="Extra km driven" value={extraKm} onChangeText={(t) => setExtraKm(t.replace(/\D/g, '').slice(0, 4))} keyboardType="number-pad" placeholder="0" style={{ flex: 1 }} hint={b.priceBreakdown?.extraPerKm ? `${formatINR(b.priceBreakdown.extraPerKm)}/km` : 'No km charge set'} />
                 <Field label="Other charges ₹" value={otherCharges} onChangeText={(t) => setOtherCharges(t.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1').slice(0, 7))} keyboardType="decimal-pad" placeholder="0" style={{ flex: 1 }} hint={b.otherChargesCap !== undefined ? `Fuel, late fee… max ${inr(b.otherChargesCap)}` : 'Fuel, late fee…'} />
               </View>
               <Field label={extraKm || otherCharges ? `Explain the charges for the ${w.taker} (required)` : `Note for the ${w.taker}`} value={closeNote} onChangeText={(t) => setCloseNote(t.slice(0, 300))} placeholder={extraKm || otherCharges ? 'e.g. 40 km over the limit, fuel top-up' : 'Optional'} />
               {Number(otherCharges) > 0 || Number(extraKm) > 0 ? (
                 <>
-                  <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginBottom: 6 }}>EVIDENCE PHOTOS (OPTIONAL, PRIVATE)</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: p.sub, marginBottom: 6 }}>Evidence photos (optional, private)</Text>
                   {picGrid('evidence', evidence, setEvidence, 4)}
                   <Text style={{ fontSize: 11, color: p.muted, marginBottom: 10, lineHeight: 16 }}>Extra charges only count once the {w.taker} accepts them (or does not answer in time). They can dispute them, and the Zenvy team then decides.</Text>
                 </>
@@ -454,8 +458,8 @@ export default function RentalBookingScreen() {
           ) : null}
           {!isOwner && (b.status === 'REQUESTED' || (b.status === 'ACCEPTED' && beforeStart)) ? <Btn label={b.status === 'REQUESTED' ? 'Withdraw request' : 'Cancel booking'} kind="secondary" onPress={() => setPrompt({ kind: 'cancel', required: false })} loading={busy === 'cancel'} /> : null}
           {isOwner && b.status === 'ACCEPTED' ? <Btn label="Cancel booking" kind="secondary" onPress={() => setPrompt({ kind: 'cancel', required: true })} loading={busy === 'cancel'} /> : null}
-          {b.canRate ? <Btn label={isOwner ? `Rate the ${w.taker}` : 'Rate your trip'} icon="⭐" onPress={() => router.push(`/rentals/rate/${b.id}` as any)} /> : null}
-          {b.rated ? <Text style={{ color: p.success, fontSize: 12, textAlign: 'center', fontWeight: '800' }}>✓ You rated this trip. Thanks!</Text> : null}
+          {b.canRate ? <Btn label={isOwner ? `Rate the ${w.taker}` : 'Rate your trip'} icon="star-outline" onPress={() => router.push(`/rentals/rate/${b.id}` as any)} /> : null}
+          {b.rated ? <Text style={{ color: p.success, fontSize: 12, textAlign: 'center', fontWeight: '800' }}>You rated this trip.</Text> : null}
           {b.canReport ? <Btn label="Report a problem" kind="ghost" onPress={() => router.push(`/rentals/report/${b.id}` as any)} style={{ borderColor: p.danger }} /> : null}
           <Btn label="View vehicle" kind="ghost" onPress={() => router.push(`/rentals/${b.listingId}` as any)} />
         </View>
@@ -464,11 +468,11 @@ export default function RentalBookingScreen() {
       <Modal visible={!!prompt} transparent animationType="fade" onRequestClose={() => setPrompt(null)}>
         <KeyboardAvoidingView style={{ flex: 1, justifyContent: 'center', padding: 24, backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <View style={{ backgroundColor: p.bg, borderRadius: 20, padding: 18 }}>
-            <Text style={{ fontSize: 16, fontWeight: '900', color: p.text, marginBottom: 10 }}>{prompt?.kind === 'decline' ? 'Decline this request?' : 'Cancel this booking?'}</Text>
+            <Text style={{ fontSize: 16, fontWeight: '900', color: p.text, marginBottom: 10 }}>{prompt?.kind === 'decline' ? 'Decline this request?' : withdrawing ? 'Withdraw this request?' : 'Cancel this booking?'}</Text>
             <Field label={prompt?.required ? 'Reason (required)' : 'Reason (optional)'} value={reason} onChangeText={(t) => setReason(t.slice(0, 300))} placeholder={prompt?.kind === 'decline' ? 'e.g. I need it that day' : 'Tell them why'} multiline />
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <Btn label="Back" kind="secondary" onPress={() => { setPrompt(null); setReason(''); }} style={{ flex: 1 }} />
-              <Btn label={prompt?.kind === 'decline' ? 'Decline' : 'Cancel booking'} kind="danger" onPress={confirmPrompt} style={{ flex: 1 }} />
+              <Btn label={prompt?.kind === 'decline' ? 'Decline' : withdrawing ? 'Withdraw request' : 'Cancel booking'} kind="danger" onPress={confirmPrompt} style={{ flex: 1 }} />
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -480,7 +484,7 @@ export default function RentalBookingScreen() {
             <Text style={{ fontSize: 16, fontWeight: '900', color: p.text, marginBottom: 6 }}>Dispute {inr(charges?.claimed)} of extra charges</Text>
             <Text style={{ fontSize: 11.5, color: p.sub, marginBottom: 10, lineHeight: 16 }}>The Zenvy team sees both sides, the pickup / return photos and your evidence, then upholds, reduces or cancels the charges. Until then they do not count.</Text>
             <Field label="Why do you dispute them? (required)" value={disputeNote} onChangeText={(t) => setDisputeNote(t.slice(0, 1000))} placeholder="e.g. The scratch is visible in the pickup photos" multiline />
-            <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginBottom: 6 }}>PHOTOS (OPTIONAL, PRIVATE)</Text>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: p.sub, marginBottom: 6 }}>Photos (optional, private)</Text>
             {picGrid('dispute', disputePics, setDisputePics, 4)}
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <Btn label="Back" kind="secondary" onPress={() => setDisputeOpen(false)} style={{ flex: 1 }} />

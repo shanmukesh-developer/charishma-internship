@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { connectSocket } from '../../utils/socket';
 import { istDate, istDayLabel, fmtTime } from './rentalsApi';
@@ -19,6 +20,19 @@ export const VEHICLE_FALLBACK = 'https://images.unsplash.com/photo-1558981403-c5
 export const ACCENT = '#0EA5E9';
 export const ACCENT_DARK = '#0284C7';
 export const GRAD: [string, string] = ['#0EA5E9', '#6366F1'];
+
+/**
+ * `icon` props accept an Ionicons glyph name ('car-outline'); older callers may still pass an emoji
+ * string, which keeps rendering as text so nothing breaks.
+ */
+export const isIoniconName = (icon?: string | null): icon is keyof typeof Ionicons.glyphMap =>
+  typeof icon === 'string' && /^[a-z0-9-]+$/.test(icon) && Object.prototype.hasOwnProperty.call(Ionicons.glyphMap, icon);
+
+/** An Ionicons glyph by name (falls back to nothing for an unknown name). */
+export function RIcon({ name, size = 18, color }: { name: string; size?: number; color: string }) {
+  if (!isIoniconName(name)) return null;
+  return <Ionicons name={name} size={size} color={color} />;
+}
 
 export const usePalette = () => {
   const { isDark, colors } = useTheme();
@@ -97,9 +111,16 @@ export function Btn({ label, onPress, kind = 'primary', loading, disabled, style
   const p = usePalette();
   const off = disabled || loading;
   const pad = small ? { paddingVertical: 9, paddingHorizontal: 14 } : { paddingVertical: 14, paddingHorizontal: 18 };
+  const fg = kind === 'primary' || kind === 'danger' || kind === 'success' ? '#fff' : kind === 'ghost' ? p.accent : p.text;
+  const ion = isIoniconName(icon);
   const content = loading
     ? <ActivityIndicator color={kind === 'primary' || kind === 'danger' || kind === 'success' ? '#fff' : p.accent} />
-    : <Text style={[st.btnText, { fontSize: small ? 12 : 14, color: kind === 'primary' || kind === 'danger' || kind === 'success' ? '#fff' : kind === 'ghost' ? p.accent : p.text }]}>{icon ? `${icon}  ` : ''}{label}</Text>;
+    : (
+      <>
+        {ion ? <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={small ? 14 : 16} color={fg} style={{ marginRight: 6 }} /> : null}
+        <Text style={[st.btnText, { fontSize: small ? 12 : 14, color: fg }]}>{icon && !ion ? `${icon}  ` : ''}{label}</Text>
+      </>
+    );
   if (kind === 'primary') {
     return (
       <TouchableOpacity accessibilityRole="button" accessibilityLabel={label} disabled={off} onPress={onPress} activeOpacity={0.85} style={[{ opacity: off ? 0.55 : 1, borderRadius: 14, overflow: 'hidden' }, style]}>
@@ -180,7 +201,9 @@ export function StateView({ kind, title, message, actionLabel, onAction, icon }:
   }
   return (
     <View style={st.state}>
-      <Text style={{ fontSize: 40, marginBottom: 8 }}>{icon || (kind === 'error' ? '⚠️' : '🛵')}</Text>
+      {icon && !isIoniconName(icon)
+        ? <Text style={{ fontSize: 40, marginBottom: 8 }}>{icon}</Text>
+        : <Ionicons name={(icon as keyof typeof Ionicons.glyphMap) || (kind === 'error' ? 'alert-circle-outline' : 'bicycle-outline')} size={44} color={kind === 'error' ? p.danger : p.accent} style={{ marginBottom: 8 }} />}
       {title ? <Text style={{ fontSize: 16, fontWeight: '900', color: p.text, textAlign: 'center' }}>{title}</Text> : null}
       {message ? <Text style={{ fontSize: 12.5, color: p.sub, textAlign: 'center', marginTop: 6, lineHeight: 18 }}>{message}</Text> : null}
       {actionLabel && onAction ? <Btn label={actionLabel} onPress={onAction} small style={{ marginTop: 14 }} kind={kind === 'error' ? 'secondary' : 'primary'} /> : null}
@@ -310,7 +333,7 @@ export const st = StyleSheet.create({
   badgeText: { fontSize: 10, fontWeight: '900', letterSpacing: 0.3 },
   btn: { borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
   btnText: { fontWeight: '900', letterSpacing: 0.2 },
-  label: { fontSize: 11, fontWeight: '800', letterSpacing: 0.4, marginBottom: 6, textTransform: 'uppercase' },
+  label: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2, marginBottom: 6 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: Platform.OS === 'ios' ? 12 : 9, fontSize: 14 },
   hint: { fontSize: 11, marginTop: 4 },
   chip: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },

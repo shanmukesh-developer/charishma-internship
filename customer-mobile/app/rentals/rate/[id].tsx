@@ -28,7 +28,7 @@ export default function RateRental() {
     setSaving(true);
     try {
       const res = await rentalsApi.rate(id, rating, text.trim() || undefined);
-      Alert.alert('Thanks!', res.message, [{ text: 'OK', onPress: () => router.back() }]);
+      Alert.alert('Thanks', res.message, [{ text: 'OK', onPress: () => router.back() }]);
     } catch (e: any) {
       Alert.alert('Could not save your rating', e?.message || 'Please try again.');
     } finally {
@@ -42,7 +42,7 @@ export default function RateRental() {
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: p.bg }}>
       <RHeader title={isOwner ? `Rate the ${w.taker}` : 'Rate your trip'} subtitle={b?.vehicleTitle} />
       {!b ? (error ? <StateView kind="error" title="Could not load" message={error} /> : <StateView kind="loading" />) : !b.canRate ? (
-        <StateView kind="empty" icon="⭐" title={b.rated ? 'Already rated' : 'Not ready yet'} message={b.rated ? 'You have already rated this trip.' : 'You can rate once the trip is completed.'} actionLabel="Back" onAction={() => router.back()} />
+        <StateView kind="empty" icon="star-outline" title={b.rated ? 'Already rated' : 'Not ready yet'} message={b.rated ? 'You have already rated this trip.' : 'You can rate once the trip is completed.'} actionLabel="Back" onAction={() => router.back()} />
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
           <Card style={{ alignItems: 'center', paddingVertical: 24 }}>
