@@ -1,12 +1,17 @@
 "use client";
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { useAdminSocket } from '@/components/AdminSocketProvider';
 import dynamic from 'next/dynamic';
 import { API_URL } from '@/lib/config';
 import { useVisibleInterval } from '@/lib/useVisibleInterval';
+import {
+  Badge, Button, DataTable, DescriptionList, Drawer, Field, Input, Modal, Notice as NoticeBox, PageHeader, SearchInput, SegmentedControl,
+  Select, StatusDot, Tabs, Toolbar, useConfirm, type Column, IconPlus, IconRefresh,
+} from '@/components/ui';
+import { formatINR, formatPhone, shortId } from '@/lib/format';
 
-const LiveRiderMap = dynamic(() => import('@/components/LiveRiderMap'), { ssr: false, loading: () => <div className="h-[600px] w-full rounded-lg bg-info-soft animate-pulse border border-info/30 flex items-center justify-center text-info-text font-semibold text-xl">Booting God-Mode Map...</div> });
+const LiveRiderMap = dynamic(() => import('@/components/LiveRiderMap'), { ssr: false, loading: () => <div className="flex h-[600px] w-full items-center justify-center rounded-lg border border-line bg-surface-2 text-sm text-fg-muted" role="status">Loading the map…</div> });
 
 
 interface Rider {
@@ -50,65 +55,14 @@ interface Payout {
   cashHeld?: number;
 }
 
-const RiderRow = memo(({ rider, busy, onEdit, onToggleApproval, onResetSos }: {
-  rider: Rider,
-  busy: boolean,
-  onEdit: (r: Rider) => void,
-  onToggleApproval: (r: Rider) => void,
-  onResetSos: (r: Rider) => void
-}) => (
-  <tr className="hover:bg-surface-2/60 transition-colors group">
-    <td className="px-8 py-6">
-      <span className="text-xs font-semibold text-info-text group-hover:text-info-text transition-colors">#{rider._id.slice(-6).toUpperCase()}</span>
-    </td>
-    <td className="px-8 py-6 text-sm font-semibold text-fg">
-      {rider.name}
-      {rider.vehicleType && <span className="ml-2 text-xs px-2 py-0.5 bg-info-soft text-info-text rounded-md">{rider.vehicleType}</span>}
-    </td>
-    <td className="px-8 py-6">
-      <p className="text-xs text-fg-muted font-mono">{rider.phone}</p>
-      <div className="mt-1 flex items-center gap-2">
-         <span className="text-xs font-semibold text-success-text">{rider.completedDeliveries || 0} deliveries completed</span>
-      </div>
-    </td>
-    <td className="px-8 py-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <div className={`w-1.5 h-1.5 rounded-full ${rider.isOnline ? 'bg-success animate-pulse' : 'bg-surface-2'}`} />
-          <span className={`text-xs font-semibold ${rider.isOnline ? 'text-success-text' : 'text-fg-muted'}`}>
-            {rider.isOnline ? 'Online' : 'Offline'}
-          </span>
-        </div>
-        {rider.isSosActive && (
-          <button
-            disabled={busy}
-            onClick={() => onResetSos(rider)}
-            className="flex flex-col items-start gap-1 group/sos disabled:opacity-50"
-          >
-            <div className="flex items-center gap-2 bg-danger-soft border border-danger/30 px-3 py-1 rounded-lg animate-bounce group-hover/sos:bg-red-500/20 transition-all">
-              <span className="text-xs font-semibold text-danger-text">Emergency SOS</span>
-            </div>
-            <span className="text-[7px] text-fg-subtle font-semibold ml-1 opacity-0 group-hover/sos:opacity-100 transition-opacity">Click to Resolve</span>
-          </button>
-        )}
-      </div>
-    </td>
-    <td className="px-8 py-6">
-        <div className="flex items-center gap-3">
-          <button disabled={busy} onClick={() => onToggleApproval(rider)} className={`px-6 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-40 ${rider.isApproved ? 'bg-danger-soft text-danger-text' : 'bg-success-soft text-success-text'}`}>
-            {busy ? 'Saving…' : rider.isApproved ? 'Deactivate' : 'Approve'}
-          </button>
-          {!rider.isApproved && <span className="text-xs font-semibold text-warning-text">Pending approval</span>}
-          <button onClick={() => onEdit(rider)} className="text-info-text hover:text-info-text text-xs font-semibold transition-colors ml-2">Edit</button>
-        </div>
-    </td>
-  </tr>
-));
-RiderRow.displayName = 'RiderRow';
-
 export default function FleetManagement() {
   const { isAuthed } = useAdminAuth();
   const { socket, isConnected } = useAdminSocket();
+  const confirm = useConfirm();
+  // Rider whose details are open, and the payout waiting for its UTR (was a browser prompt).
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [settling, setSettling] = useState<{ p: Payout; riderName: string } | null>(null);
+  const [utrInput, setUtrInput] = useState('');
 
   const [activeTab, setActiveTab] = useState<'roster' | 'payouts' | 'map'>('roster');
 
@@ -243,14 +197,17 @@ export default function FleetManagement() {
     };
   }, [socket, currentPage]);
 
-  const handleMarkSettled = async (p: Payout, riderName: string) => {
+  // Opens the "record payout" form (the UTR used to be asked with a browser prompt).
+  const handleMarkSettled = (p: Payout, riderName: string) => {
+    if (settlingId) return;
+    setUtrInput('');
+    setSettling({ p, riderName });
+  };
+  const submitSettle = async (p: Payout, riderName: string, utr: string) => {
     if (settlingId) return;
     const tips = Math.max(0, Number(p.unsettledTips) || 0);
-    const total = (Number(p.totalDeliveryFees) || 0) + tips;
-    // C6: a payout is recorded with the UTR of the transfer (required by the server).
-    const utr = prompt(`Record ₹${total} paid to ${riderName}?\n• ₹${p.totalDeliveryFees} earnings (${p.totalDeliveries} deliveries)${tips ? `\n• ₹${tips} customer tips` : ''}${(Number(p.cashHeld) || 0) > 0 ? `\n\nThey also hold ₹${p.cashHeld} COD cash: NOT deducted here, collect it on Finance → Rider cash.` : ''}\n\nDeliveries completed after this list loaded are not included. Enter the UTR / payment reference of the transfer:`);
-    if (utr === null) return;
     if (utr.trim().length < 3) { setNotice({ kind: 'error', text: 'A UTR / payment reference (at least 3 characters) is required to record a payout.' }); return; }
+    setSettling(null);
     setSettlingId(p.riderId);
     setNotice(null);
     try {
@@ -292,9 +249,9 @@ export default function FleetManagement() {
       setNotice({ kind: 'error', text: `${rider.name} is delivering order #${String(rider.currentOrderId).slice(-6).toUpperCase()} right now. Reassign or finish that order (Orders page) before deactivating them.` });
       return;
     }
-    if (!confirm(approve
-      ? `Approve ${rider.name} as a delivery partner? They will be able to go online and take orders.`
-      : `Deactivate ${rider.name}? They will no longer be able to take orders.`)) return;
+    if (!(await confirm(approve
+      ? { title: `Approve ${rider.name}?`, description: 'They will be able to go online and take orders.', confirmLabel: 'Approve' }
+      : { title: `Deactivate ${rider.name}?`, description: 'They will no longer be able to take orders, and their app sessions end.', confirmLabel: 'Deactivate', tone: 'danger' }))) return;
     setBusyId(rider._id);
     setNotice(null);
     try {
@@ -315,7 +272,7 @@ export default function FleetManagement() {
 
   const handleResetSos = async (rider: Rider) => {
     if (busyId) return;
-    if (!confirm(`Mark ${rider.name}'s emergency as resolved and clear the SOS?`)) return;
+    if (!(await confirm({ title: `Clear ${rider.name}'s SOS?`, description: 'Only do this once you have spoken to the rider and the emergency is resolved.', confirmLabel: 'Mark resolved' }))) return;
     setBusyId(rider._id);
     setNotice(null);
     try {
@@ -367,212 +324,307 @@ export default function FleetManagement() {
     } finally { setIsSubmitting(false); }
   };
 
-  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
+  if (!isAuthed) return null; // AppShell shows the session check
+
+  const openAdd = () => { setActiveTab('roster'); setEditingRider(null); setNewRider(EMPTY_RIDER); setError(null); setIsAdding(true); };
+  const openEdit = (r: Rider) => { setIsAdding(false); setError(null); setEditingRider(r); setNewRider({ name: r.name, phone: r.phone, password: '', vehicleType: r.vehicleType || 'Bike' }); };
+  const detail = detailId ? riders.find(r => r._id === detailId) || null : null;
+  const detailPayout = detail ? payouts.find(p => p.riderId === detail._id) : undefined;
+  const pendingCount = riders.filter(r => !r.isApproved).length;
+
+  const riderColumns: Column<Rider>[] = [
+    {
+      key: 'name',
+      header: 'Rider',
+      sortValue: r => r.name,
+      cell: r => (
+        <div className="min-w-0">
+          <p className="truncate font-medium text-fg">{r.name}</p>
+          <p className="text-xs text-fg-muted"><span className="font-mono">{shortId(r._id)}</span>{r.vehicleType ? ` · ${r.vehicleType}` : ''}</p>
+        </div>
+      ),
+    },
+    { key: 'phone', header: 'Phone', hideBelow: 'lg', cell: r => <span className="tabular-nums text-fg">{formatPhone(r.phone)}</span> },
+    {
+      key: 'status',
+      header: 'Status',
+      sortValue: r => (r.isSosActive ? 0 : r.isOnline ? 1 : 2),
+      cell: r => (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex items-center gap-1.5 text-sm text-fg">
+            <StatusDot tone={r.isOnline ? 'success' : 'neutral'} />{r.isOnline ? 'Online' : 'Offline'}
+          </span>
+          {r.isSosActive && <Badge tone="danger" dot>SOS active</Badge>}
+          {r.currentOrderId && <Badge tone="info">On order {shortId(r.currentOrderId)}</Badge>}
+        </div>
+      ),
+    },
+    {
+      key: 'approval',
+      header: 'Approval',
+      sortValue: r => (r.isApproved ? 1 : 0),
+      cell: r => (r.isApproved ? <Badge tone="success">Approved</Badge> : <Badge tone="warning">Waiting for approval</Badge>),
+    },
+    { key: 'deliveries', header: 'Deliveries', align: 'right', hideBelow: 'lg', sortValue: r => r.completedDeliveries || 0, cell: r => <span className="tabular-nums text-fg">{r.completedDeliveries || 0}</span> },
+    {
+      key: 'actions',
+      header: <span className="sr-only">Actions</span>,
+      align: 'right',
+      width: '220px',
+      cell: r => (
+        <div className="flex items-center justify-end gap-1.5">
+          {r.isSosActive && <Button size="sm" variant="destructive" disabled={busyId === r._id} onClick={() => handleResetSos(r)}>Resolve SOS</Button>}
+          <Button size="sm" variant={r.isApproved ? 'ghost' : 'primary'} className={r.isApproved ? 'text-danger-text hover:text-danger-text' : ''} disabled={busyId === r._id} onClick={() => handleToggleApproval(r)}>
+            {busyId === r._id ? 'Saving…' : r.isApproved ? 'Deactivate' : 'Approve'}
+          </Button>
+          <Button size="sm" onClick={() => openEdit(r)}>Edit</Button>
+        </div>
+      ),
+    },
+  ];
+
+  const payoutColumns: Column<Payout>[] = [
+    {
+      key: 'rider',
+      header: 'Rider',
+      sortValue: p => p.riderName || '',
+      cell: p => {
+        const riderName = p.riderName || riders.find(r => r._id === p.riderId)?.name || String(p.riderId).slice(-6).toUpperCase();
+        return (
+          <div>
+            <p className="font-medium text-fg">{riderName}</p>
+            {p.riderPhone && <p className="text-xs text-fg-muted tabular-nums">{formatPhone(p.riderPhone)}</p>}
+          </div>
+        );
+      },
+    },
+    { key: 'deliveries', header: 'Deliveries', align: 'right', sortValue: p => p.totalDeliveries, cell: p => <span className="tabular-nums">{p.totalDeliveries}</span> },
+    {
+      key: 'earnings',
+      header: 'Unsettled earnings',
+      align: 'right',
+      sortValue: p => Number(p.totalDeliveryFees) || 0,
+      cell: p => (
+        <div className="tabular-nums">
+          <p className="font-medium text-fg">{formatINR(p.totalDeliveryFees)}</p>
+          {(Number(p.unsettledTips) || 0) > 0 && <p className="text-xs text-fg-muted">+ {formatINR(p.unsettledTips)} tips</p>}
+        </div>
+      ),
+    },
+    {
+      key: 'cash',
+      header: 'Cash held',
+      align: 'right',
+      hideBelow: 'lg',
+      sortValue: p => Number(p.cashHeld) || 0,
+      cell: p => ((Number(p.cashHeld) || 0) > 0
+        ? <span className="tabular-nums text-warning-text" title="COD cash the rider holds for Zenvy. It is not deducted from the payout; collect it on Payments and payouts, Rider cash.">{formatINR(p.cashHeld)}</span>
+        : <span className="text-fg-subtle">–</span>),
+    },
+    {
+      key: 'action',
+      header: <span className="sr-only">Action</span>,
+      align: 'right',
+      cell: p => {
+        const riderName = p.riderName || riders.find(r => r._id === p.riderId)?.name || String(p.riderId).slice(-6).toUpperCase();
+        return <Button size="sm" variant="primary" disabled={!!settlingId} loading={settlingId === p.riderId} onClick={() => handleMarkSettled(p, riderName)}>Record payout</Button>;
+      },
+    },
+  ];
 
   return (
-    <div className="space-y-6 relative">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-fg">Riders</h1>
-          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Delivery riders: approvals, live status, SOS and cash on hand.</p>
-        </div>
-        <div className="flex gap-4">
-           <button onClick={() => { setActiveTab('roster'); setEditingRider(null); setNewRider(EMPTY_RIDER); setError(null); setIsAdding(true); }} className="inline-flex h-8 items-center rounded-md bg-accent px-3 text-sm font-medium text-accent-fg shadow-xs hover:bg-accent-hover">
-              Add rider
-           </button>
-        </div>
-      </header>
-
-      {/* Tabs */}
-      <div className="flex gap-4 border-b border-line pb-4">
-        {[
-          { id: 'roster', label: 'All riders' },
-          { id: 'payouts', label: 'Earnings and payouts' },
-          { id: 'map', label: 'Live map' },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`px-6 py-3 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === tab.id
-                ? 'bg-accent text-on-solid'
-                : 'bg-surface-2/60 text-fg-muted hover:text-fg hover:bg-surface-2'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+    <div>
+      <PageHeader
+        title="Riders"
+        description="Delivery riders: approvals, who is online, SOS alerts, and earnings to pay out."
+        actions={<Button variant="primary" leftIcon={<IconPlus size={14} />} onClick={openAdd}>Add rider</Button>}
+      >
+        <Tabs
+          ariaLabel="Riders sections"
+          value={activeTab}
+          onChange={setActiveTab}
+          tabs={[
+            { id: 'roster', label: 'All riders', count: totalRiders || null },
+            { id: 'payouts', label: 'Earnings and payouts', count: payouts.length || null, attention: true },
+            { id: 'map', label: 'Live map' },
+          ]}
+        />
+      </PageHeader>
 
       {notice && (
-        <div role={notice.kind === 'error' ? 'alert' : 'status'} className={`flex items-center justify-between gap-4 rounded-lg border px-6 py-4 text-sm font-semibold ${notice.kind === 'error' ? 'border-danger/30 bg-danger-soft text-danger-text' : 'border-success/30 bg-success-soft text-success-text'}`}>
-          <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-xs text-fg-muted hover:text-fg">Dismiss</button>
-        </div>
-      )}
-
-      {(isAdding || editingRider) && activeTab === 'roster' && (
-        <div className="rounded-lg border border-line bg-surface shadow-xs p-10 border-info/30 animate-slide-up">
-           <h3 className="text-xl font-semibold text-fg mb-8">{editingRider ? `Edit ${editingRider.name}` : 'Add delivery partner'}</h3>
-           {error && <div className="mb-6 text-danger-text text-xs font-semibold text-center animate-shake">{error}</div>}
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <input placeholder="Full name" className="admin-input" value={newRider.name} onChange={(e) => setNewRider({...newRider, name: e.target.value})} />
-              <input placeholder="Phone Number" className="admin-input" value={newRider.phone} onChange={(e) => setNewRider({...newRider, phone: e.target.value})} />
-              <select className="admin-input" value={newRider.vehicleType} onChange={(e) => setNewRider({...newRider, vehicleType: e.target.value})}>
-                 <option value="Bike">Bike (Standard)</option>
-                 <option value="Electric">Electric (Eco)</option>
-                 <option value="Cycle">Bicycle (Hostel Internal)</option>
-                 <option value="Car">Car (Group Delivery)</option>
-              </select>
-              <input placeholder={editingRider ? 'New password (leave blank to keep)' : 'Password (min 6 characters)'} type="password" autoComplete="new-password" className="admin-input" value={newRider.password} onChange={(e) => setNewRider({...newRider, password: e.target.value})} />
-           </div>
-           <div className="flex gap-4 mt-10">
-              <button disabled={isSubmitting} onClick={handleCreateRider} className="flex-1 py-5 bg-accent text-on-solid font-semibold rounded-lg text-xs disabled:opacity-40 hover:bg-accent-hover">
-                {isSubmitting ? (
-                  <span className="flex items-center justify-center gap-3">
-                    <span className="w-4 h-4 border-2 border-line-strong border-t-line-strong rounded-full animate-spin" />
-                    Processing...
-                  </span>
-                ) : editingRider ? 'Save changes' : 'Add rider'}
-              </button>
-              <button disabled={isSubmitting} onClick={closeForm} className="px-10 py-5 bg-surface-2/60 text-fg-muted font-semibold rounded-lg text-xs hover:bg-surface-2">Cancel</button>
-           </div>
-        </div>
+        <NoticeBox tone={notice.kind === 'error' ? 'danger' : 'success'} className="mb-4" onClose={() => setNotice(null)}>
+          <span className="text-fg">{notice.text}</span>
+        </NoticeBox>
       )}
 
       {activeTab === 'roster' && (
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="search"
-            value={riderSearch}
-            onChange={e => setRiderSearch(e.target.value)}
-            placeholder="Search name or phone"
-            aria-label="Search riders by name or phone"
-            className="zv-control w-full sm:w-64"
+        <>
+          <Toolbar end={<span className="text-sm text-fg-muted">Search and filters apply to the riders on this page</span>}>
+            <SearchInput value={riderSearch} onChange={setRiderSearch} placeholder="Search name or phone" />
+            <SegmentedControl
+              ariaLabel="Approval"
+              value={approvalFilter}
+              onChange={setApprovalFilter}
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'pending', label: 'Waiting for approval', count: pendingCount || null },
+                { value: 'approved', label: 'Approved' },
+              ]}
+            />
+          </Toolbar>
+          <DataTable
+            caption="Riders"
+            columns={riderColumns}
+            rows={shownRiders}
+            rowKey={r => r._id}
+            loading={loading}
+            error={loadError}
+            onRetry={() => fetchRiders(currentPage, riders.length === 0)}
+            onRowClick={r => setDetailId(r._id)}
+            rowClassName={r => (r.isSosActive ? 'bg-danger-soft/60' : undefined)}
+            pagination={{ page: currentPage, pages: totalPages, total: totalRiders, onPage: p => fetchRiders(p) }}
+            noun="riders"
+            empty={riders.length === 0
+              ? { title: 'No riders yet', description: 'Add a rider to give them a login for the rider app.', action: <Button variant="primary" onClick={openAdd}>Add rider</Button> }
+              : { title: 'No riders match', description: 'No riders on this page match the search or filter.' }}
           />
-          <div role="radiogroup" aria-label="Approval" className="inline-flex items-center gap-0.5 rounded-md border border-line bg-surface-2 p-0.5">
-            {([['all', 'All'], ['pending', 'Waiting for approval'], ['approved', 'Approved']] as const).map(([v, l]) => (
-              <button key={v} type="button" role="radio" aria-checked={approvalFilter === v} onClick={() => setApprovalFilter(v)}
-                className={`h-7 rounded px-2.5 text-sm font-medium ${approvalFilter === v ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg'}`}>{l}</button>
-            ))}
-          </div>
-          <span className="ml-auto text-sm text-fg-muted">Searches the riders on this page</span>
-        </div>
-      )}
-
-      {activeTab === 'roster' && (
-        <div className="glass-card overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-surface-2/60 border-b border-line">
-                <th className="px-8 py-6 text-xs font-semibold text-fg-muted">Rider</th>
-                <th className="px-8 py-6 text-xs font-semibold text-fg-muted">Name</th>
-                <th className="px-8 py-6 text-xs font-semibold text-fg-muted">Contact</th>
-                <th className="px-8 py-6 text-xs font-semibold text-fg-muted">Status</th>
-                <th className="px-8 py-6 text-xs font-semibold text-fg-muted">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line text-fg">
-              {loadError && (
-                <tr><td colSpan={5} className="px-8 py-6 text-center">
-                  <span role="alert" className="text-sm font-semibold text-danger-text">{loadError}</span>
-                  <button onClick={() => fetchRiders(currentPage, riders.length === 0)} className="ml-4 text-xs font-semibold text-fg hover:underline">Retry</button>
-                </td></tr>
-              )}
-              {loading ? (
-                <tr><td colSpan={5} className="px-8 py-20 text-center text-fg-subtle animate-pulse font-semibold">Loading riders…</td></tr>
-              ) : riders.length === 0 ? (
-                !loadError && <tr><td colSpan={5} className="px-8 py-20 text-center text-fg-muted font-semibold">No delivery partners yet. Use &quot;Add rider&quot; to onboard one.</td></tr>
-              ) : shownRiders.length === 0 ? (
-                <tr><td colSpan={5} className="px-8 py-12 text-center text-fg-muted">No riders on this page match the search or filter.</td></tr>
-              ) : shownRiders.map((rider) => (
-                <RiderRow key={rider._id} rider={rider} busy={busyId === rider._id} onEdit={(r) => { setIsAdding(false); setError(null); setEditingRider(r); setNewRider({ name: r.name, phone: r.phone, password: '', vehicleType: r.vehicleType || 'Bike' }); }} onToggleApproval={handleToggleApproval} onResetSos={handleResetSos} />
-              ))}
-            </tbody>
-          </table>
-
-          {totalPages > 1 && (
-            <div className="p-6 bg-surface-2/60 border-t border-line flex items-center justify-between">
-              <span className="text-xs font-semibold text-fg-muted">Page {currentPage} of {totalPages} · {totalRiders} riders</span>
-              <div className="flex gap-2">
-                 <button disabled={loading || currentPage <= 1} onClick={() => fetchRiders(currentPage - 1)} className="px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-30">Prev</button>
-                 <button disabled={loading || currentPage >= totalPages} onClick={() => fetchRiders(currentPage + 1)} className="px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-30">Next</button>
-              </div>
-            </div>
-          )}
-        </div>
+        </>
       )}
 
       {activeTab === 'payouts' && (
-        <div className="glass-card overflow-hidden animate-fade-in">
-          <div className="p-8 border-b border-line flex justify-between items-center bg-surface-2/60">
-            <h4 className="text-lg font-semibold text-fg">Fleet Earnings Settlement</h4>
-            <button onClick={() => { setPayoutsLoading(true); fetchPayouts(); }} className="px-4 py-2 bg-info-soft text-info-text rounded-xl text-xs font-semibold">↻ Refresh Payouts</button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-surface-2/60">
-                  <th className="px-8 py-4 text-xs font-semibold text-fg-muted border-b border-line">Rider ID</th>
-                  <th className="px-8 py-4 text-xs font-semibold text-fg-muted border-b border-line">Total Deliveries</th>
-                  <th className="px-8 py-4 text-xs font-semibold text-info-text border-b border-line">Unsettled earnings (delivery fee, ₹30 min)</th>
-                  <th className="px-8 py-4 text-xs font-semibold text-fg-muted border-b border-line">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.02]">
-                {payoutsError ? (
-                  <tr><td colSpan={4} className="py-10 text-center"><span role="alert" className="text-sm font-semibold text-danger-text">{payoutsError}</span></td></tr>
-                ) : payoutsLoading ? (
-                  <tr><td colSpan={4} className="py-10 text-center text-fg-subtle animate-pulse text-xs font-semibold">Loading payouts…</td></tr>
-                ) : payouts.length === 0 ? (
-                  <tr><td colSpan={4} className="py-10 text-center text-fg-muted text-xs">No unsettled rider earnings.</td></tr>
-                ) : payouts.map(p => {
-                  const riderName = p.riderName || riders.find(r => r._id === p.riderId)?.name || String(p.riderId).slice(-6).toUpperCase();
-                  return (
-                    <tr key={p.riderId} className="hover:bg-surface-2/60">
-                      <td className="px-8 py-4 text-sm font-semibold text-fg">
-                        {riderName}
-                        {p.riderPhone && <span className="block text-xs text-fg-muted font-mono mt-0.5">{p.riderPhone}</span>}
-                      </td>
-                      <td className="px-8 py-4 text-sm text-fg-muted font-mono">{p.totalDeliveries}</td>
-                      <td className="px-8 py-4 text-lg font-semibold text-success-text">
-                        ₹{p.totalDeliveryFees}
-                        {(Number(p.unsettledTips) || 0) > 0 && <span className="block text-xs font-semibold text-warning-text">+ ₹{p.unsettledTips} tips</span>}
-                        {(Number(p.cashHeld) || 0) > 0 && <span className="block text-xs font-semibold text-fg-muted">Holds ₹{p.cashHeld} COD cash (not deducted)</span>}
-                      </td>
-                      <td className="px-8 py-4">
-                        <button disabled={!!settlingId} onClick={() => handleMarkSettled(p, riderName)} className="px-4 py-2 bg-success hover:bg-success/90 text-on-solid rounded-lg text-xs font-semibold disabled:opacity-40">{settlingId === p.riderId ? 'Settling…' : 'Mark Settled'}</button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <>
+          <Toolbar end={<Button leftIcon={<IconRefresh size={14} />} loading={payoutsLoading} onClick={() => { setPayoutsLoading(true); fetchPayouts(); }}>Refresh</Button>}>
+            <p className="text-sm text-fg-muted">Earnings riders have not been paid yet (delivery fee per order, minimum ₹30, plus tips). Record a payout after you transfer the money.</p>
+          </Toolbar>
+          <DataTable
+            caption="Unsettled rider earnings"
+            columns={payoutColumns}
+            rows={payouts}
+            rowKey={p => p.riderId}
+            loading={payoutsLoading}
+            error={payoutsError}
+            onRetry={() => { setPayoutsLoading(true); fetchPayouts(); }}
+            noun="riders"
+            empty={{ title: 'Nothing to pay out', description: 'Every rider’s earnings are settled.' }}
+          />
+        </>
       )}
 
       {activeTab === 'map' && (
-        <div className="animate-fade-in relative z-0">
-          <div className="mb-6 flex justify-between items-end">
-             <div>
-                <h3 className="text-xl font-semibold text-fg">Global Fleet Tracking Network</h3>
-                <p className="text-xs text-fg-muted mt-1">Real-time Node Intercept Array</p>
-             </div>
-             <div className="flex gap-2">
-                <span className="flex items-center gap-2 px-3 py-1 bg-success-soft border border-success/30 text-success-text rounded text-xs font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-success animate-pulse" /> Live Uplink
-                </span>
-             </div>
+        <div className="relative z-0">
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold text-fg">Live map</h2>
+              <p className="mt-0.5 text-sm text-fg-muted">Where online riders are right now, from the location their app shares.</p>
+            </div>
+            <Badge tone={isConnected ? 'success' : 'warning'} dot>{isConnected ? 'Live' : 'Reconnecting'}</Badge>
           </div>
           <LiveRiderMap />
         </div>
       )}
 
-      <style jsx>{`
-        .admin-input { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 1.25rem; border-radius: 1.5rem; color: white; font-weight: 900; outline: none; }
-        .admin-input:focus { border-color: rgba(37, 99, 235, 0.5); }
-      `}</style>
+      {/* Rider details */}
+      <Drawer
+        open={!!detail}
+        onClose={() => setDetailId(null)}
+        size="md"
+        title={detail?.name || 'Rider'}
+        description={detail ? `${shortId(detail._id)}${detail.vehicleType ? ` · ${detail.vehicleType}` : ''}` : undefined}
+        footer={detail ? (
+          <>
+            {detail.isSosActive && <Button variant="destructive" disabled={busyId === detail._id} onClick={() => handleResetSos(detail)}>Resolve SOS</Button>}
+            <Button onClick={() => { openEdit(detail); setDetailId(null); }}>Edit</Button>
+            <Button variant={detail.isApproved ? 'destructive' : 'primary'} disabled={busyId === detail._id} onClick={() => handleToggleApproval(detail)}>{detail.isApproved ? 'Deactivate' : 'Approve'}</Button>
+          </>
+        ) : undefined}
+      >
+        {detail && (
+          <div className="space-y-5">
+            {detail.isSosActive && <NoticeBox tone="danger" title="SOS is active">Call the rider now. Resolve the SOS once they are safe.</NoticeBox>}
+            <DescriptionList
+              columns={2}
+              items={[
+                { label: 'Phone', value: <a href={`tel:${detail.phone}`} className="text-accent-text hover:underline">{formatPhone(detail.phone)}</a> },
+                { label: 'Status', value: detail.isOnline ? 'Online' : 'Offline' },
+                { label: 'Approval', value: detail.isApproved ? 'Approved' : 'Waiting for approval' },
+                { label: 'Deliveries completed', value: detail.completedDeliveries || 0 },
+                { label: 'Current order', value: detail.currentOrderId ? <a href={`/orders?order=${encodeURIComponent(detail.currentOrderId)}`} className="text-accent-text hover:underline">{shortId(detail.currentOrderId)}</a> : 'None' },
+                { label: 'Unsettled earnings', value: detailPayout ? `${formatINR(detailPayout.totalDeliveryFees)}${(Number(detailPayout.unsettledTips) || 0) > 0 ? ` + ${formatINR(detailPayout.unsettledTips)} tips` : ''}` : 'None' },
+              ]}
+            />
+          </div>
+        )}
+      </Drawer>
+
+      {/* Add / edit rider */}
+      <Modal
+        open={isAdding || !!editingRider}
+        onClose={closeForm}
+        dismissible={!isSubmitting}
+        title={editingRider ? `Edit ${editingRider.name}` : 'Add rider'}
+        description={editingRider ? 'Leave the password empty to keep the current one.' : 'The rider signs in to the rider app with this phone number and password.'}
+        footer={
+          <>
+            <Button onClick={closeForm} disabled={isSubmitting}>Cancel</Button>
+            <Button variant="primary" loading={isSubmitting} onClick={handleCreateRider}>{editingRider ? 'Save changes' : 'Add rider'}</Button>
+          </>
+        }
+      >
+        <form className="space-y-4" onSubmit={e => { e.preventDefault(); handleCreateRider(); }} noValidate>
+          {error && <NoticeBox tone="danger"><span className="text-fg">{error}</span></NoticeBox>}
+          <Field label="Full name" required>
+            <Input value={newRider.name} onChange={e => setNewRider({ ...newRider, name: e.target.value })} autoComplete="off" />
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Mobile number" required>
+              <Input inputMode="numeric" placeholder="10-digit number" value={newRider.phone} onChange={e => setNewRider({ ...newRider, phone: e.target.value })} />
+            </Field>
+            <Field label="Vehicle">
+              <Select value={newRider.vehicleType} onChange={e => setNewRider({ ...newRider, vehicleType: e.target.value })}>
+                <option value="Bike">Bike</option>
+                <option value="Electric">Electric bike</option>
+                <option value="Cycle">Bicycle (inside campus)</option>
+                <option value="Car">Car (group delivery)</option>
+              </Select>
+            </Field>
+          </div>
+          <Field label={editingRider ? 'New password' : 'Password'} required={!editingRider} optional={!!editingRider} hint="At least 6 characters. Share it with the rider privately.">
+            <Input type="password" autoComplete="new-password" value={newRider.password} onChange={e => setNewRider({ ...newRider, password: e.target.value })} />
+          </Field>
+          <button type="submit" hidden aria-hidden />
+        </form>
+      </Modal>
+
+      {/* Record payout: the UTR of the transfer is required (was a browser prompt). */}
+      <Modal
+        open={!!settling}
+        onClose={() => setSettling(null)}
+        size="sm"
+        title={settling ? `Record payout to ${settling.riderName}` : 'Record payout'}
+        description="Deliveries completed after this list loaded are not included."
+        footer={
+          <>
+            <Button onClick={() => setSettling(null)}>Cancel</Button>
+            <Button variant="primary" disabled={utrInput.trim().length < 3} onClick={() => settling && submitSettle(settling.p, settling.riderName, utrInput)}>Record payout</Button>
+          </>
+        }
+      >
+        {settling && (
+          <div className="space-y-4">
+            <dl className="space-y-1 rounded-lg border border-line p-3 text-sm">
+              <div className="flex justify-between"><dt className="text-fg-muted">Earnings ({settling.p.totalDeliveries} deliveries)</dt><dd className="tabular-nums">{formatINR(settling.p.totalDeliveryFees)}</dd></div>
+              {(Number(settling.p.unsettledTips) || 0) > 0 && <div className="flex justify-between"><dt className="text-fg-muted">Customer tips</dt><dd className="tabular-nums">{formatINR(settling.p.unsettledTips)}</dd></div>}
+              <div className="flex justify-between border-t border-line pt-1 font-medium"><dt>Total to pay</dt><dd className="tabular-nums">{formatINR((Number(settling.p.totalDeliveryFees) || 0) + Math.max(0, Number(settling.p.unsettledTips) || 0))}</dd></div>
+            </dl>
+            {(Number(settling.p.cashHeld) || 0) > 0 && (
+              <NoticeBox tone="warning">They also hold {formatINR(settling.p.cashHeld)} of cash-on-delivery money. It is not deducted here; collect it on Payments and payouts, Rider cash.</NoticeBox>
+            )}
+            <Field label="UTR or payment reference" required hint="At least 3 characters, from your bank transfer.">
+              <Input value={utrInput} onChange={e => setUtrInput(e.target.value)} autoComplete="off" data-autofocus />
+            </Field>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

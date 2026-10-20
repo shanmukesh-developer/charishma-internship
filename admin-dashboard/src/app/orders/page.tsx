@@ -1,9 +1,13 @@
 "use client";
-import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAdminSocket } from '@/components/AdminSocketProvider';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { API_URL } from '@/lib/config';
-import { humanize as humanizeMethod } from '@/lib/format';
+import { formatDateTime, formatINR, humanize } from '@/lib/format';
+import {
+  Badge, Button, DataTable, DescriptionList, Drawer, Field, Modal, Notice as NoticeBox, PageHeader, SegmentedControl, Select,
+  StatusPill, Textarea, Toolbar, useConfirm, type Column, type Tone, IconRefresh, IconExternal, IconX,
+} from '@/components/ui';
 import { useLiveSync, useFreshIds, liveLabel, FRESH_ROW_CLASS } from '@/lib/useLiveSync';
 import { useVisibleInterval } from '@/lib/useVisibleInterval';
 
@@ -90,7 +94,7 @@ const PIN_LOCK_ATTEMPTS = 5;
 const statusLabel = (s: string) => STATUS_LABELS[s] || s;
 const orderId = (o: { _id?: string; id?: string }) => String(o._id || o.id || '');
 const shortId = (id: string) => `#${id.slice(-6).toUpperCase()}`;
-const rupees = (n: number | null | undefined) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+const rupees = (n: number | null | undefined) => formatINR(Number(n || 0));
 const grandTotal = (o: Order) => (o.finalPrice ?? o.totalPrice ?? 0);
 const isLegacyUpiPending = (o: Order) => o.paymentMethod === 'UPI' && o.upiStatus === 'Pending' && !TERMINAL.includes(o.status);
 
@@ -141,122 +145,71 @@ const ReceiptPanel = ({ order }: { order: Order }) => {
     }
   };
   return (
-    <div className="mt-3 space-y-2">
-      {order.receiptNumber && (
-        <p className="text-xs text-fg-muted">Receipt no. <span className="font-mono font-semibold text-fg">{order.receiptNumber}</span></p>
-      )}
-      <button onClick={open} disabled={state.loading} className="px-3 py-1.5 bg-surface-2/60 text-fg border border-line rounded-xl text-xs font-semibold hover:bg-surface-2 disabled:opacity-30">
-        {state.loading ? 'Opening…' : 'View receipt'}
-      </button>
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-3">
+        <Button size="sm" onClick={open} loading={state.loading} rightIcon={<IconExternal size={12} />}>
+          {state.loading ? 'Opening…' : 'View receipt'}
+        </Button>
+        {order.receiptNumber && <span className="text-xs text-fg-muted">Receipt no. <span className="font-mono text-fg">{order.receiptNumber}</span></span>}
+      </div>
       {!TERMINAL.includes(order.status) && !state.error && <p className="text-xs text-fg-muted">A receipt is issued once the order is delivered.</p>}
-      {state.error && <p className="text-xs font-semibold text-warning-text">{state.error}</p>}
+      {state.error && <p className="text-xs text-warning-text">{state.error}</p>}
       {state.url && (
         <p className="text-xs text-fg-muted">
-          Did not open? <a href={state.url} target="_blank" rel="noopener noreferrer" className="text-info-text underline">Open receipt ↗</a> (link valid for 15 minutes)
+          Did not open? <a href={state.url} target="_blank" rel="noopener noreferrer" className="text-accent-text underline">Open the receipt</a> (link valid for 15 minutes).
         </p>
       )}
     </div>
   );
 };
 
-const getStatusStyle = (status: string) => {
-  switch (status) {
-    case 'Pending': return 'bg-info-soft text-info-text border-info/30';
-    case 'Accepted':
-    case 'Preparing': return 'bg-info-soft text-info-text border-info/30';
-    case 'ReadyForPickup': return 'bg-accent-soft text-accent-text border-accent/30';
-    case 'Picking':
-    case 'PickedUp':
-    case 'ArrivedAtGate':
-    case 'OutForDelivery': return 'bg-warning-soft text-warning-text border-warning/30';
-    case 'Delivered': return 'bg-success-soft text-success-text border-success/30';
-    case 'Cancelled': return 'bg-danger-soft text-danger-text border-danger/30';
-    default: return 'bg-surface-3 text-fg-muted border-line-strong';
-  }
+const STATUS_TONE: Record<string, Tone> = {
+  Pending: 'warning', Accepted: 'info', Preparing: 'info', ReadyForPickup: 'accent', Picking: 'info', PickedUp: 'info',
+  ArrivedAtGate: 'info', OutForDelivery: 'info', Delivered: 'success', Cancelled: 'danger',
 };
+const OrderStatus = ({ status }: { status: string }) => <StatusPill status={status} label={statusLabel(status)} tone={STATUS_TONE[status] || 'neutral'} />;
 
-const PaymentBadge = ({ order }: { order: Order }) => {
-  const method = order.paymentMethod ? humanizeMethod(order.paymentMethod) : '—';
-  let tone = 'text-fg-muted bg-surface-2/60 border-line';
-  let note = order.paymentStatus || '';
+/** Payment method + state. Legacy UPI orders (before COD + Wallet only) show their manual check state. */
+const PaymentCell = ({ order }: { order: Order }) => {
+  const method = order.paymentMethod ? humanize(order.paymentMethod) : '–';
   if (order.paymentMethod === 'UPI') {
-    tone = order.upiStatus === 'Pending' ? 'text-warning-text bg-warning-soft border-warning/30' : 'text-fg-muted bg-surface-2/60 border-line';
-    note = `Legacy UPI · ${order.upiStatus || 'n/a'}`;
-  } else if (order.paymentStatus === 'Completed') {
-    tone = 'text-success-text bg-success-soft border-success/30';
+    return (
+      <div>
+        <p className="text-fg">UPI <span className="text-fg-muted">(legacy)</span></p>
+        <p className={`text-xs ${order.upiStatus === 'Pending' ? 'text-warning-text' : 'text-fg-muted'}`}>{order.upiStatus ? humanize(order.upiStatus) : 'Not checked'}</p>
+      </div>
+    );
   }
   return (
-    <div className="flex flex-col items-start gap-1">
-      <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${tone}`}>{method}</span>
-      {note && <span className="text-xs text-fg-muted">{note}</span>}
+    <div>
+      <p className="text-fg">{method}</p>
+      {order.paymentStatus && <p className={`text-xs ${order.paymentStatus === 'Completed' ? 'text-success-text' : 'text-fg-muted'}`}>{order.paymentStatus === 'Completed' ? 'Paid' : humanize(order.paymentStatus)}</p>}
     </div>
   );
 };
 
-const OrderRow = memo(({ order, busy, fresh, onSelect }: {
-  order: Order;
-  busy: boolean;
-  fresh?: boolean;
-  onSelect: (o: Order) => void;
-}) => {
-  const id = orderId(order);
+/** Small flags shown under the status (payment check, PIN lock, stuck stall order). */
+const OrderFlags = ({ order }: { order: Order }) => {
   const pinLocked = !isVendorOrder(order) && (order.deliveryPinAttempts || 0) >= PIN_LOCK_ATTEMPTS && !TERMINAL.includes(order.status);
+  const stuck = !!order.stuckFlaggedAt && !TERMINAL.includes(order.status);
+  if (!isLegacyUpiPending(order) && !pinLocked && !stuck) return null;
   return (
-    <tr className={`hover:bg-surface-2/60 transition-colors cursor-pointer ${fresh ? FRESH_ROW_CLASS : ''}`} onClick={() => onSelect(order)}>
-      <td className="p-4">
-        <span className="font-mono text-xs text-fg-muted">{shortId(id)}</span>
-        {fresh && <span className="ml-2 text-xs font-semibold text-success-text">new</span>}
-      </td>
-      <td className="p-4">
-        <p className="text-xs font-semibold text-fg">{order.user?.name || 'Customer'}</p>
-        <p className="text-xs text-fg-muted">{order.user?.phone || '—'}</p>
-      </td>
-      <td className="p-4">
-        <p className="text-xs text-fg-muted font-semibold">{order.restaurant?.name || '—'}</p>
-        {isVendorOrder(order) && (
-          <p className="mt-0.5 text-xs font-semibold text-warning-text" title="The stall delivers this order itself and collects cash. No Zenvy rider, no delivery PIN.">Stall delivers · COD to stall</p>
-        )}
-        <p className="text-xs text-fg-muted max-w-[220px] truncate">
-          {(order.items || []).map(i => `${i.name || 'Item'} ×${i.quantity}`).join(', ') || '—'}
-        </p>
-      </td>
-      <td className="p-4">
-        <span className="text-xs font-semibold text-fg">{rupees(grandTotal(order))}</span>
-      </td>
-      <td className="p-4"><PaymentBadge order={order} /></td>
-      <td className="p-4">
-        <div className="flex flex-col items-start gap-1">
-          <span className={`text-xs font-semibold px-2 py-1 rounded-md border ${getStatusStyle(order.status)}`}>
-            {statusLabel(order.status)}
-          </span>
-          {isLegacyUpiPending(order) && (
-            <span className="text-xs font-semibold text-warning-text">Payment check needed</span>
-          )}
-          {pinLocked && (
-            <span className="text-xs font-semibold text-danger-text">PIN locked</span>
-          )}
-          {order.stuckFlaggedAt && !TERMINAL.includes(order.status) && (
-            <span className="text-xs font-semibold text-warning-text" title="This stall order has been open for hours. Call the stall, then mark it Delivered or cancel it.">Stuck · check with stall</span>
-          )}
-        </div>
-      </td>
-      <td className="p-4">
-        <span className="text-xs text-fg-muted">
-          {new Date(order.createdAt).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-        </span>
-      </td>
-      <td className="p-4 text-right">
-        <span className="text-xs font-semibold text-info-text">{busy ? 'Working…' : 'Open →'}</span>
-      </td>
-    </tr>
+    <div className="mt-1 flex flex-wrap gap-1">
+      {isLegacyUpiPending(order) && <Badge tone="warning">Payment check needed</Badge>}
+      {pinLocked && <Badge tone="danger">PIN locked</Badge>}
+      {stuck && <Badge tone="warning" title="This stall order has been open for hours. Call the stall, then mark it delivered or cancel it.">Stuck, check with stall</Badge>}
+    </div>
   );
-});
-OrderRow.displayName = 'OrderRow';
+};
 
 export default function OrdersPage() {
   const { isAuthed } = useAdminAuth();
   const { socket, isConnected, notifyLive } = useAdminSocket();
   const { mark: markFresh, isFresh } = useFreshIds();
+  const confirm = useConfirm();
+  // Cancel needs a reason for the customer (was a browser prompt): this small form collects it.
+  const [cancelling, setCancelling] = useState<Order | null>(null);
+  const [cancelReason, setCancelReason] = useState('Cancelled by Zenvy support');
   const [orders, setOrders] = useState<Order[]>([]);
   const [totalOrders, setTotalOrders] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -437,39 +390,44 @@ export default function OrdersPage() {
     }
   };
 
-  const acceptOrder = (o: Order) => {
+  const acceptOrder = async (o: Order) => {
     const question = isVendorOrder(o)
       ? `Accept order ${shortId(orderId(o))} on behalf of ${stallName(o)}? Only do this after confirming with the stall: the stall delivers it itself (no rider).`
       : `Accept order ${shortId(orderId(o))} on behalf of ${o.restaurant?.name || 'the store'} and send it to riders?`;
-    if (!confirm(question)) return;
+    if (!(await confirm({ title: 'Accept this order?', description: question, confirmLabel: isVendorOrder(o) ? 'Accept for stall' : 'Accept and dispatch' }))) return;
     runAction(o, 'Order accepted', `${API_URL}/api/orders/${orderId(o)}/restaurant-accept`, {}, 'Accepted');
   };
 
-  const setStatus = (o: Order, status: string) => {
+  const setStatus = async (o: Order, status: string) => {
     const id = shortId(orderId(o));
     if (status === 'Delivered') {
-      const cash = o.paymentMethod === 'COD' ? `\n\nThis is a Cash on Delivery order: confirm ${rupees(grandTotal(o))} was collected${isVendorOrder(o) ? ` by ${stallName(o)}` : ''}.` : '';
-      if (!confirm(`Mark order ${id} as delivered? The customer is notified and rewards are credited.${cash}`)) return;
-    } else if (!confirm(`Change order ${id} to "${statusLabel(status)}"?`)) {
+      const cash = o.paymentMethod === 'COD' ? ` This is a cash on delivery order: confirm ${rupees(grandTotal(o))} was collected${isVendorOrder(o) ? ` by ${stallName(o)}` : ''}.` : '';
+      if (!(await confirm({ title: `Mark order ${id} as delivered?`, description: `The customer is notified and rewards are credited.${cash}`, confirmLabel: 'Mark delivered' }))) return;
+    } else if (!(await confirm({ title: `Change order ${id} to ${statusLabel(status).toLowerCase()}?`, description: 'The customer, store and rider apps update straight away.', confirmLabel: 'Change status' }))) {
       return;
     }
     runAction(o, `Marked ${statusLabel(status)}`, `${API_URL}/api/orders/${orderId(o)}/status`, { status }, status);
   };
 
+  // Opens the cancel form; the request itself is unchanged (same endpoint, status and reason).
   const cancelOrder = (o: Order) => {
-    const id = shortId(orderId(o));
-    const refundNote = o.paymentMethod === 'Wallet' ? `\n${rupees(grandTotal(o))} will be refunded to the customer's Wallet.` : '';
-    const reason = prompt(`Cancel order ${id}? This cannot be undone.${refundNote}\n\nReason (shown to the customer):`, 'Cancelled by Zenvy support');
-    if (reason === null) return;
+    setCancelReason('Cancelled by Zenvy support');
+    setCancelling(o);
+  };
+  const confirmCancel = () => {
+    const o = cancelling;
+    if (!o) return;
+    const reason = cancelReason;
+    setCancelling(null);
     runAction(o, 'Order cancelled', `${API_URL}/api/orders/${orderId(o)}/status`, { status: 'Cancelled', reason: reason.trim() || undefined }, 'Cancelled');
   };
 
-  const verifyUpi = (o: Order, isVerified: boolean) => {
+  const verifyUpi = async (o: Order, isVerified: boolean) => {
     const id = shortId(orderId(o));
     const question = isVerified
       ? `Confirm you found UTR ${o.upiUTR || '(none)'} for ${rupees(grandTotal(o))} in the bank statement? The order will be accepted.`
       : `Reject the UPI payment for order ${id}? The order will be cancelled.`;
-    if (!confirm(question)) return;
+    if (!(await confirm({ title: isVerified ? 'Mark the payment as received?' : 'Reject this payment?', description: question, confirmLabel: isVerified ? 'Payment received' : 'Reject payment', tone: isVerified ? 'default' : 'danger' }))) return;
     runAction(o, isVerified ? 'Payment verified' : 'Payment rejected', `${API_URL}/api/orders/${orderId(o)}/verify-upi`, { isVerified });
   };
 
@@ -490,15 +448,17 @@ export default function OrdersPage() {
       .catch(() => { if (live) setAssignRiders([]); });
     return () => { live = false; };
   }, [selectedAssignable, assignRiders]);
-  const assignRider = (o: Order, riderId: string | null) => {
+  const assignRider = async (o: Order, riderId: string | null) => {
     const id = shortId(orderId(o));
     const who = riderId ? (assignRiders || []).find(r => r.id === riderId)?.name || 'this rider' : null;
-    if (!confirm(riderId ? `Give order ${id} to ${who}? The current rider (if any) loses it.` : `Take order ${id} away from its rider? It goes back to all riders.`)) return;
+    if (!(await confirm(riderId
+      ? { title: `Give order ${id} to ${who}?`, description: 'The current rider, if any, loses the order.', confirmLabel: 'Assign rider' }
+      : { title: `Remove the rider from order ${id}?`, description: 'The order goes back to all riders.', confirmLabel: 'Remove rider', tone: 'danger' }))) return;
     runAction(o, riderId ? 'Rider assigned' : 'Rider removed', `${API_URL}/api/admin/orders/${orderId(o)}/rider`, { riderId });
     setAssignPick('');
   };
 
-  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
+  if (!isAuthed) return null; // AppShell shows the session check
 
   const visibleOrders = orders.filter(o => filterStatus === 'All' || o.status === filterStatus);
   const breakdown = selectedOrder ? parseJson<PriceBreakdown>(selectedOrder.priceBreakdown) : null;
@@ -509,329 +469,309 @@ export default function OrdersPage() {
   const selectedPinLocked = !!selectedOrder && !selectedVendor && (selectedOrder.deliveryPinAttempts || 0) >= PIN_LOCK_ATTEMPTS && selectedOpen;
   const stallWa = selectedOrder?.restaurant?.whatsappNumber ? String(selectedOrder.restaurant.whatsappNumber).replace(/\D/g, '') : '';
 
-  return (
-    <div className="space-y-8 animate-fade-in relative">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+  const columns: Column<Order>[] = [
+    {
+      key: 'id',
+      header: 'Order',
+      width: '110px',
+      cell: o => (
         <div>
-          <h1 className="text-2xl font-semibold text-fg">Orders</h1>
-          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Every food and store order: status, rider, payment and refunds.</p>
+          <span className="font-mono text-xs text-fg-muted">{shortId(orderId(o))}</span>
+          {isFresh(orderId(o)) && <span className="ml-1.5 text-xs font-medium text-success-text">New</span>}
         </div>
-        <button
-          onClick={() => fetchOrders(currentPage)}
-          disabled={loading}
-          className="nexus-badge bg-info-soft text-info-text border-info/30 hover:bg-info-soft transition-all disabled:opacity-40"
-        >
-          ↻ Refresh ({totalOrders})
-        </button>
-      </div>
+      ),
+    },
+    {
+      key: 'customer',
+      header: 'Customer',
+      sortValue: o => o.user?.name || '',
+      cell: o => (
+        <div className="min-w-0">
+          <p className="truncate font-medium text-fg">{o.user?.name || 'Customer'}</p>
+          <p className="text-xs text-fg-muted">{o.user?.phone || '–'}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'store',
+      header: 'Store and items',
+      sortValue: o => o.restaurant?.name || '',
+      cell: o => (
+        <div className="min-w-0 max-w-[280px]">
+          <p className="truncate text-fg">{o.restaurant?.name || '–'}</p>
+          <p className="truncate text-xs text-fg-muted">{(o.items || []).map(i => `${i.name || 'Item'} ×${i.quantity}`).join(', ') || '–'}</p>
+          {isVendorOrder(o) && <p className="text-xs text-warning-text" title="The stall delivers this order itself and collects cash. No Zenvy rider, no delivery PIN.">Stall delivers, cash to stall</p>}
+        </div>
+      ),
+    },
+    { key: 'total', header: 'Total', align: 'right', sortValue: o => grandTotal(o), cell: o => <span className="font-medium tabular-nums text-fg">{rupees(grandTotal(o))}</span> },
+    { key: 'payment', header: 'Payment', hideBelow: 'lg', sortValue: o => o.paymentMethod || '', cell: o => <PaymentCell order={o} /> },
+    {
+      key: 'status',
+      header: 'Status',
+      sortValue: o => o.status,
+      cell: o => (
+        <div>
+          <OrderStatus status={o.status} />
+          <OrderFlags order={o} />
+        </div>
+      ),
+    },
+    {
+      key: 'placed',
+      header: 'Placed',
+      align: 'right',
+      sortValue: o => new Date(o.createdAt),
+      cell: o => <span className="whitespace-nowrap text-xs text-fg-muted">{busyId === orderId(o) ? 'Working…' : formatDateTime(o.createdAt, { short: true })}</span>,
+    },
+  ];
 
-      <div className="flex flex-wrap items-center gap-2">
-        {FULFILMENT_FILTERS.map(f => (
-          <button
-            key={f.value}
-            onClick={() => setFilterFulfilment(f.value)}
-            aria-pressed={filterFulfilment === f.value}
-            className={`px-4 py-1.5 rounded-xl text-xs font-semibold border transition-all ${filterFulfilment === f.value ? 'bg-accent text-accent-fg border-warning/30' : 'bg-surface-2/60 text-fg-muted border-line hover:text-fg'}`}
-          >
-            {f.label}
-          </button>
-        ))}
-        <span className="mx-1 h-4 w-px bg-surface-2" aria-hidden />
-        <button
-          onClick={() => setStuckHours(h => (h ? null : 6))}
+  return (
+    <div>
+      <PageHeader
+        title="Orders"
+        description="Every food and store order: status, rider, payment and refunds. Select an order to see details and support actions."
+        meta={<Badge tone={isConnected ? 'success' : 'warning'} dot>{isConnected ? 'Live' : 'Refreshing every 20 seconds'}</Badge>}
+        actions={<Button leftIcon={<IconRefresh size={14} />} loading={loading} onClick={() => fetchOrders(currentPage)}>Refresh</Button>}
+      />
+
+      <Toolbar end={<span className="text-sm tabular-nums text-fg-muted">{totalOrders.toLocaleString('en-IN')} orders</span>}>
+        <SegmentedControl
+          ariaLabel="Delivered by"
+          value={filterFulfilment}
+          onChange={v => setFilterFulfilment(v)}
+          options={FULFILMENT_FILTERS.map(f => ({ value: f.value, label: f.label }))}
+        />
+        <Select aria-label="Status" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-auto min-w-[150px]">
+          {STATUS_FILTERS.map(s => <option key={s} value={s}>{s === 'All' ? 'All statuses' : statusLabel(s)}</option>)}
+        </Select>
+        <Button
+          variant={stuckHours ? 'primary' : 'secondary'}
           aria-pressed={!!stuckHours}
-          title="Stall orders still Accepted / Out for delivery long after they were placed. They are never auto-cancelled: call the stall."
-          className={`px-4 py-1.5 rounded-xl text-xs font-semibold border transition-all ${stuckHours ? 'bg-accent text-accent-fg border-warning/30' : 'bg-surface-2/60 text-fg-muted border-line hover:text-fg'}`}
+          onClick={() => setStuckHours(h => (h ? null : 6))}
+          title="Stall orders still accepted or out for delivery long after they were placed. They are never cancelled automatically: call the stall."
         >
-          Stall orders stuck &gt; {stuckHours || 6} h
-        </button>
+          Stuck stall orders
+        </Button>
         {stuckHours && (
-          <select
-            value={stuckHours}
-            onChange={e => setStuckHours(Number(e.target.value))}
-            aria-label="Stuck for at least"
-            className="rounded-xl border border-line bg-surface-2 px-2 py-1 text-xs font-semibold text-fg-muted"
-          >
-            {[2, 4, 6, 12, 24, 48].map(h => <option key={h} value={h}>{h} h</option>)}
-          </select>
+          <Select aria-label="Stuck for at least" value={stuckHours} onChange={e => setStuckHours(Number(e.target.value))} className="w-auto">
+            {[2, 4, 6, 12, 24, 48].map(h => <option key={h} value={h}>Open {h} h or more</option>)}
+          </Select>
         )}
         {storeFilter && (
-          <span className="ml-2 flex items-center gap-2 rounded-xl border border-success/30 bg-success-soft px-3 py-1.5 text-xs font-semibold text-success-text">
+          <span className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line bg-surface-2 pl-2.5 pr-1 text-sm text-fg">
             One store{orders[0]?.restaurant?.name ? `: ${orders[0].restaurant.name}` : ''}
-            <button onClick={clearStoreFilter} className="text-success-text hover:text-fg" aria-label="Show all stores"><span aria-hidden="true" className="text-base leading-none">×</span></button>
+            <button type="button" onClick={clearStoreFilter} aria-label="Show all stores" className="rounded p-1 text-fg-subtle hover:bg-surface-3 hover:text-fg"><IconX size={12} /></button>
           </span>
         )}
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {STATUS_FILTERS.map(s => (
-          <button
-            key={s}
-            onClick={() => setFilterStatus(s)}
-            className={`px-4 py-1.5 rounded-xl text-xs font-semibold border transition-all ${filterStatus === s ? 'bg-accent text-on-solid border-info/30' : 'bg-surface-2/60 text-fg-muted border-line hover:text-fg'}`}
-          >
-            {s === 'All' ? 'All' : statusLabel(s)}
-          </button>
-        ))}
-      </div>
+      </Toolbar>
 
       {notice && (
-        <div className={`p-4 rounded-lg border text-xs font-semibold flex justify-between items-start gap-4 ${notice.kind === 'error' ? 'bg-danger-soft border-danger/30 text-danger-text' : 'bg-success-soft border-success/30 text-success-text'}`}>
-          <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-fg-muted hover:text-fg" aria-label="Dismiss"><span aria-hidden="true" className="text-base leading-none">×</span></button>
-        </div>
+        <NoticeBox tone={notice.kind === 'error' ? 'danger' : 'success'} className="mb-3" onClose={() => setNotice(null)}>
+          <span className="text-fg">{notice.text}</span>
+        </NoticeBox>
       )}
 
-      <div className="rounded-lg border border-line bg-surface shadow-xs overflow-hidden border-line">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-line bg-surface-2/60">
-                {['Order', 'Customer', 'Store & items', 'Total', 'Payment', 'Status', 'Placed', ''].map(h => (
-                  <th key={h} className="p-4 text-xs font-semibold text-fg-muted">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.03]">
-              {loading ? (
-                <tr>
-                  <td colSpan={8} className="p-10 text-center">
-                    <div className="flex flex-col items-center justify-center gap-2 text-fg-muted">
-                      <div className="w-6 h-6 border-2 border-info/30 border-t-info/30 rounded-full animate-spin" />
-                      <p className="text-xs font-semibold">Loading orders…</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : loadError ? (
-                <tr>
-                  <td colSpan={8} className="p-10 text-center">
-                    <p className="text-xs text-danger-text font-semibold">{loadError}</p>
-                    <button onClick={() => fetchOrders(currentPage)} className="mt-3 px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg">Try again</button>
-                  </td>
-                </tr>
-              ) : visibleOrders.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="p-10 text-center text-fg-muted text-xs">
-                    {filterStatus === 'All' ? 'No orders yet.' : `No ${statusLabel(filterStatus).toLowerCase()} orders.`}
-                  </td>
-                </tr>
-              ) : (
-                visibleOrders.map(order => (
-                  <OrderRow
-                    key={orderId(order)}
-                    order={order}
-                    busy={busyId === orderId(order)}
-                    fresh={isFresh(orderId(order))}
-                    onSelect={(o) => setSelectedId(orderId(o))}
-                  />
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {totalPages > 1 && (
-          <div className="p-6 bg-surface-2/60 border-t border-line flex items-center justify-between">
-            <span className="text-xs font-semibold text-fg-muted">
-              Page {currentPage} of {totalPages}
-            </span>
-            <div className="flex gap-2">
-              <button
-                disabled={currentPage <= 1 || loading}
-                onClick={() => fetchOrders(currentPage - 1)}
-                className="px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-30"
-              >
-                Previous
-              </button>
-              <button
-                disabled={currentPage >= totalPages || loading}
-                onClick={() => fetchOrders(currentPage + 1)}
-                className="px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-30"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      <DataTable
+        caption="Orders"
+        columns={columns}
+        rows={visibleOrders}
+        rowKey={o => orderId(o)}
+        loading={loading}
+        error={loadError}
+        onRetry={() => fetchOrders(currentPage)}
+        onRowClick={o => setSelectedId(orderId(o))}
+        rowClassName={o => (isFresh(orderId(o)) ? FRESH_ROW_CLASS : undefined)}
+        pagination={{ page: currentPage, pages: totalPages, total: totalOrders, pageSize: 50, onPage: p => fetchOrders(p) }}
+        noun="orders"
+        empty={{
+          title: filterStatus === 'All' ? 'No orders yet' : `No ${statusLabel(filterStatus).toLowerCase()} orders`,
+          description: stuckHours ? 'No stall order has been open that long.' : 'New orders appear here the moment they are placed.',
+        }}
+      />
 
       {/* Order detail */}
-      {selectedOrder && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-scrim/50 animate-fade-in" onClick={() => setSelectedId(null)}>
-          <div className="rounded-lg border border-line bg-surface shadow-xs max-w-3xl w-full p-8 space-y-6 animate-slide-up relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <button onClick={() => setSelectedId(null)} className="absolute top-6 right-6 text-fg-muted hover:text-fg transition-colors" aria-label="Close"><span aria-hidden="true" className="text-base leading-none">×</span></button>
-
-            <div className="flex justify-between items-start border-b border-line pb-6 pr-10">
-              <div>
-                <h3 className="text-2xl font-semibold text-fg">Order {shortId(orderId(selectedOrder))}</h3>
-                <p className="text-xs text-fg-muted font-mono mt-1">{orderId(selectedOrder)}</p>
-                <p className="text-xs text-fg-muted mt-1">Placed {new Date(selectedOrder.createdAt).toLocaleString()}</p>
-              </div>
-              <div className={`px-4 py-1.5 rounded-full text-xs font-semibold border ${getStatusStyle(selectedOrder.status)}`}>
-                {statusLabel(selectedOrder.status)}
-              </div>
-            </div>
-
-            {selectedPinLocked && (
-              <div className="p-4 bg-danger-soft border border-danger/30 rounded-lg text-xs text-danger-text font-semibold">
-                The rider entered a wrong delivery PIN {selectedOrder.deliveryPinAttempts} times and is locked out. Call the customer to confirm they received the order before marking it delivered here.
-              </div>
+      <Drawer
+        open={!!selectedOrder}
+        onClose={() => setSelectedId(null)}
+        size="xl"
+        title={selectedOrder ? `Order ${shortId(orderId(selectedOrder))}` : 'Order'}
+        description={selectedOrder ? `Placed ${formatDateTime(selectedOrder.createdAt)} · ${selectedOrder.restaurant?.name || 'Store'}` : undefined}
+        headerActions={selectedOrder ? <OrderStatus status={selectedOrder.status} /> : undefined}
+        footer={selectedOrder && selectedOpen && !isLegacyUpiPending(selectedOrder) ? (
+          <div className="flex w-full flex-wrap items-center gap-2">
+            <span className="mr-auto text-xs text-fg-muted">{selectedVendor ? 'The customer and Zenvy Vendor apps update automatically.' : 'The customer, store and rider apps update automatically.'}</span>
+            <Button variant="destructive" disabled={selectedBusy} onClick={() => cancelOrder(selectedOrder)}>Cancel order</Button>
+            {selectedVendor && ['Accepted', 'Preparing', 'ReadyForPickup'].includes(selectedOrder.status) && (
+              <Button disabled={selectedBusy} onClick={() => setStatus(selectedOrder, 'OutForDelivery')}>Out for delivery</Button>
             )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-5">
-                <div>
-                  <h5 className="text-xs font-semibold text-info-text mb-2">Customer</h5>
-                  <p className="text-lg font-semibold text-fg">{selectedOrder.user?.name || 'Customer'}</p>
-                  <p className="text-xs text-fg-muted font-semibold">{selectedOrder.user?.phone || 'No phone on file'}</p>
-                </div>
-                <div>
-                  <h5 className="text-xs font-semibold text-info-text mb-2">Delivery</h5>
-                  <p className="text-xs text-fg font-semibold whitespace-pre-line">{selectedOrder.deliveryAddress || (selectedOrder.hostelGateDelivery ? 'Hostel gate' : 'No address on file')}</p>
-                  {selectedOrder.deliverySlot && <p className="text-xs text-info-text font-semibold mt-1">Slot: {selectedOrder.deliverySlot}</p>}
-                  {formatEta(selectedOrder.estDuration) && <p className="text-xs text-info-text font-semibold mt-1">Kitchen time: {formatEta(selectedOrder.estDuration)}</p>}
-                  {Array.isArray(instructions) && instructions.length > 0 && (
-                    <ul className="mt-2 space-y-1">
-                      {instructions.map((t, i) => <li key={i} className="text-xs text-fg-muted">• {t}</li>)}
-                    </ul>
-                  )}
-                  <p className="text-xs text-fg-muted mt-2">Store: {selectedOrder.restaurant?.name || '—'}</p>
-                  {selectedVendor ? (
-                    <div className="mt-2 rounded-xl border border-warning/30 bg-warning-soft p-3">
-                      <p className="text-xs font-semibold text-warning-text">Delivered by the stall</p>
-                      <p className="mt-1 text-xs text-fg-muted">{stallName(selectedOrder)} delivers this order itself and collects the cash. No Zenvy rider, no delivery PIN.</p>
-                      {selectedOrder.outForDeliveryAt && <p className="mt-1 text-xs text-fg-muted">Left the stall {new Date(selectedOrder.outForDeliveryAt).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>}
-                      {stallWa && (
-                        <a href={`https://wa.me/${stallWa.length === 10 ? `91${stallWa}` : stallWa}`} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-xs font-semibold text-success-text underline">WhatsApp the stall ↗</a>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="mt-1 space-y-2">
-                      <p className="text-xs text-fg-muted">
-                        Rider: {selectedOrder.deliveryPartnerId ? ((assignRiders || []).find(r => r.id === selectedOrder.deliveryPartnerId)?.name || 'Assigned') : 'Not assigned yet'}
-                      </p>
-                      {selectedAssignable && (
-                        <div className="flex flex-wrap items-center gap-2">
-                          <select
-                            value={assignPick}
-                            onChange={e => setAssignPick(e.target.value)}
-                            aria-label="Rider to assign"
-                            className="rounded-xl border border-line bg-surface-2 px-2 py-1 text-xs font-semibold text-fg-muted"
-                          >
-                            <option value="">{assignRiders === null ? 'Loading riders…' : 'Choose a rider…'}</option>
-                            {(assignRiders || []).filter(r => r.id !== selectedOrder.deliveryPartnerId).map(r => (
-                              <option key={r.id} value={r.id}>{r.name}{r.isOnline ? ' · online' : ' · offline'}</option>
-                            ))}
-                          </select>
-                          <button disabled={selectedBusy || !assignPick} onClick={() => assignRider(selectedOrder, assignPick)} className="px-3 py-1 bg-info-soft text-info-text border border-info/30 rounded-xl text-xs font-semibold hover:bg-info-soft disabled:opacity-30">
-                            {selectedOrder.deliveryPartnerId ? 'Reassign' : 'Assign'}
-                          </button>
-                          {selectedOrder.deliveryPartnerId && (
-                            <button disabled={selectedBusy} onClick={() => assignRider(selectedOrder, null)} className="px-3 py-1 bg-danger-soft text-danger-text border border-danger/30 rounded-xl text-xs font-semibold hover:bg-danger-soft disabled:opacity-30">
-                              Remove rider
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <h5 className="text-xs font-semibold text-info-text mb-2">Payment</h5>
-                  <PaymentBadge order={selectedOrder} />
-                  <ReceiptPanel key={orderId(selectedOrder)} order={selectedOrder} />
-                  {selectedOrder.cancellationReason && (
-                    <div className="mt-3 p-3 bg-danger-soft border border-danger/30 rounded-xl text-danger-text">
-                      <span className="text-xs font-semibold block mb-1">Cancellation reason</span>
-                      <p className="text-xs font-semibold">{selectedOrder.cancellationReason}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <h5 className="text-xs font-semibold text-info-text">Items</h5>
-                <div className="space-y-2 bg-surface-2/60 p-4 rounded-lg border border-line max-h-[200px] overflow-y-auto">
-                  {(selectedOrder.items || []).length === 0 ? (
-                    <p className="text-xs text-fg-muted">No items recorded.</p>
-                  ) : selectedOrder.items.map((item, i) => {
-                    const unit = item.priceAtOrder ?? item.price;
-                    const line = item.lineTotal ?? (unit != null ? unit * item.quantity : null);
-                    return (
-                      <div key={i} className="flex justify-between items-center text-xs gap-4">
-                        <span className="text-fg font-semibold">{item.name || 'Item'} <span className="text-fg-muted ml-1">×{item.quantity}</span></span>
-                        <span className="text-fg-muted">{line != null ? rupees(line) : '—'}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-                {breakdown && (
-                  <div className="space-y-1 text-xs text-fg-muted">
-                    {breakdown.subtotal != null && <div className="flex justify-between"><span>Subtotal</span><span>{rupees(breakdown.subtotal)}</span></div>}
-                    {breakdown.deliveryFee != null && <div className="flex justify-between"><span>Delivery fee</span><span>{rupees(breakdown.deliveryFee)}</span></div>}
-                    {!!breakdown.packagingFee && <div className="flex justify-between"><span>Packaging</span><span>{rupees(breakdown.packagingFee)}</span></div>}
-                    {!!breakdown.taxes && <div className="flex justify-between"><span>Taxes</span><span>{rupees(breakdown.taxes)}</span></div>}
-                    {(breakdown.discounts || []).map((d, i) => (
-                      <div key={i} className="flex justify-between text-success-text"><span>{d.label}</span><span>−{rupees(d.amount)}</span></div>
-                    ))}
-                  </div>
-                )}
-                <div className="flex justify-between items-center pt-3 border-t border-line">
-                  <span className="text-xs font-semibold text-fg">Total</span>
-                  <span className="text-xl font-semibold text-info-text">{rupees(grandTotal(selectedOrder))}</span>
-                </div>
-              </div>
-            </div>
+            {!selectedVendor && !['Pending', 'PickedUp', 'ArrivedAtGate'].includes(selectedOrder.status) && (
+              <Button disabled={selectedBusy} onClick={() => setStatus(selectedOrder, 'PickedUp')}>Mark picked up</Button>
+            )}
+            {selectedOrder.status !== 'Pending' && (
+              <Button variant="primary" disabled={selectedBusy} onClick={() => setStatus(selectedOrder, 'Delivered')}>Mark delivered</Button>
+            )}
+            {selectedOrder.status === 'Pending' && (
+              <Button variant="primary" disabled={selectedBusy} onClick={() => acceptOrder(selectedOrder)}>{selectedVendor ? 'Accept for stall' : 'Accept and dispatch'}</Button>
+            )}
+          </div>
+        ) : undefined}
+      >
+        {selectedOrder && (
+          <div className="space-y-6">
+            {selectedBusy && <NoticeBox tone="info">Working…</NoticeBox>}
+            {selectedPinLocked && (
+              <NoticeBox tone="danger" title="Rider locked out of the delivery PIN">
+                The rider entered a wrong delivery PIN {selectedOrder.deliveryPinAttempts} times. Call the customer to confirm they received the order before marking it delivered.
+              </NoticeBox>
+            )}
 
             {/* Legacy UPI orders: manual verification only. New orders are COD or Wallet. */}
             {isLegacyUpiPending(selectedOrder) && (
-              <div className="p-5 rounded-lg border border-warning/30 bg-warning-soft space-y-3">
-                <div>
-                  <p className="text-xs font-semibold text-warning-text">Legacy UPI payment awaiting verification</p>
-                  <p className="text-xs text-fg-muted mt-1">UPI checkout is switched off. Check this older payment against the bank statement before accepting.</p>
-                </div>
-                <div className="flex flex-wrap gap-4 items-center text-xs">
-                  <span className="text-fg-muted">UTR: <span className="font-mono text-fg">{selectedOrder.upiUTR || 'not provided'}</span></span>
+              <NoticeBox
+                tone="warning"
+                title="Legacy UPI payment waiting for a check"
+                action={
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="primary" disabled={selectedBusy} onClick={() => verifyUpi(selectedOrder, true)}>Payment received</Button>
+                    <Button size="sm" variant="destructive" disabled={selectedBusy} onClick={() => verifyUpi(selectedOrder, false)}>Reject payment</Button>
+                  </div>
+                }
+              >
+                UPI checkout is switched off. Check this older payment against the bank statement before accepting.
+                <span className="mt-1 block">UTR: <span className="font-mono text-fg">{selectedOrder.upiUTR || 'not provided'}</span>
                   {selectedOrder.upiScreenshot && /^(https?:|data:image\/)/i.test(selectedOrder.upiScreenshot) && (
-                    <a href={selectedOrder.upiScreenshot} target="_blank" rel="noopener noreferrer" className="text-info-text underline">Open screenshot</a>
+                    <> · <a href={selectedOrder.upiScreenshot} target="_blank" rel="noopener noreferrer" className="text-accent-text underline">Open screenshot</a></>
                   )}
-                </div>
-                <div className="flex gap-2">
-                  <button disabled={selectedBusy} onClick={() => verifyUpi(selectedOrder, true)} className="px-4 py-2 bg-success-soft text-success-text border border-success/30 rounded-xl text-xs font-semibold hover:bg-success-soft disabled:opacity-30">Payment received</button>
-                  <button disabled={selectedBusy} onClick={() => verifyUpi(selectedOrder, false)} className="px-4 py-2 bg-danger-soft text-danger-text border border-danger/30 rounded-xl text-xs font-semibold hover:bg-danger-soft disabled:opacity-30">Reject payment</button>
-                </div>
+                </span>
+              </NoticeBox>
+            )}
+
+            <DescriptionList
+              columns={2}
+              items={[
+                { label: 'Customer', value: <><span className="font-medium">{selectedOrder.user?.name || 'Customer'}</span><span className="block text-fg-muted">{selectedOrder.user?.phone || 'No phone on file'}</span></> },
+                { label: 'Payment', value: <PaymentCell order={selectedOrder} /> },
+                {
+                  label: 'Delivery',
+                  value: (
+                    <>
+                      <span className="whitespace-pre-line">{selectedOrder.deliveryAddress || (selectedOrder.hostelGateDelivery ? 'Hostel gate' : 'No address on file')}</span>
+                      {selectedOrder.deliverySlot && <span className="block text-fg-muted">Slot: {selectedOrder.deliverySlot}</span>}
+                      {formatEta(selectedOrder.estDuration) && <span className="block text-fg-muted">Kitchen time: {formatEta(selectedOrder.estDuration)}</span>}
+                    </>
+                  ),
+                },
+                { label: 'Order ID', value: <span className="break-all font-mono text-xs">{orderId(selectedOrder)}</span> },
+              ]}
+            />
+
+            {Array.isArray(instructions) && instructions.length > 0 && (
+              <div>
+                <p className="text-xs text-fg-muted">Delivery instructions</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-fg">{instructions.map((t, i) => <li key={i}>{t}</li>)}</ul>
               </div>
             )}
 
-            {selectedOpen && !isLegacyUpiPending(selectedOrder) && (
-              <div className="space-y-3 pt-4 border-t border-line">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-fg-muted">Support actions</span>
-                  <span className="text-xs text-fg-muted">{selectedVendor ? 'The customer and Zenvy Vendor apps update automatically' : 'The customer, store and rider apps update automatically'}</span>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {selectedOrder.status === 'Pending' && (
-                    <button disabled={selectedBusy} onClick={() => acceptOrder(selectedOrder)} className="py-2.5 px-2 bg-info-soft text-info-text border border-info/30 rounded-xl text-xs font-semibold hover:bg-info-soft disabled:opacity-30 transition-all">{selectedVendor ? 'Accept for stall' : 'Accept & dispatch'}</button>
-                  )}
-                  {selectedVendor && ['Accepted', 'Preparing', 'ReadyForPickup'].includes(selectedOrder.status) && (
-                    <button disabled={selectedBusy} onClick={() => setStatus(selectedOrder, 'OutForDelivery')} className="py-2.5 px-2 bg-warning-soft text-warning-text border border-warning/30 rounded-xl text-xs font-semibold hover:bg-warning-soft disabled:opacity-30 transition-all">Out for delivery</button>
-                  )}
-                  {!selectedVendor && !['Pending', 'PickedUp', 'ArrivedAtGate'].includes(selectedOrder.status) && (
-                    <button disabled={selectedBusy} onClick={() => setStatus(selectedOrder, 'PickedUp')} className="py-2.5 px-2 bg-warning-soft text-warning-text border border-warning/30 rounded-xl text-xs font-semibold hover:bg-warning-soft disabled:opacity-30 transition-all">Mark picked up</button>
-                  )}
-                  {selectedOrder.status !== 'Pending' && (
-                    <button disabled={selectedBusy} onClick={() => setStatus(selectedOrder, 'Delivered')} className="py-2.5 px-2 bg-success-soft text-success-text border border-success/30 rounded-xl text-xs font-semibold hover:bg-success-soft disabled:opacity-30 transition-all">Mark delivered</button>
-                  )}
-                  <button disabled={selectedBusy} onClick={() => cancelOrder(selectedOrder)} className="py-2.5 px-2 bg-danger-soft text-danger-text border border-danger/30 rounded-xl text-xs font-semibold hover:bg-danger-soft disabled:opacity-30 transition-all">Cancel order</button>
-                </div>
-                {selectedBusy && <p className="text-xs text-fg-muted">Working…</p>}
+            {/* Who delivers */}
+            {selectedVendor ? (
+              <NoticeBox tone="neutral" title="Delivered by the stall">
+                {stallName(selectedOrder)} delivers this order itself and collects the cash. No Zenvy rider, no delivery PIN.
+                {selectedOrder.outForDeliveryAt && <span className="block">Left the stall {formatDateTime(selectedOrder.outForDeliveryAt, { short: true })}.</span>}
+                {stallWa && (
+                  <a href={`https://wa.me/${stallWa.length === 10 ? `91${stallWa}` : stallWa}`} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-accent-text underline">WhatsApp the stall <IconExternal size={12} /></a>
+                )}
+              </NoticeBox>
+            ) : (
+              <div className="rounded-lg border border-line p-3">
+                <p className="text-xs text-fg-muted">Rider</p>
+                <p className="mt-0.5 text-sm text-fg">
+                  {selectedOrder.deliveryPartnerId ? ((assignRiders || []).find(r => r.id === selectedOrder.deliveryPartnerId)?.name || 'Assigned') : 'Not assigned yet'}
+                </p>
+                {selectedAssignable && (
+                  <div className="mt-3 flex flex-wrap items-end gap-2">
+                    <Field label="Give the order to" className="min-w-[220px] flex-1">
+                      <Select value={assignPick} onChange={e => setAssignPick(e.target.value)}>
+                        <option value="">{assignRiders === null ? 'Loading riders…' : 'Choose a rider'}</option>
+                        {(assignRiders || []).filter(r => r.id !== selectedOrder.deliveryPartnerId).map(r => (
+                          <option key={r.id} value={r.id}>{r.name}{r.isOnline ? ' · online' : ' · offline'}</option>
+                        ))}
+                      </Select>
+                    </Field>
+                    <Button disabled={selectedBusy || !assignPick} onClick={() => assignRider(selectedOrder, assignPick)}>{selectedOrder.deliveryPartnerId ? 'Reassign' : 'Assign'}</Button>
+                    {selectedOrder.deliveryPartnerId && (
+                      <Button variant="ghost" className="text-danger-text hover:text-danger-text" disabled={selectedBusy} onClick={() => assignRider(selectedOrder, null)}>Remove rider</Button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
-            <button onClick={() => setSelectedId(null)} className="w-full py-3 bg-surface-2/60 border border-line rounded-lg text-xs font-semibold text-fg-muted hover:text-fg transition-all">Close</button>
+            {/* Items and price */}
+            <div>
+              <p className="mb-1 text-xs text-fg-muted">Items</p>
+              <div className="rounded-lg border border-line">
+                {(selectedOrder.items || []).length === 0 ? (
+                  <p className="px-3 py-3 text-sm text-fg-muted">No items recorded.</p>
+                ) : (
+                  <ul className="divide-y divide-line">
+                    {selectedOrder.items.map((item, i) => {
+                      const unit = item.priceAtOrder ?? item.price;
+                      const line = item.lineTotal ?? (unit != null ? unit * item.quantity : null);
+                      return (
+                        <li key={i} className="flex items-center justify-between gap-4 px-3 py-2 text-sm">
+                          <span className="text-fg">{item.name || 'Item'} <span className="text-fg-muted">×{item.quantity}</span></span>
+                          <span className="tabular-nums text-fg">{line != null ? rupees(line) : '–'}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                <div className="space-y-1 border-t border-line px-3 py-2 text-sm">
+                  {breakdown?.subtotal != null && <div className="flex justify-between text-fg-muted"><span>Subtotal</span><span className="tabular-nums">{rupees(breakdown.subtotal)}</span></div>}
+                  {breakdown?.deliveryFee != null && <div className="flex justify-between text-fg-muted"><span>Delivery fee</span><span className="tabular-nums">{rupees(breakdown.deliveryFee)}</span></div>}
+                  {!!breakdown?.packagingFee && <div className="flex justify-between text-fg-muted"><span>Packaging</span><span className="tabular-nums">{rupees(breakdown.packagingFee)}</span></div>}
+                  {!!breakdown?.taxes && <div className="flex justify-between text-fg-muted"><span>Taxes</span><span className="tabular-nums">{rupees(breakdown.taxes)}</span></div>}
+                  {(breakdown?.discounts || []).map((d, i) => (
+                    <div key={i} className="flex justify-between text-success-text"><span>{d.label}</span><span className="tabular-nums">−{rupees(d.amount)}</span></div>
+                  ))}
+                  <div className="flex justify-between pt-1 font-semibold text-fg"><span>Total</span><span className="tabular-nums">{rupees(grandTotal(selectedOrder))}</span></div>
+                </div>
+              </div>
+            </div>
+
+            {selectedOrder.cancellationReason && (
+              <NoticeBox tone="danger" title="Cancellation reason">{selectedOrder.cancellationReason}</NoticeBox>
+            )}
+
+            <div>
+              <p className="mb-1 text-xs text-fg-muted">Receipt</p>
+              <ReceiptPanel key={orderId(selectedOrder)} order={selectedOrder} />
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Drawer>
+
+      {/* Cancel: asks for the reason the customer sees (same request as before). */}
+      <Modal
+        open={!!cancelling}
+        onClose={() => setCancelling(null)}
+        size="sm"
+        title={cancelling ? `Cancel order ${shortId(orderId(cancelling))}?` : 'Cancel order'}
+        description={cancelling
+          ? `This cannot be undone.${cancelling.paymentMethod === 'Wallet' ? ` ${rupees(grandTotal(cancelling))} will be refunded to the customer's Wallet.` : ''}`
+          : undefined}
+        footer={
+          <>
+            <Button onClick={() => setCancelling(null)}>Keep order</Button>
+            <Button variant="destructive" onClick={confirmCancel}>Cancel order</Button>
+          </>
+        }
+      >
+        <Field label="Reason" hint="Shown to the customer.">
+          <Textarea rows={2} value={cancelReason} onChange={e => setCancelReason(e.target.value)} maxLength={300} />
+        </Field>
+      </Modal>
     </div>
   );
 }

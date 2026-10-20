@@ -5,20 +5,20 @@ import {
 } from 'react';
 
 // ─── Classes shared by every form in the Stores area ─────────────────────────
-export const INPUT = 'w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-fg placeholder:text-fg-subtle outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/30 disabled:opacity-50 aria-[invalid=true]:border-red-500/60';
+export const INPUT = 'block w-full rounded-md border border-line-strong/80 bg-surface px-2.5 py-1.5 text-sm text-fg shadow-xs placeholder:text-fg-subtle outline-none transition-colors hover:border-line-strong focus:border-accent focus:ring-[3px] focus:ring-accent/20 disabled:cursor-not-allowed disabled:bg-surface-2 disabled:opacity-70 aria-[invalid=true]:border-danger';
 export const SELECT = `${INPUT} pr-8`;
-export const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d0f14]';
+export const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-1 focus-visible:ring-offset-bg';
 
 export const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
 
 // ─── Button ───────────────────────────────────────────────────────────────────
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'amber';
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-success text-on-solid hover:bg-success/90 font-semibold',
-  secondary: 'border border-line bg-surface-2/60 text-fg hover:bg-surface-2 hover:text-fg font-semibold',
-  ghost: 'text-fg-muted hover:bg-surface-2/60 hover:text-fg font-semibold',
-  danger: 'border border-danger/30 text-danger-text hover:bg-danger-soft font-semibold',
-  amber: 'bg-accent text-accent-fg hover:bg-accent-hover font-semibold',
+  primary: 'bg-accent text-accent-fg shadow-xs hover:bg-accent-hover font-medium',
+  secondary: 'border border-line-strong/80 bg-surface text-fg shadow-xs hover:bg-surface-2 font-medium',
+  ghost: 'text-fg-muted hover:bg-surface-2 hover:text-fg font-medium',
+  danger: 'border border-danger/30 bg-surface text-danger-text shadow-xs hover:bg-danger-soft font-medium',
+  amber: 'bg-accent text-accent-fg shadow-xs hover:bg-accent-hover font-medium',
 };
 
 export function Button({ variant = 'secondary', size = 'md', className, loading, children, disabled, ...rest }:
@@ -30,8 +30,8 @@ export function Button({ variant = 'secondary', size = 'md', className, loading,
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cx(
-        'inline-flex items-center justify-center gap-2 rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-50',
-        size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2.5 text-sm',
+        'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+        size === 'sm' ? 'h-7 px-2.5 text-xs' : 'h-8 px-3 text-sm',
         VARIANTS[variant], FOCUS_RING, className,
       )}
     >
@@ -63,12 +63,12 @@ export function Field({ label, help, error, required, optional, className, child
   const id = useId();
   const msgId = `${id}-msg`;
   return (
-    <div className={cx('space-y-1.5', className)}>
+    <div className={cx('space-y-1', className)}>
       <div className="flex items-baseline justify-between gap-2">
-        <label htmlFor={id} className="text-xs font-semibold text-fg-muted">
+        <label htmlFor={id} className="text-sm font-medium text-fg">
           {label}
           {required && <span className="ml-0.5 text-danger-text" aria-hidden>*</span>}
-          {optional && <span className="ml-1.5 normal-case text-fg-subtle">optional</span>}
+          {optional && <span className="ml-1 font-normal text-fg-subtle">(optional)</span>}
         </label>
         {aside}
       </div>
@@ -94,10 +94,10 @@ export function Toggle({ checked, onChange, label, description, disabled, size =
   srOnlyLabel?: boolean;
 }) {
   const id = useId();
-  const track = size === 'sm' ? 'h-5 w-9' : 'h-6 w-11';
-  const knob = size === 'sm' ? 'h-4 w-4' : 'h-5 w-5';
-  const shift = size === 'sm' ? 'translate-x-4' : 'translate-x-5';
-  const on = tone === 'amber' ? 'bg-accent' : 'bg-success';
+  const track = size === 'sm' ? 'h-4 w-7' : 'h-5 w-9';
+  const knob = size === 'sm' ? 'h-3 w-3' : 'h-4 w-4';
+  const shift = size === 'sm' ? 'translate-x-3' : 'translate-x-4';
+  const on = tone === 'amber' ? 'bg-accent' : 'bg-accent';
   return (
     <div className={cx('flex items-start gap-3', disabled && 'opacity-50')}>
       <button
@@ -109,13 +109,13 @@ export function Toggle({ checked, onChange, label, description, disabled, size =
         aria-describedby={description ? `${id}-d` : undefined}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={cx('relative mt-0.5 inline-flex shrink-0 items-center rounded-full p-0.5 transition-colors disabled:cursor-not-allowed', track, checked ? on : 'bg-surface-3', FOCUS_RING)}
+        className={cx('relative mt-0.5 inline-flex shrink-0 items-center rounded-full p-0.5 transition-colors disabled:cursor-not-allowed', track, checked ? on : 'bg-line-strong', FOCUS_RING)}
       >
         <span aria-hidden className={cx('rounded-full bg-white shadow transition-transform', knob, checked ? shift : 'translate-x-0')} />
       </button>
       {!srOnlyLabel && (
         <div className="min-w-0">
-          <label htmlFor={id} className="cursor-pointer text-sm font-semibold text-fg">{label}</label>
+          <label htmlFor={id} className="cursor-pointer text-sm font-medium text-fg">{label}</label>
           {description && <p id={`${id}-d`} className="mt-0.5 text-xs leading-relaxed text-fg-muted">{description}</p>}
         </div>
       )}
@@ -126,16 +126,16 @@ export function Toggle({ checked, onChange, label, description, disabled, size =
 // ─── Chips ───────────────────────────────────────────────────────────────────
 export type Tone = 'green' | 'amber' | 'slate' | 'red' | 'sky' | 'violet';
 const TONES: Record<Tone, string> = {
-  green: 'border-success/30 bg-success-soft text-success-text',
-  amber: 'border-warning/30 bg-warning-soft text-warning-text',
-  slate: 'border-line bg-surface-2/60 text-fg-muted',
-  red: 'border-danger/30 bg-danger-soft text-danger-text',
-  sky: 'border-info/30 bg-info-soft text-info-text',
-  violet: 'border-accent/30 bg-accent-soft text-accent-text',
+  green: 'border-success/20 bg-success-soft text-success-text',
+  amber: 'border-warning/25 bg-warning-soft text-warning-text',
+  slate: 'border-line bg-surface-2 text-fg-muted',
+  red: 'border-danger/20 bg-danger-soft text-danger-text',
+  sky: 'border-info/20 bg-info-soft text-info-text',
+  violet: 'border-accent/20 bg-accent-soft text-accent-text',
 };
 export function Chip({ tone = 'slate', children, title, dot }: { tone?: Tone; children: ReactNode; title?: string; dot?: boolean }) {
   return (
-    <span title={title} className={cx('inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-1.5 py-0.5 text-xs font-semibold', TONES[tone])}>
+    <span title={title} className={cx('inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2 py-px text-xs font-medium', TONES[tone])}>
       {dot && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />}
       {children}
     </span>
@@ -146,14 +146,14 @@ export function Chip({ tone = 'slate', children, title, dot }: { tone?: Tone; ch
 export function Skeleton({ className }: { className?: string }) {
   // A <span> (display: block) so it is valid inside <p> / inline parents too (a <div> in a <p> is a
   // hydration error and React logs it on every drawer open).
-  return <span aria-hidden className={cx('animate-pulse rounded-md bg-surface-2/60', /\bhidden\b/.test(className || '') ? '' : 'block', className)} />;
+  return <span aria-hidden className={cx('animate-pulse rounded bg-surface-3', /\bhidden\b/.test(className || '') ? '' : 'block', className)} />;
 }
 
 export function EmptyState({ icon, title, body, action }: { icon?: ReactNode; title: string; body?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center rounded-xl border border-dashed border-line px-6 py-12 text-center">
-      {icon && <div aria-hidden className="mb-3 text-3xl">{icon}</div>}
-      <h3 className="font-semibold text-fg">{title}</h3>
+    <div className="flex flex-col items-center rounded-lg border border-dashed border-line px-6 py-12 text-center">
+      {icon && <div aria-hidden className="mb-3 text-fg-subtle">{icon}</div>}
+      <h3 className="text-sm font-medium text-fg">{title}</h3>
       {body && <p className="mt-1.5 max-w-md text-sm text-fg-muted">{body}</p>}
       {action && <div className="mt-5 flex flex-wrap justify-center gap-2">{action}</div>}
     </div>
@@ -162,15 +162,16 @@ export function EmptyState({ icon, title, body, action }: { icon?: ReactNode; ti
 
 export function Callout({ tone = 'sky', title, children }: { tone?: 'sky' | 'amber' | 'red' | 'green'; title?: ReactNode; children: ReactNode }) {
   const cls = {
-    sky: 'border-info/30 bg-info-soft text-info-text',
-    amber: 'border-warning/30 bg-warning-soft text-warning-text',
-    red: 'border-danger/30 bg-danger-soft text-danger-text',
-    green: 'border-success/30 bg-success-soft text-success-text',
+    sky: 'border-info/25 bg-info-soft',
+    amber: 'border-warning/30 bg-warning-soft',
+    red: 'border-danger/25 bg-danger-soft',
+    green: 'border-success/25 bg-success-soft',
   }[tone];
+  const titleCls = { sky: 'text-info-text', amber: 'text-warning-text', red: 'text-danger-text', green: 'text-success-text' }[tone];
   return (
-    <div className={cx('rounded-lg border p-3 text-sm leading-relaxed', cls)} role={tone === 'red' ? 'alert' : undefined}>
-      {title && <p className="mb-0.5 font-semibold">{title}</p>}
-      <div className="opacity-90">{children}</div>
+    <div className={cx('rounded-lg border px-3 py-2.5 text-sm leading-relaxed text-fg', cls)} role={tone === 'red' ? 'alert' : undefined}>
+      {title && <p className={cx('mb-0.5 font-medium', titleCls)}>{title}</p>}
+      <div className="text-fg-muted">{children}</div>
     </div>
   );
 }
@@ -194,7 +195,7 @@ export function CopyButton({ text, label = 'Copy', copiedLabel = 'Copied', size 
   };
   return (
     <Button size={size} variant={variant} onClick={copy} className={className} aria-live="polite">
-      {state === 'ok' ? `✓ ${copiedLabel}` : state === 'fail' ? 'Select & copy manually' : label}
+      {state === 'ok' ? copiedLabel : state === 'fail' ? 'Select & copy manually' : label}
     </Button>
   );
 }
@@ -260,17 +261,17 @@ export function Modal({ open = true, onClose, title, description, children, foot
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={cx('flex max-h-[92vh] w-full flex-col rounded-t-2xl border border-line bg-surface text-fg shadow-pop outline-none sm:rounded-lg', width)}
+        className={cx('flex max-h-[92vh] w-full flex-col rounded-t-xl border border-line bg-surface text-fg shadow-pop outline-none sm:rounded-xl', width)}
       >
         <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
           <div className="min-w-0">
-            <h2 id={titleId} className="text-lg font-semibold">{title}</h2>
+            <h2 id={titleId} className="text-base font-semibold">{title}</h2>
             {description && <p className="mt-1 text-sm text-fg-muted">{description}</p>}
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className={cx('rounded-lg p-1.5 text-fg-muted hover:bg-surface-2/60 hover:text-fg', FOCUS_RING)}><span aria-hidden="true" className="text-base leading-none">×</span></button>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
-        {footer && <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-5 py-3">{footer}</div>}
+        {footer && <div className="flex flex-wrap items-center justify-end gap-2 rounded-b-xl border-t border-line bg-surface-2/50 px-5 py-3">{footer}</div>}
       </div>
     </div>
   );
@@ -334,8 +335,8 @@ export function Tabs<T extends string>({ tabs, value, onChange, label }: {
             onKeyDown={e => onKey(e, i)}
             onClick={() => onChange(t.value)}
             className={cx(
-              'relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-t-lg px-3.5 py-2.5 text-sm font-semibold transition-colors',
-              selected ? 'text-fg after:absolute after:inset-x-2 after:-bottom-px after:h-0.5 after:rounded-full after:bg-success' : 'text-fg-muted hover:text-fg',
+              'relative flex shrink-0 items-center gap-1.5 whitespace-nowrap px-2.5 pb-2.5 pt-1.5 text-sm font-medium transition-colors',
+              selected ? 'text-fg after:absolute after:inset-x-1 after:-bottom-px after:h-0.5 after:rounded-full after:bg-accent' : 'text-fg-muted hover:text-fg',
               FOCUS_RING,
             )}
           >
@@ -357,7 +358,7 @@ export function Segmented<T extends string>({ options, value, onChange, label, s
   size?: 'sm' | 'md';
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex flex-wrap overflow-hidden rounded-lg border border-line bg-surface-2/60">
+    <div role="radiogroup" aria-label={label} className="inline-flex flex-wrap items-center gap-0.5 rounded-md border border-line bg-surface-2 p-0.5">
       {options.map(o => (
         <button
           key={o.value}
@@ -367,9 +368,9 @@ export function Segmented<T extends string>({ options, value, onChange, label, s
           title={o.title}
           onClick={() => onChange(o.value)}
           className={cx(
-            size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-3.5 py-2 text-sm',
-            'font-semibold transition-colors',
-            value === o.value ? 'bg-surface-2 text-fg' : 'text-fg-muted hover:text-fg',
+            size === 'sm' ? 'h-6 px-2 text-xs' : 'h-7 px-2.5 text-sm',
+            'rounded font-medium transition-colors',
+            value === o.value ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg',
             FOCUS_RING,
           )}
         >
@@ -414,7 +415,7 @@ export function MenuButton({ label, items, align = 'right', buttonClassName, ari
         aria-expanded={open}
         aria-label={ariaLabel}
         onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
-        className={cx('rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-fg-muted hover:bg-surface-2/60 hover:text-fg', FOCUS_RING, buttonClassName)}
+        className={cx('inline-flex h-7 items-center rounded-md border border-line-strong/80 bg-surface px-2.5 text-xs font-medium text-fg shadow-xs hover:bg-surface-2', FOCUS_RING, buttonClassName)}
       >
         {label}
       </button>
@@ -424,7 +425,7 @@ export function MenuButton({ label, items, align = 'right', buttonClassName, ari
           role="menu"
           onKeyDown={onMenuKey}
           onClick={e => e.stopPropagation()}
-          className={cx('absolute z-30 mt-1 min-w-[190px] overflow-hidden rounded-xl border border-line bg-surface py-1 shadow-pop', align === 'right' ? 'right-0' : 'left-0')}
+          className={cx('absolute z-30 mt-1 min-w-[190px] overflow-hidden rounded-lg border border-line bg-surface p-1 shadow-pop', align === 'right' ? 'right-0' : 'left-0')}
         >
           {items.map((item, i) => item === 'divider' ? (
             <div key={`d${i}`} className="my-1 border-t border-line" role="separator" />
@@ -435,7 +436,7 @@ export function MenuButton({ label, items, align = 'right', buttonClassName, ari
               role="menuitem"
               disabled={item.disabled}
               onClick={() => { setOpen(false); item.onSelect(); }}
-              className={cx('block w-full px-3.5 py-2 text-left text-sm outline-none disabled:opacity-40', item.danger ? 'text-danger-text hover:bg-danger-soft focus:bg-danger-soft' : 'text-fg hover:bg-surface-2/60 focus:bg-surface-2/60')}
+              className={cx('block w-full rounded-md px-2 py-1.5 text-left text-sm outline-none disabled:opacity-40', item.danger ? 'text-danger-text hover:bg-danger-soft focus:bg-danger-soft' : 'text-fg hover:bg-surface-2 focus:bg-surface-2')}
             >
               {item.label}
             </button>
@@ -489,13 +490,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={t.id}
             role={t.kind === 'error' ? 'alert' : 'status'}
             className={cx(
-              'pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-pop',
-              t.kind === 'success' && 'border-success/30 bg-surface text-success-text',
-              t.kind === 'error' && 'border-danger/30 bg-surface text-danger-text',
-              t.kind === 'info' && 'border-info/30 bg-surface text-info-text',
+              'pointer-events-auto flex items-start gap-2.5 rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-fg shadow-pop',
             )}
           >
-            <span aria-hidden className="mt-0.5">{t.kind === 'success' ? '✓' : t.kind === 'error' ? '!' : 'i'}</span>
+            <span aria-hidden className={cx('mt-1.5 h-2 w-2 shrink-0 rounded-full', t.kind === 'success' ? 'bg-success' : t.kind === 'error' ? 'bg-danger' : 'bg-info')} />
             <span className="flex-1 leading-relaxed">{t.text}</span>
             {t.action && (
               <button type="button" onClick={() => { t.action!.onClick(); dismiss(t.id); }} className="shrink-0 font-semibold underline underline-offset-2">{t.action.label}</button>
@@ -545,12 +543,12 @@ export function TypedConfirmModal({ title, body, confirmText, actionLabel, onCon
       size="sm"
       footer={<>
         <Button onClick={onClose} disabled={busy}>Cancel</Button>
-        <Button variant="danger" className="!bg-danger !text-on-solid hover:!bg-danger/90" disabled={!matches} loading={busy} onClick={run}>{actionLabel}</Button>
+        <Button variant="danger" className="!border-transparent !bg-danger !text-on-solid hover:!bg-danger/90" disabled={!matches} loading={busy} onClick={run}>{actionLabel}</Button>
       </>}
     >
       <div className="space-y-4 text-sm text-fg-muted">
         {body}
-        <Field label={<>Type <span className="normal-case text-fg">{confirmText}</span> to confirm</>} error={error || null}>
+        <Field label={<>Type <span className="font-semibold text-fg">{confirmText}</span> to confirm</>} error={error || null}>
           {({ id, msgId }) => (
             <input
               id={id}
@@ -583,7 +581,7 @@ export function ConfirmModal({ title, body, actionLabel, tone = 'primary', onCon
   return (
     <Modal onClose={busy ? () => undefined : onClose} title={title} size="sm" footer={<>
       <Button onClick={onClose} disabled={busy}>Cancel</Button>
-      <Button data-autofocus variant={tone === 'danger' ? 'danger' : 'primary'} className={tone === 'danger' ? '!bg-danger !text-on-solid hover:!bg-danger/90' : ''} loading={busy} onClick={run}>{actionLabel}</Button>
+      <Button data-autofocus variant={tone === 'danger' ? 'danger' : 'primary'} className={tone === 'danger' ? '!border-transparent !bg-danger !text-on-solid hover:!bg-danger/90' : ''} loading={busy} onClick={run}>{actionLabel}</Button>
     </>}>
       <div className="space-y-3 text-sm text-fg-muted">
         {body}
@@ -595,7 +593,7 @@ export function ConfirmModal({ title, body, actionLabel, tone = 'primary', onCon
 
 /** Store / product thumbnail with a letter fallback. */
 export function Thumb({ src, alt, size = 'md', rounded = 'rounded-lg' }: { src?: string | null; alt: string; size?: 'sm' | 'md' | 'lg'; rounded?: string }) {
-  const dim = { sm: 'h-9 w-9 text-xs', md: 'h-12 w-12 text-sm', lg: 'h-16 w-16 text-lg' }[size];
+  const dim = { sm: 'h-9 w-9 text-xs', md: 'h-10 w-10 text-sm', lg: 'h-16 w-16 text-lg' }[size];
   const [broken, setBroken] = useState(false);
   return src && !broken ? (
     // eslint-disable-next-line @next/next/no-img-element

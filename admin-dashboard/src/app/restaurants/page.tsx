@@ -1,4 +1,5 @@
 "use client";
+import { PageHeader, DataTable, Toolbar as KitToolbar, BulkBar, type Column } from '@/components/ui';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { useLiveSync, useFreshIds, FRESH_ROW_CLASS } from '@/lib/useLiveSync';
@@ -352,7 +353,7 @@ function StoresScreen() {
 
   const openWizard = (mode: 'create' | 'edit', id?: string, step?: StepKey) => setWizard({ mode, id, step });
 
-  if (!isAuthed) return <div className="p-10 text-center text-sm text-fg-muted" role="status">Checking your admin session…</div>;
+  if (!isAuthed) return null; // AppShell shows the session check
 
   const hiddenCount = statusCounts.draft + statusCounts.inactive;
   const kpis: { key: StatusFilter; label: string; value: number; tone: string; help: string }[] = [
@@ -364,23 +365,126 @@ function StoresScreen() {
     { key: 'inactive', label: 'Inactive', value: statusCounts.inactive, tone: 'text-danger-text', help: STATUS_META.inactive.help },
   ];
 
-  return (
-    <div className="mx-auto max-w-7xl space-y-5 text-fg">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
-        <div>
-          <h1 className="text-2xl font-semibold text-fg">Stores</h1>
-          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Onboard restaurants, shops and campus stalls, manage their menus, hours and partner logins, and switch them on or off. Changes reach the customer app live.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => { loadStores(); stats.reload(); }} disabled={loading} aria-label="Refresh stores">{loading ? 'Loading…' : '↻ Refresh'}</Button>
-          <Button variant="primary" onClick={() => openWizard('create')}>
-            + Add store{hasDraft && <span className="rounded bg-surface-2 px-1.5 py-0.5 text-xs font-semibold">draft saved</span>}
-          </Button>
-        </div>
-      </header>
+  const columns: Column<Store>[] = [
+    {
+      key: 'name',
+      header: 'Store',
+      sortValue: s => s.name,
+      cell: store => {
+        const id = storeId(store);
+        const status = storeStatus(store);
+        const local = isLocalVendorType(store.vendorType);
+        return (
+          <button type="button" onClick={() => setDrawer({ id, tab: 'overview' })} className={cx('flex w-full min-w-[220px] max-w-[520px] items-center gap-3 rounded-md text-left', FOCUS_RING)}>
+            <Thumb src={store.imageUrl} alt={store.name} />
+            <span className="min-w-0">
+              <span className="flex flex-wrap items-center gap-1.5">
+                <span className="truncate font-medium text-fg hover:underline">{store.name}</span>
+                <Chip tone={STATUS_TONE[status]} dot title={status === 'closed' && store.closedReason ? store.closedReason : STATUS_META[status].help}>{status === 'closed' && store.isOpenNow === false ? 'Paused' : STATUS_META[status].label}</Chip>
+                {store.isFeatured && <Chip tone="amber">{store.featuredBadge || 'Featured'}</Chip>}
+                {store.isOffline && !local && <Chip title="No partner app; Zenvy handles orders">Managed</Chip>}
+                {local && <Chip tone="sky" title="Customers pay the stall cash; the stall delivers with Zenvy Vendor">Stall, cash</Chip>}
+                <FssaiChip store={store} />
+                {!store.hasPassword && !(store.isOffline && !local) && <Chip tone="amber" title={local ? 'The stall cannot see its orders until it can sign in to Zenvy Vendor' : 'The partner cannot sign in to accept orders'}>No login</Chip>}
+              </span>
+              <span className="mt-0.5 block truncate text-xs text-fg-muted">{vendorLabel(store.vendorType)} · {[store.location, store.campus].filter(Boolean).join(' · ')}</span>
+              <span className="block truncate text-xs text-fg-subtle">{summarizeWeekly(weeklyFromStore(store.operatingHours))}{!local && store.deliveryTime ? ` · ${store.deliveryTime} min` : ''}</span>
+            </span>
+          </button>
+        );
+      },
+    },
+    {
+      key: 'today',
+      header: 'Today',
+      align: 'right',
+      hideBelow: 'lg',
+      sortValue: s => stats.statsFor(storeId(s)).todayRevenue,
+      cell: s => {
+        const st = stats.statsFor(storeId(s));
+        return (
+          <div className="tabular-nums" title="Non-cancelled orders today (IST) and their item subtotal">
+            <p className="text-fg">{stats.loading ? '…' : formatINR(st.todayRevenue)}</p>
+            <p className="text-xs text-fg-muted">{stats.loading ? '' : `${st.todayOrders} ${st.todayOrders === 1 ? 'order' : 'orders'}`}</p>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'menu',
+      header: 'Items',
+      align: 'right',
+      hideBelow: 'lg',
+      sortValue: s => s.itemCount ?? 0,
+      cell: s => (
+        <button type="button" onClick={() => setDrawer({ id: storeId(s), tab: 'menu' })} className={cx('rounded px-1 tabular-nums hover:underline', (s.itemCount ?? 0) === 0 ? 'text-warning-text' : 'text-fg', FOCUS_RING)} title="Open the menu">
+          {s.itemCount ?? 0}
+        </button>
+      ),
+    },
+    {
+      key: 'toggles',
+      header: <span title="Live = visible to customers · Open = taking orders (off pauses the store) · Featured = promoted on Home">Live, open, featured</span>,
+      align: 'center',
+      width: '150px',
+      cell: store => {
+        const id = storeId(store);
+        const local = isLocalVendorType(store.vendorType);
+        const isBusy = !!busy[id];
+        return (
+          <div className="flex items-center justify-center gap-4" data-row-stop>
+            <Toggle size="sm" srOnlyLabel label={`${store.name} visible to customers`} checked={store.isActive} disabled={isBusy} onChange={() => toggleActive(store)} />
+            <Toggle size="sm" srOnlyLabel label={`${store.name} taking orders`} checked={store.isOpenNow !== false} disabled={isBusy || !store.isActive} onChange={() => toggleOpen(store)} />
+            {local ? <span className="w-7 text-center text-xs text-fg-subtle" title="Stalls are not featured on Home">–</span> : <Toggle size="sm" tone="amber" srOnlyLabel label={`${store.name} featured`} checked={!!store.isFeatured} disabled={isBusy} onChange={() => toggleFeatured(store)} />}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'actions',
+      header: <span className="sr-only">Actions</span>,
+      align: 'right',
+      width: '130px',
+      cell: store => {
+        const id = storeId(store);
+        const local = isLocalVendorType(store.vendorType);
+        return (
+          <div className="flex items-center justify-end gap-1.5">
+            <Button size="sm" onClick={() => setDrawer({ id, tab: 'overview' })}>Manage</Button>
+            <MenuButton ariaLabel={`More actions for ${store.name}`} label="•••" items={[
+              { label: 'Edit details', onSelect: () => openWizard('edit', id) },
+              { label: 'Menu', onSelect: () => setDrawer({ id, tab: 'menu' }) },
+              { label: 'Hours', onSelect: () => setDrawer({ id, tab: 'hours' }) },
+              { label: local ? 'Vendor login' : 'Partner login', onSelect: () => setDrawer({ id, tab: 'login' as DrawerTab }) },
+              { label: 'Licences, tax and payout', onSelect: () => setDrawer({ id, tab: 'compliance' as DrawerTab }) },
+              ...(local ? [] : [{ label: 'Promote', onSelect: () => setDrawer({ id, tab: 'promote' as DrawerTab }) }]),
+              'divider',
+              { label: 'Duplicate store', onSelect: () => setDuplicating(store) },
+              { label: 'Delete…', onSelect: () => setDeleting(store), danger: true },
+            ]} />
+          </div>
+        );
+      },
+    },
+  ];
 
-      {/* KPIs */}
-      <section aria-label="Summary" className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+  return (
+    <div className="text-fg">
+      <PageHeader
+        title="Stores"
+        description="Restaurants, shops and campus stalls: details, menus, hours, partner logins and whether customers can order. Changes reach the customer app live."
+        actions={
+          <>
+            <Button onClick={() => { loadStores(); stats.reload(); }} disabled={loading} aria-label="Refresh stores">{loading ? 'Loading…' : 'Refresh'}</Button>
+            <Button variant="primary" onClick={() => openWizard('create')}>
+              Add store{hasDraft && <span className="rounded bg-accent-hover px-1.5 text-xs font-medium">draft saved</span>}
+            </Button>
+          </>
+        }
+      />
+
+      {/* Status counts double as quick filters */}
+      <section aria-label="Summary" className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
         {kpis.map(k => (
           <button
             key={k.key}
@@ -388,164 +492,85 @@ function StoresScreen() {
             title={k.help}
             aria-pressed={filters.status === k.key}
             onClick={() => setF({ status: k.key })}
-            className={cx('rounded-xl border p-3 text-left transition-colors', filters.status === k.key ? 'border-success/30 bg-success-soft' : 'border-line bg-surface-2/60 hover:border-line', FOCUS_RING)}
+            className={cx('rounded-lg border bg-surface p-3 text-left shadow-xs transition-colors', filters.status === k.key ? 'border-accent ring-1 ring-accent/30' : 'border-line hover:border-line-strong', FOCUS_RING)}
           >
             <p className="text-xs text-fg-muted">{k.label}</p>
-            <div className={cx('mt-0.5 text-2xl font-semibold', k.tone)}>{loading ? <Skeleton className="mt-1 h-6 w-10" /> : k.value}</div>
+            <div className={cx('mt-0.5 text-xl font-semibold tabular-nums', k.tone)}>{loading ? <Skeleton className="mt-1 h-6 w-10" /> : k.value}</div>
           </button>
         ))}
-        <div className="rounded-xl border border-line bg-surface-2/60 p-3" title="Non-cancelled orders placed today (IST)">
+        <div className="rounded-lg border border-line bg-surface p-3 shadow-xs" title="Non-cancelled orders placed today (IST)">
           <p className="text-xs text-fg-muted">Orders today</p>
-          <div className="mt-0.5 text-2xl font-semibold">{stats.loading ? <Skeleton className="mt-1 h-6 w-10" /> : stats.totals.todayOrders}</div>
+          <div className="mt-0.5 text-xl font-semibold tabular-nums">{stats.loading ? <Skeleton className="mt-1 h-6 w-10" /> : stats.totals.todayOrders}</div>
         </div>
-        <div className="rounded-xl border border-line bg-surface-2/60 p-3" title="Item subtotal of today's non-cancelled orders">
+        <div className="rounded-lg border border-line bg-surface p-3 shadow-xs" title="Item subtotal of today's non-cancelled orders">
           <p className="text-xs text-fg-muted">Sales today</p>
-          <div className="mt-0.5 text-2xl font-semibold text-success-text">{stats.loading ? <Skeleton className="mt-1 h-6 w-16" /> : formatINR(stats.totals.todayRevenue)}</div>
+          <div className="mt-0.5 text-xl font-semibold tabular-nums">{stats.loading ? <Skeleton className="mt-1 h-6 w-16" /> : formatINR(stats.totals.todayRevenue)}</div>
         </div>
       </section>
-      {!loading && hiddenCount > 0 && filters.status !== 'hidden' && (
-        <Callout tone="amber">
-          <span className="flex flex-wrap items-center justify-between gap-3">
-            <span><b>{hiddenCount} store{hiddenCount === 1 ? ' is' : 's are'} hidden</b> from customers ({statusCounts.draft} never published, {statusCounts.inactive} switched off). Review and switch them on with the Live toggle.</span>
-            <button type="button" onClick={() => setFilters({ ...DEFAULT_FILTERS, status: 'hidden', sort: filters.sort })} className="font-semibold underline">Show hidden stores</button>
-          </span>
-        </Callout>
-      )}
-      {stats.error && <Callout tone="amber">Order numbers are unavailable right now: {stats.error}</Callout>}
 
-      {/* Toolbar */}
-      <section aria-label="Find stores" className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface-2/60 p-3">
-        <div className="relative min-w-[220px] flex-1">
-          <input ref={searchRef} value={filters.search} onChange={e => setF({ search: e.target.value })} placeholder="Search name, area, campus or cuisine" aria-label="Search stores" className={cx(INPUT, 'py-2 pr-10')} />
-          <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded border border-line px-1.5 text-xs text-fg-muted">/</kbd>
+      <div className="mb-4 space-y-2">
+        {!loading && hiddenCount > 0 && filters.status !== 'hidden' && (
+          <Callout tone="amber">
+            <span className="flex flex-wrap items-center justify-between gap-3">
+              <span><b className="font-medium text-fg">{hiddenCount} {hiddenCount === 1 ? 'store is' : 'stores are'} hidden</b> from customers ({statusCounts.draft} never published, {statusCounts.inactive} switched off). Review them and switch them on with the Live toggle.</span>
+              <button type="button" onClick={() => setFilters({ ...DEFAULT_FILTERS, status: 'hidden', sort: filters.sort })} className="font-medium text-fg underline">Show hidden stores</button>
+            </span>
+          </Callout>
+        )}
+        {stats.error && <Callout tone="amber">Order numbers are unavailable right now: {stats.error}</Callout>}
+      </div>
+
+      {/* Filters: one row */}
+      <KitToolbar end={filtered ? <Button size="sm" variant="ghost" onClick={() => setFilters({ ...DEFAULT_FILTERS, sort: filters.sort })}>Clear filters</Button> : undefined}>
+        <div className="relative w-full sm:w-72">
+          <input ref={searchRef} value={filters.search} onChange={e => setF({ search: e.target.value })} placeholder="Search name, area, campus or cuisine" aria-label="Search stores" className="zv-control pr-8" />
+          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded border border-line bg-surface-2 px-1 text-2xs text-fg-subtle">/</kbd>
         </div>
-        <select value={filters.type} onChange={e => setF({ type: e.target.value })} aria-label="Store type" className={cx(INPUT.replace('w-full ', ''), 'w-auto py-2')}>
+        <select value={filters.type} onChange={e => setF({ type: e.target.value })} aria-label="Store type" className="zv-control w-auto">
           <option value="ALL">All types</option>
           {typeOptions.map(([t, n]) => <option key={t} value={t}>{vendorLabel(t)} ({n})</option>)}
         </select>
-        <select value={filters.campus} onChange={e => setF({ campus: e.target.value })} aria-label="Campus" className={cx(INPUT.replace('w-full ', ''), 'w-auto py-2')}>
+        <select value={filters.campus} onChange={e => setF({ campus: e.target.value })} aria-label="Campus" className="zv-control w-auto">
           <option value="ALL">All campuses</option>
           {campusOptions.map(([c, n]) => <option key={c} value={c}>{c} ({n})</option>)}
         </select>
-        <select value={filters.fssai} onChange={e => setF({ fssai: e.target.value as FssaiFilter })} aria-label="FSSAI licence" className={cx(INPUT.replace('w-full ', ''), 'w-auto py-2')}>
+        <select value={filters.fssai} onChange={e => setF({ fssai: e.target.value as FssaiFilter })} aria-label="FSSAI licence" className="zv-control w-auto">
           {FSSAI_FILTERS.map(o => <option key={o.value} value={o.value}>{o.label}{o.value !== 'ALL' ? ` (${fssaiCounts[o.value]})` : ''}</option>)}
         </select>
-        <select value={filters.sort} onChange={e => setF({ sort: e.target.value as SortKey })} aria-label="Sort by" className={cx(INPUT.replace('w-full ', ''), 'w-auto py-2')}>
+        <select value={filters.sort} onChange={e => setF({ sort: e.target.value as SortKey })} aria-label="Sort by" className="zv-control w-auto">
           {SORTS.map(s => <option key={s.value} value={s.value}>Sort: {s.label}</option>)}
         </select>
-        {filtered && <Button size="sm" variant="ghost" onClick={() => setFilters({ ...DEFAULT_FILTERS, sort: filters.sort })}>Clear filters</Button>}
-      </section>
+      </KitToolbar>
 
-      {/* Bulk bar */}
-      {selected.size > 0 && (
-        <div className="sticky top-2 z-20 flex flex-wrap items-center gap-2 rounded-xl border border-success/30 bg-surface px-4 py-2.5 text-sm" role="region" aria-label="Bulk actions">
-          <span className="font-semibold text-success-text">{selected.size} selected</span>
-          <Button size="sm" onClick={() => bulkSetActive(true)}>Publish</Button>
-          <Button size="sm" variant="danger" onClick={() => bulkSetActive(false)}>Hide</Button>
-          <Button size="sm" onClick={() => bulkSetOpen(false)}>Pause orders</Button>
-          <Button size="sm" onClick={() => bulkSetOpen(true)}>Resume orders</Button>
-          <button type="button" onClick={() => setSelected(new Set())} className="ml-auto text-xs font-semibold text-fg-muted hover:text-fg">Clear selection</button>
-        </div>
-      )}
+      <BulkBar count={selected.size} onClear={() => setSelected(new Set())}>
+        <Button size="sm" onClick={() => bulkSetActive(true)}>Publish</Button>
+        <Button size="sm" variant="danger" onClick={() => bulkSetActive(false)}>Hide</Button>
+        <Button size="sm" onClick={() => bulkSetOpen(false)}>Pause orders</Button>
+        <Button size="sm" onClick={() => bulkSetOpen(true)}>Resume orders</Button>
+      </BulkBar>
 
-      {loadError && (
-        <Callout tone="red"><span className="flex items-center justify-between gap-3">{loadError}<button type="button" onClick={() => loadStores()} className="font-semibold underline">Retry</button></span></Callout>
-      )}
-
-      {/* List */}
-      {loading ? (
-        <div className="space-y-2" role="status" aria-label="Loading stores">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-4 rounded-xl border border-line p-4">
-              <Skeleton className="h-12 w-12" />
-              <div className="flex-1 space-y-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-3 w-1/2" /></div>
-              <Skeleton className="hidden h-8 w-48 md:block" />
-            </div>
-          ))}
-        </div>
-      ) : !loadError && stores.length === 0 ? (
+      {!loading && !loadError && stores.length === 0 ? (
         <EmptyState
-          icon=""
-          title="No partners yet"
+          title="No stores yet"
           body="Add your first restaurant, shop or campus stall. The guided setup takes about 3 minutes; you can save a draft and finish later."
-          action={<Button variant="primary" onClick={() => openWizard('create')}>+ Add your first store</Button>}
+          action={<Button variant="primary" onClick={() => openWizard('create')}>Add your first store</Button>}
         />
-      ) : !loadError && visible.length === 0 ? (
-        <EmptyState title="No stores match" body="Try another type, campus, status or search." action={<Button onClick={() => setFilters({ ...DEFAULT_FILTERS, sort: filters.sort })}>Clear filters</Button>} />
       ) : (
-        <section aria-label="Stores" className="overflow-hidden rounded-xl border border-line">
-          <div className="hidden items-center gap-4 border-b border-line bg-surface-2/60 px-4 py-2 text-xs font-semibold text-fg-muted lg:flex">
-            <input type="checkbox" className="h-4 w-4 accent-[rgb(var(--accent))]" checked={allSelected} onChange={e => setSelected(e.target.checked ? new Set(visibleIds) : new Set())} aria-label="Select all shown stores" />
-            <span className="flex-1">{visible.length} store{visible.length === 1 ? '' : 's'}{filtered ? ` of ${stores.length}` : ''}</span>
-            <span className="w-[260px] text-center">Today · Rating · Menu</span>
-            <span className="w-[230px] text-center">Live · Open · Featured</span>
-            <span className="w-[120px]" />
-          </div>
-          <ul className="divide-y divide-white/5">
-            {visible.map(store => {
-              const id = storeId(store);
-              const status = storeStatus(store);
-              const local = isLocalVendorType(store.vendorType);
-              const st = stats.statsFor(id);
-              const rating = Number(store.rating) || 0;
-              const isBusy = !!busy[id];
-              return (
-                <li key={id} className={cx('group flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 transition-colors hover:bg-surface-2/60', selected.has(id) && 'bg-success-soft', isFresh(id) && FRESH_ROW_CLASS)}>
-                  <input type="checkbox" className="h-4 w-4 accent-[rgb(var(--accent))]" checked={selected.has(id)} onChange={() => setSelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; })} aria-label={`Select ${store.name}`} />
-                  <button type="button" onClick={() => setDrawer({ id, tab: 'overview' })} className={cx('flex min-w-[220px] flex-1 items-center gap-3 rounded-lg text-left', FOCUS_RING)}>
-                    <Thumb src={store.imageUrl} alt={store.name} />
-                    <span className="min-w-0">
-                      <span className="flex flex-wrap items-center gap-1.5">
-                        <span className="truncate font-semibold group-hover:text-success-text">{store.name}</span>
-                        <Chip tone={STATUS_TONE[status]} dot title={status === 'closed' && store.closedReason ? store.closedReason : STATUS_META[status].help}>{status === 'closed' && store.isOpenNow === false ? 'Paused' : STATUS_META[status].label}</Chip>
-                        {store.isFeatured && <Chip tone="amber">{store.featuredBadge || 'Featured'}</Chip>}
-                        {store.isOffline && !local && <Chip title="No partner app; Zenvy handles orders">Managed</Chip>}
-                        {local && <Chip tone="sky" title="Customers pay the stall cash; the stall delivers with Zenvy Vendor">Stall · COD</Chip>}
-                        <FssaiChip store={store} />
-                        {!store.hasPassword && !(store.isOffline && !local) && <Chip tone="amber" title={local ? 'The stall cannot see its orders until it can sign in to Zenvy Vendor' : 'The partner cannot sign in to accept orders'}>No login</Chip>}
-                      </span>
-                      <span className="mt-0.5 block truncate text-xs text-fg-muted">
-                        {vendorLabel(store.vendorType)} · {[store.location, store.campus].filter(Boolean).join(' · ')}
-                      </span>
-                      <span className="mt-0.5 block truncate text-xs text-fg-muted">{summarizeWeekly(weeklyFromStore(store.operatingHours))}{!local && store.deliveryTime ? ` · ${store.deliveryTime} min` : ''}</span>
-                    </span>
-                  </button>
-
-                  <dl className="grid w-full grid-cols-4 gap-2 text-center sm:w-[260px]">
-                    <div title="Non-cancelled orders today (IST)"><dt className="text-xs text-fg-muted">Orders</dt><dd className="text-sm font-semibold">{stats.loading ? '…' : st.todayOrders}</dd></div>
-                    <div title="Item subtotal today"><dt className="text-xs text-fg-muted">Sales</dt><dd className="text-sm font-semibold text-success-text">{stats.loading ? '…' : formatINR(st.todayRevenue)}</dd></div>
-                    <div><dt className="text-xs text-fg-muted">Rating</dt><dd className="text-sm font-semibold">{rating > 0 ? `${rating.toFixed(1)}★` : <span className="text-fg-muted">New</span>}</dd></div>
-                    <div><dt className="text-xs text-fg-muted">Menu</dt><dd className={cx('text-sm font-semibold', (store.itemCount ?? 0) === 0 && 'text-warning-text')}>{store.itemCount ?? 0}</dd></div>
-                  </dl>
-
-                  <div className="flex w-full items-center justify-around gap-3 sm:w-[230px]" onClick={e => e.stopPropagation()}>
-                    <Toggle size="sm" srOnlyLabel label={`${store.name} visible to customers`} checked={store.isActive} disabled={isBusy} onChange={() => toggleActive(store)} />
-                    <Toggle size="sm" srOnlyLabel label={`${store.name} taking orders`} checked={store.isOpenNow !== false} disabled={isBusy || !store.isActive} onChange={() => toggleOpen(store)} />
-                    {local ? <span className="w-9 text-center text-xs text-fg-subtle">—</span> : <Toggle size="sm" tone="amber" srOnlyLabel label={`${store.name} featured`} checked={!!store.isFeatured} disabled={isBusy} onChange={() => toggleFeatured(store)} />}
-                  </div>
-
-                  <div className="flex w-full items-center justify-end gap-2 sm:w-[120px]">
-                    <Button size="sm" onClick={() => setDrawer({ id, tab: 'overview' })}>Manage</Button>
-                    <MenuButton ariaLabel={`More actions for ${store.name}`} label="•••" items={[
-                      { label: 'Edit details', onSelect: () => openWizard('edit', id) },
-                      { label: 'Menu', onSelect: () => setDrawer({ id, tab: 'menu' }) },
-                      { label: 'Hours', onSelect: () => setDrawer({ id, tab: 'hours' }) },
-                      { label: local ? 'Vendor login' : 'Partner login', onSelect: () => setDrawer({ id, tab: 'login' as DrawerTab }) },
-                      { label: 'Licences, tax & payout', onSelect: () => setDrawer({ id, tab: 'compliance' as DrawerTab }) },
-                      ...(local ? [] : [{ label: 'Promote', onSelect: () => setDrawer({ id, tab: 'promote' as DrawerTab }) }]),
-                      'divider',
-                      { label: 'Duplicate store', onSelect: () => setDuplicating(store) },
-                      { label: 'Delete…', onSelect: () => setDeleting(store), danger: true },
-                    ]} />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-          <p className="border-t border-line px-4 py-2 text-xs text-fg-muted">
-            Toggles: <b>Live</b> = visible to customers · <b>Open</b> = taking orders (off pauses the store) · <b>Featured</b> = promoted on Home.
-          </p>
-        </section>
+        <DataTable
+          caption="Stores"
+          columns={columns}
+          rows={visible}
+          rowKey={s => storeId(s)}
+          loading={loading}
+          error={loadError}
+          onRetry={() => loadStores()}
+          selection={{ selected: Array.from(selected), onChange: keys => setSelected(new Set(keys)) }}
+          rowClassName={s => (isFresh(storeId(s)) ? FRESH_ROW_CLASS : undefined)}
+          pageSize={25}
+          noun="stores"
+          resetPageKey={JSON.stringify(filters)}
+          empty={{ title: 'No stores match', description: 'Try another type, campus, status or search.', action: <Button onClick={() => setFilters({ ...DEFAULT_FILTERS, sort: filters.sort })}>Clear filters</Button> }}
+        />
       )}
 
       {wizard && (wizard.mode === 'create' || wizardStore) && (
