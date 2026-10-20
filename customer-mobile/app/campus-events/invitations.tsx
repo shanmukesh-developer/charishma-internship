@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, FlatList, RefreshControl, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { campusEventsApi, CampusEventsError, errorCopy, fmtWhen, fromNow, CATEGORY_META, type Invitation } from '../../modules/campusEvents/campusEventsApi';
 import { EHeader, usePalette, Card, Btn, ErrorState, StateView, CE_HOME } from '../../modules/campusEvents/ui';
 import { useCampusEventsLive } from '../../modules/campusEvents/useCampusEventsLive';
@@ -54,15 +55,15 @@ export default function InvitationsScreen() {
           keyExtractor={(x) => x.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}
-          ListEmptyComponent={<StateView kind="empty" icon="✉️" title="No invitations" message="When a captain invites you to a team, it shows up here." actionLabel="Browse events" onAction={() => router.push('/campus-events' as any)} />}
+          ListEmptyComponent={<StateView kind="empty" icon="mail-outline" title="No invitations" message="When a captain invites you to a team, it shows up here." actionLabel="Browse events" onAction={() => router.push('/campus-events' as any)} />}
           renderItem={({ item }) => {
             const cat = item.event ? CATEGORY_META[item.event.category] || CATEGORY_META.OTHER : CATEGORY_META.OTHER;
             return (
               <Card>
-                <Text style={{ fontSize: 11, fontWeight: '900', color: p.accent, letterSpacing: 1 }}>{cat.icon} {cat.label.toUpperCase()}</Text>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: p.accent, letterSpacing: 0.2 }}>{cat.label}</Text>
                 <Text style={{ fontSize: 16, fontWeight: '900', color: p.text, marginTop: 4 }}>{item.event?.title}</Text>
-                <Text style={{ fontSize: 13, color: p.text, marginTop: 6 }}>👥 {item.team?.name} · captain {item.team?.captain}</Text>
-                <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 2 }}>🗓️ {fmtWhen(item.event?.startAt)}{item.event?.venue ? ` · 📍 ${item.event.venue}` : ''}</Text>
+                <Text style={{ fontSize: 13, color: p.text, marginTop: 6 }}><Ionicons name="people-outline" size={13} color={p.sub} /> {item.team?.name}{item.team?.captain ? ` · Captain: ${item.team.captain}` : ''}</Text>
+                <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 2 }}><Ionicons name="calendar-outline" size={13} color={p.sub} /> {fmtWhen(item.event?.startAt)}{item.event?.venue ? ` · ${item.event.venue}` : ''}</Text>
                 {item.expiresAt ? <Text style={{ fontSize: 11.5, color: p.warn, marginTop: 6, fontWeight: '800' }}>Expires {fromNow(item.expiresAt)}</Text> : null}
                 <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
                   <Btn label="Decline" small kind="secondary" style={{ flex: 1 }} loading={busy === `${item.id}:false`} onPress={() => decline(item)} />

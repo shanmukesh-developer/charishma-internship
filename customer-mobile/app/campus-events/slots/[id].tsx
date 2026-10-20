@@ -6,6 +6,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Alert } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { campusEventsApi, CampusEventsError, errorCopy, newIdempotencyKey, fmtClock, dayLabel, istYmd, inr, REG_STATUS_META, type EventDetail, type Slot, type SlotsResponse } from '../../../modules/campusEvents/campusEventsApi';
 import { EHeader, usePalette, Card, Btn, ErrorState, StateView, Notice, Row, useNow, useCampusEventsStatus, CE_HOME } from '../../../modules/campusEvents/ui';
 import SlotPicker, { DateStrip } from '../../../modules/campusEvents/SlotPicker';
@@ -97,28 +98,28 @@ export default function SlotBookingScreen() {
     <View style={{ flex: 1, backgroundColor: p.bg }}>
       <EHeader title="Book a slot" subtitle={ev.title} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 200 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}>
-        {closed ? <Notice tone="warn" icon="🔒">{ev.cta?.label || 'Booking is not open.'}</Notice> : null}
-        <Notice icon="ℹ️">You can book up to {data.maxBookingsPerStudent} slot{data.maxBookingsPerStudent === 1 ? '' : 's'} for this activity ({data.myBookings} booked). A picked slot is held for {status?.settings.holdMinutes || 10} minutes while you confirm.</Notice>
+        {closed ? <Notice tone="warn" icon="lock-closed-outline">{ev.cta?.label || 'Booking is not open.'}</Notice> : null}
+        <Notice icon="information-circle-outline">You can book up to {data.maxBookingsPerStudent} slot{data.maxBookingsPerStudent === 1 ? '' : 's'} for this activity ({data.myBookings} booked). A picked slot is held for {status?.settings.holdMinutes || 10} minutes while you confirm.</Notice>
         {myHeld ? (
           <Card style={{ borderColor: p.warn }}>
-            <Text style={{ fontWeight: '900', color: p.text }}>⏳ You are holding {fmtClock(myHeld.startAt)}–{fmtClock(myHeld.endAt)}</Text>
+            <Text style={{ fontWeight: '900', color: p.text }}><Ionicons name="hourglass-outline" size={14} color={p.warn} /> You are holding {fmtClock(myHeld.startAt)}–{fmtClock(myHeld.endAt)}</Text>
             <Btn label="Finish this booking" small onPress={() => router.push(`/campus-events/register/${ev.id}?regId=${myHeld.myRegistration!.id}` as any)} style={{ marginTop: 10 }} />
           </Card>
         ) : null}
         {myOpen.filter((x) => x.myRegistration?.status !== 'HELD').map((x) => (
           <Card key={x.id}>
-            <Text style={{ fontWeight: '800', color: p.text }}>{REG_STATUS_META[x.myRegistration!.status].icon} {dayLabel(istYmd(x.startAt))}: {fmtClock(x.startAt)}–{fmtClock(x.endAt)} · {REG_STATUS_META[x.myRegistration!.status].label}</Text>
+            <Text style={{ fontWeight: '800', color: p.text }}><Ionicons name={REG_STATUS_META[x.myRegistration!.status].icon} size={14} color={p.accent} /> {dayLabel(istYmd(x.startAt))}: {fmtClock(x.startAt)}–{fmtClock(x.endAt)} · {REG_STATUS_META[x.myRegistration!.status].label}</Text>
             <Btn label="View booking" small kind="ghost" onPress={() => router.push(`/campus-events/registration/${x.myRegistration!.id}` as any)} style={{ marginTop: 8, alignSelf: 'flex-start' }} />
           </Card>
         ))}
 
         {!data.days.length ? (
-          <StateView kind="empty" icon="🗓️" title="No slots yet" message="The organizer has not opened any slots. Check back later." />
+          <StateView kind="empty" icon="calendar-outline" title="No slots yet" message="The organizer has not opened any slots. Check back later." />
         ) : (
           <>
-            <Text style={{ fontSize: 11, fontWeight: '900', color: p.sub, letterSpacing: 1, marginBottom: 8 }}>1 · PICK A DATE</Text>
+            <Text style={{ fontSize: 12.5, fontWeight: '800', color: p.sub, letterSpacing: 0.2, marginBottom: 8 }}>1 · Pick a date</Text>
             <DateStrip days={data.days} value={date} onChange={(d) => { setDate(d); setSel(null); }} />
-            <Text style={{ fontSize: 11, fontWeight: '900', color: p.sub, letterSpacing: 1, marginTop: 18, marginBottom: 8 }}>2 · PICK A SLOT{date ? ` · ${dayLabel(date).toUpperCase()}` : ''}</Text>
+            <Text style={{ fontSize: 12.5, fontWeight: '800', color: p.sub, letterSpacing: 0.2, marginTop: 18, marginBottom: 8 }}>2 · Pick a slot{date ? ` · ${dayLabel(date)}` : ''}</Text>
             <SlotPicker slots={day?.slots || []} selectedId={sel} onSelect={(x) => setSel(x.id)} now={now} allowFull={waitlistOk} />
           </>
         )}
@@ -127,7 +128,7 @@ export default function SlotBookingScreen() {
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 16, paddingBottom: 24, backgroundColor: p.bg, borderTopWidth: 1, borderTopColor: p.border }}>
         {slot ? (
           <View style={{ marginBottom: 10 }} accessible accessibilityLabel={`Selected ${dayLabel(date || '')} ${fmtClock(slot.startAt)} to ${fmtClock(slot.endAt)}, ${slot.remaining} left, ${slot.price.isFree ? 'free' : slot.price.label}`}>
-            <Row label={`${date ? dayLabel(date) : ''} · ${fmtClock(slot.startAt)}–${fmtClock(slot.endAt)}`} value={slot.price.isFree ? 'FREE' : inr(slot.price.total)} strong />
+            <Row label={`${date ? dayLabel(date) : ''} · ${fmtClock(slot.startAt)}–${fmtClock(slot.endAt)}`} value={slot.price.isFree ? 'Free' : inr(slot.price.total)} strong />
             <Text style={{ fontSize: 11.5, color: p.sub }}>{slot.remaining} of {slot.capacity} places left{slot.label ? ` · ${slot.label}` : ''}</Text>
           </View>
         ) : (

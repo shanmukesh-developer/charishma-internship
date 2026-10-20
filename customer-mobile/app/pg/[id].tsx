@@ -30,6 +30,7 @@ import { PgSectionNav, SECTION_NAV_H } from '../../modules/pg/PgSectionNav';
 import { RoomsSection, roomTitle } from '../../modules/pg/PgRooms';
 import { KeyFacts, Highlights, About, Amenities, RulesSection, PoliciesSection, SafetySection, LocationSection, FaqSection } from '../../modules/pg/PgSections';
 import { ReviewsSection } from '../../modules/pg/PgReviews';
+import { formatISTDate } from '../../utils/format';
 
 /** Local (device-time) YYYY-MM-DD, so the default is never "yesterday" before 5:30 AM IST. */
 function toLocalYmd(d: Date): string {
@@ -184,9 +185,9 @@ export default function PGDetailScreen() {
     return cover ? [cover, ...list.filter((x) => x !== cover)] : list;
   }, [pg?.photos]);
 
-  const promptLogin = (why = 'Log in to send a booking request.') => Alert.alert('Log in to continue', why, [
+  const promptLogin = (why = 'Sign in to send a booking request.') => Alert.alert('Sign in to continue', why, [
     { text: 'Not now', style: 'cancel' },
-    { text: 'Log in', onPress: () => router.push('/login' as any) },
+    { text: 'Sign in', onPress: () => router.push('/login' as any) },
   ]);
 
   const openRequest = () => {
@@ -344,7 +345,7 @@ export default function PGDetailScreen() {
             summary={summary}
             eligibility={eligibility}
             signedIn={!!user}
-            onLoginNeeded={() => promptLogin('Log in to report a review.')}
+            onLoginNeeded={() => promptLogin('Sign in to report a review.')}
             onReviewed={() => load('silent')}
           />
         ));
@@ -414,7 +415,7 @@ export default function PGDetailScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={[ui.body, { color: p.text, fontWeight: '600' }]}>{myOpen.status === 'Confirmed' ? 'Your bed is confirmed' : 'Request sent'}</Text>
                 <Text style={[ui.small, { color: p.sub, marginTop: 2 }]}>
-                  {[myOpen.room?.roomNumber ? `Room ${myOpen.room.roomNumber}` : '', myOpen.checkInDate ? `check-in ${new Date(myOpen.checkInDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : '', myOpen.status === 'Pending' ? 'the housing team will call you' : ''].filter(Boolean).join(' · ')}
+                  {[myOpen.room?.roomNumber ? `Room ${myOpen.room.roomNumber}` : '', myOpen.checkInDate && formatISTDate(myOpen.checkInDate) ? `Check-in ${formatISTDate(myOpen.checkInDate)}` : '', myOpen.status === 'Pending' ? 'The housing team will call you' : ''].filter(Boolean).join(' · ')}
                 </Text>
               </View>
               {myOpen.status === 'Pending' ? (
@@ -448,8 +449,8 @@ export default function PGDetailScreen() {
             <Text style={[ui.btnLabel, { color: p.sub }]}>{myOpen.status === 'Confirmed' ? 'Booked' : 'Requested'}</Text>
           </View>
         ) : (
-          <Press onPress={openRequest} disabled={!selected} accessibilityLabel={selected ? 'Request a bed' : hasRooms ? 'No beds free' : 'Rooms not listed yet'} style={[st.barBtn, { backgroundColor: p.accentFill }]}>
-            <Text style={[ui.btnLabel, { color: '#fff' }]}>{selected ? 'Request a bed' : hasRooms ? 'Full' : 'Request a bed'}</Text>
+          <Press onPress={openRequest} disabled={!selected} accessibilityLabel={selected ? 'Request a bed' : hasRooms ? 'No beds available' : 'Rooms not listed yet'} style={[st.barBtn, { backgroundColor: p.accentFill }]}>
+            <Text style={[ui.btnLabel, { color: '#fff' }]}>{selected ? 'Request a bed' : hasRooms ? 'Full' : 'Rooms not listed yet'}</Text>
           </Press>
         )}
       </View>

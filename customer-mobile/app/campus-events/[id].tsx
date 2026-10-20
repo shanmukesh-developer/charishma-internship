@@ -7,10 +7,11 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Linking, Alert, Platform, TouchableOpacity, Dimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-  campusEventsApi, CampusEventsError, errorCopy, fmtRange, fmtWhen, inr, capacityLine, CATEGORY_META, FORMAT_LABEL, REG_STATE_META, PAYMENT_MODE_LABEL,
+  campusEventsApi, CampusEventsError, errorCopy, fmtRange, fmtWhen, inr, capacityLine, teamSizeLabel, FORMAT_LABEL, REG_STATE_META, PAYMENT_MODE_LABEL,
   type EventDetail, type Announcement,
 } from '../../modules/campusEvents/campusEventsApi';
-import { EHeader, usePalette, Card, Btn, Pill, PricePill, RegStatusPill, ErrorState, StateView, Notice, Row, Poster, SectionTitle, CE_HOME } from '../../modules/campusEvents/ui';
+import { EHeader, usePalette, Card, Btn, Pill, PricePill, RegStatusPill, ErrorState, StateView, Notice, Row, Poster, SectionTitle, CE_HOME, useCampusEventsStatus, type CeIconName } from '../../modules/campusEvents/ui';
+import { Ionicons } from '@expo/vector-icons';
 import SafeImage from '../../components/SafeImage';
 import { useCampusEventsLive } from '../../modules/campusEvents/useCampusEventsLive';
 
@@ -26,6 +27,8 @@ export default function CampusEventDetail() {
   const [updates, setUpdates] = useState<Announcement[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Online pay is shown only while the server switch is on (off in production for now).
+  const status = useCampusEventsStatus();
 
   const load = useCallback(async () => {
     try {
@@ -51,13 +54,14 @@ export default function CampusEventDetail() {
     );
   }
 
-  const meta = CATEGORY_META[ev.category] || CATEGORY_META.OTHER;
   const state = REG_STATE_META[ev.registrationState];
   const cta = ev.cta;
   const cap = capacityLine(ev);
   const reasons = ev.eligibilityReasons || [];
   const needsVerify = reasons.some((r) => ['VERIFICATION_REQUIRED', 'CAMPUS_REQUIRED'].includes(r));
   const policy = ev.cancellationPolicy || {};
+  const payModes = (ev.paymentModes || []).filter((m) => m !== 'ONLINE' || !!status?.onlinePayEnabled);
+  const teamSize = ev.team ? teamSizeLabel(ev.team.min, ev.team.max) : '';
 
   const openTicket = async (regId: string) => {
     setBusy(true);
@@ -107,7 +111,7 @@ export default function CampusEventDetail() {
 
   return (
     <View style={{ flex: 1, backgroundColor: p.bg }}>
-      <EHeader title={ev.title} subtitle={`${meta.icon} ${ev.categoryLabel} · ${FORMAT_LABEL[ev.format]}`} />
+      <EHeader title={ev.title} subtitle={`${ev.categoryLabel} · ${FORMAT_LABEL[ev.format]}`} />
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}>
         <Poster uri={ev.posterUrl} category={ev.category} height={Math.round(SW * 0.62)} radius={0}>
           <View style={{ position: 'absolute', right: 12, bottom: 12 }}><PricePill label={ev.price.label} isFree={ev.price.isFree} /></View>
@@ -121,36 +125,36 @@ export default function CampusEventDetail() {
         <View style={{ padding: 16 }}>
           <Text style={{ fontSize: 22, fontWeight: '900', color: p.text, letterSpacing: -0.4 }} accessibilityRole="header">{ev.title}</Text>
           <Text style={{ fontSize: 13, color: p.sub, marginTop: 4, fontWeight: '700' }}>
-            {ev.organizer?.club?.verified ? '✔ ' : ''}{ev.organizer?.name || 'Campus organizer'}{ev.organizer?.club && ev.organizer.club.name !== ev.organizer.name ? ` · ${ev.organizer.club.name}` : ''}
+            {ev.organizer?.club?.verified ? <><Ionicons name="checkmark-circle" size={13} color={p.accent} />{' '}</> : null}{ev.organizer?.name || 'Campus organizer'}{ev.organizer?.club && ev.organizer.club.name !== ev.organizer.name ? ` · ${ev.organizer.club.name}` : ''}
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
             {ev.myRegistration ? <RegStatusPill status={ev.myRegistration.status} /> : null}
             <Pill label={state.label} color={state.color} icon={state.icon} />
             {cap ? <Pill label={cap} color={ev.registrationState === 'FULL' ? '#DC2626' : '#0EA5E9'} /> : null}
-            {ev.approvalRequired ? <Pill label="Organizer approval" color="#D97706" icon="🛂" /> : null}
-            {ev.featured ? <Pill label="Featured" color="#D97706" icon="★" /> : null}
+            {ev.approvalRequired ? <Pill label="Organizer approval" color="#D97706" icon="shield-checkmark-outline" /> : null}
+            {ev.featured ? <Pill label="Featured" color="#D97706" icon="star" /> : null}
           </View>
 
-          {ev.status === 'CANCELLED' ? <View style={{ marginTop: 12 }}><Notice tone="danger" icon="✕">This event was cancelled by the organizer. Any refund due follows the event policy.</Notice></View> : null}
+          {ev.status === 'CANCELLED' ? <View style={{ marginTop: 12 }}><Notice tone="danger" icon="close-circle-outline">This event was cancelled by the organizer. Any refund due follows the event policy.</Notice></View> : null}
           {needsVerify ? (
             <TouchableOpacity onPress={() => router.push('/friends?screen=verification' as any)} accessibilityRole="button" style={{ marginTop: 12 }}>
-              <Notice tone="warn" icon="🎓">{cta?.label || 'Verify your college to register.'} <Text style={{ color: p.accent, fontWeight: '900' }}>Verify now ›</Text></Notice>
+              <Notice tone="warn" icon="school-outline">{cta?.label || 'Verify your college to register.'} <Text style={{ color: p.accent, fontWeight: '900' }}>Verify now ›</Text></Notice>
             </TouchableOpacity>
           ) : null}
 
           <Card style={{ marginTop: 14 }}>
-            <InfoLine icon="🗓️" label="When" value={fmtRange(ev.startAt, ev.endAt)} />
-            <InfoLine icon="📍" label="Where" value={ev.venue || 'Venue to be announced'} extra={ev.venueDirections || undefined} />
-            {ev.venue ? <Btn label="Directions" icon="🧭" kind="ghost" small onPress={directions} style={{ alignSelf: 'flex-start', marginTop: 4, marginLeft: 30 }} /> : null}
-            <InfoLine icon="📝" label="Registration" value={`${ev.regOpensAt ? `Opens ${fmtWhen(ev.regOpensAt)}` : 'Open now'}${ev.regClosesAt ? ` · closes ${fmtWhen(ev.regClosesAt)}` : ''}`} />
+            <InfoLine icon="calendar-outline" label="When" value={fmtRange(ev.startAt, ev.endAt)} />
+            <InfoLine icon="location-outline" label="Where" value={ev.venue || 'Venue to be announced'} extra={ev.venueDirections || undefined} />
+            {ev.venue ? <Btn label="Directions" icon="navigate-outline" kind="ghost" small onPress={directions} style={{ alignSelf: 'flex-start', marginTop: 4, marginLeft: 30 }} /> : null}
+            <InfoLine icon="create-outline" label="Registration" value={`${ev.regOpensAt ? `Opens ${fmtWhen(ev.regOpensAt)}` : 'Open now'}${ev.regClosesAt ? ` · closes ${fmtWhen(ev.regClosesAt)}` : ''}`} />
             {ev.format !== 'SLOT' && ev.capacity.capacity ? (
-              <InfoLine icon="👥" label="Capacity" value={`${ev.capacity.capacity} ${ev.capacity.kind === 'TEAMS' ? 'teams' : 'seats'} · ${ev.capacity.remaining} left${ev.capacity.waitlistCount ? ` · ${ev.capacity.waitlistCount} on waitlist` : ''}`} />
+              <InfoLine icon="people-outline" label="Capacity" value={`${ev.capacity.capacity} ${ev.capacity.kind === 'TEAMS' ? 'teams' : 'seats'}${ev.capacity.remaining != null ? ` · ${ev.capacity.remaining} left` : ''}${ev.capacity.waitlistCount ? ` · ${ev.capacity.waitlistCount} on waitlist` : ''}`} />
             ) : null}
-            {ev.format === 'SLOT' ? <InfoLine icon="⏱️" label="Slots" value={`${cap || 'Pick a time slot'} · up to ${ev.maxBookingsPerStudent} booking${ev.maxBookingsPerStudent === 1 ? '' : 's'} per student`} /> : null}
+            {ev.format === 'SLOT' ? <InfoLine icon="timer-outline" label="Slots" value={`${cap || 'Pick a time slot'} · up to ${ev.maxBookingsPerStudent} booking${ev.maxBookingsPerStudent === 1 ? '' : 's'} per student`} /> : null}
           </Card>
 
           <Card>
-            <Text style={{ fontSize: 13, fontWeight: '900', color: p.text, marginBottom: 6 }}>{ev.price.isFree ? '🎉 Free event' : '💳 Fees'}</Text>
+            <Text style={{ fontSize: 13, fontWeight: '900', color: p.text, marginBottom: 6 }}>{ev.price.isFree ? 'Free event' : 'Fees'}</Text>
             {ev.price.isFree ? (
               <Text style={{ color: p.sub, fontSize: 12.5 }}>No payment needed.{ev.approvalRequired ? ' The organizer confirms each registration.' : ''}</Text>
             ) : (
@@ -159,7 +163,7 @@ export default function CampusEventDetail() {
                 {ev.price.extraCharges.map((c, i) => <Row key={i} label={c.label} value={inr(c.amount)} />)}
                 <Row label="Total" value={inr(ev.price.total)} strong />
                 <Text style={{ color: p.sub, fontSize: 11.5, marginTop: 6 }}>
-                  {ev.paymentModes.length ? `Pay by: ${ev.paymentModes.map((m) => PAYMENT_MODE_LABEL[m]).join(' · ')}` : 'Payment options are not available right now.'}
+                  {payModes.length ? `Payment: ${payModes.map((m) => PAYMENT_MODE_LABEL[m]).join(' · ')}` : 'Payment options are not available right now.'}
                 </Text>
               </>
             )}
@@ -167,11 +171,11 @@ export default function CampusEventDetail() {
 
           {ev.team ? (
             <Card>
-              <Text style={{ fontSize: 13, fontWeight: '900', color: p.text, marginBottom: 6 }}>👥 Team rules</Text>
-              <Row label="Team size" value={`${ev.team.min ?? 1} to ${ev.team.max ?? '?'} players`} />
+              <Text style={{ fontSize: 13, fontWeight: '900', color: p.text, marginBottom: 6 }}>Team rules</Text>
+              <Row label="Team size" value={teamSize} />
               {ev.team.maxTeams ? <Row label="Teams" value={`${ev.team.maxTeams} max`} /> : null}
               <Row label="Substitutions" value={ev.team.allowSubstitutions ? 'Allowed' : 'Roster locks at registration'} />
-              <Row label="One team per student" value={ev.team.multiTeamAllowed ? 'No (multiple teams allowed)' : 'Yes'} />
+              <Row label="Teams per student" value={ev.team.multiTeamAllowed ? 'More than one' : 'One'} />
               <Text style={{ color: p.sub, fontSize: 11.5, marginTop: 6 }}>All players must be verified students of this campus and accept the captain's invitation.</Text>
             </Card>
           ) : null}
@@ -192,10 +196,10 @@ export default function CampusEventDetail() {
 
           {updates.length ? (
             <>
-              <SectionTitle kicker="FOR REGISTRANTS">Event updates</SectionTitle>
+              <SectionTitle kicker="For registrants">Event updates</SectionTitle>
               {updates.map((a) => (
                 <Card key={a.id}>
-                  <Text style={{ fontSize: 13.5, fontWeight: '900', color: p.text }}>{a.kind === 'VENUE_CHANGE' ? '📍 ' : a.kind === 'SCHEDULE_CHANGE' ? '🕒 ' : a.kind === 'CANCELLATION' ? '✕ ' : '📣 '}{a.title}</Text>
+                  <Text style={{ fontSize: 13.5, fontWeight: '900', color: p.text }}><Ionicons name={a.kind === 'VENUE_CHANGE' ? 'location-outline' : a.kind === 'SCHEDULE_CHANGE' ? 'time-outline' : a.kind === 'CANCELLATION' ? 'close-circle-outline' : 'megaphone-outline'} size={14} color={a.kind === 'CANCELLATION' ? p.danger : p.accent} />{' '}{a.title}</Text>
                   <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 4, lineHeight: 18 }}>{a.body}</Text>
                   <Text style={{ fontSize: 10.5, color: p.muted, marginTop: 6 }}>{fmtWhen(a.createdAt)}</Text>
                 </Card>
@@ -218,13 +222,13 @@ export default function CampusEventDetail() {
   );
 }
 
-function InfoLine({ icon, label, value, extra }: { icon: string; label: string; value: string; extra?: string }) {
+function InfoLine({ icon, label, value, extra }: { icon: CeIconName; label: string; value: string; extra?: string }) {
   const p = usePalette();
   return (
     <View style={{ flexDirection: 'row', gap: 10, paddingVertical: 6 }} accessible accessibilityLabel={`${label}: ${value}${extra ? `. ${extra}` : ''}`}>
-      <Text style={{ fontSize: 16, width: 20 }}>{icon}</Text>
+      <Ionicons name={icon} size={18} color={p.accent} style={{ width: 20, marginTop: 1 }} />
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 10.5, fontWeight: '900', color: p.muted, letterSpacing: 0.6 }}>{label.toUpperCase()}</Text>
+        <Text style={{ fontSize: 11.5, fontWeight: '800', color: p.muted, letterSpacing: 0.2 }}>{label}</Text>
         <Text style={{ fontSize: 13.5, fontWeight: '700', color: p.text, marginTop: 1 }}>{value}</Text>
         {extra ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>{extra}</Text> : null}
       </View>

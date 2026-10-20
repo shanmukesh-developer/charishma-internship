@@ -94,7 +94,7 @@ export function PgVideoSection({ videos, roomTypeLabels }: { videos: PgVideo[]; 
   if (!videos.length) return null;
   return (
     <View>
-      <SectionHeading title="Room tour" detail={videos.length > 1 ? `${videos.length} videos` : undefined} />
+      <SectionHeading title={videos.length > 1 ? 'Room tours' : 'Room tour'} detail={videos.length > 1 ? `${videos.length} videos` : undefined} />
       {videos.map((v) => (
         <VideoCard key={v.id} video={v} roomTypeLabel={v.roomType ? roomTypeLabels[v.roomType] : undefined} playing={playingId === v.id} onPlay={() => setPlayingId(v.id)} />
       ))}

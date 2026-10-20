@@ -3,8 +3,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from '../../../../components/KeyboardAvoidingView';
-import { campusEventsApi, CampusEventsError, errorCopy, fmtRange, inr, type EventDetail } from '../../../../modules/campusEvents/campusEventsApi';
+import { campusEventsApi, CampusEventsError, errorCopy, fmtRange, inr, teamSizeLabel, type EventDetail } from '../../../../modules/campusEvents/campusEventsApi';
 import { EHeader, usePalette, Card, Btn, Field, ErrorState, StateView, Notice, Row, CE_HOME } from '../../../../modules/campusEvents/ui';
 
 export default function NewTeamScreen() {
@@ -64,14 +65,14 @@ export default function NewTeamScreen() {
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
           <Card>
             <Text style={{ fontSize: 15, fontWeight: '900', color: p.text }}>{ev.title}</Text>
-            <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 4 }}>🗓️ {fmtRange(ev.startAt, ev.endAt)}</Text>
-            {t ? <Row label="Team size" value={`${t.min ?? 1}–${t.max ?? '?'} players`} /> : null}
-            {t?.maxTeams ? <Row label="Team places left" value={`${ev.capacity.remaining ?? '?'} of ${t.maxTeams}`} /> : null}
-            <Row label="Team fee" value={ev.price.isFree ? 'FREE' : inr(ev.price.total)} />
+            <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 4 }}><Ionicons name="calendar-outline" size={13} color={p.sub} /> {fmtRange(ev.startAt, ev.endAt)}</Text>
+            {t ? <Row label="Team size" value={teamSizeLabel(t.min, t.max)} /> : null}
+            {t?.maxTeams && ev.capacity.remaining != null ? <Row label="Team places left" value={`${ev.capacity.remaining} of ${t.maxTeams}`} /> : null}
+            <Row label="Team fee" value={ev.price.isFree ? 'Free' : inr(ev.price.total)} />
           </Card>
-          {ev.registrationState === 'FULL' ? <Notice tone="warn" icon="📋">All team places are taken. You can still form a team and submit it to the waitlist.</Notice> : null}
+          {ev.registrationState === 'FULL' ? <Notice tone="warn" icon="list-outline">All team places are taken. You can still form a team and submit it to the waitlist.</Notice> : null}
           <Field label="Team name" required value={name} onChangeText={(v) => { setName(v); setNameErr(null); }} maxLength={40} error={nameErr} placeholder="e.g. Hostel 7 Strikers" autoFocus returnKeyType="done" onSubmitEditing={create} />
-          <Notice icon="👑">You will be the captain. Next, invite classmates or share a join link. Players count only after they accept. When the roster is ready, submit it to take a team place.</Notice>
+          <Notice icon="information-circle-outline">You will be the captain. Next, invite classmates or share a join link. Players count only after they accept. When the roster is ready, submit it to take a team place.</Notice>
           <Btn label="Create team" onPress={create} loading={busy} />
         </ScrollView>
       </KeyboardAvoidingView>

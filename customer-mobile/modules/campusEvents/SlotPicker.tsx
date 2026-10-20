@@ -27,7 +27,7 @@ export function DateStrip({ days, value, onChange }: { days: { date: string; slo
           <TouchableOpacity key={d.date} onPress={() => onChange(d.date)} accessibilityRole="radio" accessibilityState={{ checked: on }}
             accessibilityLabel={`${dayLabel(d.date)}, ${open} slot${open === 1 ? '' : 's'} open`}
             style={[s.day, { backgroundColor: on ? p.accent : p.card2, borderColor: on ? p.accent : p.border }]}>
-            <Text style={{ fontSize: 11, fontWeight: '900', color: on ? '#fff' : p.sub }}>{dow.toUpperCase()}</Text>
+            <Text style={{ fontSize: 11.5, fontWeight: '800', color: on ? '#fff' : p.sub }}>{dow}</Text>
             <Text style={{ fontSize: 13.5, fontWeight: '900', color: on ? '#fff' : p.text, marginTop: 2 }} numberOfLines={1}>{rest.join(' ') || dayLabel(d.date)}</Text>
             <Text style={{ fontSize: 10, fontWeight: '800', color: on ? 'rgba(255,255,255,0.9)' : open ? p.success : p.danger, marginTop: 3 }}>{open ? `${open} open` : 'Full'}</Text>
           </TouchableOpacity>
@@ -56,7 +56,7 @@ export default function SlotPicker({ slots, selectedId, onSelect, now = Date.now
     <View>
       {groups.map((g) => (
         <View key={g.name} style={{ marginBottom: 10 }}>
-          <Text style={{ fontSize: 11, fontWeight: '900', color: p.sub, letterSpacing: 1, marginBottom: 8 }}>{g.name.toUpperCase()}</Text>
+          <Text style={{ fontSize: 12, fontWeight: '800', color: p.sub, letterSpacing: 0.2, marginBottom: 8 }}>{g.name}</Text>
           <View style={s.grid}>
             {g.slots.map((sl) => {
               const mine = sl.myRegistration && sl.myRegistration.status !== 'CANCELLED' ? sl.myRegistration : null;
@@ -77,7 +77,7 @@ export default function SlotPicker({ slots, selectedId, onSelect, now = Date.now
                     <View style={{ width: `${sl.capacity ? Math.min(100, Math.round(((sl.capacity - sl.remaining) / sl.capacity) * 100)) : 100}%`, height: '100%', backgroundColor: stateColor, borderRadius: 3 }} />
                   </View>
                   <Text style={{ fontSize: 10.5, fontWeight: '900', color: stateColor, marginTop: 4 }} numberOfLines={1}>{mine ? '★ ' : ''}{stateLabel}</Text>
-                  <Text style={{ fontSize: 11, fontWeight: '900', color: sl.price.isFree ? p.success : p.text, marginTop: 2 }}>{sl.price.isFree ? 'FREE' : sl.price.label}</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '900', color: sl.price.isFree ? p.success : p.text, marginTop: 2 }}>{sl.price.isFree ? 'Free' : sl.price.label}</Text>
                 </TouchableOpacity>
               );
             })}

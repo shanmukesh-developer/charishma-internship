@@ -2,13 +2,14 @@
 // decides: GET /check-in/events lists the events this account may check in; anyone else gets an empty list
 // and every call answers 403 NOT_EVENT_STAFF). v1 is typed-code check-in (no camera scanner in this app build):
 // pick event -> type the 10-character ticket code -> Validate (read-only verdict) -> colour + words result
-// VALID / ALREADY USED / CANCELLED / INVALID / NOT YET VALID / ... -> collect the fee when one is due ->
+// Valid / Already used / Cancelled / Invalid / Not yet valid / … -> collect the fee when one is due ->
 // Confirm entry (atomic, single use). Online only: if the server cannot be reached, do not admit.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, RefreshControl } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
-import { campusEventsApi, CampusEventsError, CHECKIN_META, fmtWhen, fmtClock, inr, type CheckInEvent, type CheckInReply } from '../../modules/campusEvents/campusEventsApi';
+import { campusEventsApi, CampusEventsError, CHECKIN_META, fmtWhen, fmtClock, inr, type CheckInEvent, type CheckInReply, type CeIconName } from '../../modules/campusEvents/campusEventsApi';
 import { EHeader, usePalette, Card, Btn, CheckRow, ErrorState, StateView, Notice, Row, SectionTitle } from '../../modules/campusEvents/ui';
 
 type Recent = { id: string; action: string; result: string; method: string; at: string | null; ticketCode: string | null; collectedPayment: boolean };
@@ -93,14 +94,14 @@ export default function CheckInScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: p.bg }}>
         <EHeader title="Entry check-in" />
-        <StateView kind="empty" icon="🛂" title="No check-in access" message="Only an event's organizer and the staff they grant can check attendees in. Ask the organizer to add you as staff." actionLabel="Retry" onAction={load} />
+        <StateView kind="empty" icon="shield-checkmark-outline" title="No check-in access" message="Only an event's organizer and the staff they grant can check attendees in. Ask the organizer to add you as staff." actionLabel="Retry" onAction={load} />
       </View>
     );
   }
 
   const ev = events.find((e) => e.id === eventId) || null;
   const verdict = admitted || reply;
-  const vm = verdict ? (admitted ? { title: 'ADMITTED', color: '#16A34A', icon: '✅' } : verdict.result === 'VALID' && verdict.paymentDue ? CHECKIN_META.PAYMENT_DUE : CHECKIN_META[verdict.result] || CHECKIN_META.INVALID) : null;
+  const vm: { title: string; color: string; icon: CeIconName } | null = verdict ? (admitted ? { title: 'Admitted', color: '#16A34A', icon: 'checkmark-circle' } : verdict.result === 'VALID' && verdict.paymentDue ? CHECKIN_META.PAYMENT_DUE : CHECKIN_META[verdict.result] || CHECKIN_META.INVALID) : null;
   const tk = verdict?.ticket;
 
   return (
@@ -109,7 +110,7 @@ export default function CheckInScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await Promise.all([load(), loadRecent()]); setRefreshing(false); }} tintColor={p.accent} />}>
-          <Notice tone="warn" icon="📶">Check-in works online only. If the result does not load, do not admit: ask the student to wait until the connection is back.</Notice>
+          <Notice tone="warn" icon="wifi-outline">Check-in works online only. If the result does not load, do not admit: ask the student to wait until the connection is back.</Notice>
 
           <SectionTitle>Event</SectionTitle>
           {events.map((e) => {
@@ -135,7 +136,7 @@ export default function CheckInScreen() {
 
               {offline ? (
                 <View style={{ marginTop: 14, borderRadius: 18, padding: 18, backgroundColor: '#DC2626' }} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-                  <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900' }}>📡 CANNOT VERIFY</Text>
+                  <Text style={{ color: '#fff', fontSize: 22, fontWeight: '900' }}><Ionicons name="cloud-offline-outline" size={22} color="#fff" /> Cannot verify</Text>
                   <Text style={{ color: '#fff', fontSize: 14, marginTop: 4, fontWeight: '700' }}>Do not admit. {offline}</Text>
                   <Btn label="Try again" kind="secondary" small onPress={admitted ? reset : reply ? confirm : validate} style={{ marginTop: 10, alignSelf: 'flex-start' }} />
                 </View>
@@ -144,7 +145,7 @@ export default function CheckInScreen() {
               {verdict && vm ? (
                 <View style={{ marginTop: 14, borderRadius: 18, padding: 18, backgroundColor: vm.color }} accessibilityRole="alert" accessibilityLiveRegion="assertive"
                   accessibilityLabel={`${vm.title}. ${verdict.label}`}>
-                  <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', letterSpacing: 0.5 }}>{vm.icon} {vm.title}</Text>
+                  <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900', letterSpacing: 0.2 }}><Ionicons name={vm.icon} size={26} color="#fff" /> {vm.title}</Text>
                   <Text style={{ color: '#fff', fontSize: 14, marginTop: 4, fontWeight: '700' }}>{admitted ? (admitted.collected ? `Entry recorded · ${inr(admitted.collected)} collected` : 'Entry recorded') : verdict.label}</Text>
                   {verdict.entryOpensAt ? <Text style={{ color: '#fff', fontSize: 13, marginTop: 4 }}>Entry opens {fmtWhen(verdict.entryOpensAt)}</Text> : null}
                 </View>
@@ -155,7 +156,7 @@ export default function CheckInScreen() {
                   <Row label={tk.kind === 'TEAM' ? 'Team' : 'Name'} value={tk.kind === 'TEAM' ? tk.team || 'Team' : tk.holder || '—'} strong />
                   {tk.team && tk.kind !== 'TEAM' ? <Row label="Team" value={tk.team} /> : null}
                   <Row label="Ticket" value={tk.ticketCode} />
-                  {tk.registrationCode ? <Row label="Registration" value={tk.registrationCode} /> : null}
+                  {tk.registrationCode ? <Row label="Registration code" value={tk.registrationCode} /> : null}
                   {tk.slot ? <Row label="Slot" value={`${tk.slot.label ? `${tk.slot.label} · ` : ''}${fmtClock(tk.slot.startAt)}–${fmtClock(tk.slot.endAt)}`} /> : null}
                   {tk.usedAt ? <Row label="Used at" value={fmtWhen(tk.usedAt)} /> : null}
                 </Card>
@@ -177,7 +178,7 @@ export default function CheckInScreen() {
                       const m = CHECKIN_META[r.result as keyof typeof CHECKIN_META] || CHECKIN_META.INVALID;
                       return (
                         <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 5, gap: 8 }}>
-                          <Text style={{ width: 20 }}>{m.icon}</Text>
+                          <Ionicons name={m.icon} size={16} color={m.color} style={{ width: 20 }} />
                           <Text style={{ flex: 1, color: p.text, fontSize: 12.5 }} numberOfLines={1}>{r.ticketCode || 'Unknown code'} · {r.action === 'CONFIRM' ? 'entry' : 'check'}{r.collectedPayment ? ' · fee' : ''}</Text>
                           <Text style={{ color: p.sub, fontSize: 11.5 }}>{m.title} · {fmtClock(r.at)}</Text>
                         </View>

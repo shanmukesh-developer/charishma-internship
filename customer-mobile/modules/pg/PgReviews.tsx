@@ -1,7 +1,8 @@
 /**
  * Reviews of a PG. Only real reviews: written by students whose confirmed stay has started (the server
  * checks; one per booking). Shows the average, the spread of ratings and the reviews (first name, rating,
- * month, text), five at a time. Anyone signed in can report a review; the Zenvy team moderates.
+ * month, text), five at a time. Anyone signed in can report a review (a small bottom sheet with the
+ * reasons, since an Android alert shows at most three buttons); the Zenvy team moderates.
  * A student who may review sees "Review your stay"; the form is a Modal (Android back closes it).
  * API: GET/POST /api/pg/:id/reviews, POST /api/pg/reviews/:id/report.
  */
@@ -11,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { API_URL } from '../../constants/api';
 import { apiFetch, readJson } from '../../utils/auth';
 import { monthYear, plural, ratingText, type PgReview, type PgReviewEligibility, type PgReviewPage, type ReviewSummary } from './pgApi';
-import { usePgPalette, Press, SectionHeading, ICON, TYPE, IconStar, s as ui } from './ui';
+import { usePgPalette, Press, SectionHeading, ICON, TYPE, IconStar, IconChevronRight, s as ui } from './ui';
 import { Card } from './blocks';
 
 const PAGE = 5;
@@ -37,6 +38,7 @@ export function ReviewsSection({ pgId, summary, eligibility, signedIn, onLoginNe
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [writing, setWriting] = useState(false);
+  const [reporting, setReporting] = useState<PgReview | null>(null);
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
@@ -62,21 +64,7 @@ export function ReviewsSection({ pgId, summary, eligibility, signedIn, onLoginNe
 
   const report = (r: PgReview) => {
     if (!signedIn) { onLoginNeeded(); return; }
-    const send = async (reason: string) => {
-      try {
-        const res = await apiFetch(`${API_URL}/api/pg/reviews/${r.id}/report`, { method: 'POST', body: JSON.stringify({ reason }) });
-        const body = await readJson(res);
-        Alert.alert(res.ok ? 'Report sent' : 'Could not report', body?.message || (res.ok ? 'The Zenvy team will review it.' : 'Please try again.'));
-      } catch {
-        Alert.alert('No connection', 'Check your internet and try again.');
-      }
-    };
-    Alert.alert('Report this review', 'Why should the Zenvy team look at it?', [
-      { text: 'Spam or advertising', onPress: () => send('spam') },
-      { text: 'Offensive', onPress: () => send('offensive') },
-      { text: 'Not a real stay', onPress: () => send('fake') },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    setReporting(r);
   };
 
   const canReview = !!eligibility?.canReview;
@@ -119,7 +107,7 @@ export function ReviewsSection({ pgId, summary, eligibility, signedIn, onLoginNe
 
       {error && !items.length && count > 0 ? (
         <Press onPress={() => load(1)} accessibilityLabel="Retry loading reviews" style={[ui.secondaryBtn, { borderColor: p.line, marginTop: 12 }]}>
-          <Text style={[ui.btnLabel, { color: p.text }]}>Couldn't load reviews. Try again</Text>
+          <Text style={[ui.btnLabel, { color: p.text }]}>Couldn't load reviews. Tap to try again.</Text>
         </Press>
       ) : null}
       {data?.hasMore ? (
@@ -135,6 +123,7 @@ export function ReviewsSection({ pgId, summary, eligibility, signedIn, onLoginNe
       {writing ? (
         <WriteReview pgId={pgId} onClose={() => setWriting(false)} onDone={() => { setWriting(false); onReviewed(); load(1); }} />
       ) : null}
+      {reporting ? <ReportSheet review={reporting} onClose={() => setReporting(null)} /> : null}
     </View>
   );
 }
@@ -163,6 +152,60 @@ function ReviewRow({ review, onReport }: { review: PgReview; onReport: () => voi
         </Press>
       </View>
     </View>
+  );
+}
+
+/** Reasons the server accepts (pgContent REVIEW_REPORT_REASONS); the values are sent as they are. */
+const REPORT_REASONS: { value: 'spam' | 'offensive' | 'fake'; label: string; hint: string }[] = [
+  { value: 'spam', label: 'Spam or advertising', hint: 'Promotes something or is not about this PG' },
+  { value: 'offensive', label: 'Offensive', hint: 'Abusive, hateful or harassing' },
+  { value: 'fake', label: 'Not a real stay', hint: 'The writer did not live here' },
+];
+function ReportSheet({ review, onClose }: { review: PgReview; onClose: () => void }) {
+  const p = usePgPalette();
+  const insets = useSafeAreaInsets();
+  const [sending, setSending] = useState<string | null>(null);
+
+  const send = async (reason: string) => {
+    if (sending) return;
+    setSending(reason);
+    try {
+      const res = await apiFetch(`${API_URL}/api/pg/reviews/${review.id}/report`, { method: 'POST', body: JSON.stringify({ reason }) });
+      const body = await readJson(res);
+      onClose();
+      Alert.alert(res.ok ? 'Report sent' : 'Could not report', body?.message || (res.ok ? 'The Zenvy team will review it.' : 'Please try again.'));
+    } catch {
+      setSending(null);
+      Alert.alert('No connection', 'Check your internet and try again.');
+    }
+  };
+
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={() => !sending && onClose()} statusBarTranslucent>
+      <View style={st.backdrop}>
+        <Press onPress={() => !sending && onClose()} accessibilityLabel="Close" style={{ flex: 1 }}><View /></Press>
+        <View style={[st.sheet, { backgroundColor: p.bg, paddingBottom: insets.bottom + 16 }]}>
+          <View style={[st.grabber, { backgroundColor: p.line }]} />
+          <Text style={[st.sheetTitle, { color: p.text }]} accessibilityRole="header">Report this review</Text>
+          <Text style={[ui.small, { color: p.sub, marginTop: 4 }]}>Why should the Zenvy team look at the review by {review.firstName}?</Text>
+          <View style={{ marginTop: 12 }}>
+            {REPORT_REASONS.map((r, i) => (
+              <Press key={r.value} onPress={() => send(r.value)} disabled={!!sending} accessibilityLabel={`${r.label}. ${r.hint}`} accessibilityState={{ busy: sending === r.value, disabled: !!sending }}
+                style={[st.reasonRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.line }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[ui.body, { color: p.text, fontWeight: '600' }]}>{r.label}</Text>
+                  <Text style={[ui.small, { color: p.muted, marginTop: 2 }]}>{r.hint}</Text>
+                </View>
+                {sending === r.value ? <ActivityIndicator color={p.sub} /> : <IconChevronRight size={18} color={p.muted} strokeWidth={ICON.stroke} />}
+              </Press>
+            ))}
+          </View>
+          <Press onPress={onClose} disabled={!!sending} accessibilityLabel="Cancel" style={[ui.secondaryBtn, { borderColor: p.line, marginTop: 12 }]}>
+            <Text style={[ui.btnLabel, { color: p.text }]}>Cancel</Text>
+          </Press>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -250,6 +293,7 @@ const st = StyleSheet.create({
   sheetTitle: { fontSize: TYPE.heading, fontWeight: '700' },
   picker: { flexDirection: 'row', gap: 4, marginTop: 16 },
   starBtn: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  reasonRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60, paddingVertical: 10 },
   input: { minHeight: 120, maxHeight: 220, fontSize: TYPE.body, lineHeight: 20, padding: 12 },
   metaRow: { flexDirection: 'row', gap: 12, marginTop: 8 },
   primary: { minHeight: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 16 },

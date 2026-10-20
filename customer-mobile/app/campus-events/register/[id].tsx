@@ -10,13 +10,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Alert, BackHandler, TouchableOpacity } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from '../../../components/KeyboardAvoidingView';
 import { useAuth } from '../../../context/AuthContext';
 import {
   campusEventsApi, CampusEventsError, errorCopy, newIdempotencyKey, inr, fmtRange, fmtClock, fmtWhen, mmss, PAYMENT_MODE_LABEL, REG_STATUS_META, PAYMENT_STATUS_LABEL,
   type EventDetail, type PaymentMode, type Question, type Registration, type RegisterBody,
 } from '../../../modules/campusEvents/campusEventsApi';
-import { EHeader, usePalette, Card, Btn, Field, Chips, CheckRow, ErrorState, StateView, Notice, Row, Pill, RegStatusPill, useNow, refreshCampusEventsStatus, CE_HOME } from '../../../modules/campusEvents/ui';
+import { EHeader, usePalette, Card, Btn, Field, Chips, CheckRow, ErrorState, StateView, Notice, Row, Pill, RegStatusPill, useNow, refreshCampusEventsStatus, useCampusEventsStatus, CE_HOME } from '../../../modules/campusEvents/ui';
 
 type Step = 'profile' | 'questions' | 'rules' | 'payment' | 'review' | 'done';
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) || '';
@@ -210,9 +211,9 @@ export default function RegisterScreen() {
 
           {held && step !== 'done' ? (
             holdGone ? (
-              <Notice tone="danger" icon="⌛">Your hold has ended and the slot went back to others. <Text style={{ fontWeight: '900', color: p.accent }} onPress={() => router.replace(`/campus-events/slots/${ev.id}` as any)}>Pick again ›</Text></Notice>
+              <Notice tone="danger" icon="hourglass-outline">Your hold has ended and the slot went back to others. <Text style={{ fontWeight: '900', color: p.accent }} onPress={() => router.replace(`/campus-events/slots/${ev.id}` as any)}>Pick again ›</Text></Notice>
             ) : (
-              <Notice tone="warn" icon="⏳">Slot {held.slot ? `${fmtClock(held.slot.startAt)}–${fmtClock(held.slot.endAt)}` : ''} held for you: <Text style={{ fontWeight: '900' }}>{holdLeft !== null ? mmss(holdLeft) : '…'}</Text> left to confirm.</Notice>
+              <Notice tone="warn" icon="hourglass-outline">Slot {held.slot ? `${fmtClock(held.slot.startAt)}–${fmtClock(held.slot.endAt)}` : ''} held for you: <Text style={{ fontWeight: '900' }}>{holdLeft !== null ? mmss(holdLeft) : '…'}</Text> left to confirm.</Notice>
             )
           ) : null}
 
@@ -225,10 +226,10 @@ export default function RegisterScreen() {
                 {(user as any)?.email ? <Row label="Email" value={String((user as any).email)} /> : null}
                 <Row label="Account" value="Verified Zenvy student" />
               </Card>
-              <Notice icon="🔒">The organizer sees your name, your registration code and your answers only. Never your phone, email or payment details.</Notice>
+              <Notice icon="lock-closed-outline">The organizer sees your name, your registration code and your answers only. Never your phone, email or payment details.</Notice>
               <EventSummary ev={ev} p={p} />
-              {wantWaitlist || slotId ? <Notice tone="info" icon="📋">This {slotId ? 'slot' : 'event'} is full. You will join the waitlist and be moved in automatically (or offered the place) when someone cancels.</Notice> : null}
-              {blockedPaid ? <Notice tone="danger" icon="💳">No payment option is available for this event right now, so registration cannot be completed. Please try again later.</Notice> : null}
+              {wantWaitlist || slotId ? <Notice tone="info" icon="list-outline">This {slotId ? 'slot' : 'event'} is full. You will join the waitlist and be moved in automatically (or offered the place) when someone cancels.</Notice> : null}
+              {blockedPaid ? <Notice tone="danger" icon="alert-circle-outline">No payment option is available for this event right now, so registration cannot be completed. Please try again later.</Notice> : null}
             </>
           ) : null}
 
@@ -250,7 +251,7 @@ export default function RegisterScreen() {
                 <Text style={{ fontSize: 13, fontWeight: '900', color: p.text, marginBottom: 4 }}>Cancellation terms</Text>
                 <Text style={{ color: p.sub, fontSize: 13, lineHeight: 19 }}>
                   {[
-                    ev.cancellationPolicy?.userCancelUntilHours != null ? `You can cancel up to ${ev.cancellationPolicy.userCancelUntilHours} h before the start.` : 'You can cancel until the cut-off Zenvy sets for this event.',
+                    ev.cancellationPolicy?.userCancelUntilHours != null ? `You can cancel up to ${ev.cancellationPolicy.userCancelUntilHours} hour${ev.cancellationPolicy.userCancelUntilHours === 1 ? '' : 's'} before the start.` : 'You can cancel until the cut-off Zenvy sets for this event.',
                     !isFree && ev.cancellationPolicy?.refundPct != null ? `Refund: ${ev.cancellationPolicy.refundPct}% of what you paid.` : null,
                     ev.cancellationPolicy?.text || null,
                     'After you check in, the registration cannot be cancelled.',
@@ -272,10 +273,10 @@ export default function RegisterScreen() {
               </Card>
               {modes.length ? (
                 <Chips<PaymentMode> value={mode} onChange={setMode}
-                  options={modes.map((m) => ({ key: m, label: PAYMENT_MODE_LABEL[m], hint: m === 'VENUE' ? 'Pay at the desk before entry' : m === 'WALLET' ? 'Deducted now from your Zenvy Wallet' : 'UPI / card through Razorpay' }))} />
-              ) : <Notice tone="danger" icon="💳">No payment option is available for this event right now.</Notice>}
-              {mode === 'VENUE' ? <View style={{ marginTop: 12 }}><Notice tone="warn" icon="💵">Your place is reserved now. Pay {inr(total)} at the venue desk: you are admitted only after paying.</Notice></View> : null}
-              {mode === 'ONLINE' ? <View style={{ marginTop: 12 }}><Notice icon="🔐">You will pay on Razorpay's secure page. Zenvy confirms your place only after Razorpay confirms the payment, never from the app screen alone.</Notice></View> : null}
+                  options={modes.map((m) => ({ key: m, label: PAYMENT_MODE_LABEL[m], hint: m === 'VENUE' ? 'Pay at the desk before entry' : m === 'WALLET' ? 'Deducted now from your Zenvy Wallet' : 'Secure checkout by Razorpay' }))} />
+              ) : <Notice tone="danger" icon="alert-circle-outline">No payment option is available for this event right now.</Notice>}
+              {mode === 'VENUE' ? <View style={{ marginTop: 12 }}><Notice tone="warn" icon="cash-outline">Your place is reserved now. Pay {inr(total)} at the venue desk: you are admitted only after paying.</Notice></View> : null}
+              {mode === 'ONLINE' ? <View style={{ marginTop: 12 }}><Notice icon="lock-closed-outline">You will pay on Razorpay's secure page. Zenvy confirms your place only after Razorpay confirms the payment, never from the app screen alone.</Notice></View> : null}
             </>
           ) : null}
 
@@ -287,7 +288,7 @@ export default function RegisterScreen() {
                 <Row label="Type" value={teamId ? 'Team registration' : regId || slotId ? 'Slot booking' : 'Individual'} />
                 {questions.length ? <Row label="Answers" value={`${Object.keys(cleanAnswers()).length} of ${questions.length}`} /> : null}
                 <Row label="Payment" value={isFree ? 'Free' : mode ? PAYMENT_MODE_LABEL[mode] : '—'} />
-                <Row label="Total" value={isFree ? 'FREE' : inr(total)} strong />
+                <Row label="Total" value={isFree ? 'Free' : inr(total)} strong />
                 {ev.approvalRequired ? <Text style={{ color: p.warn, fontSize: 12, marginTop: 6, fontWeight: '700' }}>The organizer approves each registration. Your ticket appears once approved.</Text> : null}
               </Card>
             </>
@@ -324,7 +325,7 @@ function Progress({ steps, idx }: { steps: Step[]; idx: number }) {
       <View style={{ flexDirection: 'row', gap: 4 }}>
         {steps.map((s, i) => <View key={s} style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: i <= idx ? p.accent : p.card2 }} />)}
       </View>
-      <Text style={{ fontSize: 11, color: p.sub, fontWeight: '800', marginTop: 6 }}>STEP {idx + 1} OF {steps.length} · {names[steps[idx]].toUpperCase()}</Text>
+      <Text style={{ fontSize: 12, color: p.sub, fontWeight: '800', marginTop: 6 }}>Step {idx + 1} of {steps.length} · {names[steps[idx]]}</Text>
     </View>
   );
 }
@@ -333,9 +334,9 @@ function EventSummary({ ev, p, slotLabel }: { ev: EventDetail; p: ReturnType<typ
   return (
     <Card>
       <Text style={{ fontSize: 15, fontWeight: '900', color: p.text }}>{ev.title}</Text>
-      <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 4 }}>🗓️ {fmtRange(ev.startAt, ev.endAt)}</Text>
-      {slotLabel ? <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 2 }}>⏱️ Your slot: {slotLabel}</Text> : null}
-      {ev.venue ? <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 2 }}>📍 {ev.venue}</Text> : null}
+      <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 4 }}><Ionicons name="calendar-outline" size={13} color={p.sub} /> {fmtRange(ev.startAt, ev.endAt)}</Text>
+      {slotLabel ? <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 2 }}><Ionicons name="timer-outline" size={13} color={p.sub} /> Your slot: {slotLabel}</Text> : null}
+      {ev.venue ? <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 2 }}><Ionicons name="location-outline" size={13} color={p.sub} /> {ev.venue}</Text> : null}
     </Card>
   );
 }
@@ -347,7 +348,7 @@ function QuestionInput({ q, value, onChange, error }: { q: Question; value: any;
     const v = q.type === 'YES_NO' ? (value === true ? 'yes' : value === false ? 'no' : null) : value ?? (q.type === 'MULTI_CHOICE' ? [] : null);
     return (
       <View style={{ marginBottom: 16 }}>
-        <Text style={{ fontSize: 11, fontWeight: '800', letterSpacing: 0.4, marginBottom: 8, color: p.sub }}>{q.label.toUpperCase()}{q.required ? <Text style={{ color: p.danger }}> *</Text> : null}</Text>
+        <Text style={{ fontSize: 12, fontWeight: '800', letterSpacing: 0.2, marginBottom: 8, color: p.sub }}>{q.label}{q.required ? <Text style={{ color: p.danger }}> *</Text> : null}</Text>
         <Chips multi={q.type === 'MULTI_CHOICE'} value={v} options={opts} accessibilityLabel={q.label}
           onChange={(nv: any) => onChange(q.type === 'YES_NO' ? nv === 'yes' : nv)} />
         {error ? <Text style={{ color: p.danger, fontSize: 11.5, marginTop: 4 }} accessibilityLiveRegion="polite">{error}</Text> : null}
@@ -366,29 +367,32 @@ function Done({ result, ev }: { result: { registration: Registration; waitlisted
   const router = useRouter();
   const r = result.registration;
   const m = REG_STATUS_META[r.status];
+  const status = useCampusEventsStatus();
+  // Online pay (Razorpay) shows only while the server switch is on; it is off in production for now.
+  const canPayOnline = r.status === 'PENDING_PAYMENT' && r.payment?.mode === 'ONLINE' && !!status?.onlinePayEnabled;
   const ticket = r.tickets.find((t) => t.status === 'ACTIVE');
-  const headline = r.status === 'CONFIRMED' ? "You're registered!" : r.status === 'WAITLISTED' ? "You're on the waitlist" : r.status === 'PENDING_APPROVAL' ? 'Registration sent' : r.status === 'PENDING_PAYMENT' ? 'Complete your payment' : m.label;
+  const headline = r.status === 'CONFIRMED' ? "You're registered" : r.status === 'WAITLISTED' ? "You're on the waitlist" : r.status === 'PENDING_APPROVAL' ? 'Registration sent' : r.status === 'PENDING_PAYMENT' ? (canPayOnline ? 'Complete your payment' : 'Payment pending') : m.label;
   return (
     <View style={{ alignItems: 'stretch' }}>
       <View style={{ alignItems: 'center', paddingVertical: 16 }}>
-        <Text style={{ fontSize: 54 }}>{r.status === 'CONFIRMED' ? '🎉' : m.icon}</Text>
+        <Ionicons name={r.status === 'CONFIRMED' ? 'checkmark-circle' : m.icon} size={56} color={r.status === 'CONFIRMED' ? p.success : p.accent} />
         <Text style={{ fontSize: 22, fontWeight: '900', color: p.text, marginTop: 8, textAlign: 'center' }} accessibilityRole="header">{headline}</Text>
         <Text style={{ fontSize: 13, color: p.sub, marginTop: 4, textAlign: 'center' }}>{ev.title}</Text>
       </View>
       <Card style={{ alignItems: 'center' }}>
-        <Text style={{ fontSize: 11, fontWeight: '900', color: p.muted, letterSpacing: 1 }}>REGISTRATION ID</Text>
-        <Text style={{ fontSize: 26, fontWeight: '900', color: p.text, letterSpacing: 2, marginTop: 4 }} selectable accessibilityLabel={`Registration ID ${r.code.split('').join(' ')}`}>{r.code}</Text>
+        <Text style={{ fontSize: 12, fontWeight: '800', color: p.muted, letterSpacing: 0.2 }}>Registration code</Text>
+        <Text style={{ fontSize: 26, fontWeight: '900', color: p.text, letterSpacing: 2, marginTop: 4 }} selectable accessibilityLabel={`Registration code ${r.code.split('').join(' ')}`}>{r.code}</Text>
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
           <RegStatusPill status={r.status} />
           {r.payment && r.payment.status !== 'NONE' ? <Pill label={PAYMENT_STATUS_LABEL[r.payment.status]} color={r.payment.status === 'DUE_AT_VENUE' || r.payment.status === 'PENDING' ? '#D97706' : '#059669'} /> : null}
         </View>
       </Card>
-      {r.status === 'CONFIRMED' && r.payment?.status === 'DUE_AT_VENUE' ? <Notice tone="warn" icon="💵">Pay {inr(r.payment.total)} at the venue desk before entry.</Notice> : null}
-      {r.status === 'PENDING_APPROVAL' ? <Notice icon="🕒">The organizer will review your registration. You will get a notification, and your ticket appears here once approved.</Notice> : null}
-      {r.status === 'WAITLISTED' ? <Notice icon="📋">If a place opens, you are moved in automatically{!ev.price.isFree ? ' or offered the place to confirm' : ''}. We will notify you.</Notice> : null}
-      {r.status === 'PENDING_PAYMENT' ? <Notice tone="warn" icon="💳">Your place is held until {fmtWhen(r.payment?.payBy)}. It is confirmed only after the payment succeeds.</Notice> : null}
-      {ticket ? <Btn label="View my QR ticket" icon="🎟️" onPress={() => router.replace(`/campus-events/ticket/${ticket.id}` as any)} style={{ marginTop: 4 }} /> : null}
-      {r.status === 'PENDING_PAYMENT' ? <Btn label="Pay now" icon="💳" onPress={() => router.replace(`/campus-events/registration/${r.id}?pay=1` as any)} style={{ marginTop: 4 }} /> : null}
+      {r.status === 'CONFIRMED' && r.payment?.status === 'DUE_AT_VENUE' ? <Notice tone="warn" icon="cash-outline">Pay {inr(r.payment.total)} at the venue desk before entry.</Notice> : null}
+      {r.status === 'PENDING_APPROVAL' ? <Notice icon="time-outline">The organizer will review your registration. You will get a notification, and your ticket appears here once approved.</Notice> : null}
+      {r.status === 'WAITLISTED' ? <Notice icon="list-outline">If a place opens, you are moved in automatically{!ev.price.isFree ? ' or offered the place to confirm' : ''}. We will notify you.</Notice> : null}
+      {r.status === 'PENDING_PAYMENT' ? <Notice tone="warn" icon="time-outline">{r.payment?.payBy ? `Your place is held until ${fmtWhen(r.payment.payBy)}. ` : ''}It is confirmed only after the payment succeeds.</Notice> : null}
+      {ticket ? <Btn label="View my QR ticket" icon="ticket-outline" onPress={() => router.replace(`/campus-events/ticket/${ticket.id}` as any)} style={{ marginTop: 4 }} /> : null}
+      {canPayOnline ? <Btn label="Pay now" onPress={() => router.replace(`/campus-events/registration/${r.id}?pay=1` as any)} style={{ marginTop: 4 }} /> : null}
       <Btn label="Registration details" kind="secondary" onPress={() => router.replace(`/campus-events/registration/${r.id}` as any)} style={{ marginTop: 10 }} />
       <TouchableOpacity onPress={() => router.replace('/campus-events/my' as any)} accessibilityRole="button" style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: 6 }}>
         <Text style={{ color: p.accent, fontWeight: '900' }}>My registrations</Text>

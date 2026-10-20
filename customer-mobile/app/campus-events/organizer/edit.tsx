@@ -7,6 +7,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Alert, TouchableOpacity, ActivityIndicator, BackHandler } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from '../../../components/KeyboardAvoidingView';
 import SafeImage from '../../../components/SafeImage';
 import { pickAndUploadImage, alertUploadError } from '../../../utils/imageUpload';
@@ -14,7 +15,7 @@ import {
   campusEventsApi, CampusEventsError, errorCopy, CATEGORIES, CATEGORY_META, QUESTION_TYPE_LABEL, istDate, istYmd, dayLabel, fmtClock, EVENT_STATUS_META,
   type Category, type EventFormat, type EventInput, type OrganizerEvent, type PaymentMode, type QuestionType, type OrganizerMe,
 } from '../../../modules/campusEvents/campusEventsApi';
-import { EHeader, usePalette, Card, Btn, Field, Chips, Toggle, ErrorState, StateView, Notice, SectionTitle, Pill } from '../../../modules/campusEvents/ui';
+import { EHeader, usePalette, Card, Btn, Field, Chips, Toggle, ErrorState, StateView, Notice, SectionTitle, Pill, useCampusEventsStatus } from '../../../modules/campusEvents/ui';
 
 type When = { date: string; time: string };
 type QDraft = { id: string; label: string; type: QuestionType; required: boolean; options: string; maxLength: string };
@@ -110,6 +111,8 @@ export default function OrganizerEventForm() {
   const [errs, setErrs] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState<'poster' | 'gallery' | null>(null);
+  // Online pay is offered to organizers only while the server switch is on (off in production for now).
+  const onlinePayOn = !!useCampusEventsStatus()?.onlinePayEnabled;
   const dirty = useRef(false);
 
   const load = useCallback(async () => {
@@ -208,7 +211,7 @@ export default function OrganizerEventForm() {
     return (
       <View style={{ flex: 1, backgroundColor: p.bg }}>
         <EHeader title="New event" />
-        <StateView kind="empty" icon="📣" title="Organizers only" message="Apply as an organizer first. The Zenvy team approves verified clubs and student organizers." actionLabel="Apply" onAction={() => router.replace('/campus-events/organizer' as any)} />
+        <StateView kind="empty" icon="megaphone-outline" title="Organizers only" message="Apply as an organizer first. The Zenvy team approves verified clubs and student organizers." actionLabel="Apply" onAction={() => router.replace('/campus-events/organizer' as any)} />
       </View>
     );
   }
@@ -220,46 +223,46 @@ export default function OrganizerEventForm() {
       <EHeader title={id ? 'Edit event' : 'New event'} subtitle={ev ? EVENT_STATUS_META[ev.status].label : 'Saved as a draft'} onBack={leave} />
       <KeyboardAvoidingView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
-          {locked ? <Notice tone="warn" icon="🔒">{ev?.status === 'SUBMITTED' ? 'This event is in review. Withdraw it from the event page to edit.' : 'This event can no longer be edited.'}</Notice> : null}
-          {live ? <Notice icon="ℹ️">The event is live. Poster, description, equipment, contact and instructions update at once; other changes go to the Zenvy team for review first.</Notice> : null}
+          {locked ? <Notice tone="warn" icon="lock-closed-outline">{ev?.status === 'SUBMITTED' ? 'This event is in review. Withdraw it from the event page to edit.' : 'This event can no longer be edited.'}</Notice> : null}
+          {live ? <Notice icon="information-circle-outline">The event is live. Poster, description, equipment, contact and instructions update at once; other changes go to the Zenvy team for review first.</Notice> : null}
 
-          <SectionTitle kicker="STEP 1">Poster & basics</SectionTitle>
+          <SectionTitle kicker="Step 1">Poster & basics</SectionTitle>
           <TouchableOpacity onPress={() => upload('poster')} disabled={!!uploading} accessibilityRole="button" accessibilityLabel={form.posterPath ? 'Change poster' : 'Upload poster'}
             style={{ height: 180, borderRadius: 18, borderWidth: 1.5, borderStyle: 'dashed', borderColor: p.accent, backgroundColor: p.accentSoft, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
             {uploading === 'poster' ? <ActivityIndicator color={p.accent} /> : form.posterPreview ? (
               <SafeImage source={{ uri: form.posterPreview }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-            ) : <><Text style={{ fontSize: 32 }}>🖼️</Text><Text style={{ color: p.accent, fontWeight: '900', marginTop: 6 }}>Upload poster</Text><Text style={{ color: p.sub, fontSize: 11.5 }}>Portrait or landscape, clear text</Text></>}
+            ) : <><Ionicons name="image-outline" size={34} color={p.accent} /><Text style={{ color: p.accent, fontWeight: '900', marginTop: 6 }}>Upload poster</Text><Text style={{ color: p.sub, fontSize: 11.5 }}>Portrait or landscape, clear text</Text></>}
           </TouchableOpacity>
           {form.posterPath ? <Btn label="Remove poster" small kind="ghost" onPress={() => { set('posterPath', null); set('posterPreview', null); }} style={{ alignSelf: 'flex-start', marginBottom: 8 }} /> : null}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
             {form.gallery.map((g, i) => (
               <TouchableOpacity key={`${g.path}-${i}`} onPress={() => setForm((f) => (f ? { ...f, gallery: f.gallery.filter((_, j) => j !== i) } : f))} accessibilityRole="button" accessibilityLabel={`Remove gallery image ${i + 1}`}>
                 <SafeImage source={{ uri: g.preview }} style={{ width: 72, height: 72, borderRadius: 12 }} contentFit="cover" />
-                <Text style={{ position: 'absolute', top: 2, right: 6, color: '#fff', fontWeight: '900', textShadowColor: '#000', textShadowRadius: 3 }}>✕</Text>
+                <Ionicons name="close-circle" size={20} color="#fff" style={{ position: 'absolute', top: 2, right: 2, textShadowColor: '#000', textShadowRadius: 3 }} />
               </TouchableOpacity>
             ))}
             {form.gallery.length < 6 ? (
               <TouchableOpacity onPress={() => upload('gallery')} disabled={!!uploading} accessibilityRole="button" accessibilityLabel="Add gallery image"
                 style={{ width: 72, height: 72, borderRadius: 12, borderWidth: 1, borderColor: p.border, backgroundColor: p.card2, alignItems: 'center', justifyContent: 'center' }}>
-                {uploading === 'gallery' ? <ActivityIndicator color={p.accent} /> : <Text style={{ fontSize: 22, color: p.sub }}>＋</Text>}
+                {uploading === 'gallery' ? <ActivityIndicator color={p.accent} /> : <Ionicons name="add" size={24} color={p.sub} />}
               </TouchableOpacity>
             ) : null}
           </View>
           <Field label="Title" required value={form.title} onChangeText={(v) => set('title', v)} maxLength={120} error={errs.title} placeholder="e.g. Drone Soccer League – Practice" />
-          <Text style={labelStyle(p)}>CATEGORY</Text>
-          <Chips<Category> value={form.category} onChange={(v: Category) => set('category', v)} options={CATEGORIES.map((c) => ({ key: c, label: `${CATEGORY_META[c].icon} ${CATEGORY_META[c].label}` }))} />
+          <Text style={labelStyle(p)}>Category</Text>
+          <Chips<Category> value={form.category} onChange={(v: Category) => set('category', v)} options={CATEGORIES.map((c) => ({ key: c, label: CATEGORY_META[c].label }))} />
           <View style={{ height: 14 }} />
           <Field label="Description" required value={form.description} onChangeText={(v) => set('description', v)} multiline maxLength={5000} error={errs.description} placeholder="What happens, who it is for, what students get" />
           <Field label="Tags (comma separated)" value={form.tags} onChangeText={(v) => set('tags', v)} maxLength={200} placeholder="robotics, beginners" />
           {me.managedClubs.length && !id ? (
             <>
-              <Text style={labelStyle(p)}>PUBLISH AS CLUB</Text>
-              <Chips value={form.entityId || 'none'} onChange={(v: string) => set('entityId', v === 'none' ? null : v)} options={[{ key: 'none', label: me.organizer?.displayName || 'Me' }, ...me.managedClubs.map((c) => ({ key: c.id, label: `✔ ${c.name}` }))]} />
+              <Text style={labelStyle(p)}>Publish as club</Text>
+              <Chips value={form.entityId || 'none'} onChange={(v: string) => set('entityId', v === 'none' ? null : v)} options={[{ key: 'none', label: me.organizer?.displayName || 'Me' }, ...me.managedClubs.map((c) => ({ key: c.id, label: c.name }))]} />
               <View style={{ height: 14 }} />
             </>
           ) : null}
 
-          <SectionTitle kicker="STEP 2">Where & when</SectionTitle>
+          <SectionTitle kicker="Step 2">Where & when</SectionTitle>
           <Field label="Venue" required value={form.venue} onChangeText={(v) => set('venue', v)} maxLength={160} error={errs.venue} placeholder="e.g. Main Ground, Block A Lab 204" />
           <Field label="Directions (optional)" value={form.venueDirections} onChangeText={(v) => set('venueDirections', v)} multiline maxLength={500} placeholder="Landmarks, gate number" />
           <WhenPick label="Starts" value={form.start} onChange={(v) => { set('start', v); if (form.end.date < v.date) set('end', { ...form.end, date: v.date }); }} error={errs.start} />
@@ -269,15 +272,15 @@ export default function OrganizerEventForm() {
           <Toggle label="Registration deadline" hint="Off: open until the event starts" value={!!form.regCloses} onChange={(on) => set('regCloses', on ? { date: form.start.date, time: '08:00' } : null)} />
           {form.regCloses ? <WhenPick label="Registration closes" value={form.regCloses} onChange={(v) => set('regCloses', v)} error={errs.regCloses} /> : null}
 
-          <SectionTitle kicker="STEP 3">Format & capacity</SectionTitle>
+          <SectionTitle kicker="Step 3">Format & capacity</SectionTitle>
           <Chips<EventFormat> value={form.format} onChange={(v: EventFormat) => set('format', v)}
-            options={[{ key: 'INDIVIDUAL', label: '🙋 Individual', hint: 'Workshops, talks' }, { key: 'SLOT', label: '🗓️ Slot booking', hint: 'Practice, facilities' }, { key: 'TEAM', label: '👥 Team', hint: 'Tournaments' }]} />
+            options={[{ key: 'INDIVIDUAL', label: 'Individual', hint: 'Workshops, talks' }, { key: 'SLOT', label: 'Slot booking', hint: 'Practice, facilities' }, { key: 'TEAM', label: 'Team', hint: 'Tournaments' }]} />
           <View style={{ height: 14 }} />
           {form.format === 'INDIVIDUAL' ? <Field label="Capacity (seats)" required value={form.capacity} onChangeText={(v) => set('capacity', v.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={5} error={errs.capacity} /> : null}
           {form.format === 'SLOT' ? (
             <>
               <Field label="Max bookings per student" value={form.maxBookingsPerStudent} onChangeText={(v) => set('maxBookingsPerStudent', v.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={2} error={errs.maxBookingsPerStudent} />
-              <Notice icon="🗓️">{id ? 'Add and edit time slots (capacity and price per slot) on the event page.' : 'After saving the draft, add the time slots on the event page.'}</Notice>
+              <Notice icon="calendar-outline">{id ? 'Add and edit time slots (capacity and price per slot) on the event page.' : 'After saving the draft, add the time slots on the event page.'}</Notice>
             </>
           ) : null}
           {form.format === 'TEAM' ? (
@@ -296,8 +299,8 @@ export default function OrganizerEventForm() {
           <Toggle label="I approve each registration" hint="Registrations wait for your approval before a ticket is issued" value={form.approvalRequired} onChange={(v) => set('approvalRequired', v)} />
           <Toggle label="Waitlist when full" value={form.waitlistEnabled} onChange={(v) => set('waitlistEnabled', v)} />
 
-          <SectionTitle kicker="STEP 4">Pricing</SectionTitle>
-          <Chips value={form.priceType} onChange={(v: 'FREE' | 'PAID') => set('priceType', v)} options={[{ key: 'FREE', label: '🎉 Free' }, { key: 'PAID', label: '💳 Paid' }]} />
+          <SectionTitle kicker="Step 4">Pricing</SectionTitle>
+          <Chips value={form.priceType} onChange={(v: 'FREE' | 'PAID') => set('priceType', v)} options={[{ key: 'FREE', label: 'Free' }, { key: 'PAID', label: 'Paid' }]} />
           <View style={{ height: 14 }} />
           {form.priceType === 'PAID' ? (
             <>
@@ -307,27 +310,33 @@ export default function OrganizerEventForm() {
                   <Field style={{ flex: 2 }} label={`Extra charge ${i + 1}`} value={c.label} maxLength={60} placeholder="e.g. Kit" onChangeText={(v) => set('extraCharges', form.extraCharges.map((x, j) => (j === i ? { ...x, label: v } : x)))} />
                   <Field style={{ flex: 1 }} label="₹" value={c.amount} keyboardType="decimal-pad" maxLength={6} onChangeText={(v) => set('extraCharges', form.extraCharges.map((x, j) => (j === i ? { ...x, amount: v.replace(/[^0-9.]/g, '') } : x)))} />
                   <TouchableOpacity onPress={() => set('extraCharges', form.extraCharges.filter((_, j) => j !== i))} accessibilityRole="button" accessibilityLabel={`Remove extra charge ${i + 1}`} style={{ width: 44, height: 44, marginTop: 22, alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ color: p.danger, fontSize: 18 }}>✕</Text>
+                    <Ionicons name="close" size={20} color={p.danger} />
                   </TouchableOpacity>
                 </View>
               ))}
               {form.extraCharges.length < 5 ? <Btn label="Add extra charge" small kind="ghost" onPress={() => set('extraCharges', [...form.extraCharges, { label: '', amount: '' }])} style={{ alignSelf: 'flex-start', marginBottom: 12 }} /> : null}
-              <Text style={labelStyle(p)}>HOW STUDENTS PAY</Text>
+              <Text style={labelStyle(p)}>How students pay</Text>
               <Chips<PaymentMode> multi value={form.paymentModes} onChange={(v: PaymentMode[]) => set('paymentModes', v)}
-                options={[{ key: 'VENUE', label: 'Pay at venue', hint: 'Collected at entry' }, { key: 'WALLET', label: 'Zenvy Wallet', hint: 'Only when Zenvy enables it' }, { key: 'ONLINE', label: 'Online', hint: 'Only when configured' }]} />
+                options={[
+                  { key: 'VENUE', label: 'Pay at venue', hint: 'Collected at entry' },
+                  { key: 'WALLET', label: 'Zenvy Wallet', hint: 'Only when Zenvy enables it' },
+                  // Online shows only while the server switch is on; an older event that already has it keeps the chip so it can be removed.
+                  ...(onlinePayOn ? [{ key: 'ONLINE' as PaymentMode, label: 'Pay online', hint: 'UPI / card by Razorpay' }]
+                    : form.paymentModes.includes('ONLINE') ? [{ key: 'ONLINE' as PaymentMode, label: 'Pay online', hint: 'Not available yet. Tap to remove' }] : []),
+                ]} />
               {errs.paymentModes ? <Text style={{ color: p.danger, fontSize: 11.5, marginTop: 4 }}>{errs.paymentModes}</Text> : null}
               <View style={{ height: 14 }} />
             </>
           ) : null}
 
-          <SectionTitle kicker="STEP 5">Who can join</SectionTitle>
-          <Text style={labelStyle(p)}>YEARS (NONE = ALL)</Text>
+          <SectionTitle kicker="Step 5">Who can join</SectionTitle>
+          <Text style={labelStyle(p)}>Years (leave empty for all)</Text>
           <Chips multi value={form.years.map(String)} onChange={(v: string[]) => set('years', v.map(Number).sort())} options={[1, 2, 3, 4, 5].map((y) => ({ key: String(y), label: `Year ${y}` }))} />
           <View style={{ height: 14 }} />
           <Field label="Branches (comma separated, empty = all)" value={form.branches} onChangeText={(v) => set('branches', v)} autoCapitalize="characters" maxLength={200} placeholder="CSE, ECE" />
           <Toggle label="18+ only" value={form.adultOnly} onChange={(v) => set('adultOnly', v)} />
 
-          <SectionTitle kicker="STEP 6">Rules & questions</SectionTitle>
+          <SectionTitle kicker="Step 6">Rules & questions</SectionTitle>
           <Field label="Rules" value={form.rules} onChangeText={(v) => set('rules', v)} multiline maxLength={5000} placeholder="Students must accept these to register" />
           {form.questions.map((q, i) => (
             <Card key={q.id}>
@@ -348,13 +357,13 @@ export default function OrganizerEventForm() {
           ))}
           {form.questions.length < 10 ? <Btn label="Add a question" small kind="ghost" onPress={() => set('questions', [...form.questions, { id: `q${Date.now().toString(36)}`, label: '', type: 'TEXT', required: true, options: '', maxLength: '' }])} style={{ alignSelf: 'flex-start', marginBottom: 12 }} /> : null}
 
-          <SectionTitle kicker="STEP 7">Details for attendees</SectionTitle>
+          <SectionTitle kicker="Step 7">Details for attendees</SectionTitle>
           <Field label="What to bring" value={form.equipment} onChangeText={(v) => set('equipment', v)} multiline maxLength={1000} />
           <Field label="Entry instructions" value={form.instructions} onChangeText={(v) => set('instructions', v)} multiline maxLength={1000} placeholder="Shown on the ticket" />
           <Field label="Contact (club email / desk)" value={form.contactText} onChangeText={(v) => set('contactText', v)} maxLength={300} hint="Shown to students. Avoid personal phone numbers." />
           <Field label="Entry opens (minutes before start)" value={form.entryOpensBeforeMin} onChangeText={(v) => set('entryOpensBeforeMin', v.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={4} />
 
-          <SectionTitle kicker="STEP 8">Cancellation policy</SectionTitle>
+          <SectionTitle kicker="Step 8">Cancellation policy</SectionTitle>
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <Field style={{ flex: 1 }} label="Cancel until (hours before)" value={form.cancelHours} onChangeText={(v) => set('cancelHours', v.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={3} error={errs.cancelHours} />
             {form.priceType === 'PAID' ? <Field style={{ flex: 1 }} label="Refund %" value={form.refundPct} onChangeText={(v) => set('refundPct', v.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={3} /> : null}
@@ -370,7 +379,7 @@ export default function OrganizerEventForm() {
   );
 }
 
-const labelStyle = (p: ReturnType<typeof usePalette>) => ({ fontSize: 11, fontWeight: '800' as const, letterSpacing: 0.4, marginBottom: 6, color: p.sub });
+const labelStyle = (p: ReturnType<typeof usePalette>) => ({ fontSize: 12, fontWeight: '800' as const, letterSpacing: 0.2, marginBottom: 6, color: p.sub });
 
 /** Date chips (next 120 days, IST) + time chips (30-minute steps). */
 function WhenPick({ label, value, onChange, error }: { label: string; value: When; onChange: (v: When) => void; error?: string }) {
@@ -390,7 +399,7 @@ function WhenPick({ label, value, onChange, error }: { label: string; value: Whe
   }, []);
   return (
     <View style={{ marginBottom: 14 }}>
-      <Text style={labelStyle(p)}>{label.toUpperCase()} · {dayLabel(value.date)} {fmtClock(new Date(`${value.date}T${value.time}:00+05:30`).toISOString())}</Text>
+      <Text style={labelStyle(p)}>{label} · {dayLabel(value.date)} {fmtClock(new Date(`${value.date}T${value.time}:00+05:30`).toISOString())}</Text>
       <ScrollView ref={dRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 16 }}>
         {dates.map((d) => {
           const on = d === value.date;
@@ -406,7 +415,7 @@ function WhenPick({ label, value, onChange, error }: { label: string; value: Whe
         {times.map((t) => {
           const on = t === value.time;
           return (
-            <TouchableOpacity key={t} onPress={() => onChange({ ...value, time: t })} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${label} time ${t}`}
+            <TouchableOpacity key={t} onPress={() => onChange({ ...value, time: t })} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${label} time ${fmtClock(new Date(`2026-01-01T${t}:00+05:30`).toISOString())}`}
               style={{ width: 76, minHeight: 44, borderRadius: 10, borderWidth: 1, borderColor: on ? p.accent : p.border, backgroundColor: on ? p.accentSoft : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontSize: 12, fontWeight: '800', color: on ? p.accent : p.sub }}>{fmtClock(new Date(`2026-01-01T${t}:00+05:30`).toISOString())}</Text>
             </TouchableOpacity>

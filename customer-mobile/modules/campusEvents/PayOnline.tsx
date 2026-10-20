@@ -9,6 +9,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Modal, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { Ionicons } from '@expo/vector-icons';
 import { campusEventsApi, errorCopy, inr, type PaymentBlock, type RegStatus } from './campusEventsApi';
 import { usePalette, Btn, Notice } from './ui';
 
@@ -80,7 +81,7 @@ export default function PayOnline({ visible, registrationId, title, onClose }: {
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 44, paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: p.border }}>
           <Text style={{ flex: 1, fontSize: 17, fontWeight: '900', color: p.text }}>Secure payment</Text>
           <TouchableOpacity onPress={close} accessibilityRole="button" accessibilityLabel="Close payment" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 20, color: p.sub }}>✕</Text>
+            <Ionicons name="close" size={24} color={p.sub} />
           </TouchableOpacity>
         </View>
         {phase === 'checkout' && order ? (
@@ -103,10 +104,10 @@ export default function PayOnline({ visible, registrationId, title, onClose }: {
           <View style={{ flex: 1, padding: 24, justifyContent: 'center' }}>
             {phase === 'order' ? <><ActivityIndicator color={p.accent} size="large" /><Text style={{ color: p.sub, textAlign: 'center', marginTop: 10 }}>Preparing your payment…</Text></> : null}
             {phase === 'verifying' ? <><ActivityIndicator color={p.accent} size="large" /><Text style={{ color: p.text, textAlign: 'center', marginTop: 12, fontWeight: '800' }}>Checking with the payment provider…</Text><Text style={{ color: p.sub, textAlign: 'center', marginTop: 6 }}>Your place is confirmed only when Razorpay confirms the payment to Zenvy.</Text></> : null}
-            {phase === 'confirmed' ? <><Text style={{ fontSize: 54, textAlign: 'center' }}>✅</Text><Text style={{ color: p.text, textAlign: 'center', fontSize: 18, fontWeight: '900', marginTop: 8 }}>Payment confirmed</Text>{last.current ? <Text style={{ color: p.sub, textAlign: 'center', marginTop: 4 }}>{inr(last.current.payment.total)} received.</Text> : null}</> : null}
-            {phase === 'failed' ? <Notice tone="danger" icon="✕">{msg || 'The payment failed or was cancelled. You were not charged twice; you can try again while your place is held.'}</Notice> : null}
-            {phase === 'pending' ? <Notice tone="warn" icon="🕒">We have not heard back from the payment provider yet. If money left your account, your place is confirmed automatically when it arrives (or refunded if the place is gone). Check My registrations in a few minutes.</Notice> : null}
-            {phase === 'error' ? <Notice tone="danger" icon="⚠️">{msg || 'Online payment is not available right now.'}</Notice> : null}
+            {phase === 'confirmed' ? <><Ionicons name="checkmark-circle" size={56} color={p.success} style={{ alignSelf: 'center' }} /><Text style={{ color: p.text, textAlign: 'center', fontSize: 18, fontWeight: '900', marginTop: 8 }}>Payment confirmed</Text>{last.current ? <Text style={{ color: p.sub, textAlign: 'center', marginTop: 4 }}>{inr(last.current.payment.total)} received.</Text> : null}</> : null}
+            {phase === 'failed' ? <Notice tone="danger" icon="close-circle-outline">{msg || 'The payment failed or was cancelled. You were not charged twice; you can try again while your place is held.'}</Notice> : null}
+            {phase === 'pending' ? <Notice tone="warn" icon="time-outline">We have not heard back from the payment provider yet. If money left your account, your place is confirmed automatically when it arrives (or refunded if the place is gone). Check My registrations in a few minutes.</Notice> : null}
+            {phase === 'error' ? <Notice tone="danger" icon="warning-outline">{msg || 'Online payment is not available right now.'}</Notice> : null}
             {phase !== 'order' && phase !== 'verifying' ? <Btn label={phase === 'confirmed' ? 'Done' : 'Close'} onPress={close} style={{ marginTop: 16 }} /> : null}
           </View>
         )}

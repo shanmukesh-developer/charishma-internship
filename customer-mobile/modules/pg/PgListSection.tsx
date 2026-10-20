@@ -111,7 +111,7 @@ export function PgListSection({ pgs, home, loading, error, onRetry }: { pgs: PgL
           <View style={{ flex: 1 }}>
             <Text style={[st.heading, { color: p.text }]} accessibilityRole="header">{searching ? 'Results' : 'All PGs'}</Text>
             <Text style={[ui.small, { color: p.muted, marginTop: 2 }]} accessibilityLiveRegion="polite">
-              {loading && !pgs.length ? 'Loading' : error && !pgs.length ? ' ' : `${plural(list.length, 'PG')} · ${SORT.find((s) => s.key === filters.sort)!.label.toLowerCase()}`}
+              {loading && !pgs.length ? 'Loading…' : error && !pgs.length ? ' ' : `${plural(list.length, 'PG')} · ${SORT.find((s) => s.key === filters.sort)!.label.toLowerCase()}`}
             </Text>
           </View>
           <Press onPress={() => setSheet(true)} disabled={!pgs.length} accessibilityLabel={`Filters and sort${nFilters ? `, ${nFilters} applied` : ''}`} style={[st.filterBtn, { borderColor: nFilters ? p.text : p.line }]}>

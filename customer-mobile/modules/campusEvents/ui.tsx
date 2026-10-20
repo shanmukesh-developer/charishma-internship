@@ -12,13 +12,16 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import SafeImage from '../../components/SafeImage';
 import { useTheme } from '../../context/ThemeContext';
 import { readCache, writeCache } from '../../utils/swrCache';
 import {
   campusEventsApi, CATEGORY_META, REG_STATE_META, REG_STATUS_META, capacityLine, dateTile, fmtClock, fmtWhen,
-  type EventCard as EventCardT, type RegStatus, type StatusResponse,
+  type EventCard as EventCardT, type RegStatus, type StatusResponse, type CeIconName,
 } from './campusEventsApi';
+
+export type { CeIconName };
 
 export const CE_HOME = '/(tabs)/others?tab=events';
 export const CE_GRAD: [string, string] = ['#7C3AED', '#DB2777'];
@@ -93,7 +96,7 @@ export function SectionTitle({ children, right, kicker }: { children: React.Reac
   return (
     <View style={st.sectionRow}>
       <View style={{ flex: 1 }}>
-        {kicker ? <Text style={{ fontSize: 9.5, fontWeight: '900', color: p.accent, letterSpacing: 1.4 }}>{kicker}</Text> : null}
+        {kicker ? <Text style={{ fontSize: 11, fontWeight: '800', color: p.accent, letterSpacing: 0.3 }}>{kicker}</Text> : null}
         <Text style={[st.section, { color: p.text }]} accessibilityRole="header">{children}</Text>
       </View>
       {right}
@@ -102,12 +105,12 @@ export function SectionTitle({ children, right, kicker }: { children: React.Reac
 }
 
 /** Pill: colour + optional icon + words. */
-export function Pill({ label, color, icon, solid }: { label: string; color: string; icon?: string; solid?: boolean }) {
+export function Pill({ label, color, icon, solid }: { label: string; color: string; icon?: CeIconName; solid?: boolean }) {
   const p = usePalette();
   const fg = solid ? '#fff' : tone(color, p.isDark);
   return (
     <View style={[st.pill, { backgroundColor: solid ? color : `${color}22`, borderColor: solid ? color : `${color}66` }]} accessibilityLabel={label}>
-      {icon ? <Text style={{ fontSize: 10.5 }}>{icon}</Text> : null}
+      {icon ? <Ionicons name={icon} size={12} color={fg} /> : null}
       <Text style={{ fontSize: 10.5, fontWeight: '900', color: fg, letterSpacing: 0.2 }} numberOfLines={1}>{label}</Text>
     </View>
   );
@@ -119,12 +122,12 @@ export function RegStatusPill({ status }: { status: RegStatus }) {
 }
 
 export function PricePill({ label, isFree }: { label: string; isFree: boolean }) {
-  return isFree ? <Pill label="FREE" color="#059669" solid /> : <Pill label={label} color="#7C3AED" solid />;
+  return isFree ? <Pill label="Free" color="#059669" solid /> : <Pill label={label} color="#7C3AED" solid />;
 }
 
 type BtnKind = 'primary' | 'secondary' | 'danger' | 'ghost' | 'success';
 export function Btn({ label, onPress, kind = 'primary', loading, disabled, style, icon, small, a11yHint }: {
-  label: string; onPress?: () => void; kind?: BtnKind; loading?: boolean; disabled?: boolean; style?: StyleProp<ViewStyle>; icon?: string; small?: boolean; a11yHint?: string;
+  label: string; onPress?: () => void; kind?: BtnKind; loading?: boolean; disabled?: boolean; style?: StyleProp<ViewStyle>; icon?: CeIconName; small?: boolean; a11yHint?: string;
 }) {
   const p = usePalette();
   const off = disabled || loading;
@@ -132,7 +135,12 @@ export function Btn({ label, onPress, kind = 'primary', loading, disabled, style
   const light = kind === 'primary' || kind === 'danger' || kind === 'success';
   const content = loading
     ? <ActivityIndicator color={light ? '#fff' : p.accent} />
-    : <Text style={[st.btnText, { fontSize: small ? 12.5 : 14.5, color: light ? '#fff' : kind === 'ghost' ? p.accent : p.text }]} numberOfLines={1}>{icon ? `${icon}  ` : ''}{label}</Text>;
+    : (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
+        {icon ? <Ionicons name={icon} size={small ? 15 : 18} color={light ? '#fff' : kind === 'ghost' ? p.accent : p.text} /> : null}
+        <Text style={[st.btnText, { fontSize: small ? 12.5 : 14.5, color: light ? '#fff' : kind === 'ghost' ? p.accent : p.text, flexShrink: 1 }]} numberOfLines={1}>{label}</Text>
+      </View>
+    );
   const a11y = { accessibilityRole: 'button' as const, accessibilityLabel: label, accessibilityHint: a11yHint, accessibilityState: { disabled: !!off, busy: !!loading } };
   if (kind === 'primary') {
     return (
@@ -183,7 +191,10 @@ export function Chips<T extends string>({ options, value, onChange, multi, wrap 
     return (
       <TouchableOpacity key={o.key} accessibilityRole={multi ? 'checkbox' : 'radio'} accessibilityState={{ checked: on }} accessibilityLabel={o.hint ? `${o.label}, ${o.hint}` : o.label} onPress={() => press(o.key)}
         style={[st.chip, { backgroundColor: on ? p.accentSoft : p.card2, borderColor: on ? p.accent : p.border }]}>
-        <Text style={{ fontSize: 12.5, fontWeight: '800', color: on ? p.accent : p.text }}>{on && multi ? '✓ ' : ''}{o.label}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          {on && multi ? <Ionicons name="checkmark" size={14} color={p.accent} /> : null}
+          <Text style={{ fontSize: 12.5, fontWeight: '800', color: on ? p.accent : p.text }}>{o.label}</Text>
+        </View>
         {o.hint ? <Text style={{ fontSize: 9.5, color: p.muted, marginTop: 1 }}>{o.hint}</Text> : null}
       </TouchableOpacity>
     );
@@ -213,7 +224,7 @@ export function CheckRow({ label, value, onChange, hint }: { label: string; valu
   return (
     <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{ checked: value }} accessibilityLabel={label} onPress={() => onChange(!value)} style={[st.checkRow, { borderColor: value ? p.accent : p.border, backgroundColor: value ? p.accentSoft : p.card2 }]}>
       <View style={[st.box, { borderColor: value ? p.accent : p.muted, backgroundColor: value ? p.accent : 'transparent' }]}>
-        {value ? <Text style={{ color: '#fff', fontWeight: '900', fontSize: 13 }}>✓</Text> : null}
+        {value ? <Ionicons name="checkmark" size={16} color="#fff" /> : null}
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 13.5, fontWeight: '800', color: p.text }}>{label}</Text>
@@ -225,16 +236,16 @@ export function CheckRow({ label, value, onChange, hint }: { label: string; valu
 
 export type StateKind = 'loading' | 'empty' | 'error' | 'offline';
 export function StateView({ kind, title, message, actionLabel, onAction, icon }: {
-  kind: StateKind; title?: string; message?: string; actionLabel?: string; onAction?: () => void; icon?: string;
+  kind: StateKind; title?: string; message?: string; actionLabel?: string; onAction?: () => void; icon?: CeIconName;
 }) {
   const p = usePalette();
   if (kind === 'loading') {
     return <View style={st.state} accessibilityRole="progressbar" accessibilityLabel={message || 'Loading'}><ActivityIndicator color={p.accent} size="large" /><Text style={{ color: p.sub, marginTop: 10, fontSize: 12.5 }}>{message || 'Loading…'}</Text></View>;
   }
-  const ic = icon || (kind === 'offline' ? '📡' : kind === 'error' ? '⚠️' : '🎟️');
+  const ic: CeIconName = icon || (kind === 'offline' ? 'cloud-offline-outline' : kind === 'error' ? 'alert-circle-outline' : 'ticket-outline');
   return (
     <View style={st.state}>
-      <Text style={{ fontSize: 42, marginBottom: 8 }}>{ic}</Text>
+      <Ionicons name={ic} size={44} color={kind === 'error' ? p.danger : p.accent} style={{ marginBottom: 8 }} />
       {title ? <Text style={{ fontSize: 16, fontWeight: '900', color: p.text, textAlign: 'center' }} accessibilityRole="header">{title}</Text> : null}
       {message ? <Text style={{ fontSize: 13, color: p.sub, textAlign: 'center', marginTop: 6, lineHeight: 19 }}>{message}</Text> : null}
       {actionLabel && onAction ? <Btn label={actionLabel} onPress={onAction} small style={{ marginTop: 14 }} kind={kind === 'empty' ? 'primary' : 'secondary'} /> : null}
@@ -244,8 +255,8 @@ export function StateView({ kind, title, message, actionLabel, onAction, icon }:
 
 /** Error -> the right state view (offline vs not found vs generic) with Retry. */
 export function ErrorState({ error, onRetry, notFoundTitle = 'Not found', onNotFound, notFoundLabel }: { error: any; onRetry: () => void; notFoundTitle?: string; onNotFound?: () => void; notFoundLabel?: string }) {
-  if (error?.status === 404) return <StateView kind="empty" icon="🔎" title={notFoundTitle} message={error.message} actionLabel={notFoundLabel || 'Back to Campus Events'} onAction={onNotFound} />;
-  if (error?.code === 'FEATURE_OFF') return <StateView kind="empty" icon="🎟️" title="Campus Events is not open yet" message={error.message} actionLabel="Retry" onAction={onRetry} />;
+  if (error?.status === 404) return <StateView kind="empty" icon="search-outline" title={notFoundTitle} message={error.message} actionLabel={notFoundLabel || 'Back to Campus Events'} onAction={onNotFound} />;
+  if (error?.code === 'FEATURE_OFF') return <StateView kind="empty" icon="ticket-outline" title="Campus Events is not open yet" message={error.message} actionLabel="Retry" onAction={onRetry} />;
   if (error?.code === 'NETWORK' || error?.code === 'SERVER_BUSY') return <StateView kind="offline" title="You seem to be offline" message={error.message} actionLabel="Retry" onAction={onRetry} />;
   return <StateView kind="error" title="Could not load" message={error?.message || 'Please try again.'} actionLabel="Retry" onAction={onRetry} />;
 }
@@ -260,13 +271,13 @@ export function Row({ label, value, strong }: { label: string; value: React.Reac
   );
 }
 
-export function Notice({ tone: tn = 'info', children, icon }: { tone?: 'info' | 'warn' | 'danger' | 'success'; children: React.ReactNode; icon?: string }) {
+export function Notice({ tone: tn = 'info', children, icon }: { tone?: 'info' | 'warn' | 'danger' | 'success'; children: React.ReactNode; icon?: CeIconName }) {
   const p = usePalette();
   const map = { info: [p.accentSoft, p.accent], warn: [p.warnSoft, p.warn], danger: [p.dangerSoft, p.danger], success: [p.successSoft, p.success] } as const;
   const [bg, fg] = map[tn];
   return (
     <View style={[st.notice, { backgroundColor: bg, borderColor: `${fg}55` }]} accessibilityRole={tn === 'danger' || tn === 'warn' ? 'alert' : undefined}>
-      {icon ? <Text style={{ fontSize: 15, marginRight: 8 }}>{icon}</Text> : null}
+      {icon ? <Ionicons name={icon} size={17} color={fg} style={{ marginRight: 8, marginTop: 1 }} /> : null}
       <Text style={{ color: p.text, fontSize: 12.5, lineHeight: 18, flex: 1 }}>{children}</Text>
     </View>
   );
@@ -277,7 +288,7 @@ export function Poster({ uri, category, height, radius = 16, children }: { uri: 
   const meta = CATEGORY_META[category] || CATEGORY_META.OTHER;
   const fallback = (
     <LinearGradient colors={[meta.color, '#1E1B4B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ fontSize: Math.min(56, height / 3) }}>{meta.icon}</Text>
+      <Ionicons name={meta.icon} size={Math.min(56, height / 3)} color="rgba(255,255,255,0.92)" />
     </LinearGradient>
   );
   return (
@@ -293,9 +304,9 @@ function DateTile({ iso }: { iso: string | null }) {
   if (!t) return null;
   return (
     <View style={st.dateTile} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <Text style={{ fontSize: 8.5, fontWeight: '900', color: '#7C3AED', letterSpacing: 0.6 }}>{t.dow}</Text>
+      <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#7C3AED', letterSpacing: 0.2 }}>{t.dow}</Text>
       <Text style={{ fontSize: 18, fontWeight: '900', color: '#111827', lineHeight: 20 }}>{t.day}</Text>
-      <Text style={{ fontSize: 8.5, fontWeight: '900', color: '#4B5563', letterSpacing: 0.6 }}>{t.mon}</Text>
+      <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#4B5563', letterSpacing: 0.2 }}>{t.mon}</Text>
     </View>
   );
 }
@@ -321,24 +332,24 @@ export function EventCard({ e, onPress, width, compact }: { e: EventCardT; onPre
         <View style={{ position: 'absolute', top: 10, left: 10 }}><DateTile iso={e.startAt} /></View>
         <View style={{ position: 'absolute', top: 10, right: 10, alignItems: 'flex-end', gap: 6 }}>
           <PricePill label={e.price.label} isFree={e.price.isFree} />
-          {e.featured ? <Pill label="Featured" color="#D97706" icon="★" solid /> : null}
+          {e.featured ? <Pill label="Featured" color="#D97706" icon="star" solid /> : null}
         </View>
         <View style={{ position: 'absolute', left: 10, bottom: 8, right: 10, flexDirection: 'row', gap: 6 }}>
-          <View style={[st.catTag, { backgroundColor: 'rgba(0,0,0,0.55)' }]}><Text style={{ color: '#fff', fontSize: 10, fontWeight: '900' }}>{meta.icon} {e.categoryLabel.toUpperCase()}</Text></View>
-          {e.isTeam ? <View style={[st.catTag, { backgroundColor: 'rgba(0,0,0,0.55)' }]}><Text style={{ color: '#fff', fontSize: 10, fontWeight: '900' }}>👥 TEAM</Text></View> : null}
-          {e.format === 'SLOT' ? <View style={[st.catTag, { backgroundColor: 'rgba(0,0,0,0.55)' }]}><Text style={{ color: '#fff', fontSize: 10, fontWeight: '900' }}>🗓️ SLOTS</Text></View> : null}
+          <View style={[st.catTag, { backgroundColor: 'rgba(0,0,0,0.55)' }]}><Ionicons name={meta.icon} size={11} color="#fff" /><Text style={{ color: '#fff', fontSize: 10.5, fontWeight: '800' }}>{e.categoryLabel}</Text></View>
+          {e.isTeam ? <View style={[st.catTag, { backgroundColor: 'rgba(0,0,0,0.55)' }]}><Ionicons name="people-outline" size={11} color="#fff" /><Text style={{ color: '#fff', fontSize: 10.5, fontWeight: '800' }}>Team</Text></View> : null}
+          {e.format === 'SLOT' ? <View style={[st.catTag, { backgroundColor: 'rgba(0,0,0,0.55)' }]}><Ionicons name="calendar-outline" size={11} color="#fff" /><Text style={{ color: '#fff', fontSize: 10.5, fontWeight: '800' }}>Slots</Text></View> : null}
         </View>
       </Poster>
       <View style={{ padding: 12, gap: 4 }}>
         <Text style={{ fontSize: compact ? 14 : 16, fontWeight: '900', color: p.text, letterSpacing: -0.2 }} numberOfLines={2}>{e.title}</Text>
-        <Text style={{ fontSize: 11.5, color: p.sub, fontWeight: '700' }} numberOfLines={1}>{e.organizer?.club?.verified ? '✔ ' : ''}{e.organizer?.name || 'Campus organizer'}</Text>
-        <Text style={{ fontSize: 12, color: p.text }} numberOfLines={1}>🕒 {fmtWhen(e.startAt)}{e.endAt ? ` – ${fmtClock(e.endAt)}` : ''}</Text>
-        {e.venue ? <Text style={{ fontSize: 12, color: p.text }} numberOfLines={1}>📍 {e.venue}</Text> : null}
+        <Text style={{ fontSize: 11.5, color: p.sub, fontWeight: '700' }} numberOfLines={1}>{e.organizer?.club?.verified ? <><Ionicons name="checkmark-circle" size={12} color={p.accent} />{' '}</> : null}{e.organizer?.name || 'Campus organizer'}</Text>
+        <Text style={{ fontSize: 12, color: p.text }} numberOfLines={1}><Ionicons name="time-outline" size={12} color={p.sub} /> {fmtWhen(e.startAt)}{e.endAt ? ` – ${fmtClock(e.endAt)}` : ''}</Text>
+        {e.venue ? <Text style={{ fontSize: 12, color: p.text }} numberOfLines={1}><Ionicons name="location-outline" size={12} color={p.sub} /> {e.venue}</Text> : null}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
           {e.myStatus ? <RegStatusPill status={e.myStatus} /> : <Pill label={state.label} color={state.color} icon={state.icon} />}
           {cap && !compact ? <Pill label={cap} color={e.registrationState === 'FULL' ? '#DC2626' : '#0EA5E9'} /> : null}
         </View>
-        {!compact && deadline ? <Text style={{ fontSize: 11, color: p.warn, fontWeight: '800', marginTop: 2 }}>⏳ {deadline}</Text> : null}
+        {!compact && deadline ? <Text style={{ fontSize: 11, color: p.warn, fontWeight: '800', marginTop: 2 }}><Ionicons name="hourglass-outline" size={12} color={p.warn} /> {deadline}</Text> : null}
         {!compact ? (
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
             <View style={[st.cardCta, { borderColor: p.border, backgroundColor: p.card2 }]}><Text style={{ fontSize: 12.5, fontWeight: '900', color: p.text }}>View details</Text></View>
@@ -360,12 +371,12 @@ export function CardSkeleton({ width, height = 260 }: { width?: number; height?:
   return <View style={{ width, height, borderRadius: 18, backgroundColor: p.card2, marginBottom: 12 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />;
 }
 
-export function Hero({ title, subtitle, kicker = 'ZENVY CAMPUS EVENTS', right }: { title: string; subtitle: string; kicker?: string; right?: React.ReactNode }) {
+export function Hero({ title, subtitle, kicker = 'Zenvy Campus Events', right }: { title: string; subtitle: string; kicker?: string; right?: React.ReactNode }) {
   return (
     <LinearGradient colors={CE_GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.hero}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 9.5, fontWeight: '900', color: 'rgba(255,255,255,0.9)', letterSpacing: 1.5 }}>{kicker}</Text>
+          <Text style={{ fontSize: 11, fontWeight: '800', color: 'rgba(255,255,255,0.9)', letterSpacing: 0.3 }}>{kicker}</Text>
           <Text style={{ fontSize: 20, fontWeight: '900', color: '#fff', marginTop: 4, letterSpacing: -0.3 }}>{title}</Text>
           <Text style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.95)', marginTop: 5, lineHeight: 18 }}>{subtitle}</Text>
         </View>
@@ -433,7 +444,7 @@ export const st = StyleSheet.create({
   pill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, borderWidth: 1, alignSelf: 'flex-start', maxWidth: '100%' },
   btn: { borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
   btnText: { fontWeight: '900', letterSpacing: 0.2 },
-  label: { fontSize: 11, fontWeight: '800', letterSpacing: 0.4, marginBottom: 6, textTransform: 'uppercase' },
+  label: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2, marginBottom: 6 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, minHeight: 46, paddingVertical: Platform.OS === 'ios' ? 12 : 9, fontSize: 14.5 },
   hint: { fontSize: 11.5, marginTop: 4 },
   chip: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, minHeight: 44, justifyContent: 'center' },
@@ -448,6 +459,6 @@ export const st = StyleSheet.create({
   hero: { borderRadius: 22, padding: 16, marginBottom: 12 },
   eCard: { borderRadius: 18, borderWidth: 1, overflow: 'hidden', marginBottom: 12 },
   dateTile: { width: 46, paddingVertical: 5, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.96)', alignItems: 'center' },
-  catTag: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  catTag: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   cardCta: { flex: 1, minHeight: 44, borderRadius: 12, borderWidth: 1, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
 });

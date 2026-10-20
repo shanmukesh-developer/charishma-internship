@@ -34,7 +34,7 @@ export function KeyFacts({ pg }: { pg: PgDetail }) {
       <View style={[st.factSep, { backgroundColor: p.line }]} />
       <Fact label="Deposit" value={Number(deposit) > 0 ? inr(deposit) : 'None'} sub={varies ? 'varies by room' : Number(deposit) > 0 ? 'one time' : ' '} />
       <View style={[st.factSep, { backgroundColor: p.line }]} />
-      <Fact label="Beds free" value={hasRooms ? String(pg.bedsAvailable) : '—'} sub={hasRooms ? plural(types.length, 'room type') : 'ask the desk'} />
+      <Fact label="Beds available" value={hasRooms ? String(pg.bedsAvailable) : '—'} sub={hasRooms ? plural(types.length, 'room type') : 'ask the desk'} />
     </View>
   );
 }
@@ -184,7 +184,7 @@ export function PoliciesSection({ policies, moveIn, pgDeposit }: { policies: PgP
           {sub('Rent payment')}
           <CardRows>
             {r?.dueDay ? <InfoRow icon={IconCalendarDays} label="Rent due" value={`${ordinal(r.dueDay)} of every month`} /> : null}
-            {r?.lateFee ? <InfoRow icon={IconWallet} label="Late fee" value={`${inr(r.lateFee)} ${r.lateFeeUnit === 'day' ? 'per day late' : 'once'}`} /> : null}
+            {r?.lateFee ? <InfoRow icon={IconWallet} label="Late fee" value={r.lateFeeUnit === 'day' ? `${inr(r.lateFee)} for each day late` : `${inr(r.lateFee)} one-time fee`} /> : null}
             {r?.methods?.length ? <InfoRow icon={IconCircleCheck} label="Paid by" value={cap(joinOr(r.methods.map((k) => METHOD_LABEL[k])))} /> : null}
             {r?.notes ? <InfoRow icon={IconInfo} label="Notes" value={r.notes} /> : null}
           </CardRows>

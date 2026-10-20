@@ -5,6 +5,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { campusEventsApi, CampusEventsError, fmtRange, fmtClock, fmtWhen, inr, TICKET_STATUS_META, type Ticket } from '../../../modules/campusEvents/campusEventsApi';
 import { EHeader, usePalette, Card, Btn, ErrorState, StateView, Notice, Row, Pill } from '../../../modules/campusEvents/ui';
 import TicketQR, { groupCode } from '../../../modules/campusEvents/TicketQR';
@@ -38,7 +39,7 @@ export default function TicketScreen() {
         <EHeader title="Ticket" />
         {error ? (
           error.code === 'TICKETS_NOT_CONFIGURED'
-            ? <StateView kind="error" icon="🎟️" title="Tickets unavailable" message="Tickets cannot be shown right now. Your registration is safe; please try again later." actionLabel="Retry" onAction={load} />
+            ? <StateView kind="error" icon="ticket-outline" title="Tickets unavailable" message="Tickets cannot be shown right now. Your registration is safe; please try again later." actionLabel="Retry" onAction={load} />
             : <ErrorState error={error} onRetry={load} notFoundTitle="Ticket not found" notFoundLabel="My tickets" onNotFound={() => router.replace('/campus-events/tickets' as any)} />
         ) : <StateView kind="loading" />}
       </View>
@@ -55,31 +56,31 @@ export default function TicketScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}>
         <View style={{ borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: p.border, backgroundColor: p.card, marginBottom: 14 }}>
           <View style={{ padding: 16, backgroundColor: p.accentSoft }}>
-            <Text style={{ fontSize: 10, fontWeight: '900', color: p.accent, letterSpacing: 1.4 }}>{t.kind === 'TEAM' ? 'TEAM TICKET' : t.kind === 'SLOT' ? 'SLOT TICKET' : t.kind === 'MEMBER' ? 'PLAYER TICKET' : 'ENTRY TICKET'}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: p.accent, letterSpacing: 0.3 }}>{t.kind === 'TEAM' ? 'Team ticket' : t.kind === 'SLOT' ? 'Slot ticket' : t.kind === 'MEMBER' ? 'Player ticket' : 'Entry ticket'}</Text>
             <Text style={{ fontSize: 19, fontWeight: '900', color: p.text, marginTop: 4 }}>{ev?.title}</Text>
-            <Text style={{ fontSize: 13, color: p.text, marginTop: 4, fontWeight: '700' }}>{t.kind === 'TEAM' ? `👥 ${t.holder}` : `🙋 ${t.holder}`}</Text>
+            <Text style={{ fontSize: 13, color: p.text, marginTop: 4, fontWeight: '700' }}><Ionicons name={t.kind === 'TEAM' ? 'people-outline' : 'person-outline'} size={14} color={p.sub} /> {t.holder}</Text>
           </View>
           <View style={{ padding: 16, alignItems: 'center' }}>
             <TicketQR token={t.qrToken} status={t.status} code={t.ticketCode} />
-            <Text style={{ fontSize: 11, fontWeight: '900', color: p.muted, letterSpacing: 1, marginTop: 14 }}>TICKET CODE</Text>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: p.muted, letterSpacing: 0.2, marginTop: 14 }}>Ticket code</Text>
             <Text style={{ fontSize: 24, fontWeight: '900', color: p.text, letterSpacing: 3, marginTop: 2 }} selectable accessibilityLabel={`Ticket code ${t.ticketCode.split('').join(' ')}`}>{groupCode(t.ticketCode)}</Text>
-            {t.status === 'ACTIVE' ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 10, textAlign: 'center' }}>☀️ Turn your screen brightness up at the gate so the QR scans first time.</Text> : null}
+            {t.status === 'ACTIVE' ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 10, textAlign: 'center' }}>Turn your screen brightness up at the gate so the QR scans first time.</Text> : null}
           </View>
           <View style={{ borderTopWidth: 1, borderTopColor: p.border, borderStyle: 'dashed', padding: 16 }}>
             <Row label="When" value={t.slot ? `${fmtWhen(t.slot.startAt)} – ${fmtClock(t.slot.endAt)}` : fmtRange(ev?.startAt, ev?.endAt)} />
             {t.slot?.label ? <Row label="Slot" value={t.slot.label} /> : null}
             {ev?.venue ? <Row label="Venue" value={ev.venue} /> : null}
-            {t.registration ? <Row label="Registration" value={t.registration.code} /> : null}
+            {t.registration ? <Row label="Registration code" value={t.registration.code} /> : null}
             {opensAt && t.status === 'ACTIVE' ? <Row label="Entry opens" value={fmtWhen(opensAt)} /> : null}
             {t.usedAt ? <Row label="Checked in" value={fmtWhen(t.usedAt)} /> : null}
           </View>
         </View>
 
-        {t.status === 'ACTIVE' && t.registration?.paymentDue ? <Notice tone="warn" icon="💵">Pay {inr(t.registration.total)} at the venue desk. Staff admit you only after collecting the fee.</Notice> : null}
-        {t.status === 'USED' ? <Notice tone="success" icon="✅">You already checked in. This ticket cannot be used again.</Notice> : null}
-        {t.status === 'CANCELLED' || t.status === 'VOID' ? <Notice tone="danger" icon="🚫">This ticket is not valid for entry.</Notice> : null}
+        {t.status === 'ACTIVE' && t.registration?.paymentDue ? <Notice tone="warn" icon="cash-outline">Pay {inr(t.registration.total)} at the venue desk. Staff admit you only after collecting the fee.</Notice> : null}
+        {t.status === 'USED' ? <Notice tone="success" icon="checkmark-circle-outline">You already checked in. This ticket cannot be used again.</Notice> : null}
+        {t.status === 'CANCELLED' || t.status === 'VOID' ? <Notice tone="danger" icon="ban-outline">This ticket is not valid for entry.</Notice> : null}
         {ev?.instructions ? <Card><Text style={{ fontSize: 13, fontWeight: '900', color: p.text, marginBottom: 4 }}>Entry instructions</Text><Text style={{ color: p.sub, fontSize: 13, lineHeight: 19 }}>{ev.instructions}</Text></Card> : null}
-        <Notice icon="ℹ️">{t.entryNote} If your phone has no signal, show the ticket code: staff check it online.</Notice>
+        <Notice icon="information-circle-outline">{t.entryNote ? `${t.entryNote} ` : ''}If your phone has no signal, show the ticket code: staff check it online.</Notice>
         {t.registration ? <Btn label="Registration details" kind="secondary" onPress={() => router.push(`/campus-events/registration/${t.registration!.id}` as any)} /> : null}
       </ScrollView>
     </View>

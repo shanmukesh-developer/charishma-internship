@@ -5,9 +5,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Alert, TouchableOpacity, TextInput, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from '../../../components/KeyboardAvoidingView';
 import {
-  campusEventsApi, CampusEventsError, errorCopy, answerRows, fmtWhen, fmtRange, fmtClock, dayLabel, istDate, istYmd, inr, EVENT_STATUS_META, PAYMENT_STATUS_LABEL, REG_STATUS_META,
+  campusEventsApi, CampusEventsError, errorCopy, answerRows, fmtWhen, fmtRange, fmtClock, dayLabel, istDate, istYmd, inr, EVENT_STATUS_META, PAYMENT_STATUS_LABEL, REG_STATUS_META, TICKET_STATUS_META, fieldLabel, teamSizeLabel,
   type OrganizerEvent, type Participant, type Question, type Slot, type EventStats, type StaffGrant, type Announcement, type AnnouncementKind, type RegStatus,
 } from '../../../modules/campusEvents/campusEventsApi';
 import { EHeader, usePalette, Card, Btn, Field, Chips, ErrorState, StateView, Notice, Row, Pill, RegStatusPill, SectionTitle, Poster } from '../../../modules/campusEvents/ui';
@@ -78,7 +79,8 @@ export default function OrganizerEventScreen() {
       if (tab !== 'overview') loadTab(tab);
     } catch (e: any) {
       const c = errorCopy(e);
-      Alert.alert(c.title, e?.field ? `${c.message}\n(Field: ${e.field})` : c.message, e?.code === 'INCOMPLETE' ? [{ text: 'Later', style: 'cancel' }, { text: 'Edit event', onPress: () => router.push(`/campus-events/organizer/edit?id=${id}` as any) }] : undefined);
+      const fl = fieldLabel(e?.field);
+      Alert.alert(c.title, fl ? `${c.message}\nCheck: ${fl}` : c.message, e?.code === 'INCOMPLETE' ? [{ text: 'Later', style: 'cancel' }, { text: 'Edit event', onPress: () => router.push(`/campus-events/organizer/edit?id=${id}` as any) }] : undefined);
     } finally {
       setBusy(null);
     }
@@ -96,6 +98,12 @@ export default function OrganizerEventScreen() {
   const m = EVENT_STATUS_META[ev.status];
   const editable = ['DRAFT', 'CHANGES_REQUESTED', 'REJECTED'].includes(ev.status);
   const live = ['APPROVED', 'PUBLISHED', 'UNPUBLISHED'].includes(ev.status);
+  const capText = ev.format === 'SLOT'
+    ? 'Slot booking'
+    : ev.format === 'TEAM'
+      ? ev.team?.maxTeams ? `${ev.team.maxTeams} team${ev.team.maxTeams === 1 ? '' : 's'} · ${teamSizeLabel(ev.team.min, ev.team.max)}` : 'Capacity not set'
+      : ev.capacityRaw ? `${ev.capacityRaw} seat${ev.capacityRaw === 1 ? '' : 's'}` : 'Capacity not set';
+  const pendingFields = [...new Set(Object.keys(ev.pendingChanges?.fields || {}).map((k) => fieldLabel(k)).filter(Boolean))].join(', ');
   const tabs: { key: Tab; label: string }[] = [
     { key: 'overview', label: 'Overview' },
     ...(ev.format === 'SLOT' ? [{ key: 'slots' as Tab, label: 'Slots' }] : []),
@@ -131,31 +139,31 @@ export default function OrganizerEventScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); if (tab !== 'overview') await loadTab(tab); setRefreshing(false); }} tintColor={p.accent} />}>
           {tab === 'overview' ? (
             <>
-              {params.created === '1' && ev.status === 'DRAFT' ? <Notice tone="success" icon="✅">Draft saved.{ev.format === 'SLOT' ? ' Add time slots, then submit it for approval.' : ' Submit it for approval when ready.'}</Notice> : null}
-              {ev.status === 'SUBMITTED' ? <Notice tone="warn" icon="🕒">In review by the Zenvy team since {fmtWhen(ev.submittedAt)}.</Notice> : null}
-              {ev.status === 'CHANGES_REQUESTED' ? <Notice tone="warn" icon="✏️">Changes requested{ev.reviewNote ? `: ${ev.reviewNote}` : ''}. Edit and submit again.</Notice> : null}
-              {ev.status === 'REJECTED' ? <Notice tone="danger" icon="✕">Rejected{ev.rejectionReason ? `: ${ev.rejectionReason}` : ''}. You can edit and resubmit.</Notice> : null}
-              {ev.status === 'APPROVED' ? <Notice icon="⏰">Approved. Publishes {ev.publishAt ? fmtWhen(ev.publishAt) : 'soon'}.</Notice> : null}
-              {ev.status === 'CANCELLED' ? <Notice tone="danger" icon="✕">Cancelled{ev.cancelReason ? `: ${ev.cancelReason}` : ''}.</Notice> : null}
-              {ev.pendingChanges ? <Notice tone="warn" icon="🕒">Edits waiting for review: {Object.keys(ev.pendingChanges.fields || {}).join(', ') || 'changes'}.</Notice> : null}
+              {params.created === '1' && ev.status === 'DRAFT' ? <Notice tone="success" icon="checkmark-circle-outline">Draft saved.{ev.format === 'SLOT' ? ' Add time slots, then submit it for approval.' : ' Submit it for approval when ready.'}</Notice> : null}
+              {ev.status === 'SUBMITTED' ? <Notice tone="warn" icon="time-outline">In review by the Zenvy team since {fmtWhen(ev.submittedAt)}.</Notice> : null}
+              {ev.status === 'CHANGES_REQUESTED' ? <Notice tone="warn" icon="create-outline">Changes requested{ev.reviewNote ? `: ${ev.reviewNote}` : ''}. Edit and submit again.</Notice> : null}
+              {ev.status === 'REJECTED' ? <Notice tone="danger" icon="close-circle-outline">Rejected{ev.rejectionReason ? `: ${ev.rejectionReason}` : ''}. You can edit and resubmit.</Notice> : null}
+              {ev.status === 'APPROVED' ? <Notice icon="alarm-outline">Approved. Publishes {ev.publishAt ? fmtWhen(ev.publishAt) : 'soon'}.</Notice> : null}
+              {ev.status === 'CANCELLED' ? <Notice tone="danger" icon="close-circle-outline">Cancelled{ev.cancelReason ? `: ${ev.cancelReason}` : ''}.</Notice> : null}
+              {ev.pendingChanges ? <Notice tone="warn" icon="time-outline">{pendingFields ? `Edits waiting for review: ${pendingFields}.` : 'Edits waiting for review.'}</Notice> : null}
 
               <Card style={{ padding: 0, overflow: 'hidden' }}>
                 <Poster uri={ev.posterUrl} category={ev.category} height={150} radius={0} />
                 <View style={{ padding: 14 }}>
                   <Text style={{ fontSize: 16, fontWeight: '900', color: p.text }}>{ev.title}</Text>
-                  <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 4 }}>🗓️ {fmtRange(ev.startAt, ev.endAt)}</Text>
-                  <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 2 }}>📍 {ev.venue || 'Venue not set'}</Text>
-                  <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 2 }}>{ev.price.isFree ? '🎉 Free' : `💳 ${inr(ev.price.total)}`} · {ev.format === 'TEAM' ? `${ev.team?.maxTeams ?? '?'} teams of ${ev.team?.min}–${ev.team?.max}` : ev.format === 'SLOT' ? 'Slot booking' : `${ev.capacityRaw ?? '?'} seats`}</Text>
+                  <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 4 }}><Ionicons name="calendar-outline" size={13} color={p.sub} /> {fmtRange(ev.startAt, ev.endAt)}</Text>
+                  <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 2 }}><Ionicons name="location-outline" size={13} color={p.sub} /> {ev.venue || 'Venue not set'}</Text>
+                  <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 2 }}>{ev.price.isFree ? 'Free' : inr(ev.price.total)} · {capText}</Text>
                 </View>
               </Card>
 
               {stats ? (
                 <Card>
-                  <Text style={{ fontWeight: '900', color: p.text, marginBottom: 6 }}>📊 Numbers</Text>
+                  <Text style={{ fontWeight: '900', color: p.text, marginBottom: 6 }}>Numbers</Text>
                   <Row label="Confirmed" value={String(stats.confirmed)} strong />
                   <Row label="Checked in" value={String(stats.checkedIn)} />
                   {stats.teams !== undefined ? <Row label="Teams" value={String(stats.teams)} /> : null}
-                  {Object.entries(stats.byStatus).filter(([k]) => k !== 'CONFIRMED').map(([k, v]) => <Row key={k} label={REG_STATUS_META[k as RegStatus]?.label || k} value={String(v)} />)}
+                  {Object.entries(stats.byStatus).filter(([k]) => k !== 'CONFIRMED').map(([k, v]) => <Row key={k} label={REG_STATUS_META[k as RegStatus]?.label || 'Other'} value={String(v)} />)}
                   {stats.collected.VENUE || stats.dueAtVenue ? <Row label="Collected at venue" value={`${inr(stats.collected.VENUE)} · due ${inr(stats.dueAtVenue)}`} /> : null}
                   {stats.collected.WALLET ? <Row label="Wallet" value={inr(stats.collected.WALLET)} /> : null}
                   {stats.collected.ONLINE ? <Row label="Online" value={inr(stats.collected.ONLINE)} /> : null}
@@ -164,11 +172,11 @@ export default function OrganizerEventScreen() {
               ) : null}
 
               <View style={{ gap: 10 }}>
-                {editable || live ? <Btn label="Edit event" icon="✏️" kind="secondary" onPress={() => router.push(`/campus-events/organizer/edit?id=${id}` as any)} /> : null}
+                {editable || live ? <Btn label="Edit event" icon="create-outline" kind="secondary" onPress={() => router.push(`/campus-events/organizer/edit?id=${id}` as any)} /> : null}
                 {editable ? <Btn label="Submit for approval" onPress={submit} loading={busy === 'submit'} /> : null}
                 {ev.status === 'SUBMITTED' ? <Btn label="Withdraw from review" kind="secondary" loading={busy === 'withdraw'} onPress={() => run('withdraw', () => campusEventsApi.orgWithdraw(id))} /> : null}
                 {ev.status === 'PUBLISHED' ? <Btn label="View as a student" kind="ghost" onPress={() => router.push(`/campus-events/${id}` as any)} /> : null}
-                {ev.status === 'PUBLISHED' ? <Btn label="Entry check-in" icon="🛂" kind="secondary" onPress={() => router.push(`/campus-events/check-in?eventId=${id}` as any)} /> : null}
+                {ev.status === 'PUBLISHED' ? <Btn label="Entry check-in" icon="shield-checkmark-outline" kind="secondary" onPress={() => router.push(`/campus-events/check-in?eventId=${id}` as any)} /> : null}
                 {ev.status === 'DRAFT' ? <Btn label="Delete draft" kind="danger" loading={busy === 'delete'} onPress={del} /> : null}
                 {live || ev.status === 'SUBMITTED' ? <Btn label="Cancel event" kind="danger" loading={busy === 'cancel'} onPress={cancelEvent} /> : null}
               </View>
@@ -177,7 +185,7 @@ export default function OrganizerEventScreen() {
 
           {tab === 'slots' ? (
             <>
-              {!slots ? <StateView kind="loading" /> : !slots.length ? <StateView kind="empty" icon="🗓️" title="No slots yet" message="Add the time slots students can book." /> : null}
+              {!slots ? <StateView kind="loading" /> : !slots.length ? <StateView kind="empty" icon="calendar-outline" title="No slots yet" message="Add the time slots students can book." /> : null}
               {(slots || []).map((s) => (
                 <Card key={s.id}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -212,7 +220,7 @@ export default function OrganizerEventScreen() {
                     <Btn label="Add slot" onPress={addSlot} loading={busy === 'slot'} style={{ flex: 2 }} />
                   </View>
                 </Card>
-              ) : ['CANCELLED', 'COMPLETED'].includes(ev.status) ? null : <Btn label="Add a slot" icon="＋" onPress={() => setSlotForm((f) => ({ ...f, open: true, date: ev.startAt && istYmd(ev.startAt) > istDate(0) ? istYmd(ev.startAt) : f.date }))} />}
+              ) : ['CANCELLED', 'COMPLETED'].includes(ev.status) ? null : <Btn label="Add a slot" icon="add" onPress={() => setSlotForm((f) => ({ ...f, open: true, date: ev.startAt && istYmd(ev.startAt) > istDate(0) ? istYmd(ev.startAt) : f.date }))} />}
             </>
           ) : null}
 
@@ -221,17 +229,17 @@ export default function OrganizerEventScreen() {
               <Chips<RegFilter> wrap={false} value={regFilter} onChange={setRegFilter}
                 options={[{ key: 'ALL', label: 'All' }, { key: 'PENDING_APPROVAL', label: 'To approve' }, { key: 'CONFIRMED', label: 'Confirmed' }, { key: 'WAITLISTED', label: 'Waitlist' }, { key: 'CANCELLED', label: 'Cancelled' }]} />
               <View style={{ height: 12 }} />
-              {!regs ? <StateView kind="loading" /> : !regs.list.length ? <StateView kind="empty" icon="🧾" title="No registrations here" /> : regs.list.map((r) => (
+              {!regs ? <StateView kind="loading" /> : !regs.list.length ? <StateView kind="empty" icon="receipt-outline" title="No registrations here" /> : regs.list.map((r) => (
                 <Card key={r.id}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontWeight: '900', color: p.text }}>{r.team ? `👥 ${r.team.name}` : r.name}</Text>
-                      <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }}>{r.code}{r.team ? ` · captain ${r.name}` : ''} · {fmtWhen(r.createdAt)}</Text>
+                      <Text style={{ fontWeight: '900', color: p.text }}>{r.team ? `Team: ${r.team.name}` : r.name}</Text>
+                      <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }}>{r.code}{r.team ? ` · Captain: ${r.name}` : ''} · {fmtWhen(r.createdAt)}</Text>
                     </View>
                     <RegStatusPill status={r.status} />
                   </View>
                   {r.paymentStatus !== 'NONE' ? <Text style={{ fontSize: 12, color: p.text, marginTop: 6 }}>{inr(r.total)} · {PAYMENT_STATUS_LABEL[r.paymentStatus]}</Text> : null}
-                  {r.ticket ? <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }}>Ticket {r.ticket.ticketCode} · {r.ticket.status === 'USED' ? 'checked in' : r.ticket.status.toLowerCase()}</Text> : null}
+                  {r.ticket ? <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }}>Ticket {r.ticket.ticketCode} · {(TICKET_STATUS_META[r.ticket.status]?.label || 'Not valid').toLowerCase()}</Text> : null}
                   {answerRows(r, regs.questions).length ? (
                     <View style={{ marginTop: 6 }}>
                       {answerRows(r, regs.questions).map((a) => (
@@ -239,7 +247,7 @@ export default function OrganizerEventScreen() {
                       ))}
                     </View>
                   ) : null}
-                  {r.team ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 4 }}>{(teams.find((t) => t.id === r.team!.id)?.members || []).map((mm) => `${mm.role === 'CAPTAIN' ? '👑 ' : ''}${mm.name}`).join(', ')}</Text> : null}
+                  {r.team ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 4 }}>{(teams.find((t) => t.id === r.team!.id)?.members || []).map((mm) => `${mm.name}${mm.role === 'CAPTAIN' ? ' (captain)' : ''}`).join(', ')}</Text> : null}
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
                     {r.status === 'PENDING_APPROVAL' ? <Btn label="Approve" small kind="success" loading={busy === `ap-${r.id}`} onPress={() => run(`ap-${r.id}`, () => campusEventsApi.orgApprove(id, r.id))} /> : null}
                     {r.status === 'PENDING_APPROVAL' ? <Btn label="Reject" small kind="secondary" onPress={() => setReject({ reg: r, reason: '' })} /> : null}
@@ -255,7 +263,7 @@ export default function OrganizerEventScreen() {
             <>
               {['PUBLISHED', 'UNPUBLISHED', 'COMPLETED'].includes(ev.status) ? (
                 <Card>
-                  <Text style={{ fontWeight: '900', color: p.text, marginBottom: 8 }}>📣 Send an update to registrants</Text>
+                  <Text style={{ fontWeight: '900', color: p.text, marginBottom: 8 }}>Send an update to registrants</Text>
                   <Chips<AnnouncementKind> value={ann.kind} onChange={(k: AnnouncementKind) => setAnn((a) => ({ ...a, kind: k }))}
                     options={[{ key: 'UPDATE', label: 'Update' }, { key: 'VENUE_CHANGE', label: 'Venue change' }, { key: 'SCHEDULE_CHANGE', label: 'Schedule change' }]} />
                   <View style={{ height: 10 }} />
@@ -264,7 +272,7 @@ export default function OrganizerEventScreen() {
                   <Btn label="Send update" loading={busy === 'ann'} disabled={ann.title.trim().length < 3 || ann.body.trim().length < 3}
                     onPress={() => run('ann', () => campusEventsApi.orgAnnounce(id, { title: ann.title.trim(), body: ann.body.trim(), kind: ann.kind }), () => { setAnn({ title: '', body: '', kind: 'UPDATE' }); Alert.alert('Sent', 'Registrants were notified.'); })} />
                 </Card>
-              ) : <Notice icon="ℹ️">Updates can be sent once the event is published.</Notice>}
+              ) : <Notice icon="information-circle-outline">Updates can be sent once the event is published.</Notice>}
               {!news ? <StateView kind="loading" /> : news.map((a) => (
                 <Card key={a.id}>
                   <Text style={{ fontWeight: '900', color: p.text }}>{a.title}</Text>
@@ -277,14 +285,14 @@ export default function OrganizerEventScreen() {
 
           {tab === 'staff' ? (
             <>
-              <Notice icon="🛂">Check-in staff can validate tickets and admit attendees for this event only. They see first name + initial, team, ticket code and slot. Never phones or payments.</Notice>
+              <Notice icon="shield-checkmark-outline">Check-in staff can validate tickets and admit attendees for this event only. They see first name + initial, team, ticket code and slot. Never phones or payments.</Notice>
               {!staff ? <StateView kind="loading" /> : !staff.length ? <Text style={{ color: p.sub, textAlign: 'center', marginVertical: 12 }}>No staff yet. You can always check in yourself.</Text> : staff.map((s) => (
                 <Card key={s.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <Text style={{ flex: 1, fontWeight: '800', color: p.text }}>{s.name}</Text>
                   <Btn label="Revoke" small kind="secondary" loading={busy === `rs-${s.id}`} onPress={() => run(`rs-${s.id}`, () => campusEventsApi.orgRevokeStaff(id, s.id))} />
                 </Card>
               ))}
-              <Btn label="Add check-in staff" icon="＋" onPress={() => setPicker(true)} style={{ marginTop: 6 }} />
+              <Btn label="Add check-in staff" icon="add" onPress={() => setPicker(true)} style={{ marginTop: 6 }} />
             </>
           ) : null}
         </ScrollView>

@@ -10,6 +10,10 @@
  */
 import { apiFetch, readJson, SERVER_BUSY_MESSAGE, NETWORK_ERROR_MESSAGE } from '../../utils/auth';
 import { newIdempotencyKey } from '../../context/CartContext';
+import type { Ionicons } from '@expo/vector-icons';
+
+/** Ionicons glyph name (the module shows icons, never emoji). */
+export type CeIconName = keyof typeof Ionicons.glyphMap;
 
 export { newIdempotencyKey };
 
@@ -655,12 +659,12 @@ export const dayLabel = (date: string) => {
   const d = new Date(`${date}T12:00:00+05:30`);
   return `${DAYS[ist(d.toISOString()).getUTCDay()]} ${Number(date.slice(8, 10))} ${MONTHS[Number(date.slice(5, 7)) - 1]}`;
 };
-/** { dow: 'TUE', day: '21', mon: 'OCT' } for poster date tiles (IST). */
+/** { dow: 'Tue', day: '21', mon: 'Oct' } for poster date tiles (IST). */
 export const dateTile = (iso?: string | null) => {
   if (!iso) return null;
   const d = ist(iso);
   if (Number.isNaN(d.getTime())) return null;
-  return { dow: DAYS[d.getUTCDay()].toUpperCase(), day: String(d.getUTCDate()), mon: MONTHS[d.getUTCMonth()].toUpperCase() };
+  return { dow: DAYS[d.getUTCDay()], day: String(d.getUTCDate()), mon: MONTHS[d.getUTCMonth()] };
 };
 /** 'Tue 21 Oct · 9:00 AM' (IST). */
 export const fmtWhen = (iso?: string | null) => (iso ? `${dayLabel(istYmd(iso))} · ${fmtClock(iso)}` : 'Time not set');
@@ -671,7 +675,7 @@ export const fmtRange = (start?: string | null, end?: string | null) => {
   const sameDay = istYmd(start) === istYmd(end);
   return `${fmtWhen(start)} – ${sameDay ? fmtClock(end) : fmtWhen(end)}`;
 };
-/** 'in 12 min' / 'in 3 h' / 'in 2 days' / 'now'. */
+/** 'in 12 min' / 'in 3 hours' / 'in 2 days' / 'now'. */
 export const fromNow = (iso?: string | null, nowMs = Date.now()) => {
   if (!iso) return '';
   const ms = new Date(iso).getTime() - nowMs;
@@ -679,50 +683,74 @@ export const fromNow = (iso?: string | null, nowMs = Date.now()) => {
   const m = Math.round(ms / 60000);
   if (m < 60) return `in ${m} min`;
   const h = Math.round(m / 60);
-  if (h < 48) return `in ${h} h`;
+  if (h < 48) return `in ${h} hour${h === 1 ? '' : 's'}`;
   return `in ${Math.round(h / 24)} days`;
+};
+/** Organizer form labels for API field keys (error messages, edits in review). Unknown keys -> null. */
+const FIELD_LABEL: Record<string, string> = {
+  title: 'Title', category: 'Category', description: 'Description', tags: 'Tags', venue: 'Venue', venueDirections: 'Directions',
+  startAt: 'Starts', endAt: 'Ends', regOpensAt: 'Registration opens', regClosesAt: 'Registration closes', format: 'Format',
+  capacity: 'Capacity', maxTeams: 'Teams', teamMin: 'Min players', teamMax: 'Max players', captainRequired: 'Captain required',
+  allowSubstitutions: 'Substitutions', multiTeamAllowed: 'More than one team', attendancePerMember: 'Check-in per player',
+  maxBookingsPerStudent: 'Max bookings per student', approvalRequired: 'Approval', waitlistEnabled: 'Waitlist', priceType: 'Price',
+  price: 'Fee', extraCharges: 'Extra charges', paymentModes: 'How students pay', eligibility: 'Who can join', rules: 'Rules',
+  questions: 'Questions', equipment: 'What to bring', contactText: 'Contact', instructions: 'Entry instructions',
+  cancellationPolicy: 'Cancellation policy', entryOpensBeforeMin: 'Entry opens', posterPath: 'Poster', gallery: 'Gallery',
+};
+export const fieldLabel = (key?: string | null): string | null => {
+  if (!key) return null;
+  const base = String(key).split(/[.[]/)[0];
+  return FIELD_LABEL[base] || null;
+};
+
+/** '2–5 players' / '5 players' / '2 or more players' (no maximum set). */
+export const teamSizeLabel = (min?: number | null, max?: number | null) => {
+  const lo = min ?? 1;
+  if (max == null) return `${lo} or more players`;
+  if (lo >= max) return `${max} player${max === 1 ? '' : 's'}`;
+  return `${lo}–${max} players`;
 };
 export const mmss = (ms: number) => {
   const sec = Math.max(0, Math.floor(ms / 1000));
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 };
 
-export const CATEGORY_META: Record<Category, { label: string; icon: string; color: string }> = {
-  SPORTS: { label: 'Sports', icon: '⚽', color: '#16A34A' },
-  TOURNAMENT: { label: 'Tournament', icon: '🏆', color: '#D97706' },
-  CLUB: { label: 'Club activity', icon: '🎯', color: '#7C3AED' },
-  WORKSHOP: { label: 'Workshop', icon: '🛠️', color: '#0EA5E9' },
-  SEMINAR: { label: 'Seminar', icon: '🎤', color: '#2563EB' },
-  TALK: { label: 'Talk', icon: '💬', color: '#0891B2' },
-  COMPETITION: { label: 'Competition', icon: '🥇', color: '#DC2626' },
-  HACKATHON: { label: 'Hackathon', icon: '💻', color: '#9333EA' },
-  CULTURAL: { label: 'Cultural', icon: '🎭', color: '#DB2777' },
-  RECREATION: { label: 'Recreational', icon: '🎮', color: '#059669' },
-  OTHER: { label: 'Other', icon: '✨', color: '#64748B' },
+export const CATEGORY_META: Record<Category, { label: string; icon: CeIconName; color: string }> = {
+  SPORTS: { label: 'Sports', icon: 'football-outline', color: '#16A34A' },
+  TOURNAMENT: { label: 'Tournament', icon: 'trophy-outline', color: '#D97706' },
+  CLUB: { label: 'Club activity', icon: 'people-outline', color: '#7C3AED' },
+  WORKSHOP: { label: 'Workshop', icon: 'construct-outline', color: '#0EA5E9' },
+  SEMINAR: { label: 'Seminar', icon: 'mic-outline', color: '#2563EB' },
+  TALK: { label: 'Talk', icon: 'chatbubbles-outline', color: '#0891B2' },
+  COMPETITION: { label: 'Competition', icon: 'medal-outline', color: '#DC2626' },
+  HACKATHON: { label: 'Hackathon', icon: 'code-slash-outline', color: '#9333EA' },
+  CULTURAL: { label: 'Cultural', icon: 'color-palette-outline', color: '#DB2777' },
+  RECREATION: { label: 'Recreational', icon: 'game-controller-outline', color: '#059669' },
+  OTHER: { label: 'Other', icon: 'sparkles-outline', color: '#64748B' },
 };
 export const CATEGORIES = Object.keys(CATEGORY_META) as Category[];
 
 export const FORMAT_LABEL: Record<EventFormat, string> = { INDIVIDUAL: 'Individual', SLOT: 'Slot booking', TEAM: 'Team event' };
 
-export const REG_STATUS_META: Record<RegStatus, { label: string; color: string; icon: string }> = {
-  HELD: { label: 'Place held', color: '#F59E0B', icon: '⏳' },
-  PENDING_PAYMENT: { label: 'Payment pending', color: '#F59E0B', icon: '💳' },
-  PENDING_APPROVAL: { label: 'Waiting for approval', color: '#F59E0B', icon: '🕒' },
-  CONFIRMED: { label: 'Confirmed', color: '#10B981', icon: '✅' },
-  WAITLISTED: { label: 'Waitlisted', color: '#6366F1', icon: '📋' },
-  OFFERED: { label: 'Place offered', color: '#0EA5E9', icon: '🎉' },
-  CANCELLED: { label: 'Cancelled', color: '#64748B', icon: '✕' },
-  EXPIRED: { label: 'Expired', color: '#64748B', icon: '⌛' },
-  REJECTED: { label: 'Not approved', color: '#EF4444', icon: '✕' },
+export const REG_STATUS_META: Record<RegStatus, { label: string; color: string; icon: CeIconName }> = {
+  HELD: { label: 'Place held', color: '#F59E0B', icon: 'hourglass-outline' },
+  PENDING_PAYMENT: { label: 'Payment pending', color: '#F59E0B', icon: 'time-outline' },
+  PENDING_APPROVAL: { label: 'Waiting for approval', color: '#F59E0B', icon: 'time-outline' },
+  CONFIRMED: { label: 'Confirmed', color: '#10B981', icon: 'checkmark-circle' },
+  WAITLISTED: { label: 'Waitlisted', color: '#6366F1', icon: 'list-outline' },
+  OFFERED: { label: 'Place offered', color: '#0EA5E9', icon: 'gift-outline' },
+  CANCELLED: { label: 'Cancelled', color: '#64748B', icon: 'close-circle-outline' },
+  EXPIRED: { label: 'Expired', color: '#64748B', icon: 'hourglass-outline' },
+  REJECTED: { label: 'Not approved', color: '#EF4444', icon: 'close-circle-outline' },
 };
 
-export const REG_STATE_META: Record<RegistrationState, { label: string; color: string; icon: string }> = {
-  OPEN: { label: 'Registration open', color: '#10B981', icon: '🟢' },
-  NOT_OPEN: { label: 'Opens soon', color: '#64748B', icon: '🕒' },
-  CLOSED: { label: 'Registration closed', color: '#64748B', icon: '🔒' },
-  FULL: { label: 'Full', color: '#EF4444', icon: '⛔' },
-  CANCELLED: { label: 'Cancelled', color: '#EF4444', icon: '✕' },
-  COMPLETED: { label: 'Event over', color: '#64748B', icon: '🏁' },
+export const REG_STATE_META: Record<RegistrationState, { label: string; color: string; icon: CeIconName }> = {
+  OPEN: { label: 'Registration open', color: '#10B981', icon: 'radio-button-on' },
+  NOT_OPEN: { label: 'Opens soon', color: '#64748B', icon: 'time-outline' },
+  CLOSED: { label: 'Registration closed', color: '#64748B', icon: 'lock-closed-outline' },
+  FULL: { label: 'Full', color: '#EF4444', icon: 'ban-outline' },
+  CANCELLED: { label: 'Cancelled', color: '#EF4444', icon: 'close-circle-outline' },
+  COMPLETED: { label: 'Event over', color: '#64748B', icon: 'flag-outline' },
 };
 
 export const PAYMENT_MODE_LABEL: Record<PaymentMode, string> = { NONE: 'Free', VENUE: 'Pay at the venue', WALLET: 'Zenvy Wallet', ONLINE: 'Pay online (UPI / card)' };
@@ -759,17 +787,17 @@ export const EVENT_STATUS_META: Record<EventStatus, { label: string; color: stri
 };
 
 /** Check-in verdict colours + icon + words (never colour alone). */
-export const CHECKIN_META: Record<CheckInResult, { title: string; color: string; icon: string }> = {
-  VALID: { title: 'VALID', color: '#16A34A', icon: '✅' },
-  PAYMENT_DUE: { title: 'COLLECT FEE', color: '#D97706', icon: '💵' },
-  ALREADY_USED: { title: 'ALREADY USED', color: '#DC2626', icon: '⛔' },
-  CANCELLED: { title: 'CANCELLED', color: '#DC2626', icon: '✕' },
-  INVALID: { title: 'INVALID', color: '#DC2626', icon: '✕' },
-  NOT_YET_VALID: { title: 'NOT YET VALID', color: '#D97706', icon: '🕒' },
-  EXPIRED: { title: 'EVENT OVER', color: '#DC2626', icon: '🏁' },
-  WRONG_EVENT: { title: 'WRONG EVENT', color: '#DC2626', icon: '↔️' },
-  UNPAID: { title: 'UNPAID', color: '#DC2626', icon: '💳' },
-  PENDING: { title: 'NOT CONFIRMED', color: '#DC2626', icon: '🕒' },
+export const CHECKIN_META: Record<CheckInResult, { title: string; color: string; icon: CeIconName }> = {
+  VALID: { title: 'Valid', color: '#16A34A', icon: 'checkmark-circle' },
+  PAYMENT_DUE: { title: 'Collect fee', color: '#D97706', icon: 'cash-outline' },
+  ALREADY_USED: { title: 'Already used', color: '#DC2626', icon: 'ban-outline' },
+  CANCELLED: { title: 'Cancelled', color: '#DC2626', icon: 'close-circle' },
+  INVALID: { title: 'Invalid', color: '#DC2626', icon: 'close-circle' },
+  NOT_YET_VALID: { title: 'Not yet valid', color: '#D97706', icon: 'time-outline' },
+  EXPIRED: { title: 'Event over', color: '#DC2626', icon: 'flag-outline' },
+  WRONG_EVENT: { title: 'Wrong event', color: '#DC2626', icon: 'swap-horizontal-outline' },
+  UNPAID: { title: 'Unpaid', color: '#DC2626', icon: 'alert-circle-outline' },
+  PENDING: { title: 'Not confirmed', color: '#DC2626', icon: 'time-outline' },
 };
 
 /** Lists (organizer form) */
@@ -838,7 +866,7 @@ export const errorCopy = (e: any): { title: string; message: string } => {
     case 'INCOMPLETE': return t('Almost there');
     case 'QUESTION_NOT_ALLOWED': return t('Question not allowed');
     case 'INVALID_MEDIA': return t('Upload the poster again');
-    case 'RATE_LIMITED': return t('Slow down');
+    case 'RATE_LIMITED': return { title: 'Too many tries', message: 'Wait a moment and try again.' };
     case 'IDEMPOTENCY_KEY_REUSED': return t('Please try again');
     case 'NETWORK':
     case 'SERVER_BUSY': return t('Connection problem');

@@ -2,7 +2,7 @@
  * PG cards for the list page.
  *  - PgListCard: full-width card (All PGs). Cover in a fixed 16:9 frame with the residents badge and
  *    photo count, name with the verified mark, rating when real reviews exist, area and distance,
- *    two or three key amenities, "From ₹7,500/month" and beds free.
+ *    two or three key amenities, "From ₹7,500/month" and beds available.
  *  - PgRailCard: the compact card used in the horizontal rails (fixed width, 4:3 cover).
  * Plus the matching skeletons so loading does not shift the layout.
  */
@@ -47,7 +47,7 @@ const a11yOf = (pg: PgListItem) => {
   const r = pg.reviewSummary;
   return `${pg.name}${pg.isVerified ? ', verified' : ''}. ${genderLabel(pg.genderType)}. ${placeOf(pg)}. Rent from ${inr(pg.rentFrom ?? pg.baseRent)} a month.`
     + `${r && r.count ? ` Rated ${ratingText(r.average)} from ${plural(r.count, 'review')}.` : ''}`
-    + `${beds !== null ? ` ${beds === 0 ? 'No beds free' : `${plural(beds, 'bed')} free`}.` : ''}`;
+    + `${beds !== null ? ` ${beds === 0 ? 'No beds available' : `${plural(beds, 'bed')} available`}.` : ''}`;
 };
 
 export function PgListCard({ pg, onPress }: { pg: PgListItem; onPress: () => void }) {
@@ -85,7 +85,7 @@ export function PgListCard({ pg, onPress }: { pg: PgListItem; onPress: () => voi
         <View style={st.priceRow}>
           <Price pg={pg} />
           {beds !== null ? (
-            <Text style={[ui.small, { color: beds > 0 ? p.success : p.muted, fontWeight: '600' }]}>{beds > 0 ? `${plural(beds, 'bed')} free` : 'Full'}</Text>
+            <Text style={[ui.small, { color: beds > 0 ? p.success : p.muted, fontWeight: '600' }]}>{beds > 0 ? `${plural(beds, 'bed')} available` : 'Full'}</Text>
           ) : null}
         </View>
       </View>

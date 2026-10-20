@@ -45,7 +45,7 @@ export function PgMessSection({ timetable }: { timetable: MessTimetable | null }
   if (!timetable || !timetable.meals.length) {
     return (
       <View>
-        <SectionHeading title="Mess timings" />
+        <SectionHeading title="Mess" />
         <Text style={[ui.body, { color: p.sub }]}>The mess timetable hasn't been added yet.</Text>
       </View>
     );

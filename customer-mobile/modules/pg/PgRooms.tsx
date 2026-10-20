@@ -1,7 +1,7 @@
 /**
  * Rooms section: one card per room type (selectable; the bottom bar requests the selected one), photos
  * linked to that type, and a Compare view: a side-by-side table of every room type (rent, deposit,
- * sharing, AC, bathroom, balcony, furnishing, beds free). The compare view is a Modal, so Android back
+ * sharing, AC, bathroom, balcony, furnishing, beds available). The compare view is a Modal, so Android back
  * closes it. Room tour videos follow the cards.
  */
 import React, { useState } from 'react';
@@ -45,7 +45,7 @@ export function RoomsSection({ pg, selectedKey, onSelect, onOpenPhotos, roomType
             disabled={full}
             accessibilityRole="button"
             accessibilityState={{ selected: on, disabled: full }}
-            accessibilityLabel={`${roomTitle(t)}. ${roomFacts(t)}. ${rentText(t)} a month. ${full ? 'Full' : `${plural(t.availableBeds, 'bed')} free`}`}
+            accessibilityLabel={`${roomTitle(t)}. ${roomFacts(t)}. ${rentText(t)} a month. ${full ? 'Full' : `${plural(t.availableBeds, 'bed')} available`}`}
             style={[st.card, { backgroundColor: p.card, borderColor: on ? p.text : p.line, borderWidth: on ? 1.5 : StyleSheet.hairlineWidth }, full && { opacity: 0.6 }]}
           >
             <View style={st.top}>
@@ -69,7 +69,7 @@ export function RoomsSection({ pg, selectedKey, onSelect, onOpenPhotos, roomType
             <View style={st.bottom}>
               <Text style={[st.price, { color: p.text }]}>{rentText(t)}<Text style={[ui.small, { color: p.sub, fontWeight: '400' }]}>/month</Text></Text>
               <Text style={[ui.small, { color: full ? p.muted : p.success, fontWeight: '600' }]}>
-                {full ? 'Full' : `${t.availableBeds} of ${plural(t.totalBeds, 'bed')} free`}
+                {full ? 'Full' : `${t.availableBeds} of ${plural(t.totalBeds, 'bed')} available`}
               </Text>
             </View>
             {t.deposit && t.deposit !== pg.securityDeposit ? <Text style={[ui.small, { color: p.muted, marginTop: 4 }]}>Deposit {inr(t.deposit)}</Text> : null}
@@ -101,14 +101,14 @@ function CompareRooms({ types, pgDeposit, selectedKey, onClose, onChoose }: {
   const insets = useSafeAreaInsets();
   const yesNo = (v: boolean) => (v ? 'Yes' : 'No');
   const rows: { label: string; value: (t: PgRoomType) => string; strong?: boolean }[] = [
-    { label: 'Rent', value: (t) => (t.rentFrom === null ? '—' : `${rentText(t)}/mo`), strong: true },
+    { label: 'Rent', value: (t) => (t.rentFrom === null ? '—' : `${rentText(t)}/month`), strong: true },
     { label: 'Deposit', value: (t) => { const d = t.deposit ?? pgDeposit; return Number(d) > 0 ? inr(d) : 'None'; } },
     { label: 'Sharing', value: (t) => (t.sharingType === 1 ? 'Single' : `${t.sharingType} per room`) },
     { label: 'AC', value: (t) => yesNo(t.hasAC) },
     { label: 'Bathroom', value: (t) => (t.hasAttachedBathroom ? 'Attached' : 'Shared') },
     { label: 'Balcony', value: (t) => yesNo(t.hasBalcony) },
     { label: 'Furnishing', value: (t) => furnishingText(t.furnishing) || '—' },
-    { label: 'Beds free', value: (t) => (t.bookRoomId ? `${t.availableBeds} of ${t.totalBeds}` : 'Full') },
+    { label: 'Beds available', value: (t) => (t.bookRoomId ? `${t.availableBeds} of ${t.totalBeds}` : 'Full') },
   ];
   return (
     <Modal visible animationType="slide" onRequestClose={onClose} statusBarTranslucent presentationStyle="fullScreen">
@@ -143,7 +143,7 @@ function CompareRooms({ types, pgDeposit, selectedKey, onClose, onChoose }: {
                       <View key={r.label}>
                         <Divider />
                         <View style={[st.cell, { height: ROW_H }]}>
-                          <Text style={[ui.body, { color: r.label === 'Beds free' && !t.bookRoomId ? p.muted : p.text, fontWeight: r.strong ? '600' : '400' }]} numberOfLines={2}>{r.value(t)}</Text>
+                          <Text style={[ui.body, { color: r.label === 'Beds available' && !t.bookRoomId ? p.muted : p.text, fontWeight: r.strong ? '600' : '400' }]} numberOfLines={2}>{r.value(t)}</Text>
                         </View>
                       </View>
                     ))}

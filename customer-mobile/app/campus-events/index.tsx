@@ -4,6 +4,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, Modal, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { campusEventsApi, CampusEventsError, CATEGORIES, CATEGORY_META, istDate, type BrowseFilter, type Category, type EventCard as EventCardT } from '../../modules/campusEvents/campusEventsApi';
 import { EHeader, usePalette, EventCard, CardSkeleton, ErrorState, StateView, Chips, Toggle, Btn, Notice, CE_HOME } from '../../modules/campusEvents/ui';
 import { useCampusEventsLive } from '../../modules/campusEvents/useCampusEventsLive';
@@ -143,23 +144,23 @@ export default function CampusEventsList() {
     <View>
       <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, minHeight: 46, borderRadius: 14, borderWidth: 1, borderColor: p.border, backgroundColor: p.card2 }}>
-          <Text style={{ fontSize: 14 }}>🔍</Text>
+          <Ionicons name="search-outline" size={17} color={p.muted} />
           <TextInput value={q} onChangeText={setQ} onSubmitEditing={() => setQuery(q)} returnKeyType="search" placeholder="Search events, venues" placeholderTextColor={p.muted}
             accessibilityLabel="Search campus events" style={{ flex: 1, color: p.text, fontSize: 14, paddingVertical: 8 }} maxLength={60} />
           {q ? (
             <TouchableOpacity onPress={() => { setQ(''); setQuery(''); }} accessibilityRole="button" accessibilityLabel="Clear search" hitSlop={10} style={{ minWidth: 32, minHeight: 32, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: p.muted, fontSize: 16 }}>✕</Text>
+              <Ionicons name="close-circle" size={18} color={p.muted} />
             </TouchableOpacity>
           ) : null}
         </View>
         <TouchableOpacity onPress={() => { setDraft(filters); setSheet(true); }} accessibilityRole="button" accessibilityLabel={`Filter and sort${n ? `, ${n} active` : ''}`}
           style={{ minWidth: 46, height: 46, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1, borderColor: n ? p.accent : p.border, backgroundColor: n ? p.accentSoft : p.card2, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 4 }}>
-          <Text style={{ fontSize: 15 }}>⚙️</Text>
+          <Ionicons name="options-outline" size={19} color={n ? p.accent : p.text} />
           {n ? <Text style={{ color: p.accent, fontWeight: '900', fontSize: 12 }}>{n}</Text> : null}
         </TouchableOpacity>
       </View>
       <Chips<SortKey> wrap={false} accessibilityLabel="Sort" value={filters.sort} onChange={(v: SortKey) => setFilters((f) => ({ ...f, sort: v }))}
-        options={[{ key: 'date', label: '📅 Soonest' }, { key: 'recent', label: '🆕 Recently published' }, { key: 'deadline', label: '⏳ Deadline' }]} />
+        options={[{ key: 'date', label: 'Soonest' }, { key: 'recent', label: 'Recently published' }, { key: 'deadline', label: 'Deadline' }]} />
       {featured || n ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
           {featured ? <Text style={{ color: p.sub, fontSize: 12 }}>★ Featured only · </Text> : null}
@@ -169,14 +170,14 @@ export default function CampusEventsList() {
         </View>
       ) : null}
       {filters.sort === 'deadline' ? <Text style={{ color: p.muted, fontSize: 11, marginTop: 8 }}>Open registrations, closing soonest first.</Text> : null}
-      {notice ? <View style={{ marginTop: 10 }}><Notice tone="warn" icon="🎓">{notice}</Notice></View> : null}
+      {notice ? <View style={{ marginTop: 10 }}><Notice tone="warn" icon="school-outline">{notice}</Notice></View> : null}
       <View style={{ height: 12 }} />
     </View>
   );
 
   return (
     <View style={{ flex: 1, backgroundColor: p.bg }}>
-      <EHeader title="Campus events" subtitle="All upcoming events on your campus" onBack={() => (router.canGoBack() ? router.back() : router.replace(CE_HOME as any))} />
+      <EHeader title="Campus Events" subtitle="All upcoming events on your campus" onBack={() => (router.canGoBack() ? router.back() : router.replace(CE_HOME as any))} />
       {error && !events ? (
         <ErrorState error={error} onRetry={load} onNotFound={() => router.replace(CE_HOME as any)} />
       ) : (
@@ -190,12 +191,12 @@ export default function CampusEventsList() {
           onEndReachedThreshold={0.4}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}
           ListEmptyComponent={shown === null ? <View>{[0, 1].map((i) => <CardSkeleton key={i} height={300} />)}</View> : (
-            <StateView kind="empty" icon="🗓️" title={n || query || featured ? 'No events match' : 'No upcoming events yet'}
+            <StateView kind="empty" icon="calendar-outline" title={n || query || featured ? 'No events match' : 'No upcoming events yet'}
               message={n || query || featured ? 'Try fewer filters or another search.' : 'When clubs and organizers publish events on your campus, they appear here.'}
               actionLabel={n || query || featured ? 'Clear filters' : undefined} onAction={() => { setFilters(DEFAULTS); setFeatured(false); setQ(''); setQuery(''); }} />
           )}
           ListFooterComponent={loadingMore ? <ActivityIndicator color={p.accent} style={{ marginVertical: 16 }} /> : error && events ? (
-            <TouchableOpacity onPress={more} accessibilityRole="button" style={{ padding: 14, alignItems: 'center', minHeight: 48 }}><Text style={{ color: p.accent, fontWeight: '900' }}>⚠️ {error.message} · Retry</Text></TouchableOpacity>
+            <TouchableOpacity onPress={more} accessibilityRole="button" style={{ padding: 14, alignItems: 'center', minHeight: 48 }}><Text style={{ color: p.accent, fontWeight: '900' }}><Ionicons name="alert-circle-outline" size={14} color={p.accent} /> {error.message} · Retry</Text></TouchableOpacity>
           ) : null}
         />
       )}
@@ -213,7 +214,7 @@ export default function CampusEventsList() {
             <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24, gap: 16 }}>
               <Group label="Category">
                 <Chips<Category> multi value={draft.categories} onChange={(v: Category[]) => setDraft((d) => ({ ...d, categories: v }))}
-                  options={CATEGORIES.map((c) => ({ key: c, label: `${CATEGORY_META[c].icon} ${CATEGORY_META[c].label}` }))} />
+                  options={CATEGORIES.map((c) => ({ key: c, label: CATEGORY_META[c].label }))} />
               </Group>
               <Group label="Date">
                 <Chips<DateKey> value={draft.date} onChange={(v: DateKey) => setDraft((d) => ({ ...d, date: v }))}
@@ -225,7 +226,7 @@ export default function CampusEventsList() {
               </Group>
               <Group label="Format">
                 <Chips value={draft.format} onChange={(v: Filters['format']) => setDraft((d) => ({ ...d, format: v }))}
-                  options={[{ key: 'any', label: 'Any' }, { key: 'INDIVIDUAL', label: '🙋 Individual' }, { key: 'SLOT', label: '🗓️ Slot booking' }, { key: 'TEAM', label: '👥 Team' }]} />
+                  options={[{ key: 'any', label: 'Any' }, { key: 'INDIVIDUAL', label: 'Individual' }, { key: 'SLOT', label: 'Slot booking' }, { key: 'TEAM', label: 'Team' }]} />
               </Group>
               <Group label="Registration">
                 <Chips value={draft.status} onChange={(v: Filters['status']) => setDraft((d) => ({ ...d, status: v }))}
@@ -258,7 +259,7 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
   const p = usePalette();
   return (
     <View>
-      <Text style={{ fontSize: 11, fontWeight: '900', color: p.sub, letterSpacing: 0.8, marginBottom: 8 }}>{label.toUpperCase()}</Text>
+      <Text style={{ fontSize: 12.5, fontWeight: '800', color: p.sub, letterSpacing: 0.2, marginBottom: 8 }}>{label}</Text>
       {children}
     </View>
   );

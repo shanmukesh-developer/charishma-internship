@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { campusEventsApi, CampusEventsError, fmtWhen, fmtClock, TICKET_STATUS_META, type Ticket } from '../../modules/campusEvents/campusEventsApi';
 import { EHeader, usePalette, Card, ErrorState, StateView, Pill, Toggle, Notice, Poster, CE_HOME } from '../../modules/campusEvents/ui';
 import { useCampusEventsLive } from '../../modules/campusEvents/useCampusEventsLive';
@@ -40,11 +41,11 @@ export default function TicketsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}
           ListHeaderComponent={
             <View>
-              {!ready ? <Notice tone="warn" icon="⚠️">Tickets are temporarily unavailable. Your registrations are safe; try again later.</Notice> : null}
+              {!ready ? <Notice tone="warn" icon="warning-outline">Tickets are temporarily unavailable. Your registrations are safe; try again later.</Notice> : null}
               <Toggle label="Show past and cancelled tickets" value={all} onChange={setAll} />
             </View>
           }
-          ListEmptyComponent={<StateView kind="empty" icon="🎟️" title="No tickets yet" message="Tickets appear here once a registration is confirmed." actionLabel="Find events" onAction={() => router.push('/campus-events' as any)} />}
+          ListEmptyComponent={<StateView kind="empty" icon="ticket-outline" title="No tickets yet" message="Tickets appear here once a registration is confirmed." actionLabel="Find events" onAction={() => router.push('/campus-events' as any)} />}
           renderItem={({ item }) => {
             const m = TICKET_STATUS_META[item.status];
             return (
@@ -54,11 +55,11 @@ export default function TicketsScreen() {
                     <View style={{ width: 86 }}><Poster uri={item.event?.posterUrl} category="OTHER" height={104} radius={0} /></View>
                     <View style={{ flex: 1, padding: 12, gap: 3 }}>
                       <Text style={{ fontSize: 14.5, fontWeight: '900', color: p.text }} numberOfLines={2}>{item.event?.title}</Text>
-                      <Text style={{ fontSize: 12, color: p.sub }} numberOfLines={1}>🗓️ {item.slot ? `${fmtWhen(item.slot.startAt)} – ${fmtClock(item.slot.endAt)}` : fmtWhen(item.event?.startAt)}</Text>
-                      <Text style={{ fontSize: 11.5, color: p.muted }} numberOfLines={1}>{item.kind === 'TEAM' ? `👥 ${item.holder}` : item.holder} · {item.ticketCode}</Text>
+                      <Text style={{ fontSize: 12, color: p.sub }} numberOfLines={1}><Ionicons name="calendar-outline" size={12} color={p.sub} /> {item.slot ? `${fmtWhen(item.slot.startAt)} – ${fmtClock(item.slot.endAt)}` : fmtWhen(item.event?.startAt)}</Text>
+                      <Text style={{ fontSize: 11.5, color: p.muted }} numberOfLines={1}>{item.kind === 'TEAM' ? `Team: ${item.holder}` : item.holder} · {item.ticketCode}</Text>
                       <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
                         <Pill label={m.label} color={m.color} />
-                        {item.registration?.paymentDue && item.status === 'ACTIVE' ? <Pill label="Pay at venue" color="#D97706" icon="💵" /> : null}
+                        {item.registration?.paymentDue && item.status === 'ACTIVE' ? <Pill label="Pay at venue" color="#D97706" icon="cash-outline" /> : null}
                       </View>
                     </View>
                     <View style={{ justifyContent: 'center', paddingRight: 12 }}><Text style={{ fontSize: 22, color: p.accent }}>›</Text></View>

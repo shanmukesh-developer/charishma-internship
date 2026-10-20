@@ -4,6 +4,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Alert, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from '../../../components/KeyboardAvoidingView';
 import { campusEventsApi, CampusEventsError, errorCopy, fmtWhen, EVENT_STATUS_META, type OrganizerMe, type OrganizerEvent, type EventStatus } from '../../../modules/campusEvents/campusEventsApi';
 import { EHeader, usePalette, Card, Btn, Field, Chips, ErrorState, StateView, Notice, Pill, Poster, refreshCampusEventsStatus, CE_HOME } from '../../../modules/campusEvents/ui';
@@ -78,19 +79,19 @@ export default function OrganizerHome() {
         <EHeader title="Host an event" />
         <KeyboardAvoidingView style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-            <Notice icon="📣">Verified clubs and authorised student organizers can publish events on Zenvy. Every event is reviewed by the Zenvy team before students can see it.</Notice>
-            {o?.status === 'PENDING' ? <Notice tone="warn" icon="🕒">Your application ({o.displayName}) is with the Zenvy team. We will notify you.</Notice> : null}
-            {o?.status === 'SUSPENDED' ? <Notice tone="danger" icon="⛔">Your organizer access is suspended.{o.reviewNote ? ` ${o.reviewNote}` : ''}</Notice> : null}
-            {o?.status === 'REJECTED' || o?.status === 'REVOKED' ? <Notice tone="danger" icon="✕">Your previous application was {o.status === 'REJECTED' ? 'not approved' : 'revoked'}.{o.reviewNote ? ` ${o.reviewNote}` : ''} You can apply again.</Notice> : null}
+            <Notice icon="megaphone-outline">Verified clubs and authorised student organizers can publish events on Zenvy. Every event is reviewed by the Zenvy team before students can see it.</Notice>
+            {o?.status === 'PENDING' ? <Notice tone="warn" icon="time-outline">Your application ({o.displayName}) is with the Zenvy team. We will notify you.</Notice> : null}
+            {o?.status === 'SUSPENDED' ? <Notice tone="danger" icon="ban-outline">Your organizer access is suspended.{o.reviewNote ? ` ${o.reviewNote}` : ''}</Notice> : null}
+            {o?.status === 'REJECTED' || o?.status === 'REVOKED' ? <Notice tone="danger" icon="close-circle-outline">Your previous application was {o.status === 'REJECTED' ? 'not approved' : 'revoked'}.{o.reviewNote ? ` ${o.reviewNote}` : ''} You can apply again.</Notice> : null}
             {me.canApply ? (
               <Card>
                 <Text style={{ fontSize: 16, fontWeight: '900', color: p.text, marginBottom: 12 }}>Apply as an organizer</Text>
                 <Field label="Club / organizer name" required value={form.displayName} onChangeText={(v) => { setForm((f) => ({ ...f, displayName: v })); setFormErr(null); }} maxLength={80} error={formErr} placeholder="e.g. Robotics Club" />
                 {me.managedClubs.length ? (
                   <View style={{ marginBottom: 14 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub, marginBottom: 6 }}>VERIFIED CLUB YOU MANAGE (OPTIONAL)</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: p.sub, marginBottom: 6 }}>Verified club you manage (optional)</Text>
                     <Chips value={form.entityId || 'none'} onChange={(v: string) => setForm((f) => ({ ...f, entityId: v === 'none' ? null : v }))}
-                      options={[{ key: 'none', label: 'None' }, ...me.managedClubs.map((c) => ({ key: c.id, label: `✔ ${c.name}` }))]} />
+                      options={[{ key: 'none', label: 'None' }, ...me.managedClubs.map((c) => ({ key: c.id, label: c.name }))]} />
                   </View>
                 ) : null}
                 <Field label="What events will you run?" value={form.note} onChangeText={(v) => setForm((f) => ({ ...f, note: v }))} multiline maxLength={1000} placeholder="Tournaments, workshops, practice sessions…" />
@@ -98,7 +99,7 @@ export default function OrganizerHome() {
                 <Btn label="Send application" onPress={apply} loading={busy} />
               </Card>
             ) : !o ? (
-              <Notice tone="warn" icon="🎓">{me.eligibilityReasons.map((r) => REASONS[r] || r).join(' ') || 'You cannot apply right now.'}</Notice>
+              <Notice tone="warn" icon="school-outline">{[...new Set(me.eligibilityReasons.map((r) => REASONS[r]).filter(Boolean))].join(' ') || 'You cannot apply right now.'}</Notice>
             ) : null}
             {me.eligibilityReasons.some((r) => r === 'VERIFICATION_REQUIRED' || r === 'CAMPUS_REQUIRED') ? <Btn label="Verify my college" kind="secondary" onPress={() => router.push('/friends?screen=verification' as any)} /> : null}
           </ScrollView>
@@ -114,16 +115,16 @@ export default function OrganizerHome() {
     <View style={{ flex: 1, backgroundColor: p.bg }}>
       <EHeader title="My events" subtitle={`Organizer · ${o.displayName}`} right={
         <TouchableOpacity onPress={() => router.push('/campus-events/check-in' as any)} accessibilityRole="button" accessibilityLabel="Entry check-in" style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 22 }}>🛂</Text>
+          <Ionicons name="shield-checkmark-outline" size={22} color={p.text} />
         </TouchableOpacity>
       } />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}>
-        <Btn label="Create a new event" icon="＋" onPress={() => router.push('/campus-events/organizer/edit' as any)} style={{ marginBottom: 14 }} />
+        <Btn label="Create a new event" icon="add" onPress={() => router.push('/campus-events/organizer/edit' as any)} style={{ marginBottom: 14 }} />
         <Chips<Filter> wrap={false} value={filter} onChange={setFilter} accessibilityLabel="Filter events"
           options={[{ key: 'all', label: `All ${count('all')}` }, { key: 'drafts', label: `Drafts ${count('drafts')}` }, { key: 'review', label: `In review ${count('review')}` }, { key: 'live', label: `Live ${count('live')}` }, { key: 'past', label: `Past ${count('past')}` }]} />
         <View style={{ height: 12 }} />
         {!events ? <StateView kind="loading" /> : !shown.length ? (
-          <StateView kind="empty" icon="🗂️" title={events.length ? 'Nothing here' : 'No events yet'} message={events.length ? 'Try another filter.' : 'Create a draft, add the details and submit it for review.'} />
+          <StateView kind="empty" icon="folder-open-outline" title={events.length ? 'Nothing here' : 'No events yet'} message={events.length ? 'Try another filter.' : 'Create a draft, add the details and submit it for review.'} />
         ) : shown.map((e) => {
           const m = EVENT_STATUS_META[e.status];
           return (

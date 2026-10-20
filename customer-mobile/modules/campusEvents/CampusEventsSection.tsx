@@ -10,7 +10,8 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { readCache, writeCache } from '../../utils/swrCache';
 import { campusEventsApi, CampusEventsError, type SectionsResponse, type EventCard as EventCardT } from './campusEventsApi';
-import { usePalette, EventCard, CardSkeleton, Hero, Btn, Notice, SectionTitle, useCampusEventsStatus } from './ui';
+import { Ionicons } from '@expo/vector-icons';
+import { usePalette, EventCard, CardSkeleton, Hero, Btn, Notice, SectionTitle, useCampusEventsStatus, type CeIconName } from './ui';
 import { useCampusEventsLive } from './useCampusEventsLive';
 
 const { width: SW } = Dimensions.get('window');
@@ -63,8 +64,8 @@ export default function CampusEventsSection() {
       <View style={{ paddingHorizontal: 16 }}>
         <Hero title="Campus Events" subtitle="Workshops, tournaments, club activities and slot bookings at your college, with QR tickets." />
         <View style={{ alignItems: 'center', paddingVertical: 24 }}>
-          <Text style={{ color: p.sub, fontSize: 13, textAlign: 'center' }}>Log in with your student account to see events on your campus.</Text>
-          <Btn label="Log in" small onPress={() => router.push('/login' as any)} style={{ marginTop: 12 }} />
+          <Text style={{ color: p.sub, fontSize: 13, textAlign: 'center' }}>Sign in with your student account to see events on your campus.</Text>
+          <Btn label="Sign in" small onPress={() => router.push('/login' as any)} style={{ marginTop: 12 }} />
         </View>
       </View>
     );
@@ -72,12 +73,12 @@ export default function CampusEventsSection() {
 
   const organizerActive = typeof status?.isOrganizer === 'boolean' ? status.isOrganizer : status?.organizer?.status === 'ACTIVE';
   const showCheckIn = typeof status?.isStaff === 'boolean' ? status.isStaff : extras.checkIn > 0;
-  const quick: { icon: string; label: string; badge?: number; href: string; a11y: string }[] = [
-    { icon: '🧾', label: 'My registrations', badge: data?.my.registrations, href: '/campus-events/my', a11y: 'My registrations' },
-    { icon: '🎟️', label: 'My tickets', badge: data?.my.tickets, href: '/campus-events/tickets', a11y: 'My tickets' },
-    ...(extras.invitations ? [{ icon: '✉️', label: 'Team invites', badge: extras.invitations, href: '/campus-events/invitations', a11y: `${extras.invitations} team invitations` }] : []),
-    ...(showCheckIn ? [{ icon: '🛂', label: 'Check-in', href: '/campus-events/check-in', a11y: 'Entry check-in for staff' }] : []),
-    { icon: organizerActive ? '🗂️' : '📣', label: organizerActive ? 'My events' : 'Host an event', href: '/campus-events/organizer', a11y: organizerActive ? 'Organizer dashboard' : 'Host an event as a club or organizer' },
+  const quick: { icon: CeIconName; label: string; badge?: number; href: string; a11y: string }[] = [
+    { icon: 'receipt-outline' as CeIconName, label: 'My registrations', badge: data?.my.registrations, href: '/campus-events/my', a11y: 'My registrations' },
+    { icon: 'ticket-outline' as CeIconName, label: 'My tickets', badge: data?.my.tickets, href: '/campus-events/tickets', a11y: 'My tickets' },
+    ...(extras.invitations ? [{ icon: 'mail-outline' as CeIconName, label: 'Team invites', badge: extras.invitations, href: '/campus-events/invitations', a11y: `${extras.invitations} team invitations` }] : []),
+    ...(showCheckIn ? [{ icon: 'shield-checkmark-outline' as CeIconName, label: 'Check-in', href: '/campus-events/check-in', a11y: 'Entry check-in for staff' }] : []),
+    { icon: (organizerActive ? 'folder-open-outline' : 'megaphone-outline') as CeIconName, label: organizerActive ? 'My events' : 'Host an event', href: '/campus-events/organizer', a11y: organizerActive ? 'Organizer dashboard' : 'Host an event as a club or organizer' },
   ];
 
   const carousel = (list: EventCardT[]) => (
@@ -95,17 +96,17 @@ export default function CampusEventsSection() {
 
   return (
     <View style={{ paddingHorizontal: 16 }}>
-      <Hero title="Campus Events" subtitle="Discover, register, book slots, build teams and get QR tickets for what is happening on campus." />
+      <Hero title="Campus Events" subtitle="Register, book slots, build teams and get QR tickets for events on your campus." />
 
       <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, minHeight: 46, borderRadius: 14, borderWidth: 1, borderColor: p.border, backgroundColor: p.card2 }}>
-          <Text style={{ fontSize: 14 }}>🔍</Text>
+          <Ionicons name="search-outline" size={17} color={p.muted} />
           <TextInput value={q} onChangeText={setQ} onSubmitEditing={search} returnKeyType="search" placeholder="Search events, venues" placeholderTextColor={p.muted}
             accessibilityLabel="Search campus events" style={{ flex: 1, color: p.text, fontSize: 14, paddingVertical: 8 }} maxLength={60} />
         </View>
         <TouchableOpacity onPress={() => router.push('/campus-events?filters=1' as any)} accessibilityRole="button" accessibilityLabel="Filter and sort events"
           style={{ width: 46, height: 46, borderRadius: 14, borderWidth: 1, borderColor: p.border, backgroundColor: p.card2, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 16 }}>⚙️</Text>
+          <Ionicons name="options-outline" size={19} color={p.text} />
         </TouchableOpacity>
       </View>
 
@@ -113,7 +114,7 @@ export default function CampusEventsSection() {
         {quick.map((x) => (
           <TouchableOpacity key={x.href} onPress={() => router.push(x.href as any)} accessibilityRole="button" accessibilityLabel={x.badge ? `${x.a11y}, ${x.badge}` : x.a11y}
             style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1, borderColor: p.border, backgroundColor: p.card }}>
-            <Text style={{ fontSize: 16 }}>{x.icon}</Text>
+            <Ionicons name={x.icon} size={17} color={p.accent} />
             <Text style={{ fontSize: 12.5, fontWeight: '800', color: p.text }}>{x.label}</Text>
             {x.badge ? <View style={{ minWidth: 20, paddingHorizontal: 5, height: 20, borderRadius: 10, backgroundColor: p.accent, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 10.5, fontWeight: '900' }}>{x.badge}</Text></View> : null}
           </TouchableOpacity>
@@ -122,7 +123,7 @@ export default function CampusEventsSection() {
 
       {data?.reason === 'CAMPUS_REQUIRED' ? (
         <TouchableOpacity onPress={() => router.push('/friends?screen=verification' as any)} accessibilityRole="button" style={{ marginTop: 10 }}>
-          <Notice tone="warn" icon="🎓">Verify your college to see and join events on your campus. <Text style={{ color: p.accent, fontWeight: '900' }}>Verify now ›</Text></Notice>
+          <Notice tone="warn" icon="school-outline">Verify your college to see and join events on your campus. <Text style={{ color: p.accent, fontWeight: '900' }}>Verify now ›</Text></Notice>
         </TouchableOpacity>
       ) : null}
 
@@ -134,12 +135,12 @@ export default function CampusEventsSection() {
         </View>
       ) : error && !data ? (
         <TouchableOpacity onPress={load} accessibilityRole="button" accessibilityLabel={`${error.message}. Retry`} style={{ marginTop: 10, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: p.border, minHeight: 56 }}>
-          <Text style={{ color: p.sub, fontSize: 13 }}>{error.isNetwork ? '📡' : '⚠️'} {error.message} <Text style={{ color: p.accent, fontWeight: '900' }}>Retry</Text></Text>
+          <Text style={{ color: p.sub, fontSize: 13 }}><Ionicons name={error.isNetwork ? 'cloud-offline-outline' : 'alert-circle-outline'} size={14} color={p.sub} /> {error.message} <Text style={{ color: p.accent, fontWeight: '900' }}>Retry</Text></Text>
         </TouchableOpacity>
       ) : empty ? (
         data?.reason === 'CAMPUS_REQUIRED' ? null : (
           <View style={{ marginTop: 10, padding: 20, borderRadius: 18, borderWidth: 1, borderColor: p.border, alignItems: 'center' }}>
-            <Text style={{ fontSize: 34 }}>🎟️</Text>
+            <Ionicons name="ticket-outline" size={36} color={p.accent} />
             <Text style={{ color: p.text, fontWeight: '900', marginTop: 6, fontSize: 15 }}>No upcoming events yet</Text>
             <Text style={{ color: p.sub, fontSize: 12.5, textAlign: 'center', marginTop: 4, lineHeight: 18 }}>When clubs and organizers publish events on your campus, they appear here. Running a club? Host one.</Text>
             <Btn label="Host an event" small kind="ghost" onPress={() => router.push('/campus-events/organizer' as any)} style={{ marginTop: 12 }} />
@@ -147,14 +148,14 @@ export default function CampusEventsSection() {
         )
       ) : data ? (
         <>
-          {error ? <Notice tone="warn" icon="📡">Showing saved events. {error.message}</Notice> : null}
+          {error ? <Notice tone="warn" icon="cloud-offline-outline">Showing saved events. {error.message}</Notice> : null}
           {data.featured.length ? (
             <>
-              <SectionTitle kicker="HANDPICKED" right={seeAll('/campus-events?featured=1', 'featured events')}>Featured</SectionTitle>
+              <SectionTitle kicker="Picked by Zenvy" right={seeAll('/campus-events?featured=1', 'featured events')}>Featured</SectionTitle>
               {carousel(data.featured)}
             </>
           ) : null}
-          <SectionTitle kicker="WHAT'S NEXT" right={seeAll('/campus-events', 'upcoming events')}>Upcoming</SectionTitle>
+          <SectionTitle kicker="Coming up" right={seeAll('/campus-events', 'upcoming events')}>Upcoming</SectionTitle>
           {carousel(data.upcoming)}
           {data.sections.map((sec) => (
             <View key={sec.key}>
@@ -162,7 +163,7 @@ export default function CampusEventsSection() {
               {carousel(sec.events)}
             </View>
           ))}
-          <Btn label="Browse all events" icon="🗓️" kind="secondary" onPress={() => router.push('/campus-events' as any)} style={{ marginTop: 16 }} />
+          <Btn label="Browse all events" icon="calendar-outline" kind="secondary" onPress={() => router.push('/campus-events' as any)} style={{ marginTop: 16 }} />
         </>
       ) : null}
       <View style={{ height: 24 }} />

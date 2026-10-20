@@ -229,7 +229,7 @@ export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n ==
 /** "Oct 2026". */
 export const monthYear = (iso: string) => {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
 };
 /** One decimal, "4.0" kept so ratings line up. */
 export const ratingText = (n: number | null | undefined) => (typeof n === 'number' && Number.isFinite(n) ? n.toFixed(1) : '');

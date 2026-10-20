@@ -6,6 +6,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Alert, Share, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import {
   campusEventsApi, CampusEventsError, errorCopy, fmtWhen, REG_STATUS_META, type Team, type Invitation, type TeamMember, type EventDetail,
 } from '../../../modules/campusEvents/campusEventsApi';
@@ -37,6 +38,8 @@ export default function TeamScreen() {
   const [picker, setPicker] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  // People invited from this screen in this session (the roster has no user ids), so they cannot be picked twice.
+  const [invitedIds, setInvitedIds] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     try {
@@ -87,10 +90,10 @@ export default function TeamScreen() {
         <EHeader title="Team invitation" subtitle={inv.event?.title} />
         <ScrollView contentContainerStyle={{ padding: 16 }}>
           <Card>
-            <Text style={{ fontSize: 18, fontWeight: '900', color: p.text }}>👥 {inv.team?.name}</Text>
-            <Text style={{ fontSize: 13, color: p.sub, marginTop: 4 }}>Captain: {inv.team?.captain}</Text>
+            <Text style={{ fontSize: 18, fontWeight: '900', color: p.text }}><Ionicons name="people-outline" size={18} color={p.accent} /> {inv.team?.name}</Text>
+            {inv.team?.captain ? <Text style={{ fontSize: 13, color: p.sub, marginTop: 4 }}>Captain: {inv.team.captain}</Text> : null}
             <Text style={{ fontSize: 13, color: p.text, marginTop: 10 }}>{inv.event?.title}</Text>
-            <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 2 }}>🗓️ {fmtWhen(inv.event?.startAt)}{inv.event?.venue ? ` · 📍 ${inv.event.venue}` : ''}</Text>
+            <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 2 }}><Ionicons name="calendar-outline" size={13} color={p.sub} /> {fmtWhen(inv.event?.startAt)}{inv.event?.venue ? ` · ${inv.event.venue}` : ''}</Text>
             {inv.expiresAt ? <Text style={{ fontSize: 11.5, color: p.warn, marginTop: 8, fontWeight: '800' }}>Respond by {fmtWhen(inv.expiresAt)}</Text> : null}
           </Card>
           {open ? (
@@ -98,7 +101,7 @@ export default function TeamScreen() {
               <Btn label="Decline" kind="secondary" style={{ flex: 1 }} loading={busy === 'decline'} onPress={() => run('decline', () => campusEventsApi.respondInvitation(inv.id, false), () => router.back())} />
               <Btn label="Accept & join" style={{ flex: 2 }} loading={busy === 'accept'} onPress={() => run('accept', () => campusEventsApi.respondInvitation(inv.id, true))} />
             </View>
-          ) : <Notice tone="warn" icon="⌛">This invitation is no longer open.</Notice>}
+          ) : <Notice tone="warn" icon="hourglass-outline">This invitation is no longer open.</Notice>}
           {inv.event ? <Btn label="Event details" kind="ghost" small onPress={() => router.push(`/campus-events/${inv.event!.id}` as any)} style={{ marginTop: 12 }} /> : null}
         </ScrollView>
       </View>
@@ -110,7 +113,9 @@ export default function TeamScreen() {
   const accepted = t.members.filter((m) => m.status === 'ACCEPTED');
   const invited = t.members.filter((m) => m.status === 'INVITED');
   const min = t.event?.teamMin ?? 1;
-  const max = t.event?.teamMax ?? accepted.length;
+  // No maximum set = unlimited team size (invites stay open, no "team is full").
+  const max: number | null = t.event?.teamMax ?? null;
+  const full = max != null && accepted.length + invited.length >= max;
   const forming = t.status === 'FORMING';
   const editable = forming || (t.status === 'SUBMITTED' && !!t.event?.allowSubstitutions);
   const reg = t.registration;
@@ -146,12 +151,12 @@ export default function TeamScreen() {
     <View style={{ flex: 1, backgroundColor: p.bg }}>
       <EHeader title={t.name} subtitle={t.event?.title} right={<Pill label={t.status === 'FORMING' ? 'Forming' : t.status === 'SUBMITTED' ? 'Registered' : 'Withdrawn'} color={t.status === 'FORMING' ? '#D97706' : t.status === 'SUBMITTED' ? '#059669' : '#64748B'} />} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}>
-        {params.created === '1' && forming ? <Notice tone="success" icon="🎉">Team created. Invite your players: they join only after accepting.</Notice> : null}
+        {params.created === '1' && forming ? <Notice tone="success" icon="checkmark-circle-outline">Team created. Invite your players: they join only after accepting.</Notice> : null}
         {reg ? (
           <TouchableOpacity onPress={() => router.push(`/campus-events/registration/${reg.id}` as any)} accessibilityRole="button" accessibilityLabel={`Team registration ${reg.code}, ${REG_STATUS_META[reg.status].label}. Open details`}>
             <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 11, fontWeight: '900', color: p.muted, letterSpacing: 1 }}>TEAM REGISTRATION</Text>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: p.muted, letterSpacing: 0.2 }}>Team registration</Text>
                 <Text style={{ fontSize: 17, fontWeight: '900', color: p.text, letterSpacing: 1.5, marginTop: 2 }}>{reg.code}</Text>
               </View>
               <RegStatusPill status={reg.status} />
@@ -162,20 +167,20 @@ export default function TeamScreen() {
 
         <Card>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-            <Text style={{ flex: 1, fontSize: 15, fontWeight: '900', color: p.text }}>Roster · {accepted.length}/{max}</Text>
-            <Text style={{ fontSize: 12, color: accepted.length >= min ? p.success : p.warn, fontWeight: '800' }}>{accepted.length >= min ? '✓ Minimum met' : `Need ${min - accepted.length} more`}</Text>
+            <Text style={{ flex: 1, fontSize: 15, fontWeight: '900', color: p.text }}>Roster · {max != null ? `${accepted.length}/${max}` : `${accepted.length} player${accepted.length === 1 ? '' : 's'}`}</Text>
+            <Text style={{ fontSize: 12, color: accepted.length >= min ? p.success : p.warn, fontWeight: '800' }}>{accepted.length >= min ? <><Ionicons name="checkmark" size={13} color={p.success} /> Minimum met</> : `Need ${min - accepted.length} more`}</Text>
           </View>
           <View style={{ height: 6, borderRadius: 3, backgroundColor: p.card2, overflow: 'hidden', marginBottom: 8 }}>
-            <View style={{ width: `${Math.min(100, Math.round((accepted.length / Math.max(1, max)) * 100))}%`, height: '100%', backgroundColor: accepted.length >= min ? p.success : p.warn }} />
+            <View style={{ width: `${Math.min(100, Math.round((accepted.length / Math.max(1, max ?? Math.max(min, accepted.length))) * 100))}%`, height: '100%', backgroundColor: accepted.length >= min ? p.success : p.warn }} />
           </View>
           {[...accepted, ...invited].map((m) => (
             <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderTopWidth: 1, borderTopColor: p.border }}>
               <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: p.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontWeight: '900', color: p.accent }}>{m.role === 'CAPTAIN' ? '👑' : m.name.slice(0, 1)}</Text>
+                {m.role === 'CAPTAIN' ? <Ionicons name="star" size={16} color={p.accent} accessibilityLabel="Captain" /> : <Text style={{ fontWeight: '900', color: p.accent }}>{m.name.slice(0, 1)}</Text>}
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 14, fontWeight: '800', color: p.text }} numberOfLines={1}>{m.name}{m.isMe ? ' (you)' : ''}</Text>
-                <Text style={{ fontSize: 11.5, color: MEMBER_LABEL[m.status]?.color || p.sub, fontWeight: '700' }}>{m.role === 'CAPTAIN' ? 'Captain' : MEMBER_LABEL[m.status]?.label || m.status}</Text>
+                <Text style={{ fontSize: 11.5, color: MEMBER_LABEL[m.status]?.color || p.sub, fontWeight: '700' }}>{m.role === 'CAPTAIN' ? 'Captain' : MEMBER_LABEL[m.status]?.label || 'Updated'}</Text>
               </View>
               {captain && !m.isMe && editable ? (
                 <View style={{ flexDirection: 'row', gap: 6 }}>
@@ -189,17 +194,17 @@ export default function TeamScreen() {
 
         {captain && editable ? (
           <View style={{ gap: 10, marginBottom: 12 }}>
-            <Btn label="Invite classmates" icon="➕" onPress={() => setPicker(true)} disabled={accepted.length + invited.length >= max} />
-            <Btn label={t.joinLinkActive ? 'Share join link again' : 'Share a join link'} icon="🔗" kind="secondary" loading={busy === 'link'} onPress={shareLink} />
+            <Btn label="Invite classmates" icon="person-add-outline" onPress={() => setPicker(true)} disabled={full} />
+            <Btn label={t.joinLinkActive ? 'Share join link again' : 'Share a join link'} icon="link-outline" kind="secondary" loading={busy === 'link'} onPress={shareLink} />
             {t.joinLinkActive ? <Btn label="Turn off join link" small kind="ghost" loading={busy === 'revoke'} onPress={() => run('revoke', () => campusEventsApi.revokeJoinLink(t.id))} /> : null}
-            {accepted.length + invited.length >= max ? <Text style={{ color: p.sub, fontSize: 12, textAlign: 'center' }}>The team is full (pending invitations count).</Text> : null}
+            {full ? <Text style={{ color: p.sub, fontSize: 12, textAlign: 'center' }}>The team is full (pending invitations count).</Text> : null}
           </View>
         ) : null}
-        {!editable && t.status === 'SUBMITTED' ? <Notice icon="🔒">The roster is locked: this event does not allow substitutions after registration.</Notice> : null}
+        {!editable && t.status === 'SUBMITTED' ? <Notice icon="lock-closed-outline">The roster is locked: this event does not allow substitutions after registration.</Notice> : null}
 
         {captain && forming ? (
           <>
-            <Notice icon="ℹ️">Submitting takes one team place{ev && !ev.price.isFree ? ' and asks how the team fee is paid' : ''}. Players who have not accepted are not counted.</Notice>
+            <Notice icon="information-circle-outline">Submitting takes one team place{ev && !ev.price.isFree ? ' and asks how the team fee is paid' : ''}. Players who have not accepted are not counted.</Notice>
             <Btn label={ev?.registrationState === 'FULL' ? 'Submit to the waitlist' : 'Submit roster & register'} onPress={submit} disabled={accepted.length < min || (!!ev && ['CLOSED', 'COMPLETED', 'CANCELLED', 'NOT_OPEN'].includes(ev.registrationState))} />
             {ev && ['CLOSED', 'NOT_OPEN'].includes(ev.registrationState) ? <Text style={{ color: p.sub, fontSize: 12, textAlign: 'center', marginTop: 6 }}>{ev.cta?.label}</Text> : null}
           </>
@@ -210,7 +215,7 @@ export default function TeamScreen() {
             <SectionTitle>Roster history</SectionTitle>
             <Card>
               {history.slice().reverse().slice(0, 20).map((h, i) => (
-                <Text key={i} style={{ fontSize: 12.5, color: p.sub, paddingVertical: 3 }}>• {HISTORY_LABEL[h.action] || h.action.replace(/^team\./, '').replace(/_/g, ' ')} · {fmtWhen(h.at)}</Text>
+                <Text key={i} style={{ fontSize: 12.5, color: p.sub, paddingVertical: 3 }}>• {HISTORY_LABEL[h.action] || 'Roster change'}{h.at ? ` · ${fmtWhen(h.at)}` : ''}</Text>
               ))}
             </Card>
           </>
@@ -224,8 +229,8 @@ export default function TeamScreen() {
       </ScrollView>
 
       <PeoplePicker visible={picker} title="Invite to your team" actionLabel="Invite" onClose={() => setPicker(false)} busyId={busy?.startsWith('inv-') ? busy.slice(4) : null}
-        disabledIds={[]}
-        onPick={(person) => run(`inv-${person.userId}`, () => campusEventsApi.invite(t.id, person.userId), () => Alert.alert('Invitation sent', `${person.name} gets a notification and joins once they accept.`))} />
+        disabledIds={invitedIds}
+        onPick={(person) => run(`inv-${person.userId}`, () => campusEventsApi.invite(t.id, person.userId), () => { setInvitedIds((ids) => [...ids, person.userId]); Alert.alert('Invitation sent', `${person.name} gets a notification and joins once they accept.`); })} />
     </View>
   );
 }
