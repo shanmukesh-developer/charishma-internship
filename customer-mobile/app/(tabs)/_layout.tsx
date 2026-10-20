@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useCartState } from '../../context/CartContext';
 import { Ionicons } from '@expo/vector-icons';
 import { playSound, resumeAudio } from '../../utils/sounds';
+import { plural } from '../../utils/format';
 
 /** Basket count bubble: the only part of the tab bar that re-renders when the basket changes. */
 const CartBadge = React.memo(function CartBadge({ isDark }: { isDark: boolean }) {
@@ -53,6 +54,7 @@ const TAB_LISTENERS = {
 export default function TabLayout() {
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { totalItems } = useCartState();
 
   // Theme-aware tab bar style, memoized so the navigator's options stay referentially stable.
   const screenOptions = useMemo(() => ({
@@ -75,6 +77,7 @@ export default function TabLayout() {
 
   const tabOptions = useMemo(() => {
     const make = (name: string, iconName: string, showCartBadge?: boolean) => ({
+      tabBarAccessibilityLabel: name,
       tabBarIcon: ({ focused }: { focused: boolean }) => (
         <TabIcon name={name} focused={focused} iconName={iconName} isDark={isDark} showCartBadge={showCartBadge} />
       ),
@@ -88,6 +91,12 @@ export default function TabLayout() {
     };
   }, [isDark]);
 
+  // Screen readers hear the basket count ("Basket, 3 items"); only this tab's options change with it.
+  const basketOptions = useMemo(() => ({
+    ...tabOptions.basket,
+    tabBarAccessibilityLabel: totalItems > 0 ? `Basket, ${plural(totalItems, 'item')}` : 'Basket',
+  }), [tabOptions, totalItems]);
+
   return (
     <Tabs screenOptions={screenOptions}>
       {/* Home & Others */}
@@ -96,7 +105,7 @@ export default function TabLayout() {
 
       {/* Orders, Basket, Profile — instant switch, no transition */}
       <Tabs.Screen name="orders" options={tabOptions.orders} listeners={TAB_LISTENERS} />
-      <Tabs.Screen name="basket" options={tabOptions.basket} listeners={TAB_LISTENERS} />
+      <Tabs.Screen name="basket" options={basketOptions} listeners={TAB_LISTENERS} />
       <Tabs.Screen name="profile" options={tabOptions.profile} listeners={TAB_LISTENERS} />
     </Tabs>
   );
@@ -125,11 +134,10 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.15 }],
   },
   tabLabel: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 1.5,
+    letterSpacing: 0.2,
     marginTop: 3,
-    textTransform: 'uppercase',
   },
   cartBadge: {
     position: 'absolute',

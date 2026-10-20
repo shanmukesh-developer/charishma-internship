@@ -31,6 +31,8 @@ import { StaggeredSection, RestaurantCardSkeleton, PulseGlow, BounceIn, Floating
 import ServerWakeupOverlay from '../../components/ServerWakeupOverlay';
 import ZenvyEcosystemGrid from '../../components/ZenvyEcosystemGrid';
 import SafeImage from '../../components/SafeImage';
+import { Ionicons } from '@expo/vector-icons';
+import { formatINR, istHour, plural } from '../../utils/format';
 
 const VaultTimerBadge = ({ pulseAnim }: { pulseAnim: any }) => {
   const [vaultTimer, setVaultTimer] = useState('00:00:00');
@@ -62,11 +64,11 @@ const VaultTimerBadge = ({ pulseAnim }: { pulseAnim: any }) => {
 // Swiggy/Zomato style rotating search placeholder. Lives in its own component so the 3.5 s tick
 // re-renders one TextInput instead of the whole home screen (it used to re-filter every restaurant).
 const SEARCH_PLACEHOLDERS = [
-  "Search 'Biryani'...",
-  "Search 'Pizza'...",
-  "Search 'Dosa & Chai'...",
-  "Search 'Cold Coffee & Shakes'...",
-  "Search 'Burgers & Fries'...",
+  'Search for biryani…',
+  'Search for pizza…',
+  'Search for dosa and chai…',
+  'Search for cold coffee and shakes…',
+  'Search for burgers and fries…',
 ];
 const RotatingSearchInput = React.memo(function RotatingSearchInput({ search, color, placeholderColor, inputStyle }: { search: string; color: string; placeholderColor: string; inputStyle: any }) {
   const isFocused = useIsFocused();
@@ -99,15 +101,15 @@ const RotatingSearchInput = React.memo(function RotatingSearchInput({ search, co
 const { width: SW } = Dimensions.get('window');
 
 const FILTERS = [
-  { key: 'all', label: '✨ ALL' },
-  { key: 'veg', label: '🥗 VEG' },
-  { key: 'under99', label: '🔥 UNDER ₹99' },
-  { key: 'topRated', label: '⭐ 4.5+ RATED' },
-  { key: 'express', label: '⚡ UNDER 20 MIN' },
-  { key: 'premium', label: '👑 PREMIUM' },
-  { key: 'budget', label: '💰 BUDGET' },
-  { key: 'jain', label: '🙏 JAIN' },
-  { key: 'eggless', label: '🥚 EGGLESS' },
+  { key: 'all', label: 'All' },
+  { key: 'veg', label: 'Veg' },
+  { key: 'under99', label: 'Under ₹99' },
+  { key: 'topRated', label: 'Rated 4.5+' },
+  { key: 'express', label: 'Under 20 min' },
+  { key: 'premium', label: 'Featured' },
+  { key: 'budget', label: 'Under ₹150' },
+  { key: 'jain', label: 'Jain' },
+  { key: 'eggless', label: 'Eggless' },
 ];
 
 const CLASSICS = [
@@ -125,10 +127,10 @@ const CLASSICS = [
 
 
 const CATEGORIES = [
-  { key: 'food', label: 'Food', emoji: '🍔' },
-  { key: 'basket', label: 'Basket', emoji: '🧺' },
-  { key: 'services', label: 'Tech Fix', emoji: '💻' },
-  { key: 'rides', label: 'Auto & Rides', emoji: '🛺' },
+  { key: 'food', label: 'Food' },
+  { key: 'basket', label: 'Basket' },
+  { key: 'services', label: 'Tech & Repairs' },
+  { key: 'rides', label: 'Auto & Rides' },
 ];
 
 const CATEGORY_IMAGES = {
@@ -139,10 +141,10 @@ const CATEGORY_IMAGES = {
 };
 
 function getGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good Morning';
-  if (h < 17) return 'Good Afternoon';
-  return 'Good Evening';
+  const h = istHour();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
 }
 
 // Helper to accurately classify pure-vegetarian dining spots
@@ -199,7 +201,7 @@ const isHomeFoodVendor = (r: any): boolean => {
   return !t || HOME_FOOD_TYPES.includes(t);
 };
 
-// Only dishes the kitchen can actually serve right now
+// Only dishes the store can actually serve right now
 const availableMenu = (r: any): any[] => (Array.isArray(r?.menu) ? r.menu : []).filter((i: any) => i && i.isAvailable !== false);
 
 // Open/closed: the server sends isOpen (vendor toggle + operatingHours, IST). Fall back to the raw fields for cached data.
@@ -256,16 +258,16 @@ const HomeFloatingCart = React.memo(function HomeFloatingCart({ isDark, txt, onO
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[s.floatingCartLabel, { color: txt }]} numberOfLines={1}>
-              {totalItems} {totalItems === 1 ? 'ITEM' : 'ITEMS'} ADDED
+              {plural(totalItems, 'item')} added
             </Text>
             <Text style={[s.floatingCartSub, { color: isDark ? COLORS.gold : COLORS.red }]}>
-              ₹{totalPrice} SUBTOTAL
+              {formatINR(totalPrice)} subtotal
             </Text>
           </View>
         </View>
         <View style={[s.floatingCartCta, { backgroundColor: isDark ? COLORS.gold : COLORS.red }]}>
-          <Text style={[s.floatingCartCtaText, { color: isDark ? '#000' : '#FFF' }]}>VIEW BASKET</Text>
-          <Text style={{ fontSize: 12, color: isDark ? '#000' : '#FFF', fontWeight: '900' }}>➔</Text>
+          <Text style={[s.floatingCartCtaText, { color: isDark ? '#000' : '#FFF' }]}>View basket</Text>
+          <Text style={{ fontSize: 14, color: isDark ? '#000' : '#FFF', fontWeight: '900' }}>›</Text>
         </View>
       </TouchableOpacity>
     </View>
@@ -451,9 +453,9 @@ export default function HomeScreen() {
   const handleClaimVault = async (itemId: string) => {
     if (!user) {
       setShowVaultModal(false);
-      Alert.alert('Log in to claim', "Log in to your Zenvy account to claim today's deals.", [
+      Alert.alert('Sign in to claim', "Sign in to claim today's deals.", [
         { text: 'Not now', style: 'cancel' },
-        { text: 'Log in', onPress: () => router.push('/login' as any) },
+        { text: 'Sign in', onPress: () => router.push('/login' as any) },
       ]);
       return;
     }
@@ -466,7 +468,7 @@ export default function HomeScreen() {
       if (res.ok) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         const code = data.code || data.coupon?.code;
-        Alert.alert('Deal claimed! 🎉', code ? `Use code ${code} at checkout. It's valid until midnight.` : (data.message || 'Added to your coupons.'));
+        Alert.alert('Deal claimed', code ? `Use code ${code} at checkout. It's valid until midnight.` : (data.message || 'Added to your coupons.'));
         fetchVaultItems();
         if (refreshUser) refreshUser();
       } else {
@@ -606,9 +608,9 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-        Alert.alert('Exit Zenvy', 'Are you sure you want to close the application?', [
+        Alert.alert('Close Zenvy?', undefined, [
           { text: 'Cancel', onPress: () => null, style: 'cancel' },
-          { text: 'Exit', onPress: () => BackHandler.exitApp() },
+          { text: 'Close', onPress: () => BackHandler.exitApp() },
         ]);
         return true;
       });
@@ -716,12 +718,12 @@ export default function HomeScreen() {
               )}
             </View>
             <View>
-              <Text style={[s.greeting, { color: txtSec }]}>{getGreeting().toUpperCase()}</Text>
+              <Text style={[s.greeting, { color: txtSec }]}>{getGreeting()}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={[s.userName, { color: txt }]}>{(user?.name || 'Guest').split(' ')[0].toUpperCase()}</Text>
-                {!!(user?.isElite || (user?.zenPoints && user.zenPoints >= 200)) && (
+                <Text style={[s.userName, { color: txt }]}>{(user?.name || 'Guest').trim().split(' ')[0] || 'Guest'}</Text>
+                {!!user?.isElite && (
                   <View style={[s.eliteBadge, { backgroundColor: '#D4AF7A', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }]}>
-                    <Text style={{ fontSize: 7, fontWeight: '900', color: '#000', letterSpacing: 1.5 }}>✨ VIP GOLD</Text>
+                    <Text style={{ fontSize: 9, fontWeight: '900', color: '#000', letterSpacing: 0.3 }}>Elite</Text>
                   </View>
                 )}
               </View>
@@ -734,17 +736,21 @@ export default function HomeScreen() {
               onPress={toggleTheme}
               sound="click"
               activeScale={0.9}
+              accessibilityRole="button"
+              accessibilityLabel={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
             >
-              <Text style={{ fontSize: 18 }}>{isDark ? '☀️' : '🌙'}</Text>
+              <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={18} color={goldColor} />
             </DopaminePressable>
             <DopaminePressable 
               style={[s.navBtn, { backgroundColor: cardBg, borderColor: goldBorderColor }, s.profileBtn, { borderColor: goldColor }, goldGlowShadow]} 
               onPress={() => { lastUnreadCheck.current.at = 0; router.push('/notifications' as any); }}
               sound="click"
               activeScale={0.9}
+              accessibilityRole="button"
+              accessibilityLabel={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
             >
-              <Text style={{ fontSize: 18 }}>🔔</Text>
-              {unreadCount > 0 && <BounceIn><View style={s.badge}><Text style={s.badgeText}>{unreadCount}</Text></View></BounceIn>}
+              <Ionicons name="notifications-outline" size={18} color={goldColor} />
+              {unreadCount > 0 && <BounceIn><View style={s.badge}><Text style={s.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text></View></BounceIn>}
             </DopaminePressable>
           </View>
         </View>
@@ -828,7 +834,7 @@ export default function HomeScreen() {
                 resizeMode="cover" 
               />
               <Text style={[s.premiumCatLabel, { color: txt, marginTop: 8, marginBottom: 8 }]} numberOfLines={1}>
-                {c.label.toUpperCase()}
+                {c.label}
               </Text>
             </DopaminePressable>
             </BounceIn>
@@ -844,7 +850,7 @@ export default function HomeScreen() {
             onPress={() => setIsSearchOpen(true)}
             style={[s.searchWrap, { backgroundColor: cardBg, borderColor: isDark ? goldBorderColor : COLORS.borderLight, flex: 1, marginBottom: 0 }]}
           >
-            <Text style={{ fontSize: 16 }}>🔍</Text>
+            <Ionicons name="search-outline" size={17} color={txtSec} />
             <RotatingSearchInput search={search} color={txt} placeholderColor={txtSec} inputStyle={s.searchInput} />
             {!!search && (
               <TouchableOpacity
@@ -872,7 +878,7 @@ export default function HomeScreen() {
               { backgroundColor: cardBg, borderColor: vegOnly ? '#10B981' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)') }
             ]}
           >
-            <Text style={[s.vegToggleText, { color: vegOnly ? '#10B981' : txtSec }]}>VEG</Text>
+            <Text style={[s.vegToggleText, { color: vegOnly ? '#10B981' : txtSec }]}>Veg</Text>
             <View style={[s.vegSwitchTrack, { backgroundColor: vegOnly ? '#10B981' : (isDark ? 'rgba(255,255,255,0.2)' : '#E2E8F0') }]}>
               <View style={[s.vegSwitchThumb, vegOnly && s.vegSwitchThumbActive]} />
             </View>
@@ -882,13 +888,13 @@ export default function HomeScreen() {
 
         {/* ── CLASSICS ── */}
         <View style={s.sectionHeader}>
-          <Text style={[s.sectionTitle, { color: txt }]}>THE CLASSICS</Text>
+          <Text style={[s.sectionTitle, { color: txt }]}>Popular dishes</Text>
           <DopaminePressable 
             style={s.manageBtn} 
             sound="click"
             onPress={() => setShowCatPrefModal(true)}
           >
-            <Text style={s.manageBtnText}>MANAGE CATEGORIES ⚙️</Text>
+            <Text style={s.manageBtnText}>Filters</Text>
           </DopaminePressable>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 16, marginBottom: 20 }}>
@@ -909,7 +915,7 @@ export default function HomeScreen() {
                 <View style={[s.classicImgWrap, isActive && { borderColor: COLORS.red, ...SHADOWS.redGlow }]}>
                   <SafeImage source={{ uri: c.img }} style={s.classicImg} />
                 </View>
-                <Text style={[s.classicName, { color: isActive ? COLORS.red : txt }]}>{c.name.toUpperCase()}</Text>
+                <Text style={[s.classicName, { color: isActive ? COLORS.red : txt }]}>{c.name}</Text>
               </DopaminePressable>
             );
           })}
@@ -944,9 +950,9 @@ export default function HomeScreen() {
             }}
           >
             <View style={s.sectionHeader}>
-              <Text style={[s.sectionTitle, { color: txt }]}>{classicFilter.toUpperCase()}</Text>
+              <Text style={[s.sectionTitle, { color: txt }]}>{classicFilter}</Text>
               <TouchableOpacity onPress={() => setClassicFilter('')}>
-                <Text style={{ fontSize: 9, fontWeight: '800', color: COLORS.red, letterSpacing: 1 }}>CLEAR ✕</Text>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: COLORS.red, letterSpacing: 0.2 }}>Clear</Text>
               </TouchableOpacity>
             </View>
             <NexusExplorer
@@ -970,16 +976,16 @@ export default function HomeScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
             <View style={s.vaultLeft}>
               <PulseGlow size={44} color={COLORS.gold}>
-                <View style={s.vaultIcon}><Text style={{ fontSize: 24 }}>✨</Text></View>
+                <View style={s.vaultIcon}><Ionicons name="pricetags" size={22} color={COLORS.gold} /></View>
               </PulseGlow>
               <View>
-                <Text style={[s.vaultTitle, { color: txt }]}>DAILY DEALS</Text>
-                <Text style={[s.vaultSub, { color: txtSec }]}>LIMITED-TIME OFFERS</Text>
+                <Text style={[s.vaultTitle, { color: txt }]}>Daily deals</Text>
+                <Text style={[s.vaultSub, { color: txtSec }]}>Today's coupons, valid until midnight</Text>
               </View>
             </View>
             <View style={s.vaultRight}>
               <VaultTimerBadge pulseAnim={pulseAnim} />
-              <Text style={[s.vaultUntil, { color: txtSec }]}>TIME LEFT</Text>
+              <Text style={[s.vaultUntil, { color: txtSec }]}>Ends in</Text>
             </View>
           </View>
         </CardPressable>
@@ -989,8 +995,8 @@ export default function HomeScreen() {
         <RecentlyViewed />
 
         {/* ── FILTERS ── */}
-        <View onLayout={(e) => { gridY.current = e.nativeEvent.layout.y; }} style={s.sectionHeader}><Text style={[s.sectionTitle, { color: txt }]}>All Restaurants</Text></View>
-        <Text style={[s.sectionSub, { color: txtSec }]}>DISCOVER YOUR CAMPUS FAVORITES</Text>
+        <View onLayout={(e) => { gridY.current = e.nativeEvent.layout.y; }} style={s.sectionHeader}><Text style={[s.sectionTitle, { color: txt }]}>All restaurants</Text></View>
+        <Text style={[s.sectionSub, { color: txtSec }]}>Restaurants on your campus</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 16, marginBottom: 16 }}>
           {FILTERS.map(f => {
             const isChipActive = filter === f.key;
@@ -1023,32 +1029,33 @@ export default function HomeScreen() {
             </>
           ) : loadError && restaurants.length === 0 ? (
             <View style={[s.emptyFilterBox, { backgroundColor: cardBg, borderColor: isDark ? goldBorderColor : COLORS.borderLight }]}>
-              <Text style={{ fontSize: 34, marginBottom: 8 }}>📡</Text>
-              <Text style={[s.emptyFilterTitle, { color: txt }]}>COULDN'T LOAD RESTAURANTS</Text>
+              <Ionicons name="cloud-offline-outline" size={34} color={txtSec} style={{ marginBottom: 8 }} />
+              <Text style={[s.emptyFilterTitle, { color: txt }]}>Couldn't load restaurants</Text>
               <Text style={[s.emptyFilterSub, { color: txtSec }]}>
-                We couldn't reach the campus kitchens. Check your connection, then pull down or tap Retry.
+                Check your connection, then pull down or tap Try again.
               </Text>
               <TouchableOpacity
                 style={[s.resetFilterBtn, { backgroundColor: goldColor }]}
                 onPress={() => { setRefreshing(true); fetchData(); }}
                 activeOpacity={0.85}
               >
-                <Text style={[s.resetFilterBtnText, { color: isDark ? '#000' : '#fff' }]}>RETRY</Text>
+                <Text style={[s.resetFilterBtnText, { color: isDark ? '#000' : '#fff' }]}>Try again</Text>
               </TouchableOpacity>
             </View>
           ) : filtered.length === 0 ? (
             <View style={[s.emptyFilterBox, { backgroundColor: cardBg, borderColor: isDark ? goldBorderColor : COLORS.borderLight }]}>
-              <Text style={{ fontSize: 34, marginBottom: 8 }}>🍽️</Text>
-              <Text style={[s.emptyFilterTitle, { color: txt }]}>NO RESTAURANTS FOUND</Text>
+              <Ionicons name="restaurant-outline" size={34} color={txtSec} style={{ marginBottom: 8 }} />
+              <Text style={[s.emptyFilterTitle, { color: txt }]}>No restaurants match</Text>
               <Text style={[s.emptyFilterSub, { color: txtSec }]}>
                 {(() => {
                   const parts: string[] = [];
-                  if (vegOnly) parts.push('VEG MODE');
-                  if (filter !== 'all') parts.push(`"${(FILTERS.find(f => f.key === filter)?.label || filter).toUpperCase()}" filter`);
-                  if (search) parts.push(`search "${search}"`);
+                  if (vegOnly) parts.push('Veg only');
+                  if (filter !== 'all') parts.push(FILTERS.find(f => f.key === filter)?.label || filter);
+                  if (search) parts.push(`"${search}"`);
+                  const list = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0];
                   return parts.length
-                    ? `No dining spots match your ${parts.join(' + ')}. Reset filters to see all campus favorites.`
-                    : 'No campus kitchens are listed right now. Pull down to refresh.';
+                    ? `Nothing matches ${list}. Clear the filters to see every restaurant.`
+                    : 'No restaurants are listed right now. Pull down to refresh.';
                 })()}
               </Text>
               {(vegOnly || filter !== 'all' || !!search || classicFilter !== '') && (
@@ -1065,7 +1072,7 @@ export default function HomeScreen() {
                   }}
                   activeOpacity={0.85}
                 >
-                  <Text style={[s.resetFilterBtnText, { color: isDark ? '#000' : '#fff' }]}>VIEW ALL RESTAURANTS</Text>
+                  <Text style={[s.resetFilterBtnText, { color: isDark ? '#000' : '#fff' }]}>Clear filters</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -1088,6 +1095,9 @@ export default function HomeScreen() {
               : (r.cuisine || r.description || '');
             const isFav = (Array.isArray(favorites) ? favorites.includes(id) : false);
             const isPremium = r.subscriptionTier === 'premium' || r.isFeatured;
+            // "New" only for a recently listed store; an old store without ratings shows no badge.
+            const createdMs = r.createdAt ? new Date(r.createdAt).getTime() : NaN;
+            const isNewStore = Number.isFinite(createdMs) && Date.now() - createdMs < 30 * 86400000;
 
             return (
               <StaggeredSection 
@@ -1120,8 +1130,10 @@ export default function HomeScreen() {
                     onPress={() => toggleFavorite(id)}
                     sound="click"
                     activeScale={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={isFav ? `Remove ${r.name || 'this restaurant'} from favourites` : `Add ${r.name || 'this restaurant'} to favourites`}
                   >
-                    <Text style={{ fontSize: 13 }}>{isFav ? '❤️' : '🤍'}</Text>
+                    <Ionicons name={isFav ? 'heart' : 'heart-outline'} size={16} color={isFav ? '#EF4444' : '#6B7280'} />
                   </DopaminePressable>
 
                   {/* Open/Closed status badge with pulsing live dot */}
@@ -1144,8 +1156,8 @@ export default function HomeScreen() {
                       backgroundColor: '#fff',
                       opacity: isOpen ? pulseAnim : 0.6
                     }} />
-                    <Text style={{ fontSize: 7.5, fontWeight: '900', color: '#fff', letterSpacing: 0.8 }}>
-                      {isOpen ? 'OPEN' : 'CLOSED'}
+                    <Text style={{ fontSize: 7.5, fontWeight: '900', color: '#fff', letterSpacing: 0.2 }}>
+                      {isOpen ? 'Open' : 'Closed'}
                     </Text>
                   </View>
 
@@ -1172,8 +1184,8 @@ export default function HomeScreen() {
                         elevation: 3
                       }}
                     >
-                      <Text style={{ fontSize: 7, fontWeight: '900', color: '#000', letterSpacing: 0.6 }}>
-                        ✨ {r.featuredBadge || 'PROMOTED'}
+                      <Text style={{ fontSize: 8, fontWeight: '900', color: '#000', letterSpacing: 0.2 }}>
+                        {r.featuredBadge || 'Promoted'}
                       </Text>
                     </LinearGradient>
                   )}
@@ -1182,7 +1194,7 @@ export default function HomeScreen() {
                     <View style={s.timeChip}><Text style={s.timeText}>{time}</Text></View>
                   )}
                   {!isOpen && (
-                    <View style={s.timeChip}><Text style={s.timeText}>{opensAtLabel ? `OPENS ${opensAtLabel}` : 'CLOSED NOW'}</Text></View>
+                    <View style={s.timeChip}><Text style={s.timeText}>{opensAtLabel ? `Opens ${opensAtLabel}` : 'Closed now'}</Text></View>
                   )}
                   {!isOpen && (
                     <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.38)', borderRadius: 16 }]} />
@@ -1193,7 +1205,7 @@ export default function HomeScreen() {
                       r.isFeatured && { backgroundColor: '#F59E0B' }
                     ]}>
                       <Text style={[s.offerText, r.isFeatured && { color: '#000', fontWeight: '900' }]} numberOfLines={1}>
-                        {activeOffer.toUpperCase()}
+                        {activeOffer}
                       </Text>
                     </View>
                   )}
@@ -1206,11 +1218,11 @@ export default function HomeScreen() {
                         <Text style={s.ratingText}>{rating.toFixed(1)}</Text>
                         <Text style={{ fontSize: 8, color: '#fff', fontWeight: '900' }}>★</Text>
                       </View>
-                    ) : (
+                    ) : isNewStore ? (
                       <View style={s.ratingBadge}>
-                        <Text style={s.ratingText}>NEW</Text>
+                        <Text style={s.ratingText}>New</Text>
                       </View>
-                    )}
+                    ) : null}
                   </View>
 
                   {/* Cuisine (from the restaurant's own tags) */}
@@ -1234,7 +1246,7 @@ export default function HomeScreen() {
                       gap: 4, 
                       marginTop: 4 
                     }}>
-                      <Text style={{ fontSize: 10 }}>🏷️</Text>
+                      <Ionicons name="pricetag-outline" size={11} color={txtSec} />
                       <Text style={{ fontSize: 9.5, color: txtSec, fontWeight: '700', flex: 1 }} numberOfLines={1}>
                         {activeOffer}
                       </Text>
@@ -1257,25 +1269,28 @@ export default function HomeScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* ── ZENVY VAULT MODAL ── */}
+      {/* ── Daily deals modal ── */}
       <Modal visible={showVaultModal} animationType="slide" transparent={true} onRequestClose={() => setShowVaultModal(false)}>
         <View style={s.modalOverlay}>
           <View style={[s.modalContentBox, { backgroundColor: sheetBg }]}>
-            <Text style={[s.modalTitle, { color: txt }]}>TODAY'S DAILY DEALS</Text>
-            <Text style={[s.modalSubtitle, { color: txtSec }]}>CLAIM A COUPON • VALID UNTIL MIDNIGHT</Text>
+            <Text style={[s.modalTitle, { color: txt }]}>Today's deals</Text>
+            <Text style={[s.modalSubtitle, { color: txtSec }]}>Claim a coupon. Valid until midnight.</Text>
 
             {loadingVault ? (
               <ActivityIndicator size="large" color={goldColor} style={{ marginVertical: 32 }} />
             ) : vaultError ? (
               <TouchableOpacity onPress={() => fetchVaultItems()} style={{ padding: 32, alignItems: 'center' }} activeOpacity={0.8}>
-                <Text style={{ fontSize: 32, marginBottom: 12 }}>⚠️</Text>
-                <Text style={{ color: txtSec, fontSize: 11, fontWeight: '700', textAlign: 'center' }}>Couldn't load today's deals. Tap to retry.</Text>
+                <Ionicons name="alert-circle-outline" size={32} color={txtSec} style={{ marginBottom: 12 }} />
+                <Text style={{ color: txtSec, fontSize: 11, fontWeight: '700', textAlign: 'center' }}>Couldn't load today's deals. Tap to try again.</Text>
               </TouchableOpacity>
             ) : vaultItems.length > 0 ? (
               <ScrollView style={{ width: '100%' }} showsVerticalScrollIndicator={false}>
                 {vaultItems.map(item => {
                   const streakReq = Number(item.streakRequirement) || 0;
-                  const hasStreak = (user?.streakCount || 0) >= streakReq;
+                  const userStreak = Number(user?.streakCount) || 0;
+                  const hasStreak = userStreak >= streakReq;
+                  const remaining = Number(item.remainingCount);
+                  const showRemaining = item.remainingCount !== null && item.remainingCount !== undefined && item.remainingCount !== '' && Number.isFinite(remaining) && remaining >= 0;
                   const itemImg = item.imageUrl || 'https://images.unsplash.com/photo-1618331835717-801e976710b2?w=400';
                   return (
                     <View key={item.id} style={[s.vaultItemCard, { borderColor: border }]}>
@@ -1283,13 +1298,13 @@ export default function HomeScreen() {
                       <View style={s.vaultItemInfo}>
                         <Text style={[s.vaultItemName, { color: txt }]}>{item.name}</Text>
                         {!!item.description && <Text style={[s.vaultItemDesc, { color: txtSec }]}>{item.description}</Text>}
-                        <Text style={[s.vaultItemStock, { color: COLORS.red }]}>{item.remainingCount} items left</Text>
+                        {showRemaining && <Text style={[s.vaultItemStock, { color: COLORS.red }]}>{remaining === 0 ? 'None left' : `${remaining} left`}</Text>}
                         
                         {streakReq > 0 && (
                           <View style={s.vaultItemReqRow}>
                             <View style={[s.reqBadge, { backgroundColor: hasStreak ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)' }]}>
                               <Text style={[s.reqBadgeText, { color: hasStreak ? COLORS.emerald : '#EF4444' }]}>
-                                🔥 {streakReq}-day streak
+                                {hasStreak ? `${streakReq}-day streak` : `Needs a ${streakReq}-day streak (you have ${userStreak})`}
                               </Text>
                             </View>
                           </View>
@@ -1304,12 +1319,12 @@ export default function HomeScreen() {
                             {claimingItemId === item.id ? (
                               <ActivityIndicator size="small" color={isDark ? "#000" : "#fff"} />
                             ) : (
-                              <Text style={[s.claimBtnText, { color: isDark ? '#000' : '#fff' }]}>CLAIM DEAL</Text>
+                              <Text style={[s.claimBtnText, { color: isDark ? '#000' : '#fff' }]}>Claim deal</Text>
                             )}
                           </TouchableOpacity>
                         ) : (
                           <View style={s.lockedBtn}>
-                            <Text style={s.lockedBtnText}>STREAK LOCKED 🔒</Text>
+                            <Text style={s.lockedBtnText}>Locked</Text>
                           </View>
                         )}
                       </View>
@@ -1319,8 +1334,8 @@ export default function HomeScreen() {
               </ScrollView>
             ) : (
               <View style={{ padding: 32, alignItems: 'center' }}>
-                <Text style={{ fontSize: 32, marginBottom: 12 }}>📭</Text>
-                <Text style={{ color: txtSec, fontSize: 11, fontWeight: '700' }}>No active vault drops right now.</Text>
+                <Ionicons name="pricetags-outline" size={32} color={txtSec} style={{ marginBottom: 12 }} />
+                <Text style={{ color: txtSec, fontSize: 11, fontWeight: '700' }}>No deals today. Check back tomorrow.</Text>
               </View>
             )}
 
@@ -1329,7 +1344,7 @@ export default function HomeScreen() {
               onPress={() => setShowVaultModal(false)}
               sound="click"
             >
-              <Text style={s.modalCloseText}>CLOSE</Text>
+              <Text style={s.modalCloseText}>Close</Text>
             </DopaminePressable>
           </View>
         </View>
@@ -1406,17 +1421,17 @@ export default function HomeScreen() {
           <TouchableOpacity style={StyleSheet.absoluteFill} onPress={() => setShowCatPrefModal(false)} />
           <View style={[s.modalContentBox, { backgroundColor: sheetBg, borderColor: goldBorderColor, borderWidth: 1 }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 6 }}>
-              <Text style={[s.modalTitle, { color: txt, marginBottom: 0 }]}>⚙️ CATEGORY PREFERENCES</Text>
-              <TouchableOpacity onPress={() => setShowCatPrefModal(false)} style={{ padding: 4 }}>
+              <Text style={[s.modalTitle, { color: txt, marginBottom: 0 }]}>Filters</Text>
+              <TouchableOpacity onPress={() => setShowCatPrefModal(false)} style={{ padding: 4 }} accessibilityRole="button" accessibilityLabel="Close filters">
                 <Text style={{ fontSize: 18, color: txtSec, fontWeight: '800' }}>✕</Text>
               </TouchableOpacity>
             </View>
-            <Text style={[s.modalSubtitle, { color: txtSec, marginBottom: 14 }]}>QUICK FOOD FILTERS & CUISINE SHORTCUTS</Text>
+            <Text style={[s.modalSubtitle, { color: txtSec, marginBottom: 14 }]}>Diet and cuisine shortcuts</Text>
 
             <ScrollView style={{ width: '100%', maxHeight: 360 }} showsVerticalScrollIndicator={false}>
               {/* Dietary Fast Switcher */}
               <View style={{ marginBottom: 16, padding: 12, borderRadius: 14, backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC', borderWidth: 1, borderColor: border }}>
-                <Text style={{ fontSize: 10, fontWeight: '800', color: goldColor, letterSpacing: 1, marginBottom: 8 }}>DIETARY ACCESS</Text>
+                <Text style={{ fontSize: 10, fontWeight: '800', color: goldColor, letterSpacing: 0.2, marginBottom: 8 }}>Diet</Text>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <TouchableOpacity
                     style={{
@@ -1424,9 +1439,9 @@ export default function HomeScreen() {
                       paddingVertical: 10,
                       borderRadius: 10,
                       alignItems: 'center',
-                      backgroundColor: filter === 'all' ? (isDark ? goldColor : COLORS.red) : 'transparent',
+                      backgroundColor: filter === 'all' && !vegOnly ? (isDark ? goldColor : COLORS.red) : 'transparent',
                       borderWidth: 1,
-                      borderColor: filter === 'all' ? 'transparent' : border,
+                      borderColor: filter === 'all' && !vegOnly ? 'transparent' : border,
                     }}
                     onPress={() => {
                       setFilter('all');
@@ -1437,7 +1452,7 @@ export default function HomeScreen() {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
                     }}
                   >
-                    <Text style={{ fontSize: 10, fontWeight: '900', color: filter === 'all' ? (isDark ? '#000' : '#FFF') : txt }}>🍽️ ALL DISHES</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '900', color: filter === 'all' && !vegOnly ? (isDark ? '#000' : '#FFF') : txt }}>All restaurants</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={{
@@ -1445,22 +1460,24 @@ export default function HomeScreen() {
                       paddingVertical: 10,
                       borderRadius: 10,
                       alignItems: 'center',
-                      backgroundColor: filter === 'veg' ? '#10B981' : 'transparent',
+                      backgroundColor: vegOnly || filter === 'veg' ? '#10B981' : 'transparent',
                       borderWidth: 1,
-                      borderColor: filter === 'veg' ? 'transparent' : border,
+                      borderColor: vegOnly || filter === 'veg' ? 'transparent' : border,
                     }}
                     onPress={() => {
-                      setFilter('veg');
+                      // Same switch as the Veg toggle in the search bar, so the two never disagree.
+                      setVegOnly(true);
+                      setDietMode('veg');
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
                     }}
                   >
-                    <Text style={{ fontSize: 10, fontWeight: '900', color: filter === 'veg' ? '#FFF' : txt }}>🥦 PURE VEG ONLY</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '900', color: vegOnly || filter === 'veg' ? '#FFF' : txt }}>Pure veg only</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               {/* Quick Jump Category Cards */}
-              <Text style={{ fontSize: 10, fontWeight: '800', color: txtSec, letterSpacing: 1, marginBottom: 8 }}>POPULAR CAMPUS CUISINES</Text>
+              <Text style={{ fontSize: 10, fontWeight: '800', color: txtSec, letterSpacing: 0.2, marginBottom: 8 }}>Popular cuisines</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
                 {classics.map((c, i) => {
                   const isSelected = classicFilter === c.name;
@@ -1486,9 +1503,8 @@ export default function HomeScreen() {
                         if (!isSelected) scrollToNexusSoon(wasOpen);
                       }}
                     >
-                      <Text style={{ fontSize: 13 }}>{c.icon || '🍛'}</Text>
                       <Text style={{ fontSize: 10, fontWeight: '800', color: isSelected ? (isDark ? '#000' : '#FFF') : txt }}>
-                        {c.name.toUpperCase()}
+                        {c.name}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -1501,7 +1517,7 @@ export default function HomeScreen() {
               onPress={() => setShowCatPrefModal(false)}
               sound="click"
             >
-              <Text style={s.modalCloseText}>APPLY & CLOSE</Text>
+              <Text style={s.modalCloseText}>Done</Text>
             </DopaminePressable>
           </View>
         </View>
@@ -1513,7 +1529,7 @@ export default function HomeScreen() {
       {/* ── FLOATING BOTTOM BASKET BAR (its own component: a basket change re-renders only it) ── */}
       <HomeFloatingCart isDark={isDark} txt={txt} onOpen={openBasket} />
 
-      {/* ── FLOATING COMMUNITY FAB: posts, birthdays, The Wall; its Friends card opens Campus Buddy ── */}
+      {/* ── Floating community button: posts, birthdays, The Wall; its Friends card opens Campus Buddy ── */}
       <FloatingPulse color={COLORS.red} style={s.fabBtnWrap}>
         <DopaminePressable
           style={s.fabBtn}
@@ -1521,10 +1537,9 @@ export default function HomeScreen() {
           sound="click"
           activeScale={0.88}
           accessibilityRole="button"
-          accessibilityLabel="Open Campus Buddy: friends, wall and chats"
+          accessibilityLabel="Open Community"
         >
-          <Text style={{ fontSize: 22 }}>💬</Text>
-          <View style={s.fabBadge} />
+          <Ionicons name="chatbubbles" size={22} color="#FFFFFF" />
         </DopaminePressable>
       </FloatingPulse>
     </KeyboardAvoidingView>
@@ -1545,10 +1560,10 @@ const s = StyleSheet.create({
   avatar: { width: 40, height: 40, borderRadius: 14, backgroundColor: COLORS.bgCard, borderWidth: 1.5, borderColor: COLORS.goldBorder, alignItems: 'center', justifyContent: 'center' },
   avatarElite: { borderColor: COLORS.gold, ...SHADOWS.goldGlow },
   avatarText: { fontSize: 13, fontWeight: '900', color: COLORS.gold },
-  greeting: { fontSize: 9, fontWeight: '800', letterSpacing: 3 },
+  greeting: { fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
   userName: { fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
   eliteBadge: { backgroundColor: COLORS.gold, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  eliteBadgeText: { fontSize: 8, fontWeight: '900', color: '#000', letterSpacing: 2 },
+  eliteBadgeText: { fontSize: 8, fontWeight: '900', color: '#000', letterSpacing: 0.3 },
   navRight: { flexDirection: 'row', gap: 6, alignItems: 'center' },
   goldNavBadge: { borderRadius: 12, overflow: 'hidden' },
   goldNavBadgeGradient: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 12 },
@@ -1564,12 +1579,12 @@ const s = StyleSheet.create({
   heroImg: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
   heroOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.55)' },
   heroContent: { flex: 1, justifyContent: 'center', padding: 24, zIndex: 2 },
-  heroTag: { fontSize: 9, fontWeight: '900', color: COLORS.gold, letterSpacing: 5, marginBottom: 8 },
+  heroTag: { fontSize: 9, fontWeight: '900', color: COLORS.gold, letterSpacing: 0.3, marginBottom: 8 },
   heroTitle: { fontSize: 28, fontWeight: '900', color: '#fff', fontStyle: 'italic', lineHeight: 30 },
   heroSub: { fontSize: 28, fontWeight: '900', color: COLORS.gold, fontStyle: 'italic', lineHeight: 30, marginBottom: 8 },
-  heroDesc: { fontSize: 8, fontWeight: '700', color: '#aaa', letterSpacing: 3, marginBottom: 16, maxWidth: 260 },
+  heroDesc: { fontSize: 8, fontWeight: '700', color: '#aaa', letterSpacing: 0.3, marginBottom: 16, maxWidth: 260 },
   heroCta: { backgroundColor: COLORS.gold, paddingVertical: 14, paddingHorizontal: 28, borderRadius: 30, alignSelf: 'flex-start', ...SHADOWS.goldGlow },
-  heroCtaText: { fontSize: 10, fontWeight: '900', color: '#000', letterSpacing: 4 },
+  heroCtaText: { fontSize: 10, fontWeight: '900', color: '#000', letterSpacing: 0.3 },
   heroDots: { position: 'absolute', bottom: 14, left: 24, flexDirection: 'row', gap: 4, zIndex: 3 },
   dot: { width: 6, height: 6, borderRadius: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
   dotActive: { width: 22, backgroundColor: COLORS.gold, borderColor: COLORS.gold },
@@ -1577,7 +1592,7 @@ const s = StyleSheet.create({
   catRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 16 },
   catBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderDark },
   catIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.goldMuted, borderWidth: 1, borderColor: COLORS.goldBorder, alignItems: 'center', justifyContent: 'center' },
-  catLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  catLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 0.3 },
   // Search & Veg Mode Bar
   searchBarContainer: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, gap: 8, marginBottom: 16 },
   searchWrap: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 16, borderWidth: 1.5, gap: 8 },
@@ -1589,29 +1604,29 @@ const s = StyleSheet.create({
   vegSwitchThumbActive: { transform: [{ translateX: 14 }], backgroundColor: '#FFFFFF' },
   // Classics
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 12 },
-  sectionTitle: { fontSize: 14, fontWeight: '900', letterSpacing: 2 },
-  sectionSub: { fontSize: 9, fontWeight: '700', letterSpacing: 3, paddingHorizontal: 16, marginBottom: 12, marginTop: -4 },
+  sectionTitle: { fontSize: 14, fontWeight: '900', letterSpacing: 0.3 },
+  sectionSub: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3, paddingHorizontal: 16, marginBottom: 12, marginTop: -4 },
   manageBtn: { backgroundColor: COLORS.bgCard, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: COLORS.borderDark },
-  manageBtnText: { fontSize: 8, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 1 },
+  manageBtnText: { fontSize: 11, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 0.3 },
   classicItem: { alignItems: 'center', marginRight: 16, width: 70 },
   classicImgWrap: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: COLORS.gold, overflow: 'hidden', marginBottom: 6, ...SHADOWS.goldGlow },
   classicImg: { width: '100%', height: '100%' },
-  classicName: { fontSize: 8, fontWeight: '800', letterSpacing: 1, textAlign: 'center' },
+  classicName: { fontSize: 10, fontWeight: '800', letterSpacing: 0.3, textAlign: 'center' },
   // Vault
   vaultCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16, padding: 16, borderRadius: 28, borderWidth: 1, borderColor: COLORS.goldBorder, marginBottom: 24 },
   vaultLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   vaultIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#000', borderWidth: 1, borderColor: COLORS.goldBorder, alignItems: 'center', justifyContent: 'center' },
-  vaultTitle: { fontSize: 11, fontWeight: '900', letterSpacing: 3 },
-  vaultSub: { fontSize: 8, fontWeight: '700', letterSpacing: 2, marginTop: 2 },
+  vaultTitle: { fontSize: 11, fontWeight: '900', letterSpacing: 0.3 },
+  vaultSub: { fontSize: 10, fontWeight: '700', letterSpacing: 0.3, marginTop: 2 },
   vaultRight: { alignItems: 'flex-end' },
   vaultTimerWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.goldMuted, borderWidth: 1, borderColor: COLORS.goldBorder, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   vaultDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.gold },
   vaultTimer: { fontSize: 11, fontWeight: '900', color: COLORS.gold, fontVariant: ['tabular-nums'] },
-  vaultUntil: { fontSize: 7, fontWeight: '900', letterSpacing: 3, marginTop: 4 },
+  vaultUntil: { fontSize: 9, fontWeight: '900', letterSpacing: 0.3, marginTop: 4 },
   // Filters
   filterChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1.5, marginRight: 8 },
   filterActive: { backgroundColor: COLORS.red },
-  filterText: { fontSize: 10, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 1 },
+  filterText: { fontSize: 11, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 0.3 },
   filterTextActive: { color: '#fff' },
   // Grid
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, justifyContent: 'space-between', rowGap: 12 },
@@ -1620,7 +1635,7 @@ const s = StyleSheet.create({
   rImg: { width: '100%', height: '100%' },
   heartBtn: { position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...SHADOWS.card },
   promotedBadge: { position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  promotedText: { fontSize: 8, fontWeight: '900', color: '#fff', letterSpacing: 1.2 },
+  promotedText: { fontSize: 8, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
   timeChip: { position: 'absolute', bottom: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.8)', paddingHorizontal: 7, paddingVertical: 3.5, borderRadius: 6 },
   timeText: { fontSize: 9, fontWeight: '900', color: '#fff' },
   offerRibbon: { position: 'absolute', bottom: 8, left: 0, backgroundColor: COLORS.blueOffer, paddingHorizontal: 8, paddingVertical: 4, borderTopRightRadius: 6, borderBottomRightRadius: 6 },
@@ -1634,37 +1649,37 @@ const s = StyleSheet.create({
   // BlockWars & Modals styles
   blockwarsBanner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16, padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 20 },
   blockwarsIcon: { width: 38, height: 38, borderRadius: 10, backgroundColor: COLORS.goldMuted, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.goldBorder },
-  blockwarsTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 2 },
-  blockwarsSub: { fontSize: 7, fontWeight: '800', letterSpacing: 1.5, marginTop: 1 },
+  blockwarsTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 0.3 },
+  blockwarsSub: { fontSize: 7, fontWeight: '800', letterSpacing: 0.3, marginTop: 1 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   modalContentBox: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, height: '80%', alignItems: 'center' },
-  modalTitle: { fontSize: 14, fontWeight: '900', letterSpacing: 3, marginBottom: 6 },
-  modalSubtitle: { fontSize: 8, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.5, marginBottom: 20, textAlign: 'center' },
+  modalTitle: { fontSize: 14, fontWeight: '900', letterSpacing: 0.3, marginBottom: 6 },
+  modalSubtitle: { fontSize: 10, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 0.3, marginBottom: 20, textAlign: 'center' },
   modalCloseBtn: { width: '100%', paddingVertical: 14, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', marginTop: 16 },
-  modalCloseText: { fontSize: 9, fontWeight: '900', color: COLORS.textSecondary, letterSpacing: 2 },
+  modalCloseText: { fontSize: 11, fontWeight: '900', color: COLORS.textSecondary, letterSpacing: 0.3 },
 
   vaultItemCard: { flexDirection: 'row', padding: 12, borderRadius: 20, borderWidth: 1, marginBottom: 12 },
   vaultItemImg: { width: 80, height: 80, borderRadius: 12, marginRight: 12 },
   vaultItemInfo: { flex: 1, justifyContent: 'space-between' },
   vaultItemName: { fontSize: 12, fontWeight: '900' },
   vaultItemDesc: { fontSize: 9, fontWeight: '600', marginVertical: 2 },
-  vaultItemStock: { fontSize: 8, fontWeight: '800', marginBottom: 6 },
+  vaultItemStock: { fontSize: 10, fontWeight: '800', marginBottom: 6 },
   vaultItemReqRow: { flexDirection: 'row', marginBottom: 8 },
   reqBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  reqBadgeText: { fontSize: 8, fontWeight: '800', letterSpacing: 1 },
+  reqBadgeText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
   claimBtn: { paddingVertical: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  claimBtnText: { fontSize: 8, fontWeight: '900', color: '#000', letterSpacing: 1 },
+  claimBtnText: { fontSize: 10, fontWeight: '900', color: '#000', letterSpacing: 0.3 },
   lockedBtn: { paddingVertical: 8, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center' },
-  lockedBtnText: { fontSize: 8, fontWeight: '800', color: COLORS.textMuted },
+  lockedBtnText: { fontSize: 10, fontWeight: '800', color: COLORS.textMuted },
 
   challengeCardLayout: { flexDirection: 'row', gap: 12, padding: 14, borderRadius: 18, borderWidth: 1, marginBottom: 20, alignItems: 'center' },
   challengeEmoji: { fontSize: 32 },
-  challengeTitle: { fontSize: 11, fontWeight: '900', letterSpacing: 2 },
+  challengeTitle: { fontSize: 11, fontWeight: '900', letterSpacing: 0.3 },
   challengeDesc: { fontSize: 8, fontWeight: '600', marginTop: 2, marginBottom: 4 },
-  challengeReward: { fontSize: 8, fontWeight: '900', color: COLORS.gold, letterSpacing: 1 },
+  challengeReward: { fontSize: 8, fontWeight: '900', color: COLORS.gold, letterSpacing: 0.3 },
 
-  leaderboardTitle: { fontSize: 9, fontWeight: '900', letterSpacing: 2, marginBottom: 10 },
+  leaderboardTitle: { fontSize: 9, fontWeight: '900', letterSpacing: 0.3, marginBottom: 10 },
   leaderboardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderRadius: 16, borderWidth: 1, marginBottom: 8 },
   rankText: { fontSize: 12, fontWeight: '900', width: 24 },
   blockName: { fontSize: 11, fontWeight: '900' },
@@ -1673,7 +1688,6 @@ const s = StyleSheet.create({
   // Floating Community FAB
   fabBtnWrap: { position: 'absolute', bottom: 20, right: 20, width: 54, height: 54, zIndex: 999 },
   fabBtn: { width: 54, height: 54, borderRadius: 27, backgroundColor: COLORS.red, alignItems: 'center', justifyContent: 'center', ...SHADOWS.redGlow },
-  fabBadge: { position: 'absolute', top: 3, right: 3, width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.gold, borderWidth: 1.5, borderColor: '#fff' },
 
   // Separate Hero Card & Premium Categories Grid
   heroCarouselCard: {
@@ -1725,7 +1739,7 @@ const s = StyleSheet.create({
   premiumCatLabel: {
     fontSize: 10,
     fontWeight: '900',
-    letterSpacing: 1.2,
+    letterSpacing: 0.3,
     textAlign: 'center',
   },
   // Empty Filter State
@@ -1741,7 +1755,7 @@ const s = StyleSheet.create({
   emptyFilterTitle: {
     fontSize: 13,
     fontWeight: '900',
-    letterSpacing: 2,
+    letterSpacing: 0.3,
     marginBottom: 6,
   },
   emptyFilterSub: {
@@ -1762,7 +1776,7 @@ const s = StyleSheet.create({
   resetFilterBtnText: {
     fontSize: 9,
     fontWeight: '900',
-    letterSpacing: 1.5,
+    letterSpacing: 0.3,
   },
 
   // Floating Bottom Cart Bar
@@ -1811,7 +1825,7 @@ const s = StyleSheet.create({
   floatingCartCtaText: {
     fontSize: 9,
     fontWeight: '900',
-    letterSpacing: 1,
+    letterSpacing: 0.3,
   },
 });
 // BUST_CACHE_2026_07_19_00_42

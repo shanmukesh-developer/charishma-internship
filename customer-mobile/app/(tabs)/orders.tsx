@@ -14,6 +14,8 @@ import AmbientBackground from '../../components/AmbientBackground';
 import { StaggeredSection, BounceIn, FloatingPulse, PulseGlow } from '../../components/AnimatedSection';
 import { ActionPressable } from '../../components/DopaminePressable';
 import { isVendorFulfilled } from '../../utils/localVendor';
+import { formatINR, formatISTDate, formatISTDateTime, plural } from '../../utils/format';
+import { Ionicons } from '@expo/vector-icons';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -69,7 +71,15 @@ const STATUS_LABEL: Record<string, string> = {
   Delivered: 'Delivered',
   Cancelled: 'Cancelled',
 };
-const statusLabel = (s?: string) => (s && STATUS_LABEL[s]) || s || 'Pending';
+const statusLabel = (s?: string) => {
+  if (!s) return 'Awaiting store';
+  if (STATUS_LABEL[s]) return STATUS_LABEL[s];
+  console.warn('Unknown order status:', s);
+  return 'In progress';
+};
+/** One short reference for orders and bookings: the last 6 characters of the id. */
+const shortRef = (id: unknown) => String(id || '').slice(-6).toUpperCase();
+const FILTER_LABEL: Record<string, string> = { ALL: 'All', ACTIVE: 'Active', PAST: 'Past', SERVICES: 'Services' };
 const isActiveStatus = (s?: string) => s !== 'Delivered' && s !== 'Cancelled';
 const PIN_STATUSES = ['Accepted', 'Preparing', 'ReadyForPickup', 'Picking', 'PickedUp', 'ArrivedAtGate'];
 
@@ -101,12 +111,7 @@ const serviceStatusLabel = (s?: string) => (s && SERVICE_STATUS_LABEL[s]) || (s 
 const isServiceOpen = (s?: string) => s !== 'COMPLETED' && s !== 'CANCELLED';
 // The partner has the student's items: cancelling goes through support (the server refuses it too).
 const PICKED_UP_STATUSES = ['IN_PROGRESS', 'READY_FOR_DELIVERY'];
-const formatWhen = (iso?: string) => {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
-};
+const formatWhen = (iso?: string) => formatISTDateTime(iso);
 
 const amountCharged = (o: any) => Number(o.finalPrice ?? o.priceBreakdown?.finalPrice ?? o.totalPrice ?? 0) || 0;
 
@@ -143,6 +148,8 @@ export default function OrdersScreen() {
   const [bookingDetail, setBookingDetail] = useState<Record<string, any>>({});
   const [bookingBusyId, setBookingBusyId] = useState<string | null>(null);
   const [reorderingId, setReorderingId] = useState<string | null>(null);
+  // State updates are async: this ref stops a fast double tap from confirming a quote twice.
+  const acceptingRef = useRef(false);
   const { segment } = useLocalSearchParams<{ segment?: string | string[] }>();
   const segmentParam = Array.isArray(segment) ? segment[0] : segment;
   useEffect(() => {
@@ -333,6 +340,8 @@ export default function OrdersScreen() {
   };
 
   const acceptQuote = async (b: any) => {
+    if (acceptingRef.current) return;
+    acceptingRef.current = true;
     const id = String(b.id || b._id);
     setBookingBusyId(id);
     try {
@@ -346,6 +355,7 @@ export default function OrdersScreen() {
     } catch {
       Alert.alert('Could not confirm', 'Please check your connection and try again.');
     } finally {
+      acceptingRef.current = false;
       if (mountedRef.current) setBookingBusyId(null);
     }
   };
@@ -468,12 +478,12 @@ export default function OrdersScreen() {
     return (
       <View style={[st.container, { backgroundColor: bg, justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
         <AmbientBackground />
-        <Text style={{ fontSize: 48, marginBottom: 16 }}>🔐</Text>
-        <Text style={{ fontSize: 18, fontWeight: '900', color: txt, letterSpacing: 2, textAlign: 'center', marginBottom: 8 }}>
-          SIGN IN TO SEE YOUR ORDERS
+        <Ionicons name="lock-closed-outline" size={48} color={txtSec} style={{ marginBottom: 16 }} />
+        <Text style={{ fontSize: 18, fontWeight: '900', color: txt, letterSpacing: 0.2, textAlign: 'center', marginBottom: 8 }}>
+          Sign in to see your orders
         </Text>
         <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', textAlign: 'center', marginBottom: 24, lineHeight: 18 }}>
-          Sign in to see your orders, delivery PINs and live tracking.
+          Track deliveries and get your Delivery OTP.
         </Text>
         <TouchableOpacity 
           style={{ 
@@ -485,7 +495,7 @@ export default function OrdersScreen() {
           }} 
           onPress={() => router.push('/login' as any)}
         >
-          <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '900', letterSpacing: 2 }}>SIGN IN / SIGN UP</Text>
+          <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '900', letterSpacing: 0.3 }}>Sign in or sign up</Text>
         </TouchableOpacity>
       </View>
     );
@@ -514,11 +524,11 @@ export default function OrdersScreen() {
     if (bookingsError && bookings.length === 0) {
       return (
         <View style={[st.emptyBox, { backgroundColor: cardBg, borderColor: border }]}>
-          <Text style={{ fontSize: 44, marginBottom: 12 }}>📡</Text>
+          <Ionicons name="cloud-offline-outline" size={44} color={txtSec} style={{ marginBottom: 12 }} />
           <Text style={[st.emptyTitle, { color: txt }]}>Couldn't load your bookings</Text>
           <Text style={[st.emptyDesc, { color: txtSec }]}>{bookingsError}</Text>
           <TouchableOpacity style={[st.browseBtn, { backgroundColor: COLORS.gold || '#D4AF7A' }]} activeOpacity={0.85} onPress={fetchBookings}>
-            <Text style={[st.browseBtnText, { color: '#000' }]}>TRY AGAIN 🔄</Text>
+            <Text style={[st.browseBtnText, { color: '#000' }]}>Try again</Text>
           </TouchableOpacity>
         </View>
       );
@@ -526,13 +536,13 @@ export default function OrdersScreen() {
     if (bookings.length === 0) {
       return (
         <View style={[st.emptyBox, { backgroundColor: cardBg, borderColor: border }]}>
-          <Text style={{ fontSize: 44, marginBottom: 12 }}>🛠️</Text>
+          <Ionicons name="construct-outline" size={44} color={txtSec} style={{ marginBottom: 12 }} />
           <Text style={[st.emptyTitle, { color: txt }]}>No service bookings yet</Text>
           <Text style={[st.emptyDesc, { color: txtSec }]}>
             Repairs, printouts, laundry and tailoring you book will show up here with their live status.
           </Text>
-          <TouchableOpacity style={[st.browseBtn, { backgroundColor: COLORS.red }]} activeOpacity={0.85} onPress={() => router.push('/(tabs)/others' as any)}>
-            <Text style={st.browseBtnText}>BROWSE SERVICES →</Text>
+          <TouchableOpacity style={[st.browseBtn, { backgroundColor: COLORS.red }]} activeOpacity={0.85} onPress={() => router.push({ pathname: '/(tabs)/others', params: { tab: 'services' } } as any)}>
+            <Text style={st.browseBtnText}>Browse services</Text>
           </TouchableOpacity>
         </View>
       );
@@ -555,17 +565,17 @@ export default function OrdersScreen() {
           <ScalePressable style={[st.card, { backgroundColor: cardBg, borderColor: border }]} onPress={() => toggleBooking(bid)}>
             <View style={st.cardHeader}>
               <View style={{ flex: 1, marginRight: 8 }}>
-                <Text style={{ fontSize: 10, color: txtSec, fontWeight: '700', letterSpacing: 1.5 }}>
-                  🛠️ <Text style={{ color: goldColor, fontWeight: '800' }}>BOOKING #{bid.slice(-8).toUpperCase()}</Text>
+                <Text style={{ fontSize: 10, color: txtSec, fontWeight: '700', letterSpacing: 0.3 }}>
+                  <Text style={{ color: goldColor, fontWeight: '800' }}>Booking #{shortRef(bid)}</Text>
                 </Text>
                 <Text style={[st.restaurantName, { color: txt }]} numberOfLines={2}>{b.title || 'Service booking'}</Text>
                 <Text style={{ fontSize: 10, color: txtSec, fontWeight: '600' }}>
-                  {[b.pickupSlot, formatWhen(b.createdAt)].filter(Boolean).join(' • ')}
+                  {[b.pickupSlot, formatWhen(b.createdAt)].filter(Boolean).join(' · ')}
                 </Text>
               </View>
               <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
-                <Text style={[st.statusBadge, { color }]}>{serviceStatusLabel(b.status).toUpperCase()}</Text>
-                <Text style={[st.price, { color: txt }]}>{amount > 0 ? `₹${amount}` : 'Quote pending'}</Text>
+                <Text style={[st.statusBadge, { color }]}>{serviceStatusLabel(b.status)}</Text>
+                <Text style={[st.price, { color: txt }]}>{amount > 0 ? formatINR(amount) : 'Quote pending'}</Text>
                 {amount > 0 && b.status !== 'COMPLETED' ? (
                   <Text style={{ fontSize: 9, color: txtSec, fontWeight: '700' }}>estimate</Text>
                 ) : null}
@@ -579,7 +589,7 @@ export default function OrdersScreen() {
                 ) : null}
                 {qtyText || detail.hostelBlock || detail.roomNumber ? (
                   <Text style={{ fontSize: 11, color: txt, fontWeight: '700', marginBottom: 8 }}>
-                    {[qtyText, [detail.hostelBlock, detail.roomNumber ? `Room ${detail.roomNumber}` : ''].filter(Boolean).join(', ')].filter(Boolean).join(' • ')}
+                    {[qtyText, [detail.hostelBlock, detail.roomNumber ? `Room ${detail.roomNumber}` : ''].filter(Boolean).join(', ')].filter(Boolean).join(' · ')}
                   </Text>
                 ) : null}
                 {history.map((h: any, i: number) => (
@@ -598,7 +608,7 @@ export default function OrdersScreen() {
                 {b.status === 'DIAGNOSED_QUOTED' && (
                   <ActionPressable style={{ borderRadius: 16, overflow: 'hidden', marginTop: 12 }} onPress={() => { if (!busy) acceptQuote(b); }} sound="click">
                     <LinearGradient colors={['#D4AF7A', '#F0D9A8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.trackBtnGradient}>
-                      {busy ? <ActivityIndicator size="small" color="#000" /> : <Text style={st.trackBtnText}>ACCEPT QUOTE ₹{Number(b.quotedAmount) || 0}</Text>}
+                      {busy ? <ActivityIndicator size="small" color="#000" /> : <Text style={st.trackBtnText}>Accept quote · {formatINR(b.quotedAmount)}</Text>}
                     </LinearGradient>
                   </ActionPressable>
                 )}
@@ -609,12 +619,12 @@ export default function OrdersScreen() {
                     onPress={() => cancelBooking(b)}
                   >
                     {busy ? <ActivityIndicator size="small" color="#EF4444" /> : (
-                      <Text style={{ fontSize: 10, fontWeight: '900', color: '#EF4444', letterSpacing: 2 }}>CANCEL BOOKING</Text>
+                      <Text style={{ fontSize: 10, fontWeight: '900', color: '#EF4444', letterSpacing: 0.3 }}>Cancel booking</Text>
                     )}
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity style={{ marginTop: 10, alignSelf: 'flex-start' }} onPress={() => router.push('/support' as any)}>
-                  <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? goldColor : COLORS.red }}>Need help with this booking? →</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? goldColor : COLORS.red }}>Need help with this booking? ›</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -635,8 +645,7 @@ export default function OrdersScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={goldColor} colors={[COLORS.red, COLORS.gold]} />
         }
       >
-        <Text style={[st.pageTitle, { color: txt }]}>MY ORDERS</Text>
-        <Text style={[st.pageSub, { color: txtSec }]}>LIVE TRACKING • ONE-TAP REORDER • SERVICE BOOKINGS</Text>
+        <Text style={[st.pageTitle, { color: txt }]}>Your orders</Text>
 
         <View style={st.filterRow}>
           {['ALL', 'ACTIVE', 'PAST', 'SERVICES'].map((f) => {
@@ -657,7 +666,7 @@ export default function OrdersScreen() {
                   st.filterBtnText, 
                   { color: isActive ? (isDark ? '#000' : '#FFF') : txtSec }
                 ]}>
-                  {f}
+                  {FILTER_LABEL[f] || f}
                 </Text>
               </TouchableOpacity>
             );
@@ -686,7 +695,7 @@ export default function OrdersScreen() {
           </View>
         ) : error && orders.length === 0 ? (
           <View style={[st.emptyBox, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={{ fontSize: 44, marginBottom: 12 }}>📡</Text>
+            <Ionicons name="cloud-offline-outline" size={44} color={txtSec} style={{ marginBottom: 12 }} />
             <Text style={[st.emptyTitle, { color: txt }]}>Couldn't load your orders</Text>
             <Text style={[st.emptyDesc, { color: txtSec }]}>
               {error}
@@ -696,24 +705,24 @@ export default function OrdersScreen() {
               activeOpacity={0.85}
               onPress={() => fetchOrders('initial')}
             >
-              <Text style={[st.browseBtnText, { color: '#000' }]}>TRY AGAIN 🔄</Text>
+              <Text style={[st.browseBtnText, { color: '#000' }]}>Try again</Text>
             </TouchableOpacity>
           </View>
         ) : orders.length === 0 ? (
           <View style={[st.emptyBox, { backgroundColor: cardBg, borderColor: border }]}>
             <FloatingPulse>
-              <Text style={{ fontSize: 50, marginBottom: 16 }}>🍱</Text>
+              <Ionicons name="receipt-outline" size={50} color={txtSec} style={{ marginBottom: 16 }} />
             </FloatingPulse>
-            <Text style={[st.emptyTitle, { color: txt }]}>No Orders Found Yet</Text>
+            <Text style={[st.emptyTitle, { color: txt }]}>No orders yet</Text>
             <Text style={[st.emptyDesc, { color: txtSec }]}>
-              Explore our wide variety of campus bites, bulk hostel grocery baskets, and fresh student meals.
+              Your food, grocery and Mega Basket orders will show up here.
             </Text>
             <TouchableOpacity 
               style={[st.browseBtn, { backgroundColor: COLORS.red }]}
               activeOpacity={0.85}
               onPress={() => router.push('/(tabs)' as any)}
             >
-              <Text style={st.browseBtnText}>EXPLORE CAMPUS EATS →</Text>
+              <Text style={st.browseBtnText}>Browse restaurants</Text>
             </TouchableOpacity>
           </View>
         ) : !loading && orders.filter(o => {
@@ -722,14 +731,14 @@ export default function OrdersScreen() {
           return true;
         }).length === 0 ? (
           <View style={[st.emptyBox, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={{ fontSize: 44, marginBottom: 12 }}>{filter === 'ACTIVE' ? '🛵' : '📋'}</Text>
+            <Ionicons name={filter === 'ACTIVE' ? 'bicycle-outline' : 'document-text-outline'} size={44} color={txtSec} style={{ marginBottom: 12 }} />
             <Text style={[st.emptyTitle, { color: txt }]}>
-              {filter === 'ACTIVE' ? 'No Active Orders' : 'No Past Orders Found'}
+              {filter === 'ACTIVE' ? 'No active orders' : 'No past orders'}
             </Text>
             <Text style={[st.emptyDesc, { color: txtSec }]}>
               {filter === 'ACTIVE' 
-                ? 'You do not have any ongoing deliveries right now. Order fresh food or canteen snacks anytime!'
-                : 'You have not completed any past orders in this view.'}
+                ? 'You have no orders on the way right now.'
+                : 'Delivered and cancelled orders will show up here.'}
             </Text>
             <TouchableOpacity 
               style={[st.browseBtn, { backgroundColor: COLORS.red }]}
@@ -737,7 +746,7 @@ export default function OrdersScreen() {
               onPress={() => filter === 'ACTIVE' ? router.push('/(tabs)' as any) : setFilter('ALL')}
             >
               <Text style={st.browseBtnText}>
-                {filter === 'ACTIVE' ? 'ORDER FRESH BITES →' : 'VIEW ALL ORDERS ➔'}
+                {filter === 'ACTIVE' ? 'Browse restaurants' : 'See all orders'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -748,7 +757,7 @@ export default function OrdersScreen() {
           if (filter === 'PAST') return o.status === 'Delivered' || o.status === 'Cancelled';
           return true;
         }).slice(0, orderLimit).map((o, idx) => {
-          const id = (o._id || o.id || '').slice(-6).toUpperCase();
+          const id = shortRef(o._id || o.id);
           const isExpanded = expanded === (o._id || o.id);
           const orderItems: any[] = parseItems(o.items);
           const breakdown = parseBreakdown(o.priceBreakdown);
@@ -760,6 +769,7 @@ export default function OrdersScreen() {
             && o.cancellationReason.trim() && !/by customer|by user/i.test(o.cancellationReason)
             ? o.cancellationReason.trim()
             : null;
+          // The server sends deliveryPin = null for stall (vendor-delivered) orders, so this card only shows for rider handovers.
           const showPin = !!o.deliveryPin && PIN_STATUSES.includes(o.status);
           const subtotal = Number(breakdown?.subtotal ?? o.totalPrice ?? 0) || 0;
           const deliveryFee = Number(breakdown?.deliveryFee ?? o.deliveryFee ?? 0) || 0;
@@ -779,21 +789,21 @@ export default function OrdersScreen() {
               >
               <View style={st.cardHeader}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 10, color: txtSec, fontWeight: '700', letterSpacing: 1.5 }}>
+                  <Text style={{ fontSize: 10, color: txtSec, fontWeight: '700', letterSpacing: 0.3 }}>
                     {o.status === 'Cancelled' ? '✕' : o.status === 'Delivered' ? '✓' : '◉'}{' '}
-                    <Text style={{ color: goldColor, fontWeight: '800' }}>ORDER #{id}</Text>
+                    <Text style={{ color: goldColor, fontWeight: '800' }}>Order #{id}</Text>
                   </Text>
                   <Text style={[st.restaurantName, { color: txt }]} numberOfLines={1}>{restaurantName}</Text>
-                  <Text style={{ fontSize: 10, color: txtSec, fontWeight: '600' }}>{orderItems.length} item{orderItems.length !== 1 ? 's' : ''} • {o.createdAt ? new Date(o.createdAt).toLocaleDateString() : ''}</Text>
+                  <Text style={{ fontSize: 10, color: txtSec, fontWeight: '600' }}>{[plural(orderItems.length, 'item'), formatISTDate(o.createdAt)].filter(Boolean).join(' · ')}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 2 }}>
                     {o.status !== 'Delivered' && o.status !== 'Cancelled' && (
                       <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981' }} />
                     )}
-                    <Text style={[st.statusBadge, { color: statusColor(o.status) }]}>{statusLabel(o.status).toUpperCase()}</Text>
+                    <Text style={[st.statusBadge, { color: statusColor(o.status) }]}>{statusLabel(o.status)}</Text>
                   </View>
-                  <Text style={[st.price, { color: txt }]}>₹{charged}</Text>
+                  <Text style={[st.price, { color: txt }]}>{formatINR(charged)}</Text>
                 </View>
               </View>
 
@@ -815,10 +825,10 @@ export default function OrdersScreen() {
                     router.push(`/tracking/${o._id || o.id}` as any);
                   }}
                 >
-                  <Text style={{ fontSize: 10, fontWeight: '900', color: isDark ? goldColor : COLORS.red, letterSpacing: 1 }}>
-                    📍 {statusLabel(o.status).toUpperCase()} • TRACK ORDER
+                  <Text style={{ fontSize: 10, fontWeight: '900', color: isDark ? goldColor : COLORS.red, letterSpacing: 0.2 }}>
+                    {statusLabel(o.status)} · Track order
                   </Text>
-                  <Text style={{ fontSize: 11, fontWeight: '900', color: isDark ? goldColor : COLORS.red }}>→</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '900', color: isDark ? goldColor : COLORS.red }}>›</Text>
                 </TouchableOpacity>
               )}
 
@@ -840,8 +850,8 @@ export default function OrdersScreen() {
                     router.push(`/tracking/${o._id || o.id}` as any);
                   }}
                 >
-                  <Text style={{ fontSize: 10, fontWeight: '900', color: goldColor, letterSpacing: 1 }}>⭐ RATE THIS ORDER</Text>
-                  <Text style={{ fontSize: 11, fontWeight: '900', color: goldColor }}>→</Text>
+                  <Text style={{ fontSize: 10, fontWeight: '900', color: goldColor, letterSpacing: 0.2 }}>Rate this order</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '900', color: goldColor }}>›</Text>
                 </TouchableOpacity>
               )}
 
@@ -849,10 +859,10 @@ export default function OrdersScreen() {
                 <View style={[st.details, { borderTopColor: border }]}>
                   {showPin && (
                     <View style={[st.otpSection, { borderColor: isDark ? 'rgba(212,175,122,0.3)' : 'rgba(201,151,46,0.3)', backgroundColor: isDark ? 'rgba(212,175,122,0.08)' : 'rgba(201,151,46,0.08)' }]}>
-                      <Text style={{ fontSize: 9, fontWeight: '900', color: goldColor, letterSpacing: 2, marginBottom: 4 }}>DELIVERY PIN</Text>
+                      <Text style={{ fontSize: 9, fontWeight: '900', color: goldColor, letterSpacing: 0.3, marginBottom: 4 }}>Delivery OTP</Text>
                       <View style={st.otpBox}>
                         <Text style={[st.otpText, { color: goldColor }]}>{o.deliveryPin}</Text>
-                        <Text style={{ fontSize: 9, color: txtSec, fontWeight: '700', lineHeight: 14 }}>Share this PIN with your{'\n'}rider at handover only</Text>
+                        <Text style={{ fontSize: 9, color: txtSec, fontWeight: '700', lineHeight: 14 }}>Share this OTP with your{'\n'}rider at handover only</Text>
                       </View>
                     </View>
                   )}
@@ -864,37 +874,37 @@ export default function OrdersScreen() {
                     const line = Number(item.lineTotal ?? (Number(item.unitPrice ?? item.price ?? 0) * qty)) || 0;
                     return (
                       <View key={i} style={st.itemRow}>
-                        <Text style={{ fontSize: 11, color: txt, fontWeight: '600', flex: 1, marginRight: 8 }} numberOfLines={2}>{qty}x  {item.name}</Text>
-                        <Text style={{ fontSize: 11, color: txt, fontWeight: '800' }}>₹{line}</Text>
+                        <Text style={{ fontSize: 11, color: txt, fontWeight: '600', flex: 1, marginRight: 8 }} numberOfLines={2}>{qty} × {item.name}</Text>
+                        <Text style={{ fontSize: 11, color: txt, fontWeight: '800' }}>{formatINR(line)}</Text>
                       </View>
                     );
                   })}
                   <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: border }}>
                     <View style={st.itemRow}>
                       <Text style={{ fontSize: 11, color: txtSec, fontWeight: '600' }}>Item total</Text>
-                      <Text style={{ fontSize: 11, color: txtSec, fontWeight: '700' }}>₹{subtotal}</Text>
+                      <Text style={{ fontSize: 11, color: txtSec, fontWeight: '700' }}>{formatINR(subtotal)}</Text>
                     </View>
                     {deliveryFee > 0 && (
                       <View style={st.itemRow}>
                         <Text style={{ fontSize: 11, color: txtSec, fontWeight: '600' }}>Delivery fee</Text>
-                        <Text style={{ fontSize: 11, color: txtSec, fontWeight: '700' }}>₹{deliveryFee}</Text>
+                        <Text style={{ fontSize: 11, color: txtSec, fontWeight: '700' }}>{formatINR(deliveryFee)}</Text>
                       </View>
                     )}
                     {discounts.map((d: any, i: number) => (
                       <View key={`d-${i}`} style={st.itemRow}>
                         <Text style={{ fontSize: 11, color: COLORS.emerald, fontWeight: '600', flex: 1, marginRight: 8 }} numberOfLines={1}>{d.label || 'Discount'}</Text>
-                        <Text style={{ fontSize: 11, color: COLORS.emerald, fontWeight: '700' }}>−₹{Number(d.amount)}</Text>
+                        <Text style={{ fontSize: 11, color: COLORS.emerald, fontWeight: '700' }}>{formatINR(-Math.abs(Number(d.amount)))}</Text>
                       </View>
                     ))}
                     <View style={st.itemRow}>
                       <Text style={{ fontSize: 12, color: txt, fontWeight: '900' }}>{o.status === 'Cancelled' ? 'Order total' : 'Total'}</Text>
-                      <Text style={{ fontSize: 12, color: txt, fontWeight: '900' }}>₹{charged}</Text>
+                      <Text style={{ fontSize: 12, color: txt, fontWeight: '900' }}>{formatINR(charged)}</Text>
                     </View>
                     {paymentLabel && (
                       <Text style={{ fontSize: 10, color: txtSec, fontWeight: '600', marginTop: 2 }}>
                         {paymentLabel}
-                        {o.status === 'Cancelled' && o.paymentMethod === 'Wallet' ? ' • refunded to Wallet' : ''}
-                        {o.status === 'Cancelled' && o.paymentMethod === 'COD' ? ' • no payment taken' : ''}
+                        {o.status === 'Cancelled' && o.paymentMethod === 'Wallet' ? ' · refunded to Wallet' : ''}
+                        {o.status === 'Cancelled' && o.paymentMethod === 'COD' ? ' · no payment taken' : ''}
                       </Text>
                     )}
                   </View>
@@ -902,14 +912,14 @@ export default function OrdersScreen() {
                     style={{ marginTop: 10, alignSelf: 'flex-start' }}
                     onPress={() => router.push({ pathname: '/support', params: { orderId: String(o._id || o.id) } } as any)}
                   >
-                    <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? goldColor : COLORS.red }}>Need help with this order? →</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? goldColor : COLORS.red }}>Need help with this order? ›</Text>
                   </TouchableOpacity>
                   {needsRating && (
                     <TouchableOpacity
                       style={{ marginTop: 8, alignSelf: 'flex-start' }}
                       onPress={() => router.push(`/tracking/${o._id || o.id}` as any)}
                     >
-                      <Text style={{ fontSize: 11, fontWeight: '800', color: goldColor }}>⭐ Rate this order →</Text>
+                      <Text style={{ fontSize: 11, fontWeight: '800', color: goldColor }}>Rate this order ›</Text>
                     </TouchableOpacity>
                   )}
                   {o.status !== 'Delivered' && o.status !== 'Cancelled' ? (
@@ -920,7 +930,7 @@ export default function OrdersScreen() {
                         end={{ x: 1, y: 1 }}
                         style={st.trackBtnGradient}
                       >
-                        <Text style={st.trackBtnText}>TRACK ORDER →</Text>
+                        <Text style={st.trackBtnText}>Track order</Text>
                       </LinearGradient>
                     </ActionPressable>
                   ) : (
@@ -934,7 +944,7 @@ export default function OrdersScreen() {
                         {reorderingId === (o._id || o.id) ? (
                           <ActivityIndicator size="small" color="#fff" />
                         ) : (
-                          <Text style={[st.trackBtnText, { color: '#fff' }]}>REORDER 🔁</Text>
+                          <Text style={[st.trackBtnText, { color: '#fff' }]}>Reorder</Text>
                         )}
                       </LinearGradient>
                     </ActionPressable>
@@ -953,22 +963,21 @@ export default function OrdersScreen() {
 
 const st = StyleSheet.create({
   container: { flex: 1, paddingTop: Platform.OS === 'android' ? 40 : 50, width: '100%', maxWidth: 600, alignSelf: 'center' },
-  pageTitle: { fontSize: 24, fontWeight: '900', letterSpacing: 4, paddingHorizontal: 16, marginBottom: 4 },
-  pageSub: { fontSize: 9, fontWeight: '700', letterSpacing: 2, paddingHorizontal: 16, marginBottom: 20 },
+  pageTitle: { fontSize: 24, fontWeight: '900', letterSpacing: 0.3, paddingHorizontal: 16, marginBottom: 16 },
   empty: { padding: 40, alignItems: 'center' },
   emptyText: { fontSize: 12, fontWeight: '600' },
   emptyBox: { marginHorizontal: 16, marginTop: 20, padding: 32, borderRadius: 24, alignItems: 'center', borderWidth: 1, ...SHADOWS.card },
   emptyTitle: { fontSize: 18, fontWeight: '800', marginBottom: 8, textAlign: 'center' },
   emptyDesc: { fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 24, paddingHorizontal: 12 },
   browseBtn: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 16, ...SHADOWS.redGlow },
-  browseBtnText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900', letterSpacing: 1.5 },
+  browseBtnText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900', letterSpacing: 0.3 },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, marginBottom: 20, gap: 8 },
   filterBtn: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, borderWidth: 1 },
-  filterBtnText: { fontSize: 11, fontWeight: '800', letterSpacing: 1 },
+  filterBtnText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
   card: { marginHorizontal: 16, marginBottom: 12, borderRadius: 20, padding: 16, borderWidth: 1, ...SHADOWS.card },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   restaurantName: { fontSize: 15, fontWeight: '900', marginVertical: 3, letterSpacing: -0.2 },
-  statusBadge: { fontSize: 9, fontWeight: '900', letterSpacing: 2 },
+  statusBadge: { fontSize: 11, fontWeight: '900', letterSpacing: 0.2 },
   price: { fontSize: 16, fontWeight: '900', marginTop: 4 },
   details: { marginTop: 12, paddingTop: 12, borderTopWidth: 1 },
   otpSection: { marginBottom: 12, padding: 12, borderRadius: 12, borderWidth: 1 },
@@ -976,5 +985,5 @@ const st = StyleSheet.create({
   otpText: { fontSize: 28, fontWeight: '900', color: '#D4AF7A', fontVariant: ['tabular-nums'], letterSpacing: 6 },
   itemRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
   trackBtnGradient: { paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
-  trackBtnText: { fontSize: 10, fontWeight: '900', color: '#000', letterSpacing: 3 },
+  trackBtnText: { fontSize: 13, fontWeight: '900', color: '#000', letterSpacing: 0.3 },
 });
