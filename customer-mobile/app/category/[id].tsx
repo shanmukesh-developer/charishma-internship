@@ -9,31 +9,25 @@ import {
   Platform,
   Alert,
   FlatList,
-  ActivityIndicator,
   TextInput,
-  Modal,
   RefreshControl,
 } from 'react-native';
-import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
-import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { COLORS } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import FssaiLine from '../../components/FssaiLine';
 import { useAuth } from '../../context/AuthContext';
-import { useCart, MAX_ITEM_QTY, newIdempotencyKey } from '../../context/CartContext';
+import { useCart, MAX_ITEM_QTY } from '../../context/CartContext';
 import { API_URL } from '../../constants/api';
 import { apiFetch } from '../../utils/auth';
 import { useLiveSync } from '../../utils/useLiveSync';
 import { readCache, writeCache } from '../../utils/swrCache';
 import SafeImage from '../../components/SafeImage';
 import { ShimmerCard } from '../../components/ShimmerLoader';
+import ServiceBookingSheet from '../../modules/services/ServiceBookingSheet';
 
 const { width: SW } = Dimensions.get('window');
-
-// Max attachment we send inline with a booking (the server accepts JSON bodies up to 10 MB; base64 adds ~33%).
-const MAX_ATTACHMENT_BYTES = 6 * 1024 * 1024;
 
 // App category ids that point at the same shelf
 const CATEGORY_ALIASES: Record<string, string> = {
@@ -62,22 +56,6 @@ const CATEGORY_META: Record<string, { title: string; subtitle: string; icon: str
 
 const SERVICE_CATEGORIES = ['tailoring', 'repairs', 'print', 'laundry'];
 
-// Laundry is priced per kg or per piece / pair: the student says how much, the server multiplies
-// the catalogue price by it (backend routes/serviceRoutes.js priceServiceBooking). Keep MAX in sync.
-const MAX_SERVICE_QTY = 50;
-const laundryUnit = (name: string): 'kg' | 'pcs' => (/per\s*kg|\bkg\b/i.test(name) ? 'kg' : 'pcs');
-
-// Pickup slots still ahead of us (a 4–6 PM slot is not offered at 8 PM).
-const upcomingPickupSlots = (now = new Date()): string[] => {
-  const h = now.getHours();
-  const slots: string[] = [];
-  if (h < 16) slots.push('Today 4:00 PM - 6:00 PM');
-  if (h < 19) slots.push('Today 7:00 PM - 9:00 PM');
-  slots.push('Tomorrow Morning 10 AM');
-  if (h >= 8 && h < 20) slots.push('Urgent (within 2 hours)');
-  return slots;
-};
-
 interface CatalogueItem {
   id: string;
   name: string;
@@ -98,8 +76,6 @@ interface CatalogueItem {
 }
 
 interface StoreInfo { id: string; name: string; isOpen: boolean; opensAt: string | null; closedReason: string | null; fssaiLicenseNumber: string | null }
-
-const cleanRoom = (room: any) => String(room || '').replace(/^\s*room\s*/i, '').trim();
 
 const formatOpensAt = (hhmm: string | null) => {
   if (!hhmm || !/^\d{1,2}:\d{2}$/.test(hhmm)) return null;
@@ -129,36 +105,9 @@ export default function CategoryDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Dedicated Service Booking Modal States
+  // Service booking sheet (modules/services/ServiceBookingSheet.tsx: per-service questions)
   const [selectedService, setSelectedService] = useState<CatalogueItem | null>(null);
   const [serviceModalVisible, setServiceModalVisible] = useState(false);
-  const [serviceQty, setServiceQty] = useState('1');
-  const [serviceNotes, setServiceNotes] = useState('');
-  const [pickupSlots, setPickupSlots] = useState<string[]>(() => upcomingPickupSlots());
-  const [pickupSlot, setPickupSlot] = useState<string>(() => upcomingPickupSlots()[0]);
-  const [hostelBlock, setHostelBlock] = useState<string>((user as any)?.hostelBlock || '');
-  const [roomNumber, setRoomNumber] = useState<string>(cleanRoom((user as any)?.roomNumber || (user as any)?.roomNo));
-  const [contactPhone, setContactPhone] = useState<string>((user as any)?.phone || '');
-  const [submittingBooking, setSubmittingBooking] = useState(false);
-  const submittingRef = useRef(false);
-  // One key per booking attempt (made when the booking sheet opens, kept across retries until the
-  // server answers) so a timed-out request the server did process is not booked twice on retry.
-  const bookingKeyRef = useRef<string>(newIdempotencyKey());
-
-  // Document Upload & Printout Specific States
-  const [attachedFile, setAttachedFile] = useState<{
-    name: string;
-    size?: string;
-    uri?: string;
-    base64?: string;
-    type?: string;
-  } | null>(null);
-
-  const [pageCount, setPageCount] = useState('1');
-  const [printColor, setPrintColor] = useState<'bw' | 'color'>('bw');
-  const [printSides, setPrintSides] = useState<'double' | 'single'>('double');
-  const [bindingType, setBindingType] = useState<'none' | 'spiral' | 'hardbound'>('none');
-  const [copies, setCopies] = useState('1');
 
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
@@ -174,65 +123,6 @@ export default function CategoryDetailScreen() {
     };
   }, [items]);
 
-  // Price shown in the booking sheet (and sent as the quote): the card price, or the print formula
-  const isLaundry = categoryId === 'laundry';
-  const qtyUnit = selectedService ? laundryUnit(selectedService.name) : 'pcs';
-  const qtyNum = Math.min(MAX_SERVICE_QTY, Math.max(1, parseInt(serviceQty, 10) || 1));
-  const calculatedServicePrice = useMemo(() => {
-    if (categoryId === 'laundry') return Math.round((selectedService?.price || 0) * qtyNum * 100) / 100;
-    if (categoryId !== 'print') return selectedService?.price || 0;
-    const pages = Math.min(5000, Math.max(1, parseInt(pageCount, 10) || 1));
-    const numCopies = Math.min(500, Math.max(1, parseInt(copies, 10) || 1));
-    const costPerPage = (printColor === 'color' ? printRates.color : printRates.bw) ?? selectedService?.price ?? 0;
-    const printTotal = pages * costPerPage * numCopies;
-    const bindingCost = bindingType === 'spiral' ? (printRates.spiral ?? 0) : bindingType === 'hardbound' ? (printRates.hardbound ?? 0) : 0;
-    return Math.round((printTotal + bindingCost) * 100) / 100;
-  }, [categoryId, selectedService, qtyNum, pageCount, printColor, bindingType, copies, printRates]);
-
-  // Photo / screenshot attachment (images only: there is no document picker in this build)
-  const handlePickDocument = async () => {
-    try {
-      // Android uses the system photo picker (no permission); only iOS asks for library access.
-      const perm = Platform.OS === 'ios' ? await ImagePicker.requestMediaLibraryPermissionsAsync() : { granted: true };
-      if (!perm.granted) {
-        Alert.alert('Allow photo access', 'To attach a photo, allow Zenvy to access your photos in Settings.');
-        return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: false,
-        quality: 0.5,
-        base64: true,
-      });
-      if (result.canceled || !result.assets || !result.assets[0]) return;
-      const asset = result.assets[0];
-      const approxBytes = asset.fileSize || (asset.base64 ? Math.round(asset.base64.length * 0.75) : 0);
-      if (approxBytes > MAX_ATTACHMENT_BYTES) {
-        Alert.alert('That photo is too large', 'Please pick a photo under 6 MB, or crop it and try again.');
-        return;
-      }
-      if (!asset.base64) {
-        Alert.alert('Could not read that photo', 'Please try a different photo.');
-        return;
-      }
-      setAttachedFile({
-        name: asset.fileName || `Photo_${Date.now()}.jpg`,
-        size: approxBytes ? `${(approxBytes / (1024 * 1024)).toFixed(2)} MB` : undefined,
-        uri: asset.uri,
-        base64: `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`,
-        type: asset.mimeType || 'image/jpeg',
-      });
-    } catch {
-      Alert.alert('Could not attach', 'Something went wrong while picking the photo. Please try again.');
-    }
-  };
-
-  useEffect(() => {
-    const u: any = user;
-    if (u?.hostelBlock) setHostelBlock((prev) => prev || u.hostelBlock);
-    if (u?.roomNumber || u?.roomNo) setRoomNumber((prev) => prev || cleanRoom(u.roomNumber || u.roomNo));
-    if (u?.phone) setContactPhone((prev) => prev || u.phone);
-  }, [user]);
 
   const applyCatalogue = useCallback((data: any) => {
     const storeMap: Record<string, StoreInfo> = {};
@@ -355,17 +245,6 @@ export default function CategoryDetailScreen() {
         return;
       }
       setSelectedService(item);
-      setServiceNotes('');
-      setServiceQty('1');
-      const slots = upcomingPickupSlots();
-      setPickupSlots(slots);
-      setPickupSlot((prev) => (slots.includes(prev) ? prev : slots[0]));
-      setAttachedFile(null);
-      setPageCount('1');
-      setCopies('1');
-      setPrintColor(/colou?r/i.test(item.name) ? 'color' : 'bw');
-      setBindingType(/spiral/i.test(item.name) ? 'spiral' : /thesis|hard\s*bound/i.test(item.name) ? 'hardbound' : 'none');
-      bookingKeyRef.current = newIdempotencyKey();
       setServiceModalVisible(true);
       return;
     }
@@ -389,122 +268,6 @@ export default function CategoryDetailScreen() {
       restaurantName: item.restaurantName || meta.title,
     });
     if (added) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-  };
-
-  const handleConfirmServiceBooking = async () => {
-    if (!selectedService || submittingRef.current) return;
-    const block = hostelBlock.trim();
-    const room = cleanRoom(roomNumber);
-    if (!block || !room) {
-      Alert.alert('Where should we pick up?', 'Please enter your hostel block and room number.');
-      return;
-    }
-    const phoneDigits = String(contactPhone || '').replace(/\D/g, '');
-    if (phoneDigits.length < 10) {
-      Alert.alert('Add a contact number', 'The partner calls you before pickup. Please enter your 10-digit mobile number.');
-      return;
-    }
-
-    submittingRef.current = true;
-    setSubmittingBooking(true);
-    try {
-      const serviceTypeMapping: Record<string, string> = {
-        tailoring: 'TAILORING',
-        repairs: 'LAPTOP_REPAIR',
-        print: 'PRINTOUT',
-        laundry: 'LAUNDRY'
-      };
-
-      const finalAmount = calculatedServicePrice;
-      const notes = serviceNotes.trim();
-
-      const payload = {
-        serviceType: serviceTypeMapping[categoryId] || 'GENERAL',
-        title: selectedService.name.slice(0, 200),
-        description: (notes ? `[Notes: ${notes}] - ${selectedService.desc}` : selectedService.desc).slice(0, 2000),
-        specifications: {
-          quantity: isLaundry ? qtyNum : undefined,
-          unit: isLaundry ? qtyUnit : undefined,
-          pageCount: categoryId === 'print' ? pageCount : undefined,
-          printColor: categoryId === 'print' ? printColor : undefined,
-          printSides: categoryId === 'print' ? printSides : undefined,
-          bindingType: categoryId === 'print' ? bindingType : undefined,
-          copies: categoryId === 'print' ? copies : undefined,
-          attachedFileName: attachedFile?.name || undefined,
-          serviceName: selectedService.name,
-          catalogueItemId: selectedService.id,
-          category: categoryId,
-          notes,
-          clientRequestId: bookingKeyRef.current,
-        },
-        attachmentUrl: attachedFile?.base64 || undefined,
-        quotedAmount: finalAmount,
-        pickupSlot: pickupSlot,
-        hostelBlock: block,
-        roomNumber: room,
-        deliveryAddress: `${block}, Room ${room}`,
-        contactPhone: contactPhone,
-        paymentMethod: 'COD',
-      };
-
-      let res: Response;
-      try {
-        res = await apiFetch(`${API_URL}/api/services/book`, {
-          method: 'POST',
-          headers: { 'Idempotency-Key': bookingKeyRef.current },
-          body: JSON.stringify(payload)
-        });
-      } catch {
-        // The booking may have reached the server before the connection dropped: keep the same key
-        // for a retry and point the user at their bookings instead of implying nothing was placed.
-        Alert.alert(
-          'Couldn’t confirm the booking',
-          "We couldn't confirm whether your booking went through. Check Orders → Services before trying again.",
-          [
-            { text: 'OK', style: 'cancel' },
-            { text: 'Check bookings', onPress: () => router.push({ pathname: '/(tabs)/orders', params: { segment: 'services' } } as any) },
-          ]
-        );
-        return;
-      }
-      const data = await res.json().catch(() => null);
-      // The server answered, so this attempt is settled; a later booking gets a fresh key.
-      if (res.status !== 409) bookingKeyRef.current = newIdempotencyKey();
-
-      if (res.ok && data && data.booking) {
-        if (mountedRef.current) setServiceModalVisible(false);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        // The server prices the booking from the catalogue; show its number, not ours.
-        const serverAmount = Number(data.booking.quotedAmount);
-        const estimateLine = Number.isFinite(serverAmount) && serverAmount > 0
-          ? `Estimate: ₹${serverAmount} (pay on delivery)`
-          : Number.isFinite(serverAmount) ? 'Estimate: the partner will quote a price' : `Estimate: ₹${finalAmount} (pay on delivery)`;
-        const qtyLine = isLaundry ? `\nQuantity: ${qtyNum} ${qtyUnit === 'kg' ? 'kg (approx.)' : qtyNum === 1 ? 'item' : 'items'}` : '';
-        // Same short id as My Orders → Services and the admin dashboard (last 8 characters).
-        Alert.alert(
-          'Booking confirmed 🎉',
-          `Booking #${String(data.booking.id || '').slice(-8).toUpperCase()}\n\n${selectedService.name}${qtyLine}\n${estimateLine}\nPickup: ${pickupSlot}\nAt: ${block}, Room ${room}\n\nThe partner will call you on ${contactPhone} before pickup and confirm the final price.`,
-          [
-            { text: 'Done', style: 'cancel' },
-            { text: 'View booking', onPress: () => router.push({ pathname: '/(tabs)/orders', params: { segment: 'services' } } as any) },
-          ]
-        );
-      } else if (res.status === 413) {
-        Alert.alert('Attachment too large', 'Please attach a smaller photo, or remove it and share the file with the partner at pickup.');
-      } else if (res.status === 401) {
-        Alert.alert('Please sign in again', 'Your session has expired.', [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Sign in', onPress: () => router.push('/login' as any) },
-        ]);
-      } else {
-        // The service was paused / removed since this shelf loaded: refresh it so the card shows that.
-        if (data && data.code === 'SERVICE_UNAVAILABLE') fetchCategoryItems('silent');
-        Alert.alert('Booking not placed',(data && typeof data.message === 'string' && res.status < 500 && data.message) || 'We could not book this service right now. Please try again.');
-      }
-    } finally {
-      submittingRef.current = false;
-      if (mountedRef.current) setSubmittingBooking(false);
-    }
   };
 
   const renderEmpty = () => {
@@ -761,438 +524,15 @@ export default function CategoryDetailScreen() {
         </TouchableOpacity>
       )}
 
-      {/* ── PROFESSIONAL SERVICE BOOKING MODAL ── */}
-      <Modal
+      <ServiceBookingSheet
         visible={serviceModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setServiceModalVisible(false)}
-      >
-        <KeyboardAvoidingView style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={{ 
-            backgroundColor: isDark ? '#1C1C1E' : '#FFF', 
-            borderTopLeftRadius: 28, 
-            borderTopRightRadius: 28, 
-            padding: 20, 
-            maxHeight: '88%',
-            borderWidth: 1,
-            borderColor: border 
-          }}>
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              {/* Modal Header */}
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <View style={{ flex: 1, marginRight: 10 }}>
-                  <Text style={{ fontSize: 8.5, fontWeight: '900', color: '#3B82F6', letterSpacing: 1.5 }}>
-                    {meta.title.toUpperCase()} • DOORSTEP SERVICE
-                  </Text>
-                  <Text style={{ fontSize: 16, fontWeight: '900', color: txt, marginTop: 2 }}>
-                    {selectedService?.name}
-                  </Text>
-                </View>
-                <TouchableOpacity 
-                  onPress={() => setServiceModalVisible(false)}
-                  style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: isDark ? '#27272A' : '#F1F5F9', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <Text style={{ fontSize: 14, color: txtSec, fontWeight: '900' }}>✕</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Price & Turnaround Badge */}
-              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
-                <View style={{ backgroundColor: isDark ? '#27272A' : '#F8FAFC', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: border }}>
-                  <Text style={{ fontSize: 8, fontWeight: '800', color: txtSec }}>
-                    {categoryId === 'print' || isLaundry ? 'ESTIMATE' : 'STARTS AT'}
-                  </Text>
-                  <Text style={{ fontSize: 16, fontWeight: '900', color: '#10B981', marginTop: 1 }}>
-                    ₹{calculatedServicePrice}
-                  </Text>
-                </View>
-                <View style={{ backgroundColor: isDark ? '#27272A' : '#F8FAFC', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: border, flex: 1 }}>
-                  <Text style={{ fontSize: 8, fontWeight: '800', color: txtSec }}>HOW IT WORKS</Text>
-                  <Text style={{ fontSize: 10, fontWeight: '800', color: txt, marginTop: 2 }}>Partner calls you, confirms the final price, then picks up. Pay on delivery.</Text>
-                </View>
-              </View>
-
-              {/* ── 1. DOCUMENT & FILE ATTACHMENT SECTION ── */}
-              <View style={{ marginBottom: 14 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <Text style={{ fontSize: 10, fontWeight: '900', color: txt, letterSpacing: 1 }}>
-                    {categoryId === 'print' ? '📄 ATTACH PHOTOS OF YOUR PAGES' : '📸 ATTACH REFERENCE PHOTO'}
-                  </Text>
-                  <Text style={{ fontSize: 8.5, fontWeight: '700', color: '#3B82F6' }}>
-                    OPTIONAL
-                  </Text>
-                </View>
-
-                {attachedFile ? (
-                  <View style={{
-                    backgroundColor: isDark ? 'rgba(16,185,129,0.1)' : '#ECFDF5',
-                    borderWidth: 1,
-                    borderColor: isDark ? 'rgba(16,185,129,0.3)' : '#86EFAC',
-                    borderRadius: 14,
-                    padding: 12,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, marginRight: 8 }}>
-                      <Text style={{ fontSize: 22 }}>📄</Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 11.5, fontWeight: '800', color: txt }} numberOfLines={1}>
-                          {attachedFile.name}
-                        </Text>
-                        <Text style={{ fontSize: 9, fontWeight: '600', color: '#059669', marginTop: 2 }}>
-                          {attachedFile.size ? `${attachedFile.size} • ` : ''}Attached ✅
-                        </Text>
-                      </View>
-                    </View>
-
-                    <TouchableOpacity
-                      onPress={() => setAttachedFile(null)}
-                      style={{ backgroundColor: isDark ? '#27272A' : '#FEE2E2', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8 }}
-                    >
-                      <Text style={{ fontSize: 9.5, fontWeight: '900', color: '#EF4444' }}>✕ Remove</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    onPress={handlePickDocument}
-                    style={{
-                      borderWidth: 1.5,
-                      borderStyle: 'dashed',
-                      borderColor: isDark ? '#3B82F6' : '#60A5FA',
-                      backgroundColor: isDark ? 'rgba(59,130,246,0.06)' : '#EFF6FF',
-                      borderRadius: 14,
-                      paddingVertical: 14,
-                      paddingHorizontal: 12,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 4
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={{ fontSize: 20 }}>📁</Text>
-                    <Text style={{ fontSize: 11, fontWeight: '900', color: '#2563EB', letterSpacing: 0.5 }}>
-                      Tap to attach a photo
-                    </Text>
-                    <Text style={{ fontSize: 8.5, color: txtSec, fontWeight: '600' }}>
-                      {categoryId === 'print' ? 'Photos up to 6 MB. Have a PDF? Hand it to the partner at pickup.' : 'Photos up to 6 MB.'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              {/* ── 2. PRINTOUT & XEROX SPECIFICATIONS ── */}
-              {categoryId === 'print' && (
-                <View style={{
-                  backgroundColor: isDark ? '#222226' : '#F8FAFC',
-                  borderRadius: 16,
-                  padding: 12,
-                  marginBottom: 14,
-                  borderWidth: 1,
-                  borderColor: border
-                }}>
-                  <Text style={{ fontSize: 10, fontWeight: '900', color: txt, letterSpacing: 1, marginBottom: 10 }}>
-                    🖨️ PRINT SPECIFICATIONS & COPIES
-                  </Text>
-
-                  {/* Page Count & Copies row */}
-                  <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 8.5, fontWeight: '800', color: txtSec, marginBottom: 4 }}>TOTAL PAGES</Text>
-                      <TextInput
-                        style={{
-                          backgroundColor: isDark ? '#18181B' : '#FFF',
-                          borderWidth: 1,
-                          borderColor: border,
-                          borderRadius: 10,
-                          paddingHorizontal: 10,
-                          paddingVertical: 7,
-                          fontSize: 12,
-                          fontWeight: '800',
-                          color: txt
-                        }}
-                        keyboardType="numeric"
-                        placeholder="e.g. 10"
-                        placeholderTextColor={txtSec}
-                        value={pageCount}
-                        maxLength={4}
-                        onChangeText={(v) => setPageCount(v.replace(/[^0-9]/g, ''))}
-                      />
-                    </View>
-
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 8.5, fontWeight: '800', color: txtSec, marginBottom: 4 }}>NUMBER OF SETS/COPIES</Text>
-                      <TextInput
-                        style={{
-                          backgroundColor: isDark ? '#18181B' : '#FFF',
-                          borderWidth: 1,
-                          borderColor: border,
-                          borderRadius: 10,
-                          paddingHorizontal: 10,
-                          paddingVertical: 7,
-                          fontSize: 12,
-                          fontWeight: '800',
-                          color: txt
-                        }}
-                        keyboardType="numeric"
-                        placeholder="e.g. 1"
-                        placeholderTextColor={txtSec}
-                        value={copies}
-                        maxLength={3}
-                        onChangeText={(v) => setCopies(v.replace(/[^0-9]/g, ''))}
-                      />
-                    </View>
-                  </View>
-
-                  {/* Print Color Mode */}
-                  <View style={{ marginBottom: 10 }}>
-                    <Text style={{ fontSize: 8.5, fontWeight: '800', color: txtSec, marginBottom: 6 }}>COLOR MODE</Text>
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                      <TouchableOpacity
-                        style={{
-                          flex: 1,
-                          paddingVertical: 8,
-                          borderRadius: 10,
-                          backgroundColor: printColor === 'bw' ? (isDark ? 'rgba(59,130,246,0.18)' : '#EFF6FF') : (isDark ? '#18181B' : '#FFF'),
-                          borderWidth: 1,
-                          borderColor: printColor === 'bw' ? '#3B82F6' : border,
-                          alignItems: 'center'
-                        }}
-                        onPress={() => setPrintColor('bw')}
-                      >
-                        <Text style={{ fontSize: 10, fontWeight: '900', color: printColor === 'bw' ? (isDark ? '#38BDF8' : '#2563EB') : txtSec }}>
-                          Black & White{printRates.bw != null ? ` (₹${printRates.bw}/page)` : ''}
-                        </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={{
-                          flex: 1,
-                          paddingVertical: 8,
-                          borderRadius: 10,
-                          backgroundColor: printColor === 'color' ? (isDark ? 'rgba(59,130,246,0.18)' : '#EFF6FF') : (isDark ? '#18181B' : '#FFF'),
-                          borderWidth: 1,
-                          borderColor: printColor === 'color' ? '#3B82F6' : border,
-                          alignItems: 'center'
-                        }}
-                        onPress={() => setPrintColor('color')}
-                      >
-                        <Text style={{ fontSize: 10, fontWeight: '900', color: printColor === 'color' ? (isDark ? '#38BDF8' : '#2563EB') : txtSec }}>
-                          🌈 Full Color{printRates.color != null ? ` (₹${printRates.color}/page)` : ''}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-
-                  {/* Binding Type */}
-                  <View>
-                    <Text style={{ fontSize: 8.5, fontWeight: '800', color: txtSec, marginBottom: 6 }}>BINDING / FINISHING</Text>
-                    <View style={{ flexDirection: 'row', gap: 6 }}>
-                      {[
-                        { key: 'none', label: 'No Binding', rate: 0 as number | null },
-                        { key: 'spiral', label: `Spiral (+₹${printRates.spiral})`, rate: printRates.spiral },
-                        { key: 'hardbound', label: `Hardbound (+₹${printRates.hardbound})`, rate: printRates.hardbound }
-                      ].filter(b => b.rate != null).map(b => (
-                        <TouchableOpacity
-                          key={b.key}
-                          style={{
-                            flex: 1,
-                            paddingVertical: 7,
-                            borderRadius: 10,
-                            backgroundColor: bindingType === b.key ? (isDark ? '#3B82F6' : '#2563EB') : (isDark ? '#18181B' : '#FFF'),
-                            borderWidth: 1,
-                            borderColor: bindingType === b.key ? '#2563EB' : border,
-                            alignItems: 'center'
-                          }}
-                          onPress={() => setBindingType(b.key as any)}
-                        >
-                          <Text style={{ fontSize: 8.5, fontWeight: '800', color: bindingType === b.key ? '#FFF' : txtSec }}>
-                            {b.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                </View>
-              )}
-
-
-              {/* ── LAUNDRY QUANTITY (per kg / per piece) ── */}
-              {isLaundry && selectedService && (
-                <View style={{ backgroundColor: isDark ? '#222226' : '#F8FAFC', borderRadius: 16, padding: 12, marginBottom: 14, borderWidth: 1, borderColor: border }}>
-                  <Text style={{ fontSize: 10, fontWeight: '900', color: txt, letterSpacing: 1, marginBottom: 8 }}>
-                    {qtyUnit === 'kg' ? '⚖️ APPROX. WEIGHT (KG)' : '👕 NUMBER OF ITEMS / PAIRS'}
-                  </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <TouchableOpacity
-                      onPress={() => setServiceQty(String(Math.max(1, qtyNum - 1)))}
-                      disabled={qtyNum <= 1}
-                      style={{ width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#18181B' : '#FFF', borderWidth: 1, borderColor: border, opacity: qtyNum <= 1 ? 0.4 : 1 }}
-                    >
-                      <Text style={{ fontSize: 18, fontWeight: '900', color: txt }}>−</Text>
-                    </TouchableOpacity>
-                    <Text style={{ fontSize: 16, fontWeight: '900', color: txt, minWidth: 28, textAlign: 'center' }}>{qtyNum}</Text>
-                    <TouchableOpacity
-                      onPress={() => setServiceQty(String(Math.min(MAX_SERVICE_QTY, qtyNum + 1)))}
-                      disabled={qtyNum >= MAX_SERVICE_QTY}
-                      style={{ width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#18181B' : '#FFF', borderWidth: 1, borderColor: border, opacity: qtyNum >= MAX_SERVICE_QTY ? 0.4 : 1 }}
-                    >
-                      <Text style={{ fontSize: 18, fontWeight: '900', color: txt }}>+</Text>
-                    </TouchableOpacity>
-                    <Text style={{ flex: 1, fontSize: 10, fontWeight: '700', color: txtSec }}>
-                      ₹{selectedService.price} × {qtyNum}{qtyUnit === 'kg' ? ' kg' : ''}. {qtyUnit === 'kg' ? 'The partner weighs your clothes at pickup and confirms the final price.' : 'The partner confirms the count at pickup.'}
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* Pickup Time Slot */}
-              <View style={{ marginBottom: 14 }}>
-                <Text style={{ fontSize: 10, fontWeight: '900', color: txt, letterSpacing: 1, marginBottom: 8 }}>
-                  PREFERRED PICKUP SLOT
-                </Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {pickupSlots.map(slot => (
-                    <TouchableOpacity
-                      key={slot}
-                      style={{
-                        paddingHorizontal: 12,
-                        paddingVertical: 7,
-                        borderRadius: 10,
-                        backgroundColor: pickupSlot === slot ? (isDark ? '#3B82F6' : '#2563EB') : (isDark ? '#27272A' : '#F1F5F9'),
-                        borderWidth: 1,
-                        borderColor: pickupSlot === slot ? '#2563EB' : border
-                      }}
-                      onPress={() => setPickupSlot(slot)}
-                    >
-                      <Text style={{ fontSize: 9.5, fontWeight: '800', color: pickupSlot === slot ? '#FFF' : txtSec }}>
-                        {slot}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Hostel & Room Location (Doorstep Pickup) */}
-              <View style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 10, fontWeight: '900', color: txt, letterSpacing: 1, marginBottom: 6 }}>
-                  DOORSTEP PICKUP LOCATION
-                </Text>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <TextInput
-                    style={{
-                      flex: 1,
-                      backgroundColor: isDark ? '#27272A' : '#F8FAFC',
-                      borderWidth: 1,
-                      borderColor: border,
-                      borderRadius: 10,
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
-                      fontSize: 11.5,
-                      fontWeight: '700',
-                      color: txt
-                    }}
-                    placeholder="Hostel block (e.g. Ganga)"
-                    placeholderTextColor={txtSec}
-                    value={hostelBlock}
-                    maxLength={60}
-                    onChangeText={setHostelBlock}
-                  />
-                  <TextInput
-                    style={{
-                      width: 120,
-                      backgroundColor: isDark ? '#27272A' : '#F8FAFC',
-                      borderWidth: 1,
-                      borderColor: border,
-                      borderRadius: 10,
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
-                      fontSize: 11.5,
-                      fontWeight: '700',
-                      color: txt
-                    }}
-                    placeholder="Room no. (e.g. 412)"
-                    placeholderTextColor={txtSec}
-                    value={roomNumber}
-                    maxLength={12}
-                    onChangeText={setRoomNumber}
-                  />
-                </View>
-                <TextInput
-                  style={{
-                    marginTop: 8,
-                    backgroundColor: isDark ? '#27272A' : '#F8FAFC',
-                    borderWidth: 1,
-                    borderColor: border,
-                    borderRadius: 10,
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    fontSize: 11.5,
-                    fontWeight: '700',
-                    color: txt
-                  }}
-                  placeholder="Mobile number for the partner to call"
-                  placeholderTextColor={txtSec}
-                  keyboardType="phone-pad"
-                  value={contactPhone}
-                  maxLength={13}
-                  onChangeText={(v) => setContactPhone(v.replace(/[^0-9+]/g, ''))}
-                />
-                <TextInput
-                  style={{
-                    marginTop: 8,
-                    backgroundColor: isDark ? '#27272A' : '#F8FAFC',
-                    borderWidth: 1,
-                    borderColor: border,
-                    borderRadius: 10,
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    fontSize: 11.5,
-                    fontWeight: '700',
-                    color: txt,
-                    minHeight: 44
-                  }}
-                  placeholder="Anything the partner should know? (optional)"
-                  placeholderTextColor={txtSec}
-                  value={serviceNotes}
-                  maxLength={300}
-                  multiline
-                  onChangeText={setServiceNotes}
-                />
-              </View>
-
-              {/* Confirm Booking CTA */}
-              <TouchableOpacity
-                style={{
-                  backgroundColor: '#3B82F6',
-                  paddingVertical: 14,
-                  borderRadius: 14,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 10,
-                  shadowColor: '#3B82F6',
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                  elevation: 4
-                }}
-                onPress={handleConfirmServiceBooking}
-                disabled={submittingBooking}
-                activeOpacity={0.85}
-              >
-                {submittingBooking ? (
-                  <ActivityIndicator color="#FFF" size="small" />
-                ) : (
-                  <Text style={{ color: '#FFF', fontSize: 11.5, fontWeight: '900', letterSpacing: 1 }}>
-                    CONFIRM PICKUP • ₹{calculatedServicePrice} ON DELIVERY
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        item={selectedService}
+        shelfId={categoryId}
+        shelfTitle={meta.title}
+        rates={printRates}
+        onClose={() => setServiceModalVisible(false)}
+        onServiceUnavailable={() => fetchCategoryItems('silent')}
+      />
     </View>
   );
 }

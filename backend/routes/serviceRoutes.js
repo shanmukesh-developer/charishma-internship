@@ -26,6 +26,22 @@ const cleanDriverDetails = (raw) => {
   return out;
 };
 
+// specifications.details: the booking form's answers as [{ key, label, value }] (customer-mobile
+// modules/services/serviceForms.ts). Bounded: at most 25 rows of short plain text; anything else is dropped.
+const MAX_DETAIL_ROWS = 25;
+const cleanBookingDetails = (raw) => {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  for (const row of raw.slice(0, MAX_DETAIL_ROWS)) {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) continue;
+    const key = cleanText(row.key, 40).replace(/[^A-Za-z0-9_.-]/g, '');
+    const label = cleanText(row.label, 60);
+    const value = typeof row.value === 'number' && Number.isFinite(row.value) ? String(row.value) : cleanText(row.value, 500);
+    if (key && label && value) out.push({ key, label, value });
+  }
+  return out;
+};
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const VALID_SERVICE_TYPES = [
   'LAPTOP_REPAIR', 'PHONE_REPAIR', 'TAILORING', 'PRINTOUT', 'LAUNDRY', 'ROOM_SHIFTING',
@@ -82,19 +98,27 @@ const priceServiceBooking = async (specifications, serviceType = null) => {
   }
 
   const storeItems = await MenuItem.findAll({ where: { restaurantId: item.restaurantId } });
+  const RATE_RES = {
+    bw: /black|b\s*&\s*w|b\/w/i,
+    color: /colou?r/i,
+    spiral: /spiral/i,
+    hardbound: /hard\s*bound|thesis/i,
+  };
   const rate = (re) => {
     const hit = storeItems.find((i) => re.test(String(i.name || '')));
     return hit ? Number(hit.price) || 0 : null;
   };
-  const rates = {
-    bw: rate(/black|b\s*&\s*w|b\/w/i),
-    color: rate(/colou?r/i),
-    spiral: rate(/spiral/i),
-    hardbound: rate(/hard\s*bound|thesis/i),
-  };
+  const rates = { bw: rate(RATE_RES.bw), color: rate(RATE_RES.color), spiral: rate(RATE_RES.spiral), hardbound: rate(RATE_RES.hardbound) };
   const pages = toInt(spec.pageCount, 1, 5000, 1);
   const copies = toInt(spec.copies, 1, 500, 1);
-  const perPage = (spec.printColor === 'color' ? rates.color : rates.bw) ?? (Number(item.price) || 0);
+  // A print item that is not one of the rate rows (e.g. "Engineering Drawing A3 Prints") is its own
+  // per-page price; it used to be charged at the A4 black-and-white rate. Same rule in the app
+  // (customer-mobile/modules/services/serviceForms.ts, pricing ownRate).
+  const itemName = String(item.name || '');
+  const ownRate = !Object.values(RATE_RES).some((re) => re.test(itemName));
+  const perPage = ownRate
+    ? (Number(item.price) || 0)
+    : ((spec.printColor === 'color' ? rates.color : rates.bw) ?? (Number(item.price) || 0));
   const binding = spec.bindingType === 'spiral' ? (rates.spiral ?? 0) : spec.bindingType === 'hardbound' ? (rates.hardbound ?? 0) : 0;
   const amount = Math.round((pages * perPage * copies + binding) * 100) / 100;
   if (amount > 100000) return { error: 'That print job is too large to book in the app. Please contact support.' };
@@ -227,6 +251,14 @@ router.post('/book', protect, async (req, res) => {
     if (priced.quantity) specs.quantity = priced.quantity;
     if (specs.unit !== undefined && !['kg', 'pcs'].includes(specs.unit)) delete specs.unit;
     if (priced.item) specs.serviceName = priced.item.name;
+    if (specs.details !== undefined) {
+      const details = cleanBookingDetails(specs.details);
+      if (details.length) specs.details = details; else delete specs.details;
+    }
+    if (specs.formId !== undefined) {
+      const formId = cleanText(specs.formId, 40).replace(/[^A-Za-z0-9_.-]/g, '');
+      if (formId) specs.formId = formId; else delete specs.formId;
+    }
     const block = cleanText(hostelBlock, 100) || cleanText(req.user.hostelBlock, 100);
     const room = cleanText(roomNumber, 30) || cleanText(req.user.roomNumber, 30);
 
