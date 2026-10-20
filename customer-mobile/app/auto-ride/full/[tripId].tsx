@@ -77,7 +77,7 @@ export default function FullAutoRequestScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: p.bg }}>
         <AHeader title="Book full auto" />
-        {error ? <StateView kind={off || error.status === 404 ? 'empty' : 'error'} icon={off ? '🛺' : undefined} title={off ? 'Auto-Ride is not open yet' : error.status === 404 ? 'Auto not found' : 'Could not load'} message={error.message}
+        {error ? <StateView kind={off || error.status === 404 ? 'empty' : 'error'} icon={off ? '🛺' : undefined} title={off ? 'Zenvy Auto is not open yet' : error.status === 404 ? 'Auto not found' : 'Could not load'} message={error.message}
           actionLabel={off || error.status === 404 ? 'Back to autos' : 'Retry'} onAction={off || error.status === 404 ? () => router.replace(AUTO_HOME as any) : load} /> : <StateView kind="loading" />}
       </View>
     );

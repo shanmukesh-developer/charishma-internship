@@ -168,7 +168,7 @@ export const refreshAutoRideStatus = async () => {
   return statusMem;
 };
 
-export function AutoHero({ title, subtitle, kicker = 'ZENVY AUTO-RIDE · VERIFIED DRIVERS' }: { title: string; subtitle: string; kicker?: string }) {
+export function AutoHero({ title, subtitle, kicker = 'Zenvy Auto · verified drivers' }: { title: string; subtitle: string; kicker?: string }) {
   return (
     <LinearGradient colors={AUTO_GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
       <Text style={{ fontSize: 9, fontWeight: '900', color: 'rgba(255,255,255,0.88)', letterSpacing: 1.5 }}>{kicker}</Text>

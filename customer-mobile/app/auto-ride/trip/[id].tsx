@@ -148,7 +148,7 @@ export default function AutoTripScreen() {
         <AHeader title="Shared auto" />
         {loadError ? (
           <StateView kind={loadError.status === 404 || off ? 'empty' : 'error'} icon={off ? '🛺' : undefined}
-            title={off ? 'Auto-Ride is not open yet' : loadError.status === 404 ? 'Auto not found' : loadError.isNetwork ? 'You seem to be offline' : 'Could not load'}
+            title={off ? 'Zenvy Auto is not open yet' : loadError.status === 404 ? 'Auto not found' : loadError.isNetwork ? 'You seem to be offline' : 'Could not load'}
             message={loadError.message} actionLabel={loadError.status === 404 || off ? 'Back to autos' : 'Retry'}
             onAction={loadError.status === 404 || off ? () => router.replace(AUTO_HOME as any) : load} />
         ) : <StateView kind="loading" message="Loading the auto…" />}
@@ -346,7 +346,7 @@ export default function AutoTripScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: p.bg }}>
-      <AHeader title={`${queueLabel(trip.queueNumber)} → ${trip.destination || 'Destination'}`} subtitle="Zenvy Auto-Ride · verified driver" onBack={headerBack} right={<Badge label={`${trip.confirmedSeats}/${trip.capacity}`} color="#16A34A" />} />
+      <AHeader title={`${queueLabel(trip.queueNumber)} → ${trip.destination || 'Destination'}`} subtitle="Zenvy Auto · verified driver" onBack={headerBack} right={<Badge label={`${trip.confirmedSeats}/${trip.capacity}`} color="#16A34A" />} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
           <StatusChip trip={trip} now={now + skew} />

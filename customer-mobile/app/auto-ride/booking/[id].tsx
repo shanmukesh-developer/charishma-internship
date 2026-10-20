@@ -115,7 +115,7 @@ export default function AutoBookingScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: p.bg }}>
-      <AHeader title={`Booking ${b.bookingCode}`} subtitle={b.type === 'PRIVATE' ? 'Full auto · Zenvy Auto-Ride' : 'Shared auto · Zenvy Auto-Ride'} right={<Badge label={`${m.icon} ${m.label.toUpperCase()}`} color={m.color} />} />
+      <AHeader title={`Booking ${b.bookingCode}`} subtitle={b.type === 'PRIVATE' ? 'Full auto · Zenvy Auto' : 'Shared auto · Zenvy Auto'} right={<Badge label={`${m.icon} ${m.label.toUpperCase()}`} color={m.color} />} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}>
         {exception ? <Notice tone="danger">⚠️ {t?.statusLabel}. {b.cancelReason || ''} {b.refundAmount > 0 ? `Refund: ${inr(b.refundAmount)} to your Zenvy Wallet.` : ''}</Notice> : null}
         {tripStatus === 'DELAYED' ? <Notice tone="warn">⚠️ The auto is delayed{t?.delayMinutes ? ` by ${t.delayMinutes} min` : ''}. New departure: {fmtDeparture(t?.departureAt)}.</Notice> : null}
@@ -133,7 +133,11 @@ export default function AutoBookingScreen() {
                 <Text style={{ fontSize: 40, fontWeight: '900', color: p.text, letterSpacing: 12 }} accessibilityLabel={`Boarding PIN ${b.boardingPin.split('').join(' ')}`}>{b.boardingPin}</Text>
                 <Text style={{ fontSize: 11.5, color: p.sub, textAlign: 'center' }}>Show the code and PIN to the driver when you board.</Text>
               </>
-            ) : <Text style={{ fontSize: 12, color: p.success, fontWeight: '800', marginTop: 8 }}>✅ Checked in{b.boardedAt ? ` at ${fmtClock(b.boardedAt)}` : ''}</Text>}
+            ) : b.status === 'BOARDED' ? (
+              <Text style={{ fontSize: 12, color: p.success, fontWeight: '800', marginTop: 8 }}>Checked in{b.boardedAt ? ` at ${fmtClock(b.boardedAt)}` : ''}</Text>
+            ) : (
+              <Text style={{ fontSize: 12, color: p.sub, marginTop: 8, textAlign: 'center' }}>Your PIN will appear here before boarding.</Text>
+            )}
           </Card>
         ) : null}
 

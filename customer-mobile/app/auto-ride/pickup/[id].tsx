@@ -36,7 +36,7 @@ export default function PickupQueueScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: p.bg }}>
         <AHeader title="Pickup point" />
-        {error ? <StateView kind={off || error.status === 404 ? 'empty' : 'error'} icon={off ? '🛺' : '📍'} title={off ? 'Auto-Ride is not open yet' : error.status === 404 ? 'Pickup point not found' : error.isNetwork ? 'You seem to be offline' : 'Could not load'}
+        {error ? <StateView kind={off || error.status === 404 ? 'empty' : 'error'} icon={off ? '🛺' : '📍'} title={off ? 'Zenvy Auto is not open yet' : error.status === 404 ? 'Pickup point not found' : error.isNetwork ? 'You seem to be offline' : 'Could not load'}
           message={error.message} actionLabel={off || error.status === 404 ? 'Back' : 'Retry'} onAction={off || error.status === 404 ? () => router.replace(`${AUTO_HOME}&seg=pickups` as any) : load} /> : <StateView kind="loading" />}
       </View>
     );

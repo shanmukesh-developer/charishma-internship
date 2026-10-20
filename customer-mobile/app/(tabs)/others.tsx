@@ -16,8 +16,8 @@ import { useCart, isCustomRequest } from '../../context/CartContext';
 import PromoCarousel from '../../components/PromoCarousel';
 import SearchOverlay from '../../components/SearchOverlay';
 import AmbientBackground from '../../components/AmbientBackground';
-import DopaminePressable, { CardPressable, ActionPressable } from '../../components/DopaminePressable';
-import { StaggeredSection, FloatingPulse, BounceIn } from '../../components/AnimatedSection';
+import DopaminePressable, { CardPressable } from '../../components/DopaminePressable';
+import { FloatingPulse, BounceIn } from '../../components/AnimatedSection';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Clipboard from '@react-native-clipboard/clipboard';
@@ -31,6 +31,9 @@ import AutoRideSection from '../../modules/autoRide/AutoRideSection';
 import { useAutoRideStatus } from '../../modules/autoRide/ui';
 import CampusEventsSection from '../../modules/campusEvents/CampusEventsSection';
 import { useCampusEventsStatus } from '../../modules/campusEvents/ui';
+import { Segmented, KarmaLine, PoolTabs, RideFilters, RideCard, MyRideCard, RideSkeleton, CoRideState, SectionLabel } from '../../modules/coride/CoRideUI';
+import PostRideSheet, { maxSeatsFor } from '../../modules/coride/PostRideSheet';
+import { fmtRideWhen, groupMyRides, topDestinations, sameDestination, inr } from '../../modules/coride/coRideFormat';
 
 const { width: SW, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SH = SCREEN_HEIGHT;
@@ -125,8 +128,9 @@ const PROMOS_PG = [
 ];
 
 const PROMOS_CORIDE = [
-  { id: 'c1', tagline: 'STUDENT COMMUTE NETWORK 🏍️', title: 'PEER CO-RIDE', subtitle: 'FUEL SPLIT', desc: 'Share rides between Campus, Vijayawada & Guntur with fellow students and split the fuel.', btn: 'FIND OR POST RIDE →', img: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=1200&q=80' },
-  { id: 'c4', tagline: 'ZENVY AUTO 🛺', title: 'SHARED AUTOS', subtitle: 'BOOK YOUR SEAT', desc: 'Pick your seat in a shared auto with a verified Zenvy driver. Pay the driver at boarding.', btn: 'BOOK A SEAT →', img: 'https://images.unsplash.com/photo-1449965408869-ebd13bc9e5a8?w=1200&q=80' },
+  // Not shown in the carousel any more (the Co-Ride tab opens on its own mode switch); kept for TAB_PROMOS.
+  { id: 'c1', tagline: 'Student bike pool', title: 'Co-Ride', subtitle: 'Split the fuel', desc: 'Share rides between campus, Vijayawada and Guntur with other students and split the fuel.', btn: 'Post a ride →', img: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=1200&q=80' },
+  { id: 'c4', tagline: 'Zenvy Auto', title: 'Shared autos', subtitle: 'Book a seat', desc: 'Book a seat in a shared auto with a verified Zenvy driver. Pay the driver at boarding.', btn: 'Book a seat →', img: 'https://images.unsplash.com/photo-1449965408869-ebd13bc9e5a8?w=1200&q=80' },
 ];
 
 const PROMOS_OFFERS = [
@@ -921,6 +925,8 @@ export default function OthersScreen() {
 
   // Co-Ride Filter States
   const [vehicleFilter, setVehicleFilter] = useState<'All' | 'Bike' | 'Car' | 'Auto'>('All');
+  // "Going to" quick filter: one of the destinations in the loaded rides (client-side only).
+  const [goingTo, setGoingTo] = useState<string | null>(null);
 
   // Co-Ride Create Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -955,12 +961,6 @@ export default function OthersScreen() {
     if (!m) return '';
     const h = parseInt(m[1], 10);
     return `${h % 12 === 0 ? 12 : h % 12}:${m[2]} ${h < 12 ? 'AM' : 'PM'}`;
-  };
-
-  const fmtWhen = (iso: any) => {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return '—';
-    return `${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}, ${d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}`;
   };
 
   const promptLogin = (title: string, message: string) => {
@@ -1132,15 +1132,15 @@ export default function OthersScreen() {
 
   const fuelText = (ride: any) => {
     const fuel = Number(ride.estimatedFuelCost) || 0;
-    return fuel > 0 ? `₹${fuel} total fuel, shared by everyone on the ride` : 'Free ride (no fuel split)';
+    return fuel > 0 ? `${inr(fuel)} in total, shared by everyone on the ride` : 'No fuel split';
   };
 
   const handleJoinRide = (ride: any) => {
     if (!myId) { promptLogin('Log in to join rides', 'Co-rides are only for signed-in students.'); return; }
     const together = ride.creatorRole === 'passenger';
     Alert.alert(
-      together ? '🤝 Ride together?' : '🚗 Join this ride?',
-      `Route: ${ride.origin} → ${ride.destination}\nLeaves: ${fmtWhen(ride.departureTime)}\nFuel: ${fuelText(ride)}\n${together ? 'Posted by' : 'Host'}: ${ride.creator?.name || 'A campus student'}`,
+      together ? 'Ride together?' : 'Join this ride?',
+      `Route: ${ride.origin} → ${ride.destination}\nLeaves: ${fmtRideWhen(ride.departureTime).label}\n${ride.vehicleType === 'Auto' ? 'Fare' : 'Fuel'}: ${fuelText(ride)}\n${together ? 'Posted by' : 'Host'}: ${ride.creator?.name || 'A campus student'}`,
       [
         { text: 'Not now', style: 'cancel' },
         {
@@ -1148,11 +1148,11 @@ export default function OthersScreen() {
           onPress: () => runRideAction(
             ride.id,
             () => apiFetch(ENDPOINTS.bikepoolJoin(ride.id), { method: 'POST' }),
-            ride.autoApprove ? "You're in 🎉" : 'Request sent 🎉',
+            ride.autoApprove ? 'You’re on this ride' : 'Request sent',
             'Could not join this ride.',
             ride.autoApprove
-              ? 'You are on this ride. Open My Rides to message the host on WhatsApp.'
-              : 'The host will review your request. You can follow it in My Rides.'
+              ? 'You are on this ride. Open My rides to message the host on WhatsApp.'
+              : 'The host will review your request. You can follow it in My rides.'
           ),
         },
       ]
@@ -1162,7 +1162,7 @@ export default function OthersScreen() {
   const handleCompleteRide = (rideId: string) => {
     Alert.alert('Mark this ride as completed?', 'Do this once everyone has reached. Everyone on the ride earns Karma points.', [
       { text: 'Not yet', style: 'cancel' },
-      { text: 'Complete ride', onPress: () => runRideAction(rideId, () => apiFetch(ENDPOINTS.bikepoolComplete(rideId), { method: 'POST' }), 'Ride completed ✅', 'Could not complete this ride.') },
+      { text: 'Complete ride', onPress: () => runRideAction(rideId, () => apiFetch(ENDPOINTS.bikepoolComplete(rideId), { method: 'POST' }), 'Ride completed', 'Could not complete this ride.') },
     ]);
   };
 
@@ -1179,7 +1179,7 @@ export default function OthersScreen() {
   };
 
   const handleApproveRequest = (rideId: string, requestId: string) => {
-    runRideAction(rideId, () => apiFetch(`${API_URL}/api/bikepool/posts/${rideId}/requests/${requestId}/approve`, { method: 'POST' }), 'Passenger approved ✅', 'Could not approve this request.');
+    runRideAction(rideId, () => apiFetch(`${API_URL}/api/bikepool/posts/${rideId}/requests/${requestId}/approve`, { method: 'POST' }), 'Rider approved', 'Could not approve this request.');
   };
 
   const handleRejectRequest = (rideId: string, requestId: string) => {
@@ -1244,7 +1244,8 @@ export default function OthersScreen() {
       return;
     }
 
-    const seats = Math.min(6, Math.max(1, parseInt(availableSeats, 10) || 1));
+    // Bike 1 seat, car up to 4 (the server accepts 1 to 6).
+    const seats = Math.min(maxSeatsFor(vehicleType), Math.max(1, parseInt(availableSeats, 10) || 1));
     const fuel = Math.min(5000, Math.max(0, Math.round(Number(estimatedFuelCost) || 0)));
 
     submittingRideRef.current = true;
@@ -1269,7 +1270,7 @@ export default function OthersScreen() {
       if (!isMountedRef.current) return;
       if (res.ok) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        Alert.alert('Ride posted 🎉', autoApprove
+        Alert.alert('Ride posted', autoApprove
           ? 'Students heading the same way can now join your ride.'
           : 'Students heading the same way can now request to join. You approve who rides with you.');
         setShowCreateModal(false);
@@ -1406,7 +1407,10 @@ export default function OthersScreen() {
   };
 
   // Filter available ride posts
-  const filteredRides = rides.filter(ride => vehicleFilter === 'All' || ride.vehicleType === vehicleFilter);
+  const vehicleRides = rides.filter(ride => vehicleFilter === 'All' || ride.vehicleType === vehicleFilter);
+  const rideDestinations = useMemo(() => topDestinations(vehicleRides), [vehicleRides]);
+  const filteredRides = goingTo ? vehicleRides.filter(ride => sameDestination(ride.destination, goingTo)) : vehicleRides;
+  const myRideGroups = useMemo(() => groupMyRides(myRides, myId), [myRides, myId]);
   // Rides I already asked to join (from My Rides), so Browse does not offer "Request to join" twice.
   const myJoinStatus = useMemo(() => {
     const map: Record<string, string> = {};
@@ -1498,9 +1502,6 @@ export default function OthersScreen() {
   const border = isDark ? 'rgba(255, 255, 255, 0.18)' : colors.border;
   const bg = colors.bg;
 
-  const goldColor = isDark ? COLORS.gold : colors.gold;
-  const goldBorderColor = isDark ? COLORS.goldBorder : 'rgba(239, 79, 95, 0.4)';
-  const goldMutedColor = isDark ? COLORS.goldMuted : 'rgba(239, 79, 95, 0.15)';
   const accentGradient: [string, string] = isDark ? [COLORS.gold, COLORS.goldLight] : ['#EF4F5F', '#D43F4F'];
 
   const handlePromoAction = (promoId: string) => {
@@ -1777,12 +1778,6 @@ export default function OthersScreen() {
     </View>
   );
 
-  const renderListSkeleton = (h: number) => (
-    <View style={{ gap: 12, marginTop: 12 }}>
-      {[0, 1, 2].map(i => <ShimmerLoader key={i} width={SW - 32} height={h} borderRadius={20} />)}
-    </View>
-  );
-
   const SERVICE_CARDS = [
     { id: 'LAPTOP_REPAIR', title: 'Laptop & Phone Repairs', tag: '💻 BOOK A SLOT', desc: 'Screen replacement, thermal paste, fan cleaning, SSD upgrades and hardware fixes.', icon: '💻', cat: 'repairs', priceKey: 'repairs', image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600&q=80' },
     { id: 'TAILORING', title: 'Tailoring & Stitching', tag: '🪡 ALTERATIONS', desc: 'Length shortening, shirt and kurti alterations, lab coat resizing and zip replacement.', icon: '✂️', cat: 'tailoring', priceKey: 'tailoring', image: 'https://images.unsplash.com/photo-1528458909336-e7a0adfed0a5?w=600&q=80' },
@@ -1908,7 +1903,7 @@ export default function OthersScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.red} colors={[COLORS.red]} />}
         >
           {/* ── HERO CAROUSEL CARD ── */}
-          {!(activeTab === 'food' && groceryMode === 'categories') && activeTab !== 'events' && activeTab !== 'pg' && (
+          {!(activeTab === 'food' && groceryMode === 'categories') && activeTab !== 'events' && activeTab !== 'pg' && activeTab !== 'coride' && (
             <View style={[s.heroCarouselCard, { borderColor: border }]}>
               <PromoCarousel offers={carouselOffers} containerStyle={s.heroCarousel} />
             </View>
@@ -2376,367 +2371,147 @@ export default function OthersScreen() {
           <PgListSection pgs={pgs} home={pgHome} loading={loadingPgs} error={pgError} onRetry={() => fetchPGs()} />
         )}
 
-        {/* ── CO-RIDE (BIKEPOOL) TAB ── */}
+        {/* ── CO-RIDE (BIKEPOOL) TAB ── modules/coride: student bike pool + Zenvy Auto */}
         {activeTab === 'coride' && (
-          <View style={{ paddingHorizontal: 16 }}>
-            {/* Karma Header */}
-            <View style={[s.karmaBanner, { backgroundColor: goldMutedColor, borderColor: goldBorderColor }]}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Text style={{ fontSize: 24 }}>✨</Text>
-                <View>
-                  <Text style={[s.karmaLabel, { color: goldColor }]}>MY KARMA POINTS</Text>
-                  <Text style={[s.karmaVal, { color: goldColor }]}>{Number(user?.karmaPoints) || 0} PTS</Text>
-                </View>
-              </View>
-              <View style={[s.karmaBadge, { borderColor: goldBorderColor }]}>
-                <Text style={[s.karmaBadgeText, { color: goldColor }]}>+50 PER RIDE</Text>
-              </View>
-            </View>
-
-            {/* Ride mode: student bike pool or Zenvy shared auto */}
-            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
-              {([
-                { key: 'pool', icon: 'bicycle-outline', title: 'Bike pool', sub: 'Ride with students and split the fuel' },
-                { key: 'auto', icon: 'car-outline', title: 'Zenvy Auto', sub: autoRideOn ? 'Book a seat in a shared auto' : 'Shared autos, starting soon' },
-              ] as const).map(m => {
-                const active = m.key === 'auto' ? corideTab === 'auto' : corideTab !== 'auto';
-                return (
-                  <TouchableOpacity
-                    key={m.key}
-                    style={{ flex: 1, minHeight: 92, padding: 14, borderRadius: 16, borderWidth: 1.5, backgroundColor: active ? (isDark ? 'rgba(239,68,68,0.12)' : '#FEF2F2') : cardBg, borderColor: active ? COLORS.red : border }}
-                    onPress={() => setCorideTab(m.key === 'auto' ? 'auto' : 'browse')}
-                    activeOpacity={0.85}
-                    accessibilityRole="tab"
-                    accessibilityState={{ selected: active }}
-                    accessibilityLabel={`${m.title}. ${m.sub}`}
-                  >
-                    <Ionicons name={m.icon as any} size={22} color={active ? COLORS.red : txtSec} />
-                    <Text style={{ marginTop: 8, fontSize: 15, fontWeight: '800', color: txt }}>{m.title}</Text>
-                    <Text style={{ marginTop: 2, fontSize: 12, color: txtSec }} numberOfLines={2}>{m.sub}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+          <View style={{ paddingHorizontal: 16, paddingBottom: 24 }}>
+            {/* Mode: student bike pool or Zenvy shared auto */}
+            <Segmented
+              label="Ride mode"
+              value={corideTab === 'auto' ? 'auto' : 'pool'}
+              onChange={m => setCorideTab(m === 'auto' ? 'auto' : 'browse')}
+              options={[
+                { key: 'pool', label: 'Bike pool', icon: 'motorbike', iconSet: 'mci' },
+                { key: 'auto', label: 'Zenvy Auto', icon: 'rickshaw', iconSet: 'mci' },
+              ]}
+            />
+            <Text style={{ fontSize: 13, lineHeight: 18, color: txtSec, marginTop: 8 }}>
+              {corideTab !== 'auto'
+                ? 'Ride with students going your way and split the fuel.'
+                : autoRideOn ? 'Book a seat in a shared auto with a verified driver. Pay the driver in cash when you board.' : 'Shared autos with verified drivers, starting soon.'}
+            </Text>
 
             {!myId ? (
-              <View style={s.emptyState}>
-                <Text style={{ fontSize: 32, marginBottom: 8 }}>🔐</Text>
-                <Text style={{ color: txt, fontSize: 12, fontWeight: '900', letterSpacing: 1, marginBottom: 4 }}>LOG IN TO SHARE RIDES</Text>
-                <Text style={{ color: txtSec, fontSize: 10, fontWeight: '600', textAlign: 'center', marginBottom: 14 }}>
-                  Co-rides are only for signed-in students, so you always know who you ride with.
-                </Text>
-                <TouchableOpacity style={[s.resetBtn, { backgroundColor: COLORS.red }]} onPress={() => router.push('/login' as any)}>
-                  <Text style={[s.resetBtnText, { color: '#fff' }]}>LOG IN</Text>
-                </TouchableOpacity>
+              <View style={{ marginTop: 16 }}>
+                <CoRideState
+                  icon="person-circle-outline"
+                  title="Log in to use Co-Ride"
+                  message="Co-Ride is only for signed-in students, so you always know who you ride with."
+                  actionLabel="Log in"
+                  onAction={() => router.push('/login' as any)}
+                />
+              </View>
+            ) : corideTab === 'auto' ? (
+              <View style={{ marginTop: 16 }}>
+                {autoRideOn ? <AutoRideSection /> : (
+                  <CoRideState
+                    icon="rickshaw"
+                    mci
+                    title="Zenvy Auto is not open yet"
+                    message="Shared autos with verified drivers start soon. You will be able to pick your seat and pay the driver in cash when you board."
+                    actionLabel="Find a bike pool"
+                    secondary
+                    onAction={() => setCorideTab('browse')}
+                  />
+                )}
               </View>
             ) : (
               <>
-                {corideTab !== 'auto' && (
-                  <>
-                    <View style={s.corideSubTabs}>
-                      <DopaminePressable style={[s.corideSubTabBtn, corideTab === 'browse' && s.corideSubTabBtnActive, { flex: 1 }]} onPress={() => setCorideTab('browse')} sound="tabSwitch">
-                        <Text style={[s.corideSubTabLabel, { color: colors.textSecondary }, corideTab === 'browse' && s.corideSubTabLabelActive]}>FIND A RIDE</Text>
-                      </DopaminePressable>
-                      <DopaminePressable style={[s.corideSubTabBtn, corideTab === 'my-rides' && s.corideSubTabBtnActive, { flex: 1 }]} onPress={() => setCorideTab('my-rides')} sound="tabSwitch">
-                        <Text style={[s.corideSubTabLabel, { color: colors.textSecondary }, corideTab === 'my-rides' && s.corideSubTabLabelActive]}>MY RIDES</Text>
-                      </DopaminePressable>
-                    </View>
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 48, borderRadius: 14, backgroundColor: COLORS.red, marginBottom: 16 }}
-                      onPress={openCreateRide}
-                      activeOpacity={0.85}
-                      accessibilityRole="button"
-                    >
-                      <Ionicons name="add" size={20} color="#fff" />
-                      <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800' }}>Post a ride</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
+                <KarmaLine points={Number(user?.karmaPoints) || 0} />
+                <PoolTabs
+                  value={corideTab === 'my-rides' ? 'my-rides' : 'browse'}
+                  onChange={setCorideTab}
+                  myRidesCount={myRideGroups.upcoming.length}
+                  onPost={openCreateRide}
+                />
 
-                {/* BROWSE SUB-TAB */}
+                {/* FIND A RIDE */}
                 {corideTab === 'browse' && (
                   <View>
-                    <View style={{ marginBottom: 12 }}>
-                      <Text style={[s.filterLabel, { color: txt, marginBottom: 4 }]}>VEHICLE</Text>
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.rowFilters}>
-                        {(['All', 'Bike', 'Car', 'Auto'] as const).map(v => (
-                          <DopaminePressable key={v} style={[s.chip, { backgroundColor: cardBg }, vehicleFilter === v && s.chipActive, { borderColor: border }]} onPress={() => setVehicleFilter(v)} sound="click">
-                            <Text style={[s.chipText, { color: colors.textSecondary }, vehicleFilter === v && s.chipTextActive]}>{v.toUpperCase()}</Text>
-                          </DopaminePressable>
-                        ))}
-                      </ScrollView>
-                    </View>
+                    {rides.length > 0 && (
+                      <RideFilters
+                        vehicle={vehicleFilter}
+                        onVehicle={v => { setVehicleFilter(v); setGoingTo(null); }}
+                        destinations={rideDestinations}
+                        goingTo={goingTo}
+                        onGoingTo={setGoingTo}
+                      />
+                    )}
 
                     {loadingRides && rides.length === 0 ? (
-                      renderListSkeleton(170)
+                      <RideSkeleton />
                     ) : rideError && rides.length === 0 ? (
-                      renderLoadError(rideError, fetchRides)
+                      <CoRideState icon="cloud-offline-outline" title="Rides did not load" message={rideError} actionLabel="Try again" onAction={fetchRides} />
                     ) : filteredRides.length > 0 ? (
-                      filteredRides.map((ride, idx) => {
-                        const isPassenger = ride.creatorRole === 'passenger';
-                        const fuel = Number(ride.estimatedFuelCost) || 0;
-                        const busy = rideActionBusy === ride.id;
-                        const joinStatus = myJoinStatus[String(ride.id)];
-                        return (
-                          <StaggeredSection key={ride.id} delay={50 + (idx % 6) * 50} direction="up">
-                            <CardPressable style={[s.rideCard, { backgroundColor: cardBg, borderColor: border, opacity: busy ? 0.6 : 1 }]} onPress={() => { if (busy) return; if (joinStatus) setCorideTab('my-rides'); else handleJoinRide(ride); }} sound="rideTransition" tilt={true}>
-                              <View style={s.rideCardHeader}>
-                                <View style={s.rideCreatorRow}>
-                                  <View style={[s.rideAvatar, { backgroundColor: goldMutedColor, borderColor: goldBorderColor }]}>
-                                    <Text style={[s.rideAvatarText, { color: goldColor }]}>{(ride.creator?.name || 'U').substring(0, 1).toUpperCase()}</Text>
-                                  </View>
-                                  <View>
-                                    <Text style={[s.rideCreatorName, { color: txt }]}>{ride.creator?.name || 'Campus student'}</Text>
-                                    {!!ride.creator?.gender && ride.creator.gender !== 'Prefer not to say' && (
-                                      <Text style={{ fontSize: 8, color: txtSec }}>{String(ride.creator.gender).toUpperCase()}</Text>
-                                    )}
-                                  </View>
-                                </View>
-                                <View style={[s.roleBadge, { backgroundColor: isPassenger ? 'rgba(239,79,95,0.1)' : 'rgba(16,185,129,0.1)' }]}>
-                                  <Text style={[s.roleBadgeText, { color: isPassenger ? COLORS.red : COLORS.emerald }]}>{isPassenger ? 'NEEDS A RIDE' : 'OFFERING RIDE'}</Text>
-                                </View>
-                              </View>
-
-                              <View style={s.ridePathRow}>
-                                <View style={s.rideDotCol}>
-                                  <View style={[s.rideDot, { backgroundColor: COLORS.red }]} />
-                                  <View style={s.rideDashLine} />
-                                  <View style={[s.rideDot, { backgroundColor: COLORS.emerald }]} />
-                                </View>
-                                <View style={s.ridePathTextCol}>
-                                  <Text style={[s.ridePathText, { color: txt }]} numberOfLines={1}>FROM: {ride.origin}</Text>
-                                  <Text style={[s.ridePathText, { color: txt, marginTop: 10 }]} numberOfLines={1}>TO: {ride.destination}</Text>
-                                </View>
-                              </View>
-
-                              <View style={s.rideMetaRow}>
-                                <View>
-                                  <Text style={s.metaLabel}>LEAVES</Text>
-                                  <Text style={[s.metaVal, { color: txt }]}>{fmtWhen(ride.departureTime)}</Text>
-                                </View>
-                                <View>
-                                  <Text style={s.metaLabel}>VEHICLE</Text>
-                                  <Text style={[s.metaVal, { color: txt }]}>{String(ride.vehicleType || 'Bike').toUpperCase()}{ride.vehicleInfo ? ` (${ride.vehicleInfo})` : ''}</Text>
-                                </View>
-                                <View>
-                                  <Text style={s.metaLabel}>SEATS LEFT</Text>
-                                  <Text style={[s.metaVal, { color: COLORS.red }]}>{ride.availableSeats} SEAT{ride.availableSeats !== 1 ? 'S' : ''}</Text>
-                                </View>
-                              </View>
-
-                              <Text style={{ fontSize: 9.5, color: txtSec, marginTop: 8, fontWeight: '700' }}>⛽ {fuel > 0 ? `₹${fuel} total fuel, split between riders` : 'Free ride'}</Text>
-
-                              {!!ride.notes && (
-                                <View style={[s.rideNotesBox, { backgroundColor: isDark ? '#141416' : '#F1F3F5' }]}>
-                                  <Text style={[s.rideNotesText, { color: txtSec }]}>💬 &quot;{ride.notes}&quot;</Text>
-                                </View>
-                              )}
-
-                              <View style={[s.joinBtn, { marginTop: 12 }, joinStatus && { backgroundColor: joinStatus === 'Approved' ? COLORS.emerald : '#6B7280' }]}>
-                                {busy ? <ActivityIndicator size="small" color="#fff" /> : <Text style={[s.joinBtnText, joinStatus && { color: '#fff' }]}>{joinStatus === 'Approved' ? "YOU'RE IN ✅ · VIEW IN MY RIDES" : joinStatus ? 'REQUEST SENT · VIEW IN MY RIDES' : isPassenger ? 'RIDE TOGETHER 🤝' : ride.autoApprove ? 'JOIN RIDE 🚗' : 'REQUEST TO JOIN 🚗'}</Text>}
-                              </View>
-                            </CardPressable>
-                          </StaggeredSection>
-                        );
-                      })
+                      filteredRides.map(ride => (
+                        <RideCard
+                          key={ride.id}
+                          ride={ride}
+                          joinStatus={myJoinStatus[String(ride.id)]}
+                          busy={rideActionBusy === ride.id}
+                          onJoin={() => { if (rideActionBusy !== ride.id) handleJoinRide(ride); }}
+                          onOpenMyRides={() => setCorideTab('my-rides')}
+                        />
+                      ))
+                    ) : rides.length > 0 ? (
+                      <CoRideState
+                        icon="funnel-outline"
+                        title={`No ${vehicleFilter === 'All' ? '' : `${vehicleFilter.toLowerCase()} `}rides${goingTo ? ` to ${goingTo}` : ''} right now`}
+                        message="Try another vehicle or destination, or post your own ride."
+                        actionLabel="Clear filters"
+                        secondary
+                        onAction={() => { setVehicleFilter('All'); setGoingTo(null); }}
+                      />
                     ) : (
-                      <View style={s.emptyState}>
-                        <Text style={{ fontSize: 32, marginBottom: 8 }}>🚗</Text>
-                        <Text style={{ color: txt, fontSize: 12, fontWeight: '900', letterSpacing: 1, marginBottom: 4 }}>{rides.length ? 'NO RIDES FOR THIS FILTER' : 'NO RIDES RIGHT NOW'}</Text>
-                        <Text style={{ color: txtSec, fontSize: 10, fontWeight: '600', textAlign: 'center', marginBottom: 14 }}>
-                          Post where you are going and split the fuel with students heading the same way.
-                        </Text>
-                        <TouchableOpacity style={[s.resetBtn, { backgroundColor: COLORS.red }]} onPress={rides.length ? () => setVehicleFilter('All') : openCreateRide}>
-                          <Text style={[s.resetBtnText, { color: '#fff' }]}>{rides.length ? 'SHOW ALL VEHICLES' : '+ POST A RIDE'}</Text>
-                        </TouchableOpacity>
-                      </View>
+                      <CoRideState
+                        icon="map-outline"
+                        title="No rides posted yet"
+                        message="Post where you are going and students heading the same way can join you."
+                        actionLabel="Post a ride"
+                        onAction={openCreateRide}
+                      />
                     )}
                   </View>
                 )}
 
-                {/* MY RIDES SUB-TAB */}
+                {/* MY RIDES */}
                 {corideTab === 'my-rides' && (
                   <View>
                     {loadingMyRides && myRides.length === 0 ? (
-                      renderListSkeleton(170)
+                      <RideSkeleton count={2} />
                     ) : myRidesError && myRides.length === 0 ? (
-                      renderLoadError(myRidesError, fetchMyRides)
+                      <CoRideState icon="cloud-offline-outline" title="Your rides did not load" message={myRidesError} actionLabel="Try again" onAction={fetchMyRides} />
                     ) : myRides.length > 0 ? (
-                      myRides.map(ride => {
-                        const isCreator = String(ride.creatorId) === myId;
-                        const requests: any[] = Array.isArray(ride.requests) ? ride.requests : [];
-                        const pending = requests.filter(r => r.status === 'Pending');
-                        const approved = requests.filter(r => r.status === 'Approved');
-                        const myRequest = !isCreator ? requests.find(r => String(r.passengerId) === myId) : null;
-                        const myStatus: string | null = myRequest?.status || (String(ride.coRiderId) === myId ? 'Approved' : null);
-                        const isOpenRide = ride.status === 'Available' || ride.status === 'Matched';
-                        const busy = rideActionBusy === ride.id;
-                        const fuel = Number(ride.estimatedFuelCost) || 0;
-                        const riders = 1 + approved.length;
-                        const badgeText = !isCreator && myStatus && myStatus !== 'Approved' && isOpenRide
-                          ? (myStatus === 'Pending' ? 'REQUEST PENDING' : String(myStatus).toUpperCase())
-                          : String(ride.status || '').toUpperCase();
-                        const badgeColor = ride.status === 'Completed' ? COLORS.emerald : (ride.status === 'Cancelled' || myStatus === 'Rejected' || myStatus === 'Cancelled') ? '#EF4444' : COLORS.amber;
-
-                        return (
-                          <View key={ride.id} style={[s.rideCard, { backgroundColor: cardBg, borderColor: border }]}>
-                            <View style={s.rideCardHeader}>
-                              <View style={{ flex: 1 }}>
-                                <Text style={{ fontSize: 8, color: txtSec, fontWeight: '800' }}>RIDE #{String(ride.id).slice(-6).toUpperCase()}</Text>
-                                <Text style={[s.rideCreatorName, { color: txt, marginTop: 2 }]}>
-                                  {isCreator ? 'MY RIDE' : `HOSTED BY ${(ride.creator?.name || 'A STUDENT').toUpperCase()}`}
-                                </Text>
-                              </View>
-                              <View style={[s.statusBadge, { backgroundColor: `${badgeColor}1A` }]}>
-                                <Text style={{ fontSize: 8, fontWeight: '900', color: badgeColor }}>{badgeText}</Text>
-                              </View>
-                            </View>
-
-                            <View style={s.ridePathRow}>
-                              <View style={s.rideDotCol}>
-                                <View style={[s.rideDot, { backgroundColor: COLORS.red }]} />
-                                <View style={s.rideDashLine} />
-                                <View style={[s.rideDot, { backgroundColor: COLORS.emerald }]} />
-                              </View>
-                              <View style={s.ridePathTextCol}>
-                                <Text style={[s.ridePathText, { color: txt }]} numberOfLines={1}>FROM: {ride.origin}</Text>
-                                <Text style={[s.ridePathText, { color: txt, marginTop: 10 }]} numberOfLines={1}>TO: {ride.destination}</Text>
-                              </View>
-                            </View>
-
-                            <View style={s.rideMetaRow}>
-                              <View>
-                                <Text style={s.metaLabel}>LEAVES</Text>
-                                <Text style={[s.metaVal, { color: txt }]}>{fmtWhen(ride.departureTime)}</Text>
-                              </View>
-                              <View>
-                                <Text style={s.metaLabel}>TOTAL FUEL</Text>
-                                <Text style={[s.metaVal, { color: COLORS.red }]}>{fuel > 0 ? `₹${fuel}` : 'FREE'}</Text>
-                              </View>
-                              <View>
-                                <Text style={s.metaLabel}>SEATS LEFT</Text>
-                                <Text style={[s.metaVal, { color: txt }]}>{Number(ride.availableSeats) || 0}</Text>
-                              </View>
-                            </View>
-
-                            {/* Split summary once completed */}
-                            {ride.status === 'Completed' && fuel > 0 && (
-                              <View style={[s.invoiceCard, { borderColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F1F3F5' }]}>
-                                <Text style={s.invoiceTitle}>FUEL SPLIT 🧾</Text>
-                                <View style={s.invoiceRow}>
-                                  <Text style={[s.invoiceLabel, { color: colors.textSecondary }]}>TOTAL FUEL</Text>
-                                  <Text style={s.invoiceVal}>₹{fuel}</Text>
-                                </View>
-                                <View style={s.invoiceRow}>
-                                  <Text style={[s.invoiceLabel, { color: colors.textSecondary }]}>PER PERSON ({riders} RIDER{riders === 1 ? '' : 'S'})</Text>
-                                  <Text style={[s.invoiceVal, { color: COLORS.red }]}>₹{Math.ceil(fuel / riders)}</Text>
-                                </View>
-                                <Text style={{ fontSize: 8.5, color: txtSec, marginTop: 4 }}>Settle the split directly with your co-riders.</Text>
-                              </View>
-                            )}
-
-                            {/* Host: requests and passengers */}
-                            {isCreator && isOpenRide && pending.length > 0 && (
-                              <View style={{ marginTop: 10, padding: 10, backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: border }}>
-                                <Text style={{ fontSize: 10, fontWeight: '900', color: goldColor, letterSpacing: 1, marginBottom: 8 }}>JOIN REQUESTS ({pending.length})</Text>
-                                {pending.map(r => (
-                                  <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 0.5, borderBottomColor: border }}>
-                                    <View style={{ flex: 1 }}>
-                                      <Text style={{ fontSize: 12, fontWeight: '700', color: txt }}>{r.passenger?.name || 'Campus student'}</Text>
-                                      {!!r.passenger?.gender && r.passenger.gender !== 'Prefer not to say' && <Text style={{ fontSize: 9, color: txtSec }}>{r.passenger.gender}</Text>}
-                                    </View>
-                                    <View style={{ flexDirection: 'row', gap: 6 }}>
-                                      <TouchableOpacity disabled={busy} style={{ backgroundColor: COLORS.emerald, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, opacity: busy ? 0.5 : 1 }} onPress={() => handleApproveRequest(ride.id, r.id)}>
-                                        <Text style={{ color: '#fff', fontSize: 10, fontWeight: '900' }}>✓ APPROVE</Text>
-                                      </TouchableOpacity>
-                                      <TouchableOpacity disabled={busy} style={{ backgroundColor: COLORS.red, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, opacity: busy ? 0.5 : 1 }} onPress={() => handleRejectRequest(ride.id, r.id)}>
-                                        <Text style={{ color: '#fff', fontSize: 10, fontWeight: '900' }}>✕ DECLINE</Text>
-                                      </TouchableOpacity>
-                                    </View>
-                                  </View>
-                                ))}
-                              </View>
-                            )}
-
-                            {isCreator && approved.length > 0 && ride.status !== 'Cancelled' && (
-                              <View style={{ marginTop: 10, padding: 10, backgroundColor: isDark ? 'rgba(16,185,129,0.05)' : '#ECFDF5', borderRadius: 12, borderWidth: 1, borderColor: border }}>
-                                <Text style={{ fontSize: 9, fontWeight: '900', color: COLORS.emerald, letterSpacing: 1, marginBottom: 6 }}>RIDING WITH YOU</Text>
-                                {approved.map(r => (
-                                  <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 }}>
-                                    <Text style={{ fontSize: 12, fontWeight: '700', color: txt, flex: 1 }}>👤 {r.passenger?.name || 'Campus student'}</Text>
-                                    {isOpenRide && (
-                                      <TouchableOpacity style={{ backgroundColor: '#25D366', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 }} onPress={() => contactOnWhatsApp(r.passenger?.phone)}>
-                                        <Text style={{ color: '#fff', fontSize: 9.5, fontWeight: '900' }}>WHATSAPP 💬</Text>
-                                      </TouchableOpacity>
-                                    )}
-                                  </View>
-                                ))}
-                              </View>
-                            )}
-
-                            {/* Passenger: contact the host once approved */}
-                            {!isCreator && myStatus === 'Approved' && isOpenRide && (
-                              <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-                                <ActionPressable style={[s.actionBtn, { flex: 1, backgroundColor: '#25D366' }]} onPress={() => contactOnWhatsApp(ride.creator?.phone)} sound="click">
-                                  <Text style={s.actionBtnText}>WHATSAPP HOST 💬</Text>
-                                </ActionPressable>
-                                <ActionPressable style={[s.actionBtn, { flex: 1, backgroundColor: '#EF4444' }]} onPress={handleSOS} sound="click">
-                                  <Text style={s.actionBtnText}>SOS HELP 🚨</Text>
-                                </ActionPressable>
-                              </View>
-                            )}
-
-                            {isCreator && approved.length > 0 && isOpenRide && (
-                              <ActionPressable style={[s.actionBtn, { marginTop: 8, backgroundColor: '#EF4444' }]} onPress={handleSOS} sound="click">
-                                <Text style={s.actionBtnText}>SOS HELP 🚨</Text>
-                              </ActionPressable>
-                            )}
-
-                            {/* Actions */}
-                            {isOpenRide && (isCreator || myStatus === 'Pending' || myStatus === 'Approved') && (
-                              <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-                                {isCreator && approved.length > 0 && (
-                                  <ActionPressable style={[s.completeBtn, { flex: 1, opacity: busy ? 0.5 : 1 }]} onPress={() => !busy && handleCompleteRide(ride.id)} sound="success">
-                                    <Text style={s.completeBtnText}>COMPLETE RIDE ✅</Text>
-                                  </ActionPressable>
-                                )}
-                                <ActionPressable
-                                  style={[s.cancelRideBtn, { flex: 1, opacity: busy ? 0.5 : 1 }]}
-                                  onPress={() => !busy && handleCancelRide(ride.id, isCreator ? 'host' : myStatus === 'Pending' ? 'withdraw' : 'leave')}
-                                  sound="click"
-                                >
-                                  <Text style={s.cancelRideBtnText}>{isCreator ? 'CANCEL RIDE' : myStatus === 'Pending' ? 'WITHDRAW REQUEST' : 'LEAVE RIDE'}</Text>
-                                </ActionPressable>
-                              </View>
-                            )}
-                          </View>
-                        );
-                      })
+                      ([['Upcoming', myRideGroups.upcoming], ['Past', myRideGroups.past]] as const).map(([title, list]) => list.length > 0 && (
+                        <View key={title} style={{ marginBottom: 8 }}>
+                          <SectionLabel title={title} count={list.length} />
+                          {list.map(ride => (
+                            <MyRideCard
+                              key={ride.id}
+                              ride={ride}
+                              myId={myId}
+                              busy={rideActionBusy === ride.id}
+                              onApprove={reqId => handleApproveRequest(ride.id, reqId)}
+                              onDecline={reqId => handleRejectRequest(ride.id, reqId)}
+                              onComplete={() => { if (rideActionBusy !== ride.id) handleCompleteRide(ride.id); }}
+                              onCancel={kind => { if (rideActionBusy !== ride.id) handleCancelRide(ride.id, kind); }}
+                              onWhatsApp={contactOnWhatsApp}
+                              onSafety={handleSOS}
+                            />
+                          ))}
+                        </View>
+                      ))
                     ) : (
-                      <View style={s.emptyState}>
-                        <Text style={{ fontSize: 32, marginBottom: 8 }}>🚗</Text>
-                        <Text style={{ color: txt, fontSize: 12, fontWeight: '900', letterSpacing: 1, marginBottom: 4 }}>NO RIDES YET</Text>
-                        <Text style={{ color: txtSec, fontSize: 10, fontWeight: '600', textAlign: 'center', marginBottom: 14 }}>
-                          Rides you post or ask to join show up here.
-                        </Text>
-                        <TouchableOpacity style={[s.resetBtn, { backgroundColor: goldColor }]} onPress={() => setCorideTab('browse')}>
-                          <Text style={[s.resetBtnText, { color: isDark ? '#000' : '#fff' }]}>FIND A RIDE</Text>
-                        </TouchableOpacity>
-                      </View>
+                      <CoRideState
+                        icon="calendar-outline"
+                        title="No rides yet"
+                        message="Rides you post or ask to join show up here."
+                        actionLabel="Find a ride"
+                        secondary
+                        onAction={() => setCorideTab('browse')}
+                      />
                     )}
                   </View>
                 )}
-
-                {/* ZENVY AUTO-RIDE SUB-TAB (verified drivers, separate from the peer "Auto" pools above) */}
-                {corideTab === 'auto' && (autoRideOn ? <AutoRideSection /> : (
-                  <View style={[s.emptyState, { borderColor: border }]}>
-                    <Ionicons name="car-outline" size={32} color={txtSec} />
-                    <Text style={{ color: txt, fontSize: 15, fontWeight: '800', marginTop: 10, marginBottom: 4 }}>Zenvy Auto is not open yet</Text>
-                    <Text style={{ color: txtSec, fontSize: 13, textAlign: 'center' }}>
-                      Shared autos with verified drivers start soon. You will be able to pick your seat and pay the driver at boarding.
-                    </Text>
-                  </View>
-                ))}
               </>
             )}
           </View>
@@ -3134,201 +2909,35 @@ export default function OthersScreen() {
         </View>
       </Modal>
 
-      {/* ── POST A RIDE MODAL ── */}
-      <Modal visible={showCreateModal} transparent animationType="slide" onRequestClose={() => setShowCreateModal(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-          <View style={s.modalOverlay}>
-            <TouchableOpacity style={StyleSheet.absoluteFill} onPress={() => setShowCreateModal(false)} accessibilityLabel="Close" />
-            <View style={[s.modalCard, { backgroundColor: cardBg, maxHeight: '90%' }]}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <View>
-                  <Text style={{ fontSize: 10, fontWeight: '900', color: goldColor, letterSpacing: 2 }}>CAMPUS CO-RIDE</Text>
-                  <Text style={[s.modalTitle, { color: txt, marginTop: 2 }]}>Post a Ride</Text>
-                </View>
-                <TouchableOpacity
-                  style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB', alignItems: 'center', justifyContent: 'center' }}
-                  onPress={() => setShowCreateModal(false)}
-                  accessibilityLabel="Close"
-                >
-                  <Text style={{ color: txt, fontSize: 12, fontWeight: '900' }}>✕</Text>
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
-                <Text style={{ fontSize: 9, fontWeight: '800', color: txtSec, letterSpacing: 1, marginBottom: 6 }}>YOUR ROLE</Text>
-                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
-                  {(['rider', 'passenger'] as const).map(role => (
-                    <TouchableOpacity
-                      key={role}
-                      style={{ flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center', backgroundColor: creatorRole === role ? COLORS.red : (isDark ? 'rgba(255,255,255,0.04)' : '#F3F4F6'), borderWidth: 1, borderColor: creatorRole === role ? COLORS.red : border }}
-                      onPress={() => setCreatorRole(role)}
-                    >
-                      <Text style={{ fontSize: 11, fontWeight: '900', color: creatorRole === role ? '#fff' : txt }}>{role === 'rider' ? '🛵 I HAVE A VEHICLE' : '🙋 I NEED A RIDE'}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <Text style={{ fontSize: 9, fontWeight: '800', color: txtSec, letterSpacing: 1, marginBottom: 4 }}>FROM (PICKUP POINT)</Text>
-                <TextInput
-                  style={{ borderWidth: 1, borderColor: border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 12, color: txt, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FAFAFA', marginBottom: 6 }}
-                  placeholder="e.g. Campus Main Gate"
-                  placeholderTextColor={txtSec}
-                  maxLength={80}
-                  value={origin}
-                  onChangeText={setOrigin}
-                />
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ marginBottom: 12 }}>
-                  <View style={{ flexDirection: 'row', gap: 6 }}>
-                    {['Campus Gate', 'Hostel Sector', 'Amaravathi Center', 'Vijayawada Stn', 'Guntur Bus Stand'].map(chip => (
-                      <TouchableOpacity key={chip} style={{ paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, backgroundColor: origin === chip ? COLORS.red : (isDark ? 'rgba(255,255,255,0.06)' : '#E5E7EB') }} onPress={() => setOrigin(chip)}>
-                        <Text style={{ fontSize: 9, fontWeight: '700', color: origin === chip ? '#fff' : txt }}>{chip}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </ScrollView>
-
-                <Text style={{ fontSize: 9, fontWeight: '800', color: txtSec, letterSpacing: 1, marginBottom: 4 }}>TO (DESTINATION)</Text>
-                <TextInput
-                  style={{ borderWidth: 1, borderColor: border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 12, color: txt, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FAFAFA', marginBottom: 6 }}
-                  placeholder="e.g. PVP Square Mall / Airport"
-                  placeholderTextColor={txtSec}
-                  maxLength={80}
-                  value={destination}
-                  onChangeText={setDestination}
-                />
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ marginBottom: 12 }}>
-                  <View style={{ flexDirection: 'row', gap: 6 }}>
-                    {['PVP Square Mall', 'Vijayawada Stn', 'Gannavaram Airport', 'Trendset Mall', 'Mangalagiri D-Mart', 'Main Campus'].map(chip => (
-                      <TouchableOpacity key={chip} style={{ paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, backgroundColor: destination === chip ? COLORS.red : (isDark ? 'rgba(255,255,255,0.06)' : '#E5E7EB') }} onPress={() => setDestination(chip)}>
-                        <Text style={{ fontSize: 9, fontWeight: '700', color: destination === chip ? '#fff' : txt }}>{chip}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </ScrollView>
-
-                <Text style={{ fontSize: 9, fontWeight: '800', color: txtSec, letterSpacing: 1, marginBottom: 4 }}>DEPARTURE TIME</Text>
-                <TextInput
-                  style={{ borderWidth: 1, borderColor: border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 12, color: txt, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FAFAFA', marginBottom: 6 }}
-                  placeholder="e.g. 18:30 or 6:30 PM"
-                  placeholderTextColor={txtSec}
-                  maxLength={40}
-                  value={departureTime}
-                  onChangeText={t => { setDepartureTime(t); setDepartureDate(null); }}
-                />
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ marginBottom: 12 }}>
-                  <View style={{ flexDirection: 'row', gap: 6 }}>
-                    {['In 15 Mins', 'In 1 Hour', 'Tonight 8:00 PM', 'Tomorrow 8:00 AM', 'Tomorrow 5:00 PM'].map(chip => (
-                      <TouchableOpacity
-                        key={chip}
-                        style={{ paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#E5E7EB' }}
-                        onPress={() => {
-                          const when = new Date();
-                          if (chip === 'In 15 Mins') when.setMinutes(when.getMinutes() + 15);
-                          else if (chip === 'In 1 Hour') when.setHours(when.getHours() + 1);
-                          else if (chip === 'Tonight 8:00 PM') {
-                            when.setHours(20, 0, 0, 0);
-                            if (when.getTime() < Date.now()) when.setDate(when.getDate() + 1);
-                          }
-                          else if (chip === 'Tomorrow 8:00 AM') { when.setDate(when.getDate() + 1); when.setHours(8, 0, 0, 0); }
-                          else if (chip === 'Tomorrow 5:00 PM') { when.setDate(when.getDate() + 1); when.setHours(17, 0, 0, 0); }
-                          setDepartureDate(when);
-                          setDepartureTime(when.toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }));
-                        }}
-                      >
-                        <Text style={{ fontSize: 9, fontWeight: '700', color: txt }}>{chip}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </ScrollView>
-
-                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 9, fontWeight: '800', color: txtSec, letterSpacing: 1, marginBottom: 4 }}>VEHICLE</Text>
-                    <View style={{ flexDirection: 'row', gap: 4 }}>
-                      {['Bike', 'Car', 'Auto'].map(v => (
-                        <TouchableOpacity
-                          key={v}
-                          style={{ flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center', backgroundColor: vehicleType === v ? (isDark ? goldColor : COLORS.red) : (isDark ? 'rgba(255,255,255,0.04)' : '#F3F4F6') }}
-                          onPress={() => setVehicleType(v)}
-                        >
-                          <Text style={{ fontSize: 10, fontWeight: '900', color: vehicleType === v ? '#fff' : txt }}>{v === 'Bike' ? '🛵' : v === 'Car' ? '🚗' : '🛺'} {v}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-
-                  <View style={{ width: 90 }}>
-                    <Text style={{ fontSize: 9, fontWeight: '800', color: txtSec, letterSpacing: 1, marginBottom: 4 }}>SEATS (1–6)</Text>
-                    <TextInput
-                      style={{ borderWidth: 1, borderColor: border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, fontSize: 12, color: txt, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FAFAFA', textAlign: 'center' }}
-                      value={availableSeats}
-                      onChangeText={t => setAvailableSeats(t.replace(/[^0-9]/g, ''))}
-                      keyboardType="number-pad"
-                      maxLength={1}
-                    />
-                  </View>
-                </View>
-
-                <Text style={{ fontSize: 9, fontWeight: '800', color: txtSec, letterSpacing: 1, marginBottom: 4 }}>TOTAL FUEL COST TO SPLIT (₹)</Text>
-                <TextInput
-                  style={{ borderWidth: 1, borderColor: border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 13, color: txt, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FAFAFA', marginBottom: 12, fontWeight: '700' }}
-                  placeholder="e.g. 50 (or 0 for a free ride)"
-                  placeholderTextColor={txtSec}
-                  value={estimatedFuelCost}
-                  onChangeText={t => setEstimatedFuelCost(t.replace(/[^0-9]/g, ''))}
-                  keyboardType="number-pad"
-                  maxLength={4}
-                />
-
-                <Text style={{ fontSize: 9, fontWeight: '800', color: txtSec, letterSpacing: 1, marginBottom: 4 }}>RIDE VIBE</Text>
-                <View style={{ flexDirection: 'row', gap: 4, marginBottom: 12 }}>
-                  {['Any', 'Silent Ride 🤫', 'Chatty 💬'].map(vb => (
-                    <TouchableOpacity
-                      key={vb}
-                      style={{ flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center', backgroundColor: rideVibe === vb ? (isDark ? goldColor : COLORS.red) : (isDark ? 'rgba(255,255,255,0.04)' : '#F3F4F6') }}
-                      onPress={() => setRideVibe(vb)}
-                    >
-                      <Text style={{ fontSize: 10, fontWeight: '900', color: rideVibe === vb ? '#fff' : txt }}>{vb}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <Text style={{ fontSize: 9, fontWeight: '800', color: txtSec, letterSpacing: 1, marginBottom: 4 }}>WHO CAN JOIN</Text>
-                <View style={{ flexDirection: 'row', gap: 4, marginBottom: 12 }}>
-                  {[{ v: false, label: '🛡️ I approve each request' }, { v: true, label: '⚡ Anyone can join' }].map(opt => (
-                    <TouchableOpacity
-                      key={opt.label}
-                      style={{ flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center', backgroundColor: autoApprove === opt.v ? (isDark ? goldColor : COLORS.red) : (isDark ? 'rgba(255,255,255,0.04)' : '#F3F4F6') }}
-                      onPress={() => setAutoApprove(opt.v)}
-                    >
-                      <Text style={{ fontSize: 10, fontWeight: '900', color: autoApprove === opt.v ? '#fff' : txt }}>{opt.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <Text style={{ fontSize: 9, fontWeight: '800', color: txtSec, letterSpacing: 1, marginBottom: 4 }}>NOTES (OPTIONAL)</Text>
-                <TextInput
-                  style={{ borderWidth: 1, borderColor: border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 11, color: txt, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FAFAFA', marginBottom: 16 }}
-                  placeholder="e.g. Extra helmet available, leaving on time"
-                  placeholderTextColor={txtSec}
-                  maxLength={200}
-                  value={notes}
-                  onChangeText={setNotes}
-                />
-
-                <TouchableOpacity
-                  style={{ paddingVertical: 14, borderRadius: 14, backgroundColor: COLORS.red, alignItems: 'center', marginBottom: 10, opacity: submittingRide ? 0.7 : 1 }}
-                  onPress={handleCreateRide}
-                  disabled={submittingRide}
-                  activeOpacity={0.85}
-                >
-                  {submittingRide ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontSize: 11, fontWeight: '900', letterSpacing: 2 }}>PUBLISH RIDE 🚀</Text>}
-                </TouchableOpacity>
-              </ScrollView>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      {/* ── POST A RIDE SHEET (modules/coride/PostRideSheet; state + submit stay here) ── */}
+      <PostRideSheet
+        visible={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        creatorRole={creatorRole}
+        setCreatorRole={setCreatorRole}
+        origin={origin}
+        setOrigin={setOrigin}
+        destination={destination}
+        setDestination={setDestination}
+        departureTime={departureTime}
+        setDepartureTime={setDepartureTime}
+        setDepartureDate={setDepartureDate}
+        vehicleType={vehicleType}
+        setVehicleType={setVehicleType}
+        availableSeats={availableSeats}
+        setAvailableSeats={setAvailableSeats}
+        estimatedFuelCost={estimatedFuelCost}
+        setEstimatedFuelCost={setEstimatedFuelCost}
+        notes={notes}
+        setNotes={setNotes}
+        rideVibe={rideVibe}
+        setRideVibe={setRideVibe}
+        autoApprove={autoApprove}
+        setAutoApprove={setAutoApprove}
+        submitting={submittingRide}
+        onSubmit={handleCreateRide}
+        onOpenAuto={() => { setShowCreateModal(false); setCorideTab('auto'); }}
+      />
     </View>
   );
 }
@@ -3653,75 +3262,24 @@ const s = StyleSheet.create({
   trendDesc: { fontSize: 10, fontWeight: '500', color: 'rgba(255,255,255,0.7)', lineHeight: 14 },
 
   // PG filters
-  filterLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 1.5, marginTop: 12, marginBottom: 6 },
-  rowFilters: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, borderWidth: 1, marginRight: 4 },
-  chipActive: { backgroundColor: COLORS.red, borderColor: COLORS.red },
-  chipText: { fontSize: 8, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 1 },
-  chipTextActive: { color: '#fff' },
 
   emptyState: { padding: 48, alignItems: 'center', justifyContent: 'center' },
   resetBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   resetBtnText: { fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },
 
-  // Co-Ride styling
-  karmaBanner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderRadius: 20, borderWidth: 1, marginBottom: 16 },
-  karmaLabel: { fontSize: 7, fontWeight: '800', color: COLORS.gold, letterSpacing: 1.5 },
-  karmaVal: { fontSize: 18, fontWeight: '900', color: COLORS.gold },
-  karmaBadge: { backgroundColor: '#000', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: COLORS.goldBorder },
-  karmaBadgeText: { fontSize: 8, fontWeight: '900', color: COLORS.gold, letterSpacing: 1 },
 
-  corideSubTabs: { flexDirection: 'row', gap: 10, marginBottom: 16 },
-  corideSubTabBtn: { flex: 1, paddingVertical: 12, borderRadius: 16, alignItems: 'center', borderWidth: 1.5, borderColor: COLORS.borderDark },
-  corideSubTabBtnActive: { backgroundColor: COLORS.red, borderColor: COLORS.red },
-  corideSubTabLabel: { fontSize: 9, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 1.5 },
-  corideSubTabLabelActive: { color: '#fff' },
 
-  rideCard: { padding: 16, borderRadius: 24, borderWidth: 1, marginBottom: 12 },
-  rideCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  rideCreatorRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  rideAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.goldMuted, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.goldBorder },
-  rideAvatarText: { fontSize: 13, fontWeight: '900', color: COLORS.gold },
-  rideCreatorName: { fontSize: 12, fontWeight: '800' },
-  roleBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  roleBadgeText: { fontSize: 7, fontWeight: '900', letterSpacing: 1 },
 
-  ridePathRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: 8, marginBottom: 12 },
-  rideDotCol: { alignItems: 'center', width: 12 },
-  rideDot: { width: 8, height: 8, borderRadius: 4 },
-  rideDashLine: { width: 1, height: 24, backgroundColor: COLORS.textMuted, marginVertical: 2 },
-  ridePathTextCol: { flex: 1, paddingLeft: 12 },
-  ridePathText: { fontSize: 11, fontWeight: '700' },
 
-  rideMetaRow: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: COLORS.borderDark, paddingTop: 10 },
-  metaLabel: { fontSize: 7, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1 },
-  metaVal: { fontSize: 10, fontWeight: '800', marginTop: 1 },
 
-  rideNotesBox: { padding: 10, borderRadius: 12, marginTop: 10 },
-  rideNotesText: { fontSize: 9, fontWeight: '500', fontStyle: 'italic' },
-  joinBtn: { width: '100%', paddingVertical: 12, borderRadius: 14, backgroundColor: COLORS.gold, alignItems: 'center', justifyContent: 'center', ...SHADOWS.goldGlow },
-  joinBtnText: { fontSize: 9, fontWeight: '900', color: '#000', letterSpacing: 1.5 },
 
-  invoiceCard: { marginTop: 12, padding: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: COLORS.borderDark },
-  invoiceTitle: { fontSize: 8, fontWeight: '900', color: COLORS.gold, letterSpacing: 2, marginBottom: 8 },
-  invoiceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  invoiceLabel: { fontSize: 8, fontWeight: '700', color: COLORS.textSecondary },
-  invoiceVal: { fontSize: 9, fontWeight: '800' },
 
-  actionBtn: { paddingVertical: 10, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  actionBtnText: { color: '#fff', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
-  completeBtn: { backgroundColor: COLORS.emerald, paddingVertical: 10, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  completeBtnText: { color: '#fff', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
-  cancelRideBtn: { borderWidth: 1.5, borderColor: '#EF4444', paddingVertical: 10, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  cancelRideBtnText: { color: '#EF4444', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
 
-  statusBadge: { paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4 },
 
   floatingFab: { paddingVertical: 14, borderRadius: 16, backgroundColor: COLORS.red, alignItems: 'center', justifyContent: 'center', marginVertical: 12, ...SHADOWS.redGlow },
   floatingFabText: { color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 2 },
 
   // Modal styling
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   modalContentBox: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, height: '80%', alignItems: 'center' },
   modalTitle: { fontSize: 14, fontWeight: '900', letterSpacing: 3, marginBottom: 16 },
   formLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 1, alignSelf: 'flex-start', marginTop: 12, marginBottom: 6 },
@@ -4099,13 +3657,5 @@ const s = StyleSheet.create({
     marginHorizontal: 0,
     borderRadius: 0,
     borderWidth: 0,
-  },
-  modalCard: {
-    width: '100%',
-    maxWidth: 500,
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
 });

@@ -375,7 +375,7 @@ export const errorCopy = (e: any): { title: string; message: string } => {
   const code = e?.code;
   const msg = e?.message || 'Please try again.';
   switch (code) {
-    case 'FEATURE_OFF': return { title: 'Auto-Ride is not open yet', message: msg };
+    case 'FEATURE_OFF': return { title: 'Zenvy Auto is not open yet', message: msg };
     case 'SEAT_TAKEN': return { title: 'Seat just taken', message: msg };
     case 'HOLD_EXPIRED': return { title: 'Hold expired', message: msg };
     case 'TRIP_PRIVATE': return { title: 'Booked as a full auto', message: msg };

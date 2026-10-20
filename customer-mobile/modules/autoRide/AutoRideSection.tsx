@@ -12,7 +12,8 @@ import {
   autoRideApi, type Trip, type RouteFull, type Booking, type PrivateRequest, type PickupBrief, type RouteBrief,
   inr, fmtDeparture, fromNow, istDate, istDayLabel, fmtHHMM, queueLabel, AutoRideError, BOOKING_STATUS_META, PRIVATE_STATUS_META, LIVE_BOOKING,
 } from './autoRideApi';
-import { usePalette, Card, Btn, Badge, StateView, Notice, Chips, StatusChip, VerifiedBadge, Stepper, AutoHero, useAutoRideLive, useNow, AUTO_GREEN } from './ui';
+import { Ionicons } from '@expo/vector-icons';
+import { usePalette, Card, Btn, Badge, StateView, Notice, Chips, StatusChip, VerifiedBadge, Stepper, useAutoRideLive, useNow, useAutoRideStatus } from './ui';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch { /* new arch: no-op */ }
@@ -21,10 +22,10 @@ const ease = () => { try { LayoutAnimation.configureNext(LayoutAnimation.Presets
 
 type Seg = 'shared' | 'full' | 'bookings' | 'pickups';
 const SEGS: { key: Seg; label: string; icon: string }[] = [
-  { key: 'shared', label: 'Shared Auto', icon: '🛺' },
-  { key: 'full', label: 'Book Full Auto', icon: '🔒' },
-  { key: 'bookings', label: 'My Auto Bookings', icon: '🎫' },
-  { key: 'pickups', label: 'Nearby Pickup Points', icon: '📍' },
+  { key: 'shared', label: 'Shared auto', icon: 'people-outline' },
+  { key: 'full', label: 'Book full auto', icon: 'lock-closed-outline' },
+  { key: 'bookings', label: 'My auto bookings', icon: 'ticket-outline' },
+  { key: 'pickups', label: 'Pickup points', icon: 'location-outline' },
 ];
 const isSeg = (v: any): v is Seg => SEGS.some((x) => x.key === v);
 
@@ -62,18 +63,18 @@ export default function AutoRideSection() {
 
   return (
     <View>
-      <AutoHero
-        title="Shared autos with verified drivers"
-        subtitle="Book a seat (or the whole auto) on Zenvy Auto-Ride. Drivers and their autos are checked by Zenvy. Pay the driver in cash at boarding."
-      />
+      {/* The Co-Ride tab (others.tsx) already introduces Zenvy Auto above this: one plain line, no gradient hero. */}
+      <Text style={{ fontSize: 13, lineHeight: 18, color: p.sub, marginBottom: 12 }}>
+        Book a seat, or the whole auto. Zenvy checks every driver and auto.
+      </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4, paddingRight: 8 }} style={{ marginBottom: 12 }}>
         {SEGS.map((x) => {
           const on = seg === x.key;
           return (
             <TouchableOpacity key={x.key} onPress={() => { ease(); setSeg(x.key); }} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={x.label}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 11, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1.5, backgroundColor: on ? AUTO_GREEN : p.card, borderColor: on ? AUTO_GREEN : p.border, minHeight: 44 }}>
-              <Text style={{ fontSize: 14 }}>{x.icon}</Text>
-              <Text style={{ fontSize: 12, fontWeight: '900', color: on ? '#fff' : p.text }}>{x.label}</Text>
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, backgroundColor: on ? p.text : p.card, borderColor: on ? p.text : p.border, minHeight: 44 }}>
+              <Ionicons name={x.icon as any} size={16} color={on ? p.card : p.sub} />
+              <Text style={{ fontSize: 13, fontWeight: '600', color: on ? p.card : p.text }}>{x.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -102,6 +103,10 @@ function TripSearch({ mode, routes, error: routesError, reload: reloadRoutes }: 
   const [date, setDate] = useState<string>(istDate(0));
   const [time, setTime] = useState<string>('');
   const [passengers, setPassengers] = useState(1);
+  // One auto carries at most the platform capacity (owner rule: 8); more passengers can never match.
+  const autoStatus = useAutoRideStatus();
+  const maxPassengers = Math.max(1, Math.min(8, Number(autoStatus?.settings?.platformMaxCapacity) || 8));
+  useEffect(() => { if (passengers > maxPassengers) setPassengers(maxPassengers); }, [passengers, maxPassengers]);
   const [trips, setTrips] = useState<Trip[] | null>(null);
   const [error, setError] = useState<AutoRideError | null>(null);
   const [loading, setLoading] = useState(false);
@@ -138,7 +143,7 @@ function TripSearch({ mode, routes, error: routesError, reload: reloadRoutes }: 
   const dates = useMemo(() => Array.from({ length: 7 }, (_, i) => istDate(i)), []);
 
   if (error && error.code === 'FEATURE_OFF') {
-    return <StateView kind="empty" icon="🛺" title="Auto-Ride is not open yet" message={error.message} />;
+    return <StateView kind="empty" icon="🛺" title="Zenvy Auto is not open yet" message={error.message} />;
   }
 
   return (
@@ -186,7 +191,7 @@ function TripSearch({ mode, routes, error: routesError, reload: reloadRoutes }: 
               options={[{ key: 'ANY', label: 'Any time' }, ...TIME_OPTIONS.map((t) => ({ key: t, label: fmtHHMM(t) }))]} />
 
             <Label text="Passengers" />
-            <Stepper value={passengers} min={1} max={12} onChange={setPassengers} label="Passengers" />
+            <Stepper value={passengers} min={1} max={maxPassengers} onChange={setPassengers} label="Passengers" />
 
             <Btn label={loading ? 'Searching…' : 'Search autos'} icon="🔎" onPress={search} loading={loading} style={{ marginTop: 14 }} />
           </View>
@@ -423,7 +428,7 @@ function PickupPoints() {
 
   if (!data && !error) return <StateView kind="loading" message="Loading pickup points…" />;
   if (error && !data) {
-    if (error.code === 'FEATURE_OFF') return <StateView kind="empty" icon="🛺" title="Auto-Ride is not open yet" message={error.message} />;
+    if (error.code === 'FEATURE_OFF') return <StateView kind="empty" icon="🛺" title="Zenvy Auto is not open yet" message={error.message} />;
     return <StateView kind="error" title={error.isNetwork ? 'You seem to be offline' : 'Could not load'} message={error.message} actionLabel="Retry" onAction={load} />;
   }
   return (
