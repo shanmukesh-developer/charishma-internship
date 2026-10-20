@@ -33,7 +33,6 @@ import { isVendorFulfilled, vendorCallNumber, callVendor, stallPayCopy } from '.
 import { Ionicons } from '@expo/vector-icons';
 import { formatINR } from '../../utils/format';
 
-const MAX_TIP = 500;
 
 /**
  * Maps the backend status enum to the screen's step number.
@@ -145,7 +144,6 @@ export default function TrackingScreen() {
   // Rating states
   const [ratingStars, setRatingStars] = useState(5);
   const [ratingReview, setRatingReview] = useState('');
-  const [ratingTip, setRatingTip] = useState('');
   const [submittingRating, setSubmittingRating] = useState(false);
   // A fast double tap lands before the state flips: a ref blocks the second request
   // (it came back ALREADY_RATED and replaced the thank-you with an error).
@@ -501,7 +499,8 @@ export default function TrackingScreen() {
   };
 
   // Stall orders have no rider: no rider tip / rating
-  const tipAmount = isVendorOrder ? 0 : Math.min(MAX_TIP, parseInt(ratingTip.replace(/\D/g, ''), 10) || 0);
+  // Tips are cash only: nothing is sent to the server.
+  const tipAmount = 0;
 
   // Submit Rating handler (the server stores the item reviews itself)
   const handleSubmitRating = async () => {
@@ -1165,38 +1164,14 @@ export default function TrackingScreen() {
                 onChangeText={setRatingReview}
               />
 
-              {/* Tip for the rider (paid from the Zenvy Wallet) — never on stall orders */}
+              {/* Tips are cash only (owner, 20 Oct 2026): the wallet is never used for tips. Never on stall orders. */}
               {!!rider && !isVendorOrder && (
-                <>
-                  <View style={{ flexDirection: 'row', gap: 8, width: '100%', marginTop: 12 }}>
-                    {[10, 20, 30].map(v => {
-                      const active = tipAmount === v;
-                      return (
-                        <TouchableOpacity
-                          key={v}
-                          onPress={() => setRatingTip(active ? '' : String(v))}
-                          style={[s.tipChip, { borderColor: active ? COLORS.gold : border, backgroundColor: active ? 'rgba(212,175,55,0.15)' : 'transparent' }]}
-                        >
-                          <Text style={{ fontSize: 11, fontWeight: '800', color: active ? COLORS.gold : txt }}>{formatINR(v)}</Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                    <TextInput
-                      style={[s.ratingInput, { flex: 1, width: undefined, height: 36, paddingVertical: 6, backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)', color: txt }]}
-                      placeholder="Other ₹"
-                      placeholderTextColor={txtSec}
-                      keyboardType="number-pad"
-                      maxLength={3}
-                      value={ratingTip}
-                      onChangeText={(v) => setRatingTip(v.replace(/\D/g, ''))}
-                    />
-                  </View>
-                  <Text style={{ fontSize: 10, color: txtSec, marginTop: 6, alignSelf: 'flex-start' }}>
-                    {tipAmount > 0
-                      ? `${formatINR(tipAmount)} tip for ${rider.name || 'your rider'} from your Zenvy Wallet (balance ${formatINR(Number(user?.walletBalance) || 0)})`
-                      : `Optional tip for ${rider.name || 'your rider'}, paid from your Zenvy Wallet (up to ${formatINR(MAX_TIP)})`}
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, width: '100%', marginTop: 12 }}>
+                  <Ionicons name="cash-outline" size={16} color={txtSec} style={{ marginTop: 1 }} />
+                  <Text style={{ flex: 1, fontSize: 12, lineHeight: 17, color: txtSec }}>
+                    {`If you'd like to tip ${rider.name ? rider.name.split(' ')[0] : 'your rider'}, please give it in cash. The full tip goes to them.`}
                   </Text>
-                </>
+                </View>
               )}
 
               {/* Submit rating */}

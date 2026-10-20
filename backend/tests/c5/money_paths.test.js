@@ -133,7 +133,23 @@ test('final bill (buy-for-me): lower bill -> BILL_DIFFERENCE credit; higher bill
   await inSync('user', poor.id);
 });
 
+test('tip: cash only by default (owner 20 Oct): a tipAmount moves no wallet money', async () => {
+  delete process.env.WALLET_TIPS_ENABLED;
+  const { item } = await H.mkStore({ price: 100 });
+  const u = await H.mkUser({ wallet: 400 });
+  const d = await H.mkRider();
+  const o = await api('POST', '/api/orders', u.token, H.orderBody(item.id, 'Wallet'));
+  await H.ctx.M('Order').update({ status: 'Delivered', deliveryPartnerId: d.id, deliveredAt: new Date() }, { where: { id: o.body.id } });
+  const rt = await api('PUT', `/api/orders/${o.body.id}/rate`, u.token, { rating: 5, tipAmount: 20 });
+  assert.equal(rt.status, 200, JSON.stringify(rt.body));
+  assert.equal(rt.body.tipApplied, false);
+  assert.match(String(rt.body.tipError), /cash/i);
+  assert.equal((await H.ledger('user', u.id)).filter((x) => x.type === 'TIP_SENT').length, 0);
+  assert.deepEqual(await H.ledgerShape('rider', d.id), []);
+});
+
 test('tip: TIP_SENT on the customer + TIP_RECEIVED on the rider, once; admin payout -> TIP_PAYOUT', async () => {
+  process.env.WALLET_TIPS_ENABLED = 'true'; // the wallet-tip path still works when switched back on
   const { item } = await H.mkStore({ price: 100 });
   const u = await H.mkUser({ wallet: 400 });
   const d = await H.mkRider();

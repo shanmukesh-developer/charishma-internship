@@ -797,6 +797,8 @@ const MAX_TIP = 500;
 
 // @desc    Rate an order (once), optionally tip the rider from the Wallet
 // @route   PUT /api/orders/:id/rate
+const walletTipsEnabled = () => /^(1|true|yes|on)$/i.test(String(process.env.WALLET_TIPS_ENABLED || '').trim());
+
 const rateOrder = async (req, res) => {
   const { rating: rawRating, review: rawReview, tipAmount } = req.body || {};
   try {
@@ -910,7 +912,11 @@ const rateOrder = async (req, res) => {
           totalRatings: DeliveryPartner.sequelize.literal('COALESCE("totalRatings", 0) + 1'),
         }, { where: { id: partner.id } });
 
-        if (tip > 0) {
+        // Owner (20 Oct 2026): tips are cash only, paid to the rider by hand. Wallet tips move wallet money
+        // to a person, which the non-transferable wallet rule does not allow. WALLET_TIPS_ENABLED=true restores them.
+        if (tip > 0 && !walletTipsEnabled()) {
+          tipError = 'Tips are paid in cash to your rider. Nothing was taken from your Zenvy Wallet.';
+        } else if (tip > 0) {
           try {
             const { getSequelize } = require('../config/db');
             const sequelize = getSequelize();
@@ -953,7 +959,7 @@ const rateOrder = async (req, res) => {
     }
 
     res.json({
-      message: tipApplied ? `Thanks for rating! Your ₹${tip} tip is on its way to your rider.` : 'Thanks for rating!',
+      message: tipApplied ? `Thanks for rating. Your ₹${tip} tip is on its way to your rider.` : 'Thanks for rating.',
       rating,
       zenPointsEarned,
       tipApplied,
@@ -1008,6 +1014,21 @@ const getAllOrders = async (req, res) => {
       if (!status || status === 'All') where.status = stuck.status;
       where.createdAt = { ...(where.createdAt || {}), ...stuck.createdAt };
       delete where[Op.and];
+    }
+    // ?q=<order id> (admin global search): the full id, or the short reference the admin and the apps
+    // show (#A1B2C3 = the id's last characters). Only hex digits and dashes, 4-36 characters; anything
+    // else matches nothing. Combines with the other filters.
+    if (req.query.q !== undefined && String(req.query.q).trim() !== '') {
+      const q = String(req.query.q).trim().replace(/^#/, '').toLowerCase();
+      if (!/^[0-9a-f-]{4,36}$/.test(q)) return res.json({ orders: [], total: 0, pages: 0 });
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(q)) {
+        where.id = q;
+      } else {
+        const { where: sqlWhere, cast, col } = require('sequelize');
+        // Postgres stores ids as uuid: compare their text form. SQLite already stores text.
+        const idText = Order.sequelize.getDialect() === 'postgres' ? cast(col('Order.id'), 'text') : col('Order.id');
+        where[Op.and] = [...(where[Op.and] || []), sqlWhere(idText, { [Op.like]: `%${q}` })];
+      }
     }
 
     const { count, rows: orders } = await Order.findAndCountAll({ 
