@@ -62,31 +62,34 @@ export default function SettingsTab({ tick, onChanged }: { tick: number; onChang
   return (
     <section className="space-y-6" aria-label="Settings">
       <Msg msg={msg} />
-      <div className={`border-2 p-6 ${data.enabled ? 'border-success/30 bg-success-soft' : 'border-danger/30 bg-danger-soft'}`}>
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold text-fg-muted">CAMPUS_EVENTS_ENABLED</p>
-            <h3 className="mt-1 text-2xl font-semibold">{data.enabled ? 'Campus Events is ON for students' : 'Campus Events is OFF'}</h3>
-            <p className={`mt-2 max-w-2xl text-sm ${data.ticketsReady ? 'text-warning-text' : 'font-semibold text-danger-text'}`}>
-              Set CAMPUS_EVENTS_TICKET_SECRET on Render (32+ random characters) before turning this on. {data.ticketsReady ? 'The server reports tickets are configured.' : 'The server reports it is NOT set: tickets cannot be issued, so the switch is locked.'}
+      <div className="rounded-lg border border-line bg-surface p-4 shadow-xs">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 max-w-3xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-base font-semibold text-fg">Campus events for students</h3>
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-px text-xs font-medium ${data.enabled ? 'border-success/20 bg-success-soft text-success-text' : 'border-line bg-surface-2 text-fg-muted'}`}>{data.enabled ? 'On' : 'Off'}</span>
+              <span className="font-mono text-xs text-fg-subtle">CAMPUS_EVENTS_ENABLED</span>
+            </div>
+            <p className="mt-1 text-sm text-fg-muted">When on, students can browse events, register, book slots and form teams, and organisers can submit events. When off, all of that closes (drafts are kept); students’ own registrations and tickets, check-in and every admin tool keep working.</p>
+            <p className={`mt-2 text-sm ${data.ticketsReady ? 'text-fg-muted' : 'font-medium text-danger-text'}`}>
+              Set CAMPUS_EVENTS_TICKET_SECRET on Render (32 or more random characters) before turning this on. {data.ticketsReady ? 'The server reports tickets are configured.' : 'The server reports it is not set: tickets cannot be issued, so the switch is locked.'}
             </p>
-            <p className="mt-1 max-w-2xl text-xs text-fg-muted">While off, students cannot browse, register, book slots or form teams, and organizers cannot submit (drafts are kept). Own registrations / tickets, check-in and every admin tool keep working.</p>
           </div>
           <button type="button" role="switch" aria-checked={data.enabled} disabled={!data.enabled && !data.ticketsReady} onClick={() => setSwitchTo({ key: 'enabled', value: !data.enabled })}
-            className={`relative h-14 w-28 rounded-full border-2 transition disabled:cursor-not-allowed disabled:opacity-40 ${data.enabled ? 'border-success/30 bg-success' : 'border-line bg-surface-2'}`}>
-            <span className={`absolute top-1 h-11 w-11 rounded-full bg-white shadow transition-all ${data.enabled ? 'left-[3.75rem]' : 'left-1'}`} />
-            <span className="sr-only">{data.enabled ? 'Turn Campus Events off' : 'Turn Campus Events on'}</span>
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${data.enabled ? 'bg-accent' : 'bg-line-strong'}`}>
+            <span className={`h-5 w-5 rounded-full bg-white shadow-xs transition-transform ${data.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+            <span className="sr-only">{data.enabled ? 'Turn campus events off' : 'Turn campus events on'}</span>
           </button>
         </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="border border-line p-5">
+        <div className="rounded-lg border border-line bg-surface p-4 shadow-xs">
           <h3 className="font-semibold">Zenvy Wallet payments: {data.walletEnabled ? 'ON' : 'OFF'}</h3>
           <p className="mt-1 text-sm text-warning-text">Keep off until RBI / payment-aggregator and legal review is done. Zenvy would collect event fees on behalf of clubs; the wallet is non-transferable refund credit. Pay at the venue is always available.</p>
           <div className="mt-3"><Btn tone={data.walletEnabled ? 'bad' : 'plain'} onClick={() => setSwitchTo({ key: 'walletEnabled', value: !data.walletEnabled })}>{data.walletEnabled ? 'Turn wallet off' : 'Turn wallet on'}</Btn></div>
         </div>
-        <div className="border border-line p-5">
+        <div className="rounded-lg border border-line bg-surface p-4 shadow-xs">
           <h3 className="font-semibold">Online payments (Razorpay): {data.onlinePayEnabled ? (onlineReady ? 'ON' : 'ON but keys missing') : 'OFF'}</h3>
           {onlineReady
             ? <p className="mt-1 text-sm text-fg-muted">Razorpay keys are configured on the server. Payments are confirmed only by the signed webhook, never by the app.</p>
@@ -95,7 +98,7 @@ export default function SettingsTab({ tick, onChanged }: { tick: number; onChang
         </div>
       </div>
 
-      <div className="border border-line p-5">
+      <div className="rounded-lg border border-line bg-surface p-4 shadow-xs">
         <h3 className="mb-4 font-semibold">Limits and timings</h3>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {FIELDS.map((f) => {

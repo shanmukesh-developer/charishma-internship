@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirm } from '@/components/ui';
 import { useEffect, useState } from 'react';
 import { autoRideApi, SETTING_RANGES, type NumericSettingKey, type Settings } from '@/lib/autoRideApi';
 import { useLoader } from './hooks';
@@ -19,6 +20,7 @@ const FIELDS: { key: NumericSettingKey; name: string; hint: string }[] = [
 ];
 
 export default function SettingsTab({ tick, onChanged }: { tick: number; onChanged: () => void }) {
+  const confirm = useConfirm();
   const { data, loading, error, reload } = useLoader('settings', tick, () => autoRideApi.settings());
   const [form, setForm] = useState<Record<string, string>>({});
   const [dirty, setDirty] = useState(false);
@@ -45,7 +47,7 @@ export default function SettingsTab({ tick, onChanged }: { tick: number; onChang
     const patch: Partial<Settings> = {};
     for (const f of FIELDS) if (Number(form[f.key]) !== data[f.key]) (patch as Record<string, number>)[f.key] = Number(form[f.key]);
     if (!Object.keys(patch).length) { setMsg({ ok: true, text: 'Nothing changed.' }); setDirty(false); return; }
-    if (patch.platformMaxCapacity !== undefined && patch.platformMaxCapacity < data.platformMaxCapacity && !window.confirm(`Lower the platform max from ${data.platformMaxCapacity} to ${patch.platformMaxCapacity}? New trips are capped at ${patch.platformMaxCapacity} seats even for autos approved for more; new approvals are capped too. Trips already published keep their capacity.`)) return;
+    if (patch.platformMaxCapacity !== undefined && patch.platformMaxCapacity < data.platformMaxCapacity && !(await confirm({ title: `Lower the platform max from ${data.platformMaxCapacity} to ${patch.platformMaxCapacity}? New trips are capped at ${patch.platformMaxCapacity} seats even for autos approved for more; new approvals are capped too. Trips already published keep their capacity.`, confirmLabel: 'Lower the limit', tone: 'danger' }))) return;
     setBusy(true);
     setMsg(null);
     try {
@@ -58,23 +60,26 @@ export default function SettingsTab({ tick, onChanged }: { tick: number; onChang
   };
   return (
     <section className="space-y-6" aria-label="Settings">
-      <div className={`border-2 p-6 ${data.enabled ? 'border-success/30 bg-success-soft' : 'border-danger/30 bg-danger-soft'}`}>
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold text-fg-muted">AUTO_RIDE_ENABLED</p>
-            <h3 className="mt-1 text-2xl font-semibold">{data.enabled ? 'Auto-ride is on for passengers' : 'Auto-ride is off'}</h3>
-            <p className="mt-2 max-w-2xl text-sm text-warning-text">Turn on only after legal checks: transport permits, permitted passenger capacity, commercial passenger rules, insurance and driver documents.</p>
-            <p className="mt-1 max-w-2xl text-xs text-fg-muted">While off, passengers cannot browse, hold, book or request full autos (existing bookings stay readable and cancellable); drivers can onboard but trips stay drafts. Admin tools keep working.</p>
-            {data.devOverride && <p className="mt-2 text-xs font-semibold text-warning-text">AUTO_RIDE_DEV_ENABLE is set on this server: the feature behaves as ON regardless of this switch.</p>}
+      <div className="rounded-lg border border-line bg-surface p-4 shadow-xs">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 max-w-3xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-base font-semibold text-fg">Auto-ride for passengers</h3>
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-px text-xs font-medium ${data.enabled ? 'border-success/20 bg-success-soft text-success-text' : 'border-line bg-surface-2 text-fg-muted'}`}>{data.enabled ? 'On' : 'Off'}</span>
+              <span className="font-mono text-xs text-fg-subtle">AUTO_RIDE_ENABLED</span>
+            </div>
+            <p className="mt-1 text-sm text-fg-muted">When on, passengers can browse shared autos, hold and book seats, and request a full auto. When off, they cannot (existing bookings stay readable and can be cancelled); drivers can still sign up but their trips stay drafts. Admin tools keep working.</p>
+            <p className="mt-2 text-sm text-warning-text">Turn on only after the legal checks: transport permits, permitted passenger capacity, commercial passenger rules, insurance and driver documents.</p>
+            {data.devOverride && <p className="mt-2 text-sm font-medium text-warning-text">AUTO_RIDE_DEV_ENABLE is set on this server: the feature behaves as on whatever this switch says.</p>}
           </div>
           <button type="button" role="switch" aria-checked={data.enabled} onClick={() => setSwitchTo({ key: 'enabled', value: !data.enabled })}
-            className={`relative h-14 w-28 rounded-full border-2 transition ${data.enabled ? 'border-success/30 bg-success' : 'border-line bg-surface-2'}`}>
-            <span className={`absolute top-1 h-11 w-11 rounded-full bg-white shadow transition-all ${data.enabled ? 'left-[3.75rem]' : 'left-1'}`} />
-            <span className="sr-only">{data.enabled ? 'Turn Auto-Ride off' : 'Turn Auto-Ride on'}</span>
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${data.enabled ? 'bg-accent' : 'bg-line-strong'}`}>
+            <span className={`h-5 w-5 rounded-full bg-white shadow-xs transition-transform ${data.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+            <span className="sr-only">{data.enabled ? 'Turn auto-ride off' : 'Turn auto-ride on'}</span>
           </button>
         </div>
       </div>
-      <div className="border border-line p-5">
+      <div className="rounded-lg border border-line bg-surface p-4 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h3 className="font-semibold">Zenvy Wallet payments for autos: {data.walletEnabled ? 'ON' : 'OFF'}</h3>
@@ -83,7 +88,7 @@ export default function SettingsTab({ tick, onChanged }: { tick: number; onChang
           <Btn tone={data.walletEnabled ? 'bad' : 'plain'} onClick={() => setSwitchTo({ key: 'walletEnabled', value: !data.walletEnabled })}>{data.walletEnabled ? 'Turn wallet off' : 'Turn wallet on'}</Btn>
         </div>
       </div>
-      <div className="border border-line p-5">
+      <div className="rounded-lg border border-line bg-surface p-4 shadow-xs">
         <h3 className="mb-4 font-semibold">Limits and timings</h3>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {FIELDS.map((f) => {

@@ -134,6 +134,29 @@ html.dark {
     @apply bg-surface text-fg;
   }
 
+  /* Plain <table> markup in older sections, styled exactly like the DataTable (sticky header, row hover). */
+  .zv-table {
+    @apply w-full border-separate border-spacing-0 text-left text-sm text-fg;
+  }
+  .zv-table > thead > tr > th {
+    @apply sticky top-0 z-[1] whitespace-nowrap border-b border-line bg-surface-2 px-3 py-2 text-xs font-medium text-fg-muted;
+  }
+  .zv-table > tbody > tr > td {
+    @apply border-b border-line px-3 py-2.5 align-middle;
+  }
+  .zv-table > tbody > tr:last-child > td {
+    border-bottom-width: 0;
+  }
+  .zv-table > tbody > tr:hover > td {
+    @apply bg-surface-2/50;
+  }
+  .zv-table.zv-table-dense > tbody > tr > td {
+    @apply py-1.5 text-xs;
+  }
+  .zv-table-wrap {
+    @apply max-h-[70vh] overflow-auto rounded-lg border border-line bg-surface shadow-xs;
+  }
+
   /* ---- Legacy class names, restyled to the calm look so any page not yet migrated still matches. ---- */
   .glass {
     @apply bg-surface border border-line;

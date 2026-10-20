@@ -31,8 +31,8 @@ export default function AuditTab({ tick }: { tick: number }) {
       </Toolbar>
       {error && <ErrorBox text={error} retry={reload} />}
       {loading && !data ? <Loading text="Loading audit log…" /> : rows.length === 0 ? <Empty text={action || role || eventId ? 'No entries match the filters.' : 'No Campus Events actions recorded yet.'} /> : (
-        <div className="overflow-x-auto border border-line">
-          <table className="w-full text-left text-sm">
+        <div className="zv-table-wrap">
+          <table className="zv-table">
             <thead className="bg-surface-2/60 text-xs text-fg-muted"><tr><th className="p-3">When</th><th className="p-3">Action</th><th className="p-3">Event</th><th className="p-3">Registration / team</th><th className="p-3">By</th><th className="p-3">Details</th></tr></thead>
             <tbody className="divide-y divide-white/10">
               {rows.map((a) => (

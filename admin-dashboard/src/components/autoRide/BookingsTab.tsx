@@ -35,8 +35,8 @@ export default function BookingsTab({ tick, onChanged, lookups }: { tick: number
       </Toolbar>
       {error && <ErrorBox text={error} retry={reload} />}
       {loading ? <Loading text="Loading bookings…" /> : rows.length === 0 ? <Empty text={codeQ ? `No booking with code ${codeQ}.` : 'No bookings match.'} /> : (
-        <div className="overflow-x-auto border border-line">
-          <table className="w-full text-left text-sm">
+        <div className="zv-table-wrap">
+          <table className="zv-table">
             <thead className="bg-surface-2/60 text-xs text-fg-muted">
               <tr><th className="p-3">Code</th><th className="p-3">Passenger</th><th className="p-3">Trip</th><th className="p-3">Seats</th><th className="p-3">Payment</th><th className="p-3">Status</th><th className="p-3" /></tr>
             </thead>

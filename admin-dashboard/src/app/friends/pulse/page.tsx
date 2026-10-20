@@ -667,7 +667,7 @@ function EntitiesTab({ campusId, items, loading, error, reload, q, setQ, busy, a
 
       {items.length > 0 && (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="zv-table zv-table-dense">
             <thead>
               <tr className="text-xs text-fg-muted">
                 <th className="py-2 pr-3">Entity</th><th className="py-2 pr-3">Type</th><th className="py-2 pr-3">Managers</th><th className="py-2 pr-3">State</th><th className="py-2" />

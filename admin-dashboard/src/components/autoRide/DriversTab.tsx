@@ -44,8 +44,8 @@ export default function DriversTab({ tick, onChanged, openVehicle }: { tick: num
       {error && <ErrorBox text={error} retry={reload} />}
       {loading ? <Loading text="Loading drivers…" />
         : rows.length === 0 ? <Empty text={status === 'PENDING_REVIEW' ? 'No drivers waiting for verification.' : 'No drivers with this status.'} /> : (
-          <div className="overflow-x-auto border border-line">
-            <table className="w-full text-left text-sm">
+          <div className="zv-table-wrap">
+            <table className="zv-table">
               <thead className="bg-surface-2/60 text-xs text-fg-muted">
                 <tr><th className="p-3">Driver</th><th className="p-3">Phone</th><th className="p-3">Status</th><th className="p-3">Online</th><th className="p-3">Submitted</th><th className="p-3" /></tr>
               </thead>

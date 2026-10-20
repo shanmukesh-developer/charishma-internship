@@ -346,7 +346,7 @@ export default function CouponManagement() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="zv-table">
               <thead>
                 <tr className="bg-surface-2/60 border-b border-line">
                   {['Code', 'Type', 'Customer', 'Expires', 'Status', ''].map(h => (

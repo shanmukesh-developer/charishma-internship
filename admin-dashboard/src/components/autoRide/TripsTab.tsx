@@ -52,9 +52,9 @@ function TripList({ tick, onChanged, lookups, date, status, routeId, pickupId }:
   if (loading) return <Loading text="Loading trips…" />;
   if (!rows.length) return <Empty text="No trips match these filters." />;
   return (
-    <div className="overflow-x-auto border border-line">
+    <div className="zv-table-wrap">
       <p className="p-3 text-xs text-fg-muted">{rows.length} trip{rows.length === 1 ? '' : 's'}{all.length >= 300 ? ' (latest 300 from the server)' : ''}</p>
-      <table className="w-full text-left text-sm">
+      <table className="zv-table">
         <thead className="bg-surface-2/60 text-xs text-fg-muted">
           <tr><th className="p-3">Departure</th><th className="p-3">Route · pickup</th><th className="p-3">Driver</th><th className="p-3">Seats</th><th className="p-3">Fare</th><th className="p-3">Status</th><th className="p-3" /></tr>
         </thead>
@@ -124,7 +124,7 @@ function TripDetail({ id, tick, onChanged }: { id: string; tick: number; onChang
         <div>
           <h4 className="mb-2 text-xs font-semibold text-fg-muted">Bookings ({data.bookings.length})</h4>
           {data.bookings.length === 0 ? <p className="text-sm text-fg-muted">No bookings.</p> : (
-            <table className="w-full text-left text-xs">
+            <table className="zv-table zv-table-dense">
               <thead className="text-fg-muted"><tr><th className="py-1">Code</th><th>Passenger</th><th>Seats</th><th>Pay</th><th>Status</th></tr></thead>
               <tbody className="divide-y divide-white/5">
                 {data.bookings.map((b) => (
@@ -202,7 +202,7 @@ function Queues({ tick, lookups, date, routeId, pickupId }: { tick: number; look
     <div className="space-y-4">
       <p className="text-xs text-fg-muted">Queue for {data?.date || date} (IST). Queue order is check-in order; the departure order can differ.</p>
       {groups.map(([k, g]) => (
-        <article key={k} className="border border-line p-4">
+        <article key={k} className="rounded-lg border border-line bg-surface p-4 shadow-xs">
           <h3 className="font-semibold">{g.name}{g.landmark && <span className="ml-2 text-sm font-normal text-fg-muted">{g.landmark}</span>}</h3>
           {[...g.periods.entries()].map(([pk, list]) => (
             <div key={pk} className="mt-3">

@@ -141,7 +141,7 @@ export default function RewardsAnalytics() {
             <p className="text-xs text-fg-muted">No completed orders yet.</p>
           ) : (
             <div className="overflow-hidden">
-              <table className="w-full text-left">
+              <table className="zv-table">
                 <thead>
                   <tr className="text-xs font-semibold text-fg-muted border-b border-line">
                     <th className="pb-4">Student</th>

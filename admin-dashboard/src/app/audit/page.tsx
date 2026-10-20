@@ -112,7 +112,7 @@ export default function AuditPage() {
 
       <div className="glass-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="zv-table">
             <thead>
               <tr className="border-b border-line bg-surface-2/60">
                 {['Time', 'Action', 'Admin', 'Target', 'Details'].map(h => (

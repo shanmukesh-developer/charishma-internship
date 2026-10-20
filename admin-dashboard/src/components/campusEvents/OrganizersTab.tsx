@@ -55,8 +55,8 @@ export default function OrganizersTab({ tick, onChanged }: { tick: number; onCha
       <Msg msg={msg} />
       {error && <ErrorBox text={error} retry={reload} />}
       {loading && !data ? <Loading text="Loading organizers…" /> : rows.length === 0 ? <Empty text={status === 'PENDING' ? 'No organizer applications waiting.' : 'No organizers in this view.'} /> : (
-        <div className="overflow-x-auto border border-line">
-          <table className="w-full text-left text-sm">
+        <div className="zv-table-wrap">
+          <table className="zv-table">
             <thead className="bg-surface-2/60 text-xs text-fg-muted"><tr><th className="p-3">Student</th><th className="p-3">Shown as</th><th className="p-3">Club</th><th className="p-3">Application</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
             <tbody className="divide-y divide-white/10">
               {rows.map((o) => (

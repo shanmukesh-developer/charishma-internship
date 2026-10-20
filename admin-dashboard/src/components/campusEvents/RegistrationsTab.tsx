@@ -73,8 +73,8 @@ export default function RegistrationsTab({ tick, onChanged }: { tick: number; on
       {showPayments && <PaymentsPanel tick={tick} />}
       {error && <ErrorBox text={error} retry={reload} />}
       {loading && !data ? <Loading text="Loading registrations…" /> : rows.length === 0 ? <Empty text={query ? `No registration matches "${query}".` : 'No registrations match these filters.'} /> : (
-        <div className="overflow-x-auto border border-line">
-          <table className="w-full text-left text-sm">
+        <div className="zv-table-wrap">
+          <table className="zv-table">
             <thead className="bg-surface-2/60 text-xs text-fg-muted"><tr><th className="p-3">Code</th><th className="p-3">Student / team</th><th className="p-3">Event</th><th className="p-3">Status</th><th className="p-3">Payment</th><th className="p-3">Ticket</th><th className="p-3">Actions</th></tr></thead>
             <tbody className="divide-y divide-white/10">
               {rows.map((r) => {
@@ -139,7 +139,7 @@ function PaymentsPanel({ tick }: { tick: number }) {
       {error && <ErrorBox text={error} retry={reload} />}
       {loading && !data ? <Loading text="Loading payments…" /> : rows.length === 0 ? <Empty text="No payment records." /> : (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="zv-table zv-table-dense">
             <thead className="text-fg-muted"><tr><th className="p-2">When</th><th className="p-2">Provider</th><th className="p-2">Amount</th><th className="p-2">Status</th><th className="p-2">Order / payment</th><th className="p-2">Registration</th><th className="p-2">Failure</th></tr></thead>
             <tbody className="divide-y divide-white/10">
               {rows.map((p) => <tr key={p.id}><td className="p-2">{when(p.createdAt)}</td><td className="p-2">{p.provider}</td><td className="p-2">{inr(p.amount)}</td><td className="p-2"><Pill s={p.status} /></td><td className="p-2 font-mono">{p.providerOrderId || '—'}<span className="block">{p.providerPaymentId || ''}</span></td><td className="p-2 font-mono">#{short(p.registrationId)}</td><td className="p-2 text-danger-text">{p.failureReason || ''}</td></tr>)}

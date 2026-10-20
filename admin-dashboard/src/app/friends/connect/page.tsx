@@ -708,7 +708,7 @@ function ProfilesTab({ campuses, busy, act, afterAction }: { campuses: Campus[];
 
       {items.length > 0 && (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="zv-table zv-table-dense">
             <thead>
               <tr className="text-xs text-fg-muted">
                 <th className="py-2 pr-3">Profile</th><th className="py-2 pr-3">Campus</th><th className="py-2 pr-3">State</th><th className="py-2 pr-3">Selfie</th><th className="py-2 pr-3">Last active</th><th className="py-2" />

@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirm } from '@/components/ui';
 import { useState } from 'react';
 import { autoRideApi, INCIDENT_STATUSES, PRIVATE_STATUSES, type Incident } from '@/lib/autoRideApi';
 import { useLoader, type Lookups } from './hooks';
@@ -19,8 +20,8 @@ export function PrivateTab({ tick, lookups }: { tick: number; lookups: Lookups }
       </Toolbar>
       {error && <ErrorBox text={error} retry={reload} />}
       {loading ? <Loading text="Loading requests…" /> : rows.length === 0 ? <Empty text={status === 'REQUESTED' ? 'No full-auto requests waiting for a driver.' : 'No requests match.'} /> : (
-        <div className="overflow-x-auto border border-line">
-          <table className="w-full text-left text-sm">
+        <div className="zv-table-wrap">
+          <table className="zv-table">
             <thead className="bg-surface-2/60 text-xs text-fg-muted">
               <tr><th className="p-3">Requested</th><th className="p-3">Trip / driver</th><th className="p-3">Passengers</th><th className="p-3">Fare</th><th className="p-3">Respond by</th><th className="p-3">Status</th></tr>
             </thead>
@@ -66,6 +67,7 @@ export function IncidentsTab({ tick, onChanged }: { tick: number; onChanged: () 
 }
 
 function IncidentCard({ i, onChanged }: { i: Incident; onChanged: () => void }) {
+  const confirm = useConfirm();
   const [status, setStatus] = useState(i.status);
   const [note, setNote] = useState(i.adminNote || '');
   const [busy, setBusy] = useState(false);
@@ -74,7 +76,7 @@ function IncidentCard({ i, onChanged }: { i: Incident; onChanged: () => void }) 
   const serious = SAFETY.includes(i.category);
   const save = async () => {
     const closing = ['RESOLVED', 'DISMISSED'].includes(status);
-    if (closing && !window.confirm(`Mark this report ${status.toLowerCase()}? The reporter is notified${note.trim() ? ' with your note' : ''}.`)) return;
+    if (closing && !(await confirm({ title: `Mark this report ${status.toLowerCase()}? The reporter is notified${note.trim() ? ' with your note' : ''}.`, confirmLabel: 'Save', tone: 'default' }))) return;
     setBusy(true);
     setMsg(null);
     try {
@@ -117,8 +119,8 @@ export function FaresTab({ tick, lookups }: { tick: number; lookups: Lookups }) 
   return (
     <section className="space-y-6" aria-label="Fares">
       <p className="text-sm text-fg-muted">Last 30 days of published trips. Drivers set their own seat fare inside each route&apos;s bounds; anything outside is listed below (for example after bounds were tightened).</p>
-      <div className="overflow-x-auto border border-line">
-        <table className="w-full text-left text-sm">
+      <div className="zv-table-wrap">
+        <table className="zv-table">
           <thead className="bg-surface-2/60 text-xs text-fg-muted"><tr><th className="p-3">Route</th><th className="p-3">Seat fare bounds</th><th className="p-3">Full-auto bounds</th><th className="p-3">Trips</th><th className="p-3">Avg seat fare</th></tr></thead>
           <tbody className="divide-y divide-white/10">
             {data.routes.length === 0 ? <tr><td colSpan={5} className="p-6 text-center text-fg-muted">No routes.</td></tr> : data.routes.map((r) => (
@@ -131,7 +133,7 @@ export function FaresTab({ tick, lookups }: { tick: number; lookups: Lookups }) 
         <h3 className="mb-2 text-sm font-semibold">Trips outside route bounds ({data.outliers.length})</h3>
         {data.outliers.length === 0 ? <Empty text="Every trip in the last 30 days is inside its route's seat-fare bounds." /> : (
           <div className="overflow-x-auto border border-warning/30">
-            <table className="w-full text-left text-sm">
+            <table className="zv-table">
               <thead className="bg-surface-2/60 text-xs text-fg-muted"><tr><th className="p-3">Trip</th><th className="p-3">Departure</th><th className="p-3">Route</th><th className="p-3">Seat fare</th><th className="p-3">Full auto</th><th className="p-3">Driver</th><th className="p-3">Status</th></tr></thead>
               <tbody className="divide-y divide-white/10">
                 {data.outliers.map((o) => {
@@ -173,8 +175,8 @@ export function AuditTab({ tick }: { tick: number }) {
       </Toolbar>
       {error && <ErrorBox text={error} retry={reload} />}
       {loading ? <Loading text="Loading audit log…" /> : rows.length === 0 ? <Empty text="No Auto-Ride admin actions recorded yet." /> : (
-        <div className="overflow-x-auto border border-line">
-          <table className="w-full text-left text-sm">
+        <div className="zv-table-wrap">
+          <table className="zv-table">
             <thead className="bg-surface-2/60 text-xs text-fg-muted"><tr><th className="p-3">When</th><th className="p-3">Action</th><th className="p-3">Target</th><th className="p-3">Admin</th><th className="p-3">Details</th></tr></thead>
             <tbody className="divide-y divide-white/10">
               {rows.map((e) => (

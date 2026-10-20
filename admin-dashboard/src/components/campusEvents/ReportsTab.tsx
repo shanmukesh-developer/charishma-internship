@@ -44,8 +44,8 @@ export default function ReportsTab({ tick }: { tick: number }) {
             <StatCard name="Still due at venue" value={inr(t.dueAtVenue)} tone={t.dueAtVenue ? 'warn' : 'plain'} hint={`refunded ${inr(t.refunded)}`} />
           </div>
           {rows.length === 0 ? <Empty text="No approved / published / finished events start in this period." /> : (
-            <div className="overflow-x-auto border border-line">
-              <table className="w-full text-left text-sm">
+            <div className="zv-table-wrap">
+              <table className="zv-table">
                 <thead className="bg-surface-2/60 text-xs text-fg-muted"><tr><th className="p-3">Event</th><th className="p-3">Starts</th><th className="p-3">Status</th><th className="p-3 text-right">Registrations</th><th className="p-3 text-right">Confirmed</th><th className="p-3 text-right">Checked in</th><th className="p-3 text-right">Venue ₹</th><th className="p-3 text-right">Wallet ₹</th><th className="p-3 text-right">Online ₹</th><th className="p-3 text-right">Due ₹</th><th className="p-3 text-right">Refunded ₹</th></tr></thead>
                 <tbody className="divide-y divide-white/10">
                   {rows.map((r) => (

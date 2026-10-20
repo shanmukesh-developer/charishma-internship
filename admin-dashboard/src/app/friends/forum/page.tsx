@@ -518,7 +518,7 @@ function CommunitiesTab(props: {
         <LoadState loading={loading} error={error} empty={!items.length} reload={reload} emptyText="No communities match. Use “Re-check defaults” to create the default set." />
         {items.length > 0 && (
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="zv-table">
               <thead>
                 <tr className="text-xs font-semibold text-fg-muted border-b border-line">
                   <th className="px-3 py-2">Community</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">Members</th>
@@ -903,7 +903,7 @@ function TargetsTab(props: {
         emptyText={status === 'pending' ? 'No requests waiting.' : 'No review targets match.'} />
       {items.length > 0 && (
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="zv-table">
             <thead>
               <tr className="text-xs font-semibold text-fg-muted border-b border-line">
                 <th className="px-3 py-2">Target</th><th className="px-3 py-2">Kind</th><th className="px-3 py-2">Status</th>

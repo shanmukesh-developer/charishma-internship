@@ -46,8 +46,8 @@ export default function EventsTab({ tick, onChanged, bucket, setBucket }: { tick
       </Toolbar>
       {error && <ErrorBox text={error} retry={reload} />}
       {loading && !data ? <Loading text="Loading events…" /> : rows.length === 0 ? <Empty text={category || club || query ? 'No events match these filters.' : 'No events in this view yet.'} /> : (
-        <div className="overflow-x-auto border border-line">
-          <table className="w-full text-left text-sm">
+        <div className="zv-table-wrap">
+          <table className="zv-table">
             <thead className="bg-surface-2/60 text-xs text-fg-muted"><tr><th className="p-3">Event</th><th className="p-3">Organizer</th><th className="p-3">When</th><th className="p-3">Price</th><th className="p-3">Places</th><th className="p-3">Registration</th><th className="p-3">Status</th></tr></thead>
             <tbody className="divide-y divide-white/10">
               {rows.map((ev) => (

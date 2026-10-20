@@ -439,7 +439,7 @@ export default function ConfigTerminal() {
           <p className="text-xs text-fg-subtle">No other settings stored.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="zv-table zv-table-dense">
               <thead>
                 <tr className="text-xs text-fg-muted border-b border-line">
                   <th className="py-2 pr-4">Key</th>

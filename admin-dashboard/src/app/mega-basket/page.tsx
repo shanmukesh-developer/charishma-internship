@@ -235,8 +235,8 @@ export default function MegaBasketAdminPage() {
                 {expandedId === basket.id && (
                   <div className="mt-5 border-t border-line pt-4">
                     <div className="mb-3 flex flex-wrap gap-x-6 gap-y-2 text-sm"><span><span className="text-fg-muted">Shopper: </span>{basket.deliveryPartner?.name ? `${basket.deliveryPartner.name}${basket.deliveryPartner.phone ? ` (${basket.deliveryPartner.phone})` : ''}` : 'Unassigned'}</span><span><span className="text-fg-muted">Shopping fee: </span>₹{basket.shoppingFee || 0}</span><span><span className="text-fg-muted">Delivery fee: </span>₹{basket.deliveryFee || 0}</span><span><span className="text-fg-muted">Estimated items: </span>₹{basket.estimatedTotal || 0}</span>{basket.actualTotal != null && <span><span className="text-fg-muted">Actual items: </span>₹{basket.actualTotal}</span>}</div>
-                    <div className="overflow-x-auto border border-line">
-                      <table className="w-full text-left text-sm"><thead className="bg-surface-2/60 text-xs text-fg-muted"><tr><th className="p-3">Item</th><th className="p-3">Qty</th><th className="p-3">Estimated</th><th className="p-3">Actual</th><th className="p-3">Status</th></tr></thead>
+                    <div className="zv-table-wrap">
+                      <table className="zv-table"><thead className="bg-surface-2/60 text-xs text-fg-muted"><tr><th className="p-3">Item</th><th className="p-3">Qty</th><th className="p-3">Estimated</th><th className="p-3">Actual</th><th className="p-3">Status</th></tr></thead>
                         <tbody className="divide-y divide-white/5">{(basket.items || []).map((item, index) => <tr key={item.id || `${item.name}-${index}`}><td className="p-3">{item.name}</td><td className="p-3">{item.quantity} {item.unit || ''}</td><td className="p-3">₹{item.priceEstimated ?? '—'}</td><td className="p-3">₹{item.priceActual ?? '—'}</td><td className="p-3">{item.status || 'Pending'}</td></tr>)}</tbody>
                       </table>
                     </div>

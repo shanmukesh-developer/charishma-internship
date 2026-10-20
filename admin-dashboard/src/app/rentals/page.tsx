@@ -4,6 +4,7 @@
 // bookings, reports, C7 extra-charge disputes and safety settings. Backend: /api/admin/rentals/*
 // (backend/modules/rentals). Live via admin:changed. Wording (C7): commercial plate = Rent (owner / renter),
 // private plate = Borrow (lender / borrower).
+import { Badge, Button, Notice as NoticeBox, PageHeader, Tabs, useConfirm, useToast } from '@/components/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { adminRequest } from '@/lib/api';
 import { useAdminAuth } from '@/utils/useAdminAuth';
@@ -79,6 +80,8 @@ const ModePill = ({ m }: { m?: Mode | null }) => (
 );
 
 export default function RentalsAdminPage() {
+  const confirm = useConfirm();
+  const toastApi = useToast();
   const { isAuthed } = useAdminAuth();
   const [tab, setTab] = useState<Tab>('listings');
   // ?tab=<id>: links from the overview's Needs attention list and the global search open the right tab.
@@ -119,16 +122,16 @@ export default function RentalsAdminPage() {
   const toggle = async () => {
     if (!summary) return;
     const next = !summary.enabled;
-    if (!next && !window.confirm('Pause student vehicle rentals? Students will not be able to browse, list or request. Existing trips keep working.')) return;
+    if (!next && !(await confirm({ title: 'Pause student vehicle rentals? Students will not be able to browse, list or request. Existing trips keep working.', confirmLabel: 'Pause rentals', tone: 'danger' }))) return;
     try {
       const r = await adminRequest<{ enabled: boolean }>('/api/admin/rentals/settings', { method: 'PUT', body: JSON.stringify({ enabled: next }) });
       setSummary({ ...summary, enabled: r.enabled });
     } catch (e) {
-      window.alert(errText(e, 'Could not change the setting.'));
+      toastApi.error(errText(e, 'Could not change the setting.'));
     }
   };
 
-  if (!isAuthed) return <div className="p-10 text-center text-sm text-fg-muted" role="status">Checking your admin session…</div>;
+  if (!isAuthed) return null; // AppShell shows the session check
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: 'listings', label: 'Listings review', count: summary?.pendingListings },
@@ -140,33 +143,23 @@ export default function RentalsAdminPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 text-fg">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
-        <div>
-          <h1 className="text-2xl font-semibold text-fg">Rentals</h1>
-          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Students rent (commercial plate) or borrow (private plate) bikes, scooters and cars from each other. Review listings and their RC / insurance, verify renters&apos; and borrowers&apos; driving licences, handle reports and extra-charge disputes. Money is paid in cash between students; Zenvy does not hold it.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {summary && <span className="text-sm text-fg-muted">{summary.liveListings} live vehicles</span>}
-          {summary && (
-            <button type="button" onClick={toggle} className={`border px-4 py-2 text-sm font-semibold ${summary.enabled ? 'border-success/30 text-success-text' : 'border-danger/30 text-danger-text'}`}>
-              {summary.enabled ? 'Rentals ON · pause' : 'Rentals PAUSED · turn on'}
-            </button>
-          )}
-        </div>
-      </header>
+    <div className="text-fg">
+      <PageHeader
+        title="Rentals"
+        description="Students rent (commercial plate) or borrow (private plate) bikes, scooters and cars from each other. Review listings and their RC and insurance, verify driving licences, and handle reports and extra-charge disputes. Students pay each other in cash; Zenvy does not hold the money."
+        meta={summary ? <Badge tone={summary.enabled ? 'success' : 'neutral'} dot>{summary.enabled ? `On · ${summary.liveListings} live vehicles` : 'Paused for students'}</Badge> : undefined}
+        actions={summary ? (
+          <Button variant={summary.enabled ? 'secondary' : 'primary'} onClick={toggle} title={summary.enabled ? 'Students can no longer browse, list or request; existing trips keep working.' : 'Students can browse, list and request vehicles again.'}>
+            {summary.enabled ? 'Pause rentals' : 'Turn rentals on'}
+          </Button>
+        ) : undefined}
+      >
+        <Tabs ariaLabel="Rentals sections" value={tab} onChange={setTab} tabs={tabs.map(t => ({ id: t.key, label: t.label, count: t.count || null, attention: t.key !== 'bookings' }))} />
+      </PageHeader>
 
-      {summaryError && !summary && <div role="alert" className="border border-danger/30 bg-danger-soft p-3 text-sm text-danger-text">{summaryError} The on/off switch and counts are unavailable until it loads.</div>}
-      {toast && <div role="status" className="border border-info/30 bg-info-soft p-3 text-sm text-info-text">{toast}</div>}
-
-      <nav className="flex flex-wrap gap-2" aria-label="Rentals sections">
-        {tabs.map((t) => (
-          <button key={t.key} type="button" onClick={() => setTab(t.key)} aria-pressed={tab === t.key}
-            className={`border px-4 py-2 text-sm font-semibold ${tab === t.key ? 'border-info/30 bg-info-soft text-fg' : 'border-line text-fg-muted hover:text-fg'}`}>
-            {t.label}{t.count ? <span className="ml-2 bg-danger px-1.5 text-xs text-on-solid">{t.count}</span> : null}
-          </button>
-        ))}
-      </nav>
+      <div className="space-y-4">
+        {summaryError && !summary && <NoticeBox tone="danger"><span className="text-fg">{summaryError} The on/off switch and counts are unavailable until it loads.</span></NoticeBox>}
+        {toast && <NoticeBox tone="info"><span className="text-fg">{toast}</span></NoticeBox>}
 
       {tab === 'listings' && <ListingsTab tick={tick} onChanged={bump} />}
       {tab === 'licences' && <LicencesTab tick={tick} onChanged={bump} />}
@@ -174,6 +167,7 @@ export default function RentalsAdminPage() {
       {tab === 'reports' && <ReportsTab tick={tick} onChanged={bump} />}
       {tab === 'disputes' && <DisputesTab tick={tick} onChanged={bump} />}
       {tab === 'settings' && <SettingsTab />}
+      </div>
     </div>
   );
 }
@@ -257,13 +251,14 @@ function ListingsTab({ tick, onChanged }: { tick: number; onChanged: () => void 
 }
 
 function ListingCard({ l, onChanged }: { l: AdminListing; onChanged: () => void }) {
+  const confirm = useConfirm();
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [state, setState] = useState(l.status);
   const act = async (kind: 'approve' | 'reject') => {
     if (kind === 'reject' && reason.trim().length < 5) return setMsg({ ok: false, text: 'Write a reason the student will see (at least 5 characters).' });
-    if (kind === 'reject' && l.status === 'APPROVED' && !window.confirm('Take this live vehicle down? Pending requests will be declined.')) return;
+    if (kind === 'reject' && l.status === 'APPROVED' && !(await confirm({ title: 'Take this live vehicle down? Pending requests will be declined.', confirmLabel: 'Take it down', tone: 'danger' }))) return;
     setBusy(true);
     setMsg(null);
     try {
@@ -279,7 +274,7 @@ function ListingCard({ l, onChanged }: { l: AdminListing; onChanged: () => void 
   };
   const weekly = Object.entries(l.weeklyHours || {}).filter(([, v]) => !!v) as [string, { start: string; end: string }][];
   return (
-    <article className="border border-line p-5">
+    <article className="rounded-lg border border-line bg-surface p-4 shadow-xs">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
@@ -418,8 +413,8 @@ function BookingsTab({ tick }: { tick: number }) {
       {error && <ErrorBox text={error} retry={reload} />}
       {loading ? <div role="status" className="border border-line p-8 text-sm text-fg-muted">Loading bookings…</div>
         : list.length === 0 ? <Empty text="No bookings match." /> : (
-          <div className="overflow-x-auto border border-line">
-            <table className="w-full text-left text-sm">
+          <div className="zv-table-wrap">
+            <table className="zv-table">
               <thead className="bg-surface-2/60 text-xs text-fg-muted">
                 <tr><th className="p-3">Vehicle</th><th className="p-3">Owner / lender → renter / borrower</th><th className="p-3">When</th><th className="p-3">Cash</th><th className="p-3">Status</th></tr>
               </thead>
@@ -496,6 +491,7 @@ function ConditionBlock({ title, rec, mode }: { title: string; rec: ConditionRec
 }
 
 function DisputeCard({ b, onChanged }: { b: AdminBooking; onChanged: () => void }) {
+  const confirm = useConfirm();
   const ch = b.charges;
   const w = wordsOf(b.rentalMode);
   const [outcome, setOutcome] = useState<'UPHOLD' | 'REDUCE' | 'VOID'>('REDUCE');
@@ -509,7 +505,7 @@ function DisputeCard({ b, onChanged }: { b: AdminBooking; onChanged: () => void 
     if (reason.trim().length < 5) return setMsg({ ok: false, text: 'Write a reason both students will see (at least 5 characters).' });
     const amt = Number(amount);
     if (outcome === 'REDUCE' && (!amount || !Number.isFinite(amt) || amt < 0 || amt >= ch.claimed)) return setMsg({ ok: false, text: `Enter the reduced amount (less than ${inr(ch.claimed)}).` });
-    if (!window.confirm(outcome === 'UPHOLD' ? `Uphold ${inr(ch.claimed)}?` : outcome === 'VOID' ? 'Cancel all extra charges?' : `Reduce the charges to ${inr(amt)}?`)) return;
+    if (!(await confirm({ title: outcome === 'UPHOLD' ? `Uphold ${inr(ch.claimed)}?` : outcome === 'VOID' ? 'Cancel all extra charges?' : `Reduce the charges to ${inr(amt)}?`, confirmLabel: 'Confirm', tone: 'default' }))) return;
     setBusy(true);
     setMsg(null);
     try {
@@ -524,7 +520,7 @@ function DisputeCard({ b, onChanged }: { b: AdminBooking; onChanged: () => void 
     }
   };
   return (
-    <article className="border border-line p-5">
+    <article className="rounded-lg border border-line bg-surface p-4 shadow-xs">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-semibold">{b.vehicleTitle}</h2><ModePill m={b.rentalMode} /><Pill s={state} /></div>
@@ -548,8 +544,8 @@ function DisputeCard({ b, onChanged }: { b: AdminBooking; onChanged: () => void 
           <p className="whitespace-pre-wrap text-sm text-fg">{ch.disputeNote || '—'}</p>
           {ch.disputePhotos.length > 0 && <div className="grid grid-cols-3 gap-2">{ch.disputePhotos.map((u, i) => <Doc key={u} url={u} name={`Dispute ${i + 1}`} />)}</div>}
         </div>
-        <div className="border border-line p-3"><ConditionBlock title="Pickup condition" rec={b.pickupCondition} mode={b.rentalMode} /></div>
-        <div className="border border-line p-3"><ConditionBlock title="Return condition" rec={b.returnCondition} mode={b.rentalMode} /></div>
+        <div className="rounded-lg border border-line bg-surface p-4 shadow-xs"><ConditionBlock title="Pickup condition" rec={b.pickupCondition} mode={b.rentalMode} /></div>
+        <div className="rounded-lg border border-line bg-surface p-4 shadow-xs"><ConditionBlock title="Return condition" rec={b.returnCondition} mode={b.rentalMode} /></div>
       </div>
       {ch.resolution && <p className="mt-3 text-sm text-success-text">Decision {when(ch.resolution.at)}: {label(ch.resolution.outcome || '')} · counted {inr(ch.counted)} · {ch.resolution.reason}</p>}
       {state === 'DISPUTED' && (
@@ -658,7 +654,7 @@ function ReportCard({ r, onChanged }: { r: AdminReport; onChanged: () => void })
     }
   };
   return (
-    <article className="border border-line p-5">
+    <article className="rounded-lg border border-line bg-surface p-4 shadow-xs">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-semibold">{label(r.category)}</h2><Pill s={r.status} /><span className="text-xs text-fg-muted">{when(r.createdAt)}</span></div>

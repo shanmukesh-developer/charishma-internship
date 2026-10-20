@@ -181,7 +181,7 @@ export default function CampusEventsScanPage() {
 
       {eventsError && <ErrorBox text={eventsError} retry={loadEvents} />}
       {!events && !eventsError && <Loading text="Loading events…" />}
-      {events && events.length === 0 && <div className="border border-line p-6 text-sm text-fg-muted">No published events are running or upcoming. Check-in opens for published events.</div>}
+      {events && events.length === 0 && <div className="rounded-lg border border-line bg-surface p-4 shadow-xs text-sm text-fg-muted">No published events are running or upcoming. Check-in opens for published events.</div>}
 
       {events && events.length > 0 && (
         <>

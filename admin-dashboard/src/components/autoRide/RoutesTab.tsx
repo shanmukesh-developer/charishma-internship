@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirm } from '@/components/ui';
 import { useState } from 'react';
 import { autoRideApi, LIMITS, type OperatingPeriod, type PickupPoint, type Route, type RouteInput, type PickupInput } from '@/lib/autoRideApi';
 import { useLoader } from './hooks';
@@ -88,6 +89,7 @@ export default function RoutesTab({ tick, onChanged }: { tick: number; onChanged
 }
 
 function RouteEditor({ route, onCancel, onSaved }: { route?: Route; onCancel: () => void; onSaved: () => void }) {
+  const confirm = useConfirm();
   const [f, setF] = useState<RouteForm>(() => formOf(route));
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -96,7 +98,7 @@ function RouteEditor({ route, onCancel, onSaved }: { route?: Route; onCancel: ()
   const save = async () => {
     const [body, problem] = toInput(f);
     if (!body) { setMsg({ ok: false, text: problem || 'Check the form.' }); return; }
-    if (route && route.isActive && !body.isActive && !window.confirm('Make this route inactive? Drivers can no longer publish trips on it and passengers stop seeing it. Existing trips are not cancelled.')) return;
+    if (route && route.isActive && !body.isActive && !(await confirm({ title: 'Make this route inactive? Drivers can no longer publish trips on it and passengers stop seeing it. Existing trips are not cancelled.', confirmLabel: 'Make inactive', tone: 'danger' }))) return;
     setBusy(true);
     setMsg(null);
     try {
@@ -179,6 +181,7 @@ function Pickups({ route, onChanged }: { route: Route; onChanged: () => void }) 
 }
 
 function PickupEditor({ routeId, p, nextSeq = 1, onCancel, onSaved }: { routeId: string; p?: PickupPoint; nextSeq?: number; onCancel: () => void; onSaved: () => void }) {
+  const confirm = useConfirm();
   const [name, setName] = useState(p?.name || '');
   const [landmark, setLandmark] = useState(p?.landmark || '');
   const [lat, setLat] = useState(p?.lat === null || p?.lat === undefined ? '' : String(p.lat));
@@ -196,7 +199,7 @@ function PickupEditor({ routeId, p, nextSeq = 1, onCancel, onSaved }: { routeId:
     if (la !== null && (!Number.isFinite(la) || la < -90 || la > 90)) return setMsg({ ok: false, text: 'Latitude must be between -90 and 90.' });
     if (lo !== null && (!Number.isFinite(lo) || lo < -180 || lo > 180)) return setMsg({ ok: false, text: 'Longitude must be between -180 and 180.' });
     if (!Number.isInteger(seq) || seq < 0 || seq > 1000) return setMsg({ ok: false, text: 'Sequence must be a whole number from 0 to 1000.' });
-    if (p && p.isActive && !isActive && !window.confirm('Make this pickup point inactive? Drivers can no longer pick it for new trips.')) return;
+    if (p && p.isActive && !isActive && !(await confirm({ title: 'Make this pickup point inactive? Drivers can no longer pick it for new trips.', confirmLabel: 'Make inactive', tone: 'danger' }))) return;
     const body: PickupInput = { name: name.trim(), landmark: landmark.trim() || null, lat: la, lon: lo, sequence: seq, isActive };
     setBusy(true);
     setMsg(null);

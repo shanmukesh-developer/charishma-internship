@@ -695,7 +695,7 @@ export default function FriendsModerationPage() {
 
           <div className="glass-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="zv-table">
                 <thead>
                   <tr className="border-b border-line bg-surface-2/60">
                     {['Severity', 'Target', 'Content', 'Reasons', 'Reporters', 'Status', 'Assignee', 'SLA', 'Last report'].map((h) => <th key={h} className={th}>{h}</th>)}
@@ -848,7 +848,7 @@ export default function FriendsModerationPage() {
           </div>
           <div className="glass-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="zv-table">
                 <thead>
                   <tr className="border-b border-line bg-surface-2/60">
                     {['User', 'Scope', 'Until', 'Reason', 'By', 'Created', ''].map((h) => <th key={h} className={th}>{h}</th>)}
@@ -919,7 +919,7 @@ export default function FriendsModerationPage() {
           </div>
           <div className="glass-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="zv-table">
                 <thead>
                   <tr className="border-b border-line bg-surface-2/60">
                     {['Time', 'Action', 'By', 'Target', 'Affected user', 'Reason / details'].map((h) => <th key={h} className={th}>{h}</th>)}
@@ -1159,7 +1159,7 @@ export default function FriendsModerationPage() {
                   <p className={label}>Moderation history</p>
                   {d.actions.length ? (
                     <div className="glass-card overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
+                      <table className="zv-table">
                         <tbody className="divide-y divide-white/[0.03]">
                           {d.actions.map((a) => <ActionRow key={a.id} a={a} who={who} compact />)}
                         </tbody>

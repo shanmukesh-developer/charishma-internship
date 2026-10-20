@@ -10,6 +10,7 @@ import { useLiveSync } from '@/lib/useLiveSync';
 import { autoRideApi, type Summary } from '@/lib/autoRideApi';
 import { useLookups } from '@/components/autoRide/hooks';
 import { ErrorBox, StatCard, errText } from '@/components/autoRide/ui';
+import { Badge, Button, LoadingState, Notice as NoticeBox, PageHeader, SectionTitle, Tabs, IconChevronRight } from '@/components/ui';
 import DriversTab from '@/components/autoRide/DriversTab';
 import VehiclesTab from '@/components/autoRide/VehiclesTab';
 import RoutesTab from '@/components/autoRide/RoutesTab';
@@ -68,16 +69,16 @@ export default function AutoRideAdminPage() {
   const openVehicle = useCallback((id: string) => { setVehicleFocus(id); setTab('vehicles'); }, [setTab]);
   const clearFocus = useCallback(() => setVehicleFocus(null), []);
 
-  if (!isAuthed) return <div className="p-10 text-center text-sm text-fg-muted" role="status">Checking your admin session…</div>;
+  if (!isAuthed) return null; // AppShell shows the session check
 
   const tabs: { key: Tab; label: string; count?: number; alert?: boolean }[] = [
     { key: 'overview', label: 'Overview' },
-    { key: 'drivers', label: 'Drivers', count: summary?.pendingDrivers },
-    { key: 'vehicles', label: 'Vehicles', count: summary?.pendingVehicles },
-    { key: 'routes', label: 'Routes & Pickup Points' },
-    { key: 'trips', label: 'Trips & Queues', count: summary?.openTrips },
+    { key: 'drivers', label: 'Drivers', count: summary?.pendingDrivers, alert: true },
+    { key: 'vehicles', label: 'Vehicles', count: summary?.pendingVehicles, alert: true },
+    { key: 'routes', label: 'Routes and pickup points' },
+    { key: 'trips', label: 'Trips and queues', count: summary?.openTrips },
     { key: 'bookings', label: 'Bookings', count: summary?.refundPending, alert: true },
-    { key: 'private', label: 'Private Requests', count: summary?.privateAwaiting },
+    { key: 'private', label: 'Private requests', count: summary?.privateAwaiting, alert: true },
     { key: 'incidents', label: 'Incidents', count: summary?.openIncidents, alert: true },
     { key: 'fares', label: 'Fares' },
     { key: 'settings', label: 'Settings' },
@@ -85,84 +86,78 @@ export default function AutoRideAdminPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 text-fg">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
-        <div>
-          <h1 className="text-2xl font-semibold text-fg">Auto-ride</h1>
-          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Shared autos with seat booking. Verify drivers and their autos (approved capacity never above the RC), manage routes and pickup points, watch queues and trips, handle bookings, refunds and safety reports.</p>
-        </div>
-        {summary && (
-          <button type="button" onClick={() => setTab('settings')} className={`border px-4 py-2 text-sm font-semibold ${summary.enabled ? 'border-success/30 text-success-text' : 'border-danger/30 text-danger-text'}`}>
-            {summary.enabled ? 'Auto-Ride ON' : 'Auto-Ride OFF'} · {summary.walletEnabled ? 'wallet on' : 'cash only'}
-          </button>
-        )}
-      </header>
+    <div className="text-fg">
+      <PageHeader
+        title="Auto-ride"
+        description="Shared autos with seat booking: verify drivers and their autos, manage routes and pickup points, watch trips, and handle bookings, refunds and safety reports."
+        meta={summary ? <Badge tone={summary.enabled ? 'success' : 'neutral'} dot>{summary.enabled ? 'On for passengers' : 'Off for passengers'}{summary.walletEnabled ? ', wallet on' : ', cash only'}</Badge> : undefined}
+        actions={summary ? <Button onClick={() => setTab('settings')}>Settings</Button> : undefined}
+      >
+        <Tabs ariaLabel="Auto-ride sections" value={tab} onChange={setTab} tabs={tabs.map(t => ({ id: t.key, label: t.label, count: t.count || null, attention: !!t.alert }))} />
+      </PageHeader>
 
-      {summaryError && !summary && <div role="alert" className="border border-danger/30 bg-danger-soft p-3 text-sm text-danger-text">{summaryError} Counts are unavailable until it loads.</div>}
-      {toast && <div role="status" className="border border-danger/30 bg-danger-soft p-3 text-sm text-danger-text">{toast} · <button type="button" className="font-semibold underline" onClick={() => setTab('incidents')}>Open incidents</button></div>}
+      <div className="space-y-4">
+        {summaryError && !summary && <NoticeBox tone="danger"><span className="text-fg">{summaryError} Counts are unavailable until it loads.</span></NoticeBox>}
+        {toast && <NoticeBox tone="danger" action={<Button size="sm" onClick={() => setTab('incidents')}>Open incidents</Button>}><span className="text-fg">{toast}</span></NoticeBox>}
 
-      <nav className="flex flex-wrap gap-2" aria-label="Auto-Ride sections">
-        {tabs.map((t) => (
-          <button key={t.key} type="button" onClick={() => setTab(t.key)} aria-pressed={tab === t.key}
-            className={`border px-4 py-2 text-sm font-semibold ${tab === t.key ? 'border-info/30 bg-info-soft text-fg' : 'border-line text-fg-muted hover:text-fg'}`}>
-            {t.label}{t.count ? <span className={`ml-2 px-1.5 text-xs text-fg ${t.alert ? 'bg-danger' : 'bg-accent'}`}>{t.count}</span> : null}
-          </button>
-        ))}
-      </nav>
-
-      {tab === 'overview' && <Overview summary={summary} error={summaryError} retry={bump} go={setTab} />}
-      {tab === 'drivers' && <DriversTab tick={tick} onChanged={bump} openVehicle={openVehicle} />}
-      {tab === 'vehicles' && <VehiclesTab tick={tick} onChanged={bump} lookups={lookups} focusId={vehicleFocus} clearFocus={clearFocus} />}
-      {tab === 'routes' && <RoutesTab tick={tick} onChanged={bump} />}
-      {tab === 'trips' && <TripsTab tick={tick} onChanged={bump} lookups={lookups} />}
-      {tab === 'bookings' && <BookingsTab tick={tick} onChanged={bump} lookups={lookups} />}
-      {tab === 'private' && <PrivateTab tick={tick} lookups={lookups} />}
-      {tab === 'incidents' && <IncidentsTab tick={tick} onChanged={bump} />}
-      {tab === 'fares' && <FaresTab tick={tick} lookups={lookups} />}
-      {tab === 'settings' && <SettingsTab tick={tick} onChanged={bump} />}
-      {tab === 'audit' && <AuditTab tick={tick} />}
+        {tab === 'overview' && <Overview summary={summary} error={summaryError} retry={bump} go={setTab} />}
+        {tab === 'drivers' && <DriversTab tick={tick} onChanged={bump} openVehicle={openVehicle} />}
+        {tab === 'vehicles' && <VehiclesTab tick={tick} onChanged={bump} lookups={lookups} focusId={vehicleFocus} clearFocus={clearFocus} />}
+        {tab === 'routes' && <RoutesTab tick={tick} onChanged={bump} />}
+        {tab === 'trips' && <TripsTab tick={tick} onChanged={bump} lookups={lookups} />}
+        {tab === 'bookings' && <BookingsTab tick={tick} onChanged={bump} lookups={lookups} />}
+        {tab === 'private' && <PrivateTab tick={tick} lookups={lookups} />}
+        {tab === 'incidents' && <IncidentsTab tick={tick} onChanged={bump} />}
+        {tab === 'fares' && <FaresTab tick={tick} lookups={lookups} />}
+        {tab === 'settings' && <SettingsTab tick={tick} onChanged={bump} />}
+        {tab === 'audit' && <AuditTab tick={tick} />}
+      </div>
     </div>
   );
 }
 
 function Overview({ summary: s, error, retry, go }: { summary: Summary | null; error: string; retry: () => void; go: (t: Tab) => void }) {
-  if (!s) return error ? <ErrorBox text={error} retry={retry} /> : <div role="status" className="border border-line p-8 text-sm text-fg-muted">Loading live counts…</div>;
+  if (!s) return error ? <ErrorBox text={error} retry={retry} /> : <LoadingState label="Loading live counts…" />;
+  const actions = [
+    { n: s.pendingDrivers, t: 'Drivers waiting for verification', tab: 'drivers' as Tab },
+    { n: s.pendingVehicles, t: 'Autos waiting for approval', tab: 'vehicles' as Tab },
+    { n: s.refundPending, t: 'Refunds pending (retry in Bookings)', tab: 'bookings' as Tab },
+  ];
   return (
     <section className="space-y-6" aria-label="Overview">
       {!s.enabled && (
-        <div className="border border-warning/30 bg-warning-soft p-4 text-sm text-warning-text">
-          Auto-Ride is OFF for passengers. Turn it on only after legal checks: permits, insurance, driver documents. <button type="button" className="font-semibold underline" onClick={() => go('settings')}>Settings</button>
-        </div>
+        <NoticeBox tone="warning" title="Auto-ride is off for passengers" action={<Button size="sm" onClick={() => go('settings')}>Open settings</Button>}>
+          Turn it on only after the legal checks: permits, insurance and driver documents.
+        </NoticeBox>
       )}
       <div>
-        <h2 className="mb-3 text-xs font-semibold text-fg-muted">Right now</h2>
+        <SectionTitle title="Needs action" />
+        <ul className="divide-y divide-line rounded-lg border border-line bg-surface shadow-xs">
+          {actions.map((x) => (
+            <li key={x.tab}>
+              <button type="button" onClick={() => go(x.tab)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-surface-2/70">
+                <span className={`h-2 w-2 rounded-full ${x.n ? 'bg-warning' : 'bg-line-strong'}`} aria-hidden />
+                <span className="flex-1 text-sm text-fg">{x.t}</span>
+                <span className={`text-base font-semibold tabular-nums ${x.n ? 'text-fg' : 'text-fg-subtle'}`}>{x.n}</span>
+                <IconChevronRight size={14} className="text-fg-subtle" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        <SectionTitle title="Right now" description="Counted live from the database; refreshes when anything changes." />
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatCard name="Online verified autos" value={s.onlineVerifiedDrivers} tone={s.onlineVerifiedDrivers ? 'good' : 'plain'} hint="Verified drivers currently online" />
           <StatCard name="Open trips" value={s.openTrips} hint="Accepting seat bookings" />
-          <StatCard name="Booked seats" value={s.bookedSeats} hint="Confirmed + boarded on active trips" />
+          <StatCard name="Booked seats" value={s.bookedSeats} hint="Confirmed and boarded on active trips" />
           <StatCard name="Autos at full capacity" value={s.fullTrips} hint="Full, waiting to depart" />
-          <StatCard name="Private requests awaiting" value={s.privateAwaiting} tone={s.privateAwaiting ? 'warn' : 'plain'} hint="Full-auto requests a driver has not answered" />
+          <StatCard name="Private requests waiting" value={s.privateAwaiting} tone={s.privateAwaiting ? 'warn' : 'plain'} hint="Full-auto requests a driver has not answered" />
           <StatCard name="Trips in progress" value={s.tripsInProgress} />
-          <StatCard name="Cancelled today" value={s.cancelledToday} tone={s.cancelledToday ? 'bad' : 'plain'} hint="Cancelled / no-show / unavailable since 00:00 IST" />
-          <StatCard name="Open incidents" value={s.openIncidents} tone={s.openIncidents ? 'bad' : 'plain'} hint="Open + reviewing" />
+          <StatCard name="Cancelled today" value={s.cancelledToday} tone={s.cancelledToday ? 'bad' : 'plain'} hint="Cancelled, no-show or unavailable since midnight IST" />
+          <StatCard name="Open incidents" value={s.openIncidents} tone={s.openIncidents ? 'bad' : 'plain'} hint="Open and being reviewed" />
         </div>
       </div>
-      <div>
-        <h2 className="mb-3 text-xs font-semibold text-fg-muted">Needs action</h2>
-        <div className="grid gap-3 md:grid-cols-3">
-          {[
-            { n: s.pendingDrivers, t: 'drivers waiting for verification', tab: 'drivers' as Tab },
-            { n: s.pendingVehicles, t: 'autos waiting for approval', tab: 'vehicles' as Tab },
-            { n: s.refundPending, t: 'refunds pending (retry in Bookings)', tab: 'bookings' as Tab },
-          ].map((x) => (
-            <button key={x.tab} type="button" onClick={() => go(x.tab)} className={`border p-4 text-left hover:bg-surface-2/60 ${x.n ? 'border-warning/30' : 'border-line'}`}>
-              <span className={`text-2xl font-semibold tabular-nums ${x.n ? 'text-warning-text' : 'text-fg-muted'}`}>{x.n}</span>
-              <span className="ml-2 text-sm text-fg-muted">{x.t}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-      <p className="text-xs text-fg-muted">All numbers are counted live from the database and refresh when anything changes.</p>
     </section>
   );
 }

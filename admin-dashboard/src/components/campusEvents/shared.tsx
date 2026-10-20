@@ -46,7 +46,7 @@ export function showValue(v: unknown): string {
 
 export function Section({ title, children, right }: { title: string; children: ReactNode; right?: ReactNode }) {
   return (
-    <div className="border border-line p-5">
+    <div className="rounded-lg border border-line bg-surface p-4 shadow-xs">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-xs font-semibold text-fg-muted">{title}</h3>
         {right}
@@ -142,8 +142,8 @@ export function EventPreview({ ev, slots }: { ev: AdminEvent; slots?: Slot[] | n
         {slots && slots.length > 0 && (
           <div>
             <p className="mb-1 text-xs font-semibold text-fg-muted">Slots</p>
-            <div className="overflow-x-auto border border-line">
-              <table className="w-full text-left text-xs">
+            <div className="zv-table-wrap">
+              <table className="zv-table zv-table-dense">
                 <thead className="bg-surface-2/60 text-fg-muted"><tr><th className="p-2">Slot</th><th className="p-2">Time</th><th className="p-2">Capacity</th><th className="p-2">Confirmed</th><th className="p-2">Left</th><th className="p-2">Price</th><th className="p-2">State</th></tr></thead>
                 <tbody className="divide-y divide-white/10">
                   {slots.map((s) => <tr key={s.id}><td className="p-2">{s.label || '—'}</td><td className="p-2">{range(s.startAt, s.endAt)}</td><td className="p-2">{s.capacity}</td><td className="p-2">{s.confirmed}</td><td className="p-2">{s.remaining}</td><td className="p-2">{s.price.label}</td><td className="p-2"><Pill s={s.state} /></td></tr>)}
@@ -165,8 +165,8 @@ export function ChangesDiff({ ev }: { ev: AdminEvent }) {
   return (
     <div className="space-y-2">
       <p className="text-xs text-fg-muted">Requested {when(ev.pendingChanges?.requestedAt)} by the organizer. Approving applies them at once (registrants are notified of venue / time changes; capacity can never drop below places taken).</p>
-      <div className="overflow-x-auto border border-line">
-        <table className="w-full text-left text-sm">
+      <div className="zv-table-wrap">
+        <table className="zv-table">
           <thead className="bg-surface-2/60 text-xs text-fg-muted"><tr><th className="p-2">Field</th><th className="p-2">Now</th><th className="p-2">Requested</th></tr></thead>
           <tbody className="divide-y divide-white/10">
             {keys.map((k) => {
