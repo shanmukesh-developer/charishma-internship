@@ -11,6 +11,8 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { StaggeredSection, FloatingPulse, BounceIn } from '../components/AnimatedSection';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { formatINR, formatISTDate } from '../utils/format';
 
 interface BasketItem {
   id?: string;
@@ -53,7 +55,10 @@ interface QuickItem {
 }
 
 const NUM = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-const money = (n: any) => `₹${Math.round(NUM(n) * 100) / 100}`;
+const money = (n: any) => formatINR(NUM(n));
+// Used only until GET /api/mega-basket/fees answers (or if it fails and there is no earlier list).
+const FALLBACK_SHOPPING_FEE = 30;
+const FALLBACK_DELIVERY_FEE = 20;
 const basketTotal = (b: MegaBasket) =>
   NUM(b.actualTotal ?? b.estimatedTotal) + NUM(b.shoppingFee) + NUM(b.deliveryFee);
 const cleanRoom = (room: any) => String(room || '').replace(/^\s*room\s*/i, '').trim();
@@ -105,6 +110,8 @@ export default function MegaBasketScreen() {
   // Popular essentials (real catalogue items)
   const [quickItems, setQuickItems] = useState<QuickItem[]>([]);
   const [quickLoading, setQuickLoading] = useState(true);
+  // Current fees from the server (public GET /api/mega-basket/fees)
+  const [serverFees, setServerFees] = useState<{ shopping: number; delivery: number } | null>(null);
 
   // Lists & Live updates
   const [baskets, setBaskets] = useState<MegaBasket[]>([]);
@@ -141,7 +148,7 @@ export default function MegaBasketScreen() {
         setBaskets(data.map((b: any) => ({ ...b, items: Array.isArray(b?.items) ? b.items : [] })));
         setBasketsError(null);
       } else {
-        setBasketsError((data && typeof data.message === 'string' && data.message) || 'We could not load your baskets.');
+        setBasketsError((data && typeof data.message === 'string' && data.message) || "We couldn't load your shopping lists.");
       }
     } catch {
       if (mountedRef.current) setBasketsError("Can't reach Zenvy right now. Check your internet and try again.");
@@ -176,6 +183,23 @@ export default function MegaBasketScreen() {
         if (!cancelled) setQuickItems([]);
       } finally {
         if (!cancelled) setQuickLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/mega-basket/fees`);
+        const data = await res.json().catch(() => null);
+        if (cancelled || !res.ok || !data) return;
+        const shopping = Number(data.shoppingFee);
+        const delivery = Number(data.deliveryFee);
+        if (Number.isFinite(shopping) && Number.isFinite(delivery)) setServerFees({ shopping, delivery });
+      } catch {
+        // Falls back to the latest list's fees, then the defaults below.
       }
     })();
     return () => { cancelled = true; };
@@ -261,16 +285,16 @@ export default function MegaBasketScreen() {
     return items.reduce((acc, curr) => acc + (curr.priceEstimated * curr.quantity), 0);
   }, [items]);
 
-  // Fees: what the server charged on the customer's latest list (it sets them on every basket);
-  // the current server defaults (megaBasketController.createBasket) until there is one.
+  // Fees for the estimate: the server's current fees (GET /api/mega-basket/fees); if that fails, what the
+  // server charged on the customer's latest list; the defaults only when neither is known.
   const latestFees = useMemo(() => {
     const withFees = baskets
       .filter((b) => Number.isFinite(Number(b.shoppingFee)) && Number.isFinite(Number(b.deliveryFee)))
       .sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
     return withFees[0] ? { shopping: Number(withFees[0].shoppingFee), delivery: Number(withFees[0].deliveryFee) } : null;
   }, [baskets]);
-  const shoppingFee = latestFees ? latestFees.shopping : 30;
-  const deliveryFee = latestFees ? latestFees.delivery : 20;
+  const shoppingFee = serverFees ? serverFees.shopping : latestFees ? latestFees.shopping : FALLBACK_SHOPPING_FEE;
+  const deliveryFee = serverFees ? serverFees.delivery : latestFees ? latestFees.delivery : FALLBACK_DELIVERY_FEE;
   const grandTotal = subtotal + shoppingFee + deliveryFee;
 
   const handlePlaceOrder = async () => {
@@ -316,15 +340,15 @@ export default function MegaBasketScreen() {
         setBaskets(prev => [{ ...data, items: Array.isArray(data.items) ? data.items : [] }, ...prev.filter(b => b.id !== data.id)]);
         setSelectedBasketId(String(data.id));
         setActiveTab('list');
-        Alert.alert('Shopping list sent 🛒', 'A shopper will pick it up soon. You will approve the real shop prices before they buy.');
+        Alert.alert('Shopping list sent', 'A shopper will pick it up soon. You will approve the real shop prices before they buy.');
       } else {
-        Alert.alert('Not placed yet', (res.status < 500 && data && typeof data.message === 'string' && data.message) || 'We could not place your basket. Please try again.');
+        Alert.alert('Not placed yet', (res.status < 500 && data && typeof data.message === 'string' && data.message) || "We couldn't send your shopping list. Please try again.");
       }
     } catch {
       if (!mountedRef.current) return;
       // The list may have reached the server before the connection dropped: reload My lists and
       // ask the user to check before retrying (a retry reuses the same key).
-      Alert.alert('Couldn’t confirm your list', "We couldn't confirm whether your shopping list was sent. Check My lists before trying again.");
+      Alert.alert("Couldn't confirm your list", "We couldn't confirm whether your shopping list was sent. Check My lists before trying again.");
       fetchBaskets({ silent: true });
     } finally {
       placingRef.current = false;
@@ -342,7 +366,7 @@ export default function MegaBasketScreen() {
       });
       const data = await res.json().catch(() => null);
       if (res.ok) {
-        Alert.alert('Approved ✅', (data && data.message) || 'Prices approved! Your shopper is buying now.');
+        Alert.alert('Prices approved', 'Your shopper is buying your items now.');
         fetchBaskets({ silent: true });
       } else {
         Alert.alert('Not approved', (res.status < 500 && data && typeof data.message === 'string' && data.message) || 'We could not approve the prices. Please try again.');
@@ -372,15 +396,15 @@ export default function MegaBasketScreen() {
       Created: 'Placed',
       PaidEstimate: 'Finding a shopper for you',
       PartnerAssigned: 'Shopper assigned',
-      Shopping: 'Rider is in the Shop 🛒',
-      PriceApprovalPending: 'Price Approval Required 🚨',
-      Approved: 'Prices Approved by You',
-      Purchased: 'Items Purchased, Packing',
-      Delivering: 'Rider is en route 🚀',
-      Delivered: 'Completed & Delivered 🎉',
+      Shopping: 'Shopper is at the shop',
+      PriceApprovalPending: 'Approve the prices',
+      Approved: 'Prices approved',
+      Purchased: 'Bought, packing your items',
+      Delivering: 'On the way',
+      Delivered: 'Delivered',
       Cancelled: 'Cancelled'
     };
-    return labels[status] || status;
+    return labels[status] || 'Updating…';
   };
 
 
@@ -390,7 +414,9 @@ export default function MegaBasketScreen() {
       {/* Header */}
       <View style={[s.header, { borderBottomColor: border }]}>
         <TouchableOpacity 
-          style={s.backBtn} 
+          style={s.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Back" 
           onPress={() => {
             if (router.canGoBack()) {
               router.back();
@@ -402,8 +428,8 @@ export default function MegaBasketScreen() {
           <Text style={[s.backIcon, { color: txt }]}>‹</Text>
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={[s.subText, { color: '#F59E0B' }]}>🏢 APARTMENT & HOSTEL BULK BASKET</Text>
-          <Text style={[s.title, { color: txt }]}>Kirana & Bulk Essentials</Text>
+          <Text style={[s.subText, { color: '#F59E0B' }]}>Mega Basket</Text>
+          <Text style={[s.title, { color: txt }]}>Groceries and essentials</Text>
         </View>
       </View>
 
@@ -421,7 +447,7 @@ export default function MegaBasketScreen() {
               style={StyleSheet.absoluteFill}
             />
           ) : null}
-          <Text style={[s.tabLabel, activeTab === 'new' && s.tabLabelActive]}>CREATE BASKET</Text>
+          <Text style={[s.tabLabel, activeTab === 'new' && s.tabLabelActive]}>New list</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[s.tabBtn, activeTab === 'list' && s.tabBtnActive]} 
@@ -436,7 +462,7 @@ export default function MegaBasketScreen() {
             />
           ) : null}
           <Text style={[s.tabLabel, activeTab === 'list' && s.tabLabelActive]}>
-            MY BASKETS ({activeBaskets.length})
+            My lists ({activeBaskets.length})
           </Text>
         </TouchableOpacity>
       </View>
@@ -452,23 +478,23 @@ export default function MegaBasketScreen() {
           <View style={s.scrollContent}>
             {!user && (
               <TouchableOpacity style={[s.card, { backgroundColor: cardBg, borderColor: border, flexDirection: 'row', alignItems: 'center', gap: 12 }]} onPress={() => router.push('/login' as any)} activeOpacity={0.85}>
-                <Text style={{ fontSize: 22 }}>🔐</Text>
+                <Ionicons name="lock-closed-outline" size={22} color={txtSec} />
                 <View style={{ flex: 1 }}>
                   <Text style={[s.listItemName, { color: txt }]}>Sign in to send a shopping list</Text>
-                  <Text style={s.listItemSub}>You can build your list now — sign in to place it.</Text>
+                  <Text style={s.listItemSub}>You can build your list now and sign in to send it.</Text>
                 </View>
-                <Text style={{ color: COLORS.red, fontWeight: '900', fontSize: 11 }}>SIGN IN →</Text>
+                <Text style={{ color: COLORS.red, fontWeight: '900', fontSize: 12 }}>Sign in</Text>
               </TouchableOpacity>
             )}
             {/* Quick Add */}
             <StaggeredSection delay={50} direction="up">
               <View style={[s.card, { backgroundColor: cardBg, borderColor: border }]}>
-                <Text style={s.cardTitle}>QUICK ADD ESSENTIALS</Text>
+                <Text style={s.cardTitle}>Quick add</Text>
                 <View style={s.quickGrid}>
                   {quickLoading ? (
                     <ActivityIndicator color={COLORS.red} style={{ marginVertical: 12, alignSelf: 'center', flex: 1 }} />
                   ) : quickItems.length === 0 ? (
-                    <Text style={[s.listItemSub, { paddingVertical: 8 }]}>Type anything you need below — your shopper buys it from the nearest store.</Text>
+                    <Text style={[s.listItemSub, { paddingVertical: 8 }]}>Type anything you need below. Your shopper buys it from the nearest store.</Text>
                   ) : quickItems.map((item) => (
                     <TouchableOpacity key={item.id} style={[s.quickItem, { borderColor: border }]} onPress={() => handleQuickAdd(item)}>
                       <Text style={s.quickCat} numberOfLines={1}>{item.category}</Text>
@@ -480,10 +506,10 @@ export default function MegaBasketScreen() {
 
                 {/* Custom Input */}
                 <View style={s.customSection}>
-                  <Text style={s.customTitle}>ADD CUSTOM SPECIAL REQUEST</Text>
+                  <Text style={s.customTitle}>Add an item</Text>
                   <TextInput 
                     style={[s.input, { color: txt, borderColor: border }]}
-                    placeholder="Enter item name (e.g. Tomato Sauce, Blue Pen)"
+                    placeholder="Item name (e.g. Tomato ketchup, blue pen)"
                     placeholderTextColor={txtSec}
                     value={customName}
                     onChangeText={setCustomName}
@@ -511,7 +537,7 @@ export default function MegaBasketScreen() {
                       />
                     </View>
                     <View style={{ flex: 1.5 }}>
-                      <Text style={s.inputLabel}>Est Price</Text>
+                      <Text style={s.inputLabel}>Est. price</Text>
                       <TextInput 
                         style={[s.input, { color: txt, borderColor: border, textAlign: 'center' }]}
                         keyboardType="numeric"
@@ -524,7 +550,7 @@ export default function MegaBasketScreen() {
                     </View>
                   </View>
                   <TouchableOpacity style={s.addCustomBtn} onPress={handleAddCustom}>
-                    <Text style={s.addCustomText}>+ ADD TO SHOPPING LIST</Text>
+                    <Text style={s.addCustomText}>Add to shopping list</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -534,16 +560,16 @@ export default function MegaBasketScreen() {
             {items.length > 0 && (
               <StaggeredSection delay={130} direction="up">
                 <View style={[s.card, { backgroundColor: cardBg, borderColor: border }]}>
-                  <Text style={s.cardTitle}>YOUR SHOPPING LIST ({items.length})</Text>
+                  <Text style={s.cardTitle}>Your shopping list ({items.length})</Text>
                   <View style={{ gap: 8, marginBottom: 12 }}>
                     {items.map((item, idx) => (
                       <View key={idx} style={[s.listItem, { borderColor: border }]}>
                         <View style={{ flex: 1 }}>
                           <Text style={[s.listItemName, { color: txt }]}>{item.name}</Text>
-                          <Text style={s.listItemSub}>{item.quantity} {item.unit} • Est. {money(item.priceEstimated)}/unit</Text>
+                          <Text style={s.listItemSub}>{item.quantity} {item.unit} · Est. {money(item.priceEstimated)}/unit</Text>
                         </View>
                         <Text style={s.listItemPrice}>{money(item.priceEstimated * item.quantity)}</Text>
-                        <TouchableOpacity style={s.removeBtn} onPress={() => handleRemoveItem(idx)}>
+                        <TouchableOpacity style={s.removeBtn} onPress={() => handleRemoveItem(idx)} accessibilityRole="button" accessibilityLabel={`Remove ${item.name}`}>
                           <Text style={s.removeText}>✕</Text>
                         </TouchableOpacity>
                       </View>
@@ -553,19 +579,19 @@ export default function MegaBasketScreen() {
                   {/* Subtotals */}
                   <View style={[s.summaryContainer, { borderTopColor: border }]}>
                     <View style={s.summaryRow}>
-                      <Text style={{ color: txtSec, fontSize: 10 }}>Items Subtotal</Text>
+                      <Text style={{ color: txtSec, fontSize: 10 }}>Items subtotal</Text>
                       <Text style={{ color: txt, fontSize: 10 }}>{money(subtotal)}</Text>
                     </View>
                     <View style={s.summaryRow}>
-                      <Text style={{ color: txtSec, fontSize: 10 }}>Personal Shopper Fee</Text>
-                      <Text style={{ color: txt, fontSize: 10 }}>₹{shoppingFee}</Text>
+                      <Text style={{ color: txtSec, fontSize: 10 }}>Shopping fee</Text>
+                      <Text style={{ color: txt, fontSize: 10 }}>{money(shoppingFee)}</Text>
                     </View>
                     <View style={s.summaryRow}>
-                      <Text style={{ color: txtSec, fontSize: 10 }}>Hostel Delivery Fee</Text>
-                      <Text style={{ color: txt, fontSize: 10 }}>₹{deliveryFee}</Text>
+                      <Text style={{ color: txtSec, fontSize: 10 }}>Delivery fee</Text>
+                      <Text style={{ color: txt, fontSize: 10 }}>{money(deliveryFee)}</Text>
                     </View>
                     <View style={[s.summaryRow, s.grandTotalRow, { borderTopColor: border }]}>
-                      <Text style={{ color: txt, fontSize: 12, fontWeight: '900' }}>Estimated Total Bill</Text>
+                      <Text style={{ color: txt, fontSize: 12, fontWeight: '900' }}>Estimated total</Text>
                       <Text style={{ color: COLORS.red, fontSize: 14, fontWeight: '900' }}>{money(grandTotal)}</Text>
                     </View>
                   </View>
@@ -576,11 +602,11 @@ export default function MegaBasketScreen() {
             {/* Delivery address & Payment */}
             <StaggeredSection delay={210} direction="up">
               <View style={[s.card, { backgroundColor: cardBg, borderColor: border }]}>
-                <Text style={s.cardTitle}>DELIVERY & PAYMENT SETUP</Text>
-                <Text style={s.inputLabel}>Delivery Address (Hostel & Room)</Text>
+                <Text style={s.cardTitle}>Delivery and payment</Text>
+                <Text style={s.inputLabel}>Hostel block and room</Text>
                 <TextInput 
                   style={[s.input, { color: txt, borderColor: border }]}
-                  placeholder="e.g. Block B, Room 202"
+                  placeholder="e.g. Ganga, Room 304"
                   placeholderTextColor={txtSec}
                   value={deliveryAddress}
                   onChangeText={setDeliveryAddress}
@@ -588,10 +614,10 @@ export default function MegaBasketScreen() {
 
                 <Text style={[s.inputLabel, { marginTop: 12 }]}>Payment</Text>
                 <View style={[s.listItem, { borderColor: border }]}>
-                  <Text style={{ fontSize: 18, marginRight: 10 }}>💵</Text>
+                  <Ionicons name="cash-outline" size={18} color="#22c55e" style={{ marginRight: 10 }} />
                   <View style={{ flex: 1 }}>
                     <Text style={[s.listItemName, { color: txt }]}>Cash on Delivery</Text>
-                    <Text style={s.listItemSub}>You approve the real shop bill first, then pay the rider in cash.</Text>
+                    <Text style={s.listItemSub}>You approve the real shop bill first, then pay your shopper in cash.</Text>
                   </View>
                 </View>
               </View>
@@ -603,7 +629,7 @@ export default function MegaBasketScreen() {
                 {placing ? (
                   <ActivityIndicator size="small" color="#FFF" />
                 ) : (
-                  <Text style={s.placeOrderText}>PLACE SHOPPING ORDER (EST. {money(grandTotal)})</Text>
+                  <Text style={s.placeOrderText}>Send list · est. {money(grandTotal)}</Text>
                 )}
               </TouchableOpacity>
             </FloatingPulse>
@@ -613,13 +639,13 @@ export default function MegaBasketScreen() {
             {selectedBasket ? (
               <View>
                 <TouchableOpacity style={s.backToListBtn} onPress={() => setSelectedBasketId(null)}>
-                  <Text style={s.backToListText}>← BACK TO BASKETS LIST</Text>
+                  <Text style={s.backToListText}>‹ Back to my lists</Text>
                 </TouchableOpacity>
 
                 {!!liveNote && (
                   <BounceIn delay={0}>
                     <View style={[s.listItem, { borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.08)', marginBottom: 12 }]}>
-                      <Text style={{ fontSize: 14, marginRight: 8 }}>🔔</Text>
+                      <Ionicons name="notifications-outline" size={14} color="#10B981" style={{ marginRight: 8 }} />
                       <Text style={[s.listItemName, { color: txt, flex: 1 }]}>{liveNote}</Text>
                     </View>
                   </BounceIn>
@@ -628,66 +654,65 @@ export default function MegaBasketScreen() {
                 <View style={[s.card, { backgroundColor: cardBg, borderColor: border }]}>
                   <View style={s.cardHeaderRow}>
                     <View>
-                      <Text style={s.inputLabel}>BASKET CODE</Text>
+                      <Text style={s.inputLabel}>List code</Text>
                       <Text style={s.basketCode}>#{String(selectedBasket.id).slice(-6).toUpperCase()}</Text>
                     </View>
                     <View style={s.statusBadge}>
-                      <Text style={s.statusBadgeText}>{getStatusLabel(selectedBasket.status).toUpperCase()}</Text>
+                      <Text style={s.statusBadgeText}>{getStatusLabel(selectedBasket.status)}</Text>
                     </View>
                   </View>
 
-                  {/* Operational details */}
+                  {/* Shopper (the status itself is in the badge above) */}
+                  {selectedBasket.deliveryPartner && (
                   <View style={s.statusDetailBox}>
-                    <Text style={s.statusDetailLabel}>OPERATIONAL STATE</Text>
-                    <Text style={[s.statusDetailText, { color: txt }]}>{getStatusLabel(selectedBasket.status)}</Text>
-
-                    {selectedBasket.deliveryPartner && (
-                      <View style={s.partnerBox}>
-                        <Text style={{ fontSize: 16 }}>👤</Text>
+                      <View style={[s.partnerBox, { marginTop: 0, paddingTop: 0, borderTopWidth: 0 }]}>
+                        <Ionicons name="person-outline" size={16} color={txtSec} />
                         <View style={{ flex: 1 }}>
-                          <Text style={s.partnerLabel}>PERSONAL SHOPPER</Text>
+                          <Text style={s.partnerLabel}>Your shopper</Text>
                           <Text style={[s.partnerName, { color: txt }]}>{selectedBasket.deliveryPartner.name}</Text>
                           {!!selectedBasket.deliveryPartner.phone && (
                             <TouchableOpacity
                               onPress={() => Linking.openURL(`tel:${String(selectedBasket.deliveryPartner?.phone || '').replace(/[^\d+]/g, '')}`).catch(() => Alert.alert('Could not start the call', 'Please dial the number from your phone app.'))}
                               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                             >
-                              <Text style={s.partnerPhone}>📞 Call {selectedBasket.deliveryPartner.phone}</Text>
+                              <Text style={s.partnerPhone}>Call {selectedBasket.deliveryPartner.phone}</Text>
                             </TouchableOpacity>
                           )}
                         </View>
                       </View>
-                    )}
                   </View>
+                  )}
 
-                  {/* Delivery PIN Code */}
+                  {/* Delivery OTP (stored as deliveryPin) */}
                   {!!selectedBasket.deliveryPin && getStatusStep(selectedBasket.status) >= getStatusStep('Approved') && selectedBasket.status !== 'Delivered' && (
                     <View style={s.pinBox}>
-                      <Text style={s.pinLabel}>SECURE DELIVERY PIN</Text>
+                      <Text style={s.pinLabel}>Delivery OTP</Text>
                       <Text style={s.pinVal}>{selectedBasket.deliveryPin}</Text>
-                      <Text style={s.pinSub}>Provide this to the rider upon delivery</Text>
+                      <Text style={s.pinSub}>Share this with your shopper at handover</Text>
                     </View>
                   )}
 
                   {/* Price Approval pending alerts */}
                   {selectedBasket.status === 'PriceApprovalPending' && (
                     <View style={s.approvalAlertBox}>
-                      <Text style={s.approvalAlertTitle}>🚨 Price Approval Required</Text>
+                      <Text style={s.approvalAlertTitle}>Approve the shop prices</Text>
                       <Text style={s.approvalAlertDesc}>
-                        Your shopper found the real shop prices. The items come to {money(selectedBasket.actualTotal)}. Approve to let them buy.
+                        {selectedBasket.actualTotal != null
+                          ? `Your shopper found the real shop prices. The items come to ${money(selectedBasket.actualTotal)}. Approve to let them buy.`
+                          : 'Your shopper found the real shop prices. Approve to let them buy.'}
                       </Text>
                       <TouchableOpacity style={s.approveBtn} onPress={handleApproveBill} disabled={approvingPrice}>
                         {approvingPrice ? (
                           <ActivityIndicator size="small" color="#000" />
                         ) : (
-                          <Text style={s.approveBtnText}>APPROVE ACTUAL PRICES & PROCEED</Text>
+                          <Text style={s.approveBtnText}>Approve prices</Text>
                         )}
                       </TouchableOpacity>
                     </View>
                   )}
 
                   {/* Items list */}
-                  <Text style={s.cardTitle}>SHOP PRICE CHECKLIST</Text>
+                  <Text style={s.cardTitle}>Items</Text>
                   <View style={{ gap: 8, marginBottom: 16 }}>
                     {selectedBasket.items.map((item, idx) => {
                       const isShopping = getStatusStep(selectedBasket.status) >= getStatusStep('Shopping');
@@ -700,7 +725,7 @@ export default function MegaBasketScreen() {
                               {item.name}
                             </Text>
                             <Text style={s.listItemSub}>
-                              Qty: {item.quantity} {item.unit} • Est: {money(item.priceEstimated)}/unit
+                              Qty {item.quantity} {item.unit} · Est. {money(item.priceEstimated)}/unit
                             </Text>
                           </View>
 
@@ -717,7 +742,7 @@ export default function MegaBasketScreen() {
                                 )}
                               </View>
                             ) : (
-                              <Text style={[s.listItemPrice, { color: txtSec }]}>Est: {money(item.priceEstimated * item.quantity)}</Text>
+                              <Text style={[s.listItemPrice, { color: txtSec }]}>Est. {money(item.priceEstimated * item.quantity)}</Text>
                             )}
                           </View>
                         </View>
@@ -728,12 +753,12 @@ export default function MegaBasketScreen() {
                   {/* Summaries */}
                   <View style={[s.summaryContainer, { borderTopColor: border }]}>
                     <View style={s.summaryRow}>
-                      <Text style={{ color: txtSec, fontSize: 10 }}>Shopping & Checkout Fee</Text>
-                      <Text style={{ color: txt, fontSize: 10 }}>₹{selectedBasket.shoppingFee}</Text>
+                      <Text style={{ color: txtSec, fontSize: 10 }}>Shopping fee</Text>
+                      <Text style={{ color: txt, fontSize: 10 }}>{money(selectedBasket.shoppingFee)}</Text>
                     </View>
                     <View style={s.summaryRow}>
-                      <Text style={{ color: txtSec, fontSize: 10 }}>Hostel Delivery Fee</Text>
-                      <Text style={{ color: txt, fontSize: 10 }}>₹{selectedBasket.deliveryFee}</Text>
+                      <Text style={{ color: txtSec, fontSize: 10 }}>Delivery fee</Text>
+                      <Text style={{ color: txt, fontSize: 10 }}>{money(selectedBasket.deliveryFee)}</Text>
                     </View>
                     <View style={[s.summaryRow, s.grandTotalRow, { borderTopColor: border }]}>
                       <Text style={{ color: txt, fontSize: 12, fontWeight: '900' }}>{selectedBasket.actualTotal != null ? 'Total (cash on delivery)' : 'Estimated total'}</Text>
@@ -748,35 +773,35 @@ export default function MegaBasketScreen() {
               <View>
                 {!user ? (
                   <View style={s.emptyState}>
-                    <Text style={{ fontSize: 48, marginBottom: 12 }}>🔐</Text>
-                    <Text style={[s.emptyTitle, { color: txt }]}>SIGN IN TO SEE YOUR BASKETS</Text>
+                    <Ionicons name="lock-closed-outline" size={44} color={txtSec} style={{ marginBottom: 12 }} />
+                    <Text style={[s.emptyTitle, { color: txt }]}>Sign in to see your shopping lists</Text>
                     <TouchableOpacity style={[s.addCustomBtn, { marginTop: 16, paddingHorizontal: 24 }]} onPress={() => router.push('/login' as any)}>
-                      <Text style={s.addCustomText}>SIGN IN</Text>
+                      <Text style={s.addCustomText}>Sign in</Text>
                     </TouchableOpacity>
                   </View>
                 ) : loadingBaskets && baskets.length === 0 ? (
                   <ActivityIndicator size="large" color={COLORS.red} style={{ marginTop: 40 }} />
                 ) : basketsError && baskets.length === 0 ? (
                   <View style={s.emptyState}>
-                    <Text style={{ fontSize: 48, marginBottom: 12 }}>📡</Text>
-                    <Text style={[s.emptyTitle, { color: txt }]}>COULDN'T LOAD YOUR BASKETS</Text>
+                    <Ionicons name="cloud-offline-outline" size={44} color={txtSec} style={{ marginBottom: 12 }} />
+                    <Text style={[s.emptyTitle, { color: txt }]}>Couldn't load your shopping lists</Text>
                     <Text style={s.emptySub}>{basketsError}</Text>
                     <TouchableOpacity style={[s.addCustomBtn, { marginTop: 16, paddingHorizontal: 24 }]} onPress={() => fetchBaskets()}>
-                      <Text style={s.addCustomText}>TRY AGAIN</Text>
+                      <Text style={s.addCustomText}>Try again</Text>
                     </TouchableOpacity>
                   </View>
                 ) : baskets.length === 0 ? (
                   <View style={s.emptyState}>
-                    <Text style={{ fontSize: 48, marginBottom: 12 }}>🛒</Text>
-                    <Text style={[s.emptyTitle, { color: txt }]}>NO BASKETS YET</Text>
+                    <Ionicons name="basket-outline" size={44} color={txtSec} style={{ marginBottom: 12 }} />
+                    <Text style={[s.emptyTitle, { color: txt }]}>No shopping lists yet</Text>
                     <Text style={s.emptySub}>Send a shopping list and a shopper will buy it for you.</Text>
                     <TouchableOpacity style={[s.addCustomBtn, { marginTop: 16, paddingHorizontal: 24 }]} onPress={() => setActiveTab('new')}>
-                      <Text style={s.addCustomText}>CREATE A BASKET</Text>
+                      <Text style={s.addCustomText}>New list</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
                   <View style={{ gap: 12 }}>
-                    {[{ title: 'ACTIVE', list: activeBaskets }, { title: 'PAST', list: pastBaskets }].filter((g) => g.list.length > 0).map((group) => (
+                    {[{ title: 'Active', list: activeBaskets }, { title: 'Past', list: pastBaskets }].filter((g) => g.list.length > 0).map((group) => (
                       <View key={group.title} style={{ gap: 12 }}>
                         <Text style={s.cardTitle}>{group.title} ({group.list.length})</Text>
                         {group.list.map((basket) => (
@@ -786,16 +811,16 @@ export default function MegaBasketScreen() {
                             onPress={() => setSelectedBasketId(String(basket.id))}
                           >
                             <View style={s.cardHeaderRow}>
-                              <Text style={s.basketCode}>BASKET #{String(basket.id).slice(-6).toUpperCase()}</Text>
+                              <Text style={s.basketCode}>List #{String(basket.id).slice(-6).toUpperCase()}</Text>
                               <View style={s.statusBadge}>
-                                <Text style={s.statusBadgeText}>{getStatusLabel(basket.status).toUpperCase()}</Text>
+                                <Text style={s.statusBadgeText}>{getStatusLabel(basket.status)}</Text>
                               </View>
                             </View>
                             <Text style={[s.basketItemsText, { color: txtSec }]} numberOfLines={1}>
-                              {basket.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}
+                              {basket.items.map(i => `${i.quantity} × ${i.name}`).join(', ')}
                             </Text>
                             <View style={s.basketFooterRow}>
-                              <Text style={{ fontSize: 8, color: '#888' }}>{new Date(basket.createdAt).toLocaleDateString()}</Text>
+                              <Text style={{ fontSize: 10, color: '#888' }}>{formatISTDate(basket.createdAt)}</Text>
                               <Text style={s.basketPrice}>{basket.actualTotal != null ? '' : 'Est. '}{money(basketTotal(basket))}</Text>
                             </View>
                           </TouchableOpacity>
@@ -820,32 +845,32 @@ const s = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1 },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   backIcon: { fontSize: 32, fontWeight: '300' },
-  subText: { fontSize: 8, fontWeight: '900', color: COLORS.red, letterSpacing: 2 },
+  subText: { fontSize: 10, fontWeight: '800', color: COLORS.red, letterSpacing: 0.3 },
   title: { fontSize: 18, fontWeight: '900' },
 
   tabRow: { flexDirection: 'row', padding: 4, borderRadius: 16, borderWidth: 1, marginHorizontal: 16, marginVertical: 12 },
   tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 12, overflow: 'hidden' },
   tabBtnActive: { backgroundColor: 'transparent' },
-  tabLabel: { fontSize: 9, fontWeight: '900', color: '#888', letterSpacing: 1 },
+  tabLabel: { fontSize: 12, fontWeight: '800', color: '#888', letterSpacing: 0.2 },
   tabLabelActive: { color: '#FFF' },
 
   scrollContent: { paddingHorizontal: 16, paddingBottom: 220 },
   card: { padding: 16, borderRadius: 24, borderWidth: 1, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 1 },
-  cardTitle: { fontSize: 10, fontWeight: '900', color: COLORS.red, letterSpacing: 1.5, marginBottom: 12 },
+  cardTitle: { fontSize: 13, fontWeight: '900', color: COLORS.red, letterSpacing: 0.2, marginBottom: 12 },
 
   quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   quickItem: { width: '48%', padding: 10, borderRadius: 12, borderWidth: 1, backgroundColor: 'rgba(0,0,0,0.02)' },
-  quickCat: { fontSize: 7, fontWeight: '900', color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  quickCat: { fontSize: 9, fontWeight: '800', color: '#888', letterSpacing: 0.2, marginBottom: 2 },
   quickName: { fontSize: 10, fontWeight: '900' },
   quickPrice: { fontSize: 9, fontWeight: '900', color: '#22c55e', marginTop: 6 },
 
   customSection: { borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.05)', paddingTop: 16 },
-  customTitle: { fontSize: 8, fontWeight: '900', color: '#888', letterSpacing: 1, marginBottom: 8 },
+  customTitle: { fontSize: 11, fontWeight: '800', color: '#888', marginBottom: 8 },
   input: { height: 40, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, fontSize: 11, fontWeight: '600', backgroundColor: 'rgba(0,0,0,0.02)', marginBottom: 8 },
-  inputLabel: { fontSize: 8, fontWeight: '900', color: '#888', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 },
+  inputLabel: { fontSize: 10, fontWeight: '800', color: '#888', letterSpacing: 0.2, marginBottom: 4 },
   customRow: { flexDirection: 'row', marginBottom: 12 },
   addCustomBtn: { height: 40, backgroundColor: 'rgba(34,197,94,0.08)', borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(34,197,94,0.2)' },
-  addCustomText: { fontSize: 9, fontWeight: '900', color: '#22c55e', letterSpacing: 1 },
+  addCustomText: { fontSize: 12, fontWeight: '900', color: '#22c55e', letterSpacing: 0.2 },
 
   listItem: { flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 12, borderWidth: 1, backgroundColor: 'rgba(0,0,0,0.02)', marginBottom: 6 },
   listItemName: { fontSize: 11, fontWeight: '900' },
@@ -873,33 +898,33 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  placeOrderText: { fontSize: 10, fontWeight: '900', color: '#FFF', letterSpacing: 1.5 },
+  placeOrderText: { fontSize: 13, fontWeight: '900', color: '#FFF', letterSpacing: 0.2 },
 
   backToListBtn: { alignSelf: 'flex-start', paddingVertical: 8, marginBottom: 8 },
-  backToListText: { fontSize: 9, fontWeight: '900', color: COLORS.red, letterSpacing: 1 },
+  backToListText: { fontSize: 12, fontWeight: '800', color: COLORS.red },
   cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   basketCode: { fontSize: 14, fontWeight: '900', color: COLORS.red },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: 'rgba(34,197,94,0.1)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.2)' },
-  statusBadgeText: { fontSize: 8, fontWeight: '900', color: '#22c55e', letterSpacing: 0.5 },
+  statusBadgeText: { fontSize: 10, fontWeight: '800', color: '#22c55e', letterSpacing: 0.2 },
 
   statusDetailBox: { padding: 12, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.02)', borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.05)', marginBottom: 16 },
   statusDetailLabel: { fontSize: 7, fontWeight: '900', color: '#888', letterSpacing: 1, marginBottom: 2 },
   statusDetailText: { fontSize: 11, fontWeight: '900' },
   partnerBox: { flexDirection: 'row', gap: 10, marginTop: 12, paddingTop: 12, borderTopWidth: 0.5, borderTopColor: 'rgba(0,0,0,0.05)' },
-  partnerLabel: { fontSize: 7, fontWeight: '900', color: '#888' },
+  partnerLabel: { fontSize: 10, fontWeight: '800', color: '#888' },
   partnerName: { fontSize: 11, fontWeight: '900' },
-  partnerPhone: { fontSize: 8, fontWeight: '900', color: '#22c55e', marginTop: 2 },
+  partnerPhone: { fontSize: 10, fontWeight: '900', color: '#22c55e', marginTop: 2 },
 
   pinBox: { padding: 16, borderRadius: 16, backgroundColor: 'rgba(34,197,94,0.03)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.15)', alignItems: 'center', marginBottom: 16 },
-  pinLabel: { fontSize: 8, fontWeight: '900', color: '#22c55e', letterSpacing: 1 },
+  pinLabel: { fontSize: 11, fontWeight: '800', color: '#22c55e', letterSpacing: 0.2 },
   pinVal: { fontSize: 24, fontWeight: '900', color: '#22c55e', letterSpacing: 6, marginVertical: 6 },
-  pinSub: { fontSize: 7, fontWeight: '800', color: '#888' },
+  pinSub: { fontSize: 10, fontWeight: '700', color: '#888' },
 
   approvalAlertBox: { padding: 14, borderRadius: 16, backgroundColor: 'rgba(245,158,11,0.05)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.2)', marginBottom: 16 },
   approvalAlertTitle: { fontSize: 11, fontWeight: '900', color: '#f59e0b', marginBottom: 4 },
-  approvalAlertDesc: { fontSize: 8, fontWeight: '600', color: '#888', lineHeight: 12, marginBottom: 12 },
+  approvalAlertDesc: { fontSize: 10, fontWeight: '600', color: '#888', lineHeight: 14, marginBottom: 12 },
   approveBtn: { height: 38, backgroundColor: '#f59e0b', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  approveBtnText: { fontSize: 9, fontWeight: '900', color: '#000', letterSpacing: 1 },
+  approveBtnText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.2 },
 
   unavailableBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.1)' },
   unavailableText: { fontSize: 8, fontWeight: '900', color: '#ef4444' },
@@ -911,8 +936,8 @@ const s = StyleSheet.create({
   basketPrice: { fontSize: 12, fontWeight: '900', color: '#22c55e' },
 
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
-  emptyTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 2, marginBottom: 4 },
-  emptySub: { fontSize: 8, fontWeight: '600', color: '#888', textAlign: 'center', paddingHorizontal: 24, lineHeight: 12 },
+  emptyTitle: { fontSize: 14, fontWeight: '900', letterSpacing: 0.2, marginBottom: 4, textAlign: 'center' },
+  emptySub: { fontSize: 11, fontWeight: '600', color: '#888', textAlign: 'center', paddingHorizontal: 24, lineHeight: 15 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   modalContent: { width: '100%', maxWidth: 340, backgroundColor: '#141416', borderRadius: 28, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', padding: 20 },

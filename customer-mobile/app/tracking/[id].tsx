@@ -30,6 +30,8 @@ import ConfettiCannon from 'react-native-confetti-cannon';
 import LiveOrderCockpit from '../../components/LiveOrderCockpit';
 import FssaiLine from '../../components/FssaiLine';
 import { isVendorFulfilled, vendorCallNumber, callVendor, stallPayCopy } from '../../utils/localVendor';
+import { Ionicons } from '@expo/vector-icons';
+import { formatINR } from '../../utils/format';
 
 const MAX_TIP = 500;
 
@@ -199,11 +201,11 @@ export default function TrackingScreen() {
     setStatus(step);
   };
 
-  // Copy PIN helper
+  // Copy the delivery OTP (stored as deliveryPin)
   const copyPinToClipboard = () => {
     if (!orderInfo?.deliveryPin) return;
     Clipboard.setString(orderInfo.deliveryPin);
-    Alert.alert('PIN copied', 'Share it with your rider only when you receive your order.');
+    Alert.alert('OTP copied', 'Share it with your rider only when you receive your order.');
   };
 
   const storeName = orderInfo?.restaurant?.name || orderInfo?.restaurantName || '';
@@ -319,7 +321,7 @@ export default function TrackingScreen() {
     const handleGate = (data: { orderId?: string; message?: string }) => {
       // Another order's room event (several orders tracked in one session) is not for this screen.
       if (data && data.orderId && String(data.orderId) !== String(orderId)) return;
-      setGateNotification(data?.message || 'Your rider is waiting at the gate!');
+      setGateNotification(data?.message || 'Your rider is waiting at the gate.');
       if (gateTimerRef.current) clearTimeout(gateTimerRef.current);
       gateTimerRef.current = setTimeout(() => {
         if (mountedRef.current) setGateNotification(null);
@@ -523,15 +525,15 @@ export default function TrackingScreen() {
         setOrderInfo(prev => (prev ? { ...prev, rating: data.rating ?? ratingStars } : prev));
         refreshUser().catch(() => {});
         if (data.tipError) {
-          Alert.alert('Thanks for rating!', `${data.tipError}`);
+          Alert.alert('Thanks for rating', `${data.tipError}`);
         } else {
           const points = Number(data.zenPointsEarned) || 0;
-          Alert.alert('⭐ Thanks for rating!', `${data.message || 'Your rating was saved.'}${points ? ` You earned ${points} ZenPoints.` : ''}`);
+          Alert.alert('Thanks for rating', `${data.message || 'Your rating was saved.'}${points ? ` You earned ${points} ZenPoints.` : ''}`);
         }
       } else if (data.code === 'ALREADY_RATED') {
         setShowRatingModal(false);
         setOrderInfo(prev => (prev ? { ...prev, rating: prev.rating ?? ratingStars } : prev));
-        Alert.alert('Already rated', data.message || 'You have already rated this order. Thank you!');
+        Alert.alert('Already rated', data.message || 'You have already rated this order.');
       } else {
         Alert.alert("Couldn't save your rating", data.message || 'Please try again.');
       }
@@ -579,8 +581,8 @@ export default function TrackingScreen() {
     return (
       <View style={[s.container, { backgroundColor: bg, justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
         <ActivityIndicator size="large" color={COLORS.gold} />
-        <Text style={{ fontSize: 12, fontWeight: '900', color: txt, letterSpacing: 2, marginTop: 18 }}>
-          LOADING YOUR ORDER...
+        <Text style={{ fontSize: 13, fontWeight: '900', color: txt, letterSpacing: 0.2, marginTop: 18 }}>
+          Loading your order…
         </Text>
         <Text style={{ fontSize: 11, color: txtSec, marginTop: 6, textAlign: 'center' }}>
           Order #{orderId ? orderId.slice(-6).toUpperCase() : ''}
@@ -593,7 +595,7 @@ export default function TrackingScreen() {
     return (
       <View style={[s.container, { backgroundColor: bg, justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
         <View style={[s.cancelledCircle, { borderColor: COLORS.goldBorder, backgroundColor: 'rgba(212,175,122,0.1)' }]}>
-          <Text style={{ fontSize: 32 }}>📡</Text>
+          <Ionicons name="cloud-offline-outline" size={32} color={COLORS.gold} />
         </View>
         <Text style={[s.cancelledTitle, { color: txt, marginTop: 16 }]}>Couldn't load this order</Text>
         <Text style={[s.cancelledDesc, { color: txtSec, textAlign: 'center', marginTop: 8 }]}>
@@ -604,11 +606,11 @@ export default function TrackingScreen() {
             style={[s.returnBtn, { backgroundColor: COLORS.gold, marginTop: 24 }]}
             onPress={() => { setLoadingOrder(true); fetchOrder(); }}
           >
-            <Text style={[s.returnBtnText, { color: '#000' }]}>TRY AGAIN</Text>
+            <Text style={[s.returnBtnText, { color: '#000' }]}>Try again</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity style={{ marginTop: 16 }} onPress={() => router.replace('/(tabs)/orders' as any)}>
-          <Text style={{ fontSize: 11, fontWeight: '800', color: txtSec, letterSpacing: 1 }}>VIEW ALL ORDERS</Text>
+          <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>View all orders</Text>
         </TouchableOpacity>
       </View>
     );
@@ -616,9 +618,12 @@ export default function TrackingScreen() {
 
   if (status === -1) {
     const charged = Number(orderInfo?.finalPrice ?? orderInfo?.totalPrice ?? 0) || 0;
+    // What the server actually refunded wins over the order price.
+    const refunded = Number(orderInfo?.refundedToWallet);
+    const refundAmount = Number.isFinite(refunded) && refunded > 0 ? refunded : charged;
     const refundLine = cancelMessage
       || (orderInfo?.paymentMethod === 'Wallet'
-        ? `₹${charged} has been refunded to your Zenvy Wallet.`
+        ? `${formatINR(refundAmount)} was refunded to your Zenvy Wallet.`
         : 'No payment was taken for this Cash on Delivery order.');
     // Store / system cancels explain why; the customer's own cancel needs no reason line.
     const reasonText = orderInfo?.cancellationReason && !/by customer|by user/i.test(orderInfo.cancellationReason)
@@ -629,7 +634,7 @@ export default function TrackingScreen() {
         <View style={s.cancelledCircle}>
           <Text style={{ fontSize: 32, color: COLORS.red }}>✕</Text>
         </View>
-        <Text style={[s.cancelledTitle, { color: txt }]}>Order Cancelled</Text>
+        <Text style={[s.cancelledTitle, { color: txt }]}>Order cancelled</Text>
         {!!reasonText && !cancelMessage && (
           <Text style={[s.cancelledDesc, { color: txt, fontWeight: '700', marginBottom: 6 }]}>{reasonText}</Text>
         )}
@@ -637,13 +642,13 @@ export default function TrackingScreen() {
           {refundLine}
         </Text>
         <TouchableOpacity style={s.returnBtn} onPress={() => router.replace('/(tabs)' as any)}>
-          <Text style={s.returnBtnText}>BACK TO HOME</Text>
+          <Text style={s.returnBtnText}>Back to Home</Text>
         </TouchableOpacity>
         <TouchableOpacity style={{ marginTop: 16 }} onPress={() => router.replace('/(tabs)/orders' as any)}>
-          <Text style={{ fontSize: 11, fontWeight: '800', color: txtSec, letterSpacing: 1 }}>VIEW ALL ORDERS</Text>
+          <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>View all orders</Text>
         </TouchableOpacity>
         <TouchableOpacity style={{ marginTop: 12 }} onPress={openHelp}>
-          <Text style={{ fontSize: 11, fontWeight: '800', color: txtSec, letterSpacing: 1 }}>NEED HELP?</Text>
+          <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>Need help?</Text>
         </TouchableOpacity>
       </View>
     );
@@ -667,11 +672,13 @@ export default function TrackingScreen() {
             }
           }} 
           style={s.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
         >
           <Text style={{ color: txt, fontSize: 18, fontWeight: 'bold' }}>‹</Text>
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={[s.headerTitle, { color: txt }]}>ORDER TRACKING</Text>
+          <Text style={[s.headerTitle, { color: txt }]}>Order tracking</Text>
           {orderId && (
             <Text style={{ fontSize: 9, color: COLORS.gold, fontWeight: '800', letterSpacing: 1 }}>
               #{orderId.slice(-6).toUpperCase()}
@@ -679,10 +686,11 @@ export default function TrackingScreen() {
           )}
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={[s.statusIndicator, { backgroundColor: isConnected ? 'rgba(16,185,129,0.1)' : 'rgba(239,79,95,0.1)' }]}>
-            <View style={[s.statusDot, { backgroundColor: isConnected ? COLORS.emerald : COLORS.red }]} />
-            <Text style={[s.statusText, { color: isConnected ? COLORS.emerald : COLORS.red }]}>
-              {isConnected ? 'LIVE' : 'OFFLINE'}
+          {/* Polling keeps the order fresh while the socket reconnects, so this is a grey note, not an error. */}
+          <View style={[s.statusIndicator, { backgroundColor: isConnected ? 'rgba(16,185,129,0.1)' : 'rgba(136,136,136,0.12)' }]}>
+            <View style={[s.statusDot, { backgroundColor: isConnected ? COLORS.emerald : txtSec }]} />
+            <Text style={[s.statusText, { color: isConnected ? COLORS.emerald : txtSec }]}>
+              {isConnected ? 'Live' : 'Reconnecting…'}
             </Text>
           </View>
         </View>
@@ -692,17 +700,17 @@ export default function TrackingScreen() {
         {/* ── RIDER AT GATE BANNER (socket 'driverAtGate') ── */}
         {!!gateNotification && status < 6 && (
           <View style={s.gateBanner}>
-            <Text style={{ fontSize: 22 }}>🔔</Text>
+            <Ionicons name="notifications" size={22} color="#fff" />
             <View style={{ flex: 1 }}>
               <Text style={s.gateBannerTitle}>{gateNotification}</Text>
-              <Text style={s.gateBannerSub}>Keep your delivery PIN ready.</Text>
+              <Text style={s.gateBannerSub}>Keep your delivery OTP ready.</Text>
             </View>
             {!!rider?.phone && (
               <TouchableOpacity style={s.gateBannerBtn} onPress={callRider}>
-                <Text style={s.gateBannerBtnText}>CALL</Text>
+                <Text style={s.gateBannerBtnText}>Call</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity onPress={() => setGateNotification(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <TouchableOpacity onPress={() => setGateNotification(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Dismiss">
               <Text style={{ color: '#fff', fontSize: 14, fontWeight: '900' }}>✕</Text>
             </TouchableOpacity>
           </View>
@@ -725,17 +733,21 @@ export default function TrackingScreen() {
         {/* ── CURRENT STAGE CARD ── */}
         <StaggeredSection delay={50} direction="up">
           <View style={[s.currentStageCard, { backgroundColor: cardBg, borderColor: COLORS.goldBorder }]}>
-            <Text style={s.stageEmoji}>
-              {status === 1 ? '⏳' : status === 2 ? '✅' : status === 3 ? '🍳' : status === 4 ? (isVendorOrder ? '🏪' : '🛵') : status === 5 ? '🔔' : '🎉'}
-            </Text>
+            <View style={s.stageEmoji}>
+              <Ionicons
+                name={status === 1 ? 'hourglass-outline' : status === 2 ? 'checkmark-circle-outline' : status === 3 ? 'bag-handle-outline' : status === 4 ? (isVendorOrder ? 'storefront-outline' : 'bicycle-outline') : status === 5 ? 'notifications-outline' : 'checkmark-done-circle-outline'}
+                size={26}
+                color={COLORS.gold}
+              />
+            </View>
             <View style={{ flex: 1 }}>
-              <Text style={[s.stageLabel, { color: txtSec }]}>CURRENT STATUS</Text>
+              <Text style={[s.stageLabel, { color: txtSec }]}>Current status</Text>
               <Text style={[s.stageText, { color: txt }]}>
                 {isVendorOrder ? (
                   status === 1 ? `Waiting for ${stallLabel} to accept`
                   : status <= 3 ? `${stallLabel} accepted your order`
                   : status <= 5 ? `Out for delivery — ${stallLabel} is bringing it. Keep cash ready.`
-                  : `Delivered by ${stallLabel}. Enjoy!`
+                  : `Delivered by ${stallLabel}.`
                 ) : <>
                 {status === 1 && `Waiting for ${storeName || 'the store'} to accept`}
                 {status === 2 && (rider ? `${rider.name || 'Your rider'} will pick up your order` : 'Order confirmed — assigning a rider')}
@@ -745,13 +757,13 @@ export default function TrackingScreen() {
                     ? 'Your order is packed and ready for pickup'
                     : 'Your order is being prepared')}
                 {status === 4 && 'Your rider is on the way'}
-                {status === 5 && 'Your rider has arrived at your gate!'}
-                {status >= 6 && 'Order delivered. Enjoy!'}
+                {status === 5 && 'Your rider has arrived at your gate.'}
+                {status >= 6 && 'Order delivered.'}
                 </>}
               </Text>
               {!!liveFix && (
                 <Text style={{ fontSize: 11, fontWeight: '700', color: txtSec, marginTop: 4 }}>
-                  📍 {riderDistanceText ? `${rider?.name || 'Your rider'} is ${riderDistanceText}` : 'Live rider location on'}
+                  {riderDistanceText ? `${rider?.name || 'Your rider'} is ${riderDistanceText}` : 'Live rider location on'}
                   {fixAgeSec !== null ? (fixAgeSec < 15 ? ' · live' : ` · updated ${fixAgeSec}s ago`) : ''}
                 </Text>
               )}
@@ -773,7 +785,7 @@ export default function TrackingScreen() {
           <StaggeredSection delay={80} direction="up">
             <View style={[s.receiptCard, { backgroundColor: cardBg, borderColor: COLORS.goldBorder }]}>
               <View style={{ flex: 1 }}>
-                <Text style={[s.stageLabel, { color: txtSec }]}>RECEIPT</Text>
+                <Text style={[s.stageLabel, { color: txtSec }]}>Receipt</Text>
                 <Text style={{ color: txt, fontSize: 13, fontWeight: '800', marginTop: 2 }}>
                   {orderInfo.receiptNumber ? `No. ${orderInfo.receiptNumber}` : 'Your order receipt'}
                 </Text>
@@ -786,7 +798,7 @@ export default function TrackingScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="View receipt"
               >
-                {receiptLoading ? <ActivityIndicator size="small" color="#000" /> : <Text style={s.receiptBtnText}>VIEW RECEIPT</Text>}
+                {receiptLoading ? <ActivityIndicator size="small" color="#000" /> : <Text style={s.receiptBtnText}>View receipt</Text>}
               </TouchableOpacity>
             </View>
           </StaggeredSection>
@@ -796,10 +808,10 @@ export default function TrackingScreen() {
         {(orderInfo?.riderOtherOrders ?? 0) > 0 && status < 6 && (
           <StaggeredSection delay={110} direction="up">
             <View style={s.ecoBanner}>
-              <Text style={{ fontSize: 16, marginRight: 6 }}>🌱</Text>
+              <Ionicons name="git-merge-outline" size={16} color={COLORS.emerald} style={{ marginRight: 6 }} />
               <View style={{ flex: 1 }}>
-                <Text style={s.ecoTitle}>Batched delivery</Text>
-                <Text style={s.ecoSubtitle}>Your rider is also delivering another order on the same route.</Text>
+                <Text style={s.ecoTitle}>Shared route</Text>
+                <Text style={s.ecoSubtitle}>Your rider is also delivering another order on the way.</Text>
               </View>
             </View>
           </StaggeredSection>
@@ -811,17 +823,17 @@ export default function TrackingScreen() {
             <View style={{ backgroundColor: cardBg, borderColor: COLORS.goldBorder, borderWidth: 1, padding: 16, borderRadius: 20, marginBottom: 16 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                 <View style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', padding: 8, borderRadius: 10 }}>
-                  <Text style={{ fontSize: 16 }}>🧺</Text>
+                  <Ionicons name="basket-outline" size={16} color="#F59E0B" />
                 </View>
                 <View>
-                  <Text style={{ fontSize: 9, fontWeight: '900', color: '#F59E0B', letterSpacing: 2 }}>MEGA BASKET</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '900', color: '#F59E0B', letterSpacing: 0.2 }}>Mega Basket</Text>
                   <Text style={{ fontSize: 13, fontWeight: 'bold', color: txt }}>Check your shopping</Text>
                 </View>
               </View>
 
               {/* Step 1: approve the items before the rider buys them */}
               <View style={{ borderBottomWidth: 1, borderBottomColor: border, paddingBottom: 14, marginBottom: 14 }}>
-                <Text style={{ fontSize: 10, fontWeight: 'bold', color: txtSec, marginBottom: 4 }}>STEP 1: APPROVE THE ITEMS</Text>
+                <Text style={{ fontSize: 10, fontWeight: 'bold', color: txtSec, marginBottom: 4 }}>Step 1: approve the items</Text>
                 {!orderInfo.itemPhotoUrl ? (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 }}>
                     <ActivityIndicator size="small" color="#F59E0B" />
@@ -847,12 +859,12 @@ export default function TrackingScreen() {
                         {approving ? (
                           <ActivityIndicator size="small" color="#000" />
                         ) : (
-                          <Text style={{ color: '#000', fontWeight: 'bold', fontSize: 11 }}>LOOKS GOOD, GO AHEAD</Text>
+                          <Text style={{ color: '#000', fontWeight: 'bold', fontSize: 11 }}>Looks good, go ahead</Text>
                         )}
                       </TouchableOpacity>
                     ) : (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Text style={{ fontSize: 13 }}>✅</Text>
+                        <Ionicons name="checkmark-circle" size={14} color={COLORS.emerald} />
                         <Text style={{ fontSize: 11, fontWeight: 'bold', color: COLORS.emerald }}>
                           Approved. Your rider is buying your items.
                         </Text>
@@ -865,12 +877,12 @@ export default function TrackingScreen() {
               {/* Step 2: approve the final bill */}
               {orderInfo.isPurchasingApprovedByCustomer && (
                 <View>
-                  <Text style={{ fontSize: 10, fontWeight: 'bold', color: txtSec, marginBottom: 4 }}>STEP 2: APPROVE THE BILL</Text>
+                  <Text style={{ fontSize: 10, fontWeight: 'bold', color: txtSec, marginBottom: 4 }}>Step 2: approve the bill</Text>
                   {!orderInfo.billProofUrl ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 }}>
                       <ActivityIndicator size="small" color="#F59E0B" />
                       <Text style={{ fontSize: 11, color: txtSec, fontStyle: 'italic' }}>
-                        Waiting for your rider to upload the store bill...
+                        Waiting for your rider to upload the store bill…
                       </Text>
                     </View>
                   ) : (
@@ -880,7 +892,7 @@ export default function TrackingScreen() {
                       </Text>
                       {Number(orderInfo.billAmount) > 0 && (
                         <Text style={{ fontSize: 14, fontWeight: 'bold', color: COLORS.emerald, marginBottom: 8 }}>
-                          Bill amount: ₹{orderInfo.billAmount}
+                          Bill amount: {formatINR(orderInfo.billAmount)}
                         </Text>
                       )}
                       <View style={{ height: 160, borderRadius: 10, overflow: 'hidden', backgroundColor: '#222', marginBottom: 10 }}>
@@ -897,7 +909,7 @@ export default function TrackingScreen() {
                             {approving ? (
                               <ActivityIndicator size="small" color="#fff" />
                             ) : (
-                              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 11 }}>APPROVE BILL</Text>
+                              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 11 }}>Approve bill</Text>
                             )}
                           </TouchableOpacity>
                           <Text style={{ fontSize: 10, color: txtSec, marginTop: 6, textAlign: 'center' }}>
@@ -908,7 +920,7 @@ export default function TrackingScreen() {
                         </>
                       ) : (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <Text style={{ fontSize: 13 }}>✅</Text>
+                          <Ionicons name="checkmark-circle" size={14} color={COLORS.emerald} />
                           <Text style={{ fontSize: 11, fontWeight: 'bold', color: COLORS.emerald }}>
                             Bill approved. Your rider is on the way.
                           </Text>
@@ -922,25 +934,25 @@ export default function TrackingScreen() {
           </StaggeredSection>
         )}
 
-        {/* ── DELIVERY PIN ── */}
+        {/* ── DELIVERY OTP (stored as deliveryPin) ── */}
         {!!orderInfo?.deliveryPin && !isVendorOrder && status < 6 && (
           <StaggeredSection delay={170} direction="up">
             <View style={[s.pinCard, { backgroundColor: cardBg, borderColor: status >= 4 ? COLORS.gold : border }]}>
               <View style={s.pinHeader}>
                 <View style={s.pinIconWrap}>
-                  <Text style={{ fontSize: 18 }}>🔑</Text>
+                  <Ionicons name="key-outline" size={18} color={COLORS.gold} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[s.pinLabel, { color: txtSec }]}>DELIVERY PIN</Text>
-                  <Text style={[s.pinDesc, { color: txt }]}>Share this PIN with your rider only at handover</Text>
+                  <Text style={[s.pinLabel, { color: txtSec }]}>Delivery OTP</Text>
+                  <Text style={[s.pinDesc, { color: txt }]}>Share this OTP with your rider only at handover</Text>
                 </View>
               </View>
               <View style={s.pinDisplayRow}>
-                <TouchableOpacity style={s.pinButton} onPress={copyPinToClipboard} accessibilityLabel="Copy delivery PIN">
+                <TouchableOpacity style={s.pinButton} onPress={copyPinToClipboard} accessibilityLabel="Copy delivery OTP">
                   <Text style={s.pinText}>{orderInfo.deliveryPin}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={s.zoomBtn} onPress={() => setZoomPin(true)}>
-                  <Text style={{ fontSize: 14 }}>🔍 ZOOM</Text>
+                <TouchableOpacity style={s.zoomBtn} onPress={() => setZoomPin(true)} accessibilityRole="button" accessibilityLabel="Enlarge delivery OTP">
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: txt }}>Enlarge</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -957,8 +969,8 @@ export default function TrackingScreen() {
                 onPress={callStall}
                 accessibilityLabel={`Call ${stallLabel}`}
               >
-                <Text style={{ fontSize: 16 }}>📞</Text>
-                <Text style={[s.actionBtnText, { color: txt }]}>CALL STALL</Text>
+                <Ionicons name="call-outline" size={16} color={txt} />
+                <Text style={[s.actionBtnText, { color: txt }]}>Call stall</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
@@ -967,20 +979,20 @@ export default function TrackingScreen() {
                 onPress={callRider}
                 accessibilityLabel="Call your rider"
               >
-                <Text style={{ fontSize: 16 }}>📞</Text>
-                <Text style={[s.actionBtnText, { color: txt }]}>{rider ? 'CALL RIDER' : 'NO RIDER YET'}</Text>
+                <Ionicons name="call-outline" size={16} color={txt} />
+                <Text style={[s.actionBtnText, { color: txt }]}>{rider ? 'Call rider' : 'No rider yet'}</Text>
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity style={[s.actionBtn, { backgroundColor: cardBg, borderColor: border }]} onPress={openHelp}>
-              <Text style={{ fontSize: 16 }}>🛟</Text>
-              <Text style={[s.actionBtnText, { color: txt }]}>HELP</Text>
+            <TouchableOpacity style={[s.actionBtn, { backgroundColor: cardBg, borderColor: border }]} onPress={openHelp} accessibilityRole="button" accessibilityLabel="Help">
+              <Ionicons name="help-buoy-outline" size={16} color={txt} />
+              <Text style={[s.actionBtnText, { color: txt }]}>Help</Text>
             </TouchableOpacity>
 
             {status < 6 && (
-              <TouchableOpacity style={[s.actionBtn, { backgroundColor: cardBg, borderColor: border }]} onPress={handleShareTracking}>
-                <Text style={{ fontSize: 16 }}>🔗</Text>
-                <Text style={[s.actionBtnText, { color: txt }]}>SHARE</Text>
+              <TouchableOpacity style={[s.actionBtn, { backgroundColor: cardBg, borderColor: border }]} onPress={handleShareTracking} accessibilityRole="button" accessibilityLabel="Share tracking">
+                <Ionicons name="share-social-outline" size={16} color={txt} />
+                <Text style={[s.actionBtnText, { color: txt }]}>Share</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -991,7 +1003,7 @@ export default function TrackingScreen() {
           <StaggeredSection delay={260} direction="up">
             <TouchableOpacity style={s.cancelBox} onPress={() => setShowCancelConfirmation(true)} disabled={cancelling}>
               <Text style={s.cancelBoxText}>
-                CANCEL ORDER{status !== 1 && cancelSecondsLeft > 0 ? ` (${cancelSecondsLeft}s)` : ''}
+                Cancel order{status !== 1 && cancelSecondsLeft > 0 ? ` (${cancelSecondsLeft}s)` : ''}
               </Text>
             </TouchableOpacity>
           </StaggeredSection>
@@ -1001,7 +1013,7 @@ export default function TrackingScreen() {
         {status >= 6 && orderInfo?.rating == null && (
           <StaggeredSection delay={260} direction="up">
             <TouchableOpacity style={[s.rateCta, { backgroundColor: cardBg }]} onPress={() => setShowRatingModal(true)}>
-              <Text style={{ fontSize: 20 }}>⭐</Text>
+              <Ionicons name="star-outline" size={20} color={COLORS.gold} />
               <View style={{ flex: 1 }}>
                 <Text style={[s.rateCtaTitle, { color: txt }]}>How was your order?</Text>
                 <Text style={[s.rateCtaSub, { color: txtSec }]}>Rate it and earn ZenPoints</Text>
@@ -1013,10 +1025,10 @@ export default function TrackingScreen() {
         {status >= 6 && orderInfo?.rating != null && (
           <StaggeredSection delay={260} direction="up">
             <View style={[s.rateCta, { backgroundColor: cardBg }]}>
-              <Text style={{ fontSize: 20 }}>💛</Text>
+              <Ionicons name="heart-outline" size={20} color={COLORS.gold} />
               <View style={{ flex: 1 }}>
                 <Text style={[s.rateCtaTitle, { color: txt }]}>You rated this order {orderInfo.rating}★</Text>
-                <Text style={[s.rateCtaSub, { color: txtSec }]}>Thanks for your feedback!</Text>
+                <Text style={[s.rateCtaSub, { color: txtSec }]}>Thanks for your feedback.</Text>
               </View>
             </View>
           </StaggeredSection>
@@ -1026,8 +1038,8 @@ export default function TrackingScreen() {
         {!!orderInfo && (
           <StaggeredSection delay={300} direction="up">
             <View style={[s.timelineCard, { backgroundColor: cardBg, borderColor: border }]}>
-              <Text style={{ fontSize: 9, fontWeight: '900', color: txtSec, letterSpacing: 2, marginBottom: 12 }}>
-                ORDER SUMMARY{storeName ? ` • ${storeName.toUpperCase()}` : ''}
+              <Text style={{ fontSize: 12, fontWeight: '900', color: txtSec, letterSpacing: 0.2, marginBottom: 12 }}>
+                Order summary{storeName ? ` · ${storeName}` : ''}
               </Text>
               {(Array.isArray(orderInfo.items) ? orderInfo.items : []).map((it, idx) => (
                 <View key={idx} style={s.summaryRow}>
@@ -1039,15 +1051,19 @@ export default function TrackingScreen() {
               <View style={[s.summaryDivider, { backgroundColor: border }]} />
               <View style={s.summaryRow}>
                 <Text style={[s.summaryTotalLabel, { color: txt }]}>
-                  {isVendorOrder ? stallPayCopy(stallLabel) : orderInfo.paymentMethod === 'Wallet' ? 'Paid from Zenvy Wallet' : 'To pay (Cash on Delivery)'}
+                  {orderInfo.paymentMethod === 'Wallet' && !isVendorOrder
+                    ? 'Paid from Zenvy Wallet'
+                    : status >= 6
+                      ? (isVendorOrder ? `Paid to ${stallLabel} in cash` : 'Paid in cash')
+                      : isVendorOrder ? stallPayCopy(stallLabel) : 'To pay (Cash on Delivery)'}
                 </Text>
                 <Text style={[s.summaryTotal, { color: txt }]}>
-                  ₹{Number(orderInfo.finalPrice ?? orderInfo.totalPrice ?? 0) || 0}
+                  {formatINR(Number(orderInfo.finalPrice ?? orderInfo.totalPrice ?? 0) || 0)}
                 </Text>
               </View>
               {!!(orderInfo.deliveryAddress || orderInfo.address) && (
                 <Text style={[s.summaryAddress, { color: txtSec }]} numberOfLines={2}>
-                  📍 {orderInfo.deliveryAddress || orderInfo.address}
+                  {orderInfo.deliveryAddress || orderInfo.address}
                 </Text>
               )}
             </View>
@@ -1057,18 +1073,18 @@ export default function TrackingScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* ── ZOOM PIN MODAL ── */}
+      {/* ── ENLARGED DELIVERY OTP ── */}
       <Modal visible={zoomPin} transparent animationType="fade" onRequestClose={() => setZoomPin(false)}>
         <View style={[s.modalOverlay, { justifyContent: 'center' }]}>
           <TouchableOpacity style={StyleSheet.absoluteFill} onPress={() => setZoomPin(false)} />
           <View style={[s.zoomPinBox, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={s.zoomTitle}>DELIVERY PIN</Text>
-            <Text style={[s.zoomDesc, { color: txtSec }]}>Show this code to your rider at handover</Text>
+            <Text style={s.zoomTitle}>Delivery OTP</Text>
+            <Text style={[s.zoomDesc, { color: txtSec }]}>Show this OTP to your rider at handover</Text>
             <View style={s.zoomPinDisplay}>
               <Text style={s.zoomPinText}>{orderInfo?.deliveryPin}</Text>
             </View>
             <TouchableOpacity style={s.zoomCloseBtn} onPress={() => setZoomPin(false)}>
-              <Text style={s.zoomCloseText}>CLOSE</Text>
+              <Text style={s.zoomCloseText}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1087,7 +1103,7 @@ export default function TrackingScreen() {
             <Text style={[s.cancelModalTitle, { color: txt }]}>Cancel this order?</Text>
             <Text style={[s.cancelModalDesc, { color: txtSec }]}>
               {orderInfo?.paymentMethod === 'Wallet'
-                ? `₹${Number(orderInfo?.finalPrice ?? orderInfo?.totalPrice ?? 0) || 0} will go straight back to your Zenvy Wallet.`
+                ? `${formatINR(Number(orderInfo?.finalPrice ?? orderInfo?.totalPrice ?? 0) || 0)} will go straight back to your Zenvy Wallet.`
                 : 'No payment has been taken for this Cash on Delivery order.'}
             </Text>
             <TouchableOpacity
@@ -1098,11 +1114,11 @@ export default function TrackingScreen() {
               {cancelling ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={s.confirmCancelBtnText}>YES, CANCEL ORDER</Text>
+                <Text style={s.confirmCancelBtnText}>Yes, cancel order</Text>
               )}
             </TouchableOpacity>
             <TouchableOpacity style={s.dismissCancelBtn} onPress={() => setShowCancelConfirmation(false)} disabled={cancelling}>
-              <Text style={[s.dismissCancelBtnText, { color: txtSec }]}>KEEP MY ORDER</Text>
+              <Text style={[s.dismissCancelBtnText, { color: txtSec }]}>Keep my order</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1119,7 +1135,7 @@ export default function TrackingScreen() {
             <View style={[s.ratingModalBox, { backgroundColor: cardBg }]}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 4 }}>
                 <Text style={[s.ratingModalTitle, { color: txt, marginBottom: 0 }]}>Rate your order</Text>
-                <TouchableOpacity onPress={() => setShowRatingModal(false)} style={{ padding: 4 }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <TouchableOpacity onPress={() => setShowRatingModal(false)} style={{ padding: 4 }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Close">
                   <Text style={{ fontSize: 18, color: txtSec, fontWeight: '800' }}>✕</Text>
                 </TouchableOpacity>
               </View>
@@ -1161,7 +1177,7 @@ export default function TrackingScreen() {
                           onPress={() => setRatingTip(active ? '' : String(v))}
                           style={[s.tipChip, { borderColor: active ? COLORS.gold : border, backgroundColor: active ? 'rgba(212,175,55,0.15)' : 'transparent' }]}
                         >
-                          <Text style={{ fontSize: 11, fontWeight: '800', color: active ? COLORS.gold : txt }}>₹{v}</Text>
+                          <Text style={{ fontSize: 11, fontWeight: '800', color: active ? COLORS.gold : txt }}>{formatINR(v)}</Text>
                         </TouchableOpacity>
                       );
                     })}
@@ -1177,8 +1193,8 @@ export default function TrackingScreen() {
                   </View>
                   <Text style={{ fontSize: 10, color: txtSec, marginTop: 6, alignSelf: 'flex-start' }}>
                     {tipAmount > 0
-                      ? `₹${tipAmount} tip for ${rider.name || 'your rider'} from your Zenvy Wallet (balance ₹${Number(user?.walletBalance) || 0})`
-                      : `Optional tip for ${rider.name || 'your rider'}, paid from your Zenvy Wallet (up to ₹${MAX_TIP})`}
+                      ? `${formatINR(tipAmount)} tip for ${rider.name || 'your rider'} from your Zenvy Wallet (balance ${formatINR(Number(user?.walletBalance) || 0)})`
+                      : `Optional tip for ${rider.name || 'your rider'}, paid from your Zenvy Wallet (up to ${formatINR(MAX_TIP)})`}
                   </Text>
                 </>
               )}
@@ -1188,7 +1204,7 @@ export default function TrackingScreen() {
                 {submittingRating ? (
                   <ActivityIndicator color="#000" />
                 ) : (
-                  <Text style={s.submitRatingText}>SUBMIT RATING</Text>
+                  <Text style={s.submitRatingText}>Submit rating</Text>
                 )}
               </TouchableOpacity>
 
@@ -1196,7 +1212,7 @@ export default function TrackingScreen() {
                 style={{ marginTop: 10, paddingVertical: 8, alignItems: 'center', width: '100%' }}
                 onPress={() => setShowRatingModal(false)}
               >
-                <Text style={{ fontSize: 10, fontWeight: '800', color: txtSec, letterSpacing: 1.2 }}>MAYBE LATER</Text>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>Maybe later</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1226,7 +1242,7 @@ const s = StyleSheet.create({
   gateBannerTitle: { fontSize: 13, fontWeight: '900', color: '#fff' },
   gateBannerSub: { fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.85)', marginTop: 2 },
   gateBannerBtn: { backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
-  gateBannerBtnText: { fontSize: 10, fontWeight: '900', color: COLORS.emerald, letterSpacing: 1 },
+  gateBannerBtnText: { fontSize: 12, fontWeight: '900', color: COLORS.emerald },
 
   // Rate CTA
   rateCta: {
@@ -1274,7 +1290,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 16
   },
-  headerTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 3 },
+  headerTitle: { fontSize: 15, fontWeight: '900', letterSpacing: 0.2 },
   statusIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1284,7 +1300,7 @@ const s = StyleSheet.create({
     gap: 4
   },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  statusText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.2 },
   scroll: { padding: 16 },
 
   // Stage card
@@ -1296,8 +1312,8 @@ const s = StyleSheet.create({
     borderWidth: 1.5,
     marginBottom: 16
   },
-  stageEmoji: { fontSize: 24, marginRight: 12 },
-  stageLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 2, marginBottom: 2 },
+  stageEmoji: { marginRight: 12, alignItems: 'center', justifyContent: 'center' },
+  stageLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.2, marginBottom: 2 },
   stageText: { fontSize: 13, fontWeight: '700' },
   etaChip: {
     backgroundColor: COLORS.goldMuted,
@@ -1320,8 +1336,8 @@ const s = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 16
   },
-  ecoTitle: { fontSize: 11, fontWeight: '900', color: COLORS.emerald, letterSpacing: 1 },
-  ecoSubtitle: { fontSize: 8, color: '#888', fontWeight: '500', marginTop: 2 },
+  ecoTitle: { fontSize: 12, fontWeight: '900', color: COLORS.emerald, letterSpacing: 0.2 },
+  ecoSubtitle: { fontSize: 10, color: '#888', fontWeight: '500', marginTop: 2 },
 
   // PIN card
   pinCard: {
@@ -1339,7 +1355,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
-  pinLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 2 },
+  pinLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.2 },
   pinDesc: { fontSize: 11, fontWeight: '600', marginTop: 2 },
   pinDisplayRow: { flexDirection: 'row', gap: 8 },
   pinButton: {
@@ -1414,7 +1430,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     ...SHADOWS.card
   },
-  actionBtnText: { fontSize: 8, fontWeight: '800', letterSpacing: 1.5 },
+  actionBtnText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.2 },
 
   // Timeline
   timelineCard: {
@@ -1456,7 +1472,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 16
   },
-  cancelBoxText: { fontSize: 10, fontWeight: '900', color: COLORS.red, letterSpacing: 2 },
+  cancelBoxText: { fontSize: 13, fontWeight: '900', color: COLORS.red, letterSpacing: 0.2 },
 
   // Cancel circle / screen
   cancelledCircle: {
@@ -1478,7 +1494,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)'
   },
-  returnBtnText: { fontSize: 10, fontWeight: '900', color: '#000', letterSpacing: 2 },
+  returnBtnText: { fontSize: 13, fontWeight: '900', color: '#000', letterSpacing: 0.2 },
 
   // Modals overlays
   modalOverlay: {
@@ -1497,8 +1513,8 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40
   },
-  zoomTitle: { fontSize: 13, fontWeight: '900', color: COLORS.gold, letterSpacing: 3, marginBottom: 4 },
-  zoomDesc: { fontSize: 9, fontWeight: '700', marginBottom: 20 },
+  zoomTitle: { fontSize: 15, fontWeight: '900', color: COLORS.gold, letterSpacing: 0.2, marginBottom: 4 },
+  zoomDesc: { fontSize: 11, fontWeight: '700', marginBottom: 20 },
   zoomPinDisplay: {
     width: '100%',
     backgroundColor: COLORS.gold,
@@ -1517,7 +1533,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center'
   },
-  zoomCloseText: { fontSize: 10, fontWeight: '800', color: '#888' },
+  zoomCloseText: { fontSize: 12, fontWeight: '800', color: '#888' },
 
   // Cancel Modal Box
   cancelModalBox: {
@@ -1537,7 +1553,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8
   },
-  confirmCancelBtnText: { fontSize: 10, fontWeight: '900', color: '#fff', letterSpacing: 2 },
+  confirmCancelBtnText: { fontSize: 13, fontWeight: '900', color: '#fff', letterSpacing: 0.2 },
   dismissCancelBtn: {
     width: '100%',
     paddingVertical: 14,
@@ -1642,7 +1658,7 @@ const s = StyleSheet.create({
     marginTop: 20,
     ...SHADOWS.goldGlow
   },
-  submitRatingText: { fontSize: 10, fontWeight: '900', color: '#000', letterSpacing: 2 },
+  submitRatingText: { fontSize: 13, fontWeight: '900', color: '#000', letterSpacing: 0.2 },
 
   // Driver Profile Modal Styles
   driverModalBox: {

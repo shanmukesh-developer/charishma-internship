@@ -16,6 +16,8 @@ import { rentalHrefForNotification } from '../modules/rentals/rentalLinks';
 import { autoRideHrefForNotification } from '../modules/autoRide/autoRideLinks';
 import { campusEventHrefForNotification } from '../modules/campusEvents/campusEventLinks';
 import { safeId } from '../utils/ids';
+import { Ionicons } from '@expo/vector-icons';
+import { formatISTDate } from '../utils/format';
 
 interface NotificationItem {
   id: string;
@@ -207,6 +209,7 @@ export default function NotificationsScreen() {
       if (!res.ok && res.status !== 404) throw new Error(`status ${res.status}`);
     } catch {
       if (mountedRef.current) setNotifications(previous);
+      Alert.alert("Couldn't delete", 'Try again.');
     }
   };
 
@@ -243,8 +246,15 @@ export default function NotificationsScreen() {
     } else if (campusHrefForNotification(n.type, n.data)) {
       // Friend requests, chats, verification results, birthdays and The Wall open the right Campus screen
       router.push(campusHrefForNotification(n.type, n.data) as any);
+    } else if ((n.type === 'PG_BOOKING_STATUS' || n.type === 'PG_BOOKING') && safeId(n.data?.pgId)) {
+      router.push(`/pg/${safeId(n.data?.pgId)}` as any);
+    } else if (n.type === 'BADGE') {
+      router.push('/rewards' as any);
     } else if (n.type === 'PROMO' || n.type === 'SURGE' || n.type === 'abandoned_cart' || n.type === 'streak_nudge') {
       router.push('/(tabs)' as any);
+    } else if (n.title || n.body) {
+      // Nothing to open for this one, so show the full message.
+      Alert.alert(n.title || 'Notification', n.body || undefined);
     }
   };
 
@@ -260,35 +270,33 @@ export default function NotificationsScreen() {
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
 
-    const yesterday = new Date(now);
-    yesterday.setDate(now.getDate() - 1);
-    if (date.toDateString() === yesterday.toDateString()) {
+    if (formatISTDate(date) === formatISTDate(new Date(now.getTime() - 86400000))) {
       return 'Yesterday';
     }
 
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return formatISTDate(date);
   };
 
-  const getIconForType = (type: string) => {
+  const getIconForType = (type: string): React.ComponentProps<typeof Ionicons>['name'] => {
     switch (type) {
-      case 'emergency': return '🚨';
-      case 'warning': return '⚠️';
-      case 'promo': case 'PROMO': case 'campaign': return '🎁';
-      case 'info': case 'global_broadcast': return '📢';
-      case 'friend_accepted': case 'FRIEND_ACCEPTED': case 'FRIEND_REQUEST': return '🤝';
-      case 'FRIEND_NUDGE': return '👋';
-      case 'CAMPUS_VERIFICATION': return '🎓';
-      case 'chat_message': case 'NEW_CHAT_MESSAGE': return '💬';
-      case 'ORDER_UPDATE': case 'ORDER_STATUS': return '🛵';
-      case 'GATE_ARRIVAL': return '🛎️';
-      case 'SUPPORT_TICKET': return '💬';
-      case 'PG_BOOKING_STATUS': case 'PG_BOOKING': return '🏠';
-      case 'BADGE': case 'WALL_WINNER_REWARD': return '🏆';
-      case 'SPIN_EARNED': return '🎡';
-      case 'streak_nudge': return '🔥';
-      case 'BIRTHDAY_ALERT': return '🎂';
-      case 'abandoned_cart': return '🍽️';
-      default: return '📢';
+      case 'emergency': return 'alert-circle-outline';
+      case 'warning': return 'warning-outline';
+      case 'promo': case 'PROMO': case 'campaign': return 'gift-outline';
+      case 'info': case 'global_broadcast': return 'megaphone-outline';
+      case 'friend_accepted': case 'FRIEND_ACCEPTED': case 'FRIEND_REQUEST': return 'people-outline';
+      case 'FRIEND_NUDGE': return 'hand-left-outline';
+      case 'CAMPUS_VERIFICATION': return 'school-outline';
+      case 'chat_message': case 'NEW_CHAT_MESSAGE': return 'chatbubble-outline';
+      case 'ORDER_UPDATE': case 'ORDER_STATUS': return 'bicycle-outline';
+      case 'GATE_ARRIVAL': return 'notifications-outline';
+      case 'SUPPORT_TICKET': return 'help-buoy-outline';
+      case 'PG_BOOKING_STATUS': case 'PG_BOOKING': return 'home-outline';
+      case 'BADGE': case 'WALL_WINNER_REWARD': return 'trophy-outline';
+      case 'SPIN_EARNED': return 'sync-outline';
+      case 'streak_nudge': return 'flame-outline';
+      case 'BIRTHDAY_ALERT': return 'gift-outline';
+      case 'abandoned_cart': return 'basket-outline';
+      default: return 'megaphone-outline';
     }
   };
 
@@ -323,8 +331,8 @@ export default function NotificationsScreen() {
 
   const nonVegWords = ['chicken', 'mutton', 'meat', 'beef', 'pork', 'fish', 'prawn', 'wings', 'tandoori chicken', 'shawarma'];
   const displayedNotifications = notifications.filter(n => {
-    // Veg mode hides non-veg promotions only, never the user's own order or account alerts.
-    const isPromo = ['promo', 'PROMO', 'SURGE', 'info'].includes(n.type);
+    // Veg mode hides non-veg promotions only, never announcements ('info') or the user's own order or account alerts.
+    const isPromo = ['promo', 'PROMO', 'SURGE'].includes(n.type);
     if (dietMode === 'veg' && isPromo) {
       const text = (n.title + ' ' + n.body).toLowerCase();
       const hasNonVeg = nonVegWords.some(word => text.includes(word));
@@ -339,6 +347,8 @@ export default function NotificationsScreen() {
       <View style={[s.header, { borderBottomColor: border, backgroundColor: cardBg }]}>
         <TouchableOpacity
           style={[s.backBtn, { borderColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6' }]}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
           onPress={() => {
             if (router.canGoBack()) {
               router.back();
@@ -353,18 +363,18 @@ export default function NotificationsScreen() {
           <Text style={[s.subText, { color: goldColor }]}>
             {(() => {
               const unread = displayedNotifications.filter(n => !n.read).length;
-              return unread > 0 ? `${unread} UNREAD` : 'ALL CAUGHT UP';
+              return unread > 0 ? `${unread} unread` : 'All caught up';
             })()}
           </Text>
           <Text style={[s.title, { color: txt }]}>Notifications</Text>
         </View>
         {notifications.length > 0 && (
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity onPress={markAllAsRead} style={s.actionHeaderBtn}>
-            <Text style={[s.actionHeaderBtnText, { color: goldColor }]}>MARK READ</Text>
+          <TouchableOpacity onPress={markAllAsRead} style={s.actionHeaderBtn} accessibilityRole="button" accessibilityLabel="Mark all read">
+            <Text style={[s.actionHeaderBtnText, { color: goldColor }]}>Mark all read</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={clearAllNotifications} style={s.actionHeaderBtn}>
-            <Text style={[s.actionHeaderBtnText, { color: COLORS.red }]}>CLEAR</Text>
+          <TouchableOpacity onPress={clearAllNotifications} style={s.actionHeaderBtn} accessibilityRole="button" accessibilityLabel="Clear all">
+            <Text style={[s.actionHeaderBtnText, { color: COLORS.red }]}>Clear all</Text>
           </TouchableOpacity>
         </View>
         )}
@@ -388,10 +398,10 @@ export default function NotificationsScreen() {
         >
           <BounceIn>
             <View style={s.emptyState}>
-              <Text style={{ fontSize: 44, marginBottom: 12 }}>🔔</Text>
-              <Text style={[s.emptyTitle, { color: txt }]}>ALL CAUGHT UP!</Text>
+              <Ionicons name="notifications-outline" size={44} color={txtSec} style={{ marginBottom: 12 }} />
+              <Text style={[s.emptyTitle, { color: txt }]}>No notifications yet</Text>
               <Text style={[s.emptyDesc, { color: txtSec }]}>
-                No new alerts or announcements at this time. Pull down to refresh.
+                Order updates and announcements will show here. Pull down to refresh.
               </Text>
             </View>
           </BounceIn>
@@ -428,7 +438,7 @@ export default function NotificationsScreen() {
                   >
                     <View style={s.cardHeader}>
                       <View style={[s.iconBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: border, borderWidth: 1 }]}>
-                        <Text style={{ fontSize: 18 }}>{getIconForType(n.type)}</Text>
+                        <Ionicons name={getIconForType(n.type)} size={20} color={indicatorColor} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <View style={s.titleRow}>
@@ -445,6 +455,8 @@ export default function NotificationsScreen() {
                       <TouchableOpacity
                         style={s.deleteBtn}
                         onPress={() => deleteNotification(n.id)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Delete notification"
                       >
                         <Text style={{ color: '#EF4444', fontSize: 13, fontWeight: '700' }}>✕</Text>
                       </TouchableOpacity>
@@ -478,7 +490,7 @@ const s = StyleSheet.create({
     marginRight: 12
   },
   backIcon: { fontSize: 32, fontWeight: '300' },
-  subText: { fontSize: 8, fontWeight: '900', letterSpacing: 2 },
+  subText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
   title: { fontSize: 18, fontWeight: '900' },
 
   actionHeaderBtn: {
@@ -488,9 +500,9 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
   },
   actionHeaderBtnText: {
-    fontSize: 8,
-    fontWeight: '900',
-    letterSpacing: 1,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
 
   center: {
@@ -507,7 +519,7 @@ const s = StyleSheet.create({
   emptyTitle: {
     fontSize: 14,
     fontWeight: '900',
-    letterSpacing: 3,
+    letterSpacing: 0.3,
     marginBottom: 8,
   },
   emptyDesc: {

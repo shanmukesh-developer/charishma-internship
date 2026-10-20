@@ -12,23 +12,43 @@ import { apiFetch, readJson } from '../utils/auth';
 import { useLiveSync } from '../utils/useLiveSync';
 import { API_URL } from '../constants/api';
 import { useCart } from '../context/CartContext';
+import { Ionicons } from '@expo/vector-icons';
+import { formatCount, plural } from '../utils/format';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
 // Display mirror of the server's 8-sector prize table (same order). The server picks the prize;
 // GET /api/rewards/spin-eligibility returns the live table in `prizes`, which wins when present.
 const PRIZES = [
-  { label: 'FREE DEL', value: 'FREEDEL', type: 'coupon', display: 'Free Delivery 🚚' },
-  { label: '10 ZEN', value: 10, type: 'points', display: '10 ZenPoints 💎' },
-  { label: '20 ZEN', value: 20, type: 'points', display: '20 ZenPoints 💎' },
-  { label: '5 ZEN', value: 5, type: 'points', display: '5 ZenPoints 💎' },
-  { label: '50 ZEN', value: 50, type: 'points', display: '50 ZenPoints 💎' },
-  { label: '100 ZEN', value: 100, type: 'points', display: '100 ZenPoints 💎' },
-  { label: '5 ZEN', value: 5, type: 'points', display: '5 ZenPoints 💎' },
-  { label: '2 ZEN', value: 2, type: 'points', display: '2 ZenPoints 💎' },
+  { label: 'Free delivery', value: 'FREEDEL', type: 'coupon', display: 'Free delivery' },
+  { label: '10 pts', value: 10, type: 'points', display: '10 ZenPoints' },
+  { label: '20 pts', value: 20, type: 'points', display: '20 ZenPoints' },
+  { label: '5 pts', value: 5, type: 'points', display: '5 ZenPoints' },
+  { label: '50 pts', value: 50, type: 'points', display: '50 ZenPoints' },
+  { label: '100 pts', value: 100, type: 'points', display: '100 ZenPoints' },
+  { label: '5 pts', value: 5, type: 'points', display: '5 ZenPoints' },
+  { label: '2 pts', value: 2, type: 'points', display: '2 ZenPoints' },
 ];
 
 type Prize = { label: string; value: any; type: string; display: string };
+
+// The server's prize table can carry emoji / ALL-CAPS labels; the wheel and alerts show plain text
+// built from the prize type and value instead.
+const EMOJI_RE = /(?:[\uD83C-\uD83E][\uDC00-\uDFFF]|[\u2600-\u27BF]|\uFE0F)/g;
+const plainText = (t: unknown) => String(t ?? '').replace(EMOJI_RE, '').replace(/\s{2,}/g, ' ').trim();
+const isPoints = (p?: Partial<Prize> | null) => !!p && p.type === 'points' && Number.isFinite(Number(p.value));
+const prizeWheelLabel = (p?: Partial<Prize> | null) => {
+  if (!p) return '';
+  if (p.value === 'FREEDEL') return 'Free delivery';
+  if (isPoints(p)) return `${formatCount(p.value)} pts`;
+  return plainText(p.label);
+};
+const prizeDisplay = (p?: Partial<Prize> | null) => {
+  if (!p) return '';
+  if (p.value === 'FREEDEL') return 'Free delivery';
+  if (isPoints(p)) return `${formatCount(p.value)} ZenPoints`;
+  return plainText(p.display || p.label);
+};
 type Eligibility = { spinsAvailable: number; nextMilestoneIn: number; spinsUsed: number; prizes?: Prize[] };
 
 export default function RewardsScreen() {
@@ -39,13 +59,6 @@ export default function RewardsScreen() {
 
   const streak = user?.streakCount || 0;
   const progressPercent = Math.min(100, (streak / 14) * 100);
-
-  const getTier = (days: number) => {
-    if (days >= 14) return 'Gold Tier';
-    if (days >= 7) return 'Silver Tier';
-    if (days >= 3) return 'Bronze Tier';
-    return 'Starter Tier';
-  };
 
   // Backend Eligibility State
   const [eligibility, setEligibility] = useState<Eligibility | null>(null);
@@ -209,7 +222,7 @@ export default function RewardsScreen() {
       // The request may have reached the server before the connection dropped: don't promise the spin is unused.
       if (mountedRef.current) {
         setSpinning(false);
-        Alert.alert('Connection problem', "We couldn't confirm your spin. If it went through, your prize will show in your coupons below.");
+        Alert.alert('Connection problem', "We couldn't confirm your spin. If it went through, your prize will show in My coupons below.");
         fetchEligibility();
         fetchCoupons({ silent: true });
       }
@@ -219,7 +232,7 @@ export default function RewardsScreen() {
     if (!mountedRef.current) { spinLockRef.current = false; return; }
 
     const targetIndex = Math.max(0, Math.min(wheelPrizes.length - 1, data.prizeIndex));
-    const prizeText: string = data.prize?.display || wheelPrizes[targetIndex]?.display || 'a prize';
+    const prizeText: string = prizeDisplay(data.prize) || prizeDisplay(wheelPrizes[targetIndex]) || 'A prize';
     setEligibility(prev => (prev ? {
       ...prev,
       spinsAvailable: Number(data.spinsAvailable ?? Math.max(0, prev.spinsAvailable - 1)),
@@ -261,9 +274,9 @@ export default function RewardsScreen() {
       setSelectedPrize(prizeText);
       setSpinning(false);
       Alert.alert(
-        'You won! 🎉',
+        'You won',
         data.coupon?.code
-          ? `${prizeText}. Your voucher ${data.coupon.code} is in My Vouchers below.`
+          ? `${prizeText}. Your coupon ${data.coupon.code} is in My coupons below.`
           : `${prizeText} added to your account.`
       );
       refreshUser().catch(() => {});
@@ -300,6 +313,8 @@ export default function RewardsScreen() {
         <View style={[s.header, { borderBottomColor: border, backgroundColor: cardBg }]}>
           <TouchableOpacity
             style={[s.backBtn, { borderColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6' }]}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
@@ -311,15 +326,15 @@ export default function RewardsScreen() {
             <Text style={{ fontSize: 16, color: txt }}>←</Text>
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={s.subText}>ZENVY REWARDS</Text>
-            <Text style={[s.title, { color: txt }]}>Rewards & Streaks</Text>
+            <Text style={s.subText}>Zenvy rewards</Text>
+            <Text style={[s.title, { color: txt }]}>Rewards and streaks</Text>
           </View>
         </View>
 
         <View style={[s.center, { flex: 1, padding: 24 }]}>
-          <Text style={{ fontSize: 52, marginBottom: 16 }}>👑</Text>
-          <Text style={{ fontSize: 18, fontWeight: '900', color: txt, letterSpacing: 2, textAlign: 'center', marginBottom: 8 }}>
-            ZENVY REWARDS
+          <Ionicons name="trophy-outline" size={52} color="#D4AF7A" style={{ marginBottom: 16 }} />
+          <Text style={{ fontSize: 18, fontWeight: '900', color: txt, letterSpacing: 0.2, textAlign: 'center', marginBottom: 8 }}>
+            Zenvy rewards
           </Text>
           <Text style={{ fontSize: 12, color: txtSec, textAlign: 'center', lineHeight: 18, marginBottom: 28, maxWidth: 280 }}>
             Sign in to spin the prize wheel (one spin for every 2 delivered orders) and keep your order streak going.
@@ -341,8 +356,8 @@ export default function RewardsScreen() {
             sound="click"
             activeScale={0.95}
           >
-            <Text style={{ color: '#000', fontSize: 11, fontWeight: '900', letterSpacing: 2 }}>
-              SIGN IN TO UNLOCK →
+            <Text style={{ color: '#000', fontSize: 13, fontWeight: '900' }}>
+              Sign in
             </Text>
           </DopaminePressable>
 
@@ -361,8 +376,8 @@ export default function RewardsScreen() {
             sound="click"
             activeScale={0.95}
           >
-            <Text style={{ color: txtSec, fontSize: 10, fontWeight: '800', letterSpacing: 1 }}>
-              EXPLORE MENUS FIRST
+            <Text style={{ color: txtSec, fontSize: 12, fontWeight: '800' }}>
+              Browse stores
             </Text>
           </DopaminePressable>
         </View>
@@ -376,6 +391,8 @@ export default function RewardsScreen() {
       <View style={[s.header, { borderBottomColor: border, backgroundColor: cardBg }]}>
         <TouchableOpacity
           style={[s.backBtn, { borderColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6' }]}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
           onPress={() => {
             if (router.canGoBack()) {
               router.back();
@@ -387,8 +404,8 @@ export default function RewardsScreen() {
           <Text style={{ fontSize: 16, color: txt }}>←</Text>
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={s.subText}>YOUR REWARDS</Text>
-          <Text style={[s.title, { color: txt }]}>Rewards & Streaks</Text>
+          <Text style={s.subText}>Your rewards</Text>
+          <Text style={[s.title, { color: txt }]}>Rewards and streaks</Text>
         </View>
       </View>
 
@@ -399,11 +416,8 @@ export default function RewardsScreen() {
           <View style={[s.card, { backgroundColor: cardBg, borderColor: border }]}>
             <View style={s.streakHeader}>
               <View>
-                <Text style={s.cardLabel}>ORDER STREAK</Text>
-                <Text style={[s.streakVal, { color: txt }]}>🔥 {streak} Days</Text>
-              </View>
-              <View style={s.tierBadge}>
-                <Text style={s.tierBadgeText}>{getTier(streak).toUpperCase()}</Text>
+                <Text style={s.cardLabel}>Order streak</Text>
+                <Text style={[s.streakVal, { color: txt }]}>{plural(streak, 'day')}</Text>
               </View>
             </View>
 
@@ -420,7 +434,7 @@ export default function RewardsScreen() {
 
         {/* ── PRIZE WHEEL (1 spin per 2 delivered orders) ── */}
         <StaggeredSection delay={130} direction="up">
-          <Text style={[s.sectionTitle, { color: txt }]}>PRIZE WHEEL</Text>
+          <Text style={[s.sectionTitle, { color: txt }]}>Prize wheel</Text>
 
           <View style={[s.wheelCard, { backgroundColor: cardBg, borderColor: border }]}>
             {loadingEligibility && !eligibility ? (
@@ -430,13 +444,13 @@ export default function RewardsScreen() {
                 <Text style={[s.wheelSub, { marginBottom: 4, color: '#EF4444' }]}>
                   {eligibilityError || "We couldn't load your spins."}
                 </Text>
-                <Text style={[s.wheelSub, { marginBottom: 0, color: '#D4AF7A' }]}>TAP TO TRY AGAIN</Text>
+                <Text style={[s.wheelSub, { marginBottom: 0, color: '#D4AF7A' }]}>Tap to try again</Text>
               </TouchableOpacity>
             ) : (
               <Text style={s.wheelSub}>
                 {eligibility.spinsAvailable > 0
-                  ? `${eligibility.spinsAvailable} SPIN${eligibility.spinsAvailable > 1 ? 'S' : ''} AVAILABLE! TAP TO SPIN`
-                  : `NEXT SPIN AFTER ${eligibility.nextMilestoneIn} MORE DELIVERED ORDER${eligibility.nextMilestoneIn === 1 ? '' : 'S'}`}
+                  ? `${plural(eligibility.spinsAvailable, 'spin')} available`
+                  : `Next spin after ${plural(eligibility.nextMilestoneIn, 'more delivered order')}`}
               </Text>
             )}
 
@@ -503,7 +517,7 @@ export default function RewardsScreen() {
                       ]}
                     >
                       <Text style={s.sliceText} numberOfLines={1}>
-                        {prize.label}
+                        {prizeWheelLabel(prize)}
                       </Text>
                     </View>
                   );
@@ -511,7 +525,7 @@ export default function RewardsScreen() {
 
                 {/* Glass core dial */}
                 <View style={s.coreBadge}>
-                  <Text style={{ fontSize: 10 }}>✨</Text>
+                  <Ionicons name="star" size={12} color="#D4AF7A" />
                 </View>
               </Animated.View>
 
@@ -530,12 +544,12 @@ export default function RewardsScreen() {
               >
                 <Text style={s.spinBtnText}>
                   {spinning
-                    ? 'SPINNING...'
+                    ? 'Spinning…'
                     : !eligibility
-                      ? 'SPINS UNAVAILABLE'
+                      ? 'Spins unavailable'
                       : eligibility.spinsAvailable <= 0
-                        ? 'NO SPINS LEFT'
-                        : 'SPIN THE WHEEL'
+                        ? 'No spins left'
+                        : 'Spin the wheel'
                   }
                 </Text>
               </ActionPressable>
@@ -543,22 +557,28 @@ export default function RewardsScreen() {
 
             {selectedPrize && (
               <View style={s.resultBox}>
-                <Text style={s.resultLabel}>YOU WON</Text>
+                <Text style={s.resultLabel}>You won</Text>
                 <Text style={s.resultVal}>{selectedPrize}</Text>
               </View>
             )}
           </View>
         </StaggeredSection>
 
-        {/* Active Won Vouchers / Coupons */}
+        {/* Won coupons */}
         {couponsError && coupons.length === 0 && !loadingCoupons && (
           <TouchableOpacity onPress={() => fetchCoupons()} style={{ paddingVertical: 12, alignItems: 'center' }}>
-            <Text style={{ fontSize: 11, fontWeight: '700', color: '#EF4444' }}>Couldn't load your vouchers. Tap to try again.</Text>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: '#EF4444' }}>Couldn't load your coupons. Tap to try again.</Text>
           </TouchableOpacity>
+        )}
+        {coupons.length === 0 && !couponsError && !loadingCoupons && (
+          <View style={{ paddingVertical: 12, alignItems: 'center' }}>
+            <Text style={[s.sectionTitle, { color: txt, marginTop: 16, alignSelf: 'flex-start' }]}>My coupons</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec, textAlign: 'center' }}>No coupons yet. Spin the wheel to win one.</Text>
+          </View>
         )}
         {coupons.length > 0 && (
           <StaggeredSection delay={280} direction="up">
-            <Text style={[s.sectionTitle, { color: txt, marginTop: 16 }]}>MY VOUCHERS</Text>
+            <Text style={[s.sectionTitle, { color: txt, marginTop: 16 }]}>My coupons</Text>
             <View style={{ gap: 10, marginBottom: 16 }}>
               {coupons.map((c, idx) => {
                 const isCopied = copiedCode === c.code;
@@ -569,7 +589,7 @@ export default function RewardsScreen() {
                   >
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
                       <View style={[s.rewardIconWrap, { backgroundColor: 'rgba(212,175,122,0.1)' }]}>
-                        <Text style={{ fontSize: 20 }}>🎟️</Text>
+                        <Ionicons name="ticket-outline" size={20} color="#D4AF7A" />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={[s.rewardTitle, { color: txt, letterSpacing: 1 }]} numberOfLines={1}>
@@ -578,7 +598,7 @@ export default function RewardsScreen() {
                         <Text style={[s.rewardDesc, { color: '#D4AF7A' }]}>
                           {c.label || (c.type === 'FREEDEL' ? 'Free delivery' : 'Discount')}
                           {typeof c.expiresInDays === 'number'
-                            ? (c.expiresInDays <= 0 ? ' • Expires today' : ` • Expires in ${c.expiresInDays}d`)
+                            ? (c.expiresInDays <= 0 ? ' · Expires today' : ` · Expires in ${plural(c.expiresInDays, 'day')}`)
                             : ''}
                         </Text>
                       </View>
@@ -595,7 +615,7 @@ export default function RewardsScreen() {
                         activeScale={0.9}
                       >
                         <Text style={[s.statusBoxText, { color: isCopied ? '#FFF' : '#D4AF7A', fontWeight: '900' }]}>
-                          {isCopied ? 'COPIED!' : 'COPY'}
+                          {isCopied ? 'Copied' : 'Copy'}
                         </Text>
                       </DopaminePressable>
 
@@ -609,7 +629,7 @@ export default function RewardsScreen() {
                         activeScale={0.9}
                       >
                         <Text style={[s.statusBoxText, { color: '#000', fontWeight: '900' }]}>
-                          USE NOW
+                          Use now
                         </Text>
                       </DopaminePressable>
                     </View>
@@ -631,24 +651,22 @@ const s = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1 },
   backBtn: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  subText: { fontSize: 8, fontWeight: '900', color: '#D4AF7A', letterSpacing: 2 },
+  subText: { fontSize: 10, fontWeight: '800', color: '#D4AF7A', letterSpacing: 0.3 },
   title: { fontSize: 18, fontWeight: '900' },
 
   scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
   card: { padding: 20, borderRadius: 28, borderWidth: 1, marginBottom: 20 },
   streakHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  cardLabel: { fontSize: 8, fontWeight: '900', color: '#888', letterSpacing: 1 },
+  cardLabel: { fontSize: 11, fontWeight: '800', color: '#888' },
   streakVal: { fontSize: 24, fontWeight: '900', marginTop: 2 },
-  tierBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(212,175,122,0.15)', borderWidth: 1, borderColor: '#D4AF7A' },
-  tierBadgeText: { fontSize: 8, fontWeight: '900', color: '#D4AF7A', letterSpacing: 0.5 },
 
   progressContainer: { height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.05)', overflow: 'hidden', marginBottom: 12 },
   progressBar: { height: '100%', borderRadius: 3, backgroundColor: '#D4AF7A' },
   cardDesc: { fontSize: 9, fontWeight: '700', lineHeight: 14 },
 
-  sectionTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 2, marginBottom: 12, marginLeft: 4 },
+  sectionTitle: { fontSize: 13, fontWeight: '900', letterSpacing: 0.2, marginBottom: 12, marginLeft: 4 },
   wheelCard: { padding: 24, borderRadius: 28, borderWidth: 1, alignItems: 'center', marginBottom: 24 },
-  wheelSub: { fontSize: 8, fontWeight: '900', color: '#888', letterSpacing: 1, marginBottom: 20, textAlign: 'center' },
+  wheelSub: { fontSize: 11, fontWeight: '800', color: '#888', marginBottom: 20, textAlign: 'center' },
 
   // Tactile Pointer
   pointerContainer: { zIndex: 50, marginBottom: -12, transformOrigin: 'top center' },
@@ -664,17 +682,17 @@ const s = StyleSheet.create({
 
   // Text segments
   sliceTextWrap: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 20 },
-  sliceText: { fontSize: 7, fontWeight: '900', color: '#EBE3CE', letterSpacing: 0.5, textTransform: 'uppercase', textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 },
+  sliceText: { fontSize: 8, fontWeight: '900', color: '#EBE3CE', letterSpacing: 0.2, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 },
 
   // Core center badge
   coreBadge: { position: 'absolute', width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(11,10,12,0.95)', borderWidth: 2, borderColor: '#D4AF7A', justifyContent: 'center', alignItems: 'center', zIndex: 30, shadowColor: '#D4AF7A', shadowOpacity: 0.4, shadowRadius: 6 },
 
   spinBtn: { width: '100%', height: 46, backgroundColor: '#D4AF7A', borderRadius: 14, alignItems: 'center', justifyContent: 'center', ...SHADOWS.goldGlow },
   spinBtnDisabled: { backgroundColor: 'rgba(212,175,122,0.45)' },
-  spinBtnText: { fontSize: 10, fontWeight: '900', color: '#000', letterSpacing: 1.5 },
+  spinBtnText: { fontSize: 13, fontWeight: '900', color: '#000', letterSpacing: 0.2 },
 
   resultBox: { width: '100%', padding: 14, borderRadius: 16, backgroundColor: 'rgba(34,197,94,0.06)', borderWidth: 1.5, borderColor: 'rgba(34,197,94,0.18)', marginTop: 18, alignItems: 'center' },
-  resultLabel: { fontSize: 7.5, fontWeight: '900', color: '#22c55e', letterSpacing: 1.5 },
+  resultLabel: { fontSize: 10, fontWeight: '800', color: '#22c55e' },
   resultVal: { fontSize: 12, fontWeight: '900', color: '#22c55e', marginTop: 3 },
 
   tierList: { gap: 10 },
@@ -686,6 +704,6 @@ const s = StyleSheet.create({
   rewardDesc: { fontSize: 9, fontWeight: '700', marginTop: 2 },
   statusBox: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)' },
   statusBoxUnlocked: { backgroundColor: 'rgba(34,197,94,0.1)' },
-  statusBoxText: { fontSize: 8, fontWeight: '900', color: '#888', letterSpacing: 0.5 }
+  statusBoxText: { fontSize: 10, fontWeight: '900', color: '#888' }
 });
 

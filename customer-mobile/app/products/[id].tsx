@@ -31,12 +31,16 @@ import { useTheme } from '../../context/ThemeContext';
 import AdSlot from '../../components/AdSlot';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import { Ionicons } from '@expo/vector-icons';
+import { formatINR, isAmount, plural } from '../../utils/format';
 
 const { width: SW } = Dimensions.get('window');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REVIEW_MAX = 500;
-const REVIEW_TAGS = ['Super Tasty 🔥', 'Generous Portion 🍛', 'Fresh & Hot ♨️', 'Spicy 🌶️', 'Best Value 💰'];
+// Quick review tags: food tags only for food stores (see NON_FOOD_TYPES below).
+const FOOD_REVIEW_TAGS = ['Tasty', 'Good portion', 'Fresh and hot', 'Spicy', 'Good value'];
+const NON_FOOD_REVIEW_TAGS = ['Good quality', 'As described', 'Good value'];
 
 // Vendor types where a veg / non-veg mark makes no sense.
 const NON_FOOD_TYPES = ['ELECTRONICS', 'HOME_ESSENTIALS', 'STATIONERY', 'STATIONARY', 'TOYS', 'SEEDS', 'RENTALS', 'RENTAL', 'REPAIRS', 'PRINT', 'LAUNDRY', 'TAILORING', 'PHARMACY'];
@@ -52,23 +56,26 @@ export function getRealImageUri(uri?: string | null): string | null {
   return null;
 }
 
+/** "shelfLife" / "shelf_life" -> "Shelf life" (sentence case). */
 function humanizeKey(key: string): string {
-  return key
+  const words = key
     .replace(/[_-]+/g, ' ')
     .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+    .trim()
+    .toLowerCase();
+  return words ? words.charAt(0).toUpperCase() + words.slice(1) : key;
 }
 
-function specIcon(label: string): string {
+function specIcon(label: string): React.ComponentProps<typeof Ionicons>['name'] {
   const l = label.toLowerCase();
-  if (l.includes('weight') || l.includes('pack') || l.includes('size') || l.includes('portion') || l.includes('serve')) return '📦';
-  if (l.includes('brand')) return '🏷️';
-  if (l.includes('spice')) return '🌶️';
-  if (l.includes('allergen')) return '⚠️';
-  if (l.includes('ingredient')) return '🥣';
-  if (l.includes('shelf') || l.includes('fresh') || l.includes('expiry')) return '⏱️';
-  if (l.includes('storage')) return '❄️';
-  return '📌';
+  if (l.includes('weight') || l.includes('pack') || l.includes('size') || l.includes('portion') || l.includes('serve')) return 'cube-outline';
+  if (l.includes('brand')) return 'pricetag-outline';
+  if (l.includes('spice')) return 'flame-outline';
+  if (l.includes('allergen')) return 'warning-outline';
+  if (l.includes('ingredient')) return 'list-outline';
+  if (l.includes('shelf') || l.includes('fresh') || l.includes('expiry')) return 'time-outline';
+  if (l.includes('storage')) return 'snow-outline';
+  return 'information-circle-outline';
 }
 
 /** Turns MenuItem.specs into displayable rows. Only real, admin/restaurant-entered values are shown. */
@@ -83,7 +90,7 @@ function buildSpecRows(specs: any): { label: string; value: string }[] {
     else if (typeof raw === 'boolean') value = raw ? 'Yes' : 'No';
     else if (Array.isArray(raw)) value = raw.filter((x) => typeof x === 'string' || typeof x === 'number').join(', ');
     if (!value) return;
-    rows.push({ label: key === 'weight' ? 'Pack Size' : humanizeKey(key), value });
+    rows.push({ label: key === 'weight' ? 'Pack size' : humanizeKey(key), value });
   });
   return rows;
 }
@@ -100,7 +107,11 @@ function ProductPhoto({ uri, style, emoji, isDark }: { uri: string | null; style
   if (!uri || failed) {
     return (
       <View style={[style, { alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#1A1D24' : '#F1F5F9' }]}>
-        <Text style={{ fontSize: 44, opacity: 0.8 }}>{emoji || '🛍️'}</Text>
+        {emoji ? (
+          <Text style={{ fontSize: 44, opacity: 0.8 }}>{emoji}</Text>
+        ) : (
+          <Ionicons name="cube-outline" size={40} color={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.25)'} />
+        )}
       </View>
     );
   }
@@ -366,9 +377,9 @@ export default function ProductDetailScreen() {
       const data = await res.json().catch(() => null);
       if (!mountedRef.current) return;
       if (res.status === 401) {
-        Alert.alert('Please log in', 'Log in to share your review.', [
+        Alert.alert('Please sign in', "Sign in to rate items you've ordered.", [
           { text: 'Not now', style: 'cancel' },
-          { text: 'Log in', onPress: () => { setShowReviewModal(false); router.push('/login' as any); } },
+          { text: 'Sign in', onPress: () => { setShowReviewModal(false); router.push('/login' as any); } },
         ]);
         return;
       }
@@ -381,7 +392,7 @@ export default function ProductDetailScreen() {
       setUserReviewText('');
       setSelectedTags([]);
       setUserRating(5);
-      Alert.alert('Thanks for your review! ⭐', data?.message || 'Your review is now live.');
+      Alert.alert('Review posted', 'Thanks for your review.');
       loadReviews(product.id);
     } catch (e) {
       if (mountedRef.current) Alert.alert('No connection', 'Could not reach Zenvy. Check your internet and try again.');
@@ -395,8 +406,8 @@ export default function ProductDetailScreen() {
     return (
       <View style={[styles.loadingBox, { backgroundColor: colors.bg }]}>
         <ActivityIndicator size="large" color={COLORS.red} />
-        <Text style={{ marginTop: 12, fontSize: 11, fontWeight: '800', color: COLORS.inkMuted }}>
-          LOADING PRODUCT...
+        <Text style={{ marginTop: 12, fontSize: 12, fontWeight: '800', color: COLORS.inkMuted }}>
+          Loading item…
         </Text>
       </View>
     );
@@ -413,8 +424,8 @@ export default function ProductDetailScreen() {
         >
           <Text style={{ fontSize: 18, color: isDark ? '#FFF' : '#000' }}>←</Text>
         </TouchableOpacity>
-        <Text style={{ fontSize: 44, marginBottom: 16 }}>{isError ? '📡' : '🍱'}</Text>
-        <Text style={{ fontSize: 18, fontWeight: '900', color: colors.text, letterSpacing: 1, textAlign: 'center', marginBottom: 8 }}>
+        <Ionicons name={isError ? 'cloud-offline-outline' : 'cube-outline'} size={44} color={colors.textSecondary} style={{ marginBottom: 16 }} />
+        <Text style={{ fontSize: 18, fontWeight: '900', color: colors.text, letterSpacing: 0.2, textAlign: 'center', marginBottom: 8 }}>
           {isError ? "Couldn't load this item" : 'Item not available'}
         </Text>
         <Text style={{ fontSize: 12, color: colors.textSecondary, textAlign: 'center', lineHeight: 18, marginBottom: 24, paddingHorizontal: 20 }}>
@@ -430,14 +441,14 @@ export default function ProductDetailScreen() {
               loadProduct();
             }}
           >
-            <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '900', letterSpacing: 1.5 }}>RETRY</Text>
+            <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '900' }}>Try again</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
             style={{ backgroundColor: COLORS.red, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 16, ...SHADOWS.redGlow }}
             onPress={() => router.replace('/(tabs)' as any)}
           >
-            <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '900', letterSpacing: 2 }}>EXPLORE MENU →</Text>
+            <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '900' }}>Back to Home</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -446,7 +457,9 @@ export default function ProductDetailScreen() {
 
   // The stepper edits the plain (no-customization) basket line, whose cartKey is the item id.
   const qty = cart.find((i: any) => i.cartKey === product.id)?.quantity || 0;
-  const showDietMark = typeof product.isVegetarian === 'boolean' && !NON_FOOD_TYPES.includes(String(product.vendorType || '').toUpperCase());
+  const isFoodItem = !NON_FOOD_TYPES.includes(String(product.vendorType || '').toUpperCase());
+  const showDietMark = typeof product.isVegetarian === 'boolean' && isFoodItem;
+  const reviewTags = isFoodItem ? FOOD_REVIEW_TAGS : NON_FOOD_REVIEW_TAGS;
   const storeEta: string | null = store?.time || null;
   const eliteLocked = product.isEliteOnly && !(user as any)?.isElite;
   const canAdd = product.orderable && !!product.restaurantId && !eliteLocked && !product.directOrderOnly;
@@ -493,8 +506,8 @@ export default function ProductDetailScreen() {
         list.push({
           id: product.id,
           title: product.name,
-          subtitle: [product.restaurantName, product.weight].filter(Boolean).join(' • ') || 'Campus store',
-          price: `₹${product.price}`,
+          subtitle: [product.restaurantName, product.weight].filter(Boolean).join(' · ') || 'Campus store',
+          price: formatINR(product.price),
           image: product.images[0] || '',
           targetRoute: `/products/${product.id}`,
         });
@@ -509,7 +522,8 @@ export default function ProductDetailScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     try {
       await Share.share({
-        message: `Check out ${product.name}${product.restaurantName ? ` from ${product.restaurantName}` : ''} on Zenvy: zenvy://products/${product.id}`,
+        // No zenvy:// link: it opens nothing for friends who don't have the app yet.
+        message: `Check out ${product.name}${product.restaurantName ? ` from ${product.restaurantName}` : ''} on Zenvy.`,
       });
     } catch (e) {
       // user dismissed the share sheet
@@ -555,17 +569,17 @@ export default function ProductDetailScreen() {
 
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <TouchableOpacity style={styles.iconCircleBtn} onPress={handleToggleSaved} accessibilityLabel={isSaved ? 'Remove from saved' : 'Save item'}>
-                <Text style={{ fontSize: 16 }}>{isSaved ? '❤️' : '🤍'}</Text>
+                <Ionicons name={isSaved ? 'heart' : 'heart-outline'} size={18} color={isSaved ? '#EF4F5F' : '#334155'} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.iconCircleBtn} onPress={handleShare} accessibilityLabel="Share">
-                <Text style={{ fontSize: 15 }}>📤</Text>
+                <Ionicons name="share-outline" size={17} color="#334155" />
               </TouchableOpacity>
             </View>
           </View>
 
           {product.discountPercent ? (
             <View style={styles.galleryDiscountRibbon}>
-              <Text style={styles.galleryDiscountText}>{product.discountPercent}% OFF</Text>
+              <Text style={styles.galleryDiscountText}>{product.discountPercent}% off</Text>
             </View>
           ) : null}
 
@@ -584,7 +598,7 @@ export default function ProductDetailScreen() {
             {storeEta ? (
               <View style={styles.expressBadge}>
                 <Text style={styles.expressBolt}>⏱</Text>
-                <Text style={styles.expressText}>{String(storeEta).toUpperCase()}</Text>
+                <Text style={styles.expressText}>{String(storeEta)}</Text>
               </View>
             ) : null}
 
@@ -594,7 +608,7 @@ export default function ProductDetailScreen() {
                   <View style={[styles.fssaiCircle, { backgroundColor: product.isVegetarian ? '#16A34A' : '#DC2626' }]} />
                 </View>
                 <Text style={[styles.fssaiText, { color: product.isVegetarian ? '#15803D' : '#B91C1C' }]}>
-                  {product.isVegetarian ? 'VEG' : 'NON-VEG'}
+                  {product.isVegetarian ? 'Veg' : 'Non-veg'}
                 </Text>
               </View>
             )}
@@ -623,7 +637,7 @@ export default function ProductDetailScreen() {
               disabled={!product.restaurantId}
               onPress={() => router.push(`/restaurant/${product.restaurantId}` as any)}
             >
-              <Text style={{ fontSize: 13, marginRight: 4 }}>🏪</Text>
+              <Ionicons name="storefront-outline" size={13} color={isDark ? '#CBD5E1' : '#334155'} style={{ marginRight: 4 }} />
               <Text style={[styles.kitchenStoreName, { color: isDark ? '#CBD5E1' : '#334155' }]}>
                 {product.restaurantName}
               </Text>
@@ -638,14 +652,14 @@ export default function ProductDetailScreen() {
 
           <View style={styles.priceContainerRow}>
             <Text style={[styles.priceCurrentBig, { color: isDark ? '#FFF' : '#0F172A' }]}>
-              ₹{product.price}
+              {formatINR(product.price)}
             </Text>
             {product.originalPrice ? (
-              <Text style={styles.priceOriginalStrikethrough}>₹{product.originalPrice}</Text>
+              <Text style={styles.priceOriginalStrikethrough}>{formatINR(product.originalPrice)}</Text>
             ) : null}
             {product.discountPercent ? (
               <View style={styles.priceDiscountChip}>
-                <Text style={styles.priceDiscountChipText}>{product.discountPercent}% OFF</Text>
+                <Text style={styles.priceDiscountChipText}>{product.discountPercent}% off</Text>
               </View>
             ) : null}
           </View>
@@ -653,7 +667,7 @@ export default function ProductDetailScreen() {
           {isStall && (
             <View style={[styles.priceGuaranteeCard, { backgroundColor: isDark ? 'rgba(249,115,22,0.10)' : '#FFF7ED', borderColor: isDark ? 'rgba(249,115,22,0.3)' : '#FED7AA' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                <Text style={{ fontSize: 16 }}>🏪</Text>
+                <Ionicons name="storefront-outline" size={16} color={isDark ? '#FDBA74' : '#9A3412'} />
                 <Text style={[styles.priceGuaranteeSub, { color: isDark ? '#FDBA74' : '#9A3412', flex: 1 }]}>
                   {`${stallName} delivers this itself. ${stallPayCopy(stallName)}.`}
                 </Text>
@@ -663,7 +677,7 @@ export default function ProductDetailScreen() {
                     accessibilityLabel={`Call ${stallName}`}
                     style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: '#256FEF' }}
                   >
-                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '900' }}>📞 CALL STALL</Text>
+                    <Text style={{ color: '#fff', fontSize: 11, fontWeight: '900' }}>Call stall</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -673,7 +687,7 @@ export default function ProductDetailScreen() {
           {!canAdd && (
             <View style={[styles.priceGuaranteeCard, { backgroundColor: isDark ? 'rgba(239,68,68,0.08)' : '#FEF2F2', borderColor: isDark ? 'rgba(239,68,68,0.25)' : '#FECACA' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                <Text style={{ fontSize: 16 }}>{directOrder ? '🏪' : product.isVaultItem ? '🎁' : '⏸️'}</Text>
+                <Ionicons name={directOrder ? 'storefront-outline' : product.isVaultItem ? 'gift-outline' : 'pause-circle-outline'} size={16} color={isDark ? '#FCA5A5' : '#B91C1C'} />
                 <Text style={[styles.priceGuaranteeSub, { color: isDark ? '#FCA5A5' : '#B91C1C', flex: 1 }]}>{unavailableReason}</Text>
               </View>
             </View>
@@ -722,7 +736,7 @@ export default function ProductDetailScreen() {
                     ]}
                   >
                     <View style={styles.specIconBadge}>
-                      <Text style={{ fontSize: 13 }}>{specIcon(attr.label)}</Text>
+                      <Ionicons name={specIcon(attr.label)} size={14} color="#64748B" />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.specLabel}>{attr.label}</Text>
@@ -780,7 +794,9 @@ export default function ProductDetailScreen() {
                       </Text>
 
                       <View style={styles.pairingFooterRow}>
-                        <Text style={[styles.pairingPrice, { color: isDark ? '#FFF' : '#0F172A' }]}>₹{rel.price}</Text>
+                        {isAmount(rel.price) ? (
+                          <Text style={[styles.pairingPrice, { color: isDark ? '#FFF' : '#0F172A' }]}>{formatINR(rel.price)}</Text>
+                        ) : <View />}
 
                         {!relCanAdd ? null : relQty === 0 ? (
                           <TouchableOpacity
@@ -791,7 +807,7 @@ export default function ProductDetailScreen() {
                               addWithStoreCheck(relPayload);
                             }}
                           >
-                            <Text style={styles.pairingAddBtnText}>ADD +</Text>
+                            <Text style={styles.pairingAddBtnText}>Add</Text>
                           </TouchableOpacity>
                         ) : (
                           <View style={styles.pairingMiniStepper}>
@@ -831,7 +847,7 @@ export default function ProductDetailScreen() {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
             <View style={{ flex: 1, paddingRight: 8 }}>
               <Text style={[styles.pdpSectionTitle, { color: isDark ? '#FFF' : COLORS.ink, marginBottom: 2 }]}>
-                Ratings & Reviews
+                Ratings and reviews
               </Text>
               <Text style={{ fontSize: 10, color: isDark ? '#9CA3AF' : COLORS.inkMuted }}>
                 From customers who ordered this item
@@ -842,16 +858,16 @@ export default function ProductDetailScreen() {
               style={styles.writeReviewTopBtn}
               onPress={() => {
                 if (!user) {
-                  Alert.alert('Please log in', 'Log in to rate items you have ordered.', [
+                  Alert.alert('Please sign in', "Sign in to rate items you've ordered.", [
                     { text: 'Not now', style: 'cancel' },
-                    { text: 'Log in', onPress: () => router.push('/login' as any) },
+                    { text: 'Sign in', onPress: () => router.push('/login' as any) },
                   ]);
                   return;
                 }
                 setShowReviewModal(true);
               }}
             >
-              <Text style={styles.writeReviewTopBtnText}>+ Rate Item</Text>
+              <Text style={styles.writeReviewTopBtnText}>Rate this item</Text>
             </TouchableOpacity>
           </View>
 
@@ -863,7 +879,7 @@ export default function ProductDetailScreen() {
                 </Text>
                 <Text style={{ fontSize: 13, marginVertical: 2, color: '#F59E0B', letterSpacing: 1 }}>{starsFor(averageRating)}</Text>
                 <Text style={{ fontSize: 9, fontWeight: '700', color: isDark ? '#9CA3AF' : COLORS.inkMuted }}>
-                  {totalRatingCount} rating{totalRatingCount === 1 ? '' : 's'}
+                  {plural(totalRatingCount, 'rating')}
                 </Text>
               </View>
 
@@ -892,7 +908,7 @@ export default function ProductDetailScreen() {
 
           {reviewsList.length === 0 ? (
             <View style={{ alignItems: 'center', paddingVertical: 24, paddingHorizontal: 16 }}>
-              <Text style={{ fontSize: 30, marginBottom: 8 }}>⭐</Text>
+              <Ionicons name="star-outline" size={30} color="#F59E0B" style={{ marginBottom: 8 }} />
               <Text style={{ fontSize: 14, fontWeight: '700', color: isDark ? '#FFF' : COLORS.ink, textAlign: 'center', marginBottom: 4 }}>
                 No reviews yet
               </Text>
@@ -909,7 +925,7 @@ export default function ProductDetailScreen() {
                       <Text style={[styles.reviewUserName, { color: isDark ? '#FFF' : COLORS.ink }]}>{rev.name || 'Zenvy customer'}</Text>
                       {rev.verified ? (
                         <View style={styles.verifiedBadge}>
-                          <Text style={styles.verifiedBadgeText}>✓ ORDERED</Text>
+                          <Text style={styles.verifiedBadgeText}>Ordered</Text>
                         </View>
                       ) : null}
                     </View>
@@ -923,7 +939,7 @@ export default function ProductDetailScreen() {
                   <Text style={[styles.reviewComment, { color: isDark ? '#E5E7EB' : COLORS.ink }]}>{rev.comment}</Text>
                 ) : null}
                 {Array.isArray(rev.tags) && rev.tags.length > 0 ? (
-                  <Text style={[styles.reviewTime, { marginTop: 6 }]}>{rev.tags.join(' • ')}</Text>
+                  <Text style={[styles.reviewTime, { marginTop: 6 }]}>{rev.tags.join(' · ')}</Text>
                 ) : null}
               </View>
             ))
@@ -951,10 +967,10 @@ export default function ProductDetailScreen() {
             <View style={styles.bottomPriceCol}>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
                 <Text style={[styles.bottomPriceBig, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>
-                  ₹{product.price}
+                  {formatINR(product.price)}
                 </Text>
                 {product.originalPrice ? (
-                  <Text style={styles.bottomPriceStrikethrough}>₹{product.originalPrice}</Text>
+                  <Text style={styles.bottomPriceStrikethrough}>{formatINR(product.originalPrice)}</Text>
                 ) : null}
               </View>
               <Text style={styles.bottomPriceSub} numberOfLines={1}>{directOrder ? 'Price listed by the stall' : isStall ? stallPayCopy(stallName) : 'Final bill at checkout'}</Text>
@@ -971,14 +987,14 @@ export default function ProductDetailScreen() {
                 }}
               >
                 <LinearGradient colors={['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bottomCtaGradient}>
-                  <Text style={styles.bottomAddCtaText}>{customizable ? 'CUSTOMISE & ADD' : 'ADD TO BASKET'}</Text>
+                  <Text style={styles.bottomAddCtaText}>{customizable ? 'Customise and add' : 'Add to basket'}</Text>
                   <Text style={styles.bottomAddPlusText}>+</Text>
                 </LinearGradient>
               </TouchableOpacity>
             ) : (directOrder || isStall) && product.restaurantId ? (
               <TouchableOpacity activeOpacity={0.86} style={styles.bottomAddCtaBtn} onPress={() => router.push(`/restaurant/${product.restaurantId}` as any)}>
                 <LinearGradient colors={['#F97316', '#EA580C']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bottomCtaGradient}>
-                  <Text style={styles.bottomAddCtaText}>VIEW STALL</Text>
+                  <Text style={styles.bottomAddCtaText}>View stall</Text>
                 </LinearGradient>
               </TouchableOpacity>
             ) : product.bookingOnly && SERVICE_CATEGORY_BY_VENDOR[String(product.vendorType || '').toUpperCase()] ? (
@@ -988,19 +1004,19 @@ export default function ProductDetailScreen() {
                 onPress={() => router.push(`/category/${SERVICE_CATEGORY_BY_VENDOR[String(product.vendorType || '').toUpperCase()]}` as any)}
               >
                 <LinearGradient colors={['#3B82F6', '#2563EB']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bottomCtaGradient}>
-                  <Text style={styles.bottomAddCtaText}>BOOK THIS SERVICE</Text>
+                  <Text style={styles.bottomAddCtaText}>Book this service</Text>
                 </LinearGradient>
               </TouchableOpacity>
             ) : product.isVaultItem ? (
               <TouchableOpacity activeOpacity={0.86} style={styles.bottomAddCtaBtn} onPress={() => router.replace('/(tabs)' as any)}>
                 <LinearGradient colors={['#F59E0B', '#D97706']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bottomCtaGradient}>
-                  <Text style={styles.bottomAddCtaText}>GO TO DAILY DEALS</Text>
+                  <Text style={styles.bottomAddCtaText}>Go to daily deals</Text>
                 </LinearGradient>
               </TouchableOpacity>
             ) : (
               <View style={[styles.bottomAddCtaBtn, { opacity: 0.55 }]}>
                 <LinearGradient colors={['#9CA3AF', '#6B7280']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bottomCtaGradient}>
-                  <Text style={styles.bottomAddCtaText}>{!product.isAvailable ? 'SOLD OUT' : 'UNAVAILABLE'}</Text>
+                  <Text style={styles.bottomAddCtaText}>{!product.isAvailable ? 'Sold out' : 'Unavailable'}</Text>
                 </LinearGradient>
               </View>
             )}
@@ -1045,10 +1061,10 @@ export default function ProductDetailScreen() {
             >
               <LinearGradient colors={['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bottomCtaGradient}>
                 <View>
-                  <Text style={styles.bottomCartTotalLabel}>{qty} ITEM{qty > 1 ? 'S' : ''}</Text>
-                  <Text style={styles.bottomCartTotalVal}>₹{qty * product.price}</Text>
+                  <Text style={styles.bottomCartTotalLabel}>{plural(qty, 'item')}</Text>
+                  <Text style={styles.bottomCartTotalVal}>{formatINR(qty * (Number(product.price) || 0))}</Text>
                 </View>
-                <Text style={styles.bottomViewCartText}>View Basket ›</Text>
+                <Text style={styles.bottomViewCartText}>View basket ›</Text>
               </LinearGradient>
             </TouchableOpacity>
           </>
@@ -1081,7 +1097,7 @@ export default function ProductDetailScreen() {
               keyboardShouldPersistTaps="handled"
             >
               <View style={[styles.modalCard, { backgroundColor: isDark ? '#18181B' : '#FFF' }]}>
-                <Text style={[styles.modalTitle, { color: isDark ? '#FFF' : COLORS.ink }]}>⭐ Rate this item</Text>
+                <Text style={[styles.modalTitle, { color: isDark ? '#FFF' : COLORS.ink }]}>Rate this item</Text>
                 <Text style={{ fontSize: 11, color: isDark ? '#9CA3AF' : COLORS.inkMuted, marginBottom: 16 }}>
                   How was {product.name}? Reviews are open to customers who received this item.
                 </Text>
@@ -1096,13 +1112,13 @@ export default function ProductDetailScreen() {
                       }}
                       accessibilityLabel={`${star} star${star > 1 ? 's' : ''}`}
                     >
-                      <Text style={{ fontSize: 32 }}>{star <= userRating ? '⭐' : '☆'}</Text>
+                      <Text style={{ fontSize: 32, color: '#F59E0B' }}>{star <= userRating ? '★' : '☆'}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
 
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-                  {REVIEW_TAGS.map((tag) => {
+                  {reviewTags.map((tag) => {
                     const isSelected = selectedTags.includes(tag);
                     return (
                       <TouchableOpacity
@@ -1146,7 +1162,7 @@ export default function ProductDetailScreen() {
                     {submittingReview ? (
                       <ActivityIndicator color="#FFF" size="small" />
                     ) : (
-                      <Text style={styles.submitReviewBtnText}>Submit Review</Text>
+                      <Text style={styles.submitReviewBtnText}>Submit review</Text>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -1537,8 +1553,7 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     fontWeight: '700',
     color: '#64748B',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
   },
   highlightValue: {
     fontSize: 12.5,
@@ -1582,8 +1597,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#64748B',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0.2,
   },
   specValue: {
     fontSize: 12,

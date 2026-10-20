@@ -25,14 +25,21 @@ import { saveRecentlyViewed } from '../../components/RecentlyViewed';
 import DopaminePressable, { CartPressable, ActionPressable, CardPressable } from '../../components/DopaminePressable';
 import { StaggeredSection, FloatingPulse } from '../../components/AnimatedSection';
 import SafeImage from '../../components/SafeImage';
-import { isLocalVendor as isLocalVendorStore, vendorCallNumber, callVendor, STALL_ORDER_COPY, stallPayCopy } from '../../utils/localVendor';
+import { isLocalVendor as isLocalVendorStore, vendorCallNumber, callVendor } from '../../utils/localVendor';
 import { useLiveSync, affectsStore } from '../../utils/useLiveSync';
 import { peekCache, readCache, writeCache, peekCachedRestaurant } from '../../utils/swrCache';
+import { Ionicons } from '@expo/vector-icons';
+import { formatINR, plural } from '../../utils/format';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LOAD_TIMEOUT_MS = 20000;
 // Booking-only service stores (backend utils/vendorTypes.js) and the shelf that books them.
 const SERVICE_CATEGORY_BY_VENDOR: Record<string, string> = { REPAIRS: 'repairs', PRINT: 'print', LAUNDRY: 'laundry', TAILORING: 'tailoring' };
+// Store types that don't sell food: no veg / non-veg mark and no food placeholder (same list as products/[id].tsx).
+const NON_FOOD_TYPES = ['ELECTRONICS', 'HOME_ESSENTIALS', 'STATIONERY', 'STATIONARY', 'TOYS', 'SEEDS', 'RENTALS', 'RENTAL', 'REPAIRS', 'PRINT', 'LAUNDRY', 'TAILORING', 'PHARMACY'];
+const isFoodVendorType = (vendorType: unknown) => !NON_FOOD_TYPES.includes(String(vendorType || '').toUpperCase());
+// Diet filter names as people read them (the stored modes include 'eggarian' / 'nonveg').
+const DIET_MODE_LABELS: Record<string, string> = { veg: 'Veg', egg: 'Egg', eggarian: 'Egg', 'non-veg': 'Non-veg', nonveg: 'Non-veg', all: 'allergy' };
 
 const formatOpensAt = (hhmm?: string | null) => {
   if (!hhmm || !/^\d{1,2}:\d{2}$/.test(hhmm)) return null;
@@ -70,7 +77,7 @@ const MenuAddControl = React.memo(function MenuAddControl({ itemId, soldOut, cus
     <>
     {soldOut ? (
       <View style={[st.menuAddBtn, { backgroundColor: '#E5E7EB', borderColor: '#9CA3AF' }]}>
-        <Text style={[st.menuAddBtnText, { color: '#6B7280' }]}>SOLD OUT</Text>
+        <Text style={[st.menuAddBtnText, { color: '#6B7280' }]}>Sold out</Text>
       </View>
     ) : plainLine && !customizable ? (
       <View style={[st.stepperWrap, { backgroundColor: tint, borderColor: tint }]}>
@@ -108,7 +115,7 @@ const MenuAddControl = React.memo(function MenuAddControl({ itemId, soldOut, cus
           isAdded ? { color: '#fff' } : { color: '#EF4F5F' },
           blocked && { color: '#6B7280' },
         ]}>
-          {isAdded ? '✓ ADDED' : closed ? 'CLOSED' : eliteLocked ? '👑 ELITE' : customizable && qtyInCart > 0 ? `ADD + (${qtyInCart})` : 'ADD +'}
+          {isAdded ? 'Added' : closed ? 'Closed' : eliteLocked ? 'Elite' : customizable && qtyInCart > 0 ? `Add (${qtyInCart})` : 'Add'}
         </Text>
       </CartPressable>
     )}
@@ -116,7 +123,7 @@ const MenuAddControl = React.memo(function MenuAddControl({ itemId, soldOut, cus
   );
 });
 
-/** "VIEW BASKET" bar: the only part of the page that reads the basket totals. */
+/** "View basket" bar: the only part of the page that reads the basket totals. */
 const RestaurantFloatingCart = React.memo(function RestaurantFloatingCart({ tint, onOpen }: { tint: string; onOpen: () => void }) {
   const { totalItems, totalPrice } = useCartState();
   if (!(totalItems > 0)) return null;
@@ -125,6 +132,8 @@ const RestaurantFloatingCart = React.memo(function RestaurantFloatingCart({ tint
       <DopaminePressable
         style={[st.floatingCart, { backgroundColor: tint, width: '100%' }]}
         onPress={onOpen}
+        accessibilityRole="button"
+        accessibilityLabel={`View basket, ${plural(totalItems, 'item')}, item total ${formatINR(totalPrice)}`}
         sound="success"
         activeScale={0.95}
       >
@@ -132,13 +141,11 @@ const RestaurantFloatingCart = React.memo(function RestaurantFloatingCart({ tint
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View style={st.badgeContainer}><Text style={st.badgeText}>{totalItems}</Text></View>
             <View>
-              <Text style={[st.floatingCartText, { color: '#fff' }]}>VIEW BASKET</Text>
-              <Text style={{ fontSize: 9, fontWeight: '800', color: 'rgba(255,255,255,0.85)' }}>₹{totalPrice} ITEM TOTAL</Text>
+              <Text style={[st.floatingCartText, { color: '#fff' }]}>Item total {formatINR(totalPrice)}</Text>
             </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={[st.proceedText, { color: '#fff' }]}>Checkout</Text>
-            <Text style={{ fontSize: 16, color: '#fff', fontWeight: '900' }}>➔</Text>
+            <Text style={[st.proceedText, { color: '#fff' }]}>View basket ›</Text>
           </View>
         </View>
       </DopaminePressable>
@@ -182,7 +189,7 @@ export default function RestaurantDetail() {
   const loadRestaurant = useCallback(async (mode: 'initial' | 'refresh' | 'silent' = 'initial') => {
     if (!UUID_RE.test(id)) {
       setRestaurant(null);
-      setLoadError({ notFound: true, message: "We couldn't find this kitchen. It may have moved or closed." });
+      setLoadError({ notFound: true, message: "We couldn't find this store. It may have moved or closed." });
       setLoading(false);
       return;
     }
@@ -225,7 +232,7 @@ export default function RestaurantDetail() {
         });
       } else if (res.status === 404) {
         setRestaurant(null);
-        setLoadError({ notFound: true, message: "We couldn't find this kitchen. It may have moved or closed." });
+        setLoadError({ notFound: true, message: "We couldn't find this store. It may have moved or closed." });
       } else if (mode !== 'silent') {
         setLoadError({ notFound: false, message: 'We could not load this menu right now. Please try again.' });
       }
@@ -287,8 +294,8 @@ export default function RestaurantDetail() {
     return (
       <View style={[st.container, st.center, { backgroundColor: isDark ? '#08090C' : COLORS.bgLight, padding: 24 }]}>
         <ActivityIndicator size="large" color={isDark ? COLORS.gold : COLORS.red} />
-        <Text style={{ color: isDark ? 'rgba(255,255,255,0.6)' : COLORS.textSecondary, fontSize: 10, fontWeight: '800', letterSpacing: 2, marginTop: 16 }}>
-          LOADING MENU...
+        <Text style={{ color: isDark ? 'rgba(255,255,255,0.6)' : COLORS.textSecondary, fontSize: 12, fontWeight: '800', letterSpacing: 0.2, marginTop: 16 }}>
+          Loading menu…
         </Text>
       </View>
     );
@@ -300,14 +307,16 @@ export default function RestaurantDetail() {
       <View style={[st.container, { backgroundColor: isDark ? '#08090C' : COLORS.bgLight, paddingTop: Platform.OS === 'android' ? 40 : 50, paddingHorizontal: 20 }]}>
         <TouchableOpacity
           style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB', alignItems: 'center', justifyContent: 'center', marginBottom: 30 }}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
           onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)' as any))}
         >
           <Text style={{ fontSize: 18, color: isDark ? '#FFF' : '#000' }}>←</Text>
         </TouchableOpacity>
         <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40, paddingHorizontal: 20, borderRadius: 24, backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB', ...SHADOWS.card }}>
-          <Text style={{ fontSize: 48, marginBottom: 16 }}>{notFound ? '🍽️' : '📡'}</Text>
-          <Text style={{ fontSize: 18, fontWeight: '900', color: isDark ? '#FFF' : COLORS.textDark, letterSpacing: 2, textAlign: 'center', marginBottom: 8 }}>
-            {notFound ? 'KITCHEN NOT FOUND' : "COULDN'T LOAD THE MENU"}
+          <Ionicons name={notFound ? 'storefront-outline' : 'cloud-offline-outline'} size={48} color={isDark ? 'rgba(255,255,255,0.6)' : COLORS.textSecondary} style={{ marginBottom: 16 }} />
+          <Text style={{ fontSize: 18, fontWeight: '900', color: isDark ? '#FFF' : COLORS.textDark, letterSpacing: 0.2, textAlign: 'center', marginBottom: 8 }}>
+            {notFound ? 'Store not found' : "Couldn't load the menu"}
           </Text>
           <Text style={{ fontSize: 12, color: isDark ? 'rgba(255,255,255,0.6)' : COLORS.textSecondary, textAlign: 'center', lineHeight: 18, marginBottom: 24 }}>
             {loadError?.message || 'Please try again.'}
@@ -317,14 +326,14 @@ export default function RestaurantDetail() {
               style={{ backgroundColor: COLORS.red, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 16, marginBottom: 12, ...SHADOWS.redGlow }}
               onPress={() => loadRestaurant('initial')}
             >
-              <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '900', letterSpacing: 2 }}>TRY AGAIN</Text>
+              <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '900' }}>Try again</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
             style={{ paddingHorizontal: 24, paddingVertical: 12, borderRadius: 16, borderWidth: 1, borderColor: COLORS.red }}
             onPress={() => router.replace('/(tabs)' as any)}
           >
-            <Text style={{ color: COLORS.red, fontSize: 11, fontWeight: '900', letterSpacing: 2 }}>EXPLORE CAMPUS EATS →</Text>
+            <Text style={{ color: COLORS.red, fontSize: 13, fontWeight: '900' }}>Back to Home</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -343,6 +352,7 @@ export default function RestaurantDetail() {
   const hasRating = Number.isFinite(ratingNum) && ratingNum > 0;
   // CampusBites stalls are ordered here (basket -> COD to the stall); the stall delivers itself, no rider.
   const isLocalVendor = isLocalVendorStore(restaurant);
+  const isFoodStore = isFoodVendorType(restaurant.vendorType);
   const vendorCall = isLocalVendor ? vendorCallNumber(restaurant) : null;
   const stallOffline = isLocalVendor && restaurant.isOffline === true;
   const deliveryTimeText = isLocalVendor ? null : (restaurant.time || (Number(restaurant.deliveryTime) > 0 ? `${restaurant.deliveryTime} min` : null));
@@ -455,13 +465,13 @@ export default function RestaurantDetail() {
             <SafeImage source={{ uri: heroImg }} style={st.heroImg} maxWidth={800} />
           ) : (
             <View style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#1A1A1F' : '#FDE8EA' }}>
-              <Text style={{ fontSize: 64 }}>{isLocalVendor ? '🏪' : '🍽️'}</Text>
+              <Ionicons name={isLocalVendor || !isFoodStore ? 'storefront-outline' : 'restaurant-outline'} size={64} color={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.25)'} />
             </View>
           )}
           <View style={st.heroGrad} />
 
           {/* Back button */}
-          <ActionPressable style={st.backBtn} onPress={() => {
+          <ActionPressable style={st.backBtn} accessibilityRole="button" accessibilityLabel="Back" onPress={() => {
             if (router.canGoBack()) {
               router.back();
             } else {
@@ -476,8 +486,10 @@ export default function RestaurantDetail() {
             style={st.favoriteBtn}
             onPress={toggleFavorite}
             sound="click"
+            accessibilityRole="button"
+            accessibilityLabel={isFavorite ? 'Remove from saved' : 'Save store'}
           >
-            <Text style={{ fontSize: 16 }}>{isFavorite ? '❤️' : '🤍'}</Text>
+            <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={18} color={isFavorite ? '#EF4F5F' : '#6B7280'} />
           </ActionPressable>
         </View>
 
@@ -486,10 +498,10 @@ export default function RestaurantDetail() {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <View style={[st.statusBadge, { backgroundColor: isOpen ? '#10B981' : '#6B7280' }]}>
-                <Text style={st.statusBadgeText}>{isOpen ? 'OPEN NOW' : 'CLOSED'}</Text>
+                <Text style={st.statusBadgeText}>{isOpen ? 'Open now' : 'Closed'}</Text>
               </View>
               <Text style={{ color: txt, fontSize: 11, fontWeight: '700' }}>
-                {hasRating ? `⭐ ${ratingNum.toFixed(1)}` : '✨ New'}
+                {hasRating ? `★ ${ratingNum.toFixed(1)}` : 'New'}
               </Text>
             </View>
           </View>
@@ -503,7 +515,7 @@ export default function RestaurantDetail() {
 
           {isLocalVendor && (
             <View style={st.localVendorBadge}>
-              <Text style={st.localVendorBadgeText}>🏪 CAMPUSBITES LOCAL VENDOR</Text>
+              <Text style={st.localVendorBadgeText}>CampusBites local vendor</Text>
             </View>
           )}
 
@@ -511,10 +523,16 @@ export default function RestaurantDetail() {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderColor: border }}>
             <View style={{ flexDirection: 'row', gap: 12, flexShrink: 1 }}>
               {!!deliveryTimeText && (
-                <Text style={{ fontSize: 9, fontWeight: '800', color: txtSec }}>🕐 {String(deliveryTimeText).toUpperCase()}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Ionicons name="time-outline" size={11} color={txtSec} />
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: txtSec }}>{String(deliveryTimeText)}</Text>
+                </View>
               )}
               {!!(restaurant.location || restaurant.campus) && (
-                <Text style={{ fontSize: 9, fontWeight: '800', color: txtSec }} numberOfLines={1}>📍 {restaurant.location || restaurant.campus}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, flexShrink: 1 }}>
+                  <Ionicons name="location-outline" size={11} color={txtSec} />
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: txtSec, flexShrink: 1 }} numberOfLines={1}>{restaurant.location || restaurant.campus}</Text>
+                </View>
               )}
             </View>
 
@@ -524,7 +542,10 @@ export default function RestaurantDetail() {
                 accessibilityLabel={`Call ${restaurant.name}`}
                 onPress={() => callVendor(restaurant)}
               >
-                <Text style={st.contactBtnText}>📞 CALL STALL</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Ionicons name="call-outline" size={11} color="#fff" />
+                  <Text style={st.contactBtnText}>Call stall</Text>
+                </View>
               </TouchableOpacity>
             )}
           </View>
@@ -533,16 +554,16 @@ export default function RestaurantDetail() {
 
         {isLocalVendor && (
           <View style={[st.noticeBar, { backgroundColor: isDark ? 'rgba(249,115,22,0.12)' : 'rgba(249,115,22,0.08)', borderColor: 'rgba(249,115,22,0.3)' }]}>
-            <Text style={{ fontSize: 16 }}>🏪</Text>
+            <Ionicons name="storefront-outline" size={16} color="#F97316" />
             <Text style={{ flex: 1, color: txt, fontSize: 11, fontWeight: '700', lineHeight: 16 }}>
-              {stallOffline ? `${restaurant.name} is not taking orders on Zenvy right now.` : `${STALL_ORDER_COPY} ${stallPayCopy(restaurant.name)}.`}
+              {stallOffline ? `${restaurant.name} is not taking orders on Zenvy right now.` : `${String(restaurant.name || '').trim() || 'This stall'} delivers this order. Pay them in cash on delivery.`}
             </Text>
           </View>
         )}
 
         {!isOpen && (
           <View style={[st.noticeBar, { backgroundColor: isDark ? 'rgba(99,102,241,0.14)' : 'rgba(99,102,241,0.08)', borderColor: 'rgba(99,102,241,0.3)' }]}>
-            <Text style={{ fontSize: 16 }}>🌙</Text>
+            <Ionicons name="moon-outline" size={16} color="#6366F1" />
             <Text style={{ flex: 1, color: txt, fontSize: 11, fontWeight: '700' }}>{closedText}. You can browse the menu and order when it opens.</Text>
           </View>
         )}
@@ -565,7 +586,7 @@ export default function RestaurantDetail() {
                   activeScale={0.94}
                 >
                   <Text style={[st.categoryText, { color: isActive ? '#FFF' : txt }]}>
-                    {String(cat).toUpperCase()}
+                    {String(cat)}
                   </Text>
                 </DopaminePressable>
               );
@@ -575,25 +596,25 @@ export default function RestaurantDetail() {
 
         {/* Menu Items */}
         <View style={{ padding: 16, paddingBottom: 100 }}>
-          <Text style={[st.menuTitle, { color: txt }]}>MENU</Text>
+          <Text style={[st.menuTitle, { color: txt }]}>Menu</Text>
           <Text style={[st.menuSub, { color: txtSec }]}>
-            {filteredMenu.length} ITEM{filteredMenu.length === 1 ? '' : 'S'}{hiddenByDiet > 0 ? ` • ${hiddenByDiet} HIDDEN BY YOUR FOOD PREFERENCES` : ''}
+            {plural(filteredMenu.length, 'item')}{hiddenByDiet > 0 ? ` · ${hiddenByDiet} hidden by your food preferences` : ''}
           </Text>
 
           {filteredMenu.length === 0 && (
             <View style={[st.emptyMenu, { backgroundColor: cardBg, borderColor: border }]}>
-              <Text style={{ fontSize: 36, marginBottom: 8 }}>{hiddenByDiet > 0 ? '🥗' : '🍳'}</Text>
+              <Ionicons name={hiddenByDiet > 0 ? 'filter-outline' : 'file-tray-outline'} size={36} color={txtSec} style={{ marginBottom: 8 }} />
               <Text style={{ color: txt, fontSize: 14, fontWeight: '800', textAlign: 'center' }}>
-                {hiddenByDiet > 0 ? 'Hidden by your food preferences' : 'No dishes here yet'}
+                {hiddenByDiet > 0 ? 'Hidden by your food preferences' : 'No items here yet'}
               </Text>
               <Text style={{ color: txtSec, fontSize: 11, marginTop: 4, textAlign: 'center', lineHeight: 16 }}>
                 {hiddenByDiet > 0
-                  ? `Your ${dietMode === 'veg' ? 'Veg' : dietMode === 'all' ? 'allergy' : dietMode} filter hides ${hiddenByDiet} dish${hiddenByDiet === 1 ? '' : 'es'} from this kitchen.`
-                  : 'This kitchen is still adding its menu. Check back soon!'}
+                  ? `Your ${DIET_MODE_LABELS[String(dietMode)] || 'food'} filter hides ${plural(hiddenByDiet, 'item')} from this store.`
+                  : 'This store is still adding items. Check back later.'}
               </Text>
               {hiddenByDiet > 0 && dietMode !== 'all' && (
                 <TouchableOpacity style={[st.emptyMenuBtn, { backgroundColor: brand ? accent : '#EF4F5F' }]} onPress={() => setDietMode('all')}>
-                  <Text style={{ color: '#FFF', fontSize: 10, fontWeight: '900', letterSpacing: 1 }}>SHOW ALL DISHES</Text>
+                  <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '900' }}>Show all items</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -617,25 +638,27 @@ export default function RestaurantDetail() {
                 style={[st.menuCard, { backgroundColor: cardBg, borderColor: border }, (soldOut || eliteLocked) && { opacity: 0.6 }]}
               >
                 <View style={st.menuInfo}>
-                  <View style={[st.vegDot, { borderColor: isVeg ? '#22C55E' : '#AF3F3F' }]}>
-                    {isVeg ? (
-                      <View style={[st.vegDotInner, { backgroundColor: '#22C55E' }]} />
-                    ) : (
-                      <View style={st.nonVegTriangle} />
-                    )}
-                  </View>
+                  {isFoodStore && (
+                    <View style={[st.vegDot, { borderColor: isVeg ? '#22C55E' : '#AF3F3F' }]}>
+                      {isVeg ? (
+                        <View style={[st.vegDotInner, { backgroundColor: '#22C55E' }]} />
+                      ) : (
+                        <View style={st.nonVegTriangle} />
+                      )}
+                    </View>
+                  )}
                   <Text style={[st.menuItemName, { color: txt }]} numberOfLines={2}>{item.name}</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginVertical: 2, flexWrap: 'wrap' }}>
-                    <Text style={[st.menuItemPrice, { color: brand ? accent : '#EF4F5F' }]}>₹{item.price}</Text>
+                    <Text style={[st.menuItemPrice, { color: brand ? accent : '#EF4F5F' }]}>{formatINR(item.price)}</Text>
                     {Number.isFinite(kcal) && kcal > 0 && (
-                      <Text style={{ fontSize: 8, color: txtSec, fontWeight: '700' }}>•  🔥 {Math.round(kcal)} kcal</Text>
+                      <Text style={{ fontSize: 10, color: txtSec, fontWeight: '700' }}>· {Math.round(kcal)} kcal</Text>
                     )}
                     {eliteLocked && (
-                      <Text style={{ fontSize: 8, color: COLORS.gold, fontWeight: '900' }}>•  👑 ELITE ONLY</Text>
+                      <Text style={{ fontSize: 10, color: COLORS.gold, fontWeight: '900' }}>· Elite only</Text>
                     )}
                   </View>
                   {item.description ? <Text style={{ fontSize: 9, color: txtSec, marginTop: 2 }} numberOfLines={2}>{item.description}</Text> : null}
-                  {customizable && <Text style={{ fontSize: 8, color: txtSec, fontWeight: '800', marginTop: 4 }}>CUSTOMISABLE</Text>}
+                  {customizable && <Text style={{ fontSize: 10, color: txtSec, fontWeight: '800', marginTop: 4 }}>Customisable</Text>}
                 </View>
 
                 {/* Right image with floating ADD button */}
@@ -644,7 +667,7 @@ export default function RestaurantDetail() {
                     <SafeImage source={{ uri: itemImg }} style={st.menuItemImg} />
                   ) : (
                     <View style={[st.menuItemImg, { alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#1F1F23' : '#F3F4F6' }]}>
-                      <Text style={{ fontSize: 30 }}>{isVeg ? '🥗' : '🍗'}</Text>
+                      <Ionicons name={isFoodStore ? 'restaurant-outline' : 'cube-outline'} size={28} color={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.25)'} />
                     </View>
                   )}
                   <View style={st.floatingAddWrap} pointerEvents="box-none">
@@ -705,17 +728,17 @@ const st = StyleSheet.create({
   infoCardName: { fontSize: 20, fontWeight: '900', letterSpacing: 0.5, marginBottom: 4 },
   infoCardDesc: { fontSize: 10, fontWeight: '500', lineHeight: 14, marginBottom: 8 },
   localVendorBadge: { alignSelf: 'flex-start', backgroundColor: 'rgba(249,115,22,0.1)', borderWidth: 1, borderColor: 'rgba(249,115,22,0.2)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, marginVertical: 4 },
-  localVendorBadgeText: { fontSize: 8, fontWeight: '900', color: '#F97316', letterSpacing: 1 },
+  localVendorBadgeText: { fontSize: 10, fontWeight: '800', color: '#F97316', letterSpacing: 0.2 },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, alignSelf: 'flex-start' },
-  statusBadgeText: { fontSize: 8, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
+  statusBadgeText: { fontSize: 10, fontWeight: '800', color: '#fff', letterSpacing: 0.2 },
   
   contactBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-  contactBtnText: { fontSize: 8, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
+  contactBtnText: { fontSize: 10, fontWeight: '800', color: '#fff' },
 
   brandTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start' },
   brandTagText: { fontSize: 8, fontWeight: '900', color: '#fff', letterSpacing: 3 },
-  menuTitle: { fontSize: 14, fontWeight: '900', letterSpacing: 3, marginBottom: 2 },
-  menuSub: { fontSize: 9, fontWeight: '700', letterSpacing: 2, marginBottom: 16 },
+  menuTitle: { fontSize: 16, fontWeight: '900', letterSpacing: 0.2, marginBottom: 2 },
+  menuSub: { fontSize: 11, fontWeight: '700', letterSpacing: 0.2, marginBottom: 16 },
   menuCard: { flexDirection: 'row', padding: 12, borderRadius: 24, marginBottom: 12, borderWidth: 1, alignItems: 'center' },
   menuInfo: { flex: 1, paddingRight: 12 },
   vegDot: { width: 12, height: 12, borderWidth: 1.5, borderRadius: 3, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
@@ -740,7 +763,7 @@ const st = StyleSheet.create({
   menuItemImg: { width: '100%', height: '100%', borderRadius: 16 },
   floatingAddWrap: { position: 'absolute', bottom: -8, zIndex: 10, width: '100%', alignItems: 'center' },
   menuAddBtn: { width: 72, paddingVertical: 6, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...SHADOWS.card },
-  menuAddBtnText: { fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  menuAddBtnText: { fontSize: 11, fontWeight: '900', letterSpacing: 0.2 },
 
   // Interactive stepper styles
   stepperWrap: {
@@ -785,7 +808,7 @@ const st = StyleSheet.create({
   // Category Filter Pills
   categoryScroll: { marginVertical: 12 },
   categoryPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8, borderWidth: 1 },
-  categoryText: { fontSize: 9, fontWeight: '900', letterSpacing: 2 },
+  categoryText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.2 },
 
   // Floating Cart styles
   floatingCartContainer: {
@@ -810,7 +833,7 @@ const st = StyleSheet.create({
   },
   badgeContainer: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' },
   badgeText: { color: '#FFF', fontSize: 10, fontWeight: '900' },
-  floatingCartText: { fontSize: 11, fontWeight: '900', letterSpacing: 2 },
+  floatingCartText: { fontSize: 13, fontWeight: '900', letterSpacing: 0.2 },
   proceedText: { fontSize: 12, fontWeight: '900' },
 });
 // BUST_CACHE_2026_07_19_00_42

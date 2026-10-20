@@ -39,6 +39,10 @@ import DopaminePressable, { ActionPressable } from '../components/DopaminePressa
 import { stallErrorMessage, stallPayCopy } from '../utils/localVendor';
 import { cleanBlock, cleanRoom as cleanRoomNo, saveHostelToProfile } from '../utils/hostel';
 import FssaiLine from '../components/FssaiLine';
+import { Ionicons } from '@expo/vector-icons';
+import { formatINR, formatClock, plural } from '../utils/format';
+
+type IonName = React.ComponentProps<typeof Ionicons>['name'];
 
 type CampusKey = 'srmap' | 'vitap' | 'amrita';
 type PayMethod = 'COD' | 'Wallet';
@@ -98,10 +102,11 @@ interface UserCoupon {
 }
 
 // Campuses the order service delivers to (server: resolveCampus in orderController).
-const CAMPUSES: { key: CampusKey; label: string; sub: string; icon: string; code: string }[] = [
-  { key: 'srmap', label: 'SRM AP', sub: 'SRM University', icon: '🏢', code: 'SRMAP' },
-  { key: 'vitap', label: 'VIT AP', sub: 'VIT Campus', icon: '🏫', code: 'VITAP' },
-  { key: 'amrita', label: 'AMRITA', sub: 'Amrita Campus', icon: '🏥', code: 'AMRITA' },
+// The label also starts the delivery address sent to the server ("SRM AP - Ganga, Room 304").
+const CAMPUSES: { key: CampusKey; label: string; sub: string; code: string }[] = [
+  { key: 'srmap', label: 'SRM AP', sub: 'SRM University AP', code: 'SRMAP' },
+  { key: 'vitap', label: 'VIT AP', sub: 'VIT-AP University', code: 'VITAP' },
+  { key: 'amrita', label: 'Amrita', sub: 'Amrita Vishwa Vidyapeetham AP', code: 'AMRITA' },
 ];
 
 // Which add-on shelf (GET /api/catalogue/items?type=extras&for=…) fits the dishes in the basket.
@@ -120,7 +125,6 @@ function detectDishType(name: string): string {
   return 'meal';
 }
 
-const rupees = (n: number) => `₹${Math.round((Number(n) || 0) * 100) / 100}`;
 const cleanRoom = (room: any) => cleanRoomNo(room);
 
 /** "Ganga, Room 304" / "Ganga Block, 304" -> { block, room }; null when the box holds something else. */
@@ -156,7 +160,7 @@ export default function CheckoutScreen() {
   const [coupons, setCoupons] = useState<UserCoupon[]>([]);
   const [couponCode, setCouponCode] = useState<string | null>(null);
 
-  // Rewards "USE NOW" opens checkout with ?coupon=CODE. The quote drops it (COUPON_INVALID) if it is not usable.
+  // Rewards "Use now" opens checkout with ?coupon=CODE. The quote drops it (COUPON_INVALID) if it is not usable.
   const { coupon: couponParam } = useLocalSearchParams<{ coupon?: string | string[] }>();
   // Codes are matched exactly by the server: keep the link's case.
   const couponFromLink = String((Array.isArray(couponParam) ? couponParam[0] : couponParam) || '').trim();
@@ -193,8 +197,11 @@ export default function CheckoutScreen() {
   const isStallOrder = hasOrder && (quote ? quote.fulfilment === 'VENDOR' : orderLines.some((i) => i.isStall));
   const stallName = (isStallOrder && (quote?.store?.name || orderLines.find((i) => i.isStall)?.restaurantName)) || 'the stall';
   const isClosed = (quote?.serviceability?.open === false) || serviceability?.open === false;
+  const reopensAt = serviceability?.reopensAt || quote?.serviceability?.reopensAt || null;
   const closedMessage = quote?.serviceability?.message || serviceability?.message ||
-    `Campus kitchens are closed for the night. Ordering opens again at ${serviceability?.reopensAt || quote?.serviceability?.reopensAt || '6:00 AM'}.`;
+    (reopensAt
+      ? `Campus stores are closed for the night. Ordering opens again at ${formatClock(reopensAt)}.`
+      : 'Campus stores are closed for the night. Ordering opens again in the morning.');
 
   // Latest bill, read by the confirm dialog's button (its closure is from an earlier render).
   const quoteRef = useRef<OrderQuote | null>(quote);
@@ -478,7 +485,7 @@ export default function CheckoutScreen() {
   const handlePlaceOrder = async () => {
     if (placingRef.current || confirmOpenRef.current) return;
     if (cart.length === 0) {
-      Alert.alert('Your basket is empty', 'Add something tasty first!');
+      Alert.alert('Your basket is empty', 'Add an item to your basket first.');
       return;
     }
     if (isClosed) {
@@ -501,7 +508,7 @@ export default function CheckoutScreen() {
         const m = stallErrorMessage(quoteError.code, quoteError.message, errorStoreName)!;
         Alert.alert(m.title, m.message);
       }
-      else if (quoteError) Alert.alert('We could not get your bill', quoteError.message, [{ text: 'OK', style: 'cancel' }, { text: 'Retry', onPress: refreshQuote }]);
+      else if (quoteError) Alert.alert("We couldn't calculate your bill", quoteError.message, [{ text: 'OK', style: 'cancel' }, { text: 'Retry', onPress: refreshQuote }]);
       return;
     }
 
@@ -534,15 +541,15 @@ export default function CheckoutScreen() {
     const lines: string[] = [];
     if (hasOrder && quote) {
       const n = snap.orderLines.reduce((a, i) => a + i.quantity, 0);
-      lines.push(`${n} item${n === 1 ? '' : 's'} from ${quote.store?.name || 'your store'} • ${rupees(quote.finalPrice)}`);
+      lines.push(`${plural(n, 'item')} from ${quote.store?.name || 'your store'} · ${formatINR(quote.finalPrice)}`);
       lines.push(snap.isStallOrder
-        ? `💵 ${stallPayCopy(stallName)} (${stallName} delivers it, no Zenvy rider)`
-        : `💳 ${snap.paymentMethod === 'Wallet' ? 'Zenvy Wallet' : 'Cash on Delivery'}`);
+        ? `Payment: ${stallPayCopy(stallName)} (${stallName} delivers it, no Zenvy rider)`
+        : `Payment: ${snap.paymentMethod === 'Wallet' ? 'Zenvy Wallet' : 'Cash on Delivery'}`);
     }
     if (hasCustom) {
-      lines.push(`🛍️ Mega Basket shopping list (${customLines.length}) • est. ${rupees(customEstimate)} + fees, cash on delivery`);
+      lines.push(`Mega Basket shopping list (${customLines.length}) · est. ${formatINR(customEstimate)} + fees, cash on delivery`);
     }
-    lines.push(`📍 ${campusLabel} - ${address.trim()}`);
+    lines.push(`Deliver to: ${campusLabel} - ${address.trim()}`);
 
     confirmOpenRef.current = true;
     const release = () => { confirmOpenRef.current = false; };
@@ -572,7 +579,7 @@ export default function CheckoutScreen() {
       return;
     }
     if (snap.paymentMethod === 'Wallet' && fresh.canPayWithWallet === false) {
-      Alert.alert('Your bill changed', `${message} Your Wallet balance does not cover the new total — pay with cash instead.`, [
+      Alert.alert('Your bill changed', `${message} Your Wallet balance does not cover the new total. Pay with cash instead.`, [
         { text: 'OK', style: 'cancel' },
         { text: 'Pay cash instead', onPress: () => setPaymentMethod('COD') },
       ]);
@@ -583,7 +590,7 @@ export default function CheckoutScreen() {
     Alert.alert('Your bill changed', message, [
       { text: 'Edit', style: 'cancel', onPress: release },
       {
-        text: `Place for ${rupees(newTotal)}`,
+        text: `Place for ${formatINR(newTotal)}`,
         onPress: () => {
           release();
           if (liveSigRef.current !== snap.sig) {
@@ -721,7 +728,7 @@ export default function CheckoutScreen() {
         } catch {
           // The list may have reached the server before the connection dropped; the same key is reused
           // on retry, but tell the user to check first instead of claiming it was not sent.
-          Alert.alert(placedOrderId ? 'Order placed, shopping list not confirmed' : 'Couldn’t confirm your shopping list',
+          Alert.alert(placedOrderId ? 'Order placed, shopping list not confirmed' : "Couldn't confirm your shopping list",
             `We couldn't confirm whether your shopping list was sent. Check Mega Basket → My lists before trying again.${placedOrderId ? ' Your shopping list is still in your basket.' : ''}`);
         }
       }
@@ -757,10 +764,10 @@ export default function CheckoutScreen() {
 
   const header = (
     <View style={[s.header, { backgroundColor: bg, borderBottomColor: border }]}>
-      <TouchableOpacity onPress={goBack} style={[s.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}>
+      <TouchableOpacity onPress={goBack} style={[s.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} accessibilityRole="button" accessibilityLabel="Back">
         <Text style={{ color: txt, fontSize: 18 }}>‹</Text>
       </TouchableOpacity>
-      <Text style={[s.title, { color: goldColor }]}>CHECKOUT & DELIVERY</Text>
+      <Text style={[s.title, { color: goldColor }]}>Checkout</Text>
     </View>
   );
 
@@ -770,11 +777,11 @@ export default function CheckoutScreen() {
       <View style={[s.container, { backgroundColor: bg }]}>
         {header}
         <View style={s.centerBox}>
-          <Text style={{ fontSize: 44, marginBottom: 12 }}>🔐</Text>
+          <Ionicons name="lock-closed-outline" size={44} color={txtSec} style={{ marginBottom: 12 }} />
           <Text style={[s.centerTitle, { color: txt }]}>Sign in to check out</Text>
           <Text style={[s.centerSub, { color: txtSec }]}>Your basket is saved. Sign in to see your bill and place the order.</Text>
           <TouchableOpacity style={s.primaryBtn} onPress={() => router.push('/login' as any)}>
-            <Text style={s.primaryBtnText}>SIGN IN</Text>
+            <Text style={s.primaryBtnText}>Sign in</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -786,11 +793,11 @@ export default function CheckoutScreen() {
       <View style={[s.container, { backgroundColor: bg }]}>
         {header}
         <View style={s.centerBox}>
-          <Text style={{ fontSize: 44, marginBottom: 12 }}>🛒</Text>
+          <Ionicons name="basket-outline" size={44} color={txtSec} style={{ marginBottom: 12 }} />
           <Text style={[s.centerTitle, { color: txt }]}>Your basket is empty</Text>
-          <Text style={[s.centerSub, { color: txtSec }]}>Add something from a campus kitchen or store to check out.</Text>
+          <Text style={[s.centerSub, { color: txtSec }]}>Add something from a campus store to check out.</Text>
           <TouchableOpacity style={s.primaryBtn} onPress={() => router.replace('/(tabs)' as any)}>
-            <Text style={s.primaryBtnText}>BROWSE FOOD</Text>
+            <Text style={s.primaryBtnText}>Browse stores</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -835,7 +842,7 @@ export default function CheckoutScreen() {
       >
         {isClosed && (
           <View style={[s.noticeCard, { backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.08)', borderColor: 'rgba(99,102,241,0.3)' }]}>
-            <Text style={{ fontSize: 20 }}>🌙</Text>
+            <Ionicons name="moon-outline" size={20} color="#6366F1" />
             <View style={{ flex: 1 }}>
               <Text style={[s.noticeTitle, { color: txt }]}>Closed for the night</Text>
               <Text style={[s.noticeSub, { color: txtSec }]}>{closedMessage}</Text>
@@ -845,7 +852,7 @@ export default function CheckoutScreen() {
 
         {/* Campus Selection */}
         <StaggeredSection delay={50} direction="up">
-          <Text style={[s.sectionTitle, { color: txt }]}>DELIVERY CAMPUS</Text>
+          <Text style={[s.sectionTitle, { color: txt }]}>Delivery campus</Text>
           {!campus && (
             <Text style={[s.helperText, { color: COLORS.red }]}>Pick the campus we should deliver to.</Text>
           )}
@@ -864,9 +871,8 @@ export default function CheckoutScreen() {
                   sound="click"
                   activeScale={0.95}
                 >
-                  <Text style={{ fontSize: 18, marginBottom: 4 }}>{item.icon}</Text>
                   <Text style={[s.campusLabelNew, { color: isActive ? goldColor : txt }]}>{item.label}</Text>
-                  <Text style={[s.campusSubLabelNew, { color: txtSec }]} numberOfLines={1}>{item.sub}</Text>
+                  <Text style={[s.campusSubLabelNew, { color: txtSec }]} numberOfLines={2}>{item.sub}</Text>
                   {isActive && (
                     <BounceIn delay={0}>
                       <View style={[s.activeCheckBadge, { backgroundColor: goldColor }]}>
@@ -925,8 +931,8 @@ export default function CheckoutScreen() {
                     sound="click"
                     activeScale={0.92}
                   >
-                    <Text style={{ fontSize: 10, fontWeight: '800', color: isSelected ? '#FFFFFF' : txt, letterSpacing: 0.5 }}>
-                      🏢 {block}
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: isSelected ? '#FFFFFF' : txt, letterSpacing: 0.2 }}>
+                      {block}
                     </Text>
                   </DopaminePressable>
                 );
@@ -942,7 +948,7 @@ export default function CheckoutScreen() {
             maxLength={120}
           />
           {deliveryNotes.length > 0 && (
-            <Text style={[s.helperText, { color: txtSec }]}>📝 {isStallOrder ? 'Note for the stall' : 'Rider note'}: {deliveryNotes.join(', ')}</Text>
+            <Text style={[s.helperText, { color: txtSec }]}>{isStallOrder ? 'Note for the stall' : 'Rider note'}: {deliveryNotes.join(', ')}</Text>
           )}
         </StaggeredSection>
 
@@ -950,7 +956,7 @@ export default function CheckoutScreen() {
         {hasOrder && suggestions.length > 0 && (
           <StaggeredSection delay={130} direction="up">
             <View style={{ marginTop: 20 }}>
-              <Text style={[s.sectionTitle, { color: txt, marginBottom: 8 }]}>PAIRS WELL WITH YOUR ORDER</Text>
+              <Text style={[s.sectionTitle, { color: txt, marginBottom: 8 }]}>Pairs well with your order</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.extrasScroll}>
                 {suggestions.map(extra => (
                   <TouchableOpacity
@@ -970,10 +976,14 @@ export default function CheckoutScreen() {
                       if (added) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
                     }}
                   >
-                    <Text style={{ fontSize: 24, marginBottom: 4 }}>{extra.emoji || '➕'}</Text>
+                    {extra.emoji ? (
+                      <Text style={{ fontSize: 24, marginBottom: 4 }}>{extra.emoji}</Text>
+                    ) : (
+                      <Ionicons name="add-circle-outline" size={24} color={COLORS.gold} style={{ marginBottom: 4 }} />
+                    )}
                     <Text style={[s.extraName, { color: txt }]} numberOfLines={2}>{extra.name}</Text>
-                    <Text style={s.extraPrice}>{rupees(extra.price)}</Text>
-                    <Text style={s.extraAddBtn}>+ ADD</Text>
+                    <Text style={s.extraPrice}>{formatINR(extra.price)}</Text>
+                    <Text style={s.extraAddBtn}>Add</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -984,15 +994,15 @@ export default function CheckoutScreen() {
         {/* Stall order: how it works (+ leftover add-ons to remove) */}
         {isStallOrder && (
           <View style={[s.noticeCard, { marginTop: 20, backgroundColor: isDark ? 'rgba(249,115,22,0.10)' : 'rgba(249,115,22,0.07)', borderColor: 'rgba(249,115,22,0.3)' }]}>
-            <Text style={{ fontSize: 20 }}>🏪</Text>
+            <Ionicons name="storefront-outline" size={20} color="#F97316" />
             <View style={{ flex: 1 }}>
               <Text style={[s.noticeTitle, { color: txt }]}>{stallName} delivers this order</Text>
               <Text style={[s.noticeSub, { color: txtSec }]}>
-                {stallPayCopy(stallName)}. No Zenvy rider or delivery PIN. Coupons and add-ons don't apply to stall orders.
+                {stallPayCopy(stallName)}. No Zenvy rider and no delivery OTP. Coupons and add-ons don't apply to stall orders.
               </Text>
               {addOnLines.length > 0 && (
                 <TouchableOpacity style={[s.smallBtn, { marginTop: 10 }]} onPress={removeAddOns}>
-                  <Text style={s.smallBtnText}>REMOVE {addOnLines.length} ADD-ON{addOnLines.length === 1 ? '' : 'S'}</Text>
+                  <Text style={s.smallBtnText}>Remove {plural(addOnLines.length, 'add-on')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -1003,7 +1013,7 @@ export default function CheckoutScreen() {
         {hasOrder && !isStallOrder && (
           <StaggeredSection delay={210} direction="up">
             <View style={{ marginTop: 20 }}>
-              <Text style={[s.sectionTitle, { color: txt, marginBottom: 10 }]}>YOUR COUPONS</Text>
+              <Text style={[s.sectionTitle, { color: txt, marginBottom: 10 }]}>Your coupons</Text>
               {coupons.length > 0 ? (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.couponsScroll}>
                   {coupons.map(cpn => {
@@ -1014,22 +1024,22 @@ export default function CheckoutScreen() {
                         style={[s.couponCard, isActive && s.couponCardActive, { backgroundColor: cardBg }]}
                         onPress={() => setCouponCode(isActive ? null : cpn.code)}
                       >
-                        <Text style={{ fontSize: 20, marginBottom: 4 }}>{cpn.type === 'FREEDEL' ? '🚚' : '🏷️'}</Text>
+                        <Ionicons name={cpn.type === 'FREEDEL' ? 'bicycle-outline' : 'pricetag-outline'} size={20} color={COLORS.gold} style={{ marginBottom: 4 }} />
                         <Text style={[s.couponCode, { color: txt }]}>{cpn.code}</Text>
                         <Text style={s.couponType}>{cpn.label || (cpn.type === 'FREEDEL' ? 'Free delivery' : 'Discount')}</Text>
                         {typeof cpn.expiresInDays === 'number' && (
-                          <Text style={s.couponType}>{cpn.expiresInDays <= 0 ? 'Expires today' : `Expires in ${cpn.expiresInDays}d`}</Text>
+                          <Text style={s.couponType}>{cpn.expiresInDays <= 0 ? 'Expires today' : `Expires in ${plural(cpn.expiresInDays, 'day')}`}</Text>
                         )}
-                        {isActive && <Text style={s.activeIndicator}>{quoteLoading ? 'APPLYING…' : 'APPLIED'}</Text>}
+                        {isActive && <Text style={s.activeIndicator}>{quoteLoading ? 'Applying…' : 'Applied'}</Text>}
                       </TouchableOpacity>
                     );
                   })}
                 </ScrollView>
               ) : (
                 <TouchableOpacity style={[s.emptyCoupons, { backgroundColor: cardBg }]} onPress={() => router.push('/rewards' as any)} activeOpacity={0.85}>
-                  <Text style={{ fontSize: 20, marginBottom: 4 }}>🎡</Text>
-                  <Text style={s.emptyCouponsText}>NO COUPONS YET</Text>
-                  <Text style={s.emptyCouponsSub}>Spin the wheel in Rewards to win one →</Text>
+                  <Ionicons name="gift-outline" size={20} color={COLORS.textSecondary} style={{ marginBottom: 4 }} />
+                  <Text style={s.emptyCouponsText}>No coupons yet</Text>
+                  <Text style={s.emptyCouponsSub}>Spin the wheel in Rewards to win one ›</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -1038,23 +1048,23 @@ export default function CheckoutScreen() {
 
         {/* Payment: Cash on Delivery or Wallet */}
         <StaggeredSection delay={290} direction="up">
-          <Text style={[s.sectionTitle, { color: txt, marginTop: 24 }]}>PAYMENT METHOD</Text>
+          <Text style={[s.sectionTitle, { color: txt, marginTop: 24 }]}>Payment method</Text>
           <View style={s.payRowNew}>
             {(isStallOrder ? [
-              { key: 'COD' as PayMethod, title: 'CASH ON DELIVERY', desc: stallPayCopy(stallName), icon: '💵', enabled: true },
+              { key: 'COD' as PayMethod, title: 'Cash on Delivery', desc: stallPayCopy(stallName), icon: 'cash-outline' as IonName, enabled: true },
             ] : [
-              { key: 'COD' as PayMethod, title: 'CASH ON DELIVERY', desc: 'Pay the rider in cash when it arrives', icon: '💵', enabled: true },
+              { key: 'COD' as PayMethod, title: 'Cash on Delivery', desc: 'Pay the rider in cash when it arrives', icon: 'cash-outline' as IonName, enabled: true },
               {
                 key: 'Wallet' as PayMethod,
-                title: 'ZENVY WALLET',
+                title: 'Zenvy Wallet',
                 desc: !hasOrder
                   ? 'Shopping lists are paid in cash on delivery'
                   : storeCodOnly
                     ? 'This store takes cash on delivery only'
                     : walletAllowed
-                    ? `Balance ${rupees(walletBalance)}`
-                    : `Balance ${rupees(walletBalance)} — not enough for this order`,
-                icon: '👛',
+                    ? `Balance ${formatINR(walletBalance)}`
+                    : `Balance ${formatINR(walletBalance)} · not enough for this order`,
+                icon: 'wallet-outline' as IonName,
                 enabled: walletAllowed,
               },
             ]).map(item => {
@@ -1074,7 +1084,7 @@ export default function CheckoutScreen() {
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
-                      <Text style={{ fontSize: 22 }}>{item.icon}</Text>
+                      <Ionicons name={item.icon} size={22} color={isActive ? COLORS.red : txtSec} />
                       <View style={{ flex: 1 }}>
                         <Text style={[s.payCardTitle, { color: isActive ? COLORS.red : txt }]}>{item.title}</Text>
                         <Text style={[s.payCardDesc, { color: txtSec }]}>{item.desc}</Text>
@@ -1113,24 +1123,24 @@ export default function CheckoutScreen() {
                 <Text style={[s.noticeSub, { color: txtSec, marginBottom: 10 }]}>{quoteError.message}</Text>
                 {quoteError.code === 'ITEMS_UNAVAILABLE' || quoteError.code === 'BOOKING_ONLY_ITEMS' ? (
                   <TouchableOpacity style={s.smallBtn} onPress={() => { const u = unavailableFrom(quoteError.body); removeItems(u); }}>
-                    <Text style={s.smallBtnText}>REMOVE UNAVAILABLE ITEMS</Text>
+                    <Text style={s.smallBtnText}>Remove unavailable items</Text>
                   </TouchableOpacity>
                 ) : quoteError.code === 'ADDONS_NOT_FOR_STALL' ? (
                   <TouchableOpacity style={s.smallBtn} onPress={removeAddOns}>
-                    <Text style={s.smallBtnText}>REMOVE ADD-ONS</Text>
+                    <Text style={s.smallBtnText}>Remove add-ons</Text>
                   </TouchableOpacity>
                 ) : quoteError.code === 'MULTIPLE_STORES' || quoteError.code === 'ADDONS_ONLY' || quoteError.code === 'TOO_MANY_LINES' || quoteError.code === 'INVALID_QUANTITY' || quoteError.code === 'STORE_CLOSED' ? (
                   // Retrying gives the same answer: the basket itself has to change.
                   <TouchableOpacity style={s.smallBtn} onPress={() => router.replace('/(tabs)/basket' as any)}>
-                    <Text style={s.smallBtnText}>EDIT BASKET</Text>
+                    <Text style={s.smallBtnText}>Edit basket</Text>
                   </TouchableOpacity>
                 ) : quoteError.code === 'MIN_ORDER_NOT_MET' && quoteError.body?.storeId ? (
                   <TouchableOpacity style={s.smallBtn} onPress={() => router.push(`/restaurant/${quoteError.body.storeId}` as any)}>
-                    <Text style={s.smallBtnText}>ADD MORE ITEMS</Text>
+                    <Text style={s.smallBtnText}>Add more items</Text>
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity style={s.smallBtn} onPress={refreshQuote}>
-                    <Text style={s.smallBtnText}>TRY AGAIN</Text>
+                    <Text style={s.smallBtnText}>Try again</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -1139,42 +1149,42 @@ export default function CheckoutScreen() {
             {hasOrder && quote && (
               <View style={{ opacity: quoteLoading ? 0.5 : 1 }}>
                 <View style={s.billRow}>
-                  <Text style={[s.billLabel, { color: txt }]}>ITEM TOTAL</Text>
-                  <Text style={[s.billVal, { color: txt }]}>{rupees(quote.subtotal)}</Text>
+                  <Text style={[s.billLabel, { color: txt }]}>Item total</Text>
+                  <Text style={[s.billVal, { color: txt }]}>{formatINR(quote.subtotal)}</Text>
                 </View>
                 <View style={s.billRow}>
-                  <Text style={[s.billLabel, { color: txt }]}>DELIVERY FEE</Text>
+                  <Text style={[s.billLabel, { color: txt }]}>Delivery fee</Text>
                   <Text style={[s.billVal, { color: quote.deliveryFee === 0 ? COLORS.emerald : txt }]}>
-                    {quote.deliveryFee === 0 ? 'FREE' : rupees(quote.deliveryFee)}
+                    {quote.deliveryFee === 0 ? 'Free' : formatINR(quote.deliveryFee)}
                   </Text>
                 </View>
                 {quote.packagingFee > 0 && (
                   <View style={s.billRow}>
-                    <Text style={[s.billLabel, { color: txt }]}>PACKAGING</Text>
-                    <Text style={[s.billVal, { color: txt }]}>{rupees(quote.packagingFee)}</Text>
+                    <Text style={[s.billLabel, { color: txt }]}>Packaging</Text>
+                    <Text style={[s.billVal, { color: txt }]}>{formatINR(quote.packagingFee)}</Text>
                   </View>
                 )}
                 {quote.taxes > 0 && (
                   <View style={s.billRow}>
-                    <Text style={[s.billLabel, { color: txt }]}>TAXES</Text>
-                    <Text style={[s.billVal, { color: txt }]}>{rupees(quote.taxes)}</Text>
+                    <Text style={[s.billLabel, { color: txt }]}>Taxes</Text>
+                    <Text style={[s.billVal, { color: txt }]}>{formatINR(quote.taxes)}</Text>
                   </View>
                 )}
                 {(quote.discounts || []).filter((d) => d && d.amount > 0).map((d, idx) => (
                   <View style={s.billRow} key={`${d.type}-${idx}`}>
-                    <Text style={[s.billLabel, { color: COLORS.emerald, flex: 1 }]} numberOfLines={1}>{String(d.label || 'Discount').toUpperCase()}</Text>
-                    <Text style={[s.billVal, { color: COLORS.emerald }]}>-{rupees(d.amount)}</Text>
+                    <Text style={[s.billLabel, { color: COLORS.emerald, flex: 1 }]} numberOfLines={1}>{String(d.label || 'Discount')}</Text>
+                    <Text style={[s.billVal, { color: COLORS.emerald }]}>{formatINR(-Math.abs(Number(d.amount) || 0))}</Text>
                   </View>
                 ))}
                 <View style={[s.billRow, { borderTopWidth: 1, borderTopColor: border, paddingTop: 12, marginTop: 8 }]}>
-                  <Text style={{ fontSize: 14, fontWeight: '900', color: txt }}>{isStallOrder ? 'PAY THE STALL' : 'TO PAY'}</Text>
-                  <Text style={{ fontSize: 22, fontWeight: '900', color: COLORS.red }}>{rupees(quote.finalPrice)}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '900', color: txt }}>{isStallOrder ? 'Pay the stall' : 'To pay'}</Text>
+                  <Text style={{ fontSize: 22, fontWeight: '900', color: COLORS.red }}>{formatINR(quote.finalPrice)}</Text>
                 </View>
                 {isStallOrder && (
-                  <Text style={[s.helperText, { color: txtSec, marginTop: 6 }]}>💵 {stallPayCopy(stallName)}.</Text>
+                  <Text style={[s.helperText, { color: txtSec, marginTop: 6 }]}>{stallPayCopy(stallName)}.</Text>
                 )}
                 {quote.totalDiscount > 0 && (
-                  <Text style={[s.savingsText]}>🎉 You save {rupees(quote.totalDiscount)} on this order</Text>
+                  <Text style={[s.savingsText]}>You save {formatINR(quote.totalDiscount)} on this order</Text>
                 )}
                 <FssaiLine number={quote.store?.fssaiLicenseNumber} storeName={quote.store?.name || undefined} color={txtSec} />
               </View>
@@ -1183,8 +1193,8 @@ export default function CheckoutScreen() {
             {hasCustom && (
               <View style={[hasOrder && { borderTopWidth: 1, borderTopColor: border, marginTop: 12, paddingTop: 12 }]}>
                 <View style={s.billRow}>
-                  <Text style={[s.billLabel, { color: txt }]}>MEGA BASKET (EST.)</Text>
-                  <Text style={[s.billVal, { color: txt }]}>{rupees(customEstimate)}</Text>
+                  <Text style={[s.billLabel, { color: txt }]}>Mega Basket (est.)</Text>
+                  <Text style={[s.billVal, { color: txt }]}>{formatINR(customEstimate)}</Text>
                 </View>
                 <Text style={[s.helperText, { color: txtSec }]}>
                   A rider shops your list. You pay the actual shop bill plus shopping and delivery fees, in cash on delivery.
@@ -1204,15 +1214,15 @@ export default function CheckoutScreen() {
             {placing ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <ActivityIndicator color="#fff" />
-                <Text style={[s.placeText, { fontSize: 11 }]}>PLACING ORDER…</Text>
+                <Text style={[s.placeText, { fontSize: 13 }]}>Placing order…</Text>
               </View>
             ) : (
               <Text style={s.placeText}>
                 {isClosed
-                  ? 'CLOSED FOR THE NIGHT'
+                  ? 'Closed for the night'
                   : hasOrder && quote
-                    ? `PLACE ORDER • ${rupees(quote.finalPrice)}`
-                    : `PLACE ORDER${totalItems ? ` • ${totalItems} ITEM${totalItems === 1 ? '' : 'S'}` : ''}`}
+                    ? `Place order · ${formatINR(quote.finalPrice)}`
+                    : `Place order${totalItems ? ` · ${plural(totalItems, 'item')}` : ''}`}
               </Text>
             )}
           </ActionPressable>
@@ -1226,13 +1236,13 @@ const s = StyleSheet.create({
   container: { flex: 1, width: '100%', maxWidth: 600, alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: Platform.OS === 'android' ? 40 : 50, paddingBottom: 16, borderBottomWidth: 1 },
   backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
-  title: { fontSize: 13, fontWeight: '900', letterSpacing: 4 },
+  title: { fontSize: 17, fontWeight: '900', letterSpacing: 0.2 },
   scroll: { padding: 16 },
-  sectionTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 3, marginBottom: 12 },
+  sectionTitle: { fontSize: 13, fontWeight: '900', letterSpacing: 0.2, marginBottom: 12 },
   campusRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   campusBtnNew: { flex: 1, paddingVertical: 12, paddingHorizontal: 6, borderRadius: 16, alignItems: 'center', borderWidth: 1.5, position: 'relative', overflow: 'hidden' },
-  campusLabelNew: { fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
-  campusSubLabelNew: { fontSize: 7, fontWeight: '600', color: COLORS.textMuted, marginTop: 2 },
+  campusLabelNew: { fontSize: 12, fontWeight: '900', letterSpacing: 0.2 },
+  campusSubLabelNew: { fontSize: 9, fontWeight: '600', color: COLORS.textMuted, marginTop: 2, textAlign: 'center' },
   activeCheckBadge: { position: 'absolute', top: 0, right: 0, borderBottomLeftRadius: 8, width: 14, height: 14, alignItems: 'center', justifyContent: 'center' },
   activeCheckText: { color: '#000', fontSize: 8, fontWeight: '900' },
   input: { borderWidth: 1, borderRadius: 12, padding: 14, fontSize: 13, marginBottom: 10, fontWeight: '600' },
@@ -1240,13 +1250,13 @@ const s = StyleSheet.create({
   helperText: { fontSize: 10, fontWeight: '600', lineHeight: 15, marginBottom: 6 },
   payRowNew: { gap: 10, marginBottom: 12 },
   payCardNew: { padding: 14, borderRadius: 16, borderWidth: 1.5 },
-  payCardTitle: { fontSize: 11, fontWeight: '900', letterSpacing: 1.5 },
+  payCardTitle: { fontSize: 13, fontWeight: '900', letterSpacing: 0.2 },
   payCardDesc: { fontSize: 9, color: COLORS.textSecondary, fontWeight: '600', marginTop: 2 },
   radioOuter: { width: 16, height: 16, borderRadius: 8, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   radioInner: { width: 8, height: 8, borderRadius: 4 },
   billCard: { padding: 16, borderRadius: 20 },
   billRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, gap: 8 },
-  billLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 2 },
+  billLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
   billVal: { fontSize: 12, fontWeight: '800' },
   savingsText: { fontSize: 10, fontWeight: '800', color: COLORS.emerald, marginTop: 8, textAlign: 'center' },
   placeBtnContainer: {
@@ -1260,35 +1270,35 @@ const s = StyleSheet.create({
     alignItems: 'center',
     ...SHADOWS.redGlow,
   },
-  placeText: { fontSize: 12, fontWeight: '900', color: '#fff', letterSpacing: 3 },
+  placeText: { fontSize: 15, fontWeight: '900', color: '#fff', letterSpacing: 0.2 },
 
   noticeCard: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 16 },
   noticeTitle: { fontSize: 12, fontWeight: '900' },
   noticeSub: { fontSize: 10, fontWeight: '600', marginTop: 2, lineHeight: 15 },
   smallBtn: { alignSelf: 'flex-start', backgroundColor: COLORS.red, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
-  smallBtnText: { color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  smallBtnText: { color: '#fff', fontSize: 12, fontWeight: '900' },
 
   centerBox: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   centerTitle: { fontSize: 18, fontWeight: '800', marginBottom: 8, textAlign: 'center' },
   centerSub: { fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
   primaryBtn: { backgroundColor: COLORS.red, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 16, ...SHADOWS.redGlow },
-  primaryBtnText: { color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 2 },
+  primaryBtnText: { color: '#fff', fontSize: 14, fontWeight: '900', letterSpacing: 0.2 },
 
   // Suggested Extras
   extrasScroll: { gap: 10, paddingRight: 16 },
   extraCard: { width: 120, padding: 12, borderRadius: 20, borderWidth: 1, borderColor: COLORS.borderDark, alignItems: 'center' },
   extraName: { fontSize: 9, fontWeight: '800', marginTop: 4, width: '100%', textAlign: 'center' },
   extraPrice: { fontSize: 10, fontWeight: '900', color: COLORS.gold, marginTop: 2 },
-  extraAddBtn: { fontSize: 8, fontWeight: '900', color: '#000', backgroundColor: COLORS.gold, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, marginTop: 8, overflow: 'hidden' },
+  extraAddBtn: { fontSize: 10, fontWeight: '900', color: '#000', backgroundColor: COLORS.gold, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, marginTop: 8, overflow: 'hidden' },
 
   // Coupons
   couponsScroll: { gap: 10, paddingRight: 16 },
   couponCard: { width: 130, padding: 12, borderRadius: 20, borderWidth: 1, borderColor: COLORS.borderDark, alignItems: 'center', position: 'relative' },
   couponCardActive: { borderColor: COLORS.gold, borderWidth: 1.5 },
-  couponCode: { fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  couponCode: { fontSize: 11, fontWeight: '900' },
   couponType: { fontSize: 8, fontWeight: '800', color: COLORS.textSecondary, marginTop: 2 },
-  activeIndicator: { fontSize: 8, fontWeight: '900', color: COLORS.gold, marginTop: 6 },
+  activeIndicator: { fontSize: 10, fontWeight: '900', color: COLORS.gold, marginTop: 6 },
   emptyCoupons: { padding: 20, borderRadius: 20, borderWidth: 1, borderStyle: 'dashed', borderColor: COLORS.borderDark, alignItems: 'center' },
-  emptyCouponsText: { fontSize: 9, fontWeight: '900', color: COLORS.textSecondary },
+  emptyCouponsText: { fontSize: 12, fontWeight: '900', color: COLORS.textSecondary },
   emptyCouponsSub: { fontSize: 9, color: COLORS.textSecondary, marginTop: 2 },
 });

@@ -9,6 +9,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch, readJson, NETWORK_ERROR_MESSAGE } from '../utils/auth';
 import { ENDPOINTS } from '../constants/api';
+import { formatINR, formatISTDateTime } from '../utils/format';
 
 interface WalletTx {
   id: string;
@@ -26,12 +27,13 @@ const PAGE = 20;
 const GREEN = '#22C55E';
 const RED = '#EF4F5F';
 
-const inr = (n: number) => `₹${Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 })}`;
-const when = (iso: string) => {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
-};
+const inr = (n: number) => formatINR(Math.abs(Number(n) || 0));
+const when = (iso: string) => formatISTDateTime(iso, { year: true });
+
+// Server-supplied links are only followed when they point at a screen the app has.
+const ALLOWED_LINK_PREFIXES = ['/tracking/', '/campus-events/', '/rentals/', '/auto-ride/', '/pg/', '/mega-basket', '/wallet-history', '/rewards', '/(tabs)'];
+const safeLink = (link: string | null | undefined) =>
+  typeof link === 'string' && ALLOWED_LINK_PREFIXES.some((p) => link.startsWith(p)) ? link : null;
 
 export default function WalletHistoryScreen() {
   const router = useRouter();
@@ -84,7 +86,7 @@ export default function WalletHistoryScreen() {
 
   const renderItem = ({ item }: { item: WalletTx }) => {
     const credit = item.amount >= 0;
-    const link = item.ref && item.ref.link;
+    const link = safeLink(item.ref && item.ref.link);
     return (
       <View style={[s.row, { backgroundColor: colors.card, borderColor: colors.border }]} accessible accessibilityLabel={`${item.label}, ${credit ? 'added' : 'paid'} ${inr(item.amount)}, ${when(item.createdAt)}, balance after ${inr(item.balanceAfter)}`}>
         <View style={[s.badge, { backgroundColor: credit ? 'rgba(34,197,94,0.12)' : 'rgba(239,79,95,0.12)' }]}>
@@ -104,7 +106,7 @@ export default function WalletHistoryScreen() {
         </View>
         <View style={{ alignItems: 'flex-end' }}>
           <Text style={[s.amount, { color: credit ? GREEN : RED }]}>{credit ? '+' : '−'}{inr(item.amount)}</Text>
-          <Text style={[s.meta, { color: colors.textSecondary }]}>Bal {inr(item.balanceAfter)}</Text>
+          <Text style={[s.meta, { color: colors.textSecondary }]}>Balance {inr(item.balanceAfter)}</Text>
         </View>
       </View>
     );
@@ -117,19 +119,24 @@ export default function WalletHistoryScreen() {
           <Text style={{ fontSize: 16, color: colors.text }}>←</Text>
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={[s.subText, { color: gold }]}>ZENVY WALLET</Text>
+          <Text style={[s.subText, { color: gold }]}>Zenvy Wallet</Text>
           <Text style={[s.title, { color: colors.text }]}>Wallet history</Text>
         </View>
         {balance !== null ? (
           <View style={{ alignItems: 'flex-end' }}>
-            <Text style={[s.subText, { color: colors.textSecondary }]}>BALANCE</Text>
+            <Text style={[s.subText, { color: colors.textSecondary }]}>Balance</Text>
             <Text style={[s.title, { color: gold }]}>{inr(balance)}</Text>
           </View>
         ) : null}
       </View>
 
       {!user ? (
-        <View style={s.center}><Text style={[s.meta, { color: colors.textSecondary, textAlign: 'center' }]}>Log in to see your wallet history.</Text></View>
+        <View style={s.center}>
+          <Text style={[s.meta, { color: colors.textSecondary, textAlign: 'center', marginBottom: 12 }]}>Sign in to see your wallet history.</Text>
+          <TouchableOpacity onPress={() => router.push('/login' as any)} style={[s.retry, { borderColor: gold }]} accessibilityRole="button" accessibilityLabel="Sign in">
+            <Text style={{ color: gold, fontWeight: '900' }}>Sign in</Text>
+          </TouchableOpacity>
+        </View>
       ) : loading ? (
         <View style={s.center}><ActivityIndicator color={gold} /></View>
       ) : error && rows.length === 0 ? (
@@ -148,7 +155,7 @@ export default function WalletHistoryScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={gold} />}
           onEndReached={onEnd}
           onEndReachedThreshold={0.4}
-          ListHeaderComponent={<Text style={[s.meta, { color: colors.textSecondary, marginBottom: 4 }]}>Your wallet is Zenvy credit for orders: refunds and returns land here, wallet payments leave from here. It cannot be withdrawn or sent to others.</Text>}
+          ListHeaderComponent={<Text style={[s.meta, { color: colors.textSecondary, marginBottom: 4 }]}>Your wallet is Zenvy credit for orders: refunds and credits land here, wallet payments leave from here. It cannot be withdrawn or sent to others.</Text>}
           ListEmptyComponent={<Text style={[s.meta, { color: colors.textSecondary, textAlign: 'center', marginTop: 40 }]}>No wallet activity yet. Refunds and wallet payments will show here.</Text>}
           ListFooterComponent={loadingMore ? <ActivityIndicator color={gold} style={{ marginTop: 12 }} /> : error ? <Text style={[s.meta, { color: RED, textAlign: 'center' }]}>{error}</Text> : null}
         />
@@ -161,7 +168,7 @@ const s = StyleSheet.create({
   container: { flex: 1, paddingTop: Platform.OS === 'android' ? 40 : 50, maxWidth: 600, width: '100%', alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1, gap: 8 },
   backBtn: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginRight: 4 },
-  subText: { fontSize: 8, fontWeight: '900', letterSpacing: 2 },
+  subText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
   title: { fontSize: 18, fontWeight: '900' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1 },
