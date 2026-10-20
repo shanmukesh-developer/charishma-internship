@@ -20,6 +20,11 @@ import { LocationPanel } from './LocationPanel';
 import { FaqPanel } from './FaqPanel';
 import { ReviewsPanel } from './ReviewsPanel';
 import { PromotionsPanel } from './PromotionsPanel';
+import {
+  Badge, Button, DataTable, Drawer, Menu, Notice as NoticeBox, PageHeader, Tabs, Toolbar, useConfirm, type Column,
+  IconImage, IconMore, IconPlus, IconRefresh,
+} from '@/components/ui';
+import { formatINR } from '@/lib/format';
 
 type ManageTab = 'details' | 'rooms' | 'photos' | 'videos' | 'mess' | 'timings'
   | 'overview' | 'houseRules' | 'policies' | 'safety' | 'moveIn' | 'location' | 'faq' | 'reviews';
@@ -33,7 +38,13 @@ type View = 'listings' | 'bookings' | 'promotions';
 
 export default function PGAdminPage() {
   const { isAuthed } = useAdminAuth();
+  const confirm = useConfirm();
   const [view, setView] = useState<View>('listings');
+  // ?tab=bookings | promotions (the overview's Needs attention list links straight to booking requests).
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('tab');
+    if (t === 'bookings' || t === 'promotions' || t === 'listings') setView(t);
+  }, []);
   const [pgs, setPgs] = useState<PGHostel[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -141,7 +152,7 @@ export default function PGAdminPage() {
 
   const toggleActive = async (pg: PGHostel) => {
     if (busy[pg.id]) return;
-    if (pg.isActive && !window.confirm(`Hide "${pg.name}" from the app? Students can no longer see or book it.`)) return;
+    if (pg.isActive && !(await confirm({ title: `Hide ${pg.name} from the app?`, description: 'Students can no longer see or book it. You can list it again at any time.', confirmLabel: 'Hide listing', tone: 'danger' }))) return;
     setBusy(prev => ({ ...prev, [pg.id]: true }));
     try {
       // PUT /api/pg/:id writes every field it receives, so send the full listing with the new flag.
@@ -157,12 +168,14 @@ export default function PGAdminPage() {
   };
 
   const deletePg = async (pg: PGHostel) => {
-    const typed = window.prompt(`Delete "${pg.name}" permanently?\n\nStudents lose access to it and its booking history loses the PG name. Hiding it is usually better.\n\nType the PG name to confirm:`);
-    if (typed === null) return;
-    if (typed.trim() !== pg.name.trim()) {
-      setNotice({ kind: 'error', text: 'The name did not match, so nothing was deleted.' });
-      return;
-    }
+    // Typed confirmation: the delete button stays disabled until the PG name matches.
+    if (!(await confirm({
+      title: `Delete ${pg.name} permanently?`,
+      description: 'Students lose access to it and its booking history loses the PG name. Hiding it is usually better.',
+      confirmLabel: 'Delete permanently',
+      tone: 'danger',
+      requireText: pg.name,
+    }))) return;
     setBusy(prev => ({ ...prev, [pg.id]: true }));
     try {
       await pgRequest(`/api/pg/${pg.id}`, { method: 'DELETE' });
@@ -177,34 +190,108 @@ export default function PGAdminPage() {
 
   const onPendingCount = useCallback((n: number) => setPendingCount(n), []);
 
-  if (!isAuthed) return <div className="p-10 text-center text-sm text-fg-muted" role="status">Checking your admin session…</div>;
+  if (!isAuthed) return null; // AppShell shows the session check
+
+  const coverOf = (pg: PGHostel) => {
+    const photos = (pg.photos || []) as { url?: string; isCover?: boolean }[];
+    return photos.find(ph => ph.isCover)?.url || photos[0]?.url || (pg.images || [])[0] || '';
+  };
+  const contentSummary = (pg: PGHostel) => [
+    pg.photos?.length ? `${pg.photos.length} ${pg.photos.length === 1 ? 'photo' : 'photos'}` : pg.images?.length ? `${pg.images.length} ${pg.images.length === 1 ? 'photo' : 'photos'} (no categories)` : '',
+    pg.videos?.length ? `${pg.videos.length} ${pg.videos.length === 1 ? 'video' : 'videos'}` : '',
+    pg.messTimetable?.meals?.length ? 'Mess timetable' : '',
+  ].filter(Boolean).join(' · ');
+  const openManage = (pg: PGHostel, tab: ManageTab) => { setManaging(pg); setManageTab(tab); };
+
+  const columns: Column<PGHostel>[] = [
+    {
+      key: 'name',
+      header: 'PG',
+      sortValue: pg => pg.name,
+      cell: pg => {
+        const cover = coverOf(pg);
+        return (
+          <button type="button" onClick={() => openManage(pg, 'details')} className="flex min-w-[240px] max-w-[440px] items-center gap-3 rounded-md text-left">
+            <span className="flex h-10 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-surface-2 text-fg-subtle">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {cover ? <img src={cover} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" /> : <IconImage size={16} />}
+            </span>
+            <span className="min-w-0">
+              <span className="flex items-center gap-1.5">
+                <span className="truncate font-medium text-fg hover:underline">{pg.name}</span>
+                {pg.isVerified && <Badge tone="info">Verified</Badge>}
+              </span>
+              <span className="block truncate text-xs text-fg-muted">{pg.address}</span>
+            </span>
+          </button>
+        );
+      },
+    },
+    { key: 'for', header: 'For', sortValue: pg => normalizeGender(pg.genderType), cell: pg => <span className="text-fg">{normalizeGender(pg.genderType)}</span> },
+    { key: 'distance', header: 'Distance', align: 'right', hideBelow: 'lg', sortValue: pg => Number(pg.distanceFromCollege) || 0, cell: pg => <span className="tabular-nums">{pg.distanceFromCollege} km</span> },
+    { key: 'rent', header: 'From', align: 'right', sortValue: pg => Number(pg.baseRent) || 0, cell: pg => <span className="tabular-nums">{formatINR(pg.baseRent)}<span className="text-fg-muted">/mo</span></span> },
+    {
+      key: 'content',
+      header: 'Content',
+      hideBelow: 'xl',
+      cell: pg => (!pg.photos?.length && !pg.images?.length
+        ? <Badge tone="warning">No photos yet</Badge>
+        : <span className="text-xs text-fg-muted">{contentSummary(pg)}</span>),
+    },
+    { key: 'status', header: 'Status', sortValue: pg => (pg.isActive ? 0 : 1), cell: pg => (pg.isActive ? <Badge tone="success" dot>Listed</Badge> : <Badge dot>Hidden</Badge>) },
+    {
+      key: 'actions',
+      header: <span className="sr-only">Actions</span>,
+      align: 'right',
+      width: '150px',
+      cell: pg => (
+        <div className="flex items-center justify-end gap-1.5">
+          <Button size="sm" onClick={() => openManage(pg, 'details')}>Manage</Button>
+          <Menu
+            label={`More actions for ${pg.name}`}
+            trigger={props => <Button {...props} size="sm" variant="ghost" aria-label={`More actions for ${pg.name}`} className="w-7 px-0"><IconMore size={16} /></Button>}
+            items={[
+              { label: 'Rooms', onSelect: () => openManage(pg, 'rooms') },
+              { label: 'Photos', onSelect: () => openManage(pg, 'photos') },
+              { label: 'Reviews', onSelect: () => openManage(pg, 'reviews') },
+              'separator',
+              { label: pg.isActive ? 'Hide from the app' : 'List in the app', onSelect: () => toggleActive(pg), disabled: !!busy[pg.id] },
+              { label: 'Delete…', onSelect: () => deletePg(pg), danger: true, disabled: !!busy[pg.id] },
+            ]}
+          />
+        </div>
+      ),
+    },
+  ];
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 text-fg">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
-        <div>
-          <h1 className="text-2xl font-semibold text-fg">PG and hostels</h1>
-          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Curate PG listings and rooms, run promotions, and confirm students&apos; booking requests.</p>
-        </div>
-        {view === 'listings' && (
-          <div className="flex items-center gap-3">
-            <button type="button" disabled={loading} onClick={() => loadPgs()} className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-fg-muted hover:text-fg disabled:opacity-50">{loading ? 'Loading…' : 'Refresh'}</button>
-            <button type="button" onClick={() => setCreating(true)} className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-solid hover:bg-accent-hover">Add PG</button>
-          </div>
-        )}
-      </header>
-
-      <div className="flex gap-1 border-b border-line" role="tablist">
-        {([['listings', `Listings (${pgs.length})`], ['bookings', `Booking requests${pendingCount ? ` · ${pendingCount} pending` : ''}`], ['promotions', 'Promotions']] as [View, string][]).map(([key, label]) => (
-          <button key={key} type="button" role="tab" aria-selected={view === key} onClick={() => setView(key)} className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold ${view === key ? 'border-info/30 text-fg' : 'border-transparent text-fg-muted hover:text-fg'}`}>{label}</button>
-        ))}
-      </div>
+    <div className="text-fg">
+      <PageHeader
+        title="PG and hostels"
+        description="PG listings and their rooms, photos and rules; promotions; and students’ booking requests to confirm."
+        actions={view === 'listings' ? (
+          <>
+            <Button leftIcon={<IconRefresh size={14} />} loading={loading} onClick={() => loadPgs()}>Refresh</Button>
+            <Button variant="primary" leftIcon={<IconPlus size={14} />} onClick={() => setCreating(true)}>Add PG</Button>
+          </>
+        ) : undefined}
+      >
+        <Tabs
+          ariaLabel="PG sections"
+          value={view}
+          onChange={setView}
+          tabs={[
+            { id: 'listings', label: 'Listings', count: pgs.length || null },
+            { id: 'bookings', label: 'Booking requests', count: pendingCount || null, attention: true },
+            { id: 'promotions', label: 'Promotions' },
+          ]}
+        />
+      </PageHeader>
 
       {notice && (
-        <div role={notice.kind === 'error' ? 'alert' : 'status'} className={`flex items-start justify-between gap-3 rounded-lg border p-3 text-sm ${notice.kind === 'error' ? 'border-danger/30 bg-danger-soft text-danger-text' : 'border-success/30 bg-success-soft text-success-text'}`}>
-          <span>{notice.text}</span>
-          <button type="button" onClick={() => setNotice(null)} className="text-xs font-semibold opacity-70 hover:opacity-100">Dismiss</button>
-        </div>
+        <NoticeBox tone={notice.kind === 'error' ? 'danger' : 'success'} className="mb-4" onClose={() => setNotice(null)}>
+          <span className="text-fg">{notice.text}</span>
+        </NoticeBox>
       )}
 
       {view === 'bookings' ? (
@@ -213,108 +300,65 @@ export default function PGAdminPage() {
         <PromotionsPanel pgs={pgs} liveTick={promotionsTick} />
       ) : (
         <>
-          {loadError && (
-            <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger-text">
-              {loadError}<button type="button" onClick={() => loadPgs()} className="font-semibold underline">Retry</button>
-            </div>
-          )}
-          {loading ? (
-            <div role="status" className="rounded-lg border border-line p-8 text-sm text-fg-muted">Loading PG listings…</div>
-          ) : !loadError && pgs.length === 0 ? (
-            <div className="rounded-lg border border-line p-10 text-center">
-              <h2 className="font-semibold">No PG listings yet</h2>
-              <p className="mt-2 text-sm text-fg-muted">Add a PG and its rooms to show it in the app.</p>
-            </div>
-          ) : (
-            <section className="grid gap-4 md:grid-cols-2" aria-label="PG listings">
-              {pgs.map(pg => (
-                <article key={pg.id} className={`flex flex-col justify-between rounded-xl border p-5 ${pg.isActive ? 'border-line' : 'border-line bg-surface-2/60'} ${isFresh(pg.id) ? FRESH_ROW_CLASS : ''}`}>
-                  <div>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h2 className="truncate text-lg font-semibold">{pg.name}</h2>
-                        <p className="mt-0.5 text-xs text-fg-muted">{pg.address}</p>
-                      </div>
-                      <span className={`shrink-0 rounded border px-2 py-0.5 text-xs font-semibold ${pg.isActive ? 'border-success/30 text-success-text' : 'border-line text-fg-muted'}`}>{pg.isActive ? 'Listed' : 'Hidden'}</span>
-                    </div>
-                    <dl className="mt-4 grid grid-cols-3 gap-3 border-y border-line py-3 text-sm">
-                      <div><dt className="text-xs text-fg-muted">Distance</dt><dd className="font-semibold">{pg.distanceFromCollege} km</dd></div>
-                      <div><dt className="text-xs text-fg-muted">For</dt><dd className="font-semibold">{normalizeGender(pg.genderType)}</dd></div>
-                      <div><dt className="text-xs text-fg-muted">From</dt><dd className="font-semibold">₹{Number(pg.baseRent).toLocaleString('en-IN')}/mo</dd></div>
-                    </dl>
-                    {!!pg.amenities?.length && <p className="mt-3 text-xs text-fg-muted">{pg.amenities.join(' · ')}</p>}
-                    <p className="mt-2 text-xs text-fg-muted">
-                      {[
-                        pg.photos?.length ? `${pg.photos.length} photo${pg.photos.length === 1 ? '' : 's'}` : pg.images?.length ? `${pg.images.length} photo${pg.images.length === 1 ? '' : 's'} (no categories)` : '',
-                        pg.videos?.length ? `${pg.videos.length} video${pg.videos.length === 1 ? '' : 's'}` : '',
-                        pg.messTimetable?.meals?.length ? 'Mess timetable' : '',
-                        pg.isVerified ? 'Verified' : '',
-                      ].filter(Boolean).join(' · ')}
-                      {!pg.photos?.length && !pg.images?.length && <span className="text-warning-text">No photos yet</span>}
-                    </p>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <button type="button" onClick={() => { setManaging(pg); setManageTab('details'); }} className="rounded-lg bg-surface-2 px-3 py-1.5 text-xs font-semibold hover:bg-surface-3">Edit details</button>
-                    <button type="button" onClick={() => { setManaging(pg); setManageTab('rooms'); }} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg-muted hover:text-fg">Rooms</button>
-                    <button type="button" onClick={() => { setManaging(pg); setManageTab('photos'); }} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg-muted hover:text-fg">Photos</button>
-                    <button type="button" disabled={!!busy[pg.id]} onClick={() => toggleActive(pg)} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-50">{pg.isActive ? 'Hide' : 'List'}</button>
-                    <button type="button" disabled={!!busy[pg.id]} onClick={() => deletePg(pg)} className="ml-auto rounded-lg px-2 py-1.5 text-xs font-semibold text-danger-text hover:text-danger-text disabled:opacity-50">Delete</button>
-                  </div>
-                </article>
-              ))}
-            </section>
-          )}
+          <Toolbar end={<span className="text-sm text-fg-muted">{pgs.filter(p => p.isActive).length} listed, {pgs.filter(p => !p.isActive).length} hidden</span>} />
+          <DataTable
+            caption="PG listings"
+            columns={columns}
+            rows={pgs}
+            rowKey={pg => pg.id}
+            loading={loading}
+            error={loadError || null}
+            onRetry={() => loadPgs()}
+            rowClassName={pg => (isFresh(pg.id) ? FRESH_ROW_CLASS : !pg.isActive ? 'bg-surface-2/40' : undefined)}
+            noun="listings"
+            empty={{ title: 'No PG listings yet', description: 'Add a PG and its rooms to show it in the app.', action: <Button variant="primary" onClick={() => setCreating(true)}>Add PG</Button> }}
+          />
         </>
       )}
 
-      {(creating || managing) && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-scrim/50 p-4" role="dialog" aria-modal="true" aria-labelledby="pg-modal-title">
-          <div className="my-8 w-full max-w-4xl rounded-lg border border-line bg-surface p-6 text-fg shadow-pop">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <h2 id="pg-modal-title" className="text-xl font-semibold">{creating ? 'Add PG' : managing?.name}</h2>
-              <button type="button" onClick={() => { setCreating(false); setManaging(null); }} className="rounded-lg border border-line px-3 py-1.5 text-sm text-fg-muted hover:text-fg">Close</button>
-            </div>
-            {managing && !creating && (
-              <div className="mb-5 flex gap-1 overflow-x-auto border-b border-line" role="tablist">
-                {MANAGE_TABS.map(([tab, label]) => (
-                  <button key={tab} type="button" role="tab" aria-selected={manageTab === tab} onClick={() => setManageTab(tab)} className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2 text-sm font-semibold ${manageTab === tab ? 'border-info/30 text-fg' : 'border-transparent text-fg-muted hover:text-fg'}`}>{label}</button>
-                ))}
-              </div>
-            )}
-            {creating ? (
-              <PgForm initial={null} onCancel={() => setCreating(false)} onSave={createPg} />
-            ) : managing && manageTab === 'details' ? (
-              <PgForm key={managing.id} initial={managing} onCancel={() => setManaging(null)} onSave={updatePg} />
-            ) : managing && manageTab === 'photos' ? (
-              <PhotosPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
-            ) : managing && manageTab === 'videos' ? (
-              <VideosPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
-            ) : managing && manageTab === 'mess' ? (
-              <MessPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
-            ) : managing && manageTab === 'timings' ? (
-              <TimingsPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
-            ) : managing && manageTab === 'overview' ? (
-              <OverviewPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
-            ) : managing && manageTab === 'houseRules' ? (
-              <RulesPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
-            ) : managing && manageTab === 'policies' ? (
-              <PoliciesPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
-            ) : managing && manageTab === 'safety' ? (
-              <SafetyPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
-            ) : managing && manageTab === 'moveIn' ? (
-              <MoveInPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
-            ) : managing && manageTab === 'location' ? (
-              <LocationPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
-            ) : managing && manageTab === 'faq' ? (
-              <FaqPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
-            ) : managing && manageTab === 'reviews' ? (
-              <ReviewsPanel key={managing.id} pg={managing} liveTick={roomsTick} />
-            ) : managing ? (
-              <RoomsPanel pgId={managing.id} liveTick={roomsTick} />
-            ) : null}
-          </div>
-        </div>
-      )}
+      <Drawer
+        open={creating || !!managing}
+        onClose={() => { setCreating(false); setManaging(null); }}
+        size="xl"
+        title={creating ? 'Add PG' : managing?.name || 'PG'}
+        description={!creating && managing ? managing.address : 'Basic details first; rooms, photos and rules come next.'}
+        headerActions={!creating && managing ? (managing.isActive ? <Badge tone="success" dot>Listed</Badge> : <Badge dot>Hidden</Badge>) : undefined}
+      >
+        {managing && !creating && (
+          <Tabs className="mb-5" ariaLabel="PG content" value={manageTab} onChange={setManageTab} tabs={MANAGE_TABS.map(([id, label]) => ({ id, label }))} />
+        )}
+        {creating ? (
+          <PgForm initial={null} onCancel={() => setCreating(false)} onSave={createPg} />
+        ) : managing && manageTab === 'details' ? (
+          <PgForm key={managing.id} initial={managing} onCancel={() => setManaging(null)} onSave={updatePg} />
+        ) : managing && manageTab === 'photos' ? (
+          <PhotosPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+        ) : managing && manageTab === 'videos' ? (
+          <VideosPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+        ) : managing && manageTab === 'mess' ? (
+          <MessPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+        ) : managing && manageTab === 'timings' ? (
+          <TimingsPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+        ) : managing && manageTab === 'overview' ? (
+          <OverviewPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+        ) : managing && manageTab === 'houseRules' ? (
+          <RulesPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+        ) : managing && manageTab === 'policies' ? (
+          <PoliciesPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+        ) : managing && manageTab === 'safety' ? (
+          <SafetyPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+        ) : managing && manageTab === 'moveIn' ? (
+          <MoveInPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+        ) : managing && manageTab === 'location' ? (
+          <LocationPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+        ) : managing && manageTab === 'faq' ? (
+          <FaqPanel key={managing.id} pg={managing} onSaved={patch => onContentSaved(managing.id, patch)} />
+        ) : managing && manageTab === 'reviews' ? (
+          <ReviewsPanel key={managing.id} pg={managing} liveTick={roomsTick} />
+        ) : managing ? (
+          <RoomsPanel pgId={managing.id} liveTick={roomsTick} />
+        ) : null}
+      </Drawer>
     </div>
   );
 }

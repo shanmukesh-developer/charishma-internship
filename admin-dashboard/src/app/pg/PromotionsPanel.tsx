@@ -1,4 +1,5 @@
 "use client";
+import { useConfirm } from '@/components/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FIELD, LABEL, MAX_PROMO_DAYS, PGHostel, PROMO_CTA_LABEL, PROMO_LABEL_TEXT, PROMO_STATE_LABEL, PgPromotion, PromoCta, PromoLabel,
@@ -250,6 +251,7 @@ function PromoEditor({ editing, pgs, nextPriority, onCancel, onSaved }: {
 
 /** Promotion cards on the PG list page in the app (across all PGs). */
 export function PromotionsPanel({ pgs, liveTick = 0 }: { pgs: PGHostel[]; liveTick?: number }) {
+  const confirm = useConfirm();
   const [promos, setPromos] = useState<PgPromotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -293,8 +295,8 @@ export function PromotionsPanel({ pgs, liveTick = 0 }: { pgs: PGHostel[]; liveTi
     setPromos(prev => prev.map(x => (x.id === saved.id ? saved : x)));
     setMessage({ kind: 'ok', text: saved.isActive ? `"${saved.headline}" resumed.` : `"${saved.headline}" paused.` });
   }, 'Could not update the promotion.');
-  const remove = (p: PgPromotion) => {
-    if (!window.confirm(`Delete the promotion "${p.headline}"? It stops showing in the app.`)) return;
+  const remove = async (p: PgPromotion) => {
+    if (!(await confirm({ title: `Delete the promotion ${p.headline}?`, description: 'It stops showing in the app. This cannot be undone.', tone: 'danger' }))) return;
     run(async () => {
       await pgRequest(`/api/pg/admin/promotions/${p.id}`, { method: 'DELETE' });
       setPromos(prev => prev.filter(x => x.id !== p.id));

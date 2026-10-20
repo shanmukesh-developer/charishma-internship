@@ -204,8 +204,8 @@ export interface PGBooking {
   room?: { id: string; roomNumber: string; sharingType: number; availableBeds: number } | null;
 }
 
-export const FIELD = 'w-full rounded-lg border border-white/10 bg-[#111318] px-3 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none focus:border-blue-500/50 disabled:opacity-50';
-export const LABEL = 'block space-y-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400';
+export const FIELD = 'zv-control';
+export const LABEL = 'block space-y-1 text-sm font-medium text-fg';
 
 /** The customer app expects 'Boys' | 'Girls' | 'Co-ed'. Older rows used 'Co-Ed'. */
 export const normalizeGender = (value?: string | null) => {

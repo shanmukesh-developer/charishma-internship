@@ -1,4 +1,5 @@
 "use client";
+import { useConfirm } from '@/components/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FIELD, LABEL, PGRoom, pgRequest } from './pgApi';
 
@@ -81,6 +82,7 @@ function RoomFields({ draft, onChange }: { draft: RoomDraft; onChange: (d: RoomD
 }
 
 function RoomRow({ pgId, room, onSaved, onDeleted }: { pgId: string; room: PGRoom; onSaved: (r: PGRoom) => void; onDeleted: (id: string) => void }) {
+  const confirm = useConfirm();
   const [draft, setDraft] = useState<RoomDraft>(() => toDraft(room));
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
@@ -115,7 +117,7 @@ function RoomRow({ pgId, room, onSaved, onDeleted }: { pgId: string; room: PGRoo
   };
 
   const remove = async () => {
-    if (busy || !window.confirm(`Delete room ${room.roomNumber}? Pending requests for it can no longer be confirmed.`)) return;
+    if (busy || !(await confirm({ title: `Delete room ${room.roomNumber}?`, description: 'Pending requests for it can no longer be confirmed. This cannot be undone.', tone: 'danger' }))) return;
     setBusy(true);
     try {
       await pgRequest(`/api/pg/${pgId}/rooms/${room.id}`, { method: 'DELETE' });

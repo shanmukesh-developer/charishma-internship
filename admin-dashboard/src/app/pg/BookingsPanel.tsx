@@ -1,4 +1,5 @@
 "use client";
+import { useConfirm } from '@/components/ui';
 import { useCallback, useEffect, useState } from 'react';
 import { FIELD, PGBooking, formatDate, pgRequest } from './pgApi';
 import { FRESH_ROW_CLASS } from '@/lib/useLiveSync';
@@ -25,6 +26,7 @@ export function BookingsPanel({ onPendingCount, liveTick = 0, isFresh }: {
   liveTick?: number;
   isFresh?: (id: string) => boolean;
 }) {
+  const confirm = useConfirm();
   const [status, setStatus] = useState('Pending');
   const [bookings, setBookings] = useState<PGBooking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,9 +44,12 @@ export function BookingsPanel({ onPendingCount, liveTick = 0, isFresh }: {
   const resolveDupes = async () => {
     if (resolving || !dupes?.groups.length) return;
     const extra = dupes.groups.reduce((n, g) => n + g.bookings.length - 1, 0);
-    if (!window.confirm(`Cancel ${extra} duplicate request${extra === 1 ? '' : 's'}?
-
-For each student and PG one request is kept: the confirmed one, otherwise the newest. The others are cancelled (a confirmed duplicate gives its bed back). Students are not notified.`)) return;
+    if (!(await confirm({
+      title: `Cancel ${extra} duplicate ${extra === 1 ? 'request' : 'requests'}?`,
+      description: 'For each student and PG one request is kept: the confirmed one, otherwise the newest. The others are cancelled (a confirmed duplicate gives its bed back). Students are not notified.',
+      confirmLabel: 'Cancel duplicates',
+      tone: 'danger',
+    }))) return;
     setResolving(true);
     setNotice(null);
     try {
@@ -84,10 +89,10 @@ For each student and PG one request is kept: the confirmed one, otherwise the ne
     if (busy[booking.id]) return;
     const who = booking.user?.name || 'the student';
     const where = `${booking.hostel?.name || 'this PG'}${booking.room ? `, room ${booking.room.roomNumber}` : ''}`;
-    const question = next === 'Confirmed'
-      ? `Confirm ${who}'s booking at ${where}?\n\nThis reserves one bed and notifies the student.`
-      : `Cancel ${who}'s booking at ${where}?${booking.status === 'Confirmed' ? '\n\nThe reserved bed is released.' : ''} The student is notified.`;
-    if (!window.confirm(question)) return;
+    const ok = next === 'Confirmed'
+      ? await confirm({ title: `Confirm ${who}'s booking at ${where}?`, description: 'This reserves one bed and notifies the student.', confirmLabel: 'Confirm booking' })
+      : await confirm({ title: `Cancel ${who}'s booking at ${where}?`, description: `${booking.status === 'Confirmed' ? 'The reserved bed is released. ' : ''}The student is notified.`, confirmLabel: 'Cancel booking', cancelLabel: 'Keep booking', tone: 'danger' });
+    if (!ok) return;
     setBusy(prev => ({ ...prev, [booking.id]: true }));
     setNotice(null);
     try {

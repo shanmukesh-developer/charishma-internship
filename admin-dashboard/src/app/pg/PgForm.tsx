@@ -1,4 +1,5 @@
 "use client";
+import { useConfirm } from '@/components/ui';
 import { useState } from 'react';
 import { FIELD, LABEL, PGHostel, normalizeGender } from './pgApi';
 
@@ -78,6 +79,7 @@ export function PgForm({ initial, onCancel, onSave }: {
   onCancel: () => void;
   onSave: (payload: Record<string, unknown>) => Promise<void>;
 }) {
+  const confirm = useConfirm();
   const [form, setForm] = useState<FormState>(() => toForm(initial));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -89,7 +91,7 @@ export function PgForm({ initial, onCancel, onSave }: {
     if (saving) return;
     const { payload, error: invalid } = buildPayload(form);
     if (!payload) return setError(invalid || 'Check the form.');
-    if (initial?.isActive && !form.isActive && !window.confirm('Deactivate this PG? Students can no longer see or book it.')) return;
+    if (initial?.isActive && !form.isActive && !(await confirm({ title: 'Hide this PG from the app?', description: 'Students can no longer see or book it.', confirmLabel: 'Save and hide', tone: 'danger' }))) return;
     setSaving(true);
     setError('');
     try {

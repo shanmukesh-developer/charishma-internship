@@ -3,6 +3,8 @@
 // Data: GET /api/admin/wallet/:ownerType/:ownerId/transactions and GET /api/admin/wallet/reconcile.
 import React, { useCallback, useEffect, useState } from 'react';
 import { API_URL } from '@/lib/config';
+import { Badge, Button, Card, CardHeader, DataTable, LoadingState, Modal, Notice, type Column } from '@/components/ui';
+import { formatDateTime, formatINR, humanize } from '@/lib/format';
 
 export type WalletOwnerType = 'user' | 'rider';
 
@@ -53,8 +55,8 @@ interface ReconcileResponse {
   withoutHistory: ReconcileRow[];
 }
 
-const rupees = (paise: number) => `₹${(paise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}₹${Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const rupees = (paise: number) => formatINR(paise / 100, { paise: true });
+const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatINR(Math.abs(n), { paise: true })}`;
 
 async function readJson<T>(res: Response, fallback: string): Promise<T> {
   if (res.status === 401) throw new Error('Your session has expired. Please sign in again.');
@@ -63,6 +65,32 @@ async function readJson<T>(res: Response, fallback: string): Promise<T> {
   if (!res.ok) throw new Error(data && typeof data.message === 'string' && data.message.length < 200 ? data.message : fallback);
   return data as T;
 }
+
+const ledgerColumns: Column<LedgerRow>[] = [
+  { key: 'when', header: 'When', cell: r => <span className="whitespace-nowrap text-xs text-fg-muted">{formatDateTime(r.createdAt)}</span> },
+  {
+    key: 'what',
+    header: 'What',
+    cell: r => (
+      <div>
+        <p className="text-fg">{r.label}</p>
+        <p className="text-xs text-fg-muted">{humanize(r.type)}{r.ref ? ` · ${r.ref.label || humanize(r.ref.type)} ${r.ref.id ? r.ref.id.slice(0, 8) : ''}` : ''}</p>
+      </div>
+    ),
+  },
+  { key: 'amount', header: 'Amount', align: 'right', cell: r => <span className={`whitespace-nowrap font-medium tabular-nums ${r.amount < 0 ? 'text-danger-text' : 'text-success-text'}`}>{signed(r.amount)}</span> },
+  { key: 'after', header: 'Balance after', align: 'right', cell: r => <span className="whitespace-nowrap tabular-nums text-fg-muted">{rupees(Math.round(r.balanceAfter * 100))}</span> },
+  {
+    key: 'by',
+    header: 'By and reason',
+    cell: r => (
+      <div className="text-xs">
+        <p className="text-fg-muted">{humanize(r.actorType)}</p>
+        {r.reason && <p className="break-words text-fg">{r.reason}</p>}
+      </div>
+    ),
+  },
+];
 
 export function WalletLedgerModal({ ownerType, ownerId, title, onClose }: { ownerType: WalletOwnerType; ownerId: string; title?: string; onClose: () => void }) {
   const [data, setData] = useState<LedgerResponse | null>(null);
@@ -88,79 +116,44 @@ export function WalletLedgerModal({ ownerType, ownerId, title, onClose }: { owne
   }, [ownerType, ownerId]);
 
   useEffect(() => { load(1); }, [load]);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[100] bg-scrim/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Wallet history" onClick={onClose}>
-      <div className="rounded-lg border border-line bg-surface shadow-xs w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-4 p-6 border-b border-line">
-          <div>
-            <h3 className="text-xl font-semibold text-fg">Wallet history</h3>
-            <p className="text-xs text-fg-muted font-semibold mt-1">
-              {title || data?.owner.name || 'Account'} · {ownerType === 'rider' ? 'Rider' : 'Customer'}{data?.owner.phone ? ` · ${data.owner.phone}` : ''}
-            </p>
-          </div>
-          <button onClick={onClose} className="px-4 py-2 rounded-xl bg-surface-2 text-fg text-xs font-semibold hover:bg-surface-3">Close</button>
-        </div>
+    <Modal
+      open
+      onClose={onClose}
+      size="xl"
+      title="Wallet history"
+      description={`${title || data?.owner.name || 'Account'} · ${ownerType === 'rider' ? 'Rider' : 'Customer'}${data?.owner.phone ? ` · ${data.owner.phone}` : ''}`}
+      footer={
+        <>
+          {data?.hasMore && <Button onClick={() => load(page + 1)} loading={loading}>Load older</Button>}
+          <Button variant="primary" onClick={onClose}>Close</Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
         {data && (
-          <div className="flex flex-wrap gap-6 px-6 py-4 border-b border-line text-xs font-semibold">
-            <span className="text-fg-muted">Balance <span className="text-fg">{rupees(data.owner.balancePaise)}</span></span>
-            <span className="text-fg-muted">History total <span className="text-fg">{rupees(data.ledgerPaise)}</span></span>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+            <span className="text-fg-muted">Balance <span className="font-medium text-fg tabular-nums">{rupees(data.owner.balancePaise)}</span></span>
+            <span className="text-fg-muted">History total <span className="font-medium text-fg tabular-nums">{rupees(data.ledgerPaise)}</span></span>
             <span className="text-fg-muted">{data.total} entries</span>
-            {data.inSync
-              ? <span className="text-success-text">In sync</span>
-              : <span className="text-danger-text">Does not match: {rupees(data.owner.balancePaise - data.ledgerPaise)} unexplained</span>}
+            {data.inSync ? <Badge tone="success">In sync</Badge> : <Badge tone="danger">{rupees(data.owner.balancePaise - data.ledgerPaise)} unexplained</Badge>}
           </div>
         )}
-        <div className="overflow-auto flex-1">
-          {error ? (
-            <div role="alert" className="py-12 text-center">
-              <p className="text-danger-text font-semibold">{error}</p>
-              <button onClick={() => load(1)} className="mt-4 px-6 py-2 rounded-xl bg-surface-2 text-fg text-xs font-semibold hover:bg-surface-3">Retry</button>
-            </div>
-          ) : rows.length === 0 && !loading ? (
-            <p className="py-12 text-center text-fg-muted font-semibold">No wallet changes recorded yet.</p>
-          ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-surface-2/60 border-b border-line">
-                  {['When', 'What', 'Amount', 'Balance after', 'By / reason'].map((h) => (
-                    <th key={h} className="px-4 py-3 text-xs font-semibold text-fg-muted">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.03]">
-                {rows.map((r) => (
-                  <tr key={r.id}>
-                    <td className="px-4 py-3 text-xs font-semibold text-fg-muted whitespace-nowrap">{new Date(r.createdAt).toLocaleString('en-IN')}</td>
-                    <td className="px-4 py-3 text-xs font-semibold text-fg">
-                      {r.label}
-                      <span className="block text-xs text-fg-muted font-semibold">{r.type}{r.ref ? ` · ${r.ref.label || r.ref.type} ${r.ref.id ? r.ref.id.slice(0, 8) : ''}` : ''}</span>
-                    </td>
-                    <td className={`px-4 py-3 text-sm font-semibold whitespace-nowrap ${r.amount < 0 ? 'text-danger-text' : 'text-success-text'}`}>{signed(r.amount)}</td>
-                    <td className="px-4 py-3 text-xs font-semibold text-fg-muted whitespace-nowrap">{rupees(Math.round(r.balanceAfter * 100))}</td>
-                    <td className="px-4 py-3 text-xs font-semibold text-fg-muted">
-                      <span className="text-xs font-semibold text-fg-muted">{r.actorType}</span>
-                      {r.reason ? <span className="block text-fg-muted break-words">{r.reason}</span> : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          {loading && <p className="py-6 text-center text-fg-subtle font-semibold animate-pulse">Loading…</p>}
-        </div>
-        {data?.hasMore && !loading && (
-          <div className="p-4 border-t border-line text-center">
-            <button onClick={() => load(page + 1)} className="px-6 py-2 rounded-xl bg-surface-2 text-fg text-xs font-semibold hover:bg-surface-3">Load older</button>
-          </div>
-        )}
+        <DataTable
+          caption="Wallet history"
+          columns={ledgerColumns}
+          rows={rows}
+          rowKey={r => r.id}
+          loading={loading && rows.length === 0}
+          error={error}
+          onRetry={() => load(1)}
+          pageSize={0}
+          maxHeight="55vh"
+          empty={{ title: 'No wallet changes recorded yet' }}
+        />
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -186,68 +179,58 @@ export function WalletReconcileCard() {
 
   useEffect(() => { run(); }, [run]);
 
+  const columns: Column<ReconcileRow>[] = [
+    {
+      key: 'account',
+      header: 'Account',
+      cell: m => (
+        <div>
+          <p className="font-medium text-fg">{m.name || (m.ownerMissing ? 'Deleted account' : 'Unnamed')}</p>
+          <p className="text-xs text-fg-muted">{m.ownerType === 'rider' ? 'Rider' : 'Customer'}{m.phone ? ` · ${m.phone}` : ''}</p>
+        </div>
+      ),
+    },
+    { key: 'balance', header: 'Balance', align: 'right', cell: m => <span className="tabular-nums">{rupees(m.balancePaise)}</span> },
+    { key: 'history', header: 'History total', align: 'right', cell: m => <span className="tabular-nums text-fg-muted">{rupees(m.ledgerPaise)}</span> },
+    { key: 'diff', header: 'Difference', align: 'right', cell: m => <span className="tabular-nums text-danger-text">{rupees(m.differencePaise)}</span> },
+    { key: 'action', header: <span className="sr-only">Action</span>, align: 'right', cell: m => (!m.ownerMissing ? <Button size="sm" onClick={() => setOpen({ ownerType: m.ownerType, ownerId: m.ownerId, name: m.name })}>History</Button> : null) },
+  ];
+
   const list = (title: string, items: ReconcileRow[], hint: string) => (
-    <div className="space-y-3">
-      <h4 className="text-xs font-semibold text-fg-muted">{title}</h4>
-      <p className="text-xs text-fg-muted font-semibold">{hint}</p>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-surface-2/60 border-b border-line">
-              {['Account', 'Balance', 'History total', 'Difference', ''].map((h) => (
-                <th key={h} className="px-4 py-3 text-xs font-semibold text-fg-muted">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/[0.03]">
-            {items.map((m) => (
-              <tr key={`${m.ownerType}:${m.ownerId}`}>
-                <td className="px-4 py-3 text-xs font-semibold text-fg">
-                  {m.name || (m.ownerMissing ? 'Deleted account' : 'Unnamed')}
-                  <span className="block text-xs text-fg-muted font-semibold">{m.ownerType === 'rider' ? 'Rider' : 'Customer'}{m.phone ? ` · ${m.phone}` : ''}</span>
-                </td>
-                <td className="px-4 py-3 text-xs font-semibold text-fg-muted">{rupees(m.balancePaise)}</td>
-                <td className="px-4 py-3 text-xs font-semibold text-fg-muted">{rupees(m.ledgerPaise)}</td>
-                <td className="px-4 py-3 text-xs font-semibold text-danger-text">{rupees(m.differencePaise)}</td>
-                <td className="px-4 py-3 text-right">
-                  {!m.ownerMissing && (
-                    <button onClick={() => setOpen({ ownerType: m.ownerType, ownerId: m.ownerId, name: m.name })} className="px-3 py-1.5 rounded-lg bg-surface-2 text-fg text-xs font-semibold hover:bg-surface-3">History</button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="space-y-2">
+      <div>
+        <h3 className="text-sm font-semibold text-fg">{title}</h3>
+        <p className="text-xs text-fg-muted">{hint}</p>
       </div>
+      <DataTable caption={title} columns={columns} rows={items} rowKey={m => `${m.ownerType}:${m.ownerId}`} pageSize={25} maxHeight="none" />
     </div>
   );
 
   return (
-    <div className="rounded-lg border border-line bg-surface shadow-xs p-8 space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h3 className="text-xl font-semibold text-fg">Wallet check</h3>
-          <p className="text-xs text-fg-muted font-semibold mt-1 max-w-2xl">
-            Compares every wallet&apos;s balance with the total of its history. It runs by itself every day at 04:30 IST and alerts admins when something is off. It only reports: nothing is ever changed automatically. Fix a real error with a wallet adjustment (with a reason) after checking the history.
-          </p>
-        </div>
-        <button disabled={loading} onClick={run} className="px-5 py-2.5 rounded-xl bg-accent text-accent-fg text-xs font-semibold disabled:opacity-40">{loading ? 'Checking…' : 'Run check now'}</button>
+    <Card>
+      <CardHeader
+        title="Wallet check"
+        description="Compares every wallet’s balance with the total of its history. It runs by itself every day at 4:30 am IST and alerts admins when something is off. It only reports and never changes anything: fix a real error with a wallet adjustment (with a reason) after checking the history."
+        actions={<Button variant="primary" onClick={run} loading={loading}>{loading ? 'Checking…' : 'Run check now'}</Button>}
+      />
+      <div className="space-y-5 p-4">
+        {error && <Notice tone="danger"><span className="text-fg">{error}</span></Notice>}
+        {!data && loading && <LoadingState label="Checking every wallet…" />}
+        {data && (
+          <>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+              <span className="text-fg-muted">Checked <span className="text-fg">{formatDateTime(data.checkedAt)}</span></span>
+              <span className="text-fg-muted">Wallets with history <span className="text-fg tabular-nums">{data.ownersChecked}</span></span>
+              <Badge tone={data.mismatchCount ? 'danger' : 'success'}>{data.mismatchCount} {data.mismatchCount === 1 ? 'mismatch' : 'mismatches'}</Badge>
+              <Badge tone={data.withoutHistoryCount ? 'warning' : 'success'}>{data.withoutHistoryCount} without history</Badge>
+            </div>
+            {data.ok && <Notice tone="success"><span className="text-fg">All wallets match their history.</span></Notice>}
+            {data.mismatches.length > 0 && list('Balance differs from history', data.mismatches, 'The balance was changed outside the wallet history (for example a direct database edit). Open the history to see the last recorded balance.')}
+            {data.withoutHistory.length > 0 && list('Balance without any history', data.withoutHistory, 'These accounts have money but no history rows. Normally recorded automatically at the next server start or the next wallet change.')}
+          </>
+        )}
       </div>
-      {error && <p role="alert" className="text-danger-text font-semibold">{error}</p>}
-      {data && (
-        <>
-          <div className="flex flex-wrap gap-6 text-xs font-semibold">
-            <span className="text-fg-muted">Checked <span className="text-fg">{new Date(data.checkedAt).toLocaleString('en-IN')}</span></span>
-            <span className="text-fg-muted">Wallets with history <span className="text-fg">{data.ownersChecked}</span></span>
-            <span className={data.mismatchCount ? 'text-danger-text' : 'text-success-text'}>{data.mismatchCount} mismatch{data.mismatchCount === 1 ? '' : 'es'}</span>
-            <span className={data.withoutHistoryCount ? 'text-warning-text' : 'text-success-text'}>{data.withoutHistoryCount} without history</span>
-          </div>
-          {data.ok && <p className="text-success-text font-semibold">All wallets match their history.</p>}
-          {data.mismatches.length > 0 && list('Balance differs from history', data.mismatches, 'The balance was changed outside the wallet history (for example a direct database edit). Open the history to see the last recorded balance.')}
-          {data.withoutHistory.length > 0 && list('Balance without any history', data.withoutHistory, 'These accounts have money but no history rows. Normally recorded automatically at the next server start or the next wallet change.')}
-        </>
-      )}
       {open && <WalletLedgerModal ownerType={open.ownerType} ownerId={open.ownerId} title={open.name || undefined} onClose={() => setOpen(null)} />}
-    </div>
+    </Card>
   );
 }

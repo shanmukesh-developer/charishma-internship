@@ -1,4 +1,5 @@
 "use client";
+import { useConfirm } from '@/components/ui';
 import { useState } from 'react';
 import { DAY_KEYS, DAY_LABEL, DayKey, FIELD, FoodTag, MessCell, MessMeal, MessTimetable, PGHostel, pgRequest } from './pgApi';
 import { SaveBar, errorText } from './contentShared';
@@ -83,6 +84,7 @@ function validate(d: Draft): string | null {
 }
 
 export function MessPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Partial<PGHostel>) => void }) {
+  const confirm = useConfirm();
   const [{ draft: start, legacy }] = useState(() => toDraft(pg));
   const [initial, setInitial] = useState<Draft>(start);
   const [draft, setDraft] = useState<Draft>(start);
@@ -98,18 +100,18 @@ export function MessPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Partial
     while (prev.meals.some(m => m.key === `meal_${n}`)) n++;
     return { ...prev, meals: [...prev.meals, { key: `meal_${n}`, label: '', start: '', end: '' }] };
   });
-  const removeMeal = (i: number) => {
+  const removeMeal = async (i: number) => {
     const m = draft.meals[i];
     const used = DAY_KEYS.some(d => draft.cells[d][m.key]?.menu);
-    if (used && !window.confirm(`Remove ${m.label || 'this meal'} and its menus?`)) return;
+    if (used && !(await confirm({ title: `Remove ${m.label || 'this meal'} and its menus?`, description: 'The menus entered for it on every day are removed from this draft.', confirmLabel: 'Remove meal', tone: 'danger' }))) return;
     setDraft(prev => ({ ...prev, meals: prev.meals.filter((_, j) => j !== i) }));
   };
   const setCell = (day: DayKey, key: string, patch: Partial<{ menu: string; tag: FoodTag }>) => {
     setMessage(null);
     setDraft(prev => ({ ...prev, cells: { ...prev.cells, [day]: { ...prev.cells[day], [key]: { ...(prev.cells[day][key] || { menu: '', tag: null }), ...patch } } } }));
   };
-  const copyDay = (from: DayKey) => {
-    if (!window.confirm(`Copy ${DAY_LABEL[from]}'s menu to every other day? Their current menus are replaced.`)) return;
+  const copyDay = async (from: DayKey) => {
+    if (!(await confirm({ title: `Copy ${DAY_LABEL[from]}'s menu to every other day?`, description: 'Their current menus are replaced in this draft.', confirmLabel: 'Copy menu' }))) return;
     setDraft(prev => ({ ...prev, cells: Object.fromEntries(DAY_KEYS.map(d => [d, { ...prev.cells[from] }])) as Cells }));
   };
 
@@ -211,7 +213,7 @@ export function MessPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Partial
         message={message || (invalid && dirty ? { kind: 'error', text: invalid } : null)}
         onSave={save}
         onDiscard={() => { setDraft(initial); setMessage(null); }}
-        extra={initial.meals.length > 0 && !wasLegacy ? <button type="button" disabled={saving} onClick={() => { if (window.confirm('Clear the whole mess timetable?')) { setDraft({ meals: [], cells: emptyCells(), notes: '' }); } }} className="text-xs text-danger-text hover:text-danger-text">Clear timetable</button> : null}
+        extra={initial.meals.length > 0 && !wasLegacy ? <button type="button" disabled={saving} onClick={async () => { if (await confirm({ title: 'Clear the whole mess timetable?', description: 'Every meal and menu is removed from this draft. Nothing changes in the app until you save.', confirmLabel: 'Clear timetable', tone: 'danger' })) { setDraft({ meals: [], cells: emptyCells(), notes: '' }); } }} className="text-xs text-danger-text hover:text-danger-text">Clear timetable</button> : null}
       />
     </div>
   );

@@ -1,9 +1,14 @@
 "use client";
-import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { API_URL } from '@/lib/config';
 import RiderCashPanel from '@/components/finance/RiderCashPanel';
 import PayoutsPanel from '@/components/finance/PayoutsPanel';
+import {
+  Badge, Button, DataTable, DescriptionList, Drawer, Notice as NoticeBox, PageHeader, SearchInput, StatTile, Tabs, Toolbar,
+  useConfirm, type Column, IconDownload, IconRefresh,
+} from '@/components/ui';
+import { formatDate, formatINR, humanize } from '@/lib/format';
 
 // ─── Types (GET /api/admin/finance, /finance/payouts, /finance/disputes) ───
 interface Transaction {
@@ -47,7 +52,7 @@ interface Dispute {
 type Tab = 'ledger' | 'payouts' | 'cash' | 'disputes';
 type Notice = { kind: 'success' | 'error'; text: string } | null;
 
-const rupees = (n: number | null | undefined) => `₹${Math.round(Number(n || 0)).toLocaleString('en-IN')}`;
+const rupees = (n: number | null | undefined) => formatINR(Math.round(Number(n || 0)));
 const shortId = (id: string) => `#${String(id || '').slice(-6).toUpperCase()}`;
 
 /** fetch + JSON with friendly errors (never shows raw server internals). */
@@ -84,7 +89,7 @@ const refundState = (d: Dispute): { refundable: boolean; note: string } => {
     case 'UPI':
     case 'Card': {
       const label = method === 'UPI' ? 'Legacy UPI' : 'Legacy card';
-      if (d.refundedAt) return { refundable: false, note: `${label}: already refunded to the Wallet on ${new Date(d.refundedAt).toLocaleDateString()}.` };
+      if (d.refundedAt) return { refundable: false, note: `${label}: already refunded to the Wallet on ${formatDate(d.refundedAt)}.` };
       if (d.upiStatus === 'Rejected') return { refundable: false, note: `${label}: payment was rejected, nothing to refund.` };
       // Same rule as the server: only money that was actually received can be refunded.
       if (d.paymentStatus === 'Completed' || d.upiStatus === 'Verified') return { refundable: true, note: `${label}: payment was verified.` };
@@ -94,34 +99,10 @@ const refundState = (d: Dispute): { refundable: boolean; note: string } => {
   }
 };
 
-const TransactionRow = memo(({ tx }: { tx: Transaction }) => (
-  <tr className="hover:bg-surface-2/60 transition-colors">
-    <td className="px-8 py-5 text-xs font-mono text-fg-muted">{shortId(tx.orderId)}</td>
-    <td className="px-8 py-5 text-sm font-semibold text-fg">{tx.restaurantName}</td>
-    <td className="px-8 py-5 text-sm font-semibold text-fg">{rupees(tx.totalAmount)}</td>
-    <td className="px-8 py-5 text-sm font-semibold text-success-text">{rupees(tx.commissionEarned)}</td>
-    <td className="px-8 py-5 text-sm text-fg-muted">{rupees(tx.deliveryFee)}</td>
-    <td className="px-8 py-5 text-xs text-fg-muted font-semibold">{new Date(tx.timestamp).toLocaleDateString()}</td>
-  </tr>
-));
-TransactionRow.displayName = 'TransactionRow';
-
-const SectionState = ({ loading, error, onRetry, empty, emptyText, colSpan }: {
-  loading: boolean; error: string | null; onRetry: () => void; empty: boolean; emptyText: string; colSpan?: number;
-}) => {
-  const body = loading
-    ? <p className="text-fg-muted animate-pulse font-semibold text-xs">Loading…</p>
-    : error
-      ? (<><p className="text-xs text-danger-text font-semibold">{error}</p><button onClick={onRetry} className="mt-3 px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg">Try again</button></>)
-      : empty ? <p className="text-fg-muted text-xs">{emptyText}</p> : null;
-  if (!body) return null;
-  return colSpan
-    ? <tr><td colSpan={colSpan} className="py-16 text-center">{body}</td></tr>
-    : <div className="col-span-full py-16 text-center">{body}</div>;
-};
-
 export default function FinanceConsole() {
   const { isAuthed } = useAdminAuth();
+  const confirm = useConfirm();
+  const [openDispute, setOpenDispute] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('ledger');
   // ?tab=<id>: links from the overview's Needs attention list and the global search open the right tab.
   useEffect(() => {
@@ -211,10 +192,10 @@ export default function FinanceConsole() {
     }
   };
 
-  const handleRefund = (d: Dispute) => {
+  const handleRefund = async (d: Dispute) => {
     const amount = d.finalPrice ?? d.totalPrice;
     const state = refundState(d);
-    if (!confirm(`Refund ${rupees(amount)} to ${d.userId?.name || 'the customer'}'s Zenvy Wallet for order ${shortId(d._id)}?\n\n${state.note}\nThis can only be done once.`)) return;
+    if (!(await confirm({ title: `Refund ${rupees(amount)} to ${d.userId?.name || 'the customer'}'s Wallet?`, description: `Order ${shortId(d._id)}. ${state.note} This can only be done once.`, confirmLabel: 'Refund to Wallet', tone: 'danger' }))) return;
     runAction(d._id, async () => {
       const data = await requestJson<{ message?: string; refundAmount?: number }>(`${API_URL}/api/admin/finance/refund/${d._id}`, { method: 'POST' });
       fetchDisputes();
@@ -222,134 +203,125 @@ export default function FinanceConsole() {
     });
   };
 
-  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
+  if (!isAuthed) return null; // AppShell shows the session check
 
   const q = search.trim().toLowerCase();
   const filteredTransactions = (report?.transactions || []).filter(tx =>
     !q || String(tx.restaurantName || '').toLowerCase().includes(q) || String(tx.orderId || '').toLowerCase().includes(q)
   );
+  const dispute = openDispute ? disputes.find(d => d._id === openDispute) || null : null;
+  const refundableCount = disputes.filter(d => refundState(d).refundable).length;
+
+  const ledgerColumns: Column<Transaction>[] = [
+    { key: 'order', header: 'Order', width: '110px', cell: tx => <a href={`/orders?order=${encodeURIComponent(tx.orderId)}`} className="font-mono text-xs text-fg-muted hover:text-fg hover:underline">{shortId(tx.orderId)}</a> },
+    { key: 'store', header: 'Store', sortValue: tx => tx.restaurantName, cell: tx => <span className="font-medium text-fg">{tx.restaurantName}</span> },
+    { key: 'value', header: 'Order value', align: 'right', sortValue: tx => tx.totalAmount, cell: tx => <span className="tabular-nums">{rupees(tx.totalAmount)}</span> },
+    { key: 'commission', header: 'Commission', align: 'right', sortValue: tx => tx.commissionEarned, cell: tx => <span className="tabular-nums text-success-text">{rupees(tx.commissionEarned)}</span> },
+    { key: 'fee', header: 'Delivery fee', align: 'right', hideBelow: 'lg', sortValue: tx => tx.deliveryFee, cell: tx => <span className="tabular-nums text-fg-muted">{rupees(tx.deliveryFee)}</span> },
+    { key: 'date', header: 'Delivered', align: 'right', sortValue: tx => new Date(tx.timestamp), cell: tx => <span className="whitespace-nowrap text-xs text-fg-muted">{formatDate(tx.timestamp)}</span> },
+  ];
+
+  const disputeColumns: Column<Dispute>[] = [
+    {
+      key: 'order',
+      header: 'Order',
+      cell: d => (
+        <div>
+          <p className="font-mono text-xs text-fg-muted">{shortId(d._id)}</p>
+          <p className="text-xs text-fg-muted">{formatDate(d.createdAt)}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'customer',
+      header: 'Customer',
+      sortValue: d => d.userId?.name || '',
+      cell: d => (
+        <div className="min-w-0">
+          <p className="truncate font-medium text-fg">{d.userId?.name || 'Customer'}</p>
+          <p className="text-xs text-fg-muted">{d.userId?.phone || ''}</p>
+        </div>
+      ),
+    },
+    { key: 'reason', header: 'Cancellation reason', hideBelow: 'lg', cell: d => <span className="line-clamp-2 max-w-[320px] text-sm text-fg-muted">{d.cancellationReason || 'No reason recorded.'}</span> },
+    { key: 'method', header: 'Payment', cell: d => <span className="text-fg">{d.paymentMethod ? humanize(d.paymentMethod) : '–'}</span> },
+    { key: 'value', header: 'Order value', align: 'right', sortValue: d => d.finalPrice ?? d.totalPrice, cell: d => <span className="tabular-nums">{rupees(d.finalPrice ?? d.totalPrice)}</span> },
+    {
+      key: 'refund',
+      header: 'Refund',
+      align: 'right',
+      sortValue: d => (refundState(d).refundable ? 0 : d.refundedAt ? 1 : 2),
+      cell: d => {
+        const st = refundState(d);
+        if (d.refundedAt) return <Badge tone="success">Refunded</Badge>;
+        if (st.refundable) return <Button size="sm" variant="primary" disabled={actionLoading !== null} loading={actionLoading === d._id} onClick={() => handleRefund(d)}>Refund to Wallet</Button>;
+        return <span className="text-xs text-fg-muted">Not needed</span>;
+      },
+    },
+  ];
 
   return (
-    <div className="space-y-10 animate-fade-in relative">
-      <header className="flex flex-wrap justify-between items-center gap-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-fg">Payments and payouts</h1>
-          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Revenue, store and rider payouts, rider cash and disputes.</p>
-        </div>
-        <div className="bg-surface border border-line px-10 py-4 rounded-lg border border-line flex flex-col">
-          <span className="text-xs font-semibold text-info-text mb-1">Platform commission (all time)</span>
-          <span className="text-3xl font-semibold text-fg">{report ? rupees(report.totalCommission) : '—'}</span>
-        </div>
-      </header>
+    <div>
+      <PageHeader
+        title="Payments and payouts"
+        description="What Zenvy earned, what stores and riders are owed, cash riders hold, and refunds for cancelled orders."
+        meta={report ? <Badge tone="accent">Commission all time: {rupees(report.totalCommission)}</Badge> : undefined}
+      >
+        <Tabs
+          ariaLabel="Payments sections"
+          value={activeTab}
+          onChange={setActiveTab}
+          tabs={[
+            { id: 'ledger', label: 'Ledger' },
+            { id: 'payouts', label: 'Payouts' },
+            { id: 'cash', label: 'Rider cash' },
+            { id: 'disputes', label: 'Cancellations and refunds', count: refundableCount || null, attention: true },
+          ]}
+        />
+      </PageHeader>
 
       {notice && (
-        <div className={`p-4 rounded-lg border text-xs font-semibold flex justify-between items-start gap-4 ${notice.kind === 'error' ? 'bg-danger-soft border-danger/30 text-danger-text' : 'bg-success-soft border-success/30 text-success-text'}`}>
-          <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-fg-muted hover:text-fg" aria-label="Dismiss"><span aria-hidden="true" className="text-base leading-none">×</span></button>
-        </div>
+        <NoticeBox tone={notice.kind === 'error' ? 'danger' : 'success'} className="mb-4" onClose={() => setNotice(null)}>
+          <span className="text-fg">{notice.text}</span>
+        </NoticeBox>
       )}
-
-      <div className="flex gap-4 border-b border-line pb-4">
-        {([
-          { id: 'ledger', label: 'Ledger' },
-          { id: 'payouts', label: 'Payouts' },
-          { id: 'cash', label: 'Rider cash' },
-          { id: 'disputes', label: 'Cancellations & refunds' },
-        ] as { id: Tab; label: string }[]).map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-6 py-3 rounded-lg text-xs font-semibold transition-all ${activeTab === tab.id ? 'bg-accent text-on-solid' : 'bg-surface-2/60 text-fg-muted hover:text-fg hover:bg-surface-2'}`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
 
       {activeTab === 'ledger' && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="rounded-lg border border-line bg-surface shadow-xs p-8 bg-info-soft">
-              <p className="text-xs font-semibold text-info-text mb-2">Delivered order value (GMV)</p>
-              <h4 className="text-2xl font-semibold text-fg">{report ? rupees(report.totalRevenue) : '—'}</h4>
-            </div>
-            <div className="rounded-lg border border-line bg-surface shadow-xs p-8 bg-success-soft">
-              <p className="text-xs font-semibold text-success-text mb-2">Commission</p>
-              <h4 className="text-2xl font-semibold text-fg">{report ? rupees(report.totalCommission) : '—'}</h4>
-              {report && (report.commissionEstimatedOrders || 0) > 0 && <p className="text-xs text-fg-muted mt-1">Fixed per order; {report.commissionEstimatedOrders} older settled order(s) use today&apos;s rate.</p>}
-            </div>
-            <div className="rounded-lg border border-line bg-surface shadow-xs p-8 bg-accent">
-              <p className="text-xs font-semibold text-warning-text mb-2">Rider earnings</p>
-              <h4 className="text-2xl font-semibold text-fg">{report ? rupees(report.totalRiderEarnings ?? report.totalDeliveryFees) : '—'}</h4>
-            </div>
-            <div className="rounded-lg border border-line bg-surface shadow-xs p-8 bg-surface-2/60">
-              <p className="text-xs font-semibold text-fg-muted mb-2">Delivered orders</p>
-              <h4 className="text-2xl font-semibold text-fg">{report ? report.total.toLocaleString('en-IN') : '—'}</h4>
-            </div>
+          <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatTile label="Delivered order value" value={report ? rupees(report.totalRevenue) : null} hint="Gross merchandise value" loading={reportLoading && !report} />
+            <StatTile
+              label="Commission"
+              value={report ? rupees(report.totalCommission) : null}
+              hint={report && (report.commissionEstimatedOrders || 0) > 0 ? `${report.commissionEstimatedOrders} older orders use today’s rate` : 'Fixed per order when delivered'}
+              loading={reportLoading && !report}
+            />
+            <StatTile label="Rider earnings" value={report ? rupees(report.totalRiderEarnings ?? report.totalDeliveryFees) : null} hint="Delivery fee per order, minimum ₹30" loading={reportLoading && !report} />
+            <StatTile label="Delivered orders" value={report ? report.total.toLocaleString('en-IN') : null} loading={reportLoading && !report} />
           </div>
 
-          <div className="glass-card overflow-hidden">
-            <div className="p-8 border-b border-line flex flex-wrap gap-4 justify-between items-center bg-surface-2/60">
-              <h4 className="text-lg font-semibold text-fg">Delivered orders</h4>
-              <div className="flex flex-wrap gap-3">
-                <input
-                  type="text"
-                  placeholder="Filter this page by store or order…"
-                  className="bg-surface-2/60 border border-line rounded-xl px-4 py-2 text-xs text-fg outline-none focus:border-accent w-64"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-                <button
-                  onClick={exportCSV}
-                  disabled={!report || report.transactions.length === 0}
-                  className="nexus-badge bg-success-soft border-success/30 text-success-text px-6 py-2 hover:bg-success-soft transition-all font-semibold disabled:opacity-30"
-                >
-                  Export page (CSV)
-                </button>
-                <button
-                  onClick={() => fetchFinanceData(currentPage)}
-                  disabled={reportLoading}
-                  className="nexus-badge bg-info-soft border-info/30 text-info-text px-6 py-2 hover:bg-info-soft transition-all font-semibold disabled:opacity-30"
-                >
-                  ↻ Refresh
-                </button>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-surface-2/60">
-                    {['Order', 'Store', 'Order value', 'Commission', 'Delivery fee', 'Date'].map(h => (
-                      <th key={h} className="px-8 py-4 text-xs font-semibold text-fg-muted border-b border-line">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.02]">
-                  <SectionState
-                    colSpan={6}
-                    loading={reportLoading}
-                    error={reportError}
-                    onRetry={() => fetchFinanceData(currentPage)}
-                    empty={filteredTransactions.length === 0}
-                    emptyText={q ? 'No orders on this page match the filter.' : 'No delivered orders yet.'}
-                  />
-                  {!reportLoading && !reportError && filteredTransactions.map(tx => <TransactionRow key={tx._id} tx={tx} />)}
-                </tbody>
-              </table>
-            </div>
-
-            {report && report.pages > 1 && (
-              <div className="p-6 bg-surface-2/60 border-t border-line flex items-center justify-between">
-                <span className="text-xs font-semibold text-fg-muted">
-                  Page {currentPage} of {report.pages} ({report.total} orders)
-                </span>
-                <div className="flex gap-2">
-                  <button disabled={currentPage <= 1 || reportLoading} onClick={() => fetchFinanceData(currentPage - 1)} className="px-5 py-2 bg-surface-2 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-30">Prev</button>
-                  <button disabled={currentPage >= report.pages || reportLoading} onClick={() => fetchFinanceData(currentPage + 1)} className="px-5 py-2 bg-surface-2 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-30">Next</button>
-                </div>
-              </div>
-            )}
-          </div>
+          <Toolbar
+            end={
+              <>
+                <Button leftIcon={<IconDownload size={14} />} onClick={exportCSV} disabled={!report || report.transactions.length === 0}>Export page (CSV)</Button>
+                <Button leftIcon={<IconRefresh size={14} />} onClick={() => fetchFinanceData(currentPage)} loading={reportLoading}>Refresh</Button>
+              </>
+            }
+          >
+            <SearchInput value={search} onChange={setSearch} placeholder="Filter this page by store or order" className="sm:w-72" />
+          </Toolbar>
+          <DataTable
+            caption="Delivered orders"
+            columns={ledgerColumns}
+            rows={filteredTransactions}
+            rowKey={tx => tx._id}
+            loading={reportLoading}
+            error={reportError}
+            onRetry={() => fetchFinanceData(currentPage)}
+            pagination={report ? { page: currentPage, pages: Math.max(1, report.pages), total: report.total, onPage: p => fetchFinanceData(p) } : undefined}
+            noun="orders"
+            empty={{ title: q ? 'No orders on this page match' : 'No delivered orders yet' }}
+          />
         </>
       )}
 
@@ -358,55 +330,52 @@ export default function FinanceConsole() {
       {activeTab === 'cash' && <RiderCashPanel />}
 
       {activeTab === 'disputes' && (
-        <div className="glass-card overflow-hidden">
-          <div className="p-8 border-b border-line flex flex-wrap gap-4 justify-between items-center bg-surface-2/60">
-            <div>
-              <h4 className="text-lg font-semibold text-fg">Cancelled orders</h4>
-              <p className="text-xs text-fg-muted mt-1">Wallet orders are refunded automatically on cancel and COD orders need no refund. Manual refunds are only for legacy UPI/card orders.</p>
-            </div>
-            <button onClick={fetchDisputes} disabled={disputesLoading} className="px-4 py-2 bg-info-soft text-info-text rounded-xl text-xs font-semibold disabled:opacity-30">↻ Refresh</button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-            <SectionState loading={disputesLoading} error={disputesError} onRetry={fetchDisputes} empty={disputes.length === 0} emptyText="No cancelled orders." />
-            {!disputesLoading && !disputesError && disputes.map(d => {
-              const state = refundState(d);
-              return (
-                <div key={d._id} className="p-6 bg-surface-2/60 border border-line rounded-lg flex flex-col justify-between">
-                  <div>
-                    <div className="flex justify-between items-start mb-4">
-                      <span className="text-xs font-mono text-fg-muted">{shortId(d._id)} · {new Date(d.createdAt).toLocaleDateString()}</span>
-                      <span className="text-xs bg-surface-2/60 text-fg-muted px-2 py-1 rounded font-semibold">{d.paymentMethod || '—'}</span>
-                    </div>
-                    <h5 className="text-fg font-semibold">{d.userId?.name || 'Customer'}</h5>
-                    <p className="text-xs text-fg-muted">{d.userId?.phone || ''}</p>
-                    <div className="mt-4 p-3 bg-danger-soft rounded-lg border border-danger/30">
-                      <p className="text-xs text-danger-text font-semibold mb-1">Cancellation reason</p>
-                      <p className="text-xs text-fg-muted">{d.cancellationReason || 'No reason recorded.'}</p>
-                    </div>
-                    <p className="text-xs text-fg-muted mt-3">{state.note}</p>
-                  </div>
-                  <div className="mt-6 flex items-center justify-between pt-4 border-t border-line">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-fg-muted">Order value</span>
-                      <span className="text-lg font-semibold text-fg">{rupees(d.finalPrice ?? d.totalPrice)}</span>
-                    </div>
-                    {d.refundedAt && <span className="text-xs font-semibold text-success-text">Refunded</span>}
-                    {state.refundable && (
-                      <button
-                        onClick={() => handleRefund(d)}
-                        disabled={actionLoading !== null}
-                        className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-solid rounded-xl text-xs font-semibold disabled:opacity-40"
-                      >
-                        {actionLoading === d._id ? 'Refunding…' : 'Refund to Wallet'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <>
+          <Toolbar end={<Button leftIcon={<IconRefresh size={14} />} onClick={fetchDisputes} loading={disputesLoading}>Refresh</Button>}>
+            <p className="max-w-3xl text-sm text-fg-muted">Wallet orders are refunded automatically when cancelled and cash orders need no refund. Manual refunds are only for older UPI and card orders.</p>
+          </Toolbar>
+          <DataTable
+            caption="Cancelled orders"
+            columns={disputeColumns}
+            rows={disputes}
+            rowKey={d => d._id}
+            loading={disputesLoading}
+            error={disputesError}
+            onRetry={fetchDisputes}
+            onRowClick={d => setOpenDispute(d._id)}
+            noun="orders"
+            empty={{ title: 'No cancelled orders' }}
+          />
+        </>
       )}
+
+      <Drawer
+        open={!!dispute}
+        onClose={() => setOpenDispute(null)}
+        size="md"
+        title={dispute ? `Cancelled order ${shortId(dispute._id)}` : 'Cancelled order'}
+        description={dispute ? `Placed ${formatDate(dispute.createdAt)}` : undefined}
+        footer={dispute && refundState(dispute).refundable && !dispute.refundedAt ? (
+          <Button variant="primary" disabled={actionLoading !== null} loading={actionLoading === dispute._id} onClick={() => handleRefund(dispute)}>Refund to Wallet</Button>
+        ) : undefined}
+      >
+        {dispute && (
+          <div className="space-y-5">
+            <DescriptionList
+              columns={2}
+              items={[
+                { label: 'Customer', value: <>{dispute.userId?.name || 'Customer'}<span className="block text-fg-muted">{dispute.userId?.phone || ''}</span></> },
+                { label: 'Order value', value: rupees(dispute.finalPrice ?? dispute.totalPrice) },
+                { label: 'Payment', value: dispute.paymentMethod ? humanize(dispute.paymentMethod) : '–' },
+                { label: 'Payment status', value: dispute.paymentStatus ? humanize(dispute.paymentStatus) : '–' },
+              ]}
+            />
+            <NoticeBox tone="neutral" title="Cancellation reason">{dispute.cancellationReason || 'No reason recorded.'}</NoticeBox>
+            <NoticeBox tone={refundState(dispute).refundable ? 'warning' : 'info'} title="Refund">{refundState(dispute).note}</NoticeBox>
+            <a href={`/orders?order=${encodeURIComponent(dispute._id)}`} className="inline-block text-sm text-accent-text hover:underline">Open the order</a>
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }

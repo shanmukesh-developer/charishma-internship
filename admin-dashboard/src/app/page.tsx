@@ -35,7 +35,7 @@ const INBOX_ITEMS: { key: InboxKey; label: string; area: string; href: string; l
   { key: 'friendsReports', label: 'Reports to review', area: 'Community', href: '/moderation', liveType: 'friends_report' },
   { key: 'friendsAppeals', label: 'Appeals to decide', area: 'Community', href: '/moderation?tab=appeals', liveType: 'friends_report' },
   { key: 'wallPending', label: 'Wall photos to approve', area: 'Community', href: '/wall', liveType: 'wall_submission' },
-  { key: 'pgBookings', label: 'PG booking requests', area: 'PG and hostels', href: '/pg', liveType: 'pg_booking' },
+  { key: 'pgBookings', label: 'PG booking requests', area: 'PG and hostels', href: '/pg?tab=bookings', liveType: 'pg_booking' },
   { key: 'serviceRequests', label: 'New service bookings', area: 'Services', href: '/service-bookings', liveType: 'service_booking' },
   { key: 'autoDrivers', label: 'Auto drivers to verify', area: 'Auto-ride', href: '/auto-ride?tab=drivers', liveType: 'auto_driver' },
   { key: 'autoVehicles', label: 'Auto vehicles to verify', area: 'Auto-ride', href: '/auto-ride?tab=vehicles', liveType: 'auto_driver' },

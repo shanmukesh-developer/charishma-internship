@@ -1,4 +1,5 @@
 "use client";
+import { Button, Field, Modal, Textarea } from '@/components/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { PGHostel, PgReview, REVIEW_REPORT_LABEL, formatDate, pgRequest } from './pgApi';
 import { PanelMessage, errorText } from './contentShared';
@@ -8,6 +9,8 @@ const FILTERS: [Filter, string][] = [['all', 'All'], ['reported', 'Reported'], [
 
 /** Review moderation for one PG. Hiding needs a reason (kept in the audit log). */
 export function ReviewsPanel({ pg, liveTick = 0 }: { pg: PGHostel; liveTick?: number }) {
+  const [hideFor, setHideFor] = useState<PgReview | null>(null);
+  const [hideReason, setHideReason] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [reviews, setReviews] = useState<PgReview[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,12 +36,13 @@ export function ReviewsPanel({ pg, liveTick = 0 }: { pg: PGHostel; liveTick?: nu
   const mountTick = useRef(liveTick);
   useEffect(() => { if (liveTick !== mountTick.current) load(true); }, [liveTick, load]);
 
-  const setHidden = async (r: PgReview, hidden: boolean) => {
+  const setHidden = async (r: PgReview, hidden: boolean, givenReason?: string) => {
     if (busy[r.id]) return;
     let reason: string | undefined;
     if (hidden) {
-      const typed = window.prompt(`Hide this review by ${r.firstName}?\n\nGive a reason (kept in the audit log, up to 200 characters):`);
-      if (typed === null) return;
+      // Ask for the reason first; the form calls back with it.
+      if (givenReason === undefined) { setHideReason(''); setHideFor(r); return; }
+      const typed = givenReason;
       reason = typed.replace(/\s+/g, ' ').trim();
       if (!reason) { setMessage({ kind: 'error', text: 'Give a reason for hiding this review (kept in the audit log).' }); return; }
       if (reason.length > 200) { setMessage({ kind: 'error', text: 'The reason must be at most 200 characters.' }); return; }
@@ -110,6 +114,18 @@ export function ReviewsPanel({ pg, liveTick = 0 }: { pg: PGHostel; liveTick?: nu
           })}
         </ul>
       )}
+      <Modal
+        open={!!hideFor}
+        onClose={() => setHideFor(null)}
+        size="sm"
+        title={hideFor ? `Hide this review by ${hideFor.firstName}?` : 'Hide review'}
+        description="Students stop seeing it. The reason is kept in the audit log."
+        footer={<><Button onClick={() => setHideFor(null)}>Cancel</Button><Button variant="destructive" disabled={!hideReason.trim()} onClick={() => { const r = hideFor; setHideFor(null); if (r) setHidden(r, true, hideReason); }}>Hide review</Button></>}
+      >
+        <Field label="Reason" required hint="Up to 200 characters.">
+          <Textarea rows={2} maxLength={200} value={hideReason} onChange={e => setHideReason(e.target.value)} />
+        </Field>
+      </Modal>
     </div>
   );
 }
