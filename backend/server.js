@@ -1319,6 +1319,17 @@ const initializeApp = async () => {
       console.warn('⚠️ [CATALOGUE_IMPORT] not started:', catErr.message);
     }
 
+    // 🍽️ Demo-store menu fill (idempotent, ledger-keyed): relevant extra items for the demo stores the
+    // owner keeps for representation (matched by id + name). Background; never edits or re-adds items.
+    try {
+      const { runDemoMenuFill } = require('./scripts/demo_menu_fill_import');
+      runDemoMenuFill()
+        .then((r) => console.log('🍽️ [DEMO_MENU_FILL]', JSON.stringify(r)))
+        .catch((err) => console.warn('⚠️ [DEMO_MENU_FILL] failed:', err.message));
+    } catch (fillErr) {
+      console.warn('⚠️ [DEMO_MENU_FILL] not started:', fillErr.message);
+    }
+
     // 🧹 Demo-data cleanup (idempotent): switches off the demo riders / students / PG listings that
     // older builds seeded into production. Runs in the background; never deletes anything.
     try {

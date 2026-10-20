@@ -2,7 +2,7 @@
 // modes, admin 2-step sign-in (TOTP), and the quick P2 fixes: Campus Events live-slot review + price cap,
 // prototype-safe lookups, Auto-Ride unsuspend / customer gate / no-show grace, organizer gate rights,
 // check-in code scope, CSP frame-ancestors, CORS localhost, /uploads mount, click dedupe, driverDetails
-// shape, rider vehicle number).
+// shape, rider vehicle number), and the demo-store menu fill (idempotent, ledger-keyed).
 //   npm run test:s1 -- totp   (only files whose name contains "totp")
 const { spawnSync } = require('child_process');
 const fs = require('fs');

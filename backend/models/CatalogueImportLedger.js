@@ -11,7 +11,8 @@ const initCatalogueImportLedgerModel = (sequelize) => {
   CatalogueImportLedger = sequelize.define('CatalogueImportLedger', {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
     importKey: { type: DataTypes.STRING, allowNull: false, unique: true },
-    kind: { type: DataTypes.STRING, allowNull: false }, // 'store' | 'item'
+    // 'store' | 'item' (catalogue_import) | 'demo-item' | 'demo-skip' (demo_menu_fill_import; a skip's targetId points at nothing)
+    kind: { type: DataTypes.STRING, allowNull: false },
     targetId: { type: DataTypes.UUID, allowNull: false }, // Restaurant.id or MenuItem.id
     storeKey: { type: DataTypes.STRING, allowNull: true },
     name: { type: DataTypes.STRING, allowNull: true },
