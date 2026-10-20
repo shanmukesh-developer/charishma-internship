@@ -13,7 +13,9 @@ import {
   RefreshControl,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import FssaiLine from '../../components/FssaiLine';
@@ -26,6 +28,8 @@ import { readCache, writeCache } from '../../utils/swrCache';
 import SafeImage from '../../components/SafeImage';
 import { ShimmerCard } from '../../components/ShimmerLoader';
 import ServiceBookingSheet from '../../modules/services/ServiceBookingSheet';
+import { resolveServiceForm } from '../../modules/services/serviceForms';
+import { formatClock, formatINR, plural } from '../../utils/format';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -39,20 +43,23 @@ const CATEGORY_ALIASES: Record<string, string> = {
   rental: 'rentals',
 };
 
-const CATEGORY_META: Record<string, { title: string; subtitle: string; icon: string }> = {
-  electronics: { title: 'Electronics & Tech', subtitle: 'CHARGERS, BOARDS, GADGETS & ACCESSORIES', icon: '🔌' },
-  mattresses: { title: 'Mattresses & Bedding', subtitle: 'ROOM ESSENTIALS & MOVE-IN GEAR', icon: '🛏️' },
-  groceries: { title: 'Kirana & Late-Night Mart', subtitle: 'SNACKS, NOODLES, DRINKS & ESSENTIALS', icon: '🛒' },
-  repairs: { title: 'Laptop & Tech Repairs', subtitle: 'DOORSTEP DIAGNOSTICS & HARDWARE FIX', icon: '💻' },
-  print: { title: 'Printout & Xerox', subtitle: 'ASSIGNMENTS, THESIS BINDING & CAD', icon: '🖨️' },
-  stationary: { title: 'Stationery & Study Kits', subtitle: 'NOTEBOOKS, PENS, LAB COATS & SUPPLIES', icon: '📓' },
-  laundry: { title: 'Wash & Dry Clean', subtitle: 'HOSTEL DOORSTEP PICKUP & IRONING', icon: '🧺' },
-  pharmacy: { title: 'Emergency Pharmacy', subtitle: 'MEDICINES, FIRST AID & WELLNESS', icon: '⚕️' },
-  rentals: { title: 'Campus Rentals', subtitle: 'CYCLES, SCOOTERS & MORE', icon: '🚲' },
-  tailoring: { title: 'Tailoring & Stitching', subtitle: 'CLOTHES ALTERATION, FITTING & REPAIRS', icon: '🪡' },
-  toys: { title: 'Toys & Games', subtitle: 'BOARD GAMES, PUZZLES & GIFTS', icon: '🧸' },
-  seeds: { title: 'Seeds & Gardening', subtitle: 'PLANTS FOR YOUR ROOM & BALCONY', icon: '🌱' },
+type IconName = React.ComponentProps<typeof Ionicons>['name'];
+
+const CATEGORY_META: Record<string, { title: string; subtitle: string; icon: IconName }> = {
+  electronics: { title: 'Electronics and accessories', subtitle: 'Chargers, boards, gadgets and accessories', icon: 'hardware-chip-outline' },
+  mattresses: { title: 'Mattresses and bedding', subtitle: 'Room essentials and move-in gear', icon: 'bed-outline' },
+  groceries: { title: 'Kirana and late-night mart', subtitle: 'Snacks, noodles, drinks and essentials', icon: 'basket-outline' },
+  repairs: { title: 'Laptop and phone repairs', subtitle: 'Screens, keyboards, upgrades and check-ups', icon: 'laptop-outline' },
+  print: { title: 'Print and xerox', subtitle: 'Assignments, thesis binding and A3 drawings', icon: 'print-outline' },
+  stationary: { title: 'Stationery and study kits', subtitle: 'Notebooks, pens, lab coats and supplies', icon: 'pencil-outline' },
+  laundry: { title: 'Laundry and dry cleaning', subtitle: 'Washing, ironing and dry cleaning, collected from your hostel', icon: 'shirt-outline' },
+  pharmacy: { title: 'Pharmacy', subtitle: 'Medicines, first aid and wellness', icon: 'medkit-outline' },
+  rentals: { title: 'Rental stores', subtitle: 'Cycles, scooters and more', icon: 'bicycle-outline' },
+  tailoring: { title: 'Tailoring and stitching', subtitle: 'Alterations, fitting and repairs', icon: 'cut-outline' },
+  toys: { title: 'Toys and games', subtitle: 'Board games, puzzles and gifts', icon: 'game-controller-outline' },
+  seeds: { title: 'Seeds and gardening', subtitle: 'Plants for your room and balcony', icon: 'leaf-outline' },
 };
+const FALLBACK_META = { title: 'Campus store', subtitle: 'Student essentials', icon: 'storefront-outline' as IconName };
 
 const SERVICE_CATEGORIES = ['tailoring', 'repairs', 'print', 'laundry'];
 
@@ -77,13 +84,8 @@ interface CatalogueItem {
 
 interface StoreInfo { id: string; name: string; isOpen: boolean; opensAt: string | null; closedReason: string | null; fssaiLicenseNumber: string | null }
 
-const formatOpensAt = (hhmm: string | null) => {
-  if (!hhmm || !/^\d{1,2}:\d{2}$/.test(hhmm)) return null;
-  const [h, m] = hhmm.split(':').map(Number);
-  const suffix = h >= 12 ? 'PM' : 'AM';
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${h12}:${String(m).padStart(2, '0')} ${suffix}`;
-};
+/** "7:00 AM" from the store's HH:MM opening time, or null when it is missing. */
+const formatOpensAt = (hhmm: string | null) => (hhmm && /^\d{1,2}:\d{2}$/.test(hhmm) ? formatClock(hhmm) : null);
 
 export default function CategoryDetailScreen() {
   const params = useLocalSearchParams<{ id: string | string[] }>();
@@ -96,7 +98,8 @@ export default function CategoryDetailScreen() {
   const requestedId = String(rawId || 'electronics').toLowerCase().trim();
   const categoryId = CATEGORY_ALIASES[requestedId] || requestedId;
   const isServiceCategory = SERVICE_CATEGORIES.includes(categoryId);
-  const meta = CATEGORY_META[categoryId] || { title: 'Campus Store', subtitle: 'STUDENT ESSENTIALS', icon: '✨' };
+  const meta = CATEGORY_META[categoryId] || FALLBACK_META;
+  const insets = useSafeAreaInsets();
 
   const [items, setItems] = useState<CatalogueItem[]>([]);
   const [stores, setStores] = useState<Record<string, StoreInfo>>({});
@@ -184,14 +187,14 @@ export default function CategoryDetailScreen() {
       const data = await res.json().catch(() => null);
       if (!mountedRef.current) return;
       if (!res.ok || !data || !Array.isArray(data.items)) {
-        if (mode !== 'silent') setLoadError((data && typeof data.message === 'string' && data.message) || 'We could not load this store right now.');
+        if (mode !== 'silent') setLoadError((data && typeof data.message === 'string' && data.message) || 'We could not load this shelf right now. Try again in a moment.');
         return;
       }
       applyCatalogue(data);
       writeCache(cacheKey, data);
       setLoadError(null);
     } catch {
-      if (mountedRef.current && mode !== 'silent') setLoadError("Can't reach Zenvy right now. Check your internet and try again.");
+      if (mountedRef.current && mode !== 'silent') setLoadError('We could not reach Zenvy. Check your internet connection and try again.');
     } finally {
       if (mountedRef.current) {
         setLoading(false);
@@ -234,11 +237,11 @@ export default function CategoryDetailScreen() {
   const handleAction = (item: CatalogueItem) => {
     if (isServiceCategory || item.bookingOnly) {
       if (!item.inStock) {
-        Alert.alert('Not taking bookings right now', `${item.name} is paused for now. Please pick another service or check back later.`);
+        Alert.alert('Not taking bookings right now', `${item.name} is paused. Pick another service or check back later.`);
         return;
       }
       if (!user) {
-        Alert.alert('Sign in to book', 'Sign in so the partner knows where to pick up and whom to call.', [
+        Alert.alert('Sign in to book', 'Sign in so the partner knows where to come and whom to call.', [
           { text: 'Not now', style: 'cancel' },
           { text: 'Sign in', onPress: () => router.push('/login' as any) },
         ]);
@@ -251,11 +254,11 @@ export default function CategoryDetailScreen() {
     const store = stores[item.storeId];
     if (store && !store.isOpen) {
       const opens = formatOpensAt(store.opensAt);
-      Alert.alert(`${store.name || 'This store'} is closed`, store.closedReason || (opens ? `It opens at ${opens}.` : 'Please check back later.'));
+      Alert.alert(`${store.name || 'This store'} is closed`, store.closedReason || (opens ? `It opens at ${opens}.` : 'Check back later.'));
       return;
     }
     if (!item.orderable) {
-      Alert.alert('Not available right now', `${item.name} can't be ordered at the moment. Please check back later.`);
+      Alert.alert('Not available right now', `${item.name} cannot be ordered right now. Check back later.`);
       return;
     }
     const added = addToCart({
@@ -270,100 +273,225 @@ export default function CategoryDetailScreen() {
     if (added) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
   };
 
+  // Light / dark tokens for this screen (stores use the app red; services use the booking sheet's blue)
+  const t = {
+    surface: isDark ? '#111114' : '#FFFFFF',
+    soft: isDark ? 'rgba(255,255,255,0.06)' : '#F1F3F5',
+    accent: isDark ? '#60A5FA' : '#1D4ED8',
+    accentBg: isDark ? 'rgba(96,165,250,0.16)' : '#EFF4FF',
+    primary: isServiceCategory ? (isDark ? '#3B82F6' : '#1D4ED8') : COLORS.red,
+    muted: isDark ? '#3F3F46' : '#9CA3AF',
+    link: isDark ? '#38BDF8' : '#0369A1',
+  };
+
+  const StateView = ({ icon, title, body, action, onAction }: { icon: IconName; title: string; body: string; action?: string; onAction?: () => void }) => (
+    <View style={s.emptyState}>
+      <View style={[s.stateIcon, { backgroundColor: t.soft }]}>
+        <Ionicons name={icon} size={26} color={txtSec} />
+      </View>
+      <Text style={[s.stateTitle, { color: txt }]} accessibilityRole="header">{title}</Text>
+      <Text style={[s.stateBody, { color: txtSec }]}>{body}</Text>
+      {action && onAction ? (
+        <TouchableOpacity style={[s.stateBtn, { borderColor: border }]} onPress={onAction} accessibilityRole="button" activeOpacity={0.8}>
+          <Text style={[s.stateBtnText, { color: txt }]}>{action}</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+
   const renderEmpty = () => {
     if (!CATEGORY_META[categoryId]) {
       return (
-        <View style={s.emptyState}>
-          <Text style={{ fontSize: 32, marginBottom: 8 }}>🧭</Text>
-          <Text style={{ color: txt, fontSize: 15, fontWeight: '800' }}>This shelf isn't open yet</Text>
-          <Text style={{ color: txtSec, fontSize: 12, marginTop: 4, textAlign: 'center', paddingHorizontal: 32 }}>We couldn't find this category. Explore the other stores instead.</Text>
-          <TouchableOpacity style={[s.addBtn, { marginTop: 16, paddingHorizontal: 18, paddingVertical: 10 }]} onPress={() => router.replace('/(tabs)/others' as any)}>
-            <Text style={s.addBtnText}>EXPLORE STORES</Text>
-          </TouchableOpacity>
-        </View>
+        <StateView
+          icon="compass-outline"
+          title="This shelf is not open yet"
+          body="We could not find this category. Browse the other stores instead."
+          action="Browse stores"
+          onAction={() => router.replace('/(tabs)/others' as any)}
+        />
       );
     }
     if (loadError) {
       return (
-        <View style={s.emptyState}>
-          <Text style={{ fontSize: 32, marginBottom: 8 }}>📡</Text>
-          <Text style={{ color: txt, fontSize: 15, fontWeight: '800' }}>Couldn't load this store</Text>
-          <Text style={{ color: txtSec, fontSize: 12, marginTop: 4, textAlign: 'center', paddingHorizontal: 32 }}>{loadError}</Text>
-          <TouchableOpacity style={[s.addBtn, { marginTop: 16, paddingHorizontal: 18, paddingVertical: 10 }]} onPress={() => { setLoading(true); setLoadError(null); fetchCategoryItems('initial'); }}>
-            <Text style={s.addBtnText}>TRY AGAIN</Text>
-          </TouchableOpacity>
-        </View>
+        <StateView
+          icon="cloud-offline-outline"
+          title="Could not load this shelf"
+          body={loadError}
+          action="Try again"
+          onAction={() => { setLoading(true); setLoadError(null); fetchCategoryItems('initial'); }}
+        />
       );
     }
     if (q) {
       return (
-        <View style={s.emptyState}>
-          <Text style={{ fontSize: 32, marginBottom: 8 }}>🔍</Text>
-          <Text style={{ color: txt, fontSize: 15, fontWeight: '800' }}>No match for "{searchQuery.trim()}"</Text>
-          <Text style={{ color: txtSec, fontSize: 12, marginTop: 4 }}>Try a different word</Text>
-          <TouchableOpacity style={[s.addBtn, { marginTop: 16, paddingHorizontal: 18, paddingVertical: 10 }]} onPress={() => setSearchQuery('')}>
-            <Text style={s.addBtnText}>CLEAR SEARCH</Text>
-          </TouchableOpacity>
-        </View>
+        <StateView
+          icon="search-outline"
+          title={`No results for “${searchQuery.trim()}”`}
+          body="Check the spelling or try a shorter word."
+          action="Clear search"
+          onAction={() => setSearchQuery('')}
+        />
+      );
+    }
+    if (isServiceCategory) {
+      return (
+        <StateView
+          icon={meta.icon}
+          title="No services listed yet"
+          body="Partners add their services here as they join. Pull down to refresh, or check back later."
+        />
       );
     }
     return (
-      <View style={s.emptyState}>
-        <Text style={{ fontSize: 32, marginBottom: 8 }}>📦</Text>
-        <Text style={{ color: txt, fontSize: 15, fontWeight: '800' }}>Nothing on this shelf yet</Text>
-        <Text style={{ color: txtSec, fontSize: 12, marginTop: 4, textAlign: 'center', paddingHorizontal: 32 }}>New items are added often. Need something now? Send it as a Mega Basket shopping list.</Text>
-        <TouchableOpacity style={[s.addBtn, { marginTop: 16, paddingHorizontal: 18, paddingVertical: 10 }]} onPress={() => router.push('/mega-basket' as any)}>
-          <Text style={s.addBtnText}>OPEN MEGA BASKET</Text>
-        </TouchableOpacity>
+      <StateView
+        icon={meta.icon}
+        title="Nothing on this shelf yet"
+        body="New items are added often. Need something now? Send it as a Mega Basket shopping list."
+        action="Open Mega Basket"
+        onAction={() => router.push('/mega-basket' as any)}
+      />
+    );
+  };
+
+  // Price on a card. A service with a fixed card price is a starting price ("From ₹999");
+  // print and laundry cards show their per-page / per-kg / per-piece rate as listed.
+  const priceText = (item: CatalogueItem, isService: boolean) => {
+    if (!isService) return formatINR(item.price);
+    const form = resolveServiceForm(categoryId, item.name);
+    // Only a starting price is "from"; a set charge (inspection, measurement visit) is just the price.
+    return form.pricing.kind === 'fixed' && form.priceLabel === 'Starting price' ? `From ${formatINR(item.price)}` : formatINR(item.price);
+  };
+
+  const renderCard = ({ item }: { item: CatalogueItem }) => {
+    const isService = isServiceCategory || item.bookingOnly;
+    const line = isService ? undefined : lineFor(item.id);
+    const storeClosed = !isService && !!stores[item.storeId] && !stores[item.storeId].isOpen;
+    const soldOut = !item.inStock;
+    const actionLabel = isService ? (soldOut ? 'Paused' : 'Book') : soldOut ? 'Sold out' : storeClosed ? 'Closed' : 'Add';
+    const price = priceText(item, isService);
+    const priceNote = isService && categoryId === 'tailoring' && resolveServiceForm(categoryId, item.name).pricing.kind === 'perUnit' ? 'per piece' : null;
+    const atMax = !!line && line.quantity >= MAX_ITEM_QTY;
+    return (
+      <View style={[s.card, { backgroundColor: cardBg, borderColor: border }]}>
+        <View style={[s.imageBox, { backgroundColor: t.soft }]}>
+          {item.image ? (
+            <SafeImage source={{ uri: item.image }} style={[s.cardImg, soldOut && { opacity: 0.45 }]} maxWidth={300} />
+          ) : (
+            <View style={s.imagePlaceholder}>
+              <Ionicons name={meta.icon} size={32} color={txtSec} />
+            </View>
+          )}
+          {soldOut ? (
+            <View style={[s.badge, { backgroundColor: '#374151' }]}>
+              <Text style={s.badgeText}>{isService ? 'Paused' : 'Sold out'}</Text>
+            </View>
+          ) : !!item.discountPercent && item.discountPercent > 0 ? (
+            <View style={[s.badge, { backgroundColor: COLORS.red }]}>
+              <Text style={s.badgeText}>{item.discountPercent}% off</Text>
+            </View>
+          ) : null}
+        </View>
+        <View style={s.cardInfo}>
+          <Text style={[s.itemName, { color: txt }]} numberOfLines={2}>{item.name}</Text>
+          <Text style={[s.itemDesc, { color: txtSec }]} numberOfLines={2}>
+            {item.weight ? `${item.weight}${item.desc ? ' · ' : ''}` : ''}{item.desc}
+          </Text>
+
+          <View style={s.bottomRow}>
+            <View style={{ flexShrink: 1, marginRight: 6 }}>
+              <Text style={[s.itemPrice, { color: txt }]} numberOfLines={1}>{price}</Text>
+              {!!priceNote && !item.originalPrice && (
+                <Text style={[s.originalPrice, { color: txtSec, textDecorationLine: 'none' }]}>{priceNote}</Text>
+              )}
+              {!!item.originalPrice && (
+                <Text style={[s.originalPrice, { color: txtSec }]} accessibilityLabel={`Was ${formatINR(item.originalPrice)}`}>
+                  {formatINR(item.originalPrice)}
+                </Text>
+              )}
+            </View>
+            {line ? (
+              <View style={[s.stepper, { backgroundColor: t.primary }]}>
+                <TouchableOpacity
+                  onPress={() => updateQuantity(line.cartKey, line.quantity - 1)}
+                  style={s.stepBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove one ${item.name}`}
+                >
+                  <Ionicons name="remove" size={16} color="#FFFFFF" />
+                </TouchableOpacity>
+                <Text style={s.stepperQty} accessibilityLabel={`${line.quantity} in basket`}>{line.quantity}</Text>
+                <TouchableOpacity
+                  onPress={() => updateQuantity(line.cartKey, line.quantity + 1)}
+                  disabled={atMax}
+                  style={[s.stepBtn, atMax && { opacity: 0.4 }]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Add one more ${item.name}`}
+                  accessibilityState={{ disabled: atMax }}
+                >
+                  <Ionicons name="add" size={16} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[s.actionBtn, { backgroundColor: soldOut || storeClosed ? t.muted : t.primary }]}
+                onPress={() => handleAction(item)}
+                disabled={soldOut}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: soldOut }}
+                accessibilityLabel={`${actionLabel} ${item.name}, ${price}${priceNote ? ` ${priceNote}` : ''}`}
+              >
+                <Text style={s.actionText}>{actionLabel}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
       </View>
     );
   };
 
+  const opensAt = closedStore ? formatOpensAt(closedStore.opensAt) : null;
+
   return (
     <View style={[s.container, { backgroundColor: bg }]}>
       {/* Header */}
-      <View style={[s.header, { borderBottomColor: border, backgroundColor: isDark ? '#111114' : '#FFF' }]}>
+      <View style={[s.header, { borderBottomColor: border, backgroundColor: t.surface, paddingTop: Math.max(insets.top, 12) + 6 }]}>
         <TouchableOpacity
           style={s.backBtn}
-          onPress={() => {
-            if (router.canGoBack()) {
-              router.back();
-            } else {
-              router.replace('/(tabs)' as any);
-            }
-          }}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)' as any))}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
         >
-          <Text style={[s.backIcon, { color: txt }]}>‹</Text>
+          <Ionicons name="chevron-back" size={24} color={txt} />
         </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={s.subText}>{meta.subtitle}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={{ fontSize: 18 }}>{meta.icon}</Text>
-            <Text style={[s.title, { color: txt }]} numberOfLines={1}>{meta.title}</Text>
-          </View>
+        <View style={[s.headerIcon, { backgroundColor: t.soft }]}>
+          <Ionicons name={meta.icon} size={20} color={txt} />
         </View>
-        <View style={{ backgroundColor: isServiceCategory ? 'rgba(59,130,246,0.12)' : 'rgba(16,185,129,0.12)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: isServiceCategory ? '#3B82F6' : '#10B981' }}>
-          <Text style={{ fontSize: 9, fontWeight: '900', color: isServiceCategory ? '#3B82F6' : '#10B981', letterSpacing: 0.5 }}>
-            {isServiceCategory ? '🛠️ CAMPUS SERVICE' : '🛍️ STORE'}
-          </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[s.title, { color: txt }]} numberOfLines={1} accessibilityRole="header">{meta.title}</Text>
+          <Text style={[s.subText, { color: txtSec }]} numberOfLines={1}>{meta.subtitle}</Text>
+        </View>
+        <View style={[s.kindPill, { backgroundColor: isServiceCategory ? t.accentBg : t.soft }]}>
+          <Text style={[s.kindText, { color: isServiceCategory ? t.accent : txtSec }]}>{isServiceCategory ? 'Service' : 'Store'}</Text>
         </View>
       </View>
 
-      {/* Search Filter */}
-      <View style={[s.searchWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6' }]}>
-        <Text style={{ fontSize: 14 }}>🔍</Text>
+      {/* Search */}
+      <View style={[s.searchWrap, { backgroundColor: t.soft }]}>
+        <Ionicons name="search" size={16} color={txtSec} />
         <TextInput
-          placeholder={`Search in ${meta.title}...`}
+          placeholder={`Search ${meta.title.toLowerCase()}…`}
           placeholderTextColor={txtSec}
           value={searchQuery}
           onChangeText={setSearchQuery}
           style={[s.searchInput, { color: txt }]}
           returnKeyType="search"
           maxLength={60}
+          accessibilityLabel={`Search ${meta.title.toLowerCase()}`}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={{ color: txtSec, fontSize: 12 }}>✕</Text>
+          <TouchableOpacity onPress={() => setSearchQuery('')} style={s.clearBtn} accessibilityRole="button" accessibilityLabel="Clear search">
+            <Ionicons name="close-circle" size={18} color={txtSec} />
           </TouchableOpacity>
         )}
       </View>
@@ -372,29 +500,35 @@ export default function CategoryDetailScreen() {
         <TouchableOpacity
           onPress={() => router.push('/rentals' as any)}
           accessibilityRole="button"
-          accessibilityLabel="Student vehicles: rent from verified students"
-          style={[s.closedBanner, { backgroundColor: isDark ? 'rgba(14,165,233,0.14)' : 'rgba(14,165,233,0.10)' }]}
+          accessibilityLabel="Student vehicles: rent or borrow bikes, scooters and cars from verified students, or list yours. Opens student vehicles."
+          style={[s.banner, { backgroundColor: isDark ? 'rgba(14,165,233,0.14)' : 'rgba(14,165,233,0.10)' }]}
         >
-          <Text style={{ fontSize: 14 }}>🏍️</Text>
-          <Text style={{ flex: 1, color: txt, fontSize: 11, fontWeight: '700' }}>
-            Student vehicles: rent bikes, scooters and cars from verified students, or rent out yours. <Text style={{ color: '#0EA5E9', fontWeight: '900' }}>Open ›</Text>
+          <Ionicons name="bicycle-outline" size={18} color={t.link} />
+          <Text style={[s.bannerText, { color: txt }]}>
+            Student vehicles: rent or borrow bikes, scooters and cars from verified students, or list yours.
           </Text>
+          <Ionicons name="chevron-forward" size={18} color={t.link} />
         </TouchableOpacity>
       )}
 
       {!isServiceCategory && closedStore && (
-        <View style={[s.closedBanner, { backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.08)' }]}>
-          <Text style={{ fontSize: 14 }}>🌙</Text>
-          <Text style={{ flex: 1, color: txt, fontSize: 11, fontWeight: '700' }}>
-            {closedStore.closedReason || `${closedStore.name || 'This store'} is closed${formatOpensAt(closedStore.opensAt) ? ` — opens ${formatOpensAt(closedStore.opensAt)}` : ''}. You can browse now and order when it opens.`}
+        <View style={[s.banner, { backgroundColor: isDark ? 'rgba(99,102,241,0.14)' : 'rgba(99,102,241,0.08)' }]}>
+          <Ionicons name="time-outline" size={18} color={txtSec} />
+          <Text style={[s.bannerText, { color: txt }]}>
+            {closedStore.closedReason || `${closedStore.name || 'This store'} is closed${opensAt ? ` and opens at ${opensAt}` : ''}. You can browse now and order when it opens.`}
           </Text>
         </View>
       )}
 
-      {/* Grid List */}
+      {/* Grid */}
       {loading && items.length === 0 ? (
-        <View style={[s.listContent, { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 14 }]}>
-          {[0, 1, 2, 3].map((k) => <ShimmerCard key={k} style={{ width: (SW - 44) / 2, height: 220 }} />)}
+        <View
+          style={[s.listContent, { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 14 }]}
+          accessible
+          accessibilityLabel="Loading"
+          accessibilityState={{ busy: true }}
+        >
+          {[0, 1, 2, 3].map((k) => <ShimmerCard key={k} style={{ width: (SW - 44) / 2, height: 236 }} />)}
         </View>
       ) : filteredItems.length > 0 ? (
         <FlatList
@@ -405,7 +539,7 @@ export default function CategoryDetailScreen() {
           maxToRenderPerBatch={8}
           windowSize={7}
           removeClippedSubviews={Platform.OS === 'android'}
-          contentContainerStyle={s.listContent}
+          contentContainerStyle={[s.listContent, { paddingBottom: (!isServiceCategory && totalItems > 0 ? 110 : 32) + insets.bottom }]}
           columnWrapperStyle={s.columnWrapper}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -423,80 +557,7 @@ export default function CategoryDetailScreen() {
               ))}
             </View>
           ) : null}
-          renderItem={({ item }) => {
-            const isService = isServiceCategory || item.bookingOnly;
-            const line = isService ? undefined : lineFor(item.id);
-            const storeClosed = !isService && stores[item.storeId] && !stores[item.storeId].isOpen;
-            // A closed store's items are "CLOSED", not "SOLD OUT" (the server's orderable is false for both)
-            const soldOut = !item.inStock;
-            return (
-              <View style={[s.card, { backgroundColor: cardBg, borderColor: border }]}>
-                <View style={s.imageBox}>
-                  {item.image ? (
-                    <SafeImage source={{ uri: item.image }} style={[s.cardImg, soldOut && { opacity: 0.45 }]} maxWidth={300} />
-                  ) : (
-                    <View style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#1F1F23' : '#F3F4F6' }}>
-                      <Text style={{ fontSize: 40 }}>{item.emoji || meta.icon}</Text>
-                    </View>
-                  )}
-                  {!!item.discountPercent && item.discountPercent > 0 && (
-                    <View style={s.discountBadge}>
-                      <Text style={s.discountText}>{item.discountPercent}% OFF</Text>
-                    </View>
-                  )}
-                  {soldOut && (
-                    <View style={[s.discountBadge, { backgroundColor: '#374151', left: undefined, right: 8 }]}>
-                      <Text style={s.discountText}>{isService ? 'PAUSED' : 'SOLD OUT'}</Text>
-                    </View>
-                  )}
-                  {isService && !soldOut && (
-                    <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                      <Text style={{ color: '#FCD34D', fontSize: 7.5, fontWeight: '900', letterSpacing: 0.5 }}>DOORSTEP</Text>
-                    </View>
-                  )}
-                </View>
-                <View style={s.cardInfo}>
-                  <Text style={[s.itemName, { color: txt }]} numberOfLines={2}>{item.name}</Text>
-                  {!!(item.desc || item.weight) && (
-                    <Text style={s.itemDesc} numberOfLines={2}>{item.weight ? `${item.weight}${item.desc ? ' · ' : ''}` : ''}{item.desc}</Text>
-                  )}
-
-                  <View style={s.bottomRow}>
-                    <View>
-                      <Text style={[s.itemPrice, { color: txt }]}>₹{item.price}</Text>
-                      {!!item.originalPrice && (
-                        <Text style={s.originalPrice}>₹{item.originalPrice}</Text>
-                      )}
-                    </View>
-                    {line ? (
-                      <View style={s.stepper}>
-                        <TouchableOpacity onPress={() => updateQuantity(line.cartKey, line.quantity - 1)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                          <Text style={s.stepperText}>−</Text>
-                        </TouchableOpacity>
-                        <Text style={s.stepperQty}>{line.quantity}</Text>
-                        <TouchableOpacity
-                          onPress={() => updateQuantity(line.cartKey, line.quantity + 1)}
-                          disabled={line.quantity >= MAX_ITEM_QTY}
-                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                        >
-                          <Text style={[s.stepperText, line.quantity >= MAX_ITEM_QTY && { opacity: 0.4 }]}>+</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
-                      <TouchableOpacity
-                        style={[s.addBtn, isService && { backgroundColor: '#3B82F6' }, (soldOut || storeClosed) && { backgroundColor: '#9CA3AF' }]}
-                        onPress={() => handleAction(item)}
-                        disabled={soldOut}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={s.addBtnText}>{isService ? (soldOut ? 'UNAVAILABLE' : 'BOOK ➔') : soldOut ? 'SOLD OUT' : storeClosed ? 'CLOSED' : 'ADD +'}</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-              </View>
-            );
-          }}
+          renderItem={renderCard}
         />
       ) : (
         <ScrollView
@@ -508,18 +569,22 @@ export default function CategoryDetailScreen() {
         </ScrollView>
       )}
 
-      {/* Floating Cart Sticky Bar if items exist and NOT service category */}
+      {/* Basket bar (stores only) */}
       {!isServiceCategory && totalItems > 0 && (
         <TouchableOpacity
-          style={s.floatingCartBar}
+          style={[s.basketBar, { bottom: 16 + insets.bottom }]}
           onPress={() => router.push('/(tabs)/basket' as any)}
+          accessibilityRole="button"
+          accessibilityLabel={`${plural(totalItems, 'item')} in basket, ${formatINR(totalPrice)}. View basket.`}
+          activeOpacity={0.9}
         >
           <View>
-            <Text style={s.floatingCartCount}>{totalItems} ITEM{totalItems === 1 ? '' : 'S'} IN BASKET</Text>
-            <Text style={s.floatingCartTotal}>₹{totalPrice}</Text>
+            <Text style={s.basketCount}>{plural(totalItems, 'item')} in basket</Text>
+            <Text style={s.basketTotal}>{formatINR(totalPrice)}</Text>
           </View>
-          <View style={s.viewCartBtn}>
-            <Text style={s.viewCartText}>VIEW BASKET ➔</Text>
+          <View style={s.viewBasket}>
+            <Text style={s.viewBasketText}>View basket</Text>
+            <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
           </View>
         </TouchableOpacity>
       )}
@@ -539,84 +604,62 @@ export default function CategoryDetailScreen() {
 
 const s = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 52 : 42,
-    paddingBottom: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-  },
-  backBtn: { paddingRight: 14, paddingVertical: 4 },
-  backIcon: { fontSize: 32, fontWeight: '300', lineHeight: 32 },
-  subText: { fontSize: 9, fontWeight: '800', letterSpacing: 1.5, color: '#EF4444', marginBottom: 2 },
-  title: { fontSize: 16, fontWeight: '900', letterSpacing: 0.5 },
-  serviceActionBtn: { backgroundColor: '#3B82F6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  serviceActionBtnText: { color: '#FFF', fontSize: 11, fontWeight: '900' },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginVertical: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    gap: 8,
-  },
-  searchInput: { flex: 1, fontSize: 13, fontWeight: '600' },
-  listContent: { paddingHorizontal: 16, paddingBottom: 90 },
+  header: { flexDirection: 'row', alignItems: 'center', paddingBottom: 12, paddingLeft: 4, paddingRight: 12, borderBottomWidth: 1, gap: 8 },
+  backBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  headerIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  title: { fontSize: 17, fontWeight: '800' },
+  subText: { fontSize: 12, fontWeight: '500', marginTop: 1 },
+  kindPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
+  kindText: { fontSize: 12, fontWeight: '700' },
+  searchWrap: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginVertical: 12, paddingLeft: 12, minHeight: 44, borderRadius: 12, gap: 8 },
+  searchInput: { flex: 1, fontSize: 15, paddingVertical: 10 },
+  clearBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  banner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 12, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, minHeight: 44 },
+  bannerText: { flex: 1, fontSize: 13, lineHeight: 18, fontWeight: '500' },
+  listContent: { paddingHorizontal: 16 },
   columnWrapper: { justifyContent: 'space-between', marginBottom: 14 },
-  card: {
-    width: (SW - 44) / 2,
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  imageBox: { width: '100%', height: 120, position: 'relative' },
-  cardImg: { width: '100%', height: '100%', resizeMode: 'cover' },
-  discountBadge: {
+  card: { width: (SW - 44) / 2, borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
+  imageBox: { width: '100%', height: 120 },
+  cardImg: { width: '100%', height: '100%' },
+  imagePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  badge: { position: 'absolute', top: 8, left: 8, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6 },
+  badgeText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
+  cardInfo: { padding: 10, flex: 1 },
+  itemName: { fontSize: 14, fontWeight: '700', lineHeight: 18, minHeight: 36 },
+  itemDesc: { fontSize: 12, lineHeight: 16, minHeight: 32, marginTop: 2 },
+  bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
+  itemPrice: { fontSize: 15, fontWeight: '800' },
+  originalPrice: { fontSize: 12, textDecorationLine: 'line-through' },
+  actionBtn: { minWidth: 64, minHeight: 44, paddingHorizontal: 14, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  actionText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  stepper: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, minHeight: 44 },
+  stepBtn: { width: 36, height: 44, alignItems: 'center', justifyContent: 'center' },
+  stepperQty: { color: '#FFFFFF', fontSize: 14, fontWeight: '800', minWidth: 18, textAlign: 'center' },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingTop: 60, paddingBottom: 40 },
+  stateIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  stateTitle: { fontSize: 16, fontWeight: '700', textAlign: 'center' },
+  stateBody: { fontSize: 14, lineHeight: 20, marginTop: 6, textAlign: 'center' },
+  stateBtn: { marginTop: 18, minHeight: 44, paddingHorizontal: 20, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  stateBtnText: { fontSize: 14, fontWeight: '700' },
+  basketBar: {
     position: 'absolute',
-    top: 8,
-    left: 8,
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  discountText: { color: '#FFF', fontSize: 9, fontWeight: '900' },
-  cardInfo: { padding: 10, flex: 1, justifyContent: 'space-between' },
-  itemName: { fontSize: 13, fontWeight: '800', lineHeight: 17, marginBottom: 4 },
-  itemDesc: { fontSize: 10, color: '#888', lineHeight: 14, marginBottom: 8 },
-  bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
-  itemPrice: { fontSize: 14, fontWeight: '900' },
-  originalPrice: { fontSize: 10, color: '#999', textDecorationLine: 'line-through' },
-  addBtn: { backgroundColor: '#EF4444', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  addBtnText: { color: '#FFF', fontSize: 10, fontWeight: '900' },
-  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 60, paddingBottom: 40 },
-  closedBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginBottom: 10, padding: 10, borderRadius: 12 },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#EF4444', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-  stepperText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
-  stepperQty: { color: '#FFF', fontSize: 12, fontWeight: '900', minWidth: 14, textAlign: 'center' },
-  floatingCartBar: {
-    position: 'absolute',
-    bottom: 20,
     left: 16,
     right: 16,
-    backgroundColor: '#10B981',
+    backgroundColor: '#047857',
     borderRadius: 14,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    minHeight: 60,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
   },
-  floatingCartCount: { color: '#FFF', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
-  floatingCartTotal: { color: '#FFF', fontSize: 16, fontWeight: '900' },
-  viewCartBtn: { backgroundColor: 'rgba(0,0,0,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  viewCartText: { color: '#FFF', fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
+  basketCount: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
+  basketTotal: { color: '#FFFFFF', fontSize: 17, fontWeight: '800' },
+  viewBasket: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.18)', paddingHorizontal: 12, minHeight: 36, borderRadius: 10 },
+  viewBasketText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
 });

@@ -17,6 +17,8 @@
  * Prices are always the server's; estimatePrice() only mirrors priceServiceBooking for the sheet.
  */
 
+import { formatINR } from '../../utils/format';
+
 export type ServiceCategory = 'repairs' | 'tailoring' | 'print' | 'laundry' | 'general';
 
 export type AnswerValue = string | string[] | number;
@@ -95,8 +97,8 @@ export type FormField = ChoiceField | TextField | NumberField | CountField;
 
 export type PricingRule =
   | { kind: 'fixed' }
-  /** Laundry: card price × quantity (server multiplies, max 50). */
-  | { kind: 'perUnit' }
+  /** Laundry and tailoring: card price × the count in `key` (the server multiplies, max 50). */
+  | { kind: 'perUnit'; key: 'quantity' | 'pieces' }
   /** Print: per-page rate × pages × copies + binding. `ownRate`: the item's own price is the page rate (A3). */
   | { kind: 'print'; ownRate?: boolean };
 
@@ -111,7 +113,7 @@ export interface ServiceForm {
   fixed?: { key: string; label: string; value: string }[];
   fields: FormField[];
   /** Photo upload, only where a photo helps the partner. null = no photo box. */
-  photo: { label: string; helper: string } | null;
+  photo: { label: string; helper: string; showIf?: (a: Answers) => boolean } | null;
   pricing: PricingRule;
   /** Label over the price in the sheet header. */
   priceLabel: string;
@@ -119,7 +121,11 @@ export interface ServiceForm {
   howItWorks: string;
   slot: { label: string; helper: string };
   /** What the partner does at the slot, used in sentences ("before the visit"). */
-  visitNoun: 'pickup' | 'visit';
+  visitNoun: 'pickup' | 'visit' | 'delivery';
+  /** Heading over the hostel block / room fields. */
+  whereLabel: string;
+  /** PDF upload (print only). Shown only when showIf passes. */
+  document?: { label: string; helper: string; showIf?: (a: Answers) => boolean } | null;
   notes: { label: string; placeholder: string };
   /** Short neutral note at the end of the form (e.g. data backup for repairs). */
   notice?: string;
@@ -146,9 +152,10 @@ const pieces = (label = 'Number of pieces'): CountField => ({
   kind: 'count',
   key: 'pieces',
   label,
+  summaryLabel: 'Pieces',
   min: 1,
   max: MAX_PIECES,
-  helper: 'The price shown is for one piece. The partner confirms the total for more pieces.',
+  helper: 'Priced per piece. The tailor confirms or adjusts the total at pickup.',
   unitLabel: (n) => (n === 1 ? 'piece' : 'pieces'),
 });
 
@@ -183,8 +190,8 @@ const TAILOR_NOTES = { label: 'Anything else (optional)', placeholder: 'e.g. Kee
 const LAUNDRY_HOW = 'The partner calls you, collects the clothes and confirms the final price at pickup.';
 const LAUNDRY_SLOT = { label: 'Pickup time', helper: 'The partner collects from your room in this slot.' };
 
-const PRINT_HOW = 'The partner calls you to collect the file and confirm the price. Pay in cash on delivery.';
-const PRINT_SLOT = { label: 'Preferred time', helper: 'The partner calls you before this slot to collect the file.' };
+const PRINT_HOW = 'The print shop calls you, confirms the price, prints and delivers to your room. Pay on delivery.';
+const PRINT_SLOT = { label: 'Delivery time', helper: 'The print shop delivers to your room in this slot. If you chose a pen drive, they collect it first.' };
 const PRINT_NOTES = { label: 'Print instructions (optional)', placeholder: 'e.g. Print pages 1 to 20 only, staple each set' };
 
 const rupees = (n: number | null) => (n == null ? null : formatRupees(n));
@@ -300,14 +307,16 @@ const printFields = (opts: { colour: boolean }): FormField[] => [
     summaryLabel: 'File',
     required: true,
     options: [
+      { value: 'PDF attached', label: 'Attach the PDF' },
+      { value: 'Photo attached', label: 'Attach a photo' },
       { value: 'Pen drive at pickup', label: 'Pen drive at pickup' },
       { value: 'Will send it when the partner calls', label: 'Send it when the partner calls' },
-      { value: 'Photo attached', label: 'Photo attached below' },
     ],
   },
 ];
 
-const PRINT_PHOTO = { label: 'Photo of the page (optional)', helper: 'For a one-page print. PDF files cannot be attached in the app yet, so share those on a pen drive or when the partner calls.' };
+const PRINT_PHOTO = { label: 'Photo of the page', helper: 'For a one-page print, or a page you want copied.', showIf: (a: Answers) => a.fileHandover === 'Photo attached' };
+const PRINT_DOC = { label: 'PDF file', helper: 'Up to 5 MB. For a larger file, use a pen drive or send it when the print shop calls.', showIf: (a: Answers) => a.fileHandover === 'PDF attached' };
 
 // ── The forms ───────────────────────────────────────────────────────────────────────────────
 
@@ -337,6 +346,7 @@ const FORMS: ServiceForm[] = [
     howItWorks: REPAIR_HOW,
     slot: REPAIR_SLOT,
     visitNoun: 'visit',
+    whereLabel: 'Where should the technician collect the device?',
     notes: REPAIR_NOTES,
     notice: REPAIR_NOTICE,
   },
@@ -364,6 +374,7 @@ const FORMS: ServiceForm[] = [
     howItWorks: REPAIR_HOW,
     slot: REPAIR_SLOT,
     visitNoun: 'visit',
+    whereLabel: 'Where should the technician collect the device?',
     notes: REPAIR_NOTES,
     notice: REPAIR_NOTICE,
   },
@@ -392,6 +403,7 @@ const FORMS: ServiceForm[] = [
     howItWorks: REPAIR_HOW,
     slot: REPAIR_SLOT,
     visitNoun: 'visit',
+    whereLabel: 'Where should the technician collect the device?',
     notes: REPAIR_NOTES,
     notice: REPAIR_NOTICE,
   },
@@ -419,6 +431,7 @@ const FORMS: ServiceForm[] = [
     howItWorks: REPAIR_HOW,
     slot: REPAIR_SLOT,
     visitNoun: 'visit',
+    whereLabel: 'Where should the technician collect the device?',
     notes: REPAIR_NOTES,
     notice: REPAIR_NOTICE,
   },
@@ -452,6 +465,7 @@ const FORMS: ServiceForm[] = [
     howItWorks: REPAIR_HOW,
     slot: REPAIR_SLOT,
     visitNoun: 'visit',
+    whereLabel: 'Where should the technician collect the device?',
     notes: REPAIR_NOTES,
     notice: REPAIR_NOTICE,
   },
@@ -490,12 +504,13 @@ const FORMS: ServiceForm[] = [
         helper: 'Required when you pick Other.',
       },
     ],
-    photo: { label: 'Photo of the damage (optional)', helper: 'Useful for a cracked screen, dents or liquid marks.' },
+    photo: { label: 'Photo of the damage or error screen (optional)', helper: 'Useful for a cracked screen, an error message, dents or liquid marks.' },
     pricing: { kind: 'fixed' },
     priceLabel: 'Inspection charge',
     howItWorks: 'The technician checks the device in your room and quotes the repair before doing any work.',
     slot: REPAIR_SLOT,
     visitNoun: 'visit',
+    whereLabel: 'Where should the technician collect the device?',
     notes: REPAIR_NOTES,
     notice: REPAIR_NOTICE,
   },
@@ -525,11 +540,12 @@ const FORMS: ServiceForm[] = [
       neededBy,
     ],
     photo: null,
-    pricing: { kind: 'fixed' },
-    priceLabel: 'Price per piece',
+    pricing: { kind: 'perUnit', key: 'pieces' },
+    priceLabel: 'Estimate',
     howItWorks: TAILOR_HOW,
     slot: TAILOR_SLOT,
     visitNoun: 'pickup',
+    whereLabel: 'Pickup address',
     notes: TAILOR_NOTES,
   },
   {
@@ -550,6 +566,7 @@ const FORMS: ServiceForm[] = [
     howItWorks: 'The tailor takes your measurements, collects the clothes and confirms the price.',
     slot: { label: 'Measurement time', helper: 'The tailor meets you at your hostel in this slot.' },
     visitNoun: 'visit',
+    whereLabel: 'Where should the tailor meet you?',
     notes: TAILOR_NOTES,
   },
   {
@@ -578,11 +595,12 @@ const FORMS: ServiceForm[] = [
       neededBy,
     ],
     photo: null,
-    pricing: { kind: 'fixed' },
-    priceLabel: 'Price per piece',
+    pricing: { kind: 'perUnit', key: 'pieces' },
+    priceLabel: 'Estimate',
     howItWorks: TAILOR_HOW,
     slot: TAILOR_SLOT,
     visitNoun: 'pickup',
+    whereLabel: 'Pickup address',
     notes: TAILOR_NOTES,
   },
   {
@@ -605,11 +623,12 @@ const FORMS: ServiceForm[] = [
       neededBy,
     ],
     photo: { label: 'Photo of the zipper (optional)', helper: 'Helps the tailor bring a zipper of the right size.' },
-    pricing: { kind: 'fixed' },
-    priceLabel: 'Price per piece',
+    pricing: { kind: 'perUnit', key: 'pieces' },
+    priceLabel: 'Estimate',
     howItWorks: TAILOR_HOW,
     slot: TAILOR_SLOT,
     visitNoun: 'pickup',
+    whereLabel: 'Pickup address',
     notes: TAILOR_NOTES,
   },
   {
@@ -628,8 +647,10 @@ const FORMS: ServiceForm[] = [
       },
       {
         kind: 'choice', key: 'fabric', label: 'Fabric', required: true,
+        helper: 'If the tailor provides the fabric, they confirm its price when they call.',
         options: [
           { value: 'I have the fabric', label: 'I have the fabric' },
+          { value: 'Tailor provides fabric', label: 'Tailor provides fabric' },
           { value: 'Discuss with the tailor', label: 'Discuss with the tailor' },
         ],
       },
@@ -646,11 +667,12 @@ const FORMS: ServiceForm[] = [
       neededBy,
     ],
     photo: { label: 'Reference photo of the design (optional)', helper: 'A photo of a design you like helps the tailor match it.' },
-    pricing: { kind: 'fixed' },
-    priceLabel: 'Price per piece',
+    pricing: { kind: 'perUnit', key: 'pieces' },
+    priceLabel: 'Estimate',
     howItWorks: TAILOR_HOW,
     slot: TAILOR_SLOT,
     visitNoun: 'pickup',
+    whereLabel: 'Pickup address',
     notes: TAILOR_NOTES,
   },
   {
@@ -687,11 +709,12 @@ const FORMS: ServiceForm[] = [
       neededBy,
     ],
     photo: null,
-    pricing: { kind: 'fixed' },
-    priceLabel: 'Price per piece',
+    pricing: { kind: 'perUnit', key: 'pieces' },
+    priceLabel: 'Estimate',
     howItWorks: TAILOR_HOW,
     slot: TAILOR_SLOT,
     visitNoun: 'pickup',
+    whereLabel: 'Pickup address',
     notes: TAILOR_NOTES,
   },
   {
@@ -722,11 +745,12 @@ const FORMS: ServiceForm[] = [
       neededBy,
     ],
     photo: { label: 'Photo of the tear or missing button (optional)', helper: 'Helps the tailor bring matching thread or buttons.' },
-    pricing: { kind: 'fixed' },
-    priceLabel: 'Price per piece',
+    pricing: { kind: 'perUnit', key: 'pieces' },
+    priceLabel: 'Estimate',
     howItWorks: TAILOR_HOW,
     slot: TAILOR_SLOT,
     visitNoun: 'pickup',
+    whereLabel: 'Pickup address',
     notes: TAILOR_NOTES,
   },
   {
@@ -740,11 +764,12 @@ const FORMS: ServiceForm[] = [
       neededBy,
     ],
     photo: { label: 'Reference photo (optional)', helper: 'Shows the tailor what you need.' },
-    pricing: { kind: 'fixed' },
-    priceLabel: 'Price per piece',
+    pricing: { kind: 'perUnit', key: 'pieces' },
+    priceLabel: 'Estimate',
     howItWorks: TAILOR_HOW,
     slot: TAILOR_SLOT,
     visitNoun: 'pickup',
+    whereLabel: 'Pickup address',
     notes: TAILOR_NOTES,
   },
 
@@ -757,11 +782,13 @@ const FORMS: ServiceForm[] = [
     fixed: [{ key: 'paper', label: 'Paper', value: 'A3' }],
     fields: printFields({ colour: false }),
     photo: PRINT_PHOTO,
+    document: PRINT_DOC,
     pricing: { kind: 'print', ownRate: true },
     priceLabel: 'Estimate',
     howItWorks: PRINT_HOW,
     slot: PRINT_SLOT,
-    visitNoun: 'pickup',
+    visitNoun: 'delivery',
+    whereLabel: 'Where should we deliver the printouts?',
     notes: PRINT_NOTES,
   },
   {
@@ -770,11 +797,13 @@ const FORMS: ServiceForm[] = [
     serviceType: 'PRINTOUT',
     fields: printFields({ colour: true }),
     photo: PRINT_PHOTO,
+    document: PRINT_DOC,
     pricing: { kind: 'print' },
     priceLabel: 'Estimate',
     howItWorks: PRINT_HOW,
     slot: PRINT_SLOT,
-    visitNoun: 'pickup',
+    visitNoun: 'delivery',
+    whereLabel: 'Where should we deliver the printouts?',
     notes: PRINT_NOTES,
   },
 
@@ -799,11 +828,12 @@ const FORMS: ServiceForm[] = [
       { kind: 'text', key: 'stains', label: 'Stains to point out (optional)', summaryLabel: 'Stains', maxLength: 150, placeholder: 'e.g. Ink on the left cuff' },
     ],
     photo: { label: 'Photo of the stain (optional)', helper: 'Lets the partner check the stain before pickup.' },
-    pricing: { kind: 'perUnit' },
+    pricing: { kind: 'perUnit', key: 'quantity' },
     priceLabel: 'Estimate',
     howItWorks: LAUNDRY_HOW,
     slot: LAUNDRY_SLOT,
     visitNoun: 'pickup',
+    whereLabel: 'Pickup address',
     notes: { label: 'Anything else (optional)', placeholder: 'e.g. Hang the blazer, do not fold' },
   },
   {
@@ -824,11 +854,12 @@ const FORMS: ServiceForm[] = [
       },
     ],
     photo: { label: 'Photo of the shoes (optional)', helper: 'Shows the partner the stains before pickup.' },
-    pricing: { kind: 'perUnit' },
+    pricing: { kind: 'perUnit', key: 'quantity' },
     priceLabel: 'Estimate',
     howItWorks: LAUNDRY_HOW,
     slot: LAUNDRY_SLOT,
     visitNoun: 'pickup',
+    whereLabel: 'Pickup address',
     notes: { label: 'Anything else (optional)', placeholder: 'e.g. White soles, suede on the sides' },
   },
   {
@@ -855,11 +886,12 @@ const FORMS: ServiceForm[] = [
       },
     ],
     photo: null,
-    pricing: { kind: 'perUnit' },
+    pricing: { kind: 'perUnit', key: 'quantity' },
     priceLabel: 'Estimate',
     howItWorks: LAUNDRY_HOW,
     slot: LAUNDRY_SLOT,
     visitNoun: 'pickup',
+    whereLabel: 'Pickup address',
     notes: { label: 'Anything else (optional)', placeholder: 'e.g. Mild detergent only' },
   },
   {
@@ -874,11 +906,12 @@ const FORMS: ServiceForm[] = [
       },
     ],
     photo: null,
-    pricing: { kind: 'perUnit' },
+    pricing: { kind: 'perUnit', key: 'quantity' },
     priceLabel: 'Estimate',
     howItWorks: LAUNDRY_HOW,
     slot: LAUNDRY_SLOT,
     visitNoun: 'pickup',
+    whereLabel: 'Pickup address',
     notes: { label: 'Anything else (optional)', placeholder: 'e.g. Wash the white shirts separately' },
   },
 
@@ -896,6 +929,7 @@ const FORMS: ServiceForm[] = [
     howItWorks: 'The partner calls you and confirms the price before starting. Pay in cash when the job is done.',
     slot: { label: 'Preferred time', helper: 'The partner comes to you in this slot.' },
     visitNoun: 'visit',
+    whereLabel: 'Where should the partner come?',
     notes: { label: 'Anything else (optional)', placeholder: 'e.g. Call before coming' },
   },
 ];
@@ -914,7 +948,7 @@ export const resolveServiceForm = (shelfId: string, itemName: string): ServiceFo
   const form = candidates.find((f) => f.match && f.match.test(itemName))
     || candidates.find((f) => !f.match)
     || FORMS[FORMS.length - 1];
-  if (form.pricing.kind !== 'perUnit') return form;
+  if (form.pricing.kind !== 'perUnit' || form.category !== 'laundry') return form;
   const m = laundryMeasure(itemName);
   return {
     ...form,
@@ -933,7 +967,7 @@ export const initialAnswers = (form: ServiceForm, itemName: string): Answers => 
   if (form.pricing.kind === 'print') {
     a.pageCount = ''; // the student must enter it; the estimate uses 1 page until then
     a.copies = '1';
-    a.printSides = 'double';
+    a.printSides = 'single';
     a.printColor = /colou?r/i.test(itemName) ? 'color' : 'bw';
     a.bindingType = /spiral/i.test(itemName) ? 'spiral' : /thesis|hard\s*bound/i.test(itemName) ? 'hardbound' : 'none';
   }
@@ -952,7 +986,9 @@ const intOf = (v: AnswerValue | undefined): number | null => {
 };
 
 /** Error message per field key ('' / missing = fine). `photoAttached` checks the print "photo" choice. */
-export const validateAnswers = (form: ServiceForm, a: Answers, ctx: FormContext, photoAttached: boolean): Record<string, string> => {
+export interface AttachedFiles { photo: boolean; pdf: boolean }
+
+export const validateAnswers = (form: ServiceForm, a: Answers, ctx: FormContext, attached: AttachedFiles): Record<string, string> => {
   const errors: Record<string, string> = {};
   for (const f of form.fields) {
     if (!isFieldVisible(f, a)) continue;
@@ -968,8 +1004,11 @@ export const validateAnswers = (form: ServiceForm, a: Answers, ctx: FormContext,
       if (withText && !String(a[textKey(f.key)] || '').trim()) {
         errors[textKey(f.key)] = withText.withText!.errorText || 'Fill this in.';
       }
-      if (f.key === 'fileHandover' && picked.includes('Photo attached') && !photoAttached) {
-        errors[f.key] = 'Attach the photo below, or pick another way to share the file.';
+      if (f.key === 'fileHandover' && picked.includes('Photo attached') && !attached.photo) {
+        errors[f.key] = 'Add the photo below, or pick another way to share the file.';
+      }
+      if (f.key === 'fileHandover' && picked.includes('PDF attached') && !attached.pdf) {
+        errors[f.key] = 'Add the PDF below, or pick another way to share the file.';
       }
     } else if (f.kind === 'text') {
       const t = String(v ?? '').trim();
@@ -993,12 +1032,16 @@ export const validateAnswers = (form: ServiceForm, a: Answers, ctx: FormContext,
 /** Catalogue rows that set the print shop's rates (same regexes as backend priceServiceBooking and the shelf). */
 export const PRINT_RATE_RES: readonly RegExp[] = [/black|b\s*&\s*w|b\/w/i, /colou?r/i, /spiral/i, /hard\s*bound|thesis/i];
 
+/** The count a per-unit service is multiplied by (laundry quantity, tailoring pieces); 1 otherwise. */
+export const unitCount = (form: ServiceForm, a: Answers): number => (form.pricing.kind === 'perUnit'
+  ? Math.min(MAX_SERVICE_QTY, Math.max(1, intOf(a[form.pricing.key]) || 1))
+  : 1);
+
 /** Mirrors backend priceServiceBooking so the sheet shows the same estimate the server will store. */
 export const estimatePrice = (form: ServiceForm, a: Answers, ctx: FormContext): number => {
   const price = ctx.itemPrice || 0;
   if (form.pricing.kind === 'perUnit') {
-    const q = Math.min(MAX_SERVICE_QTY, Math.max(1, intOf(a.quantity) || 1));
-    return Math.round(price * q * 100) / 100;
+    return Math.round(price * unitCount(form, a) * 100) / 100;
   }
   if (form.pricing.kind !== 'print') return price;
   const pages = Math.min(5000, Math.max(1, intOf(a.pageCount) || 1));
@@ -1048,9 +1091,8 @@ export const buildDetails = (form: ServiceForm, a: Answers): BookingDetail[] => 
 /** Readable text for ServiceBooking.description (max 2000 characters on the server). */
 export const bookingSummary = (form: ServiceForm, a: Answers, itemName: string, notes: string): { description: string; details: BookingDetail[] } => {
   const details = buildDetails(form, a);
-  if (form.pricing.kind === 'perUnit') {
-    const n = Math.min(MAX_SERVICE_QTY, Math.max(1, intOf(a.quantity) || 1));
-    details.unshift({ key: QUANTITY_KEY, label: 'Quantity', value: laundryMeasure(itemName).summary(n) });
+  if (form.pricing.kind === 'perUnit' && form.category === 'laundry') {
+    details.unshift({ key: QUANTITY_KEY, label: 'Quantity', value: laundryMeasure(itemName).summary(unitCount(form, a)) });
   }
   const note = notes.trim();
   if (note) details.push({ key: 'notes', label: 'Note', value: note.slice(0, 500) });
@@ -1058,12 +1100,5 @@ export const bookingSummary = (form: ServiceForm, a: Answers, itemName: string, 
   return { description, details };
 };
 
-/** "₹1,24,999" / "₹2.50": Indian digit grouping, at most 2 decimals, no locale API needed. */
-export const formatRupees = (amount: number): string => {
-  const n = Math.round((Number(amount) || 0) * 100) / 100;
-  const [int, dec] = Math.abs(n).toFixed(2).split('.');
-  const last3 = int.slice(-3);
-  const rest = int.slice(0, -3);
-  const grouped = rest ? `${rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',')},${last3}` : last3;
-  return `${n < 0 ? '-' : ''}₹${grouped}${dec === '00' ? '' : `.${dec}`}`;
-};
+/** "₹1,24,999" / "₹2.50": the app's shared en-IN formatter (utils/format.ts). */
+export const formatRupees = (amount: number): string => formatINR(amount);

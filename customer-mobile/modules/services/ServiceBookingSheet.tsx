@@ -18,7 +18,10 @@ import {
   Image,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import { File } from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
 import { useTheme } from '../../context/ThemeContext';
@@ -26,6 +29,7 @@ import { useAuth } from '../../context/AuthContext';
 import { newIdempotencyKey } from '../../context/CartContext';
 import { API_URL } from '../../constants/api';
 import { apiFetch } from '../../utils/auth';
+import { istHour } from '../../utils/format';
 import {
   type Answers,
   type ChoiceField,
@@ -43,11 +47,16 @@ import {
   laundryMeasure,
   resolveServiceForm,
   textKey,
+  unitCount,
   validateAnswers,
 } from './serviceForms';
 
-// The server stores booking photos up to 5 MB (backend utils/imageStore DEFAULT_MAX_BYTES).
+// The server stores booking photos up to 5 MB (backend utils/imageStore DEFAULT_MAX_BYTES) and print
+// PDFs up to 5 MB (backend utils/serviceDocuments MAX_PDF_BYTES). One file per booking keeps the
+// request under the 10 MB upload body limit.
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const MAX_PDF_BYTES = 5 * 1024 * 1024;
+const mb = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 
 export interface BookableItem {
   id: string;
@@ -70,14 +79,14 @@ interface Props {
   onServiceUnavailable: () => void;
 }
 
-/** Pickup slots still ahead of us (a 4–6 PM slot is not offered at 8 PM). */
+/** Slots still ahead of us in India time (a 4–6 PM slot is not offered at 8 PM, whatever the phone's zone). */
 const upcomingSlots = (now = new Date()): string[] => {
-  const h = now.getHours();
+  const h = istHour(now);
   const slots: string[] = [];
-  if (h < 16) slots.push('Today, 4 PM to 6 PM');
-  if (h < 19) slots.push('Today, 7 PM to 9 PM');
+  if (h < 16) slots.push('Today, 4–6 PM');
+  if (h < 19) slots.push('Today, 7–9 PM');
   slots.push('Tomorrow, 10 AM');
-  if (h >= 8 && h < 20) slots.push('Urgent, within 2 hours');
+  if (h >= 8 && h < 20) slots.push('Within 2 hours');
   return slots;
 };
 
@@ -104,6 +113,7 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
   const [roomNumber, setRoomNumber] = useState<string>(cleanRoom(u?.roomNumber || u?.roomNo));
   const [contactPhone, setContactPhone] = useState<string>(u?.phone || '');
   const [photo, setPhoto] = useState<{ name: string; size?: string; uri: string; dataUrl: string } | null>(null);
+  const [pdf, setPdf] = useState<{ name: string; size?: string; dataUrl: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
   // One key per booking attempt (made when the sheet opens, kept across retries until the server
@@ -120,6 +130,7 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
     setTriedSubmit(false);
     setNotes('');
     setPhoto(null);
+    setPdf(null);
     const s = upcomingSlots();
     setSlots(s);
     setSlot((prev) => (s.includes(prev) ? prev : s[0]));
@@ -134,6 +145,9 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
   }, [u]);
 
   const amount = useMemo(() => estimatePrice(form, answers, ctx), [form, answers, ctx]);
+  const photoShown = !!form.photo && (!form.photo.showIf || form.photo.showIf(answers));
+  const pdfShown = !!form.document && (!form.document.showIf || form.document.showIf(answers));
+  const attached = { photo: photoShown && !!photo, pdf: pdfShown && !!pdf };
 
   const locationErrors = (): Record<string, string> => {
     const e: Record<string, string> = {};
@@ -146,9 +160,9 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
   // After the first submit attempt, errors update live as the student fixes them.
   useEffect(() => {
     if (!triedSubmit) return;
-    setErrors({ ...validateAnswers(form, answers, ctx, !!photo), ...locationErrors() });
+    setErrors({ ...validateAnswers(form, answers, ctx, attached), ...locationErrors() });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [triedSubmit, answers, photo, hostelBlock, roomNumber, contactPhone, form, ctx]);
+  }, [triedSubmit, answers, photo, pdf, hostelBlock, roomNumber, contactPhone, form, ctx]);
 
   const setAnswer = (key: string, value: Answers[string]) => setAnswers((prev) => ({ ...prev, [key]: value }));
 
@@ -183,10 +197,46 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
     }
   };
 
+  const pickPdf = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true, multiple: false });
+      if (result.canceled || !result.assets || !result.assets[0]) return;
+      const asset = result.assets[0];
+      if (asset.mimeType && asset.mimeType !== 'application/pdf') {
+        Alert.alert('Pick a PDF file', 'Only PDF files can be attached here. For other files, use a pen drive or send them when the print shop calls.');
+        return;
+      }
+      if (asset.size && asset.size > MAX_PDF_BYTES) {
+        Alert.alert('That PDF is too large', 'Pick a PDF under 5 MB, or share it on a pen drive or when the print shop calls.');
+        return;
+      }
+      // Web hands back a data URL; on a phone the picked copy in the cache is read as base64.
+      let base64 = '';
+      if (Platform.OS === 'web') {
+        const raw = asset.base64 || (asset.uri.startsWith('data:') ? asset.uri : '');
+        base64 = raw.includes(',') ? raw.slice(raw.indexOf(',') + 1) : raw;
+      } else {
+        base64 = await new File(asset.uri).base64();
+      }
+      if (!base64) {
+        Alert.alert('Could not read that PDF', 'Try picking it again, or share it on a pen drive.');
+        return;
+      }
+      const bytes = asset.size || Math.round(base64.length * 0.75);
+      if (bytes > MAX_PDF_BYTES) {
+        Alert.alert('That PDF is too large', 'Pick a PDF under 5 MB, or share it on a pen drive or when the print shop calls.');
+        return;
+      }
+      setPdf({ name: asset.name || 'Document.pdf', size: mb(bytes), dataUrl: `data:application/pdf;base64,${base64}` });
+    } catch {
+      Alert.alert('Could not attach the PDF', 'Something went wrong while picking the file. Try again.');
+    }
+  };
+
   const submit = async () => {
     if (!item || submittingRef.current) return;
     setTriedSubmit(true);
-    const allErrors = { ...validateAnswers(form, answers, ctx, !!photo), ...locationErrors() };
+    const allErrors = { ...validateAnswers(form, answers, ctx, attached), ...locationErrors() };
     setErrors(allErrors);
     if (Object.keys(allErrors).length) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
@@ -198,7 +248,10 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
     const serviceType = (typeof form.serviceType === 'function' ? form.serviceType(answers) : form.serviceType) || SERVICE_TYPE_FALLBACK[shelfId] || 'GENERAL';
     const isPrint = form.pricing.kind === 'print';
     const isPerUnit = form.pricing.kind === 'perUnit';
-    const qty = isPerUnit ? Math.max(1, parseInt(String(answers.quantity ?? 1), 10) || 1) : undefined;
+    const isLaundry = form.category === 'laundry';
+    const qty = isPerUnit ? unitCount(form, answers) : undefined;
+    const sendPhoto = attached.photo ? photo : null;
+    const sendPdf = attached.pdf ? pdf : null;
 
     const payload = {
       serviceType,
@@ -209,20 +262,21 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
         details,
         // Pricing inputs the server multiplies (routes/serviceRoutes.js priceServiceBooking)
         quantity: qty,
-        unit: isPerUnit ? laundryMeasure(item.name).unit : undefined,
+        unit: isPerUnit ? (isLaundry ? laundryMeasure(item.name).unit : 'pcs') : undefined,
         pageCount: isPrint ? String(answers.pageCount ?? '1') : undefined,
         copies: isPrint ? String(answers.copies ?? '1') : undefined,
         printColor: isPrint ? (answers.printColor === 'color' ? 'color' : 'bw') : undefined,
         printSides: isPrint ? answers.printSides : undefined,
         bindingType: isPrint ? answers.bindingType : undefined,
-        attachedFileName: photo?.name || undefined,
+        attachedFileName: sendPhoto?.name || sendPdf?.name || undefined,
         serviceName: item.name,
         catalogueItemId: item.id,
         category: shelfId,
         notes: notes.trim(),
         clientRequestId: bookingKeyRef.current,
       },
-      attachmentUrl: photo?.dataUrl || undefined,
+      attachmentUrl: sendPhoto?.dataUrl || undefined,
+      attachmentDocument: sendPdf ? { dataUrl: sendPdf.dataUrl, name: sendPdf.name } : undefined,
       quotedAmount: amount,
       pickupSlot: slot,
       hostelBlock: block,
@@ -266,20 +320,22 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
         const estimate = Number.isFinite(serverAmount) && serverAmount > 0
           ? `Estimate: ${formatRupees(serverAmount)}, pay in cash when the job is done`
           : 'The partner will call you with a price';
-        const qtyLine = isPerUnit && qty ? `\nQuantity: ${laundryMeasure(item.name).summary(qty)}` : '';
+        const qtyLine = isPerUnit && qty
+          ? (isLaundry ? `\nQuantity: ${laundryMeasure(item.name).summary(qty)}` : `\nPieces: ${qty}`)
+          : '';
         // Same short id as My Orders, Services and the admin dashboard (last 8 characters).
         Alert.alert(
-          'Booking placed',
-          `Booking #${String(data.booking.id || '').slice(-8).toUpperCase()}\n\n${item.name}${qtyLine}\n${estimate}\n${form.slot.label}: ${slot}\nAt: ${block}, Room ${room}\n\nThe partner will call you on ${contactPhone} before the ${form.visitNoun} to confirm the final price.`,
+          'Booking sent',
+          `Booking #${String(data.booking.id || '').slice(-8).toUpperCase()}\n\n${item.name}${qtyLine}\n${estimate}\n${form.slot.label}: ${slot}\nAt: ${block}, Room ${room}\n\nThe partner will call you on ${contactPhone} to confirm the time and final price.`,
           [
             { text: 'Done', style: 'cancel' },
             { text: 'View booking', onPress: () => router.push({ pathname: '/(tabs)/orders', params: { segment: 'services' } } as any) },
           ],
         );
       } else if (res.status === 413) {
-        Alert.alert('Photo too large', 'Attach a smaller photo, or remove it and show the partner at pickup.');
+        Alert.alert('File too large', 'Attach a smaller file, or remove it and share it when the partner calls.');
       } else if (res.status === 401) {
-        Alert.alert('Sign in again', 'Your session has expired.', [
+        Alert.alert('Sign in again', 'Your session has expired. Sign in to finish the booking.', [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Sign in', onPress: () => router.push('/login' as any) },
         ]);
@@ -437,7 +493,7 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
           >
             <Text style={[st.stepText, { color: t.text }]}>+</Text>
           </TouchableOpacity>
-          {form.pricing.kind === 'perUnit' && f.key === 'quantity' && item ? (
+          {form.pricing.kind === 'perUnit' && f.key === form.pricing.key && item ? (
             <Text style={[st.helper, { color: t.sub, flex: 1, textAlign: 'right' }]}>
               {formatRupees(item.price)} × {n}
             </Text>
@@ -473,6 +529,15 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
 
   const errorCount = Object.keys(errors).length;
   const showPrice = !!item && amount > 0;
+  // "from" only where the card price is a minimum (repairs, most fixed-price jobs); a set charge
+  // (inspection, measurement visit) is just the price; per-unit and print totals are estimates.
+  const ctaLabel = !showPrice
+    ? 'Book'
+    : form.pricing.kind !== 'fixed'
+      ? `Book · ${formatRupees(amount)} estimate`
+      : form.priceLabel === 'Starting price'
+        ? `Book · from ${formatRupees(amount)}`
+        : `Book · ${formatRupees(amount)}`;
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -491,7 +556,7 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
                 accessibilityLabel="Close booking form"
                 style={[st.closeBtn, { backgroundColor: t.chip }]}
               >
-                <Text style={{ fontSize: 16, color: t.sub, fontWeight: '700' }}>✕</Text>
+                <Ionicons name="close" size={20} color={t.sub} />
               </TouchableOpacity>
             </View>
 
@@ -506,8 +571,40 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
             {/* Service-specific questions */}
             {blocks}
 
+            {/* PDF (print), only when the student chose to attach one */}
+            {form.document && pdfShown ? (
+              <View style={st.field}>
+                <Label text={form.document.label} helper={form.document.helper} />
+                {pdf ? (
+                  <View style={[st.photoRow, { backgroundColor: t.panel, borderColor: t.border }]}>
+                    <View style={[st.thumb, st.docThumb, { backgroundColor: t.accentBg }]}>
+                      <Ionicons name="document-text-outline" size={24} color={t.accent} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[st.photoName, { color: t.text }]} numberOfLines={1}>{pdf.name}</Text>
+                      <Text style={[st.helper, { color: t.sub }]}>{pdf.size ? `${pdf.size}, attached` : 'Attached'}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => setPdf(null)} accessibilityRole="button" accessibilityLabel="Remove PDF" style={st.textBtn}>
+                      <Text style={{ color: t.error, fontWeight: '700', fontSize: 14 }}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    onPress={pickPdf}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Choose a PDF file"
+                    style={[st.photoBtn, { borderColor: errors.fileHandover ? t.error : t.accent, backgroundColor: t.accentBg }]}
+                  >
+                    <Text style={{ color: t.accent, fontWeight: '700', fontSize: 14 }}>Choose a PDF</Text>
+                    <Text style={[st.helper, { color: t.sub }]}>PDF, up to 5 MB</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : null}
+
             {/* Photo, only where it helps */}
-            {form.photo ? (
+            {form.photo && photoShown ? (
               <View style={st.field}>
                 <Label text={form.photo.label} helper={form.photo.helper} />
                 {photo ? (
@@ -560,7 +657,7 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
 
             {/* Where and whom to call */}
             <View style={st.field}>
-              <Label text={form.visitNoun === 'visit' ? 'Your room' : 'Pickup address'} />
+              <Label text={form.whereLabel} />
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={[st.subLabel, { color: t.sub }]}>Hostel block</Text>
@@ -639,15 +736,15 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
               activeOpacity={0.85}
               accessibilityRole="button"
               accessibilityState={{ disabled: submitting, busy: submitting }}
-              accessibilityLabel={showPrice ? `Confirm booking, estimate ${formatRupees(amount)}` : 'Confirm booking'}
+              accessibilityLabel={ctaLabel}
               style={[st.cta, { backgroundColor: t.button, opacity: submitting ? 0.8 : 1 }]}
             >
               {submitting ? <ActivityIndicator color="#FFFFFF" size="small" /> : (
-                <Text style={st.ctaText}>{showPrice ? `Confirm booking · ${formatRupees(amount)}` : 'Confirm booking'}</Text>
+                <Text style={st.ctaText}>{ctaLabel}</Text>
               )}
             </TouchableOpacity>
             <Text style={[st.helper, { color: t.sub, textAlign: 'center', marginTop: 8 }]}>
-              Pay in cash when the job is done. The partner confirms the final price first.
+              Pay in cash on delivery. The partner confirms the final price first.
             </Text>
           </ScrollView>
         </View>
@@ -687,6 +784,7 @@ const st = StyleSheet.create({
   photoBtn: { minHeight: 64, borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingVertical: 12 },
   photoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 14, padding: 10 },
   thumb: { width: 52, height: 52, borderRadius: 10, backgroundColor: '#00000010' },
+  docThumb: { alignItems: 'center', justifyContent: 'center' },
   photoName: { fontSize: 14, fontWeight: '600' },
   textBtn: { minHeight: 44, minWidth: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
   notice: { borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 16 },

@@ -222,9 +222,11 @@ const serveMedia = async (req, res) => {
     // A revalidation (If-None-Match) only needs the access fields, not the photo bytes.
     const revalidate = req.headers['if-none-match'] === etag;
     const row = revalidate
-      ? await Media.findByPk(id, { attributes: ['id', 'ownerId', 'isPrivate'] })
+      ? await Media.findByPk(id, { attributes: ['id', 'ownerId', 'isPrivate', 'purpose'] })
       : await Media.findByPk(id);
     if (!row) return res.status(404).json({ message: 'Not found' });
+    // Booking PDFs (utils/serviceDocuments) are only served by GET /api/services/:id/document, as a download.
+    if (row.purpose === 'service_doc') return res.status(404).json({ message: 'Not found' });
 
     if (row.isPrivate) {
       // ID cards: only the owner or an admin (Bearer token), or a short-lived signed link

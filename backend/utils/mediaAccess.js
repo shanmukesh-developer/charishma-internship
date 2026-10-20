@@ -101,7 +101,8 @@ const mayAttach = async (value, ownerId, { isAdmin = false } = {}) => {
   if (!id || isAdmin) return true;
   const Media = mediaModel();
   if (!Media) return true;
-  const row = await Media.findByPk(id, { attributes: ['id', 'ownerId', 'isPrivate'], raw: true });
+  const row = await Media.findByPk(id, { attributes: ['id', 'ownerId', 'isPrivate', 'purpose'], raw: true });
+  if (row && row.purpose === 'service_doc') return false; // booking PDFs are never attachable as a photo
   if (!row || !row.isPrivate) return true;
   return !!ownerId && String(row.ownerId) === String(ownerId);
 };

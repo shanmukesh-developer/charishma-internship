@@ -10,8 +10,10 @@ const { getRestaurantModel } = require('../models/Restaurant');
 // Store types whose products are services (booked here, never ordered). A product in one of these
 // stores is bookable even if it was added without specs.bookingOnly (admin-added / older rows).
 const SERVICE_VENDOR_TYPES = ['REPAIRS', 'PRINT', 'LAUNDRY', 'TAILORING'];
-// Laundry is priced per kg / per piece: the student's quantity multiplies the card price.
+// Laundry (per kg / per piece) and tailoring (per piece): the student's quantity multiplies the card
+// price. Tailoring forms allow up to 20 pieces; the tailor can still confirm or adjust the total.
 const MAX_SERVICE_QTY = 50;
+const PER_UNIT_CATEGORIES = ['laundry', 'tailoring'];
 const cleanText = (v, max) => (typeof v === 'string' ? v.replace(/[<>]/g, '').trim().slice(0, max) : '');
 // S1: PATCH /:id/status driverDetails -> { name, phone, vehicleNumber, vehicleType, eta } (strings, capped).
 const DRIVER_DETAIL_FIELDS = { name: 60, phone: 16, vehicleNumber: 20, vehicleType: 30, eta: 40 };
@@ -92,8 +94,8 @@ const priceServiceBooking = async (specifications, serviceType = null) => {
 
   const isPrint = String(spec.category || '').toLowerCase() === 'print';
   if (!isPrint) {
-    // Laundry (per kg / per piece): price x quantity. Other services: the card price.
-    const qty = String(spec.category || '').toLowerCase() === 'laundry' ? toInt(spec.quantity, 1, MAX_SERVICE_QTY, 1) : 1;
+    // Laundry and tailoring: price x quantity. Other services: the card price.
+    const qty = PER_UNIT_CATEGORIES.includes(String(spec.category || '').toLowerCase()) ? toInt(spec.quantity, 1, MAX_SERVICE_QTY, 1) : 1;
     return { amount: Math.round((Number(item.price) || 0) * qty * 100) / 100, item, quantity: qty };
   }
 
@@ -248,6 +250,8 @@ router.post('/book', protect, async (req, res) => {
     // Store the quantity the server actually priced (not whatever the client sent).
     const specs = specifications && typeof specifications === 'object' && !Array.isArray(specifications) ? { ...specifications } : {};
     delete specs.clientRequestId; // kept in the idempotencyKey column instead
+    delete specs.document; // only ever set below, from a validated upload
+    delete specs.documentName;
     if (priced.quantity) specs.quantity = priced.quantity;
     if (specs.unit !== undefined && !['kg', 'pcs'].includes(specs.unit)) delete specs.unit;
     if (priced.item) specs.serviceName = priced.item.name;
@@ -279,6 +283,21 @@ router.post('/book', protect, async (req, res) => {
       const img = await storeImageRef(attachmentUrl, { req, ownerId: req.user.id, purpose: 'service' });
       if (!img.ok) return res.status(img.status || 400).json({ success: false, code: img.code, message: img.message });
       cleanAttachment = img.value;
+    }
+
+    // A PDF for a print job (utils/serviceDocuments): private, served only by GET /:id/document.
+    const rawDocument = (req.body || {}).attachmentDocument;
+    if (rawDocument) {
+      if (String(specs.category || '').toLowerCase() !== 'print') {
+        return res.status(400).json({ success: false, code: 'BAD_DOCUMENT', message: 'PDF files can be attached to print bookings only.' });
+      }
+      const { storeServiceDocument } = require('../utils/serviceDocuments');
+      const doc = await storeServiceDocument(rawDocument, { ownerId: req.user.id });
+      if (!doc.ok) return res.status(doc.status || 400).json({ success: false, code: doc.code, message: doc.message });
+      if (doc.value) {
+        specs.document = doc.value;
+        specs.documentName = doc.value.name; // plain field, so the admin dashboard lists it
+      }
     }
 
     let booking;
@@ -381,6 +400,23 @@ router.get('/:id', protect, async (req, res) => {
   } catch (error) {
     console.error('Error fetching service booking:', error);
     return res.status(500).json({ success: false, message: 'Something went wrong. Please try again.' });
+  }
+});
+
+// The PDF attached to a print booking, as a download: the student, the assigned partner or an admin.
+router.get('/:id/document', protect, async (req, res) => {
+  try {
+    const ServiceBooking = getServiceBookingModel();
+    const booking = await ServiceBooking.findByPk(req.params.id);
+    if (!booking || !canViewBooking(booking, req.user)) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+    let specs = booking.specifications;
+    if (typeof specs === 'string') { try { specs = JSON.parse(specs); } catch { specs = {}; } }
+    return await require('../utils/serviceDocuments').sendServiceDocument(res, booking, (specs || {}).document);
+  } catch (error) {
+    console.error('Error sending service booking document:', error);
+    return res.status(500).json({ success: false, message: 'Could not load the file right now. Please try again.' });
   }
 });
 
