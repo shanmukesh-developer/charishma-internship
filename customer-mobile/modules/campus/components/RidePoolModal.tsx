@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
     color: CampusColors.ink,
   },
   headerSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.accent,
     fontWeight: '600',
   },
@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   vehicleText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: CampusColors.accentDeep,
   },
@@ -656,7 +656,7 @@ const styles = StyleSheet.create({
     borderTopColor: CampusColors.line,
   },
   creatorText: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.muted,
   },
   joinBtn: {

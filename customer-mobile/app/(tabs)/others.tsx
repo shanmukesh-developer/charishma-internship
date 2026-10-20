@@ -10,7 +10,7 @@ import { COLORS, SHADOWS, RADIUS } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { apiFetch, readJson, SERVER_BUSY_MESSAGE, NETWORK_ERROR_MESSAGE } from '../../utils/auth';
-import { readCache, writeCache } from '../../utils/swrCache';
+import { readCache, writeCache, useSWRJson } from '../../utils/swrCache';
 import { ENDPOINTS, API_URL, ZENVY_SUPPORT_PHONE } from '../../constants/api';
 import { useCart, isCustomRequest } from '../../context/CartContext';
 import PromoCarousel from '../../components/PromoCarousel';
@@ -76,7 +76,7 @@ const ScalePressable = ({ children, onPress, style, activeOpacity = 0.85 }: any)
 };
 
 const TABS = [
-  { key: 'food', label: 'Food & Basket', icon: '🧺' },
+  { key: 'food', label: 'Food & groceries', icon: '🧺' },
   { key: 'services', label: 'Tech & Repairs', icon: '🛠️' },
   { key: 'pg', label: 'PG Stays', icon: '🏢' },
   { key: 'coride', label: 'Co-Ride', icon: '🏍️' },
@@ -470,10 +470,26 @@ export default function OthersScreen() {
   // Campus Events chip: GET /api/campus-events/status once (cached); hidden while off or on any error.
   const campusEventsStatus = useCampusEventsStatus(!!myId);
   const campusEventsOn = !!campusEventsStatus?.enabled;
-  const visibleTabs = useMemo(() => TABS.filter(t => t.key !== 'events' || campusEventsOn), [campusEventsOn]);
+  // Sections with no live listings yet (no PG, no upcoming ride, no rental) are hidden and come back as
+  // soon as one is listed (GET /api/config/sections, cached 60 s). Food & groceries, Tech & Repairs and
+  // Deals always show; unknown (offline, older server) shows everything.
+  const sectionsSWR = useSWRJson<{ sections?: Record<string, { live?: boolean }> }>('/api/config/sections', { freshMs: 60 * 1000 });
+  const sectionLive = useCallback((key: string) => {
+    const sec = sectionsSWR.data?.sections;
+    const k = key === 'pg' ? 'pg' : key === 'coride' ? 'coride' : key === 'rentals' ? 'rentals' : null;
+    if (!k || !sec || !sec[k]) return true;
+    return sec[k].live !== false;
+  }, [sectionsSWR.data]);
+  const visibleTabs = useMemo(
+    () => TABS.filter(t => (t.key !== 'events' || campusEventsOn) && sectionLive(t.key)),
+    [campusEventsOn, sectionLive],
+  );
   useEffect(() => {
     if (activeTab === 'events' && campusEventsStatus && !campusEventsStatus.enabled) setActiveTab('food');
   }, [activeTab, campusEventsStatus]);
+  useEffect(() => {
+    if (!sectionLive(activeTab)) setActiveTab('food');
+  }, [activeTab, sectionLive]);
   const isMountedRef = useRef(true);
   useEffect(() => () => { isMountedRef.current = false; }, []);
 
@@ -882,7 +898,7 @@ export default function OthersScreen() {
   const hasShopItems = shopLines.length > 0;
   const shopSubtotal = shopLines.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shopCount = shopLines.reduce((sum, item) => sum + item.quantity, 0);
-  const shopStoreName = shopLines.find(i => !isCustomRequest(i))?.restaurantName || 'Mega Basket';
+  const shopStoreName = shopLines.find(i => !isCustomRequest(i))?.restaurantName || 'Shopping list';
 
   // Floating Cart Bar animation trigger
   useEffect(() => {
@@ -1381,7 +1397,7 @@ export default function OthersScreen() {
         quantity: qty,
         image: '', // a shopping request has no product photo; the basket shows its placeholder
         restaurantId: MEGA_BASKET_VENDOR,
-        restaurantName: 'Mega Basket',
+        restaurantName: 'Shopping list',
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       Alert.alert('Request added 🛍️', `"${name}" × ${qty} is in your basket. A Zenvy shopper buys it for you, and you approve the final bill before paying.`);
@@ -1524,7 +1540,8 @@ export default function OthersScreen() {
     }
   };
 
-  const currentTabPromos = TAB_PROMOS[activeTab] || PROMOS_FOOD;
+  // Zenvy Auto promos only while the feature is on.
+  const currentTabPromos = (TAB_PROMOS[activeTab] || PROMOS_FOOD).filter(p => p.id !== 'c4' || autoRideOn);
   const carouselOffers = currentTabPromos.map(p => ({
     id: p.id,
     imageUrl: p.img,
@@ -1640,7 +1657,7 @@ export default function OthersScreen() {
 
         <TouchableOpacity onPress={() => openProduct(product)}>
           {!!product.brand && (
-            <Text style={{ fontSize: 7.5, fontWeight: '900', color: txtSec, textTransform: 'uppercase', marginBottom: 2 }} numberOfLines={1}>{product.brand}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '900', color: txtSec, textTransform: 'uppercase', marginBottom: 2 }} numberOfLines={1}>{product.brand}</Text>
           )}
           <Text style={[s.bbProductCardName, { color: txt, height: 26 }]} numberOfLines={2}>{product.name}</Text>
           {!!product.weight && (
@@ -1687,7 +1704,7 @@ export default function OthersScreen() {
           {(soldOut || off) && (
             <View style={{ position: 'absolute', top: 4, left: 4, borderRadius: 6, overflow: 'hidden' }}>
               <LinearGradient colors={soldOut ? ['#6B7280', '#4B5563'] : ['#EF4444', '#B91C1C']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ paddingHorizontal: 5, paddingVertical: 2 }}>
-                <Text style={{ fontSize: 6.5, fontWeight: '900', color: '#FFF', letterSpacing: 0.3 }}>{soldOut ? 'SOLD OUT' : off}</Text>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFF', letterSpacing: 0.3 }}>{soldOut ? 'SOLD OUT' : off}</Text>
               </LinearGradient>
             </View>
           )}
@@ -1698,13 +1715,13 @@ export default function OthersScreen() {
           </View>
         </View>
 
-        <Text style={{ fontSize: 9.5, fontWeight: '800', color: txt, marginTop: 6, height: 26, lineHeight: 12 }} numberOfLines={2}>{product.name}</Text>
-        <Text style={{ fontSize: 8, color: txtSec, marginTop: 2, fontWeight: '600' }} numberOfLines={1}>{product.weight || product.storeName || ' '}</Text>
+        <Text style={{ fontSize: 12, fontWeight: '800', color: txt, marginTop: 6, height: 26, lineHeight: 12 }} numberOfLines={2}>{product.name}</Text>
+        <Text style={{ fontSize: 12, color: txtSec, marginTop: 2, fontWeight: '600' }} numberOfLines={1}>{product.weight || product.storeName || ' '}</Text>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
           <View>
-            <Text style={{ fontSize: 11, fontWeight: '900', color: isDark ? '#F3F4F6' : '#0F172A' }}>{fmtPrice(product.price)}</Text>
-            {!!product.originalPrice && <Text style={{ fontSize: 8, color: txtSec, textDecorationLine: 'line-through' }}>{fmtPrice(product.originalPrice)}</Text>}
+            <Text style={{ fontSize: 12, fontWeight: '900', color: isDark ? '#F3F4F6' : '#0F172A' }}>{fmtPrice(product.price)}</Text>
+            {!!product.originalPrice && <Text style={{ fontSize: 12, color: txtSec, textDecorationLine: 'line-through' }}>{fmtPrice(product.originalPrice)}</Text>}
           </View>
           <View style={{ minWidth: 50 }}>
             {quantity > 0 ? (
@@ -1713,7 +1730,7 @@ export default function OthersScreen() {
                   <TouchableOpacity style={{ width: 16, height: 18, alignItems: 'center', justifyContent: 'center' }} onPress={() => decProduct(product.id)}>
                     <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }}>-</Text>
                   </TouchableOpacity>
-                  <Text style={{ color: '#fff', fontWeight: '900', fontSize: 9.5, paddingHorizontal: 2 }}>{quantity}</Text>
+                  <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12, paddingHorizontal: 2 }}>{quantity}</Text>
                   <TouchableOpacity style={{ width: 16, height: 18, alignItems: 'center', justifyContent: 'center' }} onPress={() => addProduct(product)}>
                     <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }}>+</Text>
                   </TouchableOpacity>
@@ -1722,7 +1739,7 @@ export default function OthersScreen() {
             ) : (
               <TouchableOpacity style={{ borderRadius: 10, overflow: 'hidden', opacity: soldOut ? 0.5 : 1 }} onPress={() => addProduct(product)} activeOpacity={0.85}>
                 <LinearGradient colors={soldOut ? ['#9CA3AF', '#6B7280'] : ['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 24, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 }}>
-                  <Text style={{ fontSize: 8.5, fontWeight: '900', color: '#FFF', letterSpacing: 0.5 }}>{soldOut ? 'SOLD OUT' : 'ADD +'}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFF', letterSpacing: 0.5 }}>{soldOut ? 'SOLD OUT' : 'ADD +'}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             )}
@@ -1739,7 +1756,7 @@ export default function OthersScreen() {
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 8 }}>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 16, fontWeight: '900', color: txt }}>{title}</Text>
-            {!!subtitle && <Text style={{ fontSize: 10, color: txtSec, marginTop: 1 }}>{subtitle}</Text>}
+            {!!subtitle && <Text style={{ fontSize: 12, color: txtSec, marginTop: 1 }}>{subtitle}</Text>}
           </View>
           {seeAll && (
             <TouchableOpacity onPress={() => setSelectedCategoryName(seeAll)} style={s.wellnessSeeAll} accessibilityLabel={`See all ${title}`}>
@@ -1758,7 +1775,7 @@ export default function OthersScreen() {
     <View style={[s.emptyState, { paddingVertical: 36, paddingHorizontal: 24 }]}>
       <Text style={{ fontSize: 32, marginBottom: 8 }}>📡</Text>
       <Text style={{ color: txt, fontSize: 13, fontWeight: '900', marginBottom: 4, textAlign: 'center' }}>Couldn't load this</Text>
-      <Text style={{ color: txtSec, fontSize: 11, fontWeight: '600', textAlign: 'center', marginBottom: 14 }}>{message}</Text>
+      <Text style={{ color: txtSec, fontSize: 12, fontWeight: '600', textAlign: 'center', marginBottom: 14 }}>{message}</Text>
       <TouchableOpacity style={[s.resetBtn, { backgroundColor: COLORS.red }]} onPress={onRetry}>
         <Text style={[s.resetBtnText, { color: '#fff' }]}>TRY AGAIN</Text>
       </TouchableOpacity>
@@ -1811,7 +1828,7 @@ export default function OthersScreen() {
               <Text style={{ fontSize: 13, fontWeight: '900', color: txt, letterSpacing: 0.3 }} numberOfLines={1}>
                 Campus Hub & Services 🚀
               </Text>
-              <Text style={{ fontSize: 9.5, fontWeight: '600', color: txtSec, fontStyle: 'italic' }} numberOfLines={1}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: txtSec, fontStyle: 'italic' }} numberOfLines={1}>
                 “Everything you need for effortless hostel life”
               </Text>
             </View>
@@ -1829,7 +1846,7 @@ export default function OthersScreen() {
               borderColor: serviceability.open ? (isDark ? 'rgba(34, 197, 94, 0.3)' : '#86EFAC') : (isDark ? 'rgba(245, 158, 11, 0.3)' : '#FCD34D'),
             }}>
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: serviceability.open ? '#22C55E' : '#F59E0B', marginRight: 5 }} />
-              <Text style={{ fontSize: 9, fontWeight: '900', color: serviceability.open ? (isDark ? '#4ADE80' : '#15803D') : (isDark ? '#FCD34D' : '#B45309'), letterSpacing: 0.5 }}>
+              <Text style={{ fontSize: 12, fontWeight: '900', color: serviceability.open ? (isDark ? '#4ADE80' : '#15803D') : (isDark ? '#FCD34D' : '#B45309'), letterSpacing: 0.5 }}>
                 {serviceability.open ? 'OPEN NOW' : `OPENS ${fmtClock(serviceability.reopensAt) || 'SOON'}`}
               </Text>
             </View>
@@ -1916,11 +1933,11 @@ export default function OthersScreen() {
                 <TouchableOpacity key={mode} style={{ flex: 1, borderRadius: 20, overflow: 'hidden' }} onPress={() => setGroceryMode(mode)} activeOpacity={0.85}>
                   {groceryMode === mode ? (
                     <LinearGradient colors={['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ paddingVertical: 6, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ fontSize: 9, fontWeight: '900', color: '#FFF', letterSpacing: 0.5 }}>{mode === 'home' ? '🏠 HOME' : '🗂️ CATEGORIES'}</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFF', letterSpacing: 0.5 }}>{mode === 'home' ? '🏠 HOME' : '🗂️ CATEGORIES'}</Text>
                     </LinearGradient>
                   ) : (
                     <View style={{ paddingVertical: 6, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ fontSize: 9, fontWeight: '800', color: txtSec, letterSpacing: 0.3 }}>{mode === 'home' ? '🏠 HOME' : '🗂️ CATEGORIES'}</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec, letterSpacing: 0.3 }}>{mode === 'home' ? '🏠 HOME' : '🗂️ CATEGORIES'}</Text>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -1939,7 +1956,7 @@ export default function OthersScreen() {
               <View style={[s.emptyState, { paddingVertical: 36 }]}>
                 <Text style={{ fontSize: 32, marginBottom: 8 }}>🧺</Text>
                 <Text style={{ color: txt, fontSize: 13, fontWeight: '900', marginBottom: 4 }}>The store is stocking up</Text>
-                <Text style={{ color: txtSec, fontSize: 11, fontWeight: '600', textAlign: 'center', marginBottom: 14 }}>
+                <Text style={{ color: txtSec, fontSize: 12, fontWeight: '600', textAlign: 'center', marginBottom: 14 }}>
                   Need something now? Send a shopping request and a Zenvy shopper will buy it for you.
                 </Text>
                 <TouchableOpacity style={[s.resetBtn, { backgroundColor: '#10B981' }]} onPress={openCustomRequest}>
@@ -2005,8 +2022,8 @@ export default function OthersScreen() {
                         >
                           <SafeImage source={{ uri: brand.img }} style={{ width: '100%', height: '100%', position: 'absolute' }} />
                           <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingVertical: 8, paddingHorizontal: 10, backgroundColor: 'rgba(0,0,0,0.65)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 11, letterSpacing: 0.5 }}>{brand.name}</Text>
-                            <Text style={{ color: '#F59E0B', fontWeight: '800', fontSize: 10 }}>SHOP →</Text>
+                            <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 12, letterSpacing: 0.5 }}>{brand.name}</Text>
+                            <Text style={{ color: '#F59E0B', fontWeight: '800', fontSize: 12 }}>SHOP →</Text>
                           </View>
                         </DopaminePressable>
                       ))}
@@ -2036,7 +2053,7 @@ export default function OthersScreen() {
                                 {item.title}
                               </Text>
                               <View style={{ backgroundColor: item.badgeBg, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
-                                <Text style={{ fontSize: 8, fontWeight: '900', color: '#fff', letterSpacing: 0.8 }}>{item.badge}</Text>
+                                <Text style={{ fontSize: 12, fontWeight: '900', color: '#fff', letterSpacing: 0.8 }}>{item.badge}</Text>
                               </View>
                             </LinearGradient>
                           </View>
@@ -2054,7 +2071,7 @@ export default function OthersScreen() {
                   <>
                     <View style={{ marginHorizontal: 16, marginTop: 20, height: 38, borderRadius: 10, backgroundColor: isDark ? '#27272A' : '#EFF6FF', borderStyle: 'dashed', borderWidth: 1, borderColor: isDark ? '#3F3F46' : '#BFDBFE', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                       <Text style={{ fontSize: 14 }}>🏷️</Text>
-                      <Text style={{ fontSize: 10, fontWeight: '900', color: isDark ? '#93C5FD' : '#1D4ED8', letterSpacing: 1.5 }}>BEST DEALS</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '900', color: isDark ? '#93C5FD' : '#1D4ED8', letterSpacing: 1.5 }}>BEST DEALS</Text>
                     </View>
                     {renderShelf('Biggest savings right now', 'Prices you pay at checkout', dealShelf, 'Deals')}
                   </>
@@ -2074,7 +2091,7 @@ export default function OthersScreen() {
                             <View style={{ position: 'absolute', top: 20, left: 10, right: 10, bottom: 0, borderTopLeftRadius: 36, borderTopRightRadius: 36, backgroundColor: '#10B981', opacity: 0.7 }} />
                             <Image source={{ uri: h.img }} style={{ width: '75%', height: '80%', resizeMode: 'cover', alignSelf: 'center', borderBottomLeftRadius: 10, borderBottomRightRadius: 10 }} />
                           </View>
-                          <Text style={{ fontSize: 9, fontWeight: '900', color: txt, textAlign: 'center', marginTop: 6 }} numberOfLines={2}>{h.label || h.name}</Text>
+                          <Text style={{ fontSize: 12, fontWeight: '900', color: txt, textAlign: 'center', marginTop: 6 }} numberOfLines={2}>{h.label || h.name}</Text>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -2139,10 +2156,10 @@ export default function OthersScreen() {
             {/* Quick List Auto Fill Card */}
             {showAutoFillCard && (
               <View style={{ marginHorizontal: 10, backgroundColor: cardBg, borderWidth: 1, borderColor: '#22C55E', borderRadius: 14, padding: 10, marginVertical: 4, elevation: 3 }}>
-                <Text style={{ fontSize: 10, fontWeight: '900', color: txt, marginBottom: 4 }}>⚡ QUICK LIST</Text>
-                <Text style={{ fontSize: 9, color: txtSec, marginBottom: 6 }}>Type your list and we'll add the matching items from the store.</Text>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: txt, marginBottom: 4 }}>⚡ QUICK LIST</Text>
+                <Text style={{ fontSize: 12, color: txtSec, marginBottom: 6 }}>Type your list and we'll add the matching items from the store.</Text>
                 <TextInput
-                  style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF', borderWidth: 1, borderColor: border, borderRadius: 8, padding: 6, fontSize: 11, color: txt, height: 52, textAlignVertical: 'top' }}
+                  style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF', borderWidth: 1, borderColor: border, borderRadius: 8, padding: 6, fontSize: 12, color: txt, height: 52, textAlignVertical: 'top' }}
                   multiline
                   maxLength={500}
                   placeholder="e.g. 2 maggi, 1 atta, lays"
@@ -2152,10 +2169,10 @@ export default function OthersScreen() {
                 />
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 6, marginTop: 6 }}>
                   <TouchableOpacity style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: isDark ? '#3F3F46' : '#E2E8F0' }} onPress={() => setShowAutoFillCard(false)}>
-                    <Text style={{ fontSize: 9, fontWeight: '900', color: txt }}>CANCEL</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: txt }}>CANCEL</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: '#22C55E' }} onPress={handleSmartAutoFill}>
-                    <Text style={{ fontSize: 9, fontWeight: '900', color: '#fff' }}>ADD ITEMS</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#fff' }}>ADD ITEMS</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -2164,10 +2181,10 @@ export default function OthersScreen() {
             {/* Custom Request Form */}
             {showCustomForm && (
               <View style={{ marginHorizontal: 10, backgroundColor: cardBg, borderWidth: 1, borderColor: '#EF4444', borderRadius: 14, padding: 10, marginVertical: 4, elevation: 3 }}>
-                <Text style={{ fontSize: 10, fontWeight: '900', color: txt, marginBottom: 4 }}>🛍️ REQUEST ANY ITEM</Text>
-                <Text style={{ fontSize: 9, color: txtSec, marginBottom: 6 }}>A Zenvy shopper buys it for you. You approve the real bill before paying (Cash on Delivery).</Text>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: txt, marginBottom: 4 }}>🛍️ REQUEST ANY ITEM</Text>
+                <Text style={{ fontSize: 12, color: txtSec, marginBottom: 6 }}>A Zenvy shopper buys it for you. You approve the real bill before paying (Cash on Delivery).</Text>
                 <TextInput
-                  style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF', borderWidth: 1, borderColor: border, borderRadius: 6, paddingHorizontal: 8, height: 32, fontSize: 11, color: txt, marginBottom: 6 }}
+                  style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF', borderWidth: 1, borderColor: border, borderRadius: 6, paddingHorizontal: 8, height: 32, fontSize: 12, color: txt, marginBottom: 6 }}
                   placeholder="Item name and brand"
                   placeholderTextColor={txtSec}
                   maxLength={60}
@@ -2176,7 +2193,7 @@ export default function OthersScreen() {
                 />
                 <View style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}>
                   <TextInput
-                    style={{ flex: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF', borderWidth: 1, borderColor: border, borderRadius: 6, paddingHorizontal: 8, height: 32, fontSize: 11, color: txt }}
+                    style={{ flex: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF', borderWidth: 1, borderColor: border, borderRadius: 6, paddingHorizontal: 8, height: 32, fontSize: 12, color: txt }}
                     placeholder="Qty (1–20)"
                     placeholderTextColor={txtSec}
                     keyboardType="number-pad"
@@ -2185,7 +2202,7 @@ export default function OthersScreen() {
                     onChangeText={t => setCustomItemQty(t.replace(/[^0-9]/g, ''))}
                   />
                   <TextInput
-                    style={{ flex: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF', borderWidth: 1, borderColor: border, borderRadius: 6, paddingHorizontal: 8, height: 32, fontSize: 11, color: txt }}
+                    style={{ flex: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF', borderWidth: 1, borderColor: border, borderRadius: 6, paddingHorizontal: 8, height: 32, fontSize: 12, color: txt }}
                     placeholder="Est. price ₹ / unit"
                     placeholderTextColor={txtSec}
                     keyboardType="decimal-pad"
@@ -2196,10 +2213,10 @@ export default function OthersScreen() {
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 6, marginTop: 4 }}>
                   <TouchableOpacity style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: isDark ? '#3F3F46' : '#E2E8F0' }} onPress={() => setShowCustomForm(false)}>
-                    <Text style={{ fontSize: 9, fontWeight: '900', color: txt }}>CANCEL</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: txt }}>CANCEL</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: '#EF4444' }} onPress={handleAddCustomRequest}>
-                    <Text style={{ fontSize: 9, fontWeight: '900', color: '#fff' }}>ADD TO BASKET</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#fff' }}>ADD TO BASKET</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -2236,7 +2253,7 @@ export default function OthersScreen() {
                         </View>
                       )}
                       <Text
-                        style={{ fontSize: 7.5, fontWeight: isSelected ? '900' : '600', color: isSelected ? (isDark ? '#34D399' : '#047857') : txtSec, textAlign: 'center', paddingHorizontal: 2, lineHeight: 9 }}
+                        style={{ fontSize: 12, fontWeight: isSelected ? '900' : '600', color: isSelected ? (isDark ? '#34D399' : '#047857') : txtSec, textAlign: 'center', paddingHorizontal: 2, lineHeight: 9 }}
                         numberOfLines={2}
                       >
                         {cat.label}
@@ -2255,7 +2272,7 @@ export default function OthersScreen() {
                 showsVerticalScrollIndicator={false}
               >
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, paddingHorizontal: 2 }}>
-                  <Text style={{ fontSize: 10, fontWeight: '900', color: txt, textTransform: 'uppercase', letterSpacing: 0.8, flex: 1 }} numberOfLines={1}>
+                  <Text style={{ fontSize: 12, fontWeight: '900', color: txt, textTransform: 'uppercase', letterSpacing: 0.8, flex: 1 }} numberOfLines={1}>
                     ✨ {BB_CATEGORIES.find(c => c.key === selectedBBOption)?.label || selectedBBOption}
                   </Text>
 
@@ -2265,17 +2282,17 @@ export default function OthersScreen() {
                       onPress={() => { setShowCustomForm(false); setShowAutoFillCard(v => !v); }}
                       accessibilityLabel="Quick list"
                     >
-                      <Text style={{ fontSize: 11 }}>⚡</Text>
+                      <Text style={{ fontSize: 12 }}>⚡</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: isDark ? 'rgba(239,68,68,0.2)' : '#FEE2E2', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isDark ? 'rgba(239,68,68,0.4)' : '#FCA5A5' }}
                       onPress={() => { setShowAutoFillCard(false); setShowCustomForm(v => !v); }}
                       accessibilityLabel="Request any item"
                     >
-                      <Text style={{ fontSize: 11 }}>🛍️</Text>
+                      <Text style={{ fontSize: 12 }}>🛍️</Text>
                     </TouchableOpacity>
 
-                    <Text style={{ fontSize: 8, fontWeight: '800', color: txtSec, marginLeft: 2 }}>🟢 Veg</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec, marginLeft: 2 }}>🟢 Veg</Text>
                     <TouchableOpacity
                       style={{ width: 28, height: 16, borderRadius: 9, backgroundColor: showVegOnly ? '#10B981' : '#D1D5DB', justifyContent: 'center', paddingHorizontal: 2 }}
                       onPress={() => setShowVegOnly(v => !v)}
@@ -2296,7 +2313,7 @@ export default function OthersScreen() {
                   <View style={{ alignItems: 'center', paddingVertical: 40, paddingHorizontal: 12 }}>
                     <Text style={{ fontSize: 28, marginBottom: 6 }}>🧺</Text>
                     <Text style={{ fontSize: 12, fontWeight: '900', color: txt, textAlign: 'center' }}>{showVegOnly ? 'No veg items here' : 'Nothing here yet'}</Text>
-                    <Text style={{ fontSize: 10, color: txtSec, textAlign: 'center', marginTop: 4, marginBottom: 12 }}>Request any item and a Zenvy shopper will buy it for you.</Text>
+                    <Text style={{ fontSize: 12, color: txtSec, textAlign: 'center', marginTop: 4, marginBottom: 12 }}>Request any item and a Zenvy shopper will buy it for you.</Text>
                     <TouchableOpacity style={[s.resetBtn, { backgroundColor: '#EF4444' }]} onPress={() => { setShowAutoFillCard(false); setShowCustomForm(true); }}>
                       <Text style={[s.resetBtnText, { color: '#fff' }]}>REQUEST AN ITEM</Text>
                     </TouchableOpacity>
@@ -2315,7 +2332,7 @@ export default function OthersScreen() {
         {activeTab === 'services' && (
           <View style={{ paddingHorizontal: 16 }}>
             <View style={{ marginBottom: 14, marginTop: 4 }}>
-              <Text style={{ fontSize: 9, fontWeight: '900', color: '#3B82F6', letterSpacing: 1.5 }}>CAMPUS SERVICES</Text>
+              <Text style={{ fontSize: 12, fontWeight: '900', color: '#3B82F6', letterSpacing: 1.5 }}>CAMPUS SERVICES</Text>
               <Text style={{ fontSize: 16, fontWeight: '900', color: txt, marginTop: 2 }}>Book it from your hostel 🛠️</Text>
             </View>
 
@@ -2339,17 +2356,17 @@ export default function OthersScreen() {
                       <View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
                           <View style={{ backgroundColor: isDark ? 'rgba(59,130,246,0.15)' : '#EFF6FF', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, borderWidth: 1, borderColor: isDark ? 'rgba(59,130,246,0.3)' : '#BFDBFE' }}>
-                            <Text style={{ fontSize: 7.5, fontWeight: '900', color: '#3B82F6', letterSpacing: 0.5 }}>{srv.tag}</Text>
+                            <Text style={{ fontSize: 12, fontWeight: '900', color: '#3B82F6', letterSpacing: 0.5 }}>{srv.tag}</Text>
                           </View>
                           {from > 0 && <Text style={{ fontSize: 12, fontWeight: '900', color: '#10B981' }}>From {fmtPrice(from)}</Text>}
                         </View>
                         <Text style={{ fontSize: 14, fontWeight: '900', color: txt, lineHeight: 18, letterSpacing: -0.2 }}>{srv.title}</Text>
-                        <Text style={{ fontSize: 10.5, color: txtSec, lineHeight: 15, marginTop: 5 }} numberOfLines={2}>{srv.desc}</Text>
+                        <Text style={{ fontSize: 12, color: txtSec, lineHeight: 15, marginTop: 5 }} numberOfLines={2}>{srv.desc}</Text>
                       </View>
 
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 10 }}>
                         <LinearGradient colors={isDark ? ['#3B82F6', '#2563EB'] : ['#1D4ED8', '#2563EB']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10 }}>
-                          <Text style={{ fontSize: 10, fontWeight: '900', color: '#FFF', letterSpacing: 0.4 }}>{['repairs', 'tailoring', 'print', 'laundry'].includes(srv.cat) ? 'BOOK NOW ➔' : 'SHOP NOW ➔'}</Text>
+                          <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFF', letterSpacing: 0.4 }}>{['repairs', 'tailoring', 'print', 'laundry'].includes(srv.cat) ? 'BOOK NOW ➔' : 'SHOP NOW ➔'}</Text>
                         </LinearGradient>
                       </View>
                     </View>
@@ -2374,20 +2391,22 @@ export default function OthersScreen() {
         {/* ── CO-RIDE (BIKEPOOL) TAB ── modules/coride: student bike pool + Zenvy Auto */}
         {activeTab === 'coride' && (
           <View style={{ paddingHorizontal: 16, paddingBottom: 24 }}>
-            {/* Mode: student bike pool or Zenvy shared auto */}
-            <Segmented
-              label="Ride mode"
-              value={corideTab === 'auto' ? 'auto' : 'pool'}
-              onChange={m => setCorideTab(m === 'auto' ? 'auto' : 'browse')}
-              options={[
-                { key: 'pool', label: 'Bike pool', icon: 'motorbike', iconSet: 'mci' },
-                { key: 'auto', label: 'Zenvy Auto', icon: 'rickshaw', iconSet: 'mci' },
-              ]}
-            />
+            {/* Mode: student bike pool or Zenvy shared auto (the switch exists only while Zenvy Auto is on) */}
+            {autoRideOn && (
+              <Segmented
+                label="Ride mode"
+                value={corideTab === 'auto' ? 'auto' : 'pool'}
+                onChange={m => setCorideTab(m === 'auto' ? 'auto' : 'browse')}
+                options={[
+                  { key: 'pool', label: 'Bike pool', icon: 'motorbike', iconSet: 'mci' },
+                  { key: 'auto', label: 'Zenvy Auto', icon: 'rickshaw', iconSet: 'mci' },
+                ]}
+              />
+            )}
             <Text style={{ fontSize: 13, lineHeight: 18, color: txtSec, marginTop: 8 }}>
-              {corideTab !== 'auto'
-                ? 'Ride with students going your way and split the fuel.'
-                : autoRideOn ? 'Book a seat in a shared auto with a verified driver. Pay the driver in cash when you board.' : 'Shared autos with verified drivers, starting soon.'}
+              {corideTab === 'auto' && autoRideOn
+                ? 'Book a seat in a shared auto with a verified driver. Pay the driver in cash when you board.'
+                : 'Ride with students going your way and split the fuel.'}
             </Text>
 
             {!myId ? (
@@ -2400,19 +2419,9 @@ export default function OthersScreen() {
                   onAction={() => router.push('/login' as any)}
                 />
               </View>
-            ) : corideTab === 'auto' ? (
+            ) : corideTab === 'auto' && autoRideOn ? (
               <View style={{ marginTop: 16 }}>
-                {autoRideOn ? <AutoRideSection /> : (
-                  <CoRideState
-                    icon="rickshaw"
-                    mci
-                    title="Zenvy Auto is not open yet"
-                    message="Shared autos with verified drivers start soon. You will be able to pick your seat and pay the driver in cash when you board."
-                    actionLabel="Find a bike pool"
-                    secondary
-                    onAction={() => setCorideTab('browse')}
-                  />
-                )}
+                <AutoRideSection />
               </View>
             ) : (
               <>
@@ -2530,13 +2539,13 @@ export default function OthersScreen() {
                   style={{ padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 9, fontWeight: '900', color: COLORS.gold, letterSpacing: 2 }}>ZENVY REWARDS</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: COLORS.gold, letterSpacing: 2 }}>ZENVY REWARDS</Text>
                     <Text style={{ fontSize: 24, fontWeight: '900', color: txt, marginTop: 4 }}>Your Rewards Hub</Text>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: txtSec, marginTop: 2 }}>Every 2 delivered orders earn a spin.</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec, marginTop: 2 }}>Every 2 delivered orders earn a spin.</Text>
                   </View>
                   {myId ? (
                     <View style={{ alignItems: 'flex-end', minWidth: 80 }}>
-                      <Text style={{ fontSize: 9, fontWeight: '800', color: txtSec }}>ZENPOINTS</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>ZENPOINTS</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
                         <Animated.View style={{ transform: [{ translateY: coinFloatAnim }] }}>
                           <Text style={{ fontSize: 20 }}>💎</Text>
@@ -2546,7 +2555,7 @@ export default function OthersScreen() {
                     </View>
                   ) : (
                     <TouchableOpacity style={{ backgroundColor: COLORS.red, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }} onPress={() => router.push('/login' as any)}>
-                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '900' }}>LOG IN</Text>
+                      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>LOG IN</Text>
                     </TouchableOpacity>
                   )}
                 </LinearGradient>
@@ -2557,7 +2566,7 @@ export default function OthersScreen() {
             <Animated.View style={{ opacity: wheelEnterO, transform: [{ translateY: wheelEnterY }, { scale: wheelScaleIn }] }}>
               <View style={{ borderRadius: 24, borderWidth: 1.5, borderColor: border, backgroundColor: cardBg, padding: 20, alignItems: 'center', marginBottom: 16, ...SHADOWS.card }}>
                 <Text style={{ fontSize: 13, fontWeight: '900', color: txt, letterSpacing: 1.5 }}>LUCKY SPIN WHEEL 🎡</Text>
-                <Text style={{ fontSize: 9, fontWeight: '700', color: txtSec, marginTop: 2, marginBottom: 16 }}>Win ZenPoints or a free-delivery coupon</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec, marginTop: 2, marginBottom: 16 }}>Win ZenPoints or a free-delivery coupon</Text>
 
                 <View style={{ width: 260, height: 260, justifyContent: 'center', alignItems: 'center', marginVertical: 12 }}>
                   <Animated.Text style={{ fontSize: 26, color: '#D4AF7A', position: 'absolute', top: -16, zIndex: 15, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4, transform: [{ translateY: pointerBounce }] }}>▼</Animated.Text>
@@ -2585,7 +2594,7 @@ export default function OthersScreen() {
                           <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: sector.color, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' }}>
                             <Text style={{ fontSize: 15 }}>{sector.emoji}</Text>
                           </View>
-                          <Text style={{ fontSize: 7, fontWeight: '900', color: '#fff', textAlign: 'center', marginTop: 3, width: 70 }}>{sector.label}</Text>
+                          <Text style={{ fontSize: 12, fontWeight: '900', color: '#fff', textAlign: 'center', marginTop: 3, width: 70 }}>{sector.label}</Text>
                         </View>
                       ))}
                       {wheelSectors.length === 0 && (
@@ -2607,13 +2616,13 @@ export default function OthersScreen() {
                       {isSpinning ? (
                         <ActivityIndicator size="small" color="#000" />
                       ) : (
-                        <Text style={{ fontSize: 9.5, fontWeight: '900', color: '#000', letterSpacing: 0.5 }}>{spinsLeft > 0 || !myId ? 'SPIN' : 'LOCKED'}</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.5 }}>{spinsLeft > 0 || !myId ? 'SPIN' : 'LOCKED'}</Text>
                       )}
                     </TouchableOpacity>
                   </Animated.View>
                 </View>
 
-                <Text style={{ fontSize: 9, fontWeight: '800', color: spinsLeft > 0 ? COLORS.gold : txtSec, marginTop: 8, textAlign: 'center' }}>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: spinsLeft > 0 ? COLORS.gold : txtSec, marginTop: 8, textAlign: 'center' }}>
                   {!myId
                     ? 'Log in to see your spins'
                     : rewardsStatus === 'error' || (rewardsStatus === 'ready' && wheelSectors.length === 0)
@@ -2634,7 +2643,7 @@ export default function OthersScreen() {
 
                 {!myId ? (
                   <View style={[s.emptyState, { padding: 24 }]}>
-                    <Text style={{ color: txtSec, fontSize: 11, fontWeight: '600', textAlign: 'center' }}>Log in to see the coupons you have won.</Text>
+                    <Text style={{ color: txtSec, fontSize: 12, fontWeight: '600', textAlign: 'center' }}>Log in to see the coupons you have won.</Text>
                   </View>
                 ) : rewardsStatus === 'loading' && coupons.length === 0 ? (
                   <View style={{ gap: 10 }}>
@@ -2646,7 +2655,7 @@ export default function OthersScreen() {
                   <View style={[s.emptyState, { padding: 24 }]}>
                     <Text style={{ fontSize: 28, marginBottom: 6 }}>🎫</Text>
                     <Text style={{ color: txt, fontSize: 12, fontWeight: '900', marginBottom: 4 }}>No coupons yet</Text>
-                    <Text style={{ color: txtSec, fontSize: 10, fontWeight: '600', textAlign: 'center' }}>Spin the wheel or claim a daily deal — coupons you win show up here.</Text>
+                    <Text style={{ color: txtSec, fontSize: 12, fontWeight: '600', textAlign: 'center' }}>Spin the wheel or claim a daily deal — coupons you win show up here.</Text>
                   </View>
                 ) : (
                   coupons.map((coupon: any, index: number) => {
@@ -2663,9 +2672,9 @@ export default function OthersScreen() {
                           <View style={{ position: 'absolute', right: -7, width: 14, height: 14, borderRadius: 7, backgroundColor: isDark ? '#0B0B0D' : '#F8FAFC', borderWidth: 1.5, borderColor: border }} />
 
                           <View style={{ flex: 1, paddingHorizontal: 6 }}>
-                            <Text style={{ fontSize: 7.5, fontWeight: '900', color: COLORS.gold, letterSpacing: 1 }}>{expiry.toUpperCase()}</Text>
+                            <Text style={{ fontSize: 12, fontWeight: '900', color: COLORS.gold, letterSpacing: 1 }}>{expiry.toUpperCase()}</Text>
                             <Text style={{ fontSize: 12, fontWeight: '900', color: txt, marginTop: 2 }}>{coupon.label || 'Coupon'}</Text>
-                            <Text style={{ fontSize: 8.5, color: txtSec, marginTop: 2 }}>Use code {code} at checkout</Text>
+                            <Text style={{ fontSize: 12, color: txtSec, marginTop: 2 }}>Use code {code} at checkout</Text>
                           </View>
 
                           <View style={{ width: 1, height: 40, borderStyle: 'dashed', borderWidth: 0.5, borderColor: border, marginHorizontal: 8 }} />
@@ -2679,7 +2688,7 @@ export default function OthersScreen() {
                               style={{ backgroundColor: copiedCode === code ? COLORS.emerald : COLORS.red, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, minWidth: 85, alignItems: 'center', justifyContent: 'center' }}
                               accessibilityLabel={`Copy code ${code}`}
                             >
-                              <Text style={{ color: '#fff', fontSize: 8, fontWeight: '900', letterSpacing: 0.5 }} numberOfLines={1}>{copiedCode === code ? 'COPIED ✓' : code}</Text>
+                              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 0.5 }} numberOfLines={1}>{copiedCode === code ? 'COPIED ✓' : code}</Text>
                             </TouchableOpacity>
                           </Animated.View>
                         </View>
@@ -2729,7 +2738,7 @@ export default function OthersScreen() {
             <View style={s.catalogHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[s.catalogTitle, { color: txt }]} numberOfLines={1}>{(selectedCategoryName === 'All Groceries' ? 'All groceries' : selectedCategoryName).toUpperCase()}</Text>
-                {sheetProducts.length > 0 && <Text style={{ fontSize: 10, color: txtSec, fontWeight: '700', marginTop: 2 }}>{sheetProducts.length} item{sheetProducts.length === 1 ? '' : 's'}</Text>}
+                {sheetProducts.length > 0 && <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700', marginTop: 2 }}>{sheetProducts.length} item{sheetProducts.length === 1 ? '' : 's'}</Text>}
               </View>
               <TouchableOpacity style={s.catalogCloseBtn} onPress={closeCatalogSheet} accessibilityLabel="Close">
                 <Text style={{ fontSize: 18, color: txtSec, fontWeight: '800' }}>✕</Text>
@@ -2747,7 +2756,7 @@ export default function OthersScreen() {
                 <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                   <Text style={{ fontSize: 32, marginBottom: 8 }}>🧺</Text>
                   <Text style={{ fontSize: 13, fontWeight: '900', color: txt }}>Nothing here yet</Text>
-                  <Text style={{ fontSize: 11, color: txtSec, textAlign: 'center', marginTop: 4, marginBottom: 14, maxWidth: 260 }}>Request it and a Zenvy shopper will buy it for you.</Text>
+                  <Text style={{ fontSize: 12, color: txtSec, textAlign: 'center', marginTop: 4, marginBottom: 14, maxWidth: 260 }}>Request it and a Zenvy shopper will buy it for you.</Text>
                   <TouchableOpacity style={[s.resetBtn, { backgroundColor: '#10B981' }]} onPress={() => { closeCatalogSheet(); openCustomRequest(); }}>
                     <Text style={[s.resetBtnText, { color: '#fff' }]}>REQUEST AN ITEM</Text>
                   </TouchableOpacity>
@@ -2775,8 +2784,8 @@ export default function OthersScreen() {
                 </View>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Text style={[s.cartBarCta, { fontSize: 9.5 }]}>VIEW BASKET</Text>
-                <Text style={{ fontSize: 11, color: '#fff', marginLeft: 2 }}>➔</Text>
+                <Text style={[s.cartBarCta, { fontSize: 12 }]}>VIEW BASKET</Text>
+                <Text style={{ fontSize: 12, color: '#fff', marginLeft: 2 }}>➔</Text>
               </View>
             </LinearGradient>
           </TouchableOpacity>
@@ -2801,7 +2810,7 @@ export default function OthersScreen() {
             <View style={{ alignItems: 'center', marginVertical: 12 }}>
               <Text style={{ fontSize: 32, marginBottom: 8 }}>🎉</Text>
               <Text style={[s.modalTitle, { color: txt, textAlign: 'center', marginBottom: 4 }]}>CONGRATULATIONS!</Text>
-              <Text style={{ fontSize: 9.5, fontWeight: '800', color: txtSec, textAlign: 'center', marginBottom: 12 }}>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec, textAlign: 'center', marginBottom: 12 }}>
                 {wheelResult?.coupon ? 'Your coupon is ready to use at checkout.' : 'Added to your ZenPoints balance.'}
               </Text>
 
@@ -2810,10 +2819,10 @@ export default function OthersScreen() {
                   <Text style={{ fontSize: 18, fontWeight: '900', color: '#000', textAlign: 'center' }}>{wheelResult.display}</Text>
                   {wheelResult.coupon && (
                     <>
-                      <Text style={{ fontSize: 8.5, fontWeight: '800', color: '#451A03', marginTop: 6, letterSpacing: 0.5 }}>YOUR COUPON CODE</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: '#451A03', marginTop: 6, letterSpacing: 0.5 }}>YOUR COUPON CODE</Text>
                       <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', letterSpacing: 1.5, marginTop: 4 }}>{wheelResult.coupon.code}</Text>
                       {!!wheelResult.coupon.expiryDate && !isNaN(new Date(wheelResult.coupon.expiryDate).getTime()) && (
-                        <Text style={{ fontSize: 8.5, fontWeight: '700', color: '#451A03', marginTop: 4 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#451A03', marginTop: 4 }}>
                           Valid till {new Date(wheelResult.coupon.expiryDate).toLocaleDateString([], { day: 'numeric', month: 'short' })}
                         </Text>
                       )}
@@ -2831,12 +2840,12 @@ export default function OthersScreen() {
                   }}
                   style={{ backgroundColor: '#111827', width: '100%', paddingVertical: 12, borderRadius: 14, alignItems: 'center', marginTop: 10 }}
                 >
-                  <Text style={{ color: '#fff', fontSize: 9, fontWeight: '900', letterSpacing: 1 }}>{copiedCode === wheelResult.coupon.code ? 'CODE COPIED ✓' : 'COPY COUPON CODE'}</Text>
+                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 1 }}>{copiedCode === wheelResult.coupon.code ? 'CODE COPIED ✓' : 'COPY COUPON CODE'}</Text>
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity onPress={() => { setShowWheelModal(false); setWheelResult(null); }} style={{ paddingVertical: 12, marginTop: 6 }}>
-                <Text style={{ fontSize: 9.5, fontWeight: '900', color: COLORS.gold, letterSpacing: 1 }}>AWESOME!</Text>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: COLORS.gold, letterSpacing: 1 }}>AWESOME!</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -2856,11 +2865,11 @@ export default function OthersScreen() {
                   <Text style={{ fontSize: 17, fontWeight: '900', color: txt }}>Saved Items ❤️</Text>
                   {savedFavoritesList.length > 0 && (
                     <View style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
-                      <Text style={{ color: '#EF4444', fontSize: 10, fontWeight: '900' }}>{savedFavoritesList.length} SAVED</Text>
+                      <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '900' }}>{savedFavoritesList.length} SAVED</Text>
                     </View>
                   )}
                 </View>
-                <Text style={{ fontSize: 10.5, color: txtSec, fontWeight: '600', marginTop: 2 }}>Products you starred in the campus store</Text>
+                <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', marginTop: 2 }}>Products you starred in the campus store</Text>
               </View>
               <TouchableOpacity style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: isDark ? '#27272A' : '#F1F5F9', alignItems: 'center', justifyContent: 'center' }} onPress={() => setFavoritesModalVisible(false)} accessibilityLabel="Close">
                 <Ionicons name="close" size={18} color={txt} />
@@ -2874,12 +2883,12 @@ export default function OthersScreen() {
                     <Image source={{ uri: item.image }} style={{ width: 64, height: 64, borderRadius: 12, backgroundColor: isDark ? '#333' : '#E2E8F0' }} />
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 12.5, fontWeight: '900', color: txt, lineHeight: 16 }} numberOfLines={2}>{item.title}</Text>
-                      <Text style={{ fontSize: 9.5, color: txtSec, marginTop: 2 }} numberOfLines={1}>{item.subtitle}</Text>
+                      <Text style={{ fontSize: 12, color: txtSec, marginTop: 2 }} numberOfLines={1}>{item.subtitle}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
                         <Text style={{ fontSize: 13, fontWeight: '900', color: '#10B981' }}>{item.price}</Text>
                         <View style={{ flexDirection: 'row', gap: 6 }}>
                           <TouchableOpacity style={{ paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, backgroundColor: isDark ? '#3F3F46' : '#E2E8F0' }} onPress={() => removeSaved(item.id)}>
-                            <Text style={{ fontSize: 9, fontWeight: '800', color: txtSec }}>REMOVE</Text>
+                            <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>REMOVE</Text>
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, backgroundColor: '#EF4444' }}
@@ -2888,7 +2897,7 @@ export default function OthersScreen() {
                               router.push(item.targetRoute as any);
                             }}
                           >
-                            <Text style={{ fontSize: 9, fontWeight: '900', color: '#FFF' }}>VIEW ➔</Text>
+                            <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFF' }}>VIEW ➔</Text>
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -2899,8 +2908,8 @@ export default function OthersScreen() {
                 <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
                   <Text style={{ fontSize: 36, marginBottom: 10 }}>🔖</Text>
                   <Text style={{ fontSize: 15, fontWeight: '900', color: txt }}>Nothing saved yet</Text>
-                  <Text style={{ fontSize: 11, color: txtSec, marginTop: 4, textAlign: 'center', maxWidth: 260 }}>
-                    Tap the ☆ on any product in Food & Basket to save it here.
+                  <Text style={{ fontSize: 12, color: txtSec, marginTop: 4, textAlign: 'center', maxWidth: 260 }}>
+                    Tap the ☆ on any product in Food & groceries to save it here.
                   </Text>
                 </View>
               )}
@@ -2999,7 +3008,7 @@ const s = StyleSheet.create({
   },
   bbSearchInput: {
     flex: 1,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     padding: 0,
   },
@@ -3102,7 +3111,7 @@ const s = StyleSheet.create({
   },
   bbStepperQtyMini: {
     color: '#fff',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '900',
     minWidth: 12,
     textAlign: 'center',
@@ -3116,7 +3125,7 @@ const s = StyleSheet.create({
     fontWeight: '900',
   },
   bbProductCardOrigPrice: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#8B8B93',
     textDecorationLine: 'line-through',
   },
@@ -3130,18 +3139,18 @@ const s = StyleSheet.create({
   },
   bbDiscountTagText: {
     color: '#854D0E',
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
   },
   bbProductCardName: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700',
     marginTop: 4,
     lineHeight: 13,
     height: 26,
   },
   bbProductCardWeight: {
-    fontSize: 9,
+    fontSize: 12,
     color: '#617088',
     fontWeight: '600',
   },
@@ -3158,7 +3167,7 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   bbCategoryCardName: {
-    fontSize: 7.5,
+    fontSize: 12,
     fontWeight: '900',
     textAlign: 'center',
     lineHeight: 10,
@@ -3179,8 +3188,8 @@ const s = StyleSheet.create({
 
   // Nav
   nav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 12 },
-  loc: { fontSize: 10, fontWeight: '800', letterSpacing: 2 },
-  greeting: { fontSize: 11, fontWeight: '800', letterSpacing: 2, marginTop: 2 },
+  loc: { fontSize: 12, fontWeight: '800', letterSpacing: 2 },
+  greeting: { fontSize: 12, fontWeight: '800', letterSpacing: 2, marginTop: 2 },
   navRight: { flexDirection: 'row', gap: 8 },
   navBtn: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(212, 175, 122, 0.25)' },
   
@@ -3188,7 +3197,7 @@ const s = StyleSheet.create({
   heroHeader: { alignItems: 'center', marginBottom: 16 },
   ecoBadgeWrapper: { borderRadius: 20, overflow: 'hidden', marginBottom: 8 },
   ecoBadgeGradient: { paddingHorizontal: 16, paddingVertical: 6, alignItems: 'center', justifyContent: 'center' },
-  ecoBadgeText: { fontSize: 9, fontWeight: '900', color: '#000', letterSpacing: 4 },
+  ecoBadgeText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 4 },
   heroTitle: { fontSize: 26, fontWeight: '900', letterSpacing: -0.5 },
   underline: { width: 40, height: 3, backgroundColor: '#D4AF7A', borderRadius: 2, marginTop: 6 },
   
@@ -3196,14 +3205,14 @@ const s = StyleSheet.create({
   searchWrap: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, borderWidth: 1, gap: 10, marginBottom: 16 },
   searchInput: { flex: 1, fontSize: 12, fontWeight: '600', padding: 0 },
   searchBtnGradient: { paddingHorizontal: 14, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
-  searchBtnText: { fontSize: 9, fontWeight: '900', color: '#000', letterSpacing: 2 },
+  searchBtnText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 2 },
   
   // Tabs
   tabRow: { flexDirection: 'row', marginHorizontal: 16, borderRadius: 16, padding: 4, marginBottom: 16, borderWidth: 1 },
   tabBtn: { flex: 1, borderRadius: 12, alignItems: 'center', overflow: 'hidden' },
   tabBtnActive: { },
   tabBtnActiveGradient: { width: '100%', paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
-  tabLabel: { fontSize: 9, fontWeight: '800', letterSpacing: 1.5 },
+  tabLabel: { fontSize: 12, fontWeight: '800', letterSpacing: 1.5 },
   tabLabelActive: { color: '#000' },
   
   // Promo
@@ -3211,12 +3220,12 @@ const s = StyleSheet.create({
   promoImg: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
   promoOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.45)' },
   promoContent: { flex: 1, justifyContent: 'center', padding: 20, zIndex: 2 },
-  promoTag: { fontSize: 9, fontWeight: '900', color: '#D4AF7A', letterSpacing: 4, marginBottom: 6 },
+  promoTag: { fontSize: 12, fontWeight: '900', color: '#D4AF7A', letterSpacing: 4, marginBottom: 6 },
   promoTitle: { fontSize: 24, fontWeight: '900', color: '#fff', fontStyle: 'italic' },
   promoSub: { fontSize: 24, fontWeight: '900', color: '#D4AF7A', fontStyle: 'italic', marginBottom: 6 },
-  promoDesc: { fontSize: 7, fontWeight: '700', color: '#bbb', letterSpacing: 2, marginBottom: 14, maxWidth: 250 },
+  promoDesc: { fontSize: 12, fontWeight: '700', color: '#bbb', letterSpacing: 2, marginBottom: 14, maxWidth: 250 },
   promoCta: { backgroundColor: '#D4AF7A', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 24, alignSelf: 'flex-start', ...SHADOWS.goldGlow },
-  promoCtaText: { fontSize: 9, fontWeight: '900', color: '#000', letterSpacing: 3 },
+  promoCtaText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 3 },
   promoDots: { position: 'absolute', bottom: 12, left: 20, flexDirection: 'row', gap: 4, zIndex: 3 },
   dot: { width: 6, height: 6, borderRadius: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
   dotActive: { width: 20, backgroundColor: '#D4AF7A', borderColor: '#D4AF7A' },
@@ -3247,7 +3256,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  deptName: { fontSize: 7, fontWeight: '900', textAlign: 'center', letterSpacing: 0.5 },
+  deptName: { fontSize: 12, fontWeight: '900', textAlign: 'center', letterSpacing: 0.5 },
   
   // Trending
   trendCard: { marginHorizontal: 16, borderRadius: 20, overflow: 'hidden', height: 180, marginBottom: 12, position: 'relative' },
@@ -3255,17 +3264,17 @@ const s = StyleSheet.create({
   trendOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.5)' },
   trendContent: { flex: 1, justifyContent: 'flex-end', padding: 16, zIndex: 2 },
   trendTag: { backgroundColor: COLORS.red, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start' },
-  trendTagText: { fontSize: 8, fontWeight: '900', color: '#fff', letterSpacing: 2 },
+  trendTagText: { fontSize: 12, fontWeight: '900', color: '#fff', letterSpacing: 2 },
   trendBadgeWrap: { backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start' },
-  trendBadgeText: { fontSize: 8, fontWeight: '700', color: '#fff' },
+  trendBadgeText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   trendTitle: { fontSize: 18, fontWeight: '900', color: '#fff', marginBottom: 2 },
-  trendDesc: { fontSize: 10, fontWeight: '500', color: 'rgba(255,255,255,0.7)', lineHeight: 14 },
+  trendDesc: { fontSize: 12, fontWeight: '500', color: 'rgba(255,255,255,0.7)', lineHeight: 14 },
 
   // PG filters
 
   emptyState: { padding: 48, alignItems: 'center', justifyContent: 'center' },
   resetBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  resetBtnText: { fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },
+  resetBtnText: { fontSize: 12, fontWeight: '900', letterSpacing: 1.5 },
 
 
 
@@ -3277,38 +3286,38 @@ const s = StyleSheet.create({
 
 
   floatingFab: { paddingVertical: 14, borderRadius: 16, backgroundColor: COLORS.red, alignItems: 'center', justifyContent: 'center', marginVertical: 12, ...SHADOWS.redGlow },
-  floatingFabText: { color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 2 },
+  floatingFabText: { color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 2 },
 
   // Modal styling
   modalContentBox: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, height: '80%', alignItems: 'center' },
   modalTitle: { fontSize: 14, fontWeight: '900', letterSpacing: 3, marginBottom: 16 },
-  formLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 1, alignSelf: 'flex-start', marginTop: 12, marginBottom: 6 },
+  formLabel: { fontSize: 12, fontWeight: '900', letterSpacing: 1, alignSelf: 'flex-start', marginTop: 12, marginBottom: 6 },
   formInput: { width: '100%', height: 44, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, fontSize: 12, fontWeight: '700', marginBottom: 6 },
   formRoleRow: { flexDirection: 'row', gap: 10, width: '100%', marginBottom: 6 },
   roleBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.borderDark, alignItems: 'center' },
   roleBtnActive: { backgroundColor: COLORS.gold, borderColor: COLORS.gold },
-  roleBtnTextLabel: { fontSize: 9, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 1 },
+  roleBtnTextLabel: { fontSize: 12, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 1 },
   roleBtnTextLabelActive: { color: '#000' },
   formSubmitBtn: { width: '100%', paddingVertical: 14, borderRadius: 16, backgroundColor: COLORS.red, alignItems: 'center', justifyContent: 'center', marginTop: 24, ...SHADOWS.redGlow },
-  formSubmitText: { color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 2 },
+  formSubmitText: { color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 2 },
   formCancelBtn: { width: '100%', paddingVertical: 12, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
-  formCancelText: { fontSize: 9, fontWeight: '900', color: COLORS.textSecondary, letterSpacing: 2 },
+  formCancelText: { fontSize: 12, fontWeight: '900', color: COLORS.textSecondary, letterSpacing: 2 },
 
   // Redesigned Grocery Styles
   pillBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
   pillBtnActive: { borderColor: '#22C55E' },
-  pillText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  pillText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
 
   monsoonStoreBanner: { borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', overflow: 'hidden' },
   monsoonBannerTitle: { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: 2, marginVertical: 4 },
-  monsoonBannerSubtitle: { fontSize: 8, fontWeight: '900', color: '#34D399', letterSpacing: 1.5 },
-  monsoonBannerDesc: { fontSize: 8, fontWeight: '600', color: '#ccc', letterSpacing: 0.5 },
+  monsoonBannerSubtitle: { fontSize: 12, fontWeight: '900', color: '#34D399', letterSpacing: 1.5 },
+  monsoonBannerDesc: { fontSize: 12, fontWeight: '600', color: '#ccc', letterSpacing: 0.5 },
   frogMascotContainer: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
 
   oilStackContainer: { height: 160, width: SW, position: 'relative', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginVertical: 12 },
   oilCardStackItem: { width: SW * 0.55, height: 140, position: 'absolute', borderRadius: 20, overflow: 'hidden', ...SHADOWS.card },
   oilCardGradient: { flex: 1, padding: 12, position: 'relative', justifyContent: 'space-between' },
-  oilCardLabel: { fontSize: 7, fontWeight: '900', color: 'rgba(255,255,255,0.7)', letterSpacing: 1 },
+  oilCardLabel: { fontSize: 12, fontWeight: '900', color: 'rgba(255,255,255,0.7)', letterSpacing: 1 },
   oilCardTitle: { fontSize: 14, fontWeight: '900', color: '#fff', letterSpacing: 0.5, lineHeight: 18, marginTop: 4 },
   oilCardImgWrapper: { width: 80, height: 80, position: 'absolute', bottom: -10, right: -10 },
   oilCardImg: { width: '100%', height: '100%', resizeMode: 'contain' },
@@ -3316,59 +3325,59 @@ const s = StyleSheet.create({
   healthCardCell: { width: 100, alignItems: 'center' },
   healthCardBacking: { width: 90, height: 90, borderRadius: 24, backgroundColor: '#DCFCE7', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' },
   healthCardImg: { width: '80%', height: '80%', resizeMode: 'contain' },
-  healthCardText: { fontSize: 9, fontWeight: '900', textAlign: 'center', marginTop: 8, letterSpacing: 0.5, height: 26 },
+  healthCardText: { fontSize: 12, fontWeight: '900', textAlign: 'center', marginTop: 8, letterSpacing: 0.5, height: 26 },
 
   wellnessSeeAll: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' },
   wellnessCard: { width: 140, borderRadius: 20, borderWidth: 1, overflow: 'hidden', ...SHADOWS.card },
   wellnessCardImgWrap: { width: '100%', height: 110, position: 'relative', backgroundColor: 'rgba(0,0,0,0.01)', alignItems: 'center', justifyContent: 'center' },
   wellnessCardImg: { width: '80%', height: '80%', resizeMode: 'contain' },
   discountBadge: { position: 'absolute', bottom: 8, left: 8, backgroundColor: '#F59E0B', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  discountText: { fontSize: 7, fontWeight: '900', color: '#fff' },
+  discountText: { fontSize: 12, fontWeight: '900', color: '#fff' },
   wellnessCardContent: { padding: 10, flex: 1, justifyContent: 'space-between' },
   vegBadge: { width: 12, height: 12, borderWidth: 1.5, borderRadius: 3, alignItems: 'center', justifyContent: 'center' },
   vegDotInner: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#22C55E' },
-  weightLabel: { fontSize: 8, fontWeight: '700', color: '#666' },
-  wellnessTitle: { fontSize: 10, fontWeight: '800', marginVertical: 4, height: 32 },
+  weightLabel: { fontSize: 12, fontWeight: '700', color: '#666' },
+  wellnessTitle: { fontSize: 12, fontWeight: '800', marginVertical: 4, height: 32 },
   wellnessPriceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  wellnessPrice: { fontSize: 11, fontWeight: '900' },
-  wellnessOriginalPrice: { fontSize: 8, color: '#999', textDecorationLine: 'line-through' },
+  wellnessPrice: { fontSize: 12, fontWeight: '900' },
+  wellnessOriginalPrice: { fontSize: 12, color: '#999', textDecorationLine: 'line-through' },
   addBtnWellness: { backgroundColor: '#fff', borderColor: '#22C55E', borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4, flexDirection: 'row', alignItems: 'center', gap: 2 },
-  addBtnWellnessText: { fontSize: 9, fontWeight: '900', color: '#22C55E' },
-  addBtnWellnessPlus: { fontSize: 9, fontWeight: '900', color: '#22C55E', position: 'absolute', top: 1, right: 3 },
+  addBtnWellnessText: { fontSize: 12, fontWeight: '900', color: '#22C55E' },
+  addBtnWellnessPlus: { fontSize: 12, fontWeight: '900', color: '#22C55E', position: 'absolute', top: 1, right: 3 },
   stepperWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#22C55E', borderRadius: 8, overflow: 'hidden', backgroundColor: '#fff' },
   stepperBtn: { paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#DCFCE7' },
-  stepperBtnText: { fontSize: 10, fontWeight: '900', color: '#22C55E' },
-  stepperQty: { fontSize: 9, fontWeight: '900', paddingHorizontal: 6, textAlign: 'center', minWidth: 16 },
+  stepperBtnText: { fontSize: 12, fontWeight: '900', color: '#22C55E' },
+  stepperQty: { fontSize: 12, fontWeight: '900', paddingHorizontal: 6, textAlign: 'center', minWidth: 16 },
 
   categorySectionHeader: { fontSize: 13, fontWeight: '900', letterSpacing: 2, marginBottom: 12 },
   categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   categoryItemCell: { width: (SW - 32 - 24) / 4, alignItems: 'center', marginBottom: 16 },
   categoryImageCard: { width: (SW - 32 - 24) / 4, height: (SW - 32 - 24) / 4, borderRadius: 16, borderWidth: 1, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   categoryCellImage: { width: '80%', height: '80%', resizeMode: 'contain' },
-  categoryCellName: { fontSize: 8, fontWeight: '800', textAlign: 'center', marginTop: 4, letterSpacing: 0.2 },
+  categoryCellName: { fontSize: 12, fontWeight: '800', textAlign: 'center', marginTop: 4, letterSpacing: 0.2 },
 
   promoOverlayCentred: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', alignItems: 'center', padding: 24 },
   promoPopupCard: { width: '100%', maxWidth: 340, backgroundColor: '#fff', borderRadius: 28, padding: 18, alignItems: 'center', position: 'relative' },
   promoCloseBtn: { position: 'absolute', top: -36, right: 0, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   promoPopupHeader: { alignItems: 'center', marginBottom: 14 },
-  promoPopupHeaderSub: { fontSize: 11, fontWeight: '800', color: '#666', textAlign: 'center', marginBottom: 8 },
+  promoPopupHeaderSub: { fontSize: 12, fontWeight: '800', color: '#666', textAlign: 'center', marginBottom: 8 },
   perksRow: { flexDirection: 'row', gap: 8, justifyContent: 'center' },
   perkBadge: { width: 85, paddingVertical: 6, borderRadius: 10, backgroundColor: '#FEF3C7', borderStyle: 'dashed', borderWidth: 1, borderColor: '#F59E0B', alignItems: 'center' },
-  perkBadgeVal: { fontSize: 11, fontWeight: '900', color: '#B45309' },
-  perkBadgeLabel: { fontSize: 6, fontWeight: '800', color: '#B45309', textAlign: 'center', marginTop: 2, height: 16 },
+  perkBadgeVal: { fontSize: 12, fontWeight: '900', color: '#B45309' },
+  perkBadgeLabel: { fontSize: 12, fontWeight: '800', color: '#B45309', textAlign: 'center', marginTop: 2, height: 16 },
   promoPopupGradient: { width: '100%', borderRadius: 20, padding: 14, alignItems: 'center', marginVertical: 8 },
   promoStoreTitle: { fontSize: 14, fontWeight: '900', color: '#fff', letterSpacing: 4, marginBottom: 8 },
   promoItemsGrid: { flexDirection: 'row', gap: 12, width: '100%', justifyContent: 'center', marginVertical: 8 },
   promoPopupItem: { width: 100, alignItems: 'center' },
   promoItemImgBg: { width: 75, height: 75, borderRadius: 16, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   promoItemImg: { width: '80%', height: '80%', resizeMode: 'contain' },
-  promoItemTag: { fontSize: 7, fontWeight: '900', backgroundColor: '#FEF3C7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, color: '#B45309', marginTop: -8 },
-  promoItemTitle: { fontSize: 7, fontWeight: '800', color: '#fff', marginTop: 6 },
-  promoItemPrice: { fontSize: 11, fontWeight: '900', color: '#FCD34D' },
-  promoPesticidesText: { fontSize: 7, fontWeight: '800', color: '#34D399', letterSpacing: 0.5, marginTop: 8 },
+  promoItemTag: { fontSize: 12, fontWeight: '900', backgroundColor: '#FEF3C7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, color: '#B45309', marginTop: -8 },
+  promoItemTitle: { fontSize: 12, fontWeight: '800', color: '#fff', marginTop: 6 },
+  promoItemPrice: { fontSize: 12, fontWeight: '900', color: '#FCD34D' },
+  promoPesticidesText: { fontSize: 12, fontWeight: '800', color: '#34D399', letterSpacing: 0.5, marginTop: 8 },
   promoPopupCta: { width: '100%', backgroundColor: '#111', paddingVertical: 12, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 10 },
   promoPopupCtaText: { fontSize: 12, fontWeight: '900', color: '#fff', letterSpacing: 2 },
-  promoPopupFooterText: { fontSize: 7, color: '#999', marginTop: 8 },
+  promoPopupFooterText: { fontSize: 12, color: '#999', marginTop: 8 },
 
   // Catalog Bottom Sheet Styles
   catalogOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
@@ -3381,10 +3390,10 @@ const s = StyleSheet.create({
   catalogProductImgBg: { width: 85, height: 85, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.02)', overflow: 'hidden', alignItems: 'center', justifyContent: 'center', position: 'relative' },
   catalogProductImg: { width: '80%', height: '80%', resizeMode: 'contain' },
   catalogDiscountBadge: { position: 'absolute', top: 4, left: 4, backgroundColor: '#F59E0B', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4 },
-  catalogDiscountText: { fontSize: 6, fontWeight: '900', color: '#fff' },
-  catalogProductTitle: { fontSize: 11, fontWeight: '800', lineHeight: 14 },
+  catalogDiscountText: { fontSize: 12, fontWeight: '900', color: '#fff' },
+  catalogProductTitle: { fontSize: 12, fontWeight: '800', lineHeight: 14 },
   catalogProductPrice: { fontSize: 12, fontWeight: '900' },
-  catalogProductOrigPrice: { fontSize: 9, color: '#999', textDecorationLine: 'line-through', marginTop: 1 },
+  catalogProductOrigPrice: { fontSize: 12, color: '#999', textDecorationLine: 'line-through', marginTop: 1 },
 
   // Floating Cart Status Bar
   floatingCartBar: {
@@ -3411,19 +3420,19 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cartBarTitle: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     color: '#fff',
     letterSpacing: 1.5,
   },
   cartBarSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     color: '#E8F5E9',
     marginTop: 1,
   },
   cartBarCta: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '900',
     color: '#fff',
     letterSpacing: 1,
@@ -3450,7 +3459,7 @@ const s = StyleSheet.create({
   },
   flashBadgeText: {
     color: '#fff',
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
@@ -3460,7 +3469,7 @@ const s = StyleSheet.create({
     color: '#1E293B',
   },
   flashDealTimerLabel: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#617088',
     marginTop: 1,
   },
@@ -3472,7 +3481,7 @@ const s = StyleSheet.create({
   },
   flashDealCtaText: {
     color: '#fff',
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
   },
 
@@ -3492,7 +3501,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   brandCellText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
@@ -3519,13 +3528,13 @@ const s = StyleSheet.create({
   },
   adLiveText: {
     color: '#8B8B93',
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1,
   },
   adBrandTag: {
     color: '#34D399',
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1,
   },
@@ -3538,7 +3547,7 @@ const s = StyleSheet.create({
   },
   adVideoSubtitle: {
     color: '#38BDF8',
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1.5,
   },
@@ -3550,7 +3559,7 @@ const s = StyleSheet.create({
   },
   adVideoDesc: {
     color: '#8B8B93',
-    fontSize: 10,
+    fontSize: 12,
     lineHeight: 14,
     marginTop: 4,
   },
@@ -3598,7 +3607,7 @@ const s = StyleSheet.create({
   },
   adPlayBtnText: {
     color: '#fff',
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1,
   },
@@ -3612,7 +3621,7 @@ const s = StyleSheet.create({
   },
   adCtaBtnText: {
     color: '#000',
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1,
   },
@@ -3632,16 +3641,16 @@ const s = StyleSheet.create({
     resizeMode: 'contain',
   },
   crossPromoTitle: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
   },
   crossPromoWeight: {
-    fontSize: 8,
+    fontSize: 12,
     color: '#666',
     marginTop: 1,
   },
   crossPromoPrice: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '900',
     flex: 1,
   },

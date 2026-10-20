@@ -641,7 +641,7 @@ const styles = StyleSheet.create({
     color: CampusColors.ink,
   },
   headerSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.accent,
     fontWeight: '600',
   },
@@ -745,7 +745,7 @@ const styles = StyleSheet.create({
     backgroundColor: CampusColors.accentSoft,
   },
   badgeText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
@@ -765,7 +765,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   resolvedText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     color: '#166534',
   },
@@ -815,7 +815,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   ownerText: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.muted,
   },
   actionRow: {
@@ -833,7 +833,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   contactBtnText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: CampusColors.accent,
   },
@@ -847,7 +847,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   resolveBtnText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: '#FFFFFF',
   },
@@ -955,7 +955,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   photoOptional: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.muted,
     marginBottom: 8,
     marginTop: -2,

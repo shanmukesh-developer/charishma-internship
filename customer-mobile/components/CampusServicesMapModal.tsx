@@ -50,13 +50,13 @@ const CAMPUS_SERVICES_MAP: ServicePillar[] = [
   {
     id: 'grocery',
     icon: '🛒',
-    title: 'Kirana & Mega Basket',
+    title: 'Kirana & shopping list',
     category: 'GROCERIES & DAILY NEEDS',
     tagline: 'Snacks, staples and hostel essentials',
-    howToAccess: 'Others tab ➔ "Food & Basket", or Home ➔ Basket for a custom list.',
+    howToAccess: 'Others tab ➔ "Food & groceries", or Home ➔ Shopping list for a custom list.',
     keyFeatures: [
       'Noodles, snacks, drinks and daily essentials',
-      'Mega Basket: a rider shops your list and sends the real bill',
+      'Shopping list: a rider shops your list and sends the real bill',
       'You approve the bill before you pay'
     ],
     image: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=600&q=80',
@@ -98,7 +98,7 @@ const CAMPUS_SERVICES_MAP: ServicePillar[] = [
     title: 'Pharmacy Essentials',
     category: 'HEALTHCARE',
     tagline: 'Basic over-the-counter care, delivered',
-    howToAccess: 'Others tab ➔ "Food & Basket" ➔ search for medicine & first-aid.',
+    howToAccess: 'Others tab ➔ "Food & groceries" ➔ search for medicine & first-aid.',
     keyFeatures: [
       'First-aid and everyday health items',
       'Same Cash on Delivery or Wallet checkout',
@@ -194,7 +194,7 @@ export default function CampusServicesMapModal({ visible, onClose }: Props) {
                   <Text style={s.liveBadgeText}>8 SERVICES</Text>
                 </View>
               </View>
-              <Text style={{ fontSize: 11, color: txtSec, fontWeight: '600', marginTop: 2 }}>
+              <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', marginTop: 2 }}>
                 Everything you need for effortless campus life
               </Text>
             </View>
@@ -243,7 +243,7 @@ export default function CampusServicesMapModal({ visible, onClose }: Props) {
                     {activePillar.category}
                   </Text>
                   <View style={{ backgroundColor: `${activePillar.accentColor}20`, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
-                    <Text style={{ color: activePillar.accentColor, fontSize: 9, fontWeight: '900' }}>
+                    <Text style={{ color: activePillar.accentColor, fontSize: 12, fontWeight: '900' }}>
                       ON ZENVY
                     </Text>
                   </View>
@@ -371,7 +371,7 @@ const s = StyleSheet.create({
   },
   liveBadgeText: {
     color: '#EF4444',
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
   },
   closeBtn: {
@@ -390,7 +390,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
   },
   chipText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
   },
   detailCard: {
@@ -410,7 +410,7 @@ const s = StyleSheet.create({
     padding: 16,
   },
   pillarCategory: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1.5,
   },
@@ -420,7 +420,7 @@ const s = StyleSheet.create({
     marginTop: 2,
   },
   pillarTagline: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '600',
     marginTop: 4,
     marginBottom: 12,
@@ -432,7 +432,7 @@ const s = StyleSheet.create({
     marginBottom: 14,
   },
   howToLabel: {
-    fontSize: 8.5,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1,
     marginBottom: 4,
@@ -443,7 +443,7 @@ const s = StyleSheet.create({
     lineHeight: 16,
   },
   featuresLabel: {
-    fontSize: 8.5,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1,
     marginBottom: 8,
@@ -455,14 +455,14 @@ const s = StyleSheet.create({
     marginBottom: 6,
   },
   featureText: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '600',
   },
   allServicesSummary: {
     marginBottom: 20,
   },
   summaryHeader: {
-    fontSize: 8.5,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1.2,
     marginBottom: 10,
@@ -480,12 +480,12 @@ const s = StyleSheet.create({
     gap: 4,
   },
   gridItemTitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     textAlign: 'center',
   },
   gridItemCat: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
   },
   footer: {

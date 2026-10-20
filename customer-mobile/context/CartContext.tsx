@@ -733,7 +733,7 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
 
 /** GET /api/orders/serviceability — is campus ordering open right now? */
 export function useServiceability() {
-  const [state, setState] = useState<{ open: boolean; reopensAt?: string; message?: string } | null>(null);
+  const [state, setState] = useState<{ open: boolean; reopensAt?: string; message?: string; storeAcceptTimeoutMin?: number } | null>(null);
   const [nonce, setNonce] = useState(0);
   const refresh = useCallback(() => setNonce((n) => n + 1), []);
 

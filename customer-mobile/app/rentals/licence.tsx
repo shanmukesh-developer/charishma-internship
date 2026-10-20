@@ -82,7 +82,7 @@ export default function LicenceScreen() {
   const photo = (side: 'front' | 'back', img: Img | null, label: string) => (
     <TouchableOpacity onPress={() => pick(side)} accessibilityRole="button" accessibilityLabel={`Upload ${label}`}
       style={{ flex: 1, height: 120, borderRadius: 14, borderWidth: 1.5, borderStyle: img ? 'solid' : 'dashed', borderColor: img ? p.success : p.accent, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: p.card2 }}>
-      {uploading === side ? <ActivityIndicator color={p.accent} /> : img ? <Image source={{ uri: img.preview }} style={{ width: '100%', height: '100%' }} /> : <><Ionicons name="card-outline" size={28} color={p.accent} /><Text style={{ fontSize: 11.5, fontWeight: '800', color: p.accent, marginTop: 4 }}>{label}</Text></>}
+      {uploading === side ? <ActivityIndicator color={p.accent} /> : img ? <Image source={{ uri: img.preview }} style={{ width: '100%', height: '100%' }} /> : <><Ionicons name="card-outline" size={28} color={p.accent} /><Text style={{ fontSize: 12, fontWeight: '800', color: p.accent, marginTop: 4 }}>{label}</Text></>}
     </TouchableOpacity>
   );
 
@@ -118,7 +118,7 @@ export default function LicenceScreen() {
             <Field label="Licence number" value={number} onChangeText={(t) => setNumber(t.toUpperCase().slice(0, 24))} autoCapitalize="characters" placeholder="AP07 20190012345" />
             <Text style={{ fontSize: 12, fontWeight: '800', color: p.sub, marginBottom: 6 }}>Classes on your licence</Text>
             <Chips<string> multi options={LICENCE_CLASSES} value={classes} onChange={setClasses} />
-            <Text style={{ fontSize: 11, color: p.muted, marginTop: 6, marginBottom: 14 }}>Geared bikes need MCWG. Scooters and gearless bikes need MCWOG or MCWG. Cars need LMV.</Text>
+            <Text style={{ fontSize: 12, color: p.muted, marginTop: 6, marginBottom: 14 }}>Geared bikes need MCWG. Scooters and gearless bikes need MCWOG or MCWG. Cars need LMV.</Text>
             <Field label="Valid till (required)" value={expiry} onChangeText={(t) => setExpiry(t.replace(/[^\d-]/g, '').slice(0, 10))} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" />
             <Text style={{ fontSize: 12, fontWeight: '800', color: p.sub, marginBottom: 6 }}>Photos</Text>
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>

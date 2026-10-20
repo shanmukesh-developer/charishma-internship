@@ -136,14 +136,14 @@ const CrazyMovingBanner = ({ text, theme = 'fire' }: { text: string; theme?: str
       <LinearGradient colors={colors as unknown as readonly [string, string, ...string[]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
       <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
         <View style={{ backgroundColor: '#0D0D15', paddingHorizontal: 12, height: '100%', justifyContent: 'center', zIndex: 20, borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.2)' }}>
-          <Text style={{ fontSize: 10, fontWeight: '900', color: '#FFD700', letterSpacing: 0.8 }}>📢 LIVE EVENT</Text>
+          <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFD700', letterSpacing: 0.8 }}>📢 LIVE EVENT</Text>
         </View>
         <View style={{ flex: 1, overflow: 'hidden', height: '100%', justifyContent: 'center', paddingHorizontal: 6 }}>
           <Animated.View style={{ flexDirection: 'row', alignItems: 'center', transform: [{ translateX }] }}>
             <Text 
               numberOfLines={1}
               style={{ 
-                fontSize: 11, 
+                fontSize: 12, 
                 fontWeight: '900', 
                 color: '#FFF', 
                 paddingRight: 60,
@@ -350,7 +350,7 @@ const PostCard = React.memo(function PostCard({ post, idx, myUserId, signedIn, i
                   <Text style={[s.replyText, { color: txtSec, flexShrink: 1 }]}>{r.content}</Text>
                   {signedIn && String(r.userId) === myUserId ? (
                     <TouchableOpacity onPress={() => actions.remove(r.id, post.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                      <Text style={{ fontSize: 7, color: COLORS.red }}>🗑️</Text>
+                      <Text style={{ fontSize: 12, color: COLORS.red }}>🗑️</Text>
                     </TouchableOpacity>
                   ) : signedIn ? (
                     <TouchableOpacity onPress={() => actions.more(r, post.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Reply options">
@@ -1380,13 +1380,13 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
               style={{ flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center', backgroundColor: wallSubTab === 'live' ? (isDark ? COLORS.gold : '#3e2723') : 'transparent' }}
               onPress={() => setWallSubTab('live')}
             >
-              <Text style={{ fontSize: 10, fontWeight: '900', color: wallSubTab === 'live' ? (isDark ? '#000' : '#fff') : txtSec, letterSpacing: 1 }}>📸 LIVE CONTEST</Text>
+              <Text style={{ fontSize: 12, fontWeight: '900', color: wallSubTab === 'live' ? (isDark ? '#000' : '#fff') : txtSec, letterSpacing: 1 }}>📸 LIVE CONTEST</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={{ flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center', backgroundColor: wallSubTab === 'hof' ? (isDark ? COLORS.gold : '#3e2723') : 'transparent' }}
               onPress={() => setWallSubTab('hof')}
             >
-              <Text style={{ fontSize: 10, fontWeight: '900', color: wallSubTab === 'hof' ? (isDark ? '#000' : '#fff') : txtSec, letterSpacing: 1 }}>🏆 HALL OF FAME</Text>
+              <Text style={{ fontSize: 12, fontWeight: '900', color: wallSubTab === 'hof' ? (isDark ? '#000' : '#fff') : txtSec, letterSpacing: 1 }}>🏆 HALL OF FAME</Text>
             </TouchableOpacity>
           </View>
 
@@ -1444,12 +1444,12 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FF8C00', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 }}>
                         <Text style={{ fontSize: 12 }}>🔥</Text>
-                        <Text style={{ fontSize: 9, fontWeight: '900', color: '#FFF', letterSpacing: 1 }}>LIVE CONTEST</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFF', letterSpacing: 1 }}>LIVE CONTEST</Text>
                       </View>
 
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(16, 185, 129, 0.15)', borderWidth: 1, borderColor: '#10B981', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
                         <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981' }} />
-                        <Text style={{ fontSize: 9, fontWeight: '900', color: '#10B981', letterSpacing: 0.5 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '900', color: '#10B981', letterSpacing: 0.5 }}>
                           {wallSubmissions.reduce((acc, curr) => acc + (curr.likeCount || 0), 0)} TOTAL VOTES
                         </Text>
                       </View>
@@ -1459,7 +1459,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                     <Text style={{ fontSize: 19, fontWeight: '900', color: txt, letterSpacing: 0.5, marginBottom: 4 }}>
                       {activeWallEvent.title || 'Photo Contest'}
                     </Text>
-                    <Text style={{ fontSize: 11, color: txtSec, lineHeight: 16, marginBottom: 14 }}>
+                    <Text style={{ fontSize: 12, color: txtSec, lineHeight: 16, marginBottom: 14 }}>
                       {activeWallEvent.description || 'Post your best photo and vote for your favourites. The top-voted photo wins.'}
                     </Text>
 
@@ -1468,7 +1468,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                       <View style={{ flex: 1, backgroundColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.85)', padding: 10, borderRadius: 14, borderWidth: 1, borderColor: border, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         <Text style={{ fontSize: 18 }}>⏱️</Text>
                         <View>
-                          <Text style={{ fontSize: 7.5, fontWeight: '900', color: txtSec, letterSpacing: 0.8 }}>COUNTDOWN CLASH</Text>
+                          <Text style={{ fontSize: 12, fontWeight: '900', color: txtSec, letterSpacing: 0.8 }}>COUNTDOWN CLASH</Text>
                           <WallCountdown endTime={activeWallEvent.endTime} active={activeTab === 'wall'} />
                         </View>
                       </View>
@@ -1476,7 +1476,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                       <View style={{ flex: 1, backgroundColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.85)', padding: 10, borderRadius: 14, borderWidth: 1, borderColor: border, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         <Text style={{ fontSize: 18 }}>🎁</Text>
                         <View>
-                          <Text style={{ fontSize: 7.5, fontWeight: '900', color: txtSec, letterSpacing: 0.8 }}>WINNER GETS</Text>
+                          <Text style={{ fontSize: 12, fontWeight: '900', color: txtSec, letterSpacing: 0.8 }}>WINNER GETS</Text>
                           <Text style={{ fontSize: 13, fontWeight: '900', color: '#10B981' }}>
                             {activeWallEvent.couponValue ? `₹${activeWallEvent.couponValue} OFF` : '—'}
                           </Text>
@@ -1487,7 +1487,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                     {activeWallEvent.couponValue ? (
                       <View style={{ marginTop: 12, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 14, backgroundColor: isDark ? 'rgba(255,140,0,0.12)' : 'rgba(255,140,0,0.08)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.5)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                         <Text style={{ fontSize: 13 }}>🏆</Text>
-                        <Text style={{ fontSize: 10, fontWeight: '900', color: '#FF8C00', letterSpacing: 0.6, flexShrink: 1, textAlign: 'center' }}>
+                        <Text style={{ fontSize: 12, fontWeight: '900', color: '#FF8C00', letterSpacing: 0.6, flexShrink: 1, textAlign: 'center' }}>
                           TOP-VOTED PHOTO WINS A ₹{activeWallEvent.couponValue} COUPON
                         </Text>
                       </View>
@@ -1495,7 +1495,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
 
                     {userWallSubmission && (
                       <View style={{ marginTop: 12, padding: 8, borderRadius: 10, backgroundColor: userWallSubmission.isApproved ? 'rgba(74,222,128,0.1)' : 'rgba(250,204,21,0.1)', borderWidth: 1, borderColor: userWallSubmission.isApproved ? '#4ADE80' : '#FACC15', alignItems: 'center' }}>
-                        <Text style={{ fontSize: 9, fontWeight: '900', color: userWallSubmission.isApproved ? '#4ADE80' : '#FACC15' }}>
+                        <Text style={{ fontSize: 12, fontWeight: '900', color: userWallSubmission.isApproved ? '#4ADE80' : '#FACC15' }}>
                           {userWallSubmission.isApproved ? '✅ YOUR PHOTO IS LIVE ON THE WALL!' : '⏳ YOUR PHOTO IS BEING REVIEWED'}
                         </Text>
                       </View>
@@ -1554,7 +1554,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                           {/* Leader Crown Badge Top-Left */}
                           <View style={{ position: 'absolute', top: 14, left: 14, backgroundColor: '#FF8C00', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6, shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 6, zIndex: 10 }}>
                             <Text style={{ fontSize: 14 }}>👑</Text>
-                            <Text style={{ fontSize: 9, fontWeight: '900', color: '#FFF', letterSpacing: 1 }}>CURRENT #1 LEADER</Text>
+                            <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFF', letterSpacing: 1 }}>CURRENT #1 LEADER</Text>
                           </View>
 
                           {/* Heart Vote Button Top-Right */}
@@ -1571,7 +1571,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                             style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}
                           >
                             <View style={{ flex: 1, paddingRight: 10 }}>
-                              <Text style={{ fontSize: 9, fontWeight: '900', color: '#FFD700', letterSpacing: 1, marginBottom: 2 }}>SPOTLIGHT ENTRY</Text>
+                              <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFD700', letterSpacing: 1, marginBottom: 2 }}>SPOTLIGHT ENTRY</Text>
                               <Text style={{ fontSize: 15, fontWeight: '900', color: '#FFF' }} numberOfLines={1}>
                                 {topSub.user?.name || 'Student'}
                               </Text>
@@ -1615,7 +1615,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
 
                             {/* Rank Badge */}
                             <View style={{ position: 'absolute', top: 10, right: 48, backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, flexDirection: 'row', alignItems: 'center' }}>
-                              <Text style={{ fontSize: 9, fontWeight: '900', color: '#FFF' }}>#{rank}</Text>
+                              <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFF' }}>#{rank}</Text>
                             </View>
 
                             {/* Heart Vote Button */}
@@ -1632,12 +1632,12 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                               style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 10, paddingVertical: 10, borderBottomLeftRadius: 18, borderBottomRightRadius: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}
                             >
                               <View style={{ flex: 1, paddingRight: 6 }}>
-                                <Text style={{ fontSize: 11, fontWeight: '900', color: '#FFF' }} numberOfLines={1}>
+                                <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFF' }} numberOfLines={1}>
                                   {sub.user?.name || 'Student'}
                                 </Text>
                               </View>
                               <View style={{ backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                <Text style={{ fontSize: 10, fontWeight: '900', color: '#FFD700' }}>❤️ {sub.likeCount || 0}</Text>
+                                <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFD700' }}>❤️ {sub.likeCount || 0}</Text>
                               </View>
                             </LinearGradient>
                           </TouchableOpacity>
@@ -1655,7 +1655,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
               {/* Header Title */}
               <View style={{ alignItems: 'center', marginBottom: 24 }}>
                 <Text style={{ fontSize: 22, fontWeight: '900', color: '#FFD700', letterSpacing: 1 }}>HALL OF FAME ⭐</Text>
-                <Text style={{ fontSize: 8, fontWeight: '900', color: COLORS.textMuted, letterSpacing: 2, marginTop: 2 }}>PAST CHAMPIONS OF THE WALL</Text>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: COLORS.textMuted, letterSpacing: 2, marginTop: 2 }}>PAST CHAMPIONS OF THE WALL</Text>
               </View>
 
               {wallHistory.length === 0 ? (
@@ -1715,21 +1715,21 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                               )}
                             </View>
 
-                            <Text style={{ fontSize: 8, fontWeight: '900', color: '#FFD700', letterSpacing: 1, marginTop: 2 }}>
+                            <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFD700', letterSpacing: 1, marginTop: 2 }}>
                               {item.event.endTime ? new Date(item.event.endTime).toLocaleString('default', { month: 'short', year: 'numeric' }).toUpperCase() : ''}
                             </Text>
 
-                            <Text style={{ fontSize: 10, fontWeight: '900', color: '#FFF', textAlign: 'center', marginTop: 2 }} numberOfLines={1}>
+                            <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFF', textAlign: 'center', marginTop: 2 }} numberOfLines={1}>
                               {item.winningSubmission?.user?.name || item.winner?.name || 'Champion'}
                             </Text>
 
-                            <Text style={{ fontSize: 8, color: COLORS.textMuted, marginTop: 2 }}>
+                            <Text style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 2 }}>
                               ❤️ {item.winningSubmission?.likeCount || 0} Votes
                             </Text>
 
                             {item.event.couponValue ? (
                               <View style={{ marginTop: 4, backgroundColor: 'rgba(74,222,128,0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: '#4ADE80' }}>
-                                <Text style={{ fontSize: 7, fontWeight: '900', color: '#4ADE80' }}>WON ₹{item.event.couponValue}</Text>
+                                <Text style={{ fontSize: 12, fontWeight: '900', color: '#4ADE80' }}>WON ₹{item.event.couponValue}</Text>
                               </View>
                             ) : null}
                           </TouchableOpacity>
@@ -1791,7 +1791,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
             </View>
             <View style={s.streakPulseContainer}>
               <FloatingPulse color="#FF5A00">
-                <Text style={{ fontSize: 10 }}>🔥</Text>
+                <Text style={{ fontSize: 12 }}>🔥</Text>
               </FloatingPulse>
             </View>
           </View>
@@ -1828,7 +1828,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
             </TouchableOpacity>
 
             {birthdays.length === 0 && (
-              <Text style={{ fontSize: 10, fontWeight: '700', color: txtSec, maxWidth: 220 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec, maxWidth: 220 }}>
                 No birthdays today. Know someone celebrating? Tap Nominate 🎈
               </Text>
             )}
@@ -1909,11 +1909,11 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                 }}
                 onPress={() => setFeedCategory(cat.id as any)}
               >
-                <Text style={{ fontSize: 10, fontWeight: '900', color: isActive ? (isDark ? '#000' : '#fff') : txtSec }}>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: isActive ? (isDark ? '#000' : '#fff') : txtSec }}>
                   {cat.label}
                 </Text>
                 <View style={{ backgroundColor: isActive ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.06)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
-                  <Text style={{ fontSize: 8, fontWeight: '900', color: isActive ? (isDark ? '#000' : '#fff') : txtSec }}>{cat.count}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '900', color: isActive ? (isDark ? '#000' : '#fff') : txtSec }}>{cat.count}</Text>
                 </View>
               </TouchableOpacity>
             );
@@ -1980,7 +1980,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
           activeOpacity={0.85}
         >
           <Text style={{ fontSize: 18, color: '#FFF' }}>📸</Text>
-          <Text style={{ fontSize: 10, fontWeight: '900', color: '#FFF', letterSpacing: 1 }}>SUBMIT PHOTO</Text>
+          <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFF', letterSpacing: 1 }}>SUBMIT PHOTO</Text>
         </TouchableOpacity>
       )}
 
@@ -2030,7 +2030,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                     
                     {/* The server always posts as the signed-in account, so the name is shown, not edited. */}
                     {user?.name ? (
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: txtSec, marginBottom: 10 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec, marginBottom: 10 }}>
                         Posting as {user.name}
                       </Text>
                     ) : null}
@@ -2061,7 +2061,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                         {reviewStores === null ? (
                           <ActivityIndicator size="small" color={isDark ? COLORS.gold : '#8b5a2b'} />
                         ) : reviewStores.length === 0 ? (
-                          <Text style={{ fontSize: 10, fontWeight: '700', color: txtSec }}>
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec }}>
                             You can review a place once an order from it has been delivered to you.
                           </Text>
                         ) : (
@@ -2076,7 +2076,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                                   accessibilityState={{ selected: sel }}
                                   style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: sel ? (isDark ? COLORS.gold : '#8b5a2b') : border, backgroundColor: sel ? (isDark ? COLORS.gold : '#8b5a2b') : (isDark ? '#222' : '#fff') }}
                                 >
-                                  <Text style={{ fontSize: 10, fontWeight: '800', color: sel ? (isDark ? '#000' : '#fff') : txt }} numberOfLines={1}>📍 {st.name}</Text>
+                                  <Text style={{ fontSize: 12, fontWeight: '800', color: sel ? (isDark ? '#000' : '#fff') : txt }} numberOfLines={1}>📍 {st.name}</Text>
                                 </TouchableOpacity>
                               );
                             })}
@@ -2088,7 +2088,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
 
                     {/* Mood Selector Chips */}
                     <View style={{ marginBottom: 12 }}>
-                      <Text style={{ fontSize: 9, fontWeight: '900', color: txtSec, letterSpacing: 1, marginBottom: 6 }}>SELECT CAMPUS MOOD / TAG</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '900', color: txtSec, letterSpacing: 1, marginBottom: 6 }}>SELECT CAMPUS MOOD / TAG</Text>
                       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
                         {['🌶️ Spicy Cravings', '🧀 Cheesy Pull', '💻 3 AM Hackathon', '🎸 Fest Vibes', '⚽ Sports Win', '📚 Exam Grind', '🎉 Room Party'].map(mood => {
                           const isSel = selectedMood === mood;
@@ -2118,7 +2118,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                                 }
                               }}
                             >
-                              <Text style={{ fontSize: 9.5, fontWeight: '800', color: isSel ? (isDark ? '#000' : '#fff') : txt }}>{mood}</Text>
+                              <Text style={{ fontSize: 12, fontWeight: '800', color: isSel ? (isDark ? '#000' : '#fff') : txt }}>{mood}</Text>
                             </TouchableOpacity>
                           );
                         })}
@@ -2135,7 +2135,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                       onChangeText={setDraft}
                       maxLength={500}
                     />
-                    <Text style={{ alignSelf: 'flex-end', fontSize: 9, fontWeight: '700', color: draft.length > 450 ? COLORS.red : txtSec, marginTop: -6, marginBottom: 8 }}>
+                    <Text style={{ alignSelf: 'flex-end', fontSize: 12, fontWeight: '700', color: draft.length > 450 ? COLORS.red : txtSec, marginTop: -6, marginBottom: 8 }}>
                       {draft.length}/500
                     </Text>
 
@@ -2143,7 +2143,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                       style={[s.composerInputName, { backgroundColor: isDark ? '#222' : '#fff', borderColor: border, justifyContent: 'center', alignItems: 'center' }]} 
                       onPress={pickImage}
                     >
-                      <Text style={{ color: txt, fontSize: 11, fontWeight: '700' }}>
+                      <Text style={{ color: txt, fontSize: 12, fontWeight: '700' }}>
                         {photoUploading === 'post' ? '⏳ Uploading photo…' : draftImage ? '🖼️ Photo added (tap to change)' : '📸 Add a photo from gallery'}
                       </Text>
                     </TouchableOpacity>
@@ -2282,7 +2282,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                           </View>
                         ) : selectedBirthdayWishes.length === 0 ? (
                           <View style={{ paddingVertical: 24, alignItems: 'center' }}>
-                            <Text style={{ color: txtSec, fontSize: 10, fontWeight: '700' }}>No wishes yet. Be the first! 👇</Text>
+                            <Text style={{ color: txtSec, fontSize: 12, fontWeight: '700' }}>No wishes yet. Be the first! 👇</Text>
                           </View>
                         ) : (
                           selectedBirthdayWishes.map((w, idx) => (
@@ -2310,7 +2310,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                     </View>
 
                     {alreadyWished && (
-                      <Text style={{ fontSize: 10, fontWeight: '800', color: isDark ? COLORS.gold : '#FF69B4', marginBottom: 10 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? COLORS.gold : '#FF69B4', marginBottom: 10 }}>
                         ✅ Your wish has been sent!
                       </Text>
                     )}
@@ -2403,7 +2403,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                   ) : (
                     <View style={{ alignItems: 'center' }}>
                       <Text style={{ fontSize: 24, marginBottom: 4 }}>📸</Text>
-                      <Text style={{ color: txtSec, fontSize: 9, fontWeight: '700' }}>ADD PEER PORTRAIT</Text>
+                      <Text style={{ color: txtSec, fontSize: 12, fontWeight: '700' }}>ADD PEER PORTRAIT</Text>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -2449,7 +2449,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
             <ScrollView showsVerticalScrollIndicator={false} style={{ width: '100%', marginVertical: 12 }}>
               {pendingBirthdays.length === 0 ? (
                 <View style={{ padding: 24, alignItems: 'center' }}>
-                  <Text style={{ color: txtSec, fontSize: 11, fontWeight: '700' }}>No pending nominations in queue. 🌟</Text>
+                  <Text style={{ color: txtSec, fontSize: 12, fontWeight: '700' }}>No pending nominations in queue. 🌟</Text>
                 </View>
               ) : (
                 pendingBirthdays.map((p) => (
@@ -2477,14 +2477,14 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                         style={[s.adminRejectBtn, { backgroundColor: COLORS.red + '22' }]} 
                         onPress={() => rejectBirthday(p.id)}
                       >
-                        <Text style={{ color: COLORS.red, fontSize: 10, fontWeight: '900' }}>REJECT ❌</Text>
+                        <Text style={{ color: COLORS.red, fontSize: 12, fontWeight: '900' }}>REJECT ❌</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity 
                         style={[s.adminApproveBtn, { backgroundColor: COLORS.emerald + '22' }]} 
                         onPress={() => approveBirthday(p.id)}
                       >
-                        <Text style={{ color: COLORS.emerald, fontSize: 10, fontWeight: '900' }}>APPROVE ✅</Text>
+                        <Text style={{ color: COLORS.emerald, fontSize: 12, fontWeight: '900' }}>APPROVE ✅</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -2521,7 +2521,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                 ) : (
                   <View style={{ alignItems: 'center' }}>
                     <Text style={{ fontSize: 32 }}>📷</Text>
-                    <Text style={{ color: isDark ? COLORS.gold : '#8b5a2b', fontSize: 10, fontWeight: '700', marginTop: 4 }}>Select Photo from Gallery</Text>
+                    <Text style={{ color: isDark ? COLORS.gold : '#8b5a2b', fontSize: 12, fontWeight: '700', marginTop: 4 }}>Select Photo from Gallery</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -2572,7 +2572,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
             {/* Crown & Tag */}
             <Text style={{ fontSize: 32, marginBottom: 4 }}>👑</Text>
             <View style={{ backgroundColor: 'rgba(255,215,0,0.15)', borderWidth: 1, borderColor: '#FFD700', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, marginBottom: 12 }}>
-              <Text style={{ fontSize: 9, fontWeight: '900', color: '#FFD700', letterSpacing: 1.5 }}>HALL OF FAME CHAMPION</Text>
+              <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFD700', letterSpacing: 1.5 }}>HALL OF FAME CHAMPION</Text>
             </View>
 
             {/* Large High-Res Winning Image */}
@@ -2603,12 +2603,12 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
             {/* Victory Date & Votes */}
             <View style={{ flexDirection: 'row', gap: 12, marginBottom: 14 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 }}>
-                <Text style={{ fontSize: 11, color: '#E2E8F0', fontWeight: '800' }}>
+                <Text style={{ fontSize: 12, color: '#E2E8F0', fontWeight: '800' }}>
                   📅 {selectedHofWinner?.event?.endTime ? new Date(selectedHofWinner.event.endTime).toLocaleDateString('default', { month: 'short', year: 'numeric', day: 'numeric' }) : '—'}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: '#EF4444', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 }}>
-                <Text style={{ fontSize: 11, color: '#F87171', fontWeight: '900' }}>
+                <Text style={{ fontSize: 12, color: '#F87171', fontWeight: '900' }}>
                   ❤️ {selectedHofWinner?.winningSubmission?.likeCount || 0} Votes
                 </Text>
               </View>
@@ -2617,7 +2617,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
             {/* Prize (the coupon itself is issued privately to the winner) */}
             {selectedHofWinner?.event?.couponValue ? (
               <View style={{ width: '100%', backgroundColor: 'rgba(16,185,129,0.1)', borderWidth: 1.5, borderColor: '#10B981', borderRadius: 16, padding: 12, alignItems: 'center', marginBottom: 14 }}>
-                <Text style={{ fontSize: 9, fontWeight: '900', color: '#A7F3D0', letterSpacing: 1, marginBottom: 2 }}>CHAMPION'S PRIZE</Text>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: '#A7F3D0', letterSpacing: 1, marginBottom: 2 }}>CHAMPION'S PRIZE</Text>
                 <Text style={{ fontSize: 16, fontWeight: '900', color: '#10B981', letterSpacing: 1 }}>
                   ₹{selectedHofWinner.event.couponValue} OFF COUPON
                 </Text>
@@ -2637,7 +2637,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                 }}
                 onPress={() => setSelectedHofWinner(null)}
               >
-                <Text style={{ fontSize: 11, fontWeight: '900', color: '#CBD5E1', letterSpacing: 0.5 }}>CLOSE</Text>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: '#CBD5E1', letterSpacing: 0.5 }}>CLOSE</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -2653,43 +2653,43 @@ const s = StyleSheet.create({
   header: { paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(139,90,43,0.1)', paddingBottom: 12 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   backBtn: { paddingVertical: 6 },
-  backText: { fontSize: 10, fontWeight: '900', color: '#8b5a2b', letterSpacing: 1.5 },
+  backText: { fontSize: 12, fontWeight: '900', color: '#8b5a2b', letterSpacing: 1.5 },
   onlineBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(16,185,129,0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.emerald },
-  onlineText: { fontSize: 8, fontWeight: '900', color: COLORS.emerald, letterSpacing: 1 },
+  onlineText: { fontSize: 12, fontWeight: '900', color: COLORS.emerald, letterSpacing: 1 },
   
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   titleIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3 },
   title: { fontSize: 20, fontWeight: '900', color: '#3e2723', letterSpacing: -0.5 },
-  subtitle: { fontSize: 7, fontWeight: '900', color: 'rgba(0,0,0,0.3)', letterSpacing: 2 },
+  subtitle: { fontSize: 12, fontWeight: '900', color: 'rgba(0,0,0,0.3)', letterSpacing: 2 },
   
   tabContainer: { flexDirection: 'row', backgroundColor: '#fff', padding: 3, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)', marginBottom: 12 },
   tabBtn: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
   tabBtnActive: { backgroundColor: '#3e2723' },
-  tabLabel: { fontSize: 8, fontWeight: '900', color: '#888', letterSpacing: 1 },
+  tabLabel: { fontSize: 12, fontWeight: '900', color: '#888', letterSpacing: 1 },
   tabLabelActive: { color: '#fff' },
   
-  searchBar: { height: 38, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)', paddingHorizontal: 12, fontSize: 11, fontWeight: '600', color: '#3e2723', marginBottom: 6 },
+  searchBar: { height: 38, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)', paddingHorizontal: 12, fontSize: 12, fontWeight: '600', color: '#3e2723', marginBottom: 6 },
   
   trendingSection: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(139,90,43,0.05)', backgroundColor: 'rgba(251,191,36,0.03)' },
-  trendingTitle: { fontSize: 8, fontWeight: '900', color: '#8b5a2b', letterSpacing: 1.5, paddingHorizontal: 16, marginBottom: 8 },
+  trendingTitle: { fontSize: 12, fontWeight: '900', color: '#8b5a2b', letterSpacing: 1.5, paddingHorizontal: 16, marginBottom: 8 },
   trendingScroll: { paddingHorizontal: 16 },
   trendingCard: { width: 200, backgroundColor: '#fff', borderRadius: 16, borderLeftWidth: 1, borderRightWidth: 1, borderColor: 'rgba(0,0,0,0.05)', padding: 12, marginRight: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 },
   trendingUserRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
   trendingAvatar: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#8b5a2b', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 8, fontWeight: '900', color: '#fff' },
-  trendingUser: { fontSize: 8, fontWeight: '800', color: '#3e2723', flex: 1 },
-  trendingContent: { fontSize: 9, fontWeight: '600', color: '#666', lineHeight: 12, marginBottom: 6 },
+  avatarText: { fontSize: 12, fontWeight: '900', color: '#fff' },
+  trendingUser: { fontSize: 12, fontWeight: '800', color: '#3e2723', flex: 1 },
+  trendingContent: { fontSize: 12, fontWeight: '600', color: '#666', lineHeight: 12, marginBottom: 6 },
   trendingStats: { flexDirection: 'row', gap: 8 },
-  trendingStat: { fontSize: 8, fontWeight: '800', color: '#999' },
+  trendingStat: { fontSize: 12, fontWeight: '800', color: '#999' },
 
   stringLine: { height: 1.5, backgroundColor: 'rgba(139,90,43,0.15)', marginHorizontal: 16, marginTop: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 1 },
   
   emptyState: { padding: 48, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { fontSize: 14, fontWeight: '900', color: '#8b5a2b', letterSpacing: 2, marginBottom: 4 },
-  emptySubtitle: { fontSize: 9, fontWeight: '700', color: '#aaa', letterSpacing: 1 },
+  emptySubtitle: { fontSize: 12, fontWeight: '700', color: '#aaa', letterSpacing: 1 },
   retryBtn: { marginTop: 14, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 },
-  retryText: { fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  retryText: { fontSize: 12, fontWeight: '900', letterSpacing: 1 },
   wallSubmitFab: {
     position: 'absolute',
     bottom: 24,
@@ -2718,31 +2718,31 @@ const s = StyleSheet.create({
   textPostContent: { fontSize: 12, fontWeight: '900', color: '#3e2723', textAlign: 'center', fontStyle: 'italic' },
   
   polaroidDetails: { marginTop: 8 },
-  polaroidDesc: { fontSize: 9, fontWeight: '600', color: '#555', fontStyle: 'italic', marginBottom: 6 },
+  polaroidDesc: { fontSize: 12, fontWeight: '600', color: '#555', fontStyle: 'italic', marginBottom: 6 },
   
   reviewMeta: { marginBottom: 6, padding: 6, backgroundColor: 'rgba(139,90,43,0.04)', borderRadius: 8, borderWidth: 0.5, borderColor: 'rgba(139,90,43,0.08)' },
-  reviewStars: { fontSize: 8, color: '#F59E0B', marginBottom: 2 },
-  reviewRestaurant: { fontSize: 7, fontWeight: '900', color: '#8b5a2b' },
-  reviewProduct: { fontSize: 7, fontWeight: '700', color: '#666', marginTop: 1 },
+  reviewStars: { fontSize: 12, color: '#F59E0B', marginBottom: 2 },
+  reviewRestaurant: { fontSize: 12, fontWeight: '900', color: '#8b5a2b' },
+  reviewProduct: { fontSize: 12, fontWeight: '700', color: '#666', marginTop: 1 },
 
   polaroidUserRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8, borderBottomWidth: 0.5, borderBottomColor: 'rgba(0,0,0,0.05)', paddingBottom: 6 },
   authorAvatar: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#38BDF8', alignItems: 'center', justifyContent: 'center' },
-  authorAvatarText: { fontSize: 8, fontWeight: '900', color: '#fff' },
-  authorName: { fontSize: 8, fontWeight: '900', color: '#222' },
-  postTime: { fontSize: 6, fontWeight: '800', color: '#aaa' },
+  authorAvatarText: { fontSize: 12, fontWeight: '900', color: '#fff' },
+  authorName: { fontSize: 12, fontWeight: '900', color: '#222' },
+  postTime: { fontSize: 12, fontWeight: '800', color: '#aaa' },
   expiryBadge: { paddingHorizontal: 4, paddingVertical: 2, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.04)' },
-  expiryText: { fontSize: 6, fontWeight: '800', color: '#777' },
+  expiryText: { fontSize: 12, fontWeight: '800', color: '#777' },
 
   actionsRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
   actionBtn: { paddingVertical: 2 },
-  actionText: { fontSize: 8, fontWeight: '800', color: '#777' },
+  actionText: { fontSize: 12, fontWeight: '800', color: '#777' },
   
   repliesTrigger: { alignSelf: 'center', marginTop: 8, paddingVertical: 4 },
-  repliesTriggerText: { fontSize: 7, fontWeight: '900', color: '#8b5a2b', letterSpacing: 0.5 },
+  repliesTriggerText: { fontSize: 12, fontWeight: '900', color: '#8b5a2b', letterSpacing: 0.5 },
   repliesBox: { marginTop: 6, borderTopWidth: 0.5, borderTopColor: 'rgba(0,0,0,0.05)', paddingTop: 6, gap: 4 },
   replyItem: { flexDirection: 'row', gap: 4, flexWrap: 'wrap' },
-  replyUser: { fontSize: 7, fontWeight: '900', color: '#3e2723' },
-  replyText: { fontSize: 7, fontWeight: '600', color: '#666' },
+  replyUser: { fontSize: 12, fontWeight: '900', color: '#3e2723' },
+  replyText: { fontSize: 12, fontWeight: '600', color: '#666' },
 
   composeFabWrap: { position: 'absolute', bottom: 20, right: 20, width: 56, height: 56, zIndex: 100 },
   composeFab: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', ...SHADOWS.goldGlow },
@@ -2751,27 +2751,27 @@ const s = StyleSheet.create({
   composerContent: { backgroundColor: '#fdfcf0', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
   dragHandle: { width: 36, height: 4, backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
   replyBanner: { backgroundColor: 'rgba(139,90,43,0.05)', padding: 10, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(139,90,43,0.15)' },
-  replyBannerText: { fontSize: 8, fontWeight: '900', color: '#8b5a2b' },
-  replyBannerSub: { fontSize: 10, color: '#555' },
+  replyBannerText: { fontSize: 12, fontWeight: '900', color: '#8b5a2b' },
+  replyBannerSub: { fontSize: 12, color: '#555' },
   composerTitle: { fontSize: 12, fontWeight: '900', color: '#3e2723', letterSpacing: 1.5, marginBottom: 12, textAlign: 'center' },
-  composerInputName: { height: 38, backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)', paddingHorizontal: 12, fontSize: 11, fontWeight: '700', color: '#3e2723', marginBottom: 10 },
+  composerInputName: { height: 38, backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)', paddingHorizontal: 12, fontSize: 12, fontWeight: '700', color: '#3e2723', marginBottom: 10 },
   reviewToggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)', marginBottom: 10 },
-  reviewToggleLabel: { fontSize: 9, fontWeight: '900', color: '#3e2723' },
+  reviewToggleLabel: { fontSize: 12, fontWeight: '900', color: '#3e2723' },
   toggleBtn: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)' },
   toggleBtnActive: { backgroundColor: '#8b5a2b', borderColor: '#8b5a2b' },
-  toggleBtnText: { fontSize: 8, fontWeight: '900', color: '#888' },
+  toggleBtnText: { fontSize: 12, fontWeight: '900', color: '#888' },
   reviewFields: { backgroundColor: 'rgba(139,90,43,0.04)', padding: 10, borderRadius: 12, marginBottom: 10, gap: 8, borderWidth: 1, borderColor: 'rgba(139,90,43,0.1)' },
   ratingStarsRow: { flexDirection: 'row', gap: 6, marginBottom: 4 },
   starIcon: { fontSize: 22, color: 'rgba(0,0,0,0.1)' },
-  reviewInputField: { height: 32, backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 8, fontSize: 10, fontWeight: '600', color: '#3e2723', borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)' },
-  composerTextArea: { backgroundColor: '#fff', borderRadius: 12, padding: 12, fontSize: 11, fontWeight: '600', color: '#3e2723', borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)', height: 80, textAlignVertical: 'top', marginBottom: 10 },
+  reviewInputField: { height: 32, backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 8, fontSize: 12, fontWeight: '600', color: '#3e2723', borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)' },
+  composerTextArea: { backgroundColor: '#fff', borderRadius: 12, padding: 12, fontSize: 12, fontWeight: '600', color: '#3e2723', borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)', height: 80, textAlignVertical: 'top', marginBottom: 10 },
   composerImgPreview: { width: 100, height: 100, borderRadius: 12, alignSelf: 'center', marginBottom: 12 },
   
   composerActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
   composerCancel: { flex: 1, paddingVertical: 12, alignItems: 'center', marginRight: 8, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.04)' },
-  cancelText: { fontSize: 10, fontWeight: '900', color: '#666', letterSpacing: 1 },
+  cancelText: { fontSize: 12, fontWeight: '900', color: '#666', letterSpacing: 1 },
   composerSubmit: { flex: 2, paddingVertical: 12, alignItems: 'center', borderRadius: 12, backgroundColor: '#8b5a2b' },
-  submitText: { fontSize: 10, fontWeight: '900', color: '#fff', letterSpacing: 1 },
+  submitText: { fontSize: 12, fontWeight: '900', color: '#fff', letterSpacing: 1 },
 
   lightboxOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
   lightboxImg: { width: SW - 20, height: SH * 0.7, borderRadius: 8 },
@@ -2779,15 +2779,15 @@ const s = StyleSheet.create({
   // ── BIRTHDAY STYLING ──
   birthdaySection: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(139,90,43,0.05)' },
   birthdaySectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 8 },
-  birthdaySectionTitle: { fontSize: 8, fontWeight: '900', letterSpacing: 1.5 },
-  adminBadgeText: { fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  birthdaySectionTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 1.5 },
+  adminBadgeText: { fontSize: 12, fontWeight: '900', letterSpacing: 1 },
   birthdayScroll: { minHeight: 90 },
   birthdayStoryCard: { alignItems: 'center', width: 66, gap: 4 },
   addBirthdayStoryCircle: { width: 56, height: 56, borderRadius: 28, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.02)' },
   birthdayStoryCircle: { width: 56, height: 56, borderRadius: 28, overflow: 'hidden', borderWidth: 2, borderColor: '#FF69B4', alignItems: 'center', justifyContent: 'center' },
   birthdayStoryImg: { width: '100%', height: '100%', resizeMode: 'cover' },
   birthdayStoryTextImg: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
-  birthdayStoryName: { fontSize: 8, fontWeight: '900', textAlign: 'center', width: '100%' },
+  birthdayStoryName: { fontSize: 12, fontWeight: '900', textAlign: 'center', width: '100%' },
 
   // Overlay
   bdayOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
@@ -2798,35 +2798,35 @@ const s = StyleSheet.create({
   bdayLargeAvatarRing: { width: 100, height: 100, borderRadius: 50, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
   bdayLargeAvatarImg: { width: '100%', height: '100%', resizeMode: 'cover' },
   bdayCandidateName: { fontSize: 18, fontWeight: '900', marginTop: 12, textAlign: 'center', letterSpacing: 0.5 },
-  bdayWishCountText: { fontSize: 10, fontWeight: '900', marginTop: 4, letterSpacing: 0.5 },
+  bdayWishCountText: { fontSize: 12, fontWeight: '900', marginTop: 4, letterSpacing: 0.5 },
 
   // Wishes List
   bdayWishesContainer: { width: '100%', height: 140, borderWidth: 1, borderRadius: 16, marginVertical: 16, padding: 12, backgroundColor: 'rgba(0,0,0,0.01)' },
   wishBubble: { padding: 10, borderRadius: 12, marginBottom: 8, gap: 2 },
-  wishBubbleUser: { fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
-  wishBubbleText: { fontSize: 9, fontWeight: '600' },
+  wishBubbleUser: { fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
+  wishBubbleText: { fontSize: 12, fontWeight: '600' },
 
   // Quick reactions
   quickReactionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 12 },
   quickReactionBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, backgroundColor: 'rgba(255,105,180,0.05)' },
-  quickReactionText: { fontSize: 8, fontWeight: '900', color: '#FF69B4' },
+  quickReactionText: { fontSize: 12, fontWeight: '900', color: '#FF69B4' },
 
   // Composer
   bdayComposeRow: { flexDirection: 'row', gap: 8, width: '100%', alignItems: 'center' },
-  bdayWishInput: { flex: 1, height: 38, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, fontSize: 11, fontWeight: '700' },
+  bdayWishInput: { flex: 1, height: 38, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, fontSize: 12, fontWeight: '700' },
   bdayWishSendBtn: { height: 38, paddingHorizontal: 16, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  bdayWishSendText: { color: '#000', fontSize: 10, fontWeight: '900' },
+  bdayWishSendText: { color: '#000', fontSize: 12, fontWeight: '900' },
 
   // Nomination
   modalTitle: { fontSize: 14, fontWeight: '900', letterSpacing: 1.5, marginBottom: 4, textAlign: 'center' },
-  modalSubtitle: { fontSize: 9, fontWeight: '700', letterSpacing: 0.5, marginBottom: 16, textAlign: 'center', lineHeight: 12 },
+  modalSubtitle: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, marginBottom: 16, textAlign: 'center', lineHeight: 12 },
   bdayPhotoSelector: { width: '100%', height: 120, borderStyle: 'dashed', borderWidth: 1, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 18, overflow: 'hidden' },
   bdayPhotoPreview: { width: '100%', height: '100%', resizeMode: 'cover' },
   modalActionsRow: { flexDirection: 'row', gap: 10, width: '100%' },
   modalCancelBtn: { flex: 1, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  modalCancelText: { fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  modalCancelText: { fontSize: 12, fontWeight: '900', letterSpacing: 1 },
   modalSubmitBtn: { flex: 2, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  modalSubmitText: { color: '#000', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  modalSubmitText: { color: '#000', fontSize: 12, fontWeight: '900', letterSpacing: 1 },
 
   // Admin Queue
   adminQueueCard: { width: '100%', borderRadius: 16, borderWidth: 1, padding: 12, marginBottom: 10 },
@@ -2834,7 +2834,7 @@ const s = StyleSheet.create({
   adminQueueImg: { width: 44, height: 44, borderRadius: 22, resizeMode: 'cover' },
   adminQueueTextImg: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' },
   adminQueueName: { fontSize: 12, fontWeight: '900' },
-  adminQueueDate: { fontSize: 9, fontWeight: '700' },
+  adminQueueDate: { fontSize: 12, fontWeight: '700' },
   adminQueueActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 10 },
   adminRejectBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
   adminApproveBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
@@ -2877,7 +2877,7 @@ const s = StyleSheet.create({
     letterSpacing: -0.2,
   },
   friendsCardSub: {
-    fontSize: 7,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1,
     marginTop: 1,
@@ -2887,7 +2887,7 @@ const s = StyleSheet.create({
     paddingVertical: 4,
   },
   friendsCardBody: {
-    fontSize: 9,
+    fontSize: 12,
     lineHeight: 13,
     fontWeight: '600',
     marginBottom: 12,
@@ -2896,7 +2896,7 @@ const s = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   friendsFooterText: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1,
   },
@@ -2939,7 +2939,7 @@ const s = StyleSheet.create({
     zIndex: 999,
   },
   wallFabText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     color: '#000',
     letterSpacing: 1,

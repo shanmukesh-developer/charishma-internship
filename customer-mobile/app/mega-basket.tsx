@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import NightClosureBanner from '../components/NightClosureBanner';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Platform, RefreshControl, Linking } from 'react-native';
 import { KeyboardAvoidingView } from '../components/KeyboardAvoidingView';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -428,10 +429,13 @@ export default function MegaBasketScreen() {
           <Text style={[s.backIcon, { color: txt }]}>‹</Text>
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={[s.subText, { color: '#F59E0B' }]}>Mega Basket</Text>
+          <Text style={[s.subText, { color: '#F59E0B' }]}>Shopping list</Text>
           <Text style={[s.title, { color: txt }]}>Groceries and essentials</Text>
         </View>
       </View>
+
+      {/* Night closure: say it before the list is typed, not on Send */}
+      <NightClosureBanner style={{ marginBottom: 8 }} />
 
       {/* Tabs */}
       <View style={[s.tabRow, { backgroundColor: cardBg, borderColor: border }]}>
@@ -579,16 +583,16 @@ export default function MegaBasketScreen() {
                   {/* Subtotals */}
                   <View style={[s.summaryContainer, { borderTopColor: border }]}>
                     <View style={s.summaryRow}>
-                      <Text style={{ color: txtSec, fontSize: 10 }}>Items subtotal</Text>
-                      <Text style={{ color: txt, fontSize: 10 }}>{money(subtotal)}</Text>
+                      <Text style={{ color: txtSec, fontSize: 12 }}>Items subtotal</Text>
+                      <Text style={{ color: txt, fontSize: 12 }}>{money(subtotal)}</Text>
                     </View>
                     <View style={s.summaryRow}>
-                      <Text style={{ color: txtSec, fontSize: 10 }}>Shopping fee</Text>
-                      <Text style={{ color: txt, fontSize: 10 }}>{money(shoppingFee)}</Text>
+                      <Text style={{ color: txtSec, fontSize: 12 }}>Shopping fee</Text>
+                      <Text style={{ color: txt, fontSize: 12 }}>{money(shoppingFee)}</Text>
                     </View>
                     <View style={s.summaryRow}>
-                      <Text style={{ color: txtSec, fontSize: 10 }}>Delivery fee</Text>
-                      <Text style={{ color: txt, fontSize: 10 }}>{money(deliveryFee)}</Text>
+                      <Text style={{ color: txtSec, fontSize: 12 }}>Delivery fee</Text>
+                      <Text style={{ color: txt, fontSize: 12 }}>{money(deliveryFee)}</Text>
                     </View>
                     <View style={[s.summaryRow, s.grandTotalRow, { borderTopColor: border }]}>
                       <Text style={{ color: txt, fontSize: 12, fontWeight: '900' }}>Estimated total</Text>
@@ -753,12 +757,12 @@ export default function MegaBasketScreen() {
                   {/* Summaries */}
                   <View style={[s.summaryContainer, { borderTopColor: border }]}>
                     <View style={s.summaryRow}>
-                      <Text style={{ color: txtSec, fontSize: 10 }}>Shopping fee</Text>
-                      <Text style={{ color: txt, fontSize: 10 }}>{money(selectedBasket.shoppingFee)}</Text>
+                      <Text style={{ color: txtSec, fontSize: 12 }}>Shopping fee</Text>
+                      <Text style={{ color: txt, fontSize: 12 }}>{money(selectedBasket.shoppingFee)}</Text>
                     </View>
                     <View style={s.summaryRow}>
-                      <Text style={{ color: txtSec, fontSize: 10 }}>Delivery fee</Text>
-                      <Text style={{ color: txt, fontSize: 10 }}>{money(selectedBasket.deliveryFee)}</Text>
+                      <Text style={{ color: txtSec, fontSize: 12 }}>Delivery fee</Text>
+                      <Text style={{ color: txt, fontSize: 12 }}>{money(selectedBasket.deliveryFee)}</Text>
                     </View>
                     <View style={[s.summaryRow, s.grandTotalRow, { borderTopColor: border }]}>
                       <Text style={{ color: txt, fontSize: 12, fontWeight: '900' }}>{selectedBasket.actualTotal != null ? 'Total (cash on delivery)' : 'Estimated total'}</Text>
@@ -820,7 +824,7 @@ export default function MegaBasketScreen() {
                               {basket.items.map(i => `${i.quantity} × ${i.name}`).join(', ')}
                             </Text>
                             <View style={s.basketFooterRow}>
-                              <Text style={{ fontSize: 10, color: '#888' }}>{formatISTDate(basket.createdAt)}</Text>
+                              <Text style={{ fontSize: 12, color: '#888' }}>{formatISTDate(basket.createdAt)}</Text>
                               <Text style={s.basketPrice}>{basket.actualTotal != null ? '' : 'Est. '}{money(basketTotal(basket))}</Text>
                             </View>
                           </TouchableOpacity>
@@ -845,7 +849,7 @@ const s = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1 },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   backIcon: { fontSize: 32, fontWeight: '300' },
-  subText: { fontSize: 10, fontWeight: '800', color: COLORS.red, letterSpacing: 0.3 },
+  subText: { fontSize: 12, fontWeight: '800', color: COLORS.red, letterSpacing: 0.3 },
   title: { fontSize: 18, fontWeight: '900' },
 
   tabRow: { flexDirection: 'row', padding: 4, borderRadius: 16, borderWidth: 1, marginHorizontal: 16, marginVertical: 12 },
@@ -860,24 +864,24 @@ const s = StyleSheet.create({
 
   quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   quickItem: { width: '48%', padding: 10, borderRadius: 12, borderWidth: 1, backgroundColor: 'rgba(0,0,0,0.02)' },
-  quickCat: { fontSize: 9, fontWeight: '800', color: '#888', letterSpacing: 0.2, marginBottom: 2 },
-  quickName: { fontSize: 10, fontWeight: '900' },
-  quickPrice: { fontSize: 9, fontWeight: '900', color: '#22c55e', marginTop: 6 },
+  quickCat: { fontSize: 12, fontWeight: '800', color: '#888', letterSpacing: 0.2, marginBottom: 2 },
+  quickName: { fontSize: 12, fontWeight: '900' },
+  quickPrice: { fontSize: 12, fontWeight: '900', color: '#22c55e', marginTop: 6 },
 
   customSection: { borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.05)', paddingTop: 16 },
-  customTitle: { fontSize: 11, fontWeight: '800', color: '#888', marginBottom: 8 },
-  input: { height: 40, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, fontSize: 11, fontWeight: '600', backgroundColor: 'rgba(0,0,0,0.02)', marginBottom: 8 },
-  inputLabel: { fontSize: 10, fontWeight: '800', color: '#888', letterSpacing: 0.2, marginBottom: 4 },
+  customTitle: { fontSize: 12, fontWeight: '800', color: '#888', marginBottom: 8 },
+  input: { height: 40, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, fontSize: 12, fontWeight: '600', backgroundColor: 'rgba(0,0,0,0.02)', marginBottom: 8 },
+  inputLabel: { fontSize: 12, fontWeight: '800', color: '#888', letterSpacing: 0.2, marginBottom: 4 },
   customRow: { flexDirection: 'row', marginBottom: 12 },
   addCustomBtn: { height: 40, backgroundColor: 'rgba(34,197,94,0.08)', borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(34,197,94,0.2)' },
   addCustomText: { fontSize: 12, fontWeight: '900', color: '#22c55e', letterSpacing: 0.2 },
 
   listItem: { flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 12, borderWidth: 1, backgroundColor: 'rgba(0,0,0,0.02)', marginBottom: 6 },
-  listItemName: { fontSize: 11, fontWeight: '900' },
-  listItemSub: { fontSize: 8, color: '#888', fontWeight: '600', marginTop: 1 },
-  listItemPrice: { fontSize: 11, fontWeight: '900', color: '#22c55e', marginRight: 10 },
+  listItemName: { fontSize: 12, fontWeight: '900' },
+  listItemSub: { fontSize: 12, color: '#888', fontWeight: '600', marginTop: 1 },
+  listItemPrice: { fontSize: 12, fontWeight: '900', color: '#22c55e', marginRight: 10 },
   removeBtn: { width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(239,68,68,0.1)', alignItems: 'center', justifyContent: 'center' },
-  removeText: { fontSize: 8, color: '#ef4444', fontWeight: '900' },
+  removeText: { fontSize: 12, color: '#ef4444', fontWeight: '900' },
 
   summaryContainer: { borderTopWidth: 1, paddingTop: 12, gap: 6 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -886,7 +890,7 @@ const s = StyleSheet.create({
   paymentRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
   paymentBtn: { flex: 1, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.02)' },
   paymentBtnActive: { backgroundColor: '#10B981', borderColor: '#10B981' },
-  paymentBtnText: { fontSize: 9, fontWeight: '900', color: '#888', letterSpacing: 1 },
+  paymentBtnText: { fontSize: 12, fontWeight: '900', color: '#888', letterSpacing: 1 },
 
   placeOrderBtnContainer: {
     height: 50,
@@ -905,52 +909,52 @@ const s = StyleSheet.create({
   cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   basketCode: { fontSize: 14, fontWeight: '900', color: COLORS.red },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: 'rgba(34,197,94,0.1)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.2)' },
-  statusBadgeText: { fontSize: 10, fontWeight: '800', color: '#22c55e', letterSpacing: 0.2 },
+  statusBadgeText: { fontSize: 12, fontWeight: '800', color: '#22c55e', letterSpacing: 0.2 },
 
   statusDetailBox: { padding: 12, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.02)', borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.05)', marginBottom: 16 },
-  statusDetailLabel: { fontSize: 7, fontWeight: '900', color: '#888', letterSpacing: 1, marginBottom: 2 },
-  statusDetailText: { fontSize: 11, fontWeight: '900' },
+  statusDetailLabel: { fontSize: 12, fontWeight: '900', color: '#888', letterSpacing: 1, marginBottom: 2 },
+  statusDetailText: { fontSize: 12, fontWeight: '900' },
   partnerBox: { flexDirection: 'row', gap: 10, marginTop: 12, paddingTop: 12, borderTopWidth: 0.5, borderTopColor: 'rgba(0,0,0,0.05)' },
-  partnerLabel: { fontSize: 10, fontWeight: '800', color: '#888' },
-  partnerName: { fontSize: 11, fontWeight: '900' },
-  partnerPhone: { fontSize: 10, fontWeight: '900', color: '#22c55e', marginTop: 2 },
+  partnerLabel: { fontSize: 12, fontWeight: '800', color: '#888' },
+  partnerName: { fontSize: 12, fontWeight: '900' },
+  partnerPhone: { fontSize: 12, fontWeight: '900', color: '#22c55e', marginTop: 2 },
 
   pinBox: { padding: 16, borderRadius: 16, backgroundColor: 'rgba(34,197,94,0.03)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.15)', alignItems: 'center', marginBottom: 16 },
-  pinLabel: { fontSize: 11, fontWeight: '800', color: '#22c55e', letterSpacing: 0.2 },
+  pinLabel: { fontSize: 12, fontWeight: '800', color: '#22c55e', letterSpacing: 0.2 },
   pinVal: { fontSize: 24, fontWeight: '900', color: '#22c55e', letterSpacing: 6, marginVertical: 6 },
-  pinSub: { fontSize: 10, fontWeight: '700', color: '#888' },
+  pinSub: { fontSize: 12, fontWeight: '700', color: '#888' },
 
   approvalAlertBox: { padding: 14, borderRadius: 16, backgroundColor: 'rgba(245,158,11,0.05)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.2)', marginBottom: 16 },
-  approvalAlertTitle: { fontSize: 11, fontWeight: '900', color: '#f59e0b', marginBottom: 4 },
-  approvalAlertDesc: { fontSize: 10, fontWeight: '600', color: '#888', lineHeight: 14, marginBottom: 12 },
+  approvalAlertTitle: { fontSize: 12, fontWeight: '900', color: '#f59e0b', marginBottom: 4 },
+  approvalAlertDesc: { fontSize: 12, fontWeight: '600', color: '#888', lineHeight: 14, marginBottom: 12 },
   approveBtn: { height: 38, backgroundColor: '#f59e0b', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   approveBtnText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.2 },
 
   unavailableBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.1)' },
-  unavailableText: { fontSize: 8, fontWeight: '900', color: '#ef4444' },
-  actualItemPrice: { fontSize: 11, fontWeight: '900', color: '#22c55e' },
-  priceDiffText: { fontSize: 7, fontWeight: '900', marginTop: 1 },
+  unavailableText: { fontSize: 12, fontWeight: '900', color: '#ef4444' },
+  actualItemPrice: { fontSize: 12, fontWeight: '900', color: '#22c55e' },
+  priceDiffText: { fontSize: 12, fontWeight: '900', marginTop: 1 },
 
-  basketItemsText: { fontSize: 10, fontWeight: '600', marginBottom: 8 },
+  basketItemsText: { fontSize: 12, fontWeight: '600', marginBottom: 8 },
   basketFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 0.5, borderTopColor: 'rgba(0,0,0,0.05)', paddingTop: 8, marginTop: 4 },
   basketPrice: { fontSize: 12, fontWeight: '900', color: '#22c55e' },
 
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
   emptyTitle: { fontSize: 14, fontWeight: '900', letterSpacing: 0.2, marginBottom: 4, textAlign: 'center' },
-  emptySub: { fontSize: 11, fontWeight: '600', color: '#888', textAlign: 'center', paddingHorizontal: 24, lineHeight: 15 },
+  emptySub: { fontSize: 12, fontWeight: '600', color: '#888', textAlign: 'center', paddingHorizontal: 24, lineHeight: 15 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   modalContent: { width: '100%', maxWidth: 340, backgroundColor: '#141416', borderRadius: 28, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', padding: 20 },
-  modalTitle: { fontSize: 11, fontWeight: '900', color: COLORS.red, letterSpacing: 1.5, textAlign: 'center', marginBottom: 8 },
-  modalDesc: { fontSize: 8, fontWeight: '700', color: '#888', textAlign: 'center', lineHeight: 12, marginBottom: 16 },
+  modalTitle: { fontSize: 12, fontWeight: '900', color: COLORS.red, letterSpacing: 1.5, textAlign: 'center', marginBottom: 8 },
+  modalDesc: { fontSize: 12, fontWeight: '700', color: '#888', textAlign: 'center', lineHeight: 12, marginBottom: 16 },
   qrDisplayBox: { alignItems: 'center', marginBottom: 20 },
   qrBorderSquare: { width: 160, height: 160, borderRadius: 16, borderWidth: 2, borderColor: '#22c55e', backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  qrScanText: { fontSize: 8, fontWeight: '900', color: '#000' },
-  qrUpiId: { fontSize: 8, fontWeight: '900', color: '#888' },
+  qrScanText: { fontSize: 12, fontWeight: '900', color: '#000' },
+  qrUpiId: { fontSize: 12, fontWeight: '900', color: '#888' },
   utrInput: { height: 40, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', backgroundColor: 'rgba(0,0,0,0.3)', color: '#FFF', textAlign: 'center', fontSize: 12, fontWeight: '900', letterSpacing: 2, marginBottom: 20 },
   modalActions: { flexDirection: 'row', gap: 8 },
   modalCancelBtn: { flex: 1, height: 38, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
-  modalCancelText: { fontSize: 9, fontWeight: '900', color: '#aaa', letterSpacing: 1 },
+  modalCancelText: { fontSize: 12, fontWeight: '900', color: '#aaa', letterSpacing: 1 },
   modalSubmitBtn: { flex: 1.2, height: 38, borderRadius: 10, backgroundColor: '#22c55e', alignItems: 'center', justifyContent: 'center' },
-  modalSubmitText: { fontSize: 9, fontWeight: '900', color: '#000', letterSpacing: 1 }
+  modalSubmitText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 1 }
 });

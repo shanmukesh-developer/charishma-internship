@@ -6,7 +6,7 @@ import { KeyboardAvoidingView } from './KeyboardAvoidingView';
 import { useTheme } from '../context/ThemeContext';
 import { ENDPOINTS } from '../constants/api';
 import { apiFetch, readJson, normalizePhone, NETWORK_ERROR_MESSAGE } from '../utils/auth';
-import { usePhoneOtp } from '../utils/phoneOtp';
+import { usePhoneOtp, isSmsSendFailure } from '../utils/phoneOtp';
 
 /**
  * Profile -> Delete my account (Google Play account-deletion requirement).
@@ -65,14 +65,19 @@ export default function DeleteAccountModal({ visible, phone, onClose, onDeleted 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  const sendCode = async () => {
+  // The SMS could not be sent: offer the code by email (to the address on the account).
+  const [smsFailed, setSmsFailed] = useState(false);
+  const sendCode = async (viaEmail = false) => {
     setError(''); setInfo('');
     if (!/^[6-9]\d{9}$/.test(phone10)) {
       setError('Your account has no valid mobile number. Please email projectshanmukh@gmail.com to delete it.');
       return;
     }
-    const r = await otp.send(phone10);
-    if (r.ok) { setInfo(r.message); setStep('otp'); } else setError(r.message);
+    const r = viaEmail ? await otp.sendEmail(phone10) : await otp.send(phone10);
+    if (r.ok) { setSmsFailed(false); setInfo(r.message); setStep('otp'); } else {
+      if (!viaEmail) setSmsFailed(isSmsSendFailure(r));
+      setError(r.message);
+    }
   };
 
   const confirmDelete = async () => {
@@ -158,11 +163,16 @@ export default function DeleteAccountModal({ visible, phone, onClose, onDeleted 
                   <TouchableOpacity
                     style={[s.dangerBtn, { opacity: canContinue ? 1 : 0.45 }]}
                     disabled={!canContinue}
-                    onPress={sendCode}
+                    onPress={() => sendCode(false)}
                     accessibilityRole="button"
                   >
                     {otp.sending ? <ActivityIndicator color="#fff" /> : <Text style={s.dangerText}>SEND CODE TO ******{phone10.slice(-4)}</Text>}
                   </TouchableOpacity>
+                  {smsFailed && canContinue && (
+                    <TouchableOpacity onPress={() => sendCode(true)} accessibilityRole="button">
+                      <Text style={[s.link, { color: RED }]}>Send the code by email instead</Text>
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity onPress={() => Linking.openURL(ENDPOINTS.deleteAccountInfo).catch(() => {})}>
                     <Text style={[s.link, { color: sub }]}>More about account deletion</Text>
                   </TouchableOpacity>
@@ -197,7 +207,7 @@ export default function DeleteAccountModal({ visible, phone, onClose, onDeleted 
                   >
                     {busy ? <ActivityIndicator color="#fff" /> : <Text style={s.dangerText}>DELETE MY ACCOUNT</Text>}
                   </TouchableOpacity>
-                  <TouchableOpacity disabled={otp.countdown > 0 || otp.sending} onPress={sendCode}>
+                  <TouchableOpacity disabled={otp.countdown > 0 || otp.sending} onPress={() => sendCode(otp.mode === 'email')}>
                     <Text style={[s.link, { color: sub }]}>{otp.countdown > 0 ? `Resend code in ${otp.countdown}s` : 'Resend code'}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={s.cancelBtn} onPress={onClose} disabled={busy}>

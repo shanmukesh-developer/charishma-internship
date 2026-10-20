@@ -100,9 +100,9 @@ export const ErrorBox: React.FC<{ message: string | null }> = ({ message }) =>
   ) : null;
 
 export const taskUi = StyleSheet.create({
-  section: { fontSize: 11, fontWeight: '800', letterSpacing: 0.8, color: FriendsColors.muted, textTransform: 'uppercase', marginBottom: FS.sm },
+  section: { fontSize: 12, fontWeight: '800', letterSpacing: 0.8, color: FriendsColors.muted, textTransform: 'uppercase', marginBottom: FS.sm },
   label: { fontSize: 12, fontWeight: '800', letterSpacing: 0.4, color: FriendsColors.muted, marginBottom: 6, marginTop: FS.lg },
-  counter: { fontSize: 11, color: FriendsColors.faint, textAlign: 'right', marginTop: 4 },
+  counter: { fontSize: 12, color: FriendsColors.faint, textAlign: 'right', marginTop: 4 },
 });
 
 const styles = StyleSheet.create({
@@ -118,10 +118,10 @@ const styles = StyleSheet.create({
   },
   back: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: FR.pill, alignSelf: 'flex-start' },
-  pillText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.2 },
+  pillText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
   chips: { gap: FS.sm, paddingHorizontal: FS.lg, paddingVertical: FS.sm },
   count: { minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: FriendsColors.accentSoft, alignItems: 'center', justifyContent: 'center' },
-  countText: { fontSize: 10, fontWeight: '800', color: FriendsColors.accent },
+  countText: { fontSize: 12, fontWeight: '800', color: FriendsColors.accent },
   soft: {
     flexDirection: 'row',
     alignItems: 'center',

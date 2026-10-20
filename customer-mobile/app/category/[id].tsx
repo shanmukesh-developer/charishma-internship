@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import NightClosureBanner from '../../components/NightClosureBanner';
 import {
   View,
   Text,
@@ -82,7 +83,7 @@ interface CatalogueItem {
   inStock: boolean;
 }
 
-interface StoreInfo { id: string; name: string; isOpen: boolean; opensAt: string | null; closedReason: string | null; fssaiLicenseNumber: string | null }
+interface StoreInfo { id: string; name: string; isOpen: boolean; opensAt: string | null; closedReason: string | null; fssaiLicenseNumber: string | null; campusClosed?: boolean }
 
 /** "7:00 AM" from the store's HH:MM opening time, or null when it is missing. */
 const formatOpensAt = (hhmm: string | null) => (hhmm && /^\d{1,2}:\d{2}$/.test(hhmm) ? formatClock(hhmm) : null);
@@ -137,6 +138,7 @@ export default function CategoryDetailScreen() {
         isOpen: st.isOpen !== false,
         opensAt: st.opensAt || null,
         closedReason: st.closedReason || null,
+        campusClosed: !!st.campusClosed,
         fssaiLicenseNumber: typeof st.fssaiLicenseNumber === 'string' && st.fssaiLicenseNumber ? st.fssaiLicenseNumber : null,
       };
     });
@@ -346,8 +348,8 @@ export default function CategoryDetailScreen() {
       <StateView
         icon={meta.icon}
         title="Nothing on this shelf yet"
-        body="New items are added often. Need something now? Send it as a Mega Basket shopping list."
-        action="Open Mega Basket"
+        body="New items are added often. Need something now? Send it as a shopping list."
+        action="Open shopping list"
         onAction={() => router.push('/mega-basket' as any)}
       />
     );
@@ -511,7 +513,9 @@ export default function CategoryDetailScreen() {
         </TouchableOpacity>
       )}
 
-      {!isServiceCategory && closedStore && (
+      {/* Campus night closure (9 PM to 6 AM): one clear banner instead of a "closed" line per store */}
+      {!isServiceCategory && <NightClosureBanner style={{ marginBottom: 4 }} />}
+      {!isServiceCategory && closedStore && !closedStore.campusClosed && (
         <View style={[s.banner, { backgroundColor: isDark ? 'rgba(99,102,241,0.14)' : 'rgba(99,102,241,0.08)' }]}>
           <Ionicons name="time-outline" size={18} color={txtSec} />
           <Text style={[s.bannerText, { color: txt }]}>
@@ -623,7 +627,7 @@ const s = StyleSheet.create({
   cardImg: { width: '100%', height: '100%' },
   imagePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   badge: { position: 'absolute', top: 8, left: 8, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6 },
-  badgeText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
+  badgeText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
   cardInfo: { padding: 10, flex: 1 },
   itemName: { fontSize: 14, fontWeight: '700', lineHeight: 18, minHeight: 36 },
   itemDesc: { fontSize: 12, lineHeight: 16, minHeight: 32, marginTop: 2 },

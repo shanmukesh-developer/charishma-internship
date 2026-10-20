@@ -1104,7 +1104,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
   },
-  retentionNote: { textAlign: 'center', fontSize: 11, color: CampusColors.muted, marginVertical: 8 },
+  retentionNote: { textAlign: 'center', fontSize: 12, color: CampusColors.muted, marginVertical: 8 },
   loadEarlierText: {
     fontSize: 13,
     fontWeight: '600',
@@ -1147,7 +1147,7 @@ const styles = StyleSheet.create({
     borderColor: CampusColors.line,
   },
   senderName: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: CampusColors.accentDeep,
     marginBottom: 3,
@@ -1168,12 +1168,12 @@ const styles = StyleSheet.create({
     backgroundColor: CampusColors.paper,
   },
   quotedSender: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: CampusColors.accent,
   },
   quotedText: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.muted,
   },
   photo: {
@@ -1212,10 +1212,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   editedTag: {
-    fontSize: 10,
+    fontSize: 12,
   },
   timeText: {
-    fontSize: 10,
+    fontSize: 12,
   },
   metaMe: {
     color: 'rgba(255,255,255,0.7)',
@@ -1246,10 +1246,10 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   reactionPillText: {
-    fontSize: 11,
+    fontSize: 12,
   },
   reactionCountText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700',
     color: CampusColors.ink,
   },
@@ -1273,7 +1273,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   replyBarSender: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: CampusColors.accent,
   },

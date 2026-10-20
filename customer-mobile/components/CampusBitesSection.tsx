@@ -211,7 +211,7 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
       {/* Header */}
       <View style={s.headerRow}>
         <View style={s.badgeRow}>
-          <View style={s.badgeIconWrap}><Text style={{ fontSize: 11 }}>🏪</Text></View>
+          <View style={s.badgeIconWrap}><Text style={{ fontSize: 12 }}>🏪</Text></View>
           <Text style={s.badgeTag}>CAMPUSBITES</Text>
           {allVendors.length > 0 && (
             <Text style={[s.countTag, { color: txtSec }]}>
@@ -326,7 +326,7 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
           </Text>
           {(q || selectedCampus !== 'ALL') && (
             <TouchableOpacity onPress={() => { setStallSearch(''); setSelectedCampus('ALL'); }} style={{ marginTop: 10 }} accessibilityRole="button">
-              <Text style={{ color: COLORS.gold, fontSize: 10, fontWeight: '900', letterSpacing: 0.6 }}>SHOW ALL STALLS</Text>
+              <Text style={{ color: COLORS.gold, fontSize: 12, fontWeight: '900', letterSpacing: 0.6 }}>SHOW ALL STALLS</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -365,7 +365,7 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
               <View style={s.cardBody}>
                 <View style={[s.imageWrap, { borderColor: border }]}>
                   {vendorImg ? (
-                    <Image source={{ uri: vendorImg }} style={s.cardImg} />
+                    <Image source={{ uri: vendorImg }} style={s.cardImg} placeholderIcon="storefront-outline" />
                   ) : (
                     <View style={[s.cardImg, s.noImg, { backgroundColor: isDark ? 'rgba(251,191,36,0.08)' : '#FFF7E6' }]}>
                       <Text style={s.noImgText}>{String(vendor.name || '?').trim().charAt(0).toUpperCase() || '🏪'}</Text>
@@ -489,7 +489,7 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
       </Text>
       {!noStallsYet && !waiting && (
         <TouchableOpacity onPress={openListStall} accessibilityRole="button" accessibilityLabel="List your stall on CampusBites via WhatsApp" style={{ alignSelf: 'center', marginTop: 6 }}>
-          <Text style={{ color: COLORS.gold, fontSize: 9, fontWeight: '900', letterSpacing: 0.6 }}>RUN A STALL? LIST IT FREE →</Text>
+          <Text style={{ color: COLORS.gold, fontSize: 12, fontWeight: '900', letterSpacing: 0.6 }}>RUN A STALL? LIST IT FREE →</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -501,26 +501,26 @@ const s = StyleSheet.create({
   headerRow: { marginBottom: 12 },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
   badgeIconWrap: { width: 22, height: 22, borderRadius: 6, backgroundColor: COLORS.gold, alignItems: 'center', justifyContent: 'center' },
-  badgeTag: { fontSize: 8, fontWeight: '900', color: COLORS.gold, letterSpacing: 2 },
-  countTag: { fontSize: 8, fontWeight: '800', letterSpacing: 1, marginLeft: 'auto' },
+  badgeTag: { fontSize: 12, fontWeight: '900', color: COLORS.gold, letterSpacing: 2 },
+  countTag: { fontSize: 12, fontWeight: '800', letterSpacing: 1, marginLeft: 'auto' },
   sectionTitle: { fontSize: 18, fontWeight: '900', letterSpacing: -0.5, fontStyle: 'italic' },
-  sectionDesc: { fontSize: 8, fontWeight: '700', letterSpacing: 1, marginTop: 4, lineHeight: 12 },
+  sectionDesc: { fontSize: 12, fontWeight: '700', letterSpacing: 1, marginTop: 4, lineHeight: 12 },
 
   campusScroll: { marginBottom: 12 },
   campusPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, marginRight: 8, maxWidth: 200 },
-  campusLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 0.6 },
+  campusLabel: { fontSize: 12, fontWeight: '900', letterSpacing: 0.6 },
 
   searchWrap: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 42, borderRadius: 12, borderWidth: 1, gap: 8, marginBottom: 16 },
   searchInput: { flex: 1, fontSize: 12, fontWeight: '600' },
 
   emptyState: { padding: 28, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyText: { fontSize: 9, fontWeight: '900', letterSpacing: 1.5, textAlign: 'center' },
+  emptyText: { fontSize: 12, fontWeight: '900', letterSpacing: 1.5, textAlign: 'center' },
   ctaBtn: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 12 },
-  ctaText: { color: '#000', fontWeight: '900', fontSize: 11, letterSpacing: 0.6 },
+  ctaText: { color: '#000', fontWeight: '900', fontSize: 12, letterSpacing: 0.6 },
 
   card: { borderRadius: 20, borderWidth: 1, marginBottom: 14, overflow: 'hidden', padding: 14, position: 'relative', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 2 },
   featuredBadge: { position: 'absolute', top: 0, right: 0, backgroundColor: COLORS.gold, paddingHorizontal: 10, paddingVertical: 4, borderBottomLeftRadius: 10, zIndex: 2 },
-  featuredText: { fontSize: 7, fontWeight: '900', color: '#000', letterSpacing: 1 },
+  featuredText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 1 },
 
   cardBody: { flexDirection: 'row', gap: 12 },
   imageWrap: { width: 88, height: 88, borderRadius: 14, overflow: 'hidden', borderWidth: 1, position: 'relative' },
@@ -529,41 +529,41 @@ const s = StyleSheet.create({
   noImgText: { fontSize: 34, fontWeight: '900', color: COLORS.gold },
   statusChip: { position: 'absolute', bottom: 4, left: 4, flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
   statusDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#FFF' },
-  statusText: { color: '#FFF', fontSize: 7, fontWeight: '900', letterSpacing: 1 },
+  statusText: { color: '#FFF', fontSize: 12, fontWeight: '900', letterSpacing: 1 },
 
   info: { flex: 1 },
   nameText: { fontSize: 14, fontWeight: '900', letterSpacing: 0.3, paddingRight: 56 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
   campusTag: { backgroundColor: 'rgba(251,146,60,0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, maxWidth: 110 },
-  campusTagText: { color: '#FB923C', fontSize: 7, fontWeight: '900', letterSpacing: 1 },
-  ratingText: { fontSize: 9, fontWeight: '700' },
-  descText: { fontSize: 10, fontWeight: '600', marginTop: 6, lineHeight: 13 },
+  campusTagText: { color: '#FB923C', fontSize: 12, fontWeight: '900', letterSpacing: 1 },
+  ratingText: { fontSize: 12, fontWeight: '700' },
+  descText: { fontSize: 12, fontWeight: '600', marginTop: 6, lineHeight: 13 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
   chip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1 },
   codChip: { backgroundColor: 'rgba(16,185,129,0.08)', borderColor: 'rgba(16,185,129,0.25)' },
-  codText: { color: '#059669', fontSize: 7, fontWeight: '900', letterSpacing: 0.6 },
+  codText: { color: '#059669', fontSize: 12, fontWeight: '900', letterSpacing: 0.6 },
   deliverChip: { backgroundColor: 'rgba(59,130,246,0.08)', borderColor: 'rgba(59,130,246,0.25)' },
-  deliverText: { color: '#2563EB', fontSize: 7, fontWeight: '900', letterSpacing: 0.6 },
+  deliverText: { color: '#2563EB', fontSize: 12, fontWeight: '900', letterSpacing: 0.6 },
   promoWrap: { alignSelf: 'flex-start', backgroundColor: 'rgba(251,191,36,0.1)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.2)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginTop: 6 },
-  promoText: { color: '#FBBF24', fontSize: 7, fontWeight: '900', letterSpacing: 0.5 },
-  closedNote: { fontSize: 10, fontWeight: '800', marginTop: 8 },
+  promoText: { color: '#FBBF24', fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
+  closedNote: { fontSize: 12, fontWeight: '800', marginTop: 8 },
 
   bottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 10, borderWidth: 0, borderTopWidth: 1, gap: 8 },
-  hoursText: { fontSize: 9, fontWeight: '700', letterSpacing: 0.3 },
+  hoursText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
   actions: { flexDirection: 'row', gap: 6 },
   actionBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
   callBtn: { backgroundColor: 'rgba(59,130,246,0.1)', borderColor: 'rgba(59,130,246,0.2)' },
-  callText: { color: '#3B82F6', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  callText: { color: '#3B82F6', fontSize: 12, fontWeight: '900', letterSpacing: 1 },
   orderBtn: { backgroundColor: 'rgba(16,185,129,0.1)', borderColor: 'rgba(16,185,129,0.2)' },
-  orderText: { color: '#10B981', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  orderText: { color: '#10B981', fontSize: 12, fontWeight: '900', letterSpacing: 1 },
   dishList: { marginTop: 10, gap: 6 },
   dishRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, borderTopWidth: StyleSheet.hairlineWidth },
-  dishName: { flex: 1, fontSize: 11, fontWeight: '700' },
-  dishPrice: { fontSize: 11, fontWeight: '900' },
+  dishName: { flex: 1, fontSize: 12, fontWeight: '700' },
+  dishPrice: { fontSize: 12, fontWeight: '900' },
   addBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: '#EF4F5F', backgroundColor: '#FFF5F6', minWidth: 64, alignItems: 'center' },
-  addBtnText: { color: '#EF4F5F', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
-  moreText: { fontSize: 9, fontWeight: '900', letterSpacing: 0.6, paddingVertical: 2 },
-  payNote: { fontSize: 9, fontWeight: '700', marginTop: 2 },
+  addBtnText: { color: '#EF4F5F', fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
+  moreText: { fontSize: 12, fontWeight: '900', letterSpacing: 0.6, paddingVertical: 2 },
+  payNote: { fontSize: 12, fontWeight: '700', marginTop: 2 },
 
-  disclaimer: { fontSize: 8, fontWeight: '700', letterSpacing: 0.4, textAlign: 'center', marginTop: 12, lineHeight: 11 }
+  disclaimer: { fontSize: 12, fontWeight: '700', letterSpacing: 0.4, textAlign: 'center', marginTop: 12, lineHeight: 11 }
 });

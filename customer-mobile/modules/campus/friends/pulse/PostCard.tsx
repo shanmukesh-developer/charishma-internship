@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   replyTo: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
   flags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
   flag: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: FR.pill },
-  flagText: { fontSize: 11, fontWeight: '800' },
+  flagText: { fontSize: 12, fontWeight: '800' },
   actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginHorizontal: -8 },
   action: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 44, minWidth: 48, paddingHorizontal: 8 },
   count: { fontSize: 13, fontWeight: '700', color: FriendsColors.muted, minWidth: 10 },

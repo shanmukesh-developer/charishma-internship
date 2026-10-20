@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.15 }],
   },
   tabLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.2,
     marginTop: 3,
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
   },
   cartBadgeText: {
     color: '#FFFFFF',
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
   },
 });

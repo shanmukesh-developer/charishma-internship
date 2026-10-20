@@ -334,7 +334,7 @@ const s = StyleSheet.create({
     opacity: 0.8,
   },
   loreLabel: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '700',
     color: '#A0AEC0',
     letterSpacing: 2,
@@ -342,7 +342,7 @@ const s = StyleSheet.create({
     marginBottom: 4,
   },
   tagline: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 3,
     textTransform: 'uppercase',
@@ -364,7 +364,7 @@ const s = StyleSheet.create({
     marginBottom: 2,
   },
   itemName: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '800',
     color: 'rgba(255, 255, 255, 0.8)',
     textTransform: 'uppercase',
@@ -372,7 +372,7 @@ const s = StyleSheet.create({
     textAlign: 'center',
   },
   capsuleText: {
-    fontSize: 9,
+    fontSize: 12,
     color: '#A0AEC0',
     textAlign: 'center',
     letterSpacing: 1.2,

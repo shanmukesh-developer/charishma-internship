@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
     borderColor: FriendsColors.line,
   },
   badge: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: FriendsColors.accent, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { fontSize: 11, fontWeight: '800', color: FriendsColors.accentInk },
+  badgeText: { fontSize: 12, fontWeight: '800', color: FriendsColors.accentInk },
   sortRow: { flexDirection: 'row', gap: 4, marginHorizontal: FS.lg, padding: 4, borderRadius: FR.pill, backgroundColor: FriendsColors.card, borderWidth: 1, borderColor: FriendsColors.lineSoft },
   sort: { flex: 1, minHeight: 36, borderRadius: FR.pill, alignItems: 'center', justifyContent: 'center' },
   sortOn: { backgroundColor: FriendsColors.cardHi },

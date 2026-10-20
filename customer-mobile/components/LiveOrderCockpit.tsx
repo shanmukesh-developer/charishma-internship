@@ -272,7 +272,7 @@ export default function LiveOrderCockpit({
           </View>
           <TouchableOpacity style={styles.pinCodePill} onPress={handleCopyPin} accessibilityLabel="Copy delivery PIN">
             <Text style={styles.pinDigits}>{deliveryPin}</Text>
-            <Text style={{ fontSize: 10, marginLeft: 4 }}>{copiedPin ? '✅' : '📋'}</Text>
+            <Text style={{ fontSize: 12, marginLeft: 4 }}>{copiedPin ? '✅' : '📋'}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -377,13 +377,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981',
   },
   liveBeaconText: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     color: COLORS.gold,
     letterSpacing: 1.5,
   },
   orderIdBadge: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1,
   },
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   etaSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     marginTop: 2,
   },
@@ -457,12 +457,12 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   ratingText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '800',
     color: '#92400E',
   },
   vehicleText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     marginTop: 2,
   },
@@ -493,12 +493,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   pinHeading: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1.2,
   },
   pinDescription: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '600',
     marginTop: 2,
   },
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   milestonesSectionTitle: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1.2,
     marginBottom: 14,
@@ -557,11 +557,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   milestoneEst: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '800',
   },
   milestoneSub: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '500',
     marginTop: 2,
   },
@@ -579,7 +579,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(212,175,55,0.12)',
   },
   shareBtnText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     color: COLORS.gold,
     letterSpacing: 0.5,

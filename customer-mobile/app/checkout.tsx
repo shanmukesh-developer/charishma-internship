@@ -547,7 +547,7 @@ export default function CheckoutScreen() {
         : `Payment: ${snap.paymentMethod === 'Wallet' ? 'Zenvy Wallet' : 'Cash on Delivery'}`);
     }
     if (hasCustom) {
-      lines.push(`Mega Basket shopping list (${customLines.length}) · est. ${formatINR(customEstimate)} + fees, cash on delivery`);
+      lines.push(`Shopping list (${customLines.length}) · est. ${formatINR(customEstimate)} + fees, cash on delivery`);
     }
     lines.push(`Deliver to: ${campusLabel} - ${address.trim()}`);
 
@@ -729,7 +729,7 @@ export default function CheckoutScreen() {
           // The list may have reached the server before the connection dropped; the same key is reused
           // on retry, but tell the user to check first instead of claiming it was not sent.
           Alert.alert(placedOrderId ? 'Order placed, shopping list not confirmed' : "Couldn't confirm your shopping list",
-            `We couldn't confirm whether your shopping list was sent. Check Mega Basket → My lists before trying again.${placedOrderId ? ' Your shopping list is still in your basket.' : ''}`);
+            `We couldn't confirm whether your shopping list was sent. Check Shopping list → My lists before trying again.${placedOrderId ? ' Your shopping list is still in your basket.' : ''}`);
         }
       }
 
@@ -904,9 +904,9 @@ export default function CheckoutScreen() {
               style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: -4, marginBottom: 10, alignSelf: 'flex-start', paddingVertical: 4 }}
             >
               <View style={{ width: 18, height: 18, borderRadius: 5, borderWidth: 1.5, borderColor: hostelSaved ? COLORS.emerald : border, backgroundColor: hostelSaved ? COLORS.emerald : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-                {savingHostel ? <ActivityIndicator size="small" color={txt} /> : hostelSaved ? <Text style={{ color: '#fff', fontSize: 11, fontWeight: '900' }}>✓</Text> : null}
+                {savingHostel ? <ActivityIndicator size="small" color={txt} /> : hostelSaved ? <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>✓</Text> : null}
               </View>
-              <Text style={{ fontSize: 11.5, fontWeight: '700', color: hostelSaved ? COLORS.emerald : txtSec }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: hostelSaved ? COLORS.emerald : txtSec }}>
                 {hostelSaved ? 'Saved as my hostel & room' : 'Save as my hostel & room'}
               </Text>
             </TouchableOpacity>
@@ -931,7 +931,7 @@ export default function CheckoutScreen() {
                     sound="click"
                     activeScale={0.92}
                   >
-                    <Text style={{ fontSize: 11, fontWeight: '800', color: isSelected ? '#FFFFFF' : txt, letterSpacing: 0.2 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: isSelected ? '#FFFFFF' : txt, letterSpacing: 0.2 }}>
                       {block}
                     </Text>
                   </DopaminePressable>
@@ -1103,7 +1103,7 @@ export default function CheckoutScreen() {
             })}
           </View>
           {hasOrder && hasCustom && paymentMethod === 'Wallet' && (
-            <Text style={[s.helperText, { color: txtSec }]}>Your Mega Basket shopping list is paid in cash when it arrives.</Text>
+            <Text style={[s.helperText, { color: txtSec }]}>Your shopping list is paid in cash when it arrives.</Text>
           )}
         </StaggeredSection>
 
@@ -1193,7 +1193,7 @@ export default function CheckoutScreen() {
             {hasCustom && (
               <View style={[hasOrder && { borderTopWidth: 1, borderTopColor: border, marginTop: 12, paddingTop: 12 }]}>
                 <View style={s.billRow}>
-                  <Text style={[s.billLabel, { color: txt }]}>Mega Basket (est.)</Text>
+                  <Text style={[s.billLabel, { color: txt }]}>Shopping list (est.)</Text>
                   <Text style={[s.billVal, { color: txt }]}>{formatINR(customEstimate)}</Text>
                 </View>
                 <Text style={[s.helperText, { color: txtSec }]}>
@@ -1242,23 +1242,23 @@ const s = StyleSheet.create({
   campusRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   campusBtnNew: { flex: 1, paddingVertical: 12, paddingHorizontal: 6, borderRadius: 16, alignItems: 'center', borderWidth: 1.5, position: 'relative', overflow: 'hidden' },
   campusLabelNew: { fontSize: 12, fontWeight: '900', letterSpacing: 0.2 },
-  campusSubLabelNew: { fontSize: 9, fontWeight: '600', color: COLORS.textMuted, marginTop: 2, textAlign: 'center' },
+  campusSubLabelNew: { fontSize: 12, fontWeight: '600', color: COLORS.textMuted, marginTop: 2, textAlign: 'center' },
   activeCheckBadge: { position: 'absolute', top: 0, right: 0, borderBottomLeftRadius: 8, width: 14, height: 14, alignItems: 'center', justifyContent: 'center' },
-  activeCheckText: { color: '#000', fontSize: 8, fontWeight: '900' },
+  activeCheckText: { color: '#000', fontSize: 12, fontWeight: '900' },
   input: { borderWidth: 1, borderRadius: 12, padding: 14, fontSize: 13, marginBottom: 10, fontWeight: '600' },
   blockChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 1.5 },
-  helperText: { fontSize: 10, fontWeight: '600', lineHeight: 15, marginBottom: 6 },
+  helperText: { fontSize: 12, fontWeight: '600', lineHeight: 15, marginBottom: 6 },
   payRowNew: { gap: 10, marginBottom: 12 },
   payCardNew: { padding: 14, borderRadius: 16, borderWidth: 1.5 },
   payCardTitle: { fontSize: 13, fontWeight: '900', letterSpacing: 0.2 },
-  payCardDesc: { fontSize: 9, color: COLORS.textSecondary, fontWeight: '600', marginTop: 2 },
+  payCardDesc: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '600', marginTop: 2 },
   radioOuter: { width: 16, height: 16, borderRadius: 8, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   radioInner: { width: 8, height: 8, borderRadius: 4 },
   billCard: { padding: 16, borderRadius: 20 },
   billRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, gap: 8 },
   billLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
   billVal: { fontSize: 12, fontWeight: '800' },
-  savingsText: { fontSize: 10, fontWeight: '800', color: COLORS.emerald, marginTop: 8, textAlign: 'center' },
+  savingsText: { fontSize: 12, fontWeight: '800', color: COLORS.emerald, marginTop: 8, textAlign: 'center' },
   placeBtnContainer: {
     marginTop: 24,
     marginBottom: Platform.OS === 'android' ? 80 : 40,
@@ -1274,7 +1274,7 @@ const s = StyleSheet.create({
 
   noticeCard: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 16 },
   noticeTitle: { fontSize: 12, fontWeight: '900' },
-  noticeSub: { fontSize: 10, fontWeight: '600', marginTop: 2, lineHeight: 15 },
+  noticeSub: { fontSize: 12, fontWeight: '600', marginTop: 2, lineHeight: 15 },
   smallBtn: { alignSelf: 'flex-start', backgroundColor: COLORS.red, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
   smallBtnText: { color: '#fff', fontSize: 12, fontWeight: '900' },
 
@@ -1287,18 +1287,18 @@ const s = StyleSheet.create({
   // Suggested Extras
   extrasScroll: { gap: 10, paddingRight: 16 },
   extraCard: { width: 120, padding: 12, borderRadius: 20, borderWidth: 1, borderColor: COLORS.borderDark, alignItems: 'center' },
-  extraName: { fontSize: 9, fontWeight: '800', marginTop: 4, width: '100%', textAlign: 'center' },
-  extraPrice: { fontSize: 10, fontWeight: '900', color: COLORS.gold, marginTop: 2 },
-  extraAddBtn: { fontSize: 10, fontWeight: '900', color: '#000', backgroundColor: COLORS.gold, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, marginTop: 8, overflow: 'hidden' },
+  extraName: { fontSize: 12, fontWeight: '800', marginTop: 4, width: '100%', textAlign: 'center' },
+  extraPrice: { fontSize: 12, fontWeight: '900', color: COLORS.gold, marginTop: 2 },
+  extraAddBtn: { fontSize: 12, fontWeight: '900', color: '#000', backgroundColor: COLORS.gold, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, marginTop: 8, overflow: 'hidden' },
 
   // Coupons
   couponsScroll: { gap: 10, paddingRight: 16 },
   couponCard: { width: 130, padding: 12, borderRadius: 20, borderWidth: 1, borderColor: COLORS.borderDark, alignItems: 'center', position: 'relative' },
   couponCardActive: { borderColor: COLORS.gold, borderWidth: 1.5 },
-  couponCode: { fontSize: 11, fontWeight: '900' },
-  couponType: { fontSize: 8, fontWeight: '800', color: COLORS.textSecondary, marginTop: 2 },
-  activeIndicator: { fontSize: 10, fontWeight: '900', color: COLORS.gold, marginTop: 6 },
+  couponCode: { fontSize: 12, fontWeight: '900' },
+  couponType: { fontSize: 12, fontWeight: '800', color: COLORS.textSecondary, marginTop: 2 },
+  activeIndicator: { fontSize: 12, fontWeight: '900', color: COLORS.gold, marginTop: 6 },
   emptyCoupons: { padding: 20, borderRadius: 20, borderWidth: 1, borderStyle: 'dashed', borderColor: COLORS.borderDark, alignItems: 'center' },
   emptyCouponsText: { fontSize: 12, fontWeight: '900', color: COLORS.textSecondary },
-  emptyCouponsSub: { fontSize: 9, color: COLORS.textSecondary, marginTop: 2 },
+  emptyCouponsSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
 });

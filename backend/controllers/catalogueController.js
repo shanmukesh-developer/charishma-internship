@@ -3,7 +3,7 @@
 const { Op } = require('sequelize');
 const { getRestaurantModel } = require('../models/Restaurant');
 const { getMenuItemModel } = require('../models/MenuItem');
-const { getStoreOpenState } = require('../utils/storeHours');
+const { getStoreOpenState, withCampusWindow } = require('../utils/storeHours');
 const { STORE_VENDOR_TYPES, resolveVendorTypes, isLocalVendorStore, isServiceVendorType } = require('../utils/vendorTypes');
 const { sortMenuItems } = require('../utils/menuSort');
 
@@ -25,7 +25,8 @@ const readSpecs = (item) => {
 
 const shapeStore = (store, itemCount) => {
   const s = store.toJSON ? store.toJSON() : store;
-  const open = getStoreOpenState(store);
+  // Shops show closed during the campus night window too (services are booked, not ordered: unchanged).
+  const open = isServiceVendorType(s.vendorType) ? getStoreOpenState(store) : withCampusWindow(getStoreOpenState(store));
   return {
     id: s.id,
     _id: s.id,
@@ -42,6 +43,7 @@ const shapeStore = (store, itemCount) => {
     isOpen: open.isOpen,
     opensAt: open.opensAt || null,
     closedReason: open.isOpen ? null : (open.message || null),
+    campusClosed: !!open.campusClosed,
     logoUrl: s.logoUrl || null,
     packagingFee: Number(s.packagingFee) || 0,
     minOrderValue: Number(s.minOrderValue) || 0,

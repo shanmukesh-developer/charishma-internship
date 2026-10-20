@@ -85,7 +85,7 @@ export default function MyListings() {
                   </View>
                   <Text style={{ fontSize: 14.5, fontWeight: '900', color: p.text, marginTop: 5 }} numberOfLines={1}>{l.title}{l.year ? ` · ${l.year}` : ''}</Text>
                   <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>{l.registrationDisplay || 'No registration yet'} · {priceLabel(l)}</Text>
-                  {l.ratingCount > 0 ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}><Stars value={l.ratingAvg} size={11} /><Text style={{ fontSize: 11, color: p.sub }}>{tripsLabel(l.tripCount)}</Text></View> : null}
+                  {l.ratingCount > 0 ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}><Stars value={l.ratingAvg} size={11} /><Text style={{ fontSize: 12, color: p.sub }}>{tripsLabel(l.tripCount)}</Text></View> : null}
                 </View>
               </TouchableOpacity>
               {l.status === 'REJECTED' && l.rejectionReason ? <Text style={{ color: p.danger, fontSize: 12, marginTop: 10 }}>Zenvy: {l.rejectionReason}</Text> : null}

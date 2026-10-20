@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   badgeText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     color: '#B4561A',
     letterSpacing: 0.8,
@@ -458,13 +458,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   sourceText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     color: CampusColors.muted,
     letterSpacing: 0.5,
   },
   timeText: {
-    fontSize: 10,
+    fontSize: 12,
     color: CampusColors.muted,
   },
   cardTitle: {

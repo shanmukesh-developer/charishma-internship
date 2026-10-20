@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     backgroundColor: CampusColors.accentSoft,
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
     color: CampusColors.muted,
     marginTop: 2,
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     borderColor: CampusColors.card,
   },
   badgeText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '800',
     color: '#FFFFFF',
   },

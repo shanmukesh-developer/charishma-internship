@@ -593,7 +593,7 @@ export default function ProfileScreen() {
         <Text style={{ fontSize: 18, fontWeight: '900', color: txt, letterSpacing: 0.2, textAlign: 'center', marginBottom: 8 }}>
           Sign in to see your profile
         </Text>
-        <Text style={{ fontSize: 11, color: txtSec, fontWeight: '600', textAlign: 'center', marginBottom: 24, lineHeight: 18 }}>
+        <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', textAlign: 'center', marginBottom: 24, lineHeight: 18 }}>
           Sign in to see your profile, orders, coupons and rewards.
         </Text>
         <TouchableOpacity
@@ -606,7 +606,7 @@ export default function ProfileScreen() {
           }}
           onPress={() => router.push('/login' as any)}
         >
-          <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '900', letterSpacing: 0.3 }}>Sign in or sign up</Text>
+          <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '900', letterSpacing: 0.3 }}>Sign in or sign up</Text>
         </TouchableOpacity>
       </View>
     );
@@ -717,7 +717,7 @@ export default function ProfileScreen() {
             {/* Bio and contact */}
             <View style={{ width: '100%', gap: 10, marginVertical: 12 }}>
               <TouchableOpacity activeOpacity={0.8} onPress={openEditor} style={{ padding: 12, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB', borderRadius: 12, borderWidth: 1, borderColor: border }}>
-                <Text style={{ fontSize: 10, fontWeight: '800', color: goldColor, letterSpacing: 0.2, marginBottom: 4 }}>About me</Text>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: goldColor, letterSpacing: 0.2, marginBottom: 4 }}>About me</Text>
                 <Text style={{ fontSize: 13, color: txt, fontStyle: user?.about ? 'normal' : 'italic', lineHeight: 18 }}>
                   {user?.about || 'No bio yet. Tap to add one.'}
                 </Text>
@@ -725,13 +725,13 @@ export default function ProfileScreen() {
 
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1, padding: 12, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB', borderRadius: 12, borderWidth: 1, borderColor: border }}>
-                  <Text style={{ fontSize: 10, fontWeight: '800', color: txtSec, letterSpacing: 0.2, marginBottom: 4 }}>Mobile</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec, letterSpacing: 0.2, marginBottom: 4 }}>Mobile</Text>
                   <Text style={{ fontSize: 13, fontWeight: '700', color: txt }} numberOfLines={1}>
                     {user?.phone ? `+91 ${user.phone}` : 'Not set'}
                   </Text>
                 </View>
                 <View style={{ flex: 1, padding: 12, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB', borderRadius: 12, borderWidth: 1, borderColor: border }}>
-                  <Text style={{ fontSize: 10, fontWeight: '800', color: txtSec, letterSpacing: 0.2, marginBottom: 4 }}>Email</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec, letterSpacing: 0.2, marginBottom: 4 }}>Email</Text>
                   <Text style={{ fontSize: 13, fontWeight: '700', color: txt }} numberOfLines={1}>
                     {user?.email || 'Not set'}
                   </Text>
@@ -850,7 +850,7 @@ export default function ProfileScreen() {
                     style={{ marginLeft: 6 }}
                     accessibilityLabel={`Remove ${a}`}
                   >
-                    <Text style={{ color: '#EF4444', fontWeight: 'bold', fontSize: 10 }}>✕</Text>
+                    <Text style={{ color: '#EF4444', fontWeight: 'bold', fontSize: 12 }}>✕</Text>
                   </TouchableOpacity>
                 </View>
               ))}
@@ -880,7 +880,7 @@ export default function ProfileScreen() {
                 <Text style={s.allergyAddBtnText}>Add</Text>
               </TouchableOpacity>
             </View>
-            <Text style={{ fontSize: 9, color: txtSec, marginTop: 6 }}>Only dishes the store has marked with that allergen are hidden.</Text>
+            <Text style={{ fontSize: 12, color: txtSec, marginTop: 6 }}>Only dishes the store has marked with that allergen are hidden.</Text>
           </View>
         </StaggeredSection>
 
@@ -968,7 +968,7 @@ export default function ProfileScreen() {
                   <View key={cpn.id || cpn.code} style={[s.couponCard, { backgroundColor: isDark ? '#1C1917' : '#FFFDF5', borderColor: goldColor }]}>
                     <Text style={[s.couponType, { color: goldColor }]}>{cpn.type === 'FREEDEL' ? 'Delivery' : 'Discount'}</Text>
                     <Text style={[s.couponHeader, { color: txt }]}>{String(label)}</Text>
-                    <Text style={{ fontSize: 9, fontWeight: '700', color: txtSec, marginBottom: 6 }}>{expires}</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec, marginBottom: 6 }}>{expires}</Text>
                     <View style={s.couponCodeRow}>
                       <Text style={[s.couponCodeText, { color: goldColor }]}>{cpn.code}</Text>
                       <TouchableOpacity onPress={() => copyText(cpn.code, 'Coupon copied', `Use ${cpn.code} at checkout.`)} style={s.couponCopyBtn}>
@@ -988,7 +988,7 @@ export default function ProfileScreen() {
                 style={{ backgroundColor: goldColor, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 }}
                 onPress={() => router.push('/rewards')}
               >
-                <Text style={{ color: '#000', fontSize: 9, fontWeight: '900', letterSpacing: 0.2 }}>Spin the wheel</Text>
+                <Text style={{ color: '#000', fontSize: 12, fontWeight: '900', letterSpacing: 0.2 }}>Spin the wheel</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -1099,7 +1099,7 @@ export default function ProfileScreen() {
                 style={{ marginTop: 10, backgroundColor: goldColor, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 }}
                 onPress={() => { setStatsState('loading'); fetchData('focus'); }}
               >
-                <Text style={{ color: '#000', fontSize: 9, fontWeight: '900', letterSpacing: 0.2 }}>Try again</Text>
+                <Text style={{ color: '#000', fontSize: 12, fontWeight: '900', letterSpacing: 0.2 }}>Try again</Text>
               </TouchableOpacity>
             </View>
           ) : !hasSpend ? (
@@ -1110,7 +1110,7 @@ export default function ProfileScreen() {
                 style={{ marginTop: 10, backgroundColor: goldColor, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 }}
                 onPress={() => router.push('/(tabs)' as any)}
               >
-                <Text style={{ color: '#000', fontSize: 9, fontWeight: '900', letterSpacing: 0.2 }}>Order now</Text>
+                <Text style={{ color: '#000', fontSize: 12, fontWeight: '900', letterSpacing: 0.2 }}>Order now</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -1298,7 +1298,7 @@ export default function ProfileScreen() {
                 </View>
                 {editProfileImage ? (
                   <TouchableOpacity onPress={() => setEditProfileImage(null)} style={{ marginTop: 6, padding: 4 }}>
-                    <Text style={{ fontSize: 10, fontWeight: '800', color: '#EF4444', letterSpacing: 0.2 }}>Remove photo</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: '#EF4444', letterSpacing: 0.2 }}>Remove photo</Text>
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -1361,7 +1361,7 @@ export default function ProfileScreen() {
                 <View style={{ marginTop: -4, marginBottom: 8 }}>
                   {otpSent ? (
                     <>
-                      <Text style={{ fontSize: 10, color: txtSec, fontWeight: '600', marginBottom: 6 }}>
+                      <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', marginBottom: 6 }}>
                         Enter the 6-digit OTP we sent to +91 {normalizedEditPhone}
                       </Text>
                       <TextInput
@@ -1376,13 +1376,13 @@ export default function ProfileScreen() {
                         style={[s.modalInput, { color: txt, backgroundColor: inputBg, borderColor: goldColor, letterSpacing: 6, textAlign: 'center' }]}
                       />
                       <TouchableOpacity onPress={sendPhoneOtp} disabled={sendingOtp || resendIn > 0} style={{ alignSelf: 'flex-end', padding: 4 }}>
-                        <Text style={{ fontSize: 10, fontWeight: '800', color: resendIn > 0 ? txtSec : goldColor }}>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: resendIn > 0 ? txtSec : goldColor }}>
                           {sendingOtp ? 'Sending…' : resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend OTP'}
                         </Text>
                       </TouchableOpacity>
                     </>
                   ) : (
-                    <Text style={{ fontSize: 10, color: txtSec, fontWeight: '600' }}>
+                    <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>
                       We'll text an OTP to the new number to confirm it's yours.
                     </Text>
                   )}
@@ -1415,7 +1415,7 @@ export default function ProfileScreen() {
                 maxLength={BIO_MAX}
                 style={[s.modalInput, { color: txt, backgroundColor: inputBg, borderColor: border, height: 80, textAlignVertical: 'top', paddingTop: 10 }]}
               />
-              <Text style={{ fontSize: 9, color: txtSec, textAlign: 'right', marginTop: -4, marginBottom: 6 }}>{editAbout.length}/{BIO_MAX}</Text>
+              <Text style={{ fontSize: 12, color: txtSec, textAlign: 'right', marginTop: -4, marginBottom: 6 }}>{editAbout.length}/{BIO_MAX}</Text>
 
               {/* Hostel block (campus directory chips + free text) and room number */}
               <Text style={[s.inputLabel, { color: txtSec }]}>Hostel block</Text>
@@ -1431,7 +1431,7 @@ export default function ProfileScreen() {
                         accessibilityState={{ selected: on }}
                         style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, borderWidth: 1, borderColor: on ? goldColor : border, backgroundColor: on ? goldColor : inputBg }}
                       >
-                        <Text style={{ fontSize: 11, fontWeight: '800', color: on ? '#000' : txt }}>{block}</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: on ? '#000' : txt }}>{block}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -1645,7 +1645,7 @@ const s = StyleSheet.create({
     borderWidth: 1.5,
   },
   streakBadgeText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     color: '#FFF',
   },
@@ -1663,7 +1663,7 @@ const s = StyleSheet.create({
     ...SHADOWS.goldGlow,
   },
   zenvyBadgeText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     color: '#000',
     letterSpacing: 2,
@@ -1687,7 +1687,7 @@ const s = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.1)',
   },
   streakCapsuleText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     color: '#FFF',
   },
@@ -1700,7 +1700,7 @@ const s = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   tierText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
     marginBottom: 16,
@@ -1726,7 +1726,7 @@ const s = StyleSheet.create({
     height: '100%',
   },
   barcodeText: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
   },
@@ -1742,11 +1742,11 @@ const s = StyleSheet.create({
   },
   primaryAddressText: {
     flex: 1,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
   },
   editAddrText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
   },
   telemetryContainer: {
@@ -1771,7 +1771,7 @@ const s = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.1)',
   },
   telemetryLabel: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     color: '#888',
     marginBottom: 4,
@@ -1791,12 +1791,12 @@ const s = StyleSheet.create({
     marginBottom: 6,
   },
   progressTitle: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     color: '#888',
   },
   progressVal: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
   },
   progressBarBg: {
@@ -1817,7 +1817,7 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   sectionTitleText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
     borderLeftWidth: 3,
@@ -1827,7 +1827,7 @@ const s = StyleSheet.create({
     marginLeft: 16,
   },
   sectionAddBtn: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
   },
@@ -1845,7 +1845,7 @@ const s = StyleSheet.create({
     fontWeight: '800',
   },
   emptySubText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '600',
     marginTop: 4,
   },
@@ -1874,12 +1874,12 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   savedAddressLabel: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
   },
   savedAddressVal: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     marginTop: 2,
     flexShrink: 1,
@@ -1898,7 +1898,7 @@ const s = StyleSheet.create({
     marginBottom: 20,
   },
   dietLabel: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
     marginBottom: 10,
@@ -1916,7 +1916,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
   },
   dietModeBtnText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
   },
@@ -1940,7 +1940,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
   },
   allergyBadgeText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
   },
   allergyInputRow: {
@@ -1954,7 +1954,7 @@ const s = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     paddingHorizontal: 12,
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '600',
   },
   allergyAddBtn: {
@@ -1964,7 +1964,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   allergyAddBtnText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     color: '#000',
   },
@@ -1975,7 +1975,7 @@ const s = StyleSheet.create({
     borderRadius: 12,
   },
   pushBtnText: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
   },
   notifCard: {
@@ -2008,7 +2008,7 @@ const s = StyleSheet.create({
     fontWeight: '900',
   },
   notifDesc: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '600',
     marginTop: 2,
   },
@@ -2036,13 +2036,13 @@ const s = StyleSheet.create({
     marginBottom: 6,
   },
   badgeTitle: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     color: '#FFF',
     letterSpacing: 0.5,
   },
   badgeDesc: {
-    fontSize: 7,
+    fontSize: 12,
     fontWeight: '700',
     color: '#888',
     marginTop: 2,
@@ -2052,7 +2052,7 @@ const s = StyleSheet.create({
     paddingVertical: 14,
   },
   emptyAchievementsText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
   },
@@ -2066,7 +2066,7 @@ const s = StyleSheet.create({
     fontSize: 24,
   },
   graySubText: {
-    fontSize: 8,
+    fontSize: 12,
     color: '#666',
     fontWeight: '600',
   },
@@ -2090,7 +2090,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)',
   },
   footerLabel: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     marginBottom: 2,
   },
@@ -2110,7 +2110,7 @@ const s = StyleSheet.create({
     marginRight: 12,
   },
   couponType: {
-    fontSize: 7,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
   },
@@ -2130,7 +2130,7 @@ const s = StyleSheet.create({
     marginTop: 6,
   },
   couponCodeText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1.5,
   },
@@ -2141,7 +2141,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.08)',
   },
   couponCopyBtnText: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     color: '#FFF',
   },
@@ -2180,7 +2180,7 @@ const s = StyleSheet.create({
     marginBottom: 2,
   },
   buddyLinkSubtitle: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '600',
     lineHeight: 13,
   },
@@ -2195,7 +2195,7 @@ const s = StyleSheet.create({
     marginBottom: 10,
   },
   buddyCodeLabel: {
-    fontSize: 7,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
     marginBottom: 3,
@@ -2211,7 +2211,7 @@ const s = StyleSheet.create({
     borderRadius: 10,
   },
   buddyCopyChipText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
   },
@@ -2226,7 +2226,7 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   buddyLinkUrlText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     flex: 1,
     marginRight: 8,
@@ -2246,7 +2246,7 @@ const s = StyleSheet.create({
     elevation: 3,
   },
   buddyQrHint: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '700',
     marginTop: 8,
     letterSpacing: 0.5,
@@ -2293,7 +2293,7 @@ const s = StyleSheet.create({
     marginBottom: 2,
   },
   buddyStatLabel: {
-    fontSize: 7,
+    fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
@@ -2305,7 +2305,7 @@ const s = StyleSheet.create({
     marginBottom: 20,
   },
   giftLabel: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
     marginBottom: 10,
@@ -2335,7 +2335,7 @@ const s = StyleSheet.create({
     fontWeight: '900',
   },
   giftSubText: {
-    fontSize: 7,
+    fontSize: 12,
     color: '#666',
     fontWeight: '800',
     textAlign: 'center',
@@ -2351,7 +2351,7 @@ const s = StyleSheet.create({
     padding: 16,
   },
   chartTitle: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
     marginBottom: 14,
@@ -2374,12 +2374,12 @@ const s = StyleSheet.create({
     borderRadius: 4,
   },
   chartBarMonth: {
-    fontSize: 7,
+    fontSize: 12,
     fontWeight: '900',
     marginTop: 6,
   },
   chartBarTotal: {
-    fontSize: 6,
+    fontSize: 12,
     fontWeight: '900',
     marginTop: 2,
   },
@@ -2399,16 +2399,16 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   topItemName: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '900',
   },
   topItemCount: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '700',
     marginTop: 1,
   },
   topItemSpend: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '900',
   },
   statsGridRow: {
@@ -2427,7 +2427,7 @@ const s = StyleSheet.create({
     fontWeight: '900',
   },
   smallStatLabel: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     color: '#888',
     marginTop: 2,
@@ -2446,13 +2446,13 @@ const s = StyleSheet.create({
     padding: 16,
   },
   supportBtnTitle: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
     marginTop: 8,
   },
   supportBtnDesc: {
-    fontSize: 7,
+    fontSize: 12,
     fontWeight: '600',
     marginTop: 2,
   },
@@ -2473,14 +2473,14 @@ const s = StyleSheet.create({
     borderWidth: 1.5,
   },
   logoutText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     color: '#EF4444',
     letterSpacing: 0.3,
     textAlign: 'center',
   },
   logoutSubText: {
-    fontSize: 8,
+    fontSize: 12,
     color: '#666',
     fontWeight: '800',
     textAlign: 'center',
@@ -2519,7 +2519,7 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   inputLabel: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     color: '#888',
     letterSpacing: 0.3,
@@ -2554,7 +2554,7 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   localUploadBtnText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     color: '#D4AF7A',
     letterSpacing: 0.3,
@@ -2578,7 +2578,7 @@ const s = StyleSheet.create({
   },
   suggestionText: {
     color: '#FFF',
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '600',
   },
   modalActionsRow: {
@@ -2596,7 +2596,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   modalCancelBtnText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     color: '#FFF',
   },
@@ -2608,7 +2608,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   modalSaveBtnText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     color: '#000',
   },
@@ -2654,13 +2654,13 @@ const s = StyleSheet.create({
     marginTop: 10,
   },
   qrCity: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 2.5,
     marginTop: 4,
   },
   qrSubText: {
-    fontSize: 8,
+    fontSize: 12,
     color: '#888',
     fontWeight: '700',
     marginTop: 4,
@@ -2674,7 +2674,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   modalCloseBtnText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     color: '#000',
   },
@@ -2717,13 +2717,13 @@ const s = StyleSheet.create({
     fontWeight: '900',
   },
   aboutSub: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '800',
     color: '#888',
     letterSpacing: 0.3,
   },
   aboutQuote: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     fontStyle: 'italic',
     color: '#CCC',
@@ -2746,18 +2746,18 @@ const s = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.08)',
   },
   aboutStatLabel: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     color: '#888',
     marginBottom: 4,
   },
   aboutStatVal: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '900',
     color: '#FFF',
   },
   aboutFooter: {
-    fontSize: 9,
+    fontSize: 12,
     color: '#888',
     fontWeight: '700',
     textAlign: 'center',
@@ -2773,7 +2773,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   aboutCloseText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     color: '#FFF',
   },

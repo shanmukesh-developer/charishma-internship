@@ -96,5 +96,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 2,
   },
-  count: { fontSize: 11, color: FriendsColors.faint, fontWeight: '600' },
+  count: { fontSize: 12, color: FriendsColors.faint, fontWeight: '600' },
 });

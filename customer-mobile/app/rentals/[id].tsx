@@ -152,7 +152,7 @@ export default function RentalDetail() {
           {(l.photos.length ? l.photos : [null]).map((uri, i) => (
             <View key={`${uri}-${i}`} style={{ width: SW, height: SW * 0.62, backgroundColor: p.card2, alignItems: 'center', justifyContent: 'center' }}>
               {uri ? <SafeImage source={{ uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" fallbackUri={VEHICLE_FALLBACK} maxWidth={900} accessibilityLabel={`Photo ${i + 1} of ${l.title}`} /> : <RIcon name={meta.icon} size={64} color={p.muted} />}
-              {l.photos.length > 1 ? <View style={{ position: 'absolute', bottom: 10, right: 12, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{i + 1}/{l.photos.length}</Text></View> : null}
+              {l.photos.length > 1 ? <View style={{ position: 'absolute', bottom: 10, right: 12, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>{i + 1}/{l.photos.length}</Text></View> : null}
             </View>
           ))}
         </ScrollView>
@@ -161,18 +161,18 @@ export default function RentalDetail() {
           {l.isMine && l.status !== 'APPROVED' ? <Notice tone="warn">This is your vehicle. Status: {LISTING_STATUS_META[l.status]?.label || 'Not live'}. It is not visible to other students.</Notice> : null}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <Badge label={w.badge} color={w.color} />
-            <Text style={{ fontSize: 11.5, color: p.sub, flex: 1 }}>{w.verb === 'Rent' ? 'Commercial rental vehicle (rental number plate)' : 'Private vehicle, lent between students (non-commercial)'}</Text>
+            <Text style={{ fontSize: 12, color: p.sub, flex: 1 }}>{w.verb === 'Rent' ? 'Commercial rental vehicle (rental number plate)' : 'Private vehicle, lent between students (non-commercial)'}</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ fontSize: 20, fontWeight: '900', color: p.success }}>{priceLabel(l)}</Text>
-            {l.ratingCount > 0 ? <View style={{ alignItems: 'flex-end' }}><Stars value={l.ratingAvg} /><Text style={{ fontSize: 11, color: p.sub, marginTop: 2 }}>{ratingLabel(l.ratingAvg)} · {l.ratingCount} rating{l.ratingCount === 1 ? '' : 's'} · {tripsLabel(l.tripCount)}</Text></View> : <Badge label="New" color="#0EA5E9" />}
+            {l.ratingCount > 0 ? <View style={{ alignItems: 'flex-end' }}><Stars value={l.ratingAvg} /><Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>{ratingLabel(l.ratingAvg)} · {l.ratingCount} rating{l.ratingCount === 1 ? '' : 's'} · {tripsLabel(l.tripCount)}</Text></View> : <Badge label="New" color="#0EA5E9" />}
           </View>
           <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 4 }}>Refundable deposit {inr(l.securityDeposit)} · minimum {fmtHours(l.minHours)}</Text>
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
             {[l.fuel ? FUEL_LABEL[l.fuel] : null, l.transmission ? (l.transmission === 'AUTOMATIC' ? 'Automatic' : 'Manual') : null, l.seats ? `${l.seats} seats` : null,
               l.kmLimitPerDay ? `${l.kmLimitPerDay} km/day${l.extraPerKm ? ` · ${formatINR(l.extraPerKm)}/extra km` : ''}` : 'No km limit', l.vehicleType !== 'CAR' ? (l.helmetIncluded ? 'Helmet included' : 'Bring your helmet') : null]
-              .filter(Boolean).map((t) => <View key={t as string} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: p.card2 }}><Text style={{ fontSize: 11.5, fontWeight: '700', color: p.text }}>{t}</Text></View>)}
+              .filter(Boolean).map((t) => <View key={t as string} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: p.card2 }}><Text style={{ fontSize: 12, fontWeight: '700', color: p.text }}>{t}</Text></View>)}
           </View>
 
           {l.owner ? (
@@ -182,7 +182,7 @@ export default function RentalDetail() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 14, fontWeight: '900', color: p.text }}>{l.owner.name} <Text style={{ color: p.success, fontSize: 12 }}>Verified student · {w.giver}</Text></Text>
-                <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }}>{l.owner.rating && l.owner.rating.avg ? `★ ${ratingLabel(l.owner.rating.avg)} from ${l.owner.rating.count} student${l.owner.rating.count === 1 ? '' : 's'}` : 'No ratings yet'} · phone shared after you are confirmed</Text>
+                <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>{l.owner.rating && l.owner.rating.avg ? `★ ${ratingLabel(l.owner.rating.avg)} from ${l.owner.rating.count} student${l.owner.rating.count === 1 ? '' : 's'}` : 'No ratings yet'} · phone shared after you are confirmed</Text>
               </View>
             </Card>
           ) : null}
@@ -196,7 +196,7 @@ export default function RentalDetail() {
           <SectionTitle>Availability</SectionTitle>
           <Card>
             {weekly.length ? weekly.sort(([a], [b]) => Number(a) - Number(b)).map(([d, w]) => <Row key={d} label={DAY_NAMES[Number(d)]} value={`${fmtTime(w.start)} – ${fmtTime(w.end)}`} />) : <Text style={{ fontSize: 12.5, color: p.sub }}>Pickup and return any time (agree the exact time with the {w.giver}).</Text>}
-            {weekly.length ? <Text style={{ fontSize: 11, color: p.muted, marginTop: 6 }}>Pickup and return must be inside these hours. Days not listed are closed.</Text> : null}
+            {weekly.length ? <Text style={{ fontSize: 12, color: p.muted, marginTop: 6 }}>Pickup and return must be inside these hours. Days not listed are closed.</Text> : null}
             {l.blockedDates.length ? <Text style={{ fontSize: 12, color: p.warn, marginTop: 8 }}>Not available: {l.blockedDates.map((b) => (b.start === b.end ? istDayLabel(b.start) : `${istDayLabel(b.start)} → ${istDayLabel(b.end)}`)).join(', ')}</Text> : null}
             {data.busy.length ? (
               <View style={{ marginTop: 8 }}>
@@ -222,7 +222,7 @@ export default function RentalDetail() {
                     {quote.quote.kmAllowance ? <Row label="Km included" value={`${quote.quote.kmAllowance} km${quote.quote.extraPerKm ? ` · then ${formatINR(quote.quote.extraPerKm)}/km` : ''}`} /> : null}
                     <View style={{ height: 1, backgroundColor: p.border, marginVertical: 6 }} />
                     <Row label="Pay in cash at pickup" value={inr(quote.quote.payAtHandover)} strong />
-                    <Text style={{ fontSize: 11, color: p.muted, marginTop: 6, lineHeight: 16 }}>{quote.quote.paymentNote} Zenvy does not collect this money.</Text>
+                    <Text style={{ fontSize: 12, color: p.muted, marginTop: 6, lineHeight: 16 }}>{quote.quote.paymentNote} Zenvy does not collect this money.</Text>
                   </View>
                 ) : <Text style={{ color: p.sub, fontSize: 12 }}>{quoting ? 'Calculating…' : `Pick your times to see the ${w.price}.`}</Text>}
               </Card>
@@ -234,8 +234,8 @@ export default function RentalDetail() {
               <SectionTitle>Insurance & responsibility</SectionTitle>
               <Card>
                 <Text style={{ fontSize: 12.5, color: p.text, lineHeight: 18 }}>{safety.disclaimer}</Text>
-                {safety.conditionPhotosRequired ? <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 8, lineHeight: 17 }}>The {w.giver} records photos and the odometer at pickup and at return. You can add your own too.</Text> : null}
-                <TouchableOpacity onPress={openTerms} accessibilityRole="link"><Text style={{ fontSize: 11.5, color: p.accent, fontWeight: '800', marginTop: 8 }}>Read the full Terms ›</Text></TouchableOpacity>
+                {safety.conditionPhotosRequired ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 8, lineHeight: 17 }}>The {w.giver} records photos and the odometer at pickup and at return. You can add your own too.</Text> : null}
+                <TouchableOpacity onPress={openTerms} accessibilityRole="link"><Text style={{ fontSize: 12, color: p.accent, fontWeight: '800', marginTop: 8 }}>Read the full Terms ›</Text></TouchableOpacity>
               </Card>
             </>
           ) : null}
@@ -256,7 +256,7 @@ export default function RentalDetail() {
       {canBook ? (
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 16, paddingBottom: 26, backgroundColor: p.bg, borderTopWidth: 1, borderTopColor: p.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 11, color: p.sub }}>{quote ? `${fmtHours(quote.quote.hours)} · pay at pickup` : 'Pick times above'}</Text>
+            <Text style={{ fontSize: 12, color: p.sub }}>{quote ? `${fmtHours(quote.quote.hours)} · pay at pickup` : 'Pick times above'}</Text>
             <Text style={{ fontSize: 18, fontWeight: '900', color: p.text }}>{quote ? inr(quote.quote.payAtHandover) : '—'}</Text>
           </View>
           <Btn label={`Request to ${w.verb.toLowerCase()}`} onPress={startRequest} disabled={!quote || !quote.available || quoting} style={{ flex: 1.3 }} />
@@ -275,7 +275,7 @@ export default function RentalDetail() {
               <Text style={{ fontSize: 12, fontWeight: '800', color: p.sub, marginBottom: 6 }}>{w.verb === 'Rent' ? 'Rental terms' : 'Borrowing terms'}</Text>
               <Card>
                 {(safety?.terms || []).map((t) => <Text key={t} style={{ fontSize: 12, color: p.text, lineHeight: 17, marginBottom: 6 }}>• {t}</Text>)}
-                {safety?.disclaimer ? <Text style={{ fontSize: 11.5, color: p.sub, lineHeight: 16, marginTop: 4 }}>{safety.disclaimer}</Text> : null}
+                {safety?.disclaimer ? <Text style={{ fontSize: 12, color: p.sub, lineHeight: 16, marginTop: 4 }}>{safety.disclaimer}</Text> : null}
               </Card>
               <TouchableOpacity onPress={() => setAgreed((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked: agreed }} accessibilityLabel="I accept these booking terms"
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, marginBottom: 6 }}>
@@ -284,7 +284,7 @@ export default function RentalDetail() {
                 </View>
                 <Text style={{ flex: 1, fontSize: 12.5, fontWeight: '800', color: p.text }}>I accept these {w.verb === 'Rent' ? 'rental' : 'borrowing'} terms for this booking</Text>
               </TouchableOpacity>
-              <Text style={{ fontSize: 11, color: p.muted, marginBottom: 12 }}>The {w.giver} has up to 2 hours to answer. The final amount is calculated by Zenvy when you send the request.</Text>
+              <Text style={{ fontSize: 12, color: p.muted, marginBottom: 12 }}>The {w.giver} has up to 2 hours to answer. The final amount is calculated by Zenvy when you send the request.</Text>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <Btn label="Back" kind="secondary" onPress={() => setConfirmOpen(false)} style={{ flex: 1 }} />
                 <Btn label="Send request" loading={sending} onPress={sendRequest} disabled={!agreed} style={{ flex: 2 }} />

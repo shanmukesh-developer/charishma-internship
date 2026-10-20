@@ -11,7 +11,7 @@ import { ENDPOINTS, API_URL } from '../constants/api';
 import { useAuth } from '../context/AuthContext';
 import { StaggeredSection, BounceIn } from '../components/AnimatedSection';
 import { setToken, postAuth, normalizePhone, isValidIndianMobile, AuthResponse, NETWORK_ERROR_MESSAGE } from '../utils/auth';
-import { usePhoneOtp, PhoneProof } from '../utils/phoneOtp';
+import { usePhoneOtp, PhoneProof, isSmsSendFailure } from '../utils/phoneOtp';
 import DopaminePressable, { ActionPressable } from '../components/DopaminePressable';
 import ServerWakeupOverlay from '../components/ServerWakeupOverlay';
 import CampusServicesMapModal from '../components/CampusServicesMapModal';
@@ -109,6 +109,9 @@ export default function LoginScreen() {
     onAutoVerified: (p, proof) => autoVerifyRef.current(p, proof),
   });
 
+  // The SMS code could not be sent while finishing a Google sign-in: offer the code by email (Google address).
+  const [smsFailed, setSmsFailed] = useState(false);
+
   const playSuccess = () => {
     try { require('../utils/sounds').playSound('success'); } catch {}
   };
@@ -189,15 +192,36 @@ export default function LoginScreen() {
       if (r.ok) {
         setOtp('');
         setInfo(r.message);
+        setSmsFailed(false);
         playSuccess();
       } else {
         if (r.code === 'NETWORK') setShowWakeup(true);
+        setSmsFailed(isSmsSendFailure(r));
+        setError(r.message);
+      }
+    });
+  };
+
+  // Email backup for a first Google sign-in (the code goes to the Google address)
+  const handleSendEmailCode = () => {
+    const digits = normalizePhone(phone);
+    if (!googlePending || !googlePending.email || !isValidIndianMobile(digits)) return;
+    Keyboard.dismiss();
+    setInfo('');
+    runGuarded(async () => {
+      const r = await phoneOtp.sendEmail(digits, googlePending.email);
+      if (r.ok) {
+        setOtp('');
+        setSmsFailed(false);
+        setInfo(r.message);
+      } else {
         setError(r.message);
       }
     });
   };
 
   const loginWithProof = async (phone10: string, proof: PhoneProof) => {
+    if ('emailOtp' in proof) throw new Error('Please log in with your password, or try the SMS code again.');
     const r = 'otp' in proof
       ? await postAuth(ENDPOINTS.verifyOtp, { phone: phone10, otp: proof.otp })
       : await postAuth(ENDPOINTS.login, { phone: phone10, firebaseToken: proof.firebaseToken });
@@ -416,10 +440,17 @@ export default function LoginScreen() {
             <Text style={s.realtimeOtpBtnText}>SEND OTP</Text>
           )}
         </ActionPressable>
+        {smsFailed && !!googlePending?.email && (
+          <TouchableOpacity onPress={handleSendEmailCode} disabled={busy} style={{ marginTop: 14, alignSelf: 'center' }} accessibilityRole="button">
+            <Text style={[s.linkText, { color: COLORS.gold, fontWeight: '800' }]}>Send the code by email instead</Text>
+          </TouchableOpacity>
+        )}
       </>
     ) : (
       <>
-        <Text style={[s.label, labelColor]}>ENTER THE 6-DIGIT CODE SENT TO +91 {phoneOtp.sentTo}</Text>
+        <Text style={[s.label, labelColor]}>
+          {phoneOtp.mode === 'email' ? `ENTER THE 6-DIGIT CODE SENT TO ${phoneOtp.emailSentTo || 'YOUR EMAIL'}` : `ENTER THE 6-DIGIT CODE SENT TO +91 ${phoneOtp.sentTo}`}
+        </Text>
         <TextInput
           style={[inputStyle, { letterSpacing: 8, textAlign: 'center', fontSize: 20, fontWeight: '900' }]}
           value={otp}
@@ -448,12 +479,12 @@ export default function LoginScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => { const p = phoneOtp.sentTo; if (p) { setPhone(p); runGuarded(async () => { const r = await phoneOtp.send(p); if (r.ok) { setOtp(''); setInfo(r.message); } else setError(r.message); }); } }}
+            onPress={() => { const p = phoneOtp.sentTo; if (p) { setPhone(p); runGuarded(async () => { const r = phoneOtp.mode === 'email' && googlePending?.email ? await phoneOtp.sendEmail(p, googlePending.email) : await phoneOtp.send(p); if (r.ok) { setOtp(''); setInfo(r.message); } else setError(r.message); }); } }}
             disabled={phoneOtp.countdown > 0 || busy}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Text style={[s.linkText, { color: (phoneOtp.countdown > 0 || busy) ? (isDark ? COLORS.textMuted : '#617088') : COLORS.gold, fontWeight: '800' }]}>
-              {phoneOtp.countdown > 0 ? `Resend in ${phoneOtp.countdown}s` : 'Resend OTP 🔁'}
+              {phoneOtp.countdown > 0 ? `Resend in ${phoneOtp.countdown}s` : 'Resend code'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -651,7 +682,7 @@ export default function LoginScreen() {
                     </>
                   ) : (
                     <>
-                      <Text style={[s.label, { textAlign: 'center', marginTop: 12, fontSize: 10, color: COLORS.textSecondary }]}>
+                      <Text style={[s.label, { textAlign: 'center', marginTop: 12, fontSize: 12, color: COLORS.textSecondary }]}>
                         We'll text you a 6-digit code. New here? We'll set up your account.
                       </Text>
                       {renderOtpSection()}
@@ -721,7 +752,7 @@ export default function LoginScreen() {
                     activeOpacity={0.8}
                   >
                     <Text style={{ fontSize: 13 }}>🗺️</Text>
-                    <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? '#FFF' : '#334155' }}>
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? '#FFF' : '#334155' }}>
                       First Time User? <Text style={{ color: '#3B82F6', fontWeight: '900' }}>Explore All Services & Access Guide ➔</Text>
                     </Text>
                   </TouchableOpacity>
@@ -765,7 +796,7 @@ export default function LoginScreen() {
                   backgroundColor: 'rgba(255,255,255,0.08)'
                 }}
               >
-                <Text style={{ fontSize: 11, fontWeight: '800', color: '#fff' }}>CLOSE</Text>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: '#fff' }}>CLOSE</Text>
               </TouchableOpacity>
             </View>
 
@@ -813,7 +844,7 @@ const s = StyleSheet.create({
   iconBadge: { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(212, 175, 122, 0.1)', borderWidth: 1.5, borderColor: COLORS.goldBorder, alignItems: 'center', justifyContent: 'center', ...SHADOWS.goldGlow },
   logoIcon: { fontSize: 40, fontWeight: '300', fontStyle: 'italic', color: COLORS.gold, marginTop: Platform.OS === 'ios' ? 4 : 0 },
   brand: { fontSize: 36, fontWeight: '900', color: COLORS.gold, letterSpacing: 8, marginTop: 12, textShadowColor: COLORS.borderGold, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 },
-  tagline: { fontSize: 8, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 4, marginTop: 4, textTransform: 'uppercase' },
+  tagline: { fontSize: 12, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 4, marginTop: 4, textTransform: 'uppercase' },
   
   card: {
     backgroundColor: 'rgba(26,26,28,0.94)',
@@ -834,40 +865,40 @@ const s = StyleSheet.create({
     zIndex: 15,
   },
   cardTitle: { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
-  cardSubtitle: { fontSize: 10, color: COLORS.textSecondary, fontWeight: '600', marginTop: 4, marginBottom: 12, letterSpacing: 0.5 },
+  cardSubtitle: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '600', marginTop: 4, marginBottom: 12, letterSpacing: 0.5 },
   
-  label: { fontSize: 8.5, fontWeight: '800', letterSpacing: 2, marginBottom: 6, marginTop: 12 },
+  label: { fontSize: 12, fontWeight: '800', letterSpacing: 2, marginBottom: 6, marginTop: 12 },
   input: { borderWidth: 1, borderRadius: 14, padding: 14, fontSize: 15, fontWeight: '700' },
-  error: { color: '#EF4444', fontSize: 11, fontWeight: '600', marginTop: 8 },
+  error: { color: '#EF4444', fontSize: 12, fontWeight: '600', marginTop: 8 },
   forgotBtn: { alignSelf: 'flex-end', marginTop: 10, padding: 2 },
-  forgotText: { fontSize: 8, fontWeight: '900', color: COLORS.gold, letterSpacing: 1.5 },
+  forgotText: { fontSize: 12, fontWeight: '900', color: COLORS.gold, letterSpacing: 1.5 },
   
   loginBtn: { backgroundColor: COLORS.gold, paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginTop: 16, ...SHADOWS.goldGlow },
-  loginBtnText: { fontSize: 11, fontWeight: '900', color: '#000', letterSpacing: 3 },
+  loginBtnText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 3 },
   
   orRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 18, gap: 10 },
   line: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
-  orText: { fontSize: 9, fontWeight: '900', color: COLORS.textMuted, letterSpacing: 1.5 },
+  orText: { fontSize: 12, fontWeight: '900', color: COLORS.textMuted, letterSpacing: 1.5 },
   
   googleBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#fff', paddingVertical: 14, borderRadius: 14 },
   googleIconG: { fontSize: 16, fontWeight: '900', color: '#333' },
   googleText: { fontSize: 12, fontWeight: '700', color: '#111' },
   
   switchLink: { alignItems: 'center', marginTop: 20 },
-  switchText: { fontSize: 11, color: COLORS.textSecondary },
+  switchText: { fontSize: 12, color: COLORS.textSecondary },
 
   tabRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 4, marginVertical: 14, borderWidth: 1, borderColor: COLORS.borderDark },
   tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
   tabBtnActive: { backgroundColor: 'rgba(201,168,76,0.15)', borderWidth: 1, borderColor: 'rgba(201,168,76,0.3)' },
-  tabText: { fontSize: 9, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.5 },
+  tabText: { fontSize: 12, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.5 },
   tabTextActive: { color: COLORS.gold },
 
   otpInputRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   sendOtpBtn: { backgroundColor: 'rgba(201,168,76,0.12)', borderWidth: 1, borderColor: 'rgba(201,168,76,0.4)', borderRadius: 14, paddingHorizontal: 16, height: 50, alignItems: 'center', justifyContent: 'center' },
-  sendOtpText: { fontSize: 8.5, fontWeight: '900', color: COLORS.gold, letterSpacing: 1 },
+  sendOtpText: { fontSize: 12, fontWeight: '900', color: COLORS.gold, letterSpacing: 1 },
 
   realtimeOtpBtn: { backgroundColor: COLORS.gold, paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginTop: 12, ...SHADOWS.goldGlow },
-  realtimeOtpBtnText: { fontSize: 10, fontWeight: '900', color: '#000', letterSpacing: 2 },
-  info: { color: '#10B981', fontSize: 11, fontWeight: '700', marginTop: 8 },
-  linkText: { fontSize: 11, fontWeight: '700' },
+  realtimeOtpBtnText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 2 },
+  info: { color: '#10B981', fontSize: 12, fontWeight: '700', marginTop: 8 },
+  linkText: { fontSize: 12, fontWeight: '700' },
 });

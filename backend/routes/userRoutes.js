@@ -1,7 +1,7 @@
 const express = require('express');
 const {
   registerUser, authUser, saveFcmToken, removeFcmToken, getUserProfile, updateUserProfile, logoutUser,
-  sendOtp, verifyOtp, googleLogin, googleComplete, resetPassword
+  sendOtp, sendEmailOtp, verifyOtp, googleLogin, googleComplete, resetPassword
 } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 const rateLimit = require('express-rate-limit');
@@ -84,6 +84,8 @@ router.post('/login', authLimiter, accountLockout, loginValidation, validate, au
 // S1: admin 2-step sign-in, second step ({ mfaToken, code | recoveryCode }); 5 wrong codes lock it 15 min.
 router.post('/login/mfa', authIpLimiter, require('../services/adminTwoFactor').loginMfa);
 router.post('/send-otp', authLimiter, otpSendIpLimiter, sendOtp);
+// Email backup when the SMS code cannot be sent (same limits as the SMS code; 503 while email is not set up).
+router.post('/send-email-otp', authLimiter, otpSendIpLimiter, sendEmailOtp);
 router.post('/verify-otp', authLimiter, verifyOtp);
 router.post('/google-login', authLimiter, googleLogin);
 router.post('/google-complete', authLimiter, googleComplete);

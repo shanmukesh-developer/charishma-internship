@@ -149,7 +149,7 @@ export default function RegistrationScreen() {
               <Btn label="Confirm my place" style={{ flex: 2 }} loading={busy === 'accept'} disabled={!!pm && pm.total > 0 && !offerMode}
                 onPress={() => act('accept', () => campusEventsApi.acceptOffer(r.id, pm && pm.total > 0 ? offerMode || undefined : undefined), (x) => (x.status === 'PENDING_PAYMENT' ? null : 'Your place is confirmed.')).then(() => load())} />
             </View>
-            {ev?.approvalRequired ? <Text style={{ color: p.sub, fontSize: 11.5, marginTop: 6 }}>The organizer still approves each registration.</Text> : null}
+            {ev?.approvalRequired ? <Text style={{ color: p.sub, fontSize: 12, marginTop: 6 }}>The organizer still approves each registration.</Text> : null}
           </Card>
         ) : null}
 
@@ -202,7 +202,7 @@ export default function RegistrationScreen() {
               <Card key={a.id}>
                 <Text style={{ fontSize: 13.5, fontWeight: '900', color: p.text }}><Ionicons name={a.kind === 'VENUE_CHANGE' ? 'location-outline' : a.kind === 'SCHEDULE_CHANGE' ? 'time-outline' : a.kind === 'CANCELLATION' ? 'close-circle-outline' : 'megaphone-outline'} size={14} color={a.kind === 'CANCELLATION' ? p.danger : p.accent} />{' '}{a.title}</Text>
                 <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 4, lineHeight: 18 }}>{a.body}</Text>
-                <Text style={{ fontSize: 10.5, color: p.muted, marginTop: 6 }}>{fmtWhen(a.createdAt)}</Text>
+                <Text style={{ fontSize: 12, color: p.muted, marginTop: 6 }}>{fmtWhen(a.createdAt)}</Text>
               </Card>
             ))}
           </>

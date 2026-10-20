@@ -96,7 +96,7 @@ export function SectionTitle({ children, right, kicker }: { children: React.Reac
   return (
     <View style={st.sectionRow}>
       <View style={{ flex: 1 }}>
-        {kicker ? <Text style={{ fontSize: 11, fontWeight: '800', color: p.accent, letterSpacing: 0.3 }}>{kicker}</Text> : null}
+        {kicker ? <Text style={{ fontSize: 12, fontWeight: '800', color: p.accent, letterSpacing: 0.3 }}>{kicker}</Text> : null}
         <Text style={[st.section, { color: p.text }]} accessibilityRole="header">{children}</Text>
       </View>
       {right}
@@ -111,7 +111,7 @@ export function Pill({ label, color, icon, solid }: { label: string; color: stri
   return (
     <View style={[st.pill, { backgroundColor: solid ? color : `${color}22`, borderColor: solid ? color : `${color}66` }]} accessibilityLabel={label}>
       {icon ? <Ionicons name={icon} size={12} color={fg} /> : null}
-      <Text style={{ fontSize: 10.5, fontWeight: '900', color: fg, letterSpacing: 0.2 }} numberOfLines={1}>{label}</Text>
+      <Text style={{ fontSize: 12, fontWeight: '900', color: fg, letterSpacing: 0.2 }} numberOfLines={1}>{label}</Text>
     </View>
   );
 }
@@ -195,7 +195,7 @@ export function Chips<T extends string>({ options, value, onChange, multi, wrap 
           {on && multi ? <Ionicons name="checkmark" size={14} color={p.accent} /> : null}
           <Text style={{ fontSize: 12.5, fontWeight: '800', color: on ? p.accent : p.text }}>{o.label}</Text>
         </View>
-        {o.hint ? <Text style={{ fontSize: 9.5, color: p.muted, marginTop: 1 }}>{o.hint}</Text> : null}
+        {o.hint ? <Text style={{ fontSize: 12, color: p.muted, marginTop: 1 }}>{o.hint}</Text> : null}
       </TouchableOpacity>
     );
   });
@@ -209,7 +209,7 @@ export function Toggle({ label, value, onChange, hint }: { label: string; value:
     <TouchableOpacity accessibilityRole="switch" accessibilityState={{ checked: value }} accessibilityLabel={label} accessibilityHint={hint} onPress={() => onChange(!value)} style={[st.toggleRow, { borderColor: p.border, backgroundColor: p.card2 }]}>
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 13.5, fontWeight: '800', color: p.text }}>{label}</Text>
-        {hint ? <Text style={{ fontSize: 11, color: p.muted, marginTop: 2 }}>{hint}</Text> : null}
+        {hint ? <Text style={{ fontSize: 12, color: p.muted, marginTop: 2 }}>{hint}</Text> : null}
       </View>
       <View style={[st.track, { backgroundColor: value ? '#047857' : p.isDark ? '#3F3F46' : '#CBD5E1' }]}>
         <View style={[st.knob, { alignSelf: value ? 'flex-end' : 'flex-start' }]} />
@@ -228,7 +228,7 @@ export function CheckRow({ label, value, onChange, hint }: { label: string; valu
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 13.5, fontWeight: '800', color: p.text }}>{label}</Text>
-        {hint ? <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2, lineHeight: 16 }}>{hint}</Text> : null}
+        {hint ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 2, lineHeight: 16 }}>{hint}</Text> : null}
       </View>
     </TouchableOpacity>
   );
@@ -304,9 +304,9 @@ function DateTile({ iso }: { iso: string | null }) {
   if (!t) return null;
   return (
     <View style={st.dateTile} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#7C3AED', letterSpacing: 0.2 }}>{t.dow}</Text>
+      <Text style={{ fontSize: 12, fontWeight: '800', color: '#7C3AED', letterSpacing: 0.2 }}>{t.dow}</Text>
       <Text style={{ fontSize: 18, fontWeight: '900', color: '#111827', lineHeight: 20 }}>{t.day}</Text>
-      <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#4B5563', letterSpacing: 0.2 }}>{t.mon}</Text>
+      <Text style={{ fontSize: 12, fontWeight: '800', color: '#4B5563', letterSpacing: 0.2 }}>{t.mon}</Text>
     </View>
   );
 }
@@ -335,21 +335,21 @@ export function EventCard({ e, onPress, width, compact }: { e: EventCardT; onPre
           {e.featured ? <Pill label="Featured" color="#D97706" icon="star" solid /> : null}
         </View>
         <View style={{ position: 'absolute', left: 10, bottom: 8, right: 10, flexDirection: 'row', gap: 6 }}>
-          <View style={[st.catTag, { backgroundColor: 'rgba(0,0,0,0.55)' }]}><Ionicons name={meta.icon} size={11} color="#fff" /><Text style={{ color: '#fff', fontSize: 10.5, fontWeight: '800' }}>{e.categoryLabel}</Text></View>
-          {e.isTeam ? <View style={[st.catTag, { backgroundColor: 'rgba(0,0,0,0.55)' }]}><Ionicons name="people-outline" size={11} color="#fff" /><Text style={{ color: '#fff', fontSize: 10.5, fontWeight: '800' }}>Team</Text></View> : null}
-          {e.format === 'SLOT' ? <View style={[st.catTag, { backgroundColor: 'rgba(0,0,0,0.55)' }]}><Ionicons name="calendar-outline" size={11} color="#fff" /><Text style={{ color: '#fff', fontSize: 10.5, fontWeight: '800' }}>Slots</Text></View> : null}
+          <View style={[st.catTag, { backgroundColor: 'rgba(0,0,0,0.55)' }]}><Ionicons name={meta.icon} size={11} color="#fff" /><Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>{e.categoryLabel}</Text></View>
+          {e.isTeam ? <View style={[st.catTag, { backgroundColor: 'rgba(0,0,0,0.55)' }]}><Ionicons name="people-outline" size={11} color="#fff" /><Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>Team</Text></View> : null}
+          {e.format === 'SLOT' ? <View style={[st.catTag, { backgroundColor: 'rgba(0,0,0,0.55)' }]}><Ionicons name="calendar-outline" size={11} color="#fff" /><Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>Slots</Text></View> : null}
         </View>
       </Poster>
       <View style={{ padding: 12, gap: 4 }}>
         <Text style={{ fontSize: compact ? 14 : 16, fontWeight: '900', color: p.text, letterSpacing: -0.2 }} numberOfLines={2}>{e.title}</Text>
-        <Text style={{ fontSize: 11.5, color: p.sub, fontWeight: '700' }} numberOfLines={1}>{e.organizer?.club?.verified ? <><Ionicons name="checkmark-circle" size={12} color={p.accent} />{' '}</> : null}{e.organizer?.name || 'Campus organizer'}</Text>
+        <Text style={{ fontSize: 12, color: p.sub, fontWeight: '700' }} numberOfLines={1}>{e.organizer?.club?.verified ? <><Ionicons name="checkmark-circle" size={12} color={p.accent} />{' '}</> : null}{e.organizer?.name || 'Campus organizer'}</Text>
         <Text style={{ fontSize: 12, color: p.text }} numberOfLines={1}><Ionicons name="time-outline" size={12} color={p.sub} /> {fmtWhen(e.startAt)}{e.endAt ? ` – ${fmtClock(e.endAt)}` : ''}</Text>
         {e.venue ? <Text style={{ fontSize: 12, color: p.text }} numberOfLines={1}><Ionicons name="location-outline" size={12} color={p.sub} /> {e.venue}</Text> : null}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
           {e.myStatus ? <RegStatusPill status={e.myStatus} /> : <Pill label={state.label} color={state.color} icon={state.icon} />}
           {cap && !compact ? <Pill label={cap} color={e.registrationState === 'FULL' ? '#DC2626' : '#0EA5E9'} /> : null}
         </View>
-        {!compact && deadline ? <Text style={{ fontSize: 11, color: p.warn, fontWeight: '800', marginTop: 2 }}><Ionicons name="hourglass-outline" size={12} color={p.warn} /> {deadline}</Text> : null}
+        {!compact && deadline ? <Text style={{ fontSize: 12, color: p.warn, fontWeight: '800', marginTop: 2 }}><Ionicons name="hourglass-outline" size={12} color={p.warn} /> {deadline}</Text> : null}
         {!compact ? (
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
             <View style={[st.cardCta, { borderColor: p.border, backgroundColor: p.card2 }]}><Text style={{ fontSize: 12.5, fontWeight: '900', color: p.text }}>View details</Text></View>
@@ -359,7 +359,7 @@ export function EventCard({ e, onPress, width, compact }: { e: EventCardT; onPre
               </LinearGradient>
             ) : null}
           </View>
-        ) : cap ? <Text style={{ fontSize: 11, color: p.sub, marginTop: 2 }}>{cap}</Text> : null}
+        ) : cap ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>{cap}</Text> : null}
       </View>
     </TouchableOpacity>
   );
@@ -376,7 +376,7 @@ export function Hero({ title, subtitle, kicker = 'Zenvy Campus Events', right }:
     <LinearGradient colors={CE_GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.hero}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 11, fontWeight: '800', color: 'rgba(255,255,255,0.9)', letterSpacing: 0.3 }}>{kicker}</Text>
+          <Text style={{ fontSize: 12, fontWeight: '800', color: 'rgba(255,255,255,0.9)', letterSpacing: 0.3 }}>{kicker}</Text>
           <Text style={{ fontSize: 20, fontWeight: '900', color: '#fff', marginTop: 4, letterSpacing: -0.3 }}>{title}</Text>
           <Text style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.95)', marginTop: 5, lineHeight: 18 }}>{subtitle}</Text>
         </View>
@@ -437,7 +437,7 @@ export const st = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: Platform.OS === 'android' ? 44 : 54, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth },
   backBtn: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   hTitle: { fontSize: 18, fontWeight: '900', letterSpacing: -0.3 },
-  hSub: { fontSize: 11.5, marginTop: 1 },
+  hSub: { fontSize: 12, marginTop: 1 },
   card: { borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 12 },
   sectionRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 10, marginBottom: 10, gap: 10 },
   section: { fontSize: 16, fontWeight: '900', letterSpacing: -0.2 },
@@ -446,7 +446,7 @@ export const st = StyleSheet.create({
   btnText: { fontWeight: '900', letterSpacing: 0.2 },
   label: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2, marginBottom: 6 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, minHeight: 46, paddingVertical: Platform.OS === 'ios' ? 12 : 9, fontSize: 14.5 },
-  hint: { fontSize: 11.5, marginTop: 4 },
+  hint: { fontSize: 12, marginTop: 4 },
   chip: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, minHeight: 44, justifyContent: 'center' },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 14, padding: 12, marginBottom: 10, minHeight: 52 },
   track: { width: 44, height: 26, borderRadius: 13, padding: 3, justifyContent: 'center' },

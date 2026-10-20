@@ -64,7 +64,7 @@ export default function InvitationsScreen() {
                 <Text style={{ fontSize: 16, fontWeight: '900', color: p.text, marginTop: 4 }}>{item.event?.title}</Text>
                 <Text style={{ fontSize: 13, color: p.text, marginTop: 6 }}><Ionicons name="people-outline" size={13} color={p.sub} /> {item.team?.name}{item.team?.captain ? ` · Captain: ${item.team.captain}` : ''}</Text>
                 <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 2 }}><Ionicons name="calendar-outline" size={13} color={p.sub} /> {fmtWhen(item.event?.startAt)}{item.event?.venue ? ` · ${item.event.venue}` : ''}</Text>
-                {item.expiresAt ? <Text style={{ fontSize: 11.5, color: p.warn, marginTop: 6, fontWeight: '800' }}>Expires {fromNow(item.expiresAt)}</Text> : null}
+                {item.expiresAt ? <Text style={{ fontSize: 12, color: p.warn, marginTop: 6, fontWeight: '800' }}>Expires {fromNow(item.expiresAt)}</Text> : null}
                 <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
                   <Btn label="Decline" small kind="secondary" style={{ flex: 1 }} loading={busy === `${item.id}:false`} onPress={() => decline(item)} />
                   <Btn label="Accept" small style={{ flex: 1 }} loading={busy === `${item.id}:true`} onPress={() => respond(item, true)} />

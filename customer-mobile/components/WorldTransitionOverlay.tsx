@@ -479,7 +479,7 @@ const s = StyleSheet.create({
   },
 
   gatewayLabel: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     color: 'rgba(212,175,122,0.8)',
     letterSpacing: 4,
@@ -527,7 +527,7 @@ const s = StyleSheet.create({
     elevation: 4,
   },
   statusLabel: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     color: 'rgba(255,255,255,0.45)',
     letterSpacing: 2,

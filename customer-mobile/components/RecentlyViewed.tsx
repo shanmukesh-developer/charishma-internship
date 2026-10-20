@@ -135,7 +135,7 @@ const s = StyleSheet.create({
     marginBottom: 12,
   },
   sectionLabel: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     color: COLORS.red,
     letterSpacing: 3,
@@ -153,7 +153,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 8,
   },
   clearText: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 2,
     textTransform: 'uppercase',
@@ -190,7 +190,7 @@ const s = StyleSheet.create({
     right: 10,
   },
   cardName: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     color: '#fff',
     textTransform: 'uppercase',

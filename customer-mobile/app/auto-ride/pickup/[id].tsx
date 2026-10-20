@@ -55,7 +55,7 @@ export default function PickupQueueScreen() {
         <Notice tone="info">ℹ️ {data.note}</Notice>
         {error ? <Notice tone="warn">⚠️ {error.message}</Notice> : null}
 
-        <Text style={{ fontSize: 11, fontWeight: '900', color: p.sub, letterSpacing: 1, marginBottom: 8 }}>LIVE QUEUE · {istDayLabel(data.date).toUpperCase()}</Text>
+        <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 1, marginBottom: 8 }}>LIVE QUEUE · {istDayLabel(data.date).toUpperCase()}</Text>
         {data.queue.length === 0 ? (
           <StateView kind="empty" icon="🛺" title="No autos in the queue" message="No auto has checked in at this stand for this day yet. Pull down to refresh." />
         ) : data.queue.map((q) => {
@@ -65,22 +65,22 @@ export default function PickupQueueScreen() {
               accessibilityLabel={`${queueLabel(q.queueNumber)}, ${q.statusLabel}, ${q.confirmedSeats} of ${q.capacity} booked`}>
               <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12, opacity: ended ? 0.6 : 1 }}>
                 <View style={{ width: 54, height: 54, borderRadius: 14, backgroundColor: ended ? p.card2 : '#FACC15', alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ fontSize: 9, fontWeight: '900', color: '#1F2937' }}>AUTO</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '900', color: '#1F2937' }}>AUTO</Text>
                   <Text style={{ fontSize: 20, fontWeight: '900', color: '#1F2937' }}>{String(q.queueNumber || 0).padStart(2, '0')}</Text>
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={{ fontSize: 16, fontWeight: '900', color: p.text }}>{q.confirmedSeats}/{q.capacity}</Text>
-                    <Text style={{ fontSize: 11.5, color: p.sub }}>booked</Text>
+                    <Text style={{ fontSize: 12, color: p.sub }}>booked</Text>
                     <View style={{ flex: 1 }} />
                     <Text style={{ fontSize: 12, fontWeight: '900', color: p.text }}>{inr(q.seatFare)}</Text>
                   </View>
-                  <View style={{ marginTop: 4 }}>{ended ? <Text style={{ fontSize: 11.5, fontWeight: '900', color: p.sub }}>{q.status === 'COMPLETED' || q.status === 'IN_PROGRESS' ? 'Departed' : q.statusLabel}</Text> : <StatusChip trip={q} now={now} />}</View>
-                  <Text style={{ fontSize: 11, color: p.muted, marginTop: 4 }} numberOfLines={1}>
+                  <View style={{ marginTop: 4 }}>{ended ? <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub }}>{q.status === 'COMPLETED' || q.status === 'IN_PROGRESS' ? 'Departed' : q.statusLabel}</Text> : <StatusChip trip={q} now={now} />}</View>
+                  <Text style={{ fontSize: 12, color: p.muted, marginTop: 4 }} numberOfLines={1}>
                     → {q.destination || '—'} · leaves {fmtClock(q.departureAt)}{q.checkInAt ? ` · checked in ${fmtClock(q.checkInAt)}` : ''}
                   </Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                    <Text style={{ fontSize: 11, color: p.sub }}>{q.driver?.name || 'Driver'}</Text>
+                    <Text style={{ fontSize: 12, color: p.sub }}>{q.driver?.name || 'Driver'}</Text>
                     <VerifiedBadge verified={!!q.driver?.verified} />
                   </View>
                 </View>

@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   nightBadgeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     color: CampusColors.lavender,
     letterSpacing: 0.6,
@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
     borderTopColor: CampusColors.nightLine,
   },
   nightSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.nightMuted,
     flex: 1,
     marginRight: 10,
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   whisperTime: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.muted,
   },
   whisperReactions: {
@@ -691,7 +691,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   reactionCount: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: CampusColors.roseDeep,
   },
@@ -722,7 +722,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   utilitySubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.muted,
   },
   boardPanel: {
@@ -840,7 +840,7 @@ const styles = StyleSheet.create({
     backgroundColor: CampusColors.accentSoft,
   },
   boardTypeText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     color: CampusColors.ink,
     letterSpacing: 0.6,
@@ -856,7 +856,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   boardMetaText: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.muted,
     flexShrink: 1,
   },
@@ -877,7 +877,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   boardResolveText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: CampusColors.ink,
   },
@@ -892,7 +892,7 @@ const styles = StyleSheet.create({
   },
   boardJoinText: {
     color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
   },
   boardLeaveBtn: {
@@ -905,11 +905,11 @@ const styles = StyleSheet.create({
   },
   boardLeaveText: {
     color: CampusColors.ink,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
   },
   organiserTag: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: CampusColors.accentDeep,
   },

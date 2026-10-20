@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
   },
   brandTagline: {
     color: '#EBE3CE',
-    fontSize: 8.5,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 5.5,
     opacity: 0.6,
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(249, 196, 64, 0.4)',
   },
   skipBtnText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     color: '#F9C440',
     letterSpacing: 1.5,

@@ -240,7 +240,7 @@ export const MeTab: React.FC<MeTabProps> = ({
           </View>
           {photoBusy && (
             <View style={styles.photoBusy}>
-              <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '800' }}>Uploading…</Text>
+              <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>Uploading…</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   verifyCtaText: { color: '#FFFFFF', fontWeight: '800', fontSize: 13 },
   rowIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: CampusColors.accentSoft, alignItems: 'center', justifyContent: 'center' },
   badge: { minWidth: 22, height: 22, borderRadius: 11, backgroundColor: CampusColors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
-  badgeText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+  badgeText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
   detailRow: { flexDirection: 'row', gap: S.lg, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: CampusColors.line, alignItems: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: R.pill, borderWidth: 1, borderColor: CampusColors.chipBorder, backgroundColor: CampusColors.card },

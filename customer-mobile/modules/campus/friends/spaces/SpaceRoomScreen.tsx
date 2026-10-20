@@ -822,7 +822,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: FS.lg },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: FS.sm, paddingHorizontal: FS.lg, paddingTop: FS.md, paddingBottom: FS.sm },
   conn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, minHeight: 28, borderRadius: FR.pill, borderWidth: 1 },
-  connText: { fontSize: 11, fontWeight: '800' },
+  connText: { fontSize: 12, fontWeight: '800' },
   netWarn: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: FS.lg, marginTop: FS.sm, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.dangerSoft },
   invite: { marginHorizontal: FS.lg, marginTop: FS.md, padding: FS.lg, borderRadius: FR.card, backgroundColor: FriendsColors.cardHi, borderWidth: 1, borderColor: FriendsColors.accentLine },
   section: { marginTop: FS.lg, paddingHorizontal: FS.lg },

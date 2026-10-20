@@ -238,7 +238,7 @@ const isAllowListed = (req) => {
   if (ALLOW_EXACT.has(p)) return true;
   if (ALLOW_PREFIX.some((pre) => p === pre || p.startsWith(`${pre}/`))) return true;
   // The SMS code that confirms an account deletion.
-  if (p === '/api/users/send-otp' && req.body && typeof req.body === 'object' && req.body.purpose === 'delete_account') return true;
+  if ((p === '/api/users/send-otp' || p === '/api/users/send-email-otp') && req.body && typeof req.body === 'object' && req.body.purpose === 'delete_account') return true;
   return false;
 };
 

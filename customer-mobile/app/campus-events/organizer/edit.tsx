@@ -231,7 +231,7 @@ export default function OrganizerEventForm() {
             style={{ height: 180, borderRadius: 18, borderWidth: 1.5, borderStyle: 'dashed', borderColor: p.accent, backgroundColor: p.accentSoft, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
             {uploading === 'poster' ? <ActivityIndicator color={p.accent} /> : form.posterPreview ? (
               <SafeImage source={{ uri: form.posterPreview }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-            ) : <><Ionicons name="image-outline" size={34} color={p.accent} /><Text style={{ color: p.accent, fontWeight: '900', marginTop: 6 }}>Upload poster</Text><Text style={{ color: p.sub, fontSize: 11.5 }}>Portrait or landscape, clear text</Text></>}
+            ) : <><Ionicons name="image-outline" size={34} color={p.accent} /><Text style={{ color: p.accent, fontWeight: '900', marginTop: 6 }}>Upload poster</Text><Text style={{ color: p.sub, fontSize: 12 }}>Portrait or landscape, clear text</Text></>}
           </TouchableOpacity>
           {form.posterPath ? <Btn label="Remove poster" small kind="ghost" onPress={() => { set('posterPath', null); set('posterPreview', null); }} style={{ alignSelf: 'flex-start', marginBottom: 8 }} /> : null}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
@@ -324,7 +324,7 @@ export default function OrganizerEventForm() {
                   ...(onlinePayOn ? [{ key: 'ONLINE' as PaymentMode, label: 'Pay online', hint: 'UPI / card by Razorpay' }]
                     : form.paymentModes.includes('ONLINE') ? [{ key: 'ONLINE' as PaymentMode, label: 'Pay online', hint: 'Not available yet. Tap to remove' }] : []),
                 ]} />
-              {errs.paymentModes ? <Text style={{ color: p.danger, fontSize: 11.5, marginTop: 4 }}>{errs.paymentModes}</Text> : null}
+              {errs.paymentModes ? <Text style={{ color: p.danger, fontSize: 12, marginTop: 4 }}>{errs.paymentModes}</Text> : null}
               <View style={{ height: 14 }} />
             </>
           ) : null}
@@ -422,7 +422,7 @@ function WhenPick({ label, value, onChange, error }: { label: string; value: Whe
           );
         })}
       </ScrollView>
-      {error ? <Text style={{ color: p.danger, fontSize: 11.5, marginTop: 4 }}>{error}</Text> : null}
+      {error ? <Text style={{ color: p.danger, fontSize: 12, marginTop: 4 }}>{error}</Text> : null}
     </View>
   );
 }

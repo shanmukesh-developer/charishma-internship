@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   best: { borderColor: 'rgba(120,200,150,0.45)', backgroundColor: 'rgba(120,200,150,0.06)' },
   official: { borderColor: 'rgba(232,196,127,0.4)' },
   bestTag: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 },
-  tagText: { fontSize: 11, fontWeight: '800' },
+  tagText: { fontSize: 12, fontWeight: '800' },
   head: { flexDirection: 'row', alignItems: 'center' },
   iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', marginRight: -8 },
   foot: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: FS.sm },

@@ -219,7 +219,7 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
             sound="tabSwitch"
             activeScale={0.93}
           >
-            <Text style={{ fontSize: 11 }}>✨</Text>
+            <Text style={{ fontSize: 12 }}>✨</Text>
             <Text style={[s.hudLabel, { color: '#FFFFFF' }]}>
               ALL
             </Text>
@@ -238,7 +238,7 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
             sound="tabSwitch"
             activeScale={0.93}
           >
-            <Text style={{ fontSize: 11 }}>🥗</Text>
+            <Text style={{ fontSize: 12 }}>🥗</Text>
             <Text style={[s.hudLabel, { color: '#FFFFFF' }]}>
               PURE VEG
             </Text>
@@ -424,7 +424,7 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
                 onPress={() => setShowAll(!showAll)}
                 activeOpacity={0.8}
               >
-                <Text style={{ fontSize: 11, fontWeight: '900', color: isDark ? '#F59E0B' : '#B45309', letterSpacing: 1 }}>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: isDark ? '#F59E0B' : '#B45309', letterSpacing: 1 }}>
                   {showAll ? 'COLLAPSE CATEGORY ▲' : `VIEW ALL ${filteredItems.length} DISHES ▼`}
                 </Text>
               </TouchableOpacity>
@@ -454,7 +454,7 @@ const s = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  hudLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  hudLabel: { fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
   divider: { width: 1, height: 16, marginHorizontal: 4 },
   grid: { 
     flexDirection: 'row', 
@@ -504,7 +504,7 @@ const s = StyleSheet.create({
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
   name: { fontSize: 12, fontWeight: '800', flex: 1, marginRight: 4 },
   price: { fontSize: 13, fontWeight: '900', color: COLORS.red },
-  restaurantName: { fontSize: 9.5, fontWeight: '600', marginBottom: 8 },
+  restaurantName: { fontSize: 12, fontWeight: '600', marginBottom: 8 },
   addBtn: { 
     paddingVertical: 7, 
     borderRadius: 10, 
@@ -516,7 +516,7 @@ const s = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  addBtnText: { fontSize: 10, fontWeight: '900', letterSpacing: 0.8 },
+  addBtnText: { fontSize: 12, fontWeight: '900', letterSpacing: 0.8 },
   empty: { padding: 32, alignItems: 'center' },
   emptyText: { fontSize: 12, fontWeight: '600', textAlign: 'center', lineHeight: 18 },
 });

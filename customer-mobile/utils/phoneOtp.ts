@@ -12,9 +12,15 @@ import { postAuth, mapFirebasePhoneAuthError, NETWORK_ERROR_MESSAGE } from './au
  * cannot send on this device. The code is never returned by the server; the screen sends it back as
  * `otp` to verify-otp / register / reset-password / google-complete.
  */
+/** Failures where an emailed code is worth offering (the SMS itself could not be sent). */
+const NOT_AN_SMS_PROBLEM = ['NETWORK', 'INVALID_PHONE', 'ACCOUNT_NOT_FOUND', 'PHONE_TAKEN', 'OTP_DAILY_LIMIT', 'OTP_COOLDOWN', 'auth/invalid-phone-number', 'auth/missing-phone-number'];
+export const isSmsSendFailure = (r: SendOtpResult | null | undefined) =>
+  !!r && !r.ok && !NOT_AN_SMS_PROBLEM.includes(String(r.code || ''));
+
 const FIREBASE_NUMBER_ERRORS = ['auth/invalid-phone-number', 'auth/missing-phone-number'];
 export type OtpPurpose = 'auth' | 'reset_password' | 'change_phone' | 'delete_account';
-export type PhoneProof = { otp: string } | { firebaseToken: string };
+/** emailOtp + email: the email backup for a NEW account (sign-up, first Google sign-in). */
+export type PhoneProof = { otp: string } | { firebaseToken: string } | { emailOtp: string; email: string };
 
 export interface SendOtpResult {
   ok: boolean;
@@ -40,7 +46,11 @@ const getFirebaseAuth = (): any | null => {
 
 export function usePhoneOtp(purpose: OtpPurpose = 'auth', options: Options = {}) {
   const [sentTo, setSentTo] = useState<string | null>(null);
-  const [mode, setMode] = useState<'sms' | 'firebase' | null>(null);
+  const [mode, setMode] = useState<'sms' | 'firebase' | 'email' | null>(null);
+  // Email backup (POST /api/users/send-email-otp): where the code went ("fr****@gmail.com") and, for a new
+  // account, the address it is bound to.
+  const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
+  const emailBindRef = useRef<string>('');
   const [countdown, setCountdown] = useState(0);
   const [sending, setSending] = useState(false);
 
@@ -148,6 +158,38 @@ export function usePhoneOtp(purpose: OtpPurpose = 'auth', options: Options = {})
   }, [purpose]);
 
   /**
+   * Email backup when the SMS could not be sent. Reset / account deletion: the code goes to the account's
+   * email on file (no email needed here). Sign-up / Google completion: pass the new account's email.
+   * Never throws.
+   */
+  const sendEmail = useCallback(async (phone10: string, email?: string): Promise<SendOtpResult> => {
+    setSending(true);
+    autoHandledRef.current = false;
+    try {
+      const body: Record<string, string> = { phone: phone10, purpose: purpose === 'change_phone' ? 'auth' : purpose };
+      const bound = (email || '').trim().toLowerCase();
+      if (purpose === 'auth') body.email = bound;
+      const r = await postAuth(ENDPOINTS.sendEmailOtp, body);
+      if (r.ok || r.code === 'OTP_COOLDOWN') {
+        confirmationRef.current = null;
+        emailBindRef.current = purpose === 'auth' ? bound : '';
+        if (mountedRef.current) {
+          setMode('email');
+          setSentTo(phone10);
+          setEmailSentTo(String(r.data?.sentTo || bound || 'your email'));
+          setCountdown(Number(r.data?.resendAfter || r.data?.retryAfter) || 60);
+        }
+        return { ok: true, message: r.ok ? (r.message || 'We have emailed you a 6-digit code.') : 'We already sent a code. Enter it below.' };
+      }
+      return { ok: false, message: r.message, code: r.code };
+    } catch {
+      return { ok: false, message: NETWORK_ERROR_MESSAGE, code: 'NETWORK' };
+    } finally {
+      if (mountedRef.current) setSending(false);
+    }
+  }, [purpose]);
+
+  /**
    * Turns the typed code into a proof for the server. Throws an Error with a friendly message.
    * In Firebase mode the code is confirmed with Firebase first (or the background auto-verification is used).
    */
@@ -177,8 +219,10 @@ export function usePhoneOtp(purpose: OtpPurpose = 'auth', options: Options = {})
       return { firebaseToken };
     }
     if (clean.length !== 6) throw new Error('Enter the 6-digit code we sent you.');
+    // Email code for a new account: bound to the address it went to. Reset / deletion: an ordinary code.
+    if (mode === 'email' && purpose === 'auth') return { emailOtp: clean, email: emailBindRef.current };
     return { otp: clean };
-  }, [mode, sentTo]);
+  }, [mode, sentTo, purpose]);
 
   /** Back to the phone-number step (e.g. "Change number"). */
   const reset = useCallback(() => {
@@ -186,11 +230,13 @@ export function usePhoneOtp(purpose: OtpPurpose = 'auth', options: Options = {})
     autoHandledRef.current = false;
     setSentTo(null);
     setMode(null);
+    setEmailSentTo(null);
+    emailBindRef.current = '';
     setCountdown(0);
   }, []);
 
   /** Allow the background auto-verification to fire again after a failed server call. */
   const allowAutoRetry = useCallback(() => { autoHandledRef.current = false; }, []);
 
-  return { sentTo, mode, countdown, sending, send, getProof, reset, allowAutoRetry };
+  return { sentTo, mode, emailSentTo, countdown, sending, send, sendEmail, getProof, reset, allowAutoRetry };
 }

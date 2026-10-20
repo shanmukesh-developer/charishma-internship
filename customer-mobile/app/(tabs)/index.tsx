@@ -15,7 +15,7 @@ import { useCartState } from '../../context/CartContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useDietary } from '../../context/DietaryContext';
 import { apiFetch } from '../../utils/auth';
-import { readCache, writeCache, peekCache, RESTAURANTS_CACHE_KEY } from '../../utils/swrCache';
+import { readCache, writeCache, peekCache, RESTAURANTS_CACHE_KEY, useSWRJson } from '../../utils/swrCache';
 import NexusExplorer from '../../components/NexusExplorer';
 import SearchOverlay from '../../components/SearchOverlay';
 import PromoCarousel from '../../components/PromoCarousel';
@@ -28,7 +28,7 @@ import { useWorldTransition } from '../../context/WorldTransitionContext';
 import AmbientBackground from '../../components/AmbientBackground';
 import DopaminePressable, { CardPressable, ActionPressable } from '../../components/DopaminePressable';
 import { StaggeredSection, RestaurantCardSkeleton, PulseGlow, BounceIn, FloatingPulse } from '../../components/AnimatedSection';
-import ServerWakeupOverlay from '../../components/ServerWakeupOverlay';
+import NightClosureBanner from '../../components/NightClosureBanner';
 import ZenvyEcosystemGrid from '../../components/ZenvyEcosystemGrid';
 import SafeImage from '../../components/SafeImage';
 import { Ionicons } from '@expo/vector-icons';
@@ -128,9 +128,9 @@ const CLASSICS = [
 
 const CATEGORIES = [
   { key: 'food', label: 'Food' },
-  { key: 'basket', label: 'Basket' },
+  { key: 'basket', label: 'Shopping list' },
   { key: 'services', label: 'Tech & Repairs' },
-  { key: 'rides', label: 'Auto & Rides' },
+  { key: 'rides', label: 'Rides' },
 ];
 
 const CATEGORY_IMAGES = {
@@ -254,7 +254,7 @@ const HomeFloatingCart = React.memo(function HomeFloatingCart({ isDark, txt, onO
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
           <View style={[s.floatingCartBadge, { backgroundColor: isDark ? COLORS.gold : COLORS.red }]}>
-            <Text style={{ fontSize: 11, fontWeight: '900', color: isDark ? '#000' : '#FFF' }}>{totalItems}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '900', color: isDark ? '#000' : '#FFF' }}>{totalItems}</Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[s.floatingCartLabel, { color: txt }]} numberOfLines={1}>
@@ -283,9 +283,11 @@ export default function HomeScreen() {
   const { triggerTransition } = useWorldTransition();
   const scrollRef = useRef<ScrollView>(null);
   // The promo carousel pauses its auto-advance and card animations once it is scrolled off-screen
-  const carouselBottom = useRef(0);
-  const [carouselVisible, setCarouselVisible] = useState(true);
-  const carouselVisibleRef = useRef(true);
+  // The carousel sits below the stores: it animates only while some of it is on screen.
+  const carouselTop = useRef(0);
+  const carouselHeight = useRef(0);
+  const [carouselVisible, setCarouselVisible] = useState(false);
+  const carouselVisibleRef = useRef(false);
   // The restaurant grid renders in pages of 12 (it sits inside this ScrollView, so it cannot be a
   // virtualized list): first paint mounts 12 cards instead of ~60, more mount as the user nears the end.
   const GRID_PAGE = 12;
@@ -302,7 +304,9 @@ export default function HomeScreen() {
       setGridLimit((n) => n + GRID_PAGE);
       setTimeout(() => { growingGrid.current = false; }, 250);
     }
-    const visible = carouselBottom.current <= 0 || y < carouselBottom.current;
+    const viewH = ne.layoutMeasurement?.height || 0;
+    const visible = carouselHeight.current <= 0
+      || (y + viewH > carouselTop.current && y < carouselTop.current + carouselHeight.current);
     if (visible !== carouselVisibleRef.current) {
       carouselVisibleRef.current = visible;
       setCarouselVisible(visible);
@@ -329,8 +333,13 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(() => !peekCache(RESTAURANTS_CACHE_KEY));
   const [refreshing, setRefreshing] = useState(false);
   const [classics, setClassics] = useState<any[]>(CLASSICS);
-  const [showWakeup, setShowWakeup] = useState(false);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<false | 'server' | 'network'>(false);
+  // "Rides" shows only while Co-Ride has an upcoming ride (same check as the Others tab).
+  const sectionsSWR = useSWRJson<{ sections?: Record<string, { live?: boolean }> }>('/api/config/sections', { freshMs: 60 * 1000 });
+  const homeCategories = React.useMemo(
+    () => CATEGORIES.filter((c) => c.key !== 'rides' || sectionsSWR.data?.sections?.coride?.live !== false),
+    [sectionsSWR.data],
+  );
 
   // Search Overlay State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -502,26 +511,23 @@ export default function HomeScreen() {
 
 
 
+  // No photo -> '' (the card shows a neutral store placeholder, not a shared stock photo).
   const sanitizeImage = (url: any) => {
-    const fallback = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400';
-    if (!url || typeof url !== 'string') return fallback;
-    if (url.startsWith('data:image/') || url.length > 1000) return fallback;
+    if (!url || typeof url !== 'string') return '';
+    if (url.startsWith('data:image/') || url.length > 1000) return '';
     return url;
   };
 
   const fetchData = useCallback(async () => {
-    // Quick timeout helper — don't hang on cold-start backends
-    const fetchWithTimeout = (url: string, ms = 8000) => {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), ms);
-      return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
-    };
-
+    // apiFetch rides out a server cold start: it retries 502/503/504 and "server starting" answers for
+    // up to ~3 minutes while the global "Zenvy is waking up" banner shows (utils/serverWake.ts), so
+    // Home never flashes an error during a restart. fields=summary: stores with a light menu (the
+    // full menu loads on the store page).
     try {
-      const res = await fetchWithTimeout(ENDPOINTS.restaurants);
-      const data = await res.json();
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      if (!Array.isArray(data)) throw new Error('Bad restaurants payload');
+      const res = await apiFetch(`${ENDPOINTS.restaurants}?fields=summary`);
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status });
+      if (!Array.isArray(data)) throw Object.assign(new Error('Bad restaurants payload'), { status: res.status });
       const cleaned = data.map((r: any) => ({
         ...r,
         imageUrl: sanitizeImage(r.imageUrl || r.image),
@@ -531,15 +537,13 @@ export default function HomeScreen() {
       // Cache for instant load next time (memory for this session, storage for the next app start)
       writeCache(RESTAURANTS_CACHE_KEY, cleaned);
       setLoadError(false);
-      setShowWakeup(false); // Connected — hide any banner
     } catch (e: any) {
       console.warn('[ZENVY_SYNC] Restaurants failed to load:', e?.message || e);
       // Keep whatever is on screen (the cached list); only an empty screen is an error
       const cached = await readCache<any[]>(RESTAURANTS_CACHE_KEY);
       const hadCache = !!(cached && Array.isArray(cached.data) && cached.data.length > 0);
       if (hadCache) setRestaurants((cur) => (cur.length ? cur : cached!.data));
-      setLoadError(!hadCache);
-      setShowWakeup(true);
+      setLoadError(hadCache ? false : (Number(e?.status) >= 500 ? 'server' : 'network'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -687,13 +691,6 @@ export default function HomeScreen() {
 
   return (
     <KeyboardAvoidingView style={[s.container, { backgroundColor: bg }]} enabled={homeFocused}>
-      <ServerWakeupOverlay 
-        visible={showWakeup} 
-        // Refetch only once the server answers; when it stays unreachable the grid shows Retry
-        // (re-fetching here re-opened the banner every minute while offline).
-        onRetry={() => { fetchData(); }}
-        onWakeupComplete={() => setShowWakeup(false)}
-      />
       <AmbientBackground />
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} scrollEventThrottle={200} onScroll={onHomeScroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} tintColor={goldColor} />}>
 
@@ -723,7 +720,7 @@ export default function HomeScreen() {
                 <Text style={[s.userName, { color: txt }]}>{(user?.name || 'Guest').trim().split(' ')[0] || 'Guest'}</Text>
                 {!!user?.isElite && (
                   <View style={[s.eliteBadge, { backgroundColor: '#D4AF7A', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }]}>
-                    <Text style={{ fontSize: 9, fontWeight: '900', color: '#000', letterSpacing: 0.3 }}>Elite</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.3 }}>Elite</Text>
                   </View>
                 )}
               </View>
@@ -731,6 +728,18 @@ export default function HomeScreen() {
           </TouchableOpacity>
 
           <View style={s.navRight}>
+            {/* Campus (community, friends, chat, Pulse): an obvious entry, not only the floating button */}
+            <DopaminePressable
+              style={[s.campusPill, { backgroundColor: cardBg, borderColor: goldBorderColor }]}
+              onPress={() => router.push('/community' as any)}
+              sound="click"
+              activeScale={0.92}
+              accessibilityRole="button"
+              accessibilityLabel="Open Campus"
+            >
+              <Ionicons name="people-outline" size={16} color={goldColor} />
+              <Text style={[s.campusPillText, { color: goldColor }]}>Campus</Text>
+            </DopaminePressable>
             <DopaminePressable 
               style={[s.navBtn, { backgroundColor: cardBg, borderColor: goldBorderColor }]} 
               onPress={toggleTheme}
@@ -753,92 +762,6 @@ export default function HomeScreen() {
               {unreadCount > 0 && <BounceIn><View style={s.badge}><Text style={s.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text></View></BounceIn>}
             </DopaminePressable>
           </View>
-        </View>
-        </StaggeredSection>
-
-        {/* ── HIGH-CLASS SWIGGY/ZOMATO PROMO CAROUSEL (WITH MINIATURE ANIMATIONS & ADMIN SPOTLIGHT) ── */}
-        <StaggeredSection delay={100} direction="up">
-          <View onLayout={(e) => { carouselBottom.current = e.nativeEvent.layout.y + e.nativeEvent.layout.height; }}>
-          <HighClassPromoCarousel 
-            visible={carouselVisible}
-            featuredRestaurants={restaurants}
-            onSelectRestaurant={(id) => router.push(`/restaurant/${id}` as any)}
-            onSelectSlide={(slide) => {
-              if (slide.id === 'gold-pass') router.push('/(tabs)/profile');
-              else if (slide.id === 'biryani') {
-                const wasOpen = classicFilter !== '';
-                setClassicFilter('Biryani');
-                scrollToNexusSoon(wasOpen);
-              } else if (slide.id === 'kfc') {
-                const kfc = restaurants.find((r: any) => /kfc/i.test(r?.name || ''));
-                if (kfc) router.push(`/restaurant/${kfc.id || kfc._id}` as any);
-                else { setSearch('KFC'); scrollToGrid(); }
-              } else if (slide.id === 'mega-basket') {
-                router.push('/mega-basket' as any);
-              } else if (slide.id === 'campus-buddy') {
-                router.push('/friends' as any);
-              } else if (slide.id === 'ride') {
-                router.push({ pathname: '/(tabs)/others', params: { tab: 'rides' } } as any);
-              } else if (slide.id === 'stays') {
-                router.push({ pathname: '/(tabs)/others', params: { tab: 'stays' } } as any);
-              } else if (slide.id === 'express-canteen') {
-                router.push('/category/express' as any);
-              } else if (slide.id === 'welcome-benefits') {
-                fetchVaultItems();
-                setShowVaultModal(true);
-              } else if (slide.id === 'free-cash') {
-                scrollToGrid();
-              }
-            }}
-          />
-          </View>
-        </StaggeredSection>
-
-        {/* ── LIVE CAMPUS TICKER (SWIGGY / ZOMATO DEALS & PULSE) ── */}
-        <StaggeredSection delay={150} direction="up">
-          <View style={{ marginTop: 6, marginBottom: 2 }}>
-            <CampusLiveTicker />
-          </View>
-        </StaggeredSection>
-
-        {/* ── CATEGORIES GRID CONTAINER (EXACT FIT) ── */}
-        <StaggeredSection delay={200} direction="up">
-        <View style={s.premiumCatGrid}>
-          {CATEGORIES.map((c, catIdx) => (
-            <BounceIn key={c.key} delay={300 + catIdx * 80} style={{ flex: 1 }}>
-            <DopaminePressable 
-              style={[
-                s.premiumCatBtn, 
-                { 
-                  backgroundColor: cardBg, 
-                  borderColor: border,
-                }
-              ]} 
-              onPress={() => {
-                if (c.key === 'food') {
-                  scrollToGrid();
-                } else if (c.key === 'basket') {
-                  router.push('/mega-basket' as any);
-                } else if (c.key === 'services') {
-                  router.push({ pathname: '/(tabs)/others', params: { tab: 'services' } } as any);
-                } else if (c.key === 'rides') {
-                  router.push({ pathname: '/(tabs)/others', params: { tab: 'rides' } } as any);
-                }
-              }}
-              sound="tabSwitch"
-              activeScale={0.95}
-            >
-              <SafeImage 
-                source={CATEGORY_IMAGES[c.key as keyof typeof CATEGORY_IMAGES]} 
-                style={{ width: '100%', height: 60 }} 
-                resizeMode="cover" 
-              />
-              <Text style={[s.premiumCatLabel, { color: txt, marginTop: 8, marginBottom: 8 }]} numberOfLines={1}>
-                {c.label}
-              </Text>
-            </DopaminePressable>
-            </BounceIn>
-          ))}
         </View>
         </StaggeredSection>
 
@@ -883,6 +806,50 @@ export default function HomeScreen() {
               <View style={[s.vegSwitchThumb, vegOnly && s.vegSwitchThumbActive]} />
             </View>
           </TouchableOpacity>
+        </View>
+        </StaggeredSection>
+
+        {/* ── NIGHT CLOSURE (9 PM to 6 AM): say it on Home, not first at checkout ── */}
+        <NightClosureBanner style={{ marginTop: 0, marginBottom: 12 }} />
+
+        {/* ── CATEGORIES GRID CONTAINER (EXACT FIT) ── */}
+        <StaggeredSection delay={200} direction="up">
+        <View style={s.premiumCatGrid}>
+          {homeCategories.map((c, catIdx) => (
+            <BounceIn key={c.key} delay={300 + catIdx * 80} style={{ flex: 1 }}>
+            <DopaminePressable 
+              style={[
+                s.premiumCatBtn, 
+                { 
+                  backgroundColor: cardBg, 
+                  borderColor: border,
+                }
+              ]} 
+              onPress={() => {
+                if (c.key === 'food') {
+                  scrollToGrid();
+                } else if (c.key === 'basket') {
+                  router.push('/mega-basket' as any);
+                } else if (c.key === 'services') {
+                  router.push({ pathname: '/(tabs)/others', params: { tab: 'services' } } as any);
+                } else if (c.key === 'rides') {
+                  router.push({ pathname: '/(tabs)/others', params: { tab: 'rides' } } as any);
+                }
+              }}
+              sound="tabSwitch"
+              activeScale={0.95}
+            >
+              <SafeImage 
+                source={CATEGORY_IMAGES[c.key as keyof typeof CATEGORY_IMAGES]} 
+                style={{ width: '100%', height: 60 }} 
+                resizeMode="cover" 
+              />
+              <Text style={[s.premiumCatLabel, { color: txt, marginTop: 8, marginBottom: 8 }]} numberOfLines={1}>
+                {c.label}
+              </Text>
+            </DopaminePressable>
+            </BounceIn>
+          ))}
         </View>
         </StaggeredSection>
 
@@ -952,7 +919,7 @@ export default function HomeScreen() {
             <View style={s.sectionHeader}>
               <Text style={[s.sectionTitle, { color: txt }]}>{classicFilter}</Text>
               <TouchableOpacity onPress={() => setClassicFilter('')}>
-                <Text style={{ fontSize: 11, fontWeight: '800', color: COLORS.red, letterSpacing: 0.2 }}>Clear</Text>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: COLORS.red, letterSpacing: 0.2 }}>Clear</Text>
               </TouchableOpacity>
             </View>
             <NexusExplorer
@@ -962,37 +929,6 @@ export default function HomeScreen() {
             />
           </Animated.View>
         )}
-
-        {/* ── DAILY DEALS ── */}
-        <StaggeredSection delay={600} direction="up">
-        <CardPressable 
-          style={[s.vaultCard, { backgroundColor: cardBg }]} 
-          onPress={() => {
-            fetchVaultItems();
-            setShowVaultModal(true);
-          }}
-          sound="click"
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
-            <View style={s.vaultLeft}>
-              <PulseGlow size={44} color={COLORS.gold}>
-                <View style={s.vaultIcon}><Ionicons name="pricetags" size={22} color={COLORS.gold} /></View>
-              </PulseGlow>
-              <View>
-                <Text style={[s.vaultTitle, { color: txt }]}>Daily deals</Text>
-                <Text style={[s.vaultSub, { color: txtSec }]}>Today's coupons, valid until midnight</Text>
-              </View>
-            </View>
-            <View style={s.vaultRight}>
-              <VaultTimerBadge pulseAnim={pulseAnim} />
-              <Text style={[s.vaultUntil, { color: txtSec }]}>Ends in</Text>
-            </View>
-          </View>
-        </CardPressable>
-        </StaggeredSection>
-
-        {/* Recently Visited Memory Cache */}
-        <RecentlyViewed />
 
         {/* ── FILTERS ── */}
         <View onLayout={(e) => { gridY.current = e.nativeEvent.layout.y; }} style={s.sectionHeader}><Text style={[s.sectionTitle, { color: txt }]}>All restaurants</Text></View>
@@ -1030,9 +966,13 @@ export default function HomeScreen() {
           ) : loadError && restaurants.length === 0 ? (
             <View style={[s.emptyFilterBox, { backgroundColor: cardBg, borderColor: isDark ? goldBorderColor : COLORS.borderLight }]}>
               <Ionicons name="cloud-offline-outline" size={34} color={txtSec} style={{ marginBottom: 8 }} />
-              <Text style={[s.emptyFilterTitle, { color: txt }]}>Couldn't load restaurants</Text>
+              <Text style={[s.emptyFilterTitle, { color: txt }]}>
+                {loadError === 'server' ? 'Zenvy is still starting up' : "Couldn't load restaurants"}
+              </Text>
               <Text style={[s.emptyFilterSub, { color: txtSec }]}>
-                Check your connection, then pull down or tap Try again.
+                {loadError === 'server'
+                  ? 'This usually takes a minute or two. Tap Try again in a moment.'
+                  : 'Check your connection, then pull down or tap Try again.'}
               </Text>
               <TouchableOpacity
                 style={[s.resetFilterBtn, { backgroundColor: goldColor }]}
@@ -1083,7 +1023,7 @@ export default function HomeScreen() {
             const rating = Number(r.rating) || 0;
             const deliveryMins = Number(r.deliveryTime) || 0;
             const time: string | null = r.time || (deliveryMins > 0 ? `${deliveryMins} min` : null);
-            const img = r.imageUrl || r.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400';
+            const img = r.imageUrl || r.image || '';
 
             // Open/Closed status from the server (vendor toggle + operating hours, IST)
             const isOpen = isRestaurantOpenNow(r);
@@ -1122,7 +1062,7 @@ export default function HomeScreen() {
                 sound={isPremium ? 'premiumRestaurantTransition' : 'click'}
               >
                 <View style={s.rImgWrap} pointerEvents="box-none">
-                  <SafeImage source={{ uri: img }} style={s.rImg} />
+                  <SafeImage source={{ uri: img }} style={s.rImg} placeholderIcon="storefront-outline" />
                   
                   {/* Favorite Toggle Button */}
                   <DopaminePressable 
@@ -1156,7 +1096,7 @@ export default function HomeScreen() {
                       backgroundColor: '#fff',
                       opacity: isOpen ? pulseAnim : 0.6
                     }} />
-                    <Text style={{ fontSize: 7.5, fontWeight: '900', color: '#fff', letterSpacing: 0.2 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#fff', letterSpacing: 0.2 }}>
                       {isOpen ? 'Open' : 'Closed'}
                     </Text>
                   </View>
@@ -1184,7 +1124,7 @@ export default function HomeScreen() {
                         elevation: 3
                       }}
                     >
-                      <Text style={{ fontSize: 8, fontWeight: '900', color: '#000', letterSpacing: 0.2 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.2 }}>
                         {r.featuredBadge || 'Promoted'}
                       </Text>
                     </LinearGradient>
@@ -1216,7 +1156,7 @@ export default function HomeScreen() {
                     {rating > 0 ? (
                       <View style={s.ratingBadge}>
                         <Text style={s.ratingText}>{rating.toFixed(1)}</Text>
-                        <Text style={{ fontSize: 8, color: '#fff', fontWeight: '900' }}>★</Text>
+                        <Text style={{ fontSize: 12, color: '#fff', fontWeight: '900' }}>★</Text>
                       </View>
                     ) : isNewStore ? (
                       <View style={s.ratingBadge}>
@@ -1247,7 +1187,7 @@ export default function HomeScreen() {
                       marginTop: 4 
                     }}>
                       <Ionicons name="pricetag-outline" size={11} color={txtSec} />
-                      <Text style={{ fontSize: 9.5, color: txtSec, fontWeight: '700', flex: 1 }} numberOfLines={1}>
+                      <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700', flex: 1 }} numberOfLines={1}>
                         {activeOffer}
                       </Text>
                     </View>
@@ -1259,6 +1199,84 @@ export default function HomeScreen() {
           })
         )}
         </View>
+
+        {/* ── OFFERS AND CAMPUS PROMOS (below the stores, so restaurants are on the first screen) ── */}
+        <View style={{ height: 8 }} onLayout={(e) => { carouselTop.current = e.nativeEvent.layout.y + e.nativeEvent.layout.height; }} />
+        {/* ── HIGH-CLASS SWIGGY/ZOMATO PROMO CAROUSEL (WITH MINIATURE ANIMATIONS & ADMIN SPOTLIGHT) ── */}
+        <StaggeredSection delay={100} direction="up">
+          <View onLayout={(e) => { carouselHeight.current = e.nativeEvent.layout.height; }}>
+          <HighClassPromoCarousel 
+            visible={carouselVisible}
+            featuredRestaurants={restaurants}
+            onSelectRestaurant={(id) => router.push(`/restaurant/${id}` as any)}
+            onSelectSlide={(slide) => {
+              if (slide.id === 'gold-pass') router.push('/(tabs)/profile');
+              else if (slide.id === 'biryani') {
+                const wasOpen = classicFilter !== '';
+                setClassicFilter('Biryani');
+                scrollToNexusSoon(wasOpen);
+              } else if (slide.id === 'kfc') {
+                const kfc = restaurants.find((r: any) => /kfc/i.test(r?.name || ''));
+                if (kfc) router.push(`/restaurant/${kfc.id || kfc._id}` as any);
+                else { setSearch('KFC'); scrollToGrid(); }
+              } else if (slide.id === 'mega-basket') {
+                router.push('/mega-basket' as any);
+              } else if (slide.id === 'campus-buddy') {
+                router.push('/friends' as any);
+              } else if (slide.id === 'ride') {
+                router.push({ pathname: '/(tabs)/others', params: { tab: 'rides' } } as any);
+              } else if (slide.id === 'stays') {
+                router.push({ pathname: '/(tabs)/others', params: { tab: 'stays' } } as any);
+              } else if (slide.id === 'express-canteen') {
+                router.push('/category/express' as any);
+              } else if (slide.id === 'welcome-benefits') {
+                fetchVaultItems();
+                setShowVaultModal(true);
+              } else if (slide.id === 'free-cash') {
+                scrollToGrid();
+              }
+            }}
+          />
+          </View>
+        </StaggeredSection>
+
+        {/* ── LIVE CAMPUS TICKER (SWIGGY / ZOMATO DEALS & PULSE) ── */}
+        <StaggeredSection delay={150} direction="up">
+          <View style={{ marginTop: 6, marginBottom: 2 }}>
+            <CampusLiveTicker />
+          </View>
+        </StaggeredSection>
+
+        {/* ── DAILY DEALS ── */}
+        <StaggeredSection delay={600} direction="up">
+        <CardPressable 
+          style={[s.vaultCard, { backgroundColor: cardBg }]} 
+          onPress={() => {
+            fetchVaultItems();
+            setShowVaultModal(true);
+          }}
+          sound="click"
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+            <View style={s.vaultLeft}>
+              <PulseGlow size={44} color={COLORS.gold}>
+                <View style={s.vaultIcon}><Ionicons name="pricetags" size={22} color={COLORS.gold} /></View>
+              </PulseGlow>
+              <View>
+                <Text style={[s.vaultTitle, { color: txt }]}>Daily deals</Text>
+                <Text style={[s.vaultSub, { color: txtSec }]}>Today's coupons, valid until midnight</Text>
+              </View>
+            </View>
+            <View style={s.vaultRight}>
+              <VaultTimerBadge pulseAnim={pulseAnim} />
+              <Text style={[s.vaultUntil, { color: txtSec }]}>Ends in</Text>
+            </View>
+          </View>
+        </CardPressable>
+        </StaggeredSection>
+
+        {/* Recently Visited Memory Cache */}
+        <RecentlyViewed />
 
         {/* ── SECTION BREATHING SPACE ── */}
         <View style={{ height: 20 }} />
@@ -1281,7 +1299,7 @@ export default function HomeScreen() {
             ) : vaultError ? (
               <TouchableOpacity onPress={() => fetchVaultItems()} style={{ padding: 32, alignItems: 'center' }} activeOpacity={0.8}>
                 <Ionicons name="alert-circle-outline" size={32} color={txtSec} style={{ marginBottom: 12 }} />
-                <Text style={{ color: txtSec, fontSize: 11, fontWeight: '700', textAlign: 'center' }}>Couldn't load today's deals. Tap to try again.</Text>
+                <Text style={{ color: txtSec, fontSize: 12, fontWeight: '700', textAlign: 'center' }}>Couldn't load today's deals. Tap to try again.</Text>
               </TouchableOpacity>
             ) : vaultItems.length > 0 ? (
               <ScrollView style={{ width: '100%' }} showsVerticalScrollIndicator={false}>
@@ -1335,7 +1353,7 @@ export default function HomeScreen() {
             ) : (
               <View style={{ padding: 32, alignItems: 'center' }}>
                 <Ionicons name="pricetags-outline" size={32} color={txtSec} style={{ marginBottom: 12 }} />
-                <Text style={{ color: txtSec, fontSize: 11, fontWeight: '700' }}>No deals today. Check back tomorrow.</Text>
+                <Text style={{ color: txtSec, fontSize: 12, fontWeight: '700' }}>No deals today. Check back tomorrow.</Text>
               </View>
             )}
 
@@ -1385,7 +1403,7 @@ export default function HomeScreen() {
                             <Text style={[s.blockName, { color: txt }]}>
                               BLOCK {item.block?.toUpperCase()} {isUserBlock && ' (MY BLOCK)'}
                             </Text>
-                            <Text style={{ fontSize: 8, color: txtSec }}>
+                            <Text style={{ fontSize: 12, color: txtSec }}>
                               {item.participants || 0} ORDERERS • ₹{item.spend || 0} TOTAL VALUE
                             </Text>
                           </View>
@@ -1398,7 +1416,7 @@ export default function HomeScreen() {
                   })
                 ) : (
                   <View style={{ padding: 24, alignItems: 'center' }}>
-                    <Text style={{ color: txtSec, fontSize: 10, fontWeight: '700' }}>No active standings yet this week.</Text>
+                    <Text style={{ color: txtSec, fontSize: 12, fontWeight: '700' }}>No active standings yet this week.</Text>
                   </View>
                 )}
               </ScrollView>
@@ -1431,7 +1449,7 @@ export default function HomeScreen() {
             <ScrollView style={{ width: '100%', maxHeight: 360 }} showsVerticalScrollIndicator={false}>
               {/* Dietary Fast Switcher */}
               <View style={{ marginBottom: 16, padding: 12, borderRadius: 14, backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC', borderWidth: 1, borderColor: border }}>
-                <Text style={{ fontSize: 10, fontWeight: '800', color: goldColor, letterSpacing: 0.2, marginBottom: 8 }}>Diet</Text>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: goldColor, letterSpacing: 0.2, marginBottom: 8 }}>Diet</Text>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <TouchableOpacity
                     style={{
@@ -1452,7 +1470,7 @@ export default function HomeScreen() {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
                     }}
                   >
-                    <Text style={{ fontSize: 10, fontWeight: '900', color: filter === 'all' && !vegOnly ? (isDark ? '#000' : '#FFF') : txt }}>All restaurants</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: filter === 'all' && !vegOnly ? (isDark ? '#000' : '#FFF') : txt }}>All restaurants</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={{
@@ -1471,13 +1489,13 @@ export default function HomeScreen() {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
                     }}
                   >
-                    <Text style={{ fontSize: 10, fontWeight: '900', color: vegOnly || filter === 'veg' ? '#FFF' : txt }}>Pure veg only</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: vegOnly || filter === 'veg' ? '#FFF' : txt }}>Pure veg only</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               {/* Quick Jump Category Cards */}
-              <Text style={{ fontSize: 10, fontWeight: '800', color: txtSec, letterSpacing: 0.2, marginBottom: 8 }}>Popular cuisines</Text>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec, letterSpacing: 0.2, marginBottom: 8 }}>Popular cuisines</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
                 {classics.map((c, i) => {
                   const isSelected = classicFilter === c.name;
@@ -1503,7 +1521,7 @@ export default function HomeScreen() {
                         if (!isSelected) scrollToNexusSoon(wasOpen);
                       }}
                     >
-                      <Text style={{ fontSize: 10, fontWeight: '800', color: isSelected ? (isDark ? '#000' : '#FFF') : txt }}>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: isSelected ? (isDark ? '#000' : '#FFF') : txt }}>
                         {c.name}
                       </Text>
                     </TouchableOpacity>
@@ -1547,6 +1565,8 @@ export default function HomeScreen() {
 }
 
 const s = StyleSheet.create({
+  campusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 36, paddingHorizontal: 12, borderRadius: 18, borderWidth: 1 },
+  campusPillText: { fontSize: 13, fontWeight: '800' },
   container: { 
     flex: 1, 
     paddingTop: Platform.OS === 'android' ? 40 : 50,
@@ -1560,31 +1580,31 @@ const s = StyleSheet.create({
   avatar: { width: 40, height: 40, borderRadius: 14, backgroundColor: COLORS.bgCard, borderWidth: 1.5, borderColor: COLORS.goldBorder, alignItems: 'center', justifyContent: 'center' },
   avatarElite: { borderColor: COLORS.gold, ...SHADOWS.goldGlow },
   avatarText: { fontSize: 13, fontWeight: '900', color: COLORS.gold },
-  greeting: { fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
+  greeting: { fontSize: 12, fontWeight: '800', letterSpacing: 0.3 },
   userName: { fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
   eliteBadge: { backgroundColor: COLORS.gold, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  eliteBadgeText: { fontSize: 8, fontWeight: '900', color: '#000', letterSpacing: 0.3 },
+  eliteBadgeText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.3 },
   navRight: { flexDirection: 'row', gap: 6, alignItems: 'center' },
   goldNavBadge: { borderRadius: 12, overflow: 'hidden' },
   goldNavBadgeGradient: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 12 },
-  goldNavBadgeText: { fontSize: 8.5, fontWeight: '900', color: '#000', letterSpacing: 0.8 },
+  goldNavBadgeText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.8 },
   walletNavBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 4.5, borderRadius: 12, borderWidth: 1 },
-  walletNavText: { fontSize: 10, fontWeight: '900' },
+  walletNavText: { fontSize: 12, fontWeight: '900' },
   navBtn: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.goldBorder },
   profileBtn: { borderColor: COLORS.gold, ...SHADOWS.goldGlow },
-  badge: { position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: 9, backgroundColor: COLORS.red, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { fontSize: 8, fontWeight: '900', color: '#fff' },
+  badge: { position: 'absolute', top: -4, right: -4, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4, backgroundColor: COLORS.red, alignItems: 'center', justifyContent: 'center' },
+  badgeText: { fontSize: 12, fontWeight: '900', color: '#fff' },
   // Hero
   heroWrap: { marginHorizontal: 16, borderRadius: RADIUS.hero, overflow: 'hidden', height: 220, marginBottom: 16 },
   heroImg: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
   heroOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.55)' },
   heroContent: { flex: 1, justifyContent: 'center', padding: 24, zIndex: 2 },
-  heroTag: { fontSize: 9, fontWeight: '900', color: COLORS.gold, letterSpacing: 0.3, marginBottom: 8 },
+  heroTag: { fontSize: 12, fontWeight: '900', color: COLORS.gold, letterSpacing: 0.3, marginBottom: 8 },
   heroTitle: { fontSize: 28, fontWeight: '900', color: '#fff', fontStyle: 'italic', lineHeight: 30 },
   heroSub: { fontSize: 28, fontWeight: '900', color: COLORS.gold, fontStyle: 'italic', lineHeight: 30, marginBottom: 8 },
-  heroDesc: { fontSize: 8, fontWeight: '700', color: '#aaa', letterSpacing: 0.3, marginBottom: 16, maxWidth: 260 },
+  heroDesc: { fontSize: 12, fontWeight: '700', color: '#aaa', letterSpacing: 0.3, marginBottom: 16, maxWidth: 260 },
   heroCta: { backgroundColor: COLORS.gold, paddingVertical: 14, paddingHorizontal: 28, borderRadius: 30, alignSelf: 'flex-start', ...SHADOWS.goldGlow },
-  heroCtaText: { fontSize: 10, fontWeight: '900', color: '#000', letterSpacing: 0.3 },
+  heroCtaText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.3 },
   heroDots: { position: 'absolute', bottom: 14, left: 24, flexDirection: 'row', gap: 4, zIndex: 3 },
   dot: { width: 6, height: 6, borderRadius: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
   dotActive: { width: 22, backgroundColor: COLORS.gold, borderColor: COLORS.gold },
@@ -1592,41 +1612,41 @@ const s = StyleSheet.create({
   catRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 16 },
   catBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderDark },
   catIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.goldMuted, borderWidth: 1, borderColor: COLORS.goldBorder, alignItems: 'center', justifyContent: 'center' },
-  catLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 0.3 },
+  catLabel: { fontSize: 12, fontWeight: '900', letterSpacing: 0.3 },
   // Search & Veg Mode Bar
   searchBarContainer: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, gap: 8, marginBottom: 16 },
   searchWrap: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 16, borderWidth: 1.5, gap: 8 },
   searchInput: { flex: 1, fontSize: 12, fontWeight: '600', padding: 0 },
   vegToggleWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 10, borderRadius: 14, borderWidth: 1.5 },
-  vegToggleText: { fontSize: 9.5, fontWeight: '900', letterSpacing: 0.8 },
+  vegToggleText: { fontSize: 12, fontWeight: '900', letterSpacing: 0.8 },
   vegSwitchTrack: { width: 32, height: 18, borderRadius: 9, padding: 2, justifyContent: 'center' },
   vegSwitchThumb: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#94A3B8' },
   vegSwitchThumbActive: { transform: [{ translateX: 14 }], backgroundColor: '#FFFFFF' },
   // Classics
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 12 },
   sectionTitle: { fontSize: 14, fontWeight: '900', letterSpacing: 0.3 },
-  sectionSub: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3, paddingHorizontal: 16, marginBottom: 12, marginTop: -4 },
+  sectionSub: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3, paddingHorizontal: 16, marginBottom: 12, marginTop: -4 },
   manageBtn: { backgroundColor: COLORS.bgCard, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: COLORS.borderDark },
-  manageBtnText: { fontSize: 11, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 0.3 },
+  manageBtnText: { fontSize: 12, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 0.3 },
   classicItem: { alignItems: 'center', marginRight: 16, width: 70 },
   classicImgWrap: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: COLORS.gold, overflow: 'hidden', marginBottom: 6, ...SHADOWS.goldGlow },
   classicImg: { width: '100%', height: '100%' },
-  classicName: { fontSize: 10, fontWeight: '800', letterSpacing: 0.3, textAlign: 'center' },
+  classicName: { fontSize: 12, fontWeight: '800', letterSpacing: 0.3, textAlign: 'center' },
   // Vault
   vaultCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16, padding: 16, borderRadius: 28, borderWidth: 1, borderColor: COLORS.goldBorder, marginBottom: 24 },
   vaultLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   vaultIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#000', borderWidth: 1, borderColor: COLORS.goldBorder, alignItems: 'center', justifyContent: 'center' },
-  vaultTitle: { fontSize: 11, fontWeight: '900', letterSpacing: 0.3 },
-  vaultSub: { fontSize: 10, fontWeight: '700', letterSpacing: 0.3, marginTop: 2 },
+  vaultTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 0.3 },
+  vaultSub: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3, marginTop: 2 },
   vaultRight: { alignItems: 'flex-end' },
   vaultTimerWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.goldMuted, borderWidth: 1, borderColor: COLORS.goldBorder, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   vaultDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.gold },
-  vaultTimer: { fontSize: 11, fontWeight: '900', color: COLORS.gold, fontVariant: ['tabular-nums'] },
-  vaultUntil: { fontSize: 9, fontWeight: '900', letterSpacing: 0.3, marginTop: 4 },
+  vaultTimer: { fontSize: 12, fontWeight: '900', color: COLORS.gold, fontVariant: ['tabular-nums'] },
+  vaultUntil: { fontSize: 12, fontWeight: '900', letterSpacing: 0.3, marginTop: 4 },
   // Filters
   filterChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1.5, marginRight: 8 },
   filterActive: { backgroundColor: COLORS.red },
-  filterText: { fontSize: 11, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 0.3 },
+  filterText: { fontSize: 12, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 0.3 },
   filterTextActive: { color: '#fff' },
   // Grid
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, justifyContent: 'space-between', rowGap: 12 },
@@ -1635,55 +1655,55 @@ const s = StyleSheet.create({
   rImg: { width: '100%', height: '100%' },
   heartBtn: { position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...SHADOWS.card },
   promotedBadge: { position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  promotedText: { fontSize: 8, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
+  promotedText: { fontSize: 12, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
   timeChip: { position: 'absolute', bottom: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.8)', paddingHorizontal: 7, paddingVertical: 3.5, borderRadius: 6 },
-  timeText: { fontSize: 9, fontWeight: '900', color: '#fff' },
+  timeText: { fontSize: 12, fontWeight: '900', color: '#fff' },
   offerRibbon: { position: 'absolute', bottom: 8, left: 0, backgroundColor: COLORS.blueOffer, paddingHorizontal: 8, paddingVertical: 4, borderTopRightRadius: 6, borderBottomRightRadius: 6 },
-  offerText: { fontSize: 9, fontWeight: '900', color: '#fff' },
+  offerText: { fontSize: 12, fontWeight: '900', color: '#fff' },
   rInfo: { padding: 10 },
   rTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   rName: { fontSize: 13, fontWeight: '900', color: '#111', flex: 1, marginRight: 4 },
   ratingBadge: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: COLORS.greenRating, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6 },
-  ratingText: { fontSize: 10, fontWeight: '900', color: '#fff' },
-  rCuisine: { fontSize: 10, color: '#888', fontWeight: '600' },
+  ratingText: { fontSize: 12, fontWeight: '900', color: '#fff' },
+  rCuisine: { fontSize: 12, color: '#888', fontWeight: '600' },
   // BlockWars & Modals styles
   blockwarsBanner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16, padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 20 },
   blockwarsIcon: { width: 38, height: 38, borderRadius: 10, backgroundColor: COLORS.goldMuted, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.goldBorder },
-  blockwarsTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 0.3 },
-  blockwarsSub: { fontSize: 7, fontWeight: '800', letterSpacing: 0.3, marginTop: 1 },
+  blockwarsTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 0.3 },
+  blockwarsSub: { fontSize: 12, fontWeight: '800', letterSpacing: 0.3, marginTop: 1 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   modalContentBox: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, height: '80%', alignItems: 'center' },
   modalTitle: { fontSize: 14, fontWeight: '900', letterSpacing: 0.3, marginBottom: 6 },
-  modalSubtitle: { fontSize: 10, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 0.3, marginBottom: 20, textAlign: 'center' },
+  modalSubtitle: { fontSize: 12, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 0.3, marginBottom: 20, textAlign: 'center' },
   modalCloseBtn: { width: '100%', paddingVertical: 14, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', marginTop: 16 },
-  modalCloseText: { fontSize: 11, fontWeight: '900', color: COLORS.textSecondary, letterSpacing: 0.3 },
+  modalCloseText: { fontSize: 12, fontWeight: '900', color: COLORS.textSecondary, letterSpacing: 0.3 },
 
   vaultItemCard: { flexDirection: 'row', padding: 12, borderRadius: 20, borderWidth: 1, marginBottom: 12 },
   vaultItemImg: { width: 80, height: 80, borderRadius: 12, marginRight: 12 },
   vaultItemInfo: { flex: 1, justifyContent: 'space-between' },
   vaultItemName: { fontSize: 12, fontWeight: '900' },
-  vaultItemDesc: { fontSize: 9, fontWeight: '600', marginVertical: 2 },
-  vaultItemStock: { fontSize: 10, fontWeight: '800', marginBottom: 6 },
+  vaultItemDesc: { fontSize: 12, fontWeight: '600', marginVertical: 2 },
+  vaultItemStock: { fontSize: 12, fontWeight: '800', marginBottom: 6 },
   vaultItemReqRow: { flexDirection: 'row', marginBottom: 8 },
   reqBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  reqBadgeText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
+  reqBadgeText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.3 },
   claimBtn: { paddingVertical: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  claimBtnText: { fontSize: 10, fontWeight: '900', color: '#000', letterSpacing: 0.3 },
+  claimBtnText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.3 },
   lockedBtn: { paddingVertical: 8, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center' },
-  lockedBtnText: { fontSize: 10, fontWeight: '800', color: COLORS.textMuted },
+  lockedBtnText: { fontSize: 12, fontWeight: '800', color: COLORS.textMuted },
 
   challengeCardLayout: { flexDirection: 'row', gap: 12, padding: 14, borderRadius: 18, borderWidth: 1, marginBottom: 20, alignItems: 'center' },
   challengeEmoji: { fontSize: 32 },
-  challengeTitle: { fontSize: 11, fontWeight: '900', letterSpacing: 0.3 },
-  challengeDesc: { fontSize: 8, fontWeight: '600', marginTop: 2, marginBottom: 4 },
-  challengeReward: { fontSize: 8, fontWeight: '900', color: COLORS.gold, letterSpacing: 0.3 },
+  challengeTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 0.3 },
+  challengeDesc: { fontSize: 12, fontWeight: '600', marginTop: 2, marginBottom: 4 },
+  challengeReward: { fontSize: 12, fontWeight: '900', color: COLORS.gold, letterSpacing: 0.3 },
 
-  leaderboardTitle: { fontSize: 9, fontWeight: '900', letterSpacing: 0.3, marginBottom: 10 },
+  leaderboardTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 0.3, marginBottom: 10 },
   leaderboardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderRadius: 16, borderWidth: 1, marginBottom: 8 },
   rankText: { fontSize: 12, fontWeight: '900', width: 24 },
-  blockName: { fontSize: 11, fontWeight: '900' },
-  scoreVal: { fontSize: 11, fontWeight: '900' },
+  blockName: { fontSize: 12, fontWeight: '900' },
+  scoreVal: { fontSize: 12, fontWeight: '900' },
 
   // Floating Community FAB
   fabBtnWrap: { position: 'absolute', bottom: 20, right: 20, width: 54, height: 54, zIndex: 999 },
@@ -1737,7 +1757,7 @@ const s = StyleSheet.create({
     resizeMode: 'cover',
   },
   premiumCatLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
     textAlign: 'center',
@@ -1759,7 +1779,7 @@ const s = StyleSheet.create({
     marginBottom: 6,
   },
   emptyFilterSub: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
     lineHeight: 14,
@@ -1774,7 +1794,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   resetFilterBtnText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
   },
@@ -1806,12 +1826,12 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   floatingCartLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   floatingCartSub: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '800',
   },
   floatingCartCta: {
@@ -1823,7 +1843,7 @@ const s = StyleSheet.create({
     borderRadius: 12,
   },
   floatingCartCtaText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
   },

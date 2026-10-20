@@ -179,7 +179,9 @@ const quoteOrder = async (req, res) => {
 // @desc    Is campus ordering open right now?
 // @route   GET /api/orders/serviceability
 const getServiceability = async (req, res) => {
-  res.json({ ...getCampusServiceability(), paymentMethods: ['COD', 'Wallet'] });
+  // storeAcceptTimeoutMin (new key): tracking says how long the store has to accept before the order is
+  // cancelled for free.
+  res.json({ ...getCampusServiceability(), paymentMethods: ['COD', 'Wallet'], storeAcceptTimeoutMin: storeAcceptTimeoutMinutes() });
 };
 
 // @desc    Create a new order
@@ -1129,15 +1131,18 @@ const cancelAndRefund = async (order, { reason = null, onlyFromStatuses = null, 
 
 // Orders nobody moves forward are cancelled (and Wallet-refunded) automatically, so a customer is
 // never left waiting (orders-n12). Runs from jobs/index.js every 2 minutes. Two cases, rider never set:
-//  • 'Pending' for PENDING_ORDER_TIMEOUT_MINUTES (default 15): the store never accepted it.
+//  • 'Pending' for STORE_ACCEPT_TIMEOUT_MIN (default 7; the older PENDING_ORDER_TIMEOUT_MINUTES is still
+//    read when the new one is not set): the store never accepted it.
 //  • 'Accepted'/'Preparing'/'ReadyForPickup' for UNCLAIMED_ORDER_TIMEOUT_MINUTES (default 30) since
 //    acceptance: no rider claimed it. App-less (catalogue) stores start orders at 'Accepted', so
 //    without this an unclaimed order waited forever with the Wallet already debited.
-const PENDING_TIMEOUT_MINUTES = Math.max(5, parseInt(process.env.PENDING_ORDER_TIMEOUT_MINUTES, 10) || 15);
+const { storeAcceptTimeoutMinutes } = require('../utils/orderTimeouts');
 const UNCLAIMED_TIMEOUT_MINUTES = Math.max(10, parseInt(process.env.UNCLAIMED_ORDER_TIMEOUT_MINUTES, 10) || 30);
 const UNCLAIMED_STATUSES = ['Accepted', 'Preparing', 'ReadyForPickup'];
+const STORE_TIMEOUT_TEXT = "The store didn't respond, so your order was cancelled.";
 const autoCancelStalePendingOrders = async (io) => {
   const Order = getOrderModel();
+  const PENDING_TIMEOUT_MINUTES = storeAcceptTimeoutMinutes();
   const pendingCutoff = new Date(Date.now() - PENDING_TIMEOUT_MINUTES * 60 * 1000);
   const unclaimedCutoff = new Date(Date.now() - UNCLAIMED_TIMEOUT_MINUTES * 60 * 1000);
   const stalePending = await Order.findAll({
@@ -1158,7 +1163,7 @@ const autoCancelStalePendingOrders = async (io) => {
     limit: 50,
   });
   const jobs = [
-    ...stalePending.map((order) => ({ order, from: ['Pending'], code: 'STORE_TIMEOUT', why: 'The store did not accept the order in time', text: 'The store did not accept your order in time.' })),
+    ...stalePending.map((order) => ({ order, from: ['Pending'], code: 'STORE_TIMEOUT', why: 'The store did not accept the order in time', text: STORE_TIMEOUT_TEXT })),
     ...staleUnclaimed.map((order) => ({ order, from: UNCLAIMED_STATUSES, code: 'NO_RIDER_TIMEOUT', why: 'No delivery partner was available in time', text: 'No delivery partner could pick up your order in time.' })),
   ];
   let count = 0;
@@ -1182,10 +1187,10 @@ const autoCancelStalePendingOrders = async (io) => {
         if (customer) {
           await sendPushToTokens(
             customer.fcmTokens,
-            'Order cancelled',
+            code === 'STORE_TIMEOUT' ? "The store didn't respond" : 'Order cancelled',
             refunded > 0
               ? `${text} ₹${refunded} is back in your Wallet.`
-              : `${text} You have not been charged.`,
+              : `${text} Nothing was charged.`,
             { orderId: order.id, type: 'ORDER_UPDATE' },
             { recipients: [customer.id] }
           );

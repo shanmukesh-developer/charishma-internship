@@ -1,6 +1,7 @@
 import { API_URL } from '../../constants/api';
 import { getToken } from '../../utils/auth';
 import { prepareAndUploadImage, MediaPurpose } from '../../utils/imageUpload';
+import { withWakeRetry } from '../../utils/serverWake';
 import {
   CampusItem,
   CampusProfileData,
@@ -77,15 +78,24 @@ export const jsonOrThrow = async (res: Response, fallback: string) => {
 export const CAMPUS_TIMEOUT_MS = 30000;
 
 /** fetch() with a timeout; network failures (offline, DNS, timeout) become a friendly message. */
-export const campusFetch = async (url: string, init?: RequestInit): Promise<Response> => {
+const campusFetchOnce = async (url: string, init?: RequestInit): Promise<Response> => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), CAMPUS_TIMEOUT_MS);
   try {
     return await fetch(url, { ...(init || {}), signal: controller.signal });
-  } catch {
-    throw new CampusApiError(CAMPUS_NETWORK_ERROR, 0, 'NETWORK');
   } finally {
     clearTimeout(timer);
+  }
+};
+
+/** GETs ride out a backend cold start (utils/serverWake.ts); other methods are sent once. */
+export const campusFetch = async (url: string, init?: RequestInit): Promise<Response> => {
+  const method = String(init?.method || 'GET').toUpperCase();
+  try {
+    if (method === 'GET') return await withWakeRetry(() => campusFetchOnce(url, init));
+    return await campusFetchOnce(url, init);
+  } catch {
+    throw new CampusApiError(CAMPUS_NETWORK_ERROR, 0, 'NETWORK');
   }
 };
 

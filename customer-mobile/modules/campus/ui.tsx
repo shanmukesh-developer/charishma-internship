@@ -33,7 +33,7 @@ export const T = StyleSheet.create({
   body: { fontSize: 14, lineHeight: 20, color: CampusColors.ink },
   muted: { fontSize: 13, lineHeight: 18, color: CampusColors.muted },
   small: { fontSize: 12, color: CampusColors.muted },
-  kicker: { fontSize: 11, fontWeight: '800', letterSpacing: 0.8, color: CampusColors.muted, textTransform: 'uppercase' },
+  kicker: { fontSize: 12, fontWeight: '800', letterSpacing: 0.8, color: CampusColors.muted, textTransform: 'uppercase' },
 });
 
 const initialsOf = (name?: string | null) => {
@@ -429,12 +429,12 @@ export const ui = StyleSheet.create({
   segText: { fontSize: 13, fontWeight: '600', color: CampusColors.muted },
   segTextActive: { color: CampusColors.ink, fontWeight: '800' },
   segBadge: { minWidth: 18, height: 18, borderRadius: 9, backgroundColor: CampusColors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
-  segBadgeText: { fontSize: 10, fontWeight: '800', color: '#FFFFFF' },
+  segBadgeText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
   pill: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: R.pill,
     backgroundColor: CampusColors.accentSoft,
   },
-  pillText: { fontSize: 11, fontWeight: '800', color: CampusColors.accentDeep },
+  pillText: { fontSize: 12, fontWeight: '800', color: CampusColors.accentDeep },
 });

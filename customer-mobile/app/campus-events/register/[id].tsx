@@ -351,7 +351,7 @@ function QuestionInput({ q, value, onChange, error }: { q: Question; value: any;
         <Text style={{ fontSize: 12, fontWeight: '800', letterSpacing: 0.2, marginBottom: 8, color: p.sub }}>{q.label}{q.required ? <Text style={{ color: p.danger }}> *</Text> : null}</Text>
         <Chips multi={q.type === 'MULTI_CHOICE'} value={v} options={opts} accessibilityLabel={q.label}
           onChange={(nv: any) => onChange(q.type === 'YES_NO' ? nv === 'yes' : nv)} />
-        {error ? <Text style={{ color: p.danger, fontSize: 11.5, marginTop: 4 }} accessibilityLiveRegion="polite">{error}</Text> : null}
+        {error ? <Text style={{ color: p.danger, fontSize: 12, marginTop: 4 }} accessibilityLiveRegion="polite">{error}</Text> : null}
       </View>
     );
   }

@@ -75,8 +75,8 @@ export default function RentalBookings() {
                   {b.role === 'RENTER' && (b.canRespondToCharges || b.termsPending) ? <Badge label={b.termsPending ? 'Accept terms' : 'Review charges'} color="#EF4444" /> : null}
                 </View>
                 <Text style={{ fontSize: 14, fontWeight: '900', color: p.text, marginTop: 4 }} numberOfLines={1}>{b.vehicleTitle}</Text>
-                <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }} numberOfLines={1}>{fmtDateTime(b.startAt)} → {fmtDateTime(b.endAt)}</Text>
-                <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }} numberOfLines={1}>{b.role === 'OWNER' ? `${w.Taker}: ${b.counterpart?.name || 'Student'}` : `${w.Giver}: ${b.counterpart?.name || 'Student'}`} · {inr(b.payAtHandover)} cash at pickup</Text>
+                <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }} numberOfLines={1}>{fmtDateTime(b.startAt)} → {fmtDateTime(b.endAt)}</Text>
+                <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }} numberOfLines={1}>{b.role === 'OWNER' ? `${w.Taker}: ${b.counterpart?.name || 'Student'}` : `${w.Giver}: ${b.counterpart?.name || 'Student'}`} · {inr(b.payAtHandover)} cash at pickup</Text>
               </View>
             </TouchableOpacity>
           );

@@ -44,7 +44,7 @@ export default function TermsConsent({ isDark, checked, onToggle, disabled }: Pr
 
 const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 12 },
-  text: { fontSize: 11, lineHeight: 16, fontWeight: '600' },
+  text: { fontSize: 12, lineHeight: 16, fontWeight: '600' },
   link: { color: COLORS.gold, fontWeight: '800', textDecorationLine: 'underline' },
   box: { width: 20, height: 20, borderRadius: 6, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
   tick: { color: '#000', fontSize: 13, fontWeight: '900', lineHeight: 15 },

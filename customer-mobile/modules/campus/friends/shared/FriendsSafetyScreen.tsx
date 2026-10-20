@@ -399,5 +399,5 @@ const styles = StyleSheet.create({
   muteRow: { flexDirection: 'row', alignItems: 'center', gap: FS.sm, marginTop: FS.sm, minHeight: 36 },
   smallBtn: { minHeight: 36, justifyContent: 'center', paddingHorizontal: 8 },
   status: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: FR.pill, backgroundColor: FriendsColors.cardHi },
-  statusText: { fontSize: 11, fontWeight: '800', color: FriendsColors.muted },
+  statusText: { fontSize: 12, fontWeight: '800', color: FriendsColors.muted },
 });

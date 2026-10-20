@@ -169,7 +169,7 @@ export function Chips<T extends string>({ options, value, onChange, multi, wrap 
       <TouchableOpacity key={o.key} accessibilityRole={multi ? 'checkbox' : 'radio'} accessibilityState={{ checked: on }} accessibilityLabel={o.label} onPress={() => press(o.key)}
         style={[st.chip, { backgroundColor: on ? p.accentSoft : p.card2, borderColor: on ? p.accent : p.border }]}>
         <Text style={{ fontSize: 12.5, fontWeight: '800', color: on ? p.accent : p.text }}>{o.label}</Text>
-        {o.hint ? <Text style={{ fontSize: 9.5, color: p.muted, marginTop: 1 }}>{o.hint}</Text> : null}
+        {o.hint ? <Text style={{ fontSize: 12, color: p.muted, marginTop: 1 }}>{o.hint}</Text> : null}
       </TouchableOpacity>
     );
   });
@@ -183,7 +183,7 @@ export function Toggle({ label, value, onChange, hint }: { label: string; value:
     <TouchableOpacity accessibilityRole="switch" accessibilityState={{ checked: value }} accessibilityLabel={label} onPress={() => onChange(!value)} style={[st.toggleRow, { borderColor: p.border, backgroundColor: p.card2 }]}>
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 13.5, fontWeight: '800', color: p.text }}>{label}</Text>
-        {hint ? <Text style={{ fontSize: 11, color: p.muted, marginTop: 2 }}>{hint}</Text> : null}
+        {hint ? <Text style={{ fontSize: 12, color: p.muted, marginTop: 2 }}>{hint}</Text> : null}
       </View>
       <View style={[st.track, { backgroundColor: value ? p.success : p.isDark ? '#3F3F46' : '#CBD5E1' }]}>
         <View style={[st.knob, { alignSelf: value ? 'flex-end' : 'flex-start' }]} />
@@ -276,7 +276,7 @@ export function DateTimeSelect({ label, date, time, onChange, days = 30, minDate
           return (
             <TouchableOpacity key={t} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={fmtTime(t)} onPress={() => onChange({ date, time: t })}
               style={[st.timeChip, { backgroundColor: on ? p.accentSoft : 'transparent', borderColor: on ? p.accent : p.border }]}>
-              <Text style={{ fontSize: 11.5, fontWeight: '800', color: on ? p.accent : p.sub }}>{fmtTime(t)}</Text>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: on ? p.accent : p.sub }}>{fmtTime(t)}</Text>
             </TouchableOpacity>
           );
         })}
@@ -325,17 +325,17 @@ export const st = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: Platform.OS === 'android' ? 44 : 54, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth },
   backBtn: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   hTitle: { fontSize: 18, fontWeight: '900', letterSpacing: -0.3 },
-  hSub: { fontSize: 11.5, marginTop: 1 },
+  hSub: { fontSize: 12, marginTop: 1 },
   card: { borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 12 },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 10 },
   section: { fontSize: 15, fontWeight: '900', letterSpacing: -0.2 },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1, alignSelf: 'flex-start' },
-  badgeText: { fontSize: 10, fontWeight: '900', letterSpacing: 0.3 },
+  badgeText: { fontSize: 12, fontWeight: '900', letterSpacing: 0.3 },
   btn: { borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
   btnText: { fontWeight: '900', letterSpacing: 0.2 },
   label: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2, marginBottom: 6 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: Platform.OS === 'ios' ? 12 : 9, fontSize: 14 },
-  hint: { fontSize: 11, marginTop: 4 },
+  hint: { fontSize: 12, marginTop: 4 },
   chip: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 14, padding: 12, marginBottom: 12 },
   track: { width: 42, height: 24, borderRadius: 12, padding: 3, justifyContent: 'center' },

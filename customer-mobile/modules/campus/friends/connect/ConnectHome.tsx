@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
   segOn: { backgroundColor: FriendsColors.cardHi },
   segText: { fontSize: 13, fontWeight: '700', color: FriendsColors.muted },
   badge: { minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: FriendsColors.accent, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { fontSize: 10, fontWeight: '800', color: FriendsColors.accentInk },
+  badgeText: { fontSize: 12, fontWeight: '800', color: FriendsColors.accentInk },
   setupBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: FS.lg, paddingTop: FS.sm },
   setupLink: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 36, paddingHorizontal: 6 },
   profileHead: { flexDirection: 'row', alignItems: 'center', gap: FS.sm, marginBottom: FS.sm },

@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { COLORS, SHADOWS } from '../constants/theme';
 import { ENDPOINTS } from '../constants/api';
 import { postAuth, normalizePhone, isValidIndianMobile, NETWORK_ERROR_MESSAGE } from '../utils/auth';
-import { usePhoneOtp, PhoneProof } from '../utils/phoneOtp';
+import { usePhoneOtp, PhoneProof, isSmsSendFailure } from '../utils/phoneOtp';
 
 /**
  * Password reset: real SMS code (POST /send-otp purpose "reset_password", Firebase fallback on native),
@@ -52,14 +52,18 @@ export default function ForgotPasswordScreen() {
     }
   };
 
-  const sendCode = (digits: string) => {
+  // The SMS could not be sent: offer the code by email (to the address on the account).
+  const [smsFailed, setSmsFailed] = useState(false);
+  const sendCode = (digits: string, viaEmail = false) => {
     runGuarded(async () => {
-      const r = await phoneOtp.send(digits);
+      const r = viaEmail ? await phoneOtp.sendEmail(digits) : await phoneOtp.send(digits);
       if (r.ok) {
         setAutoProof(null);
         setOtp('');
+        setSmsFailed(false);
         setInfo(r.message);
       } else {
+        if (!viaEmail) setSmsFailed(isSmsSendFailure(r));
         setError(r.message);
       }
     });
@@ -153,7 +157,9 @@ export default function ForgotPasswordScreen() {
           <Text style={s.stepSub}>
             {step === 1
               ? "We'll text a 6-digit code to your registered mobile number."
-              : `Enter the code sent to +91 ${phoneOtp.sentTo} and pick a new password.`}
+              : phoneOtp.mode === 'email'
+                ? `Enter the code we emailed to ${phoneOtp.emailSentTo || 'you'} and pick a new password.`
+                : `Enter the code sent to +91 ${phoneOtp.sentTo} and pick a new password.`}
           </Text>
 
           {/* Step 1: Phone */}
@@ -186,6 +192,16 @@ export default function ForgotPasswordScreen() {
                   <Text style={s.actionBtnText}>SEND OTP</Text>
                 )}
               </TouchableOpacity>
+              {smsFailed && (
+                <TouchableOpacity
+                  onPress={() => { const d = normalizePhone(phone); if (isValidIndianMobile(d)) sendCode(d, true); }}
+                  disabled={busy}
+                  style={{ marginTop: 14, alignSelf: 'center' }}
+                  accessibilityRole="button"
+                >
+                  <Text style={[s.resendText, { color: COLORS.gold }]}>Send the code by email instead</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
@@ -211,7 +227,7 @@ export default function ForgotPasswordScreen() {
                   <View style={s.resendWrap}>
                     <TouchableOpacity
                       disabled={phoneOtp.countdown > 0 || busy}
-                      onPress={() => { const p = phoneOtp.sentTo; if (p) sendCode(p); }}
+                      onPress={() => { const p = phoneOtp.sentTo; if (p) sendCode(p, phoneOtp.mode === 'email'); }}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
                       <Text style={[s.resendText, !(phoneOtp.countdown > 0 || busy) && { color: COLORS.gold }]}>
@@ -264,17 +280,17 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bgDark },
   scroll: { flexGrow: 1, paddingTop: 40, padding: 24, maxWidth: 520, width: '100%', alignSelf: 'center' },
   backLink: { position: 'absolute', top: Platform.OS === 'ios' ? 60 : 40, left: 24, padding: 8 },
-  backText: { color: COLORS.gold, fontSize: 10, fontWeight: '900', letterSpacing: 2 },
+  backText: { color: COLORS.gold, fontSize: 12, fontWeight: '900', letterSpacing: 2 },
   logoWrap: { alignItems: 'center', marginBottom: 30, marginTop: 40 },
   logo: { fontSize: 40, marginBottom: 8 },
   brand: { fontSize: 28, fontWeight: '900', color: COLORS.gold, letterSpacing: 10 },
-  tagline: { fontSize: 8, fontWeight: '700', color: COLORS.textSecondary, letterSpacing: 4, marginTop: 4 },
+  tagline: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary, letterSpacing: 4, marginTop: 4 },
 
   card: { backgroundColor: COLORS.bgCard, borderWidth: 1, borderColor: COLORS.borderDark, borderRadius: 24, padding: 24, maxWidth: 520, width: '100%', alignSelf: 'center' },
   stepTitle: { fontSize: 18, fontWeight: '900', color: '#FFF' },
-  stepSub: { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, marginTop: 4 },
+  stepSub: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary, marginTop: 4 },
 
-  label: { fontSize: 8, fontWeight: '900', color: COLORS.textSecondary, letterSpacing: 2, marginBottom: 8, marginTop: 16 },
+  label: { fontSize: 12, fontWeight: '900', color: COLORS.textSecondary, letterSpacing: 2, marginBottom: 8, marginTop: 16 },
   phoneInputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.bgDark, borderWidth: 1, borderColor: COLORS.borderDark, borderRadius: 14, height: 48 },
   prefix: { paddingHorizontal: 16, fontSize: 14, fontWeight: '900', color: COLORS.gold },
   phoneInput: { flex: 1, height: '100%', color: '#FFF', fontSize: 14, fontWeight: '600' },
@@ -285,16 +301,16 @@ const s = StyleSheet.create({
   otpInput: { width: 40, height: 44, borderRadius: 12, borderWidth: 1, borderColor: COLORS.borderDark, backgroundColor: COLORS.bgDark, textAlign: 'center', fontSize: 18, fontWeight: '900', color: '#FFF' },
   otpInputActive: { borderColor: COLORS.gold, color: COLORS.gold },
   resendWrap: { alignItems: 'flex-end', marginTop: 8 },
-  resendText: { fontSize: 9, fontWeight: '800', color: COLORS.textSecondary },
-  error: { color: '#EF4444', fontSize: 11, fontWeight: '600', marginTop: 10 },
-  info: { color: '#10B981', fontSize: 11, fontWeight: '700', marginTop: 10 },
+  resendText: { fontSize: 12, fontWeight: '800', color: COLORS.textSecondary },
+  error: { color: '#EF4444', fontSize: 12, fontWeight: '600', marginTop: 10 },
+  info: { color: '#10B981', fontSize: 12, fontWeight: '700', marginTop: 10 },
 
   actionBtn: { backgroundColor: COLORS.gold, paddingVertical: 14, borderRadius: 14, alignItems: 'center', marginTop: 24, ...SHADOWS.goldGlow },
-  actionBtnText: { fontSize: 11, fontWeight: '900', color: '#000', letterSpacing: 2 },
+  actionBtnText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 2 },
 
   tabRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 4, marginVertical: 14, borderWidth: 1, borderColor: COLORS.borderDark },
   tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
   tabBtnActive: { backgroundColor: 'rgba(201,168,76,0.15)', borderWidth: 1, borderColor: 'rgba(201,168,76,0.3)' },
-  tabText: { fontSize: 9, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.5 },
+  tabText: { fontSize: 12, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.5 },
   tabTextActive: { color: COLORS.gold },
 });

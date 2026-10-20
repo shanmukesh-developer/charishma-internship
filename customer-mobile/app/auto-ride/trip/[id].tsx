@@ -321,13 +321,13 @@ export default function AutoTripScreen() {
             <Text style={{ fontSize: 12, color: p.sub, marginTop: 4, textAlign: 'center' }}>The auto leaves when the driver confirms departure. We will notify you.</Text>
           </Card>
           <Card style={{ alignItems: 'center' }}>
-            <Text style={{ fontSize: 11, fontWeight: '900', color: p.sub, letterSpacing: 1 }}>BOOKING CODE</Text>
+            <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 1 }}>BOOKING CODE</Text>
             <Text selectable style={{ fontSize: 28, fontWeight: '900', color: p.text, letterSpacing: 4, marginTop: 4 }}>{done.bookingCode}</Text>
             {done.boardingPin ? (
               <>
-                <Text style={{ fontSize: 11, fontWeight: '900', color: p.accent, letterSpacing: 1, marginTop: 14 }}>BOARDING PIN</Text>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: p.accent, letterSpacing: 1, marginTop: 14 }}>BOARDING PIN</Text>
                 <Text style={{ fontSize: 40, fontWeight: '900', color: p.text, letterSpacing: 12, marginTop: 2 }} accessibilityLabel={`Boarding PIN ${done.boardingPin.split('').join(' ')}`}>{done.boardingPin}</Text>
-                <Text style={{ fontSize: 11.5, color: p.sub, textAlign: 'center' }}>Show the code and PIN to the driver when you board. Never share the PIN before that.</Text>
+                <Text style={{ fontSize: 12, color: p.sub, textAlign: 'center' }}>Show the code and PIN to the driver when you board. Never share the PIN before that.</Text>
               </>
             ) : null}
           </Card>
@@ -350,7 +350,7 @@ export default function AutoTripScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
           <StatusChip trip={trip} now={now + skew} />
-          <Text style={{ fontSize: 11.5, color: p.sub }}>{trip.statusLabel}</Text>
+          <Text style={{ fontSize: 12, color: p.sub }}>{trip.statusLabel}</Text>
         </View>
 
         {mineConfirmed ? (
@@ -370,13 +370,13 @@ export default function AutoTripScreen() {
               <View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: p.danger }} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 10.5, color: p.muted, fontWeight: '800' }}>PICKUP</Text>
+              <Text style={{ fontSize: 12, color: p.muted, fontWeight: '800' }}>PICKUP</Text>
               <Text style={{ fontSize: 15, fontWeight: '900', color: p.text }}>{trip.pickup?.name || trip.route?.origin || 'Pickup point'}</Text>
-              {trip.pickup?.landmark ? <Text style={{ fontSize: 11.5, color: p.sub }}>{trip.pickup.landmark}</Text> : null}
-              {trip.stops.length ? <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 8 }}>Stops: {trip.stops.join(' · ')}</Text> : null}
-              <Text style={{ fontSize: 10.5, color: p.muted, fontWeight: '800', marginTop: 10 }}>DESTINATION</Text>
+              {trip.pickup?.landmark ? <Text style={{ fontSize: 12, color: p.sub }}>{trip.pickup.landmark}</Text> : null}
+              {trip.stops.length ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 8 }}>Stops: {trip.stops.join(' · ')}</Text> : null}
+              <Text style={{ fontSize: 12, color: p.muted, fontWeight: '800', marginTop: 10 }}>DESTINATION</Text>
               <Text style={{ fontSize: 15, fontWeight: '900', color: p.text }}>{trip.destination || trip.route?.destination || '—'}</Text>
-              {trip.route ? <Text style={{ fontSize: 11.5, color: p.sub }}>{trip.route.name}{trip.route.distanceKm ? ` · ${trip.route.distanceKm} km` : ''}</Text> : null}
+              {trip.route ? <Text style={{ fontSize: 12, color: p.sub }}>{trip.route.name}{trip.route.distanceKm ? ` · ${trip.route.distanceKm} km` : ''}</Text> : null}
             </View>
           </View>
           {trip.pickup?.mapsUrl ? <Btn label="Open pickup in Maps" icon="🗺️" kind="secondary" small onPress={openMaps} style={{ marginTop: 12 }} /> : null}
@@ -391,7 +391,7 @@ export default function AutoTripScreen() {
           {trip.fullAutoFare ? <Row label="Full auto fare" value={inr(trip.fullAutoFare)} /> : null}
           <Row label="Seats" value={`${trip.confirmedSeats} booked · ${trip.heldSeats} on hold · ${trip.remainingSeats} left of ${trip.capacity}`} />
           {trip.minSeatsToDepart && trip.minSeatsToDepart < trip.capacity ? <Row label="Can leave with" value={`${trip.minSeatsToDepart}+ passengers`} /> : null}
-          {trip.queueNumber ? <Text style={{ fontSize: 11, color: p.muted, marginTop: 6 }}>{queueLabel(trip.queueNumber)} at this stand. {trip.queueNote}</Text> : null}
+          {trip.queueNumber ? <Text style={{ fontSize: 12, color: p.muted, marginTop: 6 }}>{queueLabel(trip.queueNumber)} at this stand. {trip.queueNote}</Text> : null}
         </Card>
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View style={{ width: 48, height: 48, borderRadius: 24, overflow: 'hidden', backgroundColor: p.card2, alignItems: 'center', justifyContent: 'center' }}>
@@ -402,10 +402,10 @@ export default function AutoTripScreen() {
               <Text style={{ fontSize: 14.5, fontWeight: '900', color: p.text }}>{trip.driver?.name || 'Driver'}</Text>
               <VerifiedBadge verified={!!trip.driver?.verified} />
             </View>
-            <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }}>
+            <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>
               {trip.driver?.rating ? `★ ${trip.driver.rating.avg.toFixed(1)} (${trip.driver.rating.count} ratings)` : 'No ratings yet'}
             </Text>
-            <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }}>
+            <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>
               🔢 {trip.vehicle?.registration || '—'}{trip.vehicle?.registrationMasked ? ' (full number after booking)' : ''}
               {[trip.vehicle?.colour, trip.vehicle?.make, trip.vehicle?.model, trip.vehicle?.fuel].filter(Boolean).length ? ` · ${[trip.vehicle?.colour, trip.vehicle?.make, trip.vehicle?.model, trip.vehicle?.fuel].filter(Boolean).join(' ')}` : ''}
             </Text>
@@ -415,7 +415,7 @@ export default function AutoTripScreen() {
         {/* Seat map */}
         <Card>
           <Text style={{ fontSize: 15, fontWeight: '900', color: p.text, marginBottom: 4 }}>{step === 'review' ? 'Your held seats' : pickMode ? 'Pick your seats' : 'Seat layout'}</Text>
-          <Text style={{ fontSize: 11.5, color: p.sub, marginBottom: 12 }}>
+          <Text style={{ fontSize: 12, color: p.sub, marginBottom: 12 }}>
             {step === 'review' ? 'These seats are held for you until the timer runs out.' : pickMode ? 'Tap free seats to select them. The driver seat cannot be booked.' : 'Seats are assigned automatically on this auto; choose how many you need.'}
           </Text>
           <SeatMap rows={map.layout.rows} states={states} selected={step === 'select' ? selected : []} onToggle={toggle} selectable={pickMode && step === 'select' && canBook} />
@@ -431,7 +431,7 @@ export default function AutoTripScreen() {
             ) : (
               <Stepper value={seatCount} min={1} max={Math.max(1, maxAllowed)} onChange={setCount} label="Seats" />
             )}
-            <Text style={{ fontSize: 11.5, color: p.sub, textAlign: 'center', marginTop: 8 }}>
+            <Text style={{ fontSize: 12, color: p.sub, textAlign: 'center', marginTop: 8 }}>
               {seatCount > 0 ? `${seatCount} × ${inr(trip.seatFare)} per seat · the exact total is confirmed on the next step` : `Up to ${maxAllowed} seat${maxAllowed === 1 ? '' : 's'} per booking`}
             </Text>
           </Card>
@@ -459,7 +459,7 @@ export default function AutoTripScreen() {
             <Row label={`${hold.fareBreakdown.seats ?? hold.seatCount} seat${(hold.fareBreakdown.seats ?? hold.seatCount) === 1 ? '' : 's'} × ${inr(hold.fareBreakdown.seatFare ?? hold.seatFare)}`} value={inr(hold.fareBreakdown.total ?? hold.amount)} />
             <Row label="Total to pay" value={inr(hold.amount)} strong />
 
-            <Text style={{ fontSize: 10.5, fontWeight: '900', color: p.sub, letterSpacing: 0.8, marginTop: 12, marginBottom: 6 }}>PAYMENT</Text>
+            <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 0.8, marginTop: 12, marginBottom: 6 }}>PAYMENT</Text>
             {methods.map((m) => {
               const on = payment === m;
               return (
@@ -468,13 +468,13 @@ export default function AutoTripScreen() {
                   <Text style={{ fontSize: 18 }}>{m === 'CASH' ? '💵' : '👛'}</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 13.5, fontWeight: '900', color: p.text }}>{PAYMENT_LABEL[m]}</Text>
-                    <Text style={{ fontSize: 11, color: p.sub }}>{m === 'CASH' ? 'Pay the driver when you board' : 'Paid now from your Zenvy Wallet; refunds go back to it'}</Text>
+                    <Text style={{ fontSize: 12, color: p.sub }}>{m === 'CASH' ? 'Pay the driver when you board' : 'Paid now from your Zenvy Wallet; refunds go back to it'}</Text>
                   </View>
                   <Text style={{ fontSize: 16, color: on ? p.accent : p.muted }}>{on ? '◉' : '○'}</Text>
                 </TouchableOpacity>
               );
             })}
-            <Text style={{ fontSize: 11, color: p.muted, marginTop: 2 }}>You can cancel before the driver confirms departure. Cash bookings are never charged in the app.</Text>
+            <Text style={{ fontSize: 12, color: p.muted, marginTop: 2 }}>You can cancel before the driver confirms departure. Cash bookings are never charged in the app.</Text>
           </Card>
         ) : null}
 

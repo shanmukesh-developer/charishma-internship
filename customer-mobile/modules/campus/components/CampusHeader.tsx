@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: CampusLayout.radius.pill,
   },
-  campusBadgeText: { fontSize: 11, fontWeight: '800', color: CampusColors.accentDeep, letterSpacing: 0.4 },
+  campusBadgeText: { fontSize: 12, fontWeight: '800', color: CampusColors.accentDeep, letterSpacing: 0.4 },
   iconButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   primaryButton: { backgroundColor: CampusColors.accent },
   banner: {

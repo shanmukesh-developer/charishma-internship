@@ -240,7 +240,7 @@ export default function SupportScreen() {
         <View style={[s.formCard, { backgroundColor: cardBg, borderColor: border, marginBottom: 16 }]}>
           <Text style={[s.subText, { color: goldColor, marginBottom: 4 }]}>Zenvy helpline</Text>
           <Text style={{ fontSize: 13, fontWeight: '800', color: txt, marginBottom: 4 }}>Need urgent help with a live order?</Text>
-          <Text style={{ fontSize: 11, color: txtSec, lineHeight: 16, marginBottom: 14 }}>
+          <Text style={{ fontSize: 12, color: txtSec, lineHeight: 16, marginBottom: 14 }}>
             For a delayed order or trouble meeting your rider, message or call our support team directly.
           </Text>
 
@@ -294,7 +294,7 @@ export default function SupportScreen() {
             <Text style={{ fontSize: 13, fontWeight: '900', color: txt, marginBottom: 4 }}>
               Sign in to track tickets
             </Text>
-            <Text style={{ fontSize: 10, color: txtSec, textAlign: 'center', lineHeight: 15, marginBottom: 12 }}>
+            <Text style={{ fontSize: 12, color: txtSec, textAlign: 'center', lineHeight: 15, marginBottom: 12 }}>
               Sign in to raise tickets and get notified when our team replies.
             </Text>
             <TouchableOpacity
@@ -314,9 +314,9 @@ export default function SupportScreen() {
 
             {!!linkedOrderId && (
               <View style={[s.linkedOrder, { borderColor: border, backgroundColor: activeBgColor }]}>
-                <Text style={{ flex: 1, fontSize: 11, fontWeight: '800', color: txt }}>About order #{shortId(linkedOrderId)}</Text>
+                <Text style={{ flex: 1, fontSize: 12, fontWeight: '800', color: txt }}>About order #{shortId(linkedOrderId)}</Text>
                 <TouchableOpacity onPress={() => setLinkedOrderId('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '800', color: txtSec }}>Remove</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>Remove</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -394,7 +394,7 @@ export default function SupportScreen() {
             <Text style={{ fontSize: 13, fontWeight: '900', color: txt, marginBottom: 4 }}>
               Couldn't load your tickets
             </Text>
-            <Text style={{ fontSize: 10, color: txtSec, textAlign: 'center', lineHeight: 15, maxWidth: 260, marginBottom: 16 }}>
+            <Text style={{ fontSize: 12, color: txtSec, textAlign: 'center', lineHeight: 15, maxWidth: 260, marginBottom: 16 }}>
               {loadError}
             </Text>
             <TouchableOpacity
@@ -412,7 +412,7 @@ export default function SupportScreen() {
             <Text style={{ fontSize: 13, fontWeight: '900', color: txt, marginBottom: 4 }}>
               No tickets yet
             </Text>
-            <Text style={{ fontSize: 10, color: txtSec, textAlign: 'center', lineHeight: 15, maxWidth: 260, marginBottom: 16 }}>
+            <Text style={{ fontSize: 12, color: txtSec, textAlign: 'center', lineHeight: 15, maxWidth: 260, marginBottom: 16 }}>
               Have an issue with an order, payment or delivery? Raise a ticket and our team will help you out.
             </Text>
             {!showNewForm && (
@@ -430,7 +430,7 @@ export default function SupportScreen() {
           <View style={s.ticketList}>
             {loadError && (
               <TouchableOpacity onPress={() => fetchTickets()}>
-                <Text style={{ fontSize: 10, fontWeight: '700', color: '#EF4444', textAlign: 'center', marginBottom: 4 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#EF4444', textAlign: 'center', marginBottom: 4 }}>
                   Couldn't refresh your tickets. Tap to try again.
                 </Text>
               </TouchableOpacity>
@@ -454,14 +454,14 @@ export default function SupportScreen() {
                   <Text style={[s.ticketSubject, { color: txt }]}>{ticket.subject}</Text>
                   {!!ticketOrderId && (
                     <TouchableOpacity onPress={() => router.push(`/tracking/${ticketOrderId}` as any)}>
-                      <Text style={{ fontSize: 10, fontWeight: '800', color: activeTextColor, marginBottom: 4 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: activeTextColor, marginBottom: 4 }}>
                         Order #{shortId(ticketOrderId)} ›
                       </Text>
                     </TouchableOpacity>
                   )}
                   <Text style={[s.ticketDesc, { color: txtSec }]}>{ticket.description}</Text>
                   {!!formatWhen(ticket.createdAt) && (
-                    <Text style={{ fontSize: 9, fontWeight: '700', color: '#888', marginTop: 6 }}>Raised {formatWhen(ticket.createdAt)}</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#888', marginTop: 6 }}>Raised {formatWhen(ticket.createdAt)}</Text>
                   )}
 
                   {!!ticket.adminResponse && (
@@ -485,23 +485,23 @@ const s = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1 },
   backBtn: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   backIcon: { fontSize: 32, fontWeight: '300' },
-  subText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
+  subText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.3 },
   title: { fontSize: 18, fontWeight: '900' },
   newBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  newBtnText: { fontSize: 11, fontWeight: '800' },
+  newBtnText: { fontSize: 12, fontWeight: '800' },
 
   scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
   formCard: { padding: 20, borderRadius: 24, borderWidth: 1, marginBottom: 20 },
   formTitle: { fontSize: 13, fontWeight: '900', letterSpacing: 0.2, marginBottom: 16 },
   linkedOrder: { flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 12, borderWidth: 1, marginBottom: 14 },
-  label: { fontSize: 11, fontWeight: '800', marginBottom: 6, marginLeft: 2 },
+  label: { fontSize: 12, fontWeight: '800', marginBottom: 6, marginLeft: 2 },
   input: { height: 48, borderRadius: 14, borderWidth: 1, paddingHorizontal: 16, fontSize: 13, marginBottom: 16 },
   textarea: { height: 100, paddingTop: 12, paddingBottom: 12, textAlignVertical: 'top' },
 
   priorityRow: { flexDirection: 'row', gap: 6, marginBottom: 16 },
   chip: { flex: 1, height: 36, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   chipActive: {},
-  chipText: { fontSize: 11, fontWeight: '800', color: '#888' },
+  chipText: { fontSize: 12, fontWeight: '800', color: '#888' },
   chipTextActive: {},
 
   submitBtn: { height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
@@ -515,14 +515,14 @@ const s = StyleSheet.create({
   statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   statusResolved: { backgroundColor: 'rgba(34,197,94,0.1)' },
   statusPending: {},
-  statusText: { fontSize: 10, fontWeight: '800' },
+  statusText: { fontSize: 12, fontWeight: '800' },
   prioBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  prioText: { fontSize: 10, fontWeight: '800', color: '#AAA' },
-  ticketId: { fontSize: 9, fontWeight: '600', color: '#888', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+  prioText: { fontSize: 12, fontWeight: '800', color: '#AAA' },
+  ticketId: { fontSize: 12, fontWeight: '600', color: '#888', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
   ticketSubject: { fontSize: 14, fontWeight: '900', marginBottom: 4 },
-  ticketDesc: { fontSize: 11, fontWeight: '700', lineHeight: 16 },
+  ticketDesc: { fontSize: 12, fontWeight: '700', lineHeight: 16 },
 
   responseBox: { marginTop: 12, padding: 12, borderRadius: 12, borderWidth: 1 },
-  responseLabel: { fontSize: 10, fontWeight: '800', color: '#22c55e', marginBottom: 4 },
-  responseText: { fontSize: 11, fontWeight: '700', fontStyle: 'italic' }
+  responseLabel: { fontSize: 12, fontWeight: '800', color: '#22c55e', marginBottom: 4 },
+  responseText: { fontSize: 12, fontWeight: '700', fontStyle: 'italic' }
 });

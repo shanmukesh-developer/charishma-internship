@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
   emptyText: { color: CampusColors.muted, fontSize: 13, textAlign: 'center' },
   list: { padding: 16, gap: 12 },
   sectionLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1.5,
     color: CampusColors.muted,
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
   announcementHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   announcementTitle: { fontSize: 14, fontWeight: '700', color: CampusColors.ink, flex: 1 },
   announcementBody: { fontSize: 13, color: CampusColors.ink, lineHeight: 19 },
-  announcementMeta: { fontSize: 11, color: CampusColors.muted },
+  announcementMeta: { fontSize: 12, color: CampusColors.muted },
   ackBtn: {
     alignSelf: 'flex-start',
     backgroundColor: CampusColors.accent,

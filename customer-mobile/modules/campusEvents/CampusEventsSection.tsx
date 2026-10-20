@@ -116,7 +116,7 @@ export default function CampusEventsSection() {
             style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1, borderColor: p.border, backgroundColor: p.card }}>
             <Ionicons name={x.icon} size={17} color={p.accent} />
             <Text style={{ fontSize: 12.5, fontWeight: '800', color: p.text }}>{x.label}</Text>
-            {x.badge ? <View style={{ minWidth: 20, paddingHorizontal: 5, height: 20, borderRadius: 10, backgroundColor: p.accent, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 10.5, fontWeight: '900' }}>{x.badge}</Text></View> : null}
+            {x.badge ? <View style={{ minWidth: 20, paddingHorizontal: 5, height: 20, borderRadius: 10, backgroundColor: p.accent, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>{x.badge}</Text></View> : null}
           </TouchableOpacity>
         ))}
       </ScrollView>

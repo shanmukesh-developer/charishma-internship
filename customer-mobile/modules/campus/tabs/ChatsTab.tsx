@@ -417,5 +417,5 @@ const styles = StyleSheet.create({
   },
   rowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 },
   unread: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: CampusColors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
-  unreadText: { fontSize: 11, fontWeight: '800', color: '#FFFFFF' },
+  unreadText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
 });

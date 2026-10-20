@@ -19,7 +19,6 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import { File } from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -28,7 +27,9 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { newIdempotencyKey } from '../../context/CartContext';
 import { API_URL } from '../../constants/api';
-import { apiFetch } from '../../utils/auth';
+import { apiFetch, SERVER_BUSY_MESSAGE } from '../../utils/auth';
+import { compressImage } from '../../utils/imageUpload';
+import { uploadServicePdf } from './uploadServicePdf';
 import { istHour } from '../../utils/format';
 import {
   type Answers,
@@ -113,7 +114,13 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
   const [roomNumber, setRoomNumber] = useState<string>(cleanRoom(u?.roomNumber || u?.roomNo));
   const [contactPhone, setContactPhone] = useState<string>(u?.phone || '');
   const [photo, setPhoto] = useState<{ name: string; size?: string; uri: string; dataUrl: string } | null>(null);
-  const [pdf, setPdf] = useState<{ name: string; size?: string; dataUrl: string } | null>(null);
+  // Native: the PDF uploads first (POST /api/services/documents) and the booking sends its id. Web keeps
+  // the older inline data URL (the server accepts both).
+  const [pdf, setPdf] = useState<{
+    name: string; size?: string; uri?: string; dataUrl?: string;
+    status: 'uploading' | 'done' | 'failed' | 'inline'; progress: number; documentId?: string; error?: string;
+  } | null>(null);
+  const pdfUploadRef = useRef(0); // the newest upload wins (a removed / re-picked file never overwrites)
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
   // One key per booking attempt (made when the sheet opens, kept across retries until the server
@@ -174,23 +181,25 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
         Alert.alert('Allow photo access', 'To attach a photo, allow Zenvy to access your photos in Settings.');
         return;
       }
-      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: false, quality: 0.5, base64: true });
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: false, quality: 1, base64: false });
       if (result.canceled || !result.assets || !result.assets[0]) return;
       const asset = result.assets[0];
-      const bytes = asset.fileSize || (asset.base64 ? Math.round(asset.base64.length * 0.75) : 0);
+      // Resized to a 1600 px long edge (a 3-5 MB camera photo becomes a few hundred KB) before it is sent.
+      const small = await compressImage(asset.uri, { width: asset.width, height: asset.height, maxEdge: 1600, quality: 0.7 });
+      if (!small.base64) {
+        Alert.alert('Could not read that photo', 'Try a different photo.');
+        return;
+      }
+      const bytes = Math.round(small.base64.length * 0.75);
       if (bytes > MAX_ATTACHMENT_BYTES) {
         Alert.alert('That photo is too large', 'Pick a photo under 5 MB, or crop it and try again.');
         return;
       }
-      if (!asset.base64) {
-        Alert.alert('Could not read that photo', 'Try a different photo.');
-        return;
-      }
       setPhoto({
         name: asset.fileName || 'Photo.jpg',
-        size: bytes ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : undefined,
-        uri: asset.uri,
-        dataUrl: `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`,
+        size: `${(bytes / (1024 * 1024)).toFixed(1)} MB`,
+        uri: small.uri || asset.uri,
+        dataUrl: `data:image/jpeg;base64,${small.base64}`,
       });
     } catch {
       Alert.alert('Could not attach the photo', 'Something went wrong while picking the photo. Try again.');
@@ -210,31 +219,56 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
         Alert.alert('That PDF is too large', 'Pick a PDF under 5 MB, or share it on a pen drive or when the print shop calls.');
         return;
       }
-      // Web hands back a data URL; on a phone the picked copy in the cache is read as base64.
-      let base64 = '';
+      const name = asset.name || 'Document.pdf';
       if (Platform.OS === 'web') {
+        // Web hands back a data URL: sent inline with the booking, as before.
         const raw = asset.base64 || (asset.uri.startsWith('data:') ? asset.uri : '');
-        base64 = raw.includes(',') ? raw.slice(raw.indexOf(',') + 1) : raw;
-      } else {
-        base64 = await new File(asset.uri).base64();
-      }
-      if (!base64) {
-        Alert.alert('Could not read that PDF', 'Try picking it again, or share it on a pen drive.');
+        const base64 = raw.includes(',') ? raw.slice(raw.indexOf(',') + 1) : raw;
+        if (!base64) {
+          Alert.alert('Could not read that PDF', 'Try picking it again, or share it on a pen drive.');
+          return;
+        }
+        const bytes = asset.size || Math.round(base64.length * 0.75);
+        if (bytes > MAX_PDF_BYTES) {
+          Alert.alert('That PDF is too large', 'Pick a PDF under 5 MB, or share it on a pen drive or when the print shop calls.');
+          return;
+        }
+        setPdf({ name, size: mb(bytes), dataUrl: `data:application/pdf;base64,${base64}`, status: 'inline', progress: 1 });
         return;
       }
-      const bytes = asset.size || Math.round(base64.length * 0.75);
-      if (bytes > MAX_PDF_BYTES) {
-        Alert.alert('That PDF is too large', 'Pick a PDF under 5 MB, or share it on a pen drive or when the print shop calls.');
-        return;
-      }
-      setPdf({ name: asset.name || 'Document.pdf', size: mb(bytes), dataUrl: `data:application/pdf;base64,${base64}` });
+      startPdfUpload({ name, uri: asset.uri, size: asset.size ? mb(asset.size) : undefined });
     } catch {
       Alert.alert('Could not attach the PDF', 'Something went wrong while picking the file. Try again.');
     }
   };
 
+  // Upload the picked PDF now (progress + Retry in the sheet); the booking later sends only its id.
+  const startPdfUpload = async (file: { name: string; uri: string; size?: string }) => {
+    const run = ++pdfUploadRef.current;
+    setPdf({ ...file, status: 'uploading', progress: 0 });
+    try {
+      const doc = await uploadServicePdf({ uri: file.uri, name: file.name }, (fraction) => {
+        if (mountedRef.current && pdfUploadRef.current === run) setPdf((cur) => (cur && cur.status === 'uploading' ? { ...cur, progress: fraction } : cur));
+      });
+      if (!mountedRef.current || pdfUploadRef.current !== run) return;
+      setPdf({ ...file, name: doc.name || file.name, status: 'done', progress: 1, documentId: doc.id });
+    } catch (e: any) {
+      if (!mountedRef.current || pdfUploadRef.current !== run) return;
+      setPdf({ ...file, status: 'failed', progress: 0, error: e?.message || 'The PDF did not upload. Tap Retry.' });
+    }
+  };
+  const removePdf = () => { pdfUploadRef.current += 1; setPdf(null); };
+
   const submit = async () => {
     if (!item || submittingRef.current) return;
+    if (attached.pdf && pdf && pdf.status === 'uploading') {
+      Alert.alert('The PDF is still uploading', 'Wait a moment for it to finish, then send the booking.');
+      return;
+    }
+    if (attached.pdf && pdf && pdf.status === 'failed') {
+      Alert.alert("The PDF didn't upload", 'Tap Retry next to the file, or remove it and share it when the print shop calls.');
+      return;
+    }
     setTriedSubmit(true);
     const allErrors = { ...validateAnswers(form, answers, ctx, attached), ...locationErrors() };
     setErrors(allErrors);
@@ -276,7 +310,10 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
         clientRequestId: bookingKeyRef.current,
       },
       attachmentUrl: sendPhoto?.dataUrl || undefined,
-      attachmentDocument: sendPdf ? { dataUrl: sendPdf.dataUrl, name: sendPdf.name } : undefined,
+      // Uploaded first (native): only its id. Web: the older inline form.
+      documentId: sendPdf && sendPdf.documentId ? sendPdf.documentId : undefined,
+      documentName: sendPdf && sendPdf.documentId ? sendPdf.name : undefined,
+      attachmentDocument: sendPdf && !sendPdf.documentId && sendPdf.dataUrl ? { dataUrl: sendPdf.dataUrl, name: sendPdf.name } : undefined,
       quotedAmount: amount,
       pickupSlot: slot,
       hostelBlock: block,
@@ -289,13 +326,31 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
     submittingRef.current = true;
     setSubmitting(true);
     try {
+      // 90 s per attempt; a thrown error (no answer / timeout) is retried once after 1.5 s with the SAME
+      // Idempotency-Key, so the server de-duplicates a booking it already saved.
+      const body = JSON.stringify(payload);
+      const send = async () => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 90000);
+        try {
+          return await apiFetch(`${API_URL}/api/services/book`, {
+            method: 'POST',
+            headers: { 'Idempotency-Key': bookingKeyRef.current },
+            body,
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timer);
+        }
+      };
       let res: Response;
       try {
-        res = await apiFetch(`${API_URL}/api/services/book`, {
-          method: 'POST',
-          headers: { 'Idempotency-Key': bookingKeyRef.current },
-          body: JSON.stringify(payload),
-        });
+        try {
+          res = await send();
+        } catch {
+          await new Promise((r) => setTimeout(r, 1500));
+          res = await send();
+        }
       } catch {
         // The booking may have reached the server before the connection dropped: keep the same key
         // for a retry and point the student at their bookings instead of implying nothing was placed.
@@ -332,6 +387,8 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
             { text: 'View booking', onPress: () => router.push({ pathname: '/(tabs)/orders', params: { segment: 'services' } } as any) },
           ],
         );
+      } else if (res.status === 502 || res.status === 503 || res.status === 504) {
+        Alert.alert('Booking not placed yet', SERVER_BUSY_MESSAGE);
       } else if (res.status === 413) {
         Alert.alert('File too large', 'Attach a smaller file, or remove it and share it when the partner calls.');
       } else if (res.status === 401) {
@@ -582,9 +639,25 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[st.photoName, { color: t.text }]} numberOfLines={1}>{pdf.name}</Text>
-                      <Text style={[st.helper, { color: t.sub }]}>{pdf.size ? `${pdf.size}, attached` : 'Attached'}</Text>
+                      {pdf.status === 'uploading' ? (
+                        <View accessibilityLiveRegion="polite" accessibilityLabel={`Uploading, ${Math.round(pdf.progress * 100)} percent`}>
+                          <Text style={[st.helper, { color: t.sub }]}>{`Uploading${pdf.progress > 0 ? ` ${Math.round(pdf.progress * 100)}%` : '…'}`}</Text>
+                          <View style={[st.progressTrack, { backgroundColor: t.border }]}>
+                            <View style={[st.progressFill, { backgroundColor: t.accent, width: `${Math.max(4, Math.round(pdf.progress * 100))}%` }]} />
+                          </View>
+                        </View>
+                      ) : pdf.status === 'failed' ? (
+                        <Text style={[st.helper, { color: t.error }]} accessibilityLiveRegion="polite">{pdf.error || "The PDF didn't upload."}</Text>
+                      ) : (
+                        <Text style={[st.helper, { color: t.sub }]}>{pdf.size ? `${pdf.size}, attached` : 'Attached'}</Text>
+                      )}
                     </View>
-                    <TouchableOpacity onPress={() => setPdf(null)} accessibilityRole="button" accessibilityLabel="Remove PDF" style={st.textBtn}>
+                    {pdf.status === 'failed' && pdf.uri ? (
+                      <TouchableOpacity onPress={() => startPdfUpload({ name: pdf.name, uri: pdf.uri!, size: pdf.size })} accessibilityRole="button" accessibilityLabel="Retry the PDF upload" style={st.textBtn}>
+                        <Text style={{ color: t.accent, fontWeight: '700', fontSize: 14 }}>Retry</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    <TouchableOpacity onPress={removePdf} accessibilityRole="button" accessibilityLabel="Remove PDF" style={st.textBtn}>
                       <Text style={{ color: t.error, fontWeight: '700', fontSize: 14 }}>Remove</Text>
                     </TouchableOpacity>
                   </View>
@@ -754,6 +827,8 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
 }
 
 const st = StyleSheet.create({
+  progressTrack: { height: 4, borderRadius: 2, marginTop: 6, overflow: 'hidden' },
+  progressFill: { height: 4, borderRadius: 2 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 20, maxHeight: '92%', borderWidth: 1, width: '100%', maxWidth: 640, alignSelf: 'center' },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 14 },

@@ -598,7 +598,7 @@ const s = StyleSheet.create({
   headerLeft: { flex: 1, paddingRight: 10 },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerTitle: { fontSize: 15, fontWeight: '900', letterSpacing: 0.5 },
-  itemName: { fontSize: 9, fontWeight: '900', color: COLORS.red, letterSpacing: 2, marginTop: 4 },
+  itemName: { fontSize: 12, fontWeight: '900', color: COLORS.red, letterSpacing: 2, marginTop: 4 },
   
   vegOuter: { width: 14, height: 14, borderWidth: 1.5, borderRadius: 3, alignItems: 'center', justifyContent: 'center' },
   vegInner: { width: 6, height: 6, borderRadius: 3 },
@@ -607,7 +607,7 @@ const s = StyleSheet.create({
   optionsList: { paddingHorizontal: 20, paddingTop: 16 },
   
   optionSection: { marginBottom: 24 },
-  optionLabel: { fontSize: 9, fontWeight: '900', color: COLORS.red, letterSpacing: 2, marginBottom: 10 },
+  optionLabel: { fontSize: 12, fontWeight: '900', color: COLORS.red, letterSpacing: 2, marginBottom: 10 },
   
   optionsBox: { borderRadius: 20, borderWidth: 1, padding: 12 },
   optionItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
@@ -617,24 +617,24 @@ const s = StyleSheet.create({
   radioDotInner: { width: 9, height: 9, borderRadius: 4.5, backgroundColor: COLORS.red },
   
   checkbox: { width: 18, height: 18, borderRadius: 4, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  checkboxCheck: { color: COLORS.red, fontSize: 10, fontWeight: '900' },
+  checkboxCheck: { color: COLORS.red, fontSize: 12, fontWeight: '900' },
   
   optionItemLabel: { fontSize: 12, fontWeight: '700' },
-  priceAddText: { fontSize: 11, fontWeight: '800' },
+  priceAddText: { fontSize: 12, fontWeight: '800' },
   
   textInput: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12, fontSize: 12, fontWeight: '700' },
   
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderTopWidth: 1 },
   footerLeft: { flexDirection: 'column' },
-  footerPriceLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 2 },
+  footerPriceLabel: { fontSize: 12, fontWeight: '900', letterSpacing: 2 },
   footerPrice: { fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
   
   footerButtons: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cancelBtnFooter: { paddingVertical: 10, paddingHorizontal: 16 },
-  cancelBtnText: { fontSize: 9, fontWeight: '900', letterSpacing: 2 },
+  cancelBtnText: { fontSize: 12, fontWeight: '900', letterSpacing: 2 },
   
   confirmBtn: { backgroundColor: COLORS.red, paddingVertical: 12, paddingHorizontal: 20, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  confirmBtnText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900', letterSpacing: 2 },
+  confirmBtnText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900', letterSpacing: 2 },
   confirmBtnShadow: {
     shadowColor: COLORS.red,
     shadowOffset: { width: 0, height: 4 },

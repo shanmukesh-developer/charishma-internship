@@ -257,7 +257,7 @@ export default function ListVehicle() {
             <Text style={{ fontSize: 13.5, fontWeight: '900', color: p.text, flexShrink: 1 }}>{label}</Text>
             {img ? <Ionicons name="checkmark-circle" size={16} color={p.success} accessibilityLabel="Added" /> : null}
           </View>
-          <Text style={{ fontSize: 11, color: p.sub, marginTop: 2 }}>{hint}</Text>
+          <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>{hint}</Text>
         </View>
         <Text style={{ color: p.accent, fontWeight: '900', fontSize: 12 }}>{img ? 'Replace' : 'Upload'}</Text>
       </TouchableOpacity>
@@ -271,7 +271,7 @@ export default function ListVehicle() {
         {STEPS.map((s, i) => (
           <TouchableOpacity key={s} style={{ flex: 1 }} onPress={() => (i < step || listingId ? setStep(i) : null)} accessibilityRole="button" accessibilityLabel={`Step ${i + 1}: ${stepName(s)}`}>
             <View style={{ height: 4, borderRadius: 2, backgroundColor: i <= step ? p.accent : p.border }} />
-            <Text style={{ fontSize: 9, fontWeight: '800', color: i === step ? p.accent : p.muted, marginTop: 4, textAlign: 'center' }}>{stepName(s)}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: i === step ? p.accent : p.muted, marginTop: 4, textAlign: 'center' }}>{stepName(s)}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -300,7 +300,7 @@ export default function ListVehicle() {
               hint={`Shown to students as AP 07 •• 1234. The full number is shared only with your confirmed ${taker}.`} />
             <Text style={lbl}>Number plate</Text>
             <Chips<PlateType> options={[{ key: 'PRIVATE', label: 'White (private)', hint: 'Students borrow it' }, { key: 'COMMERCIAL_RENTAL', label: 'Black / yellow', hint: 'Students rent it' }]} value={form.plateType} onChange={(v) => set('plateType', v)} />
-            <Text style={{ fontSize: 11, color: p.muted, marginTop: 8, lineHeight: 16 }}>
+            <Text style={{ fontSize: 12, color: p.muted, marginTop: 8, lineHeight: 16 }}>
               {form.plateType === 'PRIVATE'
                 ? 'Private (white plate): you lend your personal vehicle and students borrow it on a non-commercial basis (sharing costs such as fuel), never as a business. Check that your insurance allows another driver; you are responsible for that.'
                 : form.plateType === 'COMMERCIAL_RENTAL'
@@ -322,13 +322,13 @@ export default function ListVehicle() {
                     style={{ position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.6)', width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
                     <Text style={{ color: '#fff', fontWeight: '900' }}>✕</Text>
                   </TouchableOpacity>
-                  {i === 0 ? <View style={{ position: 'absolute', bottom: 4, left: 4, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 6, paddingHorizontal: 5 }}><Text style={{ color: '#fff', fontSize: 9.5, fontWeight: '800' }}>Cover</Text></View> : null}
+                  {i === 0 ? <View style={{ position: 'absolute', bottom: 4, left: 4, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 6, paddingHorizontal: 5 }}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>Cover</Text></View> : null}
                 </View>
               ))}
               {form.photos.length < 6 ? (
                 <TouchableOpacity accessibilityRole="button" accessibilityLabel="Add photo" onPress={() => upload('rental_photo', (img) => setForm((f) => ({ ...f, photos: [...f.photos.filter((x) => x.ref !== img.ref), img].slice(0, 6) })), 'photo')}
                   style={{ width: 100, height: 100, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: p.accent, alignItems: 'center', justifyContent: 'center' }}>
-                  {uploading === 'photo' ? <ActivityIndicator color={p.accent} /> : <><Text style={{ fontSize: 24, color: p.accent }}>＋</Text><Text style={{ fontSize: 11, color: p.accent, fontWeight: '800' }}>Add photo</Text></>}
+                  {uploading === 'photo' ? <ActivityIndicator color={p.accent} /> : <><Text style={{ fontSize: 24, color: p.accent }}>＋</Text><Text style={{ fontSize: 12, color: p.accent, fontWeight: '800' }}>Add photo</Text></>}
                 </TouchableOpacity>
               ) : null}
             </View>

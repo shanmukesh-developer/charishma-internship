@@ -418,7 +418,7 @@ const s = StyleSheet.create({
   },
   brandSubtitle: {
     color: COLORS.textMuted,
-    fontSize: 7.5,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1.5,
   },
@@ -437,7 +437,7 @@ const s = StyleSheet.create({
   },
   stepCounterText: {
     color: COLORS.textMuted,
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1,
   },
@@ -451,7 +451,7 @@ const s = StyleSheet.create({
   },
   skipButtonText: {
     color: '#FFF',
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.8,
   },
@@ -486,7 +486,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
   },
   badgeTagText: {
-    fontSize: 9.5,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1,
   },
@@ -504,7 +504,7 @@ const s = StyleSheet.create({
   },
   punchlineText: {
     color: '#F1F5F9',
-    fontSize: 10.5,
+    fontSize: 12,
     fontWeight: '800',
   },
 
@@ -549,7 +549,7 @@ const s = StyleSheet.create({
   },
   pointerDesc: {
     color: '#F8FAFC',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     lineHeight: 15,
   },
@@ -560,12 +560,12 @@ const s = StyleSheet.create({
   },
   locationLabel: {
     color: '#617088',
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.8,
   },
   locationValue: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
@@ -580,7 +580,7 @@ const s = StyleSheet.create({
   },
   perkText: {
     color: '#CBD5E1',
-    fontSize: 10.5,
+    fontSize: 12,
     fontWeight: '600',
   },
 
@@ -624,12 +624,12 @@ const s = StyleSheet.create({
   },
   footerPromptText: {
     color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
   },
   footerSignInLink: {
     color: '#EF4444',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.5,
   },

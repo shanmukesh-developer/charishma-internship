@@ -26,7 +26,7 @@ export default function FssaiLine({ number, storeName, color, style }: Props) {
   const text = storeName ? `${storeName} · ${fssaiDisplayText(number)}` : fssaiDisplayText(number);
   return (
     <Text
-      style={[{ fontSize: 10, fontWeight: '600', color: color || colors.textMuted, marginTop: 6 }, style]}
+      style={[{ fontSize: 12, fontWeight: '600', color: color || colors.textMuted, marginTop: 6 }, style]}
       accessibilityLabel={text}
     >
       {text}

@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     color: CampusColors.ink,
   },
   headerSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.muted,
     marginTop: 2,
   },
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   liveText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     color: '#166534',
   },
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF2F2',
   },
   statusText: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#059669',
     fontWeight: '600',
   },
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   geofenceText: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.accentDeep,
     flex: 1,
     lineHeight: 15,
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 2,
   },
   senderName: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: CampusColors.accent,
     marginBottom: 4,
@@ -610,7 +610,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   timeText: {
-    fontSize: 10,
+    fontSize: 12,
     color: CampusColors.muted,
     alignSelf: 'flex-end',
   },
@@ -623,7 +623,7 @@ const styles = StyleSheet.create({
     backgroundColor: CampusColors.card,
   },
   typingText: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.accent,
     fontStyle: 'italic',
   },

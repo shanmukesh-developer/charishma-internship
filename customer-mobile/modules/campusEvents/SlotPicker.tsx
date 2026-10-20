@@ -27,9 +27,9 @@ export function DateStrip({ days, value, onChange }: { days: { date: string; slo
           <TouchableOpacity key={d.date} onPress={() => onChange(d.date)} accessibilityRole="radio" accessibilityState={{ checked: on }}
             accessibilityLabel={`${dayLabel(d.date)}, ${open} slot${open === 1 ? '' : 's'} open`}
             style={[s.day, { backgroundColor: on ? p.accent : p.card2, borderColor: on ? p.accent : p.border }]}>
-            <Text style={{ fontSize: 11.5, fontWeight: '800', color: on ? '#fff' : p.sub }}>{dow}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: on ? '#fff' : p.sub }}>{dow}</Text>
             <Text style={{ fontSize: 13.5, fontWeight: '900', color: on ? '#fff' : p.text, marginTop: 2 }} numberOfLines={1}>{rest.join(' ') || dayLabel(d.date)}</Text>
-            <Text style={{ fontSize: 10, fontWeight: '800', color: on ? 'rgba(255,255,255,0.9)' : open ? p.success : p.danger, marginTop: 3 }}>{open ? `${open} open` : 'Full'}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: on ? 'rgba(255,255,255,0.9)' : open ? p.success : p.danger, marginTop: 3 }}>{open ? `${open} open` : 'Full'}</Text>
           </TouchableOpacity>
         );
       })}
@@ -71,13 +71,13 @@ export default function SlotPicker({ slots, selectedId, onSelect, now = Date.now
                   accessibilityLabel={`${sl.label ? `${sl.label}, ` : ''}${fmtClock(sl.startAt)} to ${fmtClock(sl.endAt)}, ${stateLabel}, ${sl.price.isFree ? 'free' : sl.price.label}`}
                   style={[s.tile, { borderColor: on ? p.accent : p.border, backgroundColor: on ? p.accentSoft : off ? p.card2 : p.card, opacity: off && !mine ? 0.6 : 1 }]}>
                   <Text style={{ fontSize: 13.5, fontWeight: '900', color: p.text }}>{fmtClock(sl.startAt)}</Text>
-                  <Text style={{ fontSize: 10.5, color: p.sub, marginTop: 1 }}>to {fmtClock(sl.endAt)} · {sl.durationMinutes} min</Text>
-                  {sl.label ? <Text style={{ fontSize: 10.5, color: p.sub, marginTop: 1 }} numberOfLines={1}>{sl.label}</Text> : null}
+                  <Text style={{ fontSize: 12, color: p.sub, marginTop: 1 }}>to {fmtClock(sl.endAt)} · {sl.durationMinutes} min</Text>
+                  {sl.label ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 1 }} numberOfLines={1}>{sl.label}</Text> : null}
                   <View style={[s.bar, { backgroundColor: p.card2 }]}>
                     <View style={{ width: `${sl.capacity ? Math.min(100, Math.round(((sl.capacity - sl.remaining) / sl.capacity) * 100)) : 100}%`, height: '100%', backgroundColor: stateColor, borderRadius: 3 }} />
                   </View>
-                  <Text style={{ fontSize: 10.5, fontWeight: '900', color: stateColor, marginTop: 4 }} numberOfLines={1}>{mine ? '★ ' : ''}{stateLabel}</Text>
-                  <Text style={{ fontSize: 11, fontWeight: '900', color: sl.price.isFree ? p.success : p.text, marginTop: 2 }}>{sl.price.isFree ? 'Free' : sl.price.label}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '900', color: stateColor, marginTop: 4 }} numberOfLines={1}>{mine ? '★ ' : ''}{stateLabel}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '900', color: sl.price.isFree ? p.success : p.text, marginTop: 2 }}>{sl.price.isFree ? 'Free' : sl.price.label}</Text>
                 </TouchableOpacity>
               );
             })}

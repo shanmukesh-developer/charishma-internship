@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   badgeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     color: CampusColors.lavender,
     letterSpacing: 0.8,
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     borderColor: CampusColors.nightLine,
   },
   countdownText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: CampusColors.lavender,
     marginBottom: 8,
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     color: CampusColors.lavender,
   },
   timeText: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.nightMuted,
   },
   answerBody: {

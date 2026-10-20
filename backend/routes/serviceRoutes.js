@@ -286,13 +286,18 @@ router.post('/book', protect, async (req, res) => {
     }
 
     // A PDF for a print job (utils/serviceDocuments): private, served only by GET /:id/document.
+    // Two forms: { documentId, documentName } after POST /documents (app 1.0.8+), or the older inline
+    // attachmentDocument { dataUrl, name } (kept for installed builds).
     const rawDocument = (req.body || {}).attachmentDocument;
-    if (rawDocument) {
+    const documentId = (req.body || {}).documentId;
+    if (rawDocument || documentId) {
       if (String(specs.category || '').toLowerCase() !== 'print') {
         return res.status(400).json({ success: false, code: 'BAD_DOCUMENT', message: 'PDF files can be attached to print bookings only.' });
       }
-      const { storeServiceDocument } = require('../utils/serviceDocuments');
-      const doc = await storeServiceDocument(rawDocument, { ownerId: req.user.id });
+      const { storeServiceDocument, resolveServiceDocument } = require('../utils/serviceDocuments');
+      const doc = documentId
+        ? await resolveServiceDocument(documentId, { ownerId: req.user.id, name: (req.body || {}).documentName })
+        : await storeServiceDocument(rawDocument, { ownerId: req.user.id });
       if (!doc.ok) return res.status(doc.status || 400).json({ success: false, code: doc.code, message: doc.message });
       if (doc.value) {
         specs.document = doc.value;
@@ -358,6 +363,38 @@ router.post('/book', protect, async (req, res) => {
     return res.status(500).json({ success: false, message: 'We could not book this service right now. Please try again.' });
   } finally {
     await slot.release(); // no-op after finish(); frees the key after a refusal so a retry can run
+  }
+});
+
+
+// Upload a print PDF on its own (multipart field 'document', at most 5 MB), before booking: the student
+// sees progress and can retry the upload alone, and POST /book then carries only { documentId }.
+// Stored like the inline form (utils/serviceDocuments: %PDF- check, private 'service_doc').
+const multer = require('multer');
+const pdfUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: require('../utils/serviceDocuments').MAX_PDF_BYTES, files: 1, fields: 5 } });
+router.post('/documents', protect, (req, res, next) => {
+  const ct = String(req.headers['content-type'] || '').toLowerCase();
+  if (!ct.startsWith('multipart/form-data')) {
+    return res.status(400).json({ success: false, code: 'BAD_DOCUMENT', message: "Send the PDF as a file upload (form field 'document')." });
+  }
+  pdfUpload.single('document')(req, res, (err) => {
+    if (!err) return next();
+    if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ success: false, code: 'FILE_TOO_LARGE', message: 'That PDF is larger than 5 MB. Share it on a pen drive or when the partner calls.' });
+    if (err.code === 'LIMIT_UNEXPECTED_FILE') return res.status(400).json({ success: false, code: 'BAD_FIELD', message: "Send the PDF in the form field named 'document'." });
+    console.warn('[SERVICE_DOC_MULTER]', err.code || err.message);
+    return res.status(400).json({ success: false, code: 'BAD_UPLOAD', message: 'Could not read that PDF. Please try again.' });
+  });
+}, async (req, res) => {
+  try {
+    if (!req.file || !req.file.buffer) return res.status(400).json({ success: false, code: 'NO_DOCUMENT', message: 'No PDF received. Please pick it again.' });
+    const { storeServiceDocumentBuffer } = require('../utils/serviceDocuments');
+    const name = (req.body && typeof req.body.name === 'string' && req.body.name) || req.file.originalname || '';
+    const doc = await storeServiceDocumentBuffer(req.file.buffer, { ownerId: req.user.id, name });
+    if (!doc.ok) return res.status(doc.status || 400).json({ success: false, code: doc.code, message: doc.message });
+    return res.status(201).json({ success: true, document: { id: doc.value.mediaId, name: doc.value.name, size: doc.value.size } });
+  } catch (error) {
+    console.error('Error uploading service document:', error);
+    return res.status(500).json({ success: false, message: 'Could not save the PDF. Please try again.' });
   }
 });
 
@@ -485,6 +522,40 @@ router.post('/:id/confirm-quote', protect, async (req, res) => {
   }
 });
 
+// ── Quote / final price notification ──────────────────────────────────────────
+// "Quote ready for Laptop repair: ₹450. Tap to approve." while the booking waits on the student
+// (REQUESTED / DIAGNOSED_QUOTED, the states /confirm-quote accepts); otherwise "Final price for …".
+// data.type SERVICE_QUOTE + bookingId: the app opens the booking. Sent through utils/push (queued,
+// and saved in the in-app list for the student).
+const rupees = (n) => {
+  const v = Math.round(Number(n) * 100) / 100;
+  return `₹${Number.isInteger(v) ? v.toLocaleString('en-IN') : v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+const servicePriceMessage = (booking) => {
+  const awaiting = ['REQUESTED', 'DIAGNOSED_QUOTED'].includes(booking.status);
+  const amount = awaiting ? Number(booking.quotedAmount || 0) : Number(booking.finalAmount || booking.quotedAmount || 0);
+  const name = String(booking.title || 'your service').trim().slice(0, 60) || 'your service';
+  return awaiting
+    ? { title: 'Quote ready', body: `Quote ready for ${name}: ${rupees(amount)}. Tap to approve.`, amount, awaiting }
+    : { title: 'Final price set', body: `Final price for ${name}: ${rupees(amount)}.`, amount, awaiting };
+};
+const notifyServicePrice = async (booking, before, changes) => {
+  const quoteChanged = changes.quotedAmount !== undefined && Math.abs(Number(booking.quotedAmount || 0) - before.quotedAmount) > 0.009;
+  const finalChanged = changes.finalAmount !== undefined && Math.abs(Number(booking.finalAmount || 0) - before.finalAmount) > 0.009;
+  if (!quoteChanged && !finalChanged) return false;
+  if (['CANCELLED', 'COMPLETED'].includes(booking.status)) return false;
+  const msg = servicePriceMessage(booking);
+  if (!(msg.amount > 0)) return false;
+  const user = await getUserModel().findByPk(booking.userId, { attributes: ['id', 'fcmTokens'] });
+  if (!user) return false;
+  const { sendPushToTokens } = require('../utils/push');
+  await sendPushToTokens(user.fcmTokens, msg.title, msg.body,
+    { type: 'SERVICE_QUOTE', bookingId: String(booking.id), screen: 'service-booking', awaitingApproval: msg.awaiting ? '1' : '0' },
+    { recipients: [user.id] });
+  return true;
+};
+router.servicePriceMessage = servicePriceMessage;
+
 // Update booking status (Admin / Partner / Driver)
 router.patch('/:id/status', protect, async (req, res) => {
   try {
@@ -581,11 +652,15 @@ router.patch('/:id/status', protect, async (req, res) => {
       changes.trackingHistory = history;
     }
 
+    const before = { quotedAmount: Number(booking.quotedAmount || 0), finalAmount: Number(booking.finalAmount || 0) };
     if (Object.keys(changes).length) {
       const saved = await saveIfUnchanged(ServiceBooking, booking, changes);
       if (!saved) return staleBooking(res);
       booking = saved;
     }
+
+    // A new quote or final price: push + in-app notification that opens the booking (push queue).
+    notifyServicePrice(booking, before, changes).catch((e) => console.warn('[SERVICE_QUOTE_PUSH_WARN]', e.message));
 
     // Socket notification
     if (req.app.get('io')) {

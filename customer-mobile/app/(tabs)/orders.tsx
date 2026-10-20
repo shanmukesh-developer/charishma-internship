@@ -77,6 +77,18 @@ const statusLabel = (s?: string) => {
   console.warn('Unknown order status:', s);
   return 'In progress';
 };
+/** "Ravi will call you on 98765 43210" (partner details set by Zenvy), else who usually calls. */
+const callerLine = (b: any): string => {
+  const d = b && typeof b.driverDetails === 'object' && b.driverDetails ? b.driverDetails : {};
+  const name = typeof d.name === 'string' ? d.name.trim() : '';
+  const phone = typeof d.phone === 'string' ? d.phone.replace(/\D/g, '').slice(-10) : '';
+  const mine = typeof b?.contactPhone === 'string' ? b.contactPhone.replace(/\D/g, '').slice(-10) : '';
+  const onMine = mine.length === 10 ? ` on ${mine.slice(0, 5)} ${mine.slice(5)}` : '';
+  if (name && phone.length === 10) return `${name} (${phone.slice(0, 5)} ${phone.slice(5)}) will call you${onMine}.`;
+  if (name) return `${name} will call you${onMine}.`;
+  return `The partner or the Zenvy team will call you${onMine} to confirm the details.`;
+};
+
 /** One short reference for orders and bookings: the last 6 characters of the id. */
 const shortRef = (id: unknown) => String(id || '').slice(-6).toUpperCase();
 const FILTER_LABEL: Record<string, string> = { ALL: 'All', ACTIVE: 'Active', PAST: 'Past', SERVICES: 'Services' };
@@ -150,11 +162,14 @@ export default function OrdersScreen() {
   const [reorderingId, setReorderingId] = useState<string | null>(null);
   // State updates are async: this ref stops a fast double tap from confirming a quote twice.
   const acceptingRef = useRef(false);
-  const { segment } = useLocalSearchParams<{ segment?: string | string[] }>();
+  const { segment, bookingId } = useLocalSearchParams<{ segment?: string | string[]; bookingId?: string | string[] }>();
   const segmentParam = Array.isArray(segment) ? segment[0] : segment;
+  // A "Quote ready" notification opens Services with that booking expanded.
+  const bookingParam = String((Array.isArray(bookingId) ? bookingId[0] : bookingId) || '');
+  const openedBookingRef = useRef('');
   useEffect(() => {
-    if (segmentParam === 'services') setFilter('SERVICES');
-  }, [segmentParam]);
+    if (segmentParam === 'services' || bookingParam) setFilter('SERVICES');
+  }, [segmentParam, bookingParam]);
   const mountedRef = useRef(true);
   const hasLoadedRef = useRef(false);
   const inFlightRef = useRef(false);
@@ -304,6 +319,14 @@ export default function OrdersScreen() {
     }
   };
 
+  useEffect(() => {
+    if (!bookingParam || openedBookingRef.current === bookingParam) return;
+    if (!bookings.some((x) => String(x.id || x._id) === bookingParam)) return;
+    openedBookingRef.current = bookingParam;
+    if (expanded !== bookingParam) toggleBooking(bookingParam);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookingParam, bookings]);
+
   const applyBooking = (id: string, booking: any) => {
     if (!booking || !mountedRef.current) return;
     setBookings(prev => prev.map(x => (String(x.id || x._id) === id ? { ...x, ...booking } : x)));
@@ -345,7 +368,8 @@ export default function OrdersScreen() {
     const id = String(b.id || b._id);
     setBookingBusyId(id);
     try {
-      const res = await apiFetch(ENDPOINTS.servicesConfirmQuote(id), { method: 'POST', body: JSON.stringify({ acceptQuote: true }) });
+      // quotedAmount = the price the student saw: the server refuses (QUOTE_CHANGED) if it moved meanwhile.
+      const res = await apiFetch(ENDPOINTS.servicesConfirmQuote(id), { method: 'POST', body: JSON.stringify({ acceptQuote: true, quotedAmount: b.quotedAmount }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         Alert.alert('Could not confirm', data?.message || 'Please try again in a moment.');
@@ -495,7 +519,7 @@ export default function OrdersScreen() {
           }} 
           onPress={() => router.push('/login' as any)}
         >
-          <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '900', letterSpacing: 0.3 }}>Sign in or sign up</Text>
+          <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '900', letterSpacing: 0.3 }}>Sign in or sign up</Text>
         </TouchableOpacity>
       </View>
     );
@@ -565,11 +589,11 @@ export default function OrdersScreen() {
           <ScalePressable style={[st.card, { backgroundColor: cardBg, borderColor: border }]} onPress={() => toggleBooking(bid)}>
             <View style={st.cardHeader}>
               <View style={{ flex: 1, marginRight: 8 }}>
-                <Text style={{ fontSize: 10, color: txtSec, fontWeight: '700', letterSpacing: 0.3 }}>
+                <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700', letterSpacing: 0.3 }}>
                   <Text style={{ color: goldColor, fontWeight: '800' }}>Booking #{shortRef(bid)}</Text>
                 </Text>
                 <Text style={[st.restaurantName, { color: txt }]} numberOfLines={2}>{b.title || 'Service booking'}</Text>
-                <Text style={{ fontSize: 10, color: txtSec, fontWeight: '600' }}>
+                <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>
                   {[b.pickupSlot, formatWhen(b.createdAt)].filter(Boolean).join(' · ')}
                 </Text>
               </View>
@@ -577,32 +601,45 @@ export default function OrdersScreen() {
                 <Text style={[st.statusBadge, { color }]}>{serviceStatusLabel(b.status)}</Text>
                 <Text style={[st.price, { color: txt }]}>{amount > 0 ? formatINR(amount) : 'Quote pending'}</Text>
                 {amount > 0 && b.status !== 'COMPLETED' ? (
-                  <Text style={{ fontSize: 9, color: txtSec, fontWeight: '700' }}>estimate</Text>
+                  <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700' }}>estimate</Text>
                 ) : null}
               </View>
             </View>
 
+            {/* Quote waiting for the student, and who will call (the partner or the Zenvy team) */}
+            {b.status === 'DIAGNOSED_QUOTED' && Number(b.quotedAmount) > 0 && (
+              <View style={[st.quotePill, { borderColor: goldColor }]}>
+                <Ionicons name="pricetag-outline" size={14} color={goldColor} />
+                <Text style={[st.quotePillText, { color: txt }]}>Quote ready: {formatINR(b.quotedAmount)}. Approve it to go ahead.</Text>
+              </View>
+            )}
+            {isOpen && (
+              <Text style={[st.callLine, { color: txtSec }]}>
+                {callerLine(detail)}
+              </Text>
+            )}
+
             {isExpanded && (
               <View style={[st.details, { borderTopColor: border }]}>
                 {detail.description ? (
-                  <Text style={{ fontSize: 11, color: txtSec, fontWeight: '600', marginBottom: 8 }}>{detail.description}</Text>
+                  <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', marginBottom: 8 }}>{detail.description}</Text>
                 ) : null}
                 {qtyText || detail.hostelBlock || detail.roomNumber ? (
-                  <Text style={{ fontSize: 11, color: txt, fontWeight: '700', marginBottom: 8 }}>
+                  <Text style={{ fontSize: 12, color: txt, fontWeight: '700', marginBottom: 8 }}>
                     {[qtyText, [detail.hostelBlock, detail.roomNumber ? `Room ${detail.roomNumber}` : ''].filter(Boolean).join(', ')].filter(Boolean).join(' · ')}
                   </Text>
                 ) : null}
                 {history.map((h: any, i: number) => (
                   <View key={`h-${i}`} style={{ flexDirection: 'row', gap: 8, paddingVertical: 4 }}>
-                    <Text style={{ fontSize: 10, color: i === history.length - 1 ? goldColor : txtSec }}>●</Text>
+                    <Text style={{ fontSize: 12, color: i === history.length - 1 ? goldColor : txtSec }}>●</Text>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 11, color: txt, fontWeight: '800' }}>{serviceStatusLabel(h.stage)}</Text>
-                      {h.note ? <Text style={{ fontSize: 10, color: txtSec, fontWeight: '600' }}>{h.note}</Text> : null}
-                      <Text style={{ fontSize: 9, color: txtSec, fontWeight: '600' }}>{formatWhen(h.timestamp)}</Text>
+                      <Text style={{ fontSize: 12, color: txt, fontWeight: '800' }}>{serviceStatusLabel(h.stage)}</Text>
+                      {h.note ? <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>{h.note}</Text> : null}
+                      <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>{formatWhen(h.timestamp)}</Text>
                     </View>
                   </View>
                 ))}
-                <Text style={{ fontSize: 10, color: txtSec, fontWeight: '600', marginTop: 6 }}>
+                <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', marginTop: 6 }}>
                   {b.paymentMethod === 'Wallet' ? 'Pay from Zenvy Wallet' : 'Pay in cash when the job is done'}
                 </Text>
                 {b.status === 'DIAGNOSED_QUOTED' && (
@@ -619,12 +656,12 @@ export default function OrdersScreen() {
                     onPress={() => cancelBooking(b)}
                   >
                     {busy ? <ActivityIndicator size="small" color="#EF4444" /> : (
-                      <Text style={{ fontSize: 10, fontWeight: '900', color: '#EF4444', letterSpacing: 0.3 }}>Cancel booking</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '900', color: '#EF4444', letterSpacing: 0.3 }}>Cancel booking</Text>
                     )}
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity style={{ marginTop: 10, alignSelf: 'flex-start' }} onPress={() => router.push('/support' as any)}>
-                  <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? goldColor : COLORS.red }}>Need help with this booking? ›</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? goldColor : COLORS.red }}>Need help with this booking? ›</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -681,7 +718,7 @@ export default function OrdersScreen() {
             onPress={() => fetchOrders('silent')}
             style={{ marginHorizontal: 16, marginBottom: 12, padding: 10, borderRadius: 12, backgroundColor: isDark ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.08)' }}
           >
-            <Text style={{ color: '#EF4444', fontSize: 11, fontWeight: '700', textAlign: 'center' }}>
+            <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '700', textAlign: 'center' }}>
               Couldn't refresh your orders. Tap to try again.
             </Text>
           </TouchableOpacity>
@@ -715,7 +752,7 @@ export default function OrdersScreen() {
             </FloatingPulse>
             <Text style={[st.emptyTitle, { color: txt }]}>No orders yet</Text>
             <Text style={[st.emptyDesc, { color: txtSec }]}>
-              Your food, grocery and Mega Basket orders will show up here.
+              Your food, grocery and shopping list orders will show up here.
             </Text>
             <TouchableOpacity 
               style={[st.browseBtn, { backgroundColor: COLORS.red }]}
@@ -762,7 +799,7 @@ export default function OrdersScreen() {
           const orderItems: any[] = parseItems(o.items);
           const breakdown = parseBreakdown(o.priceBreakdown);
           const charged = amountCharged(o);
-          const restaurantName = o.restaurantName || o.restaurant?.name || (o.category === 'Mega Basket' ? 'Mega Basket' : 'Zenvy order');
+          const restaurantName = o.restaurantName || o.restaurant?.name || (o.category === 'Mega Basket' ? 'Shopping list' : 'Zenvy order');
           const needsRating = o.status === 'Delivered' && o.rating == null;
           // Customer cancels carry no reason (or the default one); store / system cancels explain themselves.
           const cancelReason = o.status === 'Cancelled' && typeof o.cancellationReason === 'string'
@@ -789,12 +826,12 @@ export default function OrdersScreen() {
               >
               <View style={st.cardHeader}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 10, color: txtSec, fontWeight: '700', letterSpacing: 0.3 }}>
+                  <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700', letterSpacing: 0.3 }}>
                     {o.status === 'Cancelled' ? '✕' : o.status === 'Delivered' ? '✓' : '◉'}{' '}
                     <Text style={{ color: goldColor, fontWeight: '800' }}>Order #{id}</Text>
                   </Text>
                   <Text style={[st.restaurantName, { color: txt }]} numberOfLines={1}>{restaurantName}</Text>
-                  <Text style={{ fontSize: 10, color: txtSec, fontWeight: '600' }}>{[plural(orderItems.length, 'item'), formatISTDate(o.createdAt)].filter(Boolean).join(' · ')}</Text>
+                  <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>{[plural(orderItems.length, 'item'), formatISTDate(o.createdAt)].filter(Boolean).join(' · ')}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 2 }}>
@@ -825,7 +862,7 @@ export default function OrdersScreen() {
                     router.push(`/tracking/${o._id || o.id}` as any);
                   }}
                 >
-                  <Text style={{ fontSize: 10, fontWeight: '900', color: isDark ? goldColor : COLORS.red, letterSpacing: 0.2 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '900', color: isDark ? goldColor : COLORS.red, letterSpacing: 0.2 }}>
                     {statusLabel(o.status)} · Track order
                   </Text>
                   <Text style={{ fontSize: 13, fontWeight: '900', color: isDark ? goldColor : COLORS.red }}>›</Text>
@@ -850,7 +887,7 @@ export default function OrdersScreen() {
                     router.push(`/tracking/${o._id || o.id}` as any);
                   }}
                 >
-                  <Text style={{ fontSize: 10, fontWeight: '900', color: goldColor, letterSpacing: 0.2 }}>Rate this order</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '900', color: goldColor, letterSpacing: 0.2 }}>Rate this order</Text>
                   <Text style={{ fontSize: 13, fontWeight: '900', color: goldColor }}>›</Text>
                 </TouchableOpacity>
               )}
@@ -859,41 +896,41 @@ export default function OrdersScreen() {
                 <View style={[st.details, { borderTopColor: border }]}>
                   {showPin && (
                     <View style={[st.otpSection, { borderColor: isDark ? 'rgba(212,175,122,0.3)' : 'rgba(201,151,46,0.3)', backgroundColor: isDark ? 'rgba(212,175,122,0.08)' : 'rgba(201,151,46,0.08)' }]}>
-                      <Text style={{ fontSize: 9, fontWeight: '900', color: goldColor, letterSpacing: 0.3, marginBottom: 4 }}>Delivery OTP</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '900', color: goldColor, letterSpacing: 0.3, marginBottom: 4 }}>Delivery OTP</Text>
                       <View style={st.otpBox}>
                         <Text style={[st.otpText, { color: goldColor }]}>{o.deliveryPin}</Text>
-                        <Text style={{ fontSize: 9, color: txtSec, fontWeight: '700', lineHeight: 14 }}>Share this OTP with your{'\n'}rider at handover only</Text>
+                        <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700', lineHeight: 14 }}>Share this OTP with your{'\n'}rider at handover only</Text>
                       </View>
                     </View>
                   )}
                   {cancelReason ? (
-                    <Text style={{ fontSize: 11, color: '#EF4444', fontWeight: '700', marginBottom: 8 }}>{cancelReason}</Text>
+                    <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '700', marginBottom: 8 }}>{cancelReason}</Text>
                   ) : null}
                   {orderItems.map((item: any, i: number) => {
                     const qty = Number(item.quantity) || 1;
                     const line = Number(item.lineTotal ?? (Number(item.unitPrice ?? item.price ?? 0) * qty)) || 0;
                     return (
                       <View key={i} style={st.itemRow}>
-                        <Text style={{ fontSize: 11, color: txt, fontWeight: '600', flex: 1, marginRight: 8 }} numberOfLines={2}>{qty} × {item.name}</Text>
-                        <Text style={{ fontSize: 11, color: txt, fontWeight: '800' }}>{formatINR(line)}</Text>
+                        <Text style={{ fontSize: 12, color: txt, fontWeight: '600', flex: 1, marginRight: 8 }} numberOfLines={2}>{qty} × {item.name}</Text>
+                        <Text style={{ fontSize: 12, color: txt, fontWeight: '800' }}>{formatINR(line)}</Text>
                       </View>
                     );
                   })}
                   <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: border }}>
                     <View style={st.itemRow}>
-                      <Text style={{ fontSize: 11, color: txtSec, fontWeight: '600' }}>Item total</Text>
-                      <Text style={{ fontSize: 11, color: txtSec, fontWeight: '700' }}>{formatINR(subtotal)}</Text>
+                      <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>Item total</Text>
+                      <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700' }}>{formatINR(subtotal)}</Text>
                     </View>
                     {deliveryFee > 0 && (
                       <View style={st.itemRow}>
-                        <Text style={{ fontSize: 11, color: txtSec, fontWeight: '600' }}>Delivery fee</Text>
-                        <Text style={{ fontSize: 11, color: txtSec, fontWeight: '700' }}>{formatINR(deliveryFee)}</Text>
+                        <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>Delivery fee</Text>
+                        <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700' }}>{formatINR(deliveryFee)}</Text>
                       </View>
                     )}
                     {discounts.map((d: any, i: number) => (
                       <View key={`d-${i}`} style={st.itemRow}>
-                        <Text style={{ fontSize: 11, color: COLORS.emerald, fontWeight: '600', flex: 1, marginRight: 8 }} numberOfLines={1}>{d.label || 'Discount'}</Text>
-                        <Text style={{ fontSize: 11, color: COLORS.emerald, fontWeight: '700' }}>{formatINR(-Math.abs(Number(d.amount)))}</Text>
+                        <Text style={{ fontSize: 12, color: COLORS.emerald, fontWeight: '600', flex: 1, marginRight: 8 }} numberOfLines={1}>{d.label || 'Discount'}</Text>
+                        <Text style={{ fontSize: 12, color: COLORS.emerald, fontWeight: '700' }}>{formatINR(-Math.abs(Number(d.amount)))}</Text>
                       </View>
                     ))}
                     <View style={st.itemRow}>
@@ -901,7 +938,7 @@ export default function OrdersScreen() {
                       <Text style={{ fontSize: 12, color: txt, fontWeight: '900' }}>{formatINR(charged)}</Text>
                     </View>
                     {paymentLabel && (
-                      <Text style={{ fontSize: 10, color: txtSec, fontWeight: '600', marginTop: 2 }}>
+                      <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', marginTop: 2 }}>
                         {paymentLabel}
                         {o.status === 'Cancelled' && o.paymentMethod === 'Wallet' ? ' · refunded to Wallet' : ''}
                         {o.status === 'Cancelled' && o.paymentMethod === 'COD' ? ' · no payment taken' : ''}
@@ -912,14 +949,14 @@ export default function OrdersScreen() {
                     style={{ marginTop: 10, alignSelf: 'flex-start' }}
                     onPress={() => router.push({ pathname: '/support', params: { orderId: String(o._id || o.id) } } as any)}
                   >
-                    <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? goldColor : COLORS.red }}>Need help with this order? ›</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? goldColor : COLORS.red }}>Need help with this order? ›</Text>
                   </TouchableOpacity>
                   {needsRating && (
                     <TouchableOpacity
                       style={{ marginTop: 8, alignSelf: 'flex-start' }}
                       onPress={() => router.push(`/tracking/${o._id || o.id}` as any)}
                     >
-                      <Text style={{ fontSize: 11, fontWeight: '800', color: goldColor }}>Rate this order ›</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: goldColor }}>Rate this order ›</Text>
                     </TouchableOpacity>
                   )}
                   {o.status !== 'Delivered' && o.status !== 'Cancelled' ? (
@@ -962,6 +999,9 @@ export default function OrdersScreen() {
 }
 
 const st = StyleSheet.create({
+  quotePill: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1 },
+  quotePillText: { flex: 1, fontSize: 13, fontWeight: '800' },
+  callLine: { fontSize: 12, fontWeight: '600', marginTop: 8, lineHeight: 17 },
   container: { flex: 1, paddingTop: Platform.OS === 'android' ? 40 : 50, width: '100%', maxWidth: 600, alignSelf: 'center' },
   pageTitle: { fontSize: 24, fontWeight: '900', letterSpacing: 0.3, paddingHorizontal: 16, marginBottom: 16 },
   empty: { padding: 40, alignItems: 'center' },
@@ -977,7 +1017,7 @@ const st = StyleSheet.create({
   card: { marginHorizontal: 16, marginBottom: 12, borderRadius: 20, padding: 16, borderWidth: 1, ...SHADOWS.card },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   restaurantName: { fontSize: 15, fontWeight: '900', marginVertical: 3, letterSpacing: -0.2 },
-  statusBadge: { fontSize: 11, fontWeight: '900', letterSpacing: 0.2 },
+  statusBadge: { fontSize: 12, fontWeight: '900', letterSpacing: 0.2 },
   price: { fontSize: 16, fontWeight: '900', marginTop: 4 },
   details: { marginTop: 12, paddingTop: 12, borderTopWidth: 1 },
   otpSection: { marginBottom: 12, padding: 12, borderRadius: 12, borderWidth: 1 },

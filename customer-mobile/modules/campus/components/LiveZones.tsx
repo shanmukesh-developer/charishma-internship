@@ -141,6 +141,6 @@ const styles = StyleSheet.create({
   icon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   emoji: { fontSize: 17 },
   live: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#DCFCE7', paddingHorizontal: 5, paddingVertical: 1, borderRadius: R.pill },
-  liveText: { fontSize: 9, fontWeight: '800', color: '#166534' },
+  liveText: { fontSize: 12, fontWeight: '800', color: '#166534' },
   empty: { paddingVertical: S.lg, alignItems: 'center', backgroundColor: CampusColors.card, borderRadius: R.card, borderWidth: 1, borderColor: CampusColors.line },
 });

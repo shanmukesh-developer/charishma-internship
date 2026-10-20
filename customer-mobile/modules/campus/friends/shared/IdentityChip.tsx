@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   nameSm: { fontSize: 13, fontWeight: '700', color: FriendsColors.ink },
   mask: { backgroundColor: FriendsColors.mask, alignItems: 'center', justifyContent: 'center' },
   youPill: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: FriendsColors.accentSoft },
-  youText: { fontSize: 10, fontWeight: '800', color: FriendsColors.accent },
+  youText: { fontSize: 12, fontWeight: '800', color: FriendsColors.accent },
   entityPill: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: FriendsColors.goldSoft },
-  entityText: { fontSize: 10, fontWeight: '800', color: FriendsColors.gold },
+  entityText: { fontSize: 12, fontWeight: '800', color: FriendsColors.gold },
 });

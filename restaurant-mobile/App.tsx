@@ -15,6 +15,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import MainScreen, { RootStack } from './src/screens/MainScreen';
 import OrderDetailScreen from './src/screens/OrderDetailScreen';
 import { scheduleApiEndpointCheck } from './src/config';
+import WakeBanner from './src/lib/WakeBanner';
 import UpdateGate from './src/lib/UpdateGate';
 import { ErrorBoundary } from './src/ui/ErrorBoundary';
 
@@ -67,6 +68,8 @@ export default function App() {
                 <Root />
               </SessionProvider>
             </UpdateGate>
+            {/* Backend restart: calm "waking up" banner while GETs retry (serverWake.ts) */}
+            <WakeBanner />
           </ToastProvider>
         </KeyboardProvider>
       </ErrorBoundary>

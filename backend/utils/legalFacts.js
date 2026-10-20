@@ -105,7 +105,7 @@ const gather = async (env = process.env) => {
     sla,
     orders: {
       // Same formulas as controllers/orderController.js.
-      pendingTimeoutMin: Math.max(5, parseInt(env.PENDING_ORDER_TIMEOUT_MINUTES, 10) || 15),
+      pendingTimeoutMin: require('./orderTimeouts').storeAcceptTimeoutMinutes(env),
       unclaimedTimeoutMin: Math.max(10, parseInt(env.UNCLAIMED_ORDER_TIMEOUT_MINUTES, 10) || 30),
       riderPickupTimeoutMin: Math.max(5, parseInt(env.RIDER_PICKUP_TIMEOUT_MIN, 10) || 20),
       customerCancelSeconds: 120,

@@ -162,7 +162,7 @@ export default function CampusEventDetail() {
                 <Row label={ev.format === 'TEAM' ? 'Team fee' : 'Fee'} value={inr(ev.price.amount)} />
                 {ev.price.extraCharges.map((c, i) => <Row key={i} label={c.label} value={inr(c.amount)} />)}
                 <Row label="Total" value={inr(ev.price.total)} strong />
-                <Text style={{ color: p.sub, fontSize: 11.5, marginTop: 6 }}>
+                <Text style={{ color: p.sub, fontSize: 12, marginTop: 6 }}>
                   {payModes.length ? `Payment: ${payModes.map((m) => PAYMENT_MODE_LABEL[m]).join(' · ')}` : 'Payment options are not available right now.'}
                 </Text>
               </>
@@ -176,7 +176,7 @@ export default function CampusEventDetail() {
               {ev.team.maxTeams ? <Row label="Teams" value={`${ev.team.maxTeams} max`} /> : null}
               <Row label="Substitutions" value={ev.team.allowSubstitutions ? 'Allowed' : 'Roster locks at registration'} />
               <Row label="Teams per student" value={ev.team.multiTeamAllowed ? 'More than one' : 'One'} />
-              <Text style={{ color: p.sub, fontSize: 11.5, marginTop: 6 }}>All players must be verified students of this campus and accept the captain's invitation.</Text>
+              <Text style={{ color: p.sub, fontSize: 12, marginTop: 6 }}>All players must be verified students of this campus and accept the captain's invitation.</Text>
             </Card>
           ) : null}
 
@@ -201,7 +201,7 @@ export default function CampusEventDetail() {
                 <Card key={a.id}>
                   <Text style={{ fontSize: 13.5, fontWeight: '900', color: p.text }}><Ionicons name={a.kind === 'VENUE_CHANGE' ? 'location-outline' : a.kind === 'SCHEDULE_CHANGE' ? 'time-outline' : a.kind === 'CANCELLATION' ? 'close-circle-outline' : 'megaphone-outline'} size={14} color={a.kind === 'CANCELLATION' ? p.danger : p.accent} />{' '}{a.title}</Text>
                   <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 4, lineHeight: 18 }}>{a.body}</Text>
-                  <Text style={{ fontSize: 10.5, color: p.muted, marginTop: 6 }}>{fmtWhen(a.createdAt)}</Text>
+                  <Text style={{ fontSize: 12, color: p.muted, marginTop: 6 }}>{fmtWhen(a.createdAt)}</Text>
                 </Card>
               ))}
             </>
@@ -228,7 +228,7 @@ function InfoLine({ icon, label, value, extra }: { icon: CeIconName; label: stri
     <View style={{ flexDirection: 'row', gap: 10, paddingVertical: 6 }} accessible accessibilityLabel={`${label}: ${value}${extra ? `. ${extra}` : ''}`}>
       <Ionicons name={icon} size={18} color={p.accent} style={{ width: 20, marginTop: 1 }} />
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 11.5, fontWeight: '800', color: p.muted, letterSpacing: 0.2 }}>{label}</Text>
+        <Text style={{ fontSize: 12, fontWeight: '800', color: p.muted, letterSpacing: 0.2 }}>{label}</Text>
         <Text style={{ fontSize: 13.5, fontWeight: '700', color: p.text, marginTop: 1 }}>{value}</Text>
         {extra ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>{extra}</Text> : null}
       </View>

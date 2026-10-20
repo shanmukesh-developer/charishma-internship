@@ -56,7 +56,7 @@ export default function TicketsScreen() {
                     <View style={{ flex: 1, padding: 12, gap: 3 }}>
                       <Text style={{ fontSize: 14.5, fontWeight: '900', color: p.text }} numberOfLines={2}>{item.event?.title}</Text>
                       <Text style={{ fontSize: 12, color: p.sub }} numberOfLines={1}><Ionicons name="calendar-outline" size={12} color={p.sub} /> {item.slot ? `${fmtWhen(item.slot.startAt)} – ${fmtClock(item.slot.endAt)}` : fmtWhen(item.event?.startAt)}</Text>
-                      <Text style={{ fontSize: 11.5, color: p.muted }} numberOfLines={1}>{item.kind === 'TEAM' ? `Team: ${item.holder}` : item.holder} · {item.ticketCode}</Text>
+                      <Text style={{ fontSize: 12, color: p.muted }} numberOfLines={1}>{item.kind === 'TEAM' ? `Team: ${item.holder}` : item.holder} · {item.ticketCode}</Text>
                       <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
                         <Pill label={m.label} color={m.color} />
                         {item.registration?.paymentDue && item.status === 'ACTIVE' ? <Pill label="Pay at venue" color="#D97706" icon="cash-outline" /> : null}

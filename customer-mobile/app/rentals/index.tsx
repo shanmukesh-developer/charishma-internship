@@ -76,7 +76,7 @@ export default function RentalsBrowse() {
       />
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
         <TouchableOpacity onPress={() => setShowDates(true)} accessibilityRole="button" accessibilityLabel="Pick dates" style={{ flex: 1, borderRadius: 12, borderWidth: 1, borderColor: filters.when ? p.accent : p.border, backgroundColor: filters.when ? p.accentSoft : p.card, padding: 10 }}>
-          <Text style={{ fontSize: 11, fontWeight: '800', color: p.sub }}>Available for</Text>
+          <Text style={{ fontSize: 12, fontWeight: '800', color: p.sub }}>Available for</Text>
           <Text style={{ fontSize: 12, fontWeight: '800', color: p.text, marginTop: 2 }} numberOfLines={1}>{filters.when ? `${fmtDateTime(filters.when.start)} → ${fmtDateTime(filters.when.end).split(' · ')[1]}` : 'Any time · tap to pick dates'}</Text>
         </TouchableOpacity>
         {filters.when ? (
@@ -118,7 +118,7 @@ export default function RentalsBrowse() {
         renderItem={({ item }) => (
           <View>
             <MiniCard l={item} width={CARD_W} onPress={() => router.push(`/rentals/${item.id}` as any)} />
-            {item.quote ? <Text style={{ fontSize: 11, color: p.sub, marginTop: 4, marginLeft: 4 }}>For your dates: <Text style={{ color: p.text, fontWeight: '900' }}>{inr(item.quote.rent)}</Text> + {inr(item.quote.deposit)} deposit</Text> : null}
+            {item.quote ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 4, marginLeft: 4 }}>For your dates: <Text style={{ color: p.text, fontWeight: '900' }}>{inr(item.quote.rent)}</Text> + {inr(item.quote.deposit)} deposit</Text> : null}
           </View>
         )}
         ListEmptyComponent={

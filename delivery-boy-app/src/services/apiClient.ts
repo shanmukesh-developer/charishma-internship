@@ -2,6 +2,7 @@
 // times out after 15 s and turns every failure into ApiError (server answered) or NetworkError (it didn't).
 import { API_URL } from '../config';
 import { reportUpgradeRequired, versionHeaders } from './forceUpdate';
+import { withWakeRetry, coldStartWait, WakeVerdict } from './serverWake';
 
 export class ApiError extends Error {
   status: number;
@@ -79,7 +80,7 @@ interface RequestOptions {
   token?: string;
 }
 
-export async function apiFetch<T = unknown>(endpoint: string, opts: RequestOptions = {}): Promise<T> {
+async function apiFetchOnce<T = unknown>(endpoint: string, opts: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, timeoutMs = 15000, auth = true } = opts;
   const headers: Record<string, string> = { Accept: 'application/json', ...versionHeaders() };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
@@ -140,4 +141,31 @@ export async function apiFetch<T = unknown>(endpoint: string, opts: RequestOptio
     throw err;
   }
   return data as T;
+}
+
+// ── GET cold-start retry (serverWake.ts) ─────────────────────────────────────────
+// A GET rides out a backend restart (502/503/504, 503 SERVER_STARTING, or no answer): retried with backoff
+// for up to ~3 minutes while WakeBanner shows. Identical GETs share one retry loop (polling screens do not
+// pile up requests on a starting server). Writes and uploads are never retried here.
+const wakeVerdict = (err: unknown): WakeVerdict => {
+  if (err instanceof NetworkError) return { wait: 0, network: true };
+  if (err instanceof ApiError) {
+    const wait = coldStartWait(err.status, err.data);
+    return wait === null ? null : { wait };
+  }
+  return null;
+};
+const inflightGets = new Map<string, Promise<any>>();
+
+export async function apiFetch<T = unknown>(path: string, opts: RequestOptions = {}): Promise<T> {
+  if ((opts.method || 'GET') !== 'GET' || false) return apiFetchOnce<T>(path, opts);
+  const key = `${(opts.token ?? getToken()) || ''}|${path}|${opts.auth === false ? 0 : 1}`;
+  let shared = inflightGets.get(key) as Promise<T> | undefined;
+  if (!shared) {
+    shared = withWakeRetry(() => apiFetchOnce<T>(path, opts), wakeVerdict);
+    inflightGets.set(key, shared);
+    const clear = () => { if (inflightGets.get(key) === shared) inflightGets.delete(key); };
+    shared.then(clear, clear);
+  }
+  return shared;
 }

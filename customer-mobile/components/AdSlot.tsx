@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
   adTagText: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '800',
     color: 'rgba(255,255,255,0.7)',
     textTransform: 'uppercase',
@@ -219,12 +219,12 @@ const styles = StyleSheet.create({
     right: 8,
   },
   spotlightTitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '900',
     color: '#FFF',
   },
   spotlightSub: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '600',
     color: 'rgba(255,255,255,0.7)',
   },
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.sm,
   },
   sponsoredBadgeText: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     color: COLORS.primary,
     letterSpacing: 1,
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
   interstitialDesc: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '500',
     color: 'rgba(255,255,255,0.8)',
     marginTop: 2,
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   interstitialCtaText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     color: '#FFF',
     letterSpacing: 0.5,
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   pdpAdLabel: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     color: COLORS.primary,
     letterSpacing: 1,
@@ -328,12 +328,12 @@ const styles = StyleSheet.create({
     color: COLORS.ink,
   },
   pdpSub: {
-    fontSize: 10,
+    fontSize: 12,
     color: COLORS.inkMuted,
     marginTop: 2,
   },
   pdpBrandText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '700',
     color: COLORS.primary,
     marginTop: 4,
@@ -354,12 +354,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   railTitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     color: COLORS.ink,
   },
   railSub: {
-    fontSize: 9,
+    fontSize: 12,
     color: COLORS.inkMuted,
   },
 });

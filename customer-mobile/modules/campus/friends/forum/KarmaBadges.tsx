@@ -214,7 +214,7 @@ export const MyStandingCard: React.FC<{ userId: string | null | undefined; refre
 const styles = StyleSheet.create({
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: FR.pill, backgroundColor: FriendsColors.goldSoft },
-  pillText: { fontSize: 10, fontWeight: '800', color: FriendsColors.gold },
+  pillText: { fontSize: 12, fontWeight: '800', color: FriendsColors.gold },
   statsRow: { flexDirection: 'row', gap: FS.sm },
   stat: { flex: 1, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.cardHi, alignItems: 'center' },
   statValue: { fontSize: 20, fontWeight: '800', color: FriendsColors.ink },

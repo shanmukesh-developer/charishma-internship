@@ -94,7 +94,7 @@ export default function TeamScreen() {
             {inv.team?.captain ? <Text style={{ fontSize: 13, color: p.sub, marginTop: 4 }}>Captain: {inv.team.captain}</Text> : null}
             <Text style={{ fontSize: 13, color: p.text, marginTop: 10 }}>{inv.event?.title}</Text>
             <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 2 }}><Ionicons name="calendar-outline" size={13} color={p.sub} /> {fmtWhen(inv.event?.startAt)}{inv.event?.venue ? ` · ${inv.event.venue}` : ''}</Text>
-            {inv.expiresAt ? <Text style={{ fontSize: 11.5, color: p.warn, marginTop: 8, fontWeight: '800' }}>Respond by {fmtWhen(inv.expiresAt)}</Text> : null}
+            {inv.expiresAt ? <Text style={{ fontSize: 12, color: p.warn, marginTop: 8, fontWeight: '800' }}>Respond by {fmtWhen(inv.expiresAt)}</Text> : null}
           </Card>
           {open ? (
             <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -180,7 +180,7 @@ export default function TeamScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 14, fontWeight: '800', color: p.text }} numberOfLines={1}>{m.name}{m.isMe ? ' (you)' : ''}</Text>
-                <Text style={{ fontSize: 11.5, color: MEMBER_LABEL[m.status]?.color || p.sub, fontWeight: '700' }}>{m.role === 'CAPTAIN' ? 'Captain' : MEMBER_LABEL[m.status]?.label || 'Updated'}</Text>
+                <Text style={{ fontSize: 12, color: MEMBER_LABEL[m.status]?.color || p.sub, fontWeight: '700' }}>{m.role === 'CAPTAIN' ? 'Captain' : MEMBER_LABEL[m.status]?.label || 'Updated'}</Text>
               </View>
               {captain && !m.isMe && editable ? (
                 <View style={{ flexDirection: 'row', gap: 6 }}>

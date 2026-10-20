@@ -230,6 +230,10 @@ export default function NotificationsScreen() {
       router.push(`/tracking/${safeId(n.orderId)}` as any);
     } else if (n.type === 'SUPPORT_TICKET') {
       router.push('/support' as any);
+    } else if (n.type === 'SERVICE_QUOTE') {
+      // Quote / final price on a service booking: open it in Orders > Services
+      const bid = safeId(n.data?.bookingId);
+      router.push({ pathname: '/(tabs)/orders', params: bid ? { segment: 'services', bookingId: bid } : { segment: 'services' } } as any);
     } else if (n.type === 'ORDER_STATUS' || n.type === 'ORDER_UPDATE') {
       router.push('/(tabs)/orders' as any);
     } else if (n.type === 'SPIN_EARNED' || n.type === 'WALL_WINNER_REWARD') {
@@ -290,6 +294,7 @@ export default function NotificationsScreen() {
       case 'ORDER_UPDATE': case 'ORDER_STATUS': return 'bicycle-outline';
       case 'GATE_ARRIVAL': return 'notifications-outline';
       case 'SUPPORT_TICKET': return 'help-buoy-outline';
+      case 'SERVICE_QUOTE': return 'pricetag-outline';
       case 'PG_BOOKING_STATUS': case 'PG_BOOKING': return 'home-outline';
       case 'BADGE': case 'WALL_WINNER_REWARD': return 'trophy-outline';
       case 'SPIN_EARNED': return 'sync-outline';
@@ -382,7 +387,7 @@ export default function NotificationsScreen() {
 
       {loadError && !loading ? (
         <TouchableOpacity activeOpacity={0.85} onPress={handleRefresh} style={{ marginHorizontal: 16, marginTop: 12, padding: 10, borderRadius: 12, backgroundColor: isDark ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.08)' }}>
-          <Text style={{ color: '#EF4444', fontSize: 11, fontWeight: '700', textAlign: 'center' }}>{loadError}</Text>
+          <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '700', textAlign: 'center' }}>{loadError}</Text>
         </TouchableOpacity>
       ) : null}
 
@@ -490,7 +495,7 @@ const s = StyleSheet.create({
     marginRight: 12
   },
   backIcon: { fontSize: 32, fontWeight: '300' },
-  subText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
+  subText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.3 },
   title: { fontSize: 18, fontWeight: '900' },
 
   actionHeaderBtn: {
@@ -500,7 +505,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
   },
   actionHeaderBtnText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.3,
   },
@@ -523,7 +528,7 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   emptyDesc: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
     lineHeight: 16,
@@ -579,12 +584,12 @@ const s = StyleSheet.create({
   },
 
   timeText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '600',
   },
 
   cardBody: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
     lineHeight: 16,
   },

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, Animated, Dimensions, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS } from '../constants/theme';
+import { API_URL } from '../constants/api';
+import { lastServerResponseAt } from '../utils/serverWake';
 
 export default function OfflineBanner() {
   const insets = useSafeAreaInsets();
@@ -9,24 +10,31 @@ export default function OfflineBanner() {
   const slideAnim = useRef(new Animated.Value(-100)).current;
   const pulseAnim = useRef(new Animated.Value(0.4)).current;
 
-  // Connection check method using AbortController for reliable timeout
+  // Offline only when nothing answers: no response from Zenvy in the last 20 s (any status counts,
+  // a cold-start 502/503 too), then both the Zenvy ping and a public 204 endpoint fail with a generous
+  // timeout, twice in a row. Slow campus Wi-Fi or a server restart is never shown as "offline".
+  const failStreak = useRef(0);
+  const reachable = async (url: string): Promise<boolean> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    try {
+      await fetch(url, { signal: controller.signal, headers: { 'Cache-Control': 'no-cache' } });
+      return true; // any HTTP answer means the device is online
+    } catch {
+      return false;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  };
   const checkConnection = async (): Promise<boolean> => {
     if (Platform.OS === 'web') {
       return typeof navigator !== 'undefined' ? navigator.onLine : true;
     }
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
-    try {
-      const response = await fetch('https://clients3.google.com/generate_204', {
-        signal: controller.signal,
-        headers: { 'Cache-Control': 'no-cache' }
-      });
-      clearTimeout(timeoutId);
-      return response.status >= 200 && response.status < 400;
-    } catch (err) {
-      clearTimeout(timeoutId);
-      return false;
-    }
+    if (Date.now() - lastServerResponseAt() < 20000) { failStreak.current = 0; return true; }
+    const online = (await reachable(`${API_URL}/api/ping`)) || (await reachable('https://clients3.google.com/generate_204'));
+    if (online || Date.now() - lastServerResponseAt() < 20000) { failStreak.current = 0; return true; }
+    failStreak.current += 1;
+    return failStreak.current < 2;
   };
 
   useEffect(() => {
@@ -70,7 +78,7 @@ export default function OfflineBanner() {
           }).start();
         }
         // Check frequently if offline
-        timerId = setTimeout(runCheck, 4000);
+        timerId = setTimeout(runCheck, 5000);
       } else {
         if (isOffline) {
           setIsOffline(false);
@@ -82,7 +90,7 @@ export default function OfflineBanner() {
           }).start();
         }
         // Check less frequently if online
-        timerId = setTimeout(runCheck, 10000);
+        timerId = setTimeout(runCheck, failStreak.current > 0 ? 5000 : 15000);
       }
     };
 
@@ -110,7 +118,7 @@ export default function OfflineBanner() {
     >
       <View style={styles.content}>
         <Animated.View style={[styles.dot, { opacity: pulseAnim }]} />
-        <Text style={styles.text}>YOU'RE OFFLINE — CHECK YOUR INTERNET</Text>
+        <Text style={styles.text}>You're offline. Check your internet connection.</Text>
       </View>
     </Animated.View>
   );
@@ -150,9 +158,8 @@ const styles = StyleSheet.create({
   },
   text: {
     color: '#FFFFFF',
-    fontSize: 9.5,
-    fontWeight: '900',
-    letterSpacing: 1.5,
+    fontSize: 13,
+    fontWeight: '800',
     textAlign: 'center',
   },
 });

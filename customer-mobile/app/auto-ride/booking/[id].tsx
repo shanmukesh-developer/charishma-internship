@@ -125,13 +125,13 @@ export default function AutoBookingScreen() {
 
         {(b.status === 'CONFIRMED' || b.status === 'BOARDED') ? (
           <Card style={{ alignItems: 'center', borderColor: p.accent, backgroundColor: p.accentSoft }}>
-            <Text style={{ fontSize: 11, fontWeight: '900', color: p.sub, letterSpacing: 1 }}>BOOKING CODE</Text>
+            <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 1 }}>BOOKING CODE</Text>
             <Text selectable style={{ fontSize: 28, fontWeight: '900', color: p.text, letterSpacing: 4, marginTop: 2 }}>{b.bookingCode}</Text>
             {b.boardingPin ? (
               <>
-                <Text style={{ fontSize: 11, fontWeight: '900', color: p.accent, letterSpacing: 1, marginTop: 12 }}>BOARDING PIN</Text>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: p.accent, letterSpacing: 1, marginTop: 12 }}>BOARDING PIN</Text>
                 <Text style={{ fontSize: 40, fontWeight: '900', color: p.text, letterSpacing: 12 }} accessibilityLabel={`Boarding PIN ${b.boardingPin.split('').join(' ')}`}>{b.boardingPin}</Text>
-                <Text style={{ fontSize: 11.5, color: p.sub, textAlign: 'center' }}>Show the code and PIN to the driver when you board.</Text>
+                <Text style={{ fontSize: 12, color: p.sub, textAlign: 'center' }}>Show the code and PIN to the driver when you board.</Text>
               </>
             ) : b.status === 'BOARDED' ? (
               <Text style={{ fontSize: 12, color: p.success, fontWeight: '800', marginTop: 8 }}>Checked in{b.boardedAt ? ` at ${fmtClock(b.boardedAt)}` : ''}</Text>
@@ -172,18 +172,18 @@ export default function AutoBookingScreen() {
                 <View key={x.key} style={{ flexDirection: 'row', gap: 10, minHeight: 34 }} accessibilityLabel={`${x.label}${current ? ', current' : doneStep ? ', done' : ''}`}>
                   <View style={{ alignItems: 'center', width: 18 }}>
                     <View style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: doneStep || current ? p.success : p.border, backgroundColor: doneStep ? p.success : current ? p.successSoft : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-                      {doneStep ? <Text style={{ color: '#fff', fontSize: 9, fontWeight: '900' }}>✓</Text> : null}
+                      {doneStep ? <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>✓</Text> : null}
                     </View>
                     {i < TIMELINE.length - 1 ? <View style={{ width: 2, flex: 1, backgroundColor: doneStep ? p.success : p.border }} /> : null}
                   </View>
                   <View style={{ flex: 1, paddingBottom: 8 }}>
                     <Text style={{ fontSize: 13, fontWeight: current ? '900' : '700', color: doneStep || current ? p.text : p.muted }}>{x.label}</Text>
-                    {current ? <Text style={{ fontSize: 11.5, color: p.sub }}>{t.statusLabel}</Text> : null}
+                    {current ? <Text style={{ fontSize: 12, color: p.sub }}>{t.statusLabel}</Text> : null}
                   </View>
                 </View>
               );
             })}
-            <Text style={{ fontSize: 11, color: p.muted }}>The trip moves to "On the way" only after the driver starts it. Live location is not shown.</Text>
+            <Text style={{ fontSize: 12, color: p.muted }}>The trip moves to "On the way" only after the driver starts it. Live location is not shown.</Text>
           </Card>
         ) : null}
 
@@ -205,14 +205,14 @@ export default function AutoBookingScreen() {
 
         {canCancel ? (
           <>
-            <Text style={{ fontSize: 11, color: p.muted, marginBottom: 8 }}>
+            <Text style={{ fontSize: 12, color: p.muted, marginBottom: 8 }}>
               {b.status === 'HELD' ? 'Releasing a hold is free.' : b.paymentMethod === 'WALLET' ? 'Cancel before the driver confirms departure for the best refund; the server applies the Zenvy refund policy.' : 'Cash booking: cancelling costs nothing. You cannot cancel once boarding starts.'}
             </Text>
             <Btn label={b.status === 'HELD' ? 'Release seats' : 'Cancel booking'} kind="danger" onPress={doCancel} loading={busy === 'cancel'} />
           </>
         ) : null}
         <Btn label="Report a problem" icon="🚩" kind="secondary" style={{ marginTop: 10 }} onPress={() => setReport(true)} />
-        <Text style={{ fontSize: 11, color: p.muted, textAlign: 'center', marginTop: 10 }}>In danger? Call 112 immediately.</Text>
+        <Text style={{ fontSize: 12, color: p.muted, textAlign: 'center', marginTop: 10 }}>In danger? Call 112 immediately.</Text>
       </ScrollView>
 
       <Modal visible={report} transparent animationType="slide" onRequestClose={() => setReport(false)}>

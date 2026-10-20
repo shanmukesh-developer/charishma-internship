@@ -9,6 +9,7 @@ import { RiderProvider, useRider } from './src/state/RiderStore';
 import { LoginScreen, PendingScreen, SplashScreen } from './src/screens/Auth';
 import { Shell } from './src/screens/Shell';
 import { scheduleApiEndpointCheck } from './src/config';
+import WakeBanner from './src/services/WakeBanner';
 import UpdateGate from './src/services/UpdateGate';
 import { ErrorBoundary } from './src/ui/ErrorBoundary';
 
@@ -43,6 +44,8 @@ export default function App() {
             <Root />
           </RiderProvider>
         </UpdateGate>
+        {/* Backend restart: calm "waking up" banner while GETs retry (serverWake.ts) */}
+        <WakeBanner />
       </ErrorBoundary>
     </SafeAreaProvider>
   );

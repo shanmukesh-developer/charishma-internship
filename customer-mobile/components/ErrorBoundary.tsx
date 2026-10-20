@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   },
   debugText: {
     color: '#EF4F5F',
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   primaryButton: {

@@ -53,7 +53,7 @@ export default function PeoplePicker({ visible, title, actionLabel, onClose, onP
             </View>
             <TextInput value={q} onChangeText={setQ} autoFocus placeholder="Search classmates by name" placeholderTextColor={p.muted} accessibilityLabel="Search classmates by name"
               style={{ minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: p.inputBorder, backgroundColor: p.input, color: p.text, paddingHorizontal: 14, fontSize: 15 }} maxLength={40} />
-            <Text style={{ fontSize: 11.5, color: p.muted, marginTop: 6, marginBottom: 8 }}>Only verified students of your campus appear. They must accept before they join.</Text>
+            <Text style={{ fontSize: 12, color: p.muted, marginTop: 6, marginBottom: 8 }}>Only verified students of your campus appear. They must accept before they join.</Text>
             {loading && !list ? <ActivityIndicator color={p.accent} style={{ marginTop: 20 }} /> : null}
             {error ? <Text style={{ color: p.danger, marginTop: 10 }}><Ionicons name="warning-outline" size={13} color={p.danger} /> {error}</Text> : null}
             <FlatList
@@ -70,7 +70,7 @@ export default function PeoplePicker({ visible, title, actionLabel, onClose, onP
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 14, fontWeight: '800', color: p.text }} numberOfLines={1}>{item.name} <Ionicons name="checkmark-circle" size={13} color={p.accent} /></Text>
-                      <Text style={{ fontSize: 11.5, color: p.sub }}>{[item.branch, item.year ? `Year ${item.year}` : null].filter(Boolean).join(' · ') || 'Verified student'}</Text>
+                      <Text style={{ fontSize: 12, color: p.sub }}>{[item.branch, item.year ? `Year ${item.year}` : null].filter(Boolean).join(' · ') || 'Verified student'}</Text>
                     </View>
                     <Btn label={off ? 'Added' : actionLabel} small kind={off ? 'secondary' : 'primary'} disabled={off} loading={busyId === item.userId} onPress={() => onPick(item)} />
                   </View>

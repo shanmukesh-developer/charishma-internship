@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   encryptText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 0.5,
@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.35)',
   },
   controlLabel: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#FFFFFF',
     fontWeight: '600',
   },

@@ -567,7 +567,7 @@ export default function RewardsScreen() {
         {/* Won coupons */}
         {couponsError && coupons.length === 0 && !loadingCoupons && (
           <TouchableOpacity onPress={() => fetchCoupons()} style={{ paddingVertical: 12, alignItems: 'center' }}>
-            <Text style={{ fontSize: 11, fontWeight: '700', color: '#EF4444' }}>Couldn't load your coupons. Tap to try again.</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#EF4444' }}>Couldn't load your coupons. Tap to try again.</Text>
           </TouchableOpacity>
         )}
         {coupons.length === 0 && !couponsError && !loadingCoupons && (
@@ -651,22 +651,22 @@ const s = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1 },
   backBtn: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  subText: { fontSize: 10, fontWeight: '800', color: '#D4AF7A', letterSpacing: 0.3 },
+  subText: { fontSize: 12, fontWeight: '800', color: '#D4AF7A', letterSpacing: 0.3 },
   title: { fontSize: 18, fontWeight: '900' },
 
   scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
   card: { padding: 20, borderRadius: 28, borderWidth: 1, marginBottom: 20 },
   streakHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  cardLabel: { fontSize: 11, fontWeight: '800', color: '#888' },
+  cardLabel: { fontSize: 12, fontWeight: '800', color: '#888' },
   streakVal: { fontSize: 24, fontWeight: '900', marginTop: 2 },
 
   progressContainer: { height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.05)', overflow: 'hidden', marginBottom: 12 },
   progressBar: { height: '100%', borderRadius: 3, backgroundColor: '#D4AF7A' },
-  cardDesc: { fontSize: 9, fontWeight: '700', lineHeight: 14 },
+  cardDesc: { fontSize: 12, fontWeight: '700', lineHeight: 14 },
 
   sectionTitle: { fontSize: 13, fontWeight: '900', letterSpacing: 0.2, marginBottom: 12, marginLeft: 4 },
   wheelCard: { padding: 24, borderRadius: 28, borderWidth: 1, alignItems: 'center', marginBottom: 24 },
-  wheelSub: { fontSize: 11, fontWeight: '800', color: '#888', marginBottom: 20, textAlign: 'center' },
+  wheelSub: { fontSize: 12, fontWeight: '800', color: '#888', marginBottom: 20, textAlign: 'center' },
 
   // Tactile Pointer
   pointerContainer: { zIndex: 50, marginBottom: -12, transformOrigin: 'top center' },
@@ -682,7 +682,7 @@ const s = StyleSheet.create({
 
   // Text segments
   sliceTextWrap: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 20 },
-  sliceText: { fontSize: 8, fontWeight: '900', color: '#EBE3CE', letterSpacing: 0.2, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 },
+  sliceText: { fontSize: 12, fontWeight: '900', color: '#EBE3CE', letterSpacing: 0.2, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 },
 
   // Core center badge
   coreBadge: { position: 'absolute', width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(11,10,12,0.95)', borderWidth: 2, borderColor: '#D4AF7A', justifyContent: 'center', alignItems: 'center', zIndex: 30, shadowColor: '#D4AF7A', shadowOpacity: 0.4, shadowRadius: 6 },
@@ -692,7 +692,7 @@ const s = StyleSheet.create({
   spinBtnText: { fontSize: 13, fontWeight: '900', color: '#000', letterSpacing: 0.2 },
 
   resultBox: { width: '100%', padding: 14, borderRadius: 16, backgroundColor: 'rgba(34,197,94,0.06)', borderWidth: 1.5, borderColor: 'rgba(34,197,94,0.18)', marginTop: 18, alignItems: 'center' },
-  resultLabel: { fontSize: 10, fontWeight: '800', color: '#22c55e' },
+  resultLabel: { fontSize: 12, fontWeight: '800', color: '#22c55e' },
   resultVal: { fontSize: 12, fontWeight: '900', color: '#22c55e', marginTop: 3 },
 
   tierList: { gap: 10 },
@@ -700,10 +700,10 @@ const s = StyleSheet.create({
   rewardIconWrap: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   rewardTitle: { fontSize: 12, fontWeight: '900' },
   levelBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  levelBadgeText: { fontSize: 6, fontWeight: '900' },
-  rewardDesc: { fontSize: 9, fontWeight: '700', marginTop: 2 },
+  levelBadgeText: { fontSize: 12, fontWeight: '900' },
+  rewardDesc: { fontSize: 12, fontWeight: '700', marginTop: 2 },
   statusBox: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)' },
   statusBoxUnlocked: { backgroundColor: 'rgba(34,197,94,0.1)' },
-  statusBoxText: { fontSize: 10, fontWeight: '900', color: '#888' }
+  statusBoxText: { fontSize: 12, fontWeight: '900', color: '#888' }
 });
 

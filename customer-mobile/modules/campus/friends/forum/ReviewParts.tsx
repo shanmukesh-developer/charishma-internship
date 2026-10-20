@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', gap: FS.md, minHeight: 44 },
   ctxRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: FS.sm },
   ctx: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: FR.pill, backgroundColor: FriendsColors.card },
-  ctxText: { fontSize: 11, fontWeight: '700', color: FriendsColors.muted },
+  ctxText: { fontSize: 12, fontWeight: '700', color: FriendsColors.muted },
   pc: { flexDirection: 'row', gap: FS.sm, marginTop: FS.sm, alignItems: 'flex-start' },
   pending: { flexDirection: 'row', gap: 6, marginTop: FS.md, padding: FS.sm, borderRadius: FR.sm, backgroundColor: FriendsColors.warnSoft },
   response: { marginTop: FS.md, padding: FS.md, borderRadius: FR.md, backgroundColor: 'rgba(232,196,127,0.06)', borderWidth: 1, borderColor: 'rgba(232,196,127,0.3)' },

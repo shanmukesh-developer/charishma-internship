@@ -756,7 +756,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(200,182,255,0.22)',
   },
   cat: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 4, borderRadius: FR.pill, backgroundColor: FriendsColors.accentSoft, flexShrink: 1 },
-  catText: { fontSize: 11, fontWeight: '800', color: FriendsColors.accent },
+  catText: { fontSize: 12, fontWeight: '800', color: FriendsColors.accent },
   rewardRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: FS.sm },
   reward: { fontSize: 26, fontWeight: '800', color: FriendsColors.gold, letterSpacing: -0.4 },
   facts: { marginTop: FS.md, gap: 8 },

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity, Dimensions, Platform, AppState } from 'react-native';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, Dimensions, Platform, AppState, Alert } from 'react-native';
 import { Socket } from 'socket.io-client';
 import { connectSocket } from '../utils/socket';
 import { API_URL } from '../constants/api';
@@ -57,6 +57,21 @@ const saveToHistory = async (item: { id: string; title: string; body: string; ty
   }
 };
 
+// Short explainer shown before the system notification dialog.
+const PUSH_ASK_LATER_KEY = 'zenvy_push_ask_later_at';
+const PUSH_ASK_AGAIN_MS = 3 * 24 * 60 * 60 * 1000;
+const askBeforePushPermission = () => new Promise<boolean>((resolve) => {
+  Alert.alert(
+    'Get order and rider updates',
+    'Zenvy sends a notification when the store accepts your order, when the rider is at your gate, and when a quote is ready. No ads.',
+    [
+      { text: 'Not now', style: 'cancel', onPress: () => resolve(false) },
+      { text: 'Turn on', onPress: () => resolve(true) },
+    ],
+    { cancelable: true, onDismiss: () => resolve(false) },
+  );
+});
+
 export default function GlobalAnnouncement() {
   const router = useRouter();
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
@@ -97,9 +112,21 @@ export default function GlobalAnnouncement() {
 
     const registerPushToken = async () => {
       try {
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        const existing = await Notifications.getPermissionsAsync();
+        const existingStatus = existing.status;
         let finalStatus = existingStatus;
         if (existingStatus !== 'granted') {
+          // Explain first, then show Android's dialog (asked cold, many tapped "Don't allow" and missed
+          // order and rider updates). "Not now" asks again after 3 days; a hard "Don't allow" is respected.
+          if (existing.canAskAgain === false) return;
+          const lastNo = Number(await AsyncStorage.getItem(PUSH_ASK_LATER_KEY).catch(() => null)) || 0;
+          if (Date.now() - lastNo < PUSH_ASK_AGAIN_MS) return;
+          const wants = await askBeforePushPermission();
+          if (cancelled) return;
+          if (!wants) {
+            await AsyncStorage.setItem(PUSH_ASK_LATER_KEY, String(Date.now())).catch(() => {});
+            return;
+          }
           const { status } = await Notifications.requestPermissionsAsync();
           finalStatus = status;
         }
@@ -236,6 +263,10 @@ export default function GlobalAnnouncement() {
           go('/friends');
         } else if (data.type === 'SUPPORT_TICKET') {
           go('/support');
+        } else if (data.type === 'SERVICE_QUOTE') {
+          // "Quote ready for …: tap to approve" opens that booking in Orders > Services
+          const bid = safeId(data.bookingId);
+          go(bid ? `/(tabs)/orders?segment=services&bookingId=${bid}` : '/(tabs)/orders?segment=services');
         } else if (data.type && data.type !== 'chat_message') {
           // Anything else (campaigns, broadcasts, new types): the in-app inbox lists it
           go('/notifications');

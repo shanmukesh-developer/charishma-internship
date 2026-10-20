@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     color: CampusColors.ink,
   },
   headerSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.warm,
     fontWeight: '600',
   },
@@ -272,13 +272,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   bannerBadgeText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
   bannerTimer: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.inkMuted,
   },
   bannerHeadline: {
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   youText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '800',
     color: '#FFFFFF',
   },
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
     color: CampusColors.ink,
   },
   fullName: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.muted,
     marginBottom: 8,
   },
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statText: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.muted,
   },
 });

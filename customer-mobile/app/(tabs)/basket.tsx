@@ -124,7 +124,7 @@ export default function BasketScreen() {
                 );
               }}
             >
-              <Text style={{ fontSize: 9, fontWeight: '900', color: '#EF4444', letterSpacing: 0.2 }}>Clear basket</Text>
+              <Text style={{ fontSize: 12, fontWeight: '900', color: '#EF4444', letterSpacing: 0.2 }}>Clear basket</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -134,7 +134,7 @@ export default function BasketScreen() {
           <View style={[s.groupCard, { backgroundColor: cardBg, borderColor: border }]}>
             {!roomCode ? (
               <View>
-                <Text style={{ fontSize: 11, fontWeight: '900', color: goldColor, letterSpacing: 0.3, marginBottom: 2 }}>Group basket</Text>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: goldColor, letterSpacing: 0.3, marginBottom: 2 }}>Group basket</Text>
                 <Text style={[s.groupDesc, { color: txtSec }]}>Build one basket with your roommates. One person checks out and pays.</Text>
                 <View style={s.groupBtns}>
                   <TouchableOpacity style={[s.hostBtn, { borderColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]} onPress={handleHostRoom}>
@@ -178,7 +178,7 @@ export default function BasketScreen() {
                   ) : (
                     <View style={[s.liveDot, roomStatus !== 'live' && { backgroundColor: roomStatus === 'error' ? '#EF4444' : '#F59E0B' }]} />
                   )}
-                  <Text style={{ fontSize: 10, fontWeight: '900', color: roomStatus === 'live' ? '#10B981' : roomStatus === 'error' ? '#EF4444' : txtSec, letterSpacing: 0.2 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '900', color: roomStatus === 'live' ? '#10B981' : roomStatus === 'error' ? '#EF4444' : txtSec, letterSpacing: 0.2 }}>
                     {roomStatus === 'live'
                       ? `Group basket live (${isHosting ? "you're the host" : 'joined'})`
                       : roomStatus === 'connecting'
@@ -191,11 +191,11 @@ export default function BasketScreen() {
                   </Text>
                 </View>
                 {!!roomMessage && (
-                  <Text style={{ fontSize: 10, color: txtSec, fontWeight: '600', marginBottom: 10, lineHeight: 15 }}>{roomMessage}</Text>
+                  <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', marginBottom: 10, lineHeight: 15 }}>{roomMessage}</Text>
                 )}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View>
-                    <Text style={{ fontSize: 9, color: txtSec, fontWeight: '700', letterSpacing: 0.2, marginBottom: 2 }}>Room code</Text>
+                    <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700', letterSpacing: 0.2, marginBottom: 2 }}>Room code</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <Text style={{ fontSize: 18, fontWeight: '900', color: goldColor }}>{roomCode}</Text>
                       <TouchableOpacity 
@@ -205,7 +205,7 @@ export default function BasketScreen() {
                           Alert.alert('Room code copied', `Share ${roomCode} with your roommates so they can join.`);
                         }}
                       >
-                        <Text style={{ fontSize: 10, fontWeight: '800', color: txt }}>Copy</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: txt }}>Copy</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -282,25 +282,25 @@ export default function BasketScreen() {
                   <View style={s.itemInfo}>
                     <Text style={[s.itemName, { color: txt }]}>{item.name}</Text>
                     {!!item.restaurantName && (
-                      <Text style={{ fontSize: 10, color: txtSec }}>from {item.restaurantName}</Text>
+                      <Text style={{ fontSize: 12, color: txtSec }}>from {item.restaurantName}</Text>
                     )}
                     {item.customizations && Object.keys(item.customizations).length > 0 && (
-                      <Text style={{ fontSize: 10, color: goldColor, marginTop: 2, fontStyle: 'italic', fontWeight: '600' }}>
+                      <Text style={{ fontSize: 12, color: goldColor, marginTop: 2, fontStyle: 'italic', fontWeight: '600' }}>
                         {summarizeCustomizations(item.customizations)}
                       </Text>
                     )}
                     {item.addedBy && (
                       <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)', alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4 }}>
-                        <Text style={{ fontSize: 8, fontWeight: '800', color: txtSec }}>Added by {item.addedBy}</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>Added by {item.addedBy}</Text>
                       </View>
                     )}
                     <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
                       <Text style={{ fontSize: 16, fontWeight: '900', color: txt }}>{formatINR(Number(item.price) * Number(item.quantity))}</Text>
                       {item.quantity > 1 && (
-                        <Text style={{ fontSize: 10, fontWeight: '700', color: txtSec }}>{formatINR(item.price)} each</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec }}>{formatINR(item.price)} each</Text>
                       )}
                       {isCustomRequest(item) && (
-                        <Text style={{ fontSize: 9, fontWeight: '700', color: txtSec }}>est.</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec }}>est.</Text>
                       )}
                     </View>
                   </View>
@@ -354,7 +354,7 @@ export default function BasketScreen() {
                       <Text style={[s.billLabel, { color: txtSec }]}>Item total</Text>
                       <Text style={[s.billVal, { color: txt }]}>{formatINR(totalPrice)}</Text>
                     </View>
-                    <Text style={{ fontSize: 10, color: txtSec, fontWeight: '600' }}>Sign in to see delivery fee, offers and your final bill.</Text>
+                    <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>Sign in to see delivery fee, offers and your final bill.</Text>
                   </>
                 ) : !hasOrderLines ? (
                   <>
@@ -362,7 +362,7 @@ export default function BasketScreen() {
                       <Text style={[s.billLabel, { color: txtSec }]}>Shopping list (est.)</Text>
                       <Text style={[s.billVal, { color: txt }]}>{formatINR(totalPrice)}</Text>
                     </View>
-                    <Text style={{ fontSize: 10, color: txtSec, fontWeight: '600' }}>A rider shops your list. You pay the actual shop bill plus fees in cash on delivery.</Text>
+                    <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>A rider shops your list. You pay the actual shop bill plus fees in cash on delivery.</Text>
                   </>
                 ) : quote ? (
                   <View style={{ opacity: quoteLoading ? 0.5 : 1 }}>
@@ -399,21 +399,21 @@ export default function BasketScreen() {
                       <Text style={{ fontSize: 22, fontWeight: '900', color: goldColor }}>{formatINR(quote.finalPrice)}</Text>
                     </View>
                     {isStallBasket && (
-                      <Text style={{ fontSize: 10, color: txtSec, fontWeight: '600' }}>{stallPayCopy(stallName)}. {stallName} delivers this order itself.</Text>
+                      <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>{stallPayCopy(stallName)}. {stallName} delivers this order itself.</Text>
                     )}
                     {customCount > 0 && (
-                      <Text style={{ fontSize: 10, color: txtSec, fontWeight: '600' }}>Plus your Mega Basket shopping list, paid in cash on delivery.</Text>
+                      <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>Plus your shopping list, paid in cash on delivery.</Text>
                     )}
                   </View>
                 ) : quoteLoading ? (
                   <View style={{ paddingVertical: 12, alignItems: 'center' }}>
                     <ActivityIndicator color={goldColor} />
-                    <Text style={{ fontSize: 10, color: txtSec, fontWeight: '600', marginTop: 8 }}>Calculating your bill…</Text>
+                    <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', marginTop: 8 }}>Calculating your bill…</Text>
                   </View>
                 ) : quoteError ? (
                   <View>
                     <Text style={{ fontSize: 12, fontWeight: '800', color: txt, marginBottom: 4 }}>We couldn't calculate your bill</Text>
-                    <Text style={{ fontSize: 11, color: txtSec, fontWeight: '600', lineHeight: 16, marginBottom: 10 }}>{quoteError.message}</Text>
+                    <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', lineHeight: 16, marginBottom: 10 }}>{quoteError.message}</Text>
                     {unavailable.length === 0 && (
                       <TouchableOpacity style={[s.bannerBtn, { alignSelf: 'flex-start' }]} onPress={refreshQuote}>
                         <Text style={s.bannerBtnText}>Try again</Text>
@@ -427,10 +427,10 @@ export default function BasketScreen() {
             {/* Delivery instructions */}
             <StaggeredSection delay={(cart.length + 2) * 80} direction="up">
               <View style={[s.instructionsCard, { backgroundColor: cardBg, borderColor: border, borderWidth: 1 }]}>
-                <Text style={{ fontSize: 10, fontWeight: '900', color: goldColor, letterSpacing: 0.3, marginBottom: 2 }}>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: goldColor, letterSpacing: 0.3, marginBottom: 2 }}>
                   Delivery instructions
                 </Text>
-                <Text style={{ fontSize: 9, color: txtSec, fontWeight: '600', marginBottom: 8 }}>
+                <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', marginBottom: 8 }}>
                   {isStallBasket ? `Sent to ${stallName} with the delivery address.` : 'Sent to your rider with the delivery address.'}
                 </Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -449,7 +449,7 @@ export default function BasketScreen() {
                         onPress={() => toggleInstruction(pref.id)}
                         activeOpacity={0.8}
                       >
-                        <Text style={{ fontSize: 9.5, fontWeight: '800', color: isSelected ? (isDark ? '#000' : '#FFF') : txt }}>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: isSelected ? (isDark ? '#000' : '#FFF') : txt }}>
                           {INSTRUCTION_LABELS[pref.id] || stripEmoji(pref.label)}
                         </Text>
                       </TouchableOpacity>
@@ -499,12 +499,12 @@ const s = StyleSheet.create({
   container: { flex: 1, paddingTop: Platform.OS === 'android' ? 40 : 50, width: '100%', maxWidth: 600, alignSelf: 'center', position: 'relative' },
   pageTitle: { fontSize: 20, fontWeight: '900', letterSpacing: 0.3, paddingHorizontal: 16, marginBottom: 16, textAlign: 'center' },
   groupCard: { marginHorizontal: 16, padding: 16, borderRadius: 20, marginBottom: 16, borderWidth: 1 },
-  groupDesc: { fontSize: 11, fontWeight: '600', letterSpacing: 0.1, lineHeight: 16, marginBottom: 12 },
+  groupDesc: { fontSize: 12, fontWeight: '600', letterSpacing: 0.1, lineHeight: 16, marginBottom: 12 },
   groupBtns: { flexDirection: 'row', gap: 10 },
   hostBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, borderWidth: 1.5, alignItems: 'center' },
-  hostBtnText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.2 },
+  hostBtnText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
   joinBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
-  joinBtnText: { fontSize: 11, fontWeight: '900', color: '#000', letterSpacing: 0.2 },
+  joinBtnText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.2 },
   empty: { padding: 60, alignItems: 'center' },
   emptyText: { fontSize: 13, fontWeight: '600' },
   emptyBox: { marginHorizontal: 16, marginTop: 24, padding: 32, borderRadius: 24, alignItems: 'center', borderWidth: 1, ...SHADOWS.card },
@@ -527,11 +527,11 @@ const s = StyleSheet.create({
   joinInputRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
   joinInput: { flex: 1, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 12, fontWeight: '800' },
   joinSubmit: { paddingHorizontal: 16, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  joinSubmitText: { fontSize: 11, fontWeight: '900', color: '#000', letterSpacing: 0.2 },
+  joinSubmitText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.2 },
   activeRoomCard: { width: '100%' },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#10B981' },
   disconnectBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.2)' },
-  disconnectText: { fontSize: 10, fontWeight: '900', color: '#EF4444', letterSpacing: 0.2 },
+  disconnectText: { fontSize: 12, fontWeight: '900', color: '#EF4444', letterSpacing: 0.2 },
   checkoutBtnContainer: {
     position: 'absolute',
     bottom: Platform.OS === 'ios' ? 100 : 80,
@@ -557,18 +557,18 @@ const s = StyleSheet.create({
     marginBottom: 12,
   },
   multiRestTitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.2,
     marginBottom: 2,
   },
   multiRestSub: {
-    fontSize: 8.5,
+    fontSize: 12,
     fontWeight: '600',
     lineHeight: 12,
   },
   bannerBtn: { backgroundColor: '#EF4444', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 },
-  bannerBtnText: { color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 0.2 },
+  bannerBtnText: { color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 0.2 },
   deliveryTrackerCard: {
     marginHorizontal: 16,
     marginBottom: 12,

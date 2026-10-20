@@ -23,7 +23,7 @@ export default function ServerWakeupOverlay({ visible, onWakeupComplete, onRetry
   const [status, setStatus] = useState<'connecting' | 'retrying' | 'connected' | 'offline'>('connecting');
   const slideAnim = useRef(new Animated.Value(-120)).current;
   const dotPulse = useRef(new Animated.Value(0.3)).current;
-  const MAX_RETRIES = 6; // 6 retries × 10s = 60s max wait
+  const MAX_RETRIES = 18; // 18 retries × 10 s = 3 min (a restart takes 2 to 3 minutes)
 
   // Latest callbacks + pending timers, so nothing fires after the banner unmounts
   const cbRef = useRef({ onWakeupComplete, onRetry, onCancel });
@@ -131,20 +131,19 @@ export default function ServerWakeupOverlay({ visible, onWakeupComplete, onRetry
   if (!visible) return null;
 
   const statusConfig = {
-    connecting: { text: 'Waking up kitchen servers...', color: COLORS.gold || '#C9A84C', icon: '🔄' },
-    retrying: { text: `Retrying connection (${retryCount}/${MAX_RETRIES})...`, color: '#F59E0B', icon: '📡' },
-    connected: { text: 'Connected! Loading fresh data...', color: '#10B981', icon: '✅' },
-    offline: { text: offlineText || 'Using cached data — browse freely!', color: '#6B7280', icon: '📱' },
+    connecting: { text: 'Zenvy is waking up…', color: COLORS.gold || '#C9A84C' },
+    retrying: { text: 'Zenvy is waking up. This can take a minute or two…', color: '#F59E0B' },
+    connected: { text: 'Connected. Loading…', color: '#10B981' },
+    offline: { text: offlineText || "Zenvy is taking longer than usual. Please try again in a minute.", color: '#6B7280' },
   };
 
-  const { text, color, icon } = statusConfig[status];
+  const { text, color } = statusConfig[status];
 
   return (
     <Animated.View style={[styles.banner, { transform: [{ translateY: slideAnim }] }]}>
       <View style={[styles.bannerInner, { borderColor: `${color}33` }]}>
         <View style={styles.bannerLeft}>
           <Animated.View style={[styles.statusDot, { backgroundColor: color, opacity: dotPulse }]} />
-          <Text style={styles.bannerIcon}>{icon}</Text>
           <Text style={styles.bannerText} numberOfLines={2}>{text}</Text>
         </View>
         {status !== 'connected' && (

@@ -129,7 +129,7 @@ export default function SlotBookingScreen() {
         {slot ? (
           <View style={{ marginBottom: 10 }} accessible accessibilityLabel={`Selected ${dayLabel(date || '')} ${fmtClock(slot.startAt)} to ${fmtClock(slot.endAt)}, ${slot.remaining} left, ${slot.price.isFree ? 'free' : slot.price.label}`}>
             <Row label={`${date ? dayLabel(date) : ''} · ${fmtClock(slot.startAt)}–${fmtClock(slot.endAt)}`} value={slot.price.isFree ? 'Free' : inr(slot.price.total)} strong />
-            <Text style={{ fontSize: 11.5, color: p.sub }}>{slot.remaining} of {slot.capacity} places left{slot.label ? ` · ${slot.label}` : ''}</Text>
+            <Text style={{ fontSize: 12, color: p.sub }}>{slot.remaining} of {slot.capacity} places left{slot.label ? ` · ${slot.label}` : ''}</Text>
           </View>
         ) : (
           <Text style={{ fontSize: 12.5, color: p.sub, marginBottom: 10, textAlign: 'center' }}>{limitReached ? 'You have reached the booking limit for this activity.' : 'Select a slot to continue.'}</Text>

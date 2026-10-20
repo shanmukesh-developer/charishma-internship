@@ -115,9 +115,9 @@ export default function SeatMap({ rows, states, selected, onToggle, selectable }
           return (
             <View key={k} style={st.legendItem}>
               <View style={[st.swatch, { backgroundColor: k === 'SELECTED' || k === 'MINE' ? m.color : `${m.color}33`, borderColor: m.color, borderStyle: k === 'UNAVAILABLE' ? 'dashed' : 'solid' }]}>
-                <Text style={{ fontSize: 8, color: k === 'SELECTED' || k === 'MINE' ? '#fff' : p.text }}>{m.icon}</Text>
+                <Text style={{ fontSize: 12, color: k === 'SELECTED' || k === 'MINE' ? '#fff' : p.text }}>{m.icon}</Text>
               </View>
-              <Text style={{ fontSize: 11, color: p.sub, fontWeight: '700' }}>{m.label}</Text>
+              <Text style={{ fontSize: 12, color: p.sub, fontWeight: '700' }}>{m.label}</Text>
             </View>
           );
         })}
@@ -127,10 +127,10 @@ export default function SeatMap({ rows, states, selected, onToggle, selectable }
 }
 
 const st = StyleSheet.create({
-  front: { position: 'absolute', top: 34, alignSelf: 'center', fontSize: 8.5, fontWeight: '900', letterSpacing: 2 },
+  front: { position: 'absolute', top: 34, alignSelf: 'center', fontSize: 12, fontWeight: '900', letterSpacing: 2 },
   seat: { borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   backrest: { position: 'absolute', top: 0, left: 6, right: 6, height: 5, borderBottomLeftRadius: 4, borderBottomRightRadius: 4 },
-  seatSub: { fontSize: 7.5, fontWeight: '900', letterSpacing: 0.3, marginTop: 1 },
+  seatSub: { fontSize: 12, fontWeight: '900', letterSpacing: 0.3, marginTop: 1 },
   legend: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 12 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   swatch: { width: 16, height: 16, borderRadius: 5, borderWidth: 1.2, alignItems: 'center', justifyContent: 'center' },

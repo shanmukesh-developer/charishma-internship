@@ -120,8 +120,8 @@ export const FT = StyleSheet.create({
   body: { fontSize: 15, lineHeight: 21, color: FriendsColors.ink },
   muted: { fontSize: 13, lineHeight: 19, color: FriendsColors.muted },
   small: { fontSize: 12, lineHeight: 16, color: FriendsColors.muted },
-  caption: { fontSize: 11, lineHeight: 14, color: FriendsColors.faint, fontWeight: '600' },
-  kicker: { fontSize: 11, fontWeight: '800', letterSpacing: 0.9, color: FriendsColors.faint, textTransform: 'uppercase' },
+  caption: { fontSize: 12, lineHeight: 14, color: FriendsColors.faint, fontWeight: '600' },
+  kicker: { fontSize: 12, fontWeight: '800', letterSpacing: 0.9, color: FriendsColors.faint, textTransform: 'uppercase' },
 });
 
 export const fui = StyleSheet.create({
@@ -222,7 +222,7 @@ export const fui = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeText: { fontSize: 10, fontWeight: '800', color: FriendsColors.accentInk },
+  badgeText: { fontSize: 12, fontWeight: '800', color: FriendsColors.accentInk },
 });
 
 /** Header / bottom-nav colours for the dark tone (Campus hub chrome while Friends is open). */

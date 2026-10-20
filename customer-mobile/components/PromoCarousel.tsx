@@ -186,7 +186,7 @@ const s = StyleSheet.create({
     zIndex: 10,
   },
   tagline: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 4,
     marginBottom: 6,
@@ -203,7 +203,7 @@ const s = StyleSheet.create({
     marginBottom: 6,
   },
   desc: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '700',
     letterSpacing: 2,
     marginBottom: 16,
@@ -226,7 +226,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 2,
   },

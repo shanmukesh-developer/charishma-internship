@@ -114,7 +114,7 @@ test('privacy third parties follow env: Supabase / Render / Redis / Cloudflare /
 
 test('refund page uses the real Auto-Ride and Campus Events settings and order timeouts', async () => {
   let t = H.text((await H.api('GET', '/legal/refunds')).text);
-  assert.ok(t.includes('15 minutes') && t.includes('30 minutes') && t.includes('2 minutes'), 'order windows');
+  assert.ok(t.includes('7 minutes') && t.includes('30 minutes') && t.includes('2 minutes'), 'order windows');
   assert.ok(t.includes('before the trip is confirmed: 100%'), 'auto-ride before-confirm default');
   assert.ok(t.includes('after it is confirmed: 0%'), 'auto-ride after-confirm default');
   assert.ok(t.includes('up to 1 day before the event starts') && t.includes('refund is 100%'), 'events defaults');

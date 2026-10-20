@@ -64,6 +64,7 @@ export const ENDPOINTS = {
   login: `${API_URL}/api/users/login`,
   register: `${API_URL}/api/users/register`,
   sendOtp: `${API_URL}/api/users/send-otp`,
+  sendEmailOtp: `${API_URL}/api/users/send-email-otp`,
   verifyOtp: `${API_URL}/api/users/verify-otp`,
   profile: `${API_URL}/api/users/profile`,
   resetPassword: `${API_URL}/api/users/reset-password`,

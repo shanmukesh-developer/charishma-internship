@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', gap: FS.sm },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: FR.pill, backgroundColor: SectionTints.spaces.soft },
   badgeLive: { backgroundColor: FriendsColors.dangerSoft },
-  badgeText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.6, color: SectionTints.spaces.fg },
+  badgeText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.6, color: SectionTints.spaces.fg },
   foot: { flexDirection: 'row', alignItems: 'center', marginTop: FS.md, gap: FS.sm },
   stat: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   remind: {

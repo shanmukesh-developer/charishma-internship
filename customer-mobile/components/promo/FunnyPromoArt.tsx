@@ -835,7 +835,7 @@ export const TrackingArt = memo(function TrackingArt({ active, size = 320, reduc
           </Animated.View>
           {/* masked delivery PIN */}
           <Animated.View style={[A({ left: -6, top: -22, height: 18, paddingHorizontal: 5, borderRadius: 6, backgroundColor: '#0B0B12', borderWidth: 1, borderColor: '#22C55E', justifyContent: 'center' }), { transform: [{ scale: v.pinS }] }]}>
-            <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '800' }}>🔒 ••••</Text>
+            <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>🔒 ••••</Text>
           </Animated.View>
         </Animated.View>
       </Depth>
@@ -867,7 +867,7 @@ export const TrackingArt = memo(function TrackingArt({ active, size = 320, reduc
           >
             <View style={A({ left: 6, right: 6, top: 1, height: 1, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.12)' })} />
             <Text style={{ fontSize: 14, marginRight: 5 }}>🛵</Text>
-            <Text numberOfLines={2} style={{ flex: 1, color: '#FFFFFF', fontSize: 11, fontWeight: '700', lineHeight: 13 }}>
+            <Text numberOfLines={2} style={{ flex: 1, color: '#FFFFFF', fontSize: 12, fontWeight: '700', lineHeight: 13 }}>
               Rider at your gate
             </Text>
           </Animated.View>
@@ -1182,7 +1182,7 @@ export const MegaBasketArt = memo(function MegaBasketArt({ active, size = 320, r
               { opacity: v.stampO, transform: [{ rotate: '-12deg' }, { scale: v.stampS }] },
             ]}
           >
-            <Text style={{ color: '#16A34A', fontSize: 11, fontWeight: '900' }}>OK ✓</Text>
+            <Text style={{ color: '#16A34A', fontSize: 12, fontWeight: '900' }}>OK ✓</Text>
           </Animated.View>
         </Animated.View>
       </Depth>
@@ -1208,7 +1208,7 @@ export const MegaBasketArt = memo(function MegaBasketArt({ active, size = 320, r
           { opacity: v.receiptO, transform: [{ translateX: v.receiptX }] },
         ]}
       >
-        <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '800' }}>🧾 ₹ ——</Text>
+        <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>🧾 ₹ ——</Text>
       </Animated.View>
 
       {/* rider Zippy in an oversized helmet */}
@@ -1513,7 +1513,7 @@ export const RideArt = memo(function RideArt({ active, size = 320, reduceMotion 
           ))}
         </Svg>
         <Animated.View style={[A({ left: 34, top: -14, width: 18, height: 18, borderRadius: 9, backgroundColor: '#22C55E', alignItems: 'center', justifyContent: 'center' }), { transform: [{ scale: v.okS }] }]}>
-          <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '900' }}>✓</Text>
+          <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '900' }}>✓</Text>
         </Animated.View>
       </Animated.View>
 
@@ -1530,7 +1530,7 @@ export const RideArt = memo(function RideArt({ active, size = 320, reduceMotion 
             { transform: [{ scale: v.askS }] },
           ]}
         >
-          <Text style={{ color: '#0B0B12', fontSize: 11, fontWeight: '800' }}>Join?</Text>
+          <Text style={{ color: '#0B0B12', fontSize: 12, fontWeight: '800' }}>Join?</Text>
         </Animated.View>
       </Animated.View>
     </>
@@ -1634,7 +1634,7 @@ export const CampusBuddyArt = memo(function CampusBuddyArt({ active, size = 320,
               ) : (
                 <Squiggle w={r.extra === 'ticks' ? 36 : 54} />
               )}
-              {r.extra === 'ticks' ? <Text style={{ marginLeft: 4, fontSize: 11, fontWeight: '900', color: '#38BDF8' }}>✓✓</Text> : null}
+              {r.extra === 'ticks' ? <Text style={{ marginLeft: 4, fontSize: 12, fontWeight: '900', color: '#38BDF8' }}>✓✓</Text> : null}
             </Animated.View>
           );
         })}
@@ -2142,8 +2142,8 @@ export const RewardsArt = memo(function RewardsArt({ active, size = 320, reduceM
       <Animated.View style={[A({ left: pointerX - 4, top: 52 }), { opacity: v.zInO, transform: [{ translateX: v.zIn }, { rotate: v.zRot }, { scaleX: v.zSX }] }]}>
         <Zippy size={36} breath={v.breath} blink={v.blink} eyesOpacity={v.eyes} overlays={[{ alt: 'flat', opacity: v.flat }, { alt: 'happy', opacity: v.happy }]} />
         <Animated.View style={[A({ left: 3, top: -10, width: 30, height: 16 }), { opacity: v.starsO, transform: [{ rotate: v.starsR }] }]}>
-          <Text style={[A({ left: 0, top: 0 }), { fontSize: 11, color: '#FDE68A' }]}>✦</Text>
-          <Text style={[A({ right: 0, top: 2 }), { fontSize: 11, color: '#FDE68A' }]}>✦</Text>
+          <Text style={[A({ left: 0, top: 0 }), { fontSize: 12, color: '#FDE68A' }]}>✦</Text>
+          <Text style={[A({ right: 0, top: 2 }), { fontSize: 12, color: '#FDE68A' }]}>✦</Text>
         </Animated.View>
       </Animated.View>
     </CornerArt>

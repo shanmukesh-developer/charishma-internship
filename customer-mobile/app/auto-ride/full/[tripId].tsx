@@ -112,7 +112,7 @@ export default function FullAutoRequestScreen() {
               <Row label="Total for the full auto" value={inr(total)} strong />
             </>
           ) : <Row label="Extra charges" value="None" />}
-          <Text style={{ fontSize: 11, color: p.muted, marginTop: 4 }}>The fare is fixed by the server when you send the request. Shared seat fare on this auto: {inr(trip.seatFare)}.</Text>
+          <Text style={{ fontSize: 12, color: p.muted, marginTop: 4 }}>The fare is fixed by the server when you send the request. Shared seat fare on this auto: {inr(trip.seatFare)}.</Text>
         </Card>
 
         <Card>
@@ -120,13 +120,13 @@ export default function FullAutoRequestScreen() {
           <Stepper value={passengers} min={1} max={Math.max(1, trip.capacity)} onChange={setPassengers} label="Passengers" />
           <View style={{ height: 14 }} />
           <Field label="Purpose (optional)" value={purpose} onChangeText={(t) => setPurpose(t.slice(0, 200))} placeholder="e.g. Group trip to Vijayawada station" maxLength={200} hint={`${purpose.length}/200 · shared with the driver`} />
-          <Text style={{ fontSize: 10.5, fontWeight: '900', color: p.sub, letterSpacing: 0.8, marginBottom: 6 }}>CONTACT (FROM YOUR PROFILE)</Text>
+          <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 0.8, marginBottom: 6 }}>CONTACT (FROM YOUR PROFILE)</Text>
           <Text style={{ fontSize: 13, color: p.text, fontWeight: '700' }}>{name || 'Your Zenvy account'}{phone ? ` · ${phone}` : ''}</Text>
-          {!phone ? <Text style={{ fontSize: 11.5, color: p.danger, marginTop: 4 }}>A verified mobile number on your profile is needed to book.</Text> : <Text style={{ fontSize: 11, color: p.muted, marginTop: 2 }}>Your number is not shown to the driver; they see your first name only.</Text>}
+          {!phone ? <Text style={{ fontSize: 12, color: p.danger, marginTop: 4 }}>A verified mobile number on your profile is needed to book.</Text> : <Text style={{ fontSize: 12, color: p.muted, marginTop: 2 }}>Your number is not shown to the driver; they see your first name only.</Text>}
         </Card>
 
         <Card>
-          <Text style={{ fontSize: 10.5, fontWeight: '900', color: p.sub, letterSpacing: 0.8, marginBottom: 6 }}>PAYMENT</Text>
+          <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 0.8, marginBottom: 6 }}>PAYMENT</Text>
           {methods.map((m) => {
             const on = payment === m;
             return (

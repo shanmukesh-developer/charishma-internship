@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: FS.md, paddingHorizontal: FS.lg, paddingTop: FS.md, paddingBottom: FS.md },
   round: { width: 44, height: 44, borderRadius: 22, backgroundColor: FriendsColors.card, borderWidth: 1, borderColor: FriendsColors.line, alignItems: 'center', justifyContent: 'center' },
   dot: { position: 'absolute', top: -2, right: -2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: FriendsColors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  dotText: { fontSize: 10, fontWeight: '800', color: FriendsColors.accentInk },
+  dotText: { fontSize: 12, fontWeight: '800', color: FriendsColors.accentInk },
   actions: { position: 'absolute', left: 0, right: 0, bottom: FS.lg, flexDirection: 'row', justifyContent: 'center', gap: FS.xxl },
   actionBtn: {
     width: 68,

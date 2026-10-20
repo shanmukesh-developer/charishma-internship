@@ -207,6 +207,9 @@ const OTP_PURPOSES = {
   delete_partner_account: 'delete_partner_account'
 };
 
+// Email codes for sign-up / Google completion live under their own purpose, bound to the address.
+const EMAIL_AUTH_PURPOSE = 'auth_email';
+
 const normalizePurpose = (p) => (p === undefined || p === null || p === '' ? 'auth' : OTP_PURPOSES[String(p)] || null);
 
 const otpSecret = () => process.env.OTP_SECRET || process.env.JWT_SECRET || null;
@@ -257,10 +260,10 @@ const sendSmsOtp = async (phone, code) => {
  * Checks `otp` against the latest live code for phone+purpose and consumes it.
  * Resolves { ok: true } or { ok: false, status, body }.
  */
-const consumeOtp = async (phone, purpose, otp) => {
+const consumeOtp = async (phone, purpose, otp, { bind } = {}) => {
   const code = typeof otp === 'string' || typeof otp === 'number' ? String(otp).trim() : '';
   if (!/^\d{6}$/.test(code)) {
-    return { ok: false, status: 400, body: { code: 'OTP_INVALID', message: 'Enter the 6-digit code we sent you by SMS.' } };
+    return { ok: false, status: 400, body: { code: 'OTP_INVALID', message: bind ? 'Enter the 6-digit code we sent to your email.' : 'Enter the 6-digit code we sent you by SMS.' } };
   }
   if (!otpSecret()) {
     return { ok: false, status: 500, body: { message: 'Server configuration error. Please try again later.' } };
@@ -284,7 +287,7 @@ const consumeOtp = async (phone, purpose, otp) => {
     return { ok: false, status: 429, body: { code: 'OTP_LOCKED', message: 'Too many wrong attempts. Please request a new code.' } };
   }
 
-  if (!safeEqualHex(record.codeHash, hashOtp(phone, purpose, code))) {
+  if (!safeEqualHex(record.codeHash, hashOtp(phone, purpose, bind ? `${code}|${bind}` : code))) {
     const fresh = await OtpCode.findByPk(record.id, { attributes: ['attempts'] });
     const attemptsLeft = Math.max(0, OTP_MAX_ATTEMPTS - (Number(fresh && fresh.attempts) || OTP_MAX_ATTEMPTS));
     if (attemptsLeft === 0) {
@@ -313,7 +316,15 @@ const consumeOtp = async (phone, purpose, otp) => {
  *   otp                (Fast2SMS code from POST /send-otp with the same purpose)
  * Resolves { ok: true, method } or { ok: false, status, body }.
  */
-const verifyPhoneProof = async ({ phone, firebaseToken, registrationToken, otp, purpose = 'auth' }) => {
+const verifyPhoneProof = async ({ phone, firebaseToken, registrationToken, otp, purpose = 'auth', emailOtp, email }) => {
+  // Email backup (POST /send-email-otp, purpose auth): proves the email address the code was sent to.
+  // Callers allow it only for a new account (or one whose email on file is that address).
+  if (emailOtp !== undefined && emailOtp !== null && emailOtp !== '' && !firebaseToken && !registrationToken && !otp) {
+    const bound = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (!bound) return { ok: false, status: 400, body: { code: 'EMAIL_REQUIRED', message: 'Enter the email address the code was sent to.' } };
+    const result = await consumeOtp(phone, EMAIL_AUTH_PURPOSE, emailOtp, { bind: bound });
+    return result.ok ? { ok: true, method: 'email' } : result;
+  }
   if (firebaseToken) {
     try {
       const decoded = await getAuth().verifyIdToken(firebaseToken);
@@ -431,8 +442,9 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ code: 'INVALID_REFERRAL', message: "That referral code doesn't exist. Check it or leave it blank." });
     }
 
-    // ── Phone verification (Firebase token, registration token, or SMS OTP) ──
-    const proof = await verifyPhoneProof({ phone: cleanPhone, firebaseToken, registrationToken, otp, purpose: 'auth' });
+    // ── Phone verification (Firebase token, registration token, or SMS OTP; or, when SMS failed, a code
+    // sent to the email address this new account is created with) ──
+    const proof = await verifyPhoneProof({ phone: cleanPhone, firebaseToken, registrationToken, otp, purpose: 'auth', emailOtp: req.body.emailOtp, email: cleanEmail || '' });
     if (!proof.ok) return res.status(proof.status).json(proof.body);
 
     // C4: { acceptTerms: true, termsVersion } is recorded on the new account. Older app builds that do not
@@ -859,7 +871,17 @@ const googleComplete = async (req, res) => {
       return res.status(400).json({ code: 'INVALID_NAME', message: 'Please enter your name (at least 2 letters).' });
     }
 
-    const proof = await verifyPhoneProof({ phone: cleanPhone, firebaseToken, registrationToken, otp, purpose: 'auth' });
+    // Email backup: a code sent to the Google address. Only for a new account, or an account whose email on
+    // file is that same address (it never links someone else's number to this Google account).
+    const viaEmail = !firebaseToken && !registrationToken && !otp && req.body.emailOtp;
+    if (viaEmail) {
+      const gEmail = String(google.email || '').toLowerCase();
+      const owner = phoneUser || (linked && linkedHasRealPhone ? linked : null);
+      if (!gEmail || !google.emailVerified || (owner && String(owner.email || '').toLowerCase() !== gEmail)) {
+        return res.status(400).json({ code: 'EMAIL_PROOF_NOT_ALLOWED', message: 'Please verify this number with the SMS code to link it to your Google account.' });
+      }
+    }
+    const proof = await verifyPhoneProof({ phone: cleanPhone, firebaseToken, registrationToken, otp, purpose: 'auth', emailOtp: viaEmail ? req.body.emailOtp : undefined, email: String(google.email || '') });
     if (!proof.ok) return res.status(proof.status).json(proof.body);
 
     const emailFree = google.email && google.emailVerified
@@ -1045,6 +1067,149 @@ const sendOtp = async (req, res) => {
   }
 };
 
+// @desc    Email backup for the SMS code (Firebase / Fast2SMS failed): POST /api/users/send-email-otp
+//   { phone, purpose: 'reset_password' | 'delete_account' }  -> the code goes to the account's email on file
+//      and is used exactly like the SMS code ({ otp } on /reset-password, account deletion).
+//   { phone, purpose: 'auth', email }                        -> a NEW account (sign-up / first Google sign-in):
+//      the code goes to `email` and is sent back as { emailOtp } with that same email (bound to it).
+// Same hashing, 5-minute expiry, 60 s cooldown, daily cap and 5-attempt lockout as the SMS code (shared per
+// number). Without BREVO_API_KEY the answer is 503 EMAIL_OTP_UNAVAILABLE, never a crash.
+const EMAIL_OTP_UNAVAILABLE = { code: 'EMAIL_OTP_UNAVAILABLE', message: "Email codes aren't available yet. Please try the SMS code again later, or log in with your password." };
+const maskEmailAddress = (email) => {
+  const [u, d] = String(email || '').split('@');
+  if (!d) return '';
+  return `${u.slice(0, 2)}${'*'.repeat(Math.max(1, Math.min(6, u.length - 2)))}@${d}`;
+};
+const emailOtpInFlight = new Set();
+const sendEmailOtp = async (req, res) => {
+  let release = () => {};
+  try {
+    const body = req.body || {};
+    const cleanPhone = normalizePhone(body.phone);
+    if (!isValidMobile(cleanPhone)) {
+      return res.status(400).json({ code: 'INVALID_PHONE', message: 'Enter a valid 10-digit mobile number.' });
+    }
+    const purpose = normalizePurpose(body.purpose);
+    if (!purpose || !['auth', 'reset_password', 'delete_account'].includes(purpose)) {
+      return res.status(400).json({ message: 'Invalid OTP purpose' });
+    }
+    if (!otpSecret()) return res.status(500).json({ message: 'Server configuration error. Please try again later.' });
+    const mailer = require('../utils/mailer');
+    if (!mailer.isMailerConfigured()) return res.status(503).json(EMAIL_OTP_UNAVAILABLE);
+
+    const User = getUserModel();
+    const account = await User.findOne({ where: { phone: cleanPhone } });
+    let to = '';
+    let storedPurpose = purpose;
+    let bind = null;
+    if (purpose === 'auth') {
+      if (account) {
+        return res.status(409).json({ code: 'PHONE_TAKEN', message: 'This number already has a Zenvy account. Log in with your password, or reset it.' });
+      }
+      const cleanEmail = cleanEmailInput(body.email);
+      if (!cleanEmail) return res.status(400).json({ code: 'INVALID_EMAIL', message: 'Enter a valid email address to get the code.' });
+      if (await User.findOne({ where: { email: cleanEmail } })) {
+        return res.status(409).json({ code: 'EMAIL_TAKEN', message: 'This email is already linked to another Zenvy account.' });
+      }
+      to = cleanEmail;
+      storedPurpose = EMAIL_AUTH_PURPOSE;
+      bind = cleanEmail;
+    } else {
+      if (!account) return res.status(404).json({ code: 'ACCOUNT_NOT_FOUND', message: 'No Zenvy account uses this number.' });
+      to = String(account.email || '').trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+        return res.status(404).json({ code: 'NO_EMAIL_ON_FILE', message: "This account has no email address, so we can't email a code. Please try the SMS code again later." });
+      }
+    }
+
+    if (emailOtpInFlight.has(cleanPhone)) {
+      res.set('Retry-After', String(Math.round(OTP_RESEND_COOLDOWN_MS / 1000)));
+      return res.status(429).json({ code: 'OTP_COOLDOWN', retryAfter: Math.round(OTP_RESEND_COOLDOWN_MS / 1000), message: 'A code is already on its way. Please wait a moment.' });
+    }
+    emailOtpInFlight.add(cleanPhone);
+    release = () => emailOtpInFlight.delete(cleanPhone);
+
+    const OtpCode = await getOtpModel();
+    const { Op } = require('sequelize');
+    const now = Date.now();
+    const code = String(crypto.randomInt(100000, 1000000));
+    const reserve = async (t) => {
+      const tx = t ? { transaction: t } : {};
+      const last = await OtpCode.findOne({ where: { phone: cleanPhone }, order: [['createdAt', 'DESC']], ...tx });
+      if (last && now - new Date(last.createdAt).getTime() < OTP_RESEND_COOLDOWN_MS) {
+        const retryAfter = Math.ceil((OTP_RESEND_COOLDOWN_MS - (now - new Date(last.createdAt).getTime())) / 1000);
+        return { refuse: { status: 429, retryAfter, body: { code: 'OTP_COOLDOWN', retryAfter, message: `Please wait ${retryAfter}s before requesting another code.` } } };
+      }
+      const dayAgo = new Date(now - 24 * 60 * 60 * 1000);
+      const sentToday = await OtpCode.findAll({ where: { phone: cleanPhone, createdAt: { [Op.gt]: dayAgo } }, attributes: ['createdAt'], order: [['createdAt', 'ASC']], ...tx });
+      if (sentToday.length >= OTP_DAILY_CAP) {
+        const oldest = new Date(sentToday[0].createdAt).getTime();
+        const retryAfter = Math.max(60, Math.ceil((oldest + 24 * 60 * 60 * 1000 - now) / 1000));
+        return { refuse: { status: 429, retryAfter, body: { code: 'OTP_DAILY_LIMIT', retryAfter, message: "You've requested too many codes today. Please try again later or log in with your password." } } };
+      }
+      const record = await OtpCode.create({
+        phone: cleanPhone,
+        purpose: storedPurpose,
+        codeHash: hashOtp(cleanPhone, storedPurpose, bind ? `${code}|${bind}` : code),
+        expiresAt: new Date(now + OTP_TTL_MS),
+        ip: (req.ip || '').slice(0, 64) || null,
+      }, tx);
+      return { record };
+    };
+    const reserved = await pgLock.withAdvisoryXactLock(OtpCode.sequelize, `otp:${cleanPhone}`, reserve);
+    if (reserved.refuse) {
+      if (reserved.refuse.retryAfter !== undefined) res.set('Retry-After', String(reserved.refuse.retryAfter));
+      return res.status(reserved.refuse.status).json(reserved.refuse.body);
+    }
+    const { record } = reserved;
+
+    const minutes = Math.round(OTP_TTL_MS / 60000);
+    const what = purpose === 'reset_password' ? 'reset your Zenvy password'
+      : purpose === 'delete_account' ? 'confirm deleting your Zenvy account'
+        : 'verify your new Zenvy account';
+    const text = [
+      'Hi,',
+      '',
+      `Your Zenvy code is: ${code}`,
+      `Use it to ${what}. It expires in ${minutes} minutes and works once.`,
+      '',
+      'If you did not ask for this, ignore this email. Never share this code with anyone. Zenvy will never ask for it.',
+      '',
+      'Team Zenvy',
+    ].join('\n');
+    const html = `<!doctype html><html><body style="margin:0;padding:24px 12px;background:#f4f4f7;font-family:Arial,Helvetica,sans-serif;color:#1d1d1f">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:460px;background:#ffffff;border-radius:16px;padding:28px">
+<tr><td style="font-size:20px;font-weight:bold;padding-bottom:16px">Zenvy</td></tr>
+<tr><td style="font-size:15px;line-height:22px;padding-bottom:20px">Use this code to ${what}:</td></tr>
+<tr><td align="center" style="padding-bottom:20px"><div style="display:inline-block;font-size:32px;letter-spacing:8px;font-weight:bold;background:#f4f4f7;border-radius:12px;padding:14px 22px">${code}</div></td></tr>
+<tr><td style="font-size:13px;line-height:20px;color:#555">It expires in ${minutes} minutes and works once. If you did not ask for this, ignore this email. Never share this code with anyone. Zenvy will never ask for it.</td></tr>
+</table></td></tr></table></body></html>`;
+    const sent = await mailer.sendMail({ to, subject: `${code} is your Zenvy code`, html, text });
+    if (!sent || !sent.ok) {
+      await record.destroy().catch(() => {});
+      console.error(`[SEND_EMAIL_OTP] Mail failed for ${maskPhone(cleanPhone)}:`, sent && sent.reason);
+      if (sent && sent.reason === 'not_configured') return res.status(503).json(EMAIL_OTP_UNAVAILABLE);
+      return res.status(502).json({ code: 'EMAIL_UNAVAILABLE', message: "We couldn't send the email right now. Please try again in a minute." });
+    }
+    await OtpCode.update({ consumedAt: new Date() }, { where: { phone: cleanPhone, purpose: storedPurpose, consumedAt: null, id: { [Op.ne]: record.id } } }).catch(() => {});
+    console.log(`[SEND_EMAIL_OTP] Code emailed for ${maskPhone(cleanPhone)} (${purpose})`);
+    return res.json({
+      success: true,
+      channel: 'email',
+      sentTo: maskEmailAddress(to),
+      message: `We've emailed a 6-digit code to ${maskEmailAddress(to)}.`,
+      expiresIn: Math.round(OTP_TTL_MS / 1000),
+      resendAfter: Math.round(OTP_RESEND_COOLDOWN_MS / 1000),
+    });
+  } catch (error) {
+    console.error('[SEND_EMAIL_OTP_ERROR]', error.message);
+    return res.status(500).json({ message: "We couldn't send the code right now. Please try again." });
+  } finally {
+    release();
+  }
+};
+
 // @desc    Verify SMS OTP & log in (or hand back a registration token for new numbers)
 // @route   POST /api/users/verify-otp
 const verifyOtp = async (req, res) => {
@@ -1130,6 +1295,7 @@ module.exports = {
   googleComplete,
   logoutUser,
   sendOtp,
+  sendEmailOtp,
   verifyOtp,
   sanitizeUser,
   verifyPhoneProof,

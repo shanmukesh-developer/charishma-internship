@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
     color: CampusColors.ink,
   },
   headerSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.rose,
     fontWeight: '600',
   },
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   securityText: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.roseDeep,
     flex: 1,
     lineHeight: 15,
@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   topicBadgeText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700',
     color: CampusColors.muted,
   },
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
     borderTopColor: CampusColors.line,
   },
   timeText: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.muted,
   },
   likeBtn: {
@@ -628,7 +628,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   charCount: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.muted,
   },
   sendWhisperBtn: {

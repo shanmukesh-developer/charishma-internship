@@ -287,7 +287,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
                           )}
                         </View>
                         <View style={s.gridCardInfo}>
-                          <Text style={{ fontSize: 8, fontWeight: '700', color: '#666', marginBottom: 2 }}>{item.weight || ''}</Text>
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: '#666', marginBottom: 2 }}>{item.weight || ''}</Text>
                           <Text style={[s.gridCardName, { color: txtColor, height: 32 }]} numberOfLines={2}>
                             {item.name}
                           </Text>
@@ -296,7 +296,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
                             <View>
                               <Text style={s.gridCardPrice}>₹{item.price}</Text>
                               {item.originalPrice > item.price && (
-                                <Text style={{ fontSize: 8, color: '#999', textDecorationLine: 'line-through' }}>₹{item.originalPrice}</Text>
+                                <Text style={{ fontSize: 12, color: '#999', textDecorationLine: 'line-through' }}>₹{item.originalPrice}</Text>
                               )}
                             </View>
                             
@@ -374,7 +374,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
                           const soldOut = item.isAvailable === false;
                           return (
                             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-                              <Text style={{ fontSize: 8, fontWeight: '800', color: '#F97316' }}>🏪 STALL · CASH</Text>
+                              <Text style={{ fontSize: 12, fontWeight: '800', color: '#F97316' }}>🏪 STALL · CASH</Text>
                               <TouchableOpacity
                                 style={[s.addBtn, soldOut && { opacity: 0.5 }]}
                                 disabled={soldOut}
@@ -487,7 +487,7 @@ const s = StyleSheet.create({
     marginBottom: 20,
   },
   trendingTag: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     color: COLORS.gold,
     letterSpacing: 2,
@@ -511,7 +511,7 @@ const s = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     color: COLORS.textSecondary,
     letterSpacing: 2,
@@ -542,18 +542,18 @@ const s = StyleSheet.create({
     fontWeight: '800',
   },
   gridCardMeta: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '600',
     color: COLORS.textSecondary,
     marginTop: 2,
   },
   gridCardPrice: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '900',
     color: COLORS.gold,
   },
   gridCardRestName: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '700',
     color: COLORS.textSecondary,
     maxWidth: 70,
@@ -575,10 +575,10 @@ const s = StyleSheet.create({
   },
   stepperWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#22C55E', borderRadius: 8, overflow: 'hidden', backgroundColor: '#fff' },
   stepperBtn: { paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#DCFCE7' },
-  stepperBtnText: { fontSize: 10, fontWeight: '900', color: '#22C55E' },
-  stepperQty: { fontSize: 9, fontWeight: '900', paddingHorizontal: 6, textAlign: 'center', minWidth: 16 },
+  stepperBtnText: { fontSize: 12, fontWeight: '900', color: '#22C55E' },
+  stepperQty: { fontSize: 12, fontWeight: '900', paddingHorizontal: 6, textAlign: 'center', minWidth: 16 },
   addBtn: { backgroundColor: '#fff', borderColor: '#22C55E', borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  addBtnText: { fontSize: 9, fontWeight: '900', color: '#22C55E' },
+  addBtnText: { fontSize: 12, fontWeight: '900', color: '#22C55E' },
   discountBadge: { position: 'absolute', bottom: 8, left: 8, backgroundColor: '#F59E0B', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  discountText: { fontSize: 7, fontWeight: '900', color: '#fff' },
+  discountText: { fontSize: 12, fontWeight: '900', color: '#fff' },
 });

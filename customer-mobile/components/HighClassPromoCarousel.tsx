@@ -838,7 +838,7 @@ const styles = StyleSheet.create({
     bottom: 16,
   },
   tagline: {
-    fontSize: 11,
+    fontSize: 12,
     lineHeight: 15,
     fontWeight: '800',
     letterSpacing: 0.8,
@@ -888,7 +888,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     color: '#FFF8EE',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
   },
   ctaWrap: {

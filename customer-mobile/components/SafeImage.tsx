@@ -20,6 +20,26 @@ const LUXURY_FALLBACKS: Record<string, string> = {
 
 const DEFAULT_FALLBACK_URI = LUXURY_FALLBACKS.food;
 
+// Stock photos the server (and older app builds) put in place of a missing store / dish photo. They made
+// many stores share the same picture (one of them now 404s), so they count as "no photo" here.
+const STOCK_PLACEHOLDER_IDS = ['photo-1546069901-ba9599a7e63c', 'photo-1601050690'];
+export const isStockPlaceholder = (uri?: string | null): boolean =>
+  !!uri && typeof uri === 'string' && uri.includes('images.unsplash.com') && STOCK_PLACEHOLDER_IDS.some((id) => uri.includes(id));
+
+type IconName = React.ComponentProps<typeof Ionicons>['name'];
+
+/** Neutral placeholder: an icon on a soft tint, the same size as the image it stands in for. */
+export function ImagePlaceholder({ style, icon = 'image-outline' }: { style?: StyleProp<ImageStyle>; icon?: IconName }) {
+  const flat: any = StyleSheet.flatten(style as any) || {};
+  const base = typeof flat.width === 'number' ? flat.width : typeof flat.height === 'number' ? flat.height : 80;
+  const size = Math.max(16, Math.min(40, Math.round(base * 0.32)));
+  return (
+    <View style={[style as any, styles.container, styles.placeholder, styles.tint]} accessibilityRole="image" accessibilityLabel="No photo yet">
+      <Ionicons name={icon} size={size} color="rgba(128, 128, 128, 0.7)" />
+    </View>
+  );
+}
+
 /**
  * Ask image CDNs for a phone-sized rendition (a raw Unsplash/Pexels URL is a multi-MB original).
  * Other hosts are returned unchanged.
@@ -64,6 +84,8 @@ interface SafeImageProps extends Omit<ImageProps, 'source' | 'style' | 'onError'
   /** Width requested from Unsplash/Pexels (default 400; use ~800 for full-width heroes). */
   maxWidth?: number;
   onError?: (e: any) => void;
+  /** Icon of the neutral placeholder shown when there is no photo (stores, dishes, places). */
+  placeholderIcon?: IconName;
 }
 
 /**
@@ -78,15 +100,23 @@ export default function SafeImage({
   onError,
   fadeInDuration = 200,
   maxWidth = 400,
+  placeholderIcon,
   ...props
 }: SafeImageProps) {
-  const rawUri = typeof source === 'object' && source && 'uri' in source ? (source.uri || '') : '';
-  const resolvedFallback = fallbackUri || getSmartFallback(rawUri);
+  const givenUri = typeof source === 'object' && source && 'uri' in source ? (source.uri || '') : '';
+  const rawUri = isStockPlaceholder(givenUri) ? '' : givenUri;
+  const personImage = !!givenUri && getSmartFallback(givenUri) === null;
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => { setHasError(false); }, [rawUri]);
 
   const failed = typeof source !== 'number' && (hasError || !rawUri.trim());
+  // No photo (missing, broken or a shared stock photo): the caller's own fallback photo if it passed one,
+  // else a neutral placeholder; never a stock photo that makes many stores look the same.
+  if (failed && fallback === undefined && !personImage && !fallbackUri) {
+    return <ImagePlaceholder style={style} icon={placeholderIcon} />;
+  }
+  const resolvedFallback = fallbackUri || null;
   // A person's photo that is missing / broken: the caller's placeholder, or a neutral person icon.
   if (failed && (fallback !== undefined || !resolvedFallback)) {
     const flat: any = StyleSheet.flatten(style as any) || {};
@@ -131,6 +161,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  tint: {
+    backgroundColor: 'rgba(128, 128, 128, 0.12)',
+  },
 });
 
 type CachedImageProps = Omit<ImageProps, 'source' | 'style'> & {
@@ -138,13 +171,22 @@ type CachedImageProps = Omit<ImageProps, 'source' | 'style'> & {
   style?: StyleProp<ImageStyle>;
   /** Width requested from Unsplash/Pexels (default 400). */
   maxWidth?: number;
+  /** Icon of the neutral placeholder shown when the photo is missing or fails to load. */
+  placeholderIcon?: IconName;
 };
 
 /**
  * Drop-in for react-native's <Image> in lists: expo-image with memory + disk cache and
  * downsampled CDN URLs. Honors resizeMode given as a prop or inside style.
  */
-export function CachedImage({ source, style, maxWidth = 400, resizeMode, contentFit, ...props }: CachedImageProps) {
+export function CachedImage({ source, style, maxWidth = 400, resizeMode, contentFit, placeholderIcon, onError, ...props }: CachedImageProps) {
+  const uri = source && typeof source === 'object' && !Array.isArray(source) && 'uri' in source ? String(source.uri || '') : null;
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { setFailed(false); }, [uri]);
+  // A missing / broken / shared stock photo: a neutral placeholder instead of an empty or repeated picture.
+  if (uri !== null && (failed || !uri.trim() || isStockPlaceholder(uri))) {
+    return <ImagePlaceholder style={style} icon={placeholderIcon} />;
+  }
   const flat: any = StyleSheet.flatten(style) || {};
   const mode = resizeMode || flat.resizeMode;
   const fit = contentFit || (mode === 'contain' ? 'contain' : mode === 'stretch' ? 'fill' : mode === 'center' ? 'none' : 'cover');
@@ -152,5 +194,5 @@ export function CachedImage({ source, style, maxWidth = 400, resizeMode, content
   if (source && typeof source === 'object' && !Array.isArray(source) && 'uri' in source) {
     src = { uri: optimizeImageUri(source.uri || '', maxWidth) || undefined };
   }
-  return <Image cachePolicy="memory-disk" transition={150} {...props} contentFit={fit} source={src} style={style as any} />;
+  return <Image cachePolicy="memory-disk" transition={150} {...props} contentFit={fit} source={src} style={style as any} onError={(e) => { setFailed(true); onError?.(e); }} />;
 }

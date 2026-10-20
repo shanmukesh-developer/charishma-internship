@@ -131,7 +131,7 @@ export default function CheckInScreen() {
                 autoCapitalize="characters" autoCorrect={false} placeholder="10-character code" placeholderTextColor={p.muted} maxLength={14}
                 onSubmitEditing={validate} returnKeyType="go" accessibilityLabel="Ticket code"
                 style={{ minHeight: 60, borderRadius: 16, borderWidth: 1.5, borderColor: p.inputBorder, backgroundColor: p.input, color: p.text, fontSize: 26, fontWeight: '900', letterSpacing: 4, textAlign: 'center' }} />
-              <Text style={{ fontSize: 11.5, color: p.muted, marginTop: 6, textAlign: 'center' }}>{code.length}/10 · O and 0, I and 1 are treated alike</Text>
+              <Text style={{ fontSize: 12, color: p.muted, marginTop: 6, textAlign: 'center' }}>{code.length}/10 · O and 0, I and 1 are treated alike</Text>
               <Btn label="Validate ticket" onPress={validate} loading={busy === 'validate'} disabled={code.length !== 10} style={{ marginTop: 12 }} />
 
               {offline ? (
@@ -180,7 +180,7 @@ export default function CheckInScreen() {
                         <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 5, gap: 8 }}>
                           <Ionicons name={m.icon} size={16} color={m.color} style={{ width: 20 }} />
                           <Text style={{ flex: 1, color: p.text, fontSize: 12.5 }} numberOfLines={1}>{r.ticketCode || 'Unknown code'} · {r.action === 'CONFIRM' ? 'entry' : 'check'}{r.collectedPayment ? ' · fee' : ''}</Text>
-                          <Text style={{ color: p.sub, fontSize: 11.5 }}>{m.title} · {fmtClock(r.at)}</Text>
+                          <Text style={{ color: p.sub, fontSize: 12 }}>{m.title} · {fmtClock(r.at)}</Text>
                         </View>
                       );
                     })}

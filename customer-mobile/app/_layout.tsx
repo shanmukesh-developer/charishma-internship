@@ -20,6 +20,7 @@ import GlobalAnnouncement from '../components/GlobalAnnouncement';
 import TermsUpdateSheet from '../components/TermsUpdateSheet';
 import ThemedAlert, { showGlobalAlert } from '../components/ThemedAlert';
 import OfflineBanner from '../components/OfflineBanner';
+import ServerWakeBanner from '../components/ServerWakeBanner';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { preloadSounds } from '../utils/sounds';
 import { scheduleApiEndpointCheck } from '../constants/api';
@@ -125,6 +126,8 @@ function AppContainer() {
             <TermsUpdateSheet />
             <ThemedAlert />
             <OfflineBanner />
+            {/* Backend cold start: calm "waking up" banner while apiFetch retries (utils/serverWake.ts) */}
+            <ServerWakeBanner />
           </CartProvider>
         </AuthProvider>
           </UpdateGate>

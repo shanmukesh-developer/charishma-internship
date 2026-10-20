@@ -27,6 +27,7 @@ import RequestsScreen from './src/screens/Requests';
 import { EarningsScreen, HistoryScreen, NotificationsScreen, ProfileScreen, QueueScreen, SettingsScreen, SupportScreen } from './src/screens/More';
 import { DeleteAccountScreen } from './src/screens/DeleteAccount';
 import { scheduleApiEndpointCheck } from './src/config';
+import WakeBanner from './src/lib/WakeBanner';
 import UpdateGate from './src/lib/UpdateGate';
 import { ErrorBoundary } from './src/ui/ErrorBoundary';
 
@@ -141,6 +142,8 @@ export default function App() {
                 <Root />
               </SessionProvider>
             </UpdateGate>
+            {/* Backend restart: calm "waking up" banner while GETs retry (serverWake.ts) */}
+            <WakeBanner />
           </ToastProvider>
         </KeyboardProvider>
       </ErrorBoundary>

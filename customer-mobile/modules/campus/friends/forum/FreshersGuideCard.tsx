@@ -69,5 +69,5 @@ const styles = StyleSheet.create({
   empty: { backgroundColor: FriendsColors.card, borderColor: FriendsColors.line, borderStyle: 'dashed' },
   icon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   label: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: FR.pill },
-  labelText: { fontSize: 10, fontWeight: '800' },
+  labelText: { fontSize: 12, fontWeight: '800' },
 });

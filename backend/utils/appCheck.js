@@ -22,7 +22,7 @@ const UUIDISH = '[^/]+';
 
 // [method, regex on the full path (no query, no trailing slash), group]
 const PROTECTED = [
-  ['POST', /^\/api\/users\/send-otp$/, 'otp'],
+  ['POST', /^\/api\/users\/send-(?:email-)?otp$/, 'otp'], // SMS code and its email backup
   ['POST', /^\/api\/(delivery|auto-ride\/driver)\/account\/delete-otp$/, 'otp'],
   ['POST', /^\/api\/users\/(login|register|verify-otp|google-login|google-complete|reset-password)$/, 'auth'],
   ['POST', /^\/api\/delivery\/(login|register)$/, 'partner'],

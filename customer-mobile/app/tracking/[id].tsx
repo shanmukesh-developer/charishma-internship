@@ -32,6 +32,7 @@ import FssaiLine from '../../components/FssaiLine';
 import { isVendorFulfilled, vendorCallNumber, callVendor, stallPayCopy } from '../../utils/localVendor';
 import { Ionicons } from '@expo/vector-icons';
 import { formatINR } from '../../utils/format';
+import { useServiceability } from '../../context/CartContext';
 
 
 /**
@@ -138,6 +139,8 @@ export default function TrackingScreen() {
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelMessage, setCancelMessage] = useState<string | null>(null);
+  // storeAcceptTimeoutMin: how long the store has before the order is cancelled for free.
+  const { serviceability } = useServiceability();
   const [approving, setApproving] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
 
@@ -583,7 +586,7 @@ export default function TrackingScreen() {
         <Text style={{ fontSize: 13, fontWeight: '900', color: txt, letterSpacing: 0.2, marginTop: 18 }}>
           Loading your order…
         </Text>
-        <Text style={{ fontSize: 11, color: txtSec, marginTop: 6, textAlign: 'center' }}>
+        <Text style={{ fontSize: 12, color: txtSec, marginTop: 6, textAlign: 'center' }}>
           Order #{orderId ? orderId.slice(-6).toUpperCase() : ''}
         </Text>
       </View>
@@ -679,7 +682,7 @@ export default function TrackingScreen() {
         <View style={{ flex: 1 }}>
           <Text style={[s.headerTitle, { color: txt }]}>Order tracking</Text>
           {orderId && (
-            <Text style={{ fontSize: 9, color: COLORS.gold, fontWeight: '800', letterSpacing: 1 }}>
+            <Text style={{ fontSize: 12, color: COLORS.gold, fontWeight: '800', letterSpacing: 1 }}>
               #{orderId.slice(-6).toUpperCase()}
             </Text>
           )}
@@ -761,7 +764,7 @@ export default function TrackingScreen() {
                 </>}
               </Text>
               {!!liveFix && (
-                <Text style={{ fontSize: 11, fontWeight: '700', color: txtSec, marginTop: 4 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec, marginTop: 4 }}>
                   {riderDistanceText ? `${rider?.name || 'Your rider'} is ${riderDistanceText}` : 'Live rider location on'}
                   {fixAgeSec !== null ? (fixAgeSec < 15 ? ' · live' : ` · updated ${fixAgeSec}s ago`) : ''}
                 </Text>
@@ -825,24 +828,24 @@ export default function TrackingScreen() {
                   <Ionicons name="basket-outline" size={16} color="#F59E0B" />
                 </View>
                 <View>
-                  <Text style={{ fontSize: 11, fontWeight: '900', color: '#F59E0B', letterSpacing: 0.2 }}>Mega Basket</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '900', color: '#F59E0B', letterSpacing: 0.2 }}>Shopping list</Text>
                   <Text style={{ fontSize: 13, fontWeight: 'bold', color: txt }}>Check your shopping</Text>
                 </View>
               </View>
 
               {/* Step 1: approve the items before the rider buys them */}
               <View style={{ borderBottomWidth: 1, borderBottomColor: border, paddingBottom: 14, marginBottom: 14 }}>
-                <Text style={{ fontSize: 10, fontWeight: 'bold', color: txtSec, marginBottom: 4 }}>Step 1: approve the items</Text>
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: txtSec, marginBottom: 4 }}>Step 1: approve the items</Text>
                 {!orderInfo.itemPhotoUrl ? (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 }}>
                     <ActivityIndicator size="small" color="#F59E0B" />
-                    <Text style={{ fontSize: 11, color: txtSec, fontStyle: 'italic' }}>
+                    <Text style={{ fontSize: 12, color: txtSec, fontStyle: 'italic' }}>
                       Your rider will share a photo of the items from the store.
                     </Text>
                   </View>
                 ) : (
                   <View>
-                    <Text style={{ fontSize: 11, color: txt, marginBottom: 8 }}>
+                    <Text style={{ fontSize: 12, color: txt, marginBottom: 8 }}>
                       Your rider shared a photo of the items:
                     </Text>
                     <View style={{ height: 160, borderRadius: 10, overflow: 'hidden', backgroundColor: '#222', marginBottom: 10 }}>
@@ -858,13 +861,13 @@ export default function TrackingScreen() {
                         {approving ? (
                           <ActivityIndicator size="small" color="#000" />
                         ) : (
-                          <Text style={{ color: '#000', fontWeight: 'bold', fontSize: 11 }}>Looks good, go ahead</Text>
+                          <Text style={{ color: '#000', fontWeight: 'bold', fontSize: 12 }}>Looks good, go ahead</Text>
                         )}
                       </TouchableOpacity>
                     ) : (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <Ionicons name="checkmark-circle" size={14} color={COLORS.emerald} />
-                        <Text style={{ fontSize: 11, fontWeight: 'bold', color: COLORS.emerald }}>
+                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: COLORS.emerald }}>
                           Approved. Your rider is buying your items.
                         </Text>
                       </View>
@@ -876,17 +879,17 @@ export default function TrackingScreen() {
               {/* Step 2: approve the final bill */}
               {orderInfo.isPurchasingApprovedByCustomer && (
                 <View>
-                  <Text style={{ fontSize: 10, fontWeight: 'bold', color: txtSec, marginBottom: 4 }}>Step 2: approve the bill</Text>
+                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: txtSec, marginBottom: 4 }}>Step 2: approve the bill</Text>
                   {!orderInfo.billProofUrl ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 }}>
                       <ActivityIndicator size="small" color="#F59E0B" />
-                      <Text style={{ fontSize: 11, color: txtSec, fontStyle: 'italic' }}>
+                      <Text style={{ fontSize: 12, color: txtSec, fontStyle: 'italic' }}>
                         Waiting for your rider to upload the store bill…
                       </Text>
                     </View>
                   ) : (
                     <View>
-                      <Text style={{ fontSize: 11, color: txt, marginBottom: 4 }}>
+                      <Text style={{ fontSize: 12, color: txt, marginBottom: 4 }}>
                         Store bill uploaded by your rider:
                       </Text>
                       {Number(orderInfo.billAmount) > 0 && (
@@ -908,10 +911,10 @@ export default function TrackingScreen() {
                             {approving ? (
                               <ActivityIndicator size="small" color="#fff" />
                             ) : (
-                              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 11 }}>Approve bill</Text>
+                              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12 }}>Approve bill</Text>
                             )}
                           </TouchableOpacity>
-                          <Text style={{ fontSize: 10, color: txtSec, marginTop: 6, textAlign: 'center' }}>
+                          <Text style={{ fontSize: 12, color: txtSec, marginTop: 6, textAlign: 'center' }}>
                             {orderInfo.paymentMethod === 'Wallet'
                               ? 'The difference is adjusted in your Zenvy Wallet.'
                               : 'You pay the new total in cash at delivery.'}
@@ -920,7 +923,7 @@ export default function TrackingScreen() {
                       ) : (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                           <Ionicons name="checkmark-circle" size={14} color={COLORS.emerald} />
-                          <Text style={{ fontSize: 11, fontWeight: 'bold', color: COLORS.emerald }}>
+                          <Text style={{ fontSize: 12, fontWeight: 'bold', color: COLORS.emerald }}>
                             Bill approved. Your rider is on the way.
                           </Text>
                         </View>
@@ -997,12 +1000,25 @@ export default function TrackingScreen() {
           </View>
         </StaggeredSection>
 
+        {/* ── WAITING FOR THE STORE (Pending): say what happens if it never answers ── */}
+        {status === 1 && (
+          <View style={[s.waitStoreBox, { backgroundColor: cardBg, borderColor: border }]} accessibilityRole="summary">
+            <ActivityIndicator size="small" color={COLORS.gold} />
+            <View style={{ flex: 1 }}>
+              <Text style={[s.waitStoreTitle, { color: txt }]}>Waiting for the store to accept</Text>
+              <Text style={[s.waitStoreSub, { color: txtSec }]}>
+                {`If the store doesn't accept within ${Number(serviceability?.storeAcceptTimeoutMin) > 0 ? Number(serviceability?.storeAcceptTimeoutMin) : 7} minutes, we cancel the order for you. Nothing is charged. You can also cancel now for free.`}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* ── CANCEL (Pending, or within 2 minutes of placing) ── */}
         {canCancel && (
           <StaggeredSection delay={260} direction="up">
-            <TouchableOpacity style={s.cancelBox} onPress={() => setShowCancelConfirmation(true)} disabled={cancelling}>
+            <TouchableOpacity style={s.cancelBox} onPress={() => setShowCancelConfirmation(true)} disabled={cancelling} accessibilityRole="button">
               <Text style={s.cancelBoxText}>
-                Cancel order{status !== 1 && cancelSecondsLeft > 0 ? ` (${cancelSecondsLeft}s)` : ''}
+                {status === 1 ? 'Cancel for free' : `Cancel order${cancelSecondsLeft > 0 ? ` (${cancelSecondsLeft}s)` : ''}`}
               </Text>
             </TouchableOpacity>
           </StaggeredSection>
@@ -1200,7 +1216,7 @@ export default function TrackingScreen() {
 const s = StyleSheet.create({
   receiptCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 12 },
   receiptBtn: { backgroundColor: COLORS.gold, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, minWidth: 110, alignItems: 'center' },
-  receiptBtnText: { color: '#000', fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
+  receiptBtnText: { color: '#000', fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
   container: { flex: 1, width: '100%', maxWidth: 600, alignSelf: 'center' },
 
   // Rider-at-gate banner
@@ -1215,7 +1231,7 @@ const s = StyleSheet.create({
     ...SHADOWS.card
   },
   gateBannerTitle: { fontSize: 13, fontWeight: '900', color: '#fff' },
-  gateBannerSub: { fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+  gateBannerSub: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.85)', marginTop: 2 },
   gateBannerBtn: { backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
   gateBannerBtnText: { fontSize: 12, fontWeight: '900', color: COLORS.emerald },
 
@@ -1231,7 +1247,7 @@ const s = StyleSheet.create({
     marginBottom: 16
   },
   rateCtaTitle: { fontSize: 13, fontWeight: '800' },
-  rateCtaSub: { fontSize: 10, fontWeight: '600', marginTop: 2 },
+  rateCtaSub: { fontSize: 12, fontWeight: '600', marginTop: 2 },
   tipChip: {
     paddingHorizontal: 12,
     height: 36,
@@ -1247,7 +1263,7 @@ const s = StyleSheet.create({
   summaryDivider: { height: 1, marginVertical: 10 },
   summaryTotalLabel: { fontSize: 12, fontWeight: '800' },
   summaryTotal: { fontSize: 15, fontWeight: '900' },
-  summaryAddress: { fontSize: 10, fontWeight: '600', marginTop: 8 },
+  summaryAddress: { fontSize: 12, fontWeight: '600', marginTop: 8 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1275,7 +1291,7 @@ const s = StyleSheet.create({
     gap: 4
   },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.2 },
+  statusText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
   scroll: { padding: 16 },
 
   // Stage card
@@ -1288,7 +1304,7 @@ const s = StyleSheet.create({
     marginBottom: 16
   },
   stageEmoji: { marginRight: 12, alignItems: 'center', justifyContent: 'center' },
-  stageLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.2, marginBottom: 2 },
+  stageLabel: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2, marginBottom: 2 },
   stageText: { fontSize: 13, fontWeight: '700' },
   etaChip: {
     backgroundColor: COLORS.goldMuted,
@@ -1298,7 +1314,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.goldBorder
   },
-  etaText: { fontSize: 9, fontWeight: '900', color: COLORS.gold },
+  etaText: { fontSize: 12, fontWeight: '900', color: COLORS.gold },
 
   // Eco banner
   ecoBanner: {
@@ -1312,7 +1328,7 @@ const s = StyleSheet.create({
     marginBottom: 16
   },
   ecoTitle: { fontSize: 12, fontWeight: '900', color: COLORS.emerald, letterSpacing: 0.2 },
-  ecoSubtitle: { fontSize: 10, color: '#888', fontWeight: '500', marginTop: 2 },
+  ecoSubtitle: { fontSize: 12, color: '#888', fontWeight: '500', marginTop: 2 },
 
   // PIN card
   pinCard: {
@@ -1330,8 +1346,8 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
-  pinLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.2 },
-  pinDesc: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+  pinLabel: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
+  pinDesc: { fontSize: 12, fontWeight: '600', marginTop: 2 },
   pinDisplayRow: { flexDirection: 'row', gap: 8 },
   pinButton: {
     flex: 1,
@@ -1380,8 +1396,8 @@ const s = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4
   },
-  verifiedText: { fontSize: 6, fontWeight: '900', color: COLORS.emerald },
-  riderVehicle: { fontSize: 9, fontWeight: '600', marginTop: 2 },
+  verifiedText: { fontSize: 12, fontWeight: '900', color: COLORS.emerald },
+  riderVehicle: { fontSize: 12, fontWeight: '600', marginTop: 2 },
   progressTrack: {
     width: '100%',
     height: 4,
@@ -1405,7 +1421,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     ...SHADOWS.card
   },
-  actionBtnText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.2 },
+  actionBtnText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
 
   // Timeline
   timelineCard: {
@@ -1433,10 +1449,13 @@ const s = StyleSheet.create({
     zIndex: 5
   },
   timelineContent: { flex: 1, paddingBottom: 24 },
-  timelineTitle: { fontSize: 11, fontWeight: '800' },
-  timelineDesc: { fontSize: 9, marginTop: 2, color: '#888' },
+  timelineTitle: { fontSize: 12, fontWeight: '800' },
+  timelineDesc: { fontSize: 12, marginTop: 2, color: '#888' },
 
   // Cancel countdown
+  waitStoreBox: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 16, marginTop: 12, padding: 14, borderRadius: 14, borderWidth: 1 },
+  waitStoreTitle: { fontSize: 14, fontWeight: '800' },
+  waitStoreSub: { fontSize: 12, fontWeight: '500', marginTop: 3, lineHeight: 17 },
   cancelBox: {
     paddingVertical: 14,
     borderRadius: 16,
@@ -1460,7 +1479,7 @@ const s = StyleSheet.create({
     marginBottom: 16
   },
   cancelledTitle: { fontSize: 18, fontWeight: '900', marginBottom: 8 },
-  cancelledDesc: { fontSize: 11, textAlign: 'center', lineHeight: 16, marginBottom: 24, maxWidth: 260 },
+  cancelledDesc: { fontSize: 12, textAlign: 'center', lineHeight: 16, marginBottom: 24, maxWidth: 260 },
   returnBtn: {
     backgroundColor: '#fff',
     paddingVertical: 12,
@@ -1489,7 +1508,7 @@ const s = StyleSheet.create({
     marginBottom: 40
   },
   zoomTitle: { fontSize: 15, fontWeight: '900', color: COLORS.gold, letterSpacing: 0.2, marginBottom: 4 },
-  zoomDesc: { fontSize: 11, fontWeight: '700', marginBottom: 20 },
+  zoomDesc: { fontSize: 12, fontWeight: '700', marginBottom: 20 },
   zoomPinDisplay: {
     width: '100%',
     backgroundColor: COLORS.gold,
@@ -1519,7 +1538,7 @@ const s = StyleSheet.create({
     alignItems: 'center'
   },
   cancelModalTitle: { fontSize: 14, fontWeight: '900', marginBottom: 8 },
-  cancelModalDesc: { fontSize: 11, textAlign: 'center', lineHeight: 16, color: '#888', marginBottom: 24 },
+  cancelModalDesc: { fontSize: 12, textAlign: 'center', lineHeight: 16, color: '#888', marginBottom: 24 },
   confirmCancelBtn: {
     width: '100%',
     paddingVertical: 14,
@@ -1535,7 +1554,7 @@ const s = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center'
   },
-  dismissCancelBtnText: { fontSize: 10, fontWeight: '800' },
+  dismissCancelBtnText: { fontSize: 12, fontWeight: '800' },
 
   // Chat Drawer container
   chatContainer: {
@@ -1587,7 +1606,7 @@ const s = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.1)',
     marginRight: 6
   },
-  quickReplyText: { fontSize: 7, fontWeight: '900', letterSpacing: 1, color: '#aaa' },
+  quickReplyText: { fontSize: 12, fontWeight: '900', letterSpacing: 1, color: '#aaa' },
   chatInputRow: { flexDirection: 'row', gap: 8 },
   chatInput: {
     flex: 1,
@@ -1614,7 +1633,7 @@ const s = StyleSheet.create({
     alignItems: 'center'
   },
   ratingModalTitle: { fontSize: 14, fontWeight: '900', marginBottom: 4 },
-  ratingModalDesc: { fontSize: 10, color: '#888', marginBottom: 20 },
+  ratingModalDesc: { fontSize: 12, color: '#888', marginBottom: 20 },
   starsRow: { flexDirection: 'row', marginBottom: 20 },
   ratingInput: {
     width: '100%',
@@ -1726,7 +1745,7 @@ const s = StyleSheet.create({
     alignItems: 'center'
   },
   driverInfoLabel: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1,
     marginBottom: 4

@@ -15,6 +15,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SHADOWS } from '../../constants/theme';
 import { API_URL } from '../../constants/api';
+import { apiFetch } from '../../utils/auth';
+import NightClosureBanner from '../../components/NightClosureBanner';
 import { useCartActions, useCartState, MAX_ITEM_QTY } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -32,7 +34,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { formatINR, plural } from '../../utils/format';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const LOAD_TIMEOUT_MS = 20000;
 // Booking-only service stores (backend utils/vendorTypes.js) and the shelf that books them.
 const SERVICE_CATEGORY_BY_VENDOR: Record<string, string> = { REPAIRS: 'repairs', PRINT: 'print', LAUNDRY: 'laundry', TAILORING: 'tailoring' };
 // Store types that don't sell food: no veg / non-veg mark and no food placeholder (same list as products/[id].tsx).
@@ -206,10 +207,9 @@ export default function RestaurantDetail() {
       if (seeded) mode = 'silent';
       else setLoading(true);
     }
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), LOAD_TIMEOUT_MS);
+    // apiFetch rides out a server cold start (retries with the "waking up" banner) and has its own timeout.
     try {
-      const res = await fetch(`${API_URL}/api/users/restaurants/${id}`, { signal: controller.signal });
+      const res = await apiFetch(`/api/users/restaurants/${id}`);
       const data = await res.json().catch(() => null);
       if (!mountedRef.current) return;
       if (res.ok && data && (data.id || data._id)) {
@@ -241,7 +241,6 @@ export default function RestaurantDetail() {
         setLoadError({ notFound: false, message: "Can't reach Zenvy right now. Check your internet and try again." });
       }
     } finally {
-      clearTimeout(timer);
       if (mountedRef.current) {
         setLoading(false);
         setRefreshing(false);
@@ -462,7 +461,7 @@ export default function RestaurantDetail() {
         {/* Hero Banner */}
         <View style={st.hero}>
           {heroImg ? (
-            <SafeImage source={{ uri: heroImg }} style={st.heroImg} maxWidth={800} />
+            <SafeImage source={{ uri: heroImg }} style={st.heroImg} maxWidth={800} placeholderIcon="storefront-outline" />
           ) : (
             <View style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#1A1A1F' : '#FDE8EA' }}>
               <Ionicons name={isLocalVendor || !isFoodStore ? 'storefront-outline' : 'restaurant-outline'} size={64} color={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.25)'} />
@@ -500,7 +499,7 @@ export default function RestaurantDetail() {
               <View style={[st.statusBadge, { backgroundColor: isOpen ? '#10B981' : '#6B7280' }]}>
                 <Text style={st.statusBadgeText}>{isOpen ? 'Open now' : 'Closed'}</Text>
               </View>
-              <Text style={{ color: txt, fontSize: 11, fontWeight: '700' }}>
+              <Text style={{ color: txt, fontSize: 12, fontWeight: '700' }}>
                 {hasRating ? `★ ${ratingNum.toFixed(1)}` : 'New'}
               </Text>
             </View>
@@ -525,13 +524,13 @@ export default function RestaurantDetail() {
               {!!deliveryTimeText && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                   <Ionicons name="time-outline" size={11} color={txtSec} />
-                  <Text style={{ fontSize: 10, fontWeight: '800', color: txtSec }}>{String(deliveryTimeText)}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>{String(deliveryTimeText)}</Text>
                 </View>
               )}
               {!!(restaurant.location || restaurant.campus) && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, flexShrink: 1 }}>
                   <Ionicons name="location-outline" size={11} color={txtSec} />
-                  <Text style={{ fontSize: 10, fontWeight: '800', color: txtSec, flexShrink: 1 }} numberOfLines={1}>{restaurant.location || restaurant.campus}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec, flexShrink: 1 }} numberOfLines={1}>{restaurant.location || restaurant.campus}</Text>
                 </View>
               )}
             </View>
@@ -555,16 +554,18 @@ export default function RestaurantDetail() {
         {isLocalVendor && (
           <View style={[st.noticeBar, { backgroundColor: isDark ? 'rgba(249,115,22,0.12)' : 'rgba(249,115,22,0.08)', borderColor: 'rgba(249,115,22,0.3)' }]}>
             <Ionicons name="storefront-outline" size={16} color="#F97316" />
-            <Text style={{ flex: 1, color: txt, fontSize: 11, fontWeight: '700', lineHeight: 16 }}>
+            <Text style={{ flex: 1, color: txt, fontSize: 12, fontWeight: '700', lineHeight: 16 }}>
               {stallOffline ? `${restaurant.name} is not taking orders on Zenvy right now.` : `${String(restaurant.name || '').trim() || 'This stall'} delivers this order. Pay them in cash on delivery.`}
             </Text>
           </View>
         )}
 
-        {!isOpen && (
+        {/* Campus night closure (9 PM to 6 AM): one clear banner, from the store's flag or the campus check */}
+        <NightClosureBanner reopensAt={restaurant.campusClosed ? (restaurant.opensAt || '06:00') : undefined} />
+        {!isOpen && !restaurant.campusClosed && (
           <View style={[st.noticeBar, { backgroundColor: isDark ? 'rgba(99,102,241,0.14)' : 'rgba(99,102,241,0.08)', borderColor: 'rgba(99,102,241,0.3)' }]}>
             <Ionicons name="moon-outline" size={16} color="#6366F1" />
-            <Text style={{ flex: 1, color: txt, fontSize: 11, fontWeight: '700' }}>{closedText}. You can browse the menu and order when it opens.</Text>
+            <Text style={{ flex: 1, color: txt, fontSize: 12, fontWeight: '700' }}>{String(closedText).replace(/[.\s]+$/, '')}. You can browse the menu and order when it opens.</Text>
           </View>
         )}
 
@@ -607,7 +608,7 @@ export default function RestaurantDetail() {
               <Text style={{ color: txt, fontSize: 14, fontWeight: '800', textAlign: 'center' }}>
                 {hiddenByDiet > 0 ? 'Hidden by your food preferences' : 'No items here yet'}
               </Text>
-              <Text style={{ color: txtSec, fontSize: 11, marginTop: 4, textAlign: 'center', lineHeight: 16 }}>
+              <Text style={{ color: txtSec, fontSize: 12, marginTop: 4, textAlign: 'center', lineHeight: 16 }}>
                 {hiddenByDiet > 0
                   ? `Your ${DIET_MODE_LABELS[String(dietMode)] || 'food'} filter hides ${plural(hiddenByDiet, 'item')} from this store.`
                   : 'This store is still adding items. Check back later.'}
@@ -651,20 +652,20 @@ export default function RestaurantDetail() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginVertical: 2, flexWrap: 'wrap' }}>
                     <Text style={[st.menuItemPrice, { color: brand ? accent : '#EF4F5F' }]}>{formatINR(item.price)}</Text>
                     {Number.isFinite(kcal) && kcal > 0 && (
-                      <Text style={{ fontSize: 10, color: txtSec, fontWeight: '700' }}>· {Math.round(kcal)} kcal</Text>
+                      <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700' }}>· {Math.round(kcal)} kcal</Text>
                     )}
                     {eliteLocked && (
-                      <Text style={{ fontSize: 10, color: COLORS.gold, fontWeight: '900' }}>· Elite only</Text>
+                      <Text style={{ fontSize: 12, color: COLORS.gold, fontWeight: '900' }}>· Elite only</Text>
                     )}
                   </View>
-                  {item.description ? <Text style={{ fontSize: 9, color: txtSec, marginTop: 2 }} numberOfLines={2}>{item.description}</Text> : null}
-                  {customizable && <Text style={{ fontSize: 10, color: txtSec, fontWeight: '800', marginTop: 4 }}>Customisable</Text>}
+                  {item.description ? <Text style={{ fontSize: 12, color: txtSec, marginTop: 2 }} numberOfLines={2}>{item.description}</Text> : null}
+                  {customizable && <Text style={{ fontSize: 12, color: txtSec, fontWeight: '800', marginTop: 4 }}>Customisable</Text>}
                 </View>
 
                 {/* Right image with floating ADD button */}
                 <View style={st.imgBtnContainer} pointerEvents="box-none">
                   {itemImg ? (
-                    <SafeImage source={{ uri: itemImg }} style={st.menuItemImg} />
+                    <SafeImage source={{ uri: itemImg }} style={st.menuItemImg} placeholderIcon="fast-food-outline" />
                   ) : (
                     <View style={[st.menuItemImg, { alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#1F1F23' : '#F3F4F6' }]}>
                       <Ionicons name={isFoodStore ? 'restaurant-outline' : 'cube-outline'} size={28} color={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.25)'} />
@@ -726,19 +727,19 @@ const st = StyleSheet.create({
   // Floating Card Overlap Style
   floatingInfoCard: { marginHorizontal: 16, marginTop: -32, borderRadius: 24, padding: 16, borderWidth: 1, ...SHADOWS.card, shadowOpacity: 0.15 },
   infoCardName: { fontSize: 20, fontWeight: '900', letterSpacing: 0.5, marginBottom: 4 },
-  infoCardDesc: { fontSize: 10, fontWeight: '500', lineHeight: 14, marginBottom: 8 },
+  infoCardDesc: { fontSize: 12, fontWeight: '500', lineHeight: 14, marginBottom: 8 },
   localVendorBadge: { alignSelf: 'flex-start', backgroundColor: 'rgba(249,115,22,0.1)', borderWidth: 1, borderColor: 'rgba(249,115,22,0.2)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, marginVertical: 4 },
-  localVendorBadgeText: { fontSize: 10, fontWeight: '800', color: '#F97316', letterSpacing: 0.2 },
+  localVendorBadgeText: { fontSize: 12, fontWeight: '800', color: '#F97316', letterSpacing: 0.2 },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, alignSelf: 'flex-start' },
-  statusBadgeText: { fontSize: 10, fontWeight: '800', color: '#fff', letterSpacing: 0.2 },
+  statusBadgeText: { fontSize: 12, fontWeight: '800', color: '#fff', letterSpacing: 0.2 },
   
   contactBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-  contactBtnText: { fontSize: 10, fontWeight: '800', color: '#fff' },
+  contactBtnText: { fontSize: 12, fontWeight: '800', color: '#fff' },
 
   brandTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start' },
-  brandTagText: { fontSize: 8, fontWeight: '900', color: '#fff', letterSpacing: 3 },
+  brandTagText: { fontSize: 12, fontWeight: '900', color: '#fff', letterSpacing: 3 },
   menuTitle: { fontSize: 16, fontWeight: '900', letterSpacing: 0.2, marginBottom: 2 },
-  menuSub: { fontSize: 11, fontWeight: '700', letterSpacing: 0.2, marginBottom: 16 },
+  menuSub: { fontSize: 12, fontWeight: '700', letterSpacing: 0.2, marginBottom: 16 },
   menuCard: { flexDirection: 'row', padding: 12, borderRadius: 24, marginBottom: 12, borderWidth: 1, alignItems: 'center' },
   menuInfo: { flex: 1, paddingRight: 12 },
   vegDot: { width: 12, height: 12, borderWidth: 1.5, borderRadius: 3, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
@@ -763,7 +764,7 @@ const st = StyleSheet.create({
   menuItemImg: { width: '100%', height: '100%', borderRadius: 16 },
   floatingAddWrap: { position: 'absolute', bottom: -8, zIndex: 10, width: '100%', alignItems: 'center' },
   menuAddBtn: { width: 72, paddingVertical: 6, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...SHADOWS.card },
-  menuAddBtnText: { fontSize: 11, fontWeight: '900', letterSpacing: 0.2 },
+  menuAddBtnText: { fontSize: 12, fontWeight: '900', letterSpacing: 0.2 },
 
   // Interactive stepper styles
   stepperWrap: {
@@ -790,25 +791,25 @@ const st = StyleSheet.create({
     lineHeight: 16,
   },
   stepperCountText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '900',
     color: '#FFFFFF',
   },
 
   // Promo Codes Styles
   promoTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, marginTop: 12 },
-  promoSectionTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 2 },
-  swipeText: { fontSize: 8, fontWeight: '700' },
+  promoSectionTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 2 },
+  swipeText: { fontSize: 12, fontWeight: '700' },
   promoCard: { width: 220, padding: 12, borderRadius: 16, borderStyle: 'dashed', borderWidth: 1.5, marginRight: 12 },
   promoCodeBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginBottom: 6 },
-  promoCodeText: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
-  promoDescText: { fontSize: 11, fontWeight: '800' },
-  promoSubText: { fontSize: 8, fontWeight: '600', marginTop: 4 },
+  promoCodeText: { fontSize: 12, fontWeight: '900', letterSpacing: 1 },
+  promoDescText: { fontSize: 12, fontWeight: '800' },
+  promoSubText: { fontSize: 12, fontWeight: '600', marginTop: 4 },
 
   // Category Filter Pills
   categoryScroll: { marginVertical: 12 },
   categoryPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8, borderWidth: 1 },
-  categoryText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.2 },
+  categoryText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
 
   // Floating Cart styles
   floatingCartContainer: {
@@ -832,7 +833,7 @@ const st = StyleSheet.create({
     elevation: 8,
   },
   badgeContainer: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' },
-  badgeText: { color: '#FFF', fontSize: 10, fontWeight: '900' },
+  badgeText: { color: '#FFF', fontSize: 12, fontWeight: '900' },
   floatingCartText: { fontSize: 13, fontWeight: '900', letterSpacing: 0.2 },
   proceedText: { fontSize: 12, fontWeight: '900' },
 });

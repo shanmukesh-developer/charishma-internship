@@ -313,13 +313,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#3DD598',
   },
   syncLiveText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     color: '#B7E4B7',
     letterSpacing: 0.6,
   },
   syncOnlineText: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.inkMuted,
   },
   syncTitle: {
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     color: CampusColors.ink,
   },
   timeEnd: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.muted,
   },
   statusStrip: {
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   classBadgeText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700',
     color: CampusColors.accentDeep,
   },

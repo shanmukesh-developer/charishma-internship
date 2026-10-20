@@ -143,7 +143,23 @@ const getCampusServiceability = (now = new Date()) => {
   return {
     open: false,
     reopensAt: `${String(NIGHT_END_HOUR).padStart(2, '0')}:00`,
-    message: 'Campus ordering is closed for the night 🌙 We will be back at 6 AM.'
+    message: 'Campus ordering is closed for the night. Ordering opens at 6:00 am.'
+  };
+};
+
+// Public store listing / detail: a store is shown closed during the campus night window too (Home and
+// store pages used to say "Open" at 10 PM). Only the public catalogue responses use this; the partner
+// apps keep the store's own state. Adds campusClosed (new key; older apps ignore it).
+const withCampusWindow = (openState, now = new Date()) => {
+  const campus = getCampusServiceability(now);
+  if (campus.open) return { ...openState, campusClosed: false };
+  return {
+    ...openState,
+    isOpen: false,
+    reason: openState.isOpen ? 'campus_night' : openState.reason,
+    opensAt: campus.reopensAt,
+    message: campus.message,
+    campusClosed: true,
   };
 };
 
@@ -208,4 +224,4 @@ const todayHoursText = (restaurant, now = new Date()) => {
   return `${formatTime(hours.start)} – ${formatTime(hours.end)}`;
 };
 
-module.exports = { getStoreOpenState, getCampusServiceability, formatTime, todayHoursText, DAY_KEYS, normalizeOperatingHours };
+module.exports = { getStoreOpenState, getCampusServiceability, withCampusWindow, formatTime, todayHoursText, DAY_KEYS, normalizeOperatingHours };

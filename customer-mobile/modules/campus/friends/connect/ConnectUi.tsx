@@ -190,11 +190,11 @@ const styles = StyleSheet.create({
   tagText: { fontSize: 12, fontWeight: '700', color: FriendsColors.ink },
   section: { flexDirection: 'row', alignItems: 'flex-end', gap: FS.sm, marginTop: FS.xl, marginBottom: FS.sm },
   pill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: FR.pill, alignSelf: 'flex-start' },
-  pillText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.2 },
+  pillText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
   notice: { flexDirection: 'row', gap: FS.sm, padding: FS.md, borderRadius: FR.md },
   steps: { flexDirection: 'row', gap: 6, paddingHorizontal: FS.lg, paddingTop: FS.md },
   stepBar: { height: 3, borderRadius: 2, backgroundColor: FriendsColors.line },
-  stepText: { fontSize: 10, fontWeight: '700', color: FriendsColors.faint, textTransform: 'uppercase', letterSpacing: 0.5 },
+  stepText: { fontSize: 12, fontWeight: '700', color: FriendsColors.faint, textTransform: 'uppercase', letterSpacing: 0.5 },
 });
 
 /** The Connect mark: a filled lavender heart. */

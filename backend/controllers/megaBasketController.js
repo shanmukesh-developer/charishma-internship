@@ -122,7 +122,7 @@ const createBasket = async (req, res) => {
     }
 
     if (items.length > 50) {
-      return res.status(400).json({ message: 'A Mega Basket can have up to 50 items. Please split it into two baskets.' });
+      return res.status(400).json({ message: 'A shopping list can have up to 50 items. Please split it into two lists.' });
     }
     if (items.some(item => !item || typeof item.name !== 'string' || !item.name.trim())) {
       return res.status(400).json({ message: 'Every item needs a name. Please check your list.' });
@@ -135,7 +135,7 @@ const createBasket = async (req, res) => {
     // The final bill is only known after shopping, so Mega Basket is Cash on Delivery only.
     if (String(paymentMethod || 'COD').trim().toUpperCase() !== 'COD') {
       return res.status(400).json({
-        message: 'Mega Basket is paid in cash when it arrives (the shop bill is known only after shopping). Please choose Cash on Delivery.',
+        message: 'A shopping list is paid in cash when it arrives (the shop bill is known only after shopping). Please choose Cash on Delivery.',
         code: 'PAYMENT_METHOD_UNAVAILABLE',
         allowed: ['COD']
       });
@@ -254,7 +254,7 @@ const createBasket = async (req, res) => {
 const payBasket = async (req, res) => {
   // Online/UPI payments are switched off: a pasted UTR was never verified by anyone.
   res.status(400).json({
-    message: 'Online payments are coming soon — Mega Basket is paid in cash when it arrives.',
+    message: 'A shopping list is paid in cash when it arrives.',
     code: 'PAYMENT_METHOD_UNAVAILABLE',
     allowed: ['COD']
   });
@@ -791,8 +791,8 @@ const expireStaleBaskets = async (io) => {
       if (customer) {
         await require('../utils/push').sendPushToTokens(
           customer.fcmTokens,
-          'Mega Basket cancelled',
-          'No rider could take your Mega Basket in time. You have not been charged.',
+          'Shopping list cancelled',
+          'No rider could take your shopping list in time. Nothing was charged.',
           { basketId: String(b.id), type: 'ORDER_UPDATE' },
           { recipients: [customer.id] }
         );

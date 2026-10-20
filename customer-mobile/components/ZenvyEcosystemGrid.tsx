@@ -11,7 +11,7 @@ const ECOSYSTEM_SERVICES = [
   { id: 'print', name: 'Print & Xerox', emoji: '🖨️', color: '#10B981', bg: 'rgba(16, 185, 129, 0.15)', badge: '24/7', route: '/category/print' },
   { id: 'mattresses', name: 'Mattresses & Bed', emoji: '🛏️', color: '#EC4899', bg: 'rgba(236, 72, 153, 0.15)', badge: 'ROOM SET', route: '/category/mattresses' },
   { id: 'electronics', name: 'Electronics', emoji: '🔌', color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.15)', badge: 'HOT', route: '/category/electronics' },
-  { id: 'rides', name: 'Bike & Auto', emoji: '🛺', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.15)', badge: 'CO-RIDE', route: '/others?tab=rides' },
+  { id: 'rides', name: 'Bike pool', emoji: '🏍️', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.15)', badge: 'CO-RIDE', route: '/others?tab=rides' },
   { id: 'groceries', name: 'Kirana & Mart', emoji: '🛒', color: '#EAB308', bg: 'rgba(234, 179, 8, 0.15)', route: '/category/groceries' },
   { id: 'laundry', name: 'Wash & Fold', emoji: '🧺', color: '#06B6D4', bg: 'rgba(6, 182, 212, 0.15)', route: '/category/laundry' },
   { id: 'stays', name: 'Campus Stays', emoji: '🏨', color: '#6366F1', bg: 'rgba(99, 102, 241, 0.15)', route: '/others?tab=stays' },
@@ -72,12 +72,12 @@ const s = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 13, fontWeight: '900', letterSpacing: 1.5 },
   superBadge: { backgroundColor: '#EF4444', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  superBadgeText: { color: '#FFF', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
-  sub: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, marginTop: 2 },
+  superBadgeText: { color: '#FFF', fontSize: 12, fontWeight: '900', letterSpacing: 1 },
+  sub: { fontSize: 12, fontWeight: '700', letterSpacing: 1.5, marginTop: 2 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   card: { alignItems: 'center', padding: 8, borderRadius: 16, borderWidth: 1, position: 'relative' },
   badgeBox: { position: 'absolute', top: -4, right: -4, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4, zIndex: 2 },
-  badgeText: { color: '#FFF', fontSize: 7, fontWeight: '900' },
+  badgeText: { color: '#FFF', fontSize: 12, fontWeight: '900' },
   iconBox: { width: 46, height: 46, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  label: { fontSize: 9, fontWeight: '800', textAlign: 'center' }
+  label: { fontSize: 12, fontWeight: '800', textAlign: 'center' }
 });

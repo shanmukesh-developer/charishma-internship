@@ -219,9 +219,9 @@ const styles = StyleSheet.create({
   avgRow: { flexDirection: 'row', alignItems: 'center', gap: FS.lg, marginTop: FS.lg },
   avg: { fontSize: 34, fontWeight: '800', color: FriendsColors.ink },
   barRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  barLabel: { width: 10, fontSize: 11, fontWeight: '700', color: FriendsColors.muted },
+  barLabel: { width: 10, fontSize: 12, fontWeight: '700', color: FriendsColors.muted },
   barTrack: { flex: 1, height: 6, borderRadius: 3, backgroundColor: FriendsColors.cardHi, overflow: 'hidden' },
   barFill: { height: 6, borderRadius: 3, backgroundColor: FriendsColors.gold },
-  barCount: { width: 24, fontSize: 11, color: FriendsColors.muted, textAlign: 'right' },
+  barCount: { width: 24, fontSize: 12, color: FriendsColors.muted, textAlign: 'right' },
   mine: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.accentSoft },
 });

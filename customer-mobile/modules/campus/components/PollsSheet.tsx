@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 16, fontWeight: '700', color: CampusColors.ink },
   body: { paddingHorizontal: 20, paddingTop: 14 },
   label: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1.5,
     color: CampusColors.muted,
@@ -320,5 +320,5 @@ const styles = StyleSheet.create({
   optionRowMine: { borderColor: CampusColors.accent, borderWidth: 1.5 },
   optionText: { fontSize: 13, color: CampusColors.ink, flex: 1 },
   optionPct: { fontSize: 12, fontWeight: '700', color: CampusColors.accent },
-  pollMeta: { fontSize: 11, color: CampusColors.muted },
+  pollMeta: { fontSize: 12, color: CampusColors.muted },
 });

@@ -234,12 +234,12 @@ export default function OrganizerEventScreen() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontWeight: '900', color: p.text }}>{r.team ? `Team: ${r.team.name}` : r.name}</Text>
-                      <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }}>{r.code}{r.team ? ` · Captain: ${r.name}` : ''} · {fmtWhen(r.createdAt)}</Text>
+                      <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>{r.code}{r.team ? ` · Captain: ${r.name}` : ''} · {fmtWhen(r.createdAt)}</Text>
                     </View>
                     <RegStatusPill status={r.status} />
                   </View>
                   {r.paymentStatus !== 'NONE' ? <Text style={{ fontSize: 12, color: p.text, marginTop: 6 }}>{inr(r.total)} · {PAYMENT_STATUS_LABEL[r.paymentStatus]}</Text> : null}
-                  {r.ticket ? <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }}>Ticket {r.ticket.ticketCode} · {(TICKET_STATUS_META[r.ticket.status]?.label || 'Not valid').toLowerCase()}</Text> : null}
+                  {r.ticket ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>Ticket {r.ticket.ticketCode} · {(TICKET_STATUS_META[r.ticket.status]?.label || 'Not valid').toLowerCase()}</Text> : null}
                   {answerRows(r, regs.questions).length ? (
                     <View style={{ marginTop: 6 }}>
                       {answerRows(r, regs.questions).map((a) => (
@@ -277,7 +277,7 @@ export default function OrganizerEventScreen() {
                 <Card key={a.id}>
                   <Text style={{ fontWeight: '900', color: p.text }}>{a.title}</Text>
                   <Text style={{ color: p.sub, fontSize: 12.5, marginTop: 4 }}>{a.body}</Text>
-                  <Text style={{ color: p.muted, fontSize: 10.5, marginTop: 6 }}>{fmtWhen(a.createdAt)}</Text>
+                  <Text style={{ color: p.muted, fontSize: 12, marginTop: 6 }}>{fmtWhen(a.createdAt)}</Text>
                 </Card>
               ))}
             </>

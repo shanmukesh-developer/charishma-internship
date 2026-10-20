@@ -157,7 +157,7 @@ function TripSearch({ mode, routes, error: routesError, reload: reloadRoutes }: 
           style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 32 }}>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 14, fontWeight: '900', color: p.text }}>🔎 Find an auto</Text>
-            <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }} numberOfLines={1}>
+            <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }} numberOfLines={1}>
               {(route ? `→ ${route.destination || route.name}` : 'Any route')} · {istDayLabel(date)}{time ? ` · ~${fmtHHMM(time)}` : ''} · {passengers} {passengers === 1 ? 'passenger' : 'passengers'}
             </Text>
           </View>
@@ -205,7 +205,7 @@ function TripSearch({ mode, routes, error: routesError, reload: reloadRoutes }: 
       ) : (
         <View>
           {error ? <Notice tone="warn">⚠️ {error.message} Showing the last results.</Notice> : null}
-          <Text style={{ fontSize: 11, fontWeight: '900', color: p.sub, letterSpacing: 1, marginBottom: 8, marginTop: 4 }}>
+          <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 1, marginBottom: 8, marginTop: 4 }}>
             {(trips || []).length} AUTO{(trips || []).length === 1 ? '' : 'S'} · {istDayLabel(date).toUpperCase()}
           </Text>
           {(trips || []).length === 0 ? (
@@ -229,7 +229,7 @@ function TripSearch({ mode, routes, error: routesError, reload: reloadRoutes }: 
 
 function Label({ text }: { text: string }) {
   const p = usePalette();
-  return <Text style={{ fontSize: 10.5, fontWeight: '900', color: p.sub, letterSpacing: 0.8, marginTop: 12, marginBottom: 6 }}>{text.toUpperCase()}</Text>;
+  return <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 0.8, marginTop: 12, marginBottom: 6 }}>{text.toUpperCase()}</Text>;
 }
 
 export function TripCard({ t, now, mode = 'shared', onView, onBook, onFull, onMine }: {
@@ -245,7 +245,7 @@ export function TripCard({ t, now, mode = 'shared', onView, onBook, onFull, onMi
         style={{ padding: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <View style={{ backgroundColor: '#FACC15', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 }}>
-            <Text style={{ fontSize: 11, fontWeight: '900', color: '#1F2937' }}>🛺 {queueLabel(t.queueNumber)}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '900', color: '#1F2937' }}>🛺 {queueLabel(t.queueNumber)}</Text>
           </View>
           <View style={{ flex: 1 }} />
           <StatusChip trip={t} now={now} />
@@ -259,27 +259,27 @@ export function TripCard({ t, now, mode = 'shared', onView, onBook, onFull, onMi
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={{ fontSize: 13.5, fontWeight: '800', color: p.text }} numberOfLines={1}>{t.pickup?.name || t.route?.origin || 'Pickup point'}</Text>
-            {t.pickup?.landmark ? <Text style={{ fontSize: 11, color: p.muted }} numberOfLines={1}>{t.pickup.landmark}</Text> : null}
+            {t.pickup?.landmark ? <Text style={{ fontSize: 12, color: p.muted }} numberOfLines={1}>{t.pickup.landmark}</Text> : null}
             <Text style={{ fontSize: 15, fontWeight: '900', color: p.text, marginTop: 6 }} numberOfLines={1}>{t.destination || t.route?.destination || 'Destination'}</Text>
-            {t.route?.name ? <Text style={{ fontSize: 11, color: p.muted }} numberOfLines={1}>{t.route.name}{t.route.distanceKm ? ` · ${t.route.distanceKm} km` : ''}</Text> : null}
+            {t.route?.name ? <Text style={{ fontSize: 12, color: p.muted }} numberOfLines={1}>{t.route.name}{t.route.distanceKm ? ` · ${t.route.distanceKm} km` : ''}</Text> : null}
           </View>
           <View style={{ alignItems: 'flex-end' }}>
             <Text style={{ fontSize: 20, fontWeight: '900', color: p.text }}>{inr(t.seatFare)}</Text>
-            <Text style={{ fontSize: 10.5, color: p.sub, fontWeight: '700' }}>per seat</Text>
-            {t.fullAutoFare ? <Text style={{ fontSize: 10.5, color: '#8B5CF6', fontWeight: '800', marginTop: 4 }}>Full {inr(t.fullAutoFare)}</Text> : null}
+            <Text style={{ fontSize: 12, color: p.sub, fontWeight: '700' }}>per seat</Text>
+            {t.fullAutoFare ? <Text style={{ fontSize: 12, color: '#8B5CF6', fontWeight: '800', marginTop: 4 }}>Full {inr(t.fullAutoFare)}</Text> : null}
           </View>
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 }}>
           <Text style={{ fontSize: 12, fontWeight: '800', color: p.text }}>🕒 {fmtDeparture(t.departureAt)}</Text>
-          <Text style={{ fontSize: 11, color: p.muted }}>{fromNow(t.departureAt, now)}</Text>
+          <Text style={{ fontSize: 12, color: p.muted }}>{fromNow(t.departureAt, now)}</Text>
         </View>
 
         <View style={{ marginTop: 10 }}>
           <View style={{ height: 8, borderRadius: 4, backgroundColor: p.card2, overflow: 'hidden' }}>
             <View style={{ width: `${Math.round(filled * 100)}%`, height: 8, backgroundColor: filled >= 1 ? p.danger : filled >= 0.75 ? '#F97316' : p.success }} />
           </View>
-          <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 5 }}>
+          <Text style={{ fontSize: 12, color: p.sub, marginTop: 5 }}>
             <Text style={{ fontWeight: '900', color: p.text }}>{t.confirmedSeats}/{t.capacity}</Text> booked
             {t.heldSeats ? ` · ${t.heldSeats} on hold` : ''} · <Text style={{ fontWeight: '900', color: t.remainingSeats ? p.success : p.danger }}>{t.remainingSeats} left</Text>
           </Text>
@@ -288,8 +288,8 @@ export function TripCard({ t, now, mode = 'shared', onView, onBook, onFull, onMi
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
           <Text style={{ fontSize: 12, color: p.text, fontWeight: '800' }}>👤 {t.driver?.name || 'Driver'}</Text>
           <VerifiedBadge verified={!!t.driver?.verified} />
-          {t.driver?.rating ? <Text style={{ fontSize: 11, color: p.sub }}>★ {t.driver.rating.avg.toFixed(1)} ({t.driver.rating.count})</Text> : null}
-          {t.vehicle?.registration ? <Text style={{ fontSize: 11, color: p.sub }}>🔢 {t.vehicle.registration}</Text> : null}
+          {t.driver?.rating ? <Text style={{ fontSize: 12, color: p.sub }}>★ {t.driver.rating.avg.toFixed(1)} ({t.driver.rating.count})</Text> : null}
+          {t.vehicle?.registration ? <Text style={{ fontSize: 12, color: p.sub }}>🔢 {t.vehicle.registration}</Text> : null}
         </View>
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
           <Badge label={t.sharedBookingAllowed ? 'SEAT BOOKING OPEN' : 'SEAT BOOKING CLOSED'} color={t.sharedBookingAllowed ? '#10B981' : '#64748B'} />
@@ -344,7 +344,7 @@ function MyBookings() {
       <View style={{ height: 12 }} />
       {openReqs.length ? (
         <View style={{ marginBottom: 6 }}>
-          <Text style={{ fontSize: 11, fontWeight: '900', color: p.sub, letterSpacing: 1, marginBottom: 8 }}>FULL-AUTO REQUESTS</Text>
+          <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 1, marginBottom: 8 }}>FULL-AUTO REQUESTS</Text>
           {openReqs.map((r) => {
             const m = PRIVATE_STATUS_META[r.status];
             return (
@@ -353,7 +353,7 @@ function MyBookings() {
                   <Text style={{ fontSize: 24 }}>🔒</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 13.5, fontWeight: '900', color: p.text }}>Full auto · {r.passengers} passenger{r.passengers === 1 ? '' : 's'}</Text>
-                    <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }}>{inr(r.fare)} · {r.status === 'REQUESTED' && r.respondBy ? `driver answers ${fromNow(r.respondBy)}` : (r.declineReason || m.label)}</Text>
+                    <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>{inr(r.fare)} · {r.status === 'REQUESTED' && r.respondBy ? `driver answers ${fromNow(r.respondBy)}` : (r.declineReason || m.label)}</Text>
                   </View>
                   <Badge label={`${m.icon} ${m.label.toUpperCase()}`} color={m.color} />
                 </Card>
@@ -437,7 +437,7 @@ function PickupPoints() {
       {groups.length === 0 ? <StateView kind="empty" icon="📍" title="No pickup points yet" message="Zenvy has not set up auto stands yet." /> : null}
       {groups.map((g) => (
         <View key={g.route?.id || 'none'} style={{ marginBottom: 8 }}>
-          <Text style={{ fontSize: 11, fontWeight: '900', color: p.sub, letterSpacing: 1, marginBottom: 8 }}>
+          <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 1, marginBottom: 8 }}>
             {(g.route ? `${g.route.origin || ''} → ${g.route.destination || g.route.name}` : 'OTHER').toUpperCase()}
           </Text>
           {g.points.map((x) => (
@@ -447,8 +447,8 @@ function PickupPoints() {
                 <Text style={{ fontSize: 24 }}>🚏</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 14, fontWeight: '900', color: p.text }}>{x.name}</Text>
-                  {x.landmark ? <Text style={{ fontSize: 11.5, color: p.sub, marginTop: 2 }}>{x.landmark}</Text> : null}
-                  <Text style={{ fontSize: 11, color: p.accent, fontWeight: '800', marginTop: 3 }}>View live queue ›</Text>
+                  {x.landmark ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>{x.landmark}</Text> : null}
+                  <Text style={{ fontSize: 12, color: p.accent, fontWeight: '800', marginTop: 3 }}>View live queue ›</Text>
                 </View>
               </TouchableOpacity>
               {x.mapsUrl ? (

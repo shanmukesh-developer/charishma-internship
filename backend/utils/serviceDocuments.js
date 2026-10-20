@@ -40,8 +40,15 @@ const storeServiceDocument = async (doc, { ownerId }) => {
   if (Math.floor((b64.length * 3) / 4) > MAX_PDF_BYTES + 2) {
     return fail(413, 'FILE_TOO_LARGE', `That PDF is larger than ${MAX_PDF_BYTES / (1024 * 1024)} MB. Share it on a pen drive or when the partner calls.`);
   }
-  const buf = Buffer.from(b64, 'base64');
-  if (!buf.length) return fail(400, 'BAD_DOCUMENT', 'That PDF is empty.');
+  return storeServiceDocumentBuffer(Buffer.from(b64, 'base64'), { ownerId, name: doc.name });
+};
+
+/**
+ * The same checks and storage for raw bytes (POST /api/services/documents, multipart field 'document'):
+ * upload first, then book with the returned id. Returns the same shape as storeServiceDocument.
+ */
+const storeServiceDocumentBuffer = async (buf, { ownerId, name }) => {
+  if (!Buffer.isBuffer(buf) || !buf.length) return fail(400, 'BAD_DOCUMENT', 'That PDF is empty.');
   if (buf.length > MAX_PDF_BYTES) {
     return fail(413, 'FILE_TOO_LARGE', `That PDF is larger than ${MAX_PDF_BYTES / (1024 * 1024)} MB. Share it on a pen drive or when the partner calls.`);
   }
@@ -60,11 +67,27 @@ const storeServiceDocument = async (doc, { ownerId }) => {
       sha256,
       isPrivate: true,
     }, buf);
-    return { ok: true, value: { mediaId: row.id, name: cleanPdfName(doc.name), size: buf.length } };
+    return { ok: true, value: { mediaId: row.id, name: cleanPdfName(name), size: buf.length } };
   } catch (err) {
     console.error('[SERVICE_DOC_SAVE_ERR]', err && err.message);
     return fail(500, 'MEDIA_SAVE_FAILED', 'Could not save the PDF. Please try again.');
   }
+};
+
+/**
+ * A PDF uploaded earlier by this student (POST /api/services/documents), referenced by id when booking.
+ * Only the uploader's own private service_doc rows resolve. Returns { ok, value } like the others.
+ */
+const resolveServiceDocument = async (documentId, { ownerId, name }) => {
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID.test(String(documentId || ''))) return fail(400, 'BAD_DOCUMENT', 'That file was not found. Please attach it again.');
+  const { getCampusMediaModel } = require('../modules/campus/models/CampusMedia');
+  const Media = getCampusMediaModel && getCampusMediaModel();
+  const row = Media ? await Media.findByPk(documentId, { attributes: ['id', 'ownerId', 'purpose', 'mime', 'size', 'isPrivate'] }) : null;
+  if (!row || row.purpose !== DOC_PURPOSE || row.mime !== 'application/pdf' || String(row.ownerId) !== String(ownerId)) {
+    return fail(400, 'BAD_DOCUMENT', 'That file was not found. Please attach it again.');
+  }
+  return { ok: true, value: { mediaId: row.id, name: cleanPdfName(name), size: Number(row.size) || 0 } };
 };
 
 /**
@@ -93,4 +116,4 @@ const sendServiceDocument = async (res, booking, doc) => {
   return res.status(200).end(bytes);
 };
 
-module.exports = { DOC_PURPOSE, MAX_PDF_BYTES, cleanPdfName, storeServiceDocument, sendServiceDocument };
+module.exports = { DOC_PURPOSE, MAX_PDF_BYTES, cleanPdfName, storeServiceDocument, storeServiceDocumentBuffer, resolveServiceDocument, sendServiceDocument };

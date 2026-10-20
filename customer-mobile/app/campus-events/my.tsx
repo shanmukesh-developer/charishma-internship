@@ -85,7 +85,7 @@ function RegRow({ r }: { r: Registration }) {
             <Text style={{ fontSize: 14.5, fontWeight: '900', color: p.text }} numberOfLines={2}>{r.event?.title || 'Event'}</Text>
             <Text style={{ fontSize: 12, color: p.sub }} numberOfLines={1}><Ionicons name="calendar-outline" size={12} color={p.sub} /> {fmtWhen(r.slot?.startAt || r.event?.startAt)}</Text>
             {r.event?.venue ? <Text style={{ fontSize: 12, color: p.sub }} numberOfLines={1}><Ionicons name="location-outline" size={12} color={p.sub} /> {r.event.venue}</Text> : null}
-            <Text style={{ fontSize: 11.5, color: p.muted }} numberOfLines={1}>{r.code} · {typeLabel}{r.team ? ` · Team: ${r.team.name}${r.team.isCaptain ? ' (captain)' : ''}` : ''}</Text>
+            <Text style={{ fontSize: 12, color: p.muted }} numberOfLines={1}>{r.code} · {typeLabel}{r.team ? ` · Team: ${r.team.name}${r.team.isCaptain ? ' (captain)' : ''}` : ''}</Text>
           </View>
         </View>
       </TouchableOpacity>

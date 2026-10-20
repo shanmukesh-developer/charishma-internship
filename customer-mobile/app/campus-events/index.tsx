@@ -169,7 +169,7 @@ export default function CampusEventsList() {
           </TouchableOpacity>
         </View>
       ) : null}
-      {filters.sort === 'deadline' ? <Text style={{ color: p.muted, fontSize: 11, marginTop: 8 }}>Open registrations, closing soonest first.</Text> : null}
+      {filters.sort === 'deadline' ? <Text style={{ color: p.muted, fontSize: 12, marginTop: 8 }}>Open registrations, closing soonest first.</Text> : null}
       {notice ? <View style={{ marginTop: 10 }}><Notice tone="warn" icon="school-outline">{notice}</Notice></View> : null}
       <View style={{ height: 12 }} />
     </View>

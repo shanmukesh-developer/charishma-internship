@@ -51,7 +51,7 @@ export const SpaceStatusBadge: React.FC<{ space: Space }> = ({ space }) => {
 export const NotRecorded: React.FC<{ text?: string; compact?: boolean }> = ({ text, compact }) => (
   <View style={[styles.notRec, compact && { paddingVertical: 4, paddingHorizontal: 8 }]} accessible accessibilityLabel={text || 'Not recorded. Spaces are live only.'}>
     <ShieldCheck size={compact ? 12 : 14} color={FriendsColors.success} />
-    <Text style={[styles.notRecText, compact && { fontSize: 11 }]} numberOfLines={compact ? 1 : 2}>
+    <Text style={[styles.notRecText, compact && { fontSize: 12 }]} numberOfLines={compact ? 1 : 2}>
       {text || 'Not recorded'}
     </Text>
   </View>
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   },
   softText: { flex: 1, fontSize: 12, fontWeight: '600', color: FriendsColors.warn },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 3, borderRadius: FR.pill, alignSelf: 'flex-start' },
-  badgeText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.6 },
+  badgeText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.6 },
   notRec: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   seatName: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 6, maxWidth: '92%' },
   seatNameText: { fontSize: 13, fontWeight: '700', color: FriendsColors.ink, flexShrink: 1 },
   seatRole: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 1 },
-  seatRoleText: { fontSize: 11, fontWeight: '700', color: FriendsColors.muted },
+  seatRoleText: { fontSize: 12, fontWeight: '700', color: FriendsColors.muted },
   aud: { width: '25%', alignItems: 'center', paddingVertical: FS.sm },
   audName: { fontSize: 12, fontWeight: '600', color: FriendsColors.muted, marginTop: 4, maxWidth: '90%' },
   hand: {

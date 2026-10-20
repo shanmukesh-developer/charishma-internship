@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
   counterRow: { flexDirection: 'row', alignItems: 'center', gap: FS.sm, paddingBottom: FS.sm, borderBottomWidth: 1, borderBottomColor: FriendsColors.lineSoft },
   tagHint: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 },
   counter: { fontSize: 13, fontWeight: '800', minWidth: 36, textAlign: 'right' },
-  label: { fontSize: 11, fontWeight: '800', letterSpacing: 0.8, color: FriendsColors.muted, textTransform: 'uppercase', marginTop: FS.lg, marginBottom: 6 },
+  label: { fontSize: 12, fontWeight: '800', letterSpacing: 0.8, color: FriendsColors.muted, textTransform: 'uppercase', marginTop: FS.lg, marginBottom: 6 },
   toolRow: { flexDirection: 'row', gap: FS.sm, marginTop: FS.md },
   pollBox: { marginTop: FS.md, padding: FS.md, borderRadius: FR.md, borderWidth: 1, borderColor: FriendsColors.line, backgroundColor: FriendsColors.card },
   pollRow: { flexDirection: 'row', alignItems: 'center', gap: FS.sm, marginBottom: FS.sm },

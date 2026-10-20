@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     color: CampusColors.ink,
   },
   headerSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: CampusColors.accent,
     fontWeight: '600',
   },
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#059669',
   },
   liveRoomText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     color: CampusColors.accentDeep,
   },

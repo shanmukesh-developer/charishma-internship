@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   top: { flexDirection: 'row', alignItems: 'center', gap: FS.sm },
   cat: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 4, borderRadius: FR.pill, backgroundColor: SectionTints.tasks.soft, maxWidth: '55%' },
-  catText: { fontSize: 11, fontWeight: '800', color: SectionTints.tasks.fg },
+  catText: { fontSize: 12, fontWeight: '800', color: SectionTints.tasks.fg },
   reward: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: FR.pill, backgroundColor: FriendsColors.goldSoft, borderWidth: 1, borderColor: 'rgba(232,196,127,0.3)' },
   rewardFree: { backgroundColor: FriendsColors.cardHi, borderColor: FriendsColors.line },
   rewardText: { fontSize: 13, fontWeight: '800', color: FriendsColors.gold },

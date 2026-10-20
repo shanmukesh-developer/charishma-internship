@@ -8,7 +8,7 @@ import { ENDPOINTS } from '../constants/api';
 import { useAuth } from '../context/AuthContext';
 import { StaggeredSection } from '../components/AnimatedSection';
 import { setToken, postAuth, normalizePhone, isValidIndianMobile, NETWORK_ERROR_MESSAGE } from '../utils/auth';
-import { usePhoneOtp, PhoneProof } from '../utils/phoneOtp';
+import { usePhoneOtp, PhoneProof, isSmsSendFailure } from '../utils/phoneOtp';
 import DopaminePressable, { ActionPressable } from '../components/DopaminePressable';
 import ServerWakeupOverlay from '../components/ServerWakeupOverlay';
 import TermsConsent from '../components/TermsConsent';
@@ -166,19 +166,44 @@ export default function RegisterScreen() {
     }
   };
 
+  // The SMS could not be sent: offer the code by email (to the email in this form).
+  const [smsFailed, setSmsFailed] = useState(false);
   const handleSendOtp = () => {
     if (!validateForm()) return;
     Keyboard.dismiss();
     setInfo('');
     const cleanedPhone = normalizePhone(phone);
     runGuarded(async () => {
-      const r = await phoneOtp.send(cleanedPhone);
+      const r = phoneOtp.mode === 'email' ? await phoneOtp.sendEmail(cleanedPhone, email) : await phoneOtp.send(cleanedPhone);
       if (r.ok) {
         setOtp('');
+        setSmsFailed(false);
         setInfo(r.message);
         try { require('../utils/sounds').playSound('success'); } catch {}
       } else {
         if (r.code === 'NETWORK') setShowWakeup(true);
+        if (phoneOtp.mode !== 'email') setSmsFailed(isSmsSendFailure(r));
+        setError(r.message);
+      }
+    });
+  };
+
+  const handleSendEmailCode = () => {
+    if (!validateForm()) return;
+    const mail = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
+      setError('Enter your email address above, then tap "Send the code by email instead".');
+      return;
+    }
+    Keyboard.dismiss();
+    setInfo('');
+    runGuarded(async () => {
+      const r = await phoneOtp.sendEmail(normalizePhone(phone), mail);
+      if (r.ok) {
+        setOtp('');
+        setSmsFailed(false);
+        setInfo(r.message);
+      } else {
         setError(r.message);
       }
     });
@@ -397,7 +422,7 @@ export default function RegisterScreen() {
               {phoneVerified ? (
                 <View style={[inputStyle, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
                   <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#FFF' : '#111827' }}>+91 {normalizePhone(phone)}</Text>
-                  <Text style={{ fontSize: 10, fontWeight: '900', color: '#10B981', letterSpacing: 1 }}>✓ VERIFIED</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '900', color: '#10B981', letterSpacing: 1 }}>✓ VERIFIED</Text>
                 </View>
               ) : (
                 <TextInput
@@ -441,9 +466,9 @@ export default function RegisterScreen() {
                     editable={!busy}
                   />
                   {referralError ? (
-                    <Text style={{ color: '#EF4444', fontSize: 11, fontWeight: '700', marginTop: 4 }}>{referralError}</Text>
+                    <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '700', marginTop: 4 }}>{referralError}</Text>
                   ) : (
-                    <Text style={{ color: isDark ? COLORS.textMuted : '#6B7280', fontSize: 11, fontWeight: '600', marginTop: 4 }}>
+                    <Text style={{ color: isDark ? COLORS.textMuted : '#6B7280', fontSize: 12, fontWeight: '600', marginTop: 4 }}>
                       You and your friend both get 50 ZenPoints.
                     </Text>
                   )}
@@ -469,7 +494,9 @@ export default function RegisterScreen() {
 
               {isOtpSent && !phoneVerified && (
                 <View style={{ marginTop: 12 }}>
-                  <Text style={[s.label, { color: COLORS.gold, fontWeight: '900' }]}>ENTER THE 6-DIGIT CODE SENT TO +91 {phoneOtp.sentTo}</Text>
+                  <Text style={[s.label, { color: COLORS.gold, fontWeight: '900' }]}>
+                    {phoneOtp.mode === 'email' ? `ENTER THE 6-DIGIT CODE SENT TO ${phoneOtp.emailSentTo || 'YOUR EMAIL'}` : `ENTER THE 6-DIGIT CODE SENT TO +91 ${phoneOtp.sentTo}`}
+                  </Text>
                   <TextInput
                     style={[
                       s.input,
@@ -498,15 +525,15 @@ export default function RegisterScreen() {
                   />
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
                     <TouchableOpacity disabled={busy} onPress={editDetails} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                      <Text style={{ fontSize: 10, fontWeight: '800', color: COLORS.gold }}>← Edit details</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: COLORS.gold }}>← Edit details</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       disabled={phoneOtp.countdown > 0 || busy}
                       onPress={handleSendOtp}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                      <Text style={{ fontSize: 10, fontWeight: '800', color: (phoneOtp.countdown > 0 || busy) ? (isDark ? COLORS.textMuted : '#9CA3AF') : COLORS.gold }}>
-                        {phoneOtp.countdown > 0 ? `Resend OTP in ${phoneOtp.countdown}s` : 'Resend OTP'}
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: (phoneOtp.countdown > 0 || busy) ? (isDark ? COLORS.textMuted : '#9CA3AF') : COLORS.gold }}>
+                        {phoneOtp.countdown > 0 ? `Resend in ${phoneOtp.countdown}s` : 'Resend code'}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -534,6 +561,11 @@ export default function RegisterScreen() {
                     <Text style={s.regBtnText}>VERIFY PHONE & CONTINUE</Text>
                   )}
                 </ActionPressable>
+              )}
+              {smsFailed && !isOtpSent && !phoneVerified && (
+                <TouchableOpacity onPress={handleSendEmailCode} disabled={busy} style={{ marginTop: 14, alignSelf: 'center' }} accessibilityRole="button">
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: COLORS.gold }}>Send the code by email instead</Text>
+                </TouchableOpacity>
               )}
 
               <DopaminePressable onPress={goToLogin} style={s.switchLink} sound="click">
@@ -570,7 +602,7 @@ const s = StyleSheet.create({
   iconBadge: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(212, 175, 122, 0.1)', borderWidth: 1.5, borderColor: COLORS.goldBorder, alignItems: 'center', justifyContent: 'center', ...SHADOWS.goldGlow },
   logoIcon: { fontSize: 28 },
   brand: { fontSize: 32, fontWeight: '900', color: COLORS.gold, letterSpacing: 8, marginTop: 10, textShadowColor: COLORS.borderGold, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 },
-  tagline: { fontSize: 8, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 3, marginTop: 4, textTransform: 'uppercase' },
+  tagline: { fontSize: 12, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 3, marginTop: 4, textTransform: 'uppercase' },
   
   card: {
     backgroundColor: 'rgba(26,26,28,0.94)',
@@ -591,16 +623,16 @@ const s = StyleSheet.create({
     zIndex: 15,
   },
   cardTitle: { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
-  cardSubtitle: { fontSize: 10, color: COLORS.textSecondary, fontWeight: '600', marginTop: 4, marginBottom: 8, letterSpacing: 0.5 },
+  cardSubtitle: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '600', marginTop: 4, marginBottom: 8, letterSpacing: 0.5 },
   
-  label: { fontSize: 8, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 2.5, marginBottom: 5, marginTop: 10 },
+  label: { fontSize: 12, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 2.5, marginBottom: 5, marginTop: 10 },
   input: { backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: COLORS.borderDark, borderRadius: 14, padding: 13, fontSize: 13, color: '#fff', fontWeight: '600' },
-  error: { color: '#EF4444', fontSize: 11, fontWeight: '600', marginTop: 8 },
-  info: { color: '#10B981', fontSize: 11, fontWeight: '700', marginTop: 8 },
+  error: { color: '#EF4444', fontSize: 12, fontWeight: '600', marginTop: 8 },
+  info: { color: '#10B981', fontSize: 12, fontWeight: '700', marginTop: 8 },
   
   regBtn: { backgroundColor: COLORS.gold, paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginTop: 20, ...SHADOWS.goldGlow },
-  regBtnText: { fontSize: 11, fontWeight: '900', color: '#000', letterSpacing: 3 },
+  regBtnText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 3 },
   
   switchLink: { alignItems: 'center', marginTop: 20 },
-  switchText: { fontSize: 11, color: COLORS.textSecondary },
+  switchText: { fontSize: 12, color: COLORS.textSecondary },
 });

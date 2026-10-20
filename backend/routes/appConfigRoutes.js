@@ -18,6 +18,30 @@ router.get('/app-version', cacheGet('config', { ttlMs: 30 * 1000 }), require('..
 // C4 legal: current policy version + absolute links to Terms / Privacy / Refunds / Grievance / Guidelines.
 router.get('/legal', cacheGet('config', { ttlMs: 30 * 1000 }), require('../controllers/legalController').getPublicLegal);
 
+// Which "Others" sections have live listings right now (PG stays, Co-Ride, Rentals). The app hides a
+// section with nothing in it and shows it again as soon as there is a listing (cached 60 s). Food,
+// groceries and services always show. A count that cannot be read is null: the app keeps that section.
+router.get('/sections', cacheGet('sections', { ttlMs: 60 * 1000 }), async (req, res) => {
+  const { getSequelize } = require('../config/db');
+  const { Op } = require('sequelize');
+  const models = () => { const s = getSequelize(); return (s && s.models) || {}; };
+  const count = async (name, where) => {
+    try {
+      const M = models()[name];
+      return M ? await M.count({ where }) : null;
+    } catch {
+      return null;
+    }
+  };
+  const [pg, coride, rentals] = await Promise.all([
+    count('PGHostel', { isActive: true }),
+    count('BikePool', { status: 'Available', departureTime: { [Op.gt]: new Date() } }),
+    count('RentalListing', { status: 'ACTIVE' }),
+  ]);
+  const one = (n) => ({ count: n, live: n === null ? true : n > 0 });
+  res.json({ sections: { pg: one(pg), coride: one(coride), rentals: one(rentals) } });
+});
+
 // Update global app configuration (admin only)
 router.put('/', protect, admin, appConfigController.updateConfig);
 

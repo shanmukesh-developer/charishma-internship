@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   tagText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     paddingLeft: 6,
   },
   timeText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '500',
   },
 });

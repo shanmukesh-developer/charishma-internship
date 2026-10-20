@@ -682,8 +682,8 @@ export const ForumComposer: React.FC<{
 
 const styles = StyleSheet.create({
   publish: { minHeight: 38, paddingHorizontal: 16, borderRadius: FR.pill, backgroundColor: FriendsColors.accent, alignItems: 'center', justifyContent: 'center', marginRight: FS.sm },
-  label: { fontSize: 11, fontWeight: '800', letterSpacing: 0.8, color: FriendsColors.muted, textTransform: 'uppercase', marginTop: FS.lg, marginBottom: 6 },
-  counter: { fontSize: 11, color: FriendsColors.faint, textAlign: 'right', marginTop: 4 },
+  label: { fontSize: 12, fontWeight: '800', letterSpacing: 0.8, color: FriendsColors.muted, textTransform: 'uppercase', marginTop: FS.lg, marginBottom: 6 },
+  counter: { fontSize: 12, color: FriendsColors.faint, textAlign: 'right', marginTop: 4 },
   typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: FS.sm },
   typeCell: {
     flexDirection: 'row',

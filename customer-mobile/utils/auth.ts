@@ -116,6 +116,7 @@ export const removeUser = async (): Promise<void> => {
 
 import { API_URL } from '../constants/api';
 import { reportUpgradeRequired, versionHeaders } from './forceUpdate';
+import { withWakeRetry, noteServerResponse, noteNetworkFailure } from './serverWake';
 
 // ── Request helpers ───────────────────────────────────────────────────────────
 // Android's OkHttp client has no default timeout, so a dead connection would spin forever.
@@ -137,19 +138,34 @@ const fetchWithTimeout = async (url: string, options: RequestInit = {}): Promise
 // list on mount). Each caller gets its own clone so every body can be read independently.
 const inflightGets = new Map<string, Promise<Response>>();
 
+export type ApiFetchOptions = RequestInit & {
+  /** Retry this non-GET call through a server cold start too (only for calls that are safe to repeat,
+   *  e.g. ones that carry an Idempotency-Key). GETs are retried by default. */
+  idempotent?: boolean;
+  /** Turn the cold-start retry off for this call (e.g. a quick probe). */
+  noWakeRetry?: boolean;
+};
+
 // ── Authenticated Fetch ───────────────────────────────────────────────────────
+// GETs (and calls marked idempotent) ride out a backend cold start: 502/503/504 from Render, the
+// server's 503 SERVER_STARTING, or no response at all are retried with backoff for up to ~3 minutes
+// while the "Zenvy is waking up" banner shows (utils/serverWake.ts). Other POSTs are never retried.
 export const apiFetch = async (
   url: string,
-  options: RequestInit = {}
+  options: ApiFetchOptions = {}
 ): Promise<Response> => {
-  const method = String(options.method || 'GET').toUpperCase();
-  if (method === 'GET' && !options.signal && !options.body) {
+  const { idempotent, noWakeRetry, ...init } = options;
+  const method = String(init.method || 'GET').toUpperCase();
+  const retryable = !noWakeRetry && (method === 'GET' || method === 'HEAD' || idempotent === true);
+  if (method === 'GET' && !init.signal && !init.body) {
     const token = await getToken();
     const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
-    const key = `${token || ''}|${fullUrl}|${JSON.stringify(options.headers || {})}`;
+    const key = `${token || ''}|${fullUrl}|${JSON.stringify(init.headers || {})}`;
     let shared = inflightGets.get(key);
     if (!shared) {
-      shared = apiFetchRaw(url, options, token);
+      shared = retryable
+        ? withWakeRetry(() => apiFetchRaw(url, init, token))
+        : apiFetchRaw(url, init, token);
       inflightGets.set(key, shared);
       const clear = () => { if (inflightGets.get(key) === shared) inflightGets.delete(key); };
       shared.then(clear, clear);
@@ -157,7 +173,8 @@ export const apiFetch = async (
     const res = await shared;
     return res.clone();
   }
-  return apiFetchRaw(url, options);
+  if (retryable) return withWakeRetry(() => apiFetchRaw(url, init), init.signal);
+  return apiFetchRaw(url, init);
 };
 
 const apiFetchRaw = async (
@@ -176,7 +193,14 @@ const apiFetchRaw = async (
   }
   const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
   // No silent dev -> production retry: a dev build must never write test data to production.
-  const res = await fetchWithTimeout(fullUrl, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(fullUrl, { ...options, headers });
+  } catch (e) {
+    if (!options.signal?.aborted) noteNetworkFailure();
+    throw e;
+  }
+  noteServerResponse();
   // This app version was retired by the owner: show the Update screen (utils/UpdateGate.tsx).
   if (res.status === 426) {
     try { reportUpgradeRequired(await res.clone().json()); } catch { /* not JSON */ }

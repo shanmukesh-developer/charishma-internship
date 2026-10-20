@@ -677,7 +677,7 @@ export default function ProductDetailScreen() {
                     accessibilityLabel={`Call ${stallName}`}
                     style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: '#256FEF' }}
                   >
-                    <Text style={{ color: '#fff', fontSize: 11, fontWeight: '900' }}>Call stall</Text>
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>Call stall</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -849,7 +849,7 @@ export default function ProductDetailScreen() {
               <Text style={[styles.pdpSectionTitle, { color: isDark ? '#FFF' : COLORS.ink, marginBottom: 2 }]}>
                 Ratings and reviews
               </Text>
-              <Text style={{ fontSize: 10, color: isDark ? '#9CA3AF' : COLORS.inkMuted }}>
+              <Text style={{ fontSize: 12, color: isDark ? '#9CA3AF' : COLORS.inkMuted }}>
                 From customers who ordered this item
               </Text>
             </View>
@@ -878,7 +878,7 @@ export default function ProductDetailScreen() {
                   {averageRating.toFixed(1)}
                 </Text>
                 <Text style={{ fontSize: 13, marginVertical: 2, color: '#F59E0B', letterSpacing: 1 }}>{starsFor(averageRating)}</Text>
-                <Text style={{ fontSize: 9, fontWeight: '700', color: isDark ? '#9CA3AF' : COLORS.inkMuted }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: isDark ? '#9CA3AF' : COLORS.inkMuted }}>
                   {plural(totalRatingCount, 'rating')}
                 </Text>
               </View>
@@ -890,13 +890,13 @@ export default function ProductDetailScreen() {
                   const pctStr = `${pct}%`;
                   return (
                     <View key={starNum} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={{ fontSize: 9, fontWeight: '700', color: isDark ? '#9CA3AF' : '#6B7280', width: 14 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: isDark ? '#9CA3AF' : '#6B7280', width: 14 }}>
                         {starNum}★
                       </Text>
                       <View style={{ flex: 1, height: 6, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB', borderRadius: 3, overflow: 'hidden' }}>
                         <View style={{ width: (pctStr as any), height: '100%', backgroundColor: starNum >= 4 ? '#22C55E' : starNum === 3 ? '#F59E0B' : '#EF4444', borderRadius: 3 }} />
                       </View>
-                      <Text style={{ fontSize: 8, color: isDark ? '#9CA3AF' : '#6B7280', width: 26, textAlign: 'right' }}>
+                      <Text style={{ fontSize: 12, color: isDark ? '#9CA3AF' : '#6B7280', width: 26, textAlign: 'right' }}>
                         {pctStr}
                       </Text>
                     </View>
@@ -1098,7 +1098,7 @@ export default function ProductDetailScreen() {
             >
               <View style={[styles.modalCard, { backgroundColor: isDark ? '#18181B' : '#FFF' }]}>
                 <Text style={[styles.modalTitle, { color: isDark ? '#FFF' : COLORS.ink }]}>Rate this item</Text>
-                <Text style={{ fontSize: 11, color: isDark ? '#9CA3AF' : COLORS.inkMuted, marginBottom: 16 }}>
+                <Text style={{ fontSize: 12, color: isDark ? '#9CA3AF' : COLORS.inkMuted, marginBottom: 16 }}>
                   How was {product.name}? Reviews are open to customers who received this item.
                 </Text>
 
@@ -1142,7 +1142,7 @@ export default function ProductDetailScreen() {
                   value={userReviewText}
                   onChangeText={setUserReviewText}
                 />
-                <Text style={{ fontSize: 9, color: isDark ? '#9CA3AF' : '#9CA3AF', textAlign: 'right', marginTop: 4 }}>
+                <Text style={{ fontSize: 12, color: isDark ? '#9CA3AF' : '#9CA3AF', textAlign: 'right', marginTop: 4 }}>
                   {userReviewText.length}/{REVIEW_MAX}
                 </Text>
 
@@ -1236,7 +1236,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.sm,
   },
   galleryDiscountText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     color: '#FFF',
   },
@@ -1287,11 +1287,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   expressBolt: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#B45309',
   },
   expressText: {
-    fontSize: 9.5,
+    fontSize: 12,
     fontWeight: '900',
     color: '#92400E',
     letterSpacing: 0.3,
@@ -1327,7 +1327,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   fssaiText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
@@ -1341,15 +1341,15 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   topRatingStar: {
-    fontSize: 10,
+    fontSize: 12,
   },
   topRatingScore: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     color: '#D97706',
   },
   topRatingCount: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '700',
     color: '#B45309',
   },
@@ -1378,7 +1378,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#94A3B8',
   },
   kitchenVerifiedText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     color: '#10B981',
   },
@@ -1406,7 +1406,7 @@ const styles = StyleSheet.create({
     borderColor: '#0F172A',
   },
   unitPillText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     color: '#475569',
   },
@@ -1438,7 +1438,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   priceDiscountChipText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     color: '#DC2626',
     letterSpacing: 0.2,
@@ -1462,19 +1462,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   priceGuaranteeTitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '900',
     color: '#047857',
     letterSpacing: 0.1,
   },
   priceGuaranteeSub: {
-    fontSize: 9.5,
+    fontSize: 12,
     fontWeight: '600',
     color: '#065F46',
     marginTop: 1,
   },
   priceGuaranteeCompareLink: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     color: '#059669',
   },
@@ -1498,7 +1498,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   sectionSub: {
-    fontSize: 10.5,
+    fontSize: 12,
     color: '#64748B',
     fontWeight: '600',
     marginTop: 1,
@@ -1510,7 +1510,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   chefHatPillText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     color: '#B45309',
   },
@@ -1524,7 +1524,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   readMoreLink: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     color: '#2563EB',
   },
@@ -1550,7 +1550,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   highlightLabel: {
-    fontSize: 9.5,
+    fontSize: 12,
     fontWeight: '700',
     color: '#64748B',
     letterSpacing: 0.2,
@@ -1561,7 +1561,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   highlightDesc: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#94A3B8',
     marginTop: 2,
   },
@@ -1571,7 +1571,7 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   specsCardTitle: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.8,
     marginBottom: 10,
@@ -1594,7 +1594,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   specLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700',
     color: '#64748B',
     letterSpacing: 0.2,
@@ -1613,7 +1613,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   popularBadgeText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     color: '#DC2626',
     letterSpacing: 0.4,
@@ -1645,7 +1645,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   pairingTagText: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     color: '#FFF',
     letterSpacing: 0.3,
@@ -1654,7 +1654,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   pairingTitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     lineHeight: 15,
     minHeight: 30,
@@ -1679,7 +1679,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   pairingAddBtnText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     color: '#059669',
     letterSpacing: 0.3,
@@ -1705,7 +1705,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
   pairingMiniStepVal: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     color: '#FFF',
     fontVariant: ['tabular-nums'],
@@ -1719,7 +1719,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   writeReviewTopBtnText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '900',
     color: COLORS.primary,
   },
@@ -1747,7 +1747,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   reviewUserName: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '900',
   },
   verifiedBadge: {
@@ -1757,13 +1757,13 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   verifiedBadgeText: {
-    fontSize: 7,
+    fontSize: 12,
     fontWeight: '900',
     color: '#16A34A',
     letterSpacing: 0.5,
   },
   reviewTime: {
-    fontSize: 9,
+    fontSize: 12,
     color: '#9CA3AF',
     marginTop: 1,
   },
@@ -1774,12 +1774,12 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   starScoreChipText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
     color: '#FFF',
   },
   reviewComment: {
-    fontSize: 11,
+    fontSize: 12,
     lineHeight: 16,
   },
 
@@ -1818,7 +1818,7 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   bottomPriceSub: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#64748B',
     fontWeight: '600',
     marginTop: 1,
@@ -1881,7 +1881,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.cardElevated,
   },
   bottomCartTotalLabel: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '800',
     color: 'rgba(255,255,255,0.85)',
     letterSpacing: 0.5,
@@ -1922,7 +1922,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   modalSub: {
-    fontSize: 11,
+    fontSize: 12,
     color: COLORS.inkMuted,
     marginBottom: 16,
   },
@@ -1938,7 +1938,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   tagPillText: {
-    fontSize: 9.5,
+    fontSize: 12,
     fontWeight: '800',
     color: COLORS.primary,
   },
@@ -1973,7 +1973,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   modalSavingsText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     flex: 1,
   },
@@ -1995,13 +1995,13 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   bestPriceBadgeText: {
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: '900',
     color: '#15803D',
     letterSpacing: 0.3,
   },
   comparisonDeliveryNote: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#94A3B8',
     marginTop: 2,
   },
@@ -2016,7 +2016,7 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   modalGuaranteeFooterText: {
-    fontSize: 10,
+    fontSize: 12,
     lineHeight: 14,
     textAlign: 'center',
     marginTop: 4,

@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
   },
   modeOn: { borderColor: FriendsColors.accent, backgroundColor: FriendsColors.cardHi },
   label: { fontSize: 13, fontWeight: '800', color: FriendsColors.ink, marginTop: FS.lg, marginBottom: FS.sm },
-  count: { fontSize: 11, color: FriendsColors.faint, textAlign: 'right', marginTop: 4 },
+  count: { fontSize: 12, color: FriendsColors.faint, textAlign: 'right', marginTop: 4 },
   when: {
     flexDirection: 'row',
     alignItems: 'center',

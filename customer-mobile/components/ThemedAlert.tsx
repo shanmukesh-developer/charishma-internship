@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   message: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     lineHeight: 18,
     textAlign: 'center',
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   buttonText: {
-    fontSize: 9.5,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 2,
     textAlign: 'center',

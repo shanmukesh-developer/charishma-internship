@@ -49,8 +49,8 @@ export function StatusChip({ trip, now }: { trip: Pick<TripStatusBlock, 'availab
   const c = availabilityChip(trip, now);
   return (
     <View style={[s.chip, { backgroundColor: `${c.color}1F`, borderColor: `${c.color}66` }]} accessibilityLabel={c.label}>
-      <Text style={{ fontSize: 10.5 }}>{c.icon}</Text>
-      <Text style={{ fontSize: 10.5, fontWeight: '900', color: c.color, letterSpacing: 0.2 }} numberOfLines={1}>{c.label}</Text>
+      <Text style={{ fontSize: 12 }}>{c.icon}</Text>
+      <Text style={{ fontSize: 12, fontWeight: '900', color: c.color, letterSpacing: 0.2 }} numberOfLines={1}>{c.label}</Text>
     </View>
   );
 }
@@ -60,7 +60,7 @@ export function VerifiedBadge({ verified }: { verified: boolean }) {
   if (!verified) return null;
   return (
     <View style={[s.verified, { backgroundColor: p.successSoft }]} accessibilityLabel="Verified Zenvy Auto driver">
-      <Text style={{ fontSize: 9.5, fontWeight: '900', color: p.success }}>✔ VERIFIED</Text>
+      <Text style={{ fontSize: 12, fontWeight: '900', color: p.success }}>✔ VERIFIED</Text>
     </View>
   );
 }
@@ -84,7 +84,7 @@ export function Stepper({ value, min = 1, max, onChange, label }: { value: numbe
       {btn('−', value - 1, value <= min, `Fewer ${label.toLowerCase()}`)}
       <View style={{ minWidth: 64, alignItems: 'center' }}>
         <Text style={{ fontSize: 26, fontWeight: '900', color: p.text }}>{value}</Text>
-        <Text style={{ fontSize: 10, color: p.muted, fontWeight: '800' }}>{label.toUpperCase()}</Text>
+        <Text style={{ fontSize: 12, color: p.muted, fontWeight: '800' }}>{label.toUpperCase()}</Text>
       </View>
       {btn('+', value + 1, value >= max, `More ${label.toLowerCase()}`)}
     </View>
@@ -171,7 +171,7 @@ export const refreshAutoRideStatus = async () => {
 export function AutoHero({ title, subtitle, kicker = 'Zenvy Auto · verified drivers' }: { title: string; subtitle: string; kicker?: string }) {
   return (
     <LinearGradient colors={AUTO_GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
-      <Text style={{ fontSize: 9, fontWeight: '900', color: 'rgba(255,255,255,0.88)', letterSpacing: 1.5 }}>{kicker}</Text>
+      <Text style={{ fontSize: 12, fontWeight: '900', color: 'rgba(255,255,255,0.88)', letterSpacing: 1.5 }}>{kicker}</Text>
       <Text style={{ fontSize: 19, fontWeight: '900', color: '#fff', marginTop: 4, letterSpacing: -0.3 }}>{title}</Text>
       <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.92)', marginTop: 5, lineHeight: 17 }}>{subtitle}</Text>
     </LinearGradient>
@@ -182,7 +182,7 @@ export const s = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: Platform.OS === 'android' ? 44 : 54, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth },
   backBtn: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   hTitle: { fontSize: 18, fontWeight: '900', letterSpacing: -0.3 },
-  hSub: { fontSize: 11.5, marginTop: 1 },
+  hSub: { fontSize: 12, marginTop: 1 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, borderWidth: 1, alignSelf: 'flex-start', maxWidth: '100%' },
   verified: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   stepRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14 },
