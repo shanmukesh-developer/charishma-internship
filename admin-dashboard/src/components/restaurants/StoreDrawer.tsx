@@ -48,10 +48,10 @@ export function StoreDrawer({ store, tab, onTab, onClose, onEdit, onChanged, onT
   const fssaiAlert = fssai.status === 'MISSING' || fssai.status === 'EXPIRED' || fssai.expiringSoon;
   const tabs: { value: DrawerTab; label: string; badge?: React.ReactNode }[] = [
     { value: 'overview', label: 'Overview' },
-    { value: 'menu', label: 'Menu', badge: <span className="rounded bg-white/10 px-1.5 text-[10px] text-gray-300">{store.itemCount ?? 0}</span> },
+    { value: 'menu', label: 'Menu', badge: <span className="rounded bg-surface-2 px-1.5 text-xs text-fg-muted">{store.itemCount ?? 0}</span> },
     { value: 'hours', label: 'Hours' },
-    { value: 'login', label: local ? 'Vendor login' : 'Partner login', badge: noLogin ? <span className="rounded bg-amber-500/20 px-1.5 text-[10px] text-amber-300">!</span> : undefined },
-    { value: 'compliance', label: 'Licences & tax', badge: fssaiAlert ? <span className="rounded bg-amber-500/20 px-1.5 text-[10px] text-amber-300">!</span> : undefined },
+    { value: 'login', label: local ? 'Vendor login' : 'Partner login', badge: noLogin ? <span className="rounded bg-warning-soft px-1.5 text-xs text-warning-text">!</span> : undefined },
+    { value: 'compliance', label: 'Licences & tax', badge: fssaiAlert ? <span className="rounded bg-warning-soft px-1.5 text-xs text-warning-text">!</span> : undefined },
     ...(local ? [] : [{ value: 'promote' as DrawerTab, label: 'Promote' }]),
     { value: 'activity', label: 'Activity' },
   ];
@@ -59,22 +59,22 @@ export function StoreDrawer({ store, tab, onTab, onClose, onEdit, onChanged, onT
 
   return (
     <Drawer onClose={onClose} labelledBy={titleId}>
-      <header className="border-b border-white/10 px-5 pt-4">
+      <header className="border-b border-line px-5 pt-4">
         <div className="flex flex-wrap items-start gap-4">
           <Thumb src={store.imageUrl} alt={store.name} size="lg" rounded="rounded-xl" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 id={titleId} className="truncate text-xl font-black">{store.name}</h2>
+              <h2 id={titleId} className="truncate text-xl font-semibold">{store.name}</h2>
               <Chip tone={STATUS_TONE[status]} dot title={STATUS_META[status].help}>{STATUS_META[status].label}</Chip>
-              {store.isFeatured && <Chip tone="amber">✨ {store.featuredBadge || 'Featured'}</Chip>}
+              {store.isFeatured && <Chip tone="amber">{store.featuredBadge || 'Featured'}</Chip>}
               {store.isOffline && <Chip>Managed by Zenvy</Chip>}
               {local && <Chip tone="sky" title="Customers pay the stall cash; the stall delivers">Stall delivers · COD</Chip>}
               <Chip tone={FSSAI_STATUS_META[fssai.status].tone} title={FSSAI_STATUS_META[fssai.status].help}>{FSSAI_STATUS_META[fssai.status].label}</Chip>
               {fssai.expiringSoon && <Chip tone="amber">FSSAI expires soon</Chip>}
               {noLogin && <Chip tone="amber" title={local ? 'The stall cannot see its orders until it can sign in to Zenvy Vendor' : 'The partner cannot accept orders in the app'}>No login yet</Chip>}
             </div>
-            <p className="mt-1 truncate text-sm text-gray-400">{vendorLabel(store.vendorType)} · {[store.location, store.campus].filter(Boolean).join(' · ')}</p>
-            {status === 'closed' && store.closedReason && <p className="mt-0.5 text-xs text-amber-300/80">{store.closedReason}</p>}
+            <p className="mt-1 truncate text-sm text-fg-muted">{vendorLabel(store.vendorType)} · {[store.location, store.campus].filter(Boolean).join(' · ')}</p>
+            {status === 'closed' && store.closedReason && <p className="mt-0.5 text-xs text-warning-text">{store.closedReason}</p>}
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" onClick={() => onEdit()}>Edit details</Button>
@@ -84,7 +84,7 @@ export function StoreDrawer({ store, tab, onTab, onClose, onEdit, onChanged, onT
               'divider',
               { label: 'Delete store…', onSelect: onDelete, danger: true },
             ]} />
-            <button type="button" onClick={onClose} aria-label="Close store panel" className="rounded-lg p-2 text-gray-400 hover:bg-white/5 hover:text-white">✕</button>
+            <button type="button" onClick={onClose} aria-label="Close store panel" className="rounded-lg p-2 text-fg-muted hover:bg-surface-2/60 hover:text-fg"><span aria-hidden="true" className="text-base leading-none">×</span></button>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-x-8 gap-y-3">
@@ -111,10 +111,10 @@ export function StoreDrawer({ store, tab, onTab, onClose, onEdit, onChanged, onT
 // ─── Overview ────────────────────────────────────────────────────────────────
 function Stat({ label, value, sub, tone }: { label: string; value: React.ReactNode; sub?: React.ReactNode; tone?: 'green' | 'amber' }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className={cx('mt-1 text-2xl font-black', tone === 'green' && 'text-emerald-300', tone === 'amber' && 'text-amber-300')}>{value}</p>
-      {sub && <p className="mt-0.5 text-[11px] text-gray-500">{sub}</p>}
+    <div className="rounded-xl border border-line bg-surface-2/60 p-4">
+      <p className="text-xs text-fg-muted">{label}</p>
+      <p className={cx('mt-1 text-2xl font-semibold', tone === 'green' && 'text-success-text', tone === 'amber' && 'text-warning-text')}>{value}</p>
+      {sub && <p className="mt-0.5 text-xs text-fg-muted">{sub}</p>}
     </div>
   );
 }
@@ -165,31 +165,31 @@ function OverviewTab({ store, stats, orders, ordersState, onTab, onEdit, onPubli
 
       <div className="grid gap-6 lg:grid-cols-[1fr_260px]">
         <div className="space-y-6">
-          <section className="rounded-xl border border-white/10 p-4" aria-labelledby="ready-title">
-            <h3 id="ready-title" className="mb-3 text-sm font-bold">Setup checklist <span className="font-normal text-gray-500">· {checks.length - todo.length}/{checks.length}</span></h3>
-            <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${((checks.length - todo.length) / checks.length) * 100}%` }} /></div>
+          <section className="rounded-xl border border-line p-4" aria-labelledby="ready-title">
+            <h3 id="ready-title" className="mb-3 text-sm font-semibold">Setup checklist <span className="font-normal text-fg-muted">· {checks.length - todo.length}/{checks.length}</span></h3>
+            <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-success" style={{ width: `${((checks.length - todo.length) / checks.length) * 100}%` }} /></div>
             <ul className="space-y-2">
               {checks.map(c => (
                 <li key={c.text} className="flex items-center gap-3 text-sm">
-                  <span aria-hidden className={cx('flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black', c.ok ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300')}>{c.ok ? '✓' : '!'}</span>
-                  <span className={c.ok ? 'text-gray-300' : 'text-white'}>{c.text}</span>
-                  {!c.ok && <button type="button" onClick={c.fix} className="ml-auto text-xs font-semibold text-emerald-300 hover:underline">{c.fixLabel} →</button>}
+                  <span aria-hidden className={cx('flex h-5 w-5 items-center justify-center rounded-full text-xs font-semibold', c.ok ? 'bg-success-soft text-success-text' : 'bg-warning-soft text-warning-text')}>{c.ok ? '✓' : '!'}</span>
+                  <span className={c.ok ? 'text-fg-muted' : 'text-fg'}>{c.text}</span>
+                  {!c.ok && <button type="button" onClick={c.fix} className="ml-auto text-xs font-semibold text-success-text hover:underline">{c.fixLabel} →</button>}
                 </li>
               ))}
             </ul>
           </section>
 
-          <section className="rounded-xl border border-white/10" aria-labelledby="details-title">
-            <div className="flex items-center justify-between border-b border-white/5 px-4 py-2.5">
-              <h3 id="details-title" className="text-sm font-bold">Details</h3>
-              <button type="button" onClick={() => onEdit()} className="text-xs font-semibold text-emerald-300 hover:underline">Edit</button>
+          <section className="rounded-xl border border-line" aria-labelledby="details-title">
+            <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+              <h3 id="details-title" className="text-sm font-semibold">Details</h3>
+              <button type="button" onClick={() => onEdit()} className="text-xs font-semibold text-success-text hover:underline">Edit</button>
             </div>
             <dl className="grid gap-x-6 gap-y-3 px-4 py-3 text-sm sm:grid-cols-2">
               <DD k="Type" v={vendorLabel(store.vendorType)} />
               <DD k="Address" v={store.location || '—'} />
               <DD k="Campus · zone" v={[store.campus, store.zone].filter(Boolean).join(' · ') || '—'} />
-              <DD k="Map pin" v={store.lat != null && store.lon != null ? <a className="text-emerald-300 hover:underline" href={mapsUrl(store.lat, store.lon)} target="_blank" rel="noreferrer">{store.lat}, {store.lon} ↗</a> : 'Not set'} />
-              <DD k="WhatsApp" v={store.whatsappNumber ? <a className="text-emerald-300 hover:underline" href={`https://wa.me/${store.whatsappNumber}`} target="_blank" rel="noreferrer">+91 {formatWhatsapp(store.whatsappNumber)} ↗</a> : 'Not set'} />
+              <DD k="Map pin" v={store.lat != null && store.lon != null ? <a className="text-success-text hover:underline" href={mapsUrl(store.lat, store.lon)} target="_blank" rel="noreferrer">{store.lat}, {store.lon} ↗</a> : 'Not set'} />
+              <DD k="WhatsApp" v={store.whatsappNumber ? <a className="text-success-text hover:underline" href={`https://wa.me/${store.whatsappNumber}`} target="_blank" rel="noreferrer">+91 {formatWhatsapp(store.whatsappNumber)} ↗</a> : 'Not set'} />
               <DD k="Hours" v={summarizeWeekly(weekly)} />
               {!local && <DD k="Delivery time" v={store.deliveryTime ? `${store.deliveryTime} min` : 'Hidden'} />}
               {!local && <DD k="Commission" v={store.commissionType === 'flat' ? `₹${store.commissionRate ?? 0} per order` : `${store.commissionRate ?? 0}% of order`} />}
@@ -203,29 +203,29 @@ function OverviewTab({ store, stats, orders, ordersState, onTab, onEdit, onPubli
             </dl>
           </section>
 
-            <section className="rounded-xl border border-white/10" aria-labelledby="recent-title">
-              <div className="flex items-center justify-between border-b border-white/5 px-4 py-2.5">
-                <h3 id="recent-title" className="text-sm font-bold">Recent orders</h3>
-                <span className="flex items-center gap-3 text-xs text-gray-500">
+            <section className="rounded-xl border border-line" aria-labelledby="recent-title">
+              <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+                <h3 id="recent-title" className="text-sm font-semibold">Recent orders</h3>
+                <span className="flex items-center gap-3 text-xs text-fg-muted">
                   {stats.lastOrderAt && <span>Last order {timeAgo(stats.lastOrderAt)}</span>}
-                  <a href={`/orders?store=${encodeURIComponent(storeId(store))}`} className="font-semibold text-emerald-300 hover:underline">All orders →</a>
+                  <a href={`/orders?store=${encodeURIComponent(storeId(store))}`} className="font-semibold text-success-text hover:underline">All orders →</a>
                 </span>
               </div>
               {ordersState === 'loading' ? (
                 <div className="space-y-2 p-4" role="status" aria-label="Loading orders">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-6" />)}</div>
               ) : ordersState === 'error' ? (
-                <p className="px-4 py-6 text-center text-sm text-gray-500">Could not load this store&apos;s orders.</p>
+                <p className="px-4 py-6 text-center text-sm text-fg-muted">Could not load this store&apos;s orders.</p>
               ) : recent.length === 0 ? (
-                <p className="px-4 py-6 text-center text-sm text-gray-500">No orders yet.{store.isActive ? '' : ' Publish the store to start receiving orders.'}</p>
+                <p className="px-4 py-6 text-center text-sm text-fg-muted">No orders yet.{store.isActive ? '' : ' Publish the store to start receiving orders.'}</p>
               ) : (
                 <ul className="divide-y divide-white/5">
                   {recent.map(o => (
                     <li key={o._id} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm">
-                      <code className="text-xs text-gray-500">#{String(o._id || o.id).slice(0, 8)}</code>
+                      <code className="text-xs text-fg-muted">#{String(o._id || o.id).slice(0, 8)}</code>
                       <Chip tone={STATUS_COLOR[o.status] || 'slate'}>{STATUS_TEXT[o.status] || o.status}</Chip>
-                      <span className="text-gray-400">{o.paymentMethod || ''}</span>
+                      <span className="text-fg-muted">{o.paymentMethod || ''}</span>
                       <span className="ml-auto font-semibold">{formatINR(Number(o.totalPrice) || 0)}</span>
-                      <span className="w-20 text-right text-xs text-gray-500">{timeAgo(o.createdAt)}</span>
+                      <span className="w-20 text-right text-xs text-fg-muted">{timeAgo(o.createdAt)}</span>
                     </li>
                   ))}
                 </ul>
@@ -246,7 +246,7 @@ function OverviewTab({ store, stats, orders, ordersState, onTab, onEdit, onPubli
 }
 
 function DD({ k, v }: { k: string; v: React.ReactNode }) {
-  return <div className="min-w-0"><dt className="text-xs text-gray-500">{k}</dt><dd className="mt-0.5 break-words text-gray-200">{v}</dd></div>;
+  return <div className="min-w-0"><dt className="text-xs text-fg-muted">{k}</dt><dd className="mt-0.5 break-words text-fg">{v}</dd></div>;
 }
 
 // ─── Hours ───────────────────────────────────────────────────────────────────
@@ -353,24 +353,24 @@ function LoginTab({ store, onChanged }: { store: Store; onChanged: (s: Store) =>
   };
   return (
     <div className="max-w-3xl space-y-6">
-      <section className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-4" aria-labelledby="signin-title">
+      <section className="space-y-3 rounded-xl border border-line bg-surface-2/60 p-4" aria-labelledby="signin-title">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 id="signin-title" className="text-sm font-bold">How the {local ? 'stall' : 'partner'} signs in</h3>
+          <h3 id="signin-title" className="text-sm font-semibold">How the {local ? 'stall' : 'partner'} signs in</h3>
           <span className="flex flex-wrap gap-1.5">
             <Chip tone={store.hasPassword ? 'green' : 'amber'}>{store.hasPassword ? 'Password set' : 'No password yet'}</Chip>
             <Chip tone={store.pushDevices ? 'green' : 'slate'} title="Phones with the app signed in that receive order alerts">{store.pushDevices ? `${store.pushDevices} phone${store.pushDevices === 1 ? '' : 's'} signed in` : 'No phone signed in'}</Chip>
           </span>
         </div>
-        <ol className="list-decimal space-y-1 pl-5 text-sm text-gray-300">
+        <ol className="list-decimal space-y-1 pl-5 text-sm text-fg-muted">
           <li>Open the <b>{app}</b> app.</li>
           <li>Enter {signInPhone ? <>the phone number <b>{formatWhatsapp(signInPhone)}</b>{savedPhone ? '' : ' (the stall’s WhatsApp number)'} or </> : null}the Store ID below{local ? '' : ` (or the exact store name “${store.name}”)`}.</li>
           <li>Enter the password you shared.</li>
         </ol>
         <div className="flex flex-wrap items-center gap-2 pt-1">
-          <code className="flex-1 select-all break-all rounded-lg border border-white/10 bg-[#111318] px-3 py-2 text-xs text-emerald-300">{id}</code>
+          <code className="flex-1 select-all break-all rounded-lg border border-line bg-surface px-3 py-2 text-xs text-success-text">{id}</code>
           <CopyButton text={id} label="Copy Store ID" />
         </div>
-        <p className="text-xs text-gray-500">Zenvy stores only a hash, so the current password cannot be shown. Reset it to share a new one.</p>
+        <p className="text-xs text-fg-muted">Zenvy stores only a hash, so the current password cannot be shown. Reset it to share a new one.</p>
         {local && !store.hasPassword && <Callout tone="amber">Stall orders reach only the Zenvy Vendor app. Until the stall can sign in, its orders wait and are cancelled after 15 minutes.</Callout>}
       </section>
 
@@ -384,7 +384,7 @@ function LoginTab({ store, onChanged }: { store: Store; onChanged: (s: Store) =>
           {({ id: fid, msgId, invalid }) => (
             <div className="flex flex-wrap gap-2">
               <div className="flex min-w-[220px] flex-1">
-                <span className="flex items-center rounded-l-lg border border-r-0 border-white/10 bg-white/5 px-3 text-sm text-gray-400">+91</span>
+                <span className="flex items-center rounded-l-lg border border-r-0 border-line bg-surface-2/60 px-3 text-sm text-fg-muted">+91</span>
                 <input id={fid} aria-describedby={msgId} aria-invalid={invalid} inputMode="tel" autoComplete="off" className={cx(INPUT, 'rounded-l-none')} value={phone} onChange={e => { setPhone(e.target.value.replace(/[^\d+\s-]/g, '')); setPhoneError(''); }} placeholder={local && store.whatsappNumber ? formatWhatsapp(store.whatsappNumber) : '98765 43210'} />
               </div>
               <Button variant="primary" loading={phoneSaving} disabled={!phoneDirty} onClick={savePhone}>{phoneDirty ? (tenDigits(phone) ? 'Save phone' : 'Remove phone') : 'Saved'}</Button>
@@ -394,7 +394,7 @@ function LoginTab({ store, onChanged }: { store: Store; onChanged: (s: Store) =>
       </section>
 
       {!local && (
-        <section className="rounded-xl border border-white/10 p-4">
+        <section className="rounded-xl border border-line p-4">
           <Toggle
             checked={!!store.isOffline}
             onChange={v => setConfirmManaged(v)}
@@ -405,15 +405,15 @@ function LoginTab({ store, onChanged }: { store: Store; onChanged: (s: Store) =>
       )}
 
       {shown ? (
-        <section className="space-y-3 rounded-xl border border-amber-400/25 bg-amber-400/5 p-4" aria-live="polite">
-          <div className="flex items-center justify-between"><h3 className="font-bold text-amber-100">New password (shown once)</h3><Chip tone="amber">Copy it now</Chip></div>
+        <section className="space-y-3 rounded-xl border border-warning/30 bg-warning-soft p-4" aria-live="polite">
+          <div className="flex items-center justify-between"><h3 className="font-semibold text-warning-text">New password (shown once)</h3><Chip tone="amber">Copy it now</Chip></div>
           <div className="flex flex-wrap items-center gap-2">
-            <code className="flex-1 select-all rounded-lg bg-black/30 px-3 py-2 font-mono text-white">{shown}</code>
+            <code className="flex-1 select-all rounded-lg bg-surface-2 px-3 py-2 font-mono text-fg">{shown}</code>
             <CopyButton text={shown} />
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <CopyButton text={loginText(shown)} label={`Copy message for the ${local ? 'stall' : 'partner'}`} variant="amber" size="md" />
-            {store.whatsappNumber && <a className="text-xs font-semibold text-emerald-300 hover:underline" target="_blank" rel="noreferrer" href={`https://wa.me/${store.whatsappNumber}?text=${encodeURIComponent(waText)}`} title="Sends the login details without the password. Paste the password separately.">Send login (no password) on WhatsApp ↗</a>}
+            {store.whatsappNumber && <a className="text-xs font-semibold text-success-text hover:underline" target="_blank" rel="noreferrer" href={`https://wa.me/${store.whatsappNumber}?text=${encodeURIComponent(waText)}`} title="Sends the login details without the password. Paste the password separately.">Send login (no password) on WhatsApp ↗</a>}
             <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setShown(null)}>I have shared it</Button>
           </div>
         </section>
@@ -423,7 +423,7 @@ function LoginTab({ store, onChanged }: { store: Store; onChanged: (s: Store) =>
             label={store.hasPassword ? 'Reset password' : 'Set password'}
             error={error || null}
             help={store.hasPassword ? `The new password works immediately, the old one stops working, and phones already signed in to ${app} are signed out.` : `Needed to sign in to ${app}.`}
-            aside={pw ? <span className={cx('text-[11px] font-semibold', strength.score >= 3 ? 'text-emerald-300' : strength.score === 2 ? 'text-amber-300' : 'text-red-300')}>{strength.label}</span> : null}
+            aside={pw ? <span className={cx('text-xs font-semibold', strength.score >= 3 ? 'text-success-text' : strength.score === 2 ? 'text-warning-text' : 'text-danger-text')}>{strength.label}</span> : null}
           >
             {({ id: fid, msgId, invalid }) => (
               <div className="flex flex-wrap gap-2">
@@ -524,14 +524,14 @@ function PromoteTab({ store, onChanged, onEdit }: { store: Store; onChanged: (s:
       <div className="space-y-5">
         <Callout tone={store.isFeatured ? 'green' : 'sky'} title={store.isFeatured ? `Promoted${store.featuredUntil ? ` until ${new Date(store.featuredUntil).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}` : ''}` : 'Not promoted'}>
           Promoted stores get a gold border and badge and rise in the Home feed. Only describe offers the store really gives.
-          {expired && <span className="mt-1 block text-amber-200">The end date has passed. The server ends it (and removes its Home banner) within 10 minutes.</span>}
+          {expired && <span className="mt-1 block text-warning-text">The end date has passed. The server ends it (and removes its Home banner) within 10 minutes.</span>}
         </Callout>
         <Field label="Badge text" help="Short, 1–3 words.">
           {({ id: fid, msgId }) => (
             <div className="space-y-2">
               <input id={fid} aria-describedby={msgId} className={INPUT} maxLength={30} value={badge} onChange={e => setBadge(e.target.value)} />
               <div className="flex flex-wrap gap-1.5">
-                {BADGES.map(b => <button key={b} type="button" onClick={() => setBadge(b)} className={cx('rounded-full border px-2.5 py-1 text-xs font-semibold', badge === b ? 'border-amber-500/50 text-amber-300' : 'border-white/10 text-gray-400 hover:text-white')}>{b}</button>)}
+                {BADGES.map(b => <button key={b} type="button" onClick={() => setBadge(b)} className={cx('rounded-full border px-2.5 py-1 text-xs font-semibold', badge === b ? 'border-warning/30 text-warning-text' : 'border-line text-fg-muted hover:text-fg')}>{b}</button>)}
               </div>
             </div>
           )}
@@ -542,7 +542,7 @@ function PromoteTab({ store, onChanged, onEdit }: { store: Store; onChanged: (s:
         <Field label="Promote until" optional help="The promotion and its Home banner end automatically at this time (checked every 10 minutes). Leave empty for no end date.">
           {({ id: fid, msgId }) => <input id={fid} aria-describedby={msgId} type="datetime-local" className={cx(INPUT, 'max-w-[260px]')} value={until} onChange={e => setUntil(e.target.value)} />}
         </Field>
-        <div className="rounded-xl border border-white/10 p-4">
+        <div className="rounded-xl border border-line p-4">
           <Toggle
             tone="amber"
             checked={wantBanner}
@@ -550,7 +550,7 @@ function PromoteTab({ store, onChanged, onEdit }: { store: Store; onChanged: (s:
             label="Home hero banner"
             description={store.imageUrl
               ? `${banner ? 'A banner for this store is live on Home.' : 'Adds a large banner at the top of Home that opens this store.'} Uses the cover photo.`
-              : <>Needs a cover photo first. <button type="button" className="font-semibold text-emerald-300 underline" onClick={() => onEdit('branding')}>Add one</button></>}
+              : <>Needs a cover photo first. <button type="button" className="font-semibold text-success-text underline" onClick={() => onEdit('branding')}>Add one</button></>}
           />
         </div>
         {error && <Callout tone="red">{error}</Callout>}
@@ -635,18 +635,18 @@ function ActivityTab({ store, orders }: { store: Store; orders: StoreOrder[] }) 
   }, [logs, orders]);
 
   if (state === 'loading') return <div className="space-y-3" role="status" aria-label="Loading activity">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>;
-  if (state === 'error') return <Callout tone="red"><span className="flex justify-between gap-3">{error}<button type="button" className="font-bold underline" onClick={() => { setState('loading'); load(); }}>Retry</button></span></Callout>;
-  if (!entries.length) return <EmptyState icon="🕘" title="No activity yet" body="Admin changes to this store and its menu, and its orders, will show up here." />;
+  if (state === 'error') return <Callout tone="red"><span className="flex justify-between gap-3">{error}<button type="button" className="font-semibold underline" onClick={() => { setState('loading'); load(); }}>Retry</button></span></Callout>;
+  if (!entries.length) return <EmptyState icon="" title="No activity yet" body="Admin changes to this store and its menu, and its orders, will show up here." />;
   return (
     <div className="max-w-3xl">
-      <p className="mb-4 text-xs text-gray-500">Admin and partner-app changes to this store and its menu (latest 200), plus its recent orders.</p>
-      <ol className="relative space-y-4 border-l border-white/10 pl-5">
+      <p className="mb-4 text-xs text-fg-muted">Admin and partner-app changes to this store and its menu (latest 200), plus its recent orders.</p>
+      <ol className="relative space-y-4 border-l border-line pl-5">
         {entries.map((e, i) => (
           <li key={i} className="relative">
-            <span aria-hidden className={cx('absolute -left-[26px] top-1 h-2.5 w-2.5 rounded-full ring-4 ring-[#0b0d12]', e.kind === 'order' ? 'bg-sky-400' : 'bg-emerald-400')} />
-            <p className="text-sm font-semibold text-gray-100">{e.title}</p>
-            {e.detail && <p className="text-xs text-gray-400">{e.detail}</p>}
-            <p className="text-[11px] text-gray-600">{timeAgo(e.at)} · {new Date(e.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</p>
+            <span aria-hidden className={cx('absolute -left-[26px] top-1 h-2.5 w-2.5 rounded-full ring-4 ring-[#0b0d12]', e.kind === 'order' ? 'bg-accent' : 'bg-success')} />
+            <p className="text-sm font-semibold text-fg">{e.title}</p>
+            {e.detail && <p className="text-xs text-fg-muted">{e.detail}</p>}
+            <p className="text-xs text-fg-subtle">{timeAgo(e.at)} · {new Date(e.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</p>
           </li>
         ))}
       </ol>

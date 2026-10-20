@@ -135,18 +135,18 @@ export function MessPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Partial
 
   return (
     <div className="space-y-6">
-      {wasLegacy && <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">Loaded from the older menu fields. Check the times and save to switch this PG to the new timetable.</p>}
+      {wasLegacy && <p className="rounded-lg border border-warning/30 bg-warning-soft p-3 text-xs text-warning-text">Loaded from the older menu fields. Check the times and save to switch this PG to the new timetable.</p>}
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-sm font-bold text-blue-300">Meals and times</h3>
+          <h3 className="text-sm font-semibold text-info-text">Meals and times</h3>
           <div className="flex gap-2">
-            {!draft.meals.length && <button type="button" onClick={() => setDraft(prev => ({ ...prev, meals: DEFAULT_MEALS }))} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-gray-200 hover:bg-white/5">Start with breakfast, lunch, snacks, dinner</button>}
-            <button type="button" disabled={draft.meals.length >= 6} onClick={addMeal} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-gray-200 hover:bg-white/5 disabled:opacity-40">Add meal</button>
+            {!draft.meals.length && <button type="button" onClick={() => setDraft(prev => ({ ...prev, meals: DEFAULT_MEALS }))} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg hover:bg-surface-2/60">Start with breakfast, lunch, snacks, dinner</button>}
+            <button type="button" disabled={draft.meals.length >= 6} onClick={addMeal} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg hover:bg-surface-2/60 disabled:opacity-40">Add meal</button>
           </div>
         </div>
         {draft.meals.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-white/10 p-6 text-center text-sm text-gray-400">No meals yet.</p>
+          <p className="rounded-lg border border-dashed border-line p-6 text-center text-sm text-fg-muted">No meals yet.</p>
         ) : (
           <div className="space-y-2">
             {draft.meals.map((m, i) => (
@@ -154,31 +154,31 @@ export function MessPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Partial
                 <input aria-label={`Meal ${i + 1} name`} className={FIELD} maxLength={30} placeholder="Meal name" value={m.label} onChange={e => setMeal(i, { label: e.target.value })} />
                 <input aria-label={`${m.label || 'Meal'} starts`} type="time" className={FIELD} value={m.start} onChange={e => setMeal(i, { start: e.target.value })} />
                 <input aria-label={`${m.label || 'Meal'} ends`} type="time" className={FIELD} value={m.end} onChange={e => setMeal(i, { end: e.target.value })} />
-                <button type="button" onClick={() => removeMeal(i)} className="px-2 text-xs text-red-300/80 hover:text-red-300" aria-label={`Remove ${m.label || 'meal'}`}>Remove</button>
+                <button type="button" onClick={() => removeMeal(i)} className="px-2 text-xs text-danger-text hover:text-danger-text" aria-label={`Remove ${m.label || 'meal'}`}>Remove</button>
               </div>
             ))}
-            <p className="text-xs text-gray-500">Times are IST. The app shows students which meal is being served now and how long until the next one.</p>
+            <p className="text-xs text-fg-muted">Times are IST. The app shows students which meal is being served now and how long until the next one.</p>
           </div>
         )}
       </section>
 
       {draft.meals.length > 0 && (
         <section className="space-y-3">
-          <h3 className="text-sm font-bold text-blue-300">Weekly menu</h3>
-          <div className="overflow-x-auto rounded-xl border border-white/10">
+          <h3 className="text-sm font-semibold text-info-text">Weekly menu</h3>
+          <div className="overflow-x-auto rounded-xl border border-line">
             <table className="w-full min-w-[720px] border-collapse text-sm">
               <thead>
-                <tr className="bg-white/[0.03] text-left text-xs uppercase tracking-wider text-gray-400">
+                <tr className="bg-surface-2/60 text-left text-xs text-fg-muted">
                   <th className="w-28 px-3 py-2 font-semibold">Day</th>
                   {draft.meals.map(m => <th key={m.key} className="px-3 py-2 font-semibold">{m.label || 'Meal'}</th>)}
                 </tr>
               </thead>
               <tbody>
                 {DAY_KEYS.map(day => (
-                  <tr key={day} className="border-t border-white/5 align-top">
+                  <tr key={day} className="border-t border-line align-top">
                     <td className="px-3 py-2">
-                      <div className="font-semibold text-gray-200">{DAY_LABEL[day]}</div>
-                      <button type="button" onClick={() => copyDay(day)} className="mt-1 text-[11px] text-gray-500 hover:text-white">Copy to all days</button>
+                      <div className="font-semibold text-fg">{DAY_LABEL[day]}</div>
+                      <button type="button" onClick={() => copyDay(day)} className="mt-1 text-xs text-fg-muted hover:text-fg">Copy to all days</button>
                     </td>
                     {draft.meals.map(m => {
                       const c = draft.cells[day][m.key] || { menu: '', tag: null };
@@ -188,7 +188,7 @@ export function MessPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Partial
                           <select aria-label={`${DAY_LABEL[day]} ${m.label} type`} className={`${FIELD} mt-1 py-1 text-xs`} value={c.tag || ''} onChange={e => setCell(day, m.key, { tag: (e.target.value || null) as FoodTag })}>
                             <option value="">No tag</option><option value="veg">Veg</option><option value="egg">Egg</option><option value="nonveg">Non-veg</option>
                           </select>
-                          {c.start ? <p className="mt-1 text-[11px] text-gray-500">This day: {c.start}–{c.end}</p> : null}
+                          {c.start ? <p className="mt-1 text-xs text-fg-muted">This day: {c.start}–{c.end}</p> : null}
                         </td>
                       );
                     })}
@@ -201,7 +201,7 @@ export function MessPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Partial
       )}
 
       <section className="space-y-2">
-        <h3 className="text-sm font-bold text-blue-300">Mess notes</h3>
+        <h3 className="text-sm font-semibold text-info-text">Mess notes</h3>
         <textarea aria-label="Mess notes" rows={3} maxLength={1000} className={`${FIELD} resize-y`} placeholder="Special days, holiday menu, mess closed dates…" value={draft.notes} onChange={e => { setMessage(null); setDraft(prev => ({ ...prev, notes: e.target.value })); }} />
       </section>
 
@@ -211,7 +211,7 @@ export function MessPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Partial
         message={message || (invalid && dirty ? { kind: 'error', text: invalid } : null)}
         onSave={save}
         onDiscard={() => { setDraft(initial); setMessage(null); }}
-        extra={initial.meals.length > 0 && !wasLegacy ? <button type="button" disabled={saving} onClick={() => { if (window.confirm('Clear the whole mess timetable?')) { setDraft({ meals: [], cells: emptyCells(), notes: '' }); } }} className="text-xs text-red-300/80 hover:text-red-300">Clear timetable</button> : null}
+        extra={initial.meals.length > 0 && !wasLegacy ? <button type="button" disabled={saving} onClick={() => { if (window.confirm('Clear the whole mess timetable?')) { setDraft({ meals: [], cells: emptyCells(), notes: '' }); } }} className="text-xs text-danger-text hover:text-danger-text">Clear timetable</button> : null}
       />
     </div>
   );

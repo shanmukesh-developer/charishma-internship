@@ -140,7 +140,7 @@ export function useFreshIds(ttlMs = 6000) {
 }
 
 /** Tailwind classes for a row highlighted by useFreshIds. */
-export const FRESH_ROW_CLASS = 'bg-emerald-500/10 ring-1 ring-inset ring-emerald-400/40 transition-colors duration-700';
+export const FRESH_ROW_CLASS = 'bg-success-soft transition-colors duration-700';
 
 /** Human label for a toast, e.g. "New order" / "Ticket updated". */
 export function liveLabel(events: LiveEvent[], noun: string): string | null {

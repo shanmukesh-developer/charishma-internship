@@ -191,37 +191,37 @@ export function ComplianceTab({ store, onChanged }: { store: Store; onChanged: (
       </Callout>
 
       {/* FSSAI verification */}
-      <section className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-4" aria-labelledby="fssai-title">
+      <section className="space-y-3 rounded-xl border border-line bg-surface-2/60 p-4" aria-labelledby="fssai-title">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 id="fssai-title" className="text-sm font-bold">FSSAI licence check</h3>
+          <h3 id="fssai-title" className="text-sm font-semibold">FSSAI licence check</h3>
           <span className="flex flex-wrap gap-1.5">
             <Chip tone={meta.tone} dot title={meta.help}>{meta.label}</Chip>
             {current.fssaiExpiringSoon && <Chip tone="amber">Expires soon{current.fssaiExpiry ? ` (${current.fssaiExpiry})` : ''}</Chip>}
           </span>
         </div>
-        <p className="text-sm text-gray-300">{current.fssaiText}{current.fssaiLicenseType ? ` · ${current.fssaiLicenseType}` : ''}{current.fssaiExpiry ? ` · expires ${current.fssaiExpiry}` : ''}</p>
+        <p className="text-sm text-fg-muted">{current.fssaiText}{current.fssaiLicenseType ? ` · ${current.fssaiLicenseType}` : ''}{current.fssaiExpiry ? ` · expires ${current.fssaiExpiry}` : ''}</p>
         {current.fssaiVerifiedAt ? (
-          <p className="text-xs text-gray-400">Checked {when(current.fssaiVerifiedAt)}{current.fssaiVerifiedBy ? ` by admin ${current.fssaiVerifiedBy.slice(0, 8)}` : ''}.</p>
+          <p className="text-xs text-fg-muted">Checked {when(current.fssaiVerifiedAt)}{current.fssaiVerifiedBy ? ` by admin ${current.fssaiVerifiedBy.slice(0, 8)}` : ''}.</p>
         ) : current.fssaiSubmittedAt ? (
-          <p className="text-xs text-gray-400">Submitted {when(current.fssaiSubmittedAt)}, not checked yet.</p>
+          <p className="text-xs text-fg-muted">Submitted {when(current.fssaiSubmittedAt)}, not checked yet.</p>
         ) : null}
-        <p className="text-xs text-gray-500">Check the number and expiry against the store&apos;s licence certificate before marking it as checked.</p>
+        <p className="text-xs text-fg-muted">Check the number and expiry against the store&apos;s licence certificate before marking it as checked.</p>
         <div className="flex flex-wrap items-center gap-2">
           {current.fssaiStatus === 'VERIFIED' ? (
             <Button size="sm" variant="danger" loading={verifying} onClick={() => verify(false)}>Revoke verification</Button>
           ) : (
             <Button size="sm" variant="primary" loading={verifying} disabled={current.fssaiStatus === 'MISSING' || current.fssaiStatus === 'EXPIRED' || fssaiDirty} onClick={() => verify(true)}>Mark as checked</Button>
           )}
-          {fssaiDirty && <span className="text-xs text-amber-300">Save the FSSAI changes first.</span>}
-          {current.fssaiStatus === 'MISSING' && <span className="text-xs text-gray-500">Add the licence number below first.</span>}
-          {current.fssaiStatus === 'EXPIRED' && <span className="text-xs text-gray-500">Enter the renewed licence&apos;s expiry date first.</span>}
+          {fssaiDirty && <span className="text-xs text-warning-text">Save the FSSAI changes first.</span>}
+          {current.fssaiStatus === 'MISSING' && <span className="text-xs text-fg-muted">Add the licence number below first.</span>}
+          {current.fssaiStatus === 'EXPIRED' && <span className="text-xs text-fg-muted">Enter the renewed licence&apos;s expiry date first.</span>}
         </div>
         {verifyError && <Callout tone="red">{verifyError}</Callout>}
       </section>
 
       {/* Business + FSSAI */}
       <section className="space-y-4" aria-labelledby="legal-title">
-        <h3 id="legal-title" className="text-sm font-bold">Business &amp; food licence</h3>
+        <h3 id="legal-title" className="text-sm font-semibold">Business &amp; food licence</h3>
         <Field label="Legal name" optional error={errors.legalName} help="The registered business or owner name, as on the licence.">
           {ids => input('legalName', ids, { maxLength: 200 })}
         </Field>
@@ -245,10 +245,10 @@ export function ComplianceTab({ store, onChanged }: { store: Store; onChanged: (
       </section>
 
       {/* Tax */}
-      <section className="space-y-4 border-t border-white/5 pt-5" aria-labelledby="tax-title">
-        <h3 id="tax-title" className="text-sm font-bold">Tax</h3>
+      <section className="space-y-4 border-t border-line pt-5" aria-labelledby="tax-title">
+        <h3 id="tax-title" className="text-sm font-semibold">Tax</h3>
         <Field label="GSTIN" optional error={errors.gstin} help="15 characters in the GST format. Leave empty if the store is not GST-registered.">
-          {ids => input('gstin', ids, { maxLength: 15, className: cx(INPUT, 'uppercase') })}
+          {ids => input('gstin', ids, { maxLength: 15, className: cx(INPUT, '') })}
         </Field>
         <Field
           label={current.hasPan ? 'Replace PAN' : 'PAN'}
@@ -258,10 +258,10 @@ export function ComplianceTab({ store, onChanged }: { store: Store; onChanged: (
         >
           {({ id: fid, msgId, invalid }) => (
             <div className="space-y-2">
-              <input id={fid} aria-describedby={msgId} aria-invalid={invalid} autoComplete="off" spellCheck={false} maxLength={10} disabled={clearPan} className={cx(INPUT, 'uppercase')} value={pan} placeholder={current.hasPan ? 'New PAN (leave empty to keep)' : ''} onChange={e => { setPan(e.target.value); setErrors(er => ({ ...er, pan: undefined })); }} />
+              <input id={fid} aria-describedby={msgId} aria-invalid={invalid} autoComplete="off" spellCheck={false} maxLength={10} disabled={clearPan} className={cx(INPUT, '')} value={pan} placeholder={current.hasPan ? 'New PAN (leave empty to keep)' : ''} onChange={e => { setPan(e.target.value); setErrors(er => ({ ...er, pan: undefined })); }} />
               {current.hasPan && (
-                <label className="flex items-center gap-2 text-xs text-gray-400">
-                  <input type="checkbox" className="h-4 w-4 accent-red-500" checked={clearPan} onChange={e => { setClearPan(e.target.checked); if (e.target.checked) setPan(''); }} />
+                <label className="flex items-center gap-2 text-xs text-fg-muted">
+                  <input type="checkbox" className="h-4 w-4 accent-[rgb(var(--accent))]" checked={clearPan} onChange={e => { setClearPan(e.target.checked); if (e.target.checked) setPan(''); }} />
                   Remove the PAN on file
                 </label>
               )}
@@ -271,9 +271,9 @@ export function ComplianceTab({ store, onChanged }: { store: Store; onChanged: (
       </section>
 
       {/* Payout */}
-      <section className="space-y-4 border-t border-white/5 pt-5" aria-labelledby="payout-title">
-        <h3 id="payout-title" className="text-sm font-bold">Payout</h3>
-        <p className="text-xs text-gray-500">Only Zenvy admins can change payout details (the store app cannot), so a stolen store login cannot redirect payouts. Confirm any change with the owner directly.</p>
+      <section className="space-y-4 border-t border-line pt-5" aria-labelledby="payout-title">
+        <h3 id="payout-title" className="text-sm font-semibold">Payout</h3>
+        <p className="text-xs text-fg-muted">Only Zenvy admins can change payout details (the store app cannot), so a stolen store login cannot redirect payouts. Confirm any change with the owner directly.</p>
         <Field label="Payout UPI ID" optional error={errors.payoutUpiId} help="Like name@bank.">
           {ids => input('payoutUpiId', ids, { maxLength: 256 })}
         </Field>
@@ -282,7 +282,7 @@ export function ComplianceTab({ store, onChanged }: { store: Store; onChanged: (
             {ids => input('bankAccountHolder', ids, { maxLength: 120 })}
           </Field>
           <Field label="IFSC" optional error={errors.bankIfsc} help="11 characters, e.g. SBIN0001234.">
-            {ids => input('bankIfsc', ids, { maxLength: 11, className: cx(INPUT, 'uppercase') })}
+            {ids => input('bankIfsc', ids, { maxLength: 11, className: cx(INPUT, '') })}
           </Field>
         </div>
         <Field
@@ -295,8 +295,8 @@ export function ComplianceTab({ store, onChanged }: { store: Store; onChanged: (
             <div className="space-y-2">
               <input id={fid} aria-describedby={msgId} aria-invalid={invalid} autoComplete="off" inputMode="numeric" maxLength={24} disabled={clearBank} className={INPUT} value={bankAccount} onChange={e => { setBankAccount(e.target.value.replace(/[^\d\s-]/g, '')); setErrors(er => ({ ...er, bankAccountNumber: undefined })); }} />
               {current.bankAccountLast4 && (
-                <label className="flex items-center gap-2 text-xs text-gray-400">
-                  <input type="checkbox" className="h-4 w-4 accent-red-500" checked={clearBank} onChange={e => { setClearBank(e.target.checked); if (e.target.checked) setBankAccount(''); }} />
+                <label className="flex items-center gap-2 text-xs text-fg-muted">
+                  <input type="checkbox" className="h-4 w-4 accent-[rgb(var(--accent))]" checked={clearBank} onChange={e => { setClearBank(e.target.checked); if (e.target.checked) setBankAccount(''); }} />
                   Remove the account ending {current.bankAccountLast4}
                 </label>
               )}

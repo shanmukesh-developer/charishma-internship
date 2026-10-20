@@ -95,8 +95,8 @@ export default function LegalCard() {
     }
   };
 
-  const input = 'w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-white font-bold text-sm';
-  const lbl = 'text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1';
+  const input = 'w-full bg-surface-2/60 border border-line rounded-lg p-3 text-fg font-semibold text-sm';
+  const lbl = 'text-xs font-semibold text-fg-muted ml-1';
   const field = (id: string, label: string, value: string, onChange: (v: string) => void, placeholder = '', type = 'text') => (
     <div className="space-y-2">
       <label htmlFor={id} className={lbl}>{label}</label>
@@ -105,20 +105,19 @@ export default function LegalCard() {
   );
 
   return (
-    <div className="glass-card p-10 space-y-6">
+    <div className="rounded-lg border border-line bg-surface shadow-xs p-10 space-y-6">
       <div className="flex items-center gap-4 flex-wrap">
-        <div className="w-10 h-10 bg-emerald-600/20 rounded-xl flex items-center justify-center text-xl">⚖️</div>
         <div className="flex-1 min-w-[200px]">
-          <h4 className="text-lg font-black text-white uppercase tracking-tight">Legal &amp; Compliance</h4>
-          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Terms · Privacy · Refunds · Grievance officer · shown on the public /legal pages and in every app</p>
+          <h4 className="text-lg font-semibold text-fg">Legal &amp; Compliance</h4>
+          <p className="text-xs text-fg-muted font-semibold">Terms · Privacy · Refunds · Grievance officer · shown on the public /legal pages and in every app</p>
         </div>
         {data && (data.grievanceComplete
-          ? <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-600/20 border border-emerald-500/40 text-emerald-300">Grievance officer published</span>
-          : <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-amber-600/20 border border-amber-500/40 text-amber-300">⚠ Grievance officer missing</span>)}
+          ? <span className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-success-soft border border-success/30 text-success-text">Grievance officer published</span>
+          : <span className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-warning-soft border border-warning/30 text-warning-text">Grievance officer missing</span>)}
       </div>
 
-      <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-[12px] leading-relaxed text-amber-100">
-        <p className="font-black uppercase tracking-widest text-[10px] text-amber-300 mb-1">Have these reviewed by a lawyer</p>
+      <div className="rounded-lg border border-warning/30 bg-warning-soft p-4 text-xs leading-relaxed text-warning-text">
+        <p className="font-semibold text-xs text-warning-text mb-1">Have these reviewed by a lawyer</p>
         These policies were written in plain English from what the app actually does. They are not legal advice. Before
         relying on them (and before a public launch), have a lawyer qualified in Indian law review the Terms, Privacy
         Policy and Refund Policy, and fill in the business details below. Never type placeholder or made-up details here:
@@ -126,20 +125,20 @@ export default function LegalCard() {
       </div>
 
       {data && !data.grievanceComplete && (
-        <p className="text-[12px] text-amber-300 leading-relaxed">
+        <p className="text-xs text-warning-text leading-relaxed">
           The IT (Intermediary Guidelines) Rules 2021 and the Consumer Protection (E-Commerce) Rules 2020 require a named
           grievance officer with contact details. Until name, designation and email are filled, the pages say
           &quot;details will be published here&quot; and point to the contact email.
         </p>
       )}
       {data && data.missing.length > 0 && (
-        <p className="text-[11px] text-gray-400">Still empty: {data.missing.map(m => MISSING_LABELS[m] || m).join(', ')}.</p>
+        <p className="text-xs text-fg-muted">Still empty: {data.missing.map(m => MISSING_LABELS[m] || m).join(', ')}.</p>
       )}
 
       {loadError && (
         <div className="flex items-center gap-3">
-          <p className="text-xs font-bold text-red-400">{loadError}</p>
-          <button onClick={load} className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-300">Retry</button>
+          <p className="text-xs font-semibold text-danger-text">{loadError}</p>
+          <button onClick={load} className="px-3 py-1.5 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted">Retry</button>
         </div>
       )}
 
@@ -158,8 +157,8 @@ export default function LegalCard() {
             {field('lg-city', 'Jurisdiction city (courts)', form.jurisdictionCity, v => set('jurisdictionCity', v), 'e.g. the city of your registered office')}
           </div>
 
-          <div className="border-t border-white/5 pt-5 space-y-4">
-            <p className="text-sm font-black text-white">Grievance officer</p>
+          <div className="border-t border-line pt-5 space-y-4">
+            <p className="text-sm font-semibold text-fg">Grievance officer</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {field('lg-go-name', 'Name', form.grievanceOfficer.name, v => setOfficer('name', v))}
               {field('lg-go-des', 'Designation', form.grievanceOfficer.designation, v => setOfficer('designation', v), 'e.g. Grievance Officer')}
@@ -174,26 +173,26 @@ export default function LegalCard() {
             </div>
           </div>
 
-          <div className="border-t border-white/5 pt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="border-t border-line pt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
             {field('lg-date', 'Effective date', form.effectiveDate, v => set('effectiveDate', v), '', 'date')}
             {field('lg-ver', 'Policy version', form.policyVersion, v => set('policyVersion', v), '1.0')}
-            <p className="text-[11px] text-gray-500 leading-relaxed md:pt-6">
+            <p className="text-xs text-fg-muted leading-relaxed md:pt-6">
               Changing the version asks every signed-in customer once to accept the updated Terms (non-blocking).
               Keep it the same for small fixes such as a new address.
             </p>
           </div>
 
           <div className="flex items-center gap-4 flex-wrap">
-            <button onClick={save} disabled={saving} className="px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white">
+            <button onClick={save} disabled={saving} className="px-6 py-3 bg-accent hover:bg-accent-hover disabled:opacity-50 rounded-lg text-xs font-semibold text-on-solid">
               {saving ? 'Saving…' : 'Save legal settings'}
             </button>
-            {error && <p className="text-xs font-bold text-red-400">{error}</p>}
-            {notice && <p className="text-xs font-bold text-emerald-400">{notice}</p>}
+            {error && <p className="text-xs font-semibold text-danger-text">{error}</p>}
+            {notice && <p className="text-xs font-semibold text-success-text">{notice}</p>}
           </div>
 
-          <div className="border-t border-white/5 pt-5 flex flex-wrap gap-2">
+          <div className="border-t border-line pt-5 flex flex-wrap gap-2">
             {PAGE_LABELS.filter(([k]) => data.pages[k]).map(([k, label]) => (
-              <a key={k} href={data.pages[k]} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-wider text-gray-300 hover:bg-white/10">
+              <a key={k} href={data.pages[k]} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:bg-surface-2">
                 {label} ↗
               </a>
             ))}

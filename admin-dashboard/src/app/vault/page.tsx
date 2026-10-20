@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
-import { adminRequest as request } from '@/lib/api';
+import { adminRequest as request, uploadImage } from '@/lib/api';
 import ListImage from '@/components/ListImage';
 
 // Vault = limited daily deals. Claiming one (POST /api/vault/claim/:id in the app) creates a real coupon valid until
@@ -29,8 +29,8 @@ interface DealForm {
 }
 
 const EMPTY_FORM: DealForm = { name: '', price: '', originalPrice: '', remainingCount: '10', streakRequirement: '0', imageUrl: '' };
-const FIELD = 'w-full rounded-lg border border-white/10 bg-[#111318] px-3 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none focus:border-amber-400/50';
-const LABEL = 'block space-y-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400';
+const FIELD = 'w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-fg placeholder:text-fg-subtle outline-none focus:border-accent';
+const LABEL = 'block space-y-1.5 text-xs font-semibold text-fg-muted';
 
 
 const toForm = (item: VaultItem): DealForm => ({
@@ -119,70 +119,69 @@ export default function VaultPage() {
     }
   };
 
-  if (!isAuthed) return <div className="p-10 text-center text-sm text-gray-400" role="status">Checking your admin session…</div>;
+  if (!isAuthed) return <div className="p-10 text-center text-sm text-fg-muted" role="status">Checking your admin session…</div>;
 
   const live = items.filter(i => i.isActive && i.remainingCount > 0).length;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6 text-white md:p-8">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-5">
+    <div className="mx-auto max-w-6xl space-y-6 text-fg">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-amber-400">Rewards</p>
-          <h1 className="mt-1 text-2xl font-black">Vault deals</h1>
-          <p className="mt-2 max-w-2xl text-sm text-gray-400">Limited daily deals. A claim gives the student a coupon valid until midnight (one claim per deal per day) and uses one unit of stock.</p>
+          <h1 className="text-2xl font-semibold text-fg">Daily deals</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Limited daily deals. A claim gives the student a coupon valid until midnight (one claim per deal per day) and uses one unit of stock.</p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-400">{live} live of {items.length}</span>
-          <button type="button" disabled={loading} onClick={load} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-gray-300 hover:text-white disabled:opacity-50">{loading ? 'Loading…' : 'Refresh'}</button>
-          <button type="button" onClick={() => setEditing('new')} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-bold text-black hover:bg-amber-400">Add deal</button>
+          <span className="text-sm text-fg-muted">{live} live of {items.length}</span>
+          <button type="button" disabled={loading} onClick={load} className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-fg-muted hover:text-fg disabled:opacity-50">{loading ? 'Loading…' : 'Refresh'}</button>
+          <button type="button" onClick={() => setEditing('new')} className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-fg hover:bg-accent-hover">Add deal</button>
         </div>
       </header>
 
       {notice && (
-        <div role={notice.kind === 'error' ? 'alert' : 'status'} className={`flex items-start justify-between gap-3 rounded-lg border p-3 text-sm ${notice.kind === 'error' ? 'border-red-500/30 bg-red-500/10 text-red-200' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'}`}>
+        <div role={notice.kind === 'error' ? 'alert' : 'status'} className={`flex items-start justify-between gap-3 rounded-lg border p-3 text-sm ${notice.kind === 'error' ? 'border-danger/30 bg-danger-soft text-danger-text' : 'border-success/30 bg-success-soft text-success-text'}`}>
           <span>{notice.text}</span>
           <button type="button" onClick={() => setNotice(null)} className="text-xs font-semibold opacity-70 hover:opacity-100">Dismiss</button>
         </div>
       )}
 
       {loadError && (
-        <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+        <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger-text">
           {loadError}
-          <button type="button" onClick={load} className="font-bold underline">Retry</button>
+          <button type="button" onClick={load} className="font-semibold underline">Retry</button>
         </div>
       )}
 
       {loading ? (
-        <div role="status" className="rounded-lg border border-white/10 p-8 text-sm text-gray-400">Loading vault deals…</div>
+        <div role="status" className="rounded-lg border border-line p-8 text-sm text-fg-muted">Loading vault deals…</div>
       ) : !loadError && items.length === 0 ? (
-        <div className="rounded-lg border border-white/10 p-10 text-center">
-          <h2 className="font-bold">No vault deals yet</h2>
-          <p className="mt-2 text-sm text-gray-400">The Vault is empty in the app until you add a deal.</p>
+        <div className="rounded-lg border border-line p-10 text-center">
+          <h2 className="font-semibold">No vault deals yet</h2>
+          <p className="mt-2 text-sm text-fg-muted">The Vault is empty in the app until you add a deal.</p>
         </div>
       ) : (
-        <section className="divide-y divide-white/10 rounded-xl border border-white/10" aria-label="Vault deals">
+        <section className="divide-y divide-line rounded-xl border border-line" aria-label="Vault deals">
           {items.map(item => {
             const off = item.originalPrice > item.price ? Math.round((1 - item.price / item.originalPrice) * 100) : 0;
             const status = !item.isActive ? 'Hidden' : item.remainingCount <= 0 ? 'Sold out' : 'Live';
             return (
               <article key={item._id} className="flex flex-wrap items-center gap-4 p-4">
                 {item.imageUrl ? (
-                  <ListImage thumb src={item.imageUrl} className="h-14 w-14 rounded-lg border border-white/10 object-cover" fallback={<div aria-hidden className="h-14 w-14 rounded-lg border border-white/10 bg-slate-900" />} />
-                ) : <div aria-hidden className="h-14 w-14 rounded-lg border border-white/10 bg-slate-900" />}
+                  <ListImage thumb src={item.imageUrl} className="h-14 w-14 rounded-lg border border-line object-cover" fallback={<div aria-hidden className="h-14 w-14 rounded-lg border border-line bg-surface-2" />} />
+                ) : <div aria-hidden className="h-14 w-14 rounded-lg border border-line bg-surface-2" />}
                 <div className="min-w-[200px] flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="font-bold">{item.name}</h2>
-                    <span className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold ${status === 'Live' ? 'border-emerald-500/30 text-emerald-300' : status === 'Sold out' ? 'border-amber-500/30 text-amber-300' : 'border-white/10 text-gray-400'}`}>{status}</span>
+                    <h2 className="font-semibold">{item.name}</h2>
+                    <span className={`rounded border px-1.5 py-0.5 text-xs font-semibold ${status === 'Live' ? 'border-success/30 text-success-text' : status === 'Sold out' ? 'border-warning/30 text-warning-text' : 'border-line text-fg-muted'}`}>{status}</span>
                   </div>
-                  <p className="mt-1 text-sm text-gray-300">
-                    ₹{item.price} <span className="text-gray-500 line-through">₹{item.originalPrice}</span>{off ? <span className="ml-2 text-emerald-300">{off}% off</span> : null}
+                  <p className="mt-1 text-sm text-fg-muted">
+                    ₹{item.price} <span className="text-fg-muted line-through">₹{item.originalPrice}</span>{off ? <span className="ml-2 text-success-text">{off}% off</span> : null}
                   </p>
-                  <p className="mt-0.5 text-xs text-gray-500">{item.remainingCount} left · {item.streakRequirement ? `needs a ${item.streakRequirement}-day streak` : 'no streak needed'}</p>
+                  <p className="mt-0.5 text-xs text-fg-muted">{item.remainingCount} left · {item.streakRequirement ? `needs a ${item.streakRequirement}-day streak` : 'no streak needed'}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <button type="button" disabled={!!busy[item._id]} onClick={() => toggleActive(item)} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-gray-300 hover:text-white disabled:opacity-50">{item.isActive ? 'Hide' : 'Make live'}</button>
-                  <button type="button" onClick={() => setEditing(item)} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-gray-300 hover:text-white">Edit</button>
-                  <button type="button" disabled={!!busy[item._id]} onClick={() => remove(item)} className="rounded-lg px-2 py-1.5 text-xs font-semibold text-red-400/70 hover:text-red-300 disabled:opacity-50">Delete</button>
+                  <button type="button" disabled={!!busy[item._id]} onClick={() => toggleActive(item)} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-50">{item.isActive ? 'Hide' : 'Make live'}</button>
+                  <button type="button" onClick={() => setEditing(item)} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg-muted hover:text-fg">Edit</button>
+                  <button type="button" disabled={!!busy[item._id]} onClick={() => remove(item)} className="rounded-lg px-2 py-1.5 text-xs font-semibold text-danger-text hover:text-danger-text disabled:opacity-50">Delete</button>
                 </div>
               </article>
             );
@@ -219,16 +218,11 @@ function DealEditor({ initial, onCancel, onSave }: {
 
   const upload = async (file?: File) => {
     if (!file) return;
-    if (!/^image\/(jpe?g|png|webp)$/.test(file.type)) return setError('Use a JPEG, PNG or WEBP image.');
-    if (file.size > 2 * 1024 * 1024) return setError('The image must be 2 MB or smaller.');
     setUploading(true);
     setError('');
     try {
-      const body = new FormData();
-      body.append('image', file);
-      const data = await request<{ imageUrl?: string }>('/api/upload', { method: 'POST', body });
-      if (!data?.imageUrl) throw new Error('The upload did not return an image.');
-      set({ imageUrl: data.imageUrl });
+      // Shared uploader: resizes large phone photos and retries once on a dropped connection.
+      set({ imageUrl: await uploadImage(file) });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Image upload failed.');
     } finally {
@@ -252,9 +246,9 @@ function DealEditor({ initial, onCancel, onSave }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="deal-title">
-      <form onSubmit={submit} className="my-8 w-full max-w-xl rounded-2xl border border-white/10 bg-[#0d0f14] p-6 text-white shadow-2xl">
-        <h2 id="deal-title" className="text-xl font-bold">{initial ? 'Edit deal' : 'Add vault deal'}</h2>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-scrim/50 p-4" role="dialog" aria-modal="true" aria-labelledby="deal-title">
+      <form onSubmit={submit} className="my-8 w-full max-w-xl rounded-lg border border-line bg-surface p-6 text-fg shadow-pop">
+        <h2 id="deal-title" className="text-xl font-semibold">{initial ? 'Edit deal' : 'Add vault deal'}</h2>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <label className={`${LABEL} sm:col-span-2`}>Deal name
             <input className={FIELD} value={form.name} onChange={e => set({ name: e.target.value })} required maxLength={120} />
@@ -272,21 +266,21 @@ function DealEditor({ initial, onCancel, onSave }: {
             <input inputMode="numeric" className={FIELD} value={form.streakRequirement} onChange={e => set({ streakRequirement: e.target.value })} />
           </label>
           <div className="space-y-1.5 sm:col-span-2">
-            <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Image</span>
+            <span className="block text-xs font-semibold text-fg-muted">Image</span>
             <div className="flex flex-wrap items-center gap-3">
-              <label className="cursor-pointer rounded-lg border border-white/10 px-3 py-2 text-sm text-gray-200 hover:bg-white/5">
+              <label className="cursor-pointer rounded-lg border border-line px-3 py-2 text-sm text-fg hover:bg-surface-2/60">
                 {uploading ? 'Uploading…' : 'Upload'}
                 <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={uploading} onChange={e => { upload(e.target.files?.[0]); e.target.value = ''; }} />
               </label>
               <input className={`${FIELD} min-w-[200px] flex-1`} value={form.imageUrl.startsWith('data:') ? '' : form.imageUrl} onChange={e => set({ imageUrl: e.target.value })} placeholder={form.imageUrl.startsWith('data:') ? 'Uploaded image' : 'or paste an image URL'} />
-              {form.imageUrl && <button type="button" onClick={() => set({ imageUrl: '' })} className="text-sm text-red-300 hover:underline">Remove</button>}
+              {form.imageUrl && <button type="button" onClick={() => set({ imageUrl: '' })} className="text-sm text-danger-text hover:underline">Remove</button>}
             </div>
           </div>
         </div>
-        {error && <p role="alert" className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{error}</p>}
+        {error && <p role="alert" className="mt-4 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger-text">{error}</p>}
         <div className="mt-6 flex justify-end gap-3">
-          <button type="button" onClick={onCancel} className="rounded-lg border border-white/10 px-4 py-2.5 text-sm font-semibold text-gray-300 hover:text-white">Cancel</button>
-          <button type="submit" disabled={saving || uploading} className="rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-bold text-black hover:bg-amber-400 disabled:opacity-50">{saving ? 'Saving…' : initial ? 'Save deal' : 'Publish deal'}</button>
+          <button type="button" onClick={onCancel} className="rounded-lg border border-line px-4 py-2.5 text-sm font-semibold text-fg-muted hover:text-fg">Cancel</button>
+          <button type="submit" disabled={saving || uploading} className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-accent-fg hover:bg-accent-hover disabled:opacity-50">{saving ? 'Saving…' : initial ? 'Save deal' : 'Publish deal'}</button>
         </div>
       </form>
     </div>

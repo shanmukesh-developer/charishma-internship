@@ -157,17 +157,17 @@ Press Cancel, then Discard, to load their version first.`)) {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-24">
-        <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+      <div className="flex justify-center">
+        <div className="w-8 h-8 border-2 border-success/30 border-t-success/30 rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!config) {
     return (
-      <div className="max-w-xl mx-auto mt-16 glass-card p-8 text-center space-y-4">
-        <p className="text-sm font-bold text-red-400">{error || 'Could not load the configuration.'}</p>
-        <button onClick={fetchConfig} className="px-6 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-black uppercase tracking-widest text-white">
+      <div className="max-w-xl mx-auto mt-16 rounded-lg border border-line bg-surface shadow-xs p-8 text-center space-y-4">
+        <p className="text-sm font-semibold text-danger-text">{error || 'Could not load the configuration.'}</p>
+        <button onClick={fetchConfig} className="px-6 py-2.5 bg-surface-2/60 hover:bg-surface-2 border border-line rounded-xl text-xs font-semibold text-fg">
           Retry
         </button>
       </div>
@@ -175,120 +175,120 @@ Press Cancel, then Discard, to load their version first.`)) {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto text-white">
+    <div className="p-8 max-w-7xl mx-auto text-fg">
       <div className="flex justify-between items-start gap-6 mb-6 flex-wrap">
         <div>
-          <h1 className="text-3xl font-black uppercase tracking-widest text-emerald-400">App Content (CMS)</h1>
-          <p className="text-gray-400 text-sm mt-1">Home banners, category shortcuts and status flags stored in the app config (<code className="text-gray-300">/api/config</code>).</p>
+          <h1 className="text-2xl font-semibold text-fg">Home screen layout</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Banners and sections on the customer app home screen.</p>
           {config.updatedAt && (
-            <p className="text-gray-600 text-xs mt-1">Last saved {new Date(config.updatedAt).toLocaleString()}</p>
+            <p className="text-fg-subtle text-xs mt-1">Last saved {new Date(config.updatedAt).toLocaleString()}</p>
           )}
         </div>
         <div className="flex gap-3 items-center">
-          {dirty && <span className="text-[11px] font-bold text-amber-400">Unsaved changes</span>}
+          {dirty && <span className="text-xs font-semibold text-warning-text">Unsaved changes</span>}
           <button
             onClick={fetchConfig}
             disabled={saving}
-            className="px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-widest bg-white/5 hover:bg-white/10 border border-white/10 disabled:opacity-50"
+            className="px-5 py-3 rounded-xl text-xs font-semibold bg-surface-2/60 hover:bg-surface-2 border border-line disabled:opacity-50"
           >
             {dirty ? 'Discard' : 'Reload'}
           </button>
           <button
             onClick={handleSave}
             disabled={saving || !dirty}
-            className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-sm shadow-lg shadow-emerald-500/20"
+            className="bg-success hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed px-8 py-3 rounded-xl font-semibold text-sm shadow-emerald-500/20"
           >
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>
 
-      <div className="mb-6 p-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 text-xs text-amber-200 leading-relaxed">
+      <div className="mb-6 p-4 rounded-lg border border-warning/30 bg-warning-soft text-xs text-warning-text leading-relaxed">
         Heads-up: the current customer app does not read this config yet, so these banners, categories and flags are saved
         but not shown to students. Ordering hours and the delivery fee are controlled elsewhere (Config page and backend env).
       </div>
 
       {staleRemote && (
-        <div role="alert" className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-300">
+        <div role="alert" className="mb-6 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm font-semibold text-warning-text">
           The app config was changed elsewhere while you were editing. Only the fields you edited will be saved, but use Discard to load the latest version if you are unsure.
         </div>
       )}
       {error && (
-        <div className="mb-6 p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-sm font-bold text-red-400">{error}</div>
+        <div className="mb-6 p-4 rounded-xl border border-danger/30 bg-danger-soft text-sm font-semibold text-danger-text">{error}</div>
       )}
       {notice && (
-        <div className="mb-6 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-sm font-bold text-emerald-400">{notice}</div>
+        <div className="mb-6 p-4 rounded-xl border border-success/30 bg-success-soft text-sm font-semibold text-success-text">{notice}</div>
       )}
 
       {/* Global flags */}
-      <div className="bg-[#141416] border border-white/10 rounded-3xl p-6 mb-8">
-        <h2 className="text-xl font-bold mb-4 text-white">Status Flags</h2>
+      <div className="bg-surface border border-line rounded-lg p-6 mb-8">
+        <h2 className="text-xl font-semibold mb-4 text-fg">Status Flags</h2>
         <div className="flex gap-8 flex-wrap">
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
               checked={config.maintenanceMode}
               onChange={(e) => edit({ ...config, maintenanceMode: e.target.checked })}
-              className="w-5 h-5 accent-emerald-500"
+              className="w-5 h-5 accent-[rgb(var(--accent))]"
             />
-            <span className="font-bold">Maintenance mode</span>
+            <span className="font-semibold">Maintenance mode</span>
           </label>
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
               checked={config.campusOpen}
               onChange={(e) => edit({ ...config, campusOpen: e.target.checked })}
-              className="w-5 h-5 accent-emerald-500"
+              className="w-5 h-5 accent-[rgb(var(--accent))]"
             />
-            <span className="font-bold">Campus open</span>
+            <span className="font-semibold">Campus open</span>
           </label>
         </div>
       </div>
 
       {/* Banners */}
-      <div className="bg-[#141416] border border-white/10 rounded-3xl p-6 mb-8">
+      <div className="bg-surface border border-line rounded-lg p-6 mb-8">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-white">Promotional Banners</h2>
+          <h2 className="text-xl font-semibold text-fg">Promotional Banners</h2>
           <button
             onClick={() => edit({
               ...config,
               banners: [...config.banners, { imageUrl: '', tagline: '', title1: '', title2: '', description: '', buttonText: '', redirectUrl: '', isActive: false }],
             })}
-            className="text-emerald-400 text-sm font-bold bg-emerald-500/10 px-4 py-2 rounded-lg"
+            className="text-success-text text-sm font-semibold bg-success-soft px-4 py-2 rounded-lg"
           >
             + Add Banner
           </button>
         </div>
 
         {config.banners.length === 0 ? (
-          <p className="text-sm text-gray-500 italic py-6 text-center">No banners yet.</p>
+          <p className="text-sm text-fg-muted py-6 text-center">No banners yet.</p>
         ) : (
           <div className="space-y-4">
             {config.banners.map((banner, idx) => (
-              <div key={idx} className={`p-4 border rounded-xl flex flex-col gap-3 ${banner.isActive ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-white/5 opacity-60'}`}>
+              <div key={idx} className={`p-4 border rounded-xl flex flex-col gap-3 ${banner.isActive ? 'border-success/30 bg-success-soft' : 'border-line opacity-60'}`}>
                 <div className="flex justify-between">
-                  <span className="font-bold text-emerald-400">Banner #{idx + 1}</span>
+                  <span className="font-semibold text-success-text">Banner #{idx + 1}</span>
                   <label className="flex items-center gap-2">
                     <input type="checkbox" checked={!!banner.isActive} onChange={(e) => updateBanner(idx, 'isActive', e.target.checked)} />
                     <span className="text-xs">Active</span>
                   </label>
                 </div>
-                <input placeholder="Image URL" value={banner.imageUrl || ''} onChange={e => updateBanner(idx, 'imageUrl', e.target.value)} className="bg-black/50 border border-white/10 p-2 rounded text-sm w-full" />
+                <input placeholder="Image URL" value={banner.imageUrl || ''} onChange={e => updateBanner(idx, 'imageUrl', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm w-full" />
                 <div className="grid grid-cols-2 gap-3">
-                  <input placeholder="Tagline" value={banner.tagline || ''} onChange={e => updateBanner(idx, 'tagline', e.target.value)} className="bg-black/50 border border-white/10 p-2 rounded text-sm" />
-                  <input placeholder="Redirect path (e.g. /mega-basket)" value={banner.redirectUrl || ''} onChange={e => updateBanner(idx, 'redirectUrl', e.target.value)} className="bg-black/50 border border-white/10 p-2 rounded text-sm" />
-                  <input placeholder="Title line 1" value={banner.title1 || ''} onChange={e => updateBanner(idx, 'title1', e.target.value)} className="bg-black/50 border border-white/10 p-2 rounded text-sm" />
-                  <input placeholder="Title line 2" value={banner.title2 || ''} onChange={e => updateBanner(idx, 'title2', e.target.value)} className="bg-black/50 border border-white/10 p-2 rounded text-sm" />
-                  <input placeholder="Button text" value={banner.buttonText || ''} onChange={e => updateBanner(idx, 'buttonText', e.target.value)} className="bg-black/50 border border-white/10 p-2 rounded text-sm col-span-2" />
+                  <input placeholder="Tagline" value={banner.tagline || ''} onChange={e => updateBanner(idx, 'tagline', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm" />
+                  <input placeholder="Redirect path (e.g. /mega-basket)" value={banner.redirectUrl || ''} onChange={e => updateBanner(idx, 'redirectUrl', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm" />
+                  <input placeholder="Title line 1" value={banner.title1 || ''} onChange={e => updateBanner(idx, 'title1', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm" />
+                  <input placeholder="Title line 2" value={banner.title2 || ''} onChange={e => updateBanner(idx, 'title2', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm" />
+                  <input placeholder="Button text" value={banner.buttonText || ''} onChange={e => updateBanner(idx, 'buttonText', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm col-span-2" />
                 </div>
-                <textarea placeholder="Description" value={banner.description || ''} onChange={e => updateBanner(idx, 'description', e.target.value)} className="bg-black/50 border border-white/10 p-2 rounded text-sm w-full h-16" />
+                <textarea placeholder="Description" value={banner.description || ''} onChange={e => updateBanner(idx, 'description', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm w-full h-16" />
                 <div className="flex justify-end">
                   <button
                     onClick={() => {
                       if (!confirm(`Remove banner #${idx + 1}? It is deleted when you save.`)) return;
                       edit({ ...config, banners: config.banners.filter((_, i) => i !== idx) });
                     }}
-                    className="text-red-400 text-xs font-bold hover:underline"
+                    className="text-danger-text text-xs font-semibold hover:underline"
                   >
                     Remove Banner
                   </button>
@@ -300,50 +300,50 @@ Press Cancel, then Discard, to load their version first.`)) {
       </div>
 
       {/* Categories */}
-      <div className="bg-[#141416] border border-white/10 rounded-3xl p-6">
+      <div className="bg-surface border border-line rounded-lg p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-white">Category Shortcuts</h2>
+          <h2 className="text-xl font-semibold text-fg">Category Shortcuts</h2>
           <button
             onClick={() => edit({
               ...config,
               categories: [...config.categories, { name: '', img: '', order: config.categories.length + 1, isActive: false }],
             })}
-            className="text-blue-400 text-sm font-bold bg-blue-500/10 px-4 py-2 rounded-lg"
+            className="text-info-text text-sm font-semibold bg-info-soft px-4 py-2 rounded-lg"
           >
             + Add Category
           </button>
         </div>
 
         {config.categories.length === 0 ? (
-          <p className="text-sm text-gray-500 italic py-6 text-center">No categories yet.</p>
+          <p className="text-sm text-fg-muted py-6 text-center">No categories yet.</p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {config.categories.map((cat, idx) => (
-              <div key={idx} className={`p-4 border rounded-xl flex flex-col gap-2 ${cat.isActive ? 'border-blue-500/30 bg-blue-500/5' : 'border-white/5 opacity-60'}`}>
+              <div key={idx} className={`p-4 border rounded-xl flex flex-col gap-2 ${cat.isActive ? 'border-info/30 bg-info-soft' : 'border-line opacity-60'}`}>
                 <div className="flex justify-between items-center">
                   <label className="flex items-center gap-2">
                     <input type="checkbox" checked={!!cat.isActive} onChange={(e) => updateCategory(idx, 'isActive', e.target.checked)} />
                     <span className="text-xs">Active</span>
                   </label>
-                  <label className="flex items-center gap-1 text-[10px] text-gray-500">
+                  <label className="flex items-center gap-1 text-xs text-fg-muted">
                     Order
                     <input
                       type="number"
                       value={Number.isFinite(cat.order) ? cat.order : 0}
                       onChange={e => updateCategory(idx, 'order', parseInt(e.target.value, 10) || 0)}
-                      className="w-12 bg-black/50 border border-white/10 p-1 rounded text-xs text-center text-white"
+                      className="w-12 bg-surface-2 border border-line p-1 rounded text-xs text-center text-fg"
                     />
                   </label>
                 </div>
-                <input placeholder="Name" value={cat.name || ''} onChange={e => updateCategory(idx, 'name', e.target.value)} className="bg-black/50 border border-white/10 p-2 rounded text-sm" />
-                <input placeholder="Image URL or path" value={cat.img || ''} onChange={e => updateCategory(idx, 'img', e.target.value)} className="bg-black/50 border border-white/10 p-2 rounded text-sm" />
+                <input placeholder="Name" value={cat.name || ''} onChange={e => updateCategory(idx, 'name', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm" />
+                <input placeholder="Image URL or path" value={cat.img || ''} onChange={e => updateCategory(idx, 'img', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm" />
                 <div className="flex justify-end mt-1">
                   <button
                     onClick={() => {
                       if (!confirm(`Remove "${cat.name || 'this category'}"? It is deleted when you save.`)) return;
                       edit({ ...config, categories: config.categories.filter((_, i) => i !== idx) });
                     }}
-                    className="text-red-400 text-[10px] font-bold hover:underline"
+                    className="text-danger-text text-xs font-semibold hover:underline"
                   >
                     Remove
                   </button>

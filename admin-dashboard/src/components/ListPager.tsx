@@ -28,15 +28,15 @@ export function ListPager({ page, pages, total, pageSize, onPage, noun = 'rows' 
   if (pages <= 1) return null;
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(total, page * pageSize);
-  const btn = 'px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white disabled:opacity-30 disabled:hover:text-gray-300';
+  const btn = 'px-3 py-1.5 rounded-lg border border-line bg-surface-2/60 text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-30 disabled:hover:text-fg-muted';
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-white/5">
-      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-line">
+      <span className="text-xs font-semibold text-fg-muted">
         {from}–{to} of {total} {noun}
       </span>
       <div className="flex items-center gap-2">
         <button type="button" className={btn} disabled={page <= 1} onClick={() => onPage(page - 1)}>Prev</button>
-        <span className="text-[10px] font-black text-gray-400">{page} / {pages}</span>
+        <span className="text-xs font-semibold text-fg-muted">{page} / {pages}</span>
         <button type="button" className={btn} disabled={page >= pages} onClick={() => onPage(page + 1)}>Next</button>
       </div>
     </div>

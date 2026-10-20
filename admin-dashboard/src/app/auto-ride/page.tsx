@@ -34,7 +34,8 @@ export default function AutoRideAdminPage() {
 
   // Remember the tab in the URL hash (#drivers) so a refresh / shared link lands on the same section.
   useEffect(() => {
-    const h = window.location.hash.replace('#', '') as Tab;
+    // ?tab=<id> (links from the overview and search) or the #hash this page writes.
+    const h = (new URLSearchParams(window.location.search).get('tab') || window.location.hash.replace('#', '')) as Tab;
     if (TAB_KEYS.includes(h)) setTabState(h);
   }, []);
   const setTab = useCallback((t: Tab) => {
@@ -67,7 +68,7 @@ export default function AutoRideAdminPage() {
   const openVehicle = useCallback((id: string) => { setVehicleFocus(id); setTab('vehicles'); }, [setTab]);
   const clearFocus = useCallback(() => setVehicleFocus(null), []);
 
-  if (!isAuthed) return <div className="p-10 text-center text-sm text-gray-400" role="status">Checking your admin session…</div>;
+  if (!isAuthed) return <div className="p-10 text-center text-sm text-fg-muted" role="status">Checking your admin session…</div>;
 
   const tabs: { key: Tab; label: string; count?: number; alert?: boolean }[] = [
     { key: 'overview', label: 'Overview' },
@@ -84,28 +85,27 @@ export default function AutoRideAdminPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-6 text-white md:p-8">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-5">
+    <div className="mx-auto max-w-7xl space-y-6 text-fg">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-sky-400">Campus Mobility</p>
-          <h1 className="mt-1 text-2xl font-black">🛺 Zenvy Auto-Ride</h1>
-          <p className="mt-2 max-w-3xl text-sm text-gray-400">Shared autos with seat booking. Verify drivers and their autos (approved capacity never above the RC), manage routes and pickup points, watch queues and trips, handle bookings, refunds and safety reports.</p>
+          <h1 className="text-2xl font-semibold text-fg">Auto-ride</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Shared autos with seat booking. Verify drivers and their autos (approved capacity never above the RC), manage routes and pickup points, watch queues and trips, handle bookings, refunds and safety reports.</p>
         </div>
         {summary && (
-          <button type="button" onClick={() => setTab('settings')} className={`border px-4 py-2 text-sm font-bold ${summary.enabled ? 'border-emerald-400/30 text-emerald-300' : 'border-red-400/30 text-red-300'}`}>
+          <button type="button" onClick={() => setTab('settings')} className={`border px-4 py-2 text-sm font-semibold ${summary.enabled ? 'border-success/30 text-success-text' : 'border-danger/30 text-danger-text'}`}>
             {summary.enabled ? 'Auto-Ride ON' : 'Auto-Ride OFF'} · {summary.walletEnabled ? 'wallet on' : 'cash only'}
           </button>
         )}
       </header>
 
-      {summaryError && !summary && <div role="alert" className="border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{summaryError} Counts are unavailable until it loads.</div>}
-      {toast && <div role="status" className="border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-200">{toast} · <button type="button" className="font-bold underline" onClick={() => setTab('incidents')}>Open incidents</button></div>}
+      {summaryError && !summary && <div role="alert" className="border border-danger/30 bg-danger-soft p-3 text-sm text-danger-text">{summaryError} Counts are unavailable until it loads.</div>}
+      {toast && <div role="status" className="border border-danger/30 bg-danger-soft p-3 text-sm text-danger-text">{toast} · <button type="button" className="font-semibold underline" onClick={() => setTab('incidents')}>Open incidents</button></div>}
 
       <nav className="flex flex-wrap gap-2" aria-label="Auto-Ride sections">
         {tabs.map((t) => (
           <button key={t.key} type="button" onClick={() => setTab(t.key)} aria-pressed={tab === t.key}
-            className={`border px-4 py-2 text-sm font-bold ${tab === t.key ? 'border-sky-400 bg-sky-400/10 text-white' : 'border-white/10 text-gray-400 hover:text-white'}`}>
-            {t.label}{t.count ? <span className={`ml-2 px-1.5 text-xs text-white ${t.alert ? 'bg-red-500' : 'bg-sky-600'}`}>{t.count}</span> : null}
+            className={`border px-4 py-2 text-sm font-semibold ${tab === t.key ? 'border-info/30 bg-info-soft text-fg' : 'border-line text-fg-muted hover:text-fg'}`}>
+            {t.label}{t.count ? <span className={`ml-2 px-1.5 text-xs text-fg ${t.alert ? 'bg-danger' : 'bg-accent'}`}>{t.count}</span> : null}
           </button>
         ))}
       </nav>
@@ -126,16 +126,16 @@ export default function AutoRideAdminPage() {
 }
 
 function Overview({ summary: s, error, retry, go }: { summary: Summary | null; error: string; retry: () => void; go: (t: Tab) => void }) {
-  if (!s) return error ? <ErrorBox text={error} retry={retry} /> : <div role="status" className="border border-white/10 p-8 text-sm text-gray-400">Loading live counts…</div>;
+  if (!s) return error ? <ErrorBox text={error} retry={retry} /> : <div role="status" className="border border-line p-8 text-sm text-fg-muted">Loading live counts…</div>;
   return (
     <section className="space-y-6" aria-label="Overview">
       {!s.enabled && (
-        <div className="border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-200">
-          Auto-Ride is OFF for passengers. Turn it on only after legal checks: permits, insurance, driver documents. <button type="button" className="font-bold underline" onClick={() => go('settings')}>Settings</button>
+        <div className="border border-warning/30 bg-warning-soft p-4 text-sm text-warning-text">
+          Auto-Ride is OFF for passengers. Turn it on only after legal checks: permits, insurance, driver documents. <button type="button" className="font-semibold underline" onClick={() => go('settings')}>Settings</button>
         </div>
       )}
       <div>
-        <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-gray-400">Right now</h2>
+        <h2 className="mb-3 text-xs font-semibold text-fg-muted">Right now</h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatCard name="Online verified autos" value={s.onlineVerifiedDrivers} tone={s.onlineVerifiedDrivers ? 'good' : 'plain'} hint="Verified drivers currently online" />
           <StatCard name="Open trips" value={s.openTrips} hint="Accepting seat bookings" />
@@ -148,21 +148,21 @@ function Overview({ summary: s, error, retry, go }: { summary: Summary | null; e
         </div>
       </div>
       <div>
-        <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-gray-400">Needs action</h2>
+        <h2 className="mb-3 text-xs font-semibold text-fg-muted">Needs action</h2>
         <div className="grid gap-3 md:grid-cols-3">
           {[
             { n: s.pendingDrivers, t: 'drivers waiting for verification', tab: 'drivers' as Tab },
             { n: s.pendingVehicles, t: 'autos waiting for approval', tab: 'vehicles' as Tab },
             { n: s.refundPending, t: 'refunds pending (retry in Bookings)', tab: 'bookings' as Tab },
           ].map((x) => (
-            <button key={x.tab} type="button" onClick={() => go(x.tab)} className={`border p-4 text-left hover:bg-white/[0.03] ${x.n ? 'border-amber-400/40' : 'border-white/10'}`}>
-              <span className={`text-2xl font-black tabular-nums ${x.n ? 'text-amber-300' : 'text-gray-400'}`}>{x.n}</span>
-              <span className="ml-2 text-sm text-gray-300">{x.t}</span>
+            <button key={x.tab} type="button" onClick={() => go(x.tab)} className={`border p-4 text-left hover:bg-surface-2/60 ${x.n ? 'border-warning/30' : 'border-line'}`}>
+              <span className={`text-2xl font-semibold tabular-nums ${x.n ? 'text-warning-text' : 'text-fg-muted'}`}>{x.n}</span>
+              <span className="ml-2 text-sm text-fg-muted">{x.t}</span>
             </button>
           ))}
         </div>
       </div>
-      <p className="text-xs text-gray-500">All numbers are counted live from the database and refresh when anything changes.</p>
+      <p className="text-xs text-fg-muted">All numbers are counted live from the database and refresh when anything changes.</p>
     </section>
   );
 }

@@ -42,29 +42,29 @@ export function FaqPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Partial<
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs text-gray-500">Shown under FAQ on the PG page, in this order. Leave blank to hide.</p>
-          <p className="mt-1 text-sm text-gray-300">{filled(rows).length} of {MAX_FAQ} questions</p>
+          <p className="text-xs text-fg-muted">Shown under FAQ on the PG page, in this order. Leave blank to hide.</p>
+          <p className="mt-1 text-sm text-fg-muted">{filled(rows).length} of {MAX_FAQ} questions</p>
         </div>
-        <button type="button" disabled={rows.length >= MAX_FAQ} onClick={() => ed.update(prev => [...prev, { key: nextRowKey('f'), q: '', a: '' }])} className="rounded-lg bg-white/10 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/15 disabled:opacity-40">Add question</button>
+        <button type="button" disabled={rows.length >= MAX_FAQ} onClick={() => ed.update(prev => [...prev, { key: nextRowKey('f'), q: '', a: '' }])} className="rounded-lg bg-surface-2 px-4 py-2.5 text-sm font-semibold text-fg hover:bg-surface-3 disabled:opacity-40">Add question</button>
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/10 p-8 text-center text-sm text-gray-400">No questions yet.</div>
+        <div className="rounded-xl border border-dashed border-line p-8 text-center text-sm text-fg-muted">No questions yet.</div>
       ) : (
         <ol className="space-y-3">
           {rows.map((r, i) => {
             const bad = !!errors[i] || badKey === r.key;
             return (
-              <li key={r.key} className={`space-y-2 rounded-xl border p-4 ${bad ? 'border-red-500/50' : 'border-white/10'}`}>
+              <li key={r.key} className={`space-y-2 rounded-xl border p-4 ${bad ? 'border-danger/30' : 'border-line'}`}>
                 <input aria-label={`Question ${i + 1}`} aria-invalid={bad} className={FIELD} maxLength={180} placeholder="Question, e.g. Is there a curfew for girls?" value={r.q} onChange={e => setRow(r.key, { q: e.target.value })} />
                 <textarea aria-label={`Answer ${i + 1}`} rows={3} maxLength={900} className={`${FIELD} resize-y`} placeholder="Answer" value={r.a} onChange={e => setRow(r.key, { a: e.target.value })} />
-                {errors[i] && <p className="text-xs text-red-300">{errors[i]}</p>}
+                {errors[i] && <p className="text-xs text-danger-text">{errors[i]}</p>}
                 <div className="flex flex-wrap items-center gap-3 text-xs">
-                  <span className="text-gray-600">#{i + 1}</span>
-                  <button type="button" disabled={i === 0} onClick={() => ed.update(prev => moveItem(prev, i, -1))} aria-label={`Move question ${i + 1} up`} className="rounded border border-white/10 px-2 py-1 text-gray-300 hover:text-white disabled:opacity-30">Move up</button>
-                  <button type="button" disabled={i === rows.length - 1} onClick={() => ed.update(prev => moveItem(prev, i, 1))} aria-label={`Move question ${i + 1} down`} className="rounded border border-white/10 px-2 py-1 text-gray-300 hover:text-white disabled:opacity-30">Move down</button>
-                  <span className="text-gray-600">{oneLine(r.q).length}/160 · {multiLine(r.a).length}/800</span>
-                  <button type="button" onClick={() => ed.update(prev => prev.filter(x => x.key !== r.key))} aria-label={`Remove question ${i + 1}`} className="ml-auto text-red-300/80 hover:text-red-300">Remove</button>
+                  <span className="text-fg-subtle">#{i + 1}</span>
+                  <button type="button" disabled={i === 0} onClick={() => ed.update(prev => moveItem(prev, i, -1))} aria-label={`Move question ${i + 1} up`} className="rounded border border-line px-2 py-1 text-fg-muted hover:text-fg disabled:opacity-30">Move up</button>
+                  <button type="button" disabled={i === rows.length - 1} onClick={() => ed.update(prev => moveItem(prev, i, 1))} aria-label={`Move question ${i + 1} down`} className="rounded border border-line px-2 py-1 text-fg-muted hover:text-fg disabled:opacity-30">Move down</button>
+                  <span className="text-fg-subtle">{oneLine(r.q).length}/160 · {multiLine(r.a).length}/800</span>
+                  <button type="button" onClick={() => ed.update(prev => prev.filter(x => x.key !== r.key))} aria-label={`Remove question ${i + 1}`} className="ml-auto text-danger-text hover:text-danger-text">Remove</button>
                 </div>
               </li>
             );
@@ -75,8 +75,8 @@ export function FaqPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Partial<
       <AppPreview empty={!v}>
         {v?.map(f => (
           <div key={f.id || f.q}>
-            <p className="font-semibold text-white">{f.q}</p>
-            <p className="whitespace-pre-line text-gray-300">{f.a}</p>
+            <p className="font-semibold text-fg">{f.q}</p>
+            <p className="whitespace-pre-line text-fg-muted">{f.a}</p>
           </div>
         ))}
       </AppPreview>

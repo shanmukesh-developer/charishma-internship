@@ -322,14 +322,14 @@ export function StoreWizard({ mode, initial, startStep, stores, onClose, onSaved
   return (
     <Drawer onClose={requestClose} labelledBy={titleId} width="max-w-6xl">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-4">
+      <div className="flex items-center justify-between gap-4 border-b border-line px-5 py-4">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-400">{mode === 'create' ? 'New partner' : 'Edit partner'}</p>
-          <h2 id={titleId} className="truncate text-lg font-black">{done ? 'All set' : mode === 'create' ? (state.name.trim() || 'Add a store') : `Edit ${initial?.name}`}</h2>
+          <p className="text-xs font-semibold text-success-text">{mode === 'create' ? 'New partner' : 'Edit partner'}</p>
+          <h2 id={titleId} className="truncate text-lg font-semibold">{done ? 'All set' : mode === 'create' ? (state.name.trim() || 'Add a store') : `Edit ${initial?.name}`}</h2>
         </div>
         <div className="flex items-center gap-2">
-          {mode === 'create' && !done && dirty && <span className="hidden text-xs text-gray-500 sm:inline">Draft autosaved on this device</span>}
-          <button type="button" onClick={requestClose} aria-label="Close" className={cx('rounded-lg p-2 text-gray-400 hover:bg-white/5 hover:text-white', FOCUS_RING)}>✕</button>
+          {mode === 'create' && !done && dirty && <span className="hidden text-xs text-fg-muted sm:inline">Draft autosaved on this device</span>}
+          <button type="button" onClick={requestClose} aria-label="Close" className={cx('rounded-lg p-2 text-fg-muted hover:bg-surface-2/60 hover:text-fg', FOCUS_RING)}><span aria-hidden="true" className="text-base leading-none">×</span></button>
         </div>
       </div>
 
@@ -338,19 +338,19 @@ export function StoreWizard({ mode, initial, startStep, stores, onClose, onSaved
       ) : (
         <>
           {/* Mobile progress */}
-          <div className="border-b border-white/5 px-5 py-3 lg:hidden">
-            <div className="flex items-center justify-between text-xs text-gray-400">
-              <span>Step {index + 1} of {steps.length} · <span className="font-semibold text-white">{STEP_META[step].title}</span></span>
+          <div className="border-b border-line px-5 py-3 lg:hidden">
+            <div className="flex items-center justify-between text-xs text-fg-muted">
+              <span>Step {index + 1} of {steps.length} · <span className="font-semibold text-fg">{STEP_META[step].title}</span></span>
               <span>{Math.round(((index + 1) / steps.length) * 100)}%</span>
             </div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={index + 1} aria-label="Setup progress">
-              <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${((index + 1) / steps.length) * 100}%` }} />
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={index + 1} aria-label="Setup progress">
+              <div className="h-full rounded-full bg-success transition-all" style={{ width: `${((index + 1) / steps.length) * 100}%` }} />
             </div>
           </div>
 
           <div className="flex min-h-0 flex-1">
             {/* Step rail */}
-            <nav aria-label="Setup steps" className="hidden w-60 shrink-0 overflow-y-auto border-r border-white/5 p-4 lg:block">
+            <nav aria-label="Setup steps" className="hidden w-60 shrink-0 overflow-y-auto border-r border-line p-4 lg:block">
               <ol className="space-y-1">
                 {steps.map((k, i) => {
                   const current = k === step;
@@ -364,35 +364,35 @@ export function StoreWizard({ mode, initial, startStep, stores, onClose, onSaved
                         disabled={!reachable}
                         aria-current={current ? 'step' : undefined}
                         onClick={() => goto(k)}
-                        className={cx('flex w-full items-start gap-3 rounded-lg px-2.5 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40', current ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]', FOCUS_RING)}
+                        className={cx('flex w-full items-start gap-3 rounded-lg px-2.5 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40', current ? 'bg-surface-2/60' : 'hover:bg-surface-2/60', FOCUS_RING)}
                       >
-                        <span className={cx('mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-black',
-                          current ? 'bg-emerald-500 text-black' : hasIssue ? 'bg-amber-500/20 text-amber-300' : complete ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/10 text-gray-400')}>
+                        <span className={cx('mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
+                          current ? 'bg-success text-accent-fg' : hasIssue ? 'bg-warning-soft text-warning-text' : complete ? 'bg-success-soft text-success-text' : 'bg-surface-2 text-fg-muted')}>
                           {hasIssue ? '!' : complete ? '✓' : i + 1}
                         </span>
                         <span className="min-w-0">
-                          <span className={cx('block text-sm font-semibold', current ? 'text-white' : 'text-gray-300')}>{STEP_META[k].title}</span>
-                          <span className="block truncate text-[11px] text-gray-500">{STEP_META[k].sub}</span>
+                          <span className={cx('block text-sm font-semibold', current ? 'text-fg' : 'text-fg-muted')}>{STEP_META[k].title}</span>
+                          <span className="block truncate text-xs text-fg-muted">{STEP_META[k].sub}</span>
                         </span>
                       </button>
                     </li>
                   );
                 })}
               </ol>
-              {local && <p className="mt-4 px-2 text-[11px] leading-relaxed text-gray-500">Commission is skipped: customers pay the stall cash on delivery and the stall delivers itself.</p>}
+              {local && <p className="mt-4 px-2 text-xs leading-relaxed text-fg-muted">Commission is skipped: customers pay the stall cash on delivery and the stall delivers itself.</p>}
             </nav>
 
             {/* Step body */}
             <div ref={mainRef} className="min-w-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
               {restoredAt && step !== 'review' && (
-                <div className="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-sky-400/20 bg-sky-400/5 px-3 py-2 text-sm text-sky-100">
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-info/30 bg-info-soft px-3 py-2 text-sm text-info-text">
                   <span>Restored your unsaved draft from {timeAgo(restoredAt)}. Passwords are never stored, so generate it again.</span>
                   <button type="button" className="font-semibold underline" onClick={() => { clearDraft(); setState(emptyState()); setRestoredAt(null); goto('basics'); }}>Start over</button>
                 </div>
               )}
               <div className="mb-6">
-                <h3 className="text-xl font-black">{STEP_META[step].title}</h3>
-                <p className="mt-1 text-sm text-gray-400">{STEP_HELP[step]}</p>
+                <h3 className="text-xl font-semibold">{STEP_META[step].title}</h3>
+                <p className="mt-1 text-sm text-fg-muted">{STEP_HELP[step]}</p>
               </div>
               {step === 'basics' && <BasicsStep s={state} set={set} errors={errors} stores={stores} editingId={initial ? storeId(initial) : null} />}
               {step === 'location' && <LocationStep s={state} set={set} errors={errors} stores={stores} />}
@@ -406,14 +406,14 @@ export function StoreWizard({ mode, initial, startStep, stores, onClose, onSaved
 
             {/* Live preview */}
             {step !== 'review' && (
-              <aside className="hidden w-[280px] shrink-0 overflow-y-auto border-l border-white/5 p-5 xl:block" aria-label="Live preview">
+              <aside className="hidden w-[280px] shrink-0 overflow-y-auto border-l border-line p-5 xl:block" aria-label="Live preview">
                 {preview}
               </aside>
             )}
           </div>
 
           {/* Footer */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 px-5 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-5 py-3">
             <Button variant="ghost" onClick={index === 0 ? requestClose : back}>{index === 0 ? 'Cancel' : '← Back'}</Button>
             <div className="flex flex-wrap items-center gap-2">
               {mode === 'edit' && (
@@ -479,11 +479,11 @@ function BasicsStep({ s, set, errors, stores, editingId }: StepProps & { stores:
       {dupe && <Callout tone="amber">Another store is already called “{dupe.name}”. Store names must be unique (partners can sign in with the name), so the server will refuse this one. Add the block or campus.</Callout>}
 
       <fieldset>
-        <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Store type <span className="text-red-400" aria-hidden>*</span></legend>
+        <legend className="mb-2 text-xs font-semibold text-fg-muted">Store type <span className="text-danger-text" aria-hidden>*</span></legend>
         <div className="space-y-4">
           {groups.map(g => (
             <div key={g}>
-              <p className="mb-1.5 text-[11px] font-semibold text-gray-500">{g}</p>
+              <p className="mb-1.5 text-xs font-semibold text-fg-muted">{g}</p>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" role="radiogroup" aria-label={`${g} store types`}>
                 {VENDOR_TYPES.filter(v => v.group === g).map(v => {
                   const selected = s.vendorType === v.value;
@@ -494,13 +494,13 @@ function BasicsStep({ s, set, errors, stores, editingId }: StepProps & { stores:
                       role="radio"
                       aria-checked={selected}
                       onClick={() => set({ vendorType: v.value })}
-                      className={cx('rounded-xl border p-3 text-left transition-colors', selected ? 'border-emerald-500/60 bg-emerald-500/10' : 'border-white/10 hover:border-white/25 hover:bg-white/[0.03]', FOCUS_RING)}
+                      className={cx('rounded-xl border p-3 text-left transition-colors', selected ? 'border-success/30 bg-success-soft' : 'border-line hover:border-line-strong hover:bg-surface-2/60', FOCUS_RING)}
                     >
                       <span className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-bold text-white">{v.label}</span>
-                        <span aria-hidden className={cx('h-4 w-4 shrink-0 rounded-full border-2', selected ? 'border-emerald-400 bg-emerald-400 shadow-[inset_0_0_0_2px_#0b0d12]' : 'border-white/25')} />
+                        <span className="text-sm font-semibold text-fg">{v.label}</span>
+                        <span aria-hidden className={cx('h-4 w-4 shrink-0 rounded-full border-2', selected ? 'border-success/30 bg-success' : 'border-line-strong')} />
                       </span>
-                      <span className="mt-1 block text-xs leading-snug text-gray-400">{v.hint}</span>
+                      <span className="mt-1 block text-xs leading-snug text-fg-muted">{v.hint}</span>
                     </button>
                   );
                 })}
@@ -531,7 +531,7 @@ function BasicsStep({ s, set, errors, stores, editingId }: StepProps & { stores:
           {({ id, msgId }) => <TagInput id={id} describedBy={msgId} value={s.tags} onChange={tags => set({ tags })} suggestions={tagSuggestions} placeholder="e.g. Biryani, South Indian" />}
         </Field>
       </div>
-      <Field label="Short description" optional error={errors.description} aside={<span className="text-[11px] text-gray-600">{s.description.length}/500</span>} help="One or two lines about the store. Shown on the store page.">
+      <Field label="Short description" optional error={errors.description} aside={<span className="text-xs text-fg-subtle">{s.description.length}/500</span>} help="One or two lines about the store. Shown on the store page.">
         {({ id, msgId, invalid }) => (
           <textarea id={id} aria-describedby={msgId} aria-invalid={invalid} className={cx(INPUT, 'h-20 resize-none')} maxLength={500} value={s.description} onChange={e => set({ description: e.target.value })} placeholder="e.g. Home-style Andhra meals and evening tiffins since 2012." />
         )}
@@ -587,20 +587,20 @@ function LocationStep({ s, set, errors, stores }: StepProps & { stores: Store[] 
         </Field>
       </div>
 
-      <section className="space-y-3 rounded-xl border border-white/10 p-4" aria-labelledby="pin-title">
+      <section className="space-y-3 rounded-xl border border-line p-4" aria-labelledby="pin-title">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h4 id="pin-title" className="text-sm font-bold">Map pin <span className="font-normal text-gray-500">(optional)</span></h4>
-            <p className="text-xs text-gray-500">Gives riders exact pickup directions and distance.</p>
+            <h4 id="pin-title" className="text-sm font-semibold">Map pin <span className="font-normal text-fg-muted">(optional)</span></h4>
+            <p className="text-xs text-fg-muted">Gives riders exact pickup directions and distance.</p>
           </div>
-          {hasPin && <a href={mapsUrl(Number(s.lat), Number(s.lon))} target="_blank" rel="noreferrer" className="text-xs font-semibold text-emerald-300 hover:underline">Check on Google Maps ↗</a>}
+          {hasPin && <a href={mapsUrl(Number(s.lat), Number(s.lon))} target="_blank" rel="noreferrer" className="text-xs font-semibold text-success-text hover:underline">Check on Google Maps ↗</a>}
         </div>
         <div className="flex flex-wrap gap-2">
           <input aria-label="Paste a Google Maps link or coordinates" className={cx(INPUT, 'min-w-[220px] flex-1')} value={link} onChange={e => { setLink(e.target.value); setLinkMsg(null); }} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); readLink(); } }} placeholder="Paste a Google Maps link, or 16.4632, 80.5064" />
           <Button onClick={readLink} disabled={!link.trim()}>Use map link</Button>
           <Button variant="ghost" onClick={useMyLocation} loading={locating}>Use my location</Button>
         </div>
-        {linkMsg && <p role={linkMsg.ok ? 'status' : 'alert'} className={cx('text-xs', linkMsg.ok ? 'text-emerald-300' : 'text-red-300')}>{linkMsg.text}</p>}
+        {linkMsg && <p role={linkMsg.ok ? 'status' : 'alert'} className={cx('text-xs', linkMsg.ok ? 'text-success-text' : 'text-danger-text')}>{linkMsg.text}</p>}
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Latitude" error={errors.coords}>
             {({ id, msgId, invalid }) => <input id={id} aria-describedby={msgId} aria-invalid={invalid} inputMode="decimal" className={INPUT} value={s.lat} onChange={e => set({ lat: e.target.value })} placeholder="16.4632" />}
@@ -617,11 +617,11 @@ function LocationStep({ s, set, errors, stores }: StepProps & { stores: Store[] 
         optional={!isLocalVendorType(s.vendorType)}
         error={errors.whatsapp}
         help={isLocalVendorType(s.vendorType) ? 'Customers can WhatsApp or call the stall about their order. The vendor can also sign in to Zenvy Vendor with this number.' : 'Zenvy support and riders use it to reach the store. Not shown to customers for regular stores.'}
-        aside={wa.length === 10 && isValidIndianMobile(wa) ? <a className="text-[11px] font-semibold text-emerald-300 hover:underline" href={`https://wa.me/91${wa}`} target="_blank" rel="noreferrer">Test on WhatsApp ↗</a> : null}
+        aside={wa.length === 10 && isValidIndianMobile(wa) ? <a className="text-xs font-semibold text-success-text hover:underline" href={`https://wa.me/91${wa}`} target="_blank" rel="noreferrer">Test on WhatsApp ↗</a> : null}
       >
         {({ id, msgId, invalid }) => (
           <div className="flex">
-            <span className="flex items-center rounded-l-lg border border-r-0 border-white/10 bg-white/5 px-3 text-sm text-gray-400">+91</span>
+            <span className="flex items-center rounded-l-lg border border-r-0 border-line bg-surface-2/60 px-3 text-sm text-fg-muted">+91</span>
             <input id={id} aria-describedby={msgId} aria-invalid={invalid} inputMode="tel" autoComplete="off" className={cx(INPUT, 'rounded-l-none')} value={s.whatsapp} onChange={e => set({ whatsapp: e.target.value.replace(/[^\d+\s-]/g, '') })} placeholder="98765 43210" />
           </div>
         )}
@@ -634,18 +634,18 @@ function BrandingStep({ s, set, errors }: StepProps) {
   return (
     <div className="space-y-6">
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Cover photo <span className="normal-case tracking-normal text-gray-600">recommended</span></p>
+        <p className="mb-2 text-xs font-semibold text-fg-muted">Cover photo <span className="normal-case text-fg-subtle">recommended</span></p>
         <ImagePicker value={s.imageUrl} onChange={imageUrl => set({ imageUrl })} preset="cover" label="Cover photo" hint="Food or storefront, landscape, bright. JPEG / PNG / WEBP." />
-        <p className="mt-2 text-xs text-gray-500">Used on the Home card, the store page header and Home banners. Avoid text-heavy menus or logos only.</p>
+        <p className="mt-2 text-xs text-fg-muted">Used on the Home card, the store page header and Home banners. Avoid text-heavy menus or logos only.</p>
       </div>
       <div className="grid gap-5 md:grid-cols-[180px_1fr]">
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Logo <span className="normal-case tracking-normal text-gray-600">optional</span></p>
+          <p className="mb-2 text-xs font-semibold text-fg-muted">Logo <span className="normal-case text-fg-subtle">optional</span></p>
           <ImagePicker value={s.logoUrl} onChange={logoUrl => set({ logoUrl })} preset="logo" label="Logo" hint="Square, transparent PNG works best." aspect="aspect-square" />
         </div>
-        <p className="self-center text-xs leading-relaxed text-gray-500">Shown next to the store name in listings and on the store page. It does not need a brand kit.</p>
+        <p className="self-center text-xs leading-relaxed text-fg-muted">Shown next to the store name in listings and on the store page. It does not need a brand kit.</p>
       </div>
-      <section className="space-y-4 rounded-xl border border-white/10 p-4">
+      <section className="space-y-4 rounded-xl border border-line p-4">
         <Toggle
           checked={s.brandOn}
           onChange={brandOn => set({ brandOn })}
@@ -659,8 +659,8 @@ function BrandingStep({ s, set, errors }: StepProps) {
                 <Field key={key} label={label} error={key === 'primaryColor' ? errors.primaryColor : undefined}>
                   {({ id, msgId, invalid }) => (
                     <div className="flex items-center gap-2">
-                      <input type="color" aria-label={`${label} colour picker`} value={HEX.test(s[key]) ? s[key] : '#000000'} onChange={e => set({ [key]: e.target.value } as Partial<WizardState>)} className="h-10 w-12 cursor-pointer rounded-lg border border-white/10 bg-transparent p-1" />
-                      <input id={id} aria-describedby={msgId} aria-invalid={invalid} className={cx(INPUT, 'max-w-[140px] font-mono uppercase')} value={s[key]} onChange={e => set({ [key]: e.target.value } as Partial<WizardState>)} />
+                      <input type="color" aria-label={`${label} colour picker`} value={HEX.test(s[key]) ? s[key] : '#000000'} onChange={e => set({ [key]: e.target.value } as Partial<WizardState>)} className="h-10 w-12 cursor-pointer rounded-lg border border-line bg-transparent p-1" />
+                      <input id={id} aria-describedby={msgId} aria-invalid={invalid} className={cx(INPUT, 'max-w-[140px] font-mono')} value={s[key]} onChange={e => set({ [key]: e.target.value } as Partial<WizardState>)} />
                     </div>
                   )}
                 </Field>
@@ -680,7 +680,7 @@ function HoursStep({ s, set, errors }: StepProps) {
   return (
     <div className="space-y-6">
       <WeeklyHoursEditor value={s.weekly} onChange={weekly => set({ weekly })} error={errors.weekly} />
-      <section className="space-y-4 rounded-xl border border-white/10 p-4">
+      <section className="space-y-4 rounded-xl border border-line p-4">
         <Toggle
           checked={s.isOpenNow}
           onChange={isOpenNow => set({ isOpenNow })}
@@ -695,20 +695,20 @@ function HoursStep({ s, set, errors }: StepProps) {
           {({ id, msgId, invalid }) => (
             <div className="flex items-center gap-3">
               <input id={id} aria-describedby={msgId} aria-invalid={invalid} inputMode="numeric" className={cx(INPUT, 'max-w-[120px]')} value={s.deliveryTime} onChange={e => set({ deliveryTime: e.target.value.replace(/\D/g, '') })} />
-              <span className="text-sm text-gray-400">minutes</span>
+              <span className="text-sm text-fg-muted">minutes</span>
               <div className="flex gap-1.5">
                 {['20', '30', '45'].map(m => (
-                  <button key={m} type="button" onClick={() => set({ deliveryTime: m })} className={cx('rounded-full border px-2.5 py-1 text-xs font-semibold', s.deliveryTime === m ? 'border-emerald-500/50 text-emerald-300' : 'border-white/10 text-gray-400 hover:text-white', FOCUS_RING)}>{m}</button>
+                  <button key={m} type="button" onClick={() => set({ deliveryTime: m })} className={cx('rounded-full border px-2.5 py-1 text-xs font-semibold', s.deliveryTime === m ? 'border-success/30 text-success-text' : 'border-line text-fg-muted hover:text-fg', FOCUS_RING)}>{m}</button>
                 ))}
               </div>
             </div>
           )}
         </Field>
       )}
-      <section className="space-y-4 rounded-xl border border-white/10 p-4" aria-labelledby="bill-rules-title">
+      <section className="space-y-4 rounded-xl border border-line p-4" aria-labelledby="bill-rules-title">
         <div>
-          <h4 id="bill-rules-title" className="text-sm font-bold">Bill rules <span className="font-normal text-gray-500">(optional)</span></h4>
-          <p className="text-xs text-gray-500">Added to the bill the server charges. Leave empty for none.</p>
+          <h4 id="bill-rules-title" className="text-sm font-semibold">Bill rules <span className="font-normal text-fg-muted">(optional)</span></h4>
+          <p className="text-xs text-fg-muted">Added to the bill the server charges. Leave empty for none.</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Packaging fee (₹ per order)" optional error={errors.packagingFee} help="₹0–500. Shown as its own line on the bill.">
@@ -734,7 +734,7 @@ function LoginStep({ s, set, errors, mode, initial }: StepProps & { mode: 'creat
   return (
     <div className="space-y-6">
       {!local && (
-        <section className="rounded-xl border border-white/10 p-4">
+        <section className="rounded-xl border border-line p-4">
           <Toggle
             checked={s.managedByZenvy}
             onChange={managedByZenvy => set({ managedByZenvy })}
@@ -761,7 +761,7 @@ function LoginStep({ s, set, errors, mode, initial }: StepProps & { mode: 'creat
           >
             {({ id: fid, msgId, invalid }) => (
               <div className="flex max-w-sm">
-                <span className="flex items-center rounded-l-lg border border-r-0 border-white/10 bg-white/5 px-3 text-sm text-gray-400">+91</span>
+                <span className="flex items-center rounded-l-lg border border-r-0 border-line bg-surface-2/60 px-3 text-sm text-fg-muted">+91</span>
                 <input id={fid} aria-describedby={msgId} aria-invalid={invalid} inputMode="tel" autoComplete="off" className={cx(INPUT, 'rounded-l-none')} value={s.loginPhone} onChange={e => set({ loginPhone: e.target.value.replace(/[^\d+\s-]/g, '') })} placeholder={local && s.whatsapp ? formatWhatsapp(s.whatsapp) : '98765 43210'} />
               </div>
             )}
@@ -774,7 +774,7 @@ function LoginStep({ s, set, errors, mode, initial }: StepProps & { mode: 'creat
             help={mode === 'edit'
               ? `Leave empty to keep the current password${initial?.hasPassword === false ? ' (none is set yet)' : ''}. A new one works immediately, the old one stops working, and phones already signed in are signed out.`
               : 'Generate a strong one. It is shown once after saving so you can share it; Zenvy only stores a hash.'}
-            aside={s.password ? <span className={cx('text-[11px] font-semibold', strength.score >= 3 ? 'text-emerald-300' : strength.score === 2 ? 'text-amber-300' : 'text-red-300')}>{strength.label}</span> : null}
+            aside={s.password ? <span className={cx('text-xs font-semibold', strength.score >= 3 ? 'text-success-text' : strength.score === 2 ? 'text-warning-text' : 'text-danger-text')}>{strength.label}</span> : null}
           >
             {({ id: fid, msgId, invalid }) => (
               <div className="flex flex-wrap gap-2">
@@ -785,18 +785,18 @@ function LoginStep({ s, set, errors, mode, initial }: StepProps & { mode: 'creat
               </div>
             )}
           </Field>
-          <div className="grid gap-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:grid-cols-2">
+          <div className="grid gap-4 rounded-xl border border-line bg-surface-2/60 p-4 sm:grid-cols-2">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Signs in to {app} with</p>
-              <p className="mt-1 text-sm text-white">{phoneOk ? `Phone +91 ${formatWhatsapp(effectivePhone)}` : 'No login phone yet'}</p>
-              <p className="mt-0.5 text-xs text-gray-500">
-                {id ? <>or Store ID <code className="rounded bg-white/5 px-1 text-emerald-300">{id}</code></> : 'or the Store ID (shown after saving)'}{local ? '' : ` or the exact name “${s.name.trim() || '…'}”`}
+              <p className="text-xs font-semibold text-fg-muted">Signs in to {app} with</p>
+              <p className="mt-1 text-sm text-fg">{phoneOk ? `Phone +91 ${formatWhatsapp(effectivePhone)}` : 'No login phone yet'}</p>
+              <p className="mt-0.5 text-xs text-fg-muted">
+                {id ? <>or Store ID <code className="rounded bg-surface-2/60 px-1 text-success-text">{id}</code></> : 'or the Store ID (shown after saving)'}{local ? '' : ` or the exact name “${s.name.trim() || '…'}”`}
               </p>
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Password</p>
-              <p className="mt-1 text-sm text-white">{s.password ? 'Will be set when you save (shown once)' : initial?.hasPassword ? 'Set (unchanged)' : 'Not set'}</p>
-              {initial && <p className="mt-0.5 text-xs text-gray-500">{initial.pushDevices ? `App installed on ${initial.pushDevices} phone${initial.pushDevices === 1 ? '' : 's'}` : 'App not signed in on any phone yet'}</p>}
+              <p className="text-xs font-semibold text-fg-muted">Password</p>
+              <p className="mt-1 text-sm text-fg">{s.password ? 'Will be set when you save (shown once)' : initial?.hasPassword ? 'Set (unchanged)' : 'Not set'}</p>
+              {initial && <p className="mt-0.5 text-xs text-fg-muted">{initial.pushDevices ? `App installed on ${initial.pushDevices} phone${initial.pushDevices === 1 ? '' : 's'}` : 'App not signed in on any phone yet'}</p>}
             </div>
           </div>
         </section>
@@ -815,7 +815,7 @@ function CommissionStep({ s, set, errors }: StepProps) {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Commission model</p>
+        <p className="text-xs font-semibold text-fg-muted">Commission model</p>
         <Segmented label="Commission model" value={s.commissionType} onChange={commissionType => set({ commissionType })} options={[
           { value: 'percentage', label: '% of order value' },
           { value: 'flat', label: '₹ fixed per order' },
@@ -826,24 +826,24 @@ function CommissionStep({ s, set, errors }: StepProps) {
           <div className="flex flex-wrap items-center gap-2">
             <input id={id} aria-describedby={msgId} aria-invalid={invalid} inputMode="decimal" className={cx(INPUT, 'max-w-[140px]')} value={s.commissionRate} onChange={e => set({ commissionRate: e.target.value })} />
             {(s.commissionType === 'flat' ? ['0', '10', '20'] : ['0', '10', '15', '20']).map(v => (
-              <button key={v} type="button" onClick={() => set({ commissionRate: v })} className={cx('rounded-full border px-2.5 py-1 text-xs font-semibold', s.commissionRate === v ? 'border-emerald-500/50 text-emerald-300' : 'border-white/10 text-gray-400 hover:text-white', FOCUS_RING)}>
+              <button key={v} type="button" onClick={() => set({ commissionRate: v })} className={cx('rounded-full border px-2.5 py-1 text-xs font-semibold', s.commissionRate === v ? 'border-success/30 text-success-text' : 'border-line text-fg-muted hover:text-fg', FOCUS_RING)}>
                 {s.commissionType === 'flat' ? `₹${v}` : `${v}%`}
               </button>
             ))}
           </div>
         )}
       </Field>
-      <section className="rounded-xl border border-white/10 bg-white/[0.02] p-4" aria-label="Payout example">
-        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-300">
+      <section className="rounded-xl border border-line bg-surface-2/60 p-4" aria-label="Payout example">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-fg-muted">
           On an order of ₹
           <input aria-label="Example order value" inputMode="numeric" className={cx(INPUT, 'w-24 py-1.5')} value={sample} onChange={e => setSample(e.target.value.replace(/\D/g, ''))} />
         </div>
         <dl className="mt-4 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-lg bg-white/[0.03] p-3"><dt className="text-xs text-gray-500">Customer pays (items)</dt><dd className="mt-1 text-lg font-black">{formatINR(order)}</dd></div>
-          <div className="rounded-lg bg-white/[0.03] p-3"><dt className="text-xs text-gray-500">Zenvy keeps</dt><dd className="mt-1 text-lg font-black text-amber-300">{formatINR(commission)}</dd></div>
-          <div className="rounded-lg bg-emerald-500/10 p-3"><dt className="text-xs text-emerald-200/70">Partner receives</dt><dd className="mt-1 text-lg font-black text-emerald-300">{formatINR(order - commission)}</dd></div>
+          <div className="rounded-lg bg-surface-2/60 p-3"><dt className="text-xs text-fg-muted">Customer pays (items)</dt><dd className="mt-1 text-lg font-semibold">{formatINR(order)}</dd></div>
+          <div className="rounded-lg bg-surface-2/60 p-3"><dt className="text-xs text-fg-muted">Zenvy keeps</dt><dd className="mt-1 text-lg font-semibold text-warning-text">{formatINR(commission)}</dd></div>
+          <div className="rounded-lg bg-success-soft p-3"><dt className="text-xs text-success-text">Partner receives</dt><dd className="mt-1 text-lg font-semibold text-success-text">{formatINR(order - commission)}</dd></div>
         </dl>
-        <p className="mt-3 text-xs text-gray-500">Payments are Cash on Delivery or Zenvy Wallet. Delivered orders are settled to the partner from Finance → Payouts.</p>
+        <p className="mt-3 text-xs text-fg-muted">Payments are Cash on Delivery or Zenvy Wallet. Delivered orders are settled to the partner from Finance → Payouts.</p>
       </section>
     </div>
   );
@@ -892,33 +892,33 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
             </ul>
           </Callout>
         )}
-        <section aria-label="Readiness" className="rounded-xl border border-white/10 p-4">
-          <h4 className="mb-3 text-sm font-bold">Readiness</h4>
+        <section aria-label="Readiness" className="rounded-xl border border-line p-4">
+          <h4 className="mb-3 text-sm font-semibold">Readiness</h4>
           <ul className="space-y-2">
             {checks.map(c => (
               <li key={c.text} className="flex items-center gap-3 text-sm">
-                <span aria-hidden className={cx('flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black', c.ok ? 'bg-emerald-500/20 text-emerald-300' : c.optional ? 'bg-white/10 text-gray-400' : 'bg-amber-500/20 text-amber-300')}>{c.ok ? '✓' : c.optional ? '–' : '!'}</span>
-                <span className={c.ok ? 'text-gray-200' : 'text-gray-400'}>{c.text}{!c.ok && c.optional ? ' (optional)' : ''}</span>
-                {!c.ok && <button type="button" onClick={() => goto(c.step)} className="ml-auto text-xs font-semibold text-emerald-300 hover:underline">Add</button>}
+                <span aria-hidden className={cx('flex h-5 w-5 items-center justify-center rounded-full text-xs font-semibold', c.ok ? 'bg-success-soft text-success-text' : c.optional ? 'bg-surface-2 text-fg-muted' : 'bg-warning-soft text-warning-text')}>{c.ok ? '✓' : c.optional ? '–' : '!'}</span>
+                <span className={c.ok ? 'text-fg' : 'text-fg-muted'}>{c.text}{!c.ok && c.optional ? ' (optional)' : ''}</span>
+                {!c.ok && <button type="button" onClick={() => goto(c.step)} className="ml-auto text-xs font-semibold text-success-text hover:underline">Add</button>}
               </li>
             ))}
             {mode === 'create' && (
               <li className="flex items-center gap-3 text-sm">
-                <span aria-hidden className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-[10px] font-black text-gray-400">→</span>
-                <span className="text-gray-400">Menu: add products right after saving (one by one or paste a CSV).</span>
+                <span aria-hidden className="flex h-5 w-5 items-center justify-center rounded-full bg-surface-2 text-xs font-semibold text-fg-muted">→</span>
+                <span className="text-fg-muted">Menu: add products right after saving (one by one or paste a CSV).</span>
               </li>
             )}
           </ul>
         </section>
         {rows.map(r => (
-          <section key={r.step} className="rounded-xl border border-white/10">
-            <div className="flex items-center justify-between border-b border-white/5 px-4 py-2.5">
-              <h4 className="text-sm font-bold">{STEP_META[r.step].title}</h4>
-              <button type="button" onClick={() => goto(r.step)} className={cx('rounded-md px-2 py-1 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/10', FOCUS_RING)}>Edit</button>
+          <section key={r.step} className="rounded-xl border border-line">
+            <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+              <h4 className="text-sm font-semibold">{STEP_META[r.step].title}</h4>
+              <button type="button" onClick={() => goto(r.step)} className={cx('rounded-md px-2 py-1 text-xs font-semibold text-success-text hover:bg-success-soft', FOCUS_RING)}>Edit</button>
             </div>
             <dl className="grid gap-x-6 gap-y-2 px-4 py-3 text-sm sm:grid-cols-2">
               {r.items.map(([k, v]) => (
-                <div key={k} className="min-w-0"><dt className="text-xs text-gray-500">{k}</dt><dd className="truncate text-gray-200">{v}</dd></div>
+                <div key={k} className="min-w-0"><dt className="text-xs text-fg-muted">{k}</dt><dd className="truncate text-fg">{v}</dd></div>
               ))}
             </dl>
           </section>
@@ -926,7 +926,7 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
         {mode === 'create' ? (
           <Callout tone="sky"><b>Save as draft</b> keeps the store hidden while you add the menu. <b>Publish now</b> makes it visible to customers immediately and it starts taking orders during its hours{local ? ' (the stall accepts and delivers them in Zenvy Vendor)' : ''}.</Callout>
         ) : (
-          <p className="text-xs text-gray-500">Saving keeps the store {initial?.isActive ? 'live' : 'hidden'}; switch it on or off from the store list or the store page.</p>
+          <p className="text-xs text-fg-muted">Saving keeps the store {initial?.isActive ? 'live' : 'hidden'}; switch it on or off from the store list or the store page.</p>
         )}
       </div>
       <div className="lg:sticky lg:top-0">{preview}</div>
@@ -947,32 +947,32 @@ function SuccessPanel({ result, mode, onOpenStore, onClose }: { result: WizardRe
     <div className="flex-1 overflow-y-auto px-5 py-8 sm:px-10">
       <div className="mx-auto max-w-2xl space-y-6">
         <div className="text-center">
-          <div aria-hidden className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/15 text-2xl text-emerald-300">✓</div>
-          <h3 className="text-2xl font-black">{mode === 'create' ? `${result.store.name} is ${result.published ? 'live' : 'saved as a draft'}` : 'Changes saved'}</h3>
-          <p className="mt-2 text-sm text-gray-400">
+          <div aria-hidden className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-success-soft text-2xl text-success-text"></div>
+          <h3 className="text-2xl font-semibold">{mode === 'create' ? `${result.store.name} is ${result.published ? 'live' : 'saved as a draft'}` : 'Changes saved'}</h3>
+          <p className="mt-2 text-sm text-fg-muted">
             {mode === 'create'
               ? result.published ? 'Customers can see it now. Add the menu so they can order.' : 'It is hidden from customers. Add the menu, then publish from the store page.'
               : 'The new password is active now.'}
           </p>
         </div>
         {(result.password || mode === 'create') && (
-          <section className="space-y-3 rounded-xl border border-amber-400/25 bg-amber-400/5 p-4" aria-labelledby="creds-title">
+          <section className="space-y-3 rounded-xl border border-warning/30 bg-warning-soft p-4" aria-labelledby="creds-title">
             <div className="flex items-center justify-between gap-2">
-              <h4 id="creds-title" className="font-bold text-amber-100">{app} login details</h4>
+              <h4 id="creds-title" className="font-semibold text-warning-text">{app} login details</h4>
               <Chip tone="amber">{result.password ? 'Shown once' : 'No password set'}</Chip>
             </div>
             <dl className="space-y-2 text-sm">
-              {phone && <div className="flex flex-wrap items-center gap-2"><dt className="w-24 text-gray-400">Phone</dt><dd className="flex-1"><code className="select-all text-emerald-300">{phone}</code></dd><CopyButton text={phone} /></div>}
-              <div className="flex flex-wrap items-center gap-2"><dt className="w-24 text-gray-400">Store ID</dt><dd className="flex-1"><code className="select-all break-all text-emerald-300">{id}</code></dd><CopyButton text={id} /></div>
-              {result.password && <div className="flex flex-wrap items-center gap-2"><dt className="w-24 text-gray-400">Password</dt><dd className="flex-1"><code className="select-all font-mono text-white">{result.password}</code></dd><CopyButton text={result.password} /></div>}
+              {phone && <div className="flex flex-wrap items-center gap-2"><dt className="w-24 text-fg-muted">Phone</dt><dd className="flex-1"><code className="select-all text-success-text">{phone}</code></dd><CopyButton text={phone} /></div>}
+              <div className="flex flex-wrap items-center gap-2"><dt className="w-24 text-fg-muted">Store ID</dt><dd className="flex-1"><code className="select-all break-all text-success-text">{id}</code></dd><CopyButton text={id} /></div>
+              {result.password && <div className="flex flex-wrap items-center gap-2"><dt className="w-24 text-fg-muted">Password</dt><dd className="flex-1"><code className="select-all font-mono text-fg">{result.password}</code></dd><CopyButton text={result.password} /></div>}
             </dl>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/5 pt-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
               <CopyButton text={loginText} label="Copy message for the partner" variant="amber" size="md" />
-              {result.store.whatsappNumber && <a className="text-xs font-semibold text-emerald-300 hover:underline" target="_blank" rel="noreferrer" href={`https://wa.me/${result.store.whatsappNumber}?text=${encodeURIComponent(waText)}`} title="Sends the login details without the password. Paste the password separately.">Send login (no password) on WhatsApp ↗</a>}
+              {result.store.whatsappNumber && <a className="text-xs font-semibold text-success-text hover:underline" target="_blank" rel="noreferrer" href={`https://wa.me/${result.store.whatsappNumber}?text=${encodeURIComponent(waText)}`} title="Sends the login details without the password. Paste the password separately.">Send login (no password) on WhatsApp ↗</a>}
             </div>
             {result.password && (
-              <label className="flex items-center gap-2 text-xs text-gray-300">
-                <input type="checkbox" checked={ack} onChange={e => setAck(e.target.checked)} className="h-4 w-4 accent-emerald-500" />
+              <label className="flex items-center gap-2 text-xs text-fg-muted">
+                <input type="checkbox" checked={ack} onChange={e => setAck(e.target.checked)} className="h-4 w-4 accent-[rgb(var(--accent))]" />
                 I have saved or shared the password. It cannot be shown again (only reset).
               </label>
             )}

@@ -195,34 +195,34 @@ export default function SOSAlertModal() {
     : null;
 
   return (
-    <div role="alertdialog" aria-modal="true" aria-labelledby="sos-title" className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-      <div className="bg-red-600 p-8 sm:p-10 rounded-3xl border-4 border-red-400 shadow-[0_0_100px_rgba(220,38,38,0.8)] max-w-xl w-full text-center">
-        <div className="text-6xl mb-4 animate-pulse" aria-hidden>🆘</div>
-        <h2 id="sos-title" className="text-3xl sm:text-4xl font-black text-white uppercase tracking-widest mb-4">Rider SOS</h2>
-        {queue.length > 1 && <p className="text-sm font-black text-red-100 mb-2">{queue.length} active alerts. Showing the oldest first.</p>}
-        <p className="text-xl text-white font-bold mb-1">Rider: {current.riderName || 'Unknown rider'}</p>
-        {current.riderPhone && <a className="block text-lg text-white underline mb-1" href={`tel:${current.riderPhone}`}>Call {current.riderPhone}</a>}
-        {current.note && <p className="text-base text-white font-bold mb-1 break-words">“{String(current.note).slice(0, 200)}”</p>}
-        {current.orderId && <p className="text-sm text-white font-black mb-1">Carrying order #{String(current.orderId).slice(-6).toUpperCase()}</p>}
-        <p className="text-sm text-red-100 mb-2 font-mono break-all">ID: {current.riderId}{when && !Number.isNaN(when.getTime()) ? ` · ${when.toLocaleString()}` : ''}</p>
+    <div role="alertdialog" aria-modal="true" aria-labelledby="sos-title" className="fixed inset-0 z-[9999] flex items-center justify-center bg-scrim/50 p-4">
+      <div className="bg-danger p-8 sm:p-10 rounded-lg border-4 border-danger/30 max-w-xl w-full text-center">
+        <div className="text-6xl mb-4 animate-pulse" aria-hidden></div>
+        <h2 id="sos-title" className="text-3xl sm:text-4xl font-semibold text-fg mb-4">Rider SOS</h2>
+        {queue.length > 1 && <p className="text-sm font-semibold text-danger-text mb-2">{queue.length} active alerts. Showing the oldest first.</p>}
+        <p className="text-xl text-fg font-semibold mb-1">Rider: {current.riderName || 'Unknown rider'}</p>
+        {current.riderPhone && <a className="block text-lg text-fg underline mb-1" href={`tel:${current.riderPhone}`}>Call {current.riderPhone}</a>}
+        {current.note && <p className="text-base text-fg font-semibold mb-1 break-words">“{String(current.note).slice(0, 200)}”</p>}
+        {current.orderId && <p className="text-sm text-fg font-semibold mb-1">Carrying order #{String(current.orderId).slice(-6).toUpperCase()}</p>}
+        <p className="text-sm text-danger-text mb-2 font-mono break-all">ID: {current.riderId}{when && !Number.isNaN(when.getTime()) ? ` · ${when.toLocaleString()}` : ''}</p>
         {where && (
-          <a className="block text-sm text-white underline mb-6" target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${where.lat},${where.lng}`}>
+          <a className="block text-sm text-fg underline mb-6" target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${where.lat},${where.lng}`}>
             {staleText || 'Open location on the map ↗'}
           </a>
         )}
-        {error && <p role="alert" className="text-sm font-bold text-white bg-black/30 rounded-xl px-4 py-2 mb-4">{error}</p>}
+        {error && <p role="alert" className="text-sm font-semibold text-fg bg-surface-2 rounded-xl px-4 py-2 mb-4">{error}</p>}
         <div className="flex flex-col sm:flex-row gap-3 mt-4">
           <button
             onClick={resolve}
             disabled={busy}
-            className="flex-1 py-4 bg-white text-red-600 font-black text-base uppercase tracking-widest rounded-2xl hover:bg-red-100 transition-all disabled:opacity-50"
+            className="flex-1 py-4 bg-white text-danger-text font-semibold text-base rounded-lg hover:bg-danger-soft transition-all disabled:opacity-50"
           >
             {busy ? 'Resolving…' : 'Rider reached · Resolve'}
           </button>
           <button
             onClick={hide}
             disabled={busy}
-            className="sm:w-40 py-4 bg-red-800/60 text-white font-black text-sm uppercase tracking-widest rounded-2xl hover:bg-red-800 transition-all disabled:opacity-50"
+            className="sm:w-40 py-4 bg-danger-soft text-fg font-semibold text-sm rounded-lg hover:bg-danger-soft transition-all disabled:opacity-50"
           >
             Hide for now
           </button>

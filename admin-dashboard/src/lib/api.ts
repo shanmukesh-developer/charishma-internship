@@ -1,4 +1,5 @@
 import { API_URL, SOCKET_URL } from './config';
+import { loadImage, resizeImage } from './imageResize';
 
 // Re-exported for older imports; new code should import from '@/lib/config'.
 export { API_URL, SOCKET_URL };
@@ -49,15 +50,66 @@ export async function adminRequest<T = unknown>(path: string, init: RequestInit 
   return data as T;
 }
 
-/** Uploads an image (JPEG/PNG/WEBP, max 2 MB) and returns its URL. */
+const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
+const RESIZE_ABOVE_BYTES = 1.5 * 1024 * 1024;
+const MAX_UPLOAD_WIDTH = 1600;
+const UPLOAD_TIMEOUT_MS = 90_000;
+const TOO_LARGE = 'The image is too large (max 2 MB).';
+
+/** POST /api/upload with a 90 s timeout; retried once when the request itself fails (network drop / timeout). */
+async function postUpload(body: FormData): Promise<Response> {
+  const attempt = async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+    try {
+      return await fetch(`${API_URL}/api/upload`, { method: 'POST', body, cache: 'no-store', signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+  try {
+    return await attempt();
+  } catch {
+    try {
+      return await attempt();
+    } catch {
+      throw new Error('The upload did not finish. Check your connection and try again.');
+    }
+  }
+}
+
+/**
+ * Uploads an image (JPEG/PNG/WEBP) and returns its URL. Phone photos over 1.5 MB or wider than 1600 px are
+ * scaled down in the browser first (fit inside 1600 × 1600, no crop), so the server's 2 MB limit is met.
+ */
 export async function uploadImage(file: File): Promise<string> {
   if (!/^image\/(jpe?g|png|webp)$/.test(file.type)) throw new Error('Use a JPEG, PNG or WEBP image.');
-  if (file.size > 2 * 1024 * 1024) throw new Error('The image must be 2 MB or smaller.');
+  let toSend = file;
+  let needsResize = file.size > RESIZE_ABOVE_BYTES;
+  if (!needsResize) {
+    try {
+      needsResize = (await loadImage(file)).width > MAX_UPLOAD_WIDTH;
+    } catch {
+      needsResize = false; // unreadable here: let the server decide
+    }
+  }
+  if (needsResize) toSend = await resizeImage(file, { maxW: MAX_UPLOAD_WIDTH, maxH: MAX_UPLOAD_WIDTH, crop: false });
+  if (toSend.size > MAX_UPLOAD_BYTES) throw new Error(TOO_LARGE);
+
   const body = new FormData();
-  body.append('image', file);
-  const data = await adminRequest<{ imageUrl?: string }>('/api/upload', { method: 'POST', body });
+  body.append('image', toSend);
+  const res = await postUpload(body);
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    const message = data && typeof data.message === 'string' ? data.message : '';
+    if (res.status === 413) throw new ApiError(TOO_LARGE, 413, data);
+    if (res.status === 401) throw new ApiError('Your session has expired. Please sign in again.', 401, data);
+    if (res.status === 403) throw new ApiError(message || 'You do not have permission to do this.', 403, data);
+    if (res.status >= 500) throw new ApiError(`The server could not complete this request (${res.status}). Please try again.`, res.status, null);
+    throw new ApiError(message || `Upload failed (${res.status}).`, res.status, data);
+  }
   if (!data?.imageUrl) throw new Error('The image upload did not return a URL.');
-  return data.imageUrl;
+  return data.imageUrl as string;
 }
 
 /** Accepts '/api/x', '/x' or 'x' and returns a path under /api. */

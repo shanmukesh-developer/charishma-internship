@@ -121,18 +121,17 @@ export default function StudentVerificationPage() {
   };
 
   if (!isAuthed) {
-    return <div className="p-20 text-center font-black text-white uppercase tracking-widest animate-pulse">Checking access…</div>;
+    return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6 text-white md:p-8">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-5">
+    <div className="mx-auto max-w-6xl space-y-6 text-fg">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Campus Identity</p>
-          <h1 className="mt-1 text-2xl font-black">Student Verification</h1>
-          <p className="mt-2 text-sm text-gray-400">Review university email and student ID submissions. Shows up to 100 requests per status, oldest first.</p>
+          <h1 className="text-2xl font-semibold text-fg">Student verification</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Review university email and student ID submissions. Shows up to 100 requests per status, oldest first.</p>
         </div>
-        <span className="text-sm text-gray-400">{requests.length} {status} requests</span>
+        <span className="text-sm text-fg-muted">{requests.length} {status} requests</span>
       </header>
 
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Verification request status">
@@ -143,7 +142,7 @@ export default function StudentVerificationPage() {
             role="tab"
             aria-selected={status === filter.status}
             onClick={() => setStatus(filter.status)}
-            className={`border px-4 py-2 text-sm font-bold transition-colors ${status === filter.status ? 'border-emerald-400 bg-emerald-400/10 text-emerald-300' : 'border-white/10 text-gray-400 hover:text-white'}`}
+            className={`border px-4 py-2 text-sm font-semibold transition-colors ${status === filter.status ? 'border-success/30 bg-success-soft text-success-text' : 'border-line text-fg-muted hover:text-fg'}`}
           >
             {filter.label}
           </button>
@@ -151,21 +150,21 @@ export default function StudentVerificationPage() {
       </div>
 
       {error && (
-        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 border border-danger/30 bg-danger-soft p-4 text-sm text-danger-text">
           <span>{error}</span>
-          <button type="button" onClick={() => setRetryCount(count => count + 1)} className="font-bold text-white underline">Retry</button>
+          <button type="button" onClick={() => setRetryCount(count => count + 1)} className="font-semibold text-fg underline">Retry</button>
         </div>
       )}
 
       {loading ? (
-        <div className="border border-white/10 p-8 text-sm text-gray-400" role="status">Loading verification requests...</div>
+        <div className="border border-line p-8 text-sm text-fg-muted" role="status">Loading verification requests...</div>
       ) : requests.length === 0 ? (
-        <div className="border border-white/10 p-10 text-center">
-          <h2 className="font-bold">No {status} requests</h2>
-          <p className="mt-2 text-sm text-gray-400">New student submissions will appear here.</p>
+        <div className="border border-line p-10 text-center">
+          <h2 className="font-semibold">No {status} requests</h2>
+          <p className="mt-2 text-sm text-fg-muted">New student submissions will appear here.</p>
         </div>
       ) : (
-        <section className="divide-y divide-white/10 border border-white/10" aria-label={`${status} verification requests`}>
+        <section className="divide-y divide-line border border-line" aria-label={`${status} verification requests`}>
           {requests.map(request => {
             const cardUrl = imageUrl(request.idCardImageUrl);
             const busy = actingId === request.id;
@@ -173,41 +172,41 @@ export default function StudentVerificationPage() {
               <article key={request.id} className={`grid gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_220px] ${isFresh(request.id) ? FRESH_ROW_CLASS : ''}`}>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <h2 className="text-lg font-bold">{request.userName || 'Unknown student'}</h2>
-                    <span className="border border-white/10 px-2 py-1 text-xs uppercase text-gray-400">{String(request.type || '').replaceAll('_', ' ')}</span>
-                    <span className={`px-2 py-1 text-xs font-bold uppercase ${request.status === 'pending' ? 'bg-amber-400/10 text-amber-300' : request.status === 'approved' ? 'bg-emerald-400/10 text-emerald-300' : 'bg-red-400/10 text-red-300'}`}>{request.status}</span>
+                    <h2 className="text-lg font-semibold">{request.userName || 'Unknown student'}</h2>
+                    <span className="border border-line px-2 py-1 text-xs text-fg-muted">{String(request.type || '').replaceAll('_', ' ')}</span>
+                    <span className={`px-2 py-1 text-xs font-semibold ${request.status === 'pending' ? 'bg-warning-soft text-warning-text' : request.status === 'approved' ? 'bg-success-soft text-success-text' : 'bg-danger-soft text-danger-text'}`}>{request.status}</span>
                   </div>
                   <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                    <div><dt className="text-xs uppercase tracking-wider text-gray-500">College email</dt><dd className="mt-1 break-all">{request.collegeEmail || 'Not provided'}</dd></div>
-                    <div><dt className="text-xs uppercase tracking-wider text-gray-500">Phone</dt><dd className="mt-1">{request.userPhone || 'Not provided'}</dd></div>
-                    <div><dt className="text-xs uppercase tracking-wider text-gray-500">Submitted</dt><dd className="mt-1">{new Date(request.createdAt).toLocaleString()}</dd></div>
-                    {request.reviewNotes && <div><dt className="text-xs uppercase tracking-wider text-gray-500">Review notes</dt><dd className="mt-1">{request.reviewNotes}</dd></div>}
+                    <div><dt className="text-xs text-fg-muted">College email</dt><dd className="mt-1 break-all">{request.collegeEmail || 'Not provided'}</dd></div>
+                    <div><dt className="text-xs text-fg-muted">Phone</dt><dd className="mt-1">{request.userPhone || 'Not provided'}</dd></div>
+                    <div><dt className="text-xs text-fg-muted">Submitted</dt><dd className="mt-1">{new Date(request.createdAt).toLocaleString()}</dd></div>
+                    {request.reviewNotes && <div><dt className="text-xs text-fg-muted">Review notes</dt><dd className="mt-1">{request.reviewNotes}</dd></div>}
                   </dl>
                   {status === 'pending' && (
                     <div className="mt-5 flex flex-wrap gap-2">
-                      <button type="button" disabled={busy} onClick={() => reviewRequest(request, 'approve')} className="bg-emerald-500 px-4 py-2 text-sm font-bold text-black disabled:opacity-50">{busy ? 'Saving...' : 'Approve'}</button>
-                      <button type="button" disabled={busy || !!actingId} onClick={() => { setRejectingId(request.id); setReviewNotes(''); }} className="border border-red-400/40 px-4 py-2 text-sm font-bold text-red-300 disabled:opacity-50">Reject</button>
+                      <button type="button" disabled={busy} onClick={() => reviewRequest(request, 'approve')} className="bg-success px-4 py-2 text-sm font-semibold text-accent-fg disabled:opacity-50">{busy ? 'Saving...' : 'Approve'}</button>
+                      <button type="button" disabled={busy || !!actingId} onClick={() => { setRejectingId(request.id); setReviewNotes(''); }} className="border border-danger/30 px-4 py-2 text-sm font-semibold text-danger-text disabled:opacity-50">Reject</button>
                     </div>
                   )}
                   {rejectingId === request.id && (
-                    <div className="mt-4 max-w-xl space-y-3 border border-red-400/20 bg-red-400/5 p-4">
-                      <label className="block text-sm font-bold" htmlFor={`review-notes-${request.id}`}>Rejection notes</label>
-                      <textarea id={`review-notes-${request.id}`} value={reviewNotes} onChange={event => setReviewNotes(event.target.value)} maxLength={500} rows={3} className="w-full border border-white/10 bg-black/30 p-3 text-sm text-white outline-none focus:border-red-300" placeholder="Explain what needs correction (optional)" />
+                    <div className="mt-4 max-w-xl space-y-3 border border-danger/30 bg-danger-soft p-4">
+                      <label className="block text-sm font-semibold" htmlFor={`review-notes-${request.id}`}>Rejection notes</label>
+                      <textarea id={`review-notes-${request.id}`} value={reviewNotes} onChange={event => setReviewNotes(event.target.value)} maxLength={500} rows={3} className="w-full border border-line bg-surface-2 p-3 text-sm text-fg outline-none focus:border-accent" placeholder="Explain what needs correction (optional)" />
                       <div className="flex gap-2">
-                        <button type="button" disabled={busy} onClick={() => reviewRequest(request, 'reject')} className="bg-red-500 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Confirm rejection</button>
-                        <button type="button" disabled={busy} onClick={() => setRejectingId(null)} className="border border-white/10 px-4 py-2 text-sm font-bold text-gray-300">Keep pending</button>
+                        <button type="button" disabled={busy} onClick={() => reviewRequest(request, 'reject')} className="bg-danger px-4 py-2 text-sm font-semibold text-on-solid disabled:opacity-50">Confirm rejection</button>
+                        <button type="button" disabled={busy} onClick={() => setRejectingId(null)} className="border border-line px-4 py-2 text-sm font-semibold text-fg-muted">Keep pending</button>
                       </div>
                     </div>
                   )}
                 </div>
                 <div className="min-w-0">
                   {cardUrl ? (
-                    <a href={cardUrl} target="_blank" rel="noreferrer" aria-label={`Open ID card for ${request.userName}`} className="block border border-white/10 bg-black/20 p-2">
+                    <a href={cardUrl} target="_blank" rel="noreferrer" aria-label={`Open ID card for ${request.userName}`} className="block border border-line bg-surface-2 p-2">
                       <Image src={cardUrl} alt={`Student ID submitted by ${request.userName}`} width={220} height={160} unoptimized className="h-40 w-full object-contain" />
-                      <span className="mt-2 block text-center text-xs font-bold text-emerald-300">Open full ID image</span>
+                      <span className="mt-2 block text-center text-xs font-semibold text-success-text">Open full ID image</span>
                     </a>
                   ) : (
-                    <div className="flex h-40 items-center justify-center border border-dashed border-white/10 text-sm text-gray-500">No ID image attached</div>
+                    <div className="flex h-40 items-center justify-center border border-dashed border-line text-sm text-fg-muted">No ID image attached</div>
                   )}
                 </div>
               </article>

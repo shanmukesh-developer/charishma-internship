@@ -73,50 +73,50 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto text-white">
+    <div className="max-w-5xl mx-auto text-fg">
       <div className="mb-8">
-        <h1 className="text-3xl font-black uppercase tracking-widest text-emerald-400">Push Notifications</h1>
-        <p className="text-gray-400 text-sm mt-1">
+        <h1 className="text-2xl font-semibold text-fg">Push notifications</h1>
+        <p className="mt-1 max-w-3xl text-sm text-fg-muted">
           Send a push notification to student devices. It is also saved in each targeted student&apos;s in-app notification list.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-[#141416] border border-white/10 rounded-3xl p-8">
+        <div className="lg:col-span-2 bg-surface border border-line rounded-lg p-8">
           <form onSubmit={handleSendNotification} className="flex flex-col gap-5">
             {status && (
-              <div className={`p-4 rounded-xl border font-bold text-sm ${status.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+              <div className={`p-4 rounded-xl border font-semibold text-sm ${status.type === 'success' ? 'bg-success-soft border-success/30 text-success-text' : 'bg-danger-soft border-danger/30 text-danger-text'}`}>
                 {status.message}
               </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
-                <label htmlFor="target-block" className="text-sm font-bold text-gray-300 tracking-wider">Hostel block (optional)</label>
+                <label htmlFor="target-block" className="text-sm font-semibold text-fg-muted">Hostel block (optional)</label>
                 <input
                   id="target-block"
                   list="known-blocks"
                   placeholder="Everyone"
                   value={targetBlock}
                   onChange={(e) => setTargetBlock(e.target.value)}
-                  className="bg-black/50 border border-white/10 p-4 rounded-xl text-white outline-none focus:border-emerald-500 transition-colors placeholder:text-gray-600"
+                  className="bg-surface-2 border border-line p-4 rounded-xl text-fg outline-none focus:border-accent transition-colors placeholder:text-fg-subtle"
                 />
                 <datalist id="known-blocks">
                   {blocks.map(b => <option key={b} value={b} />)}
                 </datalist>
-                <p className="text-[11px] text-gray-500">Matches the hostel block saved on the student&apos;s profile exactly. Leave empty for everyone.</p>
+                <p className="text-xs text-fg-muted">Matches the hostel block saved on the student&apos;s profile exactly. Leave empty for everyone.</p>
               </div>
 
               <div className="flex flex-col gap-2">
-                <label htmlFor="category" className="text-sm font-bold text-gray-300 tracking-wider">Category</label>
+                <label htmlFor="category" className="text-sm font-semibold text-fg-muted">Category</label>
                 <select
                   id="category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="bg-black/50 border border-white/10 p-4 rounded-xl text-white outline-none focus:border-emerald-500 transition-colors"
+                  className="bg-surface-2 border border-line p-4 rounded-xl text-fg outline-none focus:border-accent transition-colors"
                 >
                   {CATEGORIES.map(c => (
-                    <option key={c.value} value={c.value} className="bg-[#141416] text-white">{c.label}</option>
+                    <option key={c.value} value={c.value} className="bg-surface text-fg">{c.label}</option>
                   ))}
                 </select>
               </div>
@@ -124,8 +124,8 @@ export default function NotificationsPage() {
 
             <div className="flex flex-col gap-2">
               <div className="flex justify-between">
-                <label htmlFor="title" className="text-sm font-bold text-gray-300 tracking-wider">Title</label>
-                <span className={`text-[11px] ${title.length > TITLE_MAX ? 'text-red-400' : 'text-gray-600'}`}>{title.length}/{TITLE_MAX}</span>
+                <label htmlFor="title" className="text-sm font-semibold text-fg-muted">Title</label>
+                <span className={`text-xs ${title.length > TITLE_MAX ? 'text-danger-text' : 'text-fg-subtle'}`}>{title.length}/{TITLE_MAX}</span>
               </div>
               <input
                 id="title"
@@ -133,31 +133,31 @@ export default function NotificationsPage() {
                 placeholder="e.g. Mess delivery delayed tonight"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="bg-black/50 border border-white/10 p-4 rounded-xl text-white outline-none focus:border-emerald-500 transition-colors placeholder:text-gray-600"
+                className="bg-surface-2 border border-line p-4 rounded-xl text-fg outline-none focus:border-accent transition-colors placeholder:text-fg-subtle"
                 required
               />
             </div>
 
             <div className="flex flex-col gap-2">
               <div className="flex justify-between">
-                <label htmlFor="body" className="text-sm font-bold text-gray-300 tracking-wider">Message</label>
-                <span className={`text-[11px] ${body.length > BODY_MAX ? 'text-red-400' : 'text-gray-600'}`}>{body.length}/{BODY_MAX}</span>
+                <label htmlFor="body" className="text-sm font-semibold text-fg-muted">Message</label>
+                <span className={`text-xs ${body.length > BODY_MAX ? 'text-danger-text' : 'text-fg-subtle'}`}>{body.length}/{BODY_MAX}</span>
               </div>
               <textarea
                 id="body"
                 placeholder="Say what happened and what students should do."
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                className="bg-black/50 border border-white/10 p-4 rounded-xl text-white outline-none focus:border-emerald-500 transition-colors min-h-[120px] placeholder:text-gray-600"
+                className="bg-surface-2 border border-line p-4 rounded-xl text-fg outline-none focus:border-accent transition-colors min-h-[120px] placeholder:text-fg-subtle"
                 required
               />
             </div>
 
-            <div className="pt-4 border-t border-white/10 mt-2 flex justify-end">
+            <div className="pt-4 border-t border-line mt-2 flex justify-end">
               <button
                 type="submit"
                 disabled={sending || !title.trim() || !body.trim()}
-                className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-sm shadow-lg shadow-emerald-500/20 transition-all"
+                className="bg-success hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed px-8 py-3 rounded-xl font-semibold text-sm shadow-emerald-500/20 transition-all"
               >
                 {sending ? 'Sending...' : 'Send Notification'}
               </button>
@@ -166,28 +166,28 @@ export default function NotificationsPage() {
         </div>
 
         <div className="flex flex-col gap-4">
-          <div className="text-xs font-black uppercase tracking-wider text-gray-400">Preview</div>
-          <div className="bg-[#181A22] border border-white/10 rounded-2xl p-4 shadow-xl">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
+          <div className="text-xs font-semibold text-fg-muted">Preview</div>
+          <div className="bg-surface border border-line rounded-lg p-4">
+            <div className="flex items-center justify-between pb-3 border-b border-line mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-red-500 to-amber-500 flex items-center justify-center text-[10px] font-black text-white">Z</div>
-                <span className="text-xs font-extrabold tracking-wide text-white">Zenvy</span>
+                <div className="w-5 h-5 rounded-md bg-surface-2 flex items-center justify-center text-xs font-semibold text-fg">Z</div>
+                <span className="text-xs font-semibold text-fg">Zenvy</span>
               </div>
-              <span className="text-[10px] text-gray-400">now</span>
+              <span className="text-xs text-fg-muted">now</span>
             </div>
-            <div className="text-xs font-black text-white mb-1 break-words">{title || 'Notification title'}</div>
-            <div className="text-[11px] text-gray-300 line-clamp-3 break-words">{body || 'Your message appears here.'}</div>
-            <div className="mt-3 pt-2 border-t border-white/5 text-[9px] font-bold text-emerald-400 uppercase tracking-wider">
+            <div className="text-xs font-semibold text-fg mb-1 break-words">{title || 'Notification title'}</div>
+            <div className="text-xs text-fg-muted line-clamp-3 break-words">{body || 'Your message appears here.'}</div>
+            <div className="mt-3 pt-2 border-t border-line text-xs font-semibold text-success-text">
               To: {trimmedBlock || 'Everyone'}
             </div>
           </div>
 
-          <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-5 text-[11px] text-blue-100 leading-relaxed space-y-2">
-            <h4 className="font-bold text-blue-400 text-xs">What sending does</h4>
+          <div className="bg-info-soft border border-info/30 rounded-lg p-5 text-xs text-info-text leading-relaxed space-y-2">
+            <h4 className="font-semibold text-info-text text-xs">What sending does</h4>
             <p>• Push to the devices of every matching active user, plus an entry in their in-app notification list.</p>
             <p>• A live in-app banner for everyone currently online.</p>
             {trimmedBlock && (
-              <p className="text-amber-300">
+              <p className="text-warning-text">
                 Note: the server also posts to the general &quot;all&quot; push topic and the live banner goes to everyone online,
                 so a block-targeted message can still reach other blocks.
               </p>

@@ -95,13 +95,13 @@ const refundState = (d: Dispute): { refundable: boolean; note: string } => {
 };
 
 const TransactionRow = memo(({ tx }: { tx: Transaction }) => (
-  <tr className="hover:bg-white/[0.02] transition-colors">
-    <td className="px-8 py-5 text-xs font-mono text-gray-400">{shortId(tx.orderId)}</td>
-    <td className="px-8 py-5 text-sm font-bold text-white">{tx.restaurantName}</td>
-    <td className="px-8 py-5 text-sm font-black text-white">{rupees(tx.totalAmount)}</td>
-    <td className="px-8 py-5 text-sm font-black text-emerald-400">{rupees(tx.commissionEarned)}</td>
-    <td className="px-8 py-5 text-sm text-gray-300">{rupees(tx.deliveryFee)}</td>
-    <td className="px-8 py-5 text-[10px] text-gray-500 font-bold">{new Date(tx.timestamp).toLocaleDateString()}</td>
+  <tr className="hover:bg-surface-2/60 transition-colors">
+    <td className="px-8 py-5 text-xs font-mono text-fg-muted">{shortId(tx.orderId)}</td>
+    <td className="px-8 py-5 text-sm font-semibold text-fg">{tx.restaurantName}</td>
+    <td className="px-8 py-5 text-sm font-semibold text-fg">{rupees(tx.totalAmount)}</td>
+    <td className="px-8 py-5 text-sm font-semibold text-success-text">{rupees(tx.commissionEarned)}</td>
+    <td className="px-8 py-5 text-sm text-fg-muted">{rupees(tx.deliveryFee)}</td>
+    <td className="px-8 py-5 text-xs text-fg-muted font-semibold">{new Date(tx.timestamp).toLocaleDateString()}</td>
   </tr>
 ));
 TransactionRow.displayName = 'TransactionRow';
@@ -110,10 +110,10 @@ const SectionState = ({ loading, error, onRetry, empty, emptyText, colSpan }: {
   loading: boolean; error: string | null; onRetry: () => void; empty: boolean; emptyText: string; colSpan?: number;
 }) => {
   const body = loading
-    ? <p className="text-gray-500 animate-pulse font-black uppercase tracking-widest text-xs">Loading…</p>
+    ? <p className="text-fg-muted animate-pulse font-semibold text-xs">Loading…</p>
     : error
-      ? (<><p className="text-xs text-red-400 font-bold">{error}</p><button onClick={onRetry} className="mt-3 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-300 hover:text-white">Try again</button></>)
-      : empty ? <p className="text-gray-500 text-xs">{emptyText}</p> : null;
+      ? (<><p className="text-xs text-danger-text font-semibold">{error}</p><button onClick={onRetry} className="mt-3 px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg">Try again</button></>)
+      : empty ? <p className="text-fg-muted text-xs">{emptyText}</p> : null;
   if (!body) return null;
   return colSpan
     ? <tr><td colSpan={colSpan} className="py-16 text-center">{body}</td></tr>
@@ -123,6 +123,11 @@ const SectionState = ({ loading, error, onRetry, empty, emptyText, colSpan }: {
 export default function FinanceConsole() {
   const { isAuthed } = useAdminAuth();
   const [activeTab, setActiveTab] = useState<Tab>('ledger');
+  // ?tab=<id>: links from the overview's Needs attention list and the global search open the right tab.
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('tab');
+    if (t && (['ledger', 'payouts', 'cash', 'disputes'] as readonly string[]).includes(t)) setActiveTab(t as Tab);
+  }, []);
 
   const [report, setReport] = useState<FinanceReport | null>(null);
   const [reportLoading, setReportLoading] = useState(true);
@@ -217,7 +222,7 @@ export default function FinanceConsole() {
     });
   };
 
-  if (!isAuthed) return <div className="p-20 text-center font-black text-white uppercase tracking-widest animate-pulse">Checking access…</div>;
+  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
 
   const q = search.trim().toLowerCase();
   const filteredTransactions = (report?.transactions || []).filter(tx =>
@@ -225,26 +230,26 @@ export default function FinanceConsole() {
   );
 
   return (
-    <div className="space-y-10 animate-fade-in relative pb-20">
-      <header className="flex flex-wrap justify-between items-center gap-6 bg-white/5 p-8 rounded-[40px] border border-white/5 glass">
+    <div className="space-y-10 animate-fade-in relative">
+      <header className="flex flex-wrap justify-between items-center gap-6">
         <div>
-          <h2 className="text-3xl font-black text-white tracking-tighter uppercase">Finance</h2>
-          <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mt-1">Delivered-order ledger, payouts, rider cash and refunds</p>
+          <h1 className="text-2xl font-semibold text-fg">Payments and payouts</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Revenue, store and rider payouts, rider cash and disputes.</p>
         </div>
-        <div className="glass px-10 py-4 rounded-3xl border border-white/10 flex flex-col">
-          <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1">Platform commission (all time)</span>
-          <span className="text-3xl font-black text-white tracking-tighter">{report ? rupees(report.totalCommission) : '—'}</span>
+        <div className="bg-surface border border-line px-10 py-4 rounded-lg border border-line flex flex-col">
+          <span className="text-xs font-semibold text-info-text mb-1">Platform commission (all time)</span>
+          <span className="text-3xl font-semibold text-fg">{report ? rupees(report.totalCommission) : '—'}</span>
         </div>
       </header>
 
       {notice && (
-        <div className={`p-4 rounded-2xl border text-xs font-bold flex justify-between items-start gap-4 ${notice.kind === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
+        <div className={`p-4 rounded-lg border text-xs font-semibold flex justify-between items-start gap-4 ${notice.kind === 'error' ? 'bg-danger-soft border-danger/30 text-danger-text' : 'bg-success-soft border-success/30 text-success-text'}`}>
           <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-gray-500 hover:text-white">✕</button>
+          <button onClick={() => setNotice(null)} className="text-fg-muted hover:text-fg" aria-label="Dismiss"><span aria-hidden="true" className="text-base leading-none">×</span></button>
         </div>
       )}
 
-      <div className="flex gap-4 border-b border-white/10 pb-4">
+      <div className="flex gap-4 border-b border-line pb-4">
         {([
           { id: 'ledger', label: 'Ledger' },
           { id: 'payouts', label: 'Payouts' },
@@ -254,7 +259,7 @@ export default function FinanceConsole() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-blue-600 text-white' : 'bg-white/5 text-gray-500 hover:text-white hover:bg-white/10'}`}
+            className={`px-6 py-3 rounded-lg text-xs font-semibold transition-all ${activeTab === tab.id ? 'bg-accent text-on-solid' : 'bg-surface-2/60 text-fg-muted hover:text-fg hover:bg-surface-2'}`}
           >
             {tab.label}
           </button>
@@ -264,47 +269,47 @@ export default function FinanceConsole() {
       {activeTab === 'ledger' && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="glass-card p-8 bg-blue-600/5">
-              <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-2">Delivered order value (GMV)</p>
-              <h4 className="text-2xl font-black text-white">{report ? rupees(report.totalRevenue) : '—'}</h4>
+            <div className="rounded-lg border border-line bg-surface shadow-xs p-8 bg-info-soft">
+              <p className="text-xs font-semibold text-info-text mb-2">Delivered order value (GMV)</p>
+              <h4 className="text-2xl font-semibold text-fg">{report ? rupees(report.totalRevenue) : '—'}</h4>
             </div>
-            <div className="glass-card p-8 bg-emerald-600/5">
-              <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-2">Commission</p>
-              <h4 className="text-2xl font-black text-white">{report ? rupees(report.totalCommission) : '—'}</h4>
-              {report && (report.commissionEstimatedOrders || 0) > 0 && <p className="text-[10px] text-gray-500 mt-1">Fixed per order; {report.commissionEstimatedOrders} older settled order(s) use today&apos;s rate.</p>}
+            <div className="rounded-lg border border-line bg-surface shadow-xs p-8 bg-success-soft">
+              <p className="text-xs font-semibold text-success-text mb-2">Commission</p>
+              <h4 className="text-2xl font-semibold text-fg">{report ? rupees(report.totalCommission) : '—'}</h4>
+              {report && (report.commissionEstimatedOrders || 0) > 0 && <p className="text-xs text-fg-muted mt-1">Fixed per order; {report.commissionEstimatedOrders} older settled order(s) use today&apos;s rate.</p>}
             </div>
-            <div className="glass-card p-8 bg-[var(--zenvy-gold)]/5">
-              <p className="text-[9px] font-black text-[var(--zenvy-gold)] uppercase tracking-widest mb-2">Rider earnings</p>
-              <h4 className="text-2xl font-black text-white">{report ? rupees(report.totalRiderEarnings ?? report.totalDeliveryFees) : '—'}</h4>
+            <div className="rounded-lg border border-line bg-surface shadow-xs p-8 bg-accent">
+              <p className="text-xs font-semibold text-warning-text mb-2">Rider earnings</p>
+              <h4 className="text-2xl font-semibold text-fg">{report ? rupees(report.totalRiderEarnings ?? report.totalDeliveryFees) : '—'}</h4>
             </div>
-            <div className="glass-card p-8 bg-white/5">
-              <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">Delivered orders</p>
-              <h4 className="text-2xl font-black text-white">{report ? report.total.toLocaleString('en-IN') : '—'}</h4>
+            <div className="rounded-lg border border-line bg-surface shadow-xs p-8 bg-surface-2/60">
+              <p className="text-xs font-semibold text-fg-muted mb-2">Delivered orders</p>
+              <h4 className="text-2xl font-semibold text-fg">{report ? report.total.toLocaleString('en-IN') : '—'}</h4>
             </div>
           </div>
 
           <div className="glass-card overflow-hidden">
-            <div className="p-8 border-b border-white/5 flex flex-wrap gap-4 justify-between items-center bg-white/[0.01]">
-              <h4 className="text-lg font-black text-white uppercase tracking-tight">Delivered orders</h4>
+            <div className="p-8 border-b border-line flex flex-wrap gap-4 justify-between items-center bg-surface-2/60">
+              <h4 className="text-lg font-semibold text-fg">Delivered orders</h4>
               <div className="flex flex-wrap gap-3">
                 <input
                   type="text"
                   placeholder="Filter this page by store or order…"
-                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-blue-500/40 w-64"
+                  className="bg-surface-2/60 border border-line rounded-xl px-4 py-2 text-xs text-fg outline-none focus:border-accent w-64"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
                 <button
                   onClick={exportCSV}
                   disabled={!report || report.transactions.length === 0}
-                  className="nexus-badge bg-emerald-500/10 border-emerald-500/20 text-emerald-400 px-6 py-2 hover:bg-emerald-500/20 transition-all font-black disabled:opacity-30"
+                  className="nexus-badge bg-success-soft border-success/30 text-success-text px-6 py-2 hover:bg-success-soft transition-all font-semibold disabled:opacity-30"
                 >
                   Export page (CSV)
                 </button>
                 <button
                   onClick={() => fetchFinanceData(currentPage)}
                   disabled={reportLoading}
-                  className="nexus-badge bg-blue-500/10 border-blue-500/20 text-blue-400 px-6 py-2 hover:bg-blue-500/20 transition-all font-black disabled:opacity-30"
+                  className="nexus-badge bg-info-soft border-info/30 text-info-text px-6 py-2 hover:bg-info-soft transition-all font-semibold disabled:opacity-30"
                 >
                   ↻ Refresh
                 </button>
@@ -313,9 +318,9 @@ export default function FinanceConsole() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-white/[0.03]">
+                  <tr className="bg-surface-2/60">
                     {['Order', 'Store', 'Order value', 'Commission', 'Delivery fee', 'Date'].map(h => (
-                      <th key={h} className="px-8 py-4 text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/5">{h}</th>
+                      <th key={h} className="px-8 py-4 text-xs font-semibold text-fg-muted border-b border-line">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -334,13 +339,13 @@ export default function FinanceConsole() {
             </div>
 
             {report && report.pages > 1 && (
-              <div className="p-6 bg-white/[0.03] border-t border-white/5 flex items-center justify-between">
-                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+              <div className="p-6 bg-surface-2/60 border-t border-line flex items-center justify-between">
+                <span className="text-xs font-semibold text-fg-muted">
                   Page {currentPage} of {report.pages} ({report.total} orders)
                 </span>
                 <div className="flex gap-2">
-                  <button disabled={currentPage <= 1 || reportLoading} onClick={() => fetchFinanceData(currentPage - 1)} className="px-5 py-2 bg-black/40 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-400 hover:text-white disabled:opacity-30">Prev</button>
-                  <button disabled={currentPage >= report.pages || reportLoading} onClick={() => fetchFinanceData(currentPage + 1)} className="px-5 py-2 bg-black/40 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-400 hover:text-white disabled:opacity-30">Next</button>
+                  <button disabled={currentPage <= 1 || reportLoading} onClick={() => fetchFinanceData(currentPage - 1)} className="px-5 py-2 bg-surface-2 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-30">Prev</button>
+                  <button disabled={currentPage >= report.pages || reportLoading} onClick={() => fetchFinanceData(currentPage + 1)} className="px-5 py-2 bg-surface-2 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-30">Next</button>
                 </div>
               </div>
             )}
@@ -354,43 +359,43 @@ export default function FinanceConsole() {
 
       {activeTab === 'disputes' && (
         <div className="glass-card overflow-hidden">
-          <div className="p-8 border-b border-white/5 flex flex-wrap gap-4 justify-between items-center bg-white/[0.01]">
+          <div className="p-8 border-b border-line flex flex-wrap gap-4 justify-between items-center bg-surface-2/60">
             <div>
-              <h4 className="text-lg font-black text-white uppercase tracking-tight">Cancelled orders</h4>
-              <p className="text-[11px] text-gray-500 mt-1">Wallet orders are refunded automatically on cancel and COD orders need no refund. Manual refunds are only for legacy UPI/card orders.</p>
+              <h4 className="text-lg font-semibold text-fg">Cancelled orders</h4>
+              <p className="text-xs text-fg-muted mt-1">Wallet orders are refunded automatically on cancel and COD orders need no refund. Manual refunds are only for legacy UPI/card orders.</p>
             </div>
-            <button onClick={fetchDisputes} disabled={disputesLoading} className="px-4 py-2 bg-blue-500/10 text-blue-400 rounded-xl text-[10px] font-black uppercase disabled:opacity-30">↻ Refresh</button>
+            <button onClick={fetchDisputes} disabled={disputesLoading} className="px-4 py-2 bg-info-soft text-info-text rounded-xl text-xs font-semibold disabled:opacity-30">↻ Refresh</button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
             <SectionState loading={disputesLoading} error={disputesError} onRetry={fetchDisputes} empty={disputes.length === 0} emptyText="No cancelled orders." />
             {!disputesLoading && !disputesError && disputes.map(d => {
               const state = refundState(d);
               return (
-                <div key={d._id} className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col justify-between">
+                <div key={d._id} className="p-6 bg-surface-2/60 border border-line rounded-lg flex flex-col justify-between">
                   <div>
                     <div className="flex justify-between items-start mb-4">
-                      <span className="text-[10px] font-mono text-gray-400">{shortId(d._id)} · {new Date(d.createdAt).toLocaleDateString()}</span>
-                      <span className="text-[8px] bg-white/5 text-gray-300 px-2 py-1 rounded uppercase font-black">{d.paymentMethod || '—'}</span>
+                      <span className="text-xs font-mono text-fg-muted">{shortId(d._id)} · {new Date(d.createdAt).toLocaleDateString()}</span>
+                      <span className="text-xs bg-surface-2/60 text-fg-muted px-2 py-1 rounded font-semibold">{d.paymentMethod || '—'}</span>
                     </div>
-                    <h5 className="text-white font-bold">{d.userId?.name || 'Customer'}</h5>
-                    <p className="text-xs text-gray-500">{d.userId?.phone || ''}</p>
-                    <div className="mt-4 p-3 bg-red-500/5 rounded-lg border border-red-500/10">
-                      <p className="text-[9px] text-red-400 font-black uppercase mb-1">Cancellation reason</p>
-                      <p className="text-xs text-gray-300">{d.cancellationReason || 'No reason recorded.'}</p>
+                    <h5 className="text-fg font-semibold">{d.userId?.name || 'Customer'}</h5>
+                    <p className="text-xs text-fg-muted">{d.userId?.phone || ''}</p>
+                    <div className="mt-4 p-3 bg-danger-soft rounded-lg border border-danger/30">
+                      <p className="text-xs text-danger-text font-semibold mb-1">Cancellation reason</p>
+                      <p className="text-xs text-fg-muted">{d.cancellationReason || 'No reason recorded.'}</p>
                     </div>
-                    <p className="text-[10px] text-gray-500 mt-3">{state.note}</p>
+                    <p className="text-xs text-fg-muted mt-3">{state.note}</p>
                   </div>
-                  <div className="mt-6 flex items-center justify-between pt-4 border-t border-white/5">
+                  <div className="mt-6 flex items-center justify-between pt-4 border-t border-line">
                     <div className="flex flex-col">
-                      <span className="text-[9px] font-black text-gray-500 uppercase">Order value</span>
-                      <span className="text-lg font-black text-white">{rupees(d.finalPrice ?? d.totalPrice)}</span>
+                      <span className="text-xs font-semibold text-fg-muted">Order value</span>
+                      <span className="text-lg font-semibold text-fg">{rupees(d.finalPrice ?? d.totalPrice)}</span>
                     </div>
-                    {d.refundedAt && <span className="text-[9px] font-black uppercase text-emerald-400">Refunded</span>}
+                    {d.refundedAt && <span className="text-xs font-semibold text-success-text">Refunded</span>}
                     {state.refundable && (
                       <button
                         onClick={() => handleRefund(d)}
                         disabled={actionLoading !== null}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[9px] font-black uppercase disabled:opacity-40"
+                        className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-solid rounded-xl text-xs font-semibold disabled:opacity-40"
                       >
                         {actionLoading === d._id ? 'Refunding…' : 'Refund to Wallet'}
                       </button>

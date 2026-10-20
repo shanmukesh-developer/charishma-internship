@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { useAdminSocket } from '@/components/AdminSocketProvider';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { API_URL } from '@/lib/config';
+import { humanize as humanizeMethod } from '@/lib/format';
 import { useLiveSync, useFreshIds, liveLabel, FRESH_ROW_CLASS } from '@/lib/useLiveSync';
 import { useVisibleInterval } from '@/lib/useVisibleInterval';
 
@@ -142,16 +143,16 @@ const ReceiptPanel = ({ order }: { order: Order }) => {
   return (
     <div className="mt-3 space-y-2">
       {order.receiptNumber && (
-        <p className="text-[10px] text-gray-400">Receipt no. <span className="font-mono font-bold text-white">{order.receiptNumber}</span></p>
+        <p className="text-xs text-fg-muted">Receipt no. <span className="font-mono font-semibold text-fg">{order.receiptNumber}</span></p>
       )}
-      <button onClick={open} disabled={state.loading} className="px-3 py-1.5 bg-white/5 text-gray-200 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-white/10 disabled:opacity-30">
+      <button onClick={open} disabled={state.loading} className="px-3 py-1.5 bg-surface-2/60 text-fg border border-line rounded-xl text-xs font-semibold hover:bg-surface-2 disabled:opacity-30">
         {state.loading ? 'Opening…' : 'View receipt'}
       </button>
-      {!TERMINAL.includes(order.status) && !state.error && <p className="text-[10px] text-gray-500">A receipt is issued once the order is delivered.</p>}
-      {state.error && <p className="text-[10px] font-bold text-amber-400">{state.error}</p>}
+      {!TERMINAL.includes(order.status) && !state.error && <p className="text-xs text-fg-muted">A receipt is issued once the order is delivered.</p>}
+      {state.error && <p className="text-xs font-semibold text-warning-text">{state.error}</p>}
       {state.url && (
-        <p className="text-[10px] text-gray-500">
-          Did not open? <a href={state.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">Open receipt ↗</a> (link valid for 15 minutes)
+        <p className="text-xs text-fg-muted">
+          Did not open? <a href={state.url} target="_blank" rel="noopener noreferrer" className="text-info-text underline">Open receipt ↗</a> (link valid for 15 minutes)
         </p>
       )}
     </div>
@@ -160,34 +161,34 @@ const ReceiptPanel = ({ order }: { order: Order }) => {
 
 const getStatusStyle = (status: string) => {
   switch (status) {
-    case 'Pending': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+    case 'Pending': return 'bg-info-soft text-info-text border-info/30';
     case 'Accepted':
-    case 'Preparing': return 'bg-sky-500/10 text-sky-400 border-sky-500/20';
-    case 'ReadyForPickup': return 'bg-violet-500/10 text-violet-400 border-violet-500/20';
+    case 'Preparing': return 'bg-info-soft text-info-text border-info/30';
+    case 'ReadyForPickup': return 'bg-accent-soft text-accent-text border-accent/30';
     case 'Picking':
     case 'PickedUp':
     case 'ArrivedAtGate':
-    case 'OutForDelivery': return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
-    case 'Delivered': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-    case 'Cancelled': return 'bg-red-500/10 text-red-500 border-red-500/20';
-    default: return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+    case 'OutForDelivery': return 'bg-warning-soft text-warning-text border-warning/30';
+    case 'Delivered': return 'bg-success-soft text-success-text border-success/30';
+    case 'Cancelled': return 'bg-danger-soft text-danger-text border-danger/30';
+    default: return 'bg-surface-3 text-fg-muted border-line-strong';
   }
 };
 
 const PaymentBadge = ({ order }: { order: Order }) => {
-  const method = order.paymentMethod || '—';
-  let tone = 'text-gray-400 bg-white/5 border-white/10';
+  const method = order.paymentMethod ? humanizeMethod(order.paymentMethod) : '—';
+  let tone = 'text-fg-muted bg-surface-2/60 border-line';
   let note = order.paymentStatus || '';
-  if (method === 'UPI') {
-    tone = order.upiStatus === 'Pending' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-gray-400 bg-white/5 border-white/10';
+  if (order.paymentMethod === 'UPI') {
+    tone = order.upiStatus === 'Pending' ? 'text-warning-text bg-warning-soft border-warning/30' : 'text-fg-muted bg-surface-2/60 border-line';
     note = `Legacy UPI · ${order.upiStatus || 'n/a'}`;
   } else if (order.paymentStatus === 'Completed') {
-    tone = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+    tone = 'text-success-text bg-success-soft border-success/30';
   }
   return (
     <div className="flex flex-col items-start gap-1">
-      <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase tracking-wider ${tone}`}>{method}</span>
-      {note && <span className="text-[8px] text-gray-500 uppercase tracking-wider">{note}</span>}
+      <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${tone}`}>{method}</span>
+      {note && <span className="text-xs text-fg-muted">{note}</span>}
     </div>
   );
 };
@@ -201,51 +202,51 @@ const OrderRow = memo(({ order, busy, fresh, onSelect }: {
   const id = orderId(order);
   const pinLocked = !isVendorOrder(order) && (order.deliveryPinAttempts || 0) >= PIN_LOCK_ATTEMPTS && !TERMINAL.includes(order.status);
   return (
-    <tr className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${fresh ? FRESH_ROW_CLASS : ''}`} onClick={() => onSelect(order)}>
+    <tr className={`hover:bg-surface-2/60 transition-colors cursor-pointer ${fresh ? FRESH_ROW_CLASS : ''}`} onClick={() => onSelect(order)}>
       <td className="p-4">
-        <span className="font-mono text-[10px] text-gray-400">{shortId(id)}</span>
-        {fresh && <span className="ml-2 text-[8px] font-black uppercase tracking-wider text-emerald-400">new</span>}
+        <span className="font-mono text-xs text-fg-muted">{shortId(id)}</span>
+        {fresh && <span className="ml-2 text-xs font-semibold text-success-text">new</span>}
       </td>
       <td className="p-4">
-        <p className="text-xs font-bold text-white">{order.user?.name || 'Customer'}</p>
-        <p className="text-[9px] text-gray-500">{order.user?.phone || '—'}</p>
+        <p className="text-xs font-semibold text-fg">{order.user?.name || 'Customer'}</p>
+        <p className="text-xs text-fg-muted">{order.user?.phone || '—'}</p>
       </td>
       <td className="p-4">
-        <p className="text-xs text-gray-300 font-bold">{order.restaurant?.name || '—'}</p>
+        <p className="text-xs text-fg-muted font-semibold">{order.restaurant?.name || '—'}</p>
         {isVendorOrder(order) && (
-          <p className="mt-0.5 text-[8px] font-black uppercase tracking-wider text-amber-400" title="The stall delivers this order itself and collects cash. No Zenvy rider, no delivery PIN.">Stall delivers · COD to stall</p>
+          <p className="mt-0.5 text-xs font-semibold text-warning-text" title="The stall delivers this order itself and collects cash. No Zenvy rider, no delivery PIN.">Stall delivers · COD to stall</p>
         )}
-        <p className="text-[10px] text-gray-500 max-w-[220px] truncate">
+        <p className="text-xs text-fg-muted max-w-[220px] truncate">
           {(order.items || []).map(i => `${i.name || 'Item'} ×${i.quantity}`).join(', ') || '—'}
         </p>
       </td>
       <td className="p-4">
-        <span className="text-xs font-black text-white">{rupees(grandTotal(order))}</span>
+        <span className="text-xs font-semibold text-fg">{rupees(grandTotal(order))}</span>
       </td>
       <td className="p-4"><PaymentBadge order={order} /></td>
       <td className="p-4">
         <div className="flex flex-col items-start gap-1">
-          <span className={`text-[9px] font-black px-2 py-1 rounded-md border uppercase tracking-wider ${getStatusStyle(order.status)}`}>
+          <span className={`text-xs font-semibold px-2 py-1 rounded-md border ${getStatusStyle(order.status)}`}>
             {statusLabel(order.status)}
           </span>
           {isLegacyUpiPending(order) && (
-            <span className="text-[8px] font-black text-amber-400 uppercase tracking-wider">Payment check needed</span>
+            <span className="text-xs font-semibold text-warning-text">Payment check needed</span>
           )}
           {pinLocked && (
-            <span className="text-[8px] font-black text-red-400 uppercase tracking-wider">PIN locked</span>
+            <span className="text-xs font-semibold text-danger-text">PIN locked</span>
           )}
           {order.stuckFlaggedAt && !TERMINAL.includes(order.status) && (
-            <span className="text-[8px] font-black text-orange-400 uppercase tracking-wider" title="This stall order has been open for hours. Call the stall, then mark it Delivered or cancel it.">Stuck · check with stall</span>
+            <span className="text-xs font-semibold text-warning-text" title="This stall order has been open for hours. Call the stall, then mark it Delivered or cancel it.">Stuck · check with stall</span>
           )}
         </div>
       </td>
       <td className="p-4">
-        <span className="text-[10px] text-gray-500">
+        <span className="text-xs text-fg-muted">
           {new Date(order.createdAt).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
         </span>
       </td>
       <td className="p-4 text-right">
-        <span className="text-[9px] font-black uppercase tracking-widest text-blue-400">{busy ? 'Working…' : 'Open →'}</span>
+        <span className="text-xs font-semibold text-info-text">{busy ? 'Working…' : 'Open →'}</span>
       </td>
     </tr>
   );
@@ -264,6 +265,17 @@ export default function OrdersPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // ?order=<id> (overview and global search): opens that order, fetched on its own when it is not in this page.
+  const [deepOrder, setDeepOrder] = useState<Order | null>(null);
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('order');
+    if (!id) return;
+    setSelectedId(id);
+    fetch(`${API_URL}/api/admin/orders?q=${encodeURIComponent(id)}&limit=1`, { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { const o = Array.isArray(d?.orders) ? d.orders[0] : null; if (o) setDeepOrder(o as Order); })
+      .catch(() => { /* the order may still appear in the list */ });
+  }, []);
   const [filterStatus, setFilterStatus] = useState<string>('All');
   const [filterFulfilment, setFilterFulfilment] = useState<FulfilmentFilter>('All');
   // "Stall orders stuck > N h": stall orders still Accepted / Out for delivery N+ hours after placing (null = off).
@@ -295,7 +307,7 @@ export default function OrdersPage() {
   const pageRef = useRef(1);
   pageRef.current = currentPage;
 
-  const selectedOrder = selectedId ? orders.find(o => orderId(o) === selectedId) || null : null;
+  const selectedOrder = selectedId ? orders.find(o => orderId(o) === selectedId) || (deepOrder && orderId(deepOrder) === selectedId ? deepOrder : null) : null;
 
   const showNotice = useCallback((n: Notice) => {
     setNotice(n);
@@ -486,7 +498,7 @@ export default function OrdersPage() {
     setAssignPick('');
   };
 
-  if (!isAuthed) return <div className="p-20 text-center font-black text-white uppercase tracking-widest animate-pulse">Checking access…</div>;
+  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
 
   const visibleOrders = orders.filter(o => filterStatus === 'All' || o.status === filterStatus);
   const breakdown = selectedOrder ? parseJson<PriceBreakdown>(selectedOrder.priceBreakdown) : null;
@@ -498,16 +510,16 @@ export default function OrdersPage() {
   const stallWa = selectedOrder?.restaurant?.whatsappNumber ? String(selectedOrder.restaurant.whatsappNumber).replace(/\D/g, '') : '';
 
   return (
-    <div className="space-y-8 animate-fade-in relative pb-20">
+    <div className="space-y-8 animate-fade-in relative">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tighter text-white uppercase">Orders</h1>
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">Live order queue · Cash on Delivery and Wallet</p>
+          <h1 className="text-2xl font-semibold text-fg">Orders</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Every food and store order: status, rider, payment and refunds.</p>
         </div>
         <button
           onClick={() => fetchOrders(currentPage)}
           disabled={loading}
-          className="nexus-badge bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20 transition-all disabled:opacity-40"
+          className="nexus-badge bg-info-soft text-info-text border-info/30 hover:bg-info-soft transition-all disabled:opacity-40"
         >
           ↻ Refresh ({totalOrders})
         </button>
@@ -519,17 +531,17 @@ export default function OrdersPage() {
             key={f.value}
             onClick={() => setFilterFulfilment(f.value)}
             aria-pressed={filterFulfilment === f.value}
-            className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${filterFulfilment === f.value ? 'bg-amber-500 text-black border-amber-500' : 'bg-white/5 text-gray-500 border-white/10 hover:text-white'}`}
+            className={`px-4 py-1.5 rounded-xl text-xs font-semibold border transition-all ${filterFulfilment === f.value ? 'bg-accent text-accent-fg border-warning/30' : 'bg-surface-2/60 text-fg-muted border-line hover:text-fg'}`}
           >
             {f.label}
           </button>
         ))}
-        <span className="mx-1 h-4 w-px bg-white/10" aria-hidden />
+        <span className="mx-1 h-4 w-px bg-surface-2" aria-hidden />
         <button
           onClick={() => setStuckHours(h => (h ? null : 6))}
           aria-pressed={!!stuckHours}
           title="Stall orders still Accepted / Out for delivery long after they were placed. They are never auto-cancelled: call the stall."
-          className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${stuckHours ? 'bg-orange-500 text-black border-orange-500' : 'bg-white/5 text-gray-500 border-white/10 hover:text-white'}`}
+          className={`px-4 py-1.5 rounded-xl text-xs font-semibold border transition-all ${stuckHours ? 'bg-accent text-accent-fg border-warning/30' : 'bg-surface-2/60 text-fg-muted border-line hover:text-fg'}`}
         >
           Stall orders stuck &gt; {stuckHours || 6} h
         </button>
@@ -538,15 +550,15 @@ export default function OrdersPage() {
             value={stuckHours}
             onChange={e => setStuckHours(Number(e.target.value))}
             aria-label="Stuck for at least"
-            className="rounded-xl border border-white/10 bg-black/40 px-2 py-1 text-[10px] font-bold text-gray-300"
+            className="rounded-xl border border-line bg-surface-2 px-2 py-1 text-xs font-semibold text-fg-muted"
           >
             {[2, 4, 6, 12, 24, 48].map(h => <option key={h} value={h}>{h} h</option>)}
           </select>
         )}
         {storeFilter && (
-          <span className="ml-2 flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-emerald-300">
+          <span className="ml-2 flex items-center gap-2 rounded-xl border border-success/30 bg-success-soft px-3 py-1.5 text-xs font-semibold text-success-text">
             One store{orders[0]?.restaurant?.name ? `: ${orders[0].restaurant.name}` : ''}
-            <button onClick={clearStoreFilter} className="text-emerald-200 hover:text-white" aria-label="Show all stores">✕</button>
+            <button onClick={clearStoreFilter} className="text-success-text hover:text-fg" aria-label="Show all stores"><span aria-hidden="true" className="text-base leading-none">×</span></button>
           </span>
         )}
       </div>
@@ -556,7 +568,7 @@ export default function OrdersPage() {
           <button
             key={s}
             onClick={() => setFilterStatus(s)}
-            className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${filterStatus === s ? 'bg-blue-500 text-white border-blue-500' : 'bg-white/5 text-gray-500 border-white/10 hover:text-white'}`}
+            className={`px-4 py-1.5 rounded-xl text-xs font-semibold border transition-all ${filterStatus === s ? 'bg-accent text-on-solid border-info/30' : 'bg-surface-2/60 text-fg-muted border-line hover:text-fg'}`}
           >
             {s === 'All' ? 'All' : statusLabel(s)}
           </button>
@@ -564,19 +576,19 @@ export default function OrdersPage() {
       </div>
 
       {notice && (
-        <div className={`p-4 rounded-2xl border text-xs font-bold flex justify-between items-start gap-4 ${notice.kind === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
+        <div className={`p-4 rounded-lg border text-xs font-semibold flex justify-between items-start gap-4 ${notice.kind === 'error' ? 'bg-danger-soft border-danger/30 text-danger-text' : 'bg-success-soft border-success/30 text-success-text'}`}>
           <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-gray-500 hover:text-white">✕</button>
+          <button onClick={() => setNotice(null)} className="text-fg-muted hover:text-fg" aria-label="Dismiss"><span aria-hidden="true" className="text-base leading-none">×</span></button>
         </div>
       )}
 
-      <div className="glass-card overflow-hidden border-white/10">
+      <div className="rounded-lg border border-line bg-surface shadow-xs overflow-hidden border-line">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-white/5 bg-white/[0.02]">
+              <tr className="border-b border-line bg-surface-2/60">
                 {['Order', 'Customer', 'Store & items', 'Total', 'Payment', 'Status', 'Placed', ''].map(h => (
-                  <th key={h} className="p-4 text-[10px] font-black uppercase text-gray-400 tracking-wider">{h}</th>
+                  <th key={h} className="p-4 text-xs font-semibold text-fg-muted">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -584,22 +596,22 @@ export default function OrdersPage() {
               {loading ? (
                 <tr>
                   <td colSpan={8} className="p-10 text-center">
-                    <div className="flex flex-col items-center justify-center gap-2 text-gray-500">
-                      <div className="w-6 h-6 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-                      <p className="text-[10px] uppercase font-black tracking-widest">Loading orders…</p>
+                    <div className="flex flex-col items-center justify-center gap-2 text-fg-muted">
+                      <div className="w-6 h-6 border-2 border-info/30 border-t-info/30 rounded-full animate-spin" />
+                      <p className="text-xs font-semibold">Loading orders…</p>
                     </div>
                   </td>
                 </tr>
               ) : loadError ? (
                 <tr>
                   <td colSpan={8} className="p-10 text-center">
-                    <p className="text-xs text-red-400 font-bold">{loadError}</p>
-                    <button onClick={() => fetchOrders(currentPage)} className="mt-3 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-300 hover:text-white">Try again</button>
+                    <p className="text-xs text-danger-text font-semibold">{loadError}</p>
+                    <button onClick={() => fetchOrders(currentPage)} className="mt-3 px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg">Try again</button>
                   </td>
                 </tr>
               ) : visibleOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-10 text-center text-gray-500 text-xs">
+                  <td colSpan={8} className="p-10 text-center text-fg-muted text-xs">
                     {filterStatus === 'All' ? 'No orders yet.' : `No ${statusLabel(filterStatus).toLowerCase()} orders.`}
                   </td>
                 </tr>
@@ -619,22 +631,22 @@ export default function OrdersPage() {
         </div>
 
         {totalPages > 1 && (
-          <div className="p-6 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
-            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+          <div className="p-6 bg-surface-2/60 border-t border-line flex items-center justify-between">
+            <span className="text-xs font-semibold text-fg-muted">
               Page {currentPage} of {totalPages}
             </span>
             <div className="flex gap-2">
               <button
                 disabled={currentPage <= 1 || loading}
                 onClick={() => fetchOrders(currentPage - 1)}
-                className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-400 hover:text-white disabled:opacity-30"
+                className="px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-30"
               >
                 Previous
               </button>
               <button
                 disabled={currentPage >= totalPages || loading}
                 onClick={() => fetchOrders(currentPage + 1)}
-                className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-400 hover:text-white disabled:opacity-30"
+                className="px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-30"
               >
                 Next
               </button>
@@ -645,23 +657,23 @@ export default function OrdersPage() {
 
       {/* Order detail */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedId(null)}>
-          <div className="glass-card max-w-3xl w-full p-8 space-y-6 animate-slide-up relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <button onClick={() => setSelectedId(null)} className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors" aria-label="Close">✕</button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-scrim/50 animate-fade-in" onClick={() => setSelectedId(null)}>
+          <div className="rounded-lg border border-line bg-surface shadow-xs max-w-3xl w-full p-8 space-y-6 animate-slide-up relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setSelectedId(null)} className="absolute top-6 right-6 text-fg-muted hover:text-fg transition-colors" aria-label="Close"><span aria-hidden="true" className="text-base leading-none">×</span></button>
 
-            <div className="flex justify-between items-start border-b border-white/5 pb-6 pr-10">
+            <div className="flex justify-between items-start border-b border-line pb-6 pr-10">
               <div>
-                <h3 className="text-2xl font-black text-white uppercase tracking-tighter">Order {shortId(orderId(selectedOrder))}</h3>
-                <p className="text-[10px] text-gray-500 font-mono mt-1">{orderId(selectedOrder)}</p>
-                <p className="text-[10px] text-gray-500 mt-1">Placed {new Date(selectedOrder.createdAt).toLocaleString()}</p>
+                <h3 className="text-2xl font-semibold text-fg">Order {shortId(orderId(selectedOrder))}</h3>
+                <p className="text-xs text-fg-muted font-mono mt-1">{orderId(selectedOrder)}</p>
+                <p className="text-xs text-fg-muted mt-1">Placed {new Date(selectedOrder.createdAt).toLocaleString()}</p>
               </div>
-              <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${getStatusStyle(selectedOrder.status)}`}>
+              <div className={`px-4 py-1.5 rounded-full text-xs font-semibold border ${getStatusStyle(selectedOrder.status)}`}>
                 {statusLabel(selectedOrder.status)}
               </div>
             </div>
 
             {selectedPinLocked && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-xs text-red-400 font-bold">
+              <div className="p-4 bg-danger-soft border border-danger/30 rounded-lg text-xs text-danger-text font-semibold">
                 The rider entered a wrong delivery PIN {selectedOrder.deliveryPinAttempts} times and is locked out. Call the customer to confirm they received the order before marking it delivered here.
               </div>
             )}
@@ -669,33 +681,33 @@ export default function OrdersPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-5">
                 <div>
-                  <h5 className="text-[9px] font-black text-blue-500 uppercase tracking-[0.2em] mb-2">Customer</h5>
-                  <p className="text-lg font-black text-white">{selectedOrder.user?.name || 'Customer'}</p>
-                  <p className="text-xs text-gray-400 font-bold">{selectedOrder.user?.phone || 'No phone on file'}</p>
+                  <h5 className="text-xs font-semibold text-info-text mb-2">Customer</h5>
+                  <p className="text-lg font-semibold text-fg">{selectedOrder.user?.name || 'Customer'}</p>
+                  <p className="text-xs text-fg-muted font-semibold">{selectedOrder.user?.phone || 'No phone on file'}</p>
                 </div>
                 <div>
-                  <h5 className="text-[9px] font-black text-blue-500 uppercase tracking-[0.2em] mb-2">Delivery</h5>
-                  <p className="text-xs text-white font-bold whitespace-pre-line">{selectedOrder.deliveryAddress || (selectedOrder.hostelGateDelivery ? 'Hostel gate' : 'No address on file')}</p>
-                  {selectedOrder.deliverySlot && <p className="text-[10px] text-blue-400 font-black mt-1">Slot: {selectedOrder.deliverySlot}</p>}
-                  {formatEta(selectedOrder.estDuration) && <p className="text-[10px] text-sky-400 font-black mt-1">Kitchen time: {formatEta(selectedOrder.estDuration)}</p>}
+                  <h5 className="text-xs font-semibold text-info-text mb-2">Delivery</h5>
+                  <p className="text-xs text-fg font-semibold whitespace-pre-line">{selectedOrder.deliveryAddress || (selectedOrder.hostelGateDelivery ? 'Hostel gate' : 'No address on file')}</p>
+                  {selectedOrder.deliverySlot && <p className="text-xs text-info-text font-semibold mt-1">Slot: {selectedOrder.deliverySlot}</p>}
+                  {formatEta(selectedOrder.estDuration) && <p className="text-xs text-info-text font-semibold mt-1">Kitchen time: {formatEta(selectedOrder.estDuration)}</p>}
                   {Array.isArray(instructions) && instructions.length > 0 && (
                     <ul className="mt-2 space-y-1">
-                      {instructions.map((t, i) => <li key={i} className="text-[10px] text-gray-300">• {t}</li>)}
+                      {instructions.map((t, i) => <li key={i} className="text-xs text-fg-muted">• {t}</li>)}
                     </ul>
                   )}
-                  <p className="text-[10px] text-gray-500 mt-2">Store: {selectedOrder.restaurant?.name || '—'}</p>
+                  <p className="text-xs text-fg-muted mt-2">Store: {selectedOrder.restaurant?.name || '—'}</p>
                   {selectedVendor ? (
-                    <div className="mt-2 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-amber-400">Delivered by the stall</p>
-                      <p className="mt-1 text-[11px] text-gray-300">{stallName(selectedOrder)} delivers this order itself and collects the cash. No Zenvy rider, no delivery PIN.</p>
-                      {selectedOrder.outForDeliveryAt && <p className="mt-1 text-[10px] text-gray-500">Left the stall {new Date(selectedOrder.outForDeliveryAt).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>}
+                    <div className="mt-2 rounded-xl border border-warning/30 bg-warning-soft p-3">
+                      <p className="text-xs font-semibold text-warning-text">Delivered by the stall</p>
+                      <p className="mt-1 text-xs text-fg-muted">{stallName(selectedOrder)} delivers this order itself and collects the cash. No Zenvy rider, no delivery PIN.</p>
+                      {selectedOrder.outForDeliveryAt && <p className="mt-1 text-xs text-fg-muted">Left the stall {new Date(selectedOrder.outForDeliveryAt).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>}
                       {stallWa && (
-                        <a href={`https://wa.me/${stallWa.length === 10 ? `91${stallWa}` : stallWa}`} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-[10px] font-bold text-emerald-400 underline">WhatsApp the stall ↗</a>
+                        <a href={`https://wa.me/${stallWa.length === 10 ? `91${stallWa}` : stallWa}`} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-xs font-semibold text-success-text underline">WhatsApp the stall ↗</a>
                       )}
                     </div>
                   ) : (
                     <div className="mt-1 space-y-2">
-                      <p className="text-[10px] text-gray-500">
+                      <p className="text-xs text-fg-muted">
                         Rider: {selectedOrder.deliveryPartnerId ? ((assignRiders || []).find(r => r.id === selectedOrder.deliveryPartnerId)?.name || 'Assigned') : 'Not assigned yet'}
                       </p>
                       {selectedAssignable && (
@@ -704,18 +716,18 @@ export default function OrdersPage() {
                             value={assignPick}
                             onChange={e => setAssignPick(e.target.value)}
                             aria-label="Rider to assign"
-                            className="rounded-xl border border-white/10 bg-black/40 px-2 py-1 text-[10px] font-bold text-gray-300"
+                            className="rounded-xl border border-line bg-surface-2 px-2 py-1 text-xs font-semibold text-fg-muted"
                           >
                             <option value="">{assignRiders === null ? 'Loading riders…' : 'Choose a rider…'}</option>
                             {(assignRiders || []).filter(r => r.id !== selectedOrder.deliveryPartnerId).map(r => (
                               <option key={r.id} value={r.id}>{r.name}{r.isOnline ? ' · online' : ' · offline'}</option>
                             ))}
                           </select>
-                          <button disabled={selectedBusy || !assignPick} onClick={() => assignRider(selectedOrder, assignPick)} className="px-3 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-blue-500/20 disabled:opacity-30">
+                          <button disabled={selectedBusy || !assignPick} onClick={() => assignRider(selectedOrder, assignPick)} className="px-3 py-1 bg-info-soft text-info-text border border-info/30 rounded-xl text-xs font-semibold hover:bg-info-soft disabled:opacity-30">
                             {selectedOrder.deliveryPartnerId ? 'Reassign' : 'Assign'}
                           </button>
                           {selectedOrder.deliveryPartnerId && (
-                            <button disabled={selectedBusy} onClick={() => assignRider(selectedOrder, null)} className="px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-red-500/20 disabled:opacity-30">
+                            <button disabled={selectedBusy} onClick={() => assignRider(selectedOrder, null)} className="px-3 py-1 bg-danger-soft text-danger-text border border-danger/30 rounded-xl text-xs font-semibold hover:bg-danger-soft disabled:opacity-30">
                               Remove rider
                             </button>
                           )}
@@ -725,98 +737,98 @@ export default function OrdersPage() {
                   )}
                 </div>
                 <div>
-                  <h5 className="text-[9px] font-black text-blue-500 uppercase tracking-[0.2em] mb-2">Payment</h5>
+                  <h5 className="text-xs font-semibold text-info-text mb-2">Payment</h5>
                   <PaymentBadge order={selectedOrder} />
                   <ReceiptPanel key={orderId(selectedOrder)} order={selectedOrder} />
                   {selectedOrder.cancellationReason && (
-                    <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400">
-                      <span className="text-[8px] font-black uppercase tracking-widest block mb-1">Cancellation reason</span>
-                      <p className="text-[11px] font-bold">{selectedOrder.cancellationReason}</p>
+                    <div className="mt-3 p-3 bg-danger-soft border border-danger/30 rounded-xl text-danger-text">
+                      <span className="text-xs font-semibold block mb-1">Cancellation reason</span>
+                      <p className="text-xs font-semibold">{selectedOrder.cancellationReason}</p>
                     </div>
                   )}
                 </div>
               </div>
 
               <div className="space-y-3">
-                <h5 className="text-[9px] font-black text-blue-500 uppercase tracking-[0.2em]">Items</h5>
-                <div className="space-y-2 bg-white/[0.02] p-4 rounded-2xl border border-white/5 max-h-[200px] overflow-y-auto">
+                <h5 className="text-xs font-semibold text-info-text">Items</h5>
+                <div className="space-y-2 bg-surface-2/60 p-4 rounded-lg border border-line max-h-[200px] overflow-y-auto">
                   {(selectedOrder.items || []).length === 0 ? (
-                    <p className="text-xs text-gray-500">No items recorded.</p>
+                    <p className="text-xs text-fg-muted">No items recorded.</p>
                   ) : selectedOrder.items.map((item, i) => {
                     const unit = item.priceAtOrder ?? item.price;
                     const line = item.lineTotal ?? (unit != null ? unit * item.quantity : null);
                     return (
                       <div key={i} className="flex justify-between items-center text-xs gap-4">
-                        <span className="text-white font-bold">{item.name || 'Item'} <span className="text-gray-500 ml-1">×{item.quantity}</span></span>
-                        <span className="text-gray-400">{line != null ? rupees(line) : '—'}</span>
+                        <span className="text-fg font-semibold">{item.name || 'Item'} <span className="text-fg-muted ml-1">×{item.quantity}</span></span>
+                        <span className="text-fg-muted">{line != null ? rupees(line) : '—'}</span>
                       </div>
                     );
                   })}
                 </div>
                 {breakdown && (
-                  <div className="space-y-1 text-[11px] text-gray-400">
+                  <div className="space-y-1 text-xs text-fg-muted">
                     {breakdown.subtotal != null && <div className="flex justify-between"><span>Subtotal</span><span>{rupees(breakdown.subtotal)}</span></div>}
                     {breakdown.deliveryFee != null && <div className="flex justify-between"><span>Delivery fee</span><span>{rupees(breakdown.deliveryFee)}</span></div>}
                     {!!breakdown.packagingFee && <div className="flex justify-between"><span>Packaging</span><span>{rupees(breakdown.packagingFee)}</span></div>}
                     {!!breakdown.taxes && <div className="flex justify-between"><span>Taxes</span><span>{rupees(breakdown.taxes)}</span></div>}
                     {(breakdown.discounts || []).map((d, i) => (
-                      <div key={i} className="flex justify-between text-emerald-400"><span>{d.label}</span><span>−{rupees(d.amount)}</span></div>
+                      <div key={i} className="flex justify-between text-success-text"><span>{d.label}</span><span>−{rupees(d.amount)}</span></div>
                     ))}
                   </div>
                 )}
-                <div className="flex justify-between items-center pt-3 border-t border-white/5">
-                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Total</span>
-                  <span className="text-xl font-black text-blue-500">{rupees(grandTotal(selectedOrder))}</span>
+                <div className="flex justify-between items-center pt-3 border-t border-line">
+                  <span className="text-xs font-semibold text-fg">Total</span>
+                  <span className="text-xl font-semibold text-info-text">{rupees(grandTotal(selectedOrder))}</span>
                 </div>
               </div>
             </div>
 
             {/* Legacy UPI orders: manual verification only. New orders are COD or Wallet. */}
             {isLegacyUpiPending(selectedOrder) && (
-              <div className="p-5 rounded-2xl border border-amber-500/20 bg-amber-500/5 space-y-3">
+              <div className="p-5 rounded-lg border border-warning/30 bg-warning-soft space-y-3">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Legacy UPI payment awaiting verification</p>
-                  <p className="text-[11px] text-gray-400 mt-1">UPI checkout is switched off. Check this older payment against the bank statement before accepting.</p>
+                  <p className="text-xs font-semibold text-warning-text">Legacy UPI payment awaiting verification</p>
+                  <p className="text-xs text-fg-muted mt-1">UPI checkout is switched off. Check this older payment against the bank statement before accepting.</p>
                 </div>
                 <div className="flex flex-wrap gap-4 items-center text-xs">
-                  <span className="text-gray-400">UTR: <span className="font-mono text-white">{selectedOrder.upiUTR || 'not provided'}</span></span>
+                  <span className="text-fg-muted">UTR: <span className="font-mono text-fg">{selectedOrder.upiUTR || 'not provided'}</span></span>
                   {selectedOrder.upiScreenshot && /^(https?:|data:image\/)/i.test(selectedOrder.upiScreenshot) && (
-                    <a href={selectedOrder.upiScreenshot} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">Open screenshot</a>
+                    <a href={selectedOrder.upiScreenshot} target="_blank" rel="noopener noreferrer" className="text-info-text underline">Open screenshot</a>
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <button disabled={selectedBusy} onClick={() => verifyUpi(selectedOrder, true)} className="px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-emerald-500/20 disabled:opacity-30">Payment received</button>
-                  <button disabled={selectedBusy} onClick={() => verifyUpi(selectedOrder, false)} className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-red-500/20 disabled:opacity-30">Reject payment</button>
+                  <button disabled={selectedBusy} onClick={() => verifyUpi(selectedOrder, true)} className="px-4 py-2 bg-success-soft text-success-text border border-success/30 rounded-xl text-xs font-semibold hover:bg-success-soft disabled:opacity-30">Payment received</button>
+                  <button disabled={selectedBusy} onClick={() => verifyUpi(selectedOrder, false)} className="px-4 py-2 bg-danger-soft text-danger-text border border-danger/30 rounded-xl text-xs font-semibold hover:bg-danger-soft disabled:opacity-30">Reject payment</button>
                 </div>
               </div>
             )}
 
             {selectedOpen && !isLegacyUpiPending(selectedOrder) && (
-              <div className="space-y-3 pt-4 border-t border-white/5">
+              <div className="space-y-3 pt-4 border-t border-line">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Support actions</span>
-                  <span className="text-[9px] text-gray-500">{selectedVendor ? 'The customer and Zenvy Vendor apps update automatically' : 'The customer, store and rider apps update automatically'}</span>
+                  <span className="text-xs font-semibold text-fg-muted">Support actions</span>
+                  <span className="text-xs text-fg-muted">{selectedVendor ? 'The customer and Zenvy Vendor apps update automatically' : 'The customer, store and rider apps update automatically'}</span>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {selectedOrder.status === 'Pending' && (
-                    <button disabled={selectedBusy} onClick={() => acceptOrder(selectedOrder)} className="py-2.5 px-2 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-sky-500/20 disabled:opacity-30 transition-all">{selectedVendor ? 'Accept for stall' : 'Accept & dispatch'}</button>
+                    <button disabled={selectedBusy} onClick={() => acceptOrder(selectedOrder)} className="py-2.5 px-2 bg-info-soft text-info-text border border-info/30 rounded-xl text-xs font-semibold hover:bg-info-soft disabled:opacity-30 transition-all">{selectedVendor ? 'Accept for stall' : 'Accept & dispatch'}</button>
                   )}
                   {selectedVendor && ['Accepted', 'Preparing', 'ReadyForPickup'].includes(selectedOrder.status) && (
-                    <button disabled={selectedBusy} onClick={() => setStatus(selectedOrder, 'OutForDelivery')} className="py-2.5 px-2 bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-orange-500/20 disabled:opacity-30 transition-all">Out for delivery</button>
+                    <button disabled={selectedBusy} onClick={() => setStatus(selectedOrder, 'OutForDelivery')} className="py-2.5 px-2 bg-warning-soft text-warning-text border border-warning/30 rounded-xl text-xs font-semibold hover:bg-warning-soft disabled:opacity-30 transition-all">Out for delivery</button>
                   )}
                   {!selectedVendor && !['Pending', 'PickedUp', 'ArrivedAtGate'].includes(selectedOrder.status) && (
-                    <button disabled={selectedBusy} onClick={() => setStatus(selectedOrder, 'PickedUp')} className="py-2.5 px-2 bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-orange-500/20 disabled:opacity-30 transition-all">Mark picked up</button>
+                    <button disabled={selectedBusy} onClick={() => setStatus(selectedOrder, 'PickedUp')} className="py-2.5 px-2 bg-warning-soft text-warning-text border border-warning/30 rounded-xl text-xs font-semibold hover:bg-warning-soft disabled:opacity-30 transition-all">Mark picked up</button>
                   )}
                   {selectedOrder.status !== 'Pending' && (
-                    <button disabled={selectedBusy} onClick={() => setStatus(selectedOrder, 'Delivered')} className="py-2.5 px-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-emerald-500/20 disabled:opacity-30 transition-all">Mark delivered</button>
+                    <button disabled={selectedBusy} onClick={() => setStatus(selectedOrder, 'Delivered')} className="py-2.5 px-2 bg-success-soft text-success-text border border-success/30 rounded-xl text-xs font-semibold hover:bg-success-soft disabled:opacity-30 transition-all">Mark delivered</button>
                   )}
-                  <button disabled={selectedBusy} onClick={() => cancelOrder(selectedOrder)} className="py-2.5 px-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-red-500/20 disabled:opacity-30 transition-all">Cancel order</button>
+                  <button disabled={selectedBusy} onClick={() => cancelOrder(selectedOrder)} className="py-2.5 px-2 bg-danger-soft text-danger-text border border-danger/30 rounded-xl text-xs font-semibold hover:bg-danger-soft disabled:opacity-30 transition-all">Cancel order</button>
                 </div>
-                {selectedBusy && <p className="text-[10px] text-gray-500">Working…</p>}
+                {selectedBusy && <p className="text-xs text-fg-muted">Working…</p>}
               </div>
             )}
 
-            <button onClick={() => setSelectedId(null)} className="w-full py-3 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase text-gray-400 hover:text-white transition-all">Close</button>
+            <button onClick={() => setSelectedId(null)} className="w-full py-3 bg-surface-2/60 border border-line rounded-lg text-xs font-semibold text-fg-muted hover:text-fg transition-all">Close</button>
           </div>
         </div>
       )}

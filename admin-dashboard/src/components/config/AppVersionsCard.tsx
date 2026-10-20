@@ -135,23 +135,22 @@ export default function AppVersionsCard() {
     }
   };
 
-  const input = 'w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-white font-bold text-sm';
-  const lbl = 'text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1';
+  const input = 'w-full bg-surface-2/60 border border-line rounded-lg p-3 text-fg font-semibold text-sm';
+  const lbl = 'text-xs font-semibold text-fg-muted ml-1';
 
   return (
-    <div className="glass-card p-10 space-y-6">
+    <div className="rounded-lg border border-line bg-surface shadow-xs p-10 space-y-6">
       <div className="flex items-center gap-4">
-        <div className="w-10 h-10 bg-amber-600/20 rounded-xl flex items-center justify-center text-xl">📲</div>
         <div>
-          <h4 className="text-lg font-black text-white uppercase tracking-tight">App Versions (force update)</h4>
-          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Retire broken or insecure app versions · empty minimum = nobody is blocked</p>
+          <h4 className="text-lg font-semibold text-fg">App Versions (force update)</h4>
+          <p className="text-xs text-fg-muted font-semibold">Retire broken or insecure app versions · empty minimum = nobody is blocked</p>
         </div>
       </div>
 
       {loadError && (
         <div className="flex items-center gap-3">
-          <p className="text-xs font-bold text-red-400">{loadError}</p>
-          <button onClick={() => load(app)} className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-300">Retry</button>
+          <p className="text-xs font-semibold text-danger-text">{loadError}</p>
+          <button onClick={() => load(app)} className="px-3 py-1.5 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted">Retry</button>
         </div>
       )}
 
@@ -167,15 +166,15 @@ export default function AppVersionsCard() {
                   role="tab"
                   aria-selected={active}
                   onClick={() => pick(k)}
-                  className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider border ${active ? 'bg-blue-600 border-blue-500 text-white' : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'}`}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold border ${active ? 'bg-accent border-info/30 text-on-solid' : 'bg-surface-2/60 border-line text-fg-muted hover:bg-surface-2'}`}
                 >
-                  {data.labels[k]}{p.minSupportedVersion || p.minSupportedBuild ? ' 🔒' : ''}
+                  {data.labels[k]}{p.minSupportedVersion || p.minSupportedBuild ? ' (minimum version set)' : ''}
                 </button>
               );
             })}
           </div>
 
-          <p className="text-[11px] text-gray-500">Package <span className="font-mono text-gray-300">{data.packages[app]}</span></p>
+          <p className="text-xs text-fg-muted">Package <span className="font-mono text-fg-muted">{data.packages[app]}</span></p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
@@ -199,22 +198,22 @@ export default function AppVersionsCard() {
             <label htmlFor="av-msg" className={lbl}>Message on the Update screen</label>
             <textarea id="av-msg" rows={2} maxLength={300} className={input} placeholder={data.defaultMessage} value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} />
           </div>
-          <label className="flex items-center gap-3 text-sm text-gray-300">
+          <label className="flex items-center gap-3 text-sm text-fg-muted">
             <input type="checkbox" checked={form.soft} onChange={e => setForm({ ...form, soft: e.target.checked })} />
             Show a dismissible &quot;new version available&quot; banner to users below the latest version (once per version)
           </label>
           <div className="flex items-center gap-4 flex-wrap">
-            <button onClick={save} disabled={saving} className="px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white">
+            <button onClick={save} disabled={saving} className="px-6 py-3 bg-accent hover:bg-accent-hover disabled:opacity-50 rounded-lg text-xs font-semibold text-on-solid">
               {saving ? 'Saving…' : `Save ${data.labels[app]}`}
             </button>
-            {error && <p className="text-xs font-bold text-red-400">{error}</p>}
-            {notice && <p className="text-xs font-bold text-emerald-400">{notice}</p>}
+            {error && <p className="text-xs font-semibold text-danger-text">{error}</p>}
+            {notice && <p className="text-xs font-semibold text-success-text">{notice}</p>}
           </div>
 
-          <div className="border-t border-white/5 pt-5 flex items-start justify-between gap-4 flex-wrap">
+          <div className="border-t border-line pt-5 flex items-start justify-between gap-4 flex-wrap">
             <div className="max-w-xl">
-              <p className="text-sm font-black text-white">Block old builds that do not send a version</p>
-              <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">
+              <p className="text-sm font-semibold text-fg">Block old builds that do not send a version</p>
+              <p className="text-xs text-fg-muted mt-1 leading-relaxed">
                 Builds released before force update do not report their version, so the rules above cannot see them.
                 Turn this on only once nearly everyone has updated: those installs then get &quot;update required&quot; errors.
                 Account deletion, logout and the website keep working.
@@ -223,7 +222,7 @@ export default function AppVersionsCard() {
             <button
               onClick={toggleUnversioned}
               disabled={saving}
-              className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${data.policy.blockUnversionedClients ? 'bg-red-600/20 border-red-500/40 text-red-300' : 'bg-white/5 border-white/10 text-gray-300'}`}
+              className={`px-5 py-2.5 rounded-xl text-xs font-semibold border ${data.policy.blockUnversionedClients ? 'bg-danger-soft border-danger/30 text-danger-text' : 'bg-surface-2/60 border-line text-fg-muted'}`}
             >
               {data.policy.blockUnversionedClients ? 'On · blocking old builds' : 'Off'}
             </button>

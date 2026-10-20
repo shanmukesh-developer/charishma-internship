@@ -179,17 +179,17 @@ export default function CommunityAdmin() {
   const renderPostBody = (post: CommunityPost) => (
     <>
       {post.postType === 'review' && (
-        <p className="text-[11px] text-amber-300 font-bold">
+        <p className="text-xs text-warning-text font-semibold">
           {'★'.repeat(Math.max(0, Math.min(5, Math.round(Number(post.starRating) || 0))))}
-          <span className="text-gray-500 font-normal">
+          <span className="text-fg-muted font-normal">
             {' '}{[post.restaurantName, post.productName].filter(Boolean).join(' · ')}
           </span>
         </p>
       )}
-      {post.content && <p className="text-sm text-white leading-relaxed whitespace-pre-wrap break-words line-clamp-6">{post.content}</p>}
+      {post.content && <p className="text-sm text-fg leading-relaxed whitespace-pre-wrap break-words line-clamp-6">{post.content}</p>}
       {post.imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={getImageUrl(post.imageUrl)} loading="lazy" decoding="async" alt="Post attachment" className="w-full max-h-56 object-cover rounded-xl border border-white/10 bg-neutral-900" />
+        <img src={getImageUrl(post.imageUrl)} loading="lazy" decoding="async" alt="Post attachment" className="w-full max-h-56 object-cover rounded-xl border border-line bg-surface-2" />
       )}
     </>
   );
@@ -198,67 +198,67 @@ export default function CommunityAdmin() {
     <div className="space-y-8 animate-fade-in">
       <header className="flex justify-between items-center flex-wrap gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tighter text-white">Community & <span className="text-purple-400">Celebrations</span></h1>
-          <p className="text-[11px] text-gray-500 uppercase tracking-widest mt-1">Moderate campus posts and birthday requests · shows the latest 50 posts</p>
+          <h1 className="text-2xl font-semibold text-fg">Community posts</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Posts and birthday wishes shown in the community feed.</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setActiveTab('posts')}
-            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${activeTab === 'posts' ? 'bg-purple-600 border-purple-500 text-white' : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all border ${activeTab === 'posts' ? 'bg-accent border-accent/30 text-on-solid' : 'bg-surface-2/60 border-line text-fg-muted hover:bg-surface-2'}`}
           >
-            💬 Posts
+            Posts
           </button>
           <button
             onClick={() => setActiveTab('birthdays')}
-            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${activeTab === 'birthdays' ? 'bg-purple-600 border-purple-500 text-white' : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all border ${activeTab === 'birthdays' ? 'bg-accent border-accent/30 text-on-solid' : 'bg-surface-2/60 border-line text-fg-muted hover:bg-surface-2'}`}
           >
-            🎂 Birthday Queue {birthdays.length > 0 && <span className="ml-1 px-1.5 py-0.5 text-[8px] bg-red-500 text-white rounded-full">{birthdays.length}</span>}
+            Birthday Queue {birthdays.length > 0 && <span className="ml-1 px-1.5 py-0.5 text-xs bg-danger text-on-solid rounded-full">{birthdays.length}</span>}
           </button>
         </div>
       </header>
 
-      {error && <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-sm font-bold text-red-400">{error}</div>}
-      {notice && <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-sm font-bold text-emerald-400">{notice}</div>}
+      {error && <div className="p-4 rounded-xl border border-danger/30 bg-danger-soft text-sm font-semibold text-danger-text">{error}</div>}
+      {notice && <div className="p-4 rounded-xl border border-success/30 bg-success-soft text-sm font-semibold text-success-text">{notice}</div>}
 
       {activeTab === 'posts' ? (
         <>
           <div className="flex justify-between items-center flex-wrap gap-3">
-            <p className="text-[11px] text-gray-500">
+            <p className="text-xs text-fg-muted">
               Live posts from the last 48 hours plus reviews (newest 50). To message students, use{' '}
-              <Link href="/notifications" className="text-purple-400 underline">Push Notifications</Link>.
+              <Link href="/notifications" className="text-accent-text underline">Push Notifications</Link>.
             </p>
-            <button onClick={fetchPosts} disabled={loadingPosts} className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-wider text-gray-400 hover:bg-white/10 disabled:opacity-50">
+            <button onClick={fetchPosts} disabled={loadingPosts} className="px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:bg-surface-2 disabled:opacity-50">
               ↻ Refresh
             </button>
           </div>
 
           {loadingPosts ? (
             <div className="flex justify-center py-20">
-              <div className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-accent/30 border-t-accent/30 rounded-full animate-spin" />
             </div>
           ) : postsError ? (
-            <div className="py-12 text-center glass-card border border-white/5 space-y-3">
-              <p className="text-sm font-bold text-red-400">{postsError}</p>
-              <button onClick={fetchPosts} className="text-[10px] font-black uppercase tracking-wider text-gray-300 underline">Retry</button>
+            <div className="py-12 text-center rounded-lg border border-line bg-surface shadow-xs border border-line space-y-3">
+              <p className="text-sm font-semibold text-danger-text">{postsError}</p>
+              <button onClick={fetchPosts} className="text-xs font-semibold text-fg-muted underline">Retry</button>
             </div>
           ) : posts.length === 0 ? (
-            <div className="py-16 text-center text-gray-600 text-xs italic">No live community posts.</div>
+            <div className="py-16 text-center text-fg-subtle text-xs">No live community posts.</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {posts.map(post => (
-                <div key={post.id} className="glass-card p-5 space-y-3">
+                <div key={post.id} className="rounded-lg border border-line bg-surface shadow-xs p-5 space-y-3">
                   <div className="flex justify-between items-start gap-3">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${post.postType === 'review' ? 'text-amber-400 border-amber-500/20 bg-amber-500/10' : 'text-blue-400 border-blue-500/20 bg-blue-500/10'}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${post.postType === 'review' ? 'text-warning-text border-warning/30 bg-warning-soft' : 'text-info-text border-info/30 bg-info-soft'}`}>
                         {post.postType === 'review' ? 'Review' : 'Post'}
                       </span>
-                      <span className="text-[11px] font-bold text-gray-300">{post.userName || 'Unknown'}</span>
-                      <span className="text-[10px] text-gray-500">{formatDate(post.createdAt)}</span>
+                      <span className="text-xs font-semibold text-fg-muted">{post.userName || 'Unknown'}</span>
+                      <span className="text-xs text-fg-muted">{formatDate(post.createdAt)}</span>
                     </div>
                     <button
                       onClick={() => handleDelete(post)}
                       disabled={deletingId === post.id}
-                      className="shrink-0 px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 text-[9px] font-black uppercase tracking-wider rounded-lg hover:bg-red-500/20 disabled:opacity-50 transition-all"
+                      className="shrink-0 px-3 py-1.5 bg-danger-soft border border-danger/30 text-danger-text text-xs font-semibold rounded-lg hover:bg-danger-soft disabled:opacity-50 transition-all"
                     >
                       {deletingId === post.id ? '...' : 'Delete'}
                     </button>
@@ -266,24 +266,24 @@ export default function CommunityAdmin() {
 
                   {renderPostBody(post)}
 
-                  <div className="border-t border-white/5 pt-3 flex items-center gap-3 text-[10px] text-gray-500">
-                    <span>❤️ {post.likes || 0}</span>
-                    <span>💬 {post.replyCount || 0}</span>
+                  <div className="border-t border-line pt-3 flex items-center gap-3 text-xs text-fg-muted">
+                    <span>{post.likes || 0}</span>
+                    <span>{post.replyCount || 0}</span>
                     {post.expiresAt && <span className="ml-auto">Expires {formatDate(post.expiresAt)}</span>}
                   </div>
 
                   {(post.replies || []).length > 0 && (
-                    <div className="space-y-2 pl-3 border-l border-white/10">
+                    <div className="space-y-2 pl-3 border-l border-line">
                       {(post.replies || []).map(reply => (
                         <div key={reply.id} className="flex justify-between items-start gap-3">
                           <div className="min-w-0">
-                            <p className="text-[10px] text-gray-400"><span className="font-bold text-gray-300">{reply.userName || 'Unknown'}</span> · {formatDate(reply.createdAt)}</p>
-                            <p className="text-xs text-gray-200 break-words">{reply.content}</p>
+                            <p className="text-xs text-fg-muted"><span className="font-semibold text-fg-muted">{reply.userName || 'Unknown'}</span> · {formatDate(reply.createdAt)}</p>
+                            <p className="text-xs text-fg break-words">{reply.content}</p>
                           </div>
                           <button
                             onClick={() => handleDelete(reply, post)}
                             disabled={deletingId === reply.id}
-                            className="shrink-0 text-[9px] font-black uppercase text-red-400 hover:underline disabled:opacity-50"
+                            className="shrink-0 text-xs font-semibold text-danger-text hover:underline disabled:opacity-50"
                           >
                             {deletingId === reply.id ? '...' : 'Delete'}
                           </button>
@@ -299,57 +299,57 @@ export default function CommunityAdmin() {
       ) : (
         <div className="space-y-6">
           {birthdaysError && (
-            <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-sm font-bold text-red-400 flex justify-between gap-4">
+            <div className="p-4 rounded-xl border border-danger/30 bg-danger-soft text-sm font-semibold text-danger-text flex justify-between gap-4">
               <span>{birthdaysError}</span>
-              <button onClick={fetchBirthdays} className="text-[10px] font-black uppercase tracking-wider underline">Retry</button>
+              <button onClick={fetchBirthdays} className="text-xs font-semibold underline">Retry</button>
             </div>
           )}
 
           <section className="space-y-4">
-            <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
-              <span>⏳</span> Pending Requests ({birthdays.length})
+            <h3 className="text-sm font-semibold text-fg flex items-center gap-2">
+              <span></span> Pending Requests ({birthdays.length})
             </h3>
             {loadingBirthdays ? (
               <div className="flex justify-center py-10">
-                <div className="w-6 h-6 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-accent/30 border-t-accent/30 rounded-full animate-spin" />
               </div>
             ) : birthdays.length === 0 ? (
-              <div className="py-10 text-center text-gray-600 text-xs italic glass-card border border-white/5">No pending birthday requests.</div>
+              <div className="py-10 text-center text-fg-subtle text-xs rounded-lg border border-line bg-surface shadow-xs border border-line">No pending birthday requests.</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {birthdays.map(b => {
                   const isToday = b.birthdayDate === istToday();
                   const isPast = b.birthdayDate < istToday();
                   return (
-                    <div key={b.id} className="glass-card p-4 border border-white/10 flex flex-col justify-between gap-4">
+                    <div key={b.id} className="rounded-lg border border-line bg-surface shadow-xs p-4 border border-line flex flex-col justify-between gap-4">
                       <div className="flex gap-4">
                         {b.candidatePhotoUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={getImageUrl(b.candidatePhotoUrl)} loading="lazy" decoding="async" alt={b.candidateName} className="w-16 h-16 rounded-xl object-cover border border-white/15 bg-neutral-900" />
+                          <img src={getImageUrl(b.candidatePhotoUrl)} loading="lazy" decoding="async" alt={b.candidateName} className="w-16 h-16 rounded-xl object-cover border border-line bg-surface-2" />
                         ) : (
-                          <div className="w-16 h-16 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-lg">🎂</div>
+                          <div className="w-16 h-16 rounded-xl bg-accent-soft border border-accent/30 flex items-center justify-center text-lg"></div>
                         )}
                         <div>
-                          <h4 className="font-black text-white text-sm tracking-tight">{b.candidateName}</h4>
-                          <p className="text-[10px] text-purple-400 font-bold uppercase tracking-wider mt-0.5">
+                          <h4 className="font-semibold text-fg text-sm">{b.candidateName}</h4>
+                          <p className="text-xs text-accent-text font-semibold mt-0.5">
                             Birthday: {formatDay(b.birthdayDate)}{isToday ? ' (today)' : ''}
                           </p>
-                          <p className="text-[9px] text-gray-500 mt-1">Requested {formatDate(b.createdAt)}</p>
-                          {isPast && <p className="text-[9px] text-amber-400 mt-1">This date has passed. It can only be rejected.</p>}
+                          <p className="text-xs text-fg-muted mt-1">Requested {formatDate(b.createdAt)}</p>
+                          {isPast && <p className="text-xs text-warning-text mt-1">This date has passed. It can only be rejected.</p>}
                         </div>
                       </div>
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleRejectBday(b)}
                           disabled={actioningBdayId === b.id}
-                          className="flex-1 py-2 bg-red-500/10 border border-red-500/25 text-red-400 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-500/20 transition-all disabled:opacity-50"
+                          className="flex-1 py-2 bg-danger-soft border border-danger/30 text-danger-text text-xs font-semibold rounded-xl hover:bg-danger-soft transition-all disabled:opacity-50"
                         >
                           Reject
                         </button>
                         <button
                           onClick={() => handleApproveBday(b)}
                           disabled={actioningBdayId === b.id || isPast}
-                          className="flex-[2] py-2 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex-[2] py-2 bg-accent hover:bg-accent-hover text-on-solid text-xs font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {actioningBdayId === b.id ? '...' : isToday ? 'Approve & Notify' : 'Approve'}
                         </button>
@@ -361,29 +361,29 @@ export default function CommunityAdmin() {
             )}
           </section>
 
-          <section className="space-y-4 pt-4 border-t border-white/5">
-            <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
-              <span>🎉</span> Live Today ({activeBirthdays.length})
+          <section className="space-y-4 pt-4 border-t border-line">
+            <h3 className="text-sm font-semibold text-fg flex items-center gap-2">
+              <span></span> Live Today ({activeBirthdays.length})
             </h3>
             {loadingBirthdays ? null : activeBirthdays.length === 0 ? (
-              <div className="py-10 text-center text-gray-600 text-xs italic glass-card border border-white/5">No birthdays live today.</div>
+              <div className="py-10 text-center text-fg-subtle text-xs rounded-lg border border-line bg-surface shadow-xs border border-line">No birthdays live today.</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {activeBirthdays.map(b => (
-                  <div key={b.id} className="glass-card p-4 border border-purple-500/20 bg-purple-500/5 flex items-center justify-between gap-4">
+                  <div key={b.id} className="rounded-lg border border-line bg-surface shadow-xs p-4 border border-accent/30 bg-accent-soft flex items-center justify-between gap-4">
                     <div className="flex gap-3 items-center">
                       {b.candidatePhotoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={getImageUrl(b.candidatePhotoUrl)} loading="lazy" decoding="async" alt={b.candidateName} className="w-12 h-12 rounded-full object-cover border-2 border-purple-500/30" />
+                        <img src={getImageUrl(b.candidatePhotoUrl)} loading="lazy" decoding="async" alt={b.candidateName} className="w-12 h-12 rounded-full object-cover border-2 border-accent/30" />
                       ) : (
-                        <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center text-md">🎂</div>
+                        <div className="w-12 h-12 rounded-full bg-accent-soft flex items-center justify-center text-md"></div>
                       )}
                       <div>
-                        <h4 className="font-bold text-white text-xs">{b.candidateName}</h4>
-                        <p className="text-[9px] text-gray-400">Wishes received: {b.wishCount || 0}</p>
+                        <h4 className="font-semibold text-fg text-xs">{b.candidateName}</h4>
+                        <p className="text-xs text-fg-muted">Wishes received: {b.wishCount || 0}</p>
                       </div>
                     </div>
-                    <span className="px-2.5 py-1 bg-green-500/10 border border-green-500/20 text-green-400 text-[8px] font-black uppercase rounded-full tracking-wider">
+                    <span className="px-2.5 py-1 bg-success-soft border border-success/30 text-success-text text-xs font-semibold rounded-full">
                       Live
                     </span>
                   </div>

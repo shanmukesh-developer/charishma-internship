@@ -50,22 +50,22 @@ export default function OrganizersTab({ tick, onChanged }: { tick: number; onCha
       </div>
       <Toolbar>
         <Select name="Status" value={status} onChange={setStatus} options={['', ...ORGANIZER_STATUSES]} allLabel="All" />
-        <span className="text-sm text-gray-500">{rows.length} organizer{rows.length === 1 ? '' : 's'}</span>
+        <span className="text-sm text-fg-muted">{rows.length} organizer{rows.length === 1 ? '' : 's'}</span>
       </Toolbar>
       <Msg msg={msg} />
       {error && <ErrorBox text={error} retry={reload} />}
       {loading && !data ? <Loading text="Loading organizers…" /> : rows.length === 0 ? <Empty text={status === 'PENDING' ? 'No organizer applications waiting.' : 'No organizers in this view.'} /> : (
-        <div className="overflow-x-auto border border-white/10">
+        <div className="overflow-x-auto border border-line">
           <table className="w-full text-left text-sm">
-            <thead className="bg-white/[0.03] text-xs uppercase tracking-wider text-gray-400"><tr><th className="p-3">Student</th><th className="p-3">Shown as</th><th className="p-3">Club</th><th className="p-3">Application</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
+            <thead className="bg-surface-2/60 text-xs text-fg-muted"><tr><th className="p-3">Student</th><th className="p-3">Shown as</th><th className="p-3">Club</th><th className="p-3">Application</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead>
             <tbody className="divide-y divide-white/10">
               {rows.map((o) => (
                 <tr key={o.id} className="align-top">
-                  <td className="p-3 text-xs"><span className="font-bold">{o.name || 'Student'}</span><span className="block font-mono text-gray-600">user #{short(o.userId)}</span><span className="block text-gray-500">since {when(o.createdAt)}</span></td>
+                  <td className="p-3 text-xs"><span className="font-semibold">{o.name || 'Student'}</span><span className="block font-mono text-fg-subtle">user #{short(o.userId)}</span><span className="block text-fg-muted">since {when(o.createdAt)}</span></td>
                   <td className="p-3 text-xs">{o.displayName || '—'}</td>
-                  <td className="p-3 text-xs">{o.entity ? <>{o.entity.name}<span className="block text-gray-500">{o.entity.verified ? 'verified ✓' : 'not verified'}</span></> : '—'}</td>
-                  <td className="max-w-xs p-3 text-xs text-gray-300">{o.applicationNote || '—'}{o.proofText && <span className="mt-1 block text-gray-500">Proof: {o.proofText}</span>}{o.reviewNote && <span className="mt-1 block text-amber-300">Note: {o.reviewNote}</span>}</td>
-                  <td className="p-3"><Pill s={o.status} />{o.reviewedAt && <span className="block text-xs text-gray-500">{when(o.reviewedAt)}</span>}</td>
+                  <td className="p-3 text-xs">{o.entity ? <>{o.entity.name}<span className="block text-fg-muted">{o.entity.verified ? 'verified ✓' : 'not verified'}</span></> : '—'}</td>
+                  <td className="max-w-xs p-3 text-xs text-fg-muted">{o.applicationNote || '—'}{o.proofText && <span className="mt-1 block text-fg-muted">Proof: {o.proofText}</span>}{o.reviewNote && <span className="mt-1 block text-warning-text">Note: {o.reviewNote}</span>}</td>
+                  <td className="p-3"><Pill s={o.status} />{o.reviewedAt && <span className="block text-xs text-fg-muted">{when(o.reviewedAt)}</span>}</td>
                   <td className="p-3"><div className="flex flex-wrap gap-2">{(Object.keys(ACTIONS) as Act[]).filter((a) => ACTIONS[a].from.includes(o.status)).map((a) => <Btn key={a} tone={ACTIONS[a].tone === 'primary' ? 'plain' : ACTIONS[a].tone} onClick={() => setAct({ act: a, org: o })}>{ACTIONS[a].label}</Btn>)}</div></td>
                 </tr>
               ))}
@@ -117,7 +117,7 @@ function BulkPanel({ done }: { done: (t: string) => void }) {
   return (
     <Section title="Bulk grant: managers of verified clubs">
       <div className="space-y-3">
-        <p className="text-xs text-gray-500">Grants organizer access to every manager of a verified, active club. Suspended or revoked organizers and inactive accounts are skipped.</p>
+        <p className="text-xs text-fg-muted">Grants organizer access to every manager of a verified, active club. Suspended or revoked organizers and inactive accounts are skipped.</p>
         <Field name="Verified club"><ClubPicker value={club} onChange={setClub} verifiedOnly /></Field>
         {club && (
           <div className="flex flex-wrap gap-4 text-sm">

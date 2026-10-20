@@ -102,16 +102,16 @@ export function PhotosPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Parti
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm text-gray-300">{photos.length} of {MAX_PHOTOS} photos</p>
-          <p className="mt-1 text-xs text-gray-500">JPEG, PNG or WEBP up to 2 MB each. The cover is shown first in the app and on the list card.</p>
-          {legacy && <p className="mt-1 text-xs text-amber-300">These photos were added before categories existed. Set a category for each and save.</p>}
+          <p className="text-sm text-fg-muted">{photos.length} of {MAX_PHOTOS} photos</p>
+          <p className="mt-1 text-xs text-fg-muted">JPEG, PNG or WEBP. Large phone photos are resized automatically. The cover is shown first in the app and on the list card.</p>
+          {legacy && <p className="mt-1 text-xs text-warning-text">These photos were added before categories existed. Set a category for each and save.</p>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="text-xs text-gray-400" htmlFor="pg-upload-cat">Upload as</label>
+          <label className="text-xs text-fg-muted" htmlFor="pg-upload-cat">Upload as</label>
           <select id="pg-upload-cat" className={`${FIELD} w-40`} value={uploadCategory} onChange={e => setUploadCategory(e.target.value as PhotoCategory)}>
             {PHOTO_CATEGORIES.map(c => <option key={c} value={c}>{PHOTO_CATEGORY_LABEL[c]}</option>)}
           </select>
-          <label className={`cursor-pointer rounded-lg bg-white/10 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/15 ${uploading || photos.length >= MAX_PHOTOS ? 'pointer-events-none opacity-50' : ''}`}>
+          <label className={`cursor-pointer rounded-lg bg-surface-2 px-4 py-2.5 text-sm font-semibold text-fg hover:bg-surface-3 ${uploading || photos.length >= MAX_PHOTOS ? 'pointer-events-none opacity-50' : ''}`}>
             {uploading ? `Uploading ${uploading.done + 1} of ${uploading.total}…` : 'Upload photos'}
             <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" disabled={!!uploading || photos.length >= MAX_PHOTOS} onChange={e => { upload(e.target.files); e.target.value = ''; }} />
           </label>
@@ -121,7 +121,7 @@ export function PhotosPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Parti
       {photos.length > 0 && (
         <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Filter by category">
           {(['ALL', ...PHOTO_CATEGORIES.filter(c => counts[c])] as (PhotoCategory | 'ALL')[]).map(c => (
-            <button key={c} type="button" role="tab" aria-selected={filter === c} onClick={() => setFilter(c)} className={`rounded-full border px-3 py-1 text-xs font-semibold ${filter === c ? 'border-white bg-white text-black' : 'border-white/10 text-gray-400 hover:text-white'}`}>
+            <button key={c} type="button" role="tab" aria-selected={filter === c} onClick={() => setFilter(c)} className={`rounded-full border px-3 py-1 text-xs font-semibold ${filter === c ? 'border-line-strong bg-accent text-accent-fg' : 'border-line text-fg-muted hover:text-fg'}`}>
               {c === 'ALL' ? `All ${photos.length}` : `${PHOTO_CATEGORY_LABEL[c]} ${counts[c]}`}
             </button>
           ))}
@@ -129,15 +129,15 @@ export function PhotosPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Parti
       )}
 
       {photos.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/10 p-10 text-center text-sm text-gray-400">No photos yet. Upload room, bathroom, mess and building photos so students can see the place.</div>
+        <div className="rounded-xl border border-dashed border-line p-10 text-center text-sm text-fg-muted">No photos yet. Upload room, bathroom, mess and building photos so students can see the place.</div>
       ) : (
         <ol className="space-y-2">
           {shown.map(p => {
             const index = photos.findIndex(x => x.key === p.key);
             return (
-              <li key={p.key} className={`grid grid-cols-[112px_1fr] gap-4 rounded-xl border p-3 ${p.isCover ? 'border-blue-500/40 bg-blue-500/[0.04]' : 'border-white/10'}`}>
+              <li key={p.key} className={`grid grid-cols-[112px_1fr] gap-4 rounded-xl border p-3 ${p.isCover ? 'border-info/30 bg-info-soft' : 'border-line'}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.url} alt={p.caption || `Photo ${index + 1}`} loading="lazy" decoding="async" className="h-[84px] w-[112px] rounded-lg border border-white/10 object-cover" />
+                <img src={p.url} alt={p.caption || `Photo ${index + 1}`} loading="lazy" decoding="async" className="h-[84px] w-[112px] rounded-lg border border-line object-cover" />
                 <div className="min-w-0 space-y-2">
                   <div className="grid gap-2 md:grid-cols-[150px_1fr_200px]">
                     <select aria-label={`Category of photo ${index + 1}`} className={FIELD} value={p.category} onChange={e => update(p.key, { category: e.target.value as PhotoCategory })}>
@@ -151,14 +151,14 @@ export function PhotosPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Parti
                     </select>
                   </div>
                   <div className="flex flex-wrap items-center gap-3 text-xs">
-                    <label className="flex items-center gap-2 text-gray-300">
-                      <input type="radio" name={`cover-${pg.id}`} checked={p.isCover} onChange={() => setCover(p.key)} className="h-4 w-4 accent-blue-500" />
+                    <label className="flex items-center gap-2 text-fg-muted">
+                      <input type="radio" name={`cover-${pg.id}`} checked={p.isCover} onChange={() => setCover(p.key)} className="h-4 w-4 accent-[rgb(var(--accent))]" />
                       Cover photo
                     </label>
-                    <span className="text-gray-600">#{index + 1}</span>
-                    <button type="button" disabled={index === 0} onClick={() => move(p.key, -1)} className="rounded border border-white/10 px-2 py-1 text-gray-300 hover:text-white disabled:opacity-30" aria-label={`Move photo ${index + 1} up`}>Move up</button>
-                    <button type="button" disabled={index === photos.length - 1} onClick={() => move(p.key, 1)} className="rounded border border-white/10 px-2 py-1 text-gray-300 hover:text-white disabled:opacity-30" aria-label={`Move photo ${index + 1} down`}>Move down</button>
-                    <button type="button" onClick={() => remove(p.key)} className="ml-auto text-red-300/80 hover:text-red-300" aria-label={`Remove photo ${index + 1}`}>Remove</button>
+                    <span className="text-fg-subtle">#{index + 1}</span>
+                    <button type="button" disabled={index === 0} onClick={() => move(p.key, -1)} className="rounded border border-line px-2 py-1 text-fg-muted hover:text-fg disabled:opacity-30" aria-label={`Move photo ${index + 1} up`}>Move up</button>
+                    <button type="button" disabled={index === photos.length - 1} onClick={() => move(p.key, 1)} className="rounded border border-line px-2 py-1 text-fg-muted hover:text-fg disabled:opacity-30" aria-label={`Move photo ${index + 1} down`}>Move down</button>
+                    <button type="button" onClick={() => remove(p.key)} className="ml-auto text-danger-text hover:text-danger-text" aria-label={`Remove photo ${index + 1}`}>Remove</button>
                   </div>
                 </div>
               </li>

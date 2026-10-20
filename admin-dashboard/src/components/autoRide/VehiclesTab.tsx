@@ -25,10 +25,10 @@ export default function VehiclesTab({ tick, onChanged, lookups, focusId, clearFo
     <section className="space-y-4" aria-label="Vehicles">
       <Toolbar>
         <Select name="Status" value={status} onChange={setStatus} options={[...VEHICLE_STATUSES, 'ALL']} />
-        <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Plate
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="AP07…" className="ml-2 border border-white/10 bg-[#111318] p-2 text-sm font-normal text-white" />
+        <label className="text-xs font-semibold text-fg-muted">Plate
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="AP07…" className="ml-2 border border-line bg-surface p-2 text-sm font-normal text-fg" />
         </label>
-        <span className="text-sm text-gray-500">{rows.length} vehicle{rows.length === 1 ? '' : 's'} · platform max {platformMax} passengers</span>
+        <span className="text-sm text-fg-muted">{rows.length} vehicle{rows.length === 1 ? '' : 's'} · platform max {platformMax} passengers</span>
       </Toolbar>
       {error && <ErrorBox text={error} retry={reload} />}
       {loading ? <Loading text="Loading vehicles…" />
@@ -58,22 +58,22 @@ function VehicleCard({ v, platformMax, lookups, open, toggle, onChanged }: { v: 
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const missingDocs = REQUIRED_VEHICLE_DOCS.filter((k) => !v.documents?.[k]);
   return (
-    <article className="border border-white/10">
-      <button type="button" onClick={toggle} className="flex w-full flex-wrap items-center justify-between gap-3 p-4 text-left hover:bg-white/[0.02]" aria-expanded={open}>
+    <article className="border border-line">
+      <button type="button" onClick={toggle} className="flex w-full flex-wrap items-center justify-between gap-3 p-4 text-left hover:bg-surface-2/60" aria-expanded={open}>
         <div>
-          <p className="font-mono text-lg font-black">{v.registration || v.registrationNumber} <Pill s={v.status} /></p>
-          <p className="text-sm text-gray-400">{[v.make, v.model, v.year, v.fuel, v.colour].filter(Boolean).join(' · ') || 'No details'} · RC {v.rcSeatingCapacity} seats{v.approvedCapacity ? ` · approved ${v.approvedCapacity}` : ''}</p>
-          <p className="text-xs text-gray-500">Driver {driver ? `${driver.name} (${maskPhone(driver.phone)}) · ${driver.status.toLowerCase().replace('_', ' ')}` : `#${short(v.driverId)}`} · added {when(v.createdAt)}</p>
+          <p className="font-mono text-lg font-semibold">{v.registration || v.registrationNumber} <Pill s={v.status} /></p>
+          <p className="text-sm text-fg-muted">{[v.make, v.model, v.year, v.fuel, v.colour].filter(Boolean).join(' · ') || 'No details'} · RC {v.rcSeatingCapacity} seats{v.approvedCapacity ? ` · approved ${v.approvedCapacity}` : ''}</p>
+          <p className="text-xs text-fg-muted">Driver {driver ? `${driver.name} (${maskPhone(driver.phone)}) · ${driver.status.toLowerCase().replace('_', ' ')}` : `#${short(v.driverId)}`} · added {when(v.createdAt)}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {flags.map((f) => <span key={f} className={`border px-2 py-0.5 text-xs font-bold ${f.includes('expired') ? 'border-red-400/40 text-red-300' : 'border-amber-400/40 text-amber-300'}`}>{f}</span>)}
-          {missingDocs.length > 0 && <span className="border border-red-400/40 px-2 py-0.5 text-xs font-bold text-red-300">missing {missingDocs.join(', ')}</span>}
-          <span className="text-sm font-bold text-sky-300">{open ? 'Close ▲' : 'Review ▼'}</span>
+          {flags.map((f) => <span key={f} className={`border px-2 py-0.5 text-xs font-semibold ${f.includes('expired') ? 'border-danger/30 text-danger-text' : 'border-warning/30 text-warning-text'}`}>{f}</span>)}
+          {missingDocs.length > 0 && <span className="border border-danger/30 px-2 py-0.5 text-xs font-semibold text-danger-text">missing {missingDocs.join(', ')}</span>}
+          <span className="text-sm font-semibold text-info-text">{open ? 'Close ▲' : 'Review ▼'}</span>
         </div>
       </button>
       {open && (
-        <div className="space-y-5 border-t border-white/10 bg-black/20 p-5">
-          {v.rejectionReason && <p className="text-sm text-red-300">{v.status === 'SUSPENDED' ? 'Suspended' : 'Rejected'}: {v.rejectionReason}</p>}
+        <div className="space-y-5 border-t border-line bg-surface-2 p-5">
+          {v.rejectionReason && <p className="text-sm text-danger-text">{v.status === 'SUSPENDED' ? 'Suspended' : 'Rejected'}: {v.rejectionReason}</p>}
           <div className="grid gap-3 text-sm md:grid-cols-4">
             <p>Permit no. <span className="font-mono">{v.permitNumber || '—'}</span></p>
             <p>RC seating <b>{v.rcSeatingCapacity}</b></p>
@@ -81,7 +81,7 @@ function VehicleCard({ v, platformMax, lookups, open, toggle, onChanged }: { v: 
             <p>Reviewed {when(v.reviewedAt)}</p>
           </div>
           <div>
-            <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">Papers (private, links expire)</h4>
+            <h4 className="mb-2 text-xs font-semibold text-fg-muted">Papers (private, links expire)</h4>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
               {VEHICLE_DOC_KEYS.map((k) => {
                 const ek = DOC_EXPIRY[k];
@@ -91,13 +91,13 @@ function VehicleCard({ v, platformMax, lookups, open, toggle, onChanged }: { v: 
           </div>
           {v.photoPreviews?.length > 0 && (
             <div>
-              <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">Photos</h4>
+              <h4 className="mb-2 text-xs font-semibold text-fg-muted">Photos</h4>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">{v.photoPreviews.map((p, i) => <Doc key={i} name={`Photo ${i + 1}`} url={p} />)}</div>
             </div>
           )}
           {v.seatLayout && v.status === 'APPROVED' && (
             <div>
-              <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">Approved seat layout</h4>
+              <h4 className="mb-2 text-xs font-semibold text-fg-muted">Approved seat layout</h4>
               <SeatGrid layout={v.seatLayout} />
             </div>
           )}
@@ -144,20 +144,20 @@ function ApprovePanel({ v, platformMax, onDone }: { v: Vehicle; platformMax: num
   const toggleCell = (ri: number, ci: number) => edit((rows) => { rows[ri][ci] = rows[ri][ci] === null ? 0 : null; return rows; });
   const today = istToday();
   const expired = (['permitExpiresOn', 'insuranceExpiresOn', 'fitnessExpiresOn', 'pucExpiresOn'] as const).filter((k) => v[k] && String(v[k]).slice(0, 10) < today);
-  if (!maxCap) return <p className="text-sm text-red-300">The RC seating capacity is missing, so this auto cannot be approved.</p>;
+  if (!maxCap) return <p className="text-sm text-danger-text">The RC seating capacity is missing, so this auto cannot be approved.</p>;
   return (
-    <div className="space-y-4 border border-emerald-400/20 bg-emerald-400/[0.03] p-4">
-      <h4 className="text-sm font-black text-emerald-200">Approve this auto</h4>
-      <p className="text-xs text-gray-400">Check the RC document yourself. Approved capacity can never be above the RC seating ({v.rcSeatingCapacity}) or the platform maximum ({platformMax}).</p>
-      {expired.length > 0 && <p role="alert" className="text-sm font-bold text-red-300">Cannot approve: {expired.map((k) => k.replace('ExpiresOn', '')).join(', ')} expired.</p>}
+    <div className="space-y-4 border border-success/30 bg-success-soft p-4">
+      <h4 className="text-sm font-semibold text-success-text">Approve this auto</h4>
+      <p className="text-xs text-fg-muted">Check the RC document yourself. Approved capacity can never be above the RC seating ({v.rcSeatingCapacity}) or the platform maximum ({platformMax}).</p>
+      {expired.length > 0 && <p role="alert" className="text-sm font-semibold text-danger-text">Cannot approve: {expired.map((k) => k.replace('ExpiresOn', '')).join(', ')} expired.</p>}
       <div className="flex flex-wrap items-end gap-4">
         <div className="w-48"><Field name="Approved capacity" hint={`1 to ${maxCap}`}><input type="number" min={1} max={maxCap} step={1} value={cap} onChange={(e) => setCap(e.target.value)} className={inputCls} /></Field></div>
-        {!capOk && <p role="alert" className="text-sm text-red-300">Enter a whole number from 1 to {maxCap}.</p>}
+        {!capOk && <p role="alert" className="text-sm text-danger-text">Enter a whole number from 1 to {maxCap}.</p>}
       </div>
       {capOk && (
         <div className="flex flex-wrap items-start gap-6">
           <SeatGrid layout={layout} editable onCellClick={toggleCell} />
-          <div className="space-y-2 text-xs text-gray-400">
+          <div className="space-y-2 text-xs text-fg-muted">
             <p>Click a seat to turn it into a gap (or back). Seats are renumbered front to back, left to right. The driver seat is fixed.</p>
             <div className="flex flex-wrap gap-2">
               <Btn onClick={() => edit((rows) => (rows.length < LIMITS.MAX_LAYOUT_ROWS ? [...rows, [0]] : rows))}>+ Row</Btn>
@@ -166,7 +166,7 @@ function ApprovePanel({ v, platformMax, onDone }: { v: Vehicle; platformMax: num
               <Btn onClick={() => edit((rows) => { const r = rows[rows.length - 1]; if (r.length > 1 && r[r.length - 1] !== 'D') r.pop(); return rows; })}>− Seat in last row</Btn>
               <Btn onClick={() => setLayout(defaultLayout(capN))}>Reset</Btn>
             </div>
-            {problem ? <p role="alert" className="font-bold text-red-300">{problem}</p> : <p className="font-bold text-emerald-300">Layout OK: {capN} passenger seats.</p>}
+            {problem ? <p role="alert" className="font-semibold text-danger-text">{problem}</p> : <p className="font-semibold text-success-text">Layout OK: {capN} passenger seats.</p>}
           </div>
         </div>
       )}

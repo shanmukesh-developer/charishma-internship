@@ -70,11 +70,11 @@ function RoomFields({ draft, onChange }: { draft: RoomDraft; onChange: (d: RoomD
         <label className={LABEL}>Room type name (optional)<input className={FIELD} maxLength={48} placeholder="e.g. Deluxe twin. Blank = grouped by sharing, AC and bath" value={draft.roomType} onChange={e => set({ roomType: e.target.value })} /></label>
         <label className={LABEL}>Deposit (₹, optional)<input inputMode="numeric" className={FIELD} placeholder="Blank = PG deposit" value={draft.securityDeposit} onChange={e => set({ securityDeposit: e.target.value })} /></label>
       </div>
-      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-300">
-        <label className="flex items-center gap-2"><input type="checkbox" checked={draft.hasAttachedBathroom} onChange={e => set({ hasAttachedBathroom: e.target.checked })} className="h-4 w-4 accent-blue-500" /> Attached bath</label>
-        <label className="flex items-center gap-2"><input type="checkbox" checked={draft.hasAC} onChange={e => set({ hasAC: e.target.checked })} className="h-4 w-4 accent-blue-500" /> AC</label>
-        <label className="flex items-center gap-2"><input type="checkbox" checked={draft.hasBalcony} onChange={e => set({ hasBalcony: e.target.checked })} className="h-4 w-4 accent-blue-500" /> Balcony</label>
-        <label className="flex items-center gap-2"><input type="checkbox" checked={draft.isActive} onChange={e => set({ isActive: e.target.checked })} className="h-4 w-4 accent-emerald-500" /> Bookable</label>
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-fg-muted">
+        <label className="flex items-center gap-2"><input type="checkbox" checked={draft.hasAttachedBathroom} onChange={e => set({ hasAttachedBathroom: e.target.checked })} className="h-4 w-4 accent-[rgb(var(--accent))]" /> Attached bath</label>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={draft.hasAC} onChange={e => set({ hasAC: e.target.checked })} className="h-4 w-4 accent-[rgb(var(--accent))]" /> AC</label>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={draft.hasBalcony} onChange={e => set({ hasBalcony: e.target.checked })} className="h-4 w-4 accent-[rgb(var(--accent))]" /> Balcony</label>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={draft.isActive} onChange={e => set({ isActive: e.target.checked })} className="h-4 w-4 accent-[rgb(var(--accent))]" /> Bookable</label>
       </div>
     </>
   );
@@ -127,13 +127,13 @@ function RoomRow({ pgId, room, onSaved, onDeleted }: { pgId: string; room: PGRoo
   };
 
   return (
-    <div className={`rounded-xl border p-4 ${draft.isActive ? 'border-white/10' : 'border-white/5 opacity-70'}`}>
+    <div className={`rounded-xl border p-4 ${draft.isActive ? 'border-line' : 'border-line opacity-70'}`}>
       <RoomFields draft={draft} onChange={setDraft} />
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <button type="button" disabled={!dirty || busy} onClick={save} className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-500 disabled:opacity-40">{busy ? 'Saving…' : 'Save room'}</button>
-        {dirty && <button type="button" disabled={busy} onClick={() => { setDraft(toDraft(room)); setMessage(null); }} className="text-xs text-gray-400 hover:text-white">Discard changes</button>}
-        <button type="button" disabled={busy} onClick={remove} className="ml-auto text-xs font-semibold text-red-400/70 hover:text-red-300 disabled:opacity-50">Delete room</button>
-        {message && <span role={message.kind === 'error' ? 'alert' : 'status'} className={`w-full text-xs ${message.kind === 'error' ? 'text-red-300' : 'text-emerald-300'}`}>{message.text}</span>}
+        <button type="button" disabled={!dirty || busy} onClick={save} className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-solid hover:bg-accent-hover disabled:opacity-40">{busy ? 'Saving…' : 'Save room'}</button>
+        {dirty && <button type="button" disabled={busy} onClick={() => { setDraft(toDraft(room)); setMessage(null); }} className="text-xs text-fg-muted hover:text-fg">Discard changes</button>}
+        <button type="button" disabled={busy} onClick={remove} className="ml-auto text-xs font-semibold text-danger-text hover:text-danger-text disabled:opacity-50">Delete room</button>
+        {message && <span role={message.kind === 'error' ? 'alert' : 'status'} className={`w-full text-xs ${message.kind === 'error' ? 'text-danger-text' : 'text-success-text'}`}>{message.text}</span>}
       </div>
     </div>
   );
@@ -191,27 +191,27 @@ export function RoomsPanel({ pgId, liveTick = 0 }: { pgId: string; /** bumped by
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-gray-400">{rooms.length} rooms · {beds.free} of {beds.total} beds free</p>
-        <button type="button" onClick={() => { setAdding(v => !v); setCreateError(''); }} className="rounded-lg border border-white/10 px-3 py-2 text-sm font-semibold text-gray-200 hover:bg-white/5">{adding ? 'Close' : 'Add room'}</button>
+        <p className="text-sm text-fg-muted">{rooms.length} rooms · {beds.free} of {beds.total} beds free</p>
+        <button type="button" onClick={() => { setAdding(v => !v); setCreateError(''); }} className="rounded-lg border border-line px-3 py-2 text-sm font-semibold text-fg hover:bg-surface-2/60">{adding ? 'Close' : 'Add room'}</button>
       </div>
 
       {adding && (
-        <form onSubmit={create} className="rounded-xl border border-blue-500/30 bg-blue-500/[0.03] p-4">
+        <form onSubmit={create} className="rounded-xl border border-info/30 bg-info-soft p-4">
           <RoomFields draft={draft} onChange={setDraft} />
-          {createError && <p role="alert" className="mt-3 text-sm text-red-300">{createError}</p>}
-          <button type="submit" disabled={creating} className="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-500 disabled:opacity-50">{creating ? 'Adding…' : 'Add room'}</button>
+          {createError && <p role="alert" className="mt-3 text-sm text-danger-text">{createError}</p>}
+          <button type="submit" disabled={creating} className="mt-3 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-solid hover:bg-accent-hover disabled:opacity-50">{creating ? 'Adding…' : 'Add room'}</button>
         </form>
       )}
 
       {error && (
-        <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
-          {error}<button type="button" onClick={() => load()} className="font-bold underline">Retry</button>
+        <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger-text">
+          {error}<button type="button" onClick={() => load()} className="font-semibold underline">Retry</button>
         </div>
       )}
       {loading ? (
-        <p role="status" className="text-sm text-gray-400">Loading rooms…</p>
+        <p role="status" className="text-sm text-fg-muted">Loading rooms…</p>
       ) : !error && rooms.length === 0 ? (
-        <p className="rounded-lg border border-white/10 p-6 text-center text-sm text-gray-400">No rooms yet. Students cannot book this PG until you add one.</p>
+        <p className="rounded-lg border border-line p-6 text-center text-sm text-fg-muted">No rooms yet. Students cannot book this PG until you add one.</p>
       ) : (
         <div className="space-y-3">
           {rooms.map(room => (

@@ -5,7 +5,7 @@ import {
 } from 'react';
 
 // ─── Classes shared by every form in the Stores area ─────────────────────────
-export const INPUT = 'w-full rounded-lg border border-white/10 bg-[#111318] px-3 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none transition-colors focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50 aria-[invalid=true]:border-red-500/60';
+export const INPUT = 'w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-fg placeholder:text-fg-subtle outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/30 disabled:opacity-50 aria-[invalid=true]:border-red-500/60';
 export const SELECT = `${INPUT} pr-8`;
 export const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d0f14]';
 
@@ -14,11 +14,11 @@ export const cx = (...parts: Array<string | false | null | undefined>) => parts.
 // ─── Button ───────────────────────────────────────────────────────────────────
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'amber';
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-emerald-600 text-white hover:bg-emerald-500 font-bold',
-  secondary: 'border border-white/10 bg-white/[0.03] text-gray-200 hover:bg-white/[0.07] hover:text-white font-semibold',
-  ghost: 'text-gray-300 hover:bg-white/5 hover:text-white font-semibold',
-  danger: 'border border-red-500/30 text-red-300 hover:bg-red-500/10 font-semibold',
-  amber: 'bg-amber-500 text-black hover:bg-amber-400 font-bold',
+  primary: 'bg-success text-on-solid hover:bg-success/90 font-semibold',
+  secondary: 'border border-line bg-surface-2/60 text-fg hover:bg-surface-2 hover:text-fg font-semibold',
+  ghost: 'text-fg-muted hover:bg-surface-2/60 hover:text-fg font-semibold',
+  danger: 'border border-danger/30 text-danger-text hover:bg-danger-soft font-semibold',
+  amber: 'bg-accent text-accent-fg hover:bg-accent-hover font-semibold',
 };
 
 export function Button({ variant = 'secondary', size = 'md', className, loading, children, disabled, ...rest }:
@@ -65,18 +65,18 @@ export function Field({ label, help, error, required, optional, className, child
   return (
     <div className={cx('space-y-1.5', className)}>
       <div className="flex items-baseline justify-between gap-2">
-        <label htmlFor={id} className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+        <label htmlFor={id} className="text-xs font-semibold text-fg-muted">
           {label}
-          {required && <span className="ml-0.5 text-red-400" aria-hidden>*</span>}
-          {optional && <span className="ml-1.5 normal-case tracking-normal text-gray-600">optional</span>}
+          {required && <span className="ml-0.5 text-danger-text" aria-hidden>*</span>}
+          {optional && <span className="ml-1.5 normal-case text-fg-subtle">optional</span>}
         </label>
         {aside}
       </div>
       {children({ id, msgId, invalid: !!error })}
       {error ? (
-        <p id={msgId} role="alert" className="text-xs text-red-300">{error}</p>
+        <p id={msgId} role="alert" className="text-xs text-danger-text">{error}</p>
       ) : help ? (
-        <p id={msgId} className="text-xs leading-relaxed text-gray-500">{help}</p>
+        <p id={msgId} className="text-xs leading-relaxed text-fg-muted">{help}</p>
       ) : null}
     </div>
   );
@@ -97,7 +97,7 @@ export function Toggle({ checked, onChange, label, description, disabled, size =
   const track = size === 'sm' ? 'h-5 w-9' : 'h-6 w-11';
   const knob = size === 'sm' ? 'h-4 w-4' : 'h-5 w-5';
   const shift = size === 'sm' ? 'translate-x-4' : 'translate-x-5';
-  const on = tone === 'amber' ? 'bg-amber-500' : 'bg-emerald-500';
+  const on = tone === 'amber' ? 'bg-accent' : 'bg-success';
   return (
     <div className={cx('flex items-start gap-3', disabled && 'opacity-50')}>
       <button
@@ -109,14 +109,14 @@ export function Toggle({ checked, onChange, label, description, disabled, size =
         aria-describedby={description ? `${id}-d` : undefined}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={cx('relative mt-0.5 inline-flex shrink-0 items-center rounded-full p-0.5 transition-colors disabled:cursor-not-allowed', track, checked ? on : 'bg-white/15', FOCUS_RING)}
+        className={cx('relative mt-0.5 inline-flex shrink-0 items-center rounded-full p-0.5 transition-colors disabled:cursor-not-allowed', track, checked ? on : 'bg-surface-3', FOCUS_RING)}
       >
         <span aria-hidden className={cx('rounded-full bg-white shadow transition-transform', knob, checked ? shift : 'translate-x-0')} />
       </button>
       {!srOnlyLabel && (
         <div className="min-w-0">
-          <label htmlFor={id} className="cursor-pointer text-sm font-semibold text-gray-200">{label}</label>
-          {description && <p id={`${id}-d`} className="mt-0.5 text-xs leading-relaxed text-gray-500">{description}</p>}
+          <label htmlFor={id} className="cursor-pointer text-sm font-semibold text-fg">{label}</label>
+          {description && <p id={`${id}-d`} className="mt-0.5 text-xs leading-relaxed text-fg-muted">{description}</p>}
         </div>
       )}
     </div>
@@ -126,16 +126,16 @@ export function Toggle({ checked, onChange, label, description, disabled, size =
 // ─── Chips ───────────────────────────────────────────────────────────────────
 export type Tone = 'green' | 'amber' | 'slate' | 'red' | 'sky' | 'violet';
 const TONES: Record<Tone, string> = {
-  green: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
-  amber: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
-  slate: 'border-white/15 bg-white/5 text-gray-300',
-  red: 'border-red-500/30 bg-red-500/10 text-red-300',
-  sky: 'border-sky-500/30 bg-sky-500/10 text-sky-300',
-  violet: 'border-violet-500/30 bg-violet-500/10 text-violet-300',
+  green: 'border-success/30 bg-success-soft text-success-text',
+  amber: 'border-warning/30 bg-warning-soft text-warning-text',
+  slate: 'border-line bg-surface-2/60 text-fg-muted',
+  red: 'border-danger/30 bg-danger-soft text-danger-text',
+  sky: 'border-info/30 bg-info-soft text-info-text',
+  violet: 'border-accent/30 bg-accent-soft text-accent-text',
 };
 export function Chip({ tone = 'slate', children, title, dot }: { tone?: Tone; children: ReactNode; title?: string; dot?: boolean }) {
   return (
-    <span title={title} className={cx('inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[11px] font-semibold', TONES[tone])}>
+    <span title={title} className={cx('inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-1.5 py-0.5 text-xs font-semibold', TONES[tone])}>
       {dot && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />}
       {children}
     </span>
@@ -146,15 +146,15 @@ export function Chip({ tone = 'slate', children, title, dot }: { tone?: Tone; ch
 export function Skeleton({ className }: { className?: string }) {
   // A <span> (display: block) so it is valid inside <p> / inline parents too (a <div> in a <p> is a
   // hydration error and React logs it on every drawer open).
-  return <span aria-hidden className={cx('animate-pulse rounded-md bg-white/[0.06]', /\bhidden\b/.test(className || '') ? '' : 'block', className)} />;
+  return <span aria-hidden className={cx('animate-pulse rounded-md bg-surface-2/60', /\bhidden\b/.test(className || '') ? '' : 'block', className)} />;
 }
 
 export function EmptyState({ icon, title, body, action }: { icon?: ReactNode; title: string; body?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center rounded-xl border border-dashed border-white/10 px-6 py-12 text-center">
+    <div className="flex flex-col items-center rounded-xl border border-dashed border-line px-6 py-12 text-center">
       {icon && <div aria-hidden className="mb-3 text-3xl">{icon}</div>}
-      <h3 className="font-bold text-white">{title}</h3>
-      {body && <p className="mt-1.5 max-w-md text-sm text-gray-400">{body}</p>}
+      <h3 className="font-semibold text-fg">{title}</h3>
+      {body && <p className="mt-1.5 max-w-md text-sm text-fg-muted">{body}</p>}
       {action && <div className="mt-5 flex flex-wrap justify-center gap-2">{action}</div>}
     </div>
   );
@@ -162,14 +162,14 @@ export function EmptyState({ icon, title, body, action }: { icon?: ReactNode; ti
 
 export function Callout({ tone = 'sky', title, children }: { tone?: 'sky' | 'amber' | 'red' | 'green'; title?: ReactNode; children: ReactNode }) {
   const cls = {
-    sky: 'border-sky-400/20 bg-sky-400/5 text-sky-100',
-    amber: 'border-amber-400/25 bg-amber-400/5 text-amber-100',
-    red: 'border-red-500/30 bg-red-500/10 text-red-200',
-    green: 'border-emerald-500/25 bg-emerald-500/5 text-emerald-100',
+    sky: 'border-info/30 bg-info-soft text-info-text',
+    amber: 'border-warning/30 bg-warning-soft text-warning-text',
+    red: 'border-danger/30 bg-danger-soft text-danger-text',
+    green: 'border-success/30 bg-success-soft text-success-text',
   }[tone];
   return (
     <div className={cx('rounded-lg border p-3 text-sm leading-relaxed', cls)} role={tone === 'red' ? 'alert' : undefined}>
-      {title && <p className="mb-0.5 font-bold">{title}</p>}
+      {title && <p className="mb-0.5 font-semibold">{title}</p>}
       <div className="opacity-90">{children}</div>
     </div>
   );
@@ -252,7 +252,7 @@ export function Modal({ open = true, onClose, title, description, children, foot
   if (!open) return null;
   const width = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' }[size];
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-scrim/50 sm:items-center sm:p-4" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div
         ref={ref}
         data-zenvy-dialog
@@ -260,17 +260,17 @@ export function Modal({ open = true, onClose, title, description, children, foot
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={cx('flex max-h-[92vh] w-full flex-col rounded-t-2xl border border-white/10 bg-[#0d0f14] text-white shadow-2xl outline-none sm:rounded-2xl', width)}
+        className={cx('flex max-h-[92vh] w-full flex-col rounded-t-2xl border border-line bg-surface text-fg shadow-pop outline-none sm:rounded-lg', width)}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-white/5 px-5 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
           <div className="min-w-0">
-            <h2 id={titleId} className="text-lg font-bold">{title}</h2>
-            {description && <p className="mt-1 text-sm text-gray-400">{description}</p>}
+            <h2 id={titleId} className="text-lg font-semibold">{title}</h2>
+            {description && <p className="mt-1 text-sm text-fg-muted">{description}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className={cx('rounded-lg p-1.5 text-gray-400 hover:bg-white/5 hover:text-white', FOCUS_RING)}>✕</button>
+          <button type="button" onClick={onClose} aria-label="Close" className={cx('rounded-lg p-1.5 text-fg-muted hover:bg-surface-2/60 hover:text-fg', FOCUS_RING)}><span aria-hidden="true" className="text-base leading-none">×</span></button>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
-        {footer && <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/5 px-5 py-3">{footer}</div>}
+        {footer && <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-5 py-3">{footer}</div>}
       </div>
     </div>
   );
@@ -282,7 +282,7 @@ export function Drawer({ onClose, labelledBy, children, width = 'max-w-5xl' }: {
 }) {
   const ref = useDialogFocus(true, onClose);
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-[2px]" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="fixed inset-0 z-50 flex justify-end bg-scrim/50" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div
         ref={ref}
         data-zenvy-dialog
@@ -290,7 +290,7 @@ export function Drawer({ onClose, labelledBy, children, width = 'max-w-5xl' }: {
         aria-modal="true"
         aria-labelledby={labelledBy}
         tabIndex={-1}
-        className={cx('flex h-full w-full flex-col border-l border-white/10 bg-[#0b0d12] text-white shadow-2xl outline-none', width)}
+        className={cx('flex h-full w-full flex-col border-l border-line bg-surface text-fg shadow-pop outline-none', width)}
       >
         {children}
       </div>
@@ -335,7 +335,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, label }: {
             onClick={() => onChange(t.value)}
             className={cx(
               'relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-t-lg px-3.5 py-2.5 text-sm font-semibold transition-colors',
-              selected ? 'text-white after:absolute after:inset-x-2 after:-bottom-px after:h-0.5 after:rounded-full after:bg-emerald-400' : 'text-gray-400 hover:text-white',
+              selected ? 'text-fg after:absolute after:inset-x-2 after:-bottom-px after:h-0.5 after:rounded-full after:bg-success' : 'text-fg-muted hover:text-fg',
               FOCUS_RING,
             )}
           >
@@ -357,7 +357,7 @@ export function Segmented<T extends string>({ options, value, onChange, label, s
   size?: 'sm' | 'md';
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex flex-wrap overflow-hidden rounded-lg border border-white/10 bg-white/[0.02]">
+    <div role="radiogroup" aria-label={label} className="inline-flex flex-wrap overflow-hidden rounded-lg border border-line bg-surface-2/60">
       {options.map(o => (
         <button
           key={o.value}
@@ -369,7 +369,7 @@ export function Segmented<T extends string>({ options, value, onChange, label, s
           className={cx(
             size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-3.5 py-2 text-sm',
             'font-semibold transition-colors',
-            value === o.value ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white',
+            value === o.value ? 'bg-surface-2 text-fg' : 'text-fg-muted hover:text-fg',
             FOCUS_RING,
           )}
         >
@@ -414,7 +414,7 @@ export function MenuButton({ label, items, align = 'right', buttonClassName, ari
         aria-expanded={open}
         aria-label={ariaLabel}
         onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
-        className={cx('rounded-lg border border-white/10 px-2.5 py-1.5 text-xs font-semibold text-gray-300 hover:bg-white/5 hover:text-white', FOCUS_RING, buttonClassName)}
+        className={cx('rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-fg-muted hover:bg-surface-2/60 hover:text-fg', FOCUS_RING, buttonClassName)}
       >
         {label}
       </button>
@@ -424,10 +424,10 @@ export function MenuButton({ label, items, align = 'right', buttonClassName, ari
           role="menu"
           onKeyDown={onMenuKey}
           onClick={e => e.stopPropagation()}
-          className={cx('absolute z-30 mt-1 min-w-[190px] overflow-hidden rounded-xl border border-white/10 bg-[#14171f] py-1 shadow-2xl', align === 'right' ? 'right-0' : 'left-0')}
+          className={cx('absolute z-30 mt-1 min-w-[190px] overflow-hidden rounded-xl border border-line bg-surface py-1 shadow-pop', align === 'right' ? 'right-0' : 'left-0')}
         >
           {items.map((item, i) => item === 'divider' ? (
-            <div key={`d${i}`} className="my-1 border-t border-white/5" role="separator" />
+            <div key={`d${i}`} className="my-1 border-t border-line" role="separator" />
           ) : (
             <button
               key={i}
@@ -435,7 +435,7 @@ export function MenuButton({ label, items, align = 'right', buttonClassName, ari
               role="menuitem"
               disabled={item.disabled}
               onClick={() => { setOpen(false); item.onSelect(); }}
-              className={cx('block w-full px-3.5 py-2 text-left text-sm outline-none disabled:opacity-40', item.danger ? 'text-red-300 hover:bg-red-500/10 focus:bg-red-500/10' : 'text-gray-200 hover:bg-white/5 focus:bg-white/5')}
+              className={cx('block w-full px-3.5 py-2 text-left text-sm outline-none disabled:opacity-40', item.danger ? 'text-danger-text hover:bg-danger-soft focus:bg-danger-soft' : 'text-fg hover:bg-surface-2/60 focus:bg-surface-2/60')}
             >
               {item.label}
             </button>
@@ -489,18 +489,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={t.id}
             role={t.kind === 'error' ? 'alert' : 'status'}
             className={cx(
-              'pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-2xl backdrop-blur',
-              t.kind === 'success' && 'border-emerald-500/30 bg-[#0f1f19]/95 text-emerald-100',
-              t.kind === 'error' && 'border-red-500/30 bg-[#241214]/95 text-red-100',
-              t.kind === 'info' && 'border-sky-500/30 bg-[#0f1a24]/95 text-sky-100',
+              'pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-pop',
+              t.kind === 'success' && 'border-success/30 bg-surface text-success-text',
+              t.kind === 'error' && 'border-danger/30 bg-surface text-danger-text',
+              t.kind === 'info' && 'border-info/30 bg-surface text-info-text',
             )}
           >
             <span aria-hidden className="mt-0.5">{t.kind === 'success' ? '✓' : t.kind === 'error' ? '!' : 'i'}</span>
             <span className="flex-1 leading-relaxed">{t.text}</span>
             {t.action && (
-              <button type="button" onClick={() => { t.action!.onClick(); dismiss(t.id); }} className="shrink-0 font-bold underline underline-offset-2">{t.action.label}</button>
+              <button type="button" onClick={() => { t.action!.onClick(); dismiss(t.id); }} className="shrink-0 font-semibold underline underline-offset-2">{t.action.label}</button>
             )}
-            <button type="button" onClick={() => dismiss(t.id)} aria-label="Dismiss" className="shrink-0 opacity-60 hover:opacity-100">✕</button>
+            <button type="button" onClick={() => dismiss(t.id)} aria-label="Dismiss" className="shrink-0 opacity-60 hover:opacity-100"><span aria-hidden="true" className="text-base leading-none">×</span></button>
           </div>
         ))}
       </div>
@@ -545,12 +545,12 @@ export function TypedConfirmModal({ title, body, confirmText, actionLabel, onCon
       size="sm"
       footer={<>
         <Button onClick={onClose} disabled={busy}>Cancel</Button>
-        <Button variant="danger" className="!bg-red-600 !text-white hover:!bg-red-500" disabled={!matches} loading={busy} onClick={run}>{actionLabel}</Button>
+        <Button variant="danger" className="!bg-danger !text-on-solid hover:!bg-danger/90" disabled={!matches} loading={busy} onClick={run}>{actionLabel}</Button>
       </>}
     >
-      <div className="space-y-4 text-sm text-gray-300">
+      <div className="space-y-4 text-sm text-fg-muted">
         {body}
-        <Field label={<>Type <span className="normal-case text-white">{confirmText}</span> to confirm</>} error={error || null}>
+        <Field label={<>Type <span className="normal-case text-fg">{confirmText}</span> to confirm</>} error={error || null}>
           {({ id, msgId }) => (
             <input
               id={id}
@@ -583,9 +583,9 @@ export function ConfirmModal({ title, body, actionLabel, tone = 'primary', onCon
   return (
     <Modal onClose={busy ? () => undefined : onClose} title={title} size="sm" footer={<>
       <Button onClick={onClose} disabled={busy}>Cancel</Button>
-      <Button data-autofocus variant={tone === 'danger' ? 'danger' : 'primary'} className={tone === 'danger' ? '!bg-red-600 !text-white hover:!bg-red-500' : ''} loading={busy} onClick={run}>{actionLabel}</Button>
+      <Button data-autofocus variant={tone === 'danger' ? 'danger' : 'primary'} className={tone === 'danger' ? '!bg-danger !text-on-solid hover:!bg-danger/90' : ''} loading={busy} onClick={run}>{actionLabel}</Button>
     </>}>
-      <div className="space-y-3 text-sm text-gray-300">
+      <div className="space-y-3 text-sm text-fg-muted">
         {body}
         {error && <Callout tone="red">{error}</Callout>}
       </div>
@@ -599,9 +599,9 @@ export function Thumb({ src, alt, size = 'md', rounded = 'rounded-lg' }: { src?:
   const [broken, setBroken] = useState(false);
   return src && !broken ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} loading="lazy" decoding="async" onError={() => setBroken(true)} className={cx(dim, rounded, 'shrink-0 border border-white/10 bg-slate-900 object-cover')} />
+    <img src={src} alt={alt} loading="lazy" decoding="async" onError={() => setBroken(true)} className={cx(dim, rounded, 'shrink-0 border border-line bg-surface-2 object-cover')} />
   ) : (
-    <div aria-hidden className={cx(dim, rounded, 'flex shrink-0 items-center justify-center border border-white/10 bg-gradient-to-br from-slate-800 to-slate-900 font-bold text-gray-500')}>
+    <div aria-hidden className={cx(dim, rounded, 'flex shrink-0 items-center justify-center border border-line bg-surface-2 font-semibold text-fg-muted')}>
       {(alt || '?').trim().slice(0, 1).toUpperCase()}
     </div>
   );

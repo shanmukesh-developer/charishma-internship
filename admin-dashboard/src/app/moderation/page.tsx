@@ -174,35 +174,35 @@ const qs = (params: Record<string, string | null | undefined>) => {
 };
 
 const SEVERITY_TONE: Record<string, string> = {
-  critical: 'text-red-300 bg-red-500/15 border-red-500/30',
-  high: 'text-orange-300 bg-orange-500/10 border-orange-500/25',
-  medium: 'text-amber-300 bg-amber-500/10 border-amber-500/20',
-  low: 'text-gray-300 bg-white/5 border-white/10',
+  critical: 'text-danger-text bg-danger-soft border-danger/30',
+  high: 'text-warning-text bg-warning-soft border-warning/30',
+  medium: 'text-warning-text bg-warning-soft border-warning/30',
+  low: 'text-fg-muted bg-surface-2/60 border-line',
 };
 const STATUS_TONE: Record<string, string> = {
-  open: 'text-blue-300 bg-blue-500/10 border-blue-500/20',
-  in_review: 'text-violet-300 bg-violet-500/10 border-violet-500/20',
-  escalated: 'text-red-300 bg-red-500/10 border-red-500/25',
-  actioned: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
-  dismissed: 'text-gray-400 bg-white/5 border-white/10',
-  upheld: 'text-gray-300 bg-white/5 border-white/10',
-  reversed: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
+  open: 'text-info-text bg-info-soft border-info/30',
+  in_review: 'text-accent-text bg-accent-soft border-accent/30',
+  escalated: 'text-danger-text bg-danger-soft border-danger/30',
+  actioned: 'text-success-text bg-success-soft border-success/30',
+  dismissed: 'text-fg-muted bg-surface-2/60 border-line',
+  upheld: 'text-fg-muted bg-surface-2/60 border-line',
+  reversed: 'text-success-text bg-success-soft border-success/30',
 };
-const pill = 'inline-block text-[9px] font-black px-2 py-1 rounded-md uppercase border whitespace-nowrap';
-const input = 'w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50';
-const select = 'rounded-xl border border-white/10 bg-[#12121a] px-3 py-2 text-xs text-white outline-none focus:border-blue-500/50';
-const label = 'block text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1';
-const btn = 'rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest disabled:opacity-40 transition-colors';
-const btnGhost = `${btn} border border-white/10 bg-white/5 text-gray-300 hover:text-white`;
-const th = 'px-4 py-3 text-[10px] uppercase font-black tracking-widest text-gray-400 whitespace-nowrap';
+const pill = 'inline-block text-xs font-semibold px-2 py-1 rounded-md border whitespace-nowrap';
+const input = 'w-full rounded-xl border border-line bg-surface-2/60 px-3 py-2 text-sm text-fg outline-none focus:border-accent';
+const select = 'rounded-xl border border-line bg-surface px-3 py-2 text-xs text-fg outline-none focus:border-accent';
+const label = 'block text-xs font-semibold text-fg-muted mb-1';
+const btn = 'rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-40 transition-colors';
+const btnGhost = `${btn} border border-line bg-surface-2/60 text-fg-muted hover:text-fg`;
+const th = 'px-4 py-3 text-xs font-semibold text-fg-muted whitespace-nowrap';
 
 function Badge({ value, tones }: { value: string; tones: Record<string, string> }) {
-  return <span className={`${pill} ${tones[value] || tones.low || 'text-gray-300 bg-white/5 border-white/10'}`}>{words(value)}</span>;
+  return <span className={`${pill} ${tones[value] || tones.low || 'text-fg-muted bg-surface-2/60 border-line'}`}>{words(value)}</span>;
 }
 
 function LoggedNote({ children }: { children?: React.ReactNode }) {
   return (
-    <p className="text-[10px] font-black uppercase tracking-widest text-amber-400/90 flex items-center gap-2">
+    <p className="text-xs font-semibold text-warning-text flex items-center gap-2">
       <span aria-hidden>●</span> {children || 'This access is logged'}
     </p>
   );
@@ -213,6 +213,11 @@ export default function FriendsModerationPage() {
   const { isAuthed, user } = useAdminAuth();
   const myId = user?.id ? String(user.id) : '';
   const [tab, setTab] = useState<Tab>('queue');
+  // ?tab=<id>: links from the overview's Needs attention list and the global search open the right tab.
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('tab');
+    if (t && (['queue', 'appeals', 'sanctions', 'audit'] as readonly string[]).includes(t)) setTab(t as Tab);
+  }, []);
   const [notice, setNotice] = useState<Notice>(null);
   const [liveToast, setLiveToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -572,7 +577,7 @@ export default function FriendsModerationPage() {
     }
   }, { enabled: isAuthed });
 
-  if (!isAuthed) return <div className="p-20 text-center font-black text-white uppercase tracking-widest animate-pulse">Checking access…</div>;
+  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
 
   const d = detail;
   const canRemove = !!d && d.moderation.statuses.includes('removed');
@@ -591,11 +596,11 @@ export default function FriendsModerationPage() {
   const filtersActive = !!(statusF || severityF || subTabF || categoryF || assigneeF || search);
 
   return (
-    <div className="space-y-8 animate-fade-in relative pb-20">
+    <div className="space-y-8 animate-fade-in relative">
       <div className="flex flex-wrap gap-4 items-end justify-between">
         <div>
-          <h1 className="text-3xl font-black tracking-tighter text-white uppercase">Friends moderation</h1>
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">
+          <h1 className="text-2xl font-semibold text-fg">Reports and moderation</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">
             Reports from Pulse, Forum, Tasks, Connect, Spaces and chats · live
           </p>
         </div>
@@ -606,22 +611,22 @@ export default function FriendsModerationPage() {
               role="tab"
               aria-selected={tab === t}
               onClick={() => setTab(t)}
-              className={`${btn} border ${tab === t ? 'bg-blue-500/15 border-blue-500/30 text-blue-300' : 'border-white/10 bg-white/5 text-gray-400 hover:text-white'}`}
+              className={`${btn} border ${tab === t ? 'bg-info-soft border-info/30 text-info-text' : 'border-line bg-surface-2/60 text-fg-muted hover:text-fg'}`}
             >
-              {t === 'audit' ? 'Audit log' : t}
+              {t === 'audit' ? 'Audit log' : t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
           ))}
         </div>
       </div>
 
       {notice && (
-        <div role="status" className={`rounded-2xl border px-4 py-3 text-xs font-bold flex items-center justify-between gap-4 ${notice.kind === 'ok' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300' : 'border-red-500/20 bg-red-500/10 text-red-300'}`}>
+        <div role="status" className={`rounded-lg border px-4 py-3 text-xs font-semibold flex items-center justify-between gap-4 ${notice.kind === 'ok' ? 'border-success/30 bg-success-soft text-success-text' : 'border-danger/30 bg-danger-soft text-danger-text'}`}>
           <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-[10px] font-black uppercase opacity-70 hover:opacity-100">Dismiss</button>
+          <button onClick={() => setNotice(null)} className="text-xs font-semibold opacity-70 hover:opacity-100">Dismiss</button>
         </div>
       )}
       {liveToast && (
-        <div className="fixed bottom-6 right-6 z-[60] rounded-2xl border border-blue-500/30 bg-[#0f1424] px-4 py-3 text-xs font-black text-blue-200 shadow-xl" role="status" aria-live="polite">
+        <div className="fixed bottom-6 right-6 z-[60] rounded-lg border border-info/30 bg-surface px-4 py-3 text-xs font-semibold text-info-text" role="status" aria-live="polite">
           {liveToast}
         </div>
       )}
@@ -629,7 +634,7 @@ export default function FriendsModerationPage() {
       {/* ── Queue ── */}
       {tab === 'queue' && (
         <div className="space-y-4">
-          <div className="glass-card p-4 flex flex-wrap gap-3 items-end">
+          <div className="rounded-lg border border-line bg-surface shadow-xs p-4 flex flex-wrap gap-3 items-end">
             <div>
               <span className={label}>Status</span>
               <select className={select} value={statusF} onChange={(e) => setStatusF(e.target.value)} aria-label="Status">
@@ -685,29 +690,29 @@ export default function FriendsModerationPage() {
                 Clear
               </button>
             )}
-            <button onClick={() => loadQueue(false)} disabled={queueLoading} className={`${btn} bg-blue-500/10 text-blue-400 border border-blue-500/20`}>↻ Refresh</button>
+            <button onClick={() => loadQueue(false)} disabled={queueLoading} className={`${btn} bg-info-soft text-info-text border border-info/30`}>↻ Refresh</button>
           </div>
 
           <div className="glass-card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-white/5 bg-white/[0.02]">
+                  <tr className="border-b border-line bg-surface-2/60">
                     {['Severity', 'Target', 'Content', 'Reasons', 'Reporters', 'Status', 'Assignee', 'SLA', 'Last report'].map((h) => <th key={h} className={th}>{h}</th>)}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.03]">
                   {queueLoading && !queue.length ? (
-                    <tr><td colSpan={9} className="px-6 py-12 text-center text-xs text-gray-500 animate-pulse">Loading the queue…</td></tr>
+                    <tr><td colSpan={9} className="px-6 py-12 text-center text-xs text-fg-muted animate-pulse">Loading the queue…</td></tr>
                   ) : queueError && !queue.length ? (
                     <tr>
                       <td colSpan={9} className="px-6 py-12 text-center">
-                        <p className="text-xs text-red-400 font-bold">{queueError}</p>
+                        <p className="text-xs text-danger-text font-semibold">{queueError}</p>
                         <button onClick={() => loadQueue(false)} className={`mt-3 ${btnGhost}`}>Try again</button>
                       </td>
                     </tr>
                   ) : !queue.length ? (
-                    <tr><td colSpan={9} className="px-6 py-12 text-center text-xs text-gray-500">{filtersActive ? 'No reports match these filters.' : 'Nothing to review. New reports appear here live.'}</td></tr>
+                    <tr><td colSpan={9} className="px-6 py-12 text-center text-xs text-fg-muted">{filtersActive ? 'No reports match these filters.' : 'Nothing to review. New reports appear here live.'}</td></tr>
                   ) : (
                     queue.map((q) => {
                       const fresh = q.reportIds.some((id) => isFresh(id));
@@ -718,23 +723,23 @@ export default function FriendsModerationPage() {
                           onClick={() => openReport(q.latestReportId)}
                           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openReport(q.latestReportId); } }}
                           tabIndex={0}
-                          className={`cursor-pointer align-top hover:bg-white/[0.03] transition-colors outline-none focus:bg-white/[0.04] ${fresh ? FRESH_ROW_CLASS : ''} ${selected ? 'bg-blue-500/[0.06]' : ''}`}
+                          className={`cursor-pointer align-top hover:bg-surface-2/60 transition-colors outline-none focus:bg-surface-2/60 ${fresh ? FRESH_ROW_CLASS : ''} ${selected ? 'bg-info-soft' : ''}`}
                         >
                           <td className="px-4 py-3"><Badge value={q.severity} tones={SEVERITY_TONE} /></td>
                           <td className="px-4 py-3">
-                            <p className="text-[11px] font-black text-white uppercase tracking-wide">{words(q.targetType)}</p>
-                            <p className="text-[10px] text-gray-500 uppercase">{q.subTab}</p>
+                            <p className="text-xs font-semibold text-fg">{words(q.targetType)}</p>
+                            <p className="text-xs text-fg-muted">{q.subTab}</p>
                           </td>
                           <td className="px-4 py-3 max-w-sm">
-                            {q.snapshot?.anonymous && <span className="text-[9px] font-black uppercase text-violet-300 mr-2">Anon{q.snapshot.alias ? ` · ${q.snapshot.alias}` : ''}</span>}
-                            <span className="text-[11px] text-gray-300 break-words line-clamp-2">{q.snapshot?.excerpt || <em className="text-gray-600">No text</em>}</span>
+                            {q.snapshot?.anonymous && <span className="text-xs font-semibold text-accent-text mr-2">Anon{q.snapshot.alias ? ` · ${q.snapshot.alias}` : ''}</span>}
+                            <span className="text-xs text-fg-muted break-words line-clamp-2">{q.snapshot?.excerpt || <em className="text-fg-subtle">No text</em>}</span>
                           </td>
-                          <td className="px-4 py-3 text-[10px] text-gray-400">{q.categories.map(words).join(', ')}</td>
-                          <td className="px-4 py-3 text-sm font-black text-white">{q.reporterCount}</td>
+                          <td className="px-4 py-3 text-xs text-fg-muted">{q.categories.map(words).join(', ')}</td>
+                          <td className="px-4 py-3 text-sm font-semibold text-fg">{q.reporterCount}</td>
                           <td className="px-4 py-3"><Badge value={q.status} tones={STATUS_TONE} /></td>
-                          <td className="px-4 py-3 text-[10px] font-mono text-gray-400">{q.assignedTo ? who(q.assignedTo) : '—'}</td>
-                          <td className={`px-4 py-3 text-[10px] font-bold whitespace-nowrap ${q.overdue ? 'text-red-400' : 'text-gray-400'}`}>{relDue(q.slaDueAt)}</td>
-                          <td className="px-4 py-3 text-[10px] text-gray-500 whitespace-nowrap">{fmt(q.lastReportedAt)}</td>
+                          <td className="px-4 py-3 text-xs font-mono text-fg-muted">{q.assignedTo ? who(q.assignedTo) : '—'}</td>
+                          <td className={`px-4 py-3 text-xs font-semibold whitespace-nowrap ${q.overdue ? 'text-danger-text' : 'text-fg-muted'}`}>{relDue(q.slaDueAt)}</td>
+                          <td className="px-4 py-3 text-xs text-fg-muted whitespace-nowrap">{fmt(q.lastReportedAt)}</td>
                         </tr>
                       );
                     })
@@ -742,9 +747,9 @@ export default function FriendsModerationPage() {
                 </tbody>
               </table>
             </div>
-            {queueError && queue.length > 0 && <p className="px-6 py-3 text-[11px] text-red-400 border-t border-white/5">{queueError}</p>}
+            {queueError && queue.length > 0 && <p className="px-6 py-3 text-xs text-danger-text border-t border-line">{queueError}</p>}
             {queueCursor && (
-              <div className="border-t border-white/5 px-6 py-4 text-center">
+              <div className="border-t border-line px-6 py-4 text-center">
                 <button disabled={queueLoading} onClick={() => loadQueue(true, queueCursor)} className={btnGhost}>{queueLoading ? 'Loading…' : 'Load older reports'}</button>
               </div>
             )}
@@ -755,7 +760,7 @@ export default function FriendsModerationPage() {
       {/* ── Appeals ── */}
       {tab === 'appeals' && (
         <div className="space-y-4">
-          <div className="glass-card p-4 flex flex-wrap gap-3 items-end">
+          <div className="rounded-lg border border-line bg-surface shadow-xs p-4 flex flex-wrap gap-3 items-end">
             <div>
               <span className={label}>Status</span>
               <select className={select} value={appealStatus} onChange={(e) => setAppealStatus(e.target.value)} aria-label="Appeal status">
@@ -765,42 +770,42 @@ export default function FriendsModerationPage() {
                 <option value="open,upheld,reversed">All</option>
               </select>
             </div>
-            <button onClick={() => loadAppeals(false)} disabled={appealsLoading} className={`${btn} bg-blue-500/10 text-blue-400 border border-blue-500/20`}>↻ Refresh</button>
+            <button onClick={() => loadAppeals(false)} disabled={appealsLoading} className={`${btn} bg-info-soft text-info-text border border-info/30`}>↻ Refresh</button>
           </div>
           {appealsLoading && !appeals.length ? (
-            <p className="text-xs text-gray-500 animate-pulse text-center py-12">Loading appeals…</p>
+            <p className="text-xs text-fg-muted animate-pulse text-center py-12">Loading appeals…</p>
           ) : appealsError && !appeals.length ? (
             <div className="text-center py-12">
-              <p className="text-xs text-red-400 font-bold">{appealsError}</p>
+              <p className="text-xs text-danger-text font-semibold">{appealsError}</p>
               <button onClick={() => loadAppeals(false)} className={`mt-3 ${btnGhost}`}>Try again</button>
             </div>
           ) : !appeals.length ? (
-            <p className="text-xs text-gray-500 text-center py-12">No appeals here.</p>
+            <p className="text-xs text-fg-muted text-center py-12">No appeals here.</p>
           ) : (
             <div className="grid gap-4">
               {appeals.map((a) => (
-                <div key={a.id} className="glass-card p-5 space-y-3">
+                <div key={a.id} className="rounded-lg border border-line bg-surface shadow-xs p-5 space-y-3">
                   <div className="flex flex-wrap items-center gap-3 justify-between">
                     <div className="flex items-center gap-3">
                       <Badge value={a.status} tones={STATUS_TONE} />
-                      <span className="text-[10px] text-gray-500">Filed {fmt(a.createdAt)} by user <span className="font-mono" title={a.userId}>{shortId(a.userId)}</span></span>
+                      <span className="text-xs text-fg-muted">Filed {fmt(a.createdAt)} by user <span className="font-mono" title={a.userId}>{shortId(a.userId)}</span></span>
                     </div>
                     {a.action && (
-                      <span className="text-[10px] text-gray-400">
-                        Appealing <b className="text-white uppercase">{words(a.action.action)}</b>
+                      <span className="text-xs text-fg-muted">
+                        Appealing <b className="text-fg">{words(a.action.action)}</b>
                         {a.action.targetType ? <> on {words(a.action.targetType)} <span className="font-mono" title={a.action.targetId || ''}>{shortId(a.action.targetId)}</span></> : null}
                         {' · '}{fmt(a.action.createdAt)}
                       </span>
                     )}
                   </div>
-                  {a.action?.reason && <p className="text-[11px] text-gray-400"><span className="font-black uppercase text-gray-500 text-[9px] mr-2">Moderator note</span>{a.action.reason}</p>}
+                  {a.action?.reason && <p className="text-xs text-fg-muted"><span className="font-semibold text-fg-muted text-xs mr-2">Moderator note</span>{a.action.reason}</p>}
                   {a.action?.meta && typeof a.action.meta.scope === 'string' && (
-                    <p className="text-[11px] text-gray-400">
-                      <span className="font-black uppercase text-gray-500 text-[9px] mr-2">Sanction</span>
+                    <p className="text-xs text-fg-muted">
+                      <span className="font-semibold text-fg-muted text-xs mr-2">Sanction</span>
                       {String(a.action.meta.scope)} {a.action.meta.until ? `until ${fmt(String(a.action.meta.until))}` : '(permanent)'}
                     </p>
                   )}
-                  <p className="text-sm text-gray-200 whitespace-pre-wrap break-words border-l-2 border-white/10 pl-3">{a.text}</p>
+                  <p className="text-sm text-fg whitespace-pre-wrap break-words border-l-2 border-line pl-3">{a.text}</p>
                   {a.status === 'open' ? (
                     <div className="flex flex-wrap gap-2 items-end">
                       <div className="flex-1 min-w-[240px]">
@@ -808,10 +813,10 @@ export default function FriendsModerationPage() {
                         <input className={input} maxLength={500} value={appealNotes[a.id] || ''} onChange={(e) => setAppealNotes((p) => ({ ...p, [a.id]: e.target.value }))} />
                       </div>
                       <button disabled={busy === `appeal:${a.id}`} onClick={() => decideAppeal(a, 'upheld')} className={btnGhost}>Uphold</button>
-                      <button disabled={busy === `appeal:${a.id}`} onClick={() => decideAppeal(a, 'reversed')} className={`${btn} bg-emerald-500/15 text-emerald-300 border border-emerald-500/25`}>Reverse</button>
+                      <button disabled={busy === `appeal:${a.id}`} onClick={() => decideAppeal(a, 'reversed')} className={`${btn} bg-success-soft text-success-text border border-success/30`}>Reverse</button>
                     </div>
                   ) : (
-                    <p className="text-[10px] text-gray-500">Decided {fmt(a.reviewedAt)} by {who(a.reviewedBy)}{a.note ? ` · ${a.note}` : ''}</p>
+                    <p className="text-xs text-fg-muted">Decided {fmt(a.reviewedAt)} by {who(a.reviewedBy)}{a.note ? ` · ${a.note}` : ''}</p>
                   )}
                 </div>
               ))}
@@ -828,8 +833,8 @@ export default function FriendsModerationPage() {
       {/* ── Sanctions ── */}
       {tab === 'sanctions' && (
         <div className="space-y-4">
-          <div className="glass-card p-4 flex flex-wrap gap-3 items-end">
-            <label className="flex items-center gap-2 text-xs text-gray-300 font-bold">
+          <div className="rounded-lg border border-line bg-surface shadow-xs p-4 flex flex-wrap gap-3 items-end">
+            <label className="flex items-center gap-2 text-xs text-fg-muted font-semibold">
               <input type="checkbox" checked={sanctionActive} onChange={(e) => setSanctionActive(e.target.checked)} /> Active only
             </label>
             <form className="flex gap-2 items-end" onSubmit={(e) => { e.preventDefault(); loadSanctions(false); }}>
@@ -839,34 +844,34 @@ export default function FriendsModerationPage() {
               </div>
               <button type="submit" className={btnGhost}>Apply</button>
             </form>
-            <button onClick={() => loadSanctions(false)} disabled={sanctionsLoading} className={`${btn} bg-blue-500/10 text-blue-400 border border-blue-500/20`}>↻ Refresh</button>
+            <button onClick={() => loadSanctions(false)} disabled={sanctionsLoading} className={`${btn} bg-info-soft text-info-text border border-info/30`}>↻ Refresh</button>
           </div>
           <div className="glass-card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-white/5 bg-white/[0.02]">
+                  <tr className="border-b border-line bg-surface-2/60">
                     {['User', 'Scope', 'Until', 'Reason', 'By', 'Created', ''].map((h) => <th key={h} className={th}>{h}</th>)}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.03]">
                   {sanctionsLoading && !sanctions.length ? (
-                    <tr><td colSpan={7} className="px-6 py-12 text-center text-xs text-gray-500 animate-pulse">Loading sanctions…</td></tr>
+                    <tr><td colSpan={7} className="px-6 py-12 text-center text-xs text-fg-muted animate-pulse">Loading sanctions…</td></tr>
                   ) : sanctionsError && !sanctions.length ? (
-                    <tr><td colSpan={7} className="px-6 py-12 text-center text-xs text-red-400 font-bold">{sanctionsError}</td></tr>
+                    <tr><td colSpan={7} className="px-6 py-12 text-center text-xs text-danger-text font-semibold">{sanctionsError}</td></tr>
                   ) : !sanctions.length ? (
-                    <tr><td colSpan={7} className="px-6 py-12 text-center text-xs text-gray-500">No sanctions.</td></tr>
+                    <tr><td colSpan={7} className="px-6 py-12 text-center text-xs text-fg-muted">No sanctions.</td></tr>
                   ) : sanctions.map((s) => (
                     <tr key={s.id} className="align-top">
-                      <td className="px-4 py-3 text-[10px] font-mono text-white/80" title={s.userId}>{shortId(s.userId)}</td>
-                      <td className="px-4 py-3 text-[11px] font-black uppercase text-white">{s.scope}</td>
-                      <td className="px-4 py-3 text-[11px] text-gray-300 whitespace-nowrap">
-                        {s.liftedAt ? <span className="text-gray-500">Lifted {fmt(s.liftedAt)}</span> : s.until ? fmt(s.until) : 'Permanent'}
-                        {!s.active && !s.liftedAt && <span className="ml-2 text-[9px] text-gray-500 uppercase">expired</span>}
+                      <td className="px-4 py-3 text-xs font-mono text-fg-muted" title={s.userId}>{shortId(s.userId)}</td>
+                      <td className="px-4 py-3 text-xs font-semibold text-fg">{s.scope}</td>
+                      <td className="px-4 py-3 text-xs text-fg-muted whitespace-nowrap">
+                        {s.liftedAt ? <span className="text-fg-muted">Lifted {fmt(s.liftedAt)}</span> : s.until ? fmt(s.until) : 'Permanent'}
+                        {!s.active && !s.liftedAt && <span className="ml-2 text-xs text-fg-muted">expired</span>}
                       </td>
-                      <td className="px-4 py-3 text-[11px] text-gray-400 max-w-sm break-words">{s.reason || '—'}</td>
-                      <td className="px-4 py-3 text-[10px] font-mono text-gray-500">{who(s.createdBy)}</td>
-                      <td className="px-4 py-3 text-[10px] text-gray-500 whitespace-nowrap">{fmt(s.createdAt)}</td>
+                      <td className="px-4 py-3 text-xs text-fg-muted max-w-sm break-words">{s.reason || '—'}</td>
+                      <td className="px-4 py-3 text-xs font-mono text-fg-muted">{who(s.createdBy)}</td>
+                      <td className="px-4 py-3 text-xs text-fg-muted whitespace-nowrap">{fmt(s.createdAt)}</td>
                       <td className="px-4 py-3 text-right">
                         {s.active && <button disabled={busy === `lift:${s.id}`} onClick={() => liftSanction(s)} className={btnGhost}>Lift</button>}
                       </td>
@@ -876,7 +881,7 @@ export default function FriendsModerationPage() {
               </table>
             </div>
             {sanctionCursor && (
-              <div className="border-t border-white/5 px-6 py-4 text-center">
+              <div className="border-t border-line px-6 py-4 text-center">
                 <button disabled={sanctionsLoading} onClick={() => loadSanctions(true, sanctionCursor)} className={btnGhost}>Load more</button>
               </div>
             )}
@@ -887,7 +892,7 @@ export default function FriendsModerationPage() {
       {/* ── Audit ── */}
       {tab === 'audit' && (
         <div className="space-y-4">
-          <div className="glass-card p-4 flex flex-wrap gap-3 items-end">
+          <div className="rounded-lg border border-line bg-surface shadow-xs p-4 flex flex-wrap gap-3 items-end">
             <div>
               <span className={label}>Action</span>
               <select className={select} value={auditAction} onChange={(e) => setAuditAction(e.target.value)} aria-label="Action">
@@ -910,29 +915,29 @@ export default function FriendsModerationPage() {
               </div>
               <button type="submit" className={btnGhost}>Apply</button>
             </form>
-            <button onClick={() => loadAudit(false)} disabled={auditLoading} className={`${btn} bg-blue-500/10 text-blue-400 border border-blue-500/20`}>↻ Refresh</button>
+            <button onClick={() => loadAudit(false)} disabled={auditLoading} className={`${btn} bg-info-soft text-info-text border border-info/30`}>↻ Refresh</button>
           </div>
           <div className="glass-card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-white/5 bg-white/[0.02]">
+                  <tr className="border-b border-line bg-surface-2/60">
                     {['Time', 'Action', 'By', 'Target', 'Affected user', 'Reason / details'].map((h) => <th key={h} className={th}>{h}</th>)}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.03]">
                   {auditLoading && !audit.length ? (
-                    <tr><td colSpan={6} className="px-6 py-12 text-center text-xs text-gray-500 animate-pulse">Loading the log…</td></tr>
+                    <tr><td colSpan={6} className="px-6 py-12 text-center text-xs text-fg-muted animate-pulse">Loading the log…</td></tr>
                   ) : auditError && !audit.length ? (
-                    <tr><td colSpan={6} className="px-6 py-12 text-center text-xs text-red-400 font-bold">{auditError}</td></tr>
+                    <tr><td colSpan={6} className="px-6 py-12 text-center text-xs text-danger-text font-semibold">{auditError}</td></tr>
                   ) : !audit.length ? (
-                    <tr><td colSpan={6} className="px-6 py-12 text-center text-xs text-gray-500">No moderation actions recorded.</td></tr>
+                    <tr><td colSpan={6} className="px-6 py-12 text-center text-xs text-fg-muted">No moderation actions recorded.</td></tr>
                   ) : audit.map((a) => <ActionRow key={a.id} a={a} who={who} />)}
                 </tbody>
               </table>
             </div>
             {auditCursor && (
-              <div className="border-t border-white/5 px-6 py-4 text-center">
+              <div className="border-t border-line px-6 py-4 text-center">
                 <button disabled={auditLoading} onClick={() => loadAudit(true, auditCursor)} className={btnGhost}>Load older</button>
               </div>
             )}
@@ -943,24 +948,24 @@ export default function FriendsModerationPage() {
       {/* ── Detail drawer ── */}
       {openId && (
         <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Report details">
-          <button className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-label="Close" onClick={closeDrawer} />
-          <div className="relative h-full w-full max-w-2xl overflow-y-auto border-l border-white/10 bg-[#0c0c12] p-8 space-y-6">
+          <button className="absolute inset-0 bg-surface-2" aria-label="Close" onClick={closeDrawer} />
+          <div className="relative h-full w-full max-w-2xl overflow-y-auto border-l border-line bg-surface p-8 space-y-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Report</p>
-                <h2 className="text-xl font-black text-white uppercase tracking-tight">
+                <p className="text-xs font-semibold text-fg-muted">Report</p>
+                <h2 className="text-xl font-semibold text-fg">
                   {d ? `${words(d.report.targetType)} · ${d.report.subTab}` : 'Loading…'}
                 </h2>
-                {d && <p className="text-[10px] font-mono text-gray-500 mt-1" title={d.report.targetId}>Target {d.report.targetId}</p>}
+                {d && <p className="text-xs font-mono text-fg-muted mt-1" title={d.report.targetId}>Target {d.report.targetId}</p>}
               </div>
               <button onClick={closeDrawer} className={btnGhost}>Close</button>
             </div>
 
             {detailLoading && !d ? (
-              <p className="text-xs text-gray-500 animate-pulse">Loading report…</p>
+              <p className="text-xs text-fg-muted animate-pulse">Loading report…</p>
             ) : detailError && !d ? (
               <div>
-                <p className="text-xs text-red-400 font-bold">{detailError}</p>
+                <p className="text-xs text-danger-text font-semibold">{detailError}</p>
                 <button onClick={() => loadDetail(openId)} className={`mt-3 ${btnGhost}`}>Try again</button>
               </div>
             ) : d ? (
@@ -968,56 +973,56 @@ export default function FriendsModerationPage() {
                 <div className="flex flex-wrap gap-2 items-center">
                   <Badge value={d.report.severity} tones={SEVERITY_TONE} />
                   <Badge value={d.report.status} tones={STATUS_TONE} />
-                  <span className="text-[10px] text-gray-400 font-bold">{d.reporterCount} open reporter(s)</span>
-                  <span className={`text-[10px] font-bold ${d.report.overdue ? 'text-red-400' : 'text-gray-500'}`}>SLA {relDue(d.report.slaDueAt)}</span>
-                  <span className="text-[10px] text-gray-500">Assigned: {d.report.assignedTo ? who(d.report.assignedTo) : 'nobody'}</span>
+                  <span className="text-xs text-fg-muted font-semibold">{d.reporterCount} open reporter(s)</span>
+                  <span className={`text-xs font-semibold ${d.report.overdue ? 'text-danger-text' : 'text-fg-muted'}`}>SLA {relDue(d.report.slaDueAt)}</span>
+                  <span className="text-xs text-fg-muted">Assigned: {d.report.assignedTo ? who(d.report.assignedTo) : 'nobody'}</span>
                 </div>
 
                 {/* Evidence snapshot */}
-                <section className="glass-card p-5 space-y-2">
+                <section className="rounded-lg border border-line bg-surface shadow-xs p-5 space-y-2">
                   <p className={label}>Evidence (snapshot at report time)</p>
                   {d.report.snapshot?.anonymous && (
-                    <p className="text-[10px] font-black uppercase text-violet-300">Anonymous post{d.report.snapshot.alias ? ` · shown as "${d.report.snapshot.alias}"` : ''}</p>
+                    <p className="text-xs font-semibold text-accent-text">Anonymous post{d.report.snapshot.alias ? ` · shown as "${d.report.snapshot.alias}"` : ''}</p>
                   )}
-                  <p className="text-sm text-gray-100 whitespace-pre-wrap break-words">{d.report.snapshot?.excerpt || <em className="text-gray-500">No text</em>}</p>
+                  <p className="text-sm text-fg whitespace-pre-wrap break-words">{d.report.snapshot?.excerpt || <em className="text-fg-muted">No text</em>}</p>
                   {!!d.report.snapshot?.mediaIds?.length && (
-                    <p className="text-[10px] text-gray-500">Media: {d.report.snapshot.mediaIds.map((m) => <span key={m} className="font-mono mr-2" title={m}>{shortId(m)}</span>)}</p>
+                    <p className="text-xs text-fg-muted">Media: {d.report.snapshot.mediaIds.map((m) => <span key={m} className="font-mono mr-2" title={m}>{shortId(m)}</span>)}</p>
                   )}
-                  <p className="text-[10px] text-gray-500">Created {fmt(d.report.snapshot?.createdAt)} · first reported {fmt(d.report.snapshot?.reportedAt || d.report.createdAt)}</p>
+                  <p className="text-xs text-fg-muted">Created {fmt(d.report.snapshot?.createdAt)} · first reported {fmt(d.report.snapshot?.reportedAt || d.report.createdAt)}</p>
                 </section>
 
                 {/* Current state */}
-                <section className="glass-card p-5 space-y-2">
+                <section className="rounded-lg border border-line bg-surface shadow-xs p-5 space-y-2">
                   <p className={label}>Current state</p>
                   {d.currentState ? (
-                    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[11px]">
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
                       {Object.entries(d.currentState).map(([k, v]) => (
                         <div key={k} className="contents">
-                          <dt className="text-gray-500 font-bold">{words(k)}</dt>
-                          <dd className="text-gray-200 break-words">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</dd>
+                          <dt className="text-fg-muted font-semibold">{words(k)}</dt>
+                          <dd className="text-fg break-words">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</dd>
                         </div>
                       ))}
                     </dl>
-                  ) : <p className="text-[11px] text-gray-500">Not available for this target type.</p>}
+                  ) : <p className="text-xs text-fg-muted">Not available for this target type.</p>}
                 </section>
 
                 {/* Author */}
-                <section className="glass-card p-5 space-y-3">
+                <section className="rounded-lg border border-line bg-surface shadow-xs p-5 space-y-3">
                   <p className={label}>Author</p>
                   {!d.authorHistory ? (
-                    <p className="text-[11px] text-gray-500">No account linked to this target.</p>
+                    <p className="text-xs text-fg-muted">No account linked to this target.</p>
                   ) : d.authorHistory.anonymous ? (
-                    <p className="text-[11px] text-gray-300">
+                    <p className="text-xs text-fg-muted">
                       Anonymous author · {d.authorHistory.priorActionCount} prior action(s) · {d.authorHistory.sanctionCount} sanction(s) on record
                     </p>
                   ) : (
                     <div className="space-y-1">
-                      <p className="text-[11px] text-gray-200">
-                        <b>{d.authorHistory.name || 'Unknown'}</b> <span className="font-mono text-gray-500" title={d.authorHistory.userId}>{shortId(d.authorHistory.userId)}</span>
+                      <p className="text-xs text-fg">
+                        <b>{d.authorHistory.name || 'Unknown'}</b> <span className="font-mono text-fg-muted" title={d.authorHistory.userId}>{shortId(d.authorHistory.userId)}</span>
                         {' · '}{d.authorHistory.priorActionCount} prior action(s)
                       </p>
                       {d.authorHistory.sanctions.length > 0 && (
-                        <ul className="text-[10px] text-gray-400 space-y-0.5">
+                        <ul className="text-xs text-fg-muted space-y-0.5">
                           {d.authorHistory.sanctions.map((s) => (
                             <li key={s.id}>
                               {s.scope} · {s.until ? `until ${fmt(s.until)}` : 'permanent'}{s.liftedAt ? ` · lifted ${fmt(s.liftedAt)}` : ''}{s.reason ? ` · ${s.reason}` : ''}
@@ -1029,10 +1034,10 @@ export default function FriendsModerationPage() {
                   )}
 
                   {d.moderation.canReveal && (
-                    <div className="border-t border-white/5 pt-3 space-y-2">
+                    <div className="border-t border-line pt-3 space-y-2">
                       {revealed ? (
-                        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
-                          <p className="text-[11px] text-amber-200">Author: <b>{revealed.name || 'Unknown'}</b> <span className="font-mono">{revealed.userId}</span></p>
+                        <div className="rounded-xl border border-warning/30 bg-warning-soft p-3">
+                          <p className="text-xs text-warning-text">Author: <b>{revealed.name || 'Unknown'}</b> <span className="font-mono">{revealed.userId}</span></p>
                           <LoggedNote>This reveal was logged with your reason</LoggedNote>
                         </div>
                       ) : revealOpen ? (
@@ -1043,17 +1048,17 @@ export default function FriendsModerationPage() {
                             <LoggedNote />
                             <div className="flex gap-2">
                               <button onClick={() => { setRevealOpen(false); setRevealReason(''); }} className={btnGhost}>Cancel</button>
-                              <button disabled={busy === 'reveal' || revealReason.trim().length < 20} onClick={reveal} className={`${btn} bg-amber-500/15 text-amber-300 border border-amber-500/30`}>
+                              <button disabled={busy === 'reveal' || revealReason.trim().length < 20} onClick={reveal} className={`${btn} bg-warning-soft text-warning-text border border-warning/30`}>
                                 {busy === 'reveal' ? 'Revealing…' : 'Reveal author'}
                               </button>
                             </div>
                           </div>
-                          <p className="text-[10px] text-gray-500">{revealReason.trim().length}/20 characters minimum</p>
+                          <p className="text-xs text-fg-muted">{revealReason.trim().length}/20 characters minimum</p>
                         </div>
                       ) : (
                         <div className="flex items-center justify-between gap-2">
                           <LoggedNote>Revealing an anonymous author is logged</LoggedNote>
-                          <button onClick={() => setRevealOpen(true)} className={`${btn} border border-amber-500/30 text-amber-300 bg-amber-500/5`}>Reveal author…</button>
+                          <button onClick={() => setRevealOpen(true)} className={`${btn} border border-warning/30 text-warning-text bg-warning-soft`}>Reveal author…</button>
                         </div>
                       )}
                     </div>
@@ -1062,7 +1067,7 @@ export default function FriendsModerationPage() {
 
                 {/* Actions */}
                 {isOpen ? (
-                  <section className="glass-card p-5 space-y-4">
+                  <section className="rounded-lg border border-line bg-surface shadow-xs p-5 space-y-4">
                     <div className="flex items-center justify-between">
                       <p className={label}>Decision</p>
                       {d.report.assignedTo !== myId && (
@@ -1080,7 +1085,7 @@ export default function FriendsModerationPage() {
                             disabled={!!why}
                             title={why || undefined}
                             onClick={() => setDecision(k)}
-                            className={`${btn} border ${decision === k ? 'bg-blue-500/20 border-blue-500/40 text-blue-200' : 'border-white/10 bg-white/5 text-gray-400 hover:text-white'}`}
+                            className={`${btn} border ${decision === k ? 'bg-info-soft border-info/30 text-info-text' : 'border-line bg-surface-2/60 text-fg-muted hover:text-fg'}`}
                           >
                             {k}
                           </button>
@@ -1099,7 +1104,7 @@ export default function FriendsModerationPage() {
                           <span className={label}>Days (1-365)</span>
                           <input type="number" min={1} max={365} disabled={sanctionPermanent} className={`${input} w-28`} value={sanctionDays} onChange={(e) => setSanctionDays(e.target.value)} />
                         </div>
-                        <label className="flex items-center gap-2 text-xs text-gray-300 font-bold pb-2">
+                        <label className="flex items-center gap-2 text-xs text-fg-muted font-semibold pb-2">
                           <input type="checkbox" checked={sanctionPermanent} onChange={(e) => setSanctionPermanent(e.target.checked)} /> Permanent
                         </label>
                       </div>
@@ -1109,22 +1114,22 @@ export default function FriendsModerationPage() {
                       <textarea className={`${input} min-h-[70px]`} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <label className="flex items-center gap-2 text-xs text-gray-300 font-bold">
+                      <label className="flex items-center gap-2 text-xs text-fg-muted font-semibold">
                         <input type="checkbox" checked={notifyReporter} onChange={(e) => setNotifyReporter(e.target.checked)} /> Tell reporters the outcome
                       </label>
                       <button
                         disabled={busy === 'resolve' || !!decisionDisabled[decision]}
                         onClick={resolve}
-                        className={`${btn} ${['remove', 'sanction'].includes(decision) ? 'bg-red-500/15 text-red-300 border border-red-500/30' : 'bg-blue-500/15 text-blue-200 border border-blue-500/30'}`}
+                        className={`${btn} ${['remove', 'sanction'].includes(decision) ? 'bg-danger-soft text-danger-text border border-danger/30' : 'bg-info-soft text-info-text border border-info/30'}`}
                       >
                         {busy === 'resolve' ? 'Saving…' : `Apply: ${decision}`}
                       </button>
                     </div>
                   </section>
                 ) : (
-                  <section className="glass-card p-5">
-                    <p className="text-[11px] text-gray-400">
-                      Closed: <b className="text-white uppercase">{words(d.report.decision || d.report.status)}</b> by {who(d.report.resolvedBy)} · {fmt(d.report.resolvedAt)}
+                  <section className="rounded-lg border border-line bg-surface shadow-xs p-5">
+                    <p className="text-xs text-fg-muted">
+                      Closed: <b className="text-fg">{words(d.report.decision || d.report.status)}</b> by {who(d.report.resolvedBy)} · {fmt(d.report.resolvedAt)}
                       {d.report.resolution ? ` · ${d.report.resolution}` : ''}
                     </p>
                   </section>
@@ -1135,15 +1140,15 @@ export default function FriendsModerationPage() {
                   <p className={label}>Reports on this target ({d.reports.length})</p>
                   <div className="glass-card divide-y divide-white/[0.04]">
                     {d.reports.map((r) => (
-                      <div key={r.id} className={`p-4 space-y-1 ${r.id === d.report.id ? 'bg-white/[0.03]' : ''}`}>
+                      <div key={r.id} className={`p-4 space-y-1 ${r.id === d.report.id ? 'bg-surface-2/60' : ''}`}>
                         <div className="flex flex-wrap gap-2 items-center">
-                          <span className="text-[10px] font-black uppercase text-white">{words(r.category)}</span>
+                          <span className="text-xs font-semibold text-fg">{words(r.category)}</span>
                           <Badge value={r.severity} tones={SEVERITY_TONE} />
                           <Badge value={r.status} tones={STATUS_TONE} />
-                          <span className="text-[10px] text-gray-500">{r.isSystem ? 'System (auto-flag)' : <>reporter <span className="font-mono" title={r.reporterId || ''}>{shortId(r.reporterId)}</span></>}</span>
-                          <span className="text-[10px] text-gray-600 ml-auto">{fmt(r.createdAt)}</span>
+                          <span className="text-xs text-fg-muted">{r.isSystem ? 'System (auto-flag)' : <>reporter <span className="font-mono" title={r.reporterId || ''}>{shortId(r.reporterId)}</span></>}</span>
+                          <span className="text-xs text-fg-subtle ml-auto">{fmt(r.createdAt)}</span>
                         </div>
-                        {r.note && <p className="text-[11px] text-gray-300 whitespace-pre-wrap break-words">{r.note}</p>}
+                        {r.note && <p className="text-xs text-fg-muted whitespace-pre-wrap break-words">{r.note}</p>}
                       </div>
                     ))}
                   </div>
@@ -1160,7 +1165,7 @@ export default function FriendsModerationPage() {
                         </tbody>
                       </table>
                     </div>
-                  ) : <p className="text-[11px] text-gray-500">No actions yet.</p>}
+                  ) : <p className="text-xs text-fg-muted">No actions yet.</p>}
                 </section>
               </>
             ) : null}
@@ -1172,10 +1177,10 @@ export default function FriendsModerationPage() {
 }
 
 const ACTION_TONE = (action: string) => {
-  if (/remove|sanction|reject|space_end|space_remove|reveal|view_/.test(action)) return 'text-red-300 bg-red-500/5 border-red-500/15';
-  if (/restore|lift|approve|reversed|badge_grant/.test(action)) return 'text-emerald-300 bg-emerald-500/5 border-emerald-500/15';
-  if (/hide|warn|escalate/.test(action)) return 'text-amber-300 bg-amber-500/5 border-amber-500/15';
-  return 'text-blue-300 bg-blue-500/5 border-blue-500/15';
+  if (/remove|sanction|reject|space_end|space_remove|reveal|view_/.test(action)) return 'text-danger-text bg-danger-soft border-danger/30';
+  if (/restore|lift|approve|reversed|badge_grant/.test(action)) return 'text-success-text bg-success-soft border-success/30';
+  if (/hide|warn|escalate/.test(action)) return 'text-warning-text bg-warning-soft border-warning/30';
+  return 'text-info-text bg-info-soft border-info/30';
 };
 
 const metaText = (meta: Record<string, unknown>) => {
@@ -1191,16 +1196,16 @@ function ActionRow({ a, who, compact = false }: { a: ModAction; who: (id?: strin
   const details = [a.reason, metaText(a.meta)].filter(Boolean).join(' — ');
   return (
     <tr className="align-top">
-      <td className="px-4 py-3 text-[10px] text-gray-500 whitespace-nowrap">{fmt(a.createdAt)}</td>
+      <td className="px-4 py-3 text-xs text-fg-muted whitespace-nowrap">{fmt(a.createdAt)}</td>
       <td className="px-4 py-3"><span className={`${pill} ${ACTION_TONE(a.action)}`}>{words(a.action)}</span></td>
-      <td className="px-4 py-3 text-[10px] font-mono text-gray-300 whitespace-nowrap" title={a.actorId || ''}>{a.actorRole === 'system' ? 'system' : who(a.actorId)}</td>
+      <td className="px-4 py-3 text-xs font-mono text-fg-muted whitespace-nowrap" title={a.actorId || ''}>{a.actorRole === 'system' ? 'system' : who(a.actorId)}</td>
       {!compact && (
-        <td className="px-4 py-3 text-[10px] text-gray-400 whitespace-nowrap">
-          {a.targetType ? words(a.targetType) : '—'} <span className="font-mono text-gray-500" title={a.targetId || ''}>{a.targetId ? shortId(a.targetId) : ''}</span>
+        <td className="px-4 py-3 text-xs text-fg-muted whitespace-nowrap">
+          {a.targetType ? words(a.targetType) : '—'} <span className="font-mono text-fg-muted" title={a.targetId || ''}>{a.targetId ? shortId(a.targetId) : ''}</span>
         </td>
       )}
-      {!compact && <td className="px-4 py-3 text-[10px] font-mono text-gray-500" title={a.subjectUserId || ''}>{shortId(a.subjectUserId)}</td>}
-      <td className="px-4 py-3 text-[11px] text-gray-400 max-w-md break-words">{details || '—'}</td>
+      {!compact && <td className="px-4 py-3 text-xs font-mono text-fg-muted" title={a.subjectUserId || ''}>{shortId(a.subjectUserId)}</td>}
+      <td className="px-4 py-3 text-xs text-fg-muted max-w-md break-words">{details || '—'}</td>
     </tr>
   );
 }

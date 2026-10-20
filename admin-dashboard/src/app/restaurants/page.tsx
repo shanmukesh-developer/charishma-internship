@@ -17,8 +17,8 @@ import type { DrawerTab } from '@/components/restaurants/StoreDrawer';
 // The wizard and the store drawer (with the menu manager) are most of this route's code but only
 // open on demand: loaded the first time they are opened, so the store list paints sooner.
 const PanelLoading = () => (
-  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50" role="status" aria-live="polite">
-    <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" aria-label="Loading" />
+  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-scrim/50" role="status" aria-live="polite">
+    <div className="w-8 h-8 border-2 border-line border-t-line-strong rounded-full animate-spin" aria-label="Loading" />
   </div>
 );
 const StoreWizard = dynamic(() => import('@/components/restaurants/StoreWizard').then(m => m.StoreWizard), { ssr: false, loading: PanelLoading });
@@ -103,6 +103,8 @@ function StoresScreen() {
       setHasDraft(!!localStorage.getItem(DRAFT_KEY));
     } catch { /* storage unavailable */ }
     const params = new URLSearchParams(window.location.search);
+    // ?new=1 (header New > Store) opens the add-store wizard.
+    if (params.get('new') === '1') setWizard({ mode: 'create' });
     const sid = params.get('store');
     if (sid) setDrawer({ id: sid, tab: (params.get('tab') as DrawerTab) || 'overview' });
   }, []);
@@ -289,7 +291,7 @@ function StoresScreen() {
         <div className="space-y-2">
           <p>{active ? 'They become visible to customers right away.' : 'They disappear from the customer app and stop taking orders. Their Home banners are removed.'}</p>
           {empty > 0 && <Callout tone="amber">{empty} of them have no menu items yet.</Callout>}
-          <ul className="max-h-40 list-disc overflow-y-auto pl-5 text-gray-400">{targets.map(s => <li key={storeId(s)}>{s.name}</li>)}</ul>
+          <ul className="max-h-40 list-disc overflow-y-auto pl-5 text-fg-muted">{targets.map(s => <li key={storeId(s)}>{s.name}</li>)}</ul>
         </div>
       ),
       action: active ? 'Publish all' : 'Hide all',
@@ -320,7 +322,7 @@ function StoresScreen() {
       body: (
         <div className="space-y-2">
           <p>{open ? 'They start taking orders again right away.' : 'They stay visible but stop taking new orders until resumed.'}</p>
-          <ul className="max-h-40 list-disc overflow-y-auto pl-5 text-gray-400">{targets.map(s => <li key={storeId(s)}>{s.name}</li>)}</ul>
+          <ul className="max-h-40 list-disc overflow-y-auto pl-5 text-fg-muted">{targets.map(s => <li key={storeId(s)}>{s.name}</li>)}</ul>
         </div>
       ),
       action: open ? 'Resume all' : 'Pause all',
@@ -350,30 +352,29 @@ function StoresScreen() {
 
   const openWizard = (mode: 'create' | 'edit', id?: string, step?: StepKey) => setWizard({ mode, id, step });
 
-  if (!isAuthed) return <div className="p-10 text-center text-sm text-gray-400" role="status">Checking your admin session…</div>;
+  if (!isAuthed) return <div className="p-10 text-center text-sm text-fg-muted" role="status">Checking your admin session…</div>;
 
   const hiddenCount = statusCounts.draft + statusCounts.inactive;
   const kpis: { key: StatusFilter; label: string; value: number; tone: string; help: string }[] = [
-    { key: 'all', label: 'All stores', value: stores.length, tone: 'text-white', help: 'Every store, stall and service partner.' },
-    { key: 'hidden', label: 'Hidden / Inactive', value: hiddenCount, tone: 'text-red-300', help: 'Not visible to customers: drafts (never published, e.g. newly imported stores) plus stores that were switched off. Review them and switch them on.' },
-    { key: 'live', label: 'Live now', value: statusCounts.live, tone: 'text-emerald-300', help: STATUS_META.live.help },
-    { key: 'closed', label: 'Closed now', value: statusCounts.closed, tone: 'text-amber-300', help: STATUS_META.closed.help },
-    { key: 'draft', label: 'Drafts', value: statusCounts.draft, tone: 'text-gray-300', help: STATUS_META.draft.help },
-    { key: 'inactive', label: 'Inactive', value: statusCounts.inactive, tone: 'text-red-300', help: STATUS_META.inactive.help },
+    { key: 'all', label: 'All stores', value: stores.length, tone: 'text-fg', help: 'Every store, stall and service partner.' },
+    { key: 'hidden', label: 'Hidden / Inactive', value: hiddenCount, tone: 'text-danger-text', help: 'Not visible to customers: drafts (never published, e.g. newly imported stores) plus stores that were switched off. Review them and switch them on.' },
+    { key: 'live', label: 'Live now', value: statusCounts.live, tone: 'text-success-text', help: STATUS_META.live.help },
+    { key: 'closed', label: 'Closed now', value: statusCounts.closed, tone: 'text-warning-text', help: STATUS_META.closed.help },
+    { key: 'draft', label: 'Drafts', value: statusCounts.draft, tone: 'text-fg-muted', help: STATUS_META.draft.help },
+    { key: 'inactive', label: 'Inactive', value: statusCounts.inactive, tone: 'text-danger-text', help: STATUS_META.inactive.help },
   ];
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5 p-4 text-white sm:p-6 md:p-8">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-5">
+    <div className="mx-auto max-w-7xl space-y-5 text-fg">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Partners</p>
-          <h1 className="mt-1 text-2xl font-black">Stores &amp; menus</h1>
-          <p className="mt-2 max-w-2xl text-sm text-gray-400">Onboard restaurants, shops and campus stalls, manage their menus, hours and partner logins, and switch them on or off. Changes reach the customer app live.</p>
+          <h1 className="text-2xl font-semibold text-fg">Stores</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Onboard restaurants, shops and campus stalls, manage their menus, hours and partner logins, and switch them on or off. Changes reach the customer app live.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button onClick={() => { loadStores(); stats.reload(); }} disabled={loading} aria-label="Refresh stores">{loading ? 'Loading…' : '↻ Refresh'}</Button>
           <Button variant="primary" onClick={() => openWizard('create')}>
-            + Add store{hasDraft && <span className="rounded bg-black/25 px-1.5 py-0.5 text-[10px] font-semibold">draft saved</span>}
+            + Add store{hasDraft && <span className="rounded bg-surface-2 px-1.5 py-0.5 text-xs font-semibold">draft saved</span>}
           </Button>
         </div>
       </header>
@@ -387,49 +388,49 @@ function StoresScreen() {
             title={k.help}
             aria-pressed={filters.status === k.key}
             onClick={() => setF({ status: k.key })}
-            className={cx('rounded-xl border p-3 text-left transition-colors', filters.status === k.key ? 'border-emerald-500/50 bg-emerald-500/[0.06]' : 'border-white/10 bg-white/[0.02] hover:border-white/20', FOCUS_RING)}
+            className={cx('rounded-xl border p-3 text-left transition-colors', filters.status === k.key ? 'border-success/30 bg-success-soft' : 'border-line bg-surface-2/60 hover:border-line', FOCUS_RING)}
           >
-            <p className="text-[11px] text-gray-500">{k.label}</p>
-            <div className={cx('mt-0.5 text-2xl font-black', k.tone)}>{loading ? <Skeleton className="mt-1 h-6 w-10" /> : k.value}</div>
+            <p className="text-xs text-fg-muted">{k.label}</p>
+            <div className={cx('mt-0.5 text-2xl font-semibold', k.tone)}>{loading ? <Skeleton className="mt-1 h-6 w-10" /> : k.value}</div>
           </button>
         ))}
-        <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3" title="Non-cancelled orders placed today (IST)">
-          <p className="text-[11px] text-gray-500">Orders today</p>
-          <div className="mt-0.5 text-2xl font-black">{stats.loading ? <Skeleton className="mt-1 h-6 w-10" /> : stats.totals.todayOrders}</div>
+        <div className="rounded-xl border border-line bg-surface-2/60 p-3" title="Non-cancelled orders placed today (IST)">
+          <p className="text-xs text-fg-muted">Orders today</p>
+          <div className="mt-0.5 text-2xl font-semibold">{stats.loading ? <Skeleton className="mt-1 h-6 w-10" /> : stats.totals.todayOrders}</div>
         </div>
-        <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3" title="Item subtotal of today's non-cancelled orders">
-          <p className="text-[11px] text-gray-500">Sales today</p>
-          <div className="mt-0.5 text-2xl font-black text-emerald-300">{stats.loading ? <Skeleton className="mt-1 h-6 w-16" /> : formatINR(stats.totals.todayRevenue)}</div>
+        <div className="rounded-xl border border-line bg-surface-2/60 p-3" title="Item subtotal of today's non-cancelled orders">
+          <p className="text-xs text-fg-muted">Sales today</p>
+          <div className="mt-0.5 text-2xl font-semibold text-success-text">{stats.loading ? <Skeleton className="mt-1 h-6 w-16" /> : formatINR(stats.totals.todayRevenue)}</div>
         </div>
       </section>
       {!loading && hiddenCount > 0 && filters.status !== 'hidden' && (
         <Callout tone="amber">
           <span className="flex flex-wrap items-center justify-between gap-3">
             <span><b>{hiddenCount} store{hiddenCount === 1 ? ' is' : 's are'} hidden</b> from customers ({statusCounts.draft} never published, {statusCounts.inactive} switched off). Review and switch them on with the Live toggle.</span>
-            <button type="button" onClick={() => setFilters({ ...DEFAULT_FILTERS, status: 'hidden', sort: filters.sort })} className="font-bold underline">Show hidden stores</button>
+            <button type="button" onClick={() => setFilters({ ...DEFAULT_FILTERS, status: 'hidden', sort: filters.sort })} className="font-semibold underline">Show hidden stores</button>
           </span>
         </Callout>
       )}
       {stats.error && <Callout tone="amber">Order numbers are unavailable right now: {stats.error}</Callout>}
 
       {/* Toolbar */}
-      <section aria-label="Find stores" className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+      <section aria-label="Find stores" className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface-2/60 p-3">
         <div className="relative min-w-[220px] flex-1">
           <input ref={searchRef} value={filters.search} onChange={e => setF({ search: e.target.value })} placeholder="Search name, area, campus or cuisine" aria-label="Search stores" className={cx(INPUT, 'py-2 pr-10')} />
-          <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded border border-white/15 px-1.5 text-[10px] text-gray-500">/</kbd>
+          <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded border border-line px-1.5 text-xs text-fg-muted">/</kbd>
         </div>
-        <select value={filters.type} onChange={e => setF({ type: e.target.value })} aria-label="Store type" className={cx(INPUT, 'w-auto py-2')}>
+        <select value={filters.type} onChange={e => setF({ type: e.target.value })} aria-label="Store type" className={cx(INPUT.replace('w-full ', ''), 'w-auto py-2')}>
           <option value="ALL">All types</option>
           {typeOptions.map(([t, n]) => <option key={t} value={t}>{vendorLabel(t)} ({n})</option>)}
         </select>
-        <select value={filters.campus} onChange={e => setF({ campus: e.target.value })} aria-label="Campus" className={cx(INPUT, 'w-auto py-2')}>
+        <select value={filters.campus} onChange={e => setF({ campus: e.target.value })} aria-label="Campus" className={cx(INPUT.replace('w-full ', ''), 'w-auto py-2')}>
           <option value="ALL">All campuses</option>
           {campusOptions.map(([c, n]) => <option key={c} value={c}>{c} ({n})</option>)}
         </select>
-        <select value={filters.fssai} onChange={e => setF({ fssai: e.target.value as FssaiFilter })} aria-label="FSSAI licence" className={cx(INPUT, 'w-auto py-2')}>
+        <select value={filters.fssai} onChange={e => setF({ fssai: e.target.value as FssaiFilter })} aria-label="FSSAI licence" className={cx(INPUT.replace('w-full ', ''), 'w-auto py-2')}>
           {FSSAI_FILTERS.map(o => <option key={o.value} value={o.value}>{o.label}{o.value !== 'ALL' ? ` (${fssaiCounts[o.value]})` : ''}</option>)}
         </select>
-        <select value={filters.sort} onChange={e => setF({ sort: e.target.value as SortKey })} aria-label="Sort by" className={cx(INPUT, 'w-auto py-2')}>
+        <select value={filters.sort} onChange={e => setF({ sort: e.target.value as SortKey })} aria-label="Sort by" className={cx(INPUT.replace('w-full ', ''), 'w-auto py-2')}>
           {SORTS.map(s => <option key={s.value} value={s.value}>Sort: {s.label}</option>)}
         </select>
         {filtered && <Button size="sm" variant="ghost" onClick={() => setFilters({ ...DEFAULT_FILTERS, sort: filters.sort })}>Clear filters</Button>}
@@ -437,25 +438,25 @@ function StoresScreen() {
 
       {/* Bulk bar */}
       {selected.size > 0 && (
-        <div className="sticky top-2 z-20 flex flex-wrap items-center gap-2 rounded-xl border border-emerald-500/30 bg-[#0f1f19]/95 px-4 py-2.5 text-sm shadow-xl backdrop-blur" role="region" aria-label="Bulk actions">
-          <span className="font-semibold text-emerald-100">{selected.size} selected</span>
+        <div className="sticky top-2 z-20 flex flex-wrap items-center gap-2 rounded-xl border border-success/30 bg-surface px-4 py-2.5 text-sm" role="region" aria-label="Bulk actions">
+          <span className="font-semibold text-success-text">{selected.size} selected</span>
           <Button size="sm" onClick={() => bulkSetActive(true)}>Publish</Button>
           <Button size="sm" variant="danger" onClick={() => bulkSetActive(false)}>Hide</Button>
           <Button size="sm" onClick={() => bulkSetOpen(false)}>Pause orders</Button>
           <Button size="sm" onClick={() => bulkSetOpen(true)}>Resume orders</Button>
-          <button type="button" onClick={() => setSelected(new Set())} className="ml-auto text-xs font-semibold text-gray-400 hover:text-white">Clear selection</button>
+          <button type="button" onClick={() => setSelected(new Set())} className="ml-auto text-xs font-semibold text-fg-muted hover:text-fg">Clear selection</button>
         </div>
       )}
 
       {loadError && (
-        <Callout tone="red"><span className="flex items-center justify-between gap-3">{loadError}<button type="button" onClick={() => loadStores()} className="font-bold underline">Retry</button></span></Callout>
+        <Callout tone="red"><span className="flex items-center justify-between gap-3">{loadError}<button type="button" onClick={() => loadStores()} className="font-semibold underline">Retry</button></span></Callout>
       )}
 
       {/* List */}
       {loading ? (
         <div className="space-y-2" role="status" aria-label="Loading stores">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-4 rounded-xl border border-white/5 p-4">
+            <div key={i} className="flex items-center gap-4 rounded-xl border border-line p-4">
               <Skeleton className="h-12 w-12" />
               <div className="flex-1 space-y-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-3 w-1/2" /></div>
               <Skeleton className="hidden h-8 w-48 md:block" />
@@ -464,7 +465,7 @@ function StoresScreen() {
         </div>
       ) : !loadError && stores.length === 0 ? (
         <EmptyState
-          icon="🏪"
+          icon=""
           title="No partners yet"
           body="Add your first restaurant, shop or campus stall. The guided setup takes about 3 minutes; you can save a draft and finish later."
           action={<Button variant="primary" onClick={() => openWizard('create')}>+ Add your first store</Button>}
@@ -472,9 +473,9 @@ function StoresScreen() {
       ) : !loadError && visible.length === 0 ? (
         <EmptyState title="No stores match" body="Try another type, campus, status or search." action={<Button onClick={() => setFilters({ ...DEFAULT_FILTERS, sort: filters.sort })}>Clear filters</Button>} />
       ) : (
-        <section aria-label="Stores" className="overflow-hidden rounded-xl border border-white/10">
-          <div className="hidden items-center gap-4 border-b border-white/10 bg-white/[0.03] px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 lg:flex">
-            <input type="checkbox" className="h-4 w-4 accent-emerald-500" checked={allSelected} onChange={e => setSelected(e.target.checked ? new Set(visibleIds) : new Set())} aria-label="Select all shown stores" />
+        <section aria-label="Stores" className="overflow-hidden rounded-xl border border-line">
+          <div className="hidden items-center gap-4 border-b border-line bg-surface-2/60 px-4 py-2 text-xs font-semibold text-fg-muted lg:flex">
+            <input type="checkbox" className="h-4 w-4 accent-[rgb(var(--accent))]" checked={allSelected} onChange={e => setSelected(e.target.checked ? new Set(visibleIds) : new Set())} aria-label="Select all shown stores" />
             <span className="flex-1">{visible.length} store{visible.length === 1 ? '' : 's'}{filtered ? ` of ${stores.length}` : ''}</span>
             <span className="w-[260px] text-center">Today · Rating · Menu</span>
             <span className="w-[230px] text-center">Live · Open · Featured</span>
@@ -489,38 +490,38 @@ function StoresScreen() {
               const rating = Number(store.rating) || 0;
               const isBusy = !!busy[id];
               return (
-                <li key={id} className={cx('group flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 transition-colors hover:bg-white/[0.02]', selected.has(id) && 'bg-emerald-500/[0.04]', isFresh(id) && FRESH_ROW_CLASS)}>
-                  <input type="checkbox" className="h-4 w-4 accent-emerald-500" checked={selected.has(id)} onChange={() => setSelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; })} aria-label={`Select ${store.name}`} />
+                <li key={id} className={cx('group flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 transition-colors hover:bg-surface-2/60', selected.has(id) && 'bg-success-soft', isFresh(id) && FRESH_ROW_CLASS)}>
+                  <input type="checkbox" className="h-4 w-4 accent-[rgb(var(--accent))]" checked={selected.has(id)} onChange={() => setSelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; })} aria-label={`Select ${store.name}`} />
                   <button type="button" onClick={() => setDrawer({ id, tab: 'overview' })} className={cx('flex min-w-[220px] flex-1 items-center gap-3 rounded-lg text-left', FOCUS_RING)}>
                     <Thumb src={store.imageUrl} alt={store.name} />
                     <span className="min-w-0">
                       <span className="flex flex-wrap items-center gap-1.5">
-                        <span className="truncate font-bold group-hover:text-emerald-200">{store.name}</span>
+                        <span className="truncate font-semibold group-hover:text-success-text">{store.name}</span>
                         <Chip tone={STATUS_TONE[status]} dot title={status === 'closed' && store.closedReason ? store.closedReason : STATUS_META[status].help}>{status === 'closed' && store.isOpenNow === false ? 'Paused' : STATUS_META[status].label}</Chip>
-                        {store.isFeatured && <Chip tone="amber">✨ {store.featuredBadge || 'Featured'}</Chip>}
+                        {store.isFeatured && <Chip tone="amber">{store.featuredBadge || 'Featured'}</Chip>}
                         {store.isOffline && !local && <Chip title="No partner app; Zenvy handles orders">Managed</Chip>}
                         {local && <Chip tone="sky" title="Customers pay the stall cash; the stall delivers with Zenvy Vendor">Stall · COD</Chip>}
                         <FssaiChip store={store} />
                         {!store.hasPassword && !(store.isOffline && !local) && <Chip tone="amber" title={local ? 'The stall cannot see its orders until it can sign in to Zenvy Vendor' : 'The partner cannot sign in to accept orders'}>No login</Chip>}
                       </span>
-                      <span className="mt-0.5 block truncate text-xs text-gray-400">
+                      <span className="mt-0.5 block truncate text-xs text-fg-muted">
                         {vendorLabel(store.vendorType)} · {[store.location, store.campus].filter(Boolean).join(' · ')}
                       </span>
-                      <span className="mt-0.5 block truncate text-[11px] text-gray-500">{summarizeWeekly(weeklyFromStore(store.operatingHours))}{!local && store.deliveryTime ? ` · ${store.deliveryTime} min` : ''}</span>
+                      <span className="mt-0.5 block truncate text-xs text-fg-muted">{summarizeWeekly(weeklyFromStore(store.operatingHours))}{!local && store.deliveryTime ? ` · ${store.deliveryTime} min` : ''}</span>
                     </span>
                   </button>
 
                   <dl className="grid w-full grid-cols-4 gap-2 text-center sm:w-[260px]">
-                    <div title="Non-cancelled orders today (IST)"><dt className="text-[10px] text-gray-500">Orders</dt><dd className="text-sm font-bold">{stats.loading ? '…' : st.todayOrders}</dd></div>
-                    <div title="Item subtotal today"><dt className="text-[10px] text-gray-500">Sales</dt><dd className="text-sm font-bold text-emerald-300">{stats.loading ? '…' : formatINR(st.todayRevenue)}</dd></div>
-                    <div><dt className="text-[10px] text-gray-500">Rating</dt><dd className="text-sm font-bold">{rating > 0 ? `${rating.toFixed(1)}★` : <span className="text-gray-500">New</span>}</dd></div>
-                    <div><dt className="text-[10px] text-gray-500">Menu</dt><dd className={cx('text-sm font-bold', (store.itemCount ?? 0) === 0 && 'text-amber-300')}>{store.itemCount ?? 0}</dd></div>
+                    <div title="Non-cancelled orders today (IST)"><dt className="text-xs text-fg-muted">Orders</dt><dd className="text-sm font-semibold">{stats.loading ? '…' : st.todayOrders}</dd></div>
+                    <div title="Item subtotal today"><dt className="text-xs text-fg-muted">Sales</dt><dd className="text-sm font-semibold text-success-text">{stats.loading ? '…' : formatINR(st.todayRevenue)}</dd></div>
+                    <div><dt className="text-xs text-fg-muted">Rating</dt><dd className="text-sm font-semibold">{rating > 0 ? `${rating.toFixed(1)}★` : <span className="text-fg-muted">New</span>}</dd></div>
+                    <div><dt className="text-xs text-fg-muted">Menu</dt><dd className={cx('text-sm font-semibold', (store.itemCount ?? 0) === 0 && 'text-warning-text')}>{store.itemCount ?? 0}</dd></div>
                   </dl>
 
                   <div className="flex w-full items-center justify-around gap-3 sm:w-[230px]" onClick={e => e.stopPropagation()}>
                     <Toggle size="sm" srOnlyLabel label={`${store.name} visible to customers`} checked={store.isActive} disabled={isBusy} onChange={() => toggleActive(store)} />
                     <Toggle size="sm" srOnlyLabel label={`${store.name} taking orders`} checked={store.isOpenNow !== false} disabled={isBusy || !store.isActive} onChange={() => toggleOpen(store)} />
-                    {local ? <span className="w-9 text-center text-[10px] text-gray-600">—</span> : <Toggle size="sm" tone="amber" srOnlyLabel label={`${store.name} featured`} checked={!!store.isFeatured} disabled={isBusy} onChange={() => toggleFeatured(store)} />}
+                    {local ? <span className="w-9 text-center text-xs text-fg-subtle">—</span> : <Toggle size="sm" tone="amber" srOnlyLabel label={`${store.name} featured`} checked={!!store.isFeatured} disabled={isBusy} onChange={() => toggleFeatured(store)} />}
                   </div>
 
                   <div className="flex w-full items-center justify-end gap-2 sm:w-[120px]">
@@ -541,7 +542,7 @@ function StoresScreen() {
               );
             })}
           </ul>
-          <p className="border-t border-white/5 px-4 py-2 text-[11px] text-gray-500">
+          <p className="border-t border-line px-4 py-2 text-xs text-fg-muted">
             Toggles: <b>Live</b> = visible to customers · <b>Open</b> = taking orders (off pauses the store) · <b>Featured</b> = promoted on Home.
           </p>
         </section>
@@ -567,7 +568,7 @@ function StoresScreen() {
 
       {drawer && !drawerStore && !loading && (
         <Modal title="Store not found" size="sm" onClose={() => setDrawer(null)} footer={<Button onClick={() => setDrawer(null)}>Close</Button>}>
-          <p className="text-sm text-gray-400">This store may have been deleted, or the list is still refreshing.</p>
+          <p className="text-sm text-fg-muted">This store may have been deleted, or the list is still refreshing.</p>
         </Modal>
       )}
       {drawer && drawerStore && !wizard && (
@@ -597,7 +598,7 @@ function StoresScreen() {
           body={
             <div className="space-y-2">
               <p>This permanently removes the store, its <b>{deleting.itemCount ?? 0} menu items</b> and its partner login. Past orders keep their history. It cannot be undone.</p>
-              <p className="text-gray-400">Stores with orders still in progress cannot be deleted. To take it off the app for now, <button type="button" className="font-semibold text-emerald-300 underline" onClick={() => { const s = deleting; setDeleting(null); if (s.isActive) toggleActive(s); }}>hide it instead</button>.</p>
+              <p className="text-fg-muted">Stores with orders still in progress cannot be deleted. To take it off the app for now, <button type="button" className="font-semibold text-success-text underline" onClick={() => { const s = deleting; setDeleting(null); if (s.isActive) toggleActive(s); }}>hide it instead</button>.</p>
             </div>
           }
         />
@@ -664,7 +665,7 @@ function DuplicateModal({ store, existingNames, onClose, onDone }: { store: Stor
           {({ id, msgId, invalid }) => <input id={id} data-autofocus aria-describedby={msgId} aria-invalid={invalid} className={INPUT} value={name} maxLength={120} onChange={e => setName(e.target.value)} />}
         </Field>
         <Toggle checked={copyMenu} onChange={setCopyMenu} disabled={(store.itemCount ?? 0) === 0} label={`Copy the menu (${store.itemCount ?? 0} items)`} description="Prices, photos, categories and stock are copied." />
-        <p className="text-xs text-gray-500">Not copied: login password and phone, signed-in phones, rating, promotion, orders and payouts.</p>
+        <p className="text-xs text-fg-muted">Not copied: login password and phone, signed-in phones, rating, promotion, orders and payouts.</p>
         {error && <Callout tone="red">{error}</Callout>}
       </div>
     </Modal>

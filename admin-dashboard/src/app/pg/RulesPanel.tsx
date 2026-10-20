@@ -45,29 +45,29 @@ export function RulesPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Partia
 
   return (
     <div className="space-y-5">
-      <p className="text-xs text-gray-500">Shown under House rules on the PG page, grouped by category. Leave blank to hide.</p>
+      <p className="text-xs text-fg-muted">Shown under House rules on the PG page, grouped by category. Leave blank to hide.</p>
 
       {showLegacy && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-4 text-sm">
-          <p className="text-amber-200">This PG has {legacy.length} rule{legacy.length === 1 ? '' : 's'} from the older single list. Students see them under General until you save groups here.</p>
-          <button type="button" onClick={moveLegacy} className="rounded-lg border border-amber-500/40 px-3 py-1.5 text-xs font-semibold text-amber-100 hover:bg-amber-500/10">Move the existing {legacy.length} rule{legacy.length === 1 ? '' : 's'} into Other</button>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning-soft p-4 text-sm">
+          <p className="text-warning-text">This PG has {legacy.length} rule{legacy.length === 1 ? '' : 's'} from the older single list. Students see them under General until you save groups here.</p>
+          <button type="button" onClick={moveLegacy} className="rounded-lg border border-warning/30 px-3 py-1.5 text-xs font-semibold text-warning-text hover:bg-warning-soft">Move the existing {legacy.length} rule{legacy.length === 1 ? '' : 's'} into Other</button>
         </div>
       )}
 
       {ed.draft.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/10 p-8 text-center text-sm text-gray-400">No rule groups yet. Add a category below.</div>
+        <div className="rounded-xl border border-dashed border-line p-8 text-center text-sm text-fg-muted">No rule groups yet. Add a category below.</div>
       ) : (
         <div className="space-y-4">
           {ed.draft.map(g => (
-            <fieldset key={g.category} className={`space-y-3 rounded-xl border p-4 ${badCategory === g.category ? 'border-red-500/50' : 'border-white/10'}`}>
-              <legend className="px-1 text-sm font-bold text-blue-300">{RULE_CATEGORY_LABEL[g.category]}</legend>
+            <fieldset key={g.category} className={`space-y-3 rounded-xl border p-4 ${badCategory === g.category ? 'border-danger/30' : 'border-line'}`}>
+              <legend className="px-1 text-sm font-semibold text-info-text">{RULE_CATEGORY_LABEL[g.category]}</legend>
               <LineListEditor
                 id={`rules-${g.category}`} label={`${RULE_CATEGORY_LABEL[g.category]} rules`} items={g.rules} onChange={rules => setRules(g.category, rules)}
                 max={MAX_RULES_PER_GROUP} len={160} field={`${RULE_CATEGORY_LABEL[g.category]} rules`} numbered addLabel="Add rule"
                 placeholder="e.g. Visitors are allowed in the common area until 8:00 PM"
               />
               <div className="flex justify-end">
-                <button type="button" onClick={() => ed.update(d => d.filter(x => x.category !== g.category))} className="text-xs text-red-300/80 hover:text-red-300">Remove {RULE_CATEGORY_LABEL[g.category]}</button>
+                <button type="button" onClick={() => ed.update(d => d.filter(x => x.category !== g.category))} className="text-xs text-danger-text hover:text-danger-text">Remove {RULE_CATEGORY_LABEL[g.category]}</button>
               </div>
             </fieldset>
           ))}
@@ -76,19 +76,19 @@ export function RulesPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Partia
 
       {free.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <label htmlFor="pg-rule-category" className="text-xs text-gray-400">Add category</label>
+          <label htmlFor="pg-rule-category" className="text-xs text-fg-muted">Add category</label>
           <select id="pg-rule-category" className={`${FIELD} w-60`} value={pick} onChange={e => setAdding(e.target.value as RuleCategory)}>
             {free.map(c => <option key={c} value={c}>{RULE_CATEGORY_LABEL[c]}</option>)}
           </select>
-          <button type="button" disabled={!pick} onClick={() => { if (pick) addGroup(pick); setAdding(''); }} className="rounded-lg bg-white/10 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/15 disabled:opacity-40">Add</button>
+          <button type="button" disabled={!pick} onClick={() => { if (pick) addGroup(pick); setAdding(''); }} className="rounded-lg bg-surface-2 px-4 py-2.5 text-sm font-semibold text-fg hover:bg-surface-3 disabled:opacity-40">Add</button>
         </div>
       )}
 
       <AppPreview empty={!value.length}>
         {value.map(g => (
           <div key={g.category}>
-            <p className="font-semibold text-white">{RULE_CATEGORY_LABEL[g.category]}</p>
-            <ul className="mt-1 list-disc space-y-0.5 pl-5 text-gray-300">
+            <p className="font-semibold text-fg">{RULE_CATEGORY_LABEL[g.category]}</p>
+            <ul className="mt-1 list-disc space-y-0.5 pl-5 text-fg-muted">
               {g.rules.map(r => <li key={r}>{r}</li>)}
             </ul>
           </div>

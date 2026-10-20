@@ -60,26 +60,26 @@ export function ReviewsPanel({ pg, liveTick = 0 }: { pg: PGHostel; liveTick?: nu
 
   return (
     <div className="space-y-5">
-      <p className="text-xs text-gray-500">Only students with a confirmed stay can review. Hide reviews that break the rules; the reason is kept in the audit log.</p>
+      <p className="text-xs text-fg-muted">Only students with a confirmed stay can review. Hide reviews that break the rules; the reason is kept in the audit log.</p>
 
       <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Filter reviews">
         {FILTERS.map(([key, label]) => (
-          <button key={key} type="button" role="tab" aria-selected={filter === key} onClick={() => { setFilter(key); setMessage(null); }} className={`rounded-full border px-3 py-1 text-xs font-semibold ${filter === key ? 'border-white bg-white text-black' : 'border-white/10 text-gray-400 hover:text-white'}`}>{label}</button>
+          <button key={key} type="button" role="tab" aria-selected={filter === key} onClick={() => { setFilter(key); setMessage(null); }} className={`rounded-full border px-3 py-1 text-xs font-semibold ${filter === key ? 'border-line-strong bg-accent text-accent-fg' : 'border-line text-fg-muted hover:text-fg'}`}>{label}</button>
         ))}
-        <button type="button" disabled={loading} onClick={() => load()} className="ml-auto rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-gray-300 hover:text-white disabled:opacity-50">{loading ? 'Loading…' : 'Refresh'}</button>
+        <button type="button" disabled={loading} onClick={() => load()} className="ml-auto rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-50">{loading ? 'Loading…' : 'Refresh'}</button>
       </div>
 
-      {message && <p role={message.kind === 'error' ? 'alert' : 'status'} className={`text-sm ${message.kind === 'error' ? 'text-red-300' : 'text-emerald-300'}`}>{message.text}</p>}
+      {message && <p role={message.kind === 'error' ? 'alert' : 'status'} className={`text-sm ${message.kind === 'error' ? 'text-danger-text' : 'text-success-text'}`}>{message.text}</p>}
       {loadError && (
-        <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
-          {loadError}<button type="button" onClick={() => load()} className="font-bold underline">Retry</button>
+        <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger-text">
+          {loadError}<button type="button" onClick={() => load()} className="font-semibold underline">Retry</button>
         </div>
       )}
 
       {loading ? (
-        <div role="status" className="rounded-xl border border-white/10 p-8 text-sm text-gray-400">Loading reviews…</div>
+        <div role="status" className="rounded-xl border border-line p-8 text-sm text-fg-muted">Loading reviews…</div>
       ) : !loadError && reviews.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/10 p-8 text-center text-sm text-gray-400">
+        <div className="rounded-xl border border-dashed border-line p-8 text-center text-sm text-fg-muted">
           {filter === 'all' ? 'No reviews yet.' : filter === 'reported' ? 'No reported reviews.' : 'No hidden reviews.'}
         </div>
       ) : (
@@ -88,21 +88,21 @@ export function ReviewsPanel({ pg, liveTick = 0 }: { pg: PGHostel; liveTick?: nu
             const reasons = Array.from(new Set((r.reports || []).map(x => REVIEW_REPORT_LABEL[x.reason] || x.reason)));
             const hidden = r.status === 'hidden';
             return (
-              <li key={r.id} className={`space-y-2 rounded-xl border p-4 ${hidden ? 'border-white/5 bg-white/[0.015]' : r.reportCount > 0 ? 'border-amber-500/30' : 'border-white/10'}`}>
+              <li key={r.id} className={`space-y-2 rounded-xl border p-4 ${hidden ? 'border-line bg-surface-2/60' : r.reportCount > 0 ? 'border-warning/30' : 'border-line'}`}>
                 <div className="flex flex-wrap items-baseline justify-between gap-3">
-                  <p className="text-sm"><span className="font-bold text-white">{r.rating} of 5</span><span className="text-gray-400"> · {r.firstName || 'Resident'} · {formatDate(r.createdAt)}</span></p>
-                  <span className={`rounded border px-2 py-0.5 text-[11px] font-semibold ${hidden ? 'border-white/10 text-gray-400' : 'border-emerald-500/30 text-emerald-300'}`}>{hidden ? 'Hidden' : 'Visible'}</span>
+                  <p className="text-sm"><span className="font-semibold text-fg">{r.rating} of 5</span><span className="text-fg-muted"> · {r.firstName || 'Resident'} · {formatDate(r.createdAt)}</span></p>
+                  <span className={`rounded border px-2 py-0.5 text-xs font-semibold ${hidden ? 'border-line text-fg-muted' : 'border-success/30 text-success-text'}`}>{hidden ? 'Hidden' : 'Visible'}</span>
                 </div>
-                <p className="whitespace-pre-line text-sm text-gray-200">{r.text}</p>
+                <p className="whitespace-pre-line text-sm text-fg">{r.text}</p>
                 {r.reportCount > 0 && (
-                  <p className="text-xs text-amber-300">Reported {r.reportCount} time{r.reportCount === 1 ? '' : 's'}{reasons.length ? `: ${reasons.join(', ')}` : ''}</p>
+                  <p className="text-xs text-warning-text">Reported {r.reportCount} time{r.reportCount === 1 ? '' : 's'}{reasons.length ? `: ${reasons.join(', ')}` : ''}</p>
                 )}
-                {hidden && r.hiddenReason && <p className="text-xs text-gray-400">Hidden because: {r.hiddenReason}</p>}
+                {hidden && r.hiddenReason && <p className="text-xs text-fg-muted">Hidden because: {r.hiddenReason}</p>}
                 <div className="flex justify-end">
                   {hidden ? (
-                    <button type="button" disabled={!!busy[r.id]} onClick={() => setHidden(r, false)} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-gray-200 hover:bg-white/5 disabled:opacity-50">Show again</button>
+                    <button type="button" disabled={!!busy[r.id]} onClick={() => setHidden(r, false)} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg hover:bg-surface-2/60 disabled:opacity-50">Show again</button>
                   ) : (
-                    <button type="button" disabled={!!busy[r.id]} onClick={() => setHidden(r, true)} className="rounded-lg border border-red-500/30 px-3 py-1.5 text-xs font-semibold text-red-300 hover:bg-red-500/10 disabled:opacity-50">Hide</button>
+                    <button type="button" disabled={!!busy[r.id]} onClick={() => setHidden(r, true)} className="rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-semibold text-danger-text hover:bg-danger-soft disabled:opacity-50">Hide</button>
                   )}
                 </div>
               </li>

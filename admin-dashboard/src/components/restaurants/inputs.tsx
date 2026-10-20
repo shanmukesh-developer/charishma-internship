@@ -19,17 +19,17 @@ export function WeeklyHoursEditor({ value, onChange, error }: { value: Weekly; o
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2" aria-label="Quick presets">
         {PRESETS.map(p => (
-          <button key={p.label} type="button" onClick={() => applyPreset(p.start, p.end)} className={cx('rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-gray-300 hover:border-emerald-500/40 hover:text-white', FOCUS_RING)}>
+          <button key={p.label} type="button" onClick={() => applyPreset(p.start, p.end)} className={cx('rounded-full border border-line px-3 py-1 text-xs font-semibold text-fg-muted hover:border-success/30 hover:text-fg', FOCUS_RING)}>
             {p.label}
           </button>
         ))}
       </div>
-      <div className="divide-y divide-white/5 overflow-hidden rounded-xl border border-white/10" role="group" aria-label="Opening hours by day">
+      <div className="divide-y divide-line overflow-hidden rounded-xl border border-line" role="group" aria-label="Opening hours by day">
         {DAYS.map(d => {
           const day = value[d];
           const overnight = day.open && day.start !== day.end && day.end < day.start;
           return (
-            <div key={d} className={cx('flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2.5', !day.open && 'bg-white/[0.015]')}>
+            <div key={d} className={cx('flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2.5', !day.open && 'bg-surface-2/60')}>
               <div className="w-28 shrink-0">
                 <Toggle size="sm" checked={day.open} onChange={open => setDay(d, { open })} label={<span className="text-sm">{DAY_SHORT[d]}</span>} />
               </div>
@@ -37,28 +37,28 @@ export function WeeklyHoursEditor({ value, onChange, error }: { value: Weekly; o
                 <>
                   <div className="flex items-center gap-2">
                     <input type="time" aria-label={`${DAY_LABEL[d]} opens at`} className={cx(INPUT, 'w-[124px] py-1.5')} value={day.start} onChange={e => setDay(d, { start: e.target.value })} />
-                    <span className="text-xs text-gray-500">to</span>
+                    <span className="text-xs text-fg-muted">to</span>
                     <input type="time" aria-label={`${DAY_LABEL[d]} closes at`} className={cx(INPUT, 'w-[124px] py-1.5')} value={day.end} onChange={e => setDay(d, { end: e.target.value })} />
                   </div>
-                  <span className="text-xs text-gray-500">{day.start === day.end ? 'Open 24 h' : overnight ? 'Closes next day' : ''}</span>
+                  <span className="text-xs text-fg-muted">{day.start === day.end ? 'Open 24 h' : overnight ? 'Closes next day' : ''}</span>
                 </>
               ) : (
-                <span className="text-sm text-gray-500">Closed all day</span>
+                <span className="text-sm text-fg-muted">Closed all day</span>
               )}
-              <button type="button" onClick={() => copyToAll(d)} className={cx('ml-auto rounded-md px-2 py-1 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/10', FOCUS_RING)} aria-label={`Copy ${DAY_LABEL[d]} hours to every day`}>
+              <button type="button" onClick={() => copyToAll(d)} className={cx('ml-auto rounded-md px-2 py-1 text-xs font-semibold text-success-text hover:bg-success-soft', FOCUS_RING)} aria-label={`Copy ${DAY_LABEL[d]} hours to every day`}>
                 Copy to all days
               </button>
             </div>
           );
         })}
       </div>
-      <p className="text-xs text-gray-400"><span className="font-semibold text-gray-300">Summary:</span> {summarizeWeekly(value)}. Times are IST.</p>
+      <p className="text-xs text-fg-muted"><span className="font-semibold text-fg-muted">Summary:</span> {summarizeWeekly(value)}. Times are IST.</p>
       {!isUniform(value) && (
-        <p className="text-xs leading-relaxed text-gray-500">
+        <p className="text-xs leading-relaxed text-fg-muted">
           Per-day hours: the app opens and closes the store by each day&apos;s window, and shows the next open day when it is closed.
         </p>
       )}
-      {error && <p role="alert" className="text-xs text-red-300">{error}</p>}
+      {error && <p role="alert" className="text-xs text-danger-text">{error}</p>}
     </div>
   );
 }
@@ -105,33 +105,33 @@ export function ImagePicker({ value, onChange, preset, label, hint, aspect = 'as
         onDragOver={e => { e.preventDefault(); setDrag(true); }}
         onDragLeave={() => setDrag(false)}
         onDrop={onDrop}
-        className={cx('relative overflow-hidden rounded-xl border-2 border-dashed transition-colors', aspect, drag ? 'border-emerald-400 bg-emerald-500/5' : 'border-white/10 bg-white/[0.02]')}
+        className={cx('relative overflow-hidden rounded-xl border-2 border-dashed transition-colors', aspect, drag ? 'border-success/30 bg-success-soft' : 'border-line bg-surface-2/60')}
       >
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={value} alt={`${label} preview`} className="absolute inset-0 h-full w-full object-cover" />
         ) : (
           <button type="button" onClick={() => input.current?.click()} className={cx('absolute inset-0 flex flex-col items-center justify-center gap-1 p-3 text-center', FOCUS_RING)}>
-            <span aria-hidden className="text-2xl">🖼️</span>
-            <span className="text-sm font-semibold text-gray-200">Drop a photo or click to upload</span>
-            <span className="text-xs text-gray-500">{hint}</span>
+            <span aria-hidden className="text-2xl"></span>
+            <span className="text-sm font-semibold text-fg">Drop a photo or click to upload</span>
+            <span className="text-xs text-fg-muted">{hint}</span>
           </button>
         )}
         {busy && (
-          <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/60 text-sm text-white" role="status"><Spinner /> Resizing &amp; uploading…</div>
+          <div className="absolute inset-0 flex items-center justify-center gap-2 bg-surface-2 text-sm text-fg" role="status"><Spinner /> Resizing &amp; uploading…</div>
         )}
       </div>
       <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => { handle(e.target.files?.[0]); e.target.value = ''; }} aria-label={`Upload ${label}`} />
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" onClick={() => input.current?.click()} disabled={busy}>{value ? 'Replace' : 'Upload'}</Button>
         {value && <Button size="sm" variant="ghost" onClick={() => onChange('')} disabled={busy}>Remove</Button>}
-        <button type="button" onClick={() => setUrlMode(m => !m)} className="text-xs font-semibold text-gray-400 hover:text-white">{urlMode ? 'Hide link field' : 'Use an image link instead'}</button>
-        <span className="ml-auto text-[11px] text-gray-600">Auto-resized to {maxW}×{maxH}</span>
+        <button type="button" onClick={() => setUrlMode(m => !m)} className="text-xs font-semibold text-fg-muted hover:text-fg">{urlMode ? 'Hide link field' : 'Use an image link instead'}</button>
+        <span className="ml-auto text-xs text-fg-subtle">Auto-resized to {maxW}×{maxH}</span>
       </div>
       {urlMode && (
         <input className={INPUT} aria-label={`${label} image link`} placeholder="https://…" value={value.startsWith('data:') ? '' : value} onChange={e => onChange(e.target.value.trim())} />
       )}
-      {err && <p role="alert" className="text-xs text-red-300">{err}</p>}
+      {err && <p role="alert" className="text-xs text-danger-text">{err}</p>}
     </div>
   );
 }
@@ -156,17 +156,17 @@ export function TagInput({ value, onChange, suggestions = [], id, describedBy, p
   const unused = suggestions.filter(s => !value.some(v => v.toLowerCase() === s.toLowerCase())).slice(0, 8);
   return (
     <div className="space-y-2">
-      <div className="flex min-h-[44px] flex-wrap items-center gap-1.5 rounded-lg border border-white/10 bg-[#111318] px-2 py-1.5 focus-within:border-emerald-500/60 focus-within:ring-2 focus-within:ring-emerald-500/20">
+      <div className="flex min-h-[44px] flex-wrap items-center gap-1.5 rounded-lg border border-line bg-surface px-2 py-1.5 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30">
         {value.map(t => (
-          <span key={t} className="inline-flex items-center gap-1 rounded-md bg-white/10 px-2 py-0.5 text-xs text-gray-200">
+          <span key={t} className="inline-flex items-center gap-1 rounded-md bg-surface-2 px-2 py-0.5 text-xs text-fg">
             {t}
-            <button type="button" onClick={() => onChange(value.filter(x => x !== t))} aria-label={`Remove ${t}`} className="text-gray-400 hover:text-white">×</button>
+            <button type="button" onClick={() => onChange(value.filter(x => x !== t))} aria-label={`Remove ${t}`} className="text-fg-muted hover:text-fg">×</button>
           </span>
         ))}
         <input
           id={id}
           aria-describedby={describedBy}
-          className="min-w-[120px] flex-1 bg-transparent px-1 py-1 text-sm text-white outline-none placeholder:text-gray-600"
+          className="min-w-[120px] flex-1 bg-transparent px-1 py-1 text-sm text-fg outline-none placeholder:text-fg-subtle"
           value={draft}
           placeholder={value.length ? '' : placeholder}
           onChange={e => setDraft(e.target.value)}
@@ -177,7 +177,7 @@ export function TagInput({ value, onChange, suggestions = [], id, describedBy, p
       {unused.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {unused.map(s => (
-            <button key={s} type="button" onClick={() => add(s)} className={cx('rounded-full border border-white/10 px-2 py-0.5 text-[11px] text-gray-400 hover:border-emerald-500/40 hover:text-white', FOCUS_RING)}>+ {s}</button>
+            <button key={s} type="button" onClick={() => add(s)} className={cx('rounded-full border border-line px-2 py-0.5 text-xs text-fg-muted hover:border-success/30 hover:text-fg', FOCUS_RING)}>+ {s}</button>
           ))}
         </div>
       )}

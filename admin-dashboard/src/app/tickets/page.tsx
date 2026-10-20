@@ -134,19 +134,19 @@ export default function SupportTickets() {
   };
 
   const getSlaStatus = (breachAt: string | null) => {
-    if (!breachAt) return { text: 'No SLA', color: 'text-zinc-500' };
+    if (!breachAt) return { text: 'No SLA', color: 'text-fg-muted' };
     const diffMs = new Date(breachAt).getTime() - Date.now();
-    if (diffMs < 0) return { text: 'BREACHED', color: 'text-red-500 font-bold bg-red-500/10 px-2 py-1 rounded border border-red-500/20' };
+    if (diffMs < 0) return { text: 'BREACHED', color: 'text-danger-text font-semibold bg-danger-soft px-2 py-1 rounded border border-danger/30' };
     const hours = Math.floor(diffMs / 3600000);
     const mins = Math.floor((diffMs % 3600000) / 60000);
-    return { text: `${hours}h ${mins}m left`, color: hours < 2 ? 'text-amber-500' : 'text-emerald-500' };
+    return { text: `${hours}h ${mins}m left`, color: hours < 2 ? 'text-warning-text' : 'text-success-text' };
   };
 
   const priorityColors: Record<string, string> = {
-    Critical: 'text-red-500',
-    High: 'text-orange-400',
-    Medium: 'text-amber-400',
-    Low: 'text-emerald-500',
+    Critical: 'text-danger-text',
+    High: 'text-warning-text',
+    Medium: 'text-warning-text',
+    Low: 'text-success-text',
   };
 
   const isActive = (t: Ticket) => t.status === 'Open' || t.status === 'In Progress';
@@ -158,14 +158,14 @@ export default function SupportTickets() {
   // 30 ticket cards per page: typing a reply re-renders the list, so keep it short.
   const pager = usePagedRows(visible, 30, filter);
 
-  if (!isAuthed) return <div className="p-20 text-center font-black text-white uppercase tracking-widest animate-pulse">Checking access…</div>;
+  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap gap-4 items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black tracking-tighter text-white">Support Tickets</h1>
-          <p className="text-[11px] text-gray-500 uppercase tracking-widest mt-1">
+          <h1 className="text-2xl font-semibold text-fg">Support tickets</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">
             {activeCount} Active &middot; {tickets.length} Total
           </p>
         </div>
@@ -174,78 +174,78 @@ export default function SupportTickets() {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filter === f ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${filter === f ? 'bg-accent text-on-solid' : 'bg-surface-2 text-fg-muted hover:text-fg'}`}
             >
               {f === 'active' ? 'Active' : f === 'all' ? 'All' : f}
             </button>
           ))}
-          <button onClick={() => { setLoading(true); fetchTickets(); }} disabled={loading} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-zinc-800 text-zinc-300 hover:text-white disabled:opacity-40">Refresh</button>
+          <button onClick={() => { setLoading(true); fetchTickets(); }} disabled={loading} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface-2 text-fg-muted hover:text-fg disabled:opacity-40">Refresh</button>
         </div>
       </div>
 
       {loadError && (
-        <div role="alert" className="flex items-center justify-between gap-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-6 py-4 text-sm font-bold text-red-300">
+        <div role="alert" className="flex items-center justify-between gap-4 rounded-lg border border-danger/30 bg-danger-soft px-6 py-4 text-sm font-semibold text-danger-text">
           <span>{loadError}</span>
-          <button onClick={() => { setLoading(true); fetchTickets(); }} className="text-xs uppercase tracking-widest text-white hover:underline">Retry</button>
+          <button onClick={() => { setLoading(true); fetchTickets(); }} className="text-xs text-fg hover:underline">Retry</button>
         </div>
       )}
 
       <div className="grid gap-4">
         {loading && tickets.length === 0 ? (
-          <div className="p-12 text-center text-zinc-500 animate-pulse font-bold">Loading tickets…</div>
+          <div className="p-12 text-center text-fg-muted animate-pulse font-semibold">Loading tickets…</div>
         ) : pager.visible.map(ticket => {
           const sla = getSlaStatus(ticket.slaBreachAt);
           const saving = savingId === ticket.id;
           const draft = replies[ticket.id] ?? '';
           return (
-            <div key={ticket.id} className={`bg-zinc-900 border border-zinc-800 p-6 rounded-2xl flex flex-col gap-4 hover:border-zinc-700 transition-colors ${isFresh(ticket.id) ? FRESH_ROW_CLASS : ''}`}>
+            <div key={ticket.id} className={`bg-surface-2 border border-line p-6 rounded-lg flex flex-col gap-4 hover:border-line transition-colors ${isFresh(ticket.id) ? FRESH_ROW_CLASS : ''}`}>
               <div className="flex flex-wrap gap-3 justify-between items-start">
                 <div className="min-w-0">
-                  <h3 className="text-lg font-bold text-white break-words">{ticket.subject}</h3>
-                  <p className="text-sm text-zinc-400 mt-0.5">
-                    <span className="font-bold">{ticket.user?.name || 'Customer'}</span>
+                  <h3 className="text-lg font-semibold text-fg break-words">{ticket.subject}</h3>
+                  <p className="text-sm text-fg-muted mt-0.5">
+                    <span className="font-semibold">{ticket.user?.name || 'Customer'}</span>
                     {ticket.user?.phone && (
-                      <a href={`tel:${ticket.user.phone}`} className="text-sky-400 hover:text-sky-300 ml-2 font-mono text-xs">
+                      <a href={`tel:${ticket.user.phone}`} className="text-info-text hover:text-info-text ml-2 font-mono text-xs">
                         {ticket.user.phone}
                       </a>
                     )}
-                    <span className="text-zinc-600 font-mono ml-2 text-[10px]">#{ticket.id.slice(0, 8)}</span>
-                    {ticket.orderId && <span className="text-zinc-500 font-mono ml-2 text-[10px]">Order #{ticket.orderId.slice(-6).toUpperCase()}</span>}
+                    <span className="text-fg-subtle font-mono ml-2 text-xs">#{ticket.id.slice(0, 8)}</span>
+                    {ticket.orderId && <span className="text-fg-muted font-mono ml-2 text-xs">Order #{ticket.orderId.slice(-6).toUpperCase()}</span>}
                   </p>
-                  <p className="text-[10px] text-zinc-600 mt-1">Opened {new Date(ticket.createdAt).toLocaleString()}</p>
+                  <p className="text-xs text-fg-subtle mt-1">Opened {new Date(ticket.createdAt).toLocaleString()}</p>
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  <span className={`text-[10px] uppercase tracking-widest font-black ${priorityColors[ticket.priority] || 'text-blue-500'}`}>
+                  <span className={`text-xs font-semibold ${priorityColors[ticket.priority] || 'text-info-text'}`}>
                     {ticket.priority} Priority
                   </span>
                   {isActive(ticket) && (
-                    <span className={`text-[12px] uppercase tracking-widest ${sla.color}`}>SLA: {sla.text}</span>
+                    <span className={`text-xs ${sla.color}`}>SLA: {sla.text}</span>
                   )}
                 </div>
               </div>
 
-              <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800/50">
-                <p className="text-sm text-zinc-300 whitespace-pre-wrap break-words">{ticket.description}</p>
+              <div className="bg-surface-2 p-4 rounded-xl border border-line">
+                <p className="text-sm text-fg-muted whitespace-pre-wrap break-words">{ticket.description}</p>
               </div>
 
               {ticket.adminResponse && (
-                <div className="bg-blue-500/5 p-4 rounded-xl border border-blue-500/20">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-blue-400 mb-1">Last reply sent to customer</p>
-                  <p className="text-sm text-zinc-300 whitespace-pre-wrap break-words">{ticket.adminResponse}</p>
+                <div className="bg-info-soft p-4 rounded-xl border border-info/30">
+                  <p className="text-xs font-semibold text-info-text mb-1">Last reply sent to customer</p>
+                  <p className="text-sm text-fg-muted whitespace-pre-wrap break-words">{ticket.adminResponse}</p>
                 </div>
               )}
 
-              <div className="bg-zinc-950/60 border border-blue-500/20 rounded-xl p-4 space-y-3">
+              <div className="bg-surface-2 border border-info/30 rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-blue-400">Reply (customer gets a push notification)</p>
+                  <p className="text-xs font-semibold text-info-text">Reply (customer gets a push notification)</p>
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[8px] font-black uppercase text-zinc-500 tracking-wider">Quick insert:</span>
+                    <span className="text-xs font-semibold text-fg-muted">Quick insert:</span>
                     {QUICK_REPLIES.map(tpl => (
                       <button
                         key={tpl.label}
                         type="button"
                         onClick={() => setReplies(prev => ({ ...prev, [ticket.id]: tpl.text }))}
-                        className="text-[9px] font-bold px-2 py-0.5 bg-white/5 hover:bg-white/10 text-zinc-300 rounded border border-white/10 transition-colors"
+                        className="text-xs font-semibold px-2 py-0.5 bg-surface-2/60 hover:bg-surface-2 text-fg-muted rounded border border-line transition-colors"
                       >
                         {tpl.label}
                       </button>
@@ -258,30 +258,30 @@ export default function SupportTickets() {
                   value={draft}
                   onChange={e => setReplies(prev => ({ ...prev, [ticket.id]: e.target.value }))}
                   placeholder="Type your response to the customer or pick a quick insert above…"
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 outline-none focus:border-blue-500/60 resize-none transition-all"
+                  className="w-full bg-surface-2 border border-line rounded-xl px-4 py-3 text-sm text-fg placeholder:text-fg-subtle outline-none focus:border-accent resize-none transition-all"
                 />
                 <button
                   onClick={() => sendReply(ticket)}
                   disabled={!!savingId || !draft.trim()}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all"
+                  className="px-5 py-2 bg-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed text-on-solid text-xs font-semibold rounded-lg transition-all"
                 >
                   {saving ? 'Sending…' : 'Send reply'}
                 </button>
               </div>
 
-              {rowError[ticket.id] && <p role="alert" className="text-sm font-bold text-red-400">{rowError[ticket.id]}</p>}
+              {rowError[ticket.id] && <p role="alert" className="text-sm font-semibold text-danger-text">{rowError[ticket.id]}</p>}
 
               <div className="flex gap-2 items-center flex-wrap">
-                <span className="text-xs font-bold text-zinc-500">Status:</span>
+                <span className="text-xs font-semibold text-fg-muted">Status:</span>
                 {STATUSES.map(status => (
                   <button
                     key={status}
                     onClick={() => updateStatus(ticket, status)}
                     disabled={ticket.status === status || !!savingId}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:cursor-not-allowed ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:cursor-not-allowed ${
                       ticket.status === status
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700 disabled:opacity-50'
+                        ? 'bg-accent text-on-solid'
+                        : 'bg-surface-2 text-fg-muted hover:text-fg hover:bg-surface-2 disabled:opacity-50'
                     }`}
                   >
                     {status}
@@ -293,7 +293,7 @@ export default function SupportTickets() {
         })}
         <ListPager page={pager.page} pages={pager.pages} total={pager.total} pageSize={pager.pageSize} onPage={pager.setPage} noun="tickets" />
         {!loading && !loadError && visible.length === 0 && (
-          <div className="p-12 text-center text-zinc-500 bg-zinc-900/50 rounded-2xl border border-zinc-800/50">
+          <div className="p-12 text-center text-fg-muted bg-surface-2 rounded-lg border border-line">
             {tickets.length === 0 ? 'No support tickets yet.' : 'No tickets match this filter.'}
           </div>
         )}

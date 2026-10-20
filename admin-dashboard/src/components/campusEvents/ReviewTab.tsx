@@ -24,18 +24,18 @@ export default function ReviewTab({ tick, onChanged }: { tick: number; onChanged
 
   return (
     <section className="grid gap-5 lg:grid-cols-[320px_1fr]" aria-label="Review queue">
-      <ul className="max-h-[75vh] divide-y divide-white/10 overflow-y-auto border border-white/10">
+      <ul className="max-h-[75vh] divide-y divide-line overflow-y-auto border border-line">
         {rows.map((ev) => {
           const kind = ev.status === 'SUBMITTED' ? 'New event' : 'Changes requested';
           const pii = (ev.questions || []).some((q) => sensitiveQuestion(q.label));
           return (
             <li key={ev.id}>
               <button type="button" onClick={() => { setSelId(ev.id); setMsg(null); }} aria-current={ev.id === selId}
-                className={`w-full p-3 text-left hover:bg-white/[0.03] ${ev.id === selId ? 'bg-sky-400/10' : ''}`}>
-                <p className="text-xs font-bold uppercase tracking-wider text-sky-300">{kind}{pii && <span className="ml-2 text-red-300">⚠ PII question</span>}</p>
-                <p className="mt-1 font-bold">{ev.title}</p>
-                <p className="text-xs text-gray-400">{catLabel(ev.category)} · {ev.organizer?.name || ev.organizerName} · starts {when(ev.startAt)}</p>
-                <p className="text-xs text-gray-500">{ev.status === 'SUBMITTED' ? `Submitted ${when(ev.submittedAt)}` : `Asked ${when(ev.pendingChanges?.requestedAt)}`}</p>
+                className={`w-full p-3 text-left hover:bg-surface-2/60 ${ev.id === selId ? 'bg-info-soft' : ''}`}>
+                <p className="text-xs font-semibold text-info-text">{kind}{pii && <span className="ml-2 text-danger-text">PII question</span>}</p>
+                <p className="mt-1 font-semibold">{ev.title}</p>
+                <p className="text-xs text-fg-muted">{catLabel(ev.category)} · {ev.organizer?.name || ev.organizerName} · starts {when(ev.startAt)}</p>
+                <p className="text-xs text-fg-muted">{ev.status === 'SUBMITTED' ? `Submitted ${when(ev.submittedAt)}` : `Asked ${when(ev.pendingChanges?.requestedAt)}`}</p>
               </button>
             </li>
           );
@@ -77,7 +77,7 @@ function ReviewDetail({ ev, tick, done }: { ev: AdminEvent; tick: number; done: 
   return (
     <div className="space-y-4">
       {submitted && (
-        <div className="flex flex-wrap gap-2 border border-white/10 bg-white/[0.02] p-4">
+        <div className="flex flex-wrap gap-2 border border-line bg-surface-2/60 p-4">
           <Btn tone="good" onClick={() => { setPublishAt(''); setNote(''); setAction('approve'); }}>Approve</Btn>
           <Btn onClick={() => setAction('changes')}>Request changes</Btn>
           <Btn tone="bad" onClick={() => setAction('reject')}>Reject</Btn>
@@ -102,13 +102,13 @@ function ReviewDetail({ ev, tick, done }: { ev: AdminEvent; tick: number; done: 
           body={action === 'approve' ? (
             <>
               <p>Without a publish time the event goes live for students right away (if Campus Events is on).</p>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400">Publish at (optional, your local time)
+              <label className="block text-xs font-semibold text-fg-muted">Publish at (optional, your local time)
                 <input type="datetime-local" value={publishAt} onChange={(e) => setPublishAt(e.target.value)} className={`${inputCls} mt-1`} />
               </label>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400">Note to the organizer (optional)
+              <label className="block text-xs font-semibold text-fg-muted">Note to the organizer (optional)
                 <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} rows={2} className={`${inputCls} mt-1`} />
               </label>
-              {(ev.questions || []).some((q) => sensitiveQuestion(q.label)) && <p className="font-bold text-red-300">⚠ This event has a question that may collect personal ID / phone data.</p>}
+              {(ev.questions || []).some((q) => sensitiveQuestion(q.label)) && <p className="font-semibold text-danger-text">This event has a question that may collect personal ID / phone data.</p>}
             </>
           ) : action === 'changes_approve' ? <p>The new values apply at once. Venue or time changes notify every registrant; extra capacity promotes the waitlist.</p> : undefined}
           onCancel={() => setAction(null)} onConfirm={run} />

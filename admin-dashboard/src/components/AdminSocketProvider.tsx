@@ -174,10 +174,10 @@ export default function AdminSocketProvider({ children }: { children: React.Reac
     <SocketContext.Provider value={value}>
       {children}
       {toasts.length > 0 && (
-        <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none" role="status" aria-live="polite">
+        <div className="fixed bottom-4 left-4 z-[190] flex flex-col gap-2 pointer-events-none lg:left-64" role="status" aria-live="polite">
           {toasts.map(t => (
-            <div key={t.id} className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-black/85 px-4 py-2.5 text-xs font-bold text-emerald-300 shadow-lg backdrop-blur">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            <div key={t.id} className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-fg shadow-pop animate-zv-pop-in">
+              <span className="h-2 w-2 rounded-full bg-success" aria-hidden />
               {t.text}
             </div>
           ))}

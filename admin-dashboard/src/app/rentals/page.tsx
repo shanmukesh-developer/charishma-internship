@@ -65,22 +65,27 @@ const when = (v?: string | null) => {
 };
 const errText = (e: unknown, fallback: string) => (e instanceof Error ? e.message : fallback);
 const statusTone: Record<string, string> = {
-  PENDING_REVIEW: 'text-amber-300 border-amber-400/30', PENDING: 'text-amber-300 border-amber-400/30', REQUESTED: 'text-amber-300 border-amber-400/30', OPEN: 'text-amber-300 border-amber-400/30',
-  APPROVED: 'text-emerald-300 border-emerald-400/30', VERIFIED: 'text-emerald-300 border-emerald-400/30', ACCEPTED: 'text-emerald-300 border-emerald-400/30', COMPLETED: 'text-emerald-300 border-emerald-400/30', RESOLVED: 'text-emerald-300 border-emerald-400/30',
-  ACTIVE: 'text-sky-300 border-sky-400/30', RETURNED: 'text-violet-300 border-violet-400/30', REVIEWING: 'text-sky-300 border-sky-400/30', PAUSED: 'text-indigo-300 border-indigo-400/30',
-  REJECTED: 'text-red-300 border-red-400/30', DECLINED: 'text-red-300 border-red-400/30',
+  PENDING_REVIEW: 'text-warning-text border-warning/30', PENDING: 'text-warning-text border-warning/30', REQUESTED: 'text-warning-text border-warning/30', OPEN: 'text-warning-text border-warning/30',
+  APPROVED: 'text-success-text border-success/30', VERIFIED: 'text-success-text border-success/30', ACCEPTED: 'text-success-text border-success/30', COMPLETED: 'text-success-text border-success/30', RESOLVED: 'text-success-text border-success/30',
+  ACTIVE: 'text-info-text border-info/30', RETURNED: 'text-accent-text border-accent/30', REVIEWING: 'text-info-text border-info/30', PAUSED: 'text-accent-text border-accent/30',
+  REJECTED: 'text-danger-text border-danger/30', DECLINED: 'text-danger-text border-danger/30',
 };
-const Pill = ({ s }: { s: string }) => <span className={`border px-2 py-0.5 text-xs font-bold ${statusTone[s] || 'text-gray-300 border-white/10'}`}>{label(s)}</span>;
+const Pill = ({ s }: { s: string }) => <span className={`border px-2 py-0.5 text-xs font-semibold ${statusTone[s] || 'text-fg-muted border-line'}`}>{label(s)}</span>;
 // C7 wording: RENT (commercial plate) -> owner / renter; BORROW (private plate) -> lender / borrower.
 const WORDS: Record<Mode, { giver: string; taker: string; verb: string }> = { RENT: { giver: 'Owner', taker: 'Renter', verb: 'Rent' }, BORROW: { giver: 'Lender', taker: 'Borrower', verb: 'Borrow' } };
 const wordsOf = (m?: Mode | null) => WORDS[m === 'RENT' ? 'RENT' : 'BORROW'];
 const ModePill = ({ m }: { m?: Mode | null }) => (
-  <span className={`border px-2 py-0.5 text-xs font-bold ${m === 'RENT' ? 'border-amber-400/40 text-amber-300' : 'border-emerald-400/40 text-emerald-300'}`}>{m === 'RENT' ? 'RENT' : 'BORROW'}</span>
+  <span className={`border px-2 py-0.5 text-xs font-semibold ${m === 'RENT' ? 'border-warning/30 text-warning-text' : 'border-success/30 text-success-text'}`}>{m === 'RENT' ? 'RENT' : 'BORROW'}</span>
 );
 
 export default function RentalsAdminPage() {
   const { isAuthed } = useAdminAuth();
   const [tab, setTab] = useState<Tab>('listings');
+  // ?tab=<id>: links from the overview's Needs attention list and the global search open the right tab.
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('tab');
+    if (t && (['listings', 'licences', 'bookings', 'reports', 'disputes', 'settings'] as readonly string[]).includes(t)) setTab(t as Tab);
+  }, []);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [summaryError, setSummaryError] = useState('');
   const [tick, setTick] = useState(0);
@@ -123,7 +128,7 @@ export default function RentalsAdminPage() {
     }
   };
 
-  if (!isAuthed) return <div className="p-10 text-center text-sm text-gray-400" role="status">Checking your admin session…</div>;
+  if (!isAuthed) return <div className="p-10 text-center text-sm text-fg-muted" role="status">Checking your admin session…</div>;
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: 'listings', label: 'Listings review', count: summary?.pendingListings },
@@ -135,31 +140,30 @@ export default function RentalsAdminPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-6 text-white md:p-8">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-5">
+    <div className="mx-auto max-w-7xl space-y-6 text-fg">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-sky-400">Campus Operations</p>
-          <h1 className="mt-1 text-2xl font-black">Student Vehicle Rentals</h1>
-          <p className="mt-2 max-w-3xl text-sm text-gray-400">Students rent (commercial plate) or borrow (private plate) bikes, scooters and cars from each other. Review listings and their RC / insurance, verify renters&apos; and borrowers&apos; driving licences, handle reports and extra-charge disputes. Money is paid in cash between students; Zenvy does not hold it.</p>
+          <h1 className="text-2xl font-semibold text-fg">Rentals</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Students rent (commercial plate) or borrow (private plate) bikes, scooters and cars from each other. Review listings and their RC / insurance, verify renters&apos; and borrowers&apos; driving licences, handle reports and extra-charge disputes. Money is paid in cash between students; Zenvy does not hold it.</p>
         </div>
         <div className="flex items-center gap-3">
-          {summary && <span className="text-sm text-gray-400">{summary.liveListings} live vehicles</span>}
+          {summary && <span className="text-sm text-fg-muted">{summary.liveListings} live vehicles</span>}
           {summary && (
-            <button type="button" onClick={toggle} className={`border px-4 py-2 text-sm font-bold ${summary.enabled ? 'border-emerald-400/30 text-emerald-300' : 'border-red-400/30 text-red-300'}`}>
+            <button type="button" onClick={toggle} className={`border px-4 py-2 text-sm font-semibold ${summary.enabled ? 'border-success/30 text-success-text' : 'border-danger/30 text-danger-text'}`}>
               {summary.enabled ? 'Rentals ON · pause' : 'Rentals PAUSED · turn on'}
             </button>
           )}
         </div>
       </header>
 
-      {summaryError && !summary && <div role="alert" className="border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{summaryError} The on/off switch and counts are unavailable until it loads.</div>}
-      {toast && <div role="status" className="border border-sky-400/30 bg-sky-400/10 p-3 text-sm text-sky-200">{toast}</div>}
+      {summaryError && !summary && <div role="alert" className="border border-danger/30 bg-danger-soft p-3 text-sm text-danger-text">{summaryError} The on/off switch and counts are unavailable until it loads.</div>}
+      {toast && <div role="status" className="border border-info/30 bg-info-soft p-3 text-sm text-info-text">{toast}</div>}
 
       <nav className="flex flex-wrap gap-2" aria-label="Rentals sections">
         {tabs.map((t) => (
           <button key={t.key} type="button" onClick={() => setTab(t.key)} aria-pressed={tab === t.key}
-            className={`border px-4 py-2 text-sm font-bold ${tab === t.key ? 'border-sky-400 bg-sky-400/10 text-white' : 'border-white/10 text-gray-400 hover:text-white'}`}>
-            {t.label}{t.count ? <span className="ml-2 bg-red-500 px-1.5 text-xs text-white">{t.count}</span> : null}
+            className={`border px-4 py-2 text-sm font-semibold ${tab === t.key ? 'border-info/30 bg-info-soft text-fg' : 'border-line text-fg-muted hover:text-fg'}`}>
+            {t.label}{t.count ? <span className="ml-2 bg-danger px-1.5 text-xs text-on-solid">{t.count}</span> : null}
           </button>
         ))}
       </nav>
@@ -197,15 +201,15 @@ function useLoader<T>(path: string, tick: number, pick: (d: any) => T[]) {
 }
 
 function Empty({ text }: { text: string }) {
-  return <div className="border border-white/10 p-10 text-center text-sm text-gray-400">{text}</div>;
+  return <div className="border border-line p-10 text-center text-sm text-fg-muted">{text}</div>;
 }
 function ErrorBox({ text, retry }: { text: string; retry: () => void }) {
-  return <div role="alert" className="flex items-center justify-between gap-3 border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">{text}<button type="button" onClick={retry} className="font-bold underline">Retry</button></div>;
+  return <div role="alert" className="flex items-center justify-between gap-3 border border-danger/30 bg-danger-soft p-4 text-sm text-danger-text">{text}<button type="button" onClick={retry} className="font-semibold underline">Retry</button></div>;
 }
 function Select({ value, onChange, options, name }: { value: string; onChange: (v: string) => void; options: string[]; name: string }) {
   return (
-    <label className="text-xs font-bold uppercase tracking-wider text-gray-400">{name}
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="ml-2 border border-white/10 bg-[#111318] p-2 text-sm text-white">
+    <label className="text-xs font-semibold text-fg-muted">{name}
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="ml-2 border border-line bg-surface p-2 text-sm text-fg">
         {options.map((o) => <option key={o} value={o}>{o ? label(o) : 'All'}</option>)}
       </select>
     </label>
@@ -218,12 +222,12 @@ const safeUrl = (u: string | null | undefined) => {
 };
 function Doc({ url: rawUrl, name }: { url: string | null; name: string }) {
   const url = safeUrl(rawUrl);
-  if (!url) return <div className="flex h-32 items-center justify-center border border-dashed border-red-400/40 text-xs text-red-300">{name} missing</div>;
+  if (!url) return <div className="flex h-32 items-center justify-center border border-dashed border-danger/30 text-xs text-danger-text">{name} missing</div>;
   return (
-    <a href={url} target="_blank" rel="noreferrer" className="block border border-white/10" title={`Open ${name}`}>
+    <a href={url} target="_blank" rel="noreferrer" className="block border border-line" title={`Open ${name}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={url} alt={name} loading="lazy" className="h-32 w-full object-cover" />
-      <span className="block bg-black/40 px-2 py-1 text-xs font-bold text-gray-200">{name} ↗</span>
+      <span className="block bg-surface-2 px-2 py-1 text-xs font-semibold text-fg">{name} ↗</span>
     </a>
   );
 }
@@ -237,15 +241,15 @@ function ListingsTab({ tick, onChanged }: { tick: number; onChanged: () => void 
   const { rows, loading, error, reload } = useLoader<AdminListing>(`/api/admin/rentals/listings?status=${status}${query ? `&q=${encodeURIComponent(query)}` : ''}`, tick, (d) => d.listings || []);
   return (
     <section className="space-y-4" aria-label="Listings">
-      <div className="flex flex-wrap items-center gap-4 border border-white/10 bg-white/[0.02] p-4">
+      <div className="flex flex-wrap items-center gap-4 border border-line bg-surface-2/60 p-4">
         <Select name="Status" value={status} onChange={setStatus} options={LISTING_STATUSES} />
-        <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Plate
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="AP07…" className="ml-2 border border-white/10 bg-[#111318] p-2 text-sm font-normal text-white" />
+        <label className="text-xs font-semibold text-fg-muted">Plate
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="AP07…" className="ml-2 border border-line bg-surface p-2 text-sm font-normal text-fg" />
         </label>
-        <span className="text-sm text-gray-500">{rows.length} listing{rows.length === 1 ? '' : 's'}</span>
+        <span className="text-sm text-fg-muted">{rows.length} listing{rows.length === 1 ? '' : 's'}</span>
       </div>
       {error && <ErrorBox text={error} retry={reload} />}
-      {loading ? <div role="status" className="border border-white/10 p-8 text-sm text-gray-400">Loading listings…</div>
+      {loading ? <div role="status" className="border border-line p-8 text-sm text-fg-muted">Loading listings…</div>
         : rows.length === 0 ? <Empty text={status === 'PENDING_REVIEW' ? 'No vehicles waiting for review.' : 'No listings with this status.'} />
           : rows.map((l) => <ListingCard key={`${l.id}-${l.status}`} l={l} onChanged={onChanged} />)}
     </section>
@@ -275,22 +279,22 @@ function ListingCard({ l, onChanged }: { l: AdminListing; onChanged: () => void 
   };
   const weekly = Object.entries(l.weeklyHours || {}).filter(([, v]) => !!v) as [string, { start: string; end: string }][];
   return (
-    <article className="border border-white/10 p-5">
+    <article className="border border-line p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-lg font-bold">{l.title}{l.year ? ` · ${l.year}` : ''}</h2>
-            <span className="border border-sky-400/20 px-2 py-0.5 text-xs font-bold text-sky-300">{label(l.vehicleType)}</span>
+            <h2 className="text-lg font-semibold">{l.title}{l.year ? ` · ${l.year}` : ''}</h2>
+            <span className="border border-info/30 px-2 py-0.5 text-xs font-semibold text-info-text">{label(l.vehicleType)}</span>
             <Pill s={state} />
-            {l.plateType && <span className={`border px-2 py-0.5 text-xs font-bold ${l.plateType === 'PRIVATE' ? 'border-amber-400/40 text-amber-300' : 'border-emerald-400/40 text-emerald-300'}`}>Plate: {l.plateType === 'PRIVATE' ? 'Private (white) · students BORROW it' : 'Commercial rental · students RENT it'}</span>}
+            {l.plateType && <span className={`border px-2 py-0.5 text-xs font-semibold ${l.plateType === 'PRIVATE' ? 'border-warning/30 text-warning-text' : 'border-success/30 text-success-text'}`}>Plate: {l.plateType === 'PRIVATE' ? 'Private (white) · students BORROW it' : 'Commercial rental · students RENT it'}</span>}
           </div>
-          <p className="mt-2 font-mono text-sm text-gray-200">{l.registrationDisplay || l.registrationNumber || 'No registration'}</p>
-          <p className="mt-1 text-xs text-gray-500">Submitted {when(l.submittedAt)} · #{l.id.slice(-8).toUpperCase()}</p>
+          <p className="mt-2 font-mono text-sm text-fg">{l.registrationDisplay || l.registrationNumber || 'No registration'}</p>
+          <p className="mt-1 text-xs text-fg-muted">Submitted {when(l.submittedAt)} · #{l.id.slice(-8).toUpperCase()}</p>
         </div>
         <div className="text-right text-sm">
-          <p className="text-xs uppercase tracking-wider text-gray-500">{wordsOf(l.rentalMode).giver}</p>
-          <p className="font-bold">{l.owner?.name || 'Unknown'}{l.owner && !l.owner.isActive ? ' (suspended)' : ''}</p>
-          <p className="text-gray-400">{l.owner?.phone || ''}{l.owner?.email ? ` · ${l.owner.email}` : ''}</p>
+          <p className="text-xs text-fg-muted">{wordsOf(l.rentalMode).giver}</p>
+          <p className="font-semibold">{l.owner?.name || 'Unknown'}{l.owner && !l.owner.isActive ? ' (suspended)' : ''}</p>
+          <p className="text-fg-muted">{l.owner?.phone || ''}{l.owner?.email ? ` · ${l.owner.email}` : ''}</p>
         </div>
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -300,25 +304,25 @@ function ListingCard({ l, onChanged }: { l: AdminListing; onChanged: () => void 
         <Doc url={l.documents?.licence ?? null} name={`${wordsOf(l.rentalMode).giver} licence`} />
       </div>
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-        <div><dt className="text-xs uppercase tracking-wider text-gray-500">Price</dt><dd>{[l.pricePerHour ? `${inr(l.pricePerHour)}/hr` : null, l.pricePerDay ? `${inr(l.pricePerDay)}/day` : null].filter(Boolean).join(' · ') || '—'} · min {l.minHours} h</dd></div>
-        <div><dt className="text-xs uppercase tracking-wider text-gray-500">Deposit / km</dt><dd>{inr(l.securityDeposit)} · {l.kmLimitPerDay ? `${l.kmLimitPerDay} km/day${l.extraPerKm ? `, ₹${l.extraPerKm}/km` : ''}` : 'no km limit'}</dd></div>
-        <div><dt className="text-xs uppercase tracking-wider text-gray-500">Vehicle</dt><dd>{[l.fuel, l.transmission, l.seats ? `${l.seats} seats` : null, l.vehicleType !== 'CAR' ? (l.helmetIncluded ? 'helmet incl.' : 'no helmet') : null].filter(Boolean).map((x) => label(String(x))).join(' · ')}</dd></div>
-        <div><dt className="text-xs uppercase tracking-wider text-gray-500">Pickup</dt><dd>{l.pickupLocation || '—'}</dd></div>
-        <div><dt className="text-xs uppercase tracking-wider text-gray-500">Hours</dt><dd>{weekly.length ? weekly.map(([d, w]) => `${DAYS[Number(d)]} ${w.start}-${w.end}`).join(', ') : 'Any time'}</dd></div>
-        <div><dt className="text-xs uppercase tracking-wider text-gray-500">Blocked</dt><dd>{l.blockedDates?.length ? l.blockedDates.map((b) => (b.start === b.end ? b.start : `${b.start}→${b.end}`)).join(', ') : '—'}</dd></div>
-        <div><dt className="text-xs uppercase tracking-wider text-gray-500">Track record</dt><dd>{l.tripCount} trips · {l.ratingCount ? `★ ${l.ratingAvg.toFixed(1)} (${l.ratingCount})` : 'no ratings'}</dd></div>
-        <div><dt className="text-xs uppercase tracking-wider text-gray-500">Fuel policy</dt><dd>{l.fuelPolicy || '—'}</dd></div>
+        <div><dt className="text-xs text-fg-muted">Price</dt><dd>{[l.pricePerHour ? `${inr(l.pricePerHour)}/hr` : null, l.pricePerDay ? `${inr(l.pricePerDay)}/day` : null].filter(Boolean).join(' · ') || '—'} · min {l.minHours} h</dd></div>
+        <div><dt className="text-xs text-fg-muted">Deposit / km</dt><dd>{inr(l.securityDeposit)} · {l.kmLimitPerDay ? `${l.kmLimitPerDay} km/day${l.extraPerKm ? `, ₹${l.extraPerKm}/km` : ''}` : 'no km limit'}</dd></div>
+        <div><dt className="text-xs text-fg-muted">Vehicle</dt><dd>{[l.fuel, l.transmission, l.seats ? `${l.seats} seats` : null, l.vehicleType !== 'CAR' ? (l.helmetIncluded ? 'helmet incl.' : 'no helmet') : null].filter(Boolean).map((x) => label(String(x))).join(' · ')}</dd></div>
+        <div><dt className="text-xs text-fg-muted">Pickup</dt><dd>{l.pickupLocation || '—'}</dd></div>
+        <div><dt className="text-xs text-fg-muted">Hours</dt><dd>{weekly.length ? weekly.map(([d, w]) => `${DAYS[Number(d)]} ${w.start}-${w.end}`).join(', ') : 'Any time'}</dd></div>
+        <div><dt className="text-xs text-fg-muted">Blocked</dt><dd>{l.blockedDates?.length ? l.blockedDates.map((b) => (b.start === b.end ? b.start : `${b.start}→${b.end}`)).join(', ') : '—'}</dd></div>
+        <div><dt className="text-xs text-fg-muted">Track record</dt><dd>{l.tripCount} trips · {l.ratingCount ? `★ ${l.ratingAvg.toFixed(1)} (${l.ratingCount})` : 'no ratings'}</dd></div>
+        <div><dt className="text-xs text-fg-muted">Fuel policy</dt><dd>{l.fuelPolicy || '—'}</dd></div>
       </dl>
-      {l.rules && <p className="mt-3 whitespace-pre-wrap border-l border-white/10 pl-3 text-sm text-gray-300">{l.rules}</p>}
-      {l.rejectionReason && <p className="mt-3 text-sm text-red-300">Last rejection: {l.rejectionReason}</p>}
+      {l.rules && <p className="mt-3 whitespace-pre-wrap border-l border-line pl-3 text-sm text-fg-muted">{l.rules}</p>}
+      {l.rejectionReason && <p className="mt-3 text-sm text-danger-text">Last rejection: {l.rejectionReason}</p>}
       {['PENDING_REVIEW', 'APPROVED', 'PAUSED'].includes(state) && (
-        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
-          {state === 'PENDING_REVIEW' && <button type="button" disabled={busy} onClick={() => act('approve')} className="bg-emerald-600 px-4 py-2 text-sm font-bold hover:bg-emerald-500 disabled:opacity-50">Approve</button>}
-          <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} placeholder={state === 'PENDING_REVIEW' ? 'Reason to reject (sent to owner)' : 'Reason to take it down'} className="min-w-[260px] flex-1 border border-white/10 bg-[#111318] p-2 text-sm text-white" />
-          <button type="button" disabled={busy} onClick={() => act('reject')} className="border border-red-400/40 px-4 py-2 text-sm font-bold text-red-300 hover:bg-red-500/10 disabled:opacity-50">{state === 'PENDING_REVIEW' ? 'Reject' : 'Take down'}</button>
+        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-4">
+          {state === 'PENDING_REVIEW' && <button type="button" disabled={busy} onClick={() => act('approve')} className="bg-success px-4 py-2 text-sm font-semibold hover:bg-success/90 disabled:opacity-50">Approve</button>}
+          <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} placeholder={state === 'PENDING_REVIEW' ? 'Reason to reject (sent to owner)' : 'Reason to take it down'} className="min-w-[260px] flex-1 border border-line bg-surface p-2 text-sm text-fg" />
+          <button type="button" disabled={busy} onClick={() => act('reject')} className="border border-danger/30 px-4 py-2 text-sm font-semibold text-danger-text hover:bg-danger-soft disabled:opacity-50">{state === 'PENDING_REVIEW' ? 'Reject' : 'Take down'}</button>
         </div>
       )}
-      {msg && <p role={msg.ok ? 'status' : 'alert'} className={`mt-3 text-sm ${msg.ok ? 'text-emerald-300' : 'text-red-300'}`}>{msg.text}</p>}
+      {msg && <p role={msg.ok ? 'status' : 'alert'} className={`mt-3 text-sm ${msg.ok ? 'text-success-text' : 'text-danger-text'}`}>{msg.text}</p>}
     </article>
   );
 }
@@ -329,12 +333,12 @@ function LicencesTab({ tick, onChanged }: { tick: number; onChanged: () => void 
   const { rows, loading, error, reload } = useLoader<AdminLicence>(`/api/admin/rentals/licences?status=${status}`, tick, (d) => d.licences || []);
   return (
     <section className="space-y-4" aria-label="Driving licences">
-      <div className="flex flex-wrap items-center gap-4 border border-white/10 bg-white/[0.02] p-4">
+      <div className="flex flex-wrap items-center gap-4 border border-line bg-surface-2/60 p-4">
         <Select name="Status" value={status} onChange={setStatus} options={LICENCE_STATUSES} />
-        <span className="text-sm text-gray-500">Renters can request with a pending licence; owners can only accept once you verify it.</span>
+        <span className="text-sm text-fg-muted">Renters can request with a pending licence; owners can only accept once you verify it.</span>
       </div>
       {error && <ErrorBox text={error} retry={reload} />}
-      {loading ? <div role="status" className="border border-white/10 p-8 text-sm text-gray-400">Loading licences…</div>
+      {loading ? <div role="status" className="border border-line p-8 text-sm text-fg-muted">Loading licences…</div>
         : rows.length === 0 ? <Empty text="No licences here." /> : rows.map((l) => <LicenceCard key={`${l.id}-${l.status}-${l.submittedAt}`} l={l} onChanged={onChanged} />)}
     </section>
   );
@@ -363,19 +367,19 @@ function LicenceCard({ l, onChanged }: { l: AdminLicence; onChanged: () => void 
     }
   };
   return (
-    <article className="grid gap-5 border border-white/10 p-5 lg:grid-cols-[1fr_1.4fr]">
+    <article className="grid gap-5 border border-line p-5 lg:grid-cols-[1fr_1.4fr]">
       <div className="grid grid-cols-2 gap-3">
         <Doc url={l.frontImage} name="Front" />
-        {l.backImage ? <Doc url={l.backImage} name="Back" /> : <div className="flex h-32 items-center justify-center border border-dashed border-white/10 text-xs text-gray-500">No back photo</div>}
+        {l.backImage ? <Doc url={l.backImage} name="Back" /> : <div className="flex h-32 items-center justify-center border border-dashed border-line text-xs text-fg-muted">No back photo</div>}
       </div>
       <div>
-        <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-bold">{l.user?.name || l.userId}</h2><Pill s={state} /></div>
-        <p className="mt-1 text-sm text-gray-400">{l.user?.phone || ''}{l.user?.email ? ` · ${l.user.email}` : ''}</p>
+        <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-semibold">{l.user?.name || l.userId}</h2><Pill s={state} /></div>
+        <p className="mt-1 text-sm text-fg-muted">{l.user?.phone || ''}{l.user?.email ? ` · ${l.user.email}` : ''}</p>
         <p className="mt-3 font-mono text-base">{l.licenceNumber}</p>
-        <p className="mt-1 text-sm text-gray-400">Declared: {(l.classes || []).join(', ') || '—'}{l.expiresOn ? ` · valid till ${l.expiresOn}` : ''} · submitted {when(l.submittedAt)}</p>
-        {l.rejectionReason && <p className="mt-1 text-sm text-red-300">Rejected: {l.rejectionReason}</p>}
+        <p className="mt-1 text-sm text-fg-muted">Declared: {(l.classes || []).join(', ') || '—'}{l.expiresOn ? ` · valid till ${l.expiresOn}` : ''} · submitted {when(l.submittedAt)}</p>
+        {l.rejectionReason && <p className="mt-1 text-sm text-danger-text">Rejected: {l.rejectionReason}</p>}
         <fieldset className="mt-4">
-          <legend className="text-xs font-bold uppercase tracking-wider text-gray-400">Classes printed on the card</legend>
+          <legend className="text-xs font-semibold text-fg-muted">Classes printed on the card</legend>
           <div className="mt-2 flex flex-wrap gap-3">
             {LICENCE_CLASSES.map((c) => (
               <label key={c} className="flex items-center gap-2 text-sm">
@@ -385,11 +389,11 @@ function LicenceCard({ l, onChanged }: { l: AdminLicence; onChanged: () => void 
           </div>
         </fieldset>
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          {state !== 'VERIFIED' && <button type="button" disabled={busy} onClick={() => act('verify')} className="bg-emerald-600 px-4 py-2 text-sm font-bold hover:bg-emerald-500 disabled:opacity-50">Verify</button>}
-          <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} placeholder="Reason to reject" className="min-w-[220px] flex-1 border border-white/10 bg-[#111318] p-2 text-sm text-white" />
-          <button type="button" disabled={busy} onClick={() => act('reject')} className="border border-red-400/40 px-4 py-2 text-sm font-bold text-red-300 hover:bg-red-500/10 disabled:opacity-50">Reject</button>
+          {state !== 'VERIFIED' && <button type="button" disabled={busy} onClick={() => act('verify')} className="bg-success px-4 py-2 text-sm font-semibold hover:bg-success/90 disabled:opacity-50">Verify</button>}
+          <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} placeholder="Reason to reject" className="min-w-[220px] flex-1 border border-line bg-surface p-2 text-sm text-fg" />
+          <button type="button" disabled={busy} onClick={() => act('reject')} className="border border-danger/30 px-4 py-2 text-sm font-semibold text-danger-text hover:bg-danger-soft disabled:opacity-50">Reject</button>
         </div>
-        {msg && <p role={msg.ok ? 'status' : 'alert'} className={`mt-3 text-sm ${msg.ok ? 'text-emerald-300' : 'text-red-300'}`}>{msg.text}</p>}
+        {msg && <p role={msg.ok ? 'status' : 'alert'} className={`mt-3 text-sm ${msg.ok ? 'text-success-text' : 'text-danger-text'}`}>{msg.text}</p>}
       </div>
     </article>
   );
@@ -404,29 +408,29 @@ function BookingsTab({ tick }: { tick: number }) {
   const list = rows.filter((b) => !q || [b.id, b.vehicleTitle, b.registration, b.owner.name, b.owner.phone, b.renter.name, b.renter.phone].some((v) => String(v || '').toLowerCase().includes(q)));
   return (
     <section className="space-y-4" aria-label="Bookings">
-      <div className="flex flex-wrap items-center gap-4 border border-white/10 bg-white/[0.02] p-4">
+      <div className="flex flex-wrap items-center gap-4 border border-line bg-surface-2/60 p-4">
         <Select name="Status" value={status} onChange={setStatus} options={BOOKING_STATUSES} />
-        <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Search
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name, phone, plate, ID" className="ml-2 border border-white/10 bg-[#111318] p-2 text-sm font-normal text-white" />
+        <label className="text-xs font-semibold text-fg-muted">Search
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name, phone, plate, ID" className="ml-2 border border-line bg-surface p-2 text-sm font-normal text-fg" />
         </label>
-        <span className="text-sm text-gray-500">{list.length} of {rows.length}</span>
+        <span className="text-sm text-fg-muted">{list.length} of {rows.length}</span>
       </div>
       {error && <ErrorBox text={error} retry={reload} />}
-      {loading ? <div role="status" className="border border-white/10 p-8 text-sm text-gray-400">Loading bookings…</div>
+      {loading ? <div role="status" className="border border-line p-8 text-sm text-fg-muted">Loading bookings…</div>
         : list.length === 0 ? <Empty text="No bookings match." /> : (
-          <div className="overflow-x-auto border border-white/10">
+          <div className="overflow-x-auto border border-line">
             <table className="w-full text-left text-sm">
-              <thead className="bg-white/[0.03] text-xs uppercase tracking-wider text-gray-400">
+              <thead className="bg-surface-2/60 text-xs text-fg-muted">
                 <tr><th className="p-3">Vehicle</th><th className="p-3">Owner / lender → renter / borrower</th><th className="p-3">When</th><th className="p-3">Cash</th><th className="p-3">Status</th></tr>
               </thead>
               <tbody className="divide-y divide-white/10">
                 {list.map((b) => (
                   <tr key={b.id} className="align-top">
-                    <td className="p-3"><p className="font-bold">{b.vehicleTitle}</p><p className="mt-1"><ModePill m={b.rentalMode} /></p><p className="font-mono text-xs text-gray-400">{b.registration || ''}</p><p className="text-xs text-gray-500">#{b.id.slice(-8).toUpperCase()}</p></td>
-                    <td className="p-3"><p><span className="text-xs text-gray-500">{wordsOf(b.rentalMode).giver}:</span> {b.owner.name || b.owner.id} <span className="text-gray-500">{b.owner.phone || ''}</span></p><p className="text-gray-300"><span className="text-xs text-gray-500">{wordsOf(b.rentalMode).taker}:</span> {b.renter.name || b.renter.id} <span className="text-gray-500">{b.renter.phone || ''}</span></p>{b.renterNote && <p className="mt-1 text-xs text-gray-500">“{b.renterNote}”</p>}<p className="mt-1 text-xs text-gray-500">{b.termsPending ? <span className="text-amber-300">Terms not accepted yet (older app)</span> : b.termsAcceptedAt ? `Terms accepted ${when(b.termsAcceptedAt)}` : ''}</p>{(b.pickupCondition || b.returnCondition) && <ConditionLinks b={b} />}</td>
-                    <td className="p-3 text-xs"><p>{when(b.startAt)}</p><p className="text-gray-400">→ {when(b.endAt)}</p><p className="text-gray-500">{b.billableHours} h billed</p></td>
-                    <td className="p-3 text-xs"><p>{b.rentalMode === 'RENT' ? 'Rent' : 'Cost share'} {inr(b.rentAmount)}</p><p className="text-gray-400">Deposit {inr(b.depositAmount)}</p>{b.charges && b.charges.status !== 'NONE' && <p className="text-amber-300">Extras claimed {inr(b.charges.claimed)} · {label(b.charges.status)}</p>}{b.extraCharges > 0 && <p className="text-amber-300">Extras counted {inr(b.extraCharges)}</p>}{b.finalAmount != null && <p className="font-bold">Final {inr(b.finalAmount)}</p>}</td>
-                    <td className="p-3"><Pill s={b.status} />{(b.cancelReason || b.declineReason) && <p className="mt-1 max-w-[220px] text-xs text-gray-400">{b.cancelledBy ? `${label(b.cancelledBy)}: ` : ''}{b.cancelReason || b.declineReason}</p>}</td>
+                    <td className="p-3"><p className="font-semibold">{b.vehicleTitle}</p><p className="mt-1"><ModePill m={b.rentalMode} /></p><p className="font-mono text-xs text-fg-muted">{b.registration || ''}</p><p className="text-xs text-fg-muted">#{b.id.slice(-8).toUpperCase()}</p></td>
+                    <td className="p-3"><p><span className="text-xs text-fg-muted">{wordsOf(b.rentalMode).giver}:</span> {b.owner.name || b.owner.id} <span className="text-fg-muted">{b.owner.phone || ''}</span></p><p className="text-fg-muted"><span className="text-xs text-fg-muted">{wordsOf(b.rentalMode).taker}:</span> {b.renter.name || b.renter.id} <span className="text-fg-muted">{b.renter.phone || ''}</span></p>{b.renterNote && <p className="mt-1 text-xs text-fg-muted">“{b.renterNote}”</p>}<p className="mt-1 text-xs text-fg-muted">{b.termsPending ? <span className="text-warning-text">Terms not accepted yet (older app)</span> : b.termsAcceptedAt ? `Terms accepted ${when(b.termsAcceptedAt)}` : ''}</p>{(b.pickupCondition || b.returnCondition) && <ConditionLinks b={b} />}</td>
+                    <td className="p-3 text-xs"><p>{when(b.startAt)}</p><p className="text-fg-muted">→ {when(b.endAt)}</p><p className="text-fg-muted">{b.billableHours} h billed</p></td>
+                    <td className="p-3 text-xs"><p>{b.rentalMode === 'RENT' ? 'Rent' : 'Cost share'} {inr(b.rentAmount)}</p><p className="text-fg-muted">Deposit {inr(b.depositAmount)}</p>{b.charges && b.charges.status !== 'NONE' && <p className="text-warning-text">Extras claimed {inr(b.charges.claimed)} · {label(b.charges.status)}</p>}{b.extraCharges > 0 && <p className="text-warning-text">Extras counted {inr(b.extraCharges)}</p>}{b.finalAmount != null && <p className="font-semibold">Final {inr(b.finalAmount)}</p>}</td>
+                    <td className="p-3"><Pill s={b.status} />{(b.cancelReason || b.declineReason) && <p className="mt-1 max-w-[220px] text-xs text-fg-muted">{b.cancelledBy ? `${label(b.cancelledBy)}: ` : ''}{b.cancelReason || b.declineReason}</p>}</td>
                   </tr>
                 ))}
               </tbody>
@@ -449,8 +453,8 @@ function ConditionLinks({ b }: { b: AdminBooking }) {
   add(b.returnCondition, 'Return');
   const odo = [b.pickupCondition?.owner?.odometer, b.returnCondition?.owner?.odometer];
   return (
-    <p className="mt-1 text-xs text-gray-400">
-      📸 {items.map((x) => { const u = safeUrl(x.url); return u ? <a key={x.url} href={u} target="_blank" rel="noreferrer" className="mr-2 underline">{x.name}</a> : null; })}
+    <p className="mt-1 text-xs text-fg-muted">
+      {items.map((x) => { const u = safeUrl(x.url); return u ? <a key={x.url} href={u} target="_blank" rel="noreferrer" className="mr-2 underline">{x.name}</a> : null; })}
       {odo[0] != null && <span className="ml-1">Odometer {odo[0]}{odo[1] != null ? ` → ${odo[1]} km` : ' km'}</span>}
     </p>
   );
@@ -462,29 +466,29 @@ function DisputesTab({ tick, onChanged }: { tick: number; onChanged: () => void 
   const { rows, loading, error, reload } = useLoader<AdminBooking>(`/api/admin/rentals/disputes?status=${status}`, tick, (d) => d.disputes || []);
   return (
     <section className="space-y-4" aria-label="Disputes">
-      <div className="flex flex-wrap items-center gap-4 border border-white/10 bg-white/[0.02] p-4">
+      <div className="flex flex-wrap items-center gap-4 border border-line bg-surface-2/60 p-4">
         <Select name="Status" value={status} onChange={setStatus} options={['OPEN', 'RESOLVED', 'ALL']} />
-        <span className="text-sm text-gray-500">Extra charges the renter / borrower disputed. They do not count until you decide. Every decision is audited and both students are told the reason.</span>
+        <span className="text-sm text-fg-muted">Extra charges the renter / borrower disputed. They do not count until you decide. Every decision is audited and both students are told the reason.</span>
       </div>
       {error && <ErrorBox text={error} retry={reload} />}
-      {loading ? <div role="status" className="border border-white/10 p-8 text-sm text-gray-400">Loading disputes…</div>
+      {loading ? <div role="status" className="border border-line p-8 text-sm text-fg-muted">Loading disputes…</div>
         : rows.length === 0 ? <Empty text={status === 'OPEN' ? 'No open disputes.' : 'No disputes here.'} /> : rows.map((b) => <DisputeCard key={`${b.id}-${b.charges?.status}`} b={b} onChanged={onChanged} />)}
     </section>
   );
 }
 
 function ConditionBlock({ title, rec, mode }: { title: string; rec: ConditionRecord | null | undefined; mode?: Mode }) {
-  if (!rec || (!rec.owner && !rec.renter)) return <div className="text-xs text-gray-500">{title}: no photos recorded.</div>;
+  if (!rec || (!rec.owner && !rec.renter)) return <div className="text-xs text-fg-muted">{title}: no photos recorded.</div>;
   const side = (who: string, s: ConditionSide | null) => (s ? (
     <div className="space-y-1">
-      <p className="text-xs text-gray-400">{who}{s.odometer != null ? ` · odometer ${s.odometer} km` : ''}{s.at ? ` · ${when(s.at)}` : ''}</p>
+      <p className="text-xs text-fg-muted">{who}{s.odometer != null ? ` · odometer ${s.odometer} km` : ''}{s.at ? ` · ${when(s.at)}` : ''}</p>
       <div className="grid grid-cols-3 gap-2">{s.photos.map((u, i) => <Doc key={u} url={u} name={`${who} ${i + 1}`} />)}</div>
-      {s.note && <p className="text-xs text-gray-300">“{s.note}”</p>}
+      {s.note && <p className="text-xs text-fg-muted">“{s.note}”</p>}
     </div>
   ) : null);
   return (
     <div className="space-y-2">
-      <p className="text-xs font-bold uppercase tracking-wider text-gray-500">{title}</p>
+      <p className="text-xs font-semibold text-fg-muted">{title}</p>
       {side(wordsOf(mode).giver, rec.owner)}
       {side(wordsOf(mode).taker, rec.renter)}
     </div>
@@ -520,47 +524,47 @@ function DisputeCard({ b, onChanged }: { b: AdminBooking; onChanged: () => void 
     }
   };
   return (
-    <article className="border border-white/10 p-5">
+    <article className="border border-line p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-bold">{b.vehicleTitle}</h2><ModePill m={b.rentalMode} /><Pill s={state} /></div>
-          <p className="mt-1 text-sm text-gray-400">{when(b.startAt)} → {when(b.endAt)} · #{b.id.slice(-8).toUpperCase()} · {b.registration || ''}</p>
-          <p className="mt-1 text-sm">{w.verb === 'Rent' ? 'Rent' : 'Cost share'} {inr(b.rentAmount)} · deposit {inr(b.depositAmount)} · claimed <b className="text-amber-300">{inr(ch.claimed)}</b>{b.extraBreakdown?.extraKm ? ` (${b.extraBreakdown.extraKm} km × ₹${b.extraBreakdown.perKm || 0}${b.extraBreakdown.otherCharges ? ` + other ${inr(b.extraBreakdown.otherCharges)}` : ''})` : ''}</p>
+          <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-semibold">{b.vehicleTitle}</h2><ModePill m={b.rentalMode} /><Pill s={state} /></div>
+          <p className="mt-1 text-sm text-fg-muted">{when(b.startAt)} → {when(b.endAt)} · #{b.id.slice(-8).toUpperCase()} · {b.registration || ''}</p>
+          <p className="mt-1 text-sm">{w.verb === 'Rent' ? 'Rent' : 'Cost share'} {inr(b.rentAmount)} · deposit {inr(b.depositAmount)} · claimed <b className="text-warning-text">{inr(ch.claimed)}</b>{b.extraBreakdown?.extraKm ? ` (${b.extraBreakdown.extraKm} km × ₹${b.extraBreakdown.perKm || 0}${b.extraBreakdown.otherCharges ? ` + other ${inr(b.extraBreakdown.otherCharges)}` : ''})` : ''}</p>
         </div>
         <div className="text-right text-sm">
           <p>{w.giver}: <b>{b.owner.name || b.owner.id}</b> {b.owner.phone || ''}</p>
-          <p className="text-gray-300">{w.taker}: <b>{b.renter.name || b.renter.id}</b> {b.renter.phone || ''}</p>
-          <p className="text-xs text-gray-500">Disputed {when(ch.respondedAt)}</p>
+          <p className="text-fg-muted">{w.taker}: <b>{b.renter.name || b.renter.id}</b> {b.renter.phone || ''}</p>
+          <p className="text-xs text-fg-muted">Disputed {when(ch.respondedAt)}</p>
         </div>
       </div>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <div className="space-y-2 border border-white/10 p-3">
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-500">{w.giver}&apos;s claim</p>
-          <p className="whitespace-pre-wrap text-sm text-gray-200">{ch.note || '—'}</p>
+        <div className="space-y-2 border border-line p-3">
+          <p className="text-xs font-semibold text-fg-muted">{w.giver}&apos;s claim</p>
+          <p className="whitespace-pre-wrap text-sm text-fg">{ch.note || '—'}</p>
           {ch.photos.length > 0 && <div className="grid grid-cols-3 gap-2">{ch.photos.map((u, i) => <Doc key={u} url={u} name={`Evidence ${i + 1}`} />)}</div>}
         </div>
-        <div className="space-y-2 border border-white/10 p-3">
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-500">{w.taker}&apos;s dispute</p>
-          <p className="whitespace-pre-wrap text-sm text-gray-200">{ch.disputeNote || '—'}</p>
+        <div className="space-y-2 border border-line p-3">
+          <p className="text-xs font-semibold text-fg-muted">{w.taker}&apos;s dispute</p>
+          <p className="whitespace-pre-wrap text-sm text-fg">{ch.disputeNote || '—'}</p>
           {ch.disputePhotos.length > 0 && <div className="grid grid-cols-3 gap-2">{ch.disputePhotos.map((u, i) => <Doc key={u} url={u} name={`Dispute ${i + 1}`} />)}</div>}
         </div>
-        <div className="border border-white/10 p-3"><ConditionBlock title="Pickup condition" rec={b.pickupCondition} mode={b.rentalMode} /></div>
-        <div className="border border-white/10 p-3"><ConditionBlock title="Return condition" rec={b.returnCondition} mode={b.rentalMode} /></div>
+        <div className="border border-line p-3"><ConditionBlock title="Pickup condition" rec={b.pickupCondition} mode={b.rentalMode} /></div>
+        <div className="border border-line p-3"><ConditionBlock title="Return condition" rec={b.returnCondition} mode={b.rentalMode} /></div>
       </div>
-      {ch.resolution && <p className="mt-3 text-sm text-emerald-300">Decision {when(ch.resolution.at)}: {label(ch.resolution.outcome || '')} · counted {inr(ch.counted)} · {ch.resolution.reason}</p>}
+      {ch.resolution && <p className="mt-3 text-sm text-success-text">Decision {when(ch.resolution.at)}: {label(ch.resolution.outcome || '')} · counted {inr(ch.counted)} · {ch.resolution.reason}</p>}
       {state === 'DISPUTED' && (
-        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
-          <select value={outcome} onChange={(e) => setOutcome(e.target.value as 'UPHOLD' | 'REDUCE' | 'VOID')} className="border border-white/10 bg-[#111318] p-2 text-sm text-white" aria-label="Decision">
+        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-4">
+          <select value={outcome} onChange={(e) => setOutcome(e.target.value as 'UPHOLD' | 'REDUCE' | 'VOID')} className="border border-line bg-surface p-2 text-sm text-fg" aria-label="Decision">
             <option value="UPHOLD">Uphold the full claim</option>
             <option value="REDUCE">Reduce the claim</option>
             <option value="VOID">Void (no extra charges)</option>
           </select>
-          {outcome === 'REDUCE' && <input value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))} inputMode="decimal" placeholder={`New amount (< ${inr(ch.claimed)})`} className="w-48 border border-white/10 bg-[#111318] p-2 text-sm text-white" aria-label="Reduced amount" />}
-          <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} placeholder="Reason (sent to both students)" className="min-w-[260px] flex-1 border border-white/10 bg-[#111318] p-2 text-sm text-white" />
-          <button type="button" disabled={busy} onClick={resolve} className="bg-sky-600 px-4 py-2 text-sm font-bold hover:bg-sky-500 disabled:opacity-50">{busy ? 'Saving…' : 'Resolve'}</button>
+          {outcome === 'REDUCE' && <input value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))} inputMode="decimal" placeholder={`New amount (< ${inr(ch.claimed)})`} className="w-48 border border-line bg-surface p-2 text-sm text-fg" aria-label="Reduced amount" />}
+          <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} placeholder="Reason (sent to both students)" className="min-w-[260px] flex-1 border border-line bg-surface p-2 text-sm text-fg" />
+          <button type="button" disabled={busy} onClick={resolve} className="bg-accent px-4 py-2 text-sm font-semibold hover:bg-accent-hover disabled:opacity-50">{busy ? 'Saving…' : 'Resolve'}</button>
         </div>
       )}
-      {msg && <p role={msg.ok ? 'status' : 'alert'} className={`mt-3 text-sm ${msg.ok ? 'text-emerald-300' : 'text-red-300'}`}>{msg.text}</p>}
+      {msg && <p role={msg.ok ? 'status' : 'alert'} className={`mt-3 text-sm ${msg.ok ? 'text-success-text' : 'text-danger-text'}`}>{msg.text}</p>}
     </article>
   );
 }
@@ -580,7 +584,7 @@ function SettingsTab() {
     return () => { alive = false; };
   }, []);
   if (error) return <ErrorBox text={error} retry={() => window.location.reload()} />;
-  if (!s) return <div role="status" className="border border-white/10 p-8 text-sm text-gray-400">Loading settings…</div>;
+  if (!s) return <div role="status" className="border border-line p-8 text-sm text-fg-muted">Loading settings…</div>;
   const save = async () => {
     setBusy(true);
     setMsg(null);
@@ -595,25 +599,25 @@ function SettingsTab() {
     }
   };
   return (
-    <section className="max-w-3xl space-y-5 border border-white/10 p-5" aria-label="Safety settings">
+    <section className="max-w-3xl space-y-5 border border-line p-5" aria-label="Safety settings">
       <label className="flex items-start gap-3 text-sm">
         <input type="checkbox" checked={s.conditionPhotosRequired} onChange={(e) => setS({ ...s, conditionPhotosRequired: e.target.checked })} className="mt-1" />
-        <span><b>Require pickup and return photos + odometer</b><br /><span className="text-gray-400">The owner / lender must record 2-6 photos and the odometer reading before the pickup and the return PIN step. Recommended ON.</span></span>
+        <span><b>Require pickup and return photos + odometer</b><br /><span className="text-fg-muted">The owner / lender must record 2-6 photos and the odometer reading before the pickup and the return PIN step. Recommended ON.</span></span>
       </label>
       <label className="block text-sm"><b>Other charges cap (₹ per trip)</b>
-        <input value={String(s.otherChargesCap)} onChange={(e) => setS({ ...s, otherChargesCap: Number(e.target.value.replace(/[^\d.]/g, '')) || 0 })} inputMode="decimal" className="mt-1 block w-48 border border-white/10 bg-[#111318] p-2 text-white" />
-        <span className="text-xs text-gray-400">Never more than 2 × the trip&apos;s deposit (when there is one). Bigger damage goes through a report.</span>
+        <input value={String(s.otherChargesCap)} onChange={(e) => setS({ ...s, otherChargesCap: Number(e.target.value.replace(/[^\d.]/g, '')) || 0 })} inputMode="decimal" className="mt-1 block w-48 border border-line bg-surface p-2 text-fg" />
+        <span className="text-xs text-fg-muted">Never more than 2 × the trip&apos;s deposit (when there is one). Bigger damage goes through a report.</span>
       </label>
       <label className="block text-sm"><b>Time to accept or dispute extra charges (hours)</b>
-        <input value={String(s.chargesResponseHours)} onChange={(e) => setS({ ...s, chargesResponseHours: Number(e.target.value.replace(/\D/g, '')) || 0 })} inputMode="numeric" className="mt-1 block w-48 border border-white/10 bg-[#111318] p-2 text-white" />
-        <span className="text-xs text-gray-400">After this, unanswered charges count as accepted (1-168).</span>
+        <input value={String(s.chargesResponseHours)} onChange={(e) => setS({ ...s, chargesResponseHours: Number(e.target.value.replace(/\D/g, '')) || 0 })} inputMode="numeric" className="mt-1 block w-48 border border-line bg-surface p-2 text-fg" />
+        <span className="text-xs text-fg-muted">After this, unanswered charges count as accepted (1-168).</span>
       </label>
       <label className="block text-sm"><b>Insurance / liability disclaimer</b>
-        <textarea value={s.disclaimer} onChange={(e) => setS({ ...s, disclaimer: e.target.value.slice(0, 1000) })} rows={4} placeholder={dflt} className="mt-1 block w-full border border-white/10 bg-[#111318] p-2 text-white" />
-        <span className="text-xs text-gray-400">Shown on every listing and booking review. Leave empty to use the default (built from Config → Legal).</span>
+        <textarea value={s.disclaimer} onChange={(e) => setS({ ...s, disclaimer: e.target.value.slice(0, 1000) })} rows={4} placeholder={dflt} className="mt-1 block w-full border border-line bg-surface p-2 text-fg" />
+        <span className="text-xs text-fg-muted">Shown on every listing and booking review. Leave empty to use the default (built from Config → Legal).</span>
       </label>
-      <button type="button" disabled={busy} onClick={save} className="bg-sky-600 px-4 py-2 text-sm font-bold hover:bg-sky-500 disabled:opacity-50">{busy ? 'Saving…' : 'Save settings'}</button>
-      {msg && <p role={msg.ok ? 'status' : 'alert'} className={`text-sm ${msg.ok ? 'text-emerald-300' : 'text-red-300'}`}>{msg.text}</p>}
+      <button type="button" disabled={busy} onClick={save} className="bg-accent px-4 py-2 text-sm font-semibold hover:bg-accent-hover disabled:opacity-50">{busy ? 'Saving…' : 'Save settings'}</button>
+      {msg && <p role={msg.ok ? 'status' : 'alert'} className={`text-sm ${msg.ok ? 'text-success-text' : 'text-danger-text'}`}>{msg.text}</p>}
     </section>
   );
 }
@@ -624,12 +628,12 @@ function ReportsTab({ tick, onChanged }: { tick: number; onChanged: () => void }
   const { rows, loading, error, reload } = useLoader<AdminReport>(`/api/admin/rentals/reports?status=${status}`, tick, (d) => d.reports || []);
   return (
     <section className="space-y-4" aria-label="Reports">
-      <div className="flex flex-wrap items-center gap-4 border border-white/10 bg-white/[0.02] p-4">
+      <div className="flex flex-wrap items-center gap-4 border border-line bg-surface-2/60 p-4">
         <Select name="Status" value={status} onChange={setStatus} options={REPORT_STATUSES} />
-        <span className="text-sm text-gray-500">Damage, no-shows, late returns and safety issues reported by owners and renters.</span>
+        <span className="text-sm text-fg-muted">Damage, no-shows, late returns and safety issues reported by owners and renters.</span>
       </div>
       {error && <ErrorBox text={error} retry={reload} />}
-      {loading ? <div role="status" className="border border-white/10 p-8 text-sm text-gray-400">Loading reports…</div>
+      {loading ? <div role="status" className="border border-line p-8 text-sm text-fg-muted">Loading reports…</div>
         : rows.length === 0 ? <Empty text="No reports here." /> : rows.map((r) => <ReportCard key={`${r.id}-${r.status}`} r={r} onChanged={onChanged} />)}
     </section>
   );
@@ -654,27 +658,27 @@ function ReportCard({ r, onChanged }: { r: AdminReport; onChanged: () => void })
     }
   };
   return (
-    <article className="border border-white/10 p-5">
+    <article className="border border-line p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-bold">{label(r.category)}</h2><Pill s={r.status} /><span className="text-xs text-gray-500">{when(r.createdAt)}</span></div>
-          <p className="mt-1 text-sm text-gray-400">{r.booking ? `${r.booking.vehicleTitle || 'Vehicle'} · ${when(r.booking.startAt)} → ${when(r.booking.endAt)} · booking ${label(r.booking.status)}` : `Booking ${r.bookingId}`}</p>
+          <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-semibold">{label(r.category)}</h2><Pill s={r.status} /><span className="text-xs text-fg-muted">{when(r.createdAt)}</span></div>
+          <p className="mt-1 text-sm text-fg-muted">{r.booking ? `${r.booking.vehicleTitle || 'Vehicle'} · ${when(r.booking.startAt)} → ${when(r.booking.endAt)} · booking ${label(r.booking.status)}` : `Booking ${r.bookingId}`}</p>
         </div>
         <div className="text-right text-sm">
           <p>By <b>{r.reporter.name || r.reporter.id}</b> ({label(r.reporterRole || '')}) {r.reporter.phone || ''}</p>
-          {r.against && <p className="text-gray-400">About {r.against.name || r.against.id} {r.against.phone || ''}</p>}
+          {r.against && <p className="text-fg-muted">About {r.against.name || r.against.id} {r.against.phone || ''}</p>}
         </div>
       </div>
-      <p className="mt-3 whitespace-pre-wrap text-sm text-gray-200">{r.description}</p>
+      <p className="mt-3 whitespace-pre-wrap text-sm text-fg">{r.description}</p>
       {r.photos?.length > 0 && <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">{r.photos.map((u, i) => <Doc key={u} url={u} name={`Photo ${i + 1}`} />)}</div>}
-      <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
-        <select value={next} onChange={(e) => setNext(e.target.value)} className="border border-white/10 bg-[#111318] p-2 text-sm text-white" aria-label="Report status">
+      <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-line pt-4">
+        <select value={next} onChange={(e) => setNext(e.target.value)} className="border border-line bg-surface p-2 text-sm text-fg" aria-label="Report status">
           {['OPEN', 'REVIEWING', 'RESOLVED', 'DISMISSED'].map((s) => <option key={s} value={s}>{label(s)}</option>)}
         </select>
-        <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} placeholder="Note (shown to the reporter when closed)" className="min-w-[260px] flex-1 border border-white/10 bg-[#111318] p-2 text-sm text-white" />
-        <button type="button" disabled={busy} onClick={save} className="bg-sky-600 px-4 py-2 text-sm font-bold hover:bg-sky-500 disabled:opacity-50">{busy ? 'Saving…' : 'Save'}</button>
+        <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} placeholder="Note (shown to the reporter when closed)" className="min-w-[260px] flex-1 border border-line bg-surface p-2 text-sm text-fg" />
+        <button type="button" disabled={busy} onClick={save} className="bg-accent px-4 py-2 text-sm font-semibold hover:bg-accent-hover disabled:opacity-50">{busy ? 'Saving…' : 'Save'}</button>
       </div>
-      {msg && <p role={msg.ok ? 'status' : 'alert'} className={`mt-3 text-sm ${msg.ok ? 'text-emerald-300' : 'text-red-300'}`}>{msg.text}</p>}
+      {msg && <p role={msg.ok ? 'status' : 'alert'} className={`mt-3 text-sm ${msg.ok ? 'text-success-text' : 'text-danger-text'}`}>{msg.text}</p>}
     </article>
   );
 }

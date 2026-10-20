@@ -62,18 +62,18 @@ export default function SettingsTab({ tick, onChanged }: { tick: number; onChang
   return (
     <section className="space-y-6" aria-label="Settings">
       <Msg msg={msg} />
-      <div className={`border-2 p-6 ${data.enabled ? 'border-emerald-400/50 bg-emerald-400/[0.05]' : 'border-red-400/40 bg-red-400/[0.04]'}`}>
+      <div className={`border-2 p-6 ${data.enabled ? 'border-success/30 bg-success-soft' : 'border-danger/30 bg-danger-soft'}`}>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-400">CAMPUS_EVENTS_ENABLED</p>
-            <h3 className="mt-1 text-2xl font-black">{data.enabled ? '🎟️ Campus Events is ON for students' : 'Campus Events is OFF'}</h3>
-            <p className={`mt-2 max-w-2xl text-sm ${data.ticketsReady ? 'text-amber-200' : 'font-bold text-red-300'}`}>
-              ⚠ Set CAMPUS_EVENTS_TICKET_SECRET on Render (32+ random characters) before turning this on. {data.ticketsReady ? 'The server reports tickets are configured.' : 'The server reports it is NOT set: tickets cannot be issued, so the switch is locked.'}
+            <p className="text-xs font-semibold text-fg-muted">CAMPUS_EVENTS_ENABLED</p>
+            <h3 className="mt-1 text-2xl font-semibold">{data.enabled ? 'Campus Events is ON for students' : 'Campus Events is OFF'}</h3>
+            <p className={`mt-2 max-w-2xl text-sm ${data.ticketsReady ? 'text-warning-text' : 'font-semibold text-danger-text'}`}>
+              Set CAMPUS_EVENTS_TICKET_SECRET on Render (32+ random characters) before turning this on. {data.ticketsReady ? 'The server reports tickets are configured.' : 'The server reports it is NOT set: tickets cannot be issued, so the switch is locked.'}
             </p>
-            <p className="mt-1 max-w-2xl text-xs text-gray-400">While off, students cannot browse, register, book slots or form teams, and organizers cannot submit (drafts are kept). Own registrations / tickets, check-in and every admin tool keep working.</p>
+            <p className="mt-1 max-w-2xl text-xs text-fg-muted">While off, students cannot browse, register, book slots or form teams, and organizers cannot submit (drafts are kept). Own registrations / tickets, check-in and every admin tool keep working.</p>
           </div>
           <button type="button" role="switch" aria-checked={data.enabled} disabled={!data.enabled && !data.ticketsReady} onClick={() => setSwitchTo({ key: 'enabled', value: !data.enabled })}
-            className={`relative h-14 w-28 rounded-full border-2 transition disabled:cursor-not-allowed disabled:opacity-40 ${data.enabled ? 'border-emerald-300 bg-emerald-600' : 'border-white/20 bg-gray-700'}`}>
+            className={`relative h-14 w-28 rounded-full border-2 transition disabled:cursor-not-allowed disabled:opacity-40 ${data.enabled ? 'border-success/30 bg-success' : 'border-line bg-surface-2'}`}>
             <span className={`absolute top-1 h-11 w-11 rounded-full bg-white shadow transition-all ${data.enabled ? 'left-[3.75rem]' : 'left-1'}`} />
             <span className="sr-only">{data.enabled ? 'Turn Campus Events off' : 'Turn Campus Events on'}</span>
           </button>
@@ -81,22 +81,22 @@ export default function SettingsTab({ tick, onChanged }: { tick: number; onChang
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="border border-white/10 p-5">
-          <h3 className="font-black">Zenvy Wallet payments: {data.walletEnabled ? 'ON' : 'OFF'}</h3>
-          <p className="mt-1 text-sm text-amber-200">⚠ Keep off until RBI / payment-aggregator and legal review is done. Zenvy would collect event fees on behalf of clubs; the wallet is non-transferable refund credit. Pay at the venue is always available.</p>
+        <div className="border border-line p-5">
+          <h3 className="font-semibold">Zenvy Wallet payments: {data.walletEnabled ? 'ON' : 'OFF'}</h3>
+          <p className="mt-1 text-sm text-warning-text">Keep off until RBI / payment-aggregator and legal review is done. Zenvy would collect event fees on behalf of clubs; the wallet is non-transferable refund credit. Pay at the venue is always available.</p>
           <div className="mt-3"><Btn tone={data.walletEnabled ? 'bad' : 'plain'} onClick={() => setSwitchTo({ key: 'walletEnabled', value: !data.walletEnabled })}>{data.walletEnabled ? 'Turn wallet off' : 'Turn wallet on'}</Btn></div>
         </div>
-        <div className="border border-white/10 p-5">
-          <h3 className="font-black">Online payments (Razorpay): {data.onlinePayEnabled ? (onlineReady ? 'ON' : 'ON but keys missing') : 'OFF'}</h3>
+        <div className="border border-line p-5">
+          <h3 className="font-semibold">Online payments (Razorpay): {data.onlinePayEnabled ? (onlineReady ? 'ON' : 'ON but keys missing') : 'OFF'}</h3>
           {onlineReady
-            ? <p className="mt-1 text-sm text-gray-300">Razorpay keys are configured on the server. Payments are confirmed only by the signed webhook, never by the app.</p>
-            : <p className="mt-1 text-sm text-gray-400">Not available yet: set RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET on Render (and point the Razorpay webhook to /api/campus-events/webhooks/razorpay). Until then students cannot choose online payment.</p>}
+            ? <p className="mt-1 text-sm text-fg-muted">Razorpay keys are configured on the server. Payments are confirmed only by the signed webhook, never by the app.</p>
+            : <p className="mt-1 text-sm text-fg-muted">Not available yet: set RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET on Render (and point the Razorpay webhook to /api/campus-events/webhooks/razorpay). Until then students cannot choose online payment.</p>}
           <div className="mt-3"><Btn tone={data.onlinePayEnabled ? 'bad' : 'plain'} disabled={!onlineReady && !data.onlinePayEnabled} onClick={() => setSwitchTo({ key: 'onlinePayEnabled', value: !data.onlinePayEnabled })}>{data.onlinePayEnabled ? 'Turn online payments off' : 'Turn online payments on'}</Btn></div>
         </div>
       </div>
 
-      <div className="border border-white/10 p-5">
-        <h3 className="mb-4 font-black">Limits and timings</h3>
+      <div className="border border-line p-5">
+        <h3 className="mb-4 font-semibold">Limits and timings</h3>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {FIELDS.map((f) => {
             const [min, max] = SETTING_RANGES[f.key];
@@ -104,13 +104,13 @@ export default function SettingsTab({ tick, onChanged }: { tick: number; onChang
               <Field key={f.key} name={f.name} hint={problems[f.key] ? undefined : `${f.hint} (${min}–${max})`}>
                 <input type="number" min={min} max={max} step={1} value={form[f.key] ?? ''} aria-invalid={!!problems[f.key]}
                   onChange={(e) => { setDirty(true); setForm((cur) => ({ ...cur, [f.key]: e.target.value })); }}
-                  className={`${inputCls} ${problems[f.key] ? 'border-red-400/60' : ''}`} />
-                {problems[f.key] && <span role="alert" className="mt-1 block text-[11px] text-red-300">{problems[f.key]}</span>}
+                  className={`${inputCls} ${problems[f.key] ? 'border-danger/30' : ''}`} />
+                {problems[f.key] && <span role="alert" className="mt-1 block text-xs text-danger-text">{problems[f.key]}</span>}
               </Field>
             );
           })}
         </div>
-        <p className="mt-3 text-xs text-gray-500">Organizer and admin cancellations always refund in full. Categories: {data.categories.join(', ')}.</p>
+        <p className="mt-3 text-xs text-fg-muted">Organizer and admin cancellations always refund in full. Categories: {data.categories.join(', ')}.</p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Btn tone="primary" disabled={busy || !dirty} onClick={save}>{busy ? 'Saving…' : 'Save settings'}</Btn>
           {dirty && <Btn disabled={busy} onClick={() => { setDirty(false); setMsg(null); }}>Discard changes</Btn>}
@@ -123,9 +123,9 @@ export default function SettingsTab({ tick, onChanged }: { tick: number; onChang
           confirmLabel={switchTo.value ? 'Turn on' : 'Turn off'}
           body={{
             enabled: switchTo.value
-              ? <><p className="font-bold text-amber-200">Confirm CAMPUS_EVENTS_TICKET_SECRET is set on Render and the pilot organizers / venue staff are ready.</p><p>Students immediately see Others → Campus Events and can register for published events.</p></>
+              ? <><p className="font-semibold text-warning-text">Confirm CAMPUS_EVENTS_TICKET_SECRET is set on Render and the pilot organizers / venue staff are ready.</p><p>Students immediately see Others → Campus Events and can register for published events.</p></>
               : <p>Browsing, registration, slot booking, teams and organizer submissions stop immediately. Existing registrations and tickets stay valid; check-in keeps working.</p>,
-            walletEnabled: switchTo.value ? <p className="font-bold text-amber-200">Only after RBI / payment and legal review. Students will be able to pay event fees from their Zenvy Wallet.</p> : <p>New registrations can no longer pay by wallet. Existing wallet payments and refunds are unaffected.</p>,
+            walletEnabled: switchTo.value ? <p className="font-semibold text-warning-text">Only after RBI / payment and legal review. Students will be able to pay event fees from their Zenvy Wallet.</p> : <p>New registrations can no longer pay by wallet. Existing wallet payments and refunds are unaffected.</p>,
             onlinePayEnabled: switchTo.value ? <p>Students can pay by Razorpay where organizers allow it. Registrations confirm only after the verified webhook.</p> : <p>New registrations can no longer pay online. Payments already in progress still complete or expire normally.</p>,
           }[switchTo.key]}
           onCancel={() => setSwitchTo(null)}

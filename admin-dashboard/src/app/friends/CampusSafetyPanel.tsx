@@ -25,8 +25,8 @@ interface WhisperRow {
   openReporters: number;
 }
 
-const btn = 'rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-widest disabled:opacity-40 transition-colors';
-const card = 'glass-card p-6 space-y-4';
+const btn = 'rounded-xl px-3 py-1.5 text-xs font-semibold disabled:opacity-40 transition-colors';
+const card = 'rounded-lg border border-line bg-surface shadow-xs p-6 space-y-4';
 const errText = (e: unknown, fallback: string) => (e instanceof Error && e.message ? e.message : fallback);
 
 const SWITCH_INFO: Record<keyof Switches, { label: string; blurb: string }> = {
@@ -35,10 +35,10 @@ const SWITCH_INFO: Record<keyof Switches, { label: string; blurb: string }> = {
 };
 
 const STATUS_TONE: Record<string, string> = {
-  visible: 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10',
-  pending_review: 'text-amber-300 border-amber-500/30 bg-amber-500/10',
-  hidden: 'text-orange-300 border-orange-500/30 bg-orange-500/10',
-  removed: 'text-red-300 border-red-500/30 bg-red-500/10',
+  visible: 'text-success-text border-success/30 bg-success-soft',
+  pending_review: 'text-warning-text border-warning/30 bg-warning-soft',
+  hidden: 'text-warning-text border-warning/30 bg-warning-soft',
+  removed: 'text-danger-text border-danger/30 bg-danger-soft',
 };
 
 export default function CampusSafetyPanel() {
@@ -101,34 +101,34 @@ export default function CampusSafetyPanel() {
     <section className={card}>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">Campus safety (outside Friends)</h2>
-          <p className="text-[11px] text-gray-500">
+          <h2 className="text-sm font-semibold text-fg">Campus safety (outside Friends)</h2>
+          <p className="text-xs text-fg-muted">
             Whispers, community posts, lost &amp; found, campus spots, groups, polls and chat are reported into the same{' '}
-            <Link href="/moderation" className="text-blue-400 underline">moderation queue</Link> (sub-tab &quot;campus&quot;; chat messages under &quot;chat&quot;).
+            <Link href="/moderation" className="text-info-text underline">moderation queue</Link> (sub-tab &quot;campus&quot;; chat messages under &quot;chat&quot;).
             They are hidden pending review after 3 distinct reports (UGC_AUTO_HIDE_REPORTS); dismissing the reports brings them back.
           </p>
         </div>
-        <button onClick={load} className={`${btn} bg-blue-500/10 text-blue-400 border border-blue-500/20`}>↻ Reload</button>
+        <button onClick={load} className={`${btn} bg-info-soft text-info-text border border-info/30`}>↻ Reload</button>
       </div>
 
       {notice && (
-        <div role="status" className={`rounded-2xl border px-4 py-3 text-xs font-bold flex items-center justify-between gap-4 ${notice.kind === 'ok' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300' : 'border-red-500/20 bg-red-500/10 text-red-300'}`}>
+        <div role="status" className={`rounded-lg border px-4 py-3 text-xs font-semibold flex items-center justify-between gap-4 ${notice.kind === 'ok' ? 'border-success/30 bg-success-soft text-success-text' : 'border-danger/30 bg-danger-soft text-danger-text'}`}>
           <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-[10px] font-black uppercase opacity-70 hover:opacity-100">Dismiss</button>
+          <button onClick={() => setNotice(null)} className="text-xs font-semibold opacity-70 hover:opacity-100">Dismiss</button>
         </div>
       )}
 
-      <div className="divide-y divide-white/[0.04] border-t border-white/5">
+      <div className="divide-y divide-line border-t border-line">
         {(Object.keys(SWITCH_INFO) as (keyof Switches)[]).map((k) => (
           <div key={k} className="flex items-center justify-between gap-4 py-3">
             <div>
-              <p className="text-xs font-black text-white uppercase tracking-wide">
+              <p className="text-xs font-semibold text-fg">
                 {SWITCH_INFO[k].label}
                 {switches ? (
-                  <span className={`ml-2 text-[9px] px-2 py-0.5 rounded-md border ${switches[k] ? STATUS_TONE.visible : STATUS_TONE.removed}`}>{switches[k] ? 'On' : 'Off'}</span>
+                  <span className={`ml-2 text-xs px-2 py-0.5 rounded-md border ${switches[k] ? STATUS_TONE.visible : STATUS_TONE.removed}`}>{switches[k] ? 'On' : 'Off'}</span>
                 ) : null}
               </p>
-              <p className="text-[11px] text-gray-500">{SWITCH_INFO[k].blurb}</p>
+              <p className="text-xs text-fg-muted">{SWITCH_INFO[k].blurb}</p>
             </div>
             <button
               type="button"
@@ -137,7 +137,7 @@ export default function CampusSafetyPanel() {
               aria-label={`${SWITCH_INFO[k].label} switch`}
               disabled={!switches || busy === `sw:${k}`}
               onClick={() => flip(k)}
-              className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:opacity-40 ${switches?.[k] ? 'bg-emerald-500/70 border-emerald-400/60' : 'bg-white/10 border-white/15'}`}
+              className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:opacity-40 ${switches?.[k] ? 'bg-success-soft border-success/30' : 'bg-surface-2 border-line'}`}
             >
               <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${switches?.[k] ? 'left-[22px]' : 'left-0.5'}`} />
             </button>
@@ -146,34 +146,34 @@ export default function CampusSafetyPanel() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-        <h3 className="text-xs font-black uppercase tracking-widest text-white">Recent whispers</h3>
+        <h3 className="text-xs font-semibold text-fg">Recent whispers</h3>
         <div className="flex gap-2">
           {(['all', 'visible', 'hidden'] as const).map((f) => (
-            <button key={f} onClick={() => setFilter(f)} className={`${btn} border ${filter === f ? 'border-blue-500/40 text-blue-300 bg-blue-500/10' : 'border-white/10 text-gray-400 bg-white/5'}`}>{f}</button>
+            <button key={f} onClick={() => setFilter(f)} className={`${btn} border ${filter === f ? 'border-info/30 text-info-text bg-info-soft' : 'border-line text-fg-muted bg-surface-2/60'}`}>{f}</button>
           ))}
         </div>
       </div>
       <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
         {rows.length === 0 ? (
-          <p className="text-[11px] text-gray-500">No whispers to show.</p>
+          <p className="text-xs text-fg-muted">No whispers to show.</p>
         ) : rows.map((r) => (
-          <div key={r.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 flex items-start justify-between gap-3">
+          <div key={r.id} className="rounded-xl border border-line bg-surface-2/60 p-3 flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[10px] text-gray-500 uppercase font-bold">
-                <span className="text-violet-300">{r.alias}</span> · {r.topic} · {new Date(r.createdAt).toLocaleString()} · ♥ {r.hearts}
+              <p className="text-xs text-fg-muted font-semibold">
+                <span className="text-accent-text">{r.alias}</span> · {r.topic} · {new Date(r.createdAt).toLocaleString()} · ♥ {r.hearts}
                 <span className={`ml-2 px-2 py-0.5 rounded-md border ${STATUS_TONE[r.status] || ''}`}>{r.status.replace('_', ' ')}</span>
-                {r.openReporters > 0 && <span className="ml-2 text-amber-300">{r.openReporters} open report{r.openReporters === 1 ? '' : 's'}</span>}
+                {r.openReporters > 0 && <span className="ml-2 text-warning-text">{r.openReporters} open report{r.openReporters === 1 ? '' : 's'}</span>}
               </p>
-              <p className="text-sm text-gray-100 whitespace-pre-wrap break-words mt-1">{r.text}</p>
+              <p className="text-sm text-fg whitespace-pre-wrap break-words mt-1">{r.text}</p>
             </div>
             <div className="flex flex-col gap-1 shrink-0">
               {r.status === 'visible' ? (
                 <>
-                  <button disabled={busy === `w:${r.id}`} onClick={() => act(r, 'hide')} className={`${btn} border border-orange-500/30 text-orange-300 bg-orange-500/10`}>Hide</button>
-                  <button disabled={busy === `w:${r.id}`} onClick={() => act(r, 'remove')} className={`${btn} border border-red-500/30 text-red-300 bg-red-500/10`}>Delete</button>
+                  <button disabled={busy === `w:${r.id}`} onClick={() => act(r, 'hide')} className={`${btn} border border-warning/30 text-warning-text bg-warning-soft`}>Hide</button>
+                  <button disabled={busy === `w:${r.id}`} onClick={() => act(r, 'remove')} className={`${btn} border border-danger/30 text-danger-text bg-danger-soft`}>Delete</button>
                 </>
               ) : (
-                <button disabled={busy === `w:${r.id}`} onClick={() => act(r, 'restore')} className={`${btn} border border-emerald-500/30 text-emerald-300 bg-emerald-500/10`}>Restore</button>
+                <button disabled={busy === `w:${r.id}`} onClick={() => act(r, 'restore')} className={`${btn} border border-success/30 text-success-text bg-success-soft`}>Restore</button>
               )}
             </div>
           </div>

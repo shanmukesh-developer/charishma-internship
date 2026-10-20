@@ -64,12 +64,12 @@ interface HistoryEntry {
 }
 
 const GRADIENT_OPTIONS = [
-  { value: 'fire', label: '🔥 Fire', css: 'from-orange-500 via-red-500 to-yellow-500' },
-  { value: 'ocean', label: '🌊 Ocean', css: 'from-cyan-500 via-blue-500 to-indigo-500' },
-  { value: 'aurora', label: '🌌 Aurora', css: 'from-green-400 via-teal-500 to-purple-500' },
-  { value: 'sunset', label: '🌅 Sunset', css: 'from-pink-500 via-orange-400 to-yellow-400' },
-  { value: 'neon', label: '💜 Neon', css: 'from-purple-500 via-pink-500 to-blue-500' },
-  { value: 'gold', label: '✨ Gold', css: 'from-amber-400 via-yellow-500 to-orange-400' },
+  { value: 'fire', label: 'Fire', css: 'from-orange-500 via-red-500 to-yellow-500' },
+  { value: 'ocean', label: 'Ocean', css: 'from-cyan-500 via-blue-500 to-indigo-500' },
+  { value: 'aurora', label: 'Aurora', css: 'from-green-400 via-teal-500 to-purple-500' },
+  { value: 'sunset', label: 'Sunset', css: 'from-pink-500 via-orange-400 to-yellow-400' },
+  { value: 'neon', label: 'Neon', css: 'from-purple-500 via-pink-500 to-blue-500' },
+  { value: 'gold', label: 'Gold', css: 'from-amber-400 via-yellow-500 to-orange-400' },
 ];
 
 export default function WallAdmin() {
@@ -89,7 +89,7 @@ export default function WallAdmin() {
   const [formDesc, setFormDesc] = useState('');
   const [formStart, setFormStart] = useState('');
   const [formEnd, setFormEnd] = useState('');
-  const [formBannerText, setFormBannerText] = useState('🔥 LIVE PHOTO CONTEST: Vote for your favourite photos & win instant discount coupons! 📸✨');
+  const [formBannerText, setFormBannerText] = useState(' LIVE PHOTO CONTEST: Vote for your favourite photos & win instant discount coupons! ');
   const [formGradient, setFormGradient] = useState('fire');
   const [formCouponValue, setFormCouponValue] = useState<number>(100);
   const [formSubmitting, setFormSubmitting] = useState(false);
@@ -345,38 +345,38 @@ export default function WallAdmin() {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
-      <header className="flex justify-between items-center flex-wrap gap-4 bg-white/5 p-8 rounded-[40px] border border-white/5 glass">
+      <header className="flex justify-between items-center flex-wrap gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tighter text-white uppercase">The <span className="text-amber-400">Wall</span> 📸</h1>
-          <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-1">Photo contests • Moving banner • Photo approval queue</p>
+          <h1 className="text-2xl font-semibold text-fg">The Wall</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Student photo wall: submissions to approve and events.</p>
         </div>
         <div className="flex gap-2">
           {(['events', 'moderation', 'fame'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all border ${
+              className={`px-4 py-2.5 rounded-lg text-xs font-semibold transition-all border ${
                 activeTab === tab
-                  ? 'bg-amber-600 border-amber-500 text-white shadow-[0_0_20px_rgba(217,119,6,0.4)]'
-                  : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
+                  ? 'bg-accent border-warning/30 text-on-solid'
+                  : 'bg-surface-2/60 border-line text-fg-muted hover:bg-surface-2'
               }`}
             >
-              {tab === 'events' && '📸 Events & Banners'}
-              {tab === 'moderation' && <>🖼️ Moderation {pendingSubmissions.length > 0 && <span className="ml-1.5 px-2 py-0.5 text-[9px] bg-red-500 text-white rounded-full font-bold">{pendingSubmissions.length}</span>}</>}
-              {tab === 'fame' && '🏆 Hall of Fame'}
+              {tab === 'events' && 'Events & Banners'}
+              {tab === 'moderation' && <>Moderation {pendingSubmissions.length > 0 && <span className="ml-1.5 px-2 py-0.5 text-xs bg-danger text-on-solid rounded-full font-semibold">{pendingSubmissions.length}</span>}</>}
+              {tab === 'fame' && 'Hall of Fame'}
             </button>
           ))}
         </div>
       </header>
 
       {pageError && (
-        <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-sm font-bold text-red-400 flex justify-between items-center gap-4">
+        <div className="p-4 rounded-xl border border-danger/30 bg-danger-soft text-sm font-semibold text-danger-text flex justify-between items-center gap-4">
           <span>{pageError}</span>
-          <button onClick={() => { setPageError(null); fetchEvents(); fetchPending(); fetchHistory(); }} className="text-[10px] font-black uppercase tracking-wider underline">Retry</button>
+          <button onClick={() => { setPageError(null); fetchEvents(); fetchPending(); fetchHistory(); }} className="text-xs font-semibold underline">Retry</button>
         </div>
       )}
       {notice && (
-        <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-sm font-bold text-emerald-400">{notice}</div>
+        <div className="p-4 rounded-xl border border-success/30 bg-success-soft text-sm font-semibold text-success-text">{notice}</div>
       )}
 
       {/* ══════════════════════════════════════════════════════════════════ */}
@@ -395,21 +395,21 @@ export default function WallAdmin() {
                 setFormEnd(toLocalInput(end));
                 setShowCreateModal(true);
               }}
-              className="px-6 py-3.5 bg-amber-600 hover:bg-amber-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-[0_0_20px_rgba(217,119,6,0.4)] transition-all flex items-center gap-2"
+              className="px-6 py-3.5 bg-accent hover:bg-accent-hover text-on-solid rounded-lg text-xs font-semibold transition-all flex items-center gap-2"
             >
-              <span>✨</span> Launch New Event
+              <span></span> Launch New Event
             </button>
           </div>
 
           {/* Events Grid */}
           {loadingEvents ? (
             <div className="flex justify-center py-20">
-              <div className="w-8 h-8 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-warning/30 border-t-warning/30 rounded-full animate-spin" />
             </div>
           ) : events.length === 0 ? (
-            <div className="py-16 text-center glass-card border border-white/5">
-              <p className="text-gray-500 text-sm font-bold">No Wall events created yet.</p>
-              <p className="text-gray-600 text-xs mt-1">Launch your first photo contest above!</p>
+            <div className="py-16 text-center rounded-lg border border-line bg-surface shadow-xs border border-line">
+              <p className="text-fg-muted text-sm font-semibold">No Wall events created yet.</p>
+              <p className="text-fg-subtle text-xs mt-1">Launch your first photo contest above!</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -421,8 +421,8 @@ export default function WallAdmin() {
                 return (
                   <div
                     key={evt.id}
-                    className={`glass-card p-6 space-y-4 border ${isFresh(evt.id) ? FRESH_ROW_CLASS : ''} ${
-                      isLive ? 'border-amber-500/30 bg-amber-500/5' : isEnded ? 'border-white/5 opacity-70' : 'border-white/10'
+                    className={`rounded-lg border border-line bg-surface shadow-xs p-6 space-y-4 border ${isFresh(evt.id) ? FRESH_ROW_CLASS : ''} ${
+                      isLive ? 'border-warning/30 bg-warning-soft' : isEnded ? 'border-line opacity-70' : 'border-line'
                     }`}
                   >
                     {/* Status + Title */}
@@ -430,30 +430,30 @@ export default function WallAdmin() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           {isLive && (
-                            <span className="px-2 py-0.5 bg-green-500/15 border border-green-500/25 text-green-400 text-[8px] font-black uppercase rounded-full tracking-wider flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" /> LIVE
+                            <span className="px-2 py-0.5 bg-success-soft border border-success/30 text-success-text text-xs font-semibold rounded-full flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" /> LIVE
                             </span>
                           )}
                           {isEnded && (
-                            <span className="px-2 py-0.5 bg-gray-500/15 border border-gray-500/25 text-gray-400 text-[8px] font-black uppercase rounded-full tracking-wider">ENDED</span>
+                            <span className="px-2 py-0.5 bg-surface-3 border border-line-strong text-fg-muted text-xs font-semibold rounded-full">Ended</span>
                           )}
                           {isScheduled && (
-                            <span className="px-2 py-0.5 bg-blue-500/15 border border-blue-500/25 text-blue-400 text-[8px] font-black uppercase rounded-full tracking-wider">SCHEDULED</span>
+                            <span className="px-2 py-0.5 bg-info-soft border border-info/30 text-info-text text-xs font-semibold rounded-full">Scheduled</span>
                           )}
                           {isActive && !isLive && !isScheduled && (
-                            <span className="px-2 py-0.5 bg-red-500/15 border border-red-500/25 text-red-400 text-[8px] font-black uppercase rounded-full tracking-wider">FINALIZING</span>
+                            <span className="px-2 py-0.5 bg-danger-soft border border-danger/30 text-danger-text text-xs font-semibold rounded-full">Finalising</span>
                           )}
                         </div>
-                        <h3 className="text-lg font-black text-white tracking-tight">{evt.title}</h3>
-                        {evt.description && <p className="text-xs text-gray-400 line-clamp-2">{evt.description}</p>}
+                        <h3 className="text-lg font-semibold text-fg">{evt.title}</h3>
+                        {evt.description && <p className="text-xs text-fg-muted line-clamp-2">{evt.description}</p>}
                       </div>
                     </div>
 
                     {/* Moving Banner Preview */}
                     {evt.bannerText && (
-                      <div className={`relative overflow-hidden rounded-xl h-8 bg-gradient-to-r ${getGradientCss(evt.bannerGradient)}`}>
+                      <div className={`relative overflow-hidden rounded-xl h-8 bg-surface-2 ${getGradientCss(evt.bannerGradient)}`}>
                         <div className="absolute inset-0 flex items-center whitespace-nowrap animate-marquee">
-                          <span className="text-[10px] font-black text-white uppercase tracking-wider px-4">
+                          <span className="text-xs font-semibold text-fg px-4">
                             {evt.bannerText} &nbsp;&nbsp;&nbsp; {evt.bannerText}
                           </span>
                         </div>
@@ -463,25 +463,25 @@ export default function WallAdmin() {
                     {/* Stats Row */}
                     <div className="grid grid-cols-4 gap-2">
                       {[
-                        { label: 'Total', value: evt.totalSubmissions ?? 0, color: 'text-blue-400' },
-                        { label: 'Approved', value: evt.approvedSubmissions ?? 0, color: 'text-green-400' },
-                        { label: 'Pending', value: evt.pendingSubmissions ?? 0, color: 'text-amber-400' },
-                        { label: 'Prize', value: `₹${evt.couponValue ?? 0}`, color: 'text-purple-400' },
+                        { label: 'Total', value: evt.totalSubmissions ?? 0, color: 'text-info-text' },
+                        { label: 'Approved', value: evt.approvedSubmissions ?? 0, color: 'text-success-text' },
+                        { label: 'Pending', value: evt.pendingSubmissions ?? 0, color: 'text-warning-text' },
+                        { label: 'Prize', value: `₹${evt.couponValue ?? 0}`, color: 'text-accent-text' },
                       ].map(stat => (
-                        <div key={stat.label} className="bg-white/[0.03] rounded-xl p-2.5 text-center border border-white/5">
-                          <p className={`text-sm font-black ${stat.color}`}>{stat.value}</p>
-                          <p className="text-[8px] text-gray-500 uppercase tracking-widest font-bold">{stat.label}</p>
+                        <div key={stat.label} className="bg-surface-2/60 rounded-xl p-2.5 text-center border border-line">
+                          <p className={`text-sm font-semibold ${stat.color}`}>{stat.value}</p>
+                          <p className="text-xs text-fg-muted font-semibold">{stat.label}</p>
                         </div>
                       ))}
                     </div>
 
                     {/* Meta */}
-                    <div className="flex justify-between items-center text-[10px] text-gray-500 border-t border-white/5 pt-3">
+                    <div className="flex justify-between items-center text-xs text-fg-muted border-t border-line pt-3">
                       <div>
-                        <span className="font-bold text-gray-400">📅</span> {formatDate(evt.startTime)} → {formatDate(evt.endTime)}
+                        <span className="font-semibold text-fg-muted"></span> {formatDate(evt.startTime)} → {formatDate(evt.endTime)}
                       </div>
                       {isEnded && evt.couponCode && (
-                        <span title="Winner's coupon code" className="font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 text-[9px] font-bold">
+                        <span title="Winner's coupon code" className="font-mono text-warning-text bg-warning-soft px-2 py-0.5 rounded border border-warning/30 text-xs font-semibold">
                           {evt.couponCode}
                         </span>
                       )}
@@ -492,16 +492,16 @@ export default function WallAdmin() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => openEditModal(evt)}
-                          className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all"
+                          className="flex-1 py-2.5 bg-surface-2/60 hover:bg-surface-2 border border-line text-fg text-xs font-semibold rounded-xl transition-all"
                         >
-                          ✏️ Edit Event
+                          Edit Event
                         </button>
                         <button
                           onClick={() => handleEndEvent(evt.id)}
                           disabled={actionLoading === evt.id}
-                          className="py-2.5 px-4 bg-red-500/10 hover:bg-red-500 border border-red-500/25 text-red-400 hover:text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50"
+                          className="py-2.5 px-4 bg-danger-soft hover:bg-danger/90 border border-danger/30 text-danger-text hover:text-fg text-xs font-semibold rounded-xl transition-all disabled:opacity-50"
                         >
-                          {actionLoading === evt.id ? '...' : '🏁 End'}
+                          {actionLoading === evt.id ? '...' : 'End'}
                         </button>
                       </div>
                     )}
@@ -519,45 +519,45 @@ export default function WallAdmin() {
       {activeTab === 'moderation' && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
-              <span>🖼️</span> Pending Photo Submissions ({pendingSubmissions.length})
+            <h3 className="text-sm font-semibold text-fg flex items-center gap-2">
+              <span></span> Pending Photo Submissions ({pendingSubmissions.length})
             </h3>
             <button
               onClick={() => fetchPending()}
-              className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all"
+              className="px-4 py-2 bg-surface-2/60 hover:bg-surface-2 border border-line text-fg-muted text-xs font-semibold rounded-xl transition-all"
             >
-              🔄 Refresh
+              Refresh
             </button>
           </div>
 
           {loadingPending ? (
             <div className="flex justify-center py-20">
-              <div className="w-8 h-8 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-warning/30 border-t-warning/30 rounded-full animate-spin" />
             </div>
           ) : pendingSubmissions.length === 0 ? (
-            <div className="py-16 text-center glass-card border border-white/5">
-              <p className="text-4xl mb-3">✅</p>
-              <p className="text-gray-500 text-sm font-bold">Moderation queue is clear!</p>
-              <p className="text-gray-600 text-xs mt-1">All submissions have been reviewed.</p>
+            <div className="py-16 text-center rounded-lg border border-line bg-surface shadow-xs border border-line">
+              <p className="text-4xl mb-3"></p>
+              <p className="text-fg-muted text-sm font-semibold">Moderation queue is clear!</p>
+              <p className="text-fg-subtle text-xs mt-1">All submissions have been reviewed.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {pendingSubmissions.map(sub => (
-                <div key={sub.id} className={`glass-card border border-amber-500/15 overflow-hidden ${isFresh(sub.id) ? FRESH_ROW_CLASS : ''}`}>
+                <div key={sub.id} className={`rounded-lg border border-line bg-surface shadow-xs border border-warning/30 overflow-hidden ${isFresh(sub.id) ? FRESH_ROW_CLASS : ''}`}>
                   {/* Photo Preview */}
-                  <div className="relative aspect-square bg-neutral-900">
+                  <div className="relative aspect-square bg-surface-2">
                     <img
                       src={getImageUrl(sub.imageUrl)}
                       loading="lazy"
                       decoding="async"
                       alt="Submission"
                       className="w-full h-full object-cover"
-                      onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect fill="%23111" width="200" height="200"/><text fill="%23333" x="50%" y="50%" text-anchor="middle" dy=".3em" font-size="40">📷</text></svg>'; }}
+                      onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect fill="%23111" width="200" height="200"/><text fill="%23333" x="50%" y="50%" text-anchor="middle" dy=".3em" font-size="40"></text></svg>'; }}
                     />
                     {/* Event Badge */}
                     {sub.event && (
-                      <div className="absolute top-3 left-3 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-lg border border-white/10">
-                        <span className="text-[8px] font-black text-white uppercase tracking-wider">
+                      <div className="absolute top-3 left-3 px-2 py-1 bg-surface-2 rounded-lg border border-line">
+                        <span className="text-xs font-semibold text-fg">
                           {sub.event.title}{sub.event.status === 'ENDED' ? ' · ended' : ''}
                         </span>
                       </div>
@@ -571,12 +571,12 @@ export default function WallAdmin() {
                         <ListImage
                           thumb
                           src={getImageUrl(sub.user?.profileImage ?? null)}
-                          className="w-7 h-7 rounded-full object-cover border border-white/15"
-                          fallback={<div className="w-7 h-7 rounded-full bg-amber-500/20 flex items-center justify-center text-[10px]">👤</div>}
+                          className="w-7 h-7 rounded-full object-cover border border-line"
+                          fallback={<div className="w-7 h-7 rounded-full bg-warning-soft flex items-center justify-center text-xs"></div>}
                         />
-                        <span className="text-xs font-bold text-white">{sub.user?.name || 'Unknown'}</span>
+                        <span className="text-xs font-semibold text-fg">{sub.user?.name || 'Unknown'}</span>
                       </div>
-                      <span className="text-[9px] text-gray-500">{formatDate(sub.createdAt)}</span>
+                      <span className="text-xs text-fg-muted">{formatDate(sub.createdAt)}</span>
                     </div>
 
                     {/* Action Buttons */}
@@ -584,14 +584,14 @@ export default function WallAdmin() {
                       <button
                         onClick={() => handleReject(sub.id)}
                         disabled={moderatingId === sub.id}
-                        className="flex-1 py-2.5 bg-red-500/10 border border-red-500/25 text-red-400 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-500/20 transition-all disabled:opacity-50"
+                        className="flex-1 py-2.5 bg-danger-soft border border-danger/30 text-danger-text text-xs font-semibold rounded-xl hover:bg-danger-soft transition-all disabled:opacity-50"
                       >
-                        ✕ Reject
+                        Reject
                       </button>
                       <button
                         onClick={() => handleApprove(sub.id)}
                         disabled={moderatingId === sub.id}
-                        className="flex-[2] py-2.5 bg-green-600 hover:bg-green-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50"
+                        className="flex-[2] py-2.5 bg-success hover:bg-success/90 text-on-solid text-xs font-semibold rounded-xl transition-all disabled:opacity-50"
                       >
                         {moderatingId === sub.id ? '...' : '✓ Approve'}
                       </button>
@@ -609,27 +609,27 @@ export default function WallAdmin() {
       {/* ══════════════════════════════════════════════════════════════════ */}
       {activeTab === 'fame' && (
         <div className="space-y-6">
-          <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
-            <span>🏆</span> Hall of Fame — Past Events & Winners
+          <h3 className="text-sm font-semibold text-fg flex items-center gap-2">
+            <span></span> Hall of Fame — Past Events & Winners
           </h3>
 
           {loadingHistory ? (
             <div className="flex justify-center py-20">
-              <div className="w-8 h-8 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-warning/30 border-t-warning/30 rounded-full animate-spin" />
             </div>
           ) : history.length === 0 ? (
-            <div className="py-16 text-center glass-card border border-white/5">
-              <p className="text-4xl mb-3">🏛️</p>
-              <p className="text-gray-500 text-sm font-bold">No completed events yet.</p>
-              <p className="text-gray-600 text-xs mt-1">Winners will appear here once an event ends.</p>
+            <div className="py-16 text-center rounded-lg border border-line bg-surface shadow-xs border border-line">
+              <p className="text-4xl mb-3"></p>
+              <p className="text-fg-muted text-sm font-semibold">No completed events yet.</p>
+              <p className="text-fg-subtle text-xs mt-1">Winners will appear here once an event ends.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {history.map((entry: any, i: number) => (
-                <div key={entry.event?.id || i} className="glass-card border border-amber-500/10 overflow-hidden">
+                <div key={entry.event?.id || i} className="rounded-lg border border-line bg-surface shadow-xs border border-warning/30 overflow-hidden">
                   {/* Winner Photo */}
                   {entry.winningSubmission?.imageUrl && (
-                    <div className="h-48 bg-neutral-900 relative">
+                    <div className="h-48 bg-surface-2 relative">
                       <img
                         src={getImageUrl(entry.winningSubmission.imageUrl)}
                         loading="lazy"
@@ -637,32 +637,32 @@ export default function WallAdmin() {
                         alt="Winner"
                         className="w-full h-full object-cover opacity-80"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-transparent to-transparent" />
+                      <div className="absolute inset-0 bg-surface-2" />
                       <div className="absolute bottom-3 left-4 flex items-center gap-2">
-                        <span className="text-2xl">🏆</span>
+                        <span className="text-2xl"></span>
                         <div>
-                          <p className="text-xs font-black text-amber-400 uppercase tracking-wider">Winner</p>
-                          <p className="text-sm font-bold text-white">{entry.winner?.name || 'No winner'}</p>
+                          <p className="text-xs font-semibold text-warning-text">Winner</p>
+                          <p className="text-sm font-semibold text-fg">{entry.winner?.name || 'No winner'}</p>
                         </div>
                       </div>
-                      <div className="absolute bottom-3 right-4 px-2 py-1 bg-black/50 backdrop-blur rounded-lg">
-                        <span className="text-[10px] font-black text-red-400">❤️ {entry.winningSubmission?.likeCount || 0} votes</span>
+                      <div className="absolute bottom-3 right-4 px-2 py-1 bg-surface-2 rounded-lg">
+                        <span className="text-xs font-semibold text-danger-text">{entry.winningSubmission?.likeCount || 0} votes</span>
                       </div>
                     </div>
                   )}
 
                   <div className="p-5 space-y-3">
-                    <h4 className="text-md font-black text-white tracking-tight">{entry.event?.title || 'Untitled Event'}</h4>
-                    <div className="flex gap-3 text-[10px] text-gray-500">
-                      <span>📅 {formatDate(entry.event?.startTime)} → {formatDate(entry.event?.endTime)}</span>
+                    <h4 className="text-md font-semibold text-fg">{entry.event?.title || 'Untitled Event'}</h4>
+                    <div className="flex gap-3 text-xs text-fg-muted">
+                      <span>{formatDate(entry.event?.startTime)} → {formatDate(entry.event?.endTime)}</span>
                     </div>
                     {!entry.winningSubmission && (
-                      <p className="text-[11px] text-gray-500 italic">No approved photos, so nobody won this contest.</p>
+                      <p className="text-xs text-fg-muted">No approved photos, so nobody won this contest.</p>
                     )}
                     {entry.event?.couponCode && (
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Winner&apos;s coupon:</span>
-                        <span className="font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 text-[10px] font-bold">
+                        <span className="text-xs text-fg-muted font-semibold">Winner&apos;s coupon:</span>
+                        <span className="font-mono text-warning-text bg-warning-soft px-2 py-0.5 rounded border border-warning/30 text-xs font-semibold">
                           {entry.event.couponCode} (₹{entry.event.couponValue})
                         </span>
                       </div>
@@ -679,28 +679,28 @@ export default function WallAdmin() {
       {/* Create Event Modal */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="bg-[#0D0D15] border border-white/10 rounded-[32px] w-full max-w-2xl overflow-hidden glass shadow-[0_0_50px_rgba(0,0,0,0.8)] max-h-[90vh] overflow-y-auto">
-            <header className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02] sticky top-0 z-10">
-              <h3 className="text-xl font-black text-white uppercase tracking-tight">✨ Launch Wall Event</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/50 p-4">
+          <div className="bg-surface border border-line rounded-lg w-full max-w-2xl overflow-hidden bg-surface border border-line max-h-[90vh] overflow-y-auto">
+            <header className="px-8 py-6 border-b border-line flex justify-between items-center bg-surface-2/60 sticky top-0 z-10">
+              <h3 className="text-xl font-semibold text-fg">Launch Wall Event</h3>
               <button
                 onClick={() => { setShowCreateModal(false); resetForm(); }}
-                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-white flex items-center justify-center text-lg transition-all"
-              >✕</button>
+                className="w-8 h-8 rounded-full bg-surface-2/60 hover:bg-surface-2 text-fg flex items-center justify-center text-lg transition-all"
+               aria-label="Dismiss"><span aria-hidden="true" className="text-base leading-none">×</span></button>
             </header>
 
             <form onSubmit={handleCreateEvent} className="p-8 space-y-6">
               {formError && (
-                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-xs font-bold text-red-400">⚠️ {formError}</div>
+                <div className="p-4 bg-danger-soft border border-danger/30 rounded-lg text-xs font-semibold text-danger-text">{formError}</div>
               )}
 
               {/* Title */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Event Title</label>
+                <label className="text-xs font-semibold text-fg-muted">Event Title</label>
                 <input
                   type="text"
-                  placeholder="e.g. Campus Food Aesthetics 📸"
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-sm text-white placeholder-gray-600 outline-none focus:border-amber-500/50 transition-all"
+                  placeholder="e.g. Campus Food Aesthetics "
+                  className="w-full bg-surface-2/60 border border-line rounded-lg py-3.5 px-5 text-sm text-fg placeholder:text-fg-subtle outline-none focus:border-accent transition-all"
                   value={formTitle}
                   onChange={e => setFormTitle(e.target.value)}
                 />
@@ -708,11 +708,11 @@ export default function WallAdmin() {
 
               {/* Description */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Description (Optional)</label>
+                <label className="text-xs font-semibold text-fg-muted">Description (Optional)</label>
                 <textarea
                   rows={2}
                   placeholder="Share your most aesthetic food photo..."
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-sm text-white placeholder-gray-600 outline-none focus:border-amber-500/50 transition-all resize-none"
+                  className="w-full bg-surface-2/60 border border-line rounded-lg py-3.5 px-5 text-sm text-fg placeholder:text-fg-subtle outline-none focus:border-accent transition-all resize-none"
                   value={formDesc}
                   onChange={e => setFormDesc(e.target.value)}
                 />
@@ -721,19 +721,19 @@ export default function WallAdmin() {
               {/* Date Range */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Start Time</label>
+                  <label className="text-xs font-semibold text-fg-muted">Start Time</label>
                   <input
                     type="datetime-local"
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-sm text-white outline-none focus:border-amber-500/50 transition-all"
+                    className="w-full bg-surface-2/60 border border-line rounded-lg py-3.5 px-5 text-sm text-fg outline-none focus:border-accent transition-all"
                     value={formStart}
                     onChange={e => setFormStart(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">End Time</label>
+                  <label className="text-xs font-semibold text-fg-muted">End Time</label>
                   <input
                     type="datetime-local"
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-sm text-white outline-none focus:border-amber-500/50 transition-all"
+                    className="w-full bg-surface-2/60 border border-line rounded-lg py-3.5 px-5 text-sm text-fg outline-none focus:border-accent transition-all"
                     value={formEnd}
                     onChange={e => setFormEnd(e.target.value)}
                   />
@@ -741,14 +741,14 @@ export default function WallAdmin() {
               </div>
 
               {/* Banner Section */}
-              <div className="space-y-4 p-5 bg-white/[0.02] rounded-2xl border border-white/5">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-400">🎠 Moving Banner Configuration</h4>
+              <div className="space-y-4 p-5 bg-surface-2/60 rounded-lg border border-line">
+                <h4 className="text-xs font-semibold text-warning-text">Moving Banner Configuration</h4>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Banner Text</label>
+                  <label className="text-xs font-semibold text-fg-muted">Banner Text</label>
                   <textarea
                     rows={2}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 text-sm text-white placeholder-gray-600 outline-none focus:border-amber-500/50 transition-all resize-none"
+                    className="w-full bg-surface-2/60 border border-line rounded-lg py-3 px-5 text-sm text-fg placeholder:text-fg-subtle outline-none focus:border-accent transition-all resize-none"
                     value={formBannerText}
                     onChange={e => setFormBannerText(e.target.value)}
                   />
@@ -756,14 +756,14 @@ export default function WallAdmin() {
 
                 {/* Gradient Selector */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Banner Gradient Style</label>
+                  <label className="text-xs font-semibold text-fg-muted">Banner Gradient Style</label>
                   <div className="grid grid-cols-3 gap-2">
                     {GRADIENT_OPTIONS.map(g => (
                       <button
                         key={g.value}
                         type="button"
                         onClick={() => setFormGradient(g.value)}
-                        className={`py-2.5 rounded-xl text-[10px] font-black text-white uppercase tracking-wider transition-all bg-gradient-to-r ${g.css} ${
+                        className={`py-2.5 rounded-xl text-xs font-semibold text-on-solid transition-all bg-accent ${g.css} ${
                           formGradient === g.value ? 'ring-2 ring-white ring-offset-2 ring-offset-[#0D0D15] scale-105' : 'opacity-60 hover:opacity-90'
                         }`}
                       >
@@ -776,10 +776,10 @@ export default function WallAdmin() {
                 {/* Live Preview */}
                 {formBannerText && (
                   <div className="space-y-1">
-                    <label className="text-[8px] font-black uppercase tracking-widest text-gray-500">Live Preview</label>
-                    <div className={`relative overflow-hidden rounded-xl h-9 bg-gradient-to-r ${getGradientCss(formGradient)}`}>
+                    <label className="text-xs font-semibold text-fg-muted">Live Preview</label>
+                    <div className={`relative overflow-hidden rounded-xl h-9 bg-surface-2 ${getGradientCss(formGradient)}`}>
                       <div className="absolute inset-0 flex items-center whitespace-nowrap animate-marquee">
-                        <span className="text-[10px] font-black text-white uppercase tracking-wider px-4">
+                        <span className="text-xs font-semibold text-fg px-4">
                           {formBannerText} &nbsp;&nbsp;&nbsp; {formBannerText}
                         </span>
                       </div>
@@ -789,15 +789,15 @@ export default function WallAdmin() {
               </div>
 
               {/* Coupon Section */}
-              <div className="space-y-4 p-5 bg-white/[0.02] rounded-2xl border border-white/5">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-purple-400">🏷️ Winner Prize</h4>
-                <p className="text-[11px] text-gray-500">When the contest ends, the server creates a one-time coupon of this value for the winner and sends them the code.</p>
+              <div className="space-y-4 p-5 bg-surface-2/60 rounded-lg border border-line">
+                <h4 className="text-xs font-semibold text-accent-text">Winner Prize</h4>
+                <p className="text-xs text-fg-muted">When the contest ends, the server creates a one-time coupon of this value for the winner and sends them the code.</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Coupon Value (₹)</label>
+                    <label className="text-xs font-semibold text-fg-muted">Coupon Value (₹)</label>
                     <input
                       type="number"
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-sm text-white outline-none focus:border-purple-500/50 transition-all"
+                      className="w-full bg-surface-2/60 border border-line rounded-lg py-3.5 px-5 text-sm text-fg outline-none focus:border-accent transition-all"
                       value={formCouponValue}
                       onChange={e => setFormCouponValue(Number(e.target.value) || 0)}
                     />
@@ -807,8 +807,8 @@ export default function WallAdmin() {
                           key={v}
                           type="button"
                           onClick={() => setFormCouponValue(v)}
-                          className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
-                            formCouponValue === v ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-white/5 text-gray-500 hover:text-white'
+                          className={`px-2 py-1 rounded text-xs font-semibold transition-all ${
+                            formCouponValue === v ? 'bg-accent-soft text-accent-text border border-accent/30' : 'bg-surface-2/60 text-fg-muted hover:text-fg'
                           }`}
                         >
                           ₹{v}
@@ -820,17 +820,17 @@ export default function WallAdmin() {
               </div>
 
               {/* Submit */}
-              <div className="flex gap-4 pt-4 border-t border-white/5">
+              <div className="flex gap-4 pt-4 border-t border-line">
                 <button
                   type="button"
                   onClick={() => { setShowCreateModal(false); resetForm(); }}
-                  className="flex-1 py-3.5 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+                  className="flex-1 py-3.5 bg-surface-2/60 hover:bg-surface-2 text-fg rounded-lg text-xs font-semibold transition-all"
                 >Cancel</button>
                 <button
                   type="submit"
                   disabled={formSubmitting}
-                  className="flex-1 py-3.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-[0_0_20px_rgba(217,119,6,0.4)] transition-all"
-                >{formSubmitting ? 'Launching...' : '🚀 Launch Event'}</button>
+                  className="flex-1 py-3.5 bg-accent hover:bg-accent-hover disabled:opacity-50 text-on-solid rounded-lg text-xs font-semibold transition-all"
+                >{formSubmitting ? 'Launching...' : 'Launch Event'}</button>
               </div>
             </form>
           </div>
@@ -841,27 +841,27 @@ export default function WallAdmin() {
       {/* Edit Event Modal */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       {showEditModal && editingEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="bg-[#0D0D15] border border-white/10 rounded-[32px] w-full max-w-2xl overflow-hidden glass shadow-[0_0_50px_rgba(0,0,0,0.8)] max-h-[90vh] overflow-y-auto">
-            <header className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02] sticky top-0 z-10">
-              <h3 className="text-xl font-black text-white uppercase tracking-tight">✏️ Edit Event & Banner</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/50 p-4">
+          <div className="bg-surface border border-line rounded-lg w-full max-w-2xl overflow-hidden bg-surface border border-line max-h-[90vh] overflow-y-auto">
+            <header className="px-8 py-6 border-b border-line flex justify-between items-center bg-surface-2/60 sticky top-0 z-10">
+              <h3 className="text-xl font-semibold text-fg">Edit Event & Banner</h3>
               <button
                 onClick={() => { setShowEditModal(false); setEditingEvent(null); resetForm(); }}
-                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-white flex items-center justify-center text-lg transition-all"
-              >✕</button>
+                className="w-8 h-8 rounded-full bg-surface-2/60 hover:bg-surface-2 text-fg flex items-center justify-center text-lg transition-all"
+               aria-label="Dismiss"><span aria-hidden="true" className="text-base leading-none">×</span></button>
             </header>
 
             <form onSubmit={handleEditEvent} className="p-8 space-y-6">
               {formError && (
-                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-xs font-bold text-red-400">⚠️ {formError}</div>
+                <div className="p-4 bg-danger-soft border border-danger/30 rounded-lg text-xs font-semibold text-danger-text">{formError}</div>
               )}
 
               {/* Title */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Event Title</label>
+                <label className="text-xs font-semibold text-fg-muted">Event Title</label>
                 <input
                   type="text"
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-sm text-white outline-none focus:border-amber-500/50 transition-all"
+                  className="w-full bg-surface-2/60 border border-line rounded-lg py-3.5 px-5 text-sm text-fg outline-none focus:border-accent transition-all"
                   value={formTitle}
                   onChange={e => setFormTitle(e.target.value)}
                 />
@@ -869,10 +869,10 @@ export default function WallAdmin() {
 
               {/* Extend End Time */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">End Time</label>
+                <label className="text-xs font-semibold text-fg-muted">End Time</label>
                 <input
                   type="datetime-local"
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-sm text-white outline-none focus:border-amber-500/50 transition-all"
+                  className="w-full bg-surface-2/60 border border-line rounded-lg py-3.5 px-5 text-sm text-fg outline-none focus:border-accent transition-all"
                   value={formEnd}
                   onChange={e => setFormEnd(e.target.value)}
                 />
@@ -891,18 +891,18 @@ export default function WallAdmin() {
                         d.setHours(d.getHours() + opt.hours);
                         setFormEnd(toLocalInput(d));
                       }}
-                      className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded text-[9px] font-bold transition-all"
+                      className="px-2.5 py-1 bg-surface-2/60 hover:bg-surface-2 text-fg-muted hover:text-fg rounded text-xs font-semibold transition-all"
                     >{opt.label}</button>
                   ))}
                 </div>
               </div>
 
               {/* Banner Config */}
-              <div className="space-y-4 p-5 bg-white/[0.02] rounded-2xl border border-white/5">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-400">🎠 Moving Banner</h4>
+              <div className="space-y-4 p-5 bg-surface-2/60 rounded-lg border border-line">
+                <h4 className="text-xs font-semibold text-warning-text">Moving Banner</h4>
                 <textarea
                   rows={2}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 text-sm text-white outline-none focus:border-amber-500/50 transition-all resize-none"
+                  className="w-full bg-surface-2/60 border border-line rounded-lg py-3 px-5 text-sm text-fg outline-none focus:border-accent transition-all resize-none"
                   value={formBannerText}
                   onChange={e => setFormBannerText(e.target.value)}
                 />
@@ -912,16 +912,16 @@ export default function WallAdmin() {
                       key={g.value}
                       type="button"
                       onClick={() => setFormGradient(g.value)}
-                      className={`py-2 rounded-xl text-[10px] font-black text-white uppercase tracking-wider transition-all bg-gradient-to-r ${g.css} ${
+                      className={`py-2 rounded-xl text-xs font-semibold text-on-solid transition-all bg-accent ${g.css} ${
                         formGradient === g.value ? 'ring-2 ring-white ring-offset-2 ring-offset-[#0D0D15] scale-105' : 'opacity-60 hover:opacity-90'
                       }`}
                     >{g.label}</button>
                   ))}
                 </div>
                 {formBannerText && (
-                  <div className={`relative overflow-hidden rounded-xl h-9 bg-gradient-to-r ${getGradientCss(formGradient)}`}>
+                  <div className={`relative overflow-hidden rounded-xl h-9 bg-surface-2 ${getGradientCss(formGradient)}`}>
                     <div className="absolute inset-0 flex items-center whitespace-nowrap animate-marquee">
-                      <span className="text-[10px] font-black text-white uppercase tracking-wider px-4">
+                      <span className="text-xs font-semibold text-fg px-4">
                         {formBannerText} &nbsp;&nbsp;&nbsp; {formBannerText}
                       </span>
                     </div>
@@ -932,10 +932,10 @@ export default function WallAdmin() {
               {/* Coupon Config */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Winner Prize (₹)</label>
+                  <label className="text-xs font-semibold text-fg-muted">Winner Prize (₹)</label>
                   <input
                     type="number"
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-sm text-white outline-none focus:border-purple-500/50 transition-all"
+                    className="w-full bg-surface-2/60 border border-line rounded-lg py-3.5 px-5 text-sm text-fg outline-none focus:border-accent transition-all"
                     value={formCouponValue}
                     onChange={e => setFormCouponValue(Number(e.target.value) || 0)}
                   />
@@ -943,17 +943,17 @@ export default function WallAdmin() {
               </div>
 
               {/* Submit */}
-              <div className="flex gap-4 pt-4 border-t border-white/5">
+              <div className="flex gap-4 pt-4 border-t border-line">
                 <button
                   type="button"
                   onClick={() => { setShowEditModal(false); setEditingEvent(null); resetForm(); }}
-                  className="flex-1 py-3.5 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+                  className="flex-1 py-3.5 bg-surface-2/60 hover:bg-surface-2 text-fg rounded-lg text-xs font-semibold transition-all"
                 >Cancel</button>
                 <button
                   type="submit"
                   disabled={formSubmitting}
-                  className="flex-1 py-3.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-[0_0_20px_rgba(217,119,6,0.4)] transition-all"
-                >{formSubmitting ? 'Saving...' : '💾 Save Changes'}</button>
+                  className="flex-1 py-3.5 bg-accent hover:bg-accent-hover disabled:opacity-50 text-on-solid rounded-lg text-xs font-semibold transition-all"
+                >{formSubmitting ? 'Saving...' : 'Save Changes'}</button>
               </div>
             </form>
           </div>

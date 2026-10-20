@@ -14,12 +14,12 @@ export function OverviewPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Par
 
   return (
     <div className="space-y-5">
-      <p className="text-xs text-gray-500">Shown as highlights under Overview on the PG page. Leave blank to hide.</p>
+      <p className="text-xs text-fg-muted">Shown as highlights under Overview on the PG page. Leave blank to hide.</p>
       <div className="flex items-baseline justify-between gap-3">
-        <h3 className="text-sm font-bold text-blue-300">Highlights</h3>
-        <span className={`text-xs ${shown.length > MAX_HIGHLIGHTS ? 'text-red-300' : 'text-gray-400'}`} aria-live="polite">{shown.length} of {MAX_HIGHLIGHTS}</span>
+        <h3 className="text-sm font-semibold text-info-text">Highlights</h3>
+        <span className={`text-xs ${shown.length > MAX_HIGHLIGHTS ? 'text-danger-text' : 'text-fg-muted'}`} aria-live="polite">{shown.length} of {MAX_HIGHLIGHTS}</span>
       </div>
-      <p className="text-xs text-gray-500">Short facts, 3 to 40 characters each, e.g. &quot;5 min walk to SRM gate&quot; or &quot;Home-style food&quot;.</p>
+      <p className="text-xs text-fg-muted">Short facts, 3 to 40 characters each, e.g. &quot;5 min walk to SRM gate&quot; or &quot;Home-style food&quot;.</p>
       <LineListEditor
         id="pg-highlights" label="Highlights" hideHeader items={ed.draft} onChange={items => ed.update(() => items)}
         max={LIMITS.max} len={LIMITS.len} min={LIMITS.min} field="Highlights" placeholder="e.g. 5 min walk to SRM gate" addLabel="Add highlight"
@@ -27,7 +27,7 @@ export function OverviewPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Par
       />
       <AppPreview empty={!shown.length}>
         <div className="flex flex-wrap gap-2">
-          {shown.map(h => <span key={h} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-gray-200">{h}</span>)}
+          {shown.map(h => <span key={h} className="rounded-full border border-line bg-surface-2/60 px-3 py-1 text-xs text-fg">{h}</span>)}
         </div>
       </AppPreview>
       <SaveBar dirty={ed.dirty} saving={ed.saving} message={ed.message} onSave={ed.save} onDiscard={ed.discard} />

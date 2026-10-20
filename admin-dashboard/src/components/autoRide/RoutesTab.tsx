@@ -57,25 +57,25 @@ export default function RoutesTab({ tick, onChanged }: { tick: number; onChanged
   const done = () => { setEditing(null); onChanged(); reload(); };
   return (
     <section className="space-y-4" aria-label="Routes and pickup points">
-      <div className="flex flex-wrap items-center justify-between gap-3 border border-white/10 bg-white/[0.02] p-4">
-        <p className="text-sm text-gray-400">Routes are never deleted: switch a route or pickup point to inactive to hide it from drivers and passengers.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3 border border-line bg-surface-2/60 p-4">
+        <p className="text-sm text-fg-muted">Routes are never deleted: switch a route or pickup point to inactive to hide it from drivers and passengers.</p>
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />Show inactive</label>
+          <label className="flex items-center gap-2 text-sm text-fg-muted"><input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />Show inactive</label>
           <Btn tone="primary" onClick={() => setEditing('new')}>+ New route</Btn>
         </div>
       </div>
       {editing === 'new' && <RouteEditor onCancel={() => setEditing(null)} onSaved={done} />}
       {error && <ErrorBox text={error} retry={reload} />}
       {loading ? <Loading text="Loading routes…" /> : routes.length === 0 ? <Empty text="No routes yet. Create the first route, then add its pickup points." /> : routes.map((r) => (
-        <article key={r.id} className={`border p-5 ${r.isActive ? 'border-white/10' : 'border-white/5 opacity-70'}`}>
+        <article key={r.id} className={`border p-5 ${r.isActive ? 'border-line' : 'border-line opacity-70'}`}>
           {editing === r.id ? <RouteEditor route={r} onCancel={() => setEditing(null)} onSaved={done} /> : (
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h3 className="text-lg font-black">{r.name} {!r.isActive && <Pill s="INACTIVE" />}</h3>
-                <p className="text-sm text-gray-300">{r.origin} → {r.destination}{r.distanceKm !== null ? ` · ${r.distanceKm} km` : ''} · sort {r.sortOrder}</p>
-                <p className="mt-1 text-sm text-gray-400">Seat fare {inr(r.seatFareMin)}–{inr(r.seatFareMax)} · full auto {inr(r.fullFareMin)}–{inr(r.fullFareMax)} · min seats to depart {r.minSeatsToDepartDefault ?? 'full'}</p>
-                <p className="mt-1 text-xs text-gray-500">Periods (IST): {r.operatingPeriods.length ? r.operatingPeriods.map((p) => `${p.label} ${p.start}–${p.end}`).join(' · ') : 'any time'}</p>
-                {r.permittedStops.length > 0 && <p className="mt-1 text-xs text-gray-500">Stops: {r.permittedStops.join(', ')}</p>}
+                <h3 className="text-lg font-semibold">{r.name} {!r.isActive && <Pill s="INACTIVE" />}</h3>
+                <p className="text-sm text-fg-muted">{r.origin} → {r.destination}{r.distanceKm !== null ? ` · ${r.distanceKm} km` : ''} · sort {r.sortOrder}</p>
+                <p className="mt-1 text-sm text-fg-muted">Seat fare {inr(r.seatFareMin)}–{inr(r.seatFareMax)} · full auto {inr(r.fullFareMin)}–{inr(r.fullFareMax)} · min seats to depart {r.minSeatsToDepartDefault ?? 'full'}</p>
+                <p className="mt-1 text-xs text-fg-muted">Periods (IST): {r.operatingPeriods.length ? r.operatingPeriods.map((p) => `${p.label} ${p.start}–${p.end}`).join(' · ') : 'any time'}</p>
+                {r.permittedStops.length > 0 && <p className="mt-1 text-xs text-fg-muted">Stops: {r.permittedStops.join(', ')}</p>}
               </div>
               <Btn onClick={() => setEditing(r.id)}>Edit route</Btn>
             </div>
@@ -108,8 +108,8 @@ function RouteEditor({ route, onCancel, onSaved }: { route?: Route; onCancel: ()
     <Field name={name} hint={props.hint}><input type={props.type || 'text'} value={String(f[k])} placeholder={props.placeholder} onChange={(e) => set(k, e.target.value as never)} className={inputCls} /></Field>
   );
   return (
-    <div className="mb-4 space-y-4 border border-sky-400/20 bg-sky-400/[0.03] p-4">
-      <h3 className="font-black">{route ? `Edit ${route.name}` : 'New route'}</h3>
+    <div className="mb-4 space-y-4 border border-info/30 bg-info-soft p-4">
+      <h3 className="font-semibold">{route ? `Edit ${route.name}` : 'New route'}</h3>
       <div className="grid gap-3 md:grid-cols-3">
         {txt('name', 'Route name', { placeholder: 'Campus → Mangalagiri' })}
         {txt('originLabel', 'Origin')}
@@ -125,16 +125,16 @@ function RouteEditor({ route, onCancel, onSaved }: { route?: Route; onCancel: ()
       </div>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.isActive} onChange={(e) => set('isActive', e.target.checked)} />Active (visible to drivers and passengers)</label>
       <div>
-        <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Operating periods (IST, up to 6; none = any time)</p>
+        <p className="text-xs font-semibold text-fg-muted">Operating periods (IST, up to 6; none = any time)</p>
         <div className="mt-2 space-y-2">
           {f.operatingPeriods.map((p, i) => (
             <div key={i} className="flex flex-wrap items-center gap-2">
               <input value={p.key} onChange={(e) => setPeriod(i, { key: e.target.value.toUpperCase() })} placeholder="KEY (MORNING)" aria-label="Period key" className={`${inputCls} w-36`} />
               <input value={p.label} onChange={(e) => setPeriod(i, { label: e.target.value })} placeholder="Label" aria-label="Period label" className={`${inputCls} w-36`} />
               <input type="time" value={p.start} onChange={(e) => setPeriod(i, { start: e.target.value })} aria-label="Start (IST)" className={`${inputCls} w-32`} />
-              <span className="text-gray-500">to</span>
+              <span className="text-fg-muted">to</span>
               <input type="time" value={p.end} onChange={(e) => setPeriod(i, { end: e.target.value })} aria-label="End (IST)" className={`${inputCls} w-32`} />
-              <button type="button" onClick={() => set('operatingPeriods', f.operatingPeriods.filter((_, j) => j !== i))} className="text-xs font-bold text-red-300 underline">Remove</button>
+              <button type="button" onClick={() => set('operatingPeriods', f.operatingPeriods.filter((_, j) => j !== i))} className="text-xs font-semibold text-danger-text underline">Remove</button>
             </div>
           ))}
           {f.operatingPeriods.length < 6 && <Btn onClick={() => set('operatingPeriods', [...f.operatingPeriods, { key: '', label: '', start: '08:00', end: '10:00' }])}>+ Period</Btn>}
@@ -149,23 +149,23 @@ function RouteEditor({ route, onCancel, onSaved }: { route?: Route; onCancel: ()
 function Pickups({ route, onChanged }: { route: Route; onChanged: () => void }) {
   const [editing, setEditing] = useState<string | 'new' | null>(null);
   return (
-    <div className="mt-4 border-t border-white/10 pt-4">
+    <div className="mt-4 border-t border-line pt-4">
       <div className="flex items-center justify-between gap-3">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">Pickup points ({route.pickupPoints.length})</h4>
+        <h4 className="text-xs font-semibold text-fg-muted">Pickup points ({route.pickupPoints.length})</h4>
         <Btn onClick={() => setEditing('new')}>+ Pickup point</Btn>
       </div>
       {editing === 'new' && <PickupEditor routeId={route.id} nextSeq={(route.pickupPoints.reduce((m, p) => Math.max(m, p.sequence), 0) || 0) + 1} onCancel={() => setEditing(null)} onSaved={() => { setEditing(null); onChanged(); }} />}
-      {route.pickupPoints.length === 0 ? <p className="mt-2 text-sm text-gray-500">No pickup points: drivers cannot publish trips on this route until one exists.</p> : (
-        <ul className="mt-2 divide-y divide-white/5">
+      {route.pickupPoints.length === 0 ? <p className="mt-2 text-sm text-fg-muted">No pickup points: drivers cannot publish trips on this route until one exists.</p> : (
+        <ul className="mt-2 divide-y divide-line">
           {route.pickupPoints.map((p) => (
             <li key={p.id} className={`py-2 ${p.isActive ? '' : 'opacity-60'}`}>
               {editing === p.id ? <PickupEditor routeId={route.id} p={p} onCancel={() => setEditing(null)} onSaved={() => { setEditing(null); onChanged(); }} /> : (
                 <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
                   <div>
-                    <span className="mr-2 font-mono text-xs text-gray-500">#{p.sequence}</span><b>{p.name}</b>{!p.isActive && <span className="ml-2"><Pill s="INACTIVE" /></span>}
-                    {p.landmark && <span className="ml-2 text-gray-400">· {p.landmark}</span>}
-                    {p.lat !== null && p.lon !== null && <span className="ml-2 font-mono text-xs text-gray-500">{p.lat.toFixed(6)}, {p.lon.toFixed(6)}</span>}
-                    {p.mapsUrl && <a href={p.mapsUrl} target="_blank" rel="noreferrer noopener" className="ml-2 text-xs font-bold text-sky-300 underline">Map ↗</a>}
+                    <span className="mr-2 font-mono text-xs text-fg-muted">#{p.sequence}</span><b>{p.name}</b>{!p.isActive && <span className="ml-2"><Pill s="INACTIVE" /></span>}
+                    {p.landmark && <span className="ml-2 text-fg-muted">· {p.landmark}</span>}
+                    {p.lat !== null && p.lon !== null && <span className="ml-2 font-mono text-xs text-fg-muted">{p.lat.toFixed(6)}, {p.lon.toFixed(6)}</span>}
+                    {p.mapsUrl && <a href={p.mapsUrl} target="_blank" rel="noreferrer noopener" className="ml-2 text-xs font-semibold text-info-text underline">Map ↗</a>}
                   </div>
                   <Btn onClick={() => setEditing(p.id)}>Edit</Btn>
                 </div>
@@ -206,7 +206,7 @@ function PickupEditor({ routeId, p, nextSeq = 1, onCancel, onSaved }: { routeId:
     } catch (e) { setMsg({ ok: false, text: errText(e, 'Could not save the pickup point.') }); } finally { setBusy(false); }
   };
   return (
-    <div className="my-2 space-y-3 border border-white/10 bg-black/20 p-3">
+    <div className="my-2 space-y-3 border border-line bg-surface-2 p-3">
       <div className="grid gap-3 md:grid-cols-6">
         <div className="md:col-span-2"><Field name="Name"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Main Gate Stand" className={inputCls} /></Field></div>
         <div className="md:col-span-2"><Field name="Landmark"><input value={landmark} onChange={(e) => setLandmark(e.target.value)} placeholder="Opposite the main gate" className={inputCls} /></Field></div>

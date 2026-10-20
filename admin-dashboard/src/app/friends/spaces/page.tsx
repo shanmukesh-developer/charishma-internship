@@ -56,14 +56,14 @@ type Tab = 'live' | 'all' | 'overview';
 type Notice = { kind: 'ok' | 'error'; text: string } | null;
 
 // ── Shared styles (same tokens as /friends, /friends/connect and /moderation) ─
-const input = 'w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50';
-const label = 'block text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1';
-const btn = 'rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest disabled:opacity-40 transition-colors';
-const btnGhost = `${btn} border border-white/10 bg-white/5 text-gray-300 hover:text-white`;
-const btnWarn = `${btn} bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25`;
-const btnBlue = `${btn} bg-blue-500/10 text-blue-400 border border-blue-500/20`;
-const card = 'glass-card p-6 space-y-4';
-const chip = 'text-[9px] px-2 py-0.5 rounded-md border font-black uppercase tracking-wider';
+const input = 'w-full rounded-xl border border-line bg-surface-2/60 px-3 py-2 text-sm text-fg outline-none focus:border-accent';
+const label = 'block text-xs font-semibold text-fg-muted mb-1';
+const btn = 'rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-40 transition-colors';
+const btnGhost = `${btn} border border-line bg-surface-2/60 text-fg-muted hover:text-fg`;
+const btnWarn = `${btn} bg-danger-soft text-danger-text border border-danger/30 hover:bg-danger-soft`;
+const btnBlue = `${btn} bg-info-soft text-info-text border border-info/30`;
+const card = 'rounded-lg border border-line bg-surface shadow-xs p-6 space-y-4';
+const chip = 'text-xs px-2 py-0.5 rounded-md border font-semibold';
 
 const errText = (e: unknown, fallback: string) => (e instanceof Error && e.message ? e.message : fallback);
 const qs = (o: Record<string, string | undefined | null>) => {
@@ -82,44 +82,44 @@ const since = (d?: string | null) => {
 const hostName = (h: Ident) => h.entity?.name ? `${h.entity.name} (by ${h.name || 'student'})` : (h.name || 'Former student');
 
 const TONE: Record<string, string> = {
-  live: 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10',
-  visible: 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10',
-  scheduled: 'text-blue-300 border-blue-500/30 bg-blue-500/10',
-  pending_review: 'text-amber-300 border-amber-500/30 bg-amber-500/10',
-  ended: 'text-gray-300 border-white/15 bg-white/5',
-  hidden: 'text-gray-300 border-white/15 bg-white/5',
-  expired: 'text-gray-400 border-white/10 bg-white/5',
-  cancelled: 'text-red-300 border-red-500/30 bg-red-500/10',
-  removed: 'text-red-300 border-red-500/30 bg-red-500/10',
-  host: 'text-violet-300 border-violet-500/30 bg-violet-500/10',
-  cohost: 'text-violet-300 border-violet-500/30 bg-violet-500/10',
-  speaker: 'text-blue-300 border-blue-500/30 bg-blue-500/10',
-  listener: 'text-gray-300 border-white/15 bg-white/5',
+  live: 'text-success-text border-success/30 bg-success-soft',
+  visible: 'text-success-text border-success/30 bg-success-soft',
+  scheduled: 'text-info-text border-info/30 bg-info-soft',
+  pending_review: 'text-warning-text border-warning/30 bg-warning-soft',
+  ended: 'text-fg-muted border-line bg-surface-2/60',
+  hidden: 'text-fg-muted border-line bg-surface-2/60',
+  expired: 'text-fg-muted border-line bg-surface-2/60',
+  cancelled: 'text-danger-text border-danger/30 bg-danger-soft',
+  removed: 'text-danger-text border-danger/30 bg-danger-soft',
+  host: 'text-accent-text border-accent/30 bg-accent-soft',
+  cohost: 'text-accent-text border-accent/30 bg-accent-soft',
+  speaker: 'text-info-text border-info/30 bg-info-soft',
+  listener: 'text-fg-muted border-line bg-surface-2/60',
 };
 function Chip({ s }: { s: string }) {
-  return <span className={`${chip} ${TONE[s] || 'text-gray-300 border-white/10 bg-white/5'}`}>{s.replace('_', ' ')}</span>;
+  return <span className={`${chip} ${TONE[s] || 'text-fg-muted border-line bg-surface-2/60'}`}>{s.replace('_', ' ')}</span>;
 }
 
 function Stat({ k, v, tone }: { k: string; v: number | string; tone?: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{k}</p>
-      <p className={`text-2xl font-black mt-1 ${tone || 'text-white'}`}>{v}</p>
+    <div className="rounded-lg border border-line bg-surface-2/60 p-4">
+      <p className="text-xs font-semibold text-fg-muted">{k}</p>
+      <p className={`text-2xl font-semibold mt-1 ${tone || 'text-fg'}`}>{v}</p>
     </div>
   );
 }
 
 function LoadState({ loading, error, empty, reload, emptyText }: { loading: boolean; error?: string; empty: boolean; reload: () => void; emptyText: string }) {
-  if (loading && empty) return <p className="text-xs text-gray-500 animate-pulse text-center py-12">Loading…</p>;
+  if (loading && empty) return <p className="text-xs text-fg-muted animate-pulse text-center py-12">Loading…</p>;
   if (error && empty) {
     return (
       <div className="text-center py-12">
-        <p className="text-xs text-red-400 font-bold">{error}</p>
+        <p className="text-xs text-danger-text font-semibold">{error}</p>
         <button onClick={reload} className={`mt-3 ${btnGhost}`}>Try again</button>
       </div>
     );
   }
-  if (empty) return <p className="text-xs text-gray-500 text-center py-12">{emptyText}</p>;
+  if (empty) return <p className="text-xs text-fg-muted text-center py-12">{emptyText}</p>;
   return null;
 }
 
@@ -131,10 +131,10 @@ function Drawer({ title, onClose, children }: { title: string; onClose: () => vo
   }, [onClose]);
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={title}>
-      <button aria-label="Close" className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative h-full w-full max-w-xl overflow-y-auto border-l border-white/10 bg-[#0b0d12] p-6 space-y-5 shadow-2xl">
+      <button aria-label="Close" className="absolute inset-0 bg-surface-2" onClick={onClose} />
+      <div className="relative h-full w-full max-w-xl overflow-y-auto border-l border-line bg-surface p-6 space-y-5 shadow-pop">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-sm font-black uppercase tracking-widest text-white truncate">{title}</h2>
+          <h2 className="text-sm font-semibold text-fg truncate">{title}</h2>
           <button onClick={onClose} className={btnGhost}>Close</button>
         </div>
         {children}
@@ -304,7 +304,7 @@ export default function SpacesAdminPage() {
     }
   };
 
-  if (!isAuthed) return <div className="p-20 text-center font-black text-white uppercase tracking-widest animate-pulse">Checking access…</div>;
+  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
 
   const TABS: Array<{ id: Tab; label: string; count?: number }> = [
     { id: 'live', label: 'Live now', count: stats?.byStatus?.live },
@@ -313,17 +313,17 @@ export default function SpacesAdminPage() {
   ];
 
   const Row = ({ s }: { s: AdminSpace }) => (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex flex-wrap items-start justify-between gap-4">
+    <div className="rounded-lg border border-line bg-surface-2/60 p-4 flex flex-wrap items-start justify-between gap-4">
       <button onClick={() => setOpenId(s.id)} className="text-left min-w-0 flex-1 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <Chip s={s.status} />
           {s.modStatus !== 'visible' && <Chip s={s.modStatus} />}
-          <span className="text-[10px] font-bold text-gray-500 uppercase">{campusName(s.campusId)}</span>
-          <span className="text-[10px] font-bold text-gray-500 uppercase">{s.participation === 'open' ? 'open stage' : 'request to speak'}</span>
+          <span className="text-xs font-semibold text-fg-muted">{campusName(s.campusId)}</span>
+          <span className="text-xs font-semibold text-fg-muted">{s.participation === 'open' ? 'open stage' : 'request to speak'}</span>
         </div>
-        <p className="text-sm font-black text-white truncate">{s.title}</p>
-        <p className="text-[11px] text-gray-400 truncate">Host: {hostName(s.host)}{s.topic ? ` · ${s.topic}` : ''}</p>
-        <p className="text-[10px] text-gray-500">
+        <p className="text-sm font-semibold text-fg truncate">{s.title}</p>
+        <p className="text-xs text-fg-muted truncate">Host: {hostName(s.host)}{s.topic ? ` · ${s.topic}` : ''}</p>
+        <p className="text-xs text-fg-muted">
           {s.status === 'live'
             ? `Live for ${since(s.startedAt)} · ${s.speakerCount}/${s.limits.maxSpeakers} on stage · ${s.listenerCount}/${s.limits.maxListeners} listening`
             : s.status === 'scheduled'
@@ -341,8 +341,8 @@ export default function SpacesAdminPage() {
     <div className="min-w-[160px]">
       <label className={label} htmlFor="sp-campus">Campus</label>
       <select id="sp-campus" value={campusId} onChange={(e) => setCampusId(e.target.value)} className={input}>
-        <option value="" className="bg-[#0b0d12]">All campuses</option>
-        {campuses.map((c) => <option key={c.id} value={c.id} className="bg-[#0b0d12]">{c.code} · {c.name}</option>)}
+        <option value="" className="bg-surface">All campuses</option>
+        {campuses.map((c) => <option key={c.id} value={c.id} className="bg-surface">{c.code} · {c.name}</option>)}
       </select>
     </div>
   );
@@ -351,21 +351,21 @@ export default function SpacesAdminPage() {
     <div className="space-y-8 animate-fade-in relative pb-16">
       <div className="flex flex-wrap gap-4 items-end justify-between">
         <div>
-          <Link href="/friends" className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white">← Friends config</Link>
-          <h1 className="text-3xl font-black tracking-tighter text-white uppercase mt-1">Spaces admin</h1>
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">Live audio rooms: monitor, inspect, force end</p>
+          <Link href="/friends" className="text-xs font-semibold text-fg-muted hover:text-fg">← Friends config</Link>
+          <h1 className="text-3xl font-semibold text-fg mt-1">Spaces admin</h1>
+          <p className="text-xs font-semibold text-fg-muted mt-1">Live audio rooms: monitor, inspect, force end</p>
         </div>
         <Link href="/moderation" className={btnGhost}>Reports queue</Link>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 text-[11px] text-gray-400">
+      <div className="rounded-lg border border-line bg-surface-2/60 px-4 py-3 text-xs text-fg-muted">
         Spaces are never recorded. Audio goes directly between students (WebRTC) and never passes through the server, so admins can see who is in a room but cannot listen. Force end is logged with your reason.
       </div>
 
       {notice && (
-        <div role="status" className={`rounded-2xl border px-4 py-3 text-xs font-bold flex items-center justify-between gap-4 ${notice.kind === 'ok' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300' : 'border-red-500/20 bg-red-500/10 text-red-300'}`}>
+        <div role="status" className={`rounded-lg border px-4 py-3 text-xs font-semibold flex items-center justify-between gap-4 ${notice.kind === 'ok' ? 'border-success/30 bg-success-soft text-success-text' : 'border-danger/30 bg-danger-soft text-danger-text'}`}>
           <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-[10px] font-black uppercase opacity-70 hover:opacity-100">Dismiss</button>
+          <button onClick={() => setNotice(null)} className="text-xs font-semibold opacity-70 hover:opacity-100">Dismiss</button>
         </div>
       )}
 
@@ -373,9 +373,9 @@ export default function SpacesAdminPage() {
         <div className="flex flex-wrap gap-2" role="tablist">
           {TABS.map((t) => (
             <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
-              className={`${btn} border ${tab === t.id ? 'border-blue-500/40 bg-blue-500/15 text-blue-200' : 'border-white/10 bg-white/5 text-gray-400 hover:text-white'}`}>
+              className={`${btn} border ${tab === t.id ? 'border-info/30 bg-info-soft text-info-text' : 'border-line bg-surface-2/60 text-fg-muted hover:text-fg'}`}>
               {t.label}
-              {!!t.count && <span className="ml-2 rounded-md bg-emerald-500/20 px-1.5 py-0.5 text-emerald-200">{t.count}</span>}
+              {!!t.count && <span className="ml-2 rounded-md bg-success-soft px-1.5 py-0.5 text-success-text">{t.count}</span>}
             </button>
           ))}
         </div>
@@ -385,9 +385,9 @@ export default function SpacesAdminPage() {
       {tab === 'live' && (
         <section className={card}>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-sm font-black uppercase tracking-widest text-white">Live now</h2>
+            <h2 className="text-sm font-semibold text-fg">Live now</h2>
             <div className="flex items-center gap-3">
-              <span className="text-[10px] text-gray-500">{liveAt ? `Updated ${liveAt.toLocaleTimeString('en-IN')} · refreshes every 15 s` : ''}</span>
+              <span className="text-xs text-fg-muted">{liveAt ? `Updated ${liveAt.toLocaleTimeString('en-IN')} · refreshes every 15 s` : ''}</span>
               <button onClick={loadLive} disabled={liveLoading} className={btnBlue}>Refresh</button>
             </div>
           </div>
@@ -402,15 +402,15 @@ export default function SpacesAdminPage() {
             <div className="min-w-[140px]">
               <label className={label} htmlFor="sp-status">Status</label>
               <select id="sp-status" value={status} onChange={(e) => setStatus(e.target.value)} className={input}>
-                <option value="" className="bg-[#0b0d12]">Any</option>
-                {SPACE_STATUS.map((s) => <option key={s} value={s} className="bg-[#0b0d12]">{s}</option>)}
+                <option value="" className="bg-surface">Any</option>
+                {SPACE_STATUS.map((s) => <option key={s} value={s} className="bg-surface">{s}</option>)}
               </select>
             </div>
             <div className="min-w-[160px]">
               <label className={label} htmlFor="sp-mod">Moderation</label>
               <select id="sp-mod" value={modStatus} onChange={(e) => setModStatus(e.target.value)} className={input}>
-                <option value="" className="bg-[#0b0d12]">Any</option>
-                {MOD_STATUS.map((s) => <option key={s} value={s} className="bg-[#0b0d12]">{s.replace('_', ' ')}</option>)}
+                <option value="" className="bg-surface">Any</option>
+                {MOD_STATUS.map((s) => <option key={s} value={s} className="bg-surface">{s.replace('_', ' ')}</option>)}
               </select>
             </div>
             <div className="flex-1 min-w-[200px]">
@@ -432,46 +432,46 @@ export default function SpacesAdminPage() {
       {tab === 'overview' && (
         <section className={card}>
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-black uppercase tracking-widest text-white">Overview</h2>
+            <h2 className="text-sm font-semibold text-fg">Overview</h2>
             <button onClick={loadStats} className={btnBlue}>Refresh</button>
           </div>
           {statsErr && !stats && <LoadState loading={false} error={statsErr} empty reload={loadStats} emptyText="" />}
           {stats && (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <Stat k="Live rooms" v={stats.byStatus.live ?? 0} tone="text-emerald-300" />
+                <Stat k="Live rooms" v={stats.byStatus.live ?? 0} tone="text-success-text" />
                 <Stat k="People in rooms" v={stats.liveParticipants} />
-                <Stat k="Scheduled" v={stats.byStatus.scheduled ?? 0} tone="text-blue-300" />
-                <Stat k="Under review" v={stats.pendingReview} tone={stats.pendingReview ? 'text-amber-300' : undefined} />
+                <Stat k="Scheduled" v={stats.byStatus.scheduled ?? 0} tone="text-info-text" />
+                <Stat k="Under review" v={stats.pendingReview} tone={stats.pendingReview ? 'text-warning-text' : undefined} />
                 <Stat k="Created (24 h)" v={stats.created24h} />
                 <Stat k="Ended" v={stats.byStatus.ended ?? 0} />
                 <Stat k="Cancelled" v={stats.byStatus.cancelled ?? 0} />
                 <Stat k="Expired" v={stats.byStatus.expired ?? 0} />
               </div>
-              <div className="grid md:grid-cols-3 gap-3 text-[11px]">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="grid md:grid-cols-3 gap-3 text-xs">
+                <div className="rounded-lg border border-line bg-surface-2/60 p-4">
                   <p className={label}>Room caps</p>
-                  <p className="text-white font-bold">{stats.caps.maxSpeakers} on stage (host included) · {stats.caps.maxListeners} listeners</p>
-                  <p className="text-gray-500 mt-1">Set with SPACES_MAX_SPEAKERS and SPACES_MAX_LISTENERS on the server.</p>
+                  <p className="text-fg font-semibold">{stats.caps.maxSpeakers} on stage (host included) · {stats.caps.maxListeners} listeners</p>
+                  <p className="text-fg-muted mt-1">Set with SPACES_MAX_SPEAKERS and SPACES_MAX_LISTENERS on the server.</p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-lg border border-line bg-surface-2/60 p-4">
                   <p className={label}>Relay (TURN)</p>
-                  <p className={stats.turnConfigured ? 'text-emerald-300 font-bold' : 'text-amber-300 font-bold'}>{stats.turnConfigured ? 'Configured' : 'Not configured (public STUN only)'}</p>
-                  <p className="text-gray-500 mt-1">Without TURN, students on strict networks may not hear each other.</p>
+                  <p className={stats.turnConfigured ? 'text-success-text font-semibold' : 'text-warning-text font-semibold'}>{stats.turnConfigured ? 'Configured' : 'Not configured (public STUN only)'}</p>
+                  <p className="text-fg-muted mt-1">Without TURN, students on strict networks may not hear each other.</p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-lg border border-line bg-surface-2/60 p-4">
                   <p className={label}>Recording</p>
-                  <p className="text-white font-bold">Off. Spaces are never recorded.</p>
+                  <p className="text-fg font-semibold">Off. Spaces are never recorded.</p>
                 </div>
               </div>
             </>
           )}
-          <div className="border-t border-white/5 pt-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="border-t border-line pt-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-black text-white uppercase">Background jobs</p>
-              <p className="text-[11px] text-gray-500">Reminders, expiry of unstarted Spaces, ending abandoned rooms.</p>
+              <p className="text-xs font-semibold text-fg">Background jobs</p>
+              <p className="text-xs text-fg-muted">Reminders, expiry of unstarted Spaces, ending abandoned rooms.</p>
               {jobStats && (
-                <p className="text-[11px] text-gray-300 mt-1">
+                <p className="text-xs text-fg-muted mt-1">
                   Last run: {jobStats.reminders} reminders sent, {jobStats.missed} skipped (missed start), {jobStats.expired} expired, {jobStats.abandoned} abandoned rooms ended, {jobStats.orphaned} lost rooms closed.
                 </p>
               )}
@@ -498,28 +498,28 @@ function SpaceDetail({ d, campusName, busy, forceEnd }: { d: Detail; campusName:
   const s = d.space;
   const open = s.status === 'live' || s.status === 'scheduled';
   return (
-    <div className="space-y-5 text-[11px]">
+    <div className="space-y-5 text-xs">
       <div className="flex flex-wrap items-center gap-2">
         <Chip s={s.status} />
         <Chip s={s.modStatus} />
-        <span className="text-[10px] font-bold text-gray-500 uppercase">{campusName(s.campusId)}</span>
-        {d.reports > 0 && <Link href="/moderation" className={`${chip} text-amber-300 border-amber-500/30 bg-amber-500/10`}>{d.reports} report{d.reports === 1 ? '' : 's'}</Link>}
+        <span className="text-xs font-semibold text-fg-muted">{campusName(s.campusId)}</span>
+        {d.reports > 0 && <Link href="/moderation" className={`${chip} text-warning-text border-warning/30 bg-warning-soft`}>{d.reports} report{d.reports === 1 ? '' : 's'}</Link>}
       </div>
       <div className="space-y-1">
-        <p className="text-gray-300">Host: <span className="text-white font-bold">{hostName(s.host)}</span></p>
-        {s.topic && <p className="text-gray-400">Topic: {s.topic}</p>}
-        {s.description && <p className="text-gray-400 whitespace-pre-wrap">{s.description}</p>}
-        {s.removedReason && <p className="text-red-300">Moderation: {s.removedReason}</p>}
+        <p className="text-fg-muted">Host: <span className="text-fg font-semibold">{hostName(s.host)}</span></p>
+        {s.topic && <p className="text-fg-muted">Topic: {s.topic}</p>}
+        {s.description && <p className="text-fg-muted whitespace-pre-wrap">{s.description}</p>}
+        {s.removedReason && <p className="text-danger-text">Moderation: {s.removedReason}</p>}
       </div>
-      <div className="grid grid-cols-2 gap-2 text-gray-400">
-        <p>Created: <span className="text-gray-200">{fmt(s.createdAt)}</span></p>
-        <p>Scheduled: <span className="text-gray-200">{fmt(s.scheduledFor)}</span></p>
-        <p>Started: <span className="text-gray-200">{fmt(s.startedAt)}</span></p>
-        <p>Ended: <span className="text-gray-200">{fmt(s.endedAt)}</span></p>
-        <p>End reason: <span className="text-gray-200">{s.endReason ? s.endReason.replace(/_/g, ' ') : '-'}</span></p>
-        <p>Peak listeners: <span className="text-gray-200">{s.peakListeners ?? 0}</span></p>
-        <p>Interested: <span className="text-gray-200">{s.interestedCount}</span></p>
-        <p>Joined / removed: <span className="text-gray-200">{s.memberTotals.members} / {s.memberTotals.removed}</span></p>
+      <div className="grid grid-cols-2 gap-2 text-fg-muted">
+        <p>Created: <span className="text-fg">{fmt(s.createdAt)}</span></p>
+        <p>Scheduled: <span className="text-fg">{fmt(s.scheduledFor)}</span></p>
+        <p>Started: <span className="text-fg">{fmt(s.startedAt)}</span></p>
+        <p>Ended: <span className="text-fg">{fmt(s.endedAt)}</span></p>
+        <p>End reason: <span className="text-fg">{s.endReason ? s.endReason.replace(/_/g, ' ') : '-'}</span></p>
+        <p>Peak listeners: <span className="text-fg">{s.peakListeners ?? 0}</span></p>
+        <p>Interested: <span className="text-fg">{s.interestedCount}</span></p>
+        <p>Joined / removed: <span className="text-fg">{s.memberTotals.members} / {s.memberTotals.removed}</span></p>
       </div>
       {open && (
         <button disabled={busy} onClick={() => forceEnd(s)} className={`${btnWarn} w-full`}>
@@ -530,16 +530,16 @@ function SpaceDetail({ d, campusName, busy, forceEnd }: { d: Detail; campusName:
       {d.live && (
         <div className="space-y-2">
           <p className={label}>In the room now · {d.live.speakerCount}/{d.live.limits.maxSpeakers} on stage · {d.live.listenerCount}/{d.live.limits.maxListeners} listening</p>
-          {!d.live.participants.length && <p className="text-gray-500">Nobody is connected.</p>}
+          {!d.live.participants.length && <p className="text-fg-muted">Nobody is connected.</p>}
           {d.live.participants.map((p) => (
-            <div key={p.userId} className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2">
-              <span className="text-gray-200 truncate">{p.name || 'Student'}{p.verified ? ' ✓' : ''}</span>
+            <div key={p.userId} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface-2/60 px-3 py-2">
+              <span className="text-fg truncate">{p.name || 'Student'}{p.verified ? ' ✓' : ''}</span>
               <span className="flex flex-wrap items-center gap-1.5 shrink-0">
                 <Chip s={p.role} />
-                {p.hand && <span className={`${chip} text-amber-300 border-amber-500/30 bg-amber-500/10`}>hand up</span>}
-                {p.invited && <span className={`${chip} text-blue-300 border-blue-500/30 bg-blue-500/10`}>invited</span>}
-                {p.mutedByHost ? <span className={`${chip} text-red-300 border-red-500/30 bg-red-500/10`}>muted by host</span> : p.muted && <span className={`${chip} text-gray-400 border-white/10 bg-white/5`}>muted</span>}
-                {!p.connected && <span className={`${chip} text-gray-400 border-white/10 bg-white/5`}>reconnecting</span>}
+                {p.hand && <span className={`${chip} text-warning-text border-warning/30 bg-warning-soft`}>hand up</span>}
+                {p.invited && <span className={`${chip} text-info-text border-info/30 bg-info-soft`}>invited</span>}
+                {p.mutedByHost ? <span className={`${chip} text-danger-text border-danger/30 bg-danger-soft`}>muted by host</span> : p.muted && <span className={`${chip} text-fg-muted border-line bg-surface-2/60`}>muted</span>}
+                {!p.connected && <span className={`${chip} text-fg-muted border-line bg-surface-2/60`}>reconnecting</span>}
               </span>
             </div>
           ))}
@@ -548,17 +548,17 @@ function SpaceDetail({ d, campusName, busy, forceEnd }: { d: Detail; campusName:
 
       <div className="space-y-2">
         <p className={label}>Everyone who joined ({d.members.length})</p>
-        {!d.members.length && <p className="text-gray-500">Nobody joined.</p>}
+        {!d.members.length && <p className="text-fg-muted">Nobody joined.</p>}
         {d.members.map((m, i) => (
-          <div key={`${m.user.userId || 'x'}-${i}`} className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2">
+          <div key={`${m.user.userId || 'x'}-${i}`} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface-2/60 px-3 py-2">
             <span className="min-w-0">
-              <span className="text-gray-200 block truncate">{m.user.name || 'Former student'}</span>
-              <span className="text-[10px] text-gray-500">Joined {fmt(m.joinedAt)}{m.leftAt ? ` · left ${fmt(m.leftAt)}` : ''}</span>
+              <span className="text-fg block truncate">{m.user.name || 'Former student'}</span>
+              <span className="text-xs text-fg-muted">Joined {fmt(m.joinedAt)}{m.leftAt ? ` · left ${fmt(m.leftAt)}` : ''}</span>
             </span>
             <span className="flex flex-wrap items-center gap-1.5 shrink-0">
               <Chip s={m.role} />
-              {m.present && <span className={`${chip} text-emerald-300 border-emerald-500/30 bg-emerald-500/10`}>here</span>}
-              {m.removedAt && <span className={`${chip} text-red-300 border-red-500/30 bg-red-500/10`}>removed</span>}
+              {m.present && <span className={`${chip} text-success-text border-success/30 bg-success-soft`}>here</span>}
+              {m.removedAt && <span className={`${chip} text-danger-text border-danger/30 bg-danger-soft`}>removed</span>}
             </span>
           </div>
         ))}
@@ -566,12 +566,12 @@ function SpaceDetail({ d, campusName, busy, forceEnd }: { d: Detail; campusName:
 
       <div className="space-y-2">
         <p className={label}>Audit trail</p>
-        {!d.actions.length && <p className="text-gray-500">No actions recorded.</p>}
+        {!d.actions.length && <p className="text-fg-muted">No actions recorded.</p>}
         {d.actions.map((a) => (
-          <div key={a.id} className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2">
-            <p className="text-gray-200 font-bold">{a.action.replace(/_/g, ' ')} <span className="text-gray-500 font-normal">by {a.actorRole} {shortId(a.actorId)}</span></p>
-            {a.reason && <p className="text-gray-400">{a.reason}</p>}
-            <p className="text-[10px] text-gray-500">{fmt(a.createdAt)}{a.subjectUserId ? ` · subject ${shortId(a.subjectUserId)}` : ''}</p>
+          <div key={a.id} className="rounded-xl border border-line bg-surface-2/60 px-3 py-2">
+            <p className="text-fg font-semibold">{a.action.replace(/_/g, ' ')} <span className="text-fg-muted font-normal">by {a.actorRole} {shortId(a.actorId)}</span></p>
+            {a.reason && <p className="text-fg-muted">{a.reason}</p>}
+            <p className="text-xs text-fg-muted">{fmt(a.createdAt)}{a.subjectUserId ? ` · subject ${shortId(a.subjectUserId)}` : ''}</p>
           </div>
         ))}
       </div>

@@ -157,105 +157,133 @@ export default function AdminLoginPage() {
     }
   };
 
+  const mfaDigits = useRecovery ? mfaCode : mfaCode.split(' ').join('');
+
   return (
-    <main className="min-h-screen bg-[#0A0A0F] text-white flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Background Decor */}
-      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-amber-600/5 blur-[120px] rounded-full" />
-
-      {/* CSS entrance animation (framer-motion added ~40 KB gzipped to the first page every admin loads). */}
-      <div className="w-full max-w-md glass p-10 rounded-[32px] border border-white/5 relative z-10 animate-slide-up">
-
-        <div className="text-center mb-12">
-          <div className="w-16 h-16 bg-blue-600/20 border border-blue-500/30 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6 shadow-2xl">
-            ⚡
+    <main className="flex min-h-screen flex-col bg-bg">
+      <div className="flex flex-1 items-center justify-center px-4 py-12">
+        <div className="w-full max-w-[380px]">
+          <div className="mb-8 flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-fg text-base font-semibold text-bg" aria-hidden>Z</span>
+            <span className="flex items-baseline gap-1.5">
+              <span className="text-lg font-semibold tracking-[-0.01em] text-fg">Zenvy</span>
+              <span className="text-sm text-fg-subtle">Admin</span>
+            </span>
           </div>
-          <h1 className="text-3xl font-black tracking-tighter uppercase italic">Nexus <span className="text-blue-500">Secure</span></h1>
-          <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.4em] mt-2">Administrative Command Terminal</p>
+
+          <div className="rounded-xl border border-line bg-surface p-6 shadow-sm">
+            {mfaToken ? (
+              <form
+                noValidate
+                onSubmit={(e) => { e.preventDefault(); if (!loading) handleMfa(); }}
+                className="space-y-5"
+              >
+                <div>
+                  <h1 className="text-xl font-semibold text-fg">2-step verification</h1>
+                  <p className="mt-1 text-sm text-fg-muted">
+                    {useRecovery
+                      ? 'Enter one of your recovery codes. Each code works once.'
+                      : 'Open your authenticator app and enter the 6-digit code for Zenvy Admin.'}
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor="admin-mfa" className="mb-1 block text-sm font-medium text-fg">{useRecovery ? 'Recovery code' : 'Authentication code'}</label>
+                  <input
+                    id="admin-mfa"
+                    autoFocus
+                    inputMode={useRecovery ? 'text' : 'numeric'}
+                    autoComplete="one-time-code"
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value)}
+                    placeholder={useRecovery ? 'xxxxx-xxxxx' : '000000'}
+                    maxLength={useRecovery ? 16 : 7}
+                    aria-invalid={!!error || undefined}
+                    aria-describedby={error ? 'login-error' : undefined}
+                    className="zv-control h-10 text-center font-mono text-lg tracking-[0.3em]"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading || !mfaDigits.trim()}
+                  className="inline-flex h-10 w-full items-center justify-center rounded-md bg-accent text-sm font-medium text-accent-fg shadow-xs transition-colors hover:bg-accent-hover disabled:opacity-50"
+                >
+                  {loading ? 'Checking…' : 'Verify and sign in'}
+                </button>
+                <div className="flex items-center justify-between text-sm">
+                  <button type="button" onClick={() => { setUseRecovery((v) => !v); setMfaCode(''); setError(''); }} className="text-accent-text hover:underline underline-offset-2">
+                    {useRecovery ? 'Use the authenticator code' : 'Use a recovery code'}
+                  </button>
+                  <button type="button" onClick={() => { setMfaToken(null); setMfaCode(''); setError(''); }} className="text-fg-muted hover:text-fg">
+                    Back
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form
+                noValidate
+                onSubmit={(e) => { e.preventDefault(); if (!loading) handleLogin(); }}
+                className="space-y-5"
+              >
+                <div>
+                  <h1 className="text-xl font-semibold text-fg">Sign in</h1>
+                  <p className="mt-1 text-sm text-fg-muted">Use the mobile number and password of your admin account.</p>
+                </div>
+                <div>
+                  <label htmlFor="admin-phone" className="mb-1 block text-sm font-medium text-fg">Mobile number</label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-fg-subtle">+91</span>
+                    <input
+                      id="admin-phone"
+                      type="tel"
+                      inputMode="numeric"
+                      autoComplete="username"
+                      autoFocus
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="10-digit number"
+                      maxLength={16}
+                      aria-describedby={error ? 'login-error' : undefined}
+                      className="zv-control h-10 pl-11"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="admin-password" className="mb-1 block text-sm font-medium text-fg">Password</label>
+                  <input
+                    id="admin-password"
+                    autoComplete="current-password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    aria-describedby={error ? 'login-error' : undefined}
+                    className="zv-control h-10"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="inline-flex h-10 w-full items-center justify-center rounded-md bg-accent text-sm font-medium text-accent-fg shadow-xs transition-colors hover:bg-accent-hover disabled:opacity-50"
+                >
+                  {loading ? 'Signing in…' : 'Sign in'}
+                </button>
+              </form>
+            )}
+
+            {error && (
+              <div
+                id="login-error"
+                role="alert"
+                className="mt-5 rounded-md border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger-text"
+              >
+                {error}
+              </div>
+            )}
+          </div>
+
+          <p className="mt-6 text-center text-xs text-fg-subtle">
+            For Zenvy staff only.
+          </p>
         </div>
-
-        {mfaToken ? (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label htmlFor="admin-mfa" className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">{useRecovery ? 'Recovery code' : '2-step code'}</label>
-              <input
-                id="admin-mfa"
-                autoFocus
-                inputMode={useRecovery ? 'text' : 'numeric'}
-                autoComplete="one-time-code"
-                value={mfaCode}
-                onChange={(e) => setMfaCode(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleMfa()}
-                placeholder={useRecovery ? 'xxxxx-xxxxx' : '6-digit code'}
-                maxLength={useRecovery ? 16 : 7}
-                className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 px-6 text-white font-bold outline-none focus:border-blue-500/40 transition-all text-center tracking-[0.3em]"
-              />
-              <p className="text-xs text-gray-500 text-center">{useRecovery ? 'Each recovery code works once.' : 'Open your authenticator app (Google Authenticator) and enter the Zenvy Admin code.'}</p>
-            </div>
-            <button
-              onClick={handleMfa}
-              disabled={loading}
-              className="w-full bg-white text-black py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] hover:bg-gray-200 transition-all shadow-xl shadow-blue-500/5 disabled:opacity-50"
-            >
-              {loading ? 'Checking...' : 'Verify'}
-            </button>
-            <div className="flex justify-between text-xs">
-              <button type="button" onClick={() => { setUseRecovery((v) => !v); setMfaCode(''); setError(''); }} className="text-gray-400 hover:text-white">{useRecovery ? 'Use the authenticator code' : 'Use a recovery code'}</button>
-              <button type="button" onClick={() => { setMfaToken(null); setMfaCode(''); setError(''); }} className="text-gray-400 hover:text-white">Back</button>
-            </div>
-          </div>
-        ) : (
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <label htmlFor="admin-phone" className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Admin mobile number</label>
-            <input
-              id="admin-phone"
-              type="tel"
-              inputMode="numeric"
-              autoComplete="username"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              placeholder="10-digit mobile number"
-              maxLength={16}
-              className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 px-6 text-white font-bold outline-none focus:border-blue-500/40 transition-all text-center tracking-[0.2em]"
-            />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="admin-password" className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Password</label>
-            <input
-              id="admin-password"
-              autoComplete="current-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              placeholder="••••••••••••"
-              className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 px-6 text-white font-bold outline-none focus:border-blue-500/40 transition-all text-center tracking-[0.3em]"
-            />
-          </div>
-          <button
-            onClick={handleLogin}
-            disabled={loading}
-            className="w-full bg-white text-black py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] hover:bg-gray-200 transition-all shadow-xl shadow-blue-500/5 disabled:opacity-50"
-          >
-            {loading ? 'Signing in...' : 'Sign in'}
-          </button>
-        </div>
-        )}
-
-        {error && (
-          <div
-            role="alert"
-            className="mt-8 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-xs font-semibold text-center animate-fade-in"
-          >
-            {error}
-          </div>
-        )}
-      </div>
-
-      <div className="absolute bottom-10 text-[9px] font-bold text-gray-500 uppercase tracking-[0.3em]">
-        Zenvy Operations Management Portal
       </div>
     </main>
   );

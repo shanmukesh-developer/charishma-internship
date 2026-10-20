@@ -40,7 +40,7 @@ export default function StaffTab({ tick, onChanged }: { tick: number; onChanged:
     <section className="space-y-4" aria-label="Check-in staff">
       <Toolbar>
         <Select name="Event" value={eventId} onChange={(v) => { setEventId(v); setMsg(null); }} options={list.map((e) => ({ value: e.id, label: `${e.title.slice(0, 40)} · ${when(e.startAt)}` }))} />
-        {ev && <span className="text-sm text-gray-400">{ev.checkedIn} / {ev.confirmed} checked in</span>}
+        {ev && <span className="text-sm text-fg-muted">{ev.checkedIn} / {ev.confirmed} checked in</span>}
       </Toolbar>
       <Msg msg={msg} />
       <div className="grid gap-4 lg:grid-cols-2">
@@ -48,16 +48,16 @@ export default function StaffTab({ tick, onChanged }: { tick: number; onChanged:
           <div className="space-y-3">
             <Field name="Student" hint="Verified students of this campus only."><UserPicker onPick={setUser} picked={user} clear={() => setUser(null)} /></Field>
             <Btn tone="primary" disabled={!user || busy} onClick={grant}>{busy ? 'Granting…' : 'Grant access'}</Btn>
-            <p className="text-xs text-gray-500">The organizer and every admin can always check in. Staff use the in-app check-in screen.</p>
+            <p className="text-xs text-fg-muted">The organizer and every admin can always check in. Staff use the in-app check-in screen.</p>
           </div>
         </Section>
         <Section title={`Current staff (${rows.length})`}>
           {staff.error && <ErrorBox text={staff.error} retry={staff.reload} />}
-          {staff.loading && !staff.data ? <Loading text="Loading staff…" /> : rows.length === 0 ? <p className="text-sm text-gray-500">No staff granted for this event.</p> : (
+          {staff.loading && !staff.data ? <Loading text="Loading staff…" /> : rows.length === 0 ? <p className="text-sm text-fg-muted">No staff granted for this event.</p> : (
             <ul className="divide-y divide-white/10">
               {rows.map((s) => (
                 <li key={s.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                  <span><b>{s.name}</b> <span className="text-xs text-gray-500">· {s.role.toLowerCase()} · since {when(s.createdAt)}</span></span>
+                  <span><b>{s.name}</b> <span className="text-xs text-fg-muted">· {s.role.toLowerCase()} · since {when(s.createdAt)}</span></span>
                   <Btn tone="bad" onClick={() => setRevoke({ id: s.id, name: s.name })}>Revoke</Btn>
                 </li>
               ))}

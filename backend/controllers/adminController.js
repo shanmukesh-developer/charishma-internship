@@ -9,7 +9,7 @@ const { getVerificationLogModel } = require('../models/VerificationLog');
 const { Op, Transaction } = require('sequelize');
 const walletLedger = require('../utils/walletLedger');
 
-const { getStoreOpenState, normalizeOperatingHours } = require('../utils/storeHours');
+const { getStoreOpenState, normalizeOperatingHours, withCampusWindow } = require('../utils/storeHours');
 const { STORE_VENDOR_TYPES, isLocalVendorStore, isServiceVendorType } = require('../utils/vendorTypes');
 const { sortMenuItems } = require('../utils/menuSort');
 
@@ -108,15 +108,38 @@ const logAuditAction = async (req, targetId, action, details) => {
 };
 
 // ─── Public Endpoints ─────────────────────────────────────────
+// ?fields=summary (Home, app 1.0.8+): the same stores with a light menu, only the available dishes and
+// only the fields the Home list uses (name, price, photo, category, tags, veg). The full menu is fetched
+// on the store page (GET /api/users/restaurants/:id). Without the parameter the response is unchanged.
+const SUMMARY_ITEM_FIELDS = ['id', '_id', 'restaurantId', 'name', 'price', 'imageUrl', 'category', 'tags', 'isVegetarian', 'dietType', 'isAvailable'];
+const summaryItem = (m) => {
+  const out = {};
+  for (const k of SUMMARY_ITEM_FIELDS) if (m[k] !== undefined && m[k] !== null) out[k] = m[k];
+  return out;
+};
+const summaryStore = (r) => {
+  const { menu, description, ...rest } = r;
+  const all = Array.isArray(menu) ? menu : [];
+  const available = all.filter((m) => m && m.isAvailable !== false);
+  return { ...rest, menu: available.map(summaryItem), menuCount: all.length, menuMode: 'summary' };
+};
+let summaryCache = { source: null, body: null };
+const summaryOf = (full) => {
+  if (summaryCache.source !== full) summaryCache = { source: full, body: full.map(summaryStore) };
+  return summaryCache.body;
+};
+
 exports.getRestaurants = async (req, res) => {
   try {
     // Stores (grocery, pharmacy, add-ons, …) are browsed via /api/catalogue; ?includeStores=true lists them too.
     const includeStores = String(req.query.includeStores || '').toLowerCase() === 'true';
+    const summary = String(req.query.fields || '').toLowerCase() === 'summary';
+    const send = (full) => {
+      const list = summary ? summaryOf(full) : full;
+      return res.json(includeStores ? list : list.filter(r => !STORE_VENDOR_TYPES.includes(String(r.vendorType || '').toUpperCase())));
+    };
     const fresh = cachedRestaurantsResponse && (Date.now() - cachedRestaurantsAt) < RESTAURANTS_CACHE_TTL_MS;
-    if (fresh) {
-      const list = includeStores ? cachedRestaurantsResponse : cachedRestaurantsResponse.filter(r => !STORE_VENDOR_TYPES.includes(String(r.vendorType || '').toUpperCase()));
-      return res.json(list);
-    }
+    if (fresh) return send(cachedRestaurantsResponse);
 
     const Restaurant = getRestaurantModel();
     const MenuItem = getMenuItemModel();
@@ -158,7 +181,7 @@ exports.getRestaurants = async (req, res) => {
       const rObj = r.toJSON();
       stripStoreSecrets(rObj);
       applyFeaturedExpiry(rObj);
-      const openState = getStoreOpenState(r);
+      const openState = withCampusWindow(getStoreOpenState(r));
       let tags = rObj.tags || [];
       if (typeof tags === 'string') {
         try { tags = JSON.parse(tags); } catch { tags = []; }
@@ -178,13 +201,14 @@ exports.getRestaurants = async (req, res) => {
         isOpen: openState.isOpen,
         opensAt: openState.opensAt || null,
         closedReason: openState.isOpen ? null : (openState.message || null),
+        campusClosed: !!openState.campusClosed,
         menu: menuByRestaurant[r.id] || []
       };
     });
 
     cachedRestaurantsResponse = result;
     cachedRestaurantsAt = Date.now();
-    res.json(includeStores ? result : result.filter(r => !STORE_VENDOR_TYPES.includes(String(r.vendorType || '').toUpperCase())));
+    send(result);
   } catch (error) {
     console.error('[RESTAURANTS_ERROR]', error);
     res.status(500).json({ message: 'Could not load restaurants right now. Pull down to refresh.' });
@@ -236,7 +260,7 @@ exports.getRestaurantById = async (req, res) => {
       try { tags = JSON.parse(tags); } catch { tags = []; }
     }
 
-    const openState = getStoreOpenState(restaurant);
+    const openState = withCampusWindow(getStoreOpenState(restaurant));
     // CampusBites stalls: rating only from real order ratings, plus today's hours for the stall page.
     const stallExtra = {};
     if (isLocalVendorStore(restaurant)) {
@@ -258,6 +282,7 @@ exports.getRestaurantById = async (req, res) => {
       isOpen: openState.isOpen,
       opensAt: openState.opensAt || null,
       closedReason: openState.isOpen ? null : (openState.message || null),
+      campusClosed: !!openState.campusClosed,
       ...stallExtra,
       menu: sortMenuItems(menu).map(m => {
         const mObj = stripItemSecrets(m.toJSON());
@@ -2717,8 +2742,33 @@ exports.getAttentionCounts = async (req, res) => {
     safeCount(() => require('../models/ServiceBooking').getServiceBookingModel(), { status: 'REQUESTED' }),
     safeCount(() => require('../models/Order').getOrderModel(), stallStuck.stuckStallWhere(stallStuck.STUCK_HOURS)),
   ]);
+  // More review queues for the admin overview's "Needs attention" list (added keys only; older admin
+  // builds ignore them). Module models are looked up on the shared Sequelize instance; a module that is
+  // not loaded (or a table that is missing) gives null, which the admin shows as "–".
+  const model = (name) => () => {
+    const { getSequelize } = require('../config/db');
+    const s = getSequelize();
+    return (s && s.models && s.models[name]) || null;
+  };
+  const [riderApprovals, payoutsPending, autoDrivers, autoVehicles, eventsToReview, rentalListings, rentalLicences, rentalReports, rentalDisputes, friendsReports, friendsAppeals] = await Promise.all([
+    // New rider sign-ups waiting for approval (deactivated riders have suspendedAt set and are not counted).
+    safeCount(() => require('../models/DeliveryPartner').getDeliveryPartnerModel(), { isApproved: false, suspendedAt: null }),
+    safeCount(() => require('../models/Payout').getPayoutModel(), { status: 'PENDING' }),
+    safeCount(model('AutoDriver'), { status: 'PENDING_REVIEW' }),
+    safeCount(model('AutoVehicle'), { status: 'PENDING_REVIEW' }),
+    safeCount(model('CeEvent'), { status: 'SUBMITTED' }),
+    safeCount(model('RentalListing'), { status: 'PENDING_REVIEW' }),
+    safeCount(model('RentalLicence'), { status: 'PENDING' }),
+    safeCount(model('RentalReport'), { status: 'OPEN' }),
+    safeCount(model('RentalBooking'), { chargesStatus: 'DISPUTED' }),
+    safeCount(model('FriendsReport'), { status: 'open' }),
+    safeCount(model('FriendsAppeal'), { status: 'open' }),
+  ]);
   res.set('Cache-Control', 'no-store');
-  res.json({ tickets, verifications, pgBookings, wallPending, serviceRequests, stuckStallOrders, stuckStallHours: stallStuck.STUCK_HOURS });
+  res.json({
+    tickets, verifications, pgBookings, wallPending, serviceRequests, stuckStallOrders, stuckStallHours: stallStuck.STUCK_HOURS,
+    riderApprovals, payoutsPending, autoDrivers, autoVehicles, eventsToReview, rentalListings, rentalLicences, rentalReports, rentalDisputes, friendsReports, friendsAppeals,
+  });
 };
 
 // ─── Assign / unassign a rider (support intervention) ───────────────────────────────

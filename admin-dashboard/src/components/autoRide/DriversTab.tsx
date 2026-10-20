@@ -21,6 +21,13 @@ export default function DriversTab({ tick, onChanged, openVehicle }: { tick: num
   const { data, loading, error, reload } = useLoader(key, tick, () => autoRideApi.drivers(status, query || undefined));
   const rows = data?.drivers || [];
   const [adding, setAdding] = useState(false);
+  // ?q=<name or phone> (global search) searches every status; ?new=1 (New > Auto driver) opens the form.
+  useEffect(() => {
+    const qs = new URLSearchParams(window.location.search);
+    const fromUrl = (qs.get('q') || '').trim();
+    if (fromUrl) { setStatus('ALL'); setQ(fromUrl); }
+    if (qs.get('new') === '1') setAdding(true);
+  }, []);
   return (
     <section className="space-y-4" aria-label="Drivers">
       <div className="flex justify-end">
@@ -29,17 +36,17 @@ export default function DriversTab({ tick, onChanged, openVehicle }: { tick: num
       {adding && <AddDriverForm onCreated={() => { setStatus('PENDING_DOCS'); onChanged(); reload(); }} />}
       <Toolbar>
         <Select name="Status" value={status} onChange={setStatus} options={[...DRIVER_STATUSES, 'ALL']} />
-        <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Search
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name or phone" className="ml-2 border border-white/10 bg-[#111318] p-2 text-sm font-normal text-white" />
+        <label className="text-xs font-semibold text-fg-muted">Search
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name or phone" className="ml-2 border border-line bg-surface p-2 text-sm font-normal text-fg" />
         </label>
-        <span className="text-sm text-gray-500">{rows.length} driver{rows.length === 1 ? '' : 's'}{rows.length >= 200 ? ' (first 200)' : ''}</span>
+        <span className="text-sm text-fg-muted">{rows.length} driver{rows.length === 1 ? '' : 's'}{rows.length >= 200 ? ' (first 200)' : ''}</span>
       </Toolbar>
       {error && <ErrorBox text={error} retry={reload} />}
       {loading ? <Loading text="Loading drivers…" />
         : rows.length === 0 ? <Empty text={status === 'PENDING_REVIEW' ? 'No drivers waiting for verification.' : 'No drivers with this status.'} /> : (
-          <div className="overflow-x-auto border border-white/10">
+          <div className="overflow-x-auto border border-line">
             <table className="w-full text-left text-sm">
-              <thead className="bg-white/[0.03] text-xs uppercase tracking-wider text-gray-400">
+              <thead className="bg-surface-2/60 text-xs text-fg-muted">
                 <tr><th className="p-3">Driver</th><th className="p-3">Phone</th><th className="p-3">Status</th><th className="p-3">Online</th><th className="p-3">Submitted</th><th className="p-3" /></tr>
               </thead>
               <tbody className="divide-y divide-white/10">
@@ -84,10 +91,10 @@ function AddDriverForm({ onCreated }: { onCreated: () => void }) {
     }
   };
   return (
-    <form onSubmit={submit} className="space-y-4 border border-white/10 bg-white/[0.02] p-4" aria-label="Add driver">
+    <form onSubmit={submit} className="space-y-4 border border-line bg-surface-2/60 p-4" aria-label="Add driver">
       <div>
-        <h3 className="text-base font-black">Add driver</h3>
-        <p className="mt-1 text-sm text-gray-400">Creates the account with a temporary password. The driver signs in with this number and password, uploads documents in the app and submits for verification. No SMS is needed.</p>
+        <h3 className="text-base font-semibold">Add driver</h3>
+        <p className="mt-1 text-sm text-fg-muted">Creates the account with a temporary password. The driver signs in with this number and password, uploads documents in the app and submits for verification. No SMS is needed.</p>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         <Field name="Full name" hint="As on the driving licence">
@@ -114,16 +121,16 @@ function AddDriverForm({ onCreated }: { onCreated: () => void }) {
 function DriverRow({ d, open, toggle, tick, onChanged, openVehicle }: { d: Driver; open: boolean; toggle: () => void; tick: number; onChanged: () => void; openVehicle: (id: string) => void }) {
   return (
     <>
-      <tr className={`align-top ${open ? 'bg-white/[0.03]' : ''}`}>
-        <td className="p-3"><p className="font-bold">{d.name}</p><p className="text-xs text-gray-500">#{short(d.id)}</p></td>
+      <tr className={`align-top ${open ? 'bg-surface-2/60' : ''}`}>
+        <td className="p-3"><p className="font-semibold">{d.name}</p><p className="text-xs text-fg-muted">#{short(d.id)}</p></td>
         <td className="p-3 font-mono text-xs">{maskPhone(d.phone)}</td>
-        <td className="p-3"><Pill s={d.status} />{d.status === 'REJECTED' && d.rejectionReason && <p className="mt-1 max-w-[220px] text-xs text-red-300">{d.rejectionReason}</p>}{d.status === 'SUSPENDED' && d.suspendedReason && <p className="mt-1 max-w-[220px] text-xs text-red-300">{d.suspendedReason}</p>}</td>
-        <td className="p-3 text-xs">{d.isOnline ? <span className="font-bold text-emerald-300">● Online</span> : <span className="text-gray-500">Offline</span>}<p className="text-gray-500">{d.lastOnlineAt ? `last ${when(d.lastOnlineAt)}` : ''}</p></td>
-        <td className="p-3 text-xs text-gray-400">{when(d.submittedAt)}</td>
+        <td className="p-3"><Pill s={d.status} />{d.status === 'REJECTED' && d.rejectionReason && <p className="mt-1 max-w-[220px] text-xs text-danger-text">{d.rejectionReason}</p>}{d.status === 'SUSPENDED' && d.suspendedReason && <p className="mt-1 max-w-[220px] text-xs text-danger-text">{d.suspendedReason}</p>}</td>
+        <td className="p-3 text-xs">{d.isOnline ? <span className="font-semibold text-success-text">● Online</span> : <span className="text-fg-muted">Offline</span>}<p className="text-fg-muted">{d.lastOnlineAt ? `last ${when(d.lastOnlineAt)}` : ''}</p></td>
+        <td className="p-3 text-xs text-fg-muted">{when(d.submittedAt)}</td>
         <td className="p-3 text-right"><Btn onClick={toggle}>{open ? 'Close' : 'Review'}</Btn></td>
       </tr>
       {open && (
-        <tr><td colSpan={6} className="border-t border-white/10 bg-black/20 p-0"><DriverDetail id={d.id} tick={tick} onChanged={onChanged} openVehicle={openVehicle} /></td></tr>
+        <tr><td colSpan={6} className="border-t border-line bg-surface-2 p-0"><DriverDetail id={d.id} tick={tick} onChanged={onChanged} openVehicle={openVehicle} /></td></tr>
       )}
     </>
   );
@@ -163,11 +170,11 @@ function DriverDetail({ id, tick, onChanged, openVehicle }: { id: string; tick: 
     <div className="space-y-5 p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h3 className="text-lg font-black">{d.name} <Pill s={d.status} /></h3>
-          <p className="mt-1 text-sm text-gray-300">Phone <span className="font-mono">{d.phone}</span> · Emergency {d.emergencyContactName || '—'} <span className="font-mono">{d.emergencyContactPhone || '—'}</span></p>
-          <p className="mt-1 text-sm text-gray-300">Licence <span className="font-mono">{d.licenceNumber || '—'}</span>{d.badgeNumber ? <> · Badge <span className="font-mono">{d.badgeNumber}</span></> : null}</p>
+          <h3 className="text-lg font-semibold">{d.name} <Pill s={d.status} /></h3>
+          <p className="mt-1 text-sm text-fg-muted">Phone <span className="font-mono">{d.phone}</span> · Emergency {d.emergencyContactName || '—'} <span className="font-mono">{d.emergencyContactPhone || '—'}</span></p>
+          <p className="mt-1 text-sm text-fg-muted">Licence <span className="font-mono">{d.licenceNumber || '—'}</span>{d.badgeNumber ? <> · Badge <span className="font-mono">{d.badgeNumber}</span></> : null}</p>
           <Expiry date={d.licenceExpiresOn} prefix="Licence expires" />
-          <p className="mt-1 text-xs text-gray-500">Joined {when(d.createdAt)} · submitted {when(d.submittedAt)} · reviewed {when(d.reviewedAt)} · last login {when(d.lastLoginAt)}</p>
+          <p className="mt-1 text-xs text-fg-muted">Joined {when(d.createdAt)} · submitted {when(d.submittedAt)} · reviewed {when(d.reviewedAt)} · last login {when(d.lastLoginAt)}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {canVerify && <Btn tone="good" disabled={missing.length > 0} onClick={() => { setMsg(null); setAction('verify'); }}>Verify</Btn>}
@@ -176,35 +183,35 @@ function DriverDetail({ id, tick, onChanged, openVehicle }: { id: string; tick: 
           {d.status === 'SUSPENDED' && <Btn tone="good" onClick={() => { setMsg(null); setAction('unsuspend'); }}>Unsuspend</Btn>}
         </div>
       </div>
-      {missing.length > 0 && canVerify && <p role="alert" className="border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-200">Cannot verify yet. Missing: {missing.map(missingName).join(', ')}.</p>}
-      {data.missing.includes('vehicle') && <p className="text-sm text-amber-300">This driver has no vehicle under review or approved yet.</p>}
+      {missing.length > 0 && canVerify && <p role="alert" className="border border-warning/30 bg-warning-soft p-3 text-sm text-warning-text">Cannot verify yet. Missing: {missing.map(missingName).join(', ')}.</p>}
+      {data.missing.includes('vehicle') && <p className="text-sm text-warning-text">This driver has no vehicle under review or approved yet.</p>}
       <Msg msg={msg} />
       <div>
-        <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">Documents (private, links expire)</h4>
+        <h4 className="mb-2 text-xs font-semibold text-fg-muted">Documents (private, links expire)</h4>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
           {DRIVER_DOC_KEYS.map((k) => <Doc key={k} name={DOC_NAMES[k]} url={d.documentPreviews?.[k]} required={REQUIRED_DRIVER_DOCS.includes(k)} />)}
         </div>
       </div>
       <div>
-        <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">Vehicles</h4>
-        {data.vehicles.length === 0 ? <p className="text-sm text-gray-500">No vehicles.</p> : (
+        <h4 className="mb-2 text-xs font-semibold text-fg-muted">Vehicles</h4>
+        {data.vehicles.length === 0 ? <p className="text-sm text-fg-muted">No vehicles.</p> : (
           <ul className="space-y-1 text-sm">
             {data.vehicles.map((v) => (
               <li key={v.id} className="flex flex-wrap items-center gap-3">
-                <span className="font-mono font-bold">{v.registration || v.registrationNumber}</span><Pill s={v.status} />
-                <span className="text-gray-400">RC {v.rcSeatingCapacity} seats{v.approvedCapacity ? ` · approved ${v.approvedCapacity}` : ''}</span>
-                <button type="button" onClick={() => openVehicle(v.id)} className="text-xs font-bold text-sky-300 underline">Open in Vehicles</button>
+                <span className="font-mono font-semibold">{v.registration || v.registrationNumber}</span><Pill s={v.status} />
+                <span className="text-fg-muted">RC {v.rcSeatingCapacity} seats{v.approvedCapacity ? ` · approved ${v.approvedCapacity}` : ''}</span>
+                <button type="button" onClick={() => openVehicle(v.id)} className="text-xs font-semibold text-info-text underline">Open in Vehicles</button>
               </li>
             ))}
           </ul>
         )}
       </div>
       <div>
-        <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">Recent trips</h4>
-        {data.trips.length === 0 ? <p className="text-sm text-gray-500">No trips yet.</p> : (
+        <h4 className="mb-2 text-xs font-semibold text-fg-muted">Recent trips</h4>
+        {data.trips.length === 0 ? <p className="text-sm text-fg-muted">No trips yet.</p> : (
           <ul className="space-y-1 text-sm">
             {data.trips.slice(0, 10).map((t) => (
-              <li key={t.id} className="flex flex-wrap items-center gap-3 text-gray-300"><span className="text-xs text-gray-500">#{short(t.id)}</span><Pill s={t.status} /><span>{when(t.departureAt)}</span><span className="text-gray-400">{t.confirmedSeats}/{t.capacity} seats</span></li>
+              <li key={t.id} className="flex flex-wrap items-center gap-3 text-fg-muted"><span className="text-xs text-fg-muted">#{short(t.id)}</span><Pill s={t.status} /><span>{when(t.departureAt)}</span><span className="text-fg-muted">{t.confirmedSeats}/{t.capacity} seats</span></li>
             ))}
           </ul>
         )}

@@ -66,8 +66,8 @@ const reviewId = (r: Review) => String(r.id || r._id || '');
 
 const ErrorLine = ({ text, onRetry }: { text: string; onRetry: () => void }) => (
   <div className="py-8 text-center">
-    <p className="text-xs text-red-400 font-bold">{text}</p>
-    <button onClick={onRetry} className="mt-3 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-300 hover:text-white">Try again</button>
+    <p className="text-xs text-danger-text font-semibold">{text}</p>
+    <button onClick={onRetry} className="mt-3 px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg">Try again</button>
   </div>
 );
 
@@ -131,7 +131,7 @@ export default function AnalyticsIntel() {
     }
   };
 
-  if (!isAuthed) return <div className="p-20 text-center font-black text-white uppercase tracking-widest animate-pulse">Checking access…</div>;
+  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
 
   const s = stats.data;
   const metrics = s ? [
@@ -147,27 +147,27 @@ export default function AnalyticsIntel() {
   const reviewList = reviews.data || [];
 
   return (
-    <div className="space-y-10 animate-fade-in relative pb-20">
-      <header className="flex flex-wrap gap-6 justify-between items-center bg-white/5 p-8 rounded-[40px] border border-white/5 glass">
+    <div className="space-y-10 animate-fade-in relative">
+      <header className="flex flex-wrap gap-6 justify-between items-center bg-surface-2/60 p-8 rounded-lg border border-line bg-surface border border-line">
         <div>
-          <h2 className="text-3xl font-black text-white tracking-tighter uppercase">Performance</h2>
-          <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mt-1">Orders, riders and review moderation</p>
+          <h1 className="text-2xl font-semibold text-fg">Analytics</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Order volume, revenue and store performance over time.</p>
         </div>
         <div className="flex items-center gap-4">
-          {lastUpdated && <span className="text-[10px] text-gray-500 font-bold">Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
-          <button onClick={() => loadAll(true)} className="px-4 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-2xl text-[10px] font-black uppercase">↻ Refresh</button>
+          {lastUpdated && <span className="text-xs text-fg-muted font-semibold">Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
+          <button onClick={() => loadAll(true)} className="px-4 py-2 bg-info-soft text-info-text border border-info/30 rounded-lg text-xs font-semibold">↻ Refresh</button>
         </div>
       </header>
 
       {notice && (
-        <div className={`p-4 rounded-2xl border text-xs font-bold flex justify-between items-start gap-4 ${notice.kind === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
+        <div className={`p-4 rounded-lg border text-xs font-semibold flex justify-between items-start gap-4 ${notice.kind === 'error' ? 'bg-danger-soft border-danger/30 text-danger-text' : 'bg-success-soft border-success/30 text-success-text'}`}>
           <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-gray-500 hover:text-white">✕</button>
+          <button onClick={() => setNotice(null)} className="text-fg-muted hover:text-fg" aria-label="Dismiss"><span aria-hidden="true" className="text-base leading-none">×</span></button>
         </div>
       )}
 
       {loading ? (
-        <div className="py-20 text-center font-black text-gray-500 animate-pulse tracking-widest uppercase text-xs">Loading metrics…</div>
+        <div className="py-20 text-center font-semibold text-fg-muted animate-pulse text-xs">Loading metrics…</div>
       ) : (
         <>
           {stats.error ? (
@@ -175,69 +175,69 @@ export default function AnalyticsIntel() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {metrics.map(m => (
-                <div key={m.label} className="glass-card p-8">
+                <div key={m.label} className="rounded-lg border border-line bg-surface shadow-xs p-8">
                   <p className="stat-label tracking-[0.2em]">{m.label}</p>
-                  <h4 className="text-3xl font-black text-white mt-2">{m.value}</h4>
-                  <p className="text-[10px] font-bold text-gray-500 mt-2">{m.sub}</p>
+                  <h4 className="text-3xl font-semibold text-fg mt-2">{m.value}</h4>
+                  <p className="text-xs font-semibold text-fg-muted mt-2">{m.sub}</p>
                 </div>
               ))}
             </div>
           )}
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
-            <div className="glass-card p-10 space-y-6 xl:col-span-2">
+            <div className="rounded-lg border border-line bg-surface shadow-xs p-10 space-y-6 xl:col-span-2">
               <div className="flex justify-between items-baseline">
-                <h3 className="text-xl font-black tracking-tighter uppercase text-white">Orders per hour</h3>
-                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Last 12 hours · {totalLast12h} orders</span>
+                <h3 className="text-xl font-semibold text-fg">Orders per hour</h3>
+                <span className="text-xs text-fg-muted font-semibold">Last 12 hours · {totalLast12h} orders</span>
               </div>
               {volume.error ? (
                 <ErrorLine text={volume.error} onRetry={() => loadAll(false)} />
               ) : points.length === 0 ? (
-                <p className="py-16 text-center text-xs text-gray-500">No orders in the last 12 hours.</p>
+                <p className="py-16 text-center text-xs text-fg-muted">No orders in the last 12 hours.</p>
               ) : (
                 <>
                   <div className="h-48 flex items-end gap-2 pt-6">
                     {points.map((p, i) => (
                       <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-1" title={`${pointLabel(p)}: ${p.count} orders`}>
-                        <span className="text-[9px] font-black text-gray-300">{p.count}</span>
-                        <div className="w-full bg-blue-500/60 rounded-t-lg" style={{ height: `${Math.max(4, (p.count / maxCount) * 100)}%` }} />
+                        <span className="text-xs font-semibold text-fg-muted">{p.count}</span>
+                        <div className="w-full bg-info-soft rounded-t-lg" style={{ height: `${Math.max(4, (p.count / maxCount) * 100)}%` }} />
                       </div>
                     ))}
                   </div>
-                  <div className="flex gap-2 text-[8px] font-black text-gray-500 uppercase tracking-widest">
+                  <div className="flex gap-2 text-xs font-semibold text-fg-muted">
                     {points.map((p, i) => <span key={i} className="flex-1 text-center">{pointLabel(p)}</span>)}
                   </div>
-                  <p className="text-[9px] text-gray-600">Hours with no orders are not shown. Hour labels use the server clock.</p>
+                  <p className="text-xs text-fg-subtle">Hours with no orders are not shown. Hour labels use the server clock.</p>
                 </>
               )}
             </div>
 
-            <div className="glass-card p-10 space-y-4">
-              <h3 className="text-xl font-black tracking-tighter uppercase text-white">System</h3>
+            <div className="rounded-lg border border-line bg-surface shadow-xs p-10 space-y-4">
+              <h3 className="text-xl font-semibold text-fg">System</h3>
               {health.error ? (
                 <ErrorLine text={health.error} onRetry={() => loadAll(false)} />
               ) : (
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                  <div className="flex items-center justify-between p-4 bg-surface-2/60 rounded-lg border border-line">
                     <div>
-                      <p className="text-sm font-bold text-white">API server</p>
-                      <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Responding</p>
+                      <p className="text-sm font-semibold text-fg">API server</p>
+                      <p className="text-xs text-fg-muted font-semibold">Responding</p>
                     </div>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-md border text-emerald-500 bg-emerald-500/10 border-emerald-500/20">Online</span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md border text-success-text bg-success-soft border-success/30">Online</span>
                   </div>
-                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                  <div className="flex items-center justify-between p-4 bg-surface-2/60 rounded-lg border border-line">
                     <div>
-                      <p className="text-sm font-bold text-white">Database</p>
-                      <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{health.data?.database || 'Unknown'}</p>
+                      <p className="text-sm font-semibold text-fg">Database</p>
+                      <p className="text-xs text-fg-muted font-semibold">{health.data?.database || 'Unknown'}</p>
                     </div>
-                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-md border ${health.data?.persistence === 'PERSISTENT' ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-500 bg-amber-500/10 border-amber-500/20'}`}>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-md border ${health.data?.persistence === 'PERSISTENT' ? 'text-success-text bg-success-soft border-success/30' : 'text-warning-text bg-warning-soft border-warning/30'}`}>
                       {health.data?.persistence === 'PERSISTENT' ? 'Persistent' : 'Not persistent'}
                     </span>
                   </div>
                   {health.data?.persistence && health.data.persistence !== 'PERSISTENT' && (
-                    <p className="text-[10px] text-amber-400">The server is running on a temporary database. Data will be lost on restart.</p>
+                    <p className="text-xs text-warning-text">The server is running on a temporary database. Data will be lost on restart.</p>
                   )}
-                  <Link href="/analytics/rewards" className="block p-4 bg-blue-500/5 rounded-2xl border border-blue-500/20 text-xs font-bold text-blue-400 hover:bg-blue-500/10">
+                  <Link href="/analytics/rewards" className="block p-4 bg-info-soft rounded-lg border border-info/30 text-xs font-semibold text-info-text hover:bg-info-soft">
                     Rewards analytics →
                   </Link>
                 </div>
@@ -245,39 +245,39 @@ export default function AnalyticsIntel() {
             </div>
           </div>
 
-          <div className="glass-card p-10 space-y-6">
+          <div className="rounded-lg border border-line bg-surface shadow-xs p-10 space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="text-xl font-black tracking-tighter uppercase text-white">Recent reviews</h3>
+              <h3 className="text-xl font-semibold text-fg">Recent reviews</h3>
               <div className="flex items-center gap-4">
-                <span className="text-xs text-gray-500 uppercase tracking-widest">{reviewList.length} latest written reviews</span>
-                <button onClick={loadReviews} className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase text-gray-300 hover:text-white">↻</button>
+                <span className="text-xs text-fg-muted">{reviewList.length} latest written reviews</span>
+                <button onClick={loadReviews} className="px-3 py-1.5 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg">↻</button>
               </div>
             </div>
 
             {reviews.error ? (
               <ErrorLine text={reviews.error} onRetry={loadReviews} />
             ) : reviewList.length === 0 ? (
-              <p className="text-xs text-gray-500 py-10 text-center">No written reviews yet.</p>
+              <p className="text-xs text-fg-muted py-10 text-center">No written reviews yet.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {reviewList.map(rev => {
                   const id = reviewId(rev);
                   return (
-                    <div key={id} className="p-5 bg-white/5 border border-white/10 rounded-2xl flex flex-col gap-3">
-                      <div className="flex justify-between items-center border-b border-white/5 pb-2 gap-4">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">
+                    <div key={id} className="p-5 bg-surface-2/60 border border-line rounded-lg flex flex-col gap-3">
+                      <div className="flex justify-between items-center border-b border-line pb-2 gap-4">
+                        <span className="text-xs font-semibold text-info-text">
                           {rev.user?.name || 'Customer'}
-                          <span className="text-gray-500 ml-2">→ {rev.restaurantName || 'Store'}</span>
+                          <span className="text-fg-muted ml-2">→ {rev.restaurantName || 'Store'}</span>
                         </span>
-                        {rev.rating != null && <span className="text-amber-400 font-black text-sm whitespace-nowrap">★ {rev.rating}</span>}
+                        {rev.rating != null && <span className="text-warning-text font-semibold text-sm whitespace-nowrap">★ {rev.rating}</span>}
                       </div>
-                      <p className="text-sm text-gray-300 break-words">{rev.review}</p>
-                      <div className="flex justify-between items-center pt-2 border-t border-white/5">
-                        <span className="text-[9px] text-gray-500 font-mono">{new Date(rev.createdAt).toLocaleString()}</span>
+                      <p className="text-sm text-fg-muted break-words">{rev.review}</p>
+                      <div className="flex justify-between items-center pt-2 border-t border-line">
+                        <span className="text-xs text-fg-muted font-mono">{new Date(rev.createdAt).toLocaleString()}</span>
                         <button
                           onClick={() => deleteReview(rev)}
                           disabled={deletingId !== null}
-                          className="px-4 py-1.5 bg-red-600/20 text-red-400 hover:bg-red-600/40 rounded text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-40"
+                          className="px-4 py-1.5 bg-danger-soft text-danger-text hover:bg-danger-soft rounded text-xs font-semibold transition-all disabled:opacity-40"
                         >
                           {deletingId === id ? 'Removing…' : 'Remove'}
                         </button>

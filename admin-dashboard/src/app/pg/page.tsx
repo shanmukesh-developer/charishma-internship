@@ -177,32 +177,31 @@ export default function PGAdminPage() {
 
   const onPendingCount = useCallback((n: number) => setPendingCount(n), []);
 
-  if (!isAuthed) return <div className="p-10 text-center text-sm text-gray-400" role="status">Checking your admin session…</div>;
+  if (!isAuthed) return <div className="p-10 text-center text-sm text-fg-muted" role="status">Checking your admin session…</div>;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-6 text-white md:p-8">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-5">
+    <div className="mx-auto max-w-7xl space-y-6 text-fg">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-blue-400">Housing</p>
-          <h1 className="mt-1 text-2xl font-black">PG &amp; hostels</h1>
-          <p className="mt-2 text-sm text-gray-400">Curate PG listings and rooms, run promotions, and confirm students&apos; booking requests.</p>
+          <h1 className="text-2xl font-semibold text-fg">PG and hostels</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Curate PG listings and rooms, run promotions, and confirm students&apos; booking requests.</p>
         </div>
         {view === 'listings' && (
           <div className="flex items-center gap-3">
-            <button type="button" disabled={loading} onClick={() => loadPgs()} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-gray-300 hover:text-white disabled:opacity-50">{loading ? 'Loading…' : 'Refresh'}</button>
-            <button type="button" onClick={() => setCreating(true)} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-500">Add PG</button>
+            <button type="button" disabled={loading} onClick={() => loadPgs()} className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-fg-muted hover:text-fg disabled:opacity-50">{loading ? 'Loading…' : 'Refresh'}</button>
+            <button type="button" onClick={() => setCreating(true)} className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-solid hover:bg-accent-hover">Add PG</button>
           </div>
         )}
       </header>
 
-      <div className="flex gap-1 border-b border-white/10" role="tablist">
+      <div className="flex gap-1 border-b border-line" role="tablist">
         {([['listings', `Listings (${pgs.length})`], ['bookings', `Booking requests${pendingCount ? ` · ${pendingCount} pending` : ''}`], ['promotions', 'Promotions']] as [View, string][]).map(([key, label]) => (
-          <button key={key} type="button" role="tab" aria-selected={view === key} onClick={() => setView(key)} className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold ${view === key ? 'border-blue-500 text-white' : 'border-transparent text-gray-400 hover:text-white'}`}>{label}</button>
+          <button key={key} type="button" role="tab" aria-selected={view === key} onClick={() => setView(key)} className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold ${view === key ? 'border-info/30 text-fg' : 'border-transparent text-fg-muted hover:text-fg'}`}>{label}</button>
         ))}
       </div>
 
       {notice && (
-        <div role={notice.kind === 'error' ? 'alert' : 'status'} className={`flex items-start justify-between gap-3 rounded-lg border p-3 text-sm ${notice.kind === 'error' ? 'border-red-500/30 bg-red-500/10 text-red-200' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'}`}>
+        <div role={notice.kind === 'error' ? 'alert' : 'status'} className={`flex items-start justify-between gap-3 rounded-lg border p-3 text-sm ${notice.kind === 'error' ? 'border-danger/30 bg-danger-soft text-danger-text' : 'border-success/30 bg-success-soft text-success-text'}`}>
           <span>{notice.text}</span>
           <button type="button" onClick={() => setNotice(null)} className="text-xs font-semibold opacity-70 hover:opacity-100">Dismiss</button>
         </div>
@@ -215,51 +214,51 @@ export default function PGAdminPage() {
       ) : (
         <>
           {loadError && (
-            <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
-              {loadError}<button type="button" onClick={() => loadPgs()} className="font-bold underline">Retry</button>
+            <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger-text">
+              {loadError}<button type="button" onClick={() => loadPgs()} className="font-semibold underline">Retry</button>
             </div>
           )}
           {loading ? (
-            <div role="status" className="rounded-lg border border-white/10 p-8 text-sm text-gray-400">Loading PG listings…</div>
+            <div role="status" className="rounded-lg border border-line p-8 text-sm text-fg-muted">Loading PG listings…</div>
           ) : !loadError && pgs.length === 0 ? (
-            <div className="rounded-lg border border-white/10 p-10 text-center">
-              <h2 className="font-bold">No PG listings yet</h2>
-              <p className="mt-2 text-sm text-gray-400">Add a PG and its rooms to show it in the app.</p>
+            <div className="rounded-lg border border-line p-10 text-center">
+              <h2 className="font-semibold">No PG listings yet</h2>
+              <p className="mt-2 text-sm text-fg-muted">Add a PG and its rooms to show it in the app.</p>
             </div>
           ) : (
             <section className="grid gap-4 md:grid-cols-2" aria-label="PG listings">
               {pgs.map(pg => (
-                <article key={pg.id} className={`flex flex-col justify-between rounded-xl border p-5 ${pg.isActive ? 'border-white/10' : 'border-white/5 bg-white/[0.015]'} ${isFresh(pg.id) ? FRESH_ROW_CLASS : ''}`}>
+                <article key={pg.id} className={`flex flex-col justify-between rounded-xl border p-5 ${pg.isActive ? 'border-line' : 'border-line bg-surface-2/60'} ${isFresh(pg.id) ? FRESH_ROW_CLASS : ''}`}>
                   <div>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <h2 className="truncate text-lg font-bold">{pg.name}</h2>
-                        <p className="mt-0.5 text-xs text-gray-500">{pg.address}</p>
+                        <h2 className="truncate text-lg font-semibold">{pg.name}</h2>
+                        <p className="mt-0.5 text-xs text-fg-muted">{pg.address}</p>
                       </div>
-                      <span className={`shrink-0 rounded border px-2 py-0.5 text-[11px] font-semibold ${pg.isActive ? 'border-emerald-500/30 text-emerald-300' : 'border-white/10 text-gray-400'}`}>{pg.isActive ? 'Listed' : 'Hidden'}</span>
+                      <span className={`shrink-0 rounded border px-2 py-0.5 text-xs font-semibold ${pg.isActive ? 'border-success/30 text-success-text' : 'border-line text-fg-muted'}`}>{pg.isActive ? 'Listed' : 'Hidden'}</span>
                     </div>
-                    <dl className="mt-4 grid grid-cols-3 gap-3 border-y border-white/5 py-3 text-sm">
-                      <div><dt className="text-xs text-gray-500">Distance</dt><dd className="font-semibold">{pg.distanceFromCollege} km</dd></div>
-                      <div><dt className="text-xs text-gray-500">For</dt><dd className="font-semibold">{normalizeGender(pg.genderType)}</dd></div>
-                      <div><dt className="text-xs text-gray-500">From</dt><dd className="font-semibold">₹{Number(pg.baseRent).toLocaleString('en-IN')}/mo</dd></div>
+                    <dl className="mt-4 grid grid-cols-3 gap-3 border-y border-line py-3 text-sm">
+                      <div><dt className="text-xs text-fg-muted">Distance</dt><dd className="font-semibold">{pg.distanceFromCollege} km</dd></div>
+                      <div><dt className="text-xs text-fg-muted">For</dt><dd className="font-semibold">{normalizeGender(pg.genderType)}</dd></div>
+                      <div><dt className="text-xs text-fg-muted">From</dt><dd className="font-semibold">₹{Number(pg.baseRent).toLocaleString('en-IN')}/mo</dd></div>
                     </dl>
-                    {!!pg.amenities?.length && <p className="mt-3 text-xs text-gray-400">{pg.amenities.join(' · ')}</p>}
-                    <p className="mt-2 text-xs text-gray-500">
+                    {!!pg.amenities?.length && <p className="mt-3 text-xs text-fg-muted">{pg.amenities.join(' · ')}</p>}
+                    <p className="mt-2 text-xs text-fg-muted">
                       {[
                         pg.photos?.length ? `${pg.photos.length} photo${pg.photos.length === 1 ? '' : 's'}` : pg.images?.length ? `${pg.images.length} photo${pg.images.length === 1 ? '' : 's'} (no categories)` : '',
                         pg.videos?.length ? `${pg.videos.length} video${pg.videos.length === 1 ? '' : 's'}` : '',
                         pg.messTimetable?.meals?.length ? 'Mess timetable' : '',
                         pg.isVerified ? 'Verified' : '',
                       ].filter(Boolean).join(' · ')}
-                      {!pg.photos?.length && !pg.images?.length && <span className="text-amber-300">No photos yet</span>}
+                      {!pg.photos?.length && !pg.images?.length && <span className="text-warning-text">No photos yet</span>}
                     </p>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <button type="button" onClick={() => { setManaging(pg); setManageTab('details'); }} className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-white/15">Edit details</button>
-                    <button type="button" onClick={() => { setManaging(pg); setManageTab('rooms'); }} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-gray-300 hover:text-white">Rooms</button>
-                    <button type="button" onClick={() => { setManaging(pg); setManageTab('photos'); }} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-gray-300 hover:text-white">Photos</button>
-                    <button type="button" disabled={!!busy[pg.id]} onClick={() => toggleActive(pg)} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-gray-300 hover:text-white disabled:opacity-50">{pg.isActive ? 'Hide' : 'List'}</button>
-                    <button type="button" disabled={!!busy[pg.id]} onClick={() => deletePg(pg)} className="ml-auto rounded-lg px-2 py-1.5 text-xs font-semibold text-red-400/70 hover:text-red-300 disabled:opacity-50">Delete</button>
+                    <button type="button" onClick={() => { setManaging(pg); setManageTab('details'); }} className="rounded-lg bg-surface-2 px-3 py-1.5 text-xs font-semibold hover:bg-surface-3">Edit details</button>
+                    <button type="button" onClick={() => { setManaging(pg); setManageTab('rooms'); }} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg-muted hover:text-fg">Rooms</button>
+                    <button type="button" onClick={() => { setManaging(pg); setManageTab('photos'); }} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg-muted hover:text-fg">Photos</button>
+                    <button type="button" disabled={!!busy[pg.id]} onClick={() => toggleActive(pg)} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-50">{pg.isActive ? 'Hide' : 'List'}</button>
+                    <button type="button" disabled={!!busy[pg.id]} onClick={() => deletePg(pg)} className="ml-auto rounded-lg px-2 py-1.5 text-xs font-semibold text-danger-text hover:text-danger-text disabled:opacity-50">Delete</button>
                   </div>
                 </article>
               ))}
@@ -269,16 +268,16 @@ export default function PGAdminPage() {
       )}
 
       {(creating || managing) && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="pg-modal-title">
-          <div className="my-8 w-full max-w-4xl rounded-2xl border border-white/10 bg-[#0d0f14] p-6 text-white shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-scrim/50 p-4" role="dialog" aria-modal="true" aria-labelledby="pg-modal-title">
+          <div className="my-8 w-full max-w-4xl rounded-lg border border-line bg-surface p-6 text-fg shadow-pop">
             <div className="mb-5 flex items-start justify-between gap-4">
-              <h2 id="pg-modal-title" className="text-xl font-bold">{creating ? 'Add PG' : managing?.name}</h2>
-              <button type="button" onClick={() => { setCreating(false); setManaging(null); }} className="rounded-lg border border-white/10 px-3 py-1.5 text-sm text-gray-300 hover:text-white">Close</button>
+              <h2 id="pg-modal-title" className="text-xl font-semibold">{creating ? 'Add PG' : managing?.name}</h2>
+              <button type="button" onClick={() => { setCreating(false); setManaging(null); }} className="rounded-lg border border-line px-3 py-1.5 text-sm text-fg-muted hover:text-fg">Close</button>
             </div>
             {managing && !creating && (
-              <div className="mb-5 flex gap-1 overflow-x-auto border-b border-white/10" role="tablist">
+              <div className="mb-5 flex gap-1 overflow-x-auto border-b border-line" role="tablist">
                 {MANAGE_TABS.map(([tab, label]) => (
-                  <button key={tab} type="button" role="tab" aria-selected={manageTab === tab} onClick={() => setManageTab(tab)} className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2 text-sm font-semibold ${manageTab === tab ? 'border-blue-500 text-white' : 'border-transparent text-gray-400 hover:text-white'}`}>{label}</button>
+                  <button key={tab} type="button" role="tab" aria-selected={manageTab === tab} onClick={() => setManageTab(tab)} className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2 text-sm font-semibold ${manageTab === tab ? 'border-info/30 text-fg' : 'border-transparent text-fg-muted hover:text-fg'}`}>{label}</button>
                 ))}
               </div>
             )}

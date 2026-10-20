@@ -108,34 +108,33 @@ export default function ReceiptsCard() {
     }
   };
 
-  const input = 'w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-white font-bold text-sm';
-  const lbl = 'text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1';
+  const input = 'w-full bg-surface-2/60 border border-line rounded-lg p-3 text-fg font-semibold text-sm';
+  const lbl = 'text-xs font-semibold text-fg-muted ml-1';
 
   return (
-    <div className="glass-card p-10 space-y-6">
+    <div className="rounded-lg border border-line bg-surface shadow-xs p-10 space-y-6">
       <div className="flex items-center gap-4 flex-wrap">
-        <div className="w-10 h-10 bg-sky-600/20 rounded-xl flex items-center justify-center text-xl">🧾</div>
         <div className="flex-1 min-w-[200px]">
-          <h4 className="text-lg font-black text-white uppercase tracking-tight">Receipts &amp; Compliance</h4>
-          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Order receipts · platform GSTIN · tax display · FSSAI listing rule</p>
+          <h4 className="text-lg font-semibold text-fg">Receipts &amp; Compliance</h4>
+          <p className="text-xs text-fg-muted font-semibold">Order receipts · platform GSTIN · tax display · FSSAI listing rule</p>
         </div>
         {data && (
-          <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-white/5 border border-white/10 text-gray-300">
+          <span className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface-2/60 border border-line text-fg-muted">
             Receipts show: {data.effectiveTaxDisplayMode === 'breakdown' ? 'GST breakdown' : 'tax inclusive'}
           </span>
         )}
       </div>
 
-      <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-[12px] leading-relaxed text-amber-100">
-        <p className="font-black uppercase tracking-widest text-[10px] text-amber-300 mb-1">Set tax details on your CA&apos;s advice</p>
+      <div className="rounded-lg border border-warning/30 bg-warning-soft p-4 text-xs leading-relaxed text-warning-text">
+        <p className="font-semibold text-xs text-warning-text mb-1">Set tax details on your CA&apos;s advice</p>
         Receipts print exactly what is saved here. Enter a GSTIN and GST rate only if your chartered accountant has
         confirmed them. Never type placeholder or made-up values.
       </div>
 
       {loadError && (
         <div className="flex items-center gap-3">
-          <p className="text-xs font-bold text-red-400">{loadError}</p>
-          <button onClick={load} className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-300">Retry</button>
+          <p className="text-xs font-semibold text-danger-text">{loadError}</p>
+          <button onClick={load} className="px-3 py-1.5 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted">Retry</button>
         </div>
       )}
 
@@ -144,70 +143,70 @@ export default function ReceiptsCard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2 md:col-span-2">
               <label htmlFor="rc-gstin" className={lbl}>Platform GSTIN (optional)</label>
-              <input id="rc-gstin" className={`${input} uppercase`} maxLength={15} autoComplete="off" spellCheck={false} value={form.platformGstin} onChange={e => set('platformGstin', e.target.value)} />
-              {gstin && !gstinOk && <p className="text-[11px] text-amber-300 ml-1">15 characters in the GST format.</p>}
+              <input id="rc-gstin" className={`${input} `} maxLength={15} autoComplete="off" spellCheck={false} value={form.platformGstin} onChange={e => set('platformGstin', e.target.value)} />
+              {gstin && !gstinOk && <p className="text-xs text-warning-text ml-1">15 characters in the GST format.</p>}
             </div>
             <div className="space-y-2">
               <label htmlFor="rc-rate" className={lbl}>GST rate % (optional)</label>
               <input id="rc-rate" className={input} inputMode="decimal" value={form.gstRatePercent} onChange={e => set('gstRatePercent', e.target.value.replace(/[^\d.]/g, ''))} />
-              {rateText && !rateOk && <p className="text-[11px] text-amber-300 ml-1">Above 0 and at most 28, up to 2 decimals.</p>}
+              {rateText && !rateOk && <p className="text-xs text-warning-text ml-1">Above 0 and at most 28, up to 2 decimals.</p>}
             </div>
           </div>
 
           <fieldset className="space-y-3">
             <legend className={lbl}>Tax display on receipts</legend>
-            <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 cursor-pointer">
-              <input type="radio" name="rc-mode" className="mt-1 accent-blue-500" checked={form.taxDisplayMode === 'inclusive'} onChange={() => set('taxDisplayMode', 'inclusive')} />
+            <label className="flex items-start gap-3 rounded-lg border border-line bg-surface-2/60 p-4 cursor-pointer">
+              <input type="radio" name="rc-mode" className="mt-1 accent-[rgb(var(--accent))]" checked={form.taxDisplayMode === 'inclusive'} onChange={() => set('taxDisplayMode', 'inclusive')} />
               <span>
-                <span className="block text-sm font-black text-white">Inclusive</span>
-                <span className="block text-[11px] text-gray-400">Receipts say &quot;{data.inclusiveNote}&quot; and show no separate GST lines.</span>
+                <span className="block text-sm font-semibold text-fg">Inclusive</span>
+                <span className="block text-xs text-fg-muted">Receipts say &quot;{data.inclusiveNote}&quot; and show no separate GST lines.</span>
               </span>
             </label>
-            <label className={`flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 ${breakdownPossible ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}>
-              <input type="radio" name="rc-mode" className="mt-1 accent-blue-500" disabled={!breakdownPossible} checked={form.taxDisplayMode === 'breakdown'} onChange={() => set('taxDisplayMode', 'breakdown')} />
+            <label className={`flex items-start gap-3 rounded-lg border border-line bg-surface-2/60 p-4 ${breakdownPossible ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}>
+              <input type="radio" name="rc-mode" className="mt-1 accent-[rgb(var(--accent))]" disabled={!breakdownPossible} checked={form.taxDisplayMode === 'breakdown'} onChange={() => set('taxDisplayMode', 'breakdown')} />
               <span>
-                <span className="block text-sm font-black text-white">GST breakdown</span>
-                <span className="block text-[11px] text-gray-400">
+                <span className="block text-sm font-semibold text-fg">GST breakdown</span>
+                <span className="block text-xs text-fg-muted">
                   Shows the GST contained in the amounts already charged, at the rate above. It never changes what anyone
                   pays. Use it only on your CA&apos;s advice.
                 </span>
-                {!breakdownPossible && <span className="block text-[11px] text-amber-300 mt-1">Needs both a valid platform GSTIN and a GST rate first.</span>}
+                {!breakdownPossible && <span className="block text-xs text-warning-text mt-1">Needs both a valid platform GSTIN and a GST rate first.</span>}
               </span>
             </label>
             {form.taxDisplayMode === 'breakdown' && !breakdownPossible && (
-              <p className="text-[11px] text-amber-300">The GSTIN or rate is missing, so this saves as &quot;Inclusive&quot;.</p>
+              <p className="text-xs text-warning-text">The GSTIN or rate is missing, so this saves as &quot;Inclusive&quot;.</p>
             )}
           </fieldset>
 
           <div className="space-y-2">
             <label htmlFor="rc-footer" className={lbl}>Receipt footer note (optional)</label>
             <textarea id="rc-footer" rows={2} maxLength={FOOTER_MAX} className={input} value={form.footerNote} onChange={e => set('footerNote', e.target.value)} />
-            <p className="text-[11px] text-gray-500 ml-1">{form.footerNote.trim().length}/{FOOTER_MAX} · printed at the bottom of every receipt.</p>
+            <p className="text-xs text-fg-muted ml-1">{form.footerNote.trim().length}/{FOOTER_MAX} · printed at the bottom of every receipt.</p>
           </div>
 
-          <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+          <div className="flex items-start gap-3 rounded-lg border border-line bg-surface-2/60 p-4">
             <button
               type="button"
               role="switch"
               id="rc-hide"
               aria-checked={form.hideStoresWithoutFssai}
               onClick={() => set('hideStoresWithoutFssai', !form.hideStoresWithoutFssai)}
-              className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors ${form.hideStoresWithoutFssai ? 'bg-amber-500' : 'bg-white/15'}`}
+              className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors ${form.hideStoresWithoutFssai ? 'bg-accent' : 'bg-surface-3'}`}
             >
               <span aria-hidden className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${form.hideStoresWithoutFssai ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>
             <label htmlFor="rc-hide" className="cursor-pointer">
-              <span className="block text-sm font-black text-white">Hide stores without an FSSAI licence number from customer listings (they also cannot take new orders)</span>
-              <span className="block text-[11px] text-gray-400">Off by default. Only whether a number is on file counts; expiry and admin checks do not hide a store.</span>
+              <span className="block text-sm font-semibold text-fg">Hide stores without an FSSAI licence number from customer listings (they also cannot take new orders)</span>
+              <span className="block text-xs text-fg-muted">Off by default. Only whether a number is on file counts; expiry and admin checks do not hide a store.</span>
             </label>
           </div>
 
           <div className="flex items-center gap-4 flex-wrap">
-            <button onClick={save} disabled={saving} className="px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white">
+            <button onClick={save} disabled={saving} className="px-6 py-3 bg-accent hover:bg-accent-hover disabled:opacity-50 rounded-lg text-xs font-semibold text-on-solid">
               {saving ? 'Saving…' : 'Save receipt settings'}
             </button>
-            {error && <p className="text-xs font-bold text-red-400">{error}</p>}
-            {notice && <p className="text-xs font-bold text-emerald-400">{notice}</p>}
+            {error && <p className="text-xs font-semibold text-danger-text">{error}</p>}
+            {notice && <p className="text-xs font-semibold text-success-text">{notice}</p>}
           </div>
         </>
       )}

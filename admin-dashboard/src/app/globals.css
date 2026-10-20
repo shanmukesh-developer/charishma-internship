@@ -2,187 +2,197 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Zenvy admin design tokens (RGB channels so Tailwind can apply alpha: bg-accent/10).
+ * Light is the default; `html.dark` switches every token. Only semantic names are exposed to pages.
+ */
 :root {
-  --foreground-rgb: 226, 232, 240;
-  --background-start-rgb: 10, 10, 18;
-  --background-end-rgb: 2, 2, 5;
-  --zenvy-gold: #D4AF7A;
-  --nexus-blue: #2563EB;
-  --nexus-emerald: #10B981;
+  --bg: 247 247 248;
+  --surface: 255 255 255;
+  --surface-2: 243 244 246;
+  --surface-3: 233 235 239;
+  --line: 228 230 235;
+  --line-strong: 206 210 218;
+  --fg: 17 19 24;
+  --fg-muted: 82 88 102;
+  --fg-subtle: 110 116 130;
+
+  --accent: 79 70 229;
+  --accent-hover: 67 56 202;
+  --accent-fg: 255 255 255;
+  --accent-soft: 238 240 255;
+  --accent-text: 67 56 202;
+
+  --success: 22 163 74;
+  --success-soft: 234 250 240;
+  --success-text: 21 115 55;
+  --warning: 217 119 6;
+  --warning-soft: 255 246 228;
+  --warning-text: 160 74 6;
+  --danger: 220 38 38;
+  --danger-soft: 254 240 240;
+  --danger-text: 185 28 28;
+  --info: 37 99 235;
+  --info-soft: 237 244 255;
+  --info-text: 29 78 216;
+
+  --shadow: 16 24 40;
+  color-scheme: light;
 }
 
-html {
-  font-size: 90%;
+html.dark {
+  --bg: 12 13 16;
+  --surface: 21 22 26;
+  --surface-2: 28 30 35;
+  --surface-3: 38 40 47;
+  --line: 40 42 50;
+  --line-strong: 60 63 74;
+  --fg: 236 237 240;
+  --fg-muted: 160 165 176;
+  --fg-subtle: 122 127 140;
+
+  --accent: 99 102 241;
+  --accent-hover: 118 121 246;
+  --accent-fg: 255 255 255;
+  --accent-soft: 32 33 66;
+  --accent-text: 165 172 252;
+
+  --success: 34 197 94;
+  --success-soft: 18 42 29;
+  --success-text: 86 214 133;
+  --warning: 245 158 11;
+  --warning-soft: 48 36 14;
+  --warning-text: 247 186 72;
+  --danger: 239 68 68;
+  --danger-soft: 54 22 24;
+  --danger-text: 248 120 120;
+  --info: 59 130 246;
+  --info-soft: 20 33 58;
+  --info-text: 110 168 250;
+
+  --shadow: 0 0 0;
+  color-scheme: dark;
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.05), transparent 400px),
-              radial-gradient(circle at bottom left, rgba(212, 175, 122, 0.03), transparent 400px),
-              rgb(var(--background-start-rgb));
-  min-height: 100vh;
-  font-family: 'Outfit', 'Inter', sans-serif;
-  overflow-x: hidden;
+@layer base {
+  html {
+    font-size: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-bg text-fg font-sans text-sm antialiased;
+    min-height: 100vh;
+    overflow-x: hidden;
+    font-feature-settings: "cv11", "ss01";
+  }
+  h1, h2, h3, h4 {
+    @apply text-fg;
+  }
+  ::selection {
+    @apply bg-accent/20;
+  }
+  /* One visible focus style for every interactive element, mouse clicks excluded. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  input:focus-visible, textarea:focus-visible, select:focus-visible {
+    outline: none;
+  }
+  input::placeholder, textarea::placeholder {
+    @apply text-fg-subtle;
+  }
+  /* Numbers line up in tables and stat tiles. */
+  .tabular-nums, td, th {
+    font-variant-numeric: tabular-nums;
+  }
+  [hidden] { display: none !important; }
 }
 
 @layer components {
+  /* Shared control look (inputs, selects, textareas) also used by older pages via .nexus-input. */
+  .zv-control {
+    @apply block w-full h-8 rounded-md border border-line-strong/80 bg-surface px-2.5 text-sm text-fg shadow-xs transition-colors;
+    @apply hover:border-line-strong focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent/20;
+    @apply disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-fg-subtle;
+  }
+  .zv-control[aria-invalid="true"] {
+    @apply border-danger focus:ring-danger/20;
+  }
+  textarea.zv-control {
+    @apply h-auto py-1.5 leading-5;
+  }
+  select.zv-control {
+    @apply appearance-none pr-8;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23808694' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.6' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1rem;
+  }
+  select.zv-control option {
+    @apply bg-surface text-fg;
+  }
+
+  /* ---- Legacy class names, restyled to the calm look so any page not yet migrated still matches. ---- */
   .glass {
-    @apply bg-white/[0.02] backdrop-blur-md border border-white/5;
-    -webkit-backdrop-filter: blur(12px);
-    transform: translateZ(0);
-    /* No will-change here: .glass is used on hundreds of rows/cards and each one became its own
-       permanently-promoted compositor layer, which made scrolling long lists stutter. */
+    @apply bg-surface border border-line;
   }
-  
   .glass-card {
-    @apply glass rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-colors duration-200 hover:border-white/10 hover:bg-white/[0.04];
+    @apply bg-surface border border-line rounded-lg shadow-xs;
   }
-
-  .neon-border-blue {
-    @apply border border-blue-500/20 shadow-[0_0_30px_rgba(37,99,235,0.1)];
+  .neon-border-blue, .neon-border-gold {
+    @apply border border-line;
   }
-
-  .neon-border-gold {
-    @apply border border-[#D4AF7A]/20 shadow-[0_0_30px_rgba(212,175,122,0.1)];
-  }
-
   .sidebar-link {
-    @apply flex items-center gap-4 p-4 rounded-2xl text-gray-400 font-medium transition-all duration-300 hover:bg-white/5 hover:text-white;
+    @apply flex items-center gap-2 px-2 py-1.5 rounded-md text-fg-muted hover:bg-surface-2 hover:text-fg;
   }
-
   .sidebar-active {
-    @apply bg-blue-600/10 text-blue-400 border border-blue-500/20 shadow-[0_0_20px_rgba(37,99,235,0.05)];
+    @apply bg-surface-2 text-fg;
   }
-
   .stat-label {
-    @apply text-[10px] text-gray-500 font-black uppercase tracking-[0.2em] mb-1;
+    @apply text-xs text-fg-muted font-medium mb-1;
   }
-
   .nexus-badge {
-    @apply px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border;
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-line;
+  }
+  .nexus-input, .nexus-select {
+    @apply zv-control;
+  }
+  .nexus-select {
+    @apply appearance-none pr-8;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23808694' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.6' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1rem;
   }
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+/* Thin, quiet scrollbars that follow the theme. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--line-strong)) transparent;
 }
-::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgb(var(--line-strong));
   border-radius: 10px;
-  border: 2px solid transparent;
+  border: 3px solid transparent;
   background-clip: padding-box;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--fg-subtle)); background-clip: padding-box; border: 3px solid transparent; }
 
-@keyframes pulse-soft {
-  0% { opacity: 0.4; transform: scale(0.98); }
-  50% { opacity: 0.7; transform: scale(1); }
-  100% { opacity: 0.4; transform: scale(0.98); }
-}
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-.animate-pulse-soft {
-  animation: pulse-soft 3s ease-in-out infinite;
-  will-change: transform, opacity;
-  transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
-}
+/* Kept for pages that still use them; deliberately subtle. */
+.animate-fade-in { animation: zv-fade 160ms ease-out both; }
+.animate-slide-up { animation: zv-fade 160ms ease-out both; }
+.animate-pulse-soft { animation: none; }
+@keyframes zv-fade { from { opacity: 0; } to { opacity: 1; } }
 
-/* Fade In Animation */
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.5s ease-out both;
-}
-
-/* Slide Up Animation */
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(24px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.animate-slide-up {
-  animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-/* Scrollbar Hide */
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* Background Gradients */
-.bg-mesh {
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.1) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(212, 175, 122, 0.05) 0px, transparent 50%);
-}
-
-/* Nexus Form Inputs */
-.nexus-input {
-  width: 100%;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 0.875rem 1.25rem;
-  border-radius: 1rem;
-  color: white;
-  font-weight: 700;
-  font-size: 0.875rem;
-  outline: none;
-  transition: all 0.3s ease;
-}
-.nexus-input:focus {
-  border-color: rgba(16, 185, 129, 0.5);
-  background: rgba(16, 185, 129, 0.03);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.06);
-}
-.nexus-input::placeholder {
-  color: rgba(255, 255, 255, 0.2);
-  font-weight: 600;
-}
-.nexus-input-blue:focus {
-  border-color: rgba(37, 99, 235, 0.5);
-  background: rgba(37, 99, 235, 0.03);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.06);
-}
-.nexus-select {
-  width: 100%;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 0.875rem 1.25rem;
-  border-radius: 1rem;
-  color: white;
-  font-weight: 700;
-  font-size: 0.875rem;
-  outline: none;
-  transition: all 0.3s ease;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-  background-position: right 0.75rem center;
-  background-repeat: no-repeat;
-  background-size: 1.25rem;
-}
-.nexus-select:focus {
-  border-color: rgba(16, 185, 129, 0.5);
-  background-color: rgba(16, 185, 129, 0.03);
-}
-.nexus-select option {
-  background: #111315;
-  color: white;
-}
-
-/* Respect the OS "reduce motion" setting: no pulsing / spinning / sliding loops for those admins. */
+/* Respect the OS "reduce motion" setting. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -190,13 +200,14 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .animate-pulse, .animate-pulse-soft, .animate-ping, .animate-bounce {
-    animation: none !important;
-  }
+  .animate-pulse, .animate-ping, .animate-bounce { animation: none !important; }
 }
 
-/* OpenStreetMap tiles darkened for the dark admin theme (see src/lib/mapTiles.ts). Only the tile
-   images are filtered; markers, popups and controls keep their real colours. */
-.zenvy-dark-tiles {
+/* OpenStreetMap tiles darkened in dark mode only (see src/lib/mapTiles.ts). */
+html.dark .zenvy-dark-tiles {
   filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6);
 }
+
+/* Leaflet controls follow the theme. */
+.leaflet-container { font-family: inherit; background: rgb(var(--surface-2)); }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: rgb(var(--surface)); color: rgb(var(--fg)); box-shadow: 0 8px 24px -8px rgb(var(--shadow) / 0.3); }

@@ -48,6 +48,16 @@ const MANAGED_ELSEWHERE: Record<string, { label: string; href: string }> = {
 };
 const MAX_RETENTION_DAYS = 3650;
 
+/** Plain-language summary of the feature switches (the switches themselves live on each page). */
+const FEATURE_SWITCHES = [
+  { key: 'AUTO_RIDE_ENABLED', label: 'Auto-ride', href: '/auto-ride?tab=settings', where: 'Open Auto-ride settings', what: 'On: students can browse shared autos, hold and book seats and request a full auto. Off: no new bookings; existing ones stay visible and can be cancelled. Turn on only after permits, insurance and driver documents are checked.' },
+  { key: 'CAMPUS_EVENTS_ENABLED', label: 'Campus events', href: '/campus-events?tab=settings', where: 'Open Events settings', what: 'On: students can browse events, register and get tickets, and organisers can submit events. Off: browsing, registration and submissions close; existing tickets stay readable and check-in keeps working.' },
+  { key: 'VEHICLE_RENTALS_ENABLED', label: 'Vehicle rentals', href: '/rentals', where: 'Open Rentals', what: 'On: students can list their vehicles and book other students’ vehicles. Off: the rentals section is closed in the app.' },
+  { key: 'CAMPUS_WHISPERS_ENABLED', label: 'Campus Whispers', href: '/friends', where: 'Open Friends app', what: 'On: students can post and read anonymous campus whispers. Off: whispers are hidden and new posts are refused.' },
+  { key: 'AFTER_DARK_ENABLED', label: 'Zenvy After Dark', href: '/friends', where: 'Open Friends app', what: 'On: the late-night lounge chats and rooms open in the app. Off: they are closed.' },
+] as const;
+
+
 const formatValue = (value: unknown) => {
   // Lists of objects used to print "[object Object], [object Object]".
   if (Array.isArray(value) && value.every(v => v === null || ['string', 'number', 'boolean'].includes(typeof v))) return value.join(', ');
@@ -208,17 +218,17 @@ export default function ConfigTerminal() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-24">
-        <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+      <div className="flex justify-center">
+        <div className="w-8 h-8 border-2 border-info/30 border-t-info/30 rounded-full animate-spin" />
       </div>
     );
   }
 
   if (loadError) {
     return (
-      <div className="max-w-xl mx-auto mt-16 glass-card p-8 text-center space-y-4">
-        <p className="text-sm font-bold text-red-400">{loadError}</p>
-        <button onClick={fetchAll} className="px-6 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-black uppercase tracking-widest text-white">
+      <div className="max-w-xl mx-auto mt-16 rounded-lg border border-line bg-surface shadow-xs p-8 text-center space-y-4">
+        <p className="text-sm font-semibold text-danger-text">{loadError}</p>
+        <button onClick={fetchAll} className="px-6 py-2.5 bg-surface-2/60 hover:bg-surface-2 border border-line rounded-xl text-xs font-semibold text-fg">
           Retry
         </button>
       </div>
@@ -226,31 +236,49 @@ export default function ConfigTerminal() {
   }
 
   return (
-    <div className="space-y-10 animate-fade-in relative pb-20">
-      <header className="bg-white/5 p-8 rounded-[40px] border border-white/5 glass flex justify-between items-start gap-4 flex-wrap">
+    <div className="space-y-6 relative pb-20">
+      <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-white tracking-tighter uppercase">System <span className="text-blue-500">Config</span></h2>
-          <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mt-1">Pricing and ordering parameters enforced by the backend</p>
+          <h1 className="text-2xl font-semibold text-fg">Settings and fees</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Delivery fees, feature switches, app versions, receipts and legal pages.</p>
         </div>
-        <button onClick={fetchAll} className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-wider text-gray-400 hover:bg-white/10">
+        <button onClick={fetchAll} className="px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:bg-surface-2">
           ↻ Refresh
         </button>
       </header>
 
+      {/* What each feature switch does for users, and where it is changed. */}
+      <section className="rounded-lg border border-line bg-surface shadow-xs" aria-labelledby="feature-switches">
+        <div className="border-b border-line px-4 py-3">
+          <h2 id="feature-switches" className="text-base font-semibold text-fg">Feature switches</h2>
+          <p className="mt-0.5 text-sm text-fg-muted">Big features are switched on and off on their own pages. Each switch asks you to confirm before it changes anything.</p>
+        </div>
+        <ul className="divide-y divide-line">
+          {FEATURE_SWITCHES.map(f => (
+            <li key={f.key} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
+              <div className="min-w-0 max-w-3xl">
+                <p className="text-sm font-medium text-fg">{f.label} <span className="ml-1 font-mono text-xs font-normal text-fg-subtle">{f.key}</span></p>
+                <p className="mt-0.5 text-sm text-fg-muted">{f.what}</p>
+              </div>
+              <a href={f.href} className="inline-flex h-7 shrink-0 items-center rounded-md border border-line-strong/80 bg-surface px-2.5 text-xs font-medium text-fg shadow-xs hover:bg-surface-2">{f.where}</a>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Delivery fee: read by the server's order pricing */}
-        <div className="glass-card p-10 space-y-6">
+        <div className="rounded-lg border border-line bg-surface shadow-xs p-10 space-y-6">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-blue-600/20 rounded-xl flex items-center justify-center text-xl">🛵</div>
             <div>
-              <h4 className="text-lg font-black text-white uppercase tracking-tight">Delivery Fee</h4>
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Used by the server for every order quote</p>
+              <h4 className="text-lg font-semibold text-fg">Delivery Fee</h4>
+              <p className="text-xs text-fg-muted font-semibold">Used by the server for every order quote</p>
             </div>
           </div>
 
           <div className="flex items-end gap-4">
             <div className="flex-1 space-y-2">
-              <label htmlFor="delivery-fee" className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Fee per order (₹)</label>
+              <label htmlFor="delivery-fee" className="text-xs font-semibold text-fg-muted ml-1">Fee per order (₹)</label>
               <input
                 id="delivery-fee"
                 type="number"
@@ -259,102 +287,99 @@ export default function ConfigTerminal() {
                 step={1}
                 value={feeInput}
                 onChange={(e) => { setFeeInput(e.target.value); setFeeError(null); setFeeNotice(null); }}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-black"
+                className="w-full bg-surface-2/60 border border-line rounded-lg p-4 text-fg font-semibold"
               />
             </div>
             <button
               onClick={handleSaveFee}
               disabled={savingFee}
-              className="px-6 py-4 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white"
+              className="px-6 py-4 bg-accent hover:bg-accent-hover disabled:opacity-50 rounded-lg text-xs font-semibold text-on-solid"
             >
               {savingFee ? 'Saving...' : 'Save'}
             </button>
           </div>
-          <p className="text-[11px] text-gray-500">
+          <p className="text-xs text-fg-muted">
             Current: ₹{currentFee}{!feeRow && ' (server default, not set in the database yet)'}. Member perks may discount it per order.
           </p>
-          {feeError && <p className="text-xs font-bold text-red-400">{feeError}</p>}
-          {feeNotice && <p className="text-xs font-bold text-emerald-400">{feeNotice}</p>}
+          {feeError && <p className="text-xs font-semibold text-danger-text">{feeError}</p>}
+          {feeNotice && <p className="text-xs font-semibold text-success-text">{feeNotice}</p>}
         </div>
 
         {/* Live ordering status (read-only) */}
-        <div className="glass-card p-10 space-y-6">
+        <div className="rounded-lg border border-line bg-surface shadow-xs p-10 space-y-6">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-emerald-600/20 rounded-xl flex items-center justify-center text-xl">🕒</div>
             <div>
-              <h4 className="text-lg font-black text-white uppercase tracking-tight">Ordering Status</h4>
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Live from /api/orders/serviceability</p>
+              <h4 className="text-lg font-semibold text-fg">Ordering Status</h4>
+              <p className="text-xs text-fg-muted font-semibold">Live from /api/orders/serviceability</p>
             </div>
           </div>
 
           {serviceability ? (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <span className={`w-3 h-3 rounded-full ${serviceability.open ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                <span className="text-sm font-black text-white uppercase tracking-wider">
+                <span className={`w-3 h-3 rounded-full ${serviceability.open ? 'bg-success' : 'bg-danger'}`} />
+                <span className="text-sm font-semibold text-fg">
                   {serviceability.open ? 'Campus ordering is open' : 'Campus ordering is closed'}
                 </span>
               </div>
               {!serviceability.open && (
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-fg-muted">
                   {serviceability.message}{serviceability.reopensAt ? ` Reopens at ${serviceability.reopensAt} IST.` : ''}
                 </p>
               )}
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Payment methods:</span>
+                <span className="text-xs font-semibold text-fg-muted">Payment methods:</span>
                 {(serviceability.paymentMethods || ['COD', 'Wallet']).map(m => (
-                  <span key={m} className="px-2 py-0.5 text-[10px] font-black rounded-full border border-white/10 bg-white/5 text-white">{m}</span>
+                  <span key={m} className="px-2 py-0.5 text-xs font-semibold rounded-full border border-line bg-surface-2/60 text-fg">{m}</span>
                 ))}
               </div>
-              <p className="text-[11px] text-gray-500 leading-relaxed">
+              <p className="text-xs text-fg-muted leading-relaxed">
                 Night hours are set on the server (storeHours). Online UPI/card payments are off: new orders are Cash on Delivery or Wallet only.
               </p>
             </div>
           ) : (
-            <p className="text-xs text-gray-500">Could not read the live ordering status.</p>
+            <p className="text-xs text-fg-muted">Could not read the live ordering status.</p>
           )}
         </div>
       </div>
 
       {/* C6 rider cash limit: read by the rider claim path (0 = off, the default) */}
-      <div className="glass-card p-10 space-y-6">
+      <div className="rounded-lg border border-line bg-surface shadow-xs p-10 space-y-6">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-amber-600/20 rounded-xl flex items-center justify-center text-xl">💵</div>
           <div>
-            <h4 className="text-lg font-black text-white uppercase tracking-tight">Rider cash limit</h4>
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">COD cash a rider may hold before new COD orders are blocked · 0 = off</p>
+            <h4 className="text-lg font-semibold text-fg">Rider cash limit</h4>
+            <p className="text-xs text-fg-muted font-semibold">COD cash a rider may hold before new COD orders are blocked · 0 = off</p>
           </div>
         </div>
         <div className="flex items-end gap-4 max-w-md">
           <div className="flex-1 space-y-2">
-            <label htmlFor="cash-limit" className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Limit (₹)</label>
+            <label htmlFor="cash-limit" className="text-xs font-semibold text-fg-muted ml-1">Limit (₹)</label>
             <input id="cash-limit" type="number" min={0} max={MAX_CASH_LIMIT} step={1} value={limitInput}
               onChange={(e) => { setLimitInput(e.target.value); setLimitMsg(null); }}
-              className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-black" />
+              className="w-full bg-surface-2/60 border border-line rounded-lg p-4 text-fg font-semibold" />
           </div>
-          <button onClick={handleSaveLimit} disabled={savingLimit} className="px-6 py-4 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white">
+          <button onClick={handleSaveLimit} disabled={savingLimit} className="px-6 py-4 bg-accent hover:bg-accent-hover disabled:opacity-50 rounded-lg text-xs font-semibold text-on-solid">
             {savingLimit ? 'Saving...' : 'Save'}
           </button>
         </div>
-        <p className="text-[11px] text-gray-500">
+        <p className="text-xs text-fg-muted">
           Current: {currentLimit > 0 ? `₹${currentLimit}` : 'Off (riders are never blocked; the rider app only shows the cash they hold)'}. Cash held and deposits are on Finance → Rider cash.
         </p>
-        {limitMsg && <p className={`text-xs font-bold ${limitMsg.kind === 'err' ? 'text-red-400' : 'text-emerald-400'}`}>{limitMsg.text}</p>}
+        {limitMsg && <p className={`text-xs font-semibold ${limitMsg.kind === 'err' ? 'text-danger-text' : 'text-success-text'}`}>{limitMsg.text}</p>}
       </div>
 
       {/* Data retention: read by the backend's hourly cleanup job */}
-      <div className="glass-card p-10 space-y-6">
+      <div className="rounded-lg border border-line bg-surface shadow-xs p-10 space-y-6">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-rose-600/20 rounded-xl flex items-center justify-center text-xl">🧹</div>
           <div>
-            <h4 className="text-lg font-black text-white uppercase tracking-tight">Data Retention</h4>
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Hourly cleanup permanently deletes older items · minimum 1 day</p>
+            <h4 className="text-lg font-semibold text-fg">Data Retention</h4>
+            <p className="text-xs text-fg-muted font-semibold">Hourly cleanup permanently deletes older items · minimum 1 day</p>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {RETENTION.map(r => (
             <div key={r.key} className="space-y-2">
-              <label htmlFor={`ret-${r.key}`} className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">{r.label} (days)</label>
+              <label htmlFor={`ret-${r.key}`} className="text-xs font-semibold text-fg-muted ml-1">{r.label} (days)</label>
               <div className="flex items-end gap-3">
                 <input
                   id={`ret-${r.key}`}
@@ -364,24 +389,24 @@ export default function ConfigTerminal() {
                   step={1}
                   value={retInputs[r.key] ?? ''}
                   onChange={(e) => { setRetInputs(prev => ({ ...prev, [r.key]: e.target.value })); setRetError(null); setRetNotice(null); }}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-black"
+                  className="w-full bg-surface-2/60 border border-line rounded-lg p-4 text-fg font-semibold"
                 />
                 <button
                   onClick={() => handleSaveRetention(r.key, r.label, r.def)}
                   disabled={!!savingRet}
-                  className="px-6 py-4 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white"
+                  className="px-6 py-4 bg-accent hover:bg-accent-hover disabled:opacity-50 rounded-lg text-xs font-semibold text-on-solid"
                 >
                   {savingRet === r.key ? 'Saving...' : 'Save'}
                 </button>
               </div>
-              <p className="text-[11px] text-gray-500">
+              <p className="text-xs text-fg-muted">
                 {r.hint} {!configs.some(c => c.key === r.key) && `(server default ${r.def} days, not set in the database yet)`}
               </p>
             </div>
           ))}
         </div>
-        {retError && <p className="text-xs font-bold text-red-400">{retError}</p>}
-        {retNotice && <p className="text-xs font-bold text-emerald-400">{retNotice}</p>}
+        {retError && <p className="text-xs font-semibold text-danger-text">{retError}</p>}
+        {retNotice && <p className="text-xs font-semibold text-success-text">{retNotice}</p>}
       </div>
 
       {/* Force update: per-app minimum / latest versions */}
@@ -392,31 +417,31 @@ export default function ConfigTerminal() {
       <ReceiptsCard />
 
       {/* Other stored keys: shown honestly as not enforced */}
-      <div className="glass-card p-10 space-y-6">
+      <div className="rounded-lg border border-line bg-surface shadow-xs p-10 space-y-6">
         <div>
-          <h4 className="text-lg font-black text-white uppercase tracking-tight">Other Stored Settings</h4>
-          <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">
+          <h4 className="text-lg font-semibold text-fg">Other Stored Settings</h4>
+          <p className="text-xs text-fg-muted mt-1 leading-relaxed">
             These keys exist in the database but neither the backend nor the apps read them today, so changing them would have no effect.
             They are shown read-only to avoid a false sense of control.
           </p>
         </div>
         {elsewhereRows.length > 0 && (
-          <ul className="space-y-1 text-xs text-gray-400">
+          <ul className="space-y-1 text-xs text-fg-muted">
             {elsewhereRows.map(row => (
               <li key={row.key}>
-                <span className="font-mono text-gray-300">{row.key}</span> = <span className="font-bold text-white">{formatValue(row.value)}</span>
-                {' · '}{MANAGED_ELSEWHERE[row.key].label} is read by the server; change it on <Link href={MANAGED_ELSEWHERE[row.key].href} className="text-blue-400 underline">its own page</Link>.
+                <span className="font-mono text-fg-muted">{row.key}</span> = <span className="font-semibold text-fg">{formatValue(row.value)}</span>
+                {' · '}{MANAGED_ELSEWHERE[row.key].label} is read by the server; change it on <Link href={MANAGED_ELSEWHERE[row.key].href} className="text-info-text underline">its own page</Link>.
               </li>
             ))}
           </ul>
         )}
         {otherRows.length === 0 ? (
-          <p className="text-xs text-gray-600 italic">No other settings stored.</p>
+          <p className="text-xs text-fg-subtle">No other settings stored.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="text-[10px] text-gray-500 uppercase tracking-widest border-b border-white/5">
+                <tr className="text-xs text-fg-muted border-b border-line">
                   <th className="py-2 pr-4">Key</th>
                   <th className="py-2 pr-4">Value</th>
                   <th className="py-2">Description</th>
@@ -424,10 +449,10 @@ export default function ConfigTerminal() {
               </thead>
               <tbody>
                 {otherRows.map(row => (
-                  <tr key={row._id || row.key} className="border-b border-white/[0.03]">
-                    <td className="py-2 pr-4 font-mono text-gray-300">{row.key}</td>
-                    <td className="py-2 pr-4 text-white font-bold">{formatValue(row.value)}</td>
-                    <td className="py-2 text-gray-500">{row.description || '—'}</td>
+                  <tr key={row._id || row.key} className="border-b border-line">
+                    <td className="py-2 pr-4 font-mono text-fg-muted">{row.key}</td>
+                    <td className="py-2 pr-4 text-fg font-semibold">{formatValue(row.value)}</td>
+                    <td className="py-2 text-fg-muted">{row.description || '—'}</td>
                   </tr>
                 ))}
               </tbody>

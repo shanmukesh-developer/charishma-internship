@@ -84,8 +84,8 @@ function buildBody(f: Form, editing: PgPromotion | null, nextPriority: number): 
 }
 
 const STATE_CLASS: Record<PromoState, string> = {
-  live: 'border-emerald-500/30 text-emerald-300', scheduled: 'border-blue-500/30 text-blue-300',
-  ended: 'border-white/10 text-gray-500', paused: 'border-amber-500/30 text-amber-300',
+  live: 'border-success/30 text-success-text', scheduled: 'border-info/30 text-info-text',
+  ended: 'border-line text-fg-muted', paused: 'border-warning/30 text-warning-text',
 };
 const thumbOf = (type: PromoType, imageUrl: string | null | undefined, youtubeId: string | null | undefined) =>
   type === 'VIDEO' ? (youtubeId ? youtubeThumb(youtubeId) : null) : imageUrl || null;
@@ -97,25 +97,25 @@ function PreviewCard({ form, pg }: { form: Form; pg: PGHostel | undefined }) {
   const src = thumbOf(form.type, form.imageUrl, ytId);
   return (
     <div className="space-y-2">
-      <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Preview in the app</p>
-      <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 bg-[#111318]">
-        <div className="relative aspect-video w-full bg-white/[0.04]">
+      <p className="text-xs font-semibold text-fg-muted">Preview in the app</p>
+      <div className="w-full max-w-sm overflow-hidden rounded-lg border border-line bg-surface">
+        <div className="relative aspect-video w-full bg-surface-2/60">
           {src ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" onLoad={e => { const i = e.currentTarget; setSmall(form.type === 'IMAGE' && i.naturalWidth > 0 && i.naturalWidth < 1200); }} />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-500">{form.type === 'VIDEO' ? 'Paste a YouTube link' : 'Upload an image'}</div>
+            <div className="absolute inset-0 flex items-center justify-center text-xs text-fg-muted">{form.type === 'VIDEO' ? 'Paste a YouTube link' : 'Upload an image'}</div>
           )}
-          <span className="absolute left-2 top-2 rounded bg-black/70 px-2 py-0.5 text-[11px] font-semibold text-white">{PROMO_LABEL_TEXT[form.label]}</span>
+          <span className="absolute left-2 top-2 rounded bg-surface-2 px-2 py-0.5 text-xs font-semibold text-fg">{PROMO_LABEL_TEXT[form.label]}</span>
         </div>
         <div className="space-y-1 p-3">
-          <p className="font-bold text-white">{oneLine(form.headline) || 'Headline'}</p>
-          {oneLine(form.subline) && <p className="text-sm text-gray-300">{oneLine(form.subline)}</p>}
-          <p className="text-xs text-gray-400">{pg ? `${pg.name} · From ${inr(pg.baseRent)}/month` : 'Choose a PG'}</p>
-          <span className="mt-1 inline-block rounded-lg border border-white/15 px-3 py-1 text-xs font-semibold text-white">{PROMO_CTA_LABEL[form.cta]}</span>
+          <p className="font-semibold text-fg">{oneLine(form.headline) || 'Headline'}</p>
+          {oneLine(form.subline) && <p className="text-sm text-fg-muted">{oneLine(form.subline)}</p>}
+          <p className="text-xs text-fg-muted">{pg ? `${pg.name} · From ${inr(pg.baseRent)}/month` : 'Choose a PG'}</p>
+          <span className="mt-1 inline-block rounded-lg border border-line px-3 py-1 text-xs font-semibold text-fg">{PROMO_CTA_LABEL[form.cta]}</span>
         </div>
       </div>
-      {small && <p className="text-xs text-amber-300">This image is under 1200 px wide and may look soft on large phones.</p>}
+      {small && <p className="text-xs text-warning-text">This image is under 1200 px wide and may look soft on large phones.</p>}
     </div>
   );
 }
@@ -133,7 +133,7 @@ function PromoEditor({ editing, pgs, nextPriority, onCancel, onSaved }: {
   const pg = pgs.find(p => p.id === form.hostelId);
   const ytId = form.type === 'VIDEO' ? parseYouTubeId(form.youtubeUrl) : null;
   const bad = (...keys: string[]) => !!badField && keys.some(k => badField.toLowerCase().startsWith(k.toLowerCase()));
-  const invalid = (on: boolean) => (on ? 'border-red-500/60' : '');
+  const invalid = (on: boolean) => (on ? 'border-danger/30' : '');
   const body = buildBody(form, editing, nextPriority);
   const dirty = !editing || Object.keys(body).length > 0;
 
@@ -172,30 +172,30 @@ function PromoEditor({ editing, pgs, nextPriority, onCancel, onSaved }: {
   };
 
   return (
-    <section aria-labelledby="promo-editor-title" className="space-y-5 rounded-xl border border-white/10 p-5">
-      <h3 id="promo-editor-title" className="text-base font-bold">{editing ? 'Edit promotion' : 'New promotion'}</h3>
+    <section aria-labelledby="promo-editor-title" className="space-y-5 rounded-xl border border-line p-5">
+      <h3 id="promo-editor-title" className="text-base font-semibold">{editing ? 'Edit promotion' : 'New promotion'}</h3>
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-4">
           <div role="radiogroup" aria-label="Promotion type" className="flex gap-2">
             {(['IMAGE', 'VIDEO'] as PromoType[]).map(t => (
-              <button key={t} type="button" role="radio" aria-checked={form.type === t} onClick={() => set({ type: t, cta: t === 'IMAGE' && form.cta === 'WATCH_TOUR' ? 'VIEW_PG' : form.cta })} className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${form.type === t ? 'border-blue-500/40 bg-blue-500/10 text-blue-300' : 'border-white/10 text-gray-400 hover:text-white'}`}>{t === 'IMAGE' ? 'Image' : 'Video'}</button>
+              <button key={t} type="button" role="radio" aria-checked={form.type === t} onClick={() => set({ type: t, cta: t === 'IMAGE' && form.cta === 'WATCH_TOUR' ? 'VIEW_PG' : form.cta })} className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${form.type === t ? 'border-info/30 bg-info-soft text-info-text' : 'border-line text-fg-muted hover:text-fg'}`}>{t === 'IMAGE' ? 'Image' : 'Video'}</button>
             ))}
           </div>
 
           {form.type === 'IMAGE' ? (
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-3">
-                <label className={`cursor-pointer rounded-lg bg-white/10 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/15 ${uploading ? 'pointer-events-none opacity-50' : ''} ${bad('imageUrl') ? 'ring-1 ring-red-500/60' : ''}`}>
+                <label className={`cursor-pointer rounded-lg bg-surface-2 px-4 py-2.5 text-sm font-semibold text-fg hover:bg-surface-3 ${uploading ? 'pointer-events-none opacity-50' : ''} ${bad('imageUrl') ? 'ring-1 ring-red-500/60' : ''}`}>
                   {uploading ? 'Uploading…' : form.imageUrl ? 'Replace image' : 'Upload image'}
                   <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={uploading} onChange={e => { upload(e.target.files?.[0]); e.target.value = ''; }} />
                 </label>
-                <span className="text-xs text-gray-500">16:9, at least 1200 px wide. JPEG, PNG or WEBP up to 2 MB.</span>
+                <span className="text-xs text-fg-muted">16:9, at least 1200 px wide. JPEG, PNG or WEBP; large photos are resized automatically.</span>
               </div>
             </div>
           ) : (
             <label className={LABEL}>YouTube link
               <input className={`${FIELD} ${invalid(bad('youtubeUrl') || (!!form.youtubeUrl.trim() && !ytId))}`} aria-invalid={!!form.youtubeUrl.trim() && !ytId} placeholder="https://youtu.be/…" value={form.youtubeUrl} onChange={e => set({ youtubeUrl: e.target.value })} />
-              {form.youtubeUrl.trim() && !ytId && <span className="block text-xs normal-case tracking-normal text-red-300">Not a YouTube video link. Use youtube.com/watch?v=…, youtu.be/… or youtube.com/shorts/….</span>}
+              {form.youtubeUrl.trim() && !ytId && <span className="block text-xs normal-case text-danger-text">Not a YouTube video link. Use youtube.com/watch?v=…, youtu.be/… or youtube.com/shorts/….</span>}
             </label>
           )}
 
@@ -225,24 +225,24 @@ function PromoEditor({ editing, pgs, nextPriority, onCancel, onSaved }: {
               </select>
             </label>
           </div>
-          <p className="text-xs text-gray-500">Sponsored when the PG paid for the slot; students see this label.</p>
+          <p className="text-xs text-fg-muted">Sponsored when the PG paid for the slot; students see this label.</p>
           <div className="grid gap-3 md:grid-cols-2">
             <label className={LABEL}>Start date<input type="date" className={`${FIELD} ${invalid(bad('start'))}`} value={form.startsAt} onChange={e => set({ startsAt: e.target.value })} /></label>
             <label className={LABEL}>End date<input type="date" className={`${FIELD} ${invalid(bad('end'))}`} value={form.endsAt} min={istDate(Date.now())} onChange={e => set({ endsAt: e.target.value })} /></label>
           </div>
-          <p className="text-xs text-gray-500">Dates are IST. The card shows from 12:00 AM on the start date until 11:59 PM on the end date. At most {MAX_PROMO_DAYS} days.</p>
-          <label className="flex items-center gap-3 text-sm text-gray-300">
-            <input type="checkbox" checked={form.isActive} onChange={e => set({ isActive: e.target.checked })} className="h-4 w-4 accent-emerald-500" />
+          <p className="text-xs text-fg-muted">Dates are IST. The card shows from 12:00 AM on the start date until 11:59 PM on the end date. At most {MAX_PROMO_DAYS} days.</p>
+          <label className="flex items-center gap-3 text-sm text-fg-muted">
+            <input type="checkbox" checked={form.isActive} onChange={e => set({ isActive: e.target.checked })} className="h-4 w-4 accent-[rgb(var(--accent))]" />
             Active (uncheck to pause without deleting)
           </label>
         </div>
         <PreviewCard form={form} pg={pg} />
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
-        {message ? <span role={message.kind === 'error' ? 'alert' : 'status'} className={`mr-auto text-sm ${message.kind === 'error' ? 'text-red-300' : 'text-emerald-300'}`}>{message.text}</span> : <span className="mr-auto text-xs text-gray-500">{editing ? (dirty ? 'Unsaved changes' : 'No changes') : 'Not saved yet'}</span>}
-        <button type="button" disabled={saving} onClick={onCancel} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-gray-300 hover:text-white disabled:opacity-50">Cancel</button>
-        <button type="button" disabled={saving || uploading || !dirty} onClick={save} className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-bold text-white hover:bg-blue-500 disabled:opacity-40">{saving ? 'Saving…' : editing ? 'Save promotion' : 'Create promotion'}</button>
+      <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
+        {message ? <span role={message.kind === 'error' ? 'alert' : 'status'} className={`mr-auto text-sm ${message.kind === 'error' ? 'text-danger-text' : 'text-success-text'}`}>{message.text}</span> : <span className="mr-auto text-xs text-fg-muted">{editing ? (dirty ? 'Unsaved changes' : 'No changes') : 'Not saved yet'}</span>}
+        <button type="button" disabled={saving} onClick={onCancel} className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-fg-muted hover:text-fg disabled:opacity-50">Cancel</button>
+        <button type="button" disabled={saving || uploading || !dirty} onClick={save} className="rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-on-solid hover:bg-accent-hover disabled:opacity-40">{saving ? 'Saving…' : editing ? 'Save promotion' : 'Create promotion'}</button>
       </div>
     </section>
   );
@@ -313,16 +313,16 @@ export function PromotionsPanel({ pgs, liveTick = 0 }: { pgs: PGHostel[]; liveTi
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm text-gray-300">Cards shown at the top of the PG list in the app, in this order. Only live promotions for listed PGs are shown.</p>
-          <p className="mt-1 text-xs text-gray-500">Use Move up and Move down to change the order.</p>
+          <p className="text-sm text-fg-muted">Cards shown at the top of the PG list in the app, in this order. Only live promotions for listed PGs are shown.</p>
+          <p className="mt-1 text-xs text-fg-muted">Use Move up and Move down to change the order.</p>
         </div>
         <div className="flex gap-2">
-          <button type="button" disabled={loading} onClick={() => load()} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-gray-300 hover:text-white disabled:opacity-50">{loading ? 'Loading…' : 'Refresh'}</button>
-          <button type="button" disabled={editing !== null} onClick={() => { setEditing('new'); setMessage(null); }} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-500 disabled:opacity-40">New promotion</button>
+          <button type="button" disabled={loading} onClick={() => load()} className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-fg-muted hover:text-fg disabled:opacity-50">{loading ? 'Loading…' : 'Refresh'}</button>
+          <button type="button" disabled={editing !== null} onClick={() => { setEditing('new'); setMessage(null); }} className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-solid hover:bg-accent-hover disabled:opacity-40">New promotion</button>
         </div>
       </div>
 
-      {message && <p role={message.kind === 'error' ? 'alert' : 'status'} className={`text-sm ${message.kind === 'error' ? 'text-red-300' : 'text-emerald-300'}`}>{message.text}</p>}
+      {message && <p role={message.kind === 'error' ? 'alert' : 'status'} className={`text-sm ${message.kind === 'error' ? 'text-danger-text' : 'text-success-text'}`}>{message.text}</p>}
 
       {editing !== null && (
         <PromoEditor
@@ -334,40 +334,40 @@ export function PromotionsPanel({ pgs, liveTick = 0 }: { pgs: PGHostel[]; liveTi
       )}
 
       {loadError && (
-        <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
-          {loadError}<button type="button" onClick={() => load()} className="font-bold underline">Retry</button>
+        <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger-text">
+          {loadError}<button type="button" onClick={() => load()} className="font-semibold underline">Retry</button>
         </div>
       )}
       {loading ? (
-        <div role="status" className="rounded-xl border border-white/10 p-8 text-sm text-gray-400">Loading promotions…</div>
+        <div role="status" className="rounded-xl border border-line p-8 text-sm text-fg-muted">Loading promotions…</div>
       ) : !loadError && promos.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/10 p-10 text-center text-sm text-gray-400">No promotions yet.</div>
+        <div className="rounded-xl border border-dashed border-line p-10 text-center text-sm text-fg-muted">No promotions yet.</div>
       ) : (
         <ol className="space-y-2" aria-label="Promotions">
           {promos.map((p, i) => {
             const src = thumbOf(p.type, p.imageUrl, p.youtubeId);
             return (
-              <li key={p.id} className="grid grid-cols-[160px_1fr] gap-4 rounded-xl border border-white/10 p-3">
-                <div className="relative aspect-video w-[160px] overflow-hidden rounded-lg border border-white/10 bg-white/[0.04]">
+              <li key={p.id} className="grid grid-cols-[160px_1fr] gap-4 rounded-xl border border-line p-3">
+                <div className="relative aspect-video w-[160px] overflow-hidden rounded-lg border border-line bg-surface-2/60">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {src && <img src={src} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />}
                 </div>
                 <div className="min-w-0 space-y-1.5">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate font-bold">{p.headline}</p>
-                      <p className="truncate text-xs text-gray-400">{p.pgName || 'PG not found'} · {PROMO_LABEL_TEXT[p.label]} · {p.ctaLabel || PROMO_CTA_LABEL[p.cta]} · {p.type === 'VIDEO' ? 'Video' : 'Image'}</p>
+                      <p className="truncate font-semibold">{p.headline}</p>
+                      <p className="truncate text-xs text-fg-muted">{p.pgName || 'PG not found'} · {PROMO_LABEL_TEXT[p.label]} · {p.ctaLabel || PROMO_CTA_LABEL[p.cta]} · {p.type === 'VIDEO' ? 'Video' : 'Image'}</p>
                     </div>
-                    <span className={`shrink-0 rounded border px-2 py-0.5 text-[11px] font-semibold ${STATE_CLASS[p.state]}`}>{PROMO_STATE_LABEL[p.state]}</span>
+                    <span className={`shrink-0 rounded border px-2 py-0.5 text-xs font-semibold ${STATE_CLASS[p.state]}`}>{PROMO_STATE_LABEL[p.state]}</span>
                   </div>
-                  <p className="text-xs text-gray-500">{dateWindow(p.startsAt, p.endsAt)}</p>
+                  <p className="text-xs text-fg-muted">{dateWindow(p.startsAt, p.endsAt)}</p>
                   <div className="flex flex-wrap items-center gap-3 pt-1 text-xs">
-                    <span className="text-gray-600">#{i + 1}</span>
-                    <button type="button" disabled={busy || i === 0} onClick={() => move(i, -1)} aria-label={`Move ${p.headline} up`} className="rounded border border-white/10 px-2 py-1 text-gray-300 hover:text-white disabled:opacity-30">Move up</button>
-                    <button type="button" disabled={busy || i === promos.length - 1} onClick={() => move(i, 1)} aria-label={`Move ${p.headline} down`} className="rounded border border-white/10 px-2 py-1 text-gray-300 hover:text-white disabled:opacity-30">Move down</button>
-                    <button type="button" disabled={busy} onClick={() => toggle(p)} className="rounded border border-white/10 px-2 py-1 text-gray-300 hover:text-white disabled:opacity-30">{p.isActive ? 'Pause' : 'Resume'}</button>
-                    <button type="button" disabled={busy || editing !== null} onClick={() => { setEditing(p); setMessage(null); }} className="rounded border border-white/10 px-2 py-1 text-gray-300 hover:text-white disabled:opacity-30">Edit</button>
-                    <button type="button" disabled={busy} onClick={() => remove(p)} className="ml-auto text-red-300/80 hover:text-red-300 disabled:opacity-30">Delete</button>
+                    <span className="text-fg-subtle">#{i + 1}</span>
+                    <button type="button" disabled={busy || i === 0} onClick={() => move(i, -1)} aria-label={`Move ${p.headline} up`} className="rounded border border-line px-2 py-1 text-fg-muted hover:text-fg disabled:opacity-30">Move up</button>
+                    <button type="button" disabled={busy || i === promos.length - 1} onClick={() => move(i, 1)} aria-label={`Move ${p.headline} down`} className="rounded border border-line px-2 py-1 text-fg-muted hover:text-fg disabled:opacity-30">Move down</button>
+                    <button type="button" disabled={busy} onClick={() => toggle(p)} className="rounded border border-line px-2 py-1 text-fg-muted hover:text-fg disabled:opacity-30">{p.isActive ? 'Pause' : 'Resume'}</button>
+                    <button type="button" disabled={busy || editing !== null} onClick={() => { setEditing(p); setMessage(null); }} className="rounded border border-line px-2 py-1 text-fg-muted hover:text-fg disabled:opacity-30">Edit</button>
+                    <button type="button" disabled={busy} onClick={() => remove(p)} className="ml-auto text-danger-text hover:text-danger-text disabled:opacity-30">Delete</button>
                   </div>
                 </div>
               </li>

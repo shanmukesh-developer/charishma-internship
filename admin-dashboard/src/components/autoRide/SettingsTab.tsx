@@ -58,33 +58,33 @@ export default function SettingsTab({ tick, onChanged }: { tick: number; onChang
   };
   return (
     <section className="space-y-6" aria-label="Settings">
-      <div className={`border-2 p-6 ${data.enabled ? 'border-emerald-400/50 bg-emerald-400/[0.05]' : 'border-red-400/40 bg-red-400/[0.04]'}`}>
+      <div className={`border-2 p-6 ${data.enabled ? 'border-success/30 bg-success-soft' : 'border-danger/30 bg-danger-soft'}`}>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-400">AUTO_RIDE_ENABLED</p>
-            <h3 className="mt-1 text-2xl font-black">{data.enabled ? '🛺 Auto-Ride is ON for passengers' : 'Auto-Ride is OFF'}</h3>
-            <p className="mt-2 max-w-2xl text-sm text-amber-200">⚠ Turn on only after legal checks: transport permits, permitted passenger capacity, commercial passenger rules, insurance and driver documents.</p>
-            <p className="mt-1 max-w-2xl text-xs text-gray-400">While off, passengers cannot browse, hold, book or request full autos (existing bookings stay readable and cancellable); drivers can onboard but trips stay drafts. Admin tools keep working.</p>
-            {data.devOverride && <p className="mt-2 text-xs font-bold text-amber-300">AUTO_RIDE_DEV_ENABLE is set on this server: the feature behaves as ON regardless of this switch.</p>}
+            <p className="text-xs font-semibold text-fg-muted">AUTO_RIDE_ENABLED</p>
+            <h3 className="mt-1 text-2xl font-semibold">{data.enabled ? 'Auto-ride is on for passengers' : 'Auto-ride is off'}</h3>
+            <p className="mt-2 max-w-2xl text-sm text-warning-text">Turn on only after legal checks: transport permits, permitted passenger capacity, commercial passenger rules, insurance and driver documents.</p>
+            <p className="mt-1 max-w-2xl text-xs text-fg-muted">While off, passengers cannot browse, hold, book or request full autos (existing bookings stay readable and cancellable); drivers can onboard but trips stay drafts. Admin tools keep working.</p>
+            {data.devOverride && <p className="mt-2 text-xs font-semibold text-warning-text">AUTO_RIDE_DEV_ENABLE is set on this server: the feature behaves as ON regardless of this switch.</p>}
           </div>
           <button type="button" role="switch" aria-checked={data.enabled} onClick={() => setSwitchTo({ key: 'enabled', value: !data.enabled })}
-            className={`relative h-14 w-28 rounded-full border-2 transition ${data.enabled ? 'border-emerald-300 bg-emerald-600' : 'border-white/20 bg-gray-700'}`}>
+            className={`relative h-14 w-28 rounded-full border-2 transition ${data.enabled ? 'border-success/30 bg-success' : 'border-line bg-surface-2'}`}>
             <span className={`absolute top-1 h-11 w-11 rounded-full bg-white shadow transition-all ${data.enabled ? 'left-[3.75rem]' : 'left-1'}`} />
             <span className="sr-only">{data.enabled ? 'Turn Auto-Ride off' : 'Turn Auto-Ride on'}</span>
           </button>
         </div>
       </div>
-      <div className="border border-white/10 p-5">
+      <div className="border border-line p-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h3 className="font-black">Zenvy Wallet payments for autos: {data.walletEnabled ? 'ON' : 'OFF'}</h3>
-            <p className="mt-1 max-w-2xl text-sm text-amber-200">⚠ Keep off until RBI / payment-aggregator and legal review is done: collecting fares into the wallet on behalf of drivers may need a licence. Cash to the driver is always available.</p>
+            <h3 className="font-semibold">Zenvy Wallet payments for autos: {data.walletEnabled ? 'ON' : 'OFF'}</h3>
+            <p className="mt-1 max-w-2xl text-sm text-warning-text">Keep off until RBI / payment-aggregator and legal review is done: collecting fares into the wallet on behalf of drivers may need a licence. Cash to the driver is always available.</p>
           </div>
           <Btn tone={data.walletEnabled ? 'bad' : 'plain'} onClick={() => setSwitchTo({ key: 'walletEnabled', value: !data.walletEnabled })}>{data.walletEnabled ? 'Turn wallet off' : 'Turn wallet on'}</Btn>
         </div>
       </div>
-      <div className="border border-white/10 p-5">
-        <h3 className="mb-4 font-black">Limits and timings</h3>
+      <div className="border border-line p-5">
+        <h3 className="mb-4 font-semibold">Limits and timings</h3>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {FIELDS.map((f) => {
             const [min, max] = SETTING_RANGES[f.key];
@@ -92,13 +92,13 @@ export default function SettingsTab({ tick, onChanged }: { tick: number; onChang
               <Field key={f.key} name={f.name} hint={problems[f.key] ? undefined : `${f.hint} (${min}–${max})`}>
                 <input type="number" min={min} max={max} step={1} value={form[f.key] ?? ''} aria-invalid={!!problems[f.key]}
                   onChange={(e) => { setDirty(true); setForm((cur) => ({ ...cur, [f.key]: e.target.value })); }}
-                  className={`${inputCls} ${problems[f.key] ? 'border-red-400/60' : ''}`} />
-                {problems[f.key] && <span role="alert" className="mt-1 block text-[11px] text-red-300">{problems[f.key]}</span>}
+                  className={`${inputCls} ${problems[f.key] ? 'border-danger/30' : ''}`} />
+                {problems[f.key] && <span role="alert" className="mt-1 block text-xs text-danger-text">{problems[f.key]}</span>}
               </Field>
             );
           })}
         </div>
-        <p className="mt-3 text-xs text-gray-500">Driver, admin and system cancellations always refund wallet payments in full; the two refund % values apply only when a passenger cancels.</p>
+        <p className="mt-3 text-xs text-fg-muted">Driver, admin and system cancellations always refund wallet payments in full; the two refund % values apply only when a passenger cancels.</p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Btn tone="primary" disabled={busy || !dirty} onClick={save}>{busy ? 'Saving…' : 'Save settings'}</Btn>
           {dirty && <Btn disabled={busy} onClick={() => { setDirty(false); setMsg(null); }}>Discard changes</Btn>}
@@ -111,10 +111,10 @@ export default function SettingsTab({ tick, onChanged }: { tick: number; onChang
           confirmLabel={switchTo.value ? 'Turn on' : 'Turn off'}
           body={switchTo.key === 'enabled'
             ? (switchTo.value
-              ? <><p className="font-bold text-amber-200">Confirm the legal checks are done: transport permits, permitted capacity, commercial passenger rules, insurance and every live driver&apos;s documents.</p><p>Passengers will immediately be able to browse and book seats.</p></>
+              ? <><p className="font-semibold text-warning-text">Confirm the legal checks are done: transport permits, permitted capacity, commercial passenger rules, insurance and every live driver&apos;s documents.</p><p>Passengers will immediately be able to browse and book seats.</p></>
               : <p>New bookings, holds and full-auto requests stop immediately. Existing bookings are not cancelled; passengers can still view and cancel them.</p>)
             : (switchTo.value
-              ? <p className="font-bold text-amber-200">Only after RBI / payment and legal review. Passengers will be able to pay auto fares from their Zenvy Wallet.</p>
+              ? <p className="font-semibold text-warning-text">Only after RBI / payment and legal review. Passengers will be able to pay auto fares from their Zenvy Wallet.</p>
               : <p>Passengers can only pay cash to the driver. Existing wallet bookings keep their payment and refunds.</p>)}
           onCancel={() => setSwitchTo(null)}
           onConfirm={async () => {

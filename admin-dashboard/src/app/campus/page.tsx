@@ -48,9 +48,9 @@ const fmt = (iso?: string | null) => {
 };
 const errText = (e: unknown, fallback: string) => (e instanceof Error && e.message ? e.message : fallback);
 
-const input = 'w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500/40';
-const label = 'block text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1';
-const btn = 'rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest disabled:opacity-40';
+const input = 'w-full rounded-xl border border-line bg-surface-2/60 px-3 py-2 text-sm text-fg outline-none focus:border-accent';
+const label = 'block text-xs font-semibold text-fg-muted mb-1';
+const btn = 'rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-40';
 
 const EMPTY_EVENT = { title: '', startsAt: '', endsAt: '', location: '', category: 'general', description: '' };
 
@@ -223,32 +223,31 @@ export default function CampusAdminPage() {
     return `Question scheduled for ${qDate}.`;
   });
 
-  if (!isAuthed) return <div className="p-10 text-center text-sm text-gray-400" role="status">Checking your admin session…</div>;
+  if (!isAuthed) return <div className="p-10 text-center text-sm text-fg-muted" role="status">Checking your admin session…</div>;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 p-4 text-white md:p-8">
+    <div className="mx-auto max-w-6xl space-y-8 text-fg">
       <header>
-        <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Customer app · Campus tab</p>
-        <h1 className="mt-1 text-2xl font-black">Campus Pulse</h1>
-        <p className="mt-2 text-sm text-gray-400">Publish the mess menu, campus events and the 9 PM question that students see in the app.</p>
+        <h1 className="text-2xl font-semibold text-fg">Campus Pulse</h1>
+        <p className="mt-1 max-w-3xl text-sm text-fg-muted">&quot;Today on campus&quot; and &quot;The 9 PM question&quot; content.</p>
       </header>
 
       {notice && (
-        <div role={notice.kind === 'error' ? 'alert' : 'status'} className={`flex items-center justify-between gap-3 rounded-2xl border px-5 py-3 text-sm font-bold ${notice.kind === 'error' ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'}`}>
+        <div role={notice.kind === 'error' ? 'alert' : 'status'} className={`flex items-center justify-between gap-3 rounded-lg border px-5 py-3 text-sm font-semibold ${notice.kind === 'error' ? 'border-danger/30 bg-danger-soft text-danger-text' : 'border-success/30 bg-success-soft text-success-text'}`}>
           {notice.text}
           <button type="button" onClick={() => setNotice(null)} className="text-xs underline">Dismiss</button>
         </div>
       )}
 
       {/* Mess menu */}
-      <section className="glass-card space-y-4 p-6" aria-labelledby="mess-h">
-        <h2 id="mess-h" className="text-lg font-black uppercase tracking-widest">Mess menu</h2>
+      <section className="rounded-lg border border-line bg-surface shadow-xs space-y-4 p-6" aria-labelledby="mess-h">
+        <h2 id="mess-h" className="text-lg font-semibold">Mess menu</h2>
         {today && (
           <div className="grid gap-2 text-sm sm:grid-cols-4">
             {MEALS.map(m => (
-              <div key={m} className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{m} · {today.date}</p>
-                <p className="mt-1 text-gray-200">{today.mess[m] || <span className="text-gray-600">Not set</span>}</p>
+              <div key={m} className="rounded-xl border border-line bg-surface-2/60 p-3">
+                <p className="text-xs font-semibold text-fg-muted">{m} · {today.date}</p>
+                <p className="mt-1 text-fg">{today.mess[m] || <span className="text-fg-subtle">Not set</span>}</p>
               </div>
             ))}
           </div>
@@ -261,24 +260,24 @@ export default function CampusAdminPage() {
           <div>
             <label className={label} htmlFor="menu-meal">Meal</label>
             <select id="menu-meal" className={input} value={meal} onChange={e => setMeal(e.target.value as Meal)}>
-              {MEALS.map(m => <option key={m} value={m} className="bg-zinc-900">{m}</option>)}
+              {MEALS.map(m => <option key={m} value={m} className="bg-surface-2">{m}</option>)}
             </select>
           </div>
           <div>
             <label className={label} htmlFor="menu-items">Items (comma separated)</label>
             <input id="menu-items" className={input} value={menuItems} maxLength={255} onChange={e => setMenuItems(e.target.value)} placeholder="Idli, Sambar, Chutney, Tea" />
           </div>
-          <button type="button" disabled={!!busy || !menuItems.trim() || !menuDate} onClick={saveMenu} className={`${btn} bg-emerald-600 text-white hover:bg-emerald-500`}>
+          <button type="button" disabled={!!busy || !menuItems.trim() || !menuDate} onClick={saveMenu} className={`${btn} bg-success text-on-solid hover:bg-success/90`}>
             {busy === 'menu' ? 'Saving…' : 'Save menu'}
           </button>
         </div>
-        <p className="text-xs text-gray-500">Saving a meal for a date replaces what was there before.</p>
+        <p className="text-xs text-fg-muted">Saving a meal for a date replaces what was there before.</p>
         {savedMenus.length > 0 && (
-          <ul className="divide-y divide-white/5 rounded-xl border border-white/10 text-sm">
+          <ul className="divide-y divide-line rounded-xl border border-line text-sm">
             {savedMenus.map(m => (
               <li key={m.id} className="flex items-center justify-between gap-3 p-3">
-                <span><span className="font-bold capitalize">{m.meal}</span> · {m.menuDate} · <span className="text-gray-400">{m.items}</span></span>
-                <button type="button" disabled={!!busy} onClick={() => removeMenu(m)} className="text-xs font-bold text-red-300 hover:underline disabled:opacity-40">Remove</button>
+                <span><span className="font-semibold capitalize">{m.meal}</span> · {m.menuDate} · <span className="text-fg-muted">{m.items}</span></span>
+                <button type="button" disabled={!!busy} onClick={() => removeMenu(m)} className="text-xs font-semibold text-danger-text hover:underline disabled:opacity-40">Remove</button>
               </li>
             ))}
           </ul>
@@ -286,8 +285,8 @@ export default function CampusAdminPage() {
       </section>
 
       {/* Events */}
-      <section className="glass-card space-y-4 p-6" aria-labelledby="events-h">
-        <h2 id="events-h" className="text-lg font-black uppercase tracking-widest">{editingId ? 'Edit event' : 'Campus events'}</h2>
+      <section className="rounded-lg border border-line bg-surface shadow-xs space-y-4 p-6" aria-labelledby="events-h">
+        <h2 id="events-h" className="text-lg font-semibold">{editingId ? 'Edit event' : 'Campus events'}</h2>
         <div className="grid gap-3 md:grid-cols-2">
           <div>
             <label className={label} htmlFor="ev-title">Title</label>
@@ -308,7 +307,7 @@ export default function CampusAdminPage() {
           <div>
             <label className={label} htmlFor="ev-cat">Category</label>
             <select id="ev-cat" className={input} value={eventForm.category} onChange={e => setEventForm({ ...eventForm, category: e.target.value })}>
-              {CATEGORIES.map(c => <option key={c} value={c} className="bg-zinc-900">{c}</option>)}
+              {CATEGORIES.map(c => <option key={c} value={c} className="bg-surface-2">{c}</option>)}
             </select>
           </div>
           <div className="md:col-span-2">
@@ -317,27 +316,27 @@ export default function CampusAdminPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" disabled={!!busy || !eventForm.title.trim() || !eventForm.startsAt} onClick={saveEvent} className={`${btn} bg-emerald-600 text-white hover:bg-emerald-500`}>
+          <button type="button" disabled={!!busy || !eventForm.title.trim() || !eventForm.startsAt} onClick={saveEvent} className={`${btn} bg-success text-on-solid hover:bg-success/90`}>
             {busy === 'event' ? 'Saving…' : editingId ? 'Save changes' : 'Publish event'}
           </button>
           {editingId && (
-            <button type="button" disabled={!!busy} onClick={() => { setEditingId(null); setEventForm(EMPTY_EVENT); }} className={`${btn} border border-white/10 text-gray-300`}>Cancel edit</button>
+            <button type="button" disabled={!!busy} onClick={() => { setEditingId(null); setEventForm(EMPTY_EVENT); }} className={`${btn} border border-line text-fg-muted`}>Cancel edit</button>
           )}
         </div>
-        {eventsError && <p role="alert" className="text-sm font-bold text-red-300">{eventsError} <button type="button" onClick={loadEvents} className="underline">Retry</button></p>}
+        {eventsError && <p role="alert" className="text-sm font-semibold text-danger-text">{eventsError} <button type="button" onClick={loadEvents} className="underline">Retry</button></p>}
         {events.length === 0 && !eventsError ? (
-          <p className="text-sm text-gray-500">No events yet.</p>
+          <p className="text-sm text-fg-muted">No events yet.</p>
         ) : (
-          <ul className="divide-y divide-white/5 rounded-xl border border-white/10 text-sm">
+          <ul className="divide-y divide-line rounded-xl border border-line text-sm">
             {events.map(e => (
               <li key={e.id} className="flex flex-wrap items-start justify-between gap-3 p-3">
                 <div className="min-w-0">
-                  <p className="font-bold">{e.title} <span className="ml-1 text-[10px] uppercase tracking-widest text-gray-500">{e.category || 'general'}</span></p>
-                  <p className="text-xs text-gray-400">{fmt(e.startsAt)}{e.endsAt ? ` – ${fmt(e.endsAt)}` : ''}{e.location ? ` · ${e.location}` : ''}</p>
+                  <p className="font-semibold">{e.title} <span className="ml-1 text-xs text-fg-muted">{e.category || 'general'}</span></p>
+                  <p className="text-xs text-fg-muted">{fmt(e.startsAt)}{e.endsAt ? ` – ${fmt(e.endsAt)}` : ''}{e.location ? ` · ${e.location}` : ''}</p>
                 </div>
                 <div className="flex gap-3">
-                  <button type="button" disabled={!!busy} onClick={() => editEvent(e)} className="text-xs font-bold text-blue-300 hover:underline disabled:opacity-40">Edit</button>
-                  <button type="button" disabled={!!busy} onClick={() => deleteEvent(e)} className="text-xs font-bold text-red-300 hover:underline disabled:opacity-40">{busy === `event-${e.id}` ? 'Deleting…' : 'Delete'}</button>
+                  <button type="button" disabled={!!busy} onClick={() => editEvent(e)} className="text-xs font-semibold text-info-text hover:underline disabled:opacity-40">Edit</button>
+                  <button type="button" disabled={!!busy} onClick={() => deleteEvent(e)} className="text-xs font-semibold text-danger-text hover:underline disabled:opacity-40">{busy === `event-${e.id}` ? 'Deleting…' : 'Delete'}</button>
                 </div>
               </li>
             ))}
@@ -346,11 +345,11 @@ export default function CampusAdminPage() {
       </section>
 
       {/* 9 PM question */}
-      <section className="glass-card space-y-4 p-6" aria-labelledby="q-h">
-        <h2 id="q-h" className="text-lg font-black uppercase tracking-widest">The 9 PM Question</h2>
-        <p className="text-sm text-gray-400">
+      <section className="rounded-lg border border-line bg-surface shadow-xs space-y-4 p-6" aria-labelledby="q-h">
+        <h2 id="q-h" className="text-lg font-semibold">The 9 PM Question</h2>
+        <p className="text-sm text-fg-muted">
           {current
-            ? <>Live now{current.promptDate ? ` (${current.promptDate})` : ''}: <span className="text-white">{current.question}</span>{typeof current.answerCount === 'number' ? ` · ${current.answerCount} answers` : ''}</>
+            ? <>Live now{current.promptDate ? ` (${current.promptDate})` : ''}: <span className="text-fg">{current.question}</span>{typeof current.answerCount === 'number' ? ` · ${current.answerCount} answers` : ''}</>
             : 'No question has been scheduled yet.'}
         </p>
         <div className="grid gap-3 md:grid-cols-[160px_1fr]">
@@ -371,8 +370,8 @@ export default function CampusAdminPage() {
             <input id="q-close" type="datetime-local" className={input} value={qCloses} onChange={e => setQCloses(e.target.value)} />
           </div>
         </div>
-        <p className="text-xs text-gray-500">Scheduling a question for a date that already has one replaces it.</p>
-        <button type="button" disabled={!!busy || !qText.trim() || !qDate} onClick={saveQuestion} className={`${btn} bg-emerald-600 text-white hover:bg-emerald-500`}>
+        <p className="text-xs text-fg-muted">Scheduling a question for a date that already has one replaces it.</p>
+        <button type="button" disabled={!!busy || !qText.trim() || !qDate} onClick={saveQuestion} className={`${btn} bg-success text-on-solid hover:bg-success/90`}>
           {busy === 'question' ? 'Saving…' : 'Schedule question'}
         </button>
       </section>

@@ -10,27 +10,48 @@ import Link from 'next/link';
 import { useLiveSync, useFreshIds, liveLabel, FRESH_ROW_CLASS } from '@/lib/useLiveSync';
 import { useVisibleInterval } from '@/lib/useVisibleInterval';
 import { peekCachedJson } from '@/lib/requestCache';
-import ListImage from '@/components/ListImage';
+import { useRouter } from 'next/navigation';
+import {
+  Badge, Button, ButtonLink, Card, CardHeader, DataTable, EmptyState, Field, Notice, PageHeader,
+  SegmentedControl, Skeleton, StatTile, StatusDot, StatusPill, Textarea, useConfirm, type Column,
+  IconChevronRight,
+} from '@/components/ui';
+import { formatINR, formatRelative, formatTime, humanize } from '@/lib/format';
 
 // "Needs attention" counters on the overview, kept live by realtime events.
-type InboxKey = 'tickets' | 'verifications' | 'pgBookings' | 'wallPending' | 'serviceRequests' | 'stuckStallOrders';
+type LegacyInboxKey = 'tickets' | 'verifications' | 'pgBookings' | 'wallPending' | 'serviceRequests' | 'stuckStallOrders';
+// Added by the backend's extended /api/admin/attention-counts (null / missing on older servers).
+type ExtraInboxKey = 'riderApprovals' | 'payoutsPending' | 'autoDrivers' | 'autoVehicles' | 'eventsToReview' | 'rentalListings' | 'rentalLicences' | 'rentalReports' | 'rentalDisputes' | 'friendsReports' | 'friendsAppeals';
+type InboxKey = LegacyInboxKey | ExtraInboxKey;
 type Inbox = Record<InboxKey, number | null>;
 /** Keys whose number is a lower bound (the fallback list hit its server cap): shown as "N+". */
 type InboxCapped = Partial<Record<InboxKey, boolean>>;
-const INBOX_ITEMS: { key: InboxKey; label: string; href: string; liveType: string }[] = [
-  { key: 'tickets', label: 'Open tickets', href: '/tickets', liveType: 'ticket' },
-  { key: 'verifications', label: 'Student IDs to review', href: '/student-verification', liveType: 'verification' },
-  { key: 'pgBookings', label: 'PG booking requests', href: '/pg', liveType: 'pg_booking' },
-  { key: 'wallPending', label: 'Wall photos to moderate', href: '/wall', liveType: 'wall_submission' },
-  { key: 'serviceRequests', label: 'New service bookings', href: '/service-bookings', liveType: 'service_booking' },
-  { key: 'stuckStallOrders', label: 'Stall orders stuck > 6 h', href: '/orders?stuck=6', liveType: 'order' },
+const INBOX_ITEMS: { key: InboxKey; label: string; area: string; href: string; liveType: string; urgent?: boolean }[] = [
+  { key: 'stuckStallOrders', label: 'Stall orders stuck for more than 6 hours', area: 'Orders', href: '/orders?stuck=6', liveType: 'order', urgent: true },
+  { key: 'tickets', label: 'Open support tickets', area: 'Customers', href: '/tickets', liveType: 'ticket' },
+  { key: 'riderApprovals', label: 'Rider sign-ups to approve', area: 'Riders', href: '/fleet?filter=pending', liveType: 'rider' },
+  { key: 'payoutsPending', label: 'Payouts to mark as paid', area: 'Payments', href: '/finance?tab=payouts', liveType: 'payout' },
+  { key: 'verifications', label: 'Student IDs to review', area: 'Customers', href: '/student-verification', liveType: 'verification' },
+  { key: 'friendsReports', label: 'Reports to review', area: 'Community', href: '/moderation', liveType: 'friends_report' },
+  { key: 'friendsAppeals', label: 'Appeals to decide', area: 'Community', href: '/moderation?tab=appeals', liveType: 'friends_report' },
+  { key: 'wallPending', label: 'Wall photos to approve', area: 'Community', href: '/wall', liveType: 'wall_submission' },
+  { key: 'pgBookings', label: 'PG booking requests', area: 'PG and hostels', href: '/pg', liveType: 'pg_booking' },
+  { key: 'serviceRequests', label: 'New service bookings', area: 'Services', href: '/service-bookings', liveType: 'service_booking' },
+  { key: 'autoDrivers', label: 'Auto drivers to verify', area: 'Auto-ride', href: '/auto-ride?tab=drivers', liveType: 'auto_driver' },
+  { key: 'autoVehicles', label: 'Auto vehicles to verify', area: 'Auto-ride', href: '/auto-ride?tab=vehicles', liveType: 'auto_driver' },
+  { key: 'eventsToReview', label: 'Events submitted for review', area: 'Events', href: '/campus-events?tab=review', liveType: 'campus_event' },
+  { key: 'rentalListings', label: 'Rental listings to review', area: 'Rentals', href: '/rentals?tab=listings', liveType: 'rental' },
+  { key: 'rentalLicences', label: 'Driving licences to verify', area: 'Rentals', href: '/rentals?tab=licences', liveType: 'rental' },
+  { key: 'rentalReports', label: 'Rental reports to handle', area: 'Rentals', href: '/rentals?tab=reports', liveType: 'rental' },
+  { key: 'rentalDisputes', label: 'Disputed rental charges', area: 'Rentals', href: '/rentals?tab=reports', liveType: 'rental' },
 ];
+const EMPTY_INBOX: Inbox = Object.fromEntries(INBOX_ITEMS.map(i => [i.key, null])) as Inbox;
 const LIVE_HOME_TYPES = ['order', 'rider', 'store', 'ticket', 'verification', 'pg_booking', 'wall_submission', 'wall', 'service_booking'] as const;
 
 // Leaflet (~150 KB) loads only with the map; a skeleton holds the space meanwhile.
 const LiveFleetMap = dynamic(() => import('@/components/LiveFleetMap'), {
   ssr: false,
-  loading: () => <div className="w-full h-full rounded-2xl bg-white/[0.03] animate-pulse" aria-label="Loading the fleet map" />,
+  loading: () => <div className="w-full h-full rounded-lg bg-surface-2 animate-pulse" aria-label="Loading the fleet map" />,
 });
 
 // Route reference points drawn on the fleet map (real places on the Mangalagiri → SRM AP route).
@@ -53,12 +74,6 @@ const POLL_LIVE_MS = 60000;
 
 /** fetch against the one backend; throws an Error carrying the server's friendly `message`. */
 const errMsg = (err: unknown, fallback: string) => (err instanceof Error && err.message ? err.message : fallback);
-
-const getImageUrl = (url?: string | null) => {
-  if (!url) return '';
-  if (url.startsWith('http') || url.startsWith('data:')) return url;
-  return `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
-};
 
 const toNumber = (v: unknown) => {
   const n = Number(v);
@@ -148,7 +163,7 @@ const mapBasket = (b: any): LiveOrder => ({
   location: b.deliveryAddress || 'Hostel delivery',
   status: String(b.status || 'Pending'),
   price: toNumber(b.actualTotal ?? b.estimatedTotal) + toNumber(b.shoppingFee) + toNumber(b.deliveryFee),
-  restaurant: '🛒 Mega Basket',
+  restaurant: 'Mega Basket',
   timestamp: new Date(b.createdAt || Date.now()),
   paymentMethod: String(b.paymentMethod || 'COD'),
   riderAssigned: !!(b.deliveryPartnerId || b.deliveryPartner),
@@ -162,11 +177,11 @@ const needsUpiCheck = (o: LiveOrder) => o.kind === 'order' && o.paymentMethod ==
 const shortId = (id?: string) => (id ? `#${String(id).slice(-6).toUpperCase()}` : '');
 
 const toStats = (data: any): AdminStat[] => [
-  { label: 'Delivered Revenue', value: data?.revenue || '₹0', hint: 'All delivered orders' },
-  { label: 'Active Pipeline', value: data?.activeRevenue || '₹0', hint: `${data?.activeOrders || 0} open orders` },
-  { label: 'Approved Riders', value: data?.activeFleet || '0', hint: 'Fleet size' },
-  { label: 'Commission', value: data?.commission || '₹0', hint: 'Estimate at 10%' },
-  { label: 'Local Vendors', value: data?.localVendorCount || '0', hint: 'Active CampusBites stalls' },
+  { label: 'Delivered revenue', value: formatINR(data?.revenue ?? 0), hint: 'All delivered orders' },
+  { label: 'Open order value', value: formatINR(data?.activeRevenue ?? 0), hint: `${data?.activeOrders || 0} open orders` },
+  { label: 'Approved riders', value: String(data?.activeFleet ?? '0'), hint: 'Riders allowed to deliver' },
+  { label: 'Commission', value: formatINR(data?.commission ?? 0), hint: 'Estimated at 10%' },
+  { label: 'Local vendors', value: String(data?.localVendorCount ?? '0'), hint: 'Active stalls' },
 ];
 
 const mergeFeed = (ordersData: { orders?: any[] } | null, basketsData: any[] | null): LiveOrder[] => {
@@ -187,126 +202,43 @@ const peekFeed = () => {
   return o ? mergeFeed(o, peekCachedJson<any[]>(BASKETS_PATH, API_URL)) : null;
 };
 
-// ─── Memoized Components for Performance ───────────────────
-const OrderItem = memo(({ order, onVerify, fresh }: { order: LiveOrder, onVerify: (o: LiveOrder) => void, fresh?: boolean }) => {
-  const upi = needsUpiCheck(order);
-  // Clickable rows (legacy UPI to verify) are real buttons for keyboard and screen-reader users:
-  // focusable, Enter / Space open the check, and the role + label announce what they do.
-  const interactive = upi
-    ? {
-        role: 'button' as const,
-        tabIndex: 0,
-        'aria-label': `Verify the UPI payment of order ${shortId(order.id)} from ${order.customer}`,
-        onClick: () => onVerify(order),
-        onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
-          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onVerify(order); }
-        },
-      }
-    : {};
-  return (
-    <div
-      {...interactive}
-      className={`group p-4 rounded-3xl bg-white/[0.015] border border-white/5 hover:border-white/10 transition-all duration-300 ${upi ? 'cursor-pointer hover:bg-amber-500/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60' : ''} ${fresh ? FRESH_ROW_CLASS : ''}`}
-    >
-      <div className="flex justify-between items-start mb-2 gap-2">
-        <div className="min-w-0">
-          <p className="text-[11px] font-black text-blue-500 uppercase tracking-widest mb-0.5 truncate">{order.restaurant}</p>
-          <p className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors flex items-center gap-2">
-            <span className="truncate">{order.customer}</span>
-            <span className="text-[9px] text-gray-600 font-black opacity-50 font-mono tracking-tighter">{shortId(order.id)}</span>
-          </p>
-        </div>
-        <div className="flex gap-2 shrink-0 items-start">
-          {upi && (
-            <span className="text-[8px] font-black px-1.5 py-0.5 bg-amber-500 text-black rounded" title="Legacy UPI order: click to verify">VERIFY UPI</span>
-          )}
-          <span className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-wider ${
-            order.status === 'Cancelled' ? 'bg-red-500/10 text-red-500' :
-            order.status === 'Delivered' ? 'bg-emerald-500/10 text-emerald-500' :
-            'bg-blue-500/10 text-blue-500'
-          }`}>
-            {order.status}
-          </span>
-        </div>
-      </div>
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.03] gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          {order.deliveryPartnerName ? (
-            <>
-              <div className="w-5 h-5 rounded-full overflow-hidden border border-white/10 bg-slate-800 flex items-center justify-center text-[10px]">
-                <ListImage thumb src={getImageUrl(order.deliveryPartnerPhoto)} width={20} height={20} className="object-cover w-5 h-5" fallback="👤" />
-              </div>
-              <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest truncate max-w-[100px]">
-                {order.deliveryPartnerName}
-              </span>
-            </>
-          ) : order.riderAssigned ? (
-            <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Rider assigned</span>
-          ) : ['Delivered', 'Cancelled'].includes(order.status) ? (
-            <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">{order.paymentMethod}</span>
-          ) : (
-            <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Awaiting rider</span>
-          )}
-        </div>
-        <div className="text-right shrink-0">
-          <span className="text-[11px] text-gray-500 font-bold block truncate max-w-[140px]">{order.location}</span>
-          <span className="text-xs text-white font-black tracking-tighter">₹{order.price.toFixed(0)} · {order.paymentMethod}</span>
-        </div>
-      </div>
-    </div>
-  );
-});
-OrderItem.displayName = 'OrderItem';
+// ─── Presentational pieces ─────────────────────────────────
 
-const RiderStatusItem = memo(({ rider }: { rider: RiderPosition }) => (
-  <div className="flex items-center gap-4 p-3 bg-white/[0.02] border border-white/5 rounded-2xl">
-    <div className={`w-2 h-2 rounded-full ${rider.isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-gray-700'}`} />
-    <div className="flex-1 min-w-0">
-      <p className="text-[11px] font-black text-white uppercase tracking-tight truncate">{rider.riderName}</p>
-      <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">
+const RiderRow = memo(({ rider }: { rider: RiderPosition }) => (
+  <li className="flex items-center gap-3 px-4 py-2.5">
+    <StatusDot tone={rider.isOnline ? 'success' : 'neutral'} label={rider.isOnline ? 'Online' : 'Offline'} />
+    <div className="min-w-0 flex-1">
+      <p className="truncate text-sm text-fg">{rider.riderName}</p>
+      <p className="truncate text-xs text-fg-muted">
         {rider.isOnline ? (rider.currentCheckpoint ? `Near ${rider.currentCheckpoint}` : 'Online') : 'Offline'}
       </p>
     </div>
-    <div className="text-right">
-      <span className="text-[9px] font-black text-blue-500">{rider.activeOrderCount || 0} active</span>
-    </div>
-  </div>
+    <span className="shrink-0 text-xs tabular-nums text-fg-muted">{rider.activeOrderCount || 0} active</span>
+  </li>
 ));
-RiderStatusItem.displayName = 'RiderStatusItem';
+RiderRow.displayName = 'RiderRow';
 
-const EventItem = memo(({ event, onResolve }: { event: OperationalEvent, onResolve: (id: string) => void }) => (
-  <div className={`p-4 rounded-3xl flex items-center gap-4 ${event.type === 'SOS' ? 'bg-red-600/20 border border-red-600 animate-pulse' : 'bg-amber-600/20 border border-amber-600'}`}>
-    <div className="text-2xl">{event.type === 'SOS' ? '🚨' : '⚠️'}</div>
-    <div className="flex-1 min-w-0">
-      <p className="text-[12px] font-black uppercase text-white tracking-widest">
-        {event.type === 'SOS' ? 'SOS' : 'Issue'} · {event.senderRole}{event.senderName ? ` (${event.senderName})` : ''}
-      </p>
-      <p className="text-xs font-black text-white break-words">{event.issueType || event.details}</p>
-      {event.issueType && event.details && <p className="text-[11px] text-white/70 break-words">{event.details}</p>}
-      {event.orderId && <p className="text-[10px] text-white/50 font-black uppercase mt-1 tracking-tighter">Order <span className="text-[var(--zenvy-gold)]">{shortId(event.orderId)}</span></p>}
-    </div>
-    <div className="flex flex-col items-end gap-2">
-      <span className="text-[10px] font-black text-white opacity-40">
-        {event.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-      </span>
-      <button
-        onClick={() => onResolve(event.id)}
-        className="text-[8px] font-black text-white/60 uppercase tracking-widest hover:text-white border border-white/10 px-2 py-1 rounded bg-white/5"
-        title="Hide from this screen"
-      >
-        Dismiss
-      </button>
-    </div>
-  </div>
+const EventAlert = memo(({ event, onResolve }: { event: OperationalEvent, onResolve: (id: string) => void }) => (
+  <Notice
+    tone={event.type === 'SOS' ? 'danger' : 'warning'}
+    title={`${event.type === 'SOS' ? 'SOS from' : 'Issue reported by'} ${event.senderRole.toLowerCase()}${event.senderName ? ` ${event.senderName}` : ''} · ${formatTime(event.timestamp)}`}
+    onClose={() => onResolve(event.id)}
+  >
+    <span className="text-fg">{event.issueType || event.details}</span>
+    {event.issueType && event.details && <span className="block">{event.details}</span>}
+    {event.orderId && <span className="block">Order {shortId(event.orderId)}</span>}
+  </Notice>
 ));
-EventItem.displayName = 'EventItem';
-
+EventAlert.displayName = 'EventAlert';
 
 export default function AdminHome() {
   const { isAuthed } = useAdminAuth();
   const { socket, isConnected, notifyLive } = useAdminSocket();
   const { mark: markFresh, isFresh } = useFreshIds();
-  const [inbox, setInbox] = useState<Inbox>({ tickets: null, verifications: null, pgBookings: null, wallPending: null, serviceRequests: null, stuckStallOrders: null });
+  const confirm = useConfirm();
+  const router = useRouter();
+  const [inbox, setInbox] = useState<Inbox>(EMPTY_INBOX);
+  const [inboxLoaded, setInboxLoaded] = useState(false);
   const [freshInbox, setFreshInbox] = useState<Partial<Record<InboxKey, boolean>>>({});
   const [inboxCapped, setInboxCapped] = useState<InboxCapped>({});
 
@@ -401,13 +333,14 @@ export default function AdminHome() {
         return next;
       });
       setInboxCapped({});
+      setInboxLoaded(true);
       return;
     } catch {
       // Older backend without the counts endpoint: count the (capped) lists instead, below.
     }
     const LIST_CAP: Partial<Record<InboxKey, number>> = { verifications: 100, pgBookings: 200, serviceRequests: 100 };
     const count = (v: unknown) => (Array.isArray(v) ? v.length : null);
-    const jobs: Record<InboxKey, Promise<number | null>> = {
+    const jobs: Record<LegacyInboxKey, Promise<number | null>> = {
       tickets: apiRequest<any[]>('/api/tickets/admin')
         .then(list => (Array.isArray(list) ? list.filter(t => t?.status === 'Open' || t?.status === 'In Progress').length : null)),
       verifications: apiRequest<{ requests?: unknown[] }>('/api/campus/verify/requests?status=pending').then(d => count(d?.requests)),
@@ -416,7 +349,7 @@ export default function AdminHome() {
       serviceRequests: apiRequest<{ bookings?: unknown[] }>('/api/services/admin/all?status=REQUESTED').then(d => count(d?.bookings)),
       stuckStallOrders: apiRequest<{ total?: number }>('/api/admin/orders?stuckHours=6&limit=1').then(d => (typeof d?.total === 'number' ? d.total : null)),
     };
-    const keys = Object.keys(jobs) as InboxKey[];
+    const keys = Object.keys(jobs) as LegacyInboxKey[];
     const results = await Promise.allSettled(keys.map(k => jobs[k]));
     const capped: InboxCapped = {};
     setInbox(prev => {
@@ -432,6 +365,7 @@ export default function AdminHome() {
       return next;
     });
     setInboxCapped(capped);
+    setInboxLoaded(true);
   }, []);
 
   const inboxFreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -471,7 +405,12 @@ export default function AdminHome() {
 
   const handleAcceptAllPending = async () => {
     if (batchRunning) return;
-    if (!confirm('Accept every pending Zenvy-delivered order on behalf of its store and send it to riders?\n\nSkipped (handle them one by one on the Orders page):\n• Stall orders: the stall must confirm first, it delivers them itself.\n• Legacy UPI orders whose payment is not verified yet.\n\nUse this only when stores cannot accept in their app. It cannot be undone.')) return;
+    if (!(await confirm({
+      title: 'Accept all pending orders?',
+      description: 'Every pending Zenvy-delivered order is accepted on behalf of its store and sent to riders. Stall orders (the stall confirms and delivers them itself) and legacy UPI orders whose payment is not verified are skipped; handle those on the Orders page. Use this only when stores cannot accept in their app. It cannot be undone.',
+      confirmLabel: 'Accept all pending',
+      tone: 'danger',
+    }))) return;
     setBatchRunning(true);
     setActionError(null);
     setActionNotice(null);
@@ -506,14 +445,14 @@ export default function AdminHome() {
     }
   };
 
-  const handleBroadcast = () => {
+  const handleBroadcast = async () => {
     const message = megaMsg.trim();
     if (!message || broadcasting) return;
     if (!socket || !isConnected) {
-      setActionError('Live connection is offline, so the in-app banner cannot be sent right now. Use Push Notifications instead.');
+      setActionError('Live connection is offline, so the in-app banner cannot be sent right now. Use Push notifications instead.');
       return;
     }
-    if (!confirm('Show this banner in the app to everyone who is online right now?')) return;
+    if (!(await confirm({ title: 'Send this banner?', description: 'It is shown in the app to everyone who is online right now.', confirmLabel: 'Send banner' }))) return;
     setBroadcasting(true);
     setActionError(null);
     const payload = { message: message.slice(0, 300), type: megaType };
@@ -593,7 +532,7 @@ export default function AdminHome() {
         location: basket.address || 'Hostel delivery',
         status: basket.status || 'Pending',
         price: toNumber(basket.estimatedTotal),
-        restaurant: '🛒 Mega Basket',
+        restaurant: 'Mega Basket',
         timestamp: new Date(),
         paymentMethod: basket.paymentMethod || 'COD',
         riderAssigned: false,
@@ -832,241 +771,327 @@ export default function AdminHome() {
   const onlineCount = useMemo(() => riderList.filter(r => r.isOnline).length, [riderList]);
   const upiPendingCount = useMemo(() => liveOrders.filter(needsUpiCheck).length, [liveOrders]);
 
-  if (!isAuthed) return null; // NexusLayoutClient shows the auth loader / redirect
+  if (!isAuthed) return null; // AppShell shows the auth loader / redirect
+
+  // "Needs attention": queues with something waiting first (urgent ones on top), then the clear ones.
+  const attention = INBOX_ITEMS.map(i => ({ ...i, value: inbox[i.key] }));
+  const waiting = attention
+    .filter(a => (a.value ?? 0) > 0)
+    .sort((a, b) => Number(!!b.urgent) - Number(!!a.urgent) || (b.value as number) - (a.value as number));
+  const clear = attention.filter(a => a.value === 0);
+
+  const orderColumns: Column<LiveOrder>[] = [
+    {
+      key: 'id',
+      header: 'Order',
+      width: '120px',
+      cell: o => (
+        <span className="font-mono text-xs text-fg-muted">{shortId(o.id)}</span>
+      ),
+    },
+    {
+      key: 'store',
+      header: 'Store',
+      sortValue: o => o.restaurant,
+      cell: o => (
+        <div className="min-w-0">
+          <p className="truncate font-medium text-fg">{o.restaurant}</p>
+          <p className="truncate text-xs text-fg-muted">{o.customer} · {o.location}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      sortValue: o => o.status,
+      cell: o => (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <StatusPill status={o.status} />
+          {needsUpiCheck(o) && <Badge tone="warning">Verify UPI</Badge>}
+        </div>
+      ),
+    },
+    {
+      key: 'rider',
+      header: 'Rider',
+      hideBelow: 'lg',
+      cell: o => o.deliveryPartnerName
+        ? <span className="text-fg">{o.deliveryPartnerName}</span>
+        : o.riderAssigned
+          ? <span className="text-fg-muted">Assigned</span>
+          : ['Delivered', 'Cancelled'].includes(o.status)
+            ? <span className="text-fg-subtle">–</span>
+            : <span className="text-fg-muted">Waiting for a rider</span>,
+    },
+    {
+      key: 'amount',
+      header: 'Amount',
+      align: 'right',
+      sortValue: o => o.price,
+      cell: o => (
+        <div>
+          <p className="font-medium tabular-nums text-fg">{formatINR(o.price)}</p>
+          <p className="text-xs text-fg-muted">{humanize(o.paymentMethod)}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'time',
+      header: 'Placed',
+      align: 'right',
+      sortValue: o => o.timestamp,
+      cell: o => <span className="whitespace-nowrap text-xs text-fg-muted" title={o.timestamp.toISOString()}>{formatRelative(o.timestamp)}</span>,
+    },
+  ];
+
+  const openOrder = (o: LiveOrder) => {
+    if (needsUpiCheck(o)) { handleVerifyRequest(o); return; }
+    if (o.kind === 'basket') router.push('/mega-basket');
+    else router.push(`/orders?order=${encodeURIComponent(o.id)}`);
+  };
 
   return (
-    <div className="space-y-12 animate-fade-in relative pb-20">
-      <header className="flex justify-between items-center mb-8 flex-wrap gap-4">
-        <div className="flex flex-col">
-          <h1 className="text-3xl font-black text-white italic tracking-tighter">COMMAND<span className="text-blue-500">CENTER</span></h1>
-          <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.4em] mt-1">Live operations · SRM AP</p>
+    <div className="pb-12">
+      <PageHeader
+        title="Overview"
+        description="What needs your attention, the latest orders and live riders."
+        meta={<Badge tone={isConnected ? 'success' : 'warning'} dot>{isConnected ? 'Live' : 'Refreshing every 15 seconds'}</Badge>}
+        actions={<ButtonLink href="/orders" variant="secondary">Open orders</ButtonLink>}
+      />
+
+      {operationalEvents.length > 0 && (
+        <div className="mb-6 space-y-2" aria-label="Alerts from riders and customers">
+          {operationalEvents.map(event => <EventAlert key={event.id} event={event} onResolve={handleResolveEvent} />)}
         </div>
-        <span className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${isConnected ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' : 'text-amber-400 border-amber-500/30 bg-amber-500/10'}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-          {isConnected ? 'Live updates on' : 'Live updates offline · polling every 15s'}
-        </span>
-      </header>
+      )}
 
       {(actionError || actionNotice) && (
-        <div className={`p-4 rounded-xl border text-sm font-bold flex justify-between gap-4 ${actionError ? 'border-red-500/30 bg-red-500/10 text-red-400' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'}`}>
-          <span>{actionError || actionNotice}</span>
-          <button onClick={() => { setActionError(null); setActionNotice(null); }} className="text-[10px] font-black uppercase tracking-wider opacity-70 hover:opacity-100">Close</button>
-        </div>
+        <Notice tone={actionError ? 'danger' : 'success'} className="mb-6" onClose={() => { setActionError(null); setActionNotice(null); }}>
+          <span className="text-fg">{actionError || actionNotice}</span>
+        </Notice>
       )}
 
-      {/* ─── Hero Metrics ─── */}
-      {statsError && !stats ? (
-        <div className="glass-card p-6 flex justify-between items-center gap-4">
-          <p className="text-sm font-bold text-red-400">{statsError}</p>
-          <button onClick={fetchStats} className="text-[10px] font-black uppercase tracking-wider text-gray-300 underline">Retry</button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-          {(stats || Array.from({ length: 5 }, (_, i) => ({ label: '', value: '', hint: String(i) }))).map((stat, i) => (
-            <div key={i} className="glass-card p-8 group overflow-hidden relative">
-              {stats ? (
-                <>
-                  <p className="stat-label tracking-[0.2em]">{stat.label}</p>
-                  <h4 className="text-3xl font-black text-white mt-2">{stat.value}</h4>
-                  <p className="text-[11px] font-bold text-gray-500 mt-1">{stat.hint}</p>
-                </>
-              ) : (
-                <div className="space-y-3 animate-pulse">
-                  <div className="h-3 w-24 bg-white/10 rounded" />
-                  <div className="h-8 w-20 bg-white/10 rounded" />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ─── Needs attention (live) ─── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" aria-label="Needs attention">
-        {INBOX_ITEMS.map(item => {
-          const value = inbox[item.key];
-          return (
-            <Link key={item.key} href={item.href} className={`glass-card p-5 flex items-center justify-between gap-3 border border-white/5 hover:border-white/15 transition-colors ${freshInbox[item.key] ? FRESH_ROW_CLASS : ''}`}>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">{item.label}</span>
-              <span className={`text-2xl font-black ${value ? 'text-amber-300' : 'text-white'}`}>{value === null ? '–' : `${value}${inboxCapped[item.key] ? '+' : ''}`}</span>
-            </Link>
-          );
-        })}
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-10 items-start">
-        {/* ─── Fleet map ─── */}
-        <div className="col-span-1 xl:col-span-2">
-          <div className="glass-card p-2 border-white/5 relative overflow-hidden bg-slate-900/50 h-[550px]">
-            <LiveFleetMap riders={riders} checkpoints={CHECKPOINTS} />
-          </div>
-          <p className="text-[11px] text-gray-600 mt-2">Riders appear at their live GPS position, or at the last route checkpoint their app reported if there is no GPS fix yet.</p>
-        </div>
-
-        {/* ─── Ops stream ─── */}
-        <div className="space-y-6">
-          <h3 className="text-xl font-black tracking-tighter uppercase text-white">Ops <span className="text-[var(--zenvy-gold)]">Stream</span></h3>
-          <div className="glass-card h-[450px] overflow-y-auto p-6 space-y-4 scrollbar-hide border-white/10">
-
-            {operationalEvents.map(event => (
-              <EventItem key={event.id} event={event} onResolve={handleResolveEvent} />
-            ))}
-            {operationalEvents.length > 0 && <div className="h-px bg-white/5 my-4" />}
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Riders</h4>
-                <span className="text-[9px] font-black text-emerald-500 uppercase px-2 py-0.5 bg-emerald-500/10 rounded-md">
-                  {onlineCount} online
-                </span>
-              </div>
-              <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                {riderList.length === 0 ? (
-                  <p className="text-[11px] text-gray-600 italic text-center py-6">No approved riders yet.</p>
-                ) : riderList.map(rider => (
-                  <RiderStatusItem key={rider.riderId} rider={rider} />
-                ))}
-              </div>
-            </div>
-
-            <div className="h-px bg-white/5 my-4" />
-
-            <div className="flex items-center justify-between">
-              <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Recent orders</h4>
-              {upiPendingCount > 0 && (
-                <span className="text-[9px] font-black text-amber-400 uppercase px-2 py-0.5 bg-amber-500/10 rounded-md">{upiPendingCount} legacy UPI to verify</span>
-              )}
-            </div>
-
-            {loading ? (
-              <div className="flex flex-col items-center justify-center py-10 gap-4 text-gray-500">
-                <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-                <p className="text-[12px] uppercase font-black tracking-widest">Loading orders...</p>
-              </div>
-            ) : ordersError && liveOrders.length === 0 ? (
-              <div className="text-center py-10 space-y-3">
-                <p className="text-xs font-bold text-red-400">{ordersError}</p>
-                <button onClick={fetchOrders} className="text-[10px] font-black uppercase tracking-wider text-gray-300 underline">Retry</button>
-              </div>
-            ) : liveOrders.length === 0 ? (
-              <p className="text-center py-10 text-gray-600 text-xs italic tracking-wide">No orders yet.</p>
-            ) : (
-              liveOrders.map((order) => (
-                <OrderItem key={`${order.kind}-${order.id}`} order={order} onVerify={handleVerifyRequest} fresh={order.kind === 'order' && isFresh(order.id)} />
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Bulk action ─── */}
-      <div className="glass-card p-10 flex flex-col md:flex-row items-center gap-10">
-        <div className="flex-1 space-y-2">
-          <h3 className="text-2xl font-black text-white tracking-tight">Stuck orders</h3>
-          <p className="text-sm text-gray-500 max-w-lg leading-relaxed">
-            Pending orders that nobody picks up are cancelled and refunded automatically after the server timeout (15 minutes by default).
-            If stores are reachable by phone but cannot use their app, you can accept all pending orders at once.
-          </p>
-        </div>
-        <div className="flex gap-4 print:hidden">
-          <button
-            onClick={handleAcceptAllPending}
-            disabled={batchRunning}
-            className="px-8 py-4 bg-[var(--zenvy-gold)] disabled:opacity-50 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-black hover:brightness-110 transition-all"
-          >
-            {batchRunning ? 'Working...' : 'Accept all pending'}
-          </button>
-        </div>
-      </div>
-
-      {/* ─── Communication ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-        <div className="glass-card p-8 border border-white/10 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <span className="text-2xl">📢</span>
-              <div>
-                <h3 className="text-xl font-black text-white uppercase tracking-widest">In-app Banner</h3>
-                <p id="mega-banner-hint" className="text-[11px] text-gray-500">Shown live to everyone who has the app open. For phones that are closed, use Push Notifications.</p>
-              </div>
-            </div>
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-wrap gap-2">
-                {(['info', 'warning', 'promo', 'emergency'] as const).map(t => (
-                  <button
-                    key={t}
-                    onClick={() => setMegaType(t)}
-                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${
-                      megaType === t
-                        ? t === 'emergency' ? 'bg-red-600 border-red-400 text-white' :
-                          t === 'warning'   ? 'bg-amber-500 border-amber-400 text-black' :
-                          t === 'promo'     ? 'bg-emerald-600 border-emerald-400 text-white' :
-                                              'bg-blue-600 border-blue-400 text-white'
-                        : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
-                    }`}
+      <div className="grid items-start gap-6 xl:grid-cols-3">
+        {/* Needs attention */}
+        <Card className="xl:col-span-2">
+          <CardHeader
+            title="Needs attention"
+            description="Queues waiting for an admin. Open one to handle it."
+            actions={inboxLoaded && waiting.length > 0 ? <Badge tone="warning">{waiting.length} {waiting.length === 1 ? 'queue' : 'queues'}</Badge> : undefined}
+          />
+          {!inboxLoaded ? (
+            <ul className="divide-y divide-line">
+              {Array.from({ length: 4 }, (_, i) => (
+                <li key={i} className="flex items-center gap-4 px-4 py-3"><Skeleton className="h-4 w-1/2" /><Skeleton className="ml-auto h-4 w-8" /></li>
+              ))}
+            </ul>
+          ) : waiting.length === 0 ? (
+            <EmptyState title="Nothing is waiting" description="Every queue below is clear. New requests appear here as they arrive." />
+          ) : (
+            <ul className="divide-y divide-line">
+              {waiting.map(item => (
+                <li key={item.key}>
+                  <Link
+                    href={item.href}
+                    className={`group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2/70 ${freshInbox[item.key] ? FRESH_ROW_CLASS : ''}`}
                   >
-                    {t === 'emergency' ? '🚨' : t === 'warning' ? '⚠️' : t === 'promo' ? '🎉' : '📢'} {t}
-                  </button>
-                ))}
-              </div>
-              <label htmlFor="mega-banner-text" className="sr-only">Banner message</label>
-              <textarea
-                id="mega-banner-text"
-                aria-describedby="mega-banner-hint"
-                rows={3}
-                maxLength={280}
-                value={megaMsg}
-                onChange={e => setMegaMsg(e.target.value)}
-                placeholder="Type your message. {{username}} is replaced with each student's name."
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-sm text-white placeholder-gray-600 outline-none focus:border-blue-500/40 resize-none transition-all"
-              />
-            </div>
-          </div>
-          <button
-            disabled={!megaMsg.trim() || broadcasting}
-            onClick={handleBroadcast}
-            className="w-full mt-6 py-4 rounded-xl text-[13px] font-black uppercase tracking-widest bg-[var(--zenvy-gold)] text-black hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            {broadcasting ? 'Sending...' : 'Send Banner'}
-          </button>
-        </div>
+                    <span className={`h-2 w-2 shrink-0 rounded-full ${item.urgent ? 'bg-danger' : 'bg-warning'}`} aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-fg">{item.label}</span>
+                      <span className="block text-xs text-fg-muted">{item.area}</span>
+                    </span>
+                    <span className={`text-base font-semibold tabular-nums ${item.urgent ? 'text-danger-text' : 'text-fg'}`}>
+                      {item.value}{inboxCapped[item.key] ? '+' : ''}
+                    </span>
+                    <IconChevronRight size={14} className="text-fg-subtle group-hover:text-fg" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          {inboxLoaded && clear.length > 0 && (
+            <p className="border-t border-line px-4 py-3 text-xs text-fg-muted">
+              <span className="font-medium text-fg-muted">All clear: </span>
+              {clear.map((c, i) => (
+                <span key={c.key}>
+                  <Link href={c.href} className="hover:text-fg hover:underline underline-offset-2">{c.label.charAt(0).toLowerCase() + c.label.slice(1)}</Link>
+                  {i < clear.length - 1 ? ', ' : ''}
+                </span>
+              ))}
+            </p>
+          )}
+        </Card>
 
-        <div className="glass-card p-8 border border-blue-500/20 bg-black/60 relative overflow-hidden flex flex-col h-[400px]">
-          <div className="absolute top-0 right-0 p-4">
-            <span className={`flex items-center gap-2 px-2 py-1 rounded text-[9px] font-black uppercase border ${isConnected ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-white/5 border-white/10 text-gray-500'}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-red-500 animate-pulse' : 'bg-gray-500'}`} /> {isConnected ? 'Live' : 'Offline'}
-            </span>
-          </div>
-          <div className="flex items-center gap-3 mb-6">
-            <span className="text-2xl">📡</span>
-            <div>
-              <h3 className="text-xl font-black uppercase tracking-widest text-blue-400">Order Chat Feed</h3>
-              <p className="text-[11px] text-gray-500 font-mono tracking-tight">Customer and rider messages since this page opened</p>
+        {/* Key numbers */}
+        <Card>
+          <CardHeader title="Key numbers" description="From the server, updated as orders change." />
+          {statsError && !stats ? (
+            <div className="px-4 py-6 text-center">
+              <p className="text-sm text-danger-text">{statsError}</p>
+              <Button size="sm" className="mt-3" onClick={fetchStats}>Try again</Button>
             </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-            {interceptedChats.length === 0 ? (
-              <div className="h-full flex items-center justify-center">
-                <p className="text-xs font-mono text-gray-600">No order chat messages yet.</p>
-              </div>
-            ) : interceptedChats.map((chat, idx) => (
-              <div key={`${chat.orderId}-${chat.timestamp.getTime()}-${idx}`} className="bg-white/5 border border-white/5 p-3 rounded-lg flex flex-col gap-1">
-                <div className="flex justify-between items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 truncate">
-                    {chat.senderRole} <span className="text-white normal-case">{chat.sender}</span>
-                  </span>
-                  <span className="text-[8px] font-mono text-gray-600 shrink-0">{chat.timestamp.toLocaleTimeString()}</span>
+          ) : (
+            <dl className="divide-y divide-line">
+              {(stats || Array.from({ length: 5 }, () => null)).map((stat, i) => (
+                <div key={stat?.label ?? i} className="flex items-baseline justify-between gap-4 px-4 py-3">
+                  {stat ? (
+                    <>
+                      <dt className="min-w-0">
+                        <span className="block text-sm text-fg">{stat.label}</span>
+                        <span className="block truncate text-xs text-fg-muted">{stat.hint}</span>
+                      </dt>
+                      <dd className="text-lg font-semibold tabular-nums text-fg">{stat.value}</dd>
+                    </>
+                  ) : (
+                    <><Skeleton className="h-4 w-28" /><Skeleton className="h-5 w-16" /></>
+                  )}
                 </div>
-                <p className="text-sm font-mono text-blue-300 break-words">{chat.message}</p>
-                {chat.orderId && <span className="text-[8px] font-black text-yellow-600/50 uppercase">Order {shortId(chat.orderId)}</span>}
-              </div>
-            ))}
-          </div>
-        </div>
-
+              ))}
+            </dl>
+          )}
+        </Card>
       </div>
+
+      {/* Recent orders */}
+      <section className="mt-8">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-fg">Latest orders</h2>
+            <p className="mt-0.5 text-sm text-fg-muted">The newest {ORDER_FEED_LIMIT} food and Mega Basket orders. Select a row to open it.</p>
+          </div>
+          {upiPendingCount > 0 && <Badge tone="warning">{upiPendingCount} legacy UPI {upiPendingCount === 1 ? 'payment' : 'payments'} to verify</Badge>}
+        </div>
+        <DataTable
+          caption="Latest orders"
+          columns={orderColumns}
+          rows={liveOrders}
+          rowKey={o => `${o.kind}-${o.id}`}
+          loading={loading}
+          error={ordersError}
+          onRetry={fetchOrders}
+          onRowClick={openOrder}
+          rowClassName={o => (o.kind === 'order' && isFresh(o.id) ? FRESH_ROW_CLASS : undefined)}
+          pageSize={10}
+          noun="orders"
+          maxHeight="none"
+          empty={{ title: 'No orders yet', description: 'New orders appear here the moment they are placed.' }}
+        />
+      </section>
+
+      {/* Riders */}
+      <section className="mt-8">
+        <div className="mb-3">
+          <h2 className="text-base font-semibold text-fg">Riders</h2>
+          <p className="mt-0.5 text-sm text-fg-muted">Approved riders and where they are. A rider without a GPS fix is placed at the last route checkpoint their app reported.</p>
+        </div>
+        <div className="grid items-start gap-6 xl:grid-cols-3">
+          <Card className="overflow-hidden xl:col-span-2">
+            <div className="h-[420px]">
+              <LiveFleetMap riders={riders} checkpoints={CHECKPOINTS} />
+            </div>
+          </Card>
+          <Card>
+            <CardHeader
+              title="Rider status"
+              actions={<Badge tone={onlineCount > 0 ? 'success' : 'neutral'} dot>{onlineCount} online</Badge>}
+            />
+            {riderList.length === 0 ? (
+              <EmptyState title="No approved riders yet" action={<ButtonLink href="/fleet" size="sm">Go to Riders</ButtonLink>} />
+            ) : (
+              <ul className="max-h-[364px] divide-y divide-line overflow-y-auto">
+                {riderList.map(rider => <RiderRow key={rider.riderId} rider={rider} />)}
+              </ul>
+            )}
+          </Card>
+        </div>
+      </section>
+
+      {/* Tools */}
+      <section className="mt-8">
+        <div className="mb-3">
+          <h2 className="text-base font-semibold text-fg">Tools</h2>
+          <p className="mt-0.5 text-sm text-fg-muted">For when stores cannot use their app, or everyone online needs to see a message.</p>
+        </div>
+        <div className="grid items-start gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader title="Accept pending orders for stores" />
+            <div className="space-y-4 p-4">
+              <p className="text-sm text-fg-muted">
+                Pending orders that nobody accepts are cancelled and refunded automatically after the server timeout (15 minutes by default).
+                If stores can be reached by phone but cannot use their app, accept all pending Zenvy-delivered orders at once. Stall orders and unverified UPI orders are skipped.
+              </p>
+              <Button variant="secondary" onClick={handleAcceptAllPending} loading={batchRunning}>
+                {batchRunning ? 'Accepting…' : 'Accept all pending orders'}
+              </Button>
+            </div>
+          </Card>
+
+          <Card>
+            <CardHeader title="In-app banner" description="Shown live to everyone who has the app open. For phones that are closed, use Push notifications." />
+            <div className="space-y-4 p-4">
+              <div>
+                <p className="mb-1 text-sm font-medium text-fg">Type</p>
+                <SegmentedControl
+                  ariaLabel="Banner type"
+                  value={megaType}
+                  onChange={setMegaType}
+                  options={[
+                    { value: 'info', label: 'Information' },
+                    { value: 'warning', label: 'Warning' },
+                    { value: 'promo', label: 'Promotion' },
+                    { value: 'emergency', label: 'Emergency' },
+                  ]}
+                />
+              </div>
+              <Field label="Message" hint={`${megaMsg.length}/280 characters. {{username}} is replaced with each student's name.`}>
+                <Textarea
+                  id="mega-banner-text"
+                  rows={3}
+                  maxLength={280}
+                  value={megaMsg}
+                  onChange={e => setMegaMsg(e.target.value)}
+                  placeholder="Type the message students will see"
+                />
+              </Field>
+              <div className="flex justify-end">
+                <Button variant="primary" disabled={!megaMsg.trim()} loading={broadcasting} onClick={handleBroadcast}>
+                  {broadcasting ? 'Sending…' : 'Send banner'}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </section>
+
+      {/* Order chat feed */}
+      <section className="mt-8">
+        <Card>
+          <CardHeader
+            title="Order chat"
+            description="Messages between customers and riders since this page was opened."
+            actions={<Badge tone={isConnected ? 'success' : 'neutral'} dot>{isConnected ? 'Live' : 'Offline'}</Badge>}
+          />
+          {interceptedChats.length === 0 ? (
+            <EmptyState title="No messages yet" description="Chat messages on active orders appear here as they are sent." />
+          ) : (
+            <ul className="max-h-[360px] divide-y divide-line overflow-y-auto">
+              {interceptedChats.map((chat, idx) => (
+                <li key={`${chat.orderId}-${chat.timestamp.getTime()}-${idx}`} className="px-4 py-3">
+                  <div className="flex items-center justify-between gap-3 text-xs text-fg-muted">
+                    <span className="truncate">
+                      <span className="font-medium text-fg">{chat.sender}</span>
+                      {chat.senderRole && <> · {chat.senderRole.toLowerCase()}</>}
+                      {chat.orderId && <> · Order {shortId(chat.orderId)}</>}
+                    </span>
+                    <span className="shrink-0 tabular-nums">{formatTime(chat.timestamp)}</span>
+                  </div>
+                  <p className="mt-1 break-words text-sm text-fg">{chat.message}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </section>
 
       <PaymentVerificationModal
         isOpen={!!selectedUPIOrder}

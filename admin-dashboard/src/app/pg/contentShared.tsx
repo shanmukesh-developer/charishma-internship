@@ -21,12 +21,12 @@ export function SaveBar({ dirty, saving, onSave, onDiscard, message, extra }: {
   message: { kind: 'ok' | 'error'; text: string } | null; extra?: React.ReactNode;
 }) {
   return (
-    <div className="sticky bottom-0 -mx-6 mt-6 flex flex-wrap items-center gap-3 border-t border-white/10 bg-[#0d0f14] px-6 py-4">
-      {message && <span role={message.kind === 'error' ? 'alert' : 'status'} className={`mr-auto text-sm ${message.kind === 'error' ? 'text-red-300' : 'text-emerald-300'}`}>{message.text}</span>}
-      {!message && <span className="mr-auto text-xs text-gray-500">{dirty ? 'Unsaved changes' : 'All changes saved'}</span>}
+    <div className="sticky bottom-0 -mx-6 mt-6 flex flex-wrap items-center gap-3 border-t border-line bg-surface px-6 py-4">
+      {message && <span role={message.kind === 'error' ? 'alert' : 'status'} className={`mr-auto text-sm ${message.kind === 'error' ? 'text-danger-text' : 'text-success-text'}`}>{message.text}</span>}
+      {!message && <span className="mr-auto text-xs text-fg-muted">{dirty ? 'Unsaved changes' : 'All changes saved'}</span>}
       {extra}
-      {dirty && <button type="button" disabled={saving} onClick={onDiscard} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-gray-300 hover:text-white disabled:opacity-50">Discard</button>}
-      <button type="button" disabled={!dirty || saving} onClick={onSave} className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-bold text-white hover:bg-blue-500 disabled:opacity-40">{saving ? 'Saving…' : 'Save'}</button>
+      {dirty && <button type="button" disabled={saving} onClick={onDiscard} className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-fg-muted hover:text-fg disabled:opacity-50">Discard</button>}
+      <button type="button" disabled={!dirty || saving} onClick={onSave} className="rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-on-solid hover:bg-accent-hover disabled:opacity-40">{saving ? 'Saving…' : 'Save'}</button>
     </div>
   );
 }
@@ -163,8 +163,8 @@ export function LineListEditor({ id, label, items, onChange, max, len, min, plac
     <div className="space-y-2" role="group" aria-label={label}>
       {!hideHeader && (
         <div className="flex items-baseline justify-between gap-3">
-          <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">{label}</span>
-          <span className={`text-xs ${count > max ? 'text-red-300' : 'text-gray-500'}`}>{count} of {max}</span>
+          <span className="text-xs font-semibold text-fg-muted">{label}</span>
+          <span className={`text-xs ${count > max ? 'text-danger-text' : 'text-fg-muted'}`}>{count} of {max}</span>
         </div>
       )}
       {items.length > 0 && (
@@ -174,24 +174,24 @@ export function LineListEditor({ id, label, items, onChange, max, len, min, plac
             return (
               <li key={`${id}-${i}`} className="space-y-1">
                 <div className="flex items-center gap-2">
-                  {numbered && <span className="w-5 shrink-0 text-right text-xs text-gray-500" aria-hidden="true">{i + 1}.</span>}
+                  {numbered && <span className="w-5 shrink-0 text-right text-xs text-fg-muted" aria-hidden="true">{i + 1}.</span>}
                   <input
                     id={`${id}-${i}`} aria-label={`${label}, item ${i + 1}`} aria-invalid={bad} aria-describedby={rows[i] ? `${id}-${i}-err` : undefined}
-                    className={`${FIELD} flex-1 ${bad ? 'border-red-500/60' : ''}`} maxLength={len + 20} placeholder={placeholder} value={item}
+                    className={`${FIELD} flex-1 ${bad ? 'border-danger/30' : ''}`} maxLength={len + 20} placeholder={placeholder} value={item}
                     onChange={e => onChange(items.map((x, j) => (j === i ? e.target.value : x)))}
                   />
-                  <button type="button" disabled={i === 0} onClick={() => onChange(moveItem(items, i, -1))} aria-label={`Move ${noun} item ${i + 1} up`} className="rounded border border-white/10 px-2 py-1 text-xs text-gray-300 hover:text-white disabled:opacity-30">Up</button>
-                  <button type="button" disabled={i === items.length - 1} onClick={() => onChange(moveItem(items, i, 1))} aria-label={`Move ${noun} item ${i + 1} down`} className="rounded border border-white/10 px-2 py-1 text-xs text-gray-300 hover:text-white disabled:opacity-30">Down</button>
-                  <button type="button" onClick={() => onChange(items.filter((_, j) => j !== i))} aria-label={`Remove ${noun} item ${i + 1}`} className="px-1 text-xs text-red-300/80 hover:text-red-300">Remove</button>
+                  <button type="button" disabled={i === 0} onClick={() => onChange(moveItem(items, i, -1))} aria-label={`Move ${noun} item ${i + 1} up`} className="rounded border border-line px-2 py-1 text-xs text-fg-muted hover:text-fg disabled:opacity-30">Up</button>
+                  <button type="button" disabled={i === items.length - 1} onClick={() => onChange(moveItem(items, i, 1))} aria-label={`Move ${noun} item ${i + 1} down`} className="rounded border border-line px-2 py-1 text-xs text-fg-muted hover:text-fg disabled:opacity-30">Down</button>
+                  <button type="button" onClick={() => onChange(items.filter((_, j) => j !== i))} aria-label={`Remove ${noun} item ${i + 1}`} className="px-1 text-xs text-danger-text hover:text-danger-text">Remove</button>
                 </div>
-                {rows[i] && <p id={`${id}-${i}-err`} className={`text-xs text-red-300 ${numbered ? 'pl-7' : ''}`}>{rows[i]}</p>}
+                {rows[i] && <p id={`${id}-${i}-err`} className={`text-xs text-danger-text ${numbered ? 'pl-7' : ''}`}>{rows[i]}</p>}
               </li>
             );
           })}
         </ol>
       )}
-      {list && <p className="text-xs text-red-300">{list}</p>}
-      <button type="button" disabled={items.length >= max} onClick={() => onChange([...items, ''])} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-gray-200 hover:bg-white/5 disabled:opacity-40">{addLabel}</button>
+      {list && <p className="text-xs text-danger-text">{list}</p>}
+      <button type="button" disabled={items.length >= max} onClick={() => onChange([...items, ''])} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg hover:bg-surface-2/60 disabled:opacity-40">{addLabel}</button>
     </div>
   );
 }
@@ -199,9 +199,9 @@ export function LineListEditor({ id, label, items, onChange, max, len, min, plac
 /** Read-only summary of what students will see. */
 export function AppPreview({ children, empty }: { children?: React.ReactNode; empty: boolean }) {
   return (
-    <section aria-label="Preview in the app" className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-      <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-gray-500">Preview in the app</p>
-      {empty ? <p className="text-sm text-gray-500">Nothing to show. The app hides this section.</p> : <div className="space-y-2 text-sm text-gray-200">{children}</div>}
+    <section aria-label="Preview in the app" className="rounded-xl border border-line bg-surface-2/60 p-4">
+      <p className="mb-2 text-xs font-semibold text-fg-muted">Preview in the app</p>
+      {empty ? <p className="text-sm text-fg-muted">Nothing to show. The app hides this section.</p> : <div className="space-y-2 text-sm text-fg">{children}</div>}
     </section>
   );
 }

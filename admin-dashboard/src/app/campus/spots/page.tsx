@@ -33,9 +33,9 @@ const DEFAULT_ICONS = ['MapPin', 'BookOpen', 'Utensils', 'Dumbbell', 'Users', 'S
 const DEFAULT_CATEGORIES = ['library', 'dining', 'sports', 'hostel', 'academic', 'common'];
 const EMPTY_FORM = { name: '', emoji: '', description: '', icon: 'MapPin', category: 'common', campusId: '', isActive: true };
 
-const input = 'w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500/40';
-const label = 'block text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1';
-const btn = 'rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest disabled:opacity-40';
+const input = 'w-full rounded-xl border border-line bg-surface-2/60 px-3 py-2 text-sm text-fg outline-none focus:border-accent';
+const label = 'block text-xs font-semibold text-fg-muted mb-1';
+const btn = 'rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-40';
 const errText = (e: unknown, fallback: string) => (e instanceof Error && e.message ? e.message : fallback);
 
 export default function CampusSpotsPage() {
@@ -179,40 +179,40 @@ export default function CampusSpotsPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-24">
-        <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+      <div className="flex justify-center">
+        <div className="w-8 h-8 border-2 border-success/30 border-t-success/30 rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
     <div className="space-y-8 animate-fade-in pb-20">
-      <header className="bg-white/5 p-8 rounded-[40px] border border-white/5 glass flex justify-between items-start gap-4 flex-wrap">
+      <header className="bg-surface-2/60 p-8 rounded-lg border border-line bg-surface border border-line flex justify-between items-start gap-4 flex-wrap">
         <div>
-          <h2 className="text-3xl font-black text-white tracking-tighter uppercase">Campus <span className="text-emerald-400">Spots</span></h2>
-          <p className="text-gray-400 text-sm font-bold mt-1">
+          <h1 className="text-2xl font-semibold text-fg">Campus spots</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">
             Open chat rooms in Campus Buddy &gt; Campus. Only spots listed here exist; students see the active ones for their campus.
           </p>
         </div>
-        <button onClick={load} className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-wider text-gray-400 hover:bg-white/10">
+        <button onClick={load} className="px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:bg-surface-2">
           ↻ Refresh
         </button>
       </header>
 
       {loadError && (
-        <div className="glass-card p-6 text-sm font-bold text-red-400 flex items-center justify-between gap-4">
+        <div className="rounded-lg border border-line bg-surface shadow-xs p-6 text-sm font-semibold text-danger-text flex items-center justify-between gap-4">
           <span>{loadError}</span>
-          <button onClick={load} className={`${btn} bg-white/5 border border-white/10 text-white`}>Retry</button>
+          <button onClick={load} className={`${btn} bg-surface-2/60 border border-line text-fg`}>Retry</button>
         </div>
       )}
 
       {notice && (
-        <p className={`text-xs font-bold ${notice.kind === 'ok' ? 'text-emerald-400' : 'text-red-400'}`}>{notice.text}</p>
+        <p className={`text-xs font-semibold ${notice.kind === 'ok' ? 'text-success-text' : 'text-danger-text'}`}>{notice.text}</p>
       )}
 
       {/* Create / edit */}
-      <div className="glass-card p-8 space-y-5">
-        <h4 className="text-lg font-black text-white uppercase tracking-tight">{editingId ? 'Edit spot' : 'New spot'}</h4>
+      <div className="rounded-lg border border-line bg-surface shadow-xs p-8 space-y-5">
+        <h4 className="text-lg font-semibold text-fg">{editingId ? 'Edit spot' : 'New spot'}</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2">
             <label className={label} htmlFor="spot-name">Name</label>
@@ -249,24 +249,24 @@ export default function CampusSpotsPage() {
             </select>
           </div>
         </div>
-        <label className="flex items-center gap-2 text-sm text-gray-300">
+        <label className="flex items-center gap-2 text-sm text-fg-muted">
           <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />
           Active (visible in the app)
         </label>
         <div className="flex gap-3">
-          <button onClick={save} disabled={!!busy} className={`${btn} bg-emerald-600 hover:bg-emerald-500 text-white`}>
+          <button onClick={save} disabled={!!busy} className={`${btn} bg-success hover:bg-success/90 text-on-solid`}>
             {busy === 'save' ? 'Saving...' : editingId ? 'Save changes' : 'Create spot'}
           </button>
           {editingId && (
-            <button onClick={resetForm} disabled={!!busy} className={`${btn} bg-white/5 border border-white/10 text-gray-300`}>Cancel</button>
+            <button onClick={resetForm} disabled={!!busy} className={`${btn} bg-surface-2/60 border border-line text-fg-muted`}>Cancel</button>
           )}
         </div>
       </div>
 
       {/* List */}
-      <div className="glass-card p-8 space-y-4">
+      <div className="rounded-lg border border-line bg-surface shadow-xs p-8 space-y-4">
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <h4 className="text-lg font-black text-white uppercase tracking-tight">Spots ({spots.length})</h4>
+          <h4 className="text-lg font-semibold text-fg">Spots ({spots.length})</h4>
           <select className={`${input} max-w-xs`} value={campusFilter} onChange={(e) => setCampusFilter(e.target.value)} aria-label="Filter by campus">
             <option value="all">All campuses</option>
             <option value="global">Every-campus spots</option>
@@ -274,33 +274,33 @@ export default function CampusSpotsPage() {
           </select>
         </div>
         {spots.length === 0 ? (
-          <p className="text-sm text-gray-500">No campus spots yet. Students see &quot;No campus spots yet&quot; until you create one.</p>
+          <p className="text-sm text-fg-muted">No campus spots yet. Students see &quot;No campus spots yet&quot; until you create one.</p>
         ) : visible.length === 0 ? (
-          <p className="text-sm text-gray-500">No spots for this campus.</p>
+          <p className="text-sm text-fg-muted">No spots for this campus.</p>
         ) : (
           <ul className="space-y-2">
             {visible.map(({ s }, vi) => (
-              <li key={s.id} className={`flex items-center gap-4 rounded-2xl border border-white/5 p-4 ${s.isActive ? 'bg-white/[0.03]' : 'bg-white/[0.01] opacity-60'}`}>
+              <li key={s.id} className={`flex items-center gap-4 rounded-lg border border-line p-4 ${s.isActive ? 'bg-surface-2/60' : 'bg-surface-2/60 opacity-60'}`}>
                 <div className="flex flex-col gap-1">
-                  <button onClick={() => move(vi, -1)} disabled={!!busy || vi === 0} className="text-gray-400 hover:text-white disabled:opacity-20" aria-label={`Move ${s.name} up`}>▲</button>
-                  <button onClick={() => move(vi, 1)} disabled={!!busy || vi === visible.length - 1} className="text-gray-400 hover:text-white disabled:opacity-20" aria-label={`Move ${s.name} down`}>▼</button>
+                  <button onClick={() => move(vi, -1)} disabled={!!busy || vi === 0} className="text-fg-muted hover:text-fg disabled:opacity-20" aria-label={`Move ${s.name} up`}>▲</button>
+                  <button onClick={() => move(vi, 1)} disabled={!!busy || vi === visible.length - 1} className="text-fg-muted hover:text-fg disabled:opacity-20" aria-label={`Move ${s.name} down`}>▼</button>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xl">{s.emoji || '📍'}</div>
+                <div className="w-10 h-10 rounded-xl bg-surface-2/60 flex items-center justify-center text-xl">{s.emoji || '📍'}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-black text-white truncate">
+                  <p className="text-sm font-semibold text-fg truncate">
                     {s.name}
-                    {!s.isActive && <span className="ml-2 text-[10px] font-black uppercase tracking-widest text-amber-400">Disabled</span>}
+                    {!s.isActive && <span className="ml-2 text-xs font-semibold text-warning-text">Disabled</span>}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="text-xs text-fg-muted truncate">
                     {s.campusName || 'Every campus'} · {s.category} · {s.icon}{s.description ? ` · ${s.description}` : ''}
                   </p>
                 </div>
                 <div className="flex gap-2 flex-wrap justify-end">
-                  <button onClick={() => startEdit(s)} disabled={!!busy} className={`${btn} bg-white/5 border border-white/10 text-gray-200`}>Edit</button>
-                  <button onClick={() => toggle(s)} disabled={!!busy} className={`${btn} bg-white/5 border border-white/10 ${s.isActive ? 'text-amber-300' : 'text-emerald-300'}`}>
+                  <button onClick={() => startEdit(s)} disabled={!!busy} className={`${btn} bg-surface-2/60 border border-line text-fg`}>Edit</button>
+                  <button onClick={() => toggle(s)} disabled={!!busy} className={`${btn} bg-surface-2/60 border border-line ${s.isActive ? 'text-warning-text' : 'text-success-text'}`}>
                     {busy === `toggle-${s.id}` ? '...' : s.isActive ? 'Disable' : 'Enable'}
                   </button>
-                  <button onClick={() => remove(s)} disabled={!!busy} className={`${btn} bg-red-500/10 border border-red-500/20 text-red-300`}>
+                  <button onClick={() => remove(s)} disabled={!!busy} className={`${btn} bg-danger-soft border border-danger/30 text-danger-text`}>
                     {busy === `delete-${s.id}` ? '...' : 'Delete'}
                   </button>
                 </div>

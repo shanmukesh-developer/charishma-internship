@@ -24,36 +24,36 @@ export default function BookingsTab({ tick, onChanged, lookups }: { tick: number
   return (
     <section className="space-y-4" aria-label="Bookings">
       <Toolbar>
-        <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Booking code
-          <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="ZA7K3Q" className="ml-2 w-32 border border-white/10 bg-[#111318] p-2 font-mono text-sm font-normal uppercase text-white" />
+        <label className="text-xs font-semibold text-fg-muted">Booking code
+          <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="ZA7K3Q" className="ml-2 w-32 border border-line bg-surface p-2 font-mono text-sm font-normal text-fg" />
         </label>
-        <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Phone
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="numeric" placeholder="98765…" className="ml-2 w-36 border border-white/10 bg-[#111318] p-2 text-sm font-normal text-white" />
+        <label className="text-xs font-semibold text-fg-muted">Phone
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="numeric" placeholder="98765…" className="ml-2 w-36 border border-line bg-surface p-2 text-sm font-normal text-fg" />
         </label>
         <Select name="Status" value={status} onChange={setStatus} options={['', ...BOOKING_STATUSES]} />
-        <span className="text-sm text-gray-500">{rows.length} of {all.length}{serverPhone ? ' · searched by phone on the server' : all.length >= 300 ? ' (latest 300; type the full number, or the last 4 digits + code, to search all)' : ''}</span>
+        <span className="text-sm text-fg-muted">{rows.length} of {all.length}{serverPhone ? ' · searched by phone on the server' : all.length >= 300 ? ' (latest 300; type the full number, or the last 4 digits + code, to search all)' : ''}</span>
       </Toolbar>
       {error && <ErrorBox text={error} retry={reload} />}
       {loading ? <Loading text="Loading bookings…" /> : rows.length === 0 ? <Empty text={codeQ ? `No booking with code ${codeQ}.` : 'No bookings match.'} /> : (
-        <div className="overflow-x-auto border border-white/10">
+        <div className="overflow-x-auto border border-line">
           <table className="w-full text-left text-sm">
-            <thead className="bg-white/[0.03] text-xs uppercase tracking-wider text-gray-400">
+            <thead className="bg-surface-2/60 text-xs text-fg-muted">
               <tr><th className="p-3">Code</th><th className="p-3">Passenger</th><th className="p-3">Trip</th><th className="p-3">Seats</th><th className="p-3">Payment</th><th className="p-3">Status</th><th className="p-3" /></tr>
             </thead>
             <tbody className="divide-y divide-white/10">
               {rows.map((b) => {
                 const open = openId === b.id;
                 return [
-                  <tr key={b.id} className={`align-top ${open ? 'bg-white/[0.03]' : ''}`}>
-                    <td className="p-3"><p className="font-mono font-bold">{b.bookingCode}</p><p className="text-xs text-gray-500">{when(b.createdAt)}</p></td>
-                    <td className="p-3"><p>{b.passenger?.name || `#${short(b.userId)}`}</p><p className="font-mono text-xs text-gray-500">{maskPhone(b.passenger?.phone)}</p></td>
-                    <td className="p-3 text-xs">{b.trip ? <><Pill s={b.trip.status} /><p className="mt-1 text-gray-400">{when(b.trip.departureAt)}</p></> : `#${short(b.tripId)}`}<p className="text-gray-500">Driver {lookups.drivers.get(String(b.driverId))?.name || `#${short(b.driverId)}`}</p></td>
-                    <td className="p-3 text-xs">{b.seatCount}{b.seatNumbers.length ? ` (#${b.seatNumbers.join(', ')})` : ''}{b.type === 'PRIVATE' && <p className="font-bold text-violet-300">Full auto</p>}</td>
-                    <td className="p-3 text-xs"><p className="font-bold">{inr(b.amount)}</p><p className="text-gray-400">{b.paymentMethod ? label(b.paymentMethod) : '—'} · {b.paymentStatus ? label(b.paymentStatus) : '—'}</p>{b.refundAmount > 0 && <p className="text-emerald-300">Refund {inr(b.refundAmount)}</p>}</td>
-                    <td className="p-3"><Pill s={b.status} />{b.pinLocked && <p className="mt-1 text-xs text-red-300">PIN locked</p>}</td>
+                  <tr key={b.id} className={`align-top ${open ? 'bg-surface-2/60' : ''}`}>
+                    <td className="p-3"><p className="font-mono font-semibold">{b.bookingCode}</p><p className="text-xs text-fg-muted">{when(b.createdAt)}</p></td>
+                    <td className="p-3"><p>{b.passenger?.name || `#${short(b.userId)}`}</p><p className="font-mono text-xs text-fg-muted">{maskPhone(b.passenger?.phone)}</p></td>
+                    <td className="p-3 text-xs">{b.trip ? <><Pill s={b.trip.status} /><p className="mt-1 text-fg-muted">{when(b.trip.departureAt)}</p></> : `#${short(b.tripId)}`}<p className="text-fg-muted">Driver {lookups.drivers.get(String(b.driverId))?.name || `#${short(b.driverId)}`}</p></td>
+                    <td className="p-3 text-xs">{b.seatCount}{b.seatNumbers.length ? ` (#${b.seatNumbers.join(', ')})` : ''}{b.type === 'PRIVATE' && <p className="font-semibold text-accent-text">Full auto</p>}</td>
+                    <td className="p-3 text-xs"><p className="font-semibold">{inr(b.amount)}</p><p className="text-fg-muted">{b.paymentMethod ? label(b.paymentMethod) : '—'} · {b.paymentStatus ? label(b.paymentStatus) : '—'}</p>{b.refundAmount > 0 && <p className="text-success-text">Refund {inr(b.refundAmount)}</p>}</td>
+                    <td className="p-3"><Pill s={b.status} />{b.pinLocked && <p className="mt-1 text-xs text-danger-text">PIN locked</p>}</td>
                     <td className="p-3 text-right"><Btn onClick={() => setOpenId(open ? null : b.id)}>{open ? 'Close' : 'Details'}</Btn></td>
                   </tr>,
-                  open ? <tr key={`${b.id}-d`}><td colSpan={7} className="border-t border-white/10 bg-black/20 p-5"><BookingDetail b={b} onChanged={() => { onChanged(); reload(); }} /></td></tr> : null,
+                  open ? <tr key={`${b.id}-d`}><td colSpan={7} className="border-t border-line bg-surface-2 p-5"><BookingDetail b={b} onChanged={() => { onChanged(); reload(); }} /></td></tr> : null,
                 ];
               })}
             </tbody>
@@ -82,22 +82,22 @@ function BookingDetail({ b, onChanged }: { b: Booking; onChanged: () => void }) 
     <div className="space-y-3 text-sm">
       <div className="grid gap-3 md:grid-cols-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Passenger</p>
+          <p className="text-xs font-semibold text-fg-muted">Passenger</p>
           <p>{b.passenger?.name || '—'}</p>
           <p className="font-mono">{b.passenger?.phone || '—'}</p>
-          <p className="text-xs text-gray-500">User #{short(b.userId)}</p>
+          <p className="text-xs text-fg-muted">User #{short(b.userId)}</p>
         </div>
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Booking</p>
+          <p className="text-xs font-semibold text-fg-muted">Booking</p>
           <p>{label(b.type)} · {b.seatCount} seat{b.seatCount === 1 ? '' : 's'}{b.seatNumbers.length ? ` (#${b.seatNumbers.join(', ')})` : ''}</p>
-          <p className="text-xs text-gray-400">Confirmed {when(b.confirmedAt)} · boarded {when(b.boardedAt)}</p>
-          {b.holdExpiresAt && <p className="text-xs text-amber-300">Hold expires {when(b.holdExpiresAt)}</p>}
-          {b.cancelledAt && <p className="text-xs text-red-300">Cancelled {when(b.cancelledAt)} by {b.cancelledBy || '—'}{b.cancelReason ? `: ${b.cancelReason}` : ''}</p>}
+          <p className="text-xs text-fg-muted">Confirmed {when(b.confirmedAt)} · boarded {when(b.boardedAt)}</p>
+          {b.holdExpiresAt && <p className="text-xs text-warning-text">Hold expires {when(b.holdExpiresAt)}</p>}
+          {b.cancelledAt && <p className="text-xs text-danger-text">Cancelled {when(b.cancelledAt)} by {b.cancelledBy || '—'}{b.cancelReason ? `: ${b.cancelReason}` : ''}</p>}
         </div>
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Money</p>
+          <p className="text-xs font-semibold text-fg-muted">Money</p>
           <p>{inr(b.amount)} · {b.paymentMethod ? label(b.paymentMethod) : '—'} · {b.paymentStatus ? label(b.paymentStatus) : '—'}</p>
-          <p className="text-xs text-gray-400">Wallet debited {inr(b.walletDebited)} · refund {inr(b.refundAmount)}{b.refundedAt ? ` on ${when(b.refundedAt)}` : ''} · attempts {b.refundAttempts}</p>
+          <p className="text-xs text-fg-muted">Wallet debited {inr(b.walletDebited)} · refund {inr(b.refundAmount)}{b.refundedAt ? ` on ${when(b.refundedAt)}` : ''} · attempts {b.refundAttempts}</p>
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -110,7 +110,7 @@ function BookingDetail({ b, onChanged }: { b: Booking; onChanged: () => void }) 
           body={<>
             <p>The seat{b.seatCount === 1 ? ' is' : 's are'} released and the passenger and driver are notified.</p>
             {b.status === 'HELD' ? <p>This is only a hold: nothing was paid.</p>
-              : walletPaid ? <p className="font-bold text-emerald-300">{inr(b.walletDebited || b.amount)} is refunded in full to the passenger&apos;s Zenvy Wallet.</p>
+              : walletPaid ? <p className="font-semibold text-success-text">{inr(b.walletDebited || b.amount)} is refunded in full to the passenger&apos;s Zenvy Wallet.</p>
                 : <p>Cash booking: nothing was paid to Zenvy, nothing to refund.</p>}
           </>}
           onCancel={() => setCancel(false)}

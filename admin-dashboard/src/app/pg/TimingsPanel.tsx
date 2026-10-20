@@ -56,12 +56,12 @@ export function TimingsPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Part
 
   return (
     <div className="space-y-5">
-      <p className="text-xs text-gray-500">Times are IST. Leave a row blank to hide it in the app.</p>
+      <p className="text-xs text-fg-muted">Times are IST. Leave a row blank to hide it in the app.</p>
       <div className="grid gap-4 md:grid-cols-2">
         {PAIRS.map(row => (
-          <fieldset key={row.title} className="space-y-2 rounded-xl border border-white/10 p-4">
-            <legend className="px-1 text-sm font-bold text-blue-300">{row.title}</legend>
-            <p className="text-xs text-gray-500">{row.hint}</p>
+          <fieldset key={row.title} className="space-y-2 rounded-xl border border-line p-4">
+            <legend className="px-1 text-sm font-semibold text-info-text">{row.title}</legend>
+            <p className="text-xs text-fg-muted">{row.hint}</p>
             <div className="grid grid-cols-2 gap-3">
               <label className={LABEL}>{row.la}<input type="time" className={FIELD} value={draft[row.a]} onChange={e => set(row.a, e.target.value)} /></label>
               <label className={LABEL}>{row.lb}<input type="time" className={FIELD} value={draft[row.b]} onChange={e => set(row.b, e.target.value)} /></label>

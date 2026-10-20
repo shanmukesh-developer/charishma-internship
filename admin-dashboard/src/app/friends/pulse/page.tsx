@@ -55,15 +55,15 @@ type Notice = { kind: 'ok' | 'error'; text: string } | null;
 type Act = (fn: () => Promise<unknown>, success: string, reload: Array<() => unknown>) => Promise<boolean>;
 
 // ── Shared styles (same tokens as /friends, /friends/forum and /moderation) ───
-const input = 'w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50';
-const label = 'block text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1';
-const btn = 'rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest disabled:opacity-40 transition-colors';
-const btnGhost = `${btn} border border-white/10 bg-white/5 text-gray-300 hover:text-white`;
-const btnGo = `${btn} bg-emerald-500/20 text-emerald-200 border border-emerald-500/30 hover:bg-emerald-500/30`;
-const btnWarn = `${btn} bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25`;
-const btnBlue = `${btn} bg-blue-500/10 text-blue-400 border border-blue-500/20`;
-const card = 'glass-card p-6 space-y-4';
-const chip = 'text-[9px] px-2 py-0.5 rounded-md border font-black uppercase tracking-wider';
+const input = 'w-full rounded-xl border border-line bg-surface-2/60 px-3 py-2 text-sm text-fg outline-none focus:border-accent';
+const label = 'block text-xs font-semibold text-fg-muted mb-1';
+const btn = 'rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-40 transition-colors';
+const btnGhost = `${btn} border border-line bg-surface-2/60 text-fg-muted hover:text-fg`;
+const btnGo = `${btn} bg-success-soft text-success-text border border-success/30 hover:bg-success-soft`;
+const btnWarn = `${btn} bg-danger-soft text-danger-text border border-danger/30 hover:bg-danger-soft`;
+const btnBlue = `${btn} bg-info-soft text-info-text border border-info/30`;
+const card = 'rounded-lg border border-line bg-surface shadow-xs p-6 space-y-4';
+const chip = 'text-xs px-2 py-0.5 rounded-md border font-semibold';
 
 const errText = (e: unknown, fallback: string) => (e instanceof Error && e.message ? e.message : fallback);
 const qs = (o: Record<string, string | undefined | null>) => {
@@ -79,22 +79,22 @@ const HANDLE_RE = /^[a-z0-9_]{3,40}$/;
 const BADGE_RE = /^[a-z_]{3,40}$/;
 
 const STATUS_TONE: Record<string, string> = {
-  active: 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10',
-  visible: 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10',
-  pending_review: 'text-amber-300 border-amber-500/30 bg-amber-500/10',
-  hidden: 'text-gray-300 border-white/15 bg-white/5',
-  disabled: 'text-gray-400 border-white/10 bg-white/5',
-  deleted: 'text-gray-500 border-white/10 bg-white/5',
-  removed: 'text-red-300 border-red-500/30 bg-red-500/10',
+  active: 'text-success-text border-success/30 bg-success-soft',
+  visible: 'text-success-text border-success/30 bg-success-soft',
+  pending_review: 'text-warning-text border-warning/30 bg-warning-soft',
+  hidden: 'text-fg-muted border-line bg-surface-2/60',
+  disabled: 'text-fg-muted border-line bg-surface-2/60',
+  deleted: 'text-fg-muted border-line bg-surface-2/60',
+  removed: 'text-danger-text border-danger/30 bg-danger-soft',
 };
 function StatusChip({ s }: { s: string }) {
-  return <span className={`${chip} ${STATUS_TONE[s] || 'text-gray-300 border-white/10 bg-white/5'}`}>{s.replace('_', ' ')}</span>;
+  return <span className={`${chip} ${STATUS_TONE[s] || 'text-fg-muted border-line bg-surface-2/60'}`}>{s.replace('_', ' ')}</span>;
 }
 
 function Toggle({ checked, onChange, labelText }: { checked: boolean; onChange: (v: boolean) => void; labelText: string }) {
   return (
     <button type="button" role="switch" aria-checked={checked} aria-label={labelText} onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${checked ? 'bg-emerald-500/70 border-emerald-400/60' : 'bg-white/10 border-white/15'}`}>
+      className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${checked ? 'bg-success-soft border-success/30' : 'bg-surface-2 border-line'}`}>
       <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${checked ? 'left-[22px]' : 'left-0.5'}`} />
     </button>
   );
@@ -108,10 +108,10 @@ function Drawer({ title, onClose, children }: { title: string; onClose: () => vo
   }, [onClose]);
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={title}>
-      <button aria-label="Close" className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative h-full w-full max-w-xl overflow-y-auto border-l border-white/10 bg-[#0b0d12] p-6 space-y-5 shadow-2xl">
+      <button aria-label="Close" className="absolute inset-0 bg-surface-2" onClick={onClose} />
+      <div className="relative h-full w-full max-w-xl overflow-y-auto border-l border-line bg-surface p-6 space-y-5 shadow-pop">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">{title}</h2>
+          <h2 className="text-sm font-semibold text-fg">{title}</h2>
           <button onClick={onClose} className={btnGhost}>Close</button>
         </div>
         {children}
@@ -121,16 +121,16 @@ function Drawer({ title, onClose, children }: { title: string; onClose: () => vo
 }
 
 function LoadState({ loading, error, empty, reload, emptyText }: { loading: boolean; error?: string; empty: boolean; reload: () => void; emptyText: string }) {
-  if (loading && empty) return <p className="text-xs text-gray-500 animate-pulse text-center py-12">Loading…</p>;
+  if (loading && empty) return <p className="text-xs text-fg-muted animate-pulse text-center py-12">Loading…</p>;
   if (error && empty) {
     return (
       <div className="text-center py-12">
-        <p className="text-xs text-red-400 font-bold">{error}</p>
+        <p className="text-xs text-danger-text font-semibold">{error}</p>
         <button onClick={reload} className={`mt-3 ${btnGhost}`}>Try again</button>
       </div>
     );
   }
-  if (empty) return <p className="text-xs text-gray-500 text-center py-12">{emptyText}</p>;
+  if (empty) return <p className="text-xs text-fg-muted text-center py-12">{emptyText}</p>;
   return null;
 }
 
@@ -161,15 +161,15 @@ function UserPicker({ onPick, placeholder }: { onPick: (u: UserHit) => void; pla
         <input className={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder || 'Name, phone or email'} maxLength={64} />
         <button type="submit" disabled={busy} className={btnGhost}>{busy ? '…' : 'Find'}</button>
       </form>
-      {err && <p className="text-[10px] text-amber-400">{err}</p>}
+      {err && <p className="text-xs text-warning-text">{err}</p>}
       {hits.length > 0 && (
-        <ul className="rounded-xl border border-white/10 divide-y divide-white/5">
+        <ul className="rounded-xl border border-line divide-y divide-line">
           {hits.map((u) => (
             <li key={u.id}>
-              <button type="button" onClick={() => { onPick(u); setHits([]); setQ(''); }} className="w-full text-left px-3 py-2 hover:bg-white/5">
-                <span className="text-xs font-bold text-white">{u.name || 'Unnamed'}</span>
-                <span className="ml-2 text-[10px] text-gray-500">{u.email || u.phone || ''}</span>
-                <span className="ml-2 text-[10px] font-mono text-gray-600">{shortId(u.id)}</span>
+              <button type="button" onClick={() => { onPick(u); setHits([]); setQ(''); }} className="w-full text-left px-3 py-2 hover:bg-surface-2/60">
+                <span className="text-xs font-semibold text-fg">{u.name || 'Unnamed'}</span>
+                <span className="ml-2 text-xs text-fg-muted">{u.email || u.phone || ''}</span>
+                <span className="ml-2 text-xs font-mono text-fg-subtle">{shortId(u.id)}</span>
               </button>
             </li>
           ))}
@@ -314,7 +314,7 @@ export default function PulseAdminPage() {
     }, 'Whisper import finished.', [loadOverview]);
   };
 
-  if (!isAuthed) return <div className="p-20 text-center font-black text-white uppercase tracking-widest animate-pulse">Checking access…</div>;
+  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
 
   const TABS: Array<{ id: Tab; label: string; count?: number }> = [
     { id: 'overview', label: 'Overview' },
@@ -327,16 +327,16 @@ export default function PulseAdminPage() {
     <div className="space-y-8 animate-fade-in relative pb-16">
       <div className="flex flex-wrap gap-4 items-end justify-between">
         <div>
-          <Link href="/friends" className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white">← Friends config</Link>
-          <h1 className="text-3xl font-black tracking-tighter text-white uppercase mt-1">Pulse admin</h1>
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">Activity, held posts, verified entities and badges</p>
+          <Link href="/friends" className="text-xs font-semibold text-fg-muted hover:text-fg">← Friends config</Link>
+          <h1 className="text-3xl font-semibold text-fg mt-1">Pulse admin</h1>
+          <p className="text-xs font-semibold text-fg-muted mt-1">Activity, held posts, verified entities and badges</p>
         </div>
         <div className="flex flex-wrap gap-2 items-end">
           <div>
             <span className={label}>Campus</span>
             <select className={`${input} min-w-[200px]`} value={campusId} onChange={(e) => setCampusId(e.target.value)} aria-label="Campus">
               {campuses.length === 0 && <option value="">No active campuses</option>}
-              {campuses.map((c) => <option key={c.id} value={c.id} className="bg-[#0b0d12]">{c.name} ({c.code})</option>)}
+              {campuses.map((c) => <option key={c.id} value={c.id} className="bg-surface">{c.name} ({c.code})</option>)}
             </select>
           </div>
           <Link href="/moderation" className={btnGhost}>Reports queue</Link>
@@ -344,18 +344,18 @@ export default function PulseAdminPage() {
       </div>
 
       {notice && (
-        <div role="status" className={`rounded-2xl border px-4 py-3 text-xs font-bold flex items-center justify-between gap-4 ${notice.kind === 'ok' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300' : 'border-red-500/20 bg-red-500/10 text-red-300'}`}>
+        <div role="status" className={`rounded-lg border px-4 py-3 text-xs font-semibold flex items-center justify-between gap-4 ${notice.kind === 'ok' ? 'border-success/30 bg-success-soft text-success-text' : 'border-danger/30 bg-danger-soft text-danger-text'}`}>
           <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-[10px] font-black uppercase opacity-70 hover:opacity-100">Dismiss</button>
+          <button onClick={() => setNotice(null)} className="text-xs font-semibold opacity-70 hover:opacity-100">Dismiss</button>
         </div>
       )}
 
       <div className="flex flex-wrap gap-2" role="tablist">
         {TABS.map((t) => (
           <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
-            className={`${btn} border ${tab === t.id ? 'border-blue-500/40 bg-blue-500/15 text-blue-200' : 'border-white/10 bg-white/5 text-gray-400 hover:text-white'}`}>
+            className={`${btn} border ${tab === t.id ? 'border-info/30 bg-info-soft text-info-text' : 'border-line bg-surface-2/60 text-fg-muted hover:text-fg'}`}>
             {t.label}
-            {!!t.count && <span className="ml-2 rounded-md bg-amber-500/20 px-1.5 py-0.5 text-amber-200">{t.count}</span>}
+            {!!t.count && <span className="ml-2 rounded-md bg-warning-soft px-1.5 py-0.5 text-warning-text">{t.count}</span>}
           </button>
         ))}
       </div>
@@ -363,7 +363,7 @@ export default function PulseAdminPage() {
       {tab === 'badges' ? (
         <BadgesTab busy={busy} act={act} />
       ) : !campusId ? (
-        <p className="text-xs text-gray-500 text-center py-16">Pick a campus to manage Pulse.</p>
+        <p className="text-xs text-fg-muted text-center py-16">Pick a campus to manage Pulse.</p>
       ) : tab === 'overview' ? (
         <OverviewTab stats={stats} trends={trends} loading={ovLoading} error={ovErr} reload={loadOverview}
           busy={busy} runBackfill={runBackfill} backfill={backfill} openHeld={() => { setPStatus('pending_review'); setTab('posts'); }} />
@@ -385,9 +385,9 @@ export default function PulseAdminPage() {
 
 function Stat({ k, v, tone }: { k: string; v: number | string; tone?: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{k}</p>
-      <p className={`text-2xl font-black mt-1 ${tone || 'text-white'}`}>{v}</p>
+    <div className="rounded-lg border border-line bg-surface-2/60 p-4">
+      <p className="text-xs font-semibold text-fg-muted">{k}</p>
+      <p className={`text-2xl font-semibold mt-1 ${tone || 'text-fg'}`}>{v}</p>
     </div>
   );
 }
@@ -400,7 +400,7 @@ function OverviewTab({ stats, trends, loading, error, reload, busy, runBackfill,
     <div className="space-y-6">
       <section className={card}>
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">Last 24 hours</h2>
+          <h2 className="text-sm font-semibold text-fg">Last 24 hours</h2>
           <button onClick={reload} disabled={loading} className={btnGhost}>{loading ? '…' : 'Refresh'}</button>
         </div>
         {!stats ? (
@@ -414,31 +414,31 @@ function OverviewTab({ stats, trends, loading, error, reload, busy, runBackfill,
               <Stat k="Active people" v={stats.activeAuthors24h} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <button onClick={openHeld} className="text-left rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 hover:border-amber-500/40">
-                <p className="text-[10px] font-black uppercase tracking-widest text-amber-300/80">Held for review (open)</p>
-                <p className="text-2xl font-black mt-1 text-amber-200">{stats.pendingReview}</p>
+              <button onClick={openHeld} className="text-left rounded-lg border border-warning/30 bg-warning-soft p-4 hover:border-warning/30">
+                <p className="text-xs font-semibold text-warning-text">Held for review (open)</p>
+                <p className="text-2xl font-semibold mt-1 text-warning-text">{stats.pendingReview}</p>
               </button>
-              <Stat k="Removed or hidden (all time)" v={stats.removedOrHidden} tone="text-red-300" />
-              <Stat k="Imported whispers" v={stats.importedWhispers} tone="text-blue-300" />
+              <Stat k="Removed or hidden (all time)" v={stats.removedOrHidden} tone="text-danger-text" />
+              <Stat k="Imported whispers" v={stats.importedWhispers} tone="text-info-text" />
             </div>
-            {error && <p className="text-[10px] text-red-400">{error}</p>}
+            {error && <p className="text-xs text-danger-text">{error}</p>}
           </>
         )}
       </section>
 
       <section className={card}>
         <div>
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">Trending now</h2>
-          <p className="text-[11px] text-gray-500 mt-1">Ranked by how many different people used the tag in the last 24 h (at least 2). Sanctioned authors and hidden posts are left out. Fresh, not cached.</p>
+          <h2 className="text-sm font-semibold text-fg">Trending now</h2>
+          <p className="text-xs text-fg-muted mt-1">Ranked by how many different people used the tag in the last 24 h (at least 2). Sanctioned authors and hidden posts are left out. Fresh, not cached.</p>
         </div>
         {trends.length === 0 ? (
-          <p className="text-xs text-gray-500 py-6 text-center">{loading ? 'Loading…' : 'Nothing is trending on this campus yet.'}</p>
+          <p className="text-xs text-fg-muted py-6 text-center">{loading ? 'Loading…' : 'Nothing is trending on this campus yet.'}</p>
         ) : (
-          <ol className="divide-y divide-white/5 rounded-2xl border border-white/10">
+          <ol className="divide-y divide-line rounded-lg border border-line">
             {trends.map((t) => (
               <li key={t.hashtagId} className="flex items-center justify-between px-4 py-3">
-                <span className="text-sm font-bold text-white"><span className="text-gray-500 font-mono mr-3">{t.rank}</span>#{t.tag}</span>
-                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{t.people} people · {t.posts} posts</span>
+                <span className="text-sm font-semibold text-fg"><span className="text-fg-muted font-mono mr-3">{t.rank}</span>#{t.tag}</span>
+                <span className="text-xs font-semibold text-fg-muted">{t.people} people · {t.posts} posts</span>
               </li>
             ))}
           </ol>
@@ -447,22 +447,22 @@ function OverviewTab({ stats, trends, loading, error, reload, busy, runBackfill,
 
       <section className={card}>
         <div>
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">Whisper import</h2>
-          <p className="text-[11px] text-gray-500 mt-1">
+          <h2 className="text-sm font-semibold text-fg">Whisper import</h2>
+          <p className="text-xs text-fg-muted mt-1">
             Old whispers become anonymous Pulse posts with their original date and text, a fresh alias, hearts as likes and the topic as a hashtag.
             It runs on every server start; run it here to pick up whispers posted from old app versions since then. Safe to repeat, and covers all campuses.
           </p>
         </div>
         <button onClick={runBackfill} disabled={busy} className={btnBlue}>{busy ? 'Working…' : 'Run whisper import'}</button>
         {backfill && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
             {([
               ['Scanned', backfill.scanned], ['Imported', backfill.imported], ['Already there', backfill.existing], ['Likes added', backfill.likes],
               ['No campus', backfill.skippedNoCampus], ['Author gone', backfill.skippedNoUser], ['Empty', backfill.skippedEmpty], ['Failed', backfill.failed],
             ] as Array<[string, number]>).map(([k, v]) => (
-              <div key={k} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
-                <span className="text-gray-500 font-bold uppercase tracking-wider text-[9px]">{k}</span>
-                <p className={`font-black ${k === 'Failed' && v > 0 ? 'text-red-300' : 'text-white'}`}>{v ?? 0}</p>
+              <div key={k} className="rounded-xl border border-line bg-surface-2/60 px-3 py-2">
+                <span className="text-fg-muted font-semibold text-xs">{k}</span>
+                <p className={`font-semibold ${k === 'Failed' && v > 0 ? 'text-danger-text' : 'text-fg'}`}>{v ?? 0}</p>
               </div>
             ))}
           </div>
@@ -475,9 +475,9 @@ function OverviewTab({ stats, trends, loading, error, reload, busy, runBackfill,
 // ── Posts ────────────────────────────────────────────────────────────────────
 
 function authorLine(a: Author) {
-  if (a.anonymous) return <span className="text-gray-300">{a.alias} <span className={`${chip} ml-1 text-violet-300 border-violet-500/30 bg-violet-500/10`}>anonymous</span></span>;
-  if (a.entity) return <span className="text-gray-200">{a.entity.name} <span className="text-gray-500">@{a.entity.handle}</span>{a.entity.verified && <span className={`${chip} ml-1 text-blue-300 border-blue-500/30 bg-blue-500/10`}>verified</span>}</span>;
-  return <span className="text-gray-200">{a.name || 'Former student'}{a.userId && <span className="ml-1 font-mono text-[10px] text-gray-600">{shortId(a.userId)}</span>}</span>;
+  if (a.anonymous) return <span className="text-fg-muted">{a.alias} <span className={`${chip} ml-1 text-accent-text border-accent/30 bg-accent-soft`}>anonymous</span></span>;
+  if (a.entity) return <span className="text-fg">{a.entity.name} <span className="text-fg-muted">@{a.entity.handle}</span>{a.entity.verified && <span className={`${chip} ml-1 text-info-text border-info/30 bg-info-soft`}>verified</span>}</span>;
+  return <span className="text-fg">{a.name || 'Former student'}{a.userId && <span className="ml-1 font-mono text-xs text-fg-subtle">{shortId(a.userId)}</span>}</span>;
 }
 
 function PostsTab({ items, loading, error, reload, more, status, setStatus, kind, setKind, anon, setAnon, q, setQ, applyQ, busy, act, afterAction, isFresh }: {
@@ -505,24 +505,24 @@ function PostsTab({ items, loading, error, reload, more, status, setStatus, kind
         <div>
           <span className={label}>Status</span>
           <select className={input} value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status">
-            <option value="" className="bg-[#0b0d12]">All but deleted</option>
-            {POST_STATUS.map((s) => <option key={s} value={s} className="bg-[#0b0d12]">{s.replace('_', ' ')}</option>)}
+            <option value="" className="bg-surface">All but deleted</option>
+            {POST_STATUS.map((s) => <option key={s} value={s} className="bg-surface">{s.replace('_', ' ')}</option>)}
           </select>
         </div>
         <div>
           <span className={label}>Kind</span>
           <select className={input} value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Kind">
-            <option value="" className="bg-[#0b0d12]">Posts and replies</option>
-            <option value="post" className="bg-[#0b0d12]">Posts</option>
-            <option value="reply" className="bg-[#0b0d12]">Replies</option>
+            <option value="" className="bg-surface">Posts and replies</option>
+            <option value="post" className="bg-surface">Posts</option>
+            <option value="reply" className="bg-surface">Replies</option>
           </select>
         </div>
         <div>
           <span className={label}>Author</span>
           <select className={input} value={anon} onChange={(e) => setAnon(e.target.value)} aria-label="Anonymous filter">
-            <option value="" className="bg-[#0b0d12]">Anyone</option>
-            <option value="true" className="bg-[#0b0d12]">Anonymous only</option>
-            <option value="false" className="bg-[#0b0d12]">Named only</option>
+            <option value="" className="bg-surface">Anyone</option>
+            <option value="true" className="bg-surface">Anonymous only</option>
+            <option value="false" className="bg-surface">Named only</option>
           </select>
         </div>
         <form className="flex gap-2 flex-1 min-w-[220px]" onSubmit={(e) => { e.preventDefault(); applyQ(); }}>
@@ -534,42 +534,42 @@ function PostsTab({ items, loading, error, reload, more, status, setStatus, kind
         </form>
         <button onClick={reload} disabled={loading} className={`${btnGhost} self-end`}>{loading ? '…' : 'Refresh'}</button>
       </div>
-      <p className="text-[10px] text-gray-500">Anonymous authors stay hidden here. To reveal one, open the report in the moderation queue (needs a reason, logged).</p>
+      <p className="text-xs text-fg-muted">Anonymous authors stay hidden here. To reveal one, open the report in the moderation queue (needs a reason, logged).</p>
 
       <LoadState loading={loading} error={error} empty={items.length === 0} reload={reload} emptyText="No posts match these filters." />
 
       <ul className="space-y-3">
         {items.map((p) => (
-          <li key={p.id} className={`rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-3 ${isFresh(p.id) ? FRESH_ROW_CLASS : ''}`}>
+          <li key={p.id} className={`rounded-lg border border-line bg-surface-2/60 p-4 space-y-3 ${isFresh(p.id) ? FRESH_ROW_CLASS : ''}`}>
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <StatusChip s={p.status} />
-              <span className={`${chip} text-gray-300 border-white/10 bg-white/5`}>{p.kind}</span>
-              {p.imported && <span className={`${chip} text-blue-300 border-blue-500/30 bg-blue-500/10`}>whisper</span>}
-              {p.openReports > 0 && <span className={`${chip} text-red-300 border-red-500/30 bg-red-500/10`}>{p.openReports} open report{p.openReports > 1 ? 's' : ''}</span>}
-              <span className="ml-auto text-[10px] text-gray-500">{fmt(p.createdAt)}{p.editedAt ? ' · edited' : ''}</span>
+              <span className={`${chip} text-fg-muted border-line bg-surface-2/60`}>{p.kind}</span>
+              {p.imported && <span className={`${chip} text-info-text border-info/30 bg-info-soft`}>whisper</span>}
+              {p.openReports > 0 && <span className={`${chip} text-danger-text border-danger/30 bg-danger-soft`}>{p.openReports} open report{p.openReports > 1 ? 's' : ''}</span>}
+              <span className="ml-auto text-xs text-fg-muted">{fmt(p.createdAt)}{p.editedAt ? ' · edited' : ''}</span>
             </div>
-            <p className="text-[11px]">{authorLine(p.author)}</p>
-            <p className="text-sm text-gray-100 whitespace-pre-wrap break-words">{p.text || <span className="text-gray-500 italic">(no text)</span>}</p>
+            <p className="text-xs">{authorLine(p.author)}</p>
+            <p className="text-sm text-fg whitespace-pre-wrap break-words">{p.text || <span className="text-fg-muted">(no text)</span>}</p>
             {p.media.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {p.media.map((m) => m.url ? (
                   <a key={m.mediaId} href={m.url} target="_blank" rel="noreferrer noopener">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={m.url} alt="Post image" className="h-20 w-20 rounded-xl object-cover border border-white/10" />
+                    <img src={m.url} alt="Post image" className="h-20 w-20 rounded-xl object-cover border border-line" />
                   </a>
-                ) : <span key={m.mediaId} className="text-[10px] text-gray-500">image unavailable</span>)}
+                ) : <span key={m.mediaId} className="text-xs text-fg-muted">image unavailable</span>)}
               </div>
             )}
-            {p.link && <p className="text-[11px] text-blue-300 break-all">Link: {p.link.host} <span className="text-gray-500">({p.link.url})</span></p>}
+            {p.link && <p className="text-xs text-info-text break-all">Link: {p.link.host} <span className="text-fg-muted">({p.link.url})</span></p>}
             {p.poll && (
-              <div className="text-[11px] text-gray-300 space-y-1">
-                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Poll · {p.poll.closed ? 'closed' : `closes ${fmt(p.poll.closesAt)}`}</p>
+              <div className="text-xs text-fg-muted space-y-1">
+                <p className="text-xs font-semibold text-fg-muted">Poll · {p.poll.closed ? 'closed' : `closes ${fmt(p.poll.closesAt)}`}</p>
                 {p.poll.options.map((o) => <p key={o.idx}>{o.label}{o.votes != null ? ` · ${o.votes}` : ''}</p>)}
               </div>
             )}
-            {p.removedReason && <p className="text-[11px] text-red-300">Reason: {p.removedReason}</p>}
+            {p.removedReason && <p className="text-xs text-danger-text">Reason: {p.removedReason}</p>}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] text-gray-500 mr-auto">
+              <span className="text-xs text-fg-muted mr-auto">
                 {p.likeCount} likes · {p.replyCount} replies · {p.repostCount} reposts{p.hashtags.length ? ` · ${p.hashtags.map((h) => `#${h}`).join(' ')}` : ''}
               </span>
               {p.status === 'pending_review' && <button disabled={busy} onClick={() => moderate(p, 'approve')} className={btnGo}>Approve</button>}
@@ -651,8 +651,8 @@ function EntitiesTab({ campusId, items, loading, error, reload, q, setQ, busy, a
     <section className={card}>
       <div className="flex flex-wrap gap-3 items-end justify-between">
         <div>
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">Verified entities</h2>
-          <p className="text-[11px] text-gray-500 mt-1 max-w-2xl">Clubs, departments, vendors and official accounts. Their managers can post as them in Pulse once the entity is active and verified. Anonymous posts can never be posted as an entity.</p>
+          <h2 className="text-sm font-semibold text-fg">Verified entities</h2>
+          <p className="text-xs text-fg-muted mt-1 max-w-2xl">Clubs, departments, vendors and official accounts. Their managers can post as them in Pulse once the entity is active and verified. Anonymous posts can never be posted as an entity.</p>
         </div>
         <div className="flex gap-2 items-end">
           <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); setQ(qDraft); }}>
@@ -669,7 +669,7 @@ function EntitiesTab({ campusId, items, loading, error, reload, q, setQ, busy, a
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="text-[10px] uppercase tracking-widest text-gray-500">
+              <tr className="text-xs text-fg-muted">
                 <th className="py-2 pr-3">Entity</th><th className="py-2 pr-3">Type</th><th className="py-2 pr-3">Managers</th><th className="py-2 pr-3">State</th><th className="py-2" />
               </tr>
             </thead>
@@ -680,21 +680,21 @@ function EntitiesTab({ campusId, items, loading, error, reload, q, setQ, busy, a
                     <div className="flex items-center gap-3">
                       {e.avatarUrl
                         // eslint-disable-next-line @next/next/no-img-element
-                        ? <img src={e.avatarUrl} alt="" className="h-9 w-9 rounded-xl object-cover border border-white/10" />
-                        : <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 font-black">{e.name.slice(0, 1)}</div>}
+                        ? <img src={e.avatarUrl} alt="" className="h-9 w-9 rounded-xl object-cover border border-line" />
+                        : <div className="h-9 w-9 rounded-xl bg-surface-2/60 border border-line flex items-center justify-center text-fg-muted font-semibold">{e.name.slice(0, 1)}</div>}
                       <div>
-                        <p className="font-bold text-white">{e.name}</p>
-                        <p className="text-[10px] text-gray-500">@{e.handle}</p>
+                        <p className="font-semibold text-fg">{e.name}</p>
+                        <p className="text-xs text-fg-muted">@{e.handle}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 pr-3 text-gray-300">{ENTITY_TYPE_LABEL[e.type] || e.type}</td>
-                  <td className="py-3 pr-3 text-gray-400">{e.managerIds.length}</td>
+                  <td className="py-3 pr-3 text-fg-muted">{ENTITY_TYPE_LABEL[e.type] || e.type}</td>
+                  <td className="py-3 pr-3 text-fg-muted">{e.managerIds.length}</td>
                   <td className="py-3 pr-3 space-x-1">
                     <StatusChip s={e.status} />
                     {e.verified
-                      ? <span className={`${chip} text-blue-300 border-blue-500/30 bg-blue-500/10`}>verified</span>
-                      : <span className={`${chip} text-gray-400 border-white/10 bg-white/5`}>unverified</span>}
+                      ? <span className={`${chip} text-info-text border-info/30 bg-info-soft`}>verified</span>
+                      : <span className={`${chip} text-fg-muted border-line bg-surface-2/60`}>unverified</span>}
                   </td>
                   <td className="py-3 text-right whitespace-nowrap space-x-2">
                     <button disabled={busy} onClick={() => quick(e, { verified: !e.verified }, e.verified ? 'Verification removed.' : 'Verified.')} className={btnGhost}>
@@ -719,7 +719,7 @@ function EntitiesTab({ campusId, items, loading, error, reload, q, setQ, busy, a
             <div>
               <span className={label}>Type</span>
               <select className={input} value={draft.type} onChange={(e) => set('type', e.target.value as EntityType)} aria-label="Type">
-                {ENTITY_TYPES.map((t) => <option key={t} value={t} className="bg-[#0b0d12]">{ENTITY_TYPE_LABEL[t]}</option>)}
+                {ENTITY_TYPES.map((t) => <option key={t} value={t} className="bg-surface">{ENTITY_TYPE_LABEL[t]}</option>)}
               </select>
             </div>
             <div>
@@ -740,38 +740,38 @@ function EntitiesTab({ campusId, items, loading, error, reload, q, setQ, busy, a
             <div className="flex items-center gap-3">
               {draft.avatarUrl
                 // eslint-disable-next-line @next/next/no-img-element
-                ? <img src={draft.avatarUrl} alt="" className="h-14 w-14 rounded-2xl object-cover border border-white/10" />
-                : <div className="h-14 w-14 rounded-2xl bg-white/5 border border-white/10" />}
+                ? <img src={draft.avatarUrl} alt="" className="h-14 w-14 rounded-lg object-cover border border-line" />
+                : <div className="h-14 w-14 rounded-lg bg-surface-2/60 border border-line" />}
               <label className={`${btnGhost} cursor-pointer`}>
                 {uploading ? 'Uploading…' : 'Upload'}
                 <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={uploading} onChange={(e) => { onAvatar(e.target.files?.[0]); e.target.value = ''; }} />
               </label>
               {draft.avatarUrl && <button type="button" onClick={() => set('avatarUrl', '')} className={btnGhost}>Clear</button>}
             </div>
-            {uploadErr && <p className="text-[10px] text-red-400">{uploadErr}</p>}
+            {uploadErr && <p className="text-xs text-danger-text">{uploadErr}</p>}
           </div>
-          <div className="flex items-center justify-between rounded-2xl border border-white/10 p-3">
+          <div className="flex items-center justify-between rounded-lg border border-line p-3">
             <div>
-              <p className="text-xs font-bold text-white">Verified</p>
-              <p className="text-[10px] text-gray-500">Only verified, active entities can be posted as and show the badge.</p>
+              <p className="text-xs font-semibold text-fg">Verified</p>
+              <p className="text-xs text-fg-muted">Only verified, active entities can be posted as and show the badge.</p>
             </div>
             <Toggle checked={draft.verified} onChange={(v) => set('verified', v)} labelText="Verified" />
           </div>
-          <div className="flex items-center justify-between rounded-2xl border border-white/10 p-3">
+          <div className="flex items-center justify-between rounded-lg border border-line p-3">
             <div>
-              <p className="text-xs font-bold text-white">Active</p>
-              <p className="text-[10px] text-gray-500">A disabled entity cannot post and is hidden from pickers.</p>
+              <p className="text-xs font-semibold text-fg">Active</p>
+              <p className="text-xs text-fg-muted">A disabled entity cannot post and is hidden from pickers.</p>
             </div>
             <Toggle checked={draft.status === 'active'} onChange={(v) => set('status', v ? 'active' : 'disabled')} labelText="Active" />
           </div>
           <div className="space-y-2">
             <span className={label}>Managers ({draft.managers.length}/20) · verified students of this campus</span>
             {draft.managers.length > 0 && (
-              <ul className="rounded-xl border border-white/10 divide-y divide-white/5">
+              <ul className="rounded-xl border border-line divide-y divide-line">
                 {draft.managers.map((m) => (
                   <li key={m.id} className="flex items-center justify-between px-3 py-2">
-                    <span className="text-xs text-white">{m.name || 'Manager'} <span className="ml-1 font-mono text-[10px] text-gray-500">{shortId(m.id)}</span></span>
-                    <button type="button" onClick={() => set('managers', draft.managers.filter((x) => x.id !== m.id))} className="text-[10px] font-black uppercase text-red-300 hover:text-red-200">Remove</button>
+                    <span className="text-xs text-fg">{m.name || 'Manager'} <span className="ml-1 font-mono text-xs text-fg-muted">{shortId(m.id)}</span></span>
+                    <button type="button" onClick={() => set('managers', draft.managers.filter((x) => x.id !== m.id))} className="text-xs font-semibold text-danger-text hover:text-danger-text">Remove</button>
                   </li>
                 ))}
               </ul>
@@ -782,9 +782,9 @@ function EntitiesTab({ campusId, items, loading, error, reload, q, setQ, busy, a
                 set('managers', [...draft.managers, { id: u.id, name: u.name || '' }]);
               }} />
             )}
-            <p className="text-[10px] text-gray-500">The server refuses anyone who is not a verified student of this campus.</p>
+            <p className="text-xs text-fg-muted">The server refuses anyone who is not a verified student of this campus.</p>
           </div>
-          {errors.length > 0 && <ul className="text-[10px] text-amber-400 list-disc pl-4">{errors.map((e) => <li key={e}>{e}</li>)}</ul>}
+          {errors.length > 0 && <ul className="text-xs text-warning-text list-disc pl-4">{errors.map((e) => <li key={e}>{e}</li>)}</ul>}
           <div className="flex justify-end gap-2">
             <button onClick={close} className={btnGhost}>Cancel</button>
             <button onClick={save} disabled={busy || uploading || errors.length > 0} className={btnGo}>{busy ? 'Saving…' : 'Save'}</button>
@@ -827,16 +827,16 @@ function BadgesTab({ busy, act }: { busy: boolean; act: Act }) {
     <div className="space-y-6">
       <section className={card}>
         <div>
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">Grant a badge</h2>
-          <p className="text-[11px] text-gray-500 mt-1">Badges show on a student&apos;s identity across Friends. Forum badges are also earned automatically from karma; granting one that the student already has changes nothing. Every grant and revoke is logged.</p>
+          <h2 className="text-sm font-semibold text-fg">Grant a badge</h2>
+          <p className="text-xs text-fg-muted mt-1">Badges show on a student&apos;s identity across Friends. Forum badges are also earned automatically from karma; granting one that the student already has changes nothing. Every grant and revoke is logged.</p>
         </div>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <span className={label}>Student</span>
             {user ? (
-              <div className="flex items-center justify-between rounded-xl border border-white/10 px-3 py-2">
-                <span className="text-xs text-white">{user.name || 'Unnamed'} <span className="ml-1 text-[10px] text-gray-500">{user.email || user.phone || ''}</span></span>
-                <button onClick={() => setUser(null)} className="text-[10px] font-black uppercase text-gray-400 hover:text-white">Change</button>
+              <div className="flex items-center justify-between rounded-xl border border-line px-3 py-2">
+                <span className="text-xs text-fg">{user.name || 'Unnamed'} <span className="ml-1 text-xs text-fg-muted">{user.email || user.phone || ''}</span></span>
+                <button onClick={() => setUser(null)} className="text-xs font-semibold text-fg-muted hover:text-fg">Change</button>
               </div>
             ) : <UserPicker onPick={setUser} />}
           </div>
@@ -844,34 +844,34 @@ function BadgesTab({ busy, act }: { busy: boolean; act: Act }) {
             <span className={label}>Badge code</span>
             <input className={input} list="pulse-badge-codes" value={code} onChange={(e) => setCode(e.target.value.toLowerCase())} maxLength={40} placeholder="e.g. top_contributor" />
             <datalist id="pulse-badge-codes">{KNOWN_BADGES.map((b) => <option key={b} value={b} />)}</datalist>
-            <p className="text-[10px] text-gray-500">3-40 lower-case letters or _. The app shows labels for: {KNOWN_BADGES.join(', ')}.</p>
-            {code && !codeOk && <p className="text-[10px] text-amber-400">Use only lower-case letters and _ (3-40).</p>}
+            <p className="text-xs text-fg-muted">3-40 lower-case letters or _. The app shows labels for: {KNOWN_BADGES.join(', ')}.</p>
+            {code && !codeOk && <p className="text-xs text-warning-text">Use only lower-case letters and _ (3-40).</p>}
           </div>
         </div>
         <button onClick={grant} disabled={busy || !user || !codeOk} className={btnGo}>Grant badge</button>
       </section>
 
       <section className={card}>
-        <h2 className="text-sm font-black uppercase tracking-widest text-white">Granted in this session</h2>
+        <h2 className="text-sm font-semibold text-fg">Granted in this session</h2>
         {granted.length === 0 ? (
-          <p className="text-xs text-gray-500">Nothing yet.</p>
+          <p className="text-xs text-fg-muted">Nothing yet.</p>
         ) : (
-          <ul className="rounded-xl border border-white/10 divide-y divide-white/5">
+          <ul className="rounded-xl border border-line divide-y divide-line">
             {granted.map((b) => (
               <li key={b.id} className="flex items-center justify-between px-3 py-2 gap-3">
-                <span className="text-xs text-white">
+                <span className="text-xs text-fg">
                   {b.userName} · <span className="font-mono">{b.code}</span>
-                  {b.duplicate && <span className="ml-2 text-[10px] text-gray-500">(already had it)</span>}
-                  <span className="ml-2 font-mono text-[10px] text-gray-600">{shortId(b.id)}</span>
+                  {b.duplicate && <span className="ml-2 text-xs text-fg-muted">(already had it)</span>}
+                  <span className="ml-2 font-mono text-xs text-fg-subtle">{shortId(b.id)}</span>
                 </span>
                 {b.revoked
-                  ? <span className={`${chip} text-gray-400 border-white/10 bg-white/5`}>revoked</span>
+                  ? <span className={`${chip} text-fg-muted border-line bg-surface-2/60`}>revoked</span>
                   : <button disabled={busy} onClick={() => revoke(b.id, `"${b.code}" from ${b.userName}`)} className={btnWarn}>Revoke</button>}
               </li>
             ))}
           </ul>
         )}
-        <p className="text-[10px] text-gray-500">
+        <p className="text-xs text-fg-muted">
           To take away a badge granted earlier, grant the same code to that student again: it shows up here as &quot;already had it&quot; and can be revoked.
         </p>
       </section>

@@ -39,26 +39,26 @@ export default function EventsTab({ tick, onChanged, bucket, setBucket }: { tick
         <Select name="Category" value={category} onChange={setCategory} options={[{ value: '', label: 'Any' }, ...CATEGORIES.map((c) => ({ value: c, label: catLabel(c) }))]} />
         <Select name="Club" value={club} onChange={setClub} options={[{ value: '', label: 'Any' }, ...clubs]} />
         <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); setQuery(q.trim()); }}>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title" maxLength={60} className="w-48 border border-white/10 bg-[#111318] p-2 text-sm text-white" aria-label="Search title" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title" maxLength={60} className="w-48 border border-line bg-surface p-2 text-sm text-fg" aria-label="Search title" />
           <Btn type="submit">Search</Btn>
           {query && <Btn onClick={() => { setQ(''); setQuery(''); }}>Clear</Btn>}
         </form>
       </Toolbar>
       {error && <ErrorBox text={error} retry={reload} />}
       {loading && !data ? <Loading text="Loading events…" /> : rows.length === 0 ? <Empty text={category || club || query ? 'No events match these filters.' : 'No events in this view yet.'} /> : (
-        <div className="overflow-x-auto border border-white/10">
+        <div className="overflow-x-auto border border-line">
           <table className="w-full text-left text-sm">
-            <thead className="bg-white/[0.03] text-xs uppercase tracking-wider text-gray-400"><tr><th className="p-3">Event</th><th className="p-3">Organizer</th><th className="p-3">When</th><th className="p-3">Price</th><th className="p-3">Places</th><th className="p-3">Registration</th><th className="p-3">Status</th></tr></thead>
+            <thead className="bg-surface-2/60 text-xs text-fg-muted"><tr><th className="p-3">Event</th><th className="p-3">Organizer</th><th className="p-3">When</th><th className="p-3">Price</th><th className="p-3">Places</th><th className="p-3">Registration</th><th className="p-3">Status</th></tr></thead>
             <tbody className="divide-y divide-white/10">
               {rows.map((ev) => (
-                <tr key={ev.id} className="cursor-pointer align-top hover:bg-white/[0.03]" onClick={() => setOpenId(ev.id)}>
-                  <td className="p-3"><button type="button" className="text-left font-bold text-sky-200 underline-offset-2 hover:underline" onClick={() => setOpenId(ev.id)}>{ev.featured ? '★ ' : ''}{ev.title}</button><span className="block text-xs text-gray-500">{catLabel(ev.category)} · {label(ev.format)}</span></td>
-                  <td className="p-3 text-xs">{ev.organizer?.name || ev.organizerName || '—'}{ev.organizer?.club && <span className="block text-gray-500">{ev.organizer.club.name}{ev.organizer.club.verified ? ' ✓' : ''}</span>}</td>
+                <tr key={ev.id} className="cursor-pointer align-top hover:bg-surface-2/60" onClick={() => setOpenId(ev.id)}>
+                  <td className="p-3"><button type="button" className="text-left font-semibold text-info-text underline-offset-2 hover:underline" onClick={() => setOpenId(ev.id)}>{ev.featured ? '★ ' : ''}{ev.title}</button><span className="block text-xs text-fg-muted">{catLabel(ev.category)} · {label(ev.format)}</span></td>
+                  <td className="p-3 text-xs">{ev.organizer?.name || ev.organizerName || '—'}{ev.organizer?.club && <span className="block text-fg-muted">{ev.organizer.club.name}{ev.organizer.club.verified ? ' ✓' : ''}</span>}</td>
                   <td className="whitespace-nowrap p-3 text-xs">{when(ev.startAt)}</td>
                   <td className="p-3 text-xs">{ev.price.label}</td>
                   <td className="p-3 text-xs tabular-nums">{ev.format === 'SLOT' ? `${ev.slotsAvailable ?? '—'} slot(s) open` : `${ev.counters.confirmed} / ${ev.capacity.capacity ?? '—'}${ev.counters.waitlist ? ` · ${ev.counters.waitlist} waiting` : ''}`}</td>
                   <td className="p-3"><Pill s={ev.registrationState} /></td>
-                  <td className="p-3"><Pill s={ev.status} />{ev.pendingChanges && <span className="mt-1 block text-xs text-amber-300">changes waiting</span>}</td>
+                  <td className="p-3"><Pill s={ev.status} />{ev.pendingChanges && <span className="mt-1 block text-xs text-warning-text">changes waiting</span>}</td>
                 </tr>
               ))}
             </tbody>
@@ -99,7 +99,7 @@ export function EventDetailPanel({ id, tick, onChanged, back }: { id: string; ti
     <section className="space-y-4" aria-label={`Event ${ev.title}`}>
       <div className="flex flex-wrap items-center gap-2">
         <Btn onClick={back}>← Back to events</Btn>
-        <span className="font-mono text-xs text-gray-500">#{short(ev.id)} · v{ev.version}</span>
+        <span className="font-mono text-xs text-fg-muted">#{short(ev.id)} · v{ev.version}</span>
         <div className="ml-auto flex flex-wrap gap-2">
           {!closed && <Btn onClick={() => setEditing((x) => !x)}>{editing ? 'Close editor' : 'Edit (audited)'}</Btn>}
           {!closed && <Btn onClick={() => setAct(ev.featured ? 'unfeature' : 'feature')}>{ev.featured ? 'Unfeature' : '★ Feature'}</Btn>}
@@ -109,9 +109,9 @@ export function EventDetailPanel({ id, tick, onChanged, back }: { id: string; ti
         </div>
       </div>
       <Msg msg={msg} />
-      {ev.status === 'SUBMITTED' && <p className="border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-200">Waiting for review: approve, reject or send back from the Review queue tab.</p>}
-      {ev.pendingChanges && <p className="border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-200">The organizer asked for changes; review them in the Review queue tab.</p>}
-      {ev.cancelReason && <p className="border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-200">Cancelled {when(ev.cancelledAt)}: {ev.cancelReason}</p>}
+      {ev.status === 'SUBMITTED' && <p className="border border-warning/30 bg-warning-soft p-3 text-sm text-warning-text">Waiting for review: approve, reject or send back from the Review queue tab.</p>}
+      {ev.pendingChanges && <p className="border border-warning/30 bg-warning-soft p-3 text-sm text-warning-text">The organizer asked for changes; review them in the Review queue tab.</p>}
+      {ev.cancelReason && <p className="border border-danger/30 bg-danger-soft p-3 text-sm text-danger-text">Cancelled {when(ev.cancelledAt)}: {ev.cancelReason}</p>}
       {ev.reviewNote && <KV k="Last review note" v={ev.reviewNote} />}
       {ev.rejectionReason && <KV k="Rejection reason" v={ev.rejectionReason} />}
 
@@ -129,20 +129,20 @@ export function EventDetailPanel({ id, tick, onChanged, back }: { id: string; ti
       <Section title="Event (student view)"><EventPreview ev={ev} slots={slots} /></Section>
 
       <Section title={`Check-in staff (${staff.length})`}>
-        {staff.length ? <ul className="space-y-1 text-sm">{staff.map((s) => <li key={s.id}>{s.name} <span className="text-xs text-gray-500">· since {when(s.createdAt)}</span></li>)}</ul> : <p className="text-sm text-gray-500">Only the organizer and admins can check in. Grant staff in the Check-in staff tab.</p>}
+        {staff.length ? <ul className="space-y-1 text-sm">{staff.map((s) => <li key={s.id}>{s.name} <span className="text-xs text-fg-muted">· since {when(s.createdAt)}</span></li>)}</ul> : <p className="text-sm text-fg-muted">Only the organizer and admins can check in. Grant staff in the Check-in staff tab.</p>}
       </Section>
 
       <Section title="Status breakdown">
-        <div className="flex flex-wrap gap-2 text-xs">{Object.entries(stats.byStatus).length ? Object.entries(stats.byStatus).map(([k, n]) => <span key={k} className="border border-white/10 px-2 py-1"><Pill s={k} /> <b className="ml-1">{n}</b></span>) : <span className="text-gray-500">No registrations yet.</span>}</div>
-        {live && <p className="mt-2 text-xs text-gray-500">Live counters: {ev.counters.unitsLive} place(s) taken, {ev.counters.confirmed} confirmed.</p>}
+        <div className="flex flex-wrap gap-2 text-xs">{Object.entries(stats.byStatus).length ? Object.entries(stats.byStatus).map(([k, n]) => <span key={k} className="border border-line px-2 py-1"><Pill s={k} /> <b className="ml-1">{n}</b></span>) : <span className="text-fg-muted">No registrations yet.</span>}</div>
+        {live && <p className="mt-2 text-xs text-fg-muted">Live counters: {ev.counters.unitsLive} place(s) taken, {ev.counters.confirmed} confirmed.</p>}
       </Section>
 
       <Section title="Audit history">
         {audit.error && <ErrorBox text={audit.error} retry={audit.reload} />}
-        {audit.loading && !audit.data ? <Loading text="Loading history…" /> : !(audit.data?.audit.length) ? <p className="text-sm text-gray-500">No history recorded.</p> : (
+        {audit.loading && !audit.data ? <Loading text="Loading history…" /> : !(audit.data?.audit.length) ? <p className="text-sm text-fg-muted">No history recorded.</p> : (
           <ul className="space-y-1 text-sm">
             {audit.data.audit.map((a) => (
-              <li key={a.id} className="flex flex-wrap gap-x-3"><span className="w-44 shrink-0 text-xs text-gray-500">{when(a.at)}</span><span className="font-bold">{label(a.action.replace(/\./g, ' '))}</span><span className="text-xs text-gray-400">{a.actorRole || 'system'}{a.actorUserId ? ` #${short(a.actorUserId)}` : ''}</span>{a.details ? <code className="break-all text-[11px] text-gray-500">{JSON.stringify(a.details)}</code> : null}</li>
+              <li key={a.id} className="flex flex-wrap gap-x-3"><span className="w-44 shrink-0 text-xs text-fg-muted">{when(a.at)}</span><span className="font-semibold">{label(a.action.replace(/\./g, ' '))}</span><span className="text-xs text-fg-muted">{a.actorRole || 'system'}{a.actorUserId ? ` #${short(a.actorUserId)}` : ''}</span>{a.details ? <code className="break-all text-xs text-fg-muted">{JSON.stringify(a.details)}</code> : null}</li>
             ))}
           </ul>
         )}
@@ -166,7 +166,7 @@ function CancelEffect({ ev, stats }: { ev: AdminEvent; stats: EventDetail['stats
   const open = ['HELD', 'PENDING_PAYMENT', 'PENDING_APPROVAL', 'CONFIRMED', 'WAITLISTED', 'OFFERED'].reduce((n, k) => n + (stats.byStatus[k] || 0), 0);
   return (
     <>
-      <p className="font-bold text-red-200">This cannot be undone.</p>
+      <p className="font-semibold text-danger-text">This cannot be undone.</p>
       <ul className="list-disc space-y-1 pl-5">
         <li><b>{open}</b> open registration(s) end (incl. waitlist); every ticket is cancelled and stops working at the gate.</li>
         <li>Refunds are 100%: wallet {inr(stats.collected.WALLET)} back to wallets at once, online {inr(stats.collected.ONLINE)} via Razorpay refunds.</li>
@@ -234,7 +234,7 @@ function EditForm({ ev, done }: { ev: AdminEvent; done: (text: string) => void }
 
   return (
     <Section title="Edit event (applied at once, audited)">
-      <p className="mb-3 text-xs text-gray-500">Capacity can never go below places already taken. Venue / time changes notify registrants. Changing the rules bumps the rules version.</p>
+      <p className="mb-3 text-xs text-fg-muted">Capacity can never go below places already taken. Venue / time changes notify registrants. Changing the rules bumps the rules version.</p>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {txt('title', 'Title', 120)}
         <Field name="Category"><select className={inputCls} value={f.category} onChange={(e) => set('category', e.target.value)}>{CATEGORIES.map((c) => <option key={c} value={c}>{catLabel(c)}</option>)}</select></Field>

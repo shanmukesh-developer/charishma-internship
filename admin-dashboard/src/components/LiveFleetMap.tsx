@@ -55,7 +55,7 @@ const getRiderIcon = () => {
   if (!riderIconCache) {
     riderIconCache = L.divIcon({
       className: 'custom-div-icon',
-      html: `<div class="w-10 h-10 bg-blue-500/20 border-2 border-blue-500 rounded-full flex items-center justify-center text-lg shadow-[0_0_20px_rgba(59,130,246,0.3)] animate-pulse">🛵</div>`,
+      html: `<div class="w-10 h-10 bg-info-soft border-2 border-info/30 rounded-full flex items-center justify-center text-lg animate-pulse"></div>`,
       iconSize: [40, 40],
       iconAnchor: [20, 20]
     });
@@ -150,7 +150,7 @@ export default function LiveFleetMap({ riders, checkpoints }: LiveFleetMapProps)
     // Create checkpoint markers
     const nodeIcon = L.divIcon({
       className: 'custom-div-icon',
-      html: `<div class="w-3 h-3 bg-white/40 border border-white/60 rounded-full"></div>`,
+      html: `<div class="w-3 h-3 bg-surface-3 border border-line-strong rounded-full"></div>`,
       iconSize: [12, 12],
       iconAnchor: [6, 6]
     });
@@ -158,7 +158,7 @@ export default function LiveFleetMap({ riders, checkpoints }: LiveFleetMapProps)
     checkpoints.forEach(cp => {
       const marker = L.marker([cp.lat, cp.lng], { icon: nodeIcon })
         .addTo(map)
-        .bindPopup(`<div class="p-3"><p class="text-[10px] font-black uppercase text-blue-400 tracking-widest">${escapeHtml(cp.name)}</p></div>`, {
+        .bindPopup(`<div class="p-3"><p style="margin:0;font-size:12px;font-weight:500;color:rgb(var(--fg))">${escapeHtml(cp.name)}</p></div>`, {
           className: 'custom-popup'
         });
       checkpointMarkersRef.current.push(marker);
@@ -203,26 +203,26 @@ export default function LiveFleetMap({ riders, checkpoints }: LiveFleetMapProps)
       const initial = escapeHtml((rider.riderName || 'R').charAt(0));
       const photo = safeImageUrl(rider.photoUrl);
       const popupHtml = `
-        <div class="p-4 bg-slate-900 min-w-[160px]">
+        <div class="p-4 bg-surface-2 min-w-[160px]">
           <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center font-black overflow-hidden">
+            <div class="w-10 h-10 rounded-lg bg-accent flex items-center justify-center font-semibold overflow-hidden">
               ${photo ? `<img src="${escapeHtml(photo)}" alt="${name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />` : initial}
             </div>
             <div>
-              <h4 class="text-xs font-black text-white">${name}</h4>
-              <p class="text-[8px] text-gray-500 uppercase font-black">Captain Active</p>
+              <h4 class="text-xs font-semibold text-fg">${name}</h4>
+              <p class="text-xs text-fg-muted font-semibold">Captain Active</p>
             </div>
           </div>
           <div class="space-y-1">
-            <div class="flex justify-between text-[8px] font-black uppercase">
-              <span class="text-gray-600">${located ? 'GPS' : 'Sector'}</span>
-              <span class="text-blue-400">${located
+            <div class="flex justify-between text-xs font-semibold">
+              <span class="text-fg-subtle">${located ? 'GPS' : 'Sector'}</span>
+              <span class="text-info-text">${located
                 ? escapeHtml(`${(rider.lat as number).toFixed(4)}, ${(rider.lng as number).toFixed(4)}`)
                 : escapeHtml(rider.currentCheckpoint || 'Hub')}</span>
             </div>
-            <div class="flex justify-between text-[8px] font-black uppercase">
-              <span class="text-gray-600">Orders</span>
-              <span class="text-white">${escapeHtml(String(Number(rider.activeOrderCount) || 0))}</span>
+            <div class="flex justify-between text-xs font-semibold">
+              <span class="text-fg-subtle">Orders</span>
+              <span class="text-fg">${escapeHtml(String(Number(rider.activeOrderCount) || 0))}</span>
             </div>
           </div>
         </div>
@@ -247,39 +247,30 @@ export default function LiveFleetMap({ riders, checkpoints }: LiveFleetMapProps)
     <div className="w-full h-full relative group">
       <div 
         ref={mapContainerRef} 
-        className="w-full h-full rounded-2xl" 
-        style={{ background: '#0B0B14' }}
+        className="w-full h-full rounded-lg" 
+        style={{ background: 'rgb(var(--surface-2))' }}
       />
 
-      {/* HUD Overlays */}
-      <div className="absolute top-6 left-6 z-[1000] pointer-events-none space-y-2">
-        <div className="glass-card px-4 py-2 border-white/10 flex items-center gap-3 bg-slate-900/80 backdrop-blur-md">
-           <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(37,99,235,0.8)]" />
-           <span className="text-[9px] font-black text-white uppercase tracking-widest">
-             {Object.values(riders).filter(r => r.isOnline).length} CAPTAINS LIVE
-           </span>
+      {/* Online count */}
+      <div className="absolute left-3 top-3 z-[1000] pointer-events-none">
+        <div className="flex items-center gap-2 rounded-md border border-line bg-surface px-2.5 py-1 text-xs text-fg shadow-xs">
+          <span className={`h-2 w-2 rounded-full ${Object.values(riders).some(r => r.isOnline) ? 'bg-success' : 'bg-fg-subtle'}`} aria-hidden />
+          {Object.values(riders).filter(r => r.isOnline).length} riders online
         </div>
       </div>
 
-      <div className="absolute bottom-6 right-6 z-[1000] font-mono text-[8px] opacity-30 bg-black/50 p-2 rounded-xl backdrop-blur-md pointer-events-none">
-        HUB: SRM_ALPHA_COMMAND <br />
-        CORRIDOR: MANGALAGIRI_TRANSIT <br />
-        SYNC: OPERATIONAL
-      </div>
-
       <style>{`
-        .leaflet-container { background: #0B0B14 !important; }
+        .leaflet-container { background: rgb(var(--surface-2)) !important; }
         .custom-popup .leaflet-popup-content-wrapper {
-          background: rgba(13, 13, 18, 0.95);
-          backdrop-filter: blur(12px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          color: white;
-          border-radius: 12px;
+          background: rgb(var(--surface));
+          border: 1px solid rgb(var(--line));
+          color: rgb(var(--fg));
+          border-radius: 8px;
           padding: 0;
           overflow: hidden;
         }
         .custom-popup .leaflet-popup-content { margin: 0; }
-        .custom-popup .leaflet-popup-tip { background: rgba(13, 13, 18, 0.95); }
+        .custom-popup .leaflet-popup-tip { background: rgb(var(--surface)); }
       `}</style>
     </div>
   );

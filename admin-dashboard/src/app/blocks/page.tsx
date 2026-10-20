@@ -50,61 +50,61 @@ export default function BlockWarsHUD() {
   const maxCount = Math.max(...stats.map(s => s.count), 1);
   const leader = total > 0 ? stats[0] : null;
 
-  if (!isAuthed) return <div className="p-20 text-center font-black text-white uppercase tracking-widest animate-pulse">Checking access…</div>;
+  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
 
   return (
-    <div className="space-y-10 animate-fade-in relative pb-20">
-      <header className="flex flex-wrap gap-6 justify-between items-center bg-white/5 p-8 rounded-[40px] border border-white/5 glass">
+    <div className="space-y-10 animate-fade-in relative">
+      <header className="flex flex-wrap gap-6 justify-between items-center bg-surface-2/60 p-8 rounded-lg border border-line bg-surface border border-line">
         <div>
-          <h2 className="text-3xl font-black text-white tracking-tighter uppercase">Block <span className="text-blue-500">Wars</span></h2>
-          <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mt-1">Delivered orders per hostel block · last 30 days</p>
-          {updatedAt && <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest mt-2">Updated {updatedAt.toLocaleTimeString()} · refreshes every 30s</p>}
+          <h1 className="text-2xl font-semibold text-fg">Block wars</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Hostel block leaderboard.</p>
+          {updatedAt && <p className="text-xs text-fg-subtle font-semibold mt-2">Updated {updatedAt.toLocaleTimeString()} · refreshes every 30s</p>}
         </div>
-        <div className="glass px-10 py-4 rounded-3xl border border-white/10 flex flex-col items-center">
-          <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">Delivered orders (30d)</span>
-          <span className="text-3xl font-black text-white tracking-tighter">{loading ? '—' : total}</span>
+        <div className="bg-surface border border-line px-10 py-4 rounded-lg border border-line flex flex-col items-center">
+          <span className="text-xs font-semibold text-info-text mb-1">Delivered orders (30d)</span>
+          <span className="text-3xl font-semibold text-fg">{loading ? '—' : total}</span>
         </div>
       </header>
 
       {error && (
-        <div role="alert" className="flex items-center justify-between gap-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-6 py-4 text-sm font-bold text-red-300">
+        <div role="alert" className="flex items-center justify-between gap-4 rounded-lg border border-danger/30 bg-danger-soft px-6 py-4 text-sm font-semibold text-danger-text">
           <span>{error}{stats.length > 0 ? ' Showing the last loaded numbers.' : ''}</span>
-          <button onClick={() => { setLoading(stats.length === 0); fetchStats(); }} className="text-xs uppercase tracking-widest text-white hover:underline">Retry</button>
+          <button onClick={() => { setLoading(stats.length === 0); fetchStats(); }} className="text-xs text-fg hover:underline">Retry</button>
         </div>
       )}
 
       <div className="grid grid-cols-1 gap-6">
         {loading ? (
-          <div className="py-20 text-center font-black text-gray-500 animate-pulse tracking-widest uppercase">Loading block activity…</div>
+          <div className="py-20 text-center font-semibold text-fg-muted animate-pulse">Loading block activity…</div>
         ) : stats.length === 0 ? (
-          !error && <div className="py-20 text-center text-gray-500 font-bold">No hostel blocks configured.</div>
+          !error && <div className="py-20 text-center text-fg-muted font-semibold">No hostel blocks configured.</div>
         ) : stats.map((block, i) => {
           const ranked = total > 0 && block.count > 0;
           return (
-            <div key={block.name} className="glass-card p-10 relative overflow-hidden">
+            <div key={block.name} className="rounded-lg border border-line bg-surface shadow-xs p-10 relative overflow-hidden">
               <div className="flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-8">
-                  <div className={`w-12 h-12 rounded-[1.5rem] flex items-center justify-center text-xl font-black ${
-                    !ranked ? 'bg-white/5 text-gray-600' :
-                    i === 0 ? 'bg-blue-600 text-white' :
-                    i === 1 ? 'bg-slate-700 text-slate-300' :
-                    i === 2 ? 'bg-amber-900/40 text-amber-600' : 'bg-white/5 text-gray-500'
+                  <div className={`w-12 h-12 rounded-[1.5rem] flex items-center justify-center text-xl font-semibold ${
+                    !ranked ? 'bg-surface-2/60 text-fg-subtle' :
+                    i === 0 ? 'bg-accent text-on-solid' :
+                    i === 1 ? 'bg-surface-2 text-fg-muted' :
+                    i === 2 ? 'bg-warning-soft text-warning-text' : 'bg-surface-2/60 text-fg-muted'
                   }`}>
                     {ranked ? i + 1 : '–'}
                   </div>
                   <div>
-                    <h4 className="text-xl font-black text-white uppercase tracking-tight">{block.name}</h4>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Hostel block</p>
+                    <h4 className="text-xl font-semibold text-fg">{block.name}</h4>
+                    <p className="text-xs text-fg-muted font-semibold">Hostel block</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Orders delivered</span>
-                  <span className="text-3xl font-black text-white">{block.count}</span>
+                  <span className="text-xs font-semibold text-fg-muted block mb-1">Orders delivered</span>
+                  <span className="text-3xl font-semibold text-fg">{block.count}</span>
                 </div>
               </div>
-              <div className="mt-8 w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+              <div className="mt-8 w-full h-1.5 bg-surface-2/60 rounded-full overflow-hidden">
                 <div
-                  className={`h-full transition-all duration-1000 ${i === 0 && ranked ? 'bg-blue-500' : 'bg-white/20'}`}
+                  className={`h-full transition-all duration-1000 ${i === 0 && ranked ? 'bg-accent' : 'bg-surface-3'}`}
                   style={{ width: `${(block.count / maxCount) * 100}%` }}
                 />
               </div>
@@ -114,12 +114,11 @@ export default function BlockWarsHUD() {
       </div>
 
       {!loading && stats.length > 0 && (
-        <div className="glass-card p-10 border-blue-500/20 bg-blue-500/[0.02]">
+        <div className="rounded-lg border border-line bg-surface shadow-xs p-10 border-info/30 bg-info-soft">
           <div className="flex items-center gap-6">
-            <div className="w-10 h-10 bg-blue-600/20 rounded-xl flex items-center justify-center text-xl">🏆</div>
             <div>
-              <h4 className="text-sm font-black text-white uppercase tracking-wider">{leader ? `${leader.name} is leading` : 'No deliveries in the last 30 days'}</h4>
-              <p className="text-xs text-gray-500 leading-relaxed max-w-2xl">
+              <h4 className="text-sm font-semibold text-fg">{leader ? `${leader.name} is leading` : 'No deliveries in the last 30 days'}</h4>
+              <p className="text-xs text-fg-muted leading-relaxed max-w-2xl">
                 {leader
                   ? 'Counts only delivered orders from users who saved a hostel block in their profile. Use Config to announce block-specific offers.'
                   : 'Rankings appear once delivered orders come in from users who have saved their hostel block.'}

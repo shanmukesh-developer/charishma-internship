@@ -230,7 +230,7 @@ export function MenuManager({ store }: { store: Store }) {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search items" aria-label="Search items" className={cx(INPUT, 'min-w-[180px] flex-1 py-2')} />
-        <select value={category} onChange={e => setCategory(e.target.value)} aria-label="Category" className={cx(INPUT, 'w-auto py-2')}>
+        <select value={category} onChange={e => setCategory(e.target.value)} aria-label="Category" className={cx(INPUT.replace('w-full ', ''), 'w-auto py-2')}>
           <option value="All">All categories ({products.length})</option>
           {categories.map(c => <option key={c} value={c}>{c} ({products.filter(p => catOf(p) === c).length})</option>)}
         </select>
@@ -243,27 +243,27 @@ export function MenuManager({ store }: { store: Store }) {
 
       {/* Bulk bar */}
       {selected.size > 0 && (
-        <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-xl border border-emerald-500/30 bg-[#0f1f19] px-3 py-2 text-sm" role="region" aria-label="Bulk actions">
-          <span className="font-semibold text-emerald-100">{selected.size} selected</span>
+        <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-xl border border-success/30 bg-surface px-3 py-2 text-sm" role="region" aria-label="Bulk actions">
+          <span className="font-semibold text-success-text">{selected.size} selected</span>
           <Button size="sm" onClick={() => bulkPatch({ isAvailable: true, outOfStockUntil: null }, 'Marked in stock')}>In stock</Button>
           <Button size="sm" onClick={() => bulkPatch({ isAvailable: false }, 'Marked out of stock')}>Out of stock</Button>
           <Button size="sm" onClick={() => setMoveTo('')}>Move to category…</Button>
           <Button size="sm" variant="danger" onClick={() => setConfirmDelete(selectedItems)}>Delete</Button>
-          <button type="button" onClick={() => setSelected(new Set())} className="ml-auto text-xs font-semibold text-gray-400 hover:text-white">Clear</button>
+          <button type="button" onClick={() => setSelected(new Set())} className="ml-auto text-xs font-semibold text-fg-muted hover:text-fg">Clear</button>
         </div>
       )}
 
       {loadError && (
-        <Callout tone="red"><span className="flex items-center justify-between gap-3">{loadError}<button type="button" onClick={() => load()} className="font-bold underline">Retry</button></span></Callout>
+        <Callout tone="red"><span className="flex items-center justify-between gap-3">{loadError}<button type="button" onClick={() => load()} className="font-semibold underline">Retry</button></span></Callout>
       )}
 
       {loading ? (
         <div className="space-y-2" role="status" aria-label="Loading menu">
-          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="flex items-center gap-3 rounded-xl border border-white/5 p-3"><Skeleton className="h-12 w-12" /><div className="flex-1 space-y-2"><Skeleton className="h-3 w-1/3" /><Skeleton className="h-3 w-1/5" /></div><Skeleton className="h-6 w-16" /></div>)}
+          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="flex items-center gap-3 rounded-xl border border-line p-3"><Skeleton className="h-12 w-12" /><div className="flex-1 space-y-2"><Skeleton className="h-3 w-1/3" /><Skeleton className="h-3 w-1/5" /></div><Skeleton className="h-6 w-16" /></div>)}
         </div>
       ) : !loadError && products.length === 0 ? (
         <EmptyState
-          icon="🍽️"
+          icon=""
           title="No menu yet"
           body={`Customers cannot order until ${store.name} has items. Add them one by one, or paste a whole menu from a spreadsheet.`}
           action={<><Button variant="primary" onClick={() => setEditing('new')}>+ Add first item</Button><Button onClick={() => setCsvOpen(true)}>Paste a menu (CSV)</Button></>}
@@ -272,9 +272,9 @@ export function MenuManager({ store }: { store: Store }) {
         <EmptyState title="No items match" body="Try another search, category or stock filter." action={<Button onClick={() => { setSearch(''); setCategory('All'); setStock('all'); }}>Clear filters</Button>} />
       ) : (
         <div className="space-y-4">
-          <div className="flex items-center justify-between gap-2 px-1 text-xs text-gray-500">
+          <div className="flex items-center justify-between gap-2 px-1 text-xs text-fg-muted">
             <label className="flex items-center gap-2">
-              <input type="checkbox" className="h-4 w-4 accent-emerald-500" checked={allVisibleSelected} onChange={e => setSelected(e.target.checked ? new Set(visibleIds) : new Set())} aria-label="Select all visible items" />
+              <input type="checkbox" className="h-4 w-4 accent-[rgb(var(--accent))]" checked={allVisibleSelected} onChange={e => setSelected(e.target.checked ? new Set(visibleIds) : new Set())} aria-label="Select all visible items" />
               Select all {filtering ? 'shown' : ''}
             </label>
             <span>{reordering ? 'Saving order…' : filtering ? 'Clear filters to reorder' : 'Use ↑ ↓ to reorder'}</span>
@@ -283,17 +283,17 @@ export function MenuManager({ store }: { store: Store }) {
             const isCollapsed = collapsed.has(g.category);
             const inStock = g.items.filter(p => p.isAvailable).length;
             return (
-              <section key={g.category} className="overflow-hidden rounded-xl border border-white/10" aria-labelledby={`cat-${gi}`}>
-                <header className="flex items-center gap-2 bg-white/[0.03] px-3 py-2">
+              <section key={g.category} className="overflow-hidden rounded-xl border border-line" aria-labelledby={`cat-${gi}`}>
+                <header className="flex items-center gap-2 bg-surface-2/60 px-3 py-2">
                   <button type="button" onClick={() => setCollapsed(prev => { const n = new Set(prev); if (n.has(g.category)) n.delete(g.category); else n.add(g.category); return n; })} aria-expanded={!isCollapsed} className={cx('flex flex-1 items-center gap-2 text-left', FOCUS_RING)}>
-                    <span aria-hidden className={cx('text-xs text-gray-500 transition-transform', isCollapsed ? '-rotate-90' : '')}>▾</span>
-                    <h3 id={`cat-${gi}`} className="text-sm font-bold">{g.category}</h3>
-                    <span className="text-xs text-gray-500">{g.items.length} item{g.items.length === 1 ? '' : 's'}{inStock < g.items.length ? ` · ${g.items.length - inStock} out` : ''}</span>
+                    <span aria-hidden className={cx('text-xs text-fg-muted transition-transform', isCollapsed ? '-rotate-90' : '')}>▾</span>
+                    <h3 id={`cat-${gi}`} className="text-sm font-semibold">{g.category}</h3>
+                    <span className="text-xs text-fg-muted">{g.items.length} item{g.items.length === 1 ? '' : 's'}{inStock < g.items.length ? ` · ${g.items.length - inStock} out` : ''}</span>
                   </button>
                   {!filtering && (
                     <span className="flex gap-1">
-                      <button type="button" disabled={reordering || categories.indexOf(g.category) === 0} onClick={() => moveCategory(g.category, -1)} aria-label={`Move ${g.category} up`} className={cx('rounded px-1.5 text-gray-400 hover:bg-white/10 hover:text-white disabled:opacity-30', FOCUS_RING)}>↑</button>
-                      <button type="button" disabled={reordering || categories.indexOf(g.category) === categories.length - 1} onClick={() => moveCategory(g.category, 1)} aria-label={`Move ${g.category} down`} className={cx('rounded px-1.5 text-gray-400 hover:bg-white/10 hover:text-white disabled:opacity-30', FOCUS_RING)}>↓</button>
+                      <button type="button" disabled={reordering || categories.indexOf(g.category) === 0} onClick={() => moveCategory(g.category, -1)} aria-label={`Move ${g.category} up`} className={cx('rounded px-1.5 text-fg-muted hover:bg-surface-2 hover:text-fg disabled:opacity-30', FOCUS_RING)}>↑</button>
+                      <button type="button" disabled={reordering || categories.indexOf(g.category) === categories.length - 1} onClick={() => moveCategory(g.category, 1)} aria-label={`Move ${g.category} down`} className={cx('rounded px-1.5 text-fg-muted hover:bg-surface-2 hover:text-fg disabled:opacity-30', FOCUS_RING)}>↓</button>
                     </span>
                   )}
                 </header>
@@ -321,7 +321,7 @@ export function MenuManager({ store }: { store: Store }) {
               </section>
             );
           })}
-          <p className="px-1 text-[11px] text-gray-600">The customer app and partner apps show categories and items in this order.</p>
+          <p className="px-1 text-xs text-fg-subtle">The customer app and partner apps show categories and items in this order.</p>
         </div>
       )}
 
@@ -351,7 +351,7 @@ export function MenuManager({ store }: { store: Store }) {
       {confirmDelete && (
         <ConfirmModal
           title={confirmDelete.length === 1 ? `Delete ${confirmDelete[0].name}?` : `Delete ${confirmDelete.length} items?`}
-          body={<><p>This removes {confirmDelete.length === 1 ? 'it' : 'them'} from the menu permanently. Past orders keep their history.</p><p className="text-gray-400">To hide an item for now, mark it out of stock instead.</p></>}
+          body={<><p>This removes {confirmDelete.length === 1 ? 'it' : 'them'} from the menu permanently. Past orders keep their history.</p><p className="text-fg-muted">To hide an item for now, mark it out of stock instead.</p></>}
           actionLabel="Delete"
           tone="danger"
           onClose={() => setConfirmDelete(null)}
@@ -376,15 +376,15 @@ export function MenuManager({ store }: { store: Store }) {
 }
 
 const DIET_META: Record<DietType, { label: string; border: string; dot: string }> = {
-  veg: { label: 'Vegetarian', border: 'border-emerald-500', dot: 'bg-emerald-500' },
-  egg: { label: 'Contains egg', border: 'border-amber-400', dot: 'bg-amber-400' },
-  nonveg: { label: 'Non-vegetarian', border: 'border-red-500', dot: 'bg-red-500' },
+  veg: { label: 'Vegetarian', border: 'border-success/30', dot: 'bg-success' },
+  egg: { label: 'Contains egg', border: 'border-warning/30', dot: 'bg-accent' },
+  nonveg: { label: 'Non-vegetarian', border: 'border-danger/30', dot: 'bg-danger' },
 };
 
 function DietMark({ diet }: { diet: DietType }) {
   const m = DIET_META[diet];
   return (
-    <span title={m.label} aria-label={m.label} className={cx('inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] border', m.border)}>
+    <span title={m.label} aria-label={m.label} className={cx('inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-lg border', m.border)}>
       <span className={cx('h-1.5 w-1.5 rounded-full', m.dot)} />
     </span>
   );
@@ -404,31 +404,31 @@ function ItemRow({ p, fresh, busy, selected, onSelect, canUp, canDown, onMove, o
   const twoHours = () => new Date(Date.now() + 2 * 3600 * 1000);
   const tomorrow9 = () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); return d; };
   return (
-    <li className={cx('flex flex-wrap items-center gap-3 px-3 py-2.5 sm:flex-nowrap', !p.isAvailable && 'bg-white/[0.015]', fresh && FRESH_ROW_CLASS)}>
-      <input type="checkbox" checked={selected} onChange={onSelect} className="h-4 w-4 shrink-0 accent-emerald-500" aria-label={`Select ${p.name}`} />
+    <li className={cx('flex flex-wrap items-center gap-3 px-3 py-2.5 sm:flex-nowrap', !p.isAvailable && 'bg-surface-2/60', fresh && FRESH_ROW_CLASS)}>
+      <input type="checkbox" checked={selected} onChange={onSelect} className="h-4 w-4 shrink-0 accent-[rgb(var(--accent))]" aria-label={`Select ${p.name}`} />
       <span className="flex shrink-0 flex-col">
-        <button type="button" disabled={!canUp} onClick={() => onMove(-1)} aria-label={`Move ${p.name} up`} className={cx('rounded px-1 text-[11px] leading-4 text-gray-500 hover:text-white disabled:opacity-20', FOCUS_RING)}>▲</button>
-        <button type="button" disabled={!canDown} onClick={() => onMove(1)} aria-label={`Move ${p.name} down`} className={cx('rounded px-1 text-[11px] leading-4 text-gray-500 hover:text-white disabled:opacity-20', FOCUS_RING)}>▼</button>
+        <button type="button" disabled={!canUp} onClick={() => onMove(-1)} aria-label={`Move ${p.name} up`} className={cx('rounded px-1 text-xs leading-4 text-fg-muted hover:text-fg disabled:opacity-20', FOCUS_RING)}>▲</button>
+        <button type="button" disabled={!canDown} onClick={() => onMove(1)} aria-label={`Move ${p.name} down`} className={cx('rounded px-1 text-xs leading-4 text-fg-muted hover:text-fg disabled:opacity-20', FOCUS_RING)}>▼</button>
       </span>
       <button type="button" onClick={onEdit} className={cx('flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left', FOCUS_RING)}>
         {img ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={img} alt="" loading="lazy" className={cx('h-12 w-12 shrink-0 rounded-lg border border-white/10 object-cover', !p.isAvailable && 'grayscale')} />
+          <img src={img} alt="" loading="lazy" className={cx('h-12 w-12 shrink-0 rounded-lg border border-line object-cover', !p.isAvailable && 'grayscale')} />
         ) : (
-          <span aria-hidden className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/15 text-[10px] text-gray-600">No photo</span>
+          <span aria-hidden className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-dashed border-line text-xs text-fg-subtle">No photo</span>
         )}
         <span className="min-w-0">
           <span className="flex items-center gap-1.5">
             <DietMark diet={dietOf(p)} />
-            <span className={cx('truncate font-semibold', p.isAvailable ? 'text-white' : 'text-gray-400')}>{p.name}</span>
+            <span className={cx('truncate font-semibold', p.isAvailable ? 'text-fg' : 'text-fg-muted')}>{p.name}</span>
           </span>
-          <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
-            <span className="font-semibold text-gray-200">₹{price.toLocaleString('en-IN')}</span>
-            {off > 0 && <><span className="line-through">₹{mrp.toLocaleString('en-IN')}</span><span className="text-emerald-300">{off}% off</span></>}
+          <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-fg-muted">
+            <span className="font-semibold text-fg">₹{price.toLocaleString('en-IN')}</span>
+            {off > 0 && <><span className="line-through">₹{mrp.toLocaleString('en-IN')}</span><span className="text-success-text">{off}% off</span></>}
             {typeof specs.weight === 'string' && specs.weight && <span>· {specs.weight}</span>}
             {p.isEliteOnly && <Chip tone="violet">Elite</Chip>}
             {!!specs.bookingOnly && <Chip tone="sky">Booking</Chip>}
-            {!img && <span className="text-amber-300/80">· add a photo</span>}
+            {!img && <span className="text-warning-text">· add a photo</span>}
           </span>
         </span>
       </button>
@@ -436,7 +436,7 @@ function ItemRow({ p, fresh, busy, selected, onSelect, canUp, canDown, onMove, o
         <div className="text-right">
           <Toggle size="sm" checked={p.isAvailable} disabled={busy} onChange={v => onStock(p, v, null)} label={`${p.name} in stock`} srOnlyLabel />
         </div>
-        <span className={cx('hidden w-24 text-xs sm:block', p.isAvailable ? 'text-emerald-300' : 'text-red-300')}>
+        <span className={cx('hidden w-24 text-xs sm:block', p.isAvailable ? 'text-success-text' : 'text-danger-text')}>
           {p.isAvailable ? 'In stock' : until && until > new Date() ? `Back ${timeUntil(until)}` : 'Out of stock'}
         </span>
         <MenuButton ariaLabel={`More actions for ${p.name}`} label="•••" items={[
@@ -585,7 +585,7 @@ function ItemEditor({ initial, storeName, categories, bookingOnly, nextSortOrder
               </>)}
             </Field>
             <div className="space-y-1.5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Food type</p>
+              <p className="text-xs font-semibold text-fg-muted">Food type</p>
               <Segmented<DietType> label="Food type" value={form.diet} onChange={diet => set({ diet })} options={[
                 { value: 'veg', label: <span className="flex items-center gap-1.5"><DietMark diet="veg" /> Veg</span> },
                 { value: 'egg', label: <span className="flex items-center gap-1.5"><DietMark diet="egg" /> Egg</span> },
@@ -593,22 +593,22 @@ function ItemEditor({ initial, storeName, categories, bookingOnly, nextSortOrder
               ]} />
             </div>
           </div>
-          <Field label="Description" optional aside={<span className="text-[11px] text-gray-600">{form.description.length}/1000</span>}>
+          <Field label="Description" optional aside={<span className="text-xs text-fg-subtle">{form.description.length}/1000</span>}>
             {({ id, msgId }) => <textarea id={id} aria-describedby={msgId} className={cx(INPUT, 'h-20 resize-none')} maxLength={1000} value={form.description} onChange={e => set({ description: e.target.value })} placeholder="Ingredients, portion, spice level…" />}
           </Field>
           <Field label="Tags" optional help="Helps search, e.g. spicy, bestseller.">
             {({ id, msgId }) => <TagInput id={id} describedBy={msgId} value={form.tags} onChange={tags => set({ tags })} />}
           </Field>
-          <div className="grid gap-4 rounded-xl border border-white/10 p-4 sm:grid-cols-2">
+          <div className="grid gap-4 rounded-xl border border-line p-4 sm:grid-cols-2">
             <Toggle checked={form.isAvailable} onChange={isAvailable => set({ isAvailable })} label="In stock" description="Off shows SOLD OUT in the app." />
             <Toggle tone="amber" checked={form.isEliteOnly} onChange={isEliteOnly => set({ isEliteOnly })} label="Elite members only" description="Only Zenvy Elite customers can add it." />
           </div>
           {error && <Callout tone="red">{error}</Callout>}
         </div>
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Photo</p>
+          <p className="text-xs font-semibold text-fg-muted">Photo</p>
           <ImagePicker value={form.imageUrl} onChange={imageUrl => set({ imageUrl })} preset="item" label="Item photo" hint="Square, close-up, good light." aspect="aspect-square" />
-          {initial?.createdAt && <p className="pt-2 text-[11px] text-gray-600">Added {timeAgo(initial.createdAt)}</p>}
+          {initial?.createdAt && <p className="pt-2 text-xs text-fg-subtle">Added {timeAgo(initial.createdAt)}</p>}
         </div>
         <button type="submit" className="hidden" aria-hidden tabIndex={-1} />
       </form>
@@ -781,7 +781,7 @@ function CsvImportModal({ storeId: sid, existing, onClose, onImported }: {
       size="xl"
       onClose={importing ? () => undefined : onClose}
       footer={<>
-        {rows && <span className="mr-auto text-xs text-gray-400">{importable.length} ready · {errorCount} with errors{dupeCount ? ` · ${dupeCount} duplicate${dupeCount === 1 ? '' : 's'}` : ''}</span>}
+        {rows && <span className="mr-auto text-xs text-fg-muted">{importable.length} ready · {errorCount} with errors{dupeCount ? ` · ${dupeCount} duplicate${dupeCount === 1 ? '' : 's'}` : ''}</span>}
         <Button onClick={onClose} disabled={importing}>Cancel</Button>
         {rows ? (
           <Button variant="primary" loading={importing} disabled={!importable.length} onClick={run}>
@@ -794,10 +794,10 @@ function CsvImportModal({ storeId: sid, existing, onClose, onImported }: {
     >
       {!rows ? (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
-            <span>Columns: <b className="text-gray-200">name, price</b> (required), mrp, category, veg (yes / no / egg), in_stock (yes/no), weight, description, image (link).</span>
-            <button type="button" className="font-semibold text-emerald-300 hover:underline" onClick={() => setText(CSV_TEMPLATE)}>Insert example</button>
-            <a className="font-semibold text-emerald-300 hover:underline" download="zenvy-menu-template.csv" href={`data:text/csv;charset=utf-8,${encodeURIComponent(CSV_TEMPLATE)}`}>Download template</a>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-fg-muted">
+            <span>Columns: <b className="text-fg">name, price</b> (required), mrp, category, veg (yes / no / egg), in_stock (yes/no), weight, description, image (link).</span>
+            <button type="button" className="font-semibold text-success-text hover:underline" onClick={() => setText(CSV_TEMPLATE)}>Insert example</button>
+            <a className="font-semibold text-success-text hover:underline" download="zenvy-menu-template.csv" href={`data:text/csv;charset=utf-8,${encodeURIComponent(CSV_TEMPLATE)}`}>Download template</a>
           </div>
           <textarea
             data-autofocus
@@ -810,24 +810,24 @@ function CsvImportModal({ storeId: sid, existing, onClose, onImported }: {
           <div className="flex items-center gap-3">
             <Button size="sm" onClick={() => fileRef.current?.click()}>Choose CSV file</Button>
             <input ref={fileRef} type="file" accept=".csv,text/csv,text/plain" className="hidden" onChange={e => { loadFile(e.target.files?.[0]); e.target.value = ''; }} aria-label="CSV file" />
-            <span className="text-xs text-gray-500">Photos can be added per item afterwards.</span>
+            <span className="text-xs text-fg-muted">Photos can be added per item afterwards.</span>
           </div>
         </div>
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs text-gray-400">{headerNote}</p>
+            <p className="text-xs text-fg-muted">{headerNote}</p>
             <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={skipDupes} onChange={e => setSkipDupes(e.target.checked)} className="h-4 w-4 accent-emerald-500" /> Skip names already on the menu</label>
-              <button type="button" className="text-xs font-semibold text-emerald-300 hover:underline" disabled={importing} onClick={() => setRows(null)}>← Edit rows</button>
+              <label className="flex items-center gap-2 text-xs text-fg-muted"><input type="checkbox" checked={skipDupes} onChange={e => setSkipDupes(e.target.checked)} className="h-4 w-4 accent-[rgb(var(--accent))]" /> Skip names already on the menu</label>
+              <button type="button" className="text-xs font-semibold text-success-text hover:underline" disabled={importing} onClick={() => setRows(null)}>← Edit rows</button>
             </div>
           </div>
           {rows.length === 0 ? (
             <EmptyState title="No rows found" body="Paste at least one line with a name and a price." />
           ) : (
-            <div className="max-h-[50vh] overflow-auto rounded-xl border border-white/10">
+            <div className="max-h-[50vh] overflow-auto rounded-xl border border-line">
               <table className="w-full min-w-[640px] text-left text-xs">
-                <thead className="sticky top-0 bg-[#14171f] text-[11px] uppercase tracking-wider text-gray-500">
+                <thead className="sticky top-0 bg-surface text-xs text-fg-muted">
                   <tr><th className="p-2">Line</th><th className="p-2">Name</th><th className="p-2 text-right">Price</th><th className="p-2 text-right">MRP</th><th className="p-2">Category</th><th className="p-2">Veg</th><th className="p-2">Stock</th><th className="p-2">Status</th></tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -835,18 +835,18 @@ function CsvImportModal({ storeId: sid, existing, onClose, onImported }: {
                     const d = r.data as { name: string; price: number; category: string | null; dietType: DietType; isAvailable: boolean; originalPrice?: number };
                     const skipped = skipDupes && r.duplicate && !r.errors.length;
                     return (
-                      <tr key={r.line} className={cx(r.errors.length ? 'bg-red-500/5' : skipped ? 'opacity-50' : '', r.status === 'done' && 'bg-emerald-500/5')}>
-                        <td className="p-2 text-gray-500">{r.line}</td>
-                        <td className="p-2 font-semibold text-white">{d.name || <span className="text-red-300">—</span>}</td>
+                      <tr key={r.line} className={cx(r.errors.length ? 'bg-danger-soft' : skipped ? 'opacity-50' : '', r.status === 'done' && 'bg-success-soft')}>
+                        <td className="p-2 text-fg-muted">{r.line}</td>
+                        <td className="p-2 font-semibold text-fg">{d.name || <span className="text-danger-text">—</span>}</td>
                         <td className="p-2 text-right">{Number.isFinite(d.price) ? `₹${d.price}` : '—'}</td>
-                        <td className="p-2 text-right text-gray-400">{d.originalPrice ? `₹${d.originalPrice}` : '—'}</td>
-                        <td className="p-2 text-gray-300">{d.category || '—'}</td>
+                        <td className="p-2 text-right text-fg-muted">{d.originalPrice ? `₹${d.originalPrice}` : '—'}</td>
+                        <td className="p-2 text-fg-muted">{d.category || '—'}</td>
                         <td className="p-2"><DietMark diet={d.dietType} /></td>
                         <td className="p-2">{d.isAvailable ? 'In' : 'Out'}</td>
                         <td className="p-2">
                           {r.status === 'done' ? <Chip tone="green">Added</Chip>
                             : r.status === 'failed' ? <Chip tone="red" title={r.failReason}>Failed: {r.failReason}</Chip>
-                            : r.errors.length ? <span className="text-red-300">{r.errors.join(' · ')}</span>
+                            : r.errors.length ? <span className="text-danger-text">{r.errors.join(' · ')}</span>
                             : r.duplicate ? <Chip tone="amber">{skipped ? 'Duplicate, skipped' : 'Duplicate'}</Chip>
                             : <Chip tone="green">Ready</Chip>}
                         </td>
@@ -858,8 +858,8 @@ function CsvImportModal({ storeId: sid, existing, onClose, onImported }: {
             </div>
           )}
           {importing && (
-            <div className="h-1.5 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuemin={0} aria-valuemax={importable.length} aria-valuenow={progress} aria-label="Import progress">
-              <div className="h-full bg-emerald-500 transition-all" style={{ width: `${importable.length ? (progress / importable.length) * 100 : 0}%` }} />
+            <div className="h-1.5 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuemin={0} aria-valuemax={importable.length} aria-valuenow={progress} aria-label="Import progress">
+              <div className="h-full bg-success transition-all" style={{ width: `${importable.length ? (progress / importable.length) * 100 : 0}%` }} />
             </div>
           )}
         </div>

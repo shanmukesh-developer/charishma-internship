@@ -75,61 +75,61 @@ export default function RiderCashPanel() {
   return (
     <div className="space-y-6">
       {notice && (
-        <div className={`p-4 rounded-2xl border text-xs font-bold flex justify-between gap-4 ${notice.kind === 'err' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
-          <span>{notice.text}</span><button onClick={() => setNotice(null)} className="text-gray-500 hover:text-white">✕</button>
+        <div className={`p-4 rounded-lg border text-xs font-semibold flex justify-between gap-4 ${notice.kind === 'err' ? 'bg-danger-soft border-danger/30 text-danger-text' : 'bg-success-soft border-success/30 text-success-text'}`}>
+          <span>{notice.text}</span><button onClick={() => setNotice(null)} className="text-fg-muted hover:text-fg" aria-label="Dismiss"><span aria-hidden="true" className="text-base leading-none">×</span></button>
         </div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="glass-card p-8 bg-amber-600/5">
-          <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest mb-2">Cash riders hold for Zenvy</p>
-          <h4 className="text-2xl font-black text-white">{data ? rs(data.totalHeldPaise) : '—'}</h4>
+        <div className="rounded-lg border border-line bg-surface shadow-xs p-8 bg-warning-soft">
+          <p className="text-xs font-semibold text-warning-text mb-2">Cash riders hold for Zenvy</p>
+          <h4 className="text-2xl font-semibold text-fg">{data ? rs(data.totalHeldPaise) : '—'}</h4>
         </div>
-        <div className="glass-card p-8 bg-white/5">
-          <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">COD cash limit</p>
-          <h4 className="text-2xl font-black text-white">{data ? (data.limitEnabled ? rs(data.limitPaise) : 'Off') : '—'}</h4>
-          <p className="text-[10px] text-gray-500 mt-1">{data?.limitEnabled ? `${data.overLimitCount} rider(s) at the limit cannot take new COD orders.` : 'Riders are never blocked. Change on Config → Rider cash limit.'}</p>
+        <div className="rounded-lg border border-line bg-surface shadow-xs p-8 bg-surface-2/60">
+          <p className="text-xs font-semibold text-fg-muted mb-2">COD cash limit</p>
+          <h4 className="text-2xl font-semibold text-fg">{data ? (data.limitEnabled ? rs(data.limitPaise) : 'Off') : '—'}</h4>
+          <p className="text-xs text-fg-muted mt-1">{data?.limitEnabled ? `${data.overLimitCount} rider(s) at the limit cannot take new COD orders.` : 'Riders are never blocked. Change on Config → Rider cash limit.'}</p>
         </div>
-        <div className="glass-card p-8 bg-white/5">
-          <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">Ledger started</p>
-          <h4 className="text-sm font-black text-white">{data ? when(data.ledgerStart) : '—'}</h4>
-          <p className="text-[10px] text-gray-500 mt-1">Cash held before this is not known: record it with an adjustment.</p>
+        <div className="rounded-lg border border-line bg-surface shadow-xs p-8 bg-surface-2/60">
+          <p className="text-xs font-semibold text-fg-muted mb-2">Ledger started</p>
+          <h4 className="text-sm font-semibold text-fg">{data ? when(data.ledgerStart) : '—'}</h4>
+          <p className="text-xs text-fg-muted mt-1">Cash held before this is not known: record it with an adjustment.</p>
         </div>
       </div>
 
       <div className="glass-card overflow-hidden">
-        <div className="p-8 border-b border-white/5 flex flex-wrap gap-4 justify-between items-center">
+        <div className="p-8 border-b border-line flex flex-wrap gap-4 justify-between items-center">
           <div>
-            <h4 className="text-lg font-black text-white uppercase tracking-tight">Rider cash holdings</h4>
-            <p className="text-[11px] text-gray-500 mt-1">COD cash collected minus deposits. Payouts never deduct it: collect it with a deposit.</p>
+            <h4 className="text-lg font-semibold text-fg">Rider cash holdings</h4>
+            <p className="text-xs text-fg-muted mt-1">COD cash collected minus deposits. Payouts never deduct it: collect it with a deposit.</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={runCheck} disabled={reconLoading} className="px-4 py-2 bg-white/5 text-gray-300 rounded-xl text-[10px] font-black uppercase disabled:opacity-30">{reconLoading ? 'Checking…' : 'Run cash check'}</button>
-            <button onClick={load} disabled={loading} className="px-4 py-2 bg-blue-500/10 text-blue-400 rounded-xl text-[10px] font-black uppercase disabled:opacity-30">↻ Refresh</button>
+            <button onClick={runCheck} disabled={reconLoading} className="px-4 py-2 bg-surface-2/60 text-fg-muted rounded-xl text-xs font-semibold disabled:opacity-30">{reconLoading ? 'Checking…' : 'Run cash check'}</button>
+            <button onClick={load} disabled={loading} className="px-4 py-2 bg-info-soft text-info-text rounded-xl text-xs font-semibold disabled:opacity-30">↻ Refresh</button>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white/[0.03]">
+              <tr className="bg-surface-2/60">
                 {['Rider', 'Cash held', 'Zenvy owes (earnings + tips)', 'Net', 'Last deposit', ''].map((h) => (
-                  <th key={h} className="px-6 py-4 text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/5">{h}</th>
+                  <th key={h} className="px-6 py-4 text-xs font-semibold text-fg-muted border-b border-line">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.02]">
-              {loading ? <tr><td colSpan={6} className="py-12 text-center text-xs text-gray-500 animate-pulse">Loading…</td></tr>
-                : error ? <tr><td colSpan={6} className="py-12 text-center text-xs text-red-400">{error}</td></tr>
-                  : !data || data.riders.length === 0 ? <tr><td colSpan={6} className="py-12 text-center text-xs text-gray-500">No rider holds cash yet.</td></tr>
+              {loading ? <tr><td colSpan={6} className="py-12 text-center text-xs text-fg-muted animate-pulse">Loading…</td></tr>
+                : error ? <tr><td colSpan={6} className="py-12 text-center text-xs text-danger-text">{error}</td></tr>
+                  : !data || data.riders.length === 0 ? <tr><td colSpan={6} className="py-12 text-center text-xs text-fg-muted">No rider holds cash yet.</td></tr>
                     : data.riders.map((r) => (
-                      <tr key={r.riderId} className="hover:bg-white/[0.02]">
-                        <td className="px-6 py-4 text-sm font-bold text-white">{r.name}<span className="block text-[10px] text-gray-500 font-mono">{r.phone}</span></td>
-                        <td className={`px-6 py-4 text-sm font-black ${r.overLimit ? 'text-red-400' : 'text-amber-300'}`}>{rs(r.cashHeldPaise)}{r.overLimit && <span className="block text-[9px] uppercase">at limit</span>}</td>
-                        <td className="px-6 py-4 text-sm text-gray-300">{rs(r.position.zenvyOwesPaise)}</td>
-                        <td className={`px-6 py-4 text-sm font-bold ${r.position.netPaise < 0 ? 'text-red-300' : 'text-emerald-300'}`}>
+                      <tr key={r.riderId} className="hover:bg-surface-2/60">
+                        <td className="px-6 py-4 text-sm font-semibold text-fg">{r.name}<span className="block text-xs text-fg-muted font-mono">{r.phone}</span></td>
+                        <td className={`px-6 py-4 text-sm font-semibold ${r.overLimit ? 'text-danger-text' : 'text-warning-text'}`}>{rs(r.cashHeldPaise)}{r.overLimit && <span className="block text-xs">at limit</span>}</td>
+                        <td className="px-6 py-4 text-sm text-fg-muted">{rs(r.position.zenvyOwesPaise)}</td>
+                        <td className={`px-6 py-4 text-sm font-semibold ${r.position.netPaise < 0 ? 'text-danger-text' : 'text-success-text'}`}>
                           {r.position.netPaise < 0 ? `Rider owes ${rs(-r.position.netPaise)}` : r.position.netPaise > 0 ? `Zenvy owes ${rs(r.position.netPaise)}` : 'Settled'}
                         </td>
-                        <td className="px-6 py-4 text-[11px] text-gray-400">{when(r.lastDepositAt)}</td>
-                        <td className="px-6 py-4"><button onClick={() => setOpen(r)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[9px] font-black uppercase">Deposit / ledger</button></td>
+                        <td className="px-6 py-4 text-xs text-fg-muted">{when(r.lastDepositAt)}</td>
+                        <td className="px-6 py-4"><button onClick={() => setOpen(r)} className="px-4 py-2 bg-success hover:bg-success/90 text-on-solid rounded-lg text-xs font-semibold">Deposit / ledger</button></td>
                       </tr>
                     ))}
             </tbody>
@@ -138,19 +138,19 @@ export default function RiderCashPanel() {
       </div>
 
       {recon && (
-        <div className="glass-card p-8 space-y-3">
-          <h4 className="text-lg font-black text-white uppercase tracking-tight">Cash check {recon.ok ? <span className="text-emerald-400">· all good</span> : <span className="text-red-400">· {recon.problems} problem(s)</span>}</h4>
-          <p className="text-[11px] text-gray-500">{recon.ridersChecked} rider(s) and {recon.ordersChecked} COD order(s) since {when(recon.ledgerStart)} checked at {when(recon.checkedAt)}. The check never changes anything.</p>
-          {recon.mismatches.map((m) => <p key={m.riderId} className="text-xs text-red-300">{m.name || m.riderId}: cash held {rs(m.heldPaise)} but history sums to {rs(m.ledgerPaise)}.</p>)}
-          {recon.withoutHistory.map((m) => <p key={m.riderId} className="text-xs text-red-300">{m.name || m.riderId}: holds {rs(m.heldPaise)} with no history.</p>)}
+        <div className="rounded-lg border border-line bg-surface shadow-xs p-8 space-y-3">
+          <h4 className="text-lg font-semibold text-fg">Cash check {recon.ok ? <span className="text-success-text">· all good</span> : <span className="text-danger-text">· {recon.problems} problem(s)</span>}</h4>
+          <p className="text-xs text-fg-muted">{recon.ridersChecked} rider(s) and {recon.ordersChecked} COD order(s) since {when(recon.ledgerStart)} checked at {when(recon.checkedAt)}. The check never changes anything.</p>
+          {recon.mismatches.map((m) => <p key={m.riderId} className="text-xs text-danger-text">{m.name || m.riderId}: cash held {rs(m.heldPaise)} but history sums to {rs(m.ledgerPaise)}.</p>)}
+          {recon.withoutHistory.map((m) => <p key={m.riderId} className="text-xs text-danger-text">{m.name || m.riderId}: holds {rs(m.heldPaise)} with no history.</p>)}
           {recon.missingRows.map((m) => (
-            <p key={m.orderId} className="text-xs text-red-300 flex items-center gap-3">
+            <p key={m.orderId} className="text-xs text-danger-text flex items-center gap-3">
               COD order #{m.orderId.slice(-6).toUpperCase()} ({rs(m.expectedPaise)}, {when(m.deliveredAt)}) has no cash row.
-              <button onClick={() => recordMissing(m.orderId)} className="px-3 py-1 bg-white/10 rounded text-[9px] font-black uppercase text-white">Record</button>
+              <button onClick={() => recordMissing(m.orderId)} className="px-3 py-1 bg-surface-2 rounded text-xs font-semibold text-fg">Record</button>
             </p>
           ))}
-          {recon.duplicateRows.map((m) => <p key={m.orderId} className="text-xs text-red-300">Order #{m.orderId.slice(-6).toUpperCase()} has {m.rows} cash rows.</p>)}
-          {recon.wrongRows.map((m) => <p key={`${m.orderId}-${m.rowRiderId}`} className="text-xs text-red-300">Order #{m.orderId.slice(-6).toUpperCase()}: {m.notACodDelivery ? 'cash row for an order that is not a delivered COD order' : 'cash row with the wrong rider or amount'} ({rs(m.rowPaise)}).</p>)}
+          {recon.duplicateRows.map((m) => <p key={m.orderId} className="text-xs text-danger-text">Order #{m.orderId.slice(-6).toUpperCase()} has {m.rows} cash rows.</p>)}
+          {recon.wrongRows.map((m) => <p key={`${m.orderId}-${m.rowRiderId}`} className="text-xs text-danger-text">Order #{m.orderId.slice(-6).toUpperCase()}: {m.notACodDelivery ? 'cash row for an order that is not a delivered COD order' : 'cash row with the wrong rider or amount'} ({rs(m.rowPaise)}).</p>)}
         </div>
       )}
 
@@ -203,53 +203,53 @@ function RiderCashModal({ row, onClose, onChanged }: { row: HoldingRow; onClose:
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="glass-card w-full max-w-3xl max-h-[90vh] overflow-y-auto p-8 space-y-6" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 bg-scrim/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="rounded-lg border border-line bg-surface shadow-xs w-full max-w-3xl max-h-[90vh] overflow-y-auto p-8 space-y-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-start gap-4">
           <div>
-            <h3 className="text-xl font-black text-white">{row.name}</h3>
-            <p className="text-xs text-gray-500">{row.phone} · Cash held <span className="text-amber-300 font-bold">{rs(entries?.cashHeldPaise ?? row.cashHeldPaise)}</span>{entries && !entries.inSync && <span className="text-red-400 font-bold"> · history does not match ({rs(entries.ledgerPaise)})</span>}</p>
-            {entries && <p className="text-xs text-gray-500 mt-1">Zenvy owes {rs(entries.position.zenvyOwesPaise)} (earnings {rs(entries.position.earningsPaise)} + tips {rs(entries.position.tipsPaise)}) · Net {entries.position.netPaise < 0 ? `rider owes ${rs(-entries.position.netPaise)}` : `Zenvy owes ${rs(entries.position.netPaise)}`}</p>}
+            <h3 className="text-xl font-semibold text-fg">{row.name}</h3>
+            <p className="text-xs text-fg-muted">{row.phone} · Cash held <span className="text-warning-text font-semibold">{rs(entries?.cashHeldPaise ?? row.cashHeldPaise)}</span>{entries && !entries.inSync && <span className="text-danger-text font-semibold"> · history does not match ({rs(entries.ledgerPaise)})</span>}</p>
+            {entries && <p className="text-xs text-fg-muted mt-1">Zenvy owes {rs(entries.position.zenvyOwesPaise)} (earnings {rs(entries.position.earningsPaise)} + tips {rs(entries.position.tipsPaise)}) · Net {entries.position.netPaise < 0 ? `rider owes ${rs(-entries.position.netPaise)}` : `Zenvy owes ${rs(entries.position.netPaise)}`}</p>}
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white">✕</button>
+          <button onClick={onClose} className="text-fg-muted hover:text-fg" aria-label="Dismiss"><span aria-hidden="true" className="text-base leading-none">×</span></button>
         </div>
 
-        <div className="space-y-3 p-5 bg-white/[0.02] border border-white/5 rounded-2xl">
+        <div className="space-y-3 p-5 bg-surface-2/60 border border-line rounded-lg">
           <div className="flex gap-2">
             {(['deposit', 'adjust'] as const).map((m) => (
-              <button key={m} onClick={() => { setMode(m); setErr(null); }} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase ${mode === m ? 'bg-blue-600 text-white' : 'bg-white/5 text-gray-400'}`}>{m === 'deposit' ? 'Record deposit' : 'Adjustment'}</button>
+              <button key={m} onClick={() => { setMode(m); setErr(null); }} className={`px-4 py-2 rounded-xl text-xs font-semibold ${mode === m ? 'bg-accent text-on-solid' : 'bg-surface-2/60 text-fg-muted'}`}>{m === 'deposit' ? 'Record deposit' : 'Adjustment'}</button>
             ))}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <input type="number" step="0.01" placeholder={mode === 'deposit' ? 'Amount received (₹)' : 'Amount ₹ (+ / −)'} value={amount} onChange={(e) => setAmount(e.target.value)} className="bg-white/5 border border-white/10 rounded-xl p-3 text-white text-sm" />
+            <input type="number" step="0.01" placeholder={mode === 'deposit' ? 'Amount received (₹)' : 'Amount ₹ (+ / −)'} value={amount} onChange={(e) => setAmount(e.target.value)} className="bg-surface-2/60 border border-line rounded-xl p-3 text-fg text-sm" />
             {mode === 'deposit' && (
               <>
-                <select value={method} onChange={(e) => setMethod(e.target.value as 'cash' | 'upi')} className="bg-white/5 border border-white/10 rounded-xl p-3 text-white text-sm">
+                <select value={method} onChange={(e) => setMethod(e.target.value as 'cash' | 'upi')} className="bg-surface-2/60 border border-line rounded-xl p-3 text-fg text-sm">
                   <option value="cash">Cash handover</option>
                   <option value="upi">UPI to Zenvy</option>
                 </select>
-                <input placeholder={method === 'upi' ? 'UPI reference (UTR)' : 'Receipt no. / received by'} value={reference} onChange={(e) => setReference(e.target.value)} className="bg-white/5 border border-white/10 rounded-xl p-3 text-white text-sm" />
+                <input placeholder={method === 'upi' ? 'UPI reference (UTR)' : 'Receipt no. / received by'} value={reference} onChange={(e) => setReference(e.target.value)} className="bg-surface-2/60 border border-line rounded-xl p-3 text-fg text-sm" />
               </>
             )}
           </div>
-          <input placeholder={mode === 'deposit' ? 'Note (optional)' : 'Reason (required, shown to the rider)'} value={reason} onChange={(e) => setReason(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-sm" />
-          {err && <p className="text-xs font-bold text-red-400">{err}</p>}
-          <button onClick={submit} disabled={saving} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 rounded-xl text-[10px] font-black uppercase text-white">{saving ? 'Saving…' : mode === 'deposit' ? 'Record deposit' : 'Save adjustment'}</button>
+          <input placeholder={mode === 'deposit' ? 'Note (optional)' : 'Reason (required, shown to the rider)'} value={reason} onChange={(e) => setReason(e.target.value)} className="w-full bg-surface-2/60 border border-line rounded-xl p-3 text-fg text-sm" />
+          {err && <p className="text-xs font-semibold text-danger-text">{err}</p>}
+          <button onClick={submit} disabled={saving} className="px-6 py-3 bg-success hover:bg-success/90 disabled:opacity-40 rounded-xl text-xs font-semibold text-on-solid">{saving ? 'Saving…' : mode === 'deposit' ? 'Record deposit' : 'Save adjustment'}</button>
         </div>
 
         <div>
-          <h4 className="text-sm font-black text-white uppercase mb-3">Cash history</h4>
-          {!entries ? <p className="text-xs text-gray-500">Loading…</p> : entries.entries.length === 0 ? <p className="text-xs text-gray-500">No cash history yet.</p> : (
+          <h4 className="text-sm font-semibold text-fg mb-3">Cash history</h4>
+          {!entries ? <p className="text-xs text-fg-muted">Loading…</p> : entries.entries.length === 0 ? <p className="text-xs text-fg-muted">No cash history yet.</p> : (
             <table className="w-full text-left text-xs">
-              <thead><tr className="text-[9px] text-gray-500 uppercase tracking-widest border-b border-white/5"><th className="py-2">When</th><th>What</th><th>Amount</th><th>Held after</th><th>Details</th></tr></thead>
+              <thead><tr className="text-xs text-fg-muted border-b border-line"><th className="py-2">When</th><th>What</th><th>Amount</th><th>Held after</th><th>Details</th></tr></thead>
               <tbody>
                 {entries.entries.map((e) => (
-                  <tr key={e.id} className="border-b border-white/[0.03]">
-                    <td className="py-2 text-gray-400">{when(e.createdAt)}</td>
-                    <td className="text-white">{e.label}</td>
-                    <td className={e.amountPaise < 0 ? 'text-emerald-300' : 'text-amber-300'}>{signed(e.amountPaise)}</td>
-                    <td className="text-gray-300">{rs(e.balanceAfterPaise)}</td>
-                    <td className="text-gray-500">{[e.orderId ? `#${e.orderId.slice(-6).toUpperCase()}` : null, e.method ? e.method.toUpperCase() : null, e.reference, e.reason].filter(Boolean).join(' · ') || '—'}</td>
+                  <tr key={e.id} className="border-b border-line">
+                    <td className="py-2 text-fg-muted">{when(e.createdAt)}</td>
+                    <td className="text-fg">{e.label}</td>
+                    <td className={e.amountPaise < 0 ? 'text-success-text' : 'text-warning-text'}>{signed(e.amountPaise)}</td>
+                    <td className="text-fg-muted">{rs(e.balanceAfterPaise)}</td>
+                    <td className="text-fg-muted">{[e.orderId ? `#${e.orderId.slice(-6).toUpperCase()}` : null, e.method ? e.method.toUpperCase() : null, e.reference, e.reason].filter(Boolean).join(' · ') || '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -257,8 +257,8 @@ function RiderCashModal({ row, onClose, onChanged }: { row: HoldingRow; onClose:
           )}
           {entries && (entries.page > 1 || entries.hasMore) && (
             <div className="flex gap-2 mt-3">
-              <button disabled={page <= 1} onClick={() => loadEntries(page - 1)} className="px-4 py-2 bg-white/5 rounded-xl text-[10px] font-black uppercase text-gray-400 disabled:opacity-30">Newer</button>
-              <button disabled={!entries.hasMore} onClick={() => loadEntries(page + 1)} className="px-4 py-2 bg-white/5 rounded-xl text-[10px] font-black uppercase text-gray-400 disabled:opacity-30">Older</button>
+              <button disabled={page <= 1} onClick={() => loadEntries(page - 1)} className="px-4 py-2 bg-surface-2/60 rounded-xl text-xs font-semibold text-fg-muted disabled:opacity-30">Newer</button>
+              <button disabled={!entries.hasMore} onClick={() => loadEntries(page + 1)} className="px-4 py-2 bg-surface-2/60 rounded-xl text-xs font-semibold text-fg-muted disabled:opacity-30">Older</button>
             </div>
           )}
         </div>

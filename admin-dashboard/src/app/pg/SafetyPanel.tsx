@@ -57,11 +57,11 @@ export function SafetyPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Parti
 
   return (
     <div className="space-y-5">
-      <p className="text-xs text-gray-500">Shown under Safety and staff on the PG page. Leave blank to hide.</p>
-      <p role="note" className="rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-3 text-sm text-amber-200">Do not add phone numbers. Students reach the warden through the Zenvy housing desk.</p>
+      <p className="text-xs text-fg-muted">Shown under Safety and staff on the PG page. Leave blank to hide.</p>
+      <p role="note" className="rounded-lg border border-warning/30 bg-warning-soft p-3 text-sm text-warning-text">Do not add phone numbers. Students reach the warden through the Zenvy housing desk.</p>
 
-      <fieldset className="space-y-3 rounded-xl border border-white/10 p-4">
-        <legend className="px-1 text-sm font-bold text-blue-300">Security</legend>
+      <fieldset className="space-y-3 rounded-xl border border-line p-4">
+        <legend className="px-1 text-sm font-semibold text-info-text">Security</legend>
         <div className="grid gap-3 md:grid-cols-3">
           <label className={LABEL}>Entry
             <select className={FIELD} value={d.entry} onChange={e => set({ entry: e.target.value as EntryType | '' })}>
@@ -79,8 +79,8 @@ export function SafetyPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Parti
         </div>
         {d.guard === 'hours' && (
           <div className="grid max-w-md grid-cols-2 gap-3">
-            <label className={LABEL}>Guard from<input type="time" aria-invalid={hoursBad && !d.guardFrom} className={`${FIELD} ${hoursBad && !d.guardFrom ? 'border-red-500/60' : ''}`} value={d.guardFrom} onChange={e => set({ guardFrom: e.target.value })} /></label>
-            <label className={LABEL}>Guard until<input type="time" aria-invalid={hoursBad && !d.guardTo} className={`${FIELD} ${hoursBad && !d.guardTo ? 'border-red-500/60' : ''}`} value={d.guardTo} onChange={e => set({ guardTo: e.target.value })} /></label>
+            <label className={LABEL}>Guard from<input type="time" aria-invalid={hoursBad && !d.guardFrom} className={`${FIELD} ${hoursBad && !d.guardFrom ? 'border-danger/30' : ''}`} value={d.guardFrom} onChange={e => set({ guardFrom: e.target.value })} /></label>
+            <label className={LABEL}>Guard until<input type="time" aria-invalid={hoursBad && !d.guardTo} className={`${FIELD} ${hoursBad && !d.guardTo ? 'border-danger/30' : ''}`} value={d.guardTo} onChange={e => set({ guardTo: e.target.value })} /></label>
           </div>
         )}
         <div className="grid gap-3 md:grid-cols-3">
@@ -89,8 +89,8 @@ export function SafetyPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Parti
         </div>
       </fieldset>
 
-      <fieldset className="space-y-3 rounded-xl border border-white/10 p-4">
-        <legend className="px-1 text-sm font-bold text-blue-300">Warden</legend>
+      <fieldset className="space-y-3 rounded-xl border border-line p-4">
+        <legend className="px-1 text-sm font-semibold text-info-text">Warden</legend>
         <div className="grid gap-3 md:grid-cols-2">
           <label className={LABEL}>Name<input className={FIELD} maxLength={80} placeholder="e.g. Mr. Rao" value={d.wardenName} onChange={e => set({ wardenName: e.target.value })} /></label>
           <label className={LABEL}>Availability<input className={FIELD} maxLength={140} placeholder="e.g. On site, 8:00 AM to 10:00 PM" value={d.wardenAvailability} onChange={e => set({ wardenAvailability: e.target.value })} /></label>
@@ -102,12 +102,12 @@ export function SafetyPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Parti
       </label>
 
       <AppPreview empty={!v}>
-        {v?.entry && <p><span className="text-gray-500">Entry: </span>{ENTRY_APP[v.entry]}</p>}
-        {guardText && <p><span className="text-gray-500">Security guard: </span>{guardText}</p>}
+        {v?.entry && <p><span className="text-fg-muted">Entry: </span>{ENTRY_APP[v.entry]}</p>}
+        {guardText && <p><span className="text-fg-muted">Security guard: </span>{guardText}</p>}
         {checks.length > 0 && <p>{checks.map(([label, x]) => `${label}: ${x ? 'Yes' : 'No'}`).join(' · ')}</p>}
-        {v?.wardenName && <p><span className="text-gray-500">Warden: </span>{v.wardenName}{v.wardenAvailability ? ` · ${v.wardenAvailability}` : ''}</p>}
-        {v?.wardenName && <p className="text-xs text-gray-500">Students see a &quot;Contact through housing desk&quot; button, not a phone number.</p>}
-        {v?.emergency && <p className="whitespace-pre-line"><span className="text-gray-500">In an emergency: </span>{v.emergency}</p>}
+        {v?.wardenName && <p><span className="text-fg-muted">Warden: </span>{v.wardenName}{v.wardenAvailability ? ` · ${v.wardenAvailability}` : ''}</p>}
+        {v?.wardenName && <p className="text-xs text-fg-muted">Students see a &quot;Contact through housing desk&quot; button, not a phone number.</p>}
+        {v?.emergency && <p className="whitespace-pre-line"><span className="text-fg-muted">In an emergency: </span>{v.emergency}</p>}
       </AppPreview>
       <SaveBar dirty={ed.dirty} saving={ed.saving} message={ed.message} onSave={ed.save} onDiscard={ed.discard} />
     </div>

@@ -78,6 +78,10 @@ export default function CouponManagement() {
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const inFlight = useRef(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  // ?new=1 (header New > Coupon) opens the create form.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('new') === '1') setShowCreateModal(true);
+  }, []);
   const showCreateModalRef = useRef(false);
   showCreateModalRef.current = showCreateModal;
   const [filter, setFilter] = useState<Filter>('all');
@@ -278,27 +282,27 @@ export default function CouponManagement() {
   const couponPager = usePagedRows(visibleCouponsAll, 50, `${filter}|${listTerm}`);
   const visibleCoupons = couponPager.visible;
 
-  if (!isAuthed) return <div className="p-20 text-center font-black text-white uppercase tracking-widest animate-pulse">Checking access…</div>;
+  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
 
   return (
-    <div className="space-y-10 animate-fade-in relative pb-20">
-      <header className="flex flex-wrap gap-6 justify-between items-center bg-white/5 p-8 rounded-[40px] border border-white/5 glass">
+    <div className="space-y-10 animate-fade-in relative">
+      <header className="flex flex-wrap gap-6 justify-between items-center bg-surface-2/60 p-8 rounded-lg border border-line bg-surface border border-line">
         <div>
-          <h2 className="text-3xl font-black text-white tracking-tighter uppercase">Coupons</h2>
-          <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mt-1">Personal discount and free-delivery coupons</p>
+          <h1 className="text-2xl font-semibold text-fg">Coupons</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Discount codes and their usage.</p>
         </div>
         <button
           onClick={openCreate}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+          className="px-6 py-3 bg-accent hover:bg-accent-hover text-on-solid rounded-lg text-xs font-semibold transition-all"
         >
           + New coupon
         </button>
       </header>
 
       {notice && (
-        <div className={`p-4 rounded-2xl border text-xs font-bold flex justify-between items-start gap-4 ${notice.kind === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
+        <div className={`p-4 rounded-lg border text-xs font-semibold flex justify-between items-start gap-4 ${notice.kind === 'error' ? 'bg-danger-soft border-danger/30 text-danger-text' : 'bg-success-soft border-success/30 text-success-text'}`}>
           <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-gray-500 hover:text-white">✕</button>
+          <button onClick={() => setNotice(null)} className="text-fg-muted hover:text-fg" aria-label="Dismiss"><span aria-hidden="true" className="text-base leading-none">×</span></button>
         </div>
       )}
 
@@ -313,7 +317,7 @@ export default function CouponManagement() {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${filter === f ? 'bg-blue-500 text-white border-blue-500' : 'bg-white/5 text-gray-500 border-white/10 hover:text-white'}`}
+              className={`px-4 py-1.5 rounded-xl text-xs font-semibold border transition-all ${filter === f ? 'bg-accent text-on-solid border-info/30' : 'bg-surface-2/60 text-fg-muted border-line hover:text-fg'}`}
             >
               {label}
             </button>
@@ -324,64 +328,64 @@ export default function CouponManagement() {
           placeholder="Search code or customer…"
           value={listSearch}
           onChange={e => setListSearch(e.target.value)}
-          className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-blue-500/40 w-64"
+          className="bg-surface-2/60 border border-line rounded-xl px-4 py-2 text-xs text-fg outline-none focus:border-accent w-64"
         />
       </div>
 
       <div className="glass-card overflow-hidden">
         {loading ? (
-          <div className="py-20 text-center animate-pulse text-gray-500 font-black uppercase text-xs tracking-widest">Loading coupons…</div>
+          <div className="py-20 text-center animate-pulse text-fg-muted font-semibold text-xs">Loading coupons…</div>
         ) : loadError ? (
           <div className="py-20 text-center">
-            <p className="text-xs text-red-400 font-bold">{loadError}</p>
-            <button onClick={fetchCoupons} className="mt-3 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-300 hover:text-white">Try again</button>
+            <p className="text-xs text-danger-text font-semibold">{loadError}</p>
+            <button onClick={fetchCoupons} className="mt-3 px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg">Try again</button>
           </div>
         ) : visibleCouponsAll.length === 0 ? (
-          <div className="py-20 text-center text-gray-500 text-xs">
+          <div className="py-20 text-center text-fg-muted text-xs">
             {coupons.length === 0 ? 'No coupons yet. Create one with "New coupon".' : 'No coupons match this filter.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-white/[0.03] border-b border-white/5">
+                <tr className="bg-surface-2/60 border-b border-line">
                   {['Code', 'Type', 'Customer', 'Expires', 'Status', ''].map(h => (
-                    <th key={h} className="px-8 py-5 text-[9px] font-black text-gray-500 uppercase tracking-widest">{h}</th>
+                    <th key={h} className="px-8 py-5 text-xs font-semibold text-fg-muted">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.02] text-white">
+              <tbody className="divide-y divide-line text-fg">
                 {visibleCoupons.map((coupon) => {
                   const state = couponState(coupon);
                   const id = coupon.id || coupon._id;
                   return (
-                    <tr key={id} className="hover:bg-white/[0.01] transition-all">
-                      <td className="px-8 py-5 font-mono text-sm font-black text-blue-400">{coupon.code}</td>
+                    <tr key={id} className="hover:bg-surface-2/60 transition-all">
+                      <td className="px-8 py-5 font-mono text-sm font-semibold text-info-text">{coupon.code}</td>
                       <td className="px-8 py-5">
-                        <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md ${coupon.type === 'FREEDEL' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${coupon.type === 'FREEDEL' ? 'bg-accent-soft text-accent-text border border-accent/30' : 'bg-success-soft text-success-text border border-success/30'}`}>
                           {coupon.type === 'FREEDEL' ? 'Free delivery' : `₹${coupon.value} off`}
                         </span>
                       </td>
                       <td className="px-8 py-5">
                         {coupon.user ? (
                           <div className="flex flex-col">
-                            <span className="text-sm font-bold text-white">{coupon.user.name}</span>
-                            <span className="text-[10px] text-gray-500 font-mono mt-0.5">{coupon.user.phone}</span>
+                            <span className="text-sm font-semibold text-fg">{coupon.user.name}</span>
+                            <span className="text-xs text-fg-muted font-mono mt-0.5">{coupon.user.phone}</span>
                           </div>
                         ) : (
-                          <span className="text-xs text-gray-500 italic">Deleted account</span>
+                          <span className="text-xs text-fg-muted">Deleted account</span>
                         )}
                       </td>
-                      <td className="px-8 py-5 text-xs font-bold text-gray-300">
+                      <td className="px-8 py-5 text-xs font-semibold text-fg-muted">
                         {coupon.expiryDate ? new Date(coupon.expiryDate).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'No expiry'}
                       </td>
                       <td className="px-8 py-5">
                         {state === 'used' ? (
-                          <span className="px-2 py-0.5 rounded bg-gray-500/10 text-gray-500 text-[9px] font-black uppercase tracking-wider border border-gray-500/20">Used</span>
+                          <span className="px-2 py-0.5 rounded bg-surface-3 text-fg-muted text-xs font-semibold border border-line-strong">Used</span>
                         ) : state === 'expired' ? (
-                          <span className="px-2 py-0.5 rounded bg-red-500/10 text-red-500 text-[9px] font-black uppercase tracking-wider border border-red-500/20">Expired</span>
+                          <span className="px-2 py-0.5 rounded bg-danger-soft text-danger-text text-xs font-semibold border border-danger/30">Expired</span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase tracking-wider border border-emerald-500/20">Active</span>
+                          <span className="px-2 py-0.5 rounded bg-success-soft text-success-text text-xs font-semibold border border-success/30">Active</span>
                         )}
                       </td>
                       <td className="px-8 py-5 text-right">
@@ -389,7 +393,7 @@ export default function CouponManagement() {
                           <button
                             onClick={() => handleDeleteCoupon(coupon)}
                             disabled={revokingId !== null}
-                            className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-40"
+                            className="px-3 py-1.5 bg-danger-soft hover:bg-danger/90 text-danger-text hover:text-fg rounded-lg text-xs font-semibold transition-all disabled:opacity-40"
                           >
                             {revokingId === id ? 'Revoking…' : 'Revoke'}
                           </button>
@@ -406,25 +410,25 @@ export default function CouponManagement() {
       </div>
 
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4" onClick={closeCreate}>
-          <div className="bg-[#0D0D15] border border-white/10 rounded-[32px] w-full max-w-xl overflow-hidden glass" onClick={e => e.stopPropagation()}>
-            <header className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-              <h3 className="text-xl font-black text-white uppercase tracking-tight">New coupon</h3>
-              <button onClick={closeCreate} disabled={submitLoading} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-white flex items-center justify-center text-lg transition-all disabled:opacity-40" aria-label="Close">✕</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/50 p-4" onClick={closeCreate}>
+          <div className="bg-surface border border-line rounded-lg w-full max-w-xl overflow-hidden bg-surface border border-line" onClick={e => e.stopPropagation()}>
+            <header className="px-8 py-6 border-b border-line flex justify-between items-center bg-surface-2/60">
+              <h3 className="text-xl font-semibold text-fg">New coupon</h3>
+              <button onClick={closeCreate} disabled={submitLoading} className="w-8 h-8 rounded-full bg-surface-2/60 hover:bg-surface-2 text-fg flex items-center justify-center text-lg transition-all disabled:opacity-40" aria-label="Close"><span aria-hidden="true" className="text-base leading-none">×</span></button>
             </header>
 
             <form onSubmit={handleCreateCoupon} className="p-8 space-y-6">
               {errorMsg && (
-                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-xs font-bold text-red-400">{errorMsg}</div>
+                <div className="p-4 bg-danger-soft border border-danger/30 rounded-lg text-xs font-semibold text-danger-text">{errorMsg}</div>
               )}
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer</label>
+                <label className="text-xs font-semibold text-fg-muted">Customer</label>
                 <div className="relative">
                   <input
                     type="text"
                     placeholder="Search by name or phone…"
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-sm text-white placeholder-gray-600 outline-none focus:border-blue-500/50 transition-all"
+                    className="w-full bg-surface-2/60 border border-line rounded-lg py-3.5 px-5 text-sm text-fg placeholder:text-fg-subtle outline-none focus:border-accent transition-all"
                     value={userSearch}
                     onChange={(e) => {
                       setUserSearch(e.target.value);
@@ -432,9 +436,9 @@ export default function CouponManagement() {
                     }}
                   />
                   {term && !selectedUserId && (
-                    <div className="absolute left-0 right-0 mt-2 bg-[#0D0D15] border border-white/10 rounded-2xl max-h-56 overflow-y-auto z-50 glass">
+                    <div className="absolute left-0 right-0 mt-2 bg-surface border border-line rounded-lg max-h-56 overflow-y-auto z-50 bg-surface border border-line">
                       {filteredUsers.length === 0 ? (
-                        <div className="p-4 text-xs text-gray-500 text-center font-bold">No customers match.</div>
+                        <div className="p-4 text-xs text-fg-muted text-center font-semibold">No customers match.</div>
                       ) : (
                         filteredUsers.slice(0, 8).map((u) => (
                           <button
@@ -444,10 +448,10 @@ export default function CouponManagement() {
                               setSelectedUserId(u.id || u._id);
                               setUserSearch(`${u.name} (${u.phone})`);
                             }}
-                            className="w-full text-left px-5 py-3 hover:bg-white/[0.03] text-sm text-white flex justify-between items-center transition-all border-b border-white/5 last:border-0"
+                            className="w-full text-left px-5 py-3 hover:bg-surface-2/60 text-sm text-fg flex justify-between items-center transition-all border-b border-line last:border-0"
                           >
-                            <span className="font-bold">{u.name}</span>
-                            <span className="text-[10px] text-gray-500 font-mono">{u.phone}</span>
+                            <span className="font-semibold">{u.name}</span>
+                            <span className="text-xs text-fg-muted font-mono">{u.phone}</span>
                           </button>
                         ))
                       )}
@@ -455,25 +459,25 @@ export default function CouponManagement() {
                   )}
                 </div>
                 {usersError ? (
-                  <p className="text-[10px] text-red-400 font-bold">{usersError} <button type="button" onClick={fetchUsers} className="underline">Retry</button></p>
+                  <p className="text-xs text-danger-text font-semibold">{usersError} <button type="button" onClick={fetchUsers} className="underline">Retry</button></p>
                 ) : null}
                 {selectedUserId && (
-                  <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">✓ {userSearch}</p>
+                  <p className="text-xs text-success-text font-semibold">✓ {userSearch}</p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Code</label>
+                <label className="text-xs font-semibold text-fg-muted">Code</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     placeholder="e.g. FLAT100"
                     maxLength={20}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-sm font-mono text-white placeholder-gray-600 outline-none focus:border-blue-500/50 transition-all uppercase"
+                    className="flex-1 bg-surface-2/60 border border-line rounded-lg py-3.5 px-5 text-sm font-mono text-fg placeholder:text-fg-subtle outline-none focus:border-accent transition-all"
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase().replace(/\s/g, ''))}
                   />
-                  <button type="button" onClick={() => setCode(randomCode())} className="px-5 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
+                  <button type="button" onClick={() => setCode(randomCode())} className="px-5 bg-surface-2/60 border border-line hover:bg-surface-2 text-fg rounded-lg text-xs font-semibold transition-all">
                     Generate
                   </button>
                 </div>
@@ -481,9 +485,9 @@ export default function CouponManagement() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className={`space-y-2 ${type === 'FREEDEL' ? 'col-span-2' : ''}`}>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Type</label>
+                  <label className="text-xs font-semibold text-fg-muted">Type</label>
                   <select
-                    className="w-full bg-[#0D0D15] border border-white/10 rounded-2xl py-3.5 px-5 text-sm text-white outline-none focus:border-blue-500/50 transition-all cursor-pointer"
+                    className="w-full bg-surface border border-line rounded-lg py-3.5 px-5 text-sm text-fg outline-none focus:border-accent transition-all cursor-pointer"
                     value={type}
                     onChange={(e) => setType(e.target.value as 'FREEDEL' | 'DISCOUNT')}
                   >
@@ -494,14 +498,14 @@ export default function CouponManagement() {
 
                 {type === 'DISCOUNT' && (
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Discount (₹)</label>
+                    <label className="text-xs font-semibold text-fg-muted">Discount (₹)</label>
                     <input
                       type="number"
                       min={1}
                       max={MAX_DISCOUNT}
                       step={1}
                       placeholder="e.g. 50"
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-sm text-white placeholder-gray-600 outline-none focus:border-blue-500/50 transition-all"
+                      className="w-full bg-surface-2/60 border border-line rounded-lg py-3.5 px-5 text-sm text-fg placeholder:text-fg-subtle outline-none focus:border-accent transition-all"
                       value={value}
                       onChange={(e) => setValue(e.target.value ? Number(e.target.value) : '')}
                     />
@@ -509,15 +513,15 @@ export default function CouponManagement() {
                 )}
               </div>
               {type === 'DISCOUNT' && (
-                <p className="text-[10px] text-gray-500 -mt-3">The discount is capped at the item total of the order.</p>
+                <p className="text-xs text-fg-muted -mt-3">The discount is capped at the item total of the order.</p>
               )}
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Valid until (end of day)</label>
+                  <label className="text-xs font-semibold text-fg-muted">Valid until (end of day)</label>
                   <div className="flex gap-2">
                     {[1, 3, 7, 30].map(days => (
-                      <button key={days} type="button" onClick={() => setExpiryDate(daysFromToday(days))} className="px-2 py-1 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded text-[9px] font-bold transition-all">
+                      <button key={days} type="button" onClick={() => setExpiryDate(daysFromToday(days))} className="px-2 py-1 bg-surface-2/60 hover:bg-surface-2 text-fg-muted hover:text-fg rounded text-xs font-semibold transition-all">
                         +{days}d
                       </button>
                     ))}
@@ -526,17 +530,17 @@ export default function CouponManagement() {
                 <input
                   type="date"
                   min={daysFromToday(0)}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-sm text-white outline-none focus:border-blue-500/50 transition-all"
+                  className="w-full bg-surface-2/60 border border-line rounded-lg py-3.5 px-5 text-sm text-fg outline-none focus:border-accent transition-all"
                   value={expiryDate}
                   onChange={(e) => setExpiryDate(e.target.value)}
                 />
               </div>
 
-              <div className="flex gap-4 pt-4 border-t border-white/5">
-                <button type="button" onClick={closeCreate} disabled={submitLoading} className="flex-1 py-3.5 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-40">
+              <div className="flex gap-4 pt-4 border-t border-line">
+                <button type="button" onClick={closeCreate} disabled={submitLoading} className="flex-1 py-3.5 bg-surface-2/60 hover:bg-surface-2 text-fg rounded-lg text-xs font-semibold transition-all disabled:opacity-40">
                   Cancel
                 </button>
-                <button type="submit" disabled={submitLoading} className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
+                <button type="submit" disabled={submitLoading} className="flex-1 py-3.5 bg-accent hover:bg-accent-hover disabled:opacity-50 text-on-solid rounded-lg text-xs font-semibold transition-all">
                   {submitLoading ? 'Creating…' : 'Create coupon'}
                 </button>
               </div>

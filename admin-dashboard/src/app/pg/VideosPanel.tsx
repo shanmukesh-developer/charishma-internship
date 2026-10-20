@@ -64,40 +64,40 @@ export function VideosPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Parti
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm text-gray-300">{videos.length} of {MAX_VIDEOS} videos</p>
-          <p className="mt-1 text-xs text-gray-500">Upload room tours to the Zenvy YouTube channel, then paste the link here. Students play them inside the app.</p>
+          <p className="text-sm text-fg-muted">{videos.length} of {MAX_VIDEOS} videos</p>
+          <p className="mt-1 text-xs text-fg-muted">Upload room tours to the Zenvy YouTube channel, then paste the link here. Students play them inside the app.</p>
         </div>
-        <button type="button" disabled={videos.length >= MAX_VIDEOS} onClick={() => setVideos(prev => [...prev, { key: nextKey(), link: '', title: '', roomType: null }])} className="rounded-lg bg-white/10 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/15 disabled:opacity-40">Add video</button>
+        <button type="button" disabled={videos.length >= MAX_VIDEOS} onClick={() => setVideos(prev => [...prev, { key: nextKey(), link: '', title: '', roomType: null }])} className="rounded-lg bg-surface-2 px-4 py-2.5 text-sm font-semibold text-fg hover:bg-surface-3 disabled:opacity-40">Add video</button>
       </div>
 
       {videos.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/10 p-10 text-center text-sm text-gray-400">No videos yet.</div>
+        <div className="rounded-xl border border-dashed border-line p-10 text-center text-sm text-fg-muted">No videos yet.</div>
       ) : (
         <ol className="space-y-2">
           {videos.map((v, i) => (
-            <li key={v.key} className="grid grid-cols-[136px_1fr] gap-4 rounded-xl border border-white/10 p-3">
+            <li key={v.key} className="grid grid-cols-[136px_1fr] gap-4 rounded-xl border border-line p-3">
               {ids[i] ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={youtubeThumb(ids[i] as string)} alt="" loading="lazy" className="h-[76px] w-[136px] rounded-lg border border-white/10 object-cover" />
+                <img src={youtubeThumb(ids[i] as string)} alt="" loading="lazy" className="h-[76px] w-[136px] rounded-lg border border-line object-cover" />
               ) : (
-                <div className="flex h-[76px] w-[136px] items-center justify-center rounded-lg border border-dashed border-white/10 text-[11px] text-gray-500">No preview</div>
+                <div className="flex h-[76px] w-[136px] items-center justify-center rounded-lg border border-dashed border-line text-xs text-fg-muted">No preview</div>
               )}
               <div className="min-w-0 space-y-2">
                 <div className="grid gap-2 md:grid-cols-[1fr_1fr]">
-                  <input aria-label={`YouTube link ${i + 1}`} aria-invalid={!!problem[i] && !!v.link.trim()} className={`${FIELD} ${problem[i] && v.link.trim() ? 'border-red-500/60' : ''}`} placeholder="https://youtu.be/…" value={v.link} onChange={e => update(v.key, { link: e.target.value })} />
+                  <input aria-label={`YouTube link ${i + 1}`} aria-invalid={!!problem[i] && !!v.link.trim()} className={`${FIELD} ${problem[i] && v.link.trim() ? 'border-danger/30' : ''}`} placeholder="https://youtu.be/…" value={v.link} onChange={e => update(v.key, { link: e.target.value })} />
                   <input aria-label={`Title of video ${i + 1}`} className={FIELD} maxLength={100} placeholder="Title, e.g. Twin room tour" value={v.title} onChange={e => update(v.key, { title: e.target.value })} />
                 </div>
-                {problem[i] && v.link.trim() ? <p className="text-xs text-red-300">{problem[i]}</p> : null}
+                {problem[i] && v.link.trim() ? <p className="text-xs text-danger-text">{problem[i]}</p> : null}
                 <div className="flex flex-wrap items-center gap-3 text-xs">
                   <select aria-label={`Room type of video ${i + 1}`} className={`${FIELD} w-auto py-1.5`} value={v.roomType || ''} onChange={e => update(v.key, { roomType: e.target.value || null })}>
                     <option value="">Not linked to a room type</option>
                     {roomTypes.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
                     {v.roomType && !roomTypes.some(o => o.key === v.roomType) && <option value={v.roomType}>{v.roomType} (no matching rooms)</option>}
                   </select>
-                  <button type="button" disabled={i === 0} onClick={() => move(v.key, -1)} className="rounded border border-white/10 px-2 py-1 text-gray-300 hover:text-white disabled:opacity-30">Move up</button>
-                  <button type="button" disabled={i === videos.length - 1} onClick={() => move(v.key, 1)} className="rounded border border-white/10 px-2 py-1 text-gray-300 hover:text-white disabled:opacity-30">Move down</button>
-                  {ids[i] && <a href={`https://www.youtube.com/watch?v=${ids[i]}`} target="_blank" rel="noreferrer" className="text-blue-300 hover:underline">Open on YouTube</a>}
-                  <button type="button" onClick={() => { setMessage(null); setVideos(prev => prev.filter(x => x.key !== v.key)); }} className="ml-auto text-red-300/80 hover:text-red-300">Remove</button>
+                  <button type="button" disabled={i === 0} onClick={() => move(v.key, -1)} className="rounded border border-line px-2 py-1 text-fg-muted hover:text-fg disabled:opacity-30">Move up</button>
+                  <button type="button" disabled={i === videos.length - 1} onClick={() => move(v.key, 1)} className="rounded border border-line px-2 py-1 text-fg-muted hover:text-fg disabled:opacity-30">Move down</button>
+                  {ids[i] && <a href={`https://www.youtube.com/watch?v=${ids[i]}`} target="_blank" rel="noreferrer" className="text-info-text hover:underline">Open on YouTube</a>}
+                  <button type="button" onClick={() => { setMessage(null); setVideos(prev => prev.filter(x => x.key !== v.key)); }} className="ml-auto text-danger-text hover:text-danger-text">Remove</button>
                 </div>
               </div>
             </li>

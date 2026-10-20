@@ -61,7 +61,7 @@ export default function RegistrationsTab({ tick, onChanged }: { tick: number; on
         <Select name="Payment" value={paymentStatus} onChange={setPaymentStatus} options={['', ...PAYMENT_STATUSES]} allLabel="Any" />
         <Select name="Mode" value={paymentMode} onChange={setPaymentMode} options={['', ...PAYMENT_MODES]} allLabel="Any" />
         <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); setQuery(search.trim()); }}>
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Code, name or phone last 4" maxLength={60} className="w-60 border border-white/10 bg-[#111318] p-2 text-sm text-white" aria-label="Search registrations" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Code, name or phone last 4" maxLength={60} className="w-60 border border-line bg-surface p-2 text-sm text-fg" aria-label="Search registrations" />
           <Btn type="submit">Search</Btn>
           {query && <Btn onClick={() => { setSearch(''); setQuery(''); }}>Clear</Btn>}
         </form>
@@ -73,21 +73,21 @@ export default function RegistrationsTab({ tick, onChanged }: { tick: number; on
       {showPayments && <PaymentsPanel tick={tick} />}
       {error && <ErrorBox text={error} retry={reload} />}
       {loading && !data ? <Loading text="Loading registrations…" /> : rows.length === 0 ? <Empty text={query ? `No registration matches "${query}".` : 'No registrations match these filters.'} /> : (
-        <div className="overflow-x-auto border border-white/10">
+        <div className="overflow-x-auto border border-line">
           <table className="w-full text-left text-sm">
-            <thead className="bg-white/[0.03] text-xs uppercase tracking-wider text-gray-400"><tr><th className="p-3">Code</th><th className="p-3">Student / team</th><th className="p-3">Event</th><th className="p-3">Status</th><th className="p-3">Payment</th><th className="p-3">Ticket</th><th className="p-3">Actions</th></tr></thead>
+            <thead className="bg-surface-2/60 text-xs text-fg-muted"><tr><th className="p-3">Code</th><th className="p-3">Student / team</th><th className="p-3">Event</th><th className="p-3">Status</th><th className="p-3">Payment</th><th className="p-3">Ticket</th><th className="p-3">Actions</th></tr></thead>
             <tbody className="divide-y divide-white/10">
               {rows.map((r) => {
                 const tk = r.ticket || ticketByReg.get(r.id) || null;
                 const tkCode = tk ? tk.code || tk.ticketCode : '';
                 return (
                   <tr key={r.id} className="align-top">
-                    <td className="p-3 font-mono text-xs">{r.code}<span className="block text-gray-500">{when(r.createdAt)}</span></td>
-                    <td className="p-3 text-xs">{r.name}{r.team && <span className="block text-gray-400">Team {r.team.name}</span>}<span className="block font-mono text-gray-600">user #{short(r.userId)}{r.phoneMasked ? ` · ${r.phoneMasked}` : ''}</span></td>
-                    <td className="p-3 text-xs">{r.eventTitle || '—'}<span className="block text-gray-500">{r.type.toLowerCase()}{r.unitNo ? ` · place ${r.unitNo}` : ''}</span></td>
+                    <td className="p-3 font-mono text-xs">{r.code}<span className="block text-fg-muted">{when(r.createdAt)}</span></td>
+                    <td className="p-3 text-xs">{r.name}{r.team && <span className="block text-fg-muted">Team {r.team.name}</span>}<span className="block font-mono text-fg-subtle">user #{short(r.userId)}{r.phoneMasked ? ` · ${r.phoneMasked}` : ''}</span></td>
+                    <td className="p-3 text-xs">{r.eventTitle || '—'}<span className="block text-fg-muted">{r.type.toLowerCase()}{r.unitNo ? ` · place ${r.unitNo}` : ''}</span></td>
                     <td className="p-3"><Pill s={r.status} /></td>
-                    <td className="p-3 text-xs">{r.paymentMode === 'NONE' ? 'Free' : <>{r.paymentMode.toLowerCase()} · {inr(r.total)}</>}<span className="mt-1 block"><Pill s={r.paymentStatus} /></span>{r.payment?.refundAmount ? <span className="block text-gray-500">refund {inr(r.payment.refundAmount)}{r.payment.refundedAt ? ` · ${when(r.payment.refundedAt)}` : ''}</span> : null}{r.refundAttempts ? <span className="block text-amber-300">{r.refundAttempts} refund attempt(s)</span> : null}</td>
-                    <td className="p-3 text-xs">{tk ? <><span className="font-mono">{tkCode}</span><span className="mt-1 block"><Pill s={tk.status} /></span></> : <span className="text-gray-500">none</span>}</td>
+                    <td className="p-3 text-xs">{r.paymentMode === 'NONE' ? 'Free' : <>{r.paymentMode.toLowerCase()} · {inr(r.total)}</>}<span className="mt-1 block"><Pill s={r.paymentStatus} /></span>{r.payment?.refundAmount ? <span className="block text-fg-muted">refund {inr(r.payment.refundAmount)}{r.payment.refundedAt ? ` · ${when(r.payment.refundedAt)}` : ''}</span> : null}{r.refundAttempts ? <span className="block text-warning-text">{r.refundAttempts} refund attempt(s)</span> : null}</td>
+                    <td className="p-3 text-xs">{tk ? <><span className="font-mono">{tkCode}</span><span className="mt-1 block"><Pill s={tk.status} /></span></> : <span className="text-fg-muted">none</span>}</td>
                     <td className="p-3">
                       <div className="flex flex-wrap gap-2">
                         {r.status === 'PENDING_APPROVAL' && <Btn tone="good" onClick={() => setAct({ kind: 'approve', reg: r })}>Approve</Btn>}
@@ -140,9 +140,9 @@ function PaymentsPanel({ tick }: { tick: number }) {
       {loading && !data ? <Loading text="Loading payments…" /> : rows.length === 0 ? <Empty text="No payment records." /> : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="uppercase text-gray-400"><tr><th className="p-2">When</th><th className="p-2">Provider</th><th className="p-2">Amount</th><th className="p-2">Status</th><th className="p-2">Order / payment</th><th className="p-2">Registration</th><th className="p-2">Failure</th></tr></thead>
+            <thead className="text-fg-muted"><tr><th className="p-2">When</th><th className="p-2">Provider</th><th className="p-2">Amount</th><th className="p-2">Status</th><th className="p-2">Order / payment</th><th className="p-2">Registration</th><th className="p-2">Failure</th></tr></thead>
             <tbody className="divide-y divide-white/10">
-              {rows.map((p) => <tr key={p.id}><td className="p-2">{when(p.createdAt)}</td><td className="p-2">{p.provider}</td><td className="p-2">{inr(p.amount)}</td><td className="p-2"><Pill s={p.status} /></td><td className="p-2 font-mono">{p.providerOrderId || '—'}<span className="block">{p.providerPaymentId || ''}</span></td><td className="p-2 font-mono">#{short(p.registrationId)}</td><td className="p-2 text-red-300">{p.failureReason || ''}</td></tr>)}
+              {rows.map((p) => <tr key={p.id}><td className="p-2">{when(p.createdAt)}</td><td className="p-2">{p.provider}</td><td className="p-2">{inr(p.amount)}</td><td className="p-2"><Pill s={p.status} /></td><td className="p-2 font-mono">{p.providerOrderId || '—'}<span className="block">{p.providerPaymentId || ''}</span></td><td className="p-2 font-mono">#{short(p.registrationId)}</td><td className="p-2 text-danger-text">{p.failureReason || ''}</td></tr>)}
             </tbody>
           </table>
         </div>

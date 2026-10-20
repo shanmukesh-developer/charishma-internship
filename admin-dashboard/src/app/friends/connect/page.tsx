@@ -79,15 +79,15 @@ type Notice = { kind: 'ok' | 'error'; text: string } | null;
 type Act = (fn: () => Promise<unknown>, success: string, reload: Array<() => unknown>) => Promise<boolean>;
 
 // ── Shared styles (same tokens as /friends, /friends/pulse and /moderation) ──
-const input = 'w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50';
-const label = 'block text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1';
-const btn = 'rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest disabled:opacity-40 transition-colors';
-const btnGhost = `${btn} border border-white/10 bg-white/5 text-gray-300 hover:text-white`;
-const btnGo = `${btn} bg-emerald-500/20 text-emerald-200 border border-emerald-500/30 hover:bg-emerald-500/30`;
-const btnWarn = `${btn} bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25`;
-const btnBlue = `${btn} bg-blue-500/10 text-blue-400 border border-blue-500/20`;
-const card = 'glass-card p-6 space-y-4';
-const chip = 'text-[9px] px-2 py-0.5 rounded-md border font-black uppercase tracking-wider';
+const input = 'w-full rounded-xl border border-line bg-surface-2/60 px-3 py-2 text-sm text-fg outline-none focus:border-accent';
+const label = 'block text-xs font-semibold text-fg-muted mb-1';
+const btn = 'rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-40 transition-colors';
+const btnGhost = `${btn} border border-line bg-surface-2/60 text-fg-muted hover:text-fg`;
+const btnGo = `${btn} bg-success-soft text-success-text border border-success/30 hover:bg-success-soft`;
+const btnWarn = `${btn} bg-danger-soft text-danger-text border border-danger/30 hover:bg-danger-soft`;
+const btnBlue = `${btn} bg-info-soft text-info-text border border-info/30`;
+const card = 'rounded-lg border border-line bg-surface shadow-xs p-6 space-y-4';
+const chip = 'text-xs px-2 py-0.5 rounded-md border font-semibold';
 
 const errText = (e: unknown, fallback: string) => (e instanceof Error && e.message ? e.message : fallback);
 const qs = (o: Record<string, string | undefined | null>) => {
@@ -101,34 +101,34 @@ const shortId = (id?: string | null) => (id ? `${id.slice(0, 8)}…` : '-');
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const STATUS_TONE: Record<string, string> = {
-  active: 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10',
-  approved: 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10',
-  passed: 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10',
-  visible: 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10',
-  pending: 'text-amber-300 border-amber-500/30 bg-amber-500/10',
-  pending_review: 'text-amber-300 border-amber-500/30 bg-amber-500/10',
-  setup: 'text-blue-300 border-blue-500/30 bg-blue-500/10',
-  paused: 'text-gray-300 border-white/15 bg-white/5',
-  hidden: 'text-gray-300 border-white/15 bg-white/5',
-  none: 'text-gray-400 border-white/10 bg-white/5',
-  rejected: 'text-red-300 border-red-500/30 bg-red-500/10',
-  failed: 'text-red-300 border-red-500/30 bg-red-500/10',
-  removed: 'text-red-300 border-red-500/30 bg-red-500/10',
+  active: 'text-success-text border-success/30 bg-success-soft',
+  approved: 'text-success-text border-success/30 bg-success-soft',
+  passed: 'text-success-text border-success/30 bg-success-soft',
+  visible: 'text-success-text border-success/30 bg-success-soft',
+  pending: 'text-warning-text border-warning/30 bg-warning-soft',
+  pending_review: 'text-warning-text border-warning/30 bg-warning-soft',
+  setup: 'text-info-text border-info/30 bg-info-soft',
+  paused: 'text-fg-muted border-line bg-surface-2/60',
+  hidden: 'text-fg-muted border-line bg-surface-2/60',
+  none: 'text-fg-muted border-line bg-surface-2/60',
+  rejected: 'text-danger-text border-danger/30 bg-danger-soft',
+  failed: 'text-danger-text border-danger/30 bg-danger-soft',
+  removed: 'text-danger-text border-danger/30 bg-danger-soft',
 };
 function StatusChip({ s }: { s: string }) {
-  return <span className={`${chip} ${STATUS_TONE[s] || 'text-gray-300 border-white/10 bg-white/5'}`}>{s.replace('_', ' ')}</span>;
+  return <span className={`${chip} ${STATUS_TONE[s] || 'text-fg-muted border-line bg-surface-2/60'}`}>{s.replace('_', ' ')}</span>;
 }
 
 function LoggedNote() {
-  return <p className="text-[10px] font-bold text-amber-300/80">This access is logged.</p>;
+  return <p className="text-xs font-semibold text-warning-text">This access is logged.</p>;
 }
 
 function Photo({ url, alt, size = 'h-28 w-28' }: { url: string | null; alt: string; size?: string }) {
-  if (!url) return <div className={`${size} rounded-xl border border-white/10 bg-white/5 flex items-center justify-center text-[9px] text-gray-500 text-center px-1`}>deleted</div>;
+  if (!url) return <div className={`${size} rounded-xl border border-line bg-surface-2/60 flex items-center justify-center text-xs text-fg-muted text-center px-1`}>deleted</div>;
   return (
     <a href={url} target="_blank" rel="noreferrer noopener" className="block">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={url} alt={alt} referrerPolicy="no-referrer" className={`${size} rounded-xl object-cover border border-white/10`} />
+      <img src={url} alt={alt} referrerPolicy="no-referrer" className={`${size} rounded-xl object-cover border border-line`} />
     </a>
   );
 }
@@ -141,10 +141,10 @@ function Drawer({ title, onClose, children }: { title: string; onClose: () => vo
   }, [onClose]);
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={title}>
-      <button aria-label="Close" className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative h-full w-full max-w-xl overflow-y-auto border-l border-white/10 bg-[#0b0d12] p-6 space-y-5 shadow-2xl">
+      <button aria-label="Close" className="absolute inset-0 bg-surface-2" onClick={onClose} />
+      <div className="relative h-full w-full max-w-xl overflow-y-auto border-l border-line bg-surface p-6 space-y-5 shadow-pop">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">{title}</h2>
+          <h2 className="text-sm font-semibold text-fg">{title}</h2>
           <button onClick={onClose} className={btnGhost}>Close</button>
         </div>
         {children}
@@ -154,28 +154,28 @@ function Drawer({ title, onClose, children }: { title: string; onClose: () => vo
 }
 
 function LoadState({ loading, error, empty, reload, emptyText }: { loading: boolean; error?: string; empty: boolean; reload: () => void; emptyText: string }) {
-  if (loading && empty) return <p className="text-xs text-gray-500 animate-pulse text-center py-12">Loading…</p>;
+  if (loading && empty) return <p className="text-xs text-fg-muted animate-pulse text-center py-12">Loading…</p>;
   if (error && empty) {
     return (
       <div className="text-center py-12">
-        <p className="text-xs text-red-400 font-bold">{error}</p>
+        <p className="text-xs text-danger-text font-semibold">{error}</p>
         <button onClick={reload} className={`mt-3 ${btnGhost}`}>Try again</button>
       </div>
     );
   }
-  if (empty) return <p className="text-xs text-gray-500 text-center py-12">{emptyText}</p>;
+  if (empty) return <p className="text-xs text-fg-muted text-center py-12">{emptyText}</p>;
   return null;
 }
 
 function Stat({ k, v, tone, onClick }: { k: string; v: number | string; tone?: string; onClick?: () => void }) {
   const body = (
     <>
-      <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{k}</p>
-      <p className={`text-2xl font-black mt-1 ${tone || 'text-white'}`}>{v}</p>
+      <p className="text-xs font-semibold text-fg-muted">{k}</p>
+      <p className={`text-2xl font-semibold mt-1 ${tone || 'text-fg'}`}>{v}</p>
     </>
   );
-  if (onClick) return <button onClick={onClick} className="text-left rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 hover:border-amber-500/40">{body}</button>;
-  return <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">{body}</div>;
+  if (onClick) return <button onClick={onClick} className="text-left rounded-lg border border-warning/30 bg-warning-soft p-4 hover:border-warning/30">{body}</button>;
+  return <div className="rounded-lg border border-line bg-surface-2/60 p-4">{body}</div>;
 }
 
 const askReason = (what: string, required = true): string | null => {
@@ -307,7 +307,7 @@ export default function ConnectAdminPage() {
     }, 'Clean-up finished.', [loadStats]);
   };
 
-  if (!isAuthed) return <div className="p-20 text-center font-black text-white uppercase tracking-widest animate-pulse">Checking access…</div>;
+  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
 
   const TABS: Array<{ id: Tab; label: string; count?: number }> = [
     { id: 'overview', label: 'Overview' },
@@ -321,30 +321,30 @@ export default function ConnectAdminPage() {
     <div className="space-y-8 animate-fade-in relative pb-16">
       <div className="flex flex-wrap gap-4 items-end justify-between">
         <div>
-          <Link href="/friends" className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white">← Friends config</Link>
-          <h1 className="text-3xl font-black tracking-tighter text-white uppercase mt-1">Connect admin</h1>
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">Photo approvals, selfie checks, profiles, policy and consent</p>
+          <Link href="/friends" className="text-xs font-semibold text-fg-muted hover:text-fg">← Friends config</Link>
+          <h1 className="text-3xl font-semibold text-fg mt-1">Connect admin</h1>
+          <p className="text-xs font-semibold text-fg-muted mt-1">Photo approvals, selfie checks, profiles, policy and consent</p>
         </div>
         <Link href="/moderation" className={btnGhost}>Reports queue</Link>
       </div>
 
-      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-[11px] text-amber-200/90">
+      <div className="rounded-lg border border-warning/30 bg-warning-soft px-4 py-3 text-xs text-warning-text">
         Connect data is sensitive. Every list and profile you open here is written to the audit log first, and the server refuses the read if the log cannot be written. Open only what you need to review.
       </div>
 
       {notice && (
-        <div role="status" className={`rounded-2xl border px-4 py-3 text-xs font-bold flex items-center justify-between gap-4 ${notice.kind === 'ok' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300' : 'border-red-500/20 bg-red-500/10 text-red-300'}`}>
+        <div role="status" className={`rounded-lg border px-4 py-3 text-xs font-semibold flex items-center justify-between gap-4 ${notice.kind === 'ok' ? 'border-success/30 bg-success-soft text-success-text' : 'border-danger/30 bg-danger-soft text-danger-text'}`}>
           <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-[10px] font-black uppercase opacity-70 hover:opacity-100">Dismiss</button>
+          <button onClick={() => setNotice(null)} className="text-xs font-semibold opacity-70 hover:opacity-100">Dismiss</button>
         </div>
       )}
 
       <div className="flex flex-wrap gap-2" role="tablist">
         {TABS.map((t) => (
           <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
-            className={`${btn} border ${tab === t.id ? 'border-blue-500/40 bg-blue-500/15 text-blue-200' : 'border-white/10 bg-white/5 text-gray-400 hover:text-white'}`}>
+            className={`${btn} border ${tab === t.id ? 'border-info/30 bg-info-soft text-info-text' : 'border-line bg-surface-2/60 text-fg-muted hover:text-fg'}`}>
             {t.label}
-            {!!t.count && <span className="ml-2 rounded-md bg-amber-500/20 px-1.5 py-0.5 text-amber-200">{t.count}</span>}
+            {!!t.count && <span className="ml-2 rounded-md bg-warning-soft px-1.5 py-0.5 text-warning-text">{t.count}</span>}
           </button>
         ))}
       </div>
@@ -385,7 +385,7 @@ function OverviewTab({ stats, loading, error, reload, busy, runJobs, jobStats, o
     <div className="space-y-6">
       <section className={card}>
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">Connect at a glance</h2>
+          <h2 className="text-sm font-semibold text-fg">Connect at a glance</h2>
           <button onClick={reload} disabled={loading} className={btnGhost}>{loading ? '…' : 'Refresh'}</button>
         </div>
         {!stats ? (
@@ -394,41 +394,41 @@ function OverviewTab({ stats, loading, error, reload, busy, runJobs, jobStats, o
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Stat k="Profiles" v={stats.profiles} />
-              <Stat k="Active" v={stats.active} tone="text-emerald-300" />
-              <Stat k="Paused" v={stats.paused} tone="text-gray-300" />
-              <Stat k="Active matches" v={stats.activeMatches} tone="text-blue-300" />
+              <Stat k="Active" v={stats.active} tone="text-success-text" />
+              <Stat k="Paused" v={stats.paused} tone="text-fg-muted" />
+              <Stat k="Active matches" v={stats.activeMatches} tone="text-info-text" />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <Stat k="Photos waiting" v={stats.photosPending} tone="text-amber-200" onClick={openPhotos} />
-              <Stat k="Selfies waiting" v={stats.livenessPending} tone="text-amber-200" onClick={openLiveness} />
+              <Stat k="Photos waiting" v={stats.photosPending} tone="text-warning-text" onClick={openPhotos} />
+              <Stat k="Selfies waiting" v={stats.livenessPending} tone="text-warning-text" onClick={openLiveness} />
               <Stat k="Swipes (all time)" v={stats.swipes} />
             </div>
-            {error && <p className="text-[10px] text-red-400">{error}</p>}
+            {error && <p className="text-xs text-danger-text">{error}</p>}
           </>
         )}
       </section>
 
       <section className={card}>
-        <h2 className="text-sm font-black uppercase tracking-widest text-white">Selfie check</h2>
-        <p className="text-xs text-gray-300">{providerText(stats?.liveness)}</p>
-        <p className="text-[10px] text-gray-500">Set by the server environment (LIVENESS_PROVIDER, CONNECT_REQUIRE_LIVENESS). Selfies are deleted as soon as a decision is made.</p>
+        <h2 className="text-sm font-semibold text-fg">Selfie check</h2>
+        <p className="text-xs text-fg-muted">{providerText(stats?.liveness)}</p>
+        <p className="text-xs text-fg-muted">Set by the server environment (LIVENESS_PROVIDER, CONNECT_REQUIRE_LIVENESS). Selfies are deleted as soon as a decision is made.</p>
       </section>
 
       <section className={card}>
         <div>
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">Retention clean-up</h2>
-          <p className="text-[11px] text-gray-500 mt-1">
+          <h2 className="text-sm font-semibold text-fg">Retention clean-up</h2>
+          <p className="text-xs text-fg-muted mt-1">
             Chats from matches that ended more than {stats?.retentionDays ?? 30} days ago are deleted, and so are selfies nobody reviewed within 30 days.
             This runs every hour on the server; run it here to do it now. Safe to repeat.
           </p>
         </div>
         <button onClick={runJobs} disabled={busy} className={btnBlue}>{busy ? 'Working…' : 'Run clean-up now'}</button>
         {jobStats && (
-          <div className="grid grid-cols-3 gap-2 text-[11px]">
+          <div className="grid grid-cols-3 gap-2 text-xs">
             {([['Chats purged', jobStats.chatsPurged], ['Messages deleted', jobStats.messagesDeleted], ['Selfies expired', jobStats.selfiesExpired]] as Array<[string, number]>).map(([k, v]) => (
-              <div key={k} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
-                <span className="text-gray-500 font-bold uppercase tracking-wider text-[9px]">{k}</span>
-                <p className="font-black text-white">{v ?? 0}</p>
+              <div key={k} className="rounded-xl border border-line bg-surface-2/60 px-3 py-2">
+                <span className="text-fg-muted font-semibold text-xs">{k}</span>
+                <p className="font-semibold text-fg">{v ?? 0}</p>
               </div>
             ))}
           </div>
@@ -459,15 +459,15 @@ function PhotosTab({ items, loading, error, reload, more, status, setStatus, bus
     <section className={card}>
       <div className="flex flex-wrap gap-3 items-end justify-between">
         <div>
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">Photo approvals</h2>
-          <p className="text-[11px] text-gray-500 mt-1 max-w-2xl">Nobody else sees a Connect photo until it is approved. Reject anything that is not a clear photo of the student, shows someone else, or breaks the guidelines. A rejected photo is deleted immediately.</p>
+          <h2 className="text-sm font-semibold text-fg">Photo approvals</h2>
+          <p className="text-xs text-fg-muted mt-1 max-w-2xl">Nobody else sees a Connect photo until it is approved. Reject anything that is not a clear photo of the student, shows someone else, or breaks the guidelines. A rejected photo is deleted immediately.</p>
           <LoggedNote />
         </div>
         <div className="flex gap-2 items-end">
           <div>
             <span className={label}>Status</span>
             <select className={input} value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Photo status">
-              {PHOTO_STATUS.map((s) => <option key={s} value={s} className="bg-[#0b0d12]">{s}</option>)}
+              {PHOTO_STATUS.map((s) => <option key={s} value={s} className="bg-surface">{s}</option>)}
             </select>
           </div>
           <button onClick={reload} disabled={loading} className={btnGhost}>{loading ? '…' : 'Refresh'}</button>
@@ -479,16 +479,16 @@ function PhotosTab({ items, loading, error, reload, more, status, setStatus, bus
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {items.map((p) => (
-          <div key={p.id} className={`rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-3 ${isFresh(p.id) ? FRESH_ROW_CLASS : ''}`}>
+          <div key={p.id} className={`rounded-lg border border-line bg-surface-2/60 p-4 space-y-3 ${isFresh(p.id) ? FRESH_ROW_CLASS : ''}`}>
             <div className="flex gap-3">
               <Photo url={p.url} alt={`Connect photo ${p.position + 1}`} />
-              <div className="min-w-0 space-y-1 text-[11px]">
-                <div className="flex flex-wrap gap-1"><StatusChip s={p.status} /><span className={`${chip} text-gray-300 border-white/10 bg-white/5`}>#{p.position + 1}</span></div>
-                <p className="font-bold text-white truncate">{p.profile?.displayName || 'No profile name'}</p>
-                <p className="text-gray-400 truncate">{p.user?.name || 'Unknown account'} <span className="font-mono text-gray-600">{shortId(p.user?.userId)}</span></p>
-                <p className="text-gray-500">Uploaded {fmt(p.createdAt)}</p>
-                {p.reviewedAt && <p className="text-gray-500">Reviewed {fmt(p.reviewedAt)}</p>}
-                {p.rejectReason && <p className="text-red-300">Reason: {p.rejectReason}</p>}
+              <div className="min-w-0 space-y-1 text-xs">
+                <div className="flex flex-wrap gap-1"><StatusChip s={p.status} /><span className={`${chip} text-fg-muted border-line bg-surface-2/60`}>#{p.position + 1}</span></div>
+                <p className="font-semibold text-fg truncate">{p.profile?.displayName || 'No profile name'}</p>
+                <p className="text-fg-muted truncate">{p.user?.name || 'Unknown account'} <span className="font-mono text-fg-subtle">{shortId(p.user?.userId)}</span></p>
+                <p className="text-fg-muted">Uploaded {fmt(p.createdAt)}</p>
+                {p.reviewedAt && <p className="text-fg-muted">Reviewed {fmt(p.reviewedAt)}</p>}
+                {p.rejectReason && <p className="text-danger-text">Reason: {p.rejectReason}</p>}
               </div>
             </div>
             <div className="flex flex-wrap gap-2 justify-end">
@@ -526,19 +526,19 @@ function LivenessTab({ items, info, loading, error, reload, status, setStatus, b
     <section className={card}>
       <div className="flex flex-wrap gap-3 items-end justify-between">
         <div>
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">Selfie checks</h2>
-          <p className="text-[11px] text-gray-500 mt-1 max-w-2xl">
+          <h2 className="text-sm font-semibold text-fg">Selfie checks</h2>
+          <p className="text-xs text-fg-muted mt-1 max-w-2xl">
             Pass only when the selfie is a live photo of the same person as the profile photos, doing the gesture shown. Fail screenshots, photos of a screen,
             a different person, or the wrong gesture. The selfie is deleted as soon as you decide.
           </p>
-          <p className="text-[10px] text-gray-400 mt-1">{providerText(info)}</p>
+          <p className="text-xs text-fg-muted mt-1">{providerText(info)}</p>
           <LoggedNote />
         </div>
         <div className="flex gap-2 items-end">
           <div>
             <span className={label}>Status</span>
             <select className={input} value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Selfie status">
-              {LIVENESS_STATUS.map((s) => <option key={s} value={s} className="bg-[#0b0d12]">{s}</option>)}
+              {LIVENESS_STATUS.map((s) => <option key={s} value={s} className="bg-surface">{s}</option>)}
             </select>
           </div>
           <button onClick={reload} disabled={loading} className={btnGhost}>{loading ? '…' : 'Refresh'}</button>
@@ -550,15 +550,15 @@ function LivenessTab({ items, info, loading, error, reload, status, setStatus, b
 
       <ul className="space-y-4">
         {items.map((it) => (
-          <li key={it.profileId} className={`rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-3 ${isFresh(it.profileId) ? FRESH_ROW_CLASS : ''}`}>
+          <li key={it.profileId} className={`rounded-lg border border-line bg-surface-2/60 p-4 space-y-3 ${isFresh(it.profileId) ? FRESH_ROW_CLASS : ''}`}>
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <StatusChip s={it.status} />
-              <span className="font-bold text-white">{it.displayName || 'No profile name'}</span>
-              <span className="text-gray-400">{it.user?.name || 'Unknown account'} <span className="font-mono text-[10px] text-gray-600">{shortId(it.userId)}</span></span>
-              <span className="ml-auto text-[10px] text-gray-500">{it.submittedAt ? `Submitted ${fmt(it.submittedAt)}` : it.checkedAt ? `Decided ${fmt(it.checkedAt)}` : ''}</span>
+              <span className="font-semibold text-fg">{it.displayName || 'No profile name'}</span>
+              <span className="text-fg-muted">{it.user?.name || 'Unknown account'} <span className="font-mono text-xs text-fg-subtle">{shortId(it.userId)}</span></span>
+              <span className="ml-auto text-xs text-fg-muted">{it.submittedAt ? `Submitted ${fmt(it.submittedAt)}` : it.checkedAt ? `Decided ${fmt(it.checkedAt)}` : ''}</span>
             </div>
             {it.challenge && (
-              <p className="text-[11px] text-blue-200 rounded-xl border border-blue-500/20 bg-blue-500/5 px-3 py-2">Gesture asked: <span className="font-bold">{it.challenge}</span></p>
+              <p className="text-xs text-info-text rounded-xl border border-info/30 bg-info-soft px-3 py-2">Gesture asked: <span className="font-semibold">{it.challenge}</span></p>
             )}
             <div className="flex flex-wrap gap-4">
               <div className="space-y-1">
@@ -568,7 +568,7 @@ function LivenessTab({ items, info, loading, error, reload, status, setStatus, b
               <div className="space-y-1 min-w-0">
                 <span className={label}>Profile photos ({it.photos.length})</span>
                 <div className="flex flex-wrap gap-2">
-                  {it.photos.length === 0 && <p className="text-[10px] text-gray-500">No photos uploaded.</p>}
+                  {it.photos.length === 0 && <p className="text-xs text-fg-muted">No photos uploaded.</p>}
                   {it.photos.map((ph) => (
                     <div key={ph.id} className="space-y-1">
                       <Photo url={ph.url} alt="Profile photo" size="h-24 w-24" />
@@ -578,7 +578,7 @@ function LivenessTab({ items, info, loading, error, reload, status, setStatus, b
                 </div>
               </div>
             </div>
-            {it.note && <p className="text-[11px] text-red-300">Note: {it.note}</p>}
+            {it.note && <p className="text-xs text-danger-text">Note: {it.note}</p>}
             {it.status === 'pending' && (
               <div className="flex flex-wrap gap-2 justify-end">
                 <button disabled={busy} onClick={() => decide(it, false)} className={btnWarn}>Fail</button>
@@ -675,22 +675,22 @@ function ProfilesTab({ campuses, busy, act, afterAction }: { campuses: Campus[];
         <div>
           <span className={label}>Campus</span>
           <select className={input} value={campusId} onChange={(e) => setCampusId(e.target.value)} aria-label="Campus">
-            <option value="" className="bg-[#0b0d12]">All campuses</option>
-            {campuses.map((c) => <option key={c.id} value={c.id} className="bg-[#0b0d12]">{c.name} ({c.code})</option>)}
+            <option value="" className="bg-surface">All campuses</option>
+            {campuses.map((c) => <option key={c.id} value={c.id} className="bg-surface">{c.name} ({c.code})</option>)}
           </select>
         </div>
         <div>
           <span className={label}>Profile</span>
           <select className={input} value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Profile status">
-            <option value="" className="bg-[#0b0d12]">Any</option>
-            {PROFILE_STATUS.map((s) => <option key={s} value={s} className="bg-[#0b0d12]">{s}</option>)}
+            <option value="" className="bg-surface">Any</option>
+            {PROFILE_STATUS.map((s) => <option key={s} value={s} className="bg-surface">{s}</option>)}
           </select>
         </div>
         <div>
           <span className={label}>Moderation</span>
           <select className={input} value={modStatus} onChange={(e) => setModStatus(e.target.value)} aria-label="Moderation status">
-            <option value="" className="bg-[#0b0d12]">Any</option>
-            {MOD_STATUS.map((s) => <option key={s} value={s} className="bg-[#0b0d12]">{s.replace('_', ' ')}</option>)}
+            <option value="" className="bg-surface">Any</option>
+            {MOD_STATUS.map((s) => <option key={s} value={s} className="bg-surface">{s.replace('_', ' ')}</option>)}
           </select>
         </div>
         <form className="flex gap-2 flex-1 min-w-[220px]" onSubmit={(e) => { e.preventDefault(); setQApplied(q.trim()); }}>
@@ -710,7 +710,7 @@ function ProfilesTab({ campuses, busy, act, afterAction }: { campuses: Campus[];
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="text-[10px] uppercase tracking-widest text-gray-500">
+              <tr className="text-xs text-fg-muted">
                 <th className="py-2 pr-3">Profile</th><th className="py-2 pr-3">Campus</th><th className="py-2 pr-3">State</th><th className="py-2 pr-3">Selfie</th><th className="py-2 pr-3">Last active</th><th className="py-2" />
               </tr>
             </thead>
@@ -718,13 +718,13 @@ function ProfilesTab({ campuses, busy, act, afterAction }: { campuses: Campus[];
               {items.map((p) => (
                 <tr key={p.profileId}>
                   <td className="py-3 pr-3">
-                    <p className="font-bold text-white">{p.displayName || 'Not set up'}</p>
-                    <p className="text-[10px] text-gray-500">{p.user?.name || 'Unknown account'} <span className="font-mono text-gray-600">{shortId(p.user?.userId)}</span></p>
+                    <p className="font-semibold text-fg">{p.displayName || 'Not set up'}</p>
+                    <p className="text-xs text-fg-muted">{p.user?.name || 'Unknown account'} <span className="font-mono text-fg-subtle">{shortId(p.user?.userId)}</span></p>
                   </td>
-                  <td className="py-3 pr-3 text-gray-300">{campusName(p.campusId)}</td>
+                  <td className="py-3 pr-3 text-fg-muted">{campusName(p.campusId)}</td>
                   <td className="py-3 pr-3 space-x-1"><StatusChip s={p.status} />{p.modStatus !== 'visible' && <StatusChip s={p.modStatus} />}</td>
                   <td className="py-3 pr-3"><StatusChip s={p.livenessStatus} /></td>
-                  <td className="py-3 pr-3 text-gray-400">{fmt(p.lastActiveAt)}</td>
+                  <td className="py-3 pr-3 text-fg-muted">{fmt(p.lastActiveAt)}</td>
                   <td className="py-3 text-right"><button onClick={() => openProfile(p.profileId)} className={btnBlue}>Open</button></td>
                 </tr>
               ))}
@@ -739,8 +739,8 @@ function ProfilesTab({ campuses, busy, act, afterAction }: { campuses: Campus[];
           <LoggedNote />
           {!detail ? (
             detailErr
-              ? <div className="space-y-3"><p className="text-xs text-red-400 font-bold">{detailErr}</p><button onClick={() => loadDetail(open)} className={btnGhost}>Try again</button></div>
-              : <p className="text-xs text-gray-500 animate-pulse">Loading…</p>
+              ? <div className="space-y-3"><p className="text-xs text-danger-text font-semibold">{detailErr}</p><button onClick={() => loadDetail(open)} className={btnGhost}>Try again</button></div>
+              : <p className="text-xs text-fg-muted animate-pulse">Loading…</p>
           ) : (
             <ProfileDetailView d={detail} busy={busy} onAction={(a) => moderate(detail.profile.profileId, a)} />
           )}
@@ -752,9 +752,9 @@ function ProfilesTab({ campuses, busy, act, afterAction }: { campuses: Campus[];
 
 function Row({ k, v }: { k: string; v: React.ReactNode }) {
   return (
-    <div className="flex justify-between gap-4 py-1.5 text-[11px]">
-      <span className="text-gray-500 font-bold uppercase tracking-wider text-[9px] pt-0.5">{k}</span>
-      <span className="text-gray-200 text-right break-words">{v}</span>
+    <div className="flex justify-between gap-4 py-1.5 text-xs">
+      <span className="text-fg-muted font-semibold text-xs pt-0.5">{k}</span>
+      <span className="text-fg text-right break-words">{v}</span>
     </div>
   );
 }
@@ -765,14 +765,14 @@ function ProfileDetailView({ d, busy, onAction }: { d: ProfileDetail; busy: bool
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap gap-1">
-        <StatusChip s={p.status} /><StatusChip s={p.modStatus} /><span className={`${chip} text-gray-300 border-white/10 bg-white/5`}>selfie {p.livenessStatus}</span>
+        <StatusChip s={p.status} /><StatusChip s={p.modStatus} /><span className={`${chip} text-fg-muted border-line bg-surface-2/60`}>selfie {p.livenessStatus}</span>
       </div>
-      {p.modReason && <p className="text-[11px] text-red-300">Moderation reason: {p.modReason}</p>}
+      {p.modReason && <p className="text-xs text-danger-text">Moderation reason: {p.modReason}</p>}
 
       <div>
         <span className={label}>Photos</span>
         <div className="flex flex-wrap gap-2">
-          {d.photos.length === 0 && <p className="text-[10px] text-gray-500">No photos.</p>}
+          {d.photos.length === 0 && <p className="text-xs text-fg-muted">No photos.</p>}
           {d.photos.map((ph) => (
             <div key={ph.id} className="space-y-1">
               <Photo url={ph.url} alt={`Photo ${ph.position + 1}`} size="h-24 w-24" />
@@ -782,8 +782,8 @@ function ProfileDetailView({ d, busy, onAction }: { d: ProfileDetail; busy: bool
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/10 px-4 py-2 divide-y divide-white/5">
-        <Row k="Account" v={<>{p.user?.name || 'Unknown'} <span className="font-mono text-gray-500">{shortId(p.user?.userId)}</span>{p.user && !p.user.isActive && <span className="ml-1 text-red-300">(suspended)</span>}</>} />
+      <div className="rounded-lg border border-line px-4 py-2 divide-y divide-line">
+        <Row k="Account" v={<>{p.user?.name || 'Unknown'} <span className="font-mono text-fg-muted">{shortId(p.user?.userId)}</span>{p.user && !p.user.isActive && <span className="ml-1 text-danger-text">(suspended)</span>}</>} />
         <Row k="Bio" v={p.bio || '-'} />
         <Row k="Interests" v={list(p.interests)} />
         <Row k="Looking for" v={list(p.lookingFor)} />
@@ -800,34 +800,34 @@ function ProfileDetailView({ d, busy, onAction }: { d: ProfileDetail; busy: bool
 
       <div>
         <span className={label}>Reports ({d.reports.length})</span>
-        {d.reports.length === 0 ? <p className="text-[10px] text-gray-500">None.</p> : (
-          <ul className="rounded-xl border border-white/10 divide-y divide-white/5">
+        {d.reports.length === 0 ? <p className="text-xs text-fg-muted">None.</p> : (
+          <ul className="rounded-xl border border-line divide-y divide-line">
             {d.reports.map((r) => (
-              <li key={r.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-[11px]">
-                <StatusChip s={r.status} /><span className="text-gray-200">{r.category}</span><span className="text-gray-500">{r.targetType.replace('_', ' ')} · {r.severity}</span>
-                <span className="ml-auto text-[10px] text-gray-500">{fmt(r.createdAt)}</span>
+              <li key={r.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-xs">
+                <StatusChip s={r.status} /><span className="text-fg">{r.category}</span><span className="text-fg-muted">{r.targetType.replace('_', ' ')} · {r.severity}</span>
+                <span className="ml-auto text-xs text-fg-muted">{fmt(r.createdAt)}</span>
               </li>
             ))}
           </ul>
         )}
-        {d.reports.length > 0 && <Link href="/moderation" className="inline-block mt-2 text-[10px] font-black uppercase tracking-widest text-blue-300 hover:text-blue-200">Handle in the reports queue →</Link>}
+        {d.reports.length > 0 && <Link href="/moderation" className="inline-block mt-2 text-xs font-semibold text-info-text hover:text-info-text">Handle in the reports queue →</Link>}
       </div>
 
       <div>
         <span className={label}>Moderation history ({d.actions.length})</span>
-        {d.actions.length === 0 ? <p className="text-[10px] text-gray-500">None.</p> : (
-          <ul className="rounded-xl border border-white/10 divide-y divide-white/5">
+        {d.actions.length === 0 ? <p className="text-xs text-fg-muted">None.</p> : (
+          <ul className="rounded-xl border border-line divide-y divide-line">
             {d.actions.map((a) => (
-              <li key={a.id} className="px-3 py-2 text-[11px]">
-                <span className="font-bold text-white">{a.action}</span>{a.reason && <span className="text-gray-400"> · {a.reason}</span>}
-                <span className="float-right text-[10px] text-gray-500">{fmt(a.createdAt)}</span>
+              <li key={a.id} className="px-3 py-2 text-xs">
+                <span className="font-semibold text-fg">{a.action}</span>{a.reason && <span className="text-fg-muted"> · {a.reason}</span>}
+                <span className="float-right text-xs text-fg-muted">{fmt(a.createdAt)}</span>
               </li>
             ))}
           </ul>
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2 justify-end border-t border-white/10 pt-4">
+      <div className="flex flex-wrap gap-2 justify-end border-t border-line pt-4">
         {p.modStatus !== 'visible' && <button disabled={busy} onClick={() => onAction('restore')} className={btnGo}>Restore</button>}
         {p.modStatus !== 'hidden' && p.modStatus !== 'removed' && <button disabled={busy} onClick={() => onAction('hide')} className={btnGhost}>Hide</button>}
         {p.modStatus !== 'removed' && <button disabled={busy} onClick={() => onAction('remove')} className={btnWarn}>Remove</button>}
@@ -873,7 +873,7 @@ function HelplineEditor({ list, onChange }: { list: Helpline[]; onChange: (l: He
           <input className={input} value={h.phone || ''} maxLength={20} onChange={(e) => set(i, 'phone', e.target.value)} placeholder="Phone" aria-label="Helpline phone" />
           <input className={input} value={h.url || ''} maxLength={300} onChange={(e) => set(i, 'url', e.target.value)} placeholder="https://" aria-label="Helpline link" />
           <input className={input} value={h.note || ''} maxLength={160} onChange={(e) => set(i, 'note', e.target.value)} placeholder="Note" aria-label="Helpline note" />
-          <button type="button" onClick={() => onChange(list.filter((_, j) => j !== i))} className="text-[10px] font-black uppercase text-red-300 hover:text-red-200 px-2">Remove</button>
+          <button type="button" onClick={() => onChange(list.filter((_, j) => j !== i))} className="text-xs font-semibold text-danger-text hover:text-danger-text px-2">Remove</button>
         </div>
       ))}
       {list.length < 20 && <button type="button" onClick={() => onChange([...list, { name: '', phone: '' }])} className={btnGhost}>Add helpline</button>}
@@ -951,8 +951,8 @@ function SettingsTab({ campuses, busy, act }: { campuses: Campus[]; busy: boolea
       <section className={card}>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-sm font-black uppercase tracking-widest text-white">Consent</h2>
-            <p className="text-[11px] text-gray-500 mt-1 max-w-2xl">Students accept this version (with the 18+ declaration) before Connect opens. Raise it when the notice changes in a way people must agree to again. It can only go up.</p>
+            <h2 className="text-sm font-semibold text-fg">Consent</h2>
+            <p className="text-xs text-fg-muted mt-1 max-w-2xl">Students accept this version (with the 18+ declaration) before Connect opens. Raise it when the notice changes in a way people must agree to again. It can only go up.</p>
           </div>
           <button onClick={load} disabled={loading} className={btnGhost}>{loading ? '…' : 'Reload'}</button>
         </div>
@@ -961,38 +961,38 @@ function SettingsTab({ campuses, busy, act }: { campuses: Campus[]; busy: boolea
             <span className={label}>Consent version</span>
             <input type="number" className={input} min={s.connectConsentVersion} step={1} value={consentVersion} onChange={(e) => setConsentVersion(Number(e.target.value))} />
           </div>
-          <p className="text-[11px] text-gray-400 pb-2">Current: v{s.connectConsentVersion}{consentBump && <span className="text-amber-300"> · will ask everyone again</span>}</p>
+          <p className="text-xs text-fg-muted pb-2">Current: v{s.connectConsentVersion}{consentBump && <span className="text-warning-text"> · will ask everyone again</span>}</p>
         </div>
-        <p className="text-[10px] text-gray-500">Public policy link: {s.policyUrl ? <a href={s.policyUrl} target="_blank" rel="noreferrer noopener" className="text-blue-300 break-all">{s.policyUrl}</a> : 'not set (FRIENDS_POLICY_URL). The app shows the notice below in-app.'}</p>
+        <p className="text-xs text-fg-muted">Public policy link: {s.policyUrl ? <a href={s.policyUrl} target="_blank" rel="noreferrer noopener" className="text-info-text break-all">{s.policyUrl}</a> : 'not set (FRIENDS_POLICY_URL). The app shows the notice below in-app.'}</p>
       </section>
 
       <section className={card}>
         <div>
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">Privacy notice</h2>
-          <p className="text-[11px] text-gray-500 mt-1">Shown on the in-app policy screen. Notice v{s.policy.version}{s.policy.updatedAt ? `, updated ${fmt(s.policy.updatedAt)}` : ' (built-in default)'}. Saving a change creates a new notice version.</p>
+          <h2 className="text-sm font-semibold text-fg">Privacy notice</h2>
+          <p className="text-xs text-fg-muted mt-1">Shown on the in-app policy screen. Notice v{s.policy.version}{s.policy.updatedAt ? `, updated ${fmt(s.policy.updatedAt)}` : ' (built-in default)'}. Saving a change creates a new notice version.</p>
         </div>
         <textarea className={`${input} min-h-[260px] font-mono text-xs`} maxLength={20000} value={policyText} onChange={(e) => setPolicyText(e.target.value)} aria-label="Privacy notice" />
-        <p className="text-[10px] text-gray-500">{policyText.length}/20000</p>
+        <p className="text-xs text-fg-muted">{policyText.length}/20000</p>
       </section>
 
       <section className={card}>
         <div>
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">Helplines</h2>
-          <p className="text-[11px] text-gray-500 mt-1">Shown on the safety screen and after a report. Each needs a phone number or an https link.</p>
+          <h2 className="text-sm font-semibold text-fg">Helplines</h2>
+          <p className="text-xs text-fg-muted mt-1">Shown on the safety screen and after a report. Each needs a phone number or an https link.</p>
         </div>
         <HelplineEditor list={helplines} onChange={setHelplines} />
-        <button type="button" onClick={() => setHelplines(s.defaults.helplines)} className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white">Reset to defaults</button>
+        <button type="button" onClick={() => setHelplines(s.defaults.helplines)} className="text-xs font-semibold text-fg-muted hover:text-fg">Reset to defaults</button>
 
-        <div className="border-t border-white/10 pt-4 space-y-3">
+        <div className="border-t border-line pt-4 space-y-3">
           <div className="flex flex-wrap items-end gap-3">
             <div>
               <span className={label}>Campus helplines (shown first)</span>
               <select className={`${input} min-w-[200px]`} value={chCampus} onChange={(e) => setChCampus(e.target.value)} aria-label="Campus for helplines">
                 {campuses.length === 0 && <option value="">No active campuses</option>}
-                {campuses.map((c) => <option key={c.id} value={c.id} className="bg-[#0b0d12]">{c.name} ({c.code}){campusHelplines[c.id]?.length ? ` · ${campusHelplines[c.id].length}` : ''}</option>)}
+                {campuses.map((c) => <option key={c.id} value={c.id} className="bg-surface">{c.name} ({c.code}){campusHelplines[c.id]?.length ? ` · ${campusHelplines[c.id].length}` : ''}</option>)}
               </select>
             </div>
-            <p className="text-[10px] text-gray-500 pb-2">Campus security, counselling cell, women&apos;s cell. Up to 10 per campus.</p>
+            <p className="text-xs text-fg-muted pb-2">Campus security, counselling cell, women&apos;s cell. Up to 10 per campus.</p>
           </div>
           {chCampus && (
             <HelplineEditor list={chList} onChange={(l) => setCampusHelplines((m) => ({ ...m, [chCampus]: l.slice(0, 10) }))} />
@@ -1002,26 +1002,26 @@ function SettingsTab({ campuses, busy, act }: { campuses: Campus[]; busy: boolea
 
       <section className={card}>
         <div>
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">Safety guidance</h2>
-          <p className="text-[11px] text-gray-500 mt-1">One tip per line, shown before activation and on the safety screen.</p>
+          <h2 className="text-sm font-semibold text-fg">Safety guidance</h2>
+          <p className="text-xs text-fg-muted mt-1">One tip per line, shown before activation and on the safety screen.</p>
         </div>
         <textarea className={`${input} min-h-[160px] text-xs`} value={guidance} onChange={(e) => setGuidance(e.target.value)} aria-label="Safety guidance" />
-        <button type="button" onClick={() => setGuidance(s.defaults.guidance.join('\n'))} className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white">Reset to defaults</button>
+        <button type="button" onClick={() => setGuidance(s.defaults.guidance.join('\n'))} className="text-xs font-semibold text-fg-muted hover:text-fg">Reset to defaults</button>
       </section>
 
       <section className={card}>
         <div>
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">Spark prompts</h2>
-          <p className="text-[11px] text-gray-500 mt-1">Daily conversation starters shown in a new match chat. One per line, rotated by day.</p>
+          <h2 className="text-sm font-semibold text-fg">Spark prompts</h2>
+          <p className="text-xs text-fg-muted mt-1">Daily conversation starters shown in a new match chat. One per line, rotated by day.</p>
         </div>
         <textarea className={`${input} min-h-[200px] text-xs`} value={sparks} onChange={(e) => setSparks(e.target.value)} aria-label="Spark prompts" />
-        <button type="button" onClick={() => setSparks(s.defaults.sparkPrompts.join('\n'))} className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white">Reset to defaults</button>
+        <button type="button" onClick={() => setSparks(s.defaults.sparkPrompts.join('\n'))} className="text-xs font-semibold text-fg-muted hover:text-fg">Reset to defaults</button>
       </section>
 
-      <div className="glass-card p-4 flex flex-wrap items-center justify-between gap-3 sticky bottom-4">
+      <div className="rounded-lg border border-line bg-surface shadow-xs p-4 flex flex-wrap items-center justify-between gap-3 sticky bottom-4">
         {errors.length > 0
-          ? <ul className="text-[10px] text-amber-400 list-disc pl-4">{errors.slice(0, 4).map((e) => <li key={e}>{e}</li>)}{errors.length > 4 && <li>…and {errors.length - 4} more</li>}</ul>
-          : <p className="text-[10px] text-gray-500">Changes are logged. The app picks them up within a minute.</p>}
+          ? <ul className="text-xs text-warning-text list-disc pl-4">{errors.slice(0, 4).map((e) => <li key={e}>{e}</li>)}{errors.length > 4 && <li>…and {errors.length - 4} more</li>}</ul>
+          : <p className="text-xs text-fg-muted">Changes are logged. The app picks them up within a minute.</p>}
         <div className="flex gap-2">
           <button onClick={() => apply(s)} disabled={busy} className={btnGhost}>Discard changes</button>
           <button onClick={save} disabled={busy || errors.length > 0} className={btnGo}>{busy ? 'Saving…' : 'Save settings'}</button>

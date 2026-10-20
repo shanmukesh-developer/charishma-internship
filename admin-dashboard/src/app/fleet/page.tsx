@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import { API_URL } from '@/lib/config';
 import { useVisibleInterval } from '@/lib/useVisibleInterval';
 
-const LiveRiderMap = dynamic(() => import('@/components/LiveRiderMap'), { ssr: false, loading: () => <div className="h-[600px] w-full rounded-[40px] bg-blue-900/10 animate-pulse border border-blue-500/20 flex items-center justify-center text-blue-500 font-black tracking-widest uppercase text-xl">Booting God-Mode Map...</div> });
+const LiveRiderMap = dynamic(() => import('@/components/LiveRiderMap'), { ssr: false, loading: () => <div className="h-[600px] w-full rounded-lg bg-info-soft animate-pulse border border-info/30 flex items-center justify-center text-info-text font-semibold text-xl">Booting God-Mode Map...</div> });
 
 
 interface Rider {
@@ -57,25 +57,25 @@ const RiderRow = memo(({ rider, busy, onEdit, onToggleApproval, onResetSos }: {
   onToggleApproval: (r: Rider) => void,
   onResetSos: (r: Rider) => void
 }) => (
-  <tr className="hover:bg-white/[0.02] transition-colors group">
+  <tr className="hover:bg-surface-2/60 transition-colors group">
     <td className="px-8 py-6">
-      <span className="text-xs font-black text-blue-500/50 group-hover:text-blue-400 transition-colors">#{rider._id.slice(-6).toUpperCase()}</span>
+      <span className="text-xs font-semibold text-info-text group-hover:text-info-text transition-colors">#{rider._id.slice(-6).toUpperCase()}</span>
     </td>
-    <td className="px-8 py-6 text-sm font-bold text-white uppercase tracking-tight">
+    <td className="px-8 py-6 text-sm font-semibold text-fg">
       {rider.name}
-      {rider.vehicleType && <span className="ml-2 text-[8px] px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-md">{rider.vehicleType}</span>}
+      {rider.vehicleType && <span className="ml-2 text-xs px-2 py-0.5 bg-info-soft text-info-text rounded-md">{rider.vehicleType}</span>}
     </td>
     <td className="px-8 py-6">
-      <p className="text-xs text-gray-400 font-mono tracking-tighter">{rider.phone}</p>
+      <p className="text-xs text-fg-muted font-mono">{rider.phone}</p>
       <div className="mt-1 flex items-center gap-2">
-         <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">{rider.completedDeliveries || 0} deliveries completed</span>
+         <span className="text-xs font-semibold text-success-text">{rider.completedDeliveries || 0} deliveries completed</span>
       </div>
     </td>
     <td className="px-8 py-6">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <div className={`w-1.5 h-1.5 rounded-full ${rider.isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-gray-700'}`} />
-          <span className={`text-[10px] font-black uppercase tracking-widest ${rider.isOnline ? 'text-emerald-500' : 'text-gray-500'}`}>
+          <div className={`w-1.5 h-1.5 rounded-full ${rider.isOnline ? 'bg-success animate-pulse' : 'bg-surface-2'}`} />
+          <span className={`text-xs font-semibold ${rider.isOnline ? 'text-success-text' : 'text-fg-muted'}`}>
             {rider.isOnline ? 'Online' : 'Offline'}
           </span>
         </div>
@@ -85,21 +85,21 @@ const RiderRow = memo(({ rider, busy, onEdit, onToggleApproval, onResetSos }: {
             onClick={() => onResetSos(rider)}
             className="flex flex-col items-start gap-1 group/sos disabled:opacity-50"
           >
-            <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-lg animate-bounce group-hover/sos:bg-red-500/20 transition-all">
-              <span className="text-[9px] font-black text-red-500 uppercase tracking-widest">🚨 EMERGENCY SOS</span>
+            <div className="flex items-center gap-2 bg-danger-soft border border-danger/30 px-3 py-1 rounded-lg animate-bounce group-hover/sos:bg-red-500/20 transition-all">
+              <span className="text-xs font-semibold text-danger-text">Emergency SOS</span>
             </div>
-            <span className="text-[7px] text-gray-600 uppercase font-black tracking-widest ml-1 opacity-0 group-hover/sos:opacity-100 transition-opacity">Click to Resolve</span>
+            <span className="text-[7px] text-fg-subtle font-semibold ml-1 opacity-0 group-hover/sos:opacity-100 transition-opacity">Click to Resolve</span>
           </button>
         )}
       </div>
     </td>
     <td className="px-8 py-6">
         <div className="flex items-center gap-3">
-          <button disabled={busy} onClick={() => onToggleApproval(rider)} className={`px-6 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all disabled:opacity-40 ${rider.isApproved ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+          <button disabled={busy} onClick={() => onToggleApproval(rider)} className={`px-6 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-40 ${rider.isApproved ? 'bg-danger-soft text-danger-text' : 'bg-success-soft text-success-text'}`}>
             {busy ? 'Saving…' : rider.isApproved ? 'Deactivate' : 'Approve'}
           </button>
-          {!rider.isApproved && <span className="text-[8px] font-black uppercase tracking-widest text-amber-400">Pending approval</span>}
-          <button onClick={() => onEdit(rider)} className="text-blue-500/50 hover:text-blue-400 text-[10px] font-black uppercase tracking-widest transition-colors ml-2">Edit</button>
+          {!rider.isApproved && <span className="text-xs font-semibold text-warning-text">Pending approval</span>}
+          <button onClick={() => onEdit(rider)} className="text-info-text hover:text-info-text text-xs font-semibold transition-colors ml-2">Edit</button>
         </div>
     </td>
   </tr>
@@ -131,6 +131,22 @@ export default function FleetManagement() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [settlingId, setSettlingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
+  // Search and approval filter over the riders on this page (?search= from the global search, ?filter=pending from the overview).
+  const [riderSearch, setRiderSearch] = useState('');
+  const [approvalFilter, setApprovalFilter] = useState<'all' | 'pending' | 'approved'>('all');
+  useEffect(() => {
+    const qs = new URLSearchParams(window.location.search);
+    if (qs.get('search')) setRiderSearch(qs.get('search') || '');
+    if (qs.get('filter') === 'pending') setApprovalFilter('pending');
+  }, []);
+  const shownRiders = riders.filter(r => {
+    if (approvalFilter === 'pending' && r.isApproved) return false;
+    if (approvalFilter === 'approved' && !r.isApproved) return false;
+    const q = riderSearch.trim().toLowerCase();
+    if (!q) return true;
+    const digits = q.replace(/\D/g, '');
+    return String(r.name || '').toLowerCase().includes(q) || (digits.length >= 3 && String(r.phone || '').replace(/\D/g, '').includes(digits));
+  });
 
   const fetchRiders = async (page = 1, showSkeleton = true) => {
     try {
@@ -351,36 +367,36 @@ export default function FleetManagement() {
     } finally { setIsSubmitting(false); }
   };
 
-  if (!isAuthed) return <div className="p-20 text-center font-black text-white uppercase tracking-widest animate-pulse">Checking access…</div>;
+  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
 
   return (
-    <div className="space-y-10 animate-fade-in relative pb-20">
-      <header className="flex justify-between items-center bg-white/5 p-8 rounded-[40px] border border-white/5 glass">
+    <div className="space-y-6 relative">
+      <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-white tracking-tighter uppercase">Nexus Fleet <span className="text-blue-500">Command</span></h2>
-          <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mt-1">Recruitment, Settlements & Global Tracking</p>
+          <h1 className="text-2xl font-semibold text-fg">Riders</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Delivery riders: approvals, live status, SOS and cash on hand.</p>
         </div>
         <div className="flex gap-4">
-           <button onClick={() => { setActiveTab('roster'); setEditingRider(null); setNewRider(EMPTY_RIDER); setError(null); setIsAdding(true); }} className="px-8 py-3 bg-blue-600 text-white text-[12px] font-black uppercase tracking-widest rounded-2xl hover:scale-105 transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)]">
+           <button onClick={() => { setActiveTab('roster'); setEditingRider(null); setNewRider(EMPTY_RIDER); setError(null); setIsAdding(true); }} className="inline-flex h-8 items-center rounded-md bg-accent px-3 text-sm font-medium text-accent-fg shadow-xs hover:bg-accent-hover">
               Add rider
            </button>
         </div>
       </header>
 
       {/* Tabs */}
-      <div className="flex gap-4 border-b border-white/10 pb-4">
+      <div className="flex gap-4 border-b border-line pb-4">
         {[
-          { id: 'roster', label: 'Recruitment Roster' },
-          { id: 'payouts', label: 'Earnings Settlement' },
-          { id: 'map', label: 'Live GPS Tracker' },
+          { id: 'roster', label: 'All riders' },
+          { id: 'payouts', label: 'Earnings and payouts' },
+          { id: 'map', label: 'Live map' },
         ].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+            className={`px-6 py-3 rounded-lg text-xs font-semibold transition-all ${
               activeTab === tab.id
-                ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]'
-                : 'bg-white/5 text-gray-500 hover:text-white hover:bg-white/10'
+                ? 'bg-accent text-on-solid'
+                : 'bg-surface-2/60 text-fg-muted hover:text-fg hover:bg-surface-2'
             }`}
           >
             {tab.label}
@@ -389,18 +405,18 @@ export default function FleetManagement() {
       </div>
 
       {notice && (
-        <div role={notice.kind === 'error' ? 'alert' : 'status'} className={`flex items-center justify-between gap-4 rounded-2xl border px-6 py-4 text-sm font-bold ${notice.kind === 'error' ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'}`}>
+        <div role={notice.kind === 'error' ? 'alert' : 'status'} className={`flex items-center justify-between gap-4 rounded-lg border px-6 py-4 text-sm font-semibold ${notice.kind === 'error' ? 'border-danger/30 bg-danger-soft text-danger-text' : 'border-success/30 bg-success-soft text-success-text'}`}>
           <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-xs uppercase tracking-widest text-white/70 hover:text-white">Dismiss</button>
+          <button onClick={() => setNotice(null)} className="text-xs text-fg-muted hover:text-fg">Dismiss</button>
         </div>
       )}
 
       {(isAdding || editingRider) && activeTab === 'roster' && (
-        <div className="glass-card p-10 border-blue-500/30 animate-slide-up">
-           <h3 className="text-xl font-black text-white uppercase tracking-tight mb-8">{editingRider ? `Edit ${editingRider.name}` : 'Add delivery partner'}</h3>
-           {error && <div className="mb-6 text-red-500 text-[10px] font-black uppercase tracking-widest text-center animate-shake">{error}</div>}
+        <div className="rounded-lg border border-line bg-surface shadow-xs p-10 border-info/30 animate-slide-up">
+           <h3 className="text-xl font-semibold text-fg mb-8">{editingRider ? `Edit ${editingRider.name}` : 'Add delivery partner'}</h3>
+           {error && <div className="mb-6 text-danger-text text-xs font-semibold text-center animate-shake">{error}</div>}
            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <input placeholder="Personnel Name" className="admin-input" value={newRider.name} onChange={(e) => setNewRider({...newRider, name: e.target.value})} />
+              <input placeholder="Full name" className="admin-input" value={newRider.name} onChange={(e) => setNewRider({...newRider, name: e.target.value})} />
               <input placeholder="Phone Number" className="admin-input" value={newRider.phone} onChange={(e) => setNewRider({...newRider, phone: e.target.value})} />
               <select className="admin-input" value={newRider.vehicleType} onChange={(e) => setNewRider({...newRider, vehicleType: e.target.value})}>
                  <option value="Bike">Bike (Standard)</option>
@@ -411,16 +427,36 @@ export default function FleetManagement() {
               <input placeholder={editingRider ? 'New password (leave blank to keep)' : 'Password (min 6 characters)'} type="password" autoComplete="new-password" className="admin-input" value={newRider.password} onChange={(e) => setNewRider({...newRider, password: e.target.value})} />
            </div>
            <div className="flex gap-4 mt-10">
-              <button disabled={isSubmitting} onClick={handleCreateRider} className="flex-1 py-5 bg-blue-600 text-white font-black uppercase tracking-[0.3em] rounded-3xl text-xs disabled:opacity-40 hover:bg-blue-500">
+              <button disabled={isSubmitting} onClick={handleCreateRider} className="flex-1 py-5 bg-accent text-on-solid font-semibold rounded-lg text-xs disabled:opacity-40 hover:bg-accent-hover">
                 {isSubmitting ? (
                   <span className="flex items-center justify-center gap-3">
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-line-strong border-t-line-strong rounded-full animate-spin" />
                     Processing...
                   </span>
                 ) : editingRider ? 'Save changes' : 'Add rider'}
               </button>
-              <button disabled={isSubmitting} onClick={closeForm} className="px-10 py-5 bg-white/5 text-gray-500 font-black uppercase tracking-widest rounded-3xl text-xs hover:bg-white/10">Cancel</button>
+              <button disabled={isSubmitting} onClick={closeForm} className="px-10 py-5 bg-surface-2/60 text-fg-muted font-semibold rounded-lg text-xs hover:bg-surface-2">Cancel</button>
            </div>
+        </div>
+      )}
+
+      {activeTab === 'roster' && (
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="search"
+            value={riderSearch}
+            onChange={e => setRiderSearch(e.target.value)}
+            placeholder="Search name or phone"
+            aria-label="Search riders by name or phone"
+            className="zv-control w-full sm:w-64"
+          />
+          <div role="radiogroup" aria-label="Approval" className="inline-flex items-center gap-0.5 rounded-md border border-line bg-surface-2 p-0.5">
+            {([['all', 'All'], ['pending', 'Waiting for approval'], ['approved', 'Approved']] as const).map(([v, l]) => (
+              <button key={v} type="button" role="radio" aria-checked={approvalFilter === v} onClick={() => setApprovalFilter(v)}
+                className={`h-7 rounded px-2.5 text-sm font-medium ${approvalFilter === v ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg'}`}>{l}</button>
+            ))}
+          </div>
+          <span className="ml-auto text-sm text-fg-muted">Searches the riders on this page</span>
         </div>
       )}
 
@@ -428,37 +464,39 @@ export default function FleetManagement() {
         <div className="glass-card overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white/[0.03] border-b border-white/5">
-                <th className="px-8 py-6 text-[12px] font-black text-gray-500 uppercase tracking-[0.2em]">Personnel ID</th>
-                <th className="px-8 py-6 text-[12px] font-black text-gray-500 uppercase tracking-[0.2em]">Full Name</th>
-                <th className="px-8 py-6 text-[12px] font-black text-gray-500 uppercase tracking-[0.2em]">Contact Node</th>
-                <th className="px-8 py-6 text-[12px] font-black text-gray-500 uppercase tracking-[0.2em]">Status</th>
-                <th className="px-8 py-6 text-[12px] font-black text-gray-500 uppercase tracking-[0.2em]">Action</th>
+              <tr className="bg-surface-2/60 border-b border-line">
+                <th className="px-8 py-6 text-xs font-semibold text-fg-muted">Rider</th>
+                <th className="px-8 py-6 text-xs font-semibold text-fg-muted">Name</th>
+                <th className="px-8 py-6 text-xs font-semibold text-fg-muted">Contact</th>
+                <th className="px-8 py-6 text-xs font-semibold text-fg-muted">Status</th>
+                <th className="px-8 py-6 text-xs font-semibold text-fg-muted">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.02] text-white">
+            <tbody className="divide-y divide-line text-fg">
               {loadError && (
                 <tr><td colSpan={5} className="px-8 py-6 text-center">
-                  <span role="alert" className="text-sm font-bold text-red-300">{loadError}</span>
-                  <button onClick={() => fetchRiders(currentPage, riders.length === 0)} className="ml-4 text-xs font-black uppercase tracking-widest text-white hover:underline">Retry</button>
+                  <span role="alert" className="text-sm font-semibold text-danger-text">{loadError}</span>
+                  <button onClick={() => fetchRiders(currentPage, riders.length === 0)} className="ml-4 text-xs font-semibold text-fg hover:underline">Retry</button>
                 </td></tr>
               )}
               {loading ? (
-                <tr><td colSpan={5} className="px-8 py-20 text-center text-gray-600 animate-pulse font-black uppercase tracking-widest">Loading riders…</td></tr>
+                <tr><td colSpan={5} className="px-8 py-20 text-center text-fg-subtle animate-pulse font-semibold">Loading riders…</td></tr>
               ) : riders.length === 0 ? (
-                !loadError && <tr><td colSpan={5} className="px-8 py-20 text-center text-gray-500 font-bold">No delivery partners yet. Use &quot;Add rider&quot; to onboard one.</td></tr>
-              ) : riders.map((rider) => (
+                !loadError && <tr><td colSpan={5} className="px-8 py-20 text-center text-fg-muted font-semibold">No delivery partners yet. Use &quot;Add rider&quot; to onboard one.</td></tr>
+              ) : shownRiders.length === 0 ? (
+                <tr><td colSpan={5} className="px-8 py-12 text-center text-fg-muted">No riders on this page match the search or filter.</td></tr>
+              ) : shownRiders.map((rider) => (
                 <RiderRow key={rider._id} rider={rider} busy={busyId === rider._id} onEdit={(r) => { setIsAdding(false); setError(null); setEditingRider(r); setNewRider({ name: r.name, phone: r.phone, password: '', vehicleType: r.vehicleType || 'Bike' }); }} onToggleApproval={handleToggleApproval} onResetSos={handleResetSos} />
               ))}
             </tbody>
           </table>
 
           {totalPages > 1 && (
-            <div className="p-6 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Personnel Page {currentPage} / {totalPages} ({totalRiders} total)</span>
+            <div className="p-6 bg-surface-2/60 border-t border-line flex items-center justify-between">
+              <span className="text-xs font-semibold text-fg-muted">Page {currentPage} of {totalPages} · {totalRiders} riders</span>
               <div className="flex gap-2">
-                 <button disabled={loading || currentPage <= 1} onClick={() => fetchRiders(currentPage - 1)} className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-400 hover:text-white disabled:opacity-30">Prev</button>
-                 <button disabled={loading || currentPage >= totalPages} onClick={() => fetchRiders(currentPage + 1)} className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-gray-400 hover:text-white disabled:opacity-30">Next</button>
+                 <button disabled={loading || currentPage <= 1} onClick={() => fetchRiders(currentPage - 1)} className="px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-30">Prev</button>
+                 <button disabled={loading || currentPage >= totalPages} onClick={() => fetchRiders(currentPage + 1)} className="px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-30">Next</button>
               </div>
             </div>
           )}
@@ -467,43 +505,43 @@ export default function FleetManagement() {
 
       {activeTab === 'payouts' && (
         <div className="glass-card overflow-hidden animate-fade-in">
-          <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
-            <h4 className="text-lg font-black text-white uppercase tracking-tight">Fleet Earnings Settlement</h4>
-            <button onClick={() => { setPayoutsLoading(true); fetchPayouts(); }} className="px-4 py-2 bg-blue-500/10 text-blue-400 rounded-xl text-[10px] font-black uppercase">↻ Refresh Payouts</button>
+          <div className="p-8 border-b border-line flex justify-between items-center bg-surface-2/60">
+            <h4 className="text-lg font-semibold text-fg">Fleet Earnings Settlement</h4>
+            <button onClick={() => { setPayoutsLoading(true); fetchPayouts(); }} className="px-4 py-2 bg-info-soft text-info-text rounded-xl text-xs font-semibold">↻ Refresh Payouts</button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-white/[0.03]">
-                  <th className="px-8 py-4 text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/5">Rider ID</th>
-                  <th className="px-8 py-4 text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/5">Total Deliveries</th>
-                  <th className="px-8 py-4 text-[9px] font-black text-blue-400 uppercase tracking-widest border-b border-white/5">Unsettled earnings (delivery fee, ₹30 min)</th>
-                  <th className="px-8 py-4 text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/5">Action</th>
+                <tr className="bg-surface-2/60">
+                  <th className="px-8 py-4 text-xs font-semibold text-fg-muted border-b border-line">Rider ID</th>
+                  <th className="px-8 py-4 text-xs font-semibold text-fg-muted border-b border-line">Total Deliveries</th>
+                  <th className="px-8 py-4 text-xs font-semibold text-info-text border-b border-line">Unsettled earnings (delivery fee, ₹30 min)</th>
+                  <th className="px-8 py-4 text-xs font-semibold text-fg-muted border-b border-line">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.02]">
                 {payoutsError ? (
-                  <tr><td colSpan={4} className="py-10 text-center"><span role="alert" className="text-sm font-bold text-red-300">{payoutsError}</span></td></tr>
+                  <tr><td colSpan={4} className="py-10 text-center"><span role="alert" className="text-sm font-semibold text-danger-text">{payoutsError}</span></td></tr>
                 ) : payoutsLoading ? (
-                  <tr><td colSpan={4} className="py-10 text-center text-gray-600 animate-pulse text-xs font-black uppercase">Loading payouts…</td></tr>
+                  <tr><td colSpan={4} className="py-10 text-center text-fg-subtle animate-pulse text-xs font-semibold">Loading payouts…</td></tr>
                 ) : payouts.length === 0 ? (
-                  <tr><td colSpan={4} className="py-10 text-center text-gray-500 text-xs italic">No unsettled rider earnings.</td></tr>
+                  <tr><td colSpan={4} className="py-10 text-center text-fg-muted text-xs">No unsettled rider earnings.</td></tr>
                 ) : payouts.map(p => {
                   const riderName = p.riderName || riders.find(r => r._id === p.riderId)?.name || String(p.riderId).slice(-6).toUpperCase();
                   return (
-                    <tr key={p.riderId} className="hover:bg-white/[0.02]">
-                      <td className="px-8 py-4 text-sm font-bold text-white uppercase tracking-tight">
+                    <tr key={p.riderId} className="hover:bg-surface-2/60">
+                      <td className="px-8 py-4 text-sm font-semibold text-fg">
                         {riderName}
-                        {p.riderPhone && <span className="block text-[8px] text-gray-500 font-mono mt-0.5">{p.riderPhone}</span>}
+                        {p.riderPhone && <span className="block text-xs text-fg-muted font-mono mt-0.5">{p.riderPhone}</span>}
                       </td>
-                      <td className="px-8 py-4 text-sm text-gray-300 font-mono">{p.totalDeliveries}</td>
-                      <td className="px-8 py-4 text-lg font-black text-emerald-400">
+                      <td className="px-8 py-4 text-sm text-fg-muted font-mono">{p.totalDeliveries}</td>
+                      <td className="px-8 py-4 text-lg font-semibold text-success-text">
                         ₹{p.totalDeliveryFees}
-                        {(Number(p.unsettledTips) || 0) > 0 && <span className="block text-[10px] font-bold text-amber-300">+ ₹{p.unsettledTips} tips</span>}
-                        {(Number(p.cashHeld) || 0) > 0 && <span className="block text-[10px] font-bold text-gray-400">Holds ₹{p.cashHeld} COD cash (not deducted)</span>}
+                        {(Number(p.unsettledTips) || 0) > 0 && <span className="block text-xs font-semibold text-warning-text">+ ₹{p.unsettledTips} tips</span>}
+                        {(Number(p.cashHeld) || 0) > 0 && <span className="block text-xs font-semibold text-fg-muted">Holds ₹{p.cashHeld} COD cash (not deducted)</span>}
                       </td>
                       <td className="px-8 py-4">
-                        <button disabled={!!settlingId} onClick={() => handleMarkSettled(p, riderName)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[9px] font-black uppercase disabled:opacity-40">{settlingId === p.riderId ? 'Settling…' : 'Mark Settled'}</button>
+                        <button disabled={!!settlingId} onClick={() => handleMarkSettled(p, riderName)} className="px-4 py-2 bg-success hover:bg-success/90 text-on-solid rounded-lg text-xs font-semibold disabled:opacity-40">{settlingId === p.riderId ? 'Settling…' : 'Mark Settled'}</button>
                       </td>
                     </tr>
                   )
@@ -518,12 +556,12 @@ export default function FleetManagement() {
         <div className="animate-fade-in relative z-0">
           <div className="mb-6 flex justify-between items-end">
              <div>
-                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Global Fleet Tracking Network</h3>
-                <p className="text-xs text-gray-500 uppercase tracking-widest mt-1">Real-time Node Intercept Array</p>
+                <h3 className="text-xl font-semibold text-fg">Global Fleet Tracking Network</h3>
+                <p className="text-xs text-fg-muted mt-1">Real-time Node Intercept Array</p>
              </div>
              <div className="flex gap-2">
-                <span className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded text-[10px] font-black uppercase">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live Uplink
+                <span className="flex items-center gap-2 px-3 py-1 bg-success-soft border border-success/30 text-success-text rounded text-xs font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-success animate-pulse" /> Live Uplink
                 </span>
              </div>
           </div>

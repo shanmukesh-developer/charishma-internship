@@ -80,11 +80,11 @@ const toDraft = (c: FriendsConfig): Draft => ({
   connectConsentVersion: String(c.connectConsentVersion),
 });
 
-const input = 'w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-blue-500/50';
-const label = 'block text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1';
-const btn = 'rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest disabled:opacity-40 transition-colors';
-const btnGhost = `${btn} border border-white/10 bg-white/5 text-gray-300 hover:text-white`;
-const card = 'glass-card p-6 space-y-4';
+const input = 'w-full rounded-xl border border-line bg-surface-2/60 px-3 py-2 text-sm text-fg outline-none focus:border-accent';
+const label = 'block text-xs font-semibold text-fg-muted mb-1';
+const btn = 'rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-40 transition-colors';
+const btnGhost = `${btn} border border-line bg-surface-2/60 text-fg-muted hover:text-fg`;
+const card = 'rounded-lg border border-line bg-surface shadow-xs p-6 space-y-4';
 
 function Toggle({ checked, onChange, disabled, labelText }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean; labelText: string }) {
   return (
@@ -95,7 +95,7 @@ function Toggle({ checked, onChange, disabled, labelText }: { checked: boolean; 
       aria-label={labelText}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:opacity-40 ${checked ? 'bg-emerald-500/70 border-emerald-400/60' : 'bg-white/10 border-white/15'}`}
+      className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:opacity-40 ${checked ? 'bg-success-soft border-success/30' : 'bg-surface-2 border-line'}`}
     >
       <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${checked ? 'left-[22px]' : 'left-0.5'}`} />
     </button>
@@ -208,35 +208,35 @@ export default function FriendsConfigPage() {
     }
   };
 
-  if (!isAuthed) return <div className="p-20 text-center font-black text-white uppercase tracking-widest animate-pulse">Checking access…</div>;
+  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((p) => (p ? { ...p, [key]: value } : p));
 
   return (
-    <div className="space-y-8 animate-fade-in relative pb-28">
+    <div className="space-y-8 animate-fade-in relative">
       <div className="flex flex-wrap gap-4 items-end justify-between">
         <div>
-          <h1 className="text-3xl font-black tracking-tighter text-white uppercase">Friends config</h1>
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">Feature flags, community guidelines, content filters and review SLAs</p>
+          <h1 className="text-2xl font-semibold text-fg">Friends app</h1>
+          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Friends features: connect, forum, pulse and spaces.</p>
         </div>
         <div className="flex gap-2">
           <Link href="/moderation" className={btnGhost}>Open moderation queue</Link>
-          <button onClick={load} disabled={loading || saving} className={`${btn} bg-blue-500/10 text-blue-400 border border-blue-500/20`}>↻ Reload</button>
+          <button onClick={load} disabled={loading || saving} className={`${btn} bg-info-soft text-info-text border border-info/30`}>↻ Reload</button>
         </div>
       </div>
 
       {notice && (
-        <div role="status" className={`rounded-2xl border px-4 py-3 text-xs font-bold flex items-center justify-between gap-4 ${notice.kind === 'ok' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300' : 'border-red-500/20 bg-red-500/10 text-red-300'}`}>
+        <div role="status" className={`rounded-lg border px-4 py-3 text-xs font-semibold flex items-center justify-between gap-4 ${notice.kind === 'ok' ? 'border-success/30 bg-success-soft text-success-text' : 'border-danger/30 bg-danger-soft text-danger-text'}`}>
           <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-[10px] font-black uppercase opacity-70 hover:opacity-100">Dismiss</button>
+          <button onClick={() => setNotice(null)} className="text-xs font-semibold opacity-70 hover:opacity-100">Dismiss</button>
         </div>
       )}
 
       {loading && !draft ? (
-        <p className="text-xs text-gray-500 animate-pulse text-center py-16">Loading configuration…</p>
+        <p className="text-xs text-fg-muted animate-pulse text-center py-16">Loading configuration…</p>
       ) : loadError && !draft ? (
         <div className="text-center py-16">
-          <p className="text-xs text-red-400 font-bold">{loadError}</p>
+          <p className="text-xs text-danger-text font-semibold">{loadError}</p>
           <button onClick={load} className={`mt-3 ${btnGhost}`}>Try again</button>
         </div>
       ) : draft && data ? (
@@ -245,27 +245,27 @@ export default function FriendsConfigPage() {
           <section className={card}>
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-sm font-black uppercase tracking-widest text-white">Friends tab</h2>
-                <p className="text-[11px] text-gray-500">Master switch. Off hides Friends for every student, including chats started from it.</p>
+                <h2 className="text-sm font-semibold text-fg">Friends tab</h2>
+                <p className="text-xs text-fg-muted">Master switch. Off hides Friends for every student, including chats started from it.</p>
               </div>
               <Toggle checked={draft.enabled} onChange={(v) => set('enabled', v)} labelText="Friends master switch" />
             </div>
-            <div className="divide-y divide-white/[0.04] border-t border-white/5">
+            <div className="divide-y divide-line border-t border-line">
               {FEATURES.slice().sort((a, b) => FEATURE_INFO[a].phase - FEATURE_INFO[b].phase).map((f) => {
                 const shipped = data.implemented[f];
                 const live = data.effective[f];
                 return (
                   <div key={f} className="flex items-center justify-between gap-4 py-3">
                     <div>
-                      <p className="text-xs font-black text-white uppercase tracking-wide">
+                      <p className="text-xs font-semibold text-fg">
                         {FEATURE_INFO[f].label}
-                        <span className="ml-2 text-[9px] text-gray-500">Phase {FEATURE_INFO[f].phase}</span>
-                        <span className={`ml-2 text-[9px] px-2 py-0.5 rounded-md border ${live ? 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10' : 'text-gray-400 border-white/10 bg-white/5'}`}>
+                        <span className="ml-2 text-xs text-fg-muted">Phase {FEATURE_INFO[f].phase}</span>
+                        <span className={`ml-2 text-xs px-2 py-0.5 rounded-md border ${live ? 'text-success-text border-success/30 bg-success-soft' : 'text-fg-muted border-line bg-surface-2/60'}`}>
                           {live ? 'Live' : shipped ? 'Off' : 'Not shipped yet'}
                         </span>
                       </p>
-                      <p className="text-[11px] text-gray-500">{FEATURE_INFO[f].blurb}</p>
-                      {!shipped && draft.features[f] && <p className="text-[10px] text-amber-400">Flag is on, but this phase is not on the server yet. It goes live when it ships.</p>}
+                      <p className="text-xs text-fg-muted">{FEATURE_INFO[f].blurb}</p>
+                      {!shipped && draft.features[f] && <p className="text-xs text-warning-text">Flag is on, but this phase is not on the server yet. It goes live when it ships.</p>}
                     </div>
                     <Toggle checked={draft.features[f]} onChange={(v) => set('features', { ...draft.features, [f]: v })} labelText={`${FEATURE_INFO[f].label} flag`} />
                   </div>
@@ -278,8 +278,8 @@ export default function FriendsConfigPage() {
           <section className={card}>
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <h2 className="text-sm font-black uppercase tracking-widest text-white">Community guidelines</h2>
-                <p className="text-[11px] text-gray-500">Students must accept the current version before they can post. Raising the version asks everyone to accept again.</p>
+                <h2 className="text-sm font-semibold text-fg">Community guidelines</h2>
+                <p className="text-xs text-fg-muted">Students must accept the current version before they can post. Raising the version asks everyone to accept again.</p>
               </div>
               <div className="flex items-end gap-2">
                 <div>
@@ -291,34 +291,34 @@ export default function FriendsConfigPage() {
             </div>
             <div>
               <span className={label}>Text ({draft.guidelinesText.length}/8000)</span>
-              <textarea className={`${input} min-h-[260px] font-mono text-[12px] leading-relaxed`} maxLength={8000} value={draft.guidelinesText} onChange={(e) => set('guidelinesText', e.target.value)} />
+              <textarea className={`${input} min-h-[260px] font-mono text-xs leading-relaxed`} maxLength={8000} value={draft.guidelinesText} onChange={(e) => set('guidelinesText', e.target.value)} />
             </div>
             {draft.guidelinesText !== data.config.guidelines.text && Number(draft.guidelinesVersion) === data.config.guidelines.version && (
-              <p className="text-[10px] text-amber-400">You changed the text without raising the version. Students who already accepted will not be asked again.</p>
+              <p className="text-xs text-warning-text">You changed the text without raising the version. Students who already accepted will not be asked again.</p>
             )}
           </section>
 
           {/* Content filters */}
           <section className={card}>
             <div>
-              <h2 className="text-sm font-black uppercase tracking-widest text-white">Content filters</h2>
-              <p className="text-[11px] text-gray-500">One word or phrase per line (or comma-separated). Matching is case-insensitive.</p>
+              <h2 className="text-sm font-semibold text-fg">Content filters</h2>
+              <p className="text-xs text-fg-muted">One word or phrase per line (or comma-separated). Matching is case-insensitive.</p>
             </div>
             <div className="grid md:grid-cols-3 gap-4">
               <div>
                 <span className={label}>Block ({fromLines(draft.keywordsBlock).length})</span>
-                <textarea className={`${input} min-h-[160px] text-[12px]`} value={draft.keywordsBlock} onChange={(e) => set('keywordsBlock', e.target.value)} placeholder="Refused outright" />
-                <p className="text-[10px] text-gray-500 mt-1">The post is refused and the student is told why.</p>
+                <textarea className={`${input} min-h-[160px] text-xs`} value={draft.keywordsBlock} onChange={(e) => set('keywordsBlock', e.target.value)} placeholder="Refused outright" />
+                <p className="text-xs text-fg-muted mt-1">The post is refused and the student is told why.</p>
               </div>
               <div>
                 <span className={label}>Flag for review ({fromLines(draft.keywordsFlag).length})</span>
-                <textarea className={`${input} min-h-[160px] text-[12px]`} value={draft.keywordsFlag} onChange={(e) => set('keywordsFlag', e.target.value)} placeholder="Held for review" />
-                <p className="text-[10px] text-gray-500 mt-1">Saved as pending review and added to the queue as a system report.</p>
+                <textarea className={`${input} min-h-[160px] text-xs`} value={draft.keywordsFlag} onChange={(e) => set('keywordsFlag', e.target.value)} placeholder="Held for review" />
+                <p className="text-xs text-fg-muted mt-1">Saved as pending review and added to the queue as a system report.</p>
               </div>
               <div>
                 <span className={label}>Blocked link hosts ({fromLines(draft.linkDenylist).length})</span>
-                <textarea className={`${input} min-h-[160px] text-[12px]`} value={draft.linkDenylist} onChange={(e) => set('linkDenylist', e.target.value)} placeholder="example.com" />
-                <p className="text-[10px] text-gray-500 mt-1">Links to these hosts are refused.</p>
+                <textarea className={`${input} min-h-[160px] text-xs`} value={draft.linkDenylist} onChange={(e) => set('linkDenylist', e.target.value)} placeholder="example.com" />
+                <p className="text-xs text-fg-muted mt-1">Links to these hosts are refused.</p>
               </div>
             </div>
           </section>
@@ -326,8 +326,8 @@ export default function FriendsConfigPage() {
           {/* Review thresholds */}
           <section className={card}>
             <div>
-              <h2 className="text-sm font-black uppercase tracking-widest text-white">Review rules</h2>
-              <p className="text-[11px] text-gray-500">Reports never remove content by themselves. Only threats, self-harm and doxxing reports from enough distinct students hide content until a moderator decides.</p>
+              <h2 className="text-sm font-semibold text-fg">Review rules</h2>
+              <p className="text-xs text-fg-muted">Reports never remove content by themselves. Only threats, self-harm and doxxing reports from enough distinct students hide content until a moderator decides.</p>
             </div>
             <div className="flex flex-wrap gap-6">
               <div>
@@ -344,12 +344,12 @@ export default function FriendsConfigPage() {
               <div className="flex flex-wrap gap-4">
                 {SEVERITIES.map((s) => (
                   <div key={s}>
-                    <span className="block text-[10px] text-gray-400 uppercase font-bold mb-1">{s}</span>
+                    <span className="block text-xs text-fg-muted font-semibold mb-1">{s}</span>
                     <input type="number" min={1} max={720} className={`${input} w-28`} value={draft.slaHours[s]} onChange={(e) => set('slaHours', { ...draft.slaHours, [s]: e.target.value })} />
                   </div>
                 ))}
               </div>
-              <p className="text-[10px] text-gray-500 mt-2">Applies to new reports.</p>
+              <p className="text-xs text-fg-muted mt-2">Applies to new reports.</p>
             </div>
           </section>
 
@@ -358,20 +358,20 @@ export default function FriendsConfigPage() {
 
           {/* Per-phase admin */}
           <section className={card}>
-            <h2 className="text-sm font-black uppercase tracking-widest text-white">Sub-tab admin</h2>
+            <h2 className="text-sm font-semibold text-fg">Sub-tab admin</h2>
             <div className="grid md:grid-cols-2 gap-3">
               {SUBPAGES.map((p) => {
                 const feature = p.href.split('/').pop() as Feature;
                 const shipped = data.implemented[feature];
                 return shipped ? (
-                  <Link key={p.href} href={p.href} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:border-blue-500/40">
-                    <p className="text-xs font-black text-white uppercase">{p.label}</p>
-                    <p className="text-[11px] text-gray-500">{p.detail}</p>
+                  <Link key={p.href} href={p.href} className="rounded-lg border border-line bg-surface-2/60 p-4 hover:border-info/30">
+                    <p className="text-xs font-semibold text-fg">{p.label}</p>
+                    <p className="text-xs text-fg-muted">{p.detail}</p>
                   </Link>
                 ) : (
-                  <div key={p.href} className="rounded-2xl border border-white/5 bg-white/[0.01] p-4 opacity-60" aria-disabled="true">
-                    <p className="text-xs font-black text-white uppercase">{p.label} <span className="text-[9px] text-gray-500 ml-1">Arrives with phase {p.phase}</span></p>
-                    <p className="text-[11px] text-gray-500">{p.detail}</p>
+                  <div key={p.href} className="rounded-lg border border-line bg-surface-2/60 p-4 opacity-60" aria-disabled="true">
+                    <p className="text-xs font-semibold text-fg">{p.label} <span className="text-xs text-fg-muted ml-1">Arrives with phase {p.phase}</span></p>
+                    <p className="text-xs text-fg-muted">{p.detail}</p>
                   </div>
                 );
               })}
@@ -380,19 +380,19 @@ export default function FriendsConfigPage() {
 
           {/* Save bar */}
           <div className="sticky bottom-4 z-30">
-            <div className="glass-card flex flex-wrap items-center justify-between gap-3 px-6 py-4 border border-white/10">
-              <div className="text-[11px]">
+            <div className="rounded-lg border border-line bg-surface shadow-xs flex flex-wrap items-center justify-between gap-3 px-6 py-4 border border-line">
+              <div className="text-xs">
                 {patch.errors.length ? (
-                  <ul className="text-red-400 font-bold space-y-0.5">{patch.errors.slice(0, 3).map((e) => <li key={e}>{e}</li>)}</ul>
+                  <ul className="text-danger-text font-semibold space-y-0.5">{patch.errors.slice(0, 3).map((e) => <li key={e}>{e}</li>)}</ul>
                 ) : patch.dirty ? (
-                  <span className="text-amber-300 font-bold">Unsaved changes: {Object.keys(patch.body).join(', ')}</span>
+                  <span className="text-warning-text font-semibold">Unsaved changes: {Object.keys(patch.body).join(', ')}</span>
                 ) : (
-                  <span className="text-gray-500">All changes saved. Every save is recorded in the moderation audit log.</span>
+                  <span className="text-fg-muted">All changes saved. Every save is recorded in the moderation audit log.</span>
                 )}
               </div>
               <div className="flex gap-2">
                 <button type="button" disabled={!patch.dirty || saving} onClick={() => setDraft(toDraft(data.config))} className={btnGhost}>Discard</button>
-                <button type="button" disabled={!patch.dirty || saving || patch.errors.length > 0} onClick={save} className={`${btn} bg-emerald-500/20 text-emerald-200 border border-emerald-500/30`}>
+                <button type="button" disabled={!patch.dirty || saving || patch.errors.length > 0} onClick={save} className={`${btn} bg-success-soft text-success-text border border-success/30`}>
                   {saving ? 'Saving…' : 'Save changes'}
                 </button>
               </div>

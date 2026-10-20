@@ -120,49 +120,49 @@ export function PgForm({ initial, onCancel, onSave }: {
       </div>
 
       <fieldset className="space-y-3">
-        <legend className="mb-2 text-sm font-bold text-blue-300">Contact & location</legend>
+        <legend className="mb-2 text-sm font-semibold text-info-text">Contact & location</legend>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <label className={LABEL}>Owner<input className={FIELD} value={form.contact.ownerName} onChange={e => setContact({ ownerName: e.target.value })} /></label>
-          <label className={LABEL}>Phone<input inputMode="tel" className={FIELD} value={form.contact.phone} onChange={e => setContact({ phone: e.target.value })} /><span className="block text-[11px] font-normal normal-case tracking-normal text-gray-500">Internal: not shown in the app</span></label>
-          <label className={LABEL}>Email<input type="email" className={FIELD} value={form.contact.email} onChange={e => setContact({ email: e.target.value })} /><span className="block text-[11px] font-normal normal-case tracking-normal text-gray-500">Internal: not shown in the app</span></label>
+          <label className={LABEL}>Phone<input inputMode="tel" className={FIELD} value={form.contact.phone} onChange={e => setContact({ phone: e.target.value })} /><span className="block text-xs font-normal normal-case text-fg-muted">Internal: not shown in the app</span></label>
+          <label className={LABEL}>Email<input type="email" className={FIELD} value={form.contact.email} onChange={e => setContact({ email: e.target.value })} /><span className="block text-xs font-normal normal-case text-fg-muted">Internal: not shown in the app</span></label>
           <label className={LABEL}>Warden<input className={FIELD} value={form.contact.wardenName} onChange={e => setContact({ wardenName: e.target.value })} /></label>
-          <label className={LABEL}>Emergency contact<input inputMode="tel" className={FIELD} value={form.contact.emergencyContact} onChange={e => setContact({ emergencyContact: e.target.value })} /><span className="block text-[11px] font-normal normal-case tracking-normal text-gray-500">Internal: not shown in the app</span></label>
+          <label className={LABEL}>Emergency contact<input inputMode="tel" className={FIELD} value={form.contact.emergencyContact} onChange={e => setContact({ emergencyContact: e.target.value })} /><span className="block text-xs font-normal normal-case text-fg-muted">Internal: not shown in the app</span></label>
           <label className={LABEL}>Latitude<input inputMode="decimal" className={FIELD} value={form.contact.lat} onChange={e => setContact({ lat: e.target.value })} placeholder="e.g. 16.4632" /></label>
           <label className={LABEL}>Longitude<input inputMode="decimal" className={FIELD} value={form.contact.lng} onChange={e => setContact({ lng: e.target.value })} placeholder="e.g. 80.5064" /></label>
         </div>
       </fieldset>
 
-      <p className="text-xs text-gray-500">{initial ? 'House rules are edited on the House rules tab.' : 'Add house rules on the House rules tab after creating the PG.'}{form.rules.length ? ` The ${form.rules.length} rule${form.rules.length === 1 ? '' : 's'} from the older single list ${form.rules.length === 1 ? 'is' : 'are'} kept; that tab can move them into a group.` : ''}</p>
+      <p className="text-xs text-fg-muted">{initial ? 'House rules are edited on the House rules tab.' : 'Add house rules on the House rules tab after creating the PG.'}{form.rules.length ? ` The ${form.rules.length} rule${form.rules.length === 1 ? '' : 's'} from the older single list ${form.rules.length === 1 ? 'is' : 'are'} kept; that tab can move them into a group.` : ''}</p>
 
       <label className={LABEL}>Description<textarea className={`${FIELD} h-20 resize-none`} value={form.description} onChange={e => set({ description: e.target.value })} /></label>
 
       <fieldset>
-        <legend className="mb-2 text-sm font-bold text-blue-300">Amenities</legend>
+        <legend className="mb-2 text-sm font-semibold text-info-text">Amenities</legend>
         <div className="flex flex-wrap gap-2">
           {Array.from(new Set([...AMENITIES, ...form.amenities])).map(a => {
             const on = form.amenities.includes(a);
             return (
-              <button key={a} type="button" aria-pressed={on} onClick={() => set({ amenities: on ? form.amenities.filter(x => x !== a) : [...form.amenities, a] })} className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${on ? 'border-blue-500/40 bg-blue-500/10 text-blue-300' : 'border-white/10 text-gray-400 hover:text-white'}`}>{a}</button>
+              <button key={a} type="button" aria-pressed={on} onClick={() => set({ amenities: on ? form.amenities.filter(x => x !== a) : [...form.amenities, a] })} className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${on ? 'border-info/30 bg-info-soft text-info-text' : 'border-line text-fg-muted hover:text-fg'}`}>{a}</button>
             );
           })}
         </div>
       </fieldset>
 
-      <label className="flex items-center gap-3 text-sm text-gray-300">
-        <input type="checkbox" checked={form.isActive} onChange={e => set({ isActive: e.target.checked })} className="h-4 w-4 accent-emerald-500" />
+      <label className="flex items-center gap-3 text-sm text-fg-muted">
+        <input type="checkbox" checked={form.isActive} onChange={e => set({ isActive: e.target.checked })} className="h-4 w-4 accent-[rgb(var(--accent))]" />
         Listed in the app (students can see and book it)
       </label>
-      <label className="flex items-center gap-3 text-sm text-gray-300">
-        <input type="checkbox" checked={form.isVerified} onChange={e => set({ isVerified: e.target.checked })} className="h-4 w-4 accent-emerald-500" />
+      <label className="flex items-center gap-3 text-sm text-fg-muted">
+        <input type="checkbox" checked={form.isVerified} onChange={e => set({ isVerified: e.target.checked })} className="h-4 w-4 accent-[rgb(var(--accent))]" />
         Verified by the Zenvy housing team (site visit done; shows a Verified mark)
       </label>
-      {initial ? <p className="text-xs text-gray-500">Rooms, photos, videos, mess timetable, timings, overview highlights, house rules, policies, safety, move-in, location and nearby, FAQ and reviews have their own tabs above.</p> : <p className="text-xs text-gray-500">After creating the PG, add rooms, photos, videos, the mess timetable, timings, highlights, house rules, policies, safety, move-in details, the location guide and FAQ from its tabs.</p>}
+      {initial ? <p className="text-xs text-fg-muted">Rooms, photos, videos, mess timetable, timings, overview highlights, house rules, policies, safety, move-in, location and nearby, FAQ and reviews have their own tabs above.</p> : <p className="text-xs text-fg-muted">After creating the PG, add rooms, photos, videos, the mess timetable, timings, highlights, house rules, policies, safety, move-in details, the location guide and FAQ from its tabs.</p>}
 
-      {error && <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{error}</p>}
+      {error && <p role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger-text">{error}</p>}
 
-      <div className="flex justify-end gap-3 border-t border-white/10 pt-4">
-        <button type="button" onClick={onCancel} className="rounded-lg border border-white/10 px-4 py-2.5 text-sm font-semibold text-gray-300 hover:text-white">Cancel</button>
-        <button type="submit" disabled={saving} className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-500 disabled:opacity-50">{saving ? 'Saving…' : initial ? 'Save PG' : 'Create PG'}</button>
+      <div className="flex justify-end gap-3 border-t border-line pt-4">
+        <button type="button" onClick={onCancel} className="rounded-lg border border-line px-4 py-2.5 text-sm font-semibold text-fg-muted hover:text-fg">Cancel</button>
+        <button type="submit" disabled={saving} className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-on-solid hover:bg-accent-hover disabled:opacity-50">{saving ? 'Saving…' : initial ? 'Save PG' : 'Create PG'}</button>
       </div>
     </form>
   );

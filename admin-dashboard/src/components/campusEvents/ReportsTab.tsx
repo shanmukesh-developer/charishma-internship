@@ -44,18 +44,18 @@ export default function ReportsTab({ tick }: { tick: number }) {
             <StatCard name="Still due at venue" value={inr(t.dueAtVenue)} tone={t.dueAtVenue ? 'warn' : 'plain'} hint={`refunded ${inr(t.refunded)}`} />
           </div>
           {rows.length === 0 ? <Empty text="No approved / published / finished events start in this period." /> : (
-            <div className="overflow-x-auto border border-white/10">
+            <div className="overflow-x-auto border border-line">
               <table className="w-full text-left text-sm">
-                <thead className="bg-white/[0.03] text-xs uppercase tracking-wider text-gray-400"><tr><th className="p-3">Event</th><th className="p-3">Starts</th><th className="p-3">Status</th><th className="p-3 text-right">Registrations</th><th className="p-3 text-right">Confirmed</th><th className="p-3 text-right">Checked in</th><th className="p-3 text-right">Venue ₹</th><th className="p-3 text-right">Wallet ₹</th><th className="p-3 text-right">Online ₹</th><th className="p-3 text-right">Due ₹</th><th className="p-3 text-right">Refunded ₹</th></tr></thead>
+                <thead className="bg-surface-2/60 text-xs text-fg-muted"><tr><th className="p-3">Event</th><th className="p-3">Starts</th><th className="p-3">Status</th><th className="p-3 text-right">Registrations</th><th className="p-3 text-right">Confirmed</th><th className="p-3 text-right">Checked in</th><th className="p-3 text-right">Venue ₹</th><th className="p-3 text-right">Wallet ₹</th><th className="p-3 text-right">Online ₹</th><th className="p-3 text-right">Due ₹</th><th className="p-3 text-right">Refunded ₹</th></tr></thead>
                 <tbody className="divide-y divide-white/10">
                   {rows.map((r) => (
                     <tr key={r.id}>
-                      <td className="p-3"><span className="font-bold">{r.title}</span><span className="block text-xs text-gray-500">{catLabel(r.category)} · {r.format.toLowerCase()}{r.teams !== undefined ? ` · ${r.teams} team(s)` : ''}</span></td>
+                      <td className="p-3"><span className="font-semibold">{r.title}</span><span className="block text-xs text-fg-muted">{catLabel(r.category)} · {r.format.toLowerCase()}{r.teams !== undefined ? ` · ${r.teams} team(s)` : ''}</span></td>
                       <td className="whitespace-nowrap p-3 text-xs">{when(r.startAt)}</td>
                       <td className="p-3"><Pill s={r.status} /></td>
                       <td className="p-3 text-right tabular-nums">{r.total}</td>
                       <td className="p-3 text-right tabular-nums">{r.confirmed}</td>
-                      <td className="p-3 text-right tabular-nums">{r.checkedIn}{r.confirmed ? <span className="block text-xs text-gray-500">{Math.round((r.checkedIn / r.confirmed) * 100)}%</span> : null}</td>
+                      <td className="p-3 text-right tabular-nums">{r.checkedIn}{r.confirmed ? <span className="block text-xs text-fg-muted">{Math.round((r.checkedIn / r.confirmed) * 100)}%</span> : null}</td>
                       <td className="p-3 text-right tabular-nums">{inr(r.collected.VENUE)}</td>
                       <td className="p-3 text-right tabular-nums">{inr(r.collected.WALLET)}</td>
                       <td className="p-3 text-right tabular-nums">{inr(r.collected.ONLINE)}</td>
@@ -67,7 +67,7 @@ export default function ReportsTab({ tick }: { tick: number }) {
               </table>
             </div>
           )}
-          <p className="text-xs text-gray-500">Period {when(data?.from)} → {when(data?.to)}. Collected = marked paid at the venue, or wallet / online payments that succeeded.</p>
+          <p className="text-xs text-fg-muted">Period {when(data?.from)} → {when(data?.to)}. Collected = marked paid at the venue, or wallet / online payments that succeeded.</p>
         </>
       )}
     </section>
