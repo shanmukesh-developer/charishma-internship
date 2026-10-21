@@ -1,5 +1,9 @@
 "use client";
-import { useConfirm } from '@/components/ui';
+import {
+  Badge, Button, DataTable, Field, IconButton, Input, LoadingState, Modal, Notice, PageHeader, Select, Switch, Toolbar, useConfirm,
+  type Column, IconChevronDown, IconChevronUp, IconPin, IconPlus, IconRefresh,
+} from '@/components/ui';
+import { humanize } from '@/lib/format';
 import { useCallback, useEffect, useState } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { adminRequest } from '@/lib/api';
@@ -34,9 +38,6 @@ const DEFAULT_ICONS = ['MapPin', 'BookOpen', 'Utensils', 'Dumbbell', 'Users', 'S
 const DEFAULT_CATEGORIES = ['library', 'dining', 'sports', 'hostel', 'academic', 'common'];
 const EMPTY_FORM = { name: '', emoji: '', description: '', icon: 'MapPin', category: 'common', campusId: '', isActive: true };
 
-const input = 'w-full rounded-xl border border-line bg-surface-2/60 px-3 py-2 text-sm text-fg outline-none focus:border-accent';
-const label = 'block text-xs font-semibold text-fg-muted mb-1';
-const btn = 'rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-40';
 const errText = (e: unknown, fallback: string) => (e instanceof Error && e.message ? e.message : fallback);
 
 export default function CampusSpotsPage() {
@@ -53,6 +54,7 @@ export default function CampusSpotsPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
   const [campusFilter, setCampusFilter] = useState<string>('all');
+  const [spotModal, setSpotModal] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -94,7 +96,7 @@ export default function CampusSpotsPage() {
     }
   };
 
-  const resetForm = () => { setForm(EMPTY_FORM); setEditingId(null); };
+  const resetForm = () => { setForm(EMPTY_FORM); setEditingId(null); setSpotModal(false); };
 
   const save = () => run('save', async () => {
     const name = form.name.trim();
@@ -131,7 +133,6 @@ export default function CampusSpotsPage() {
       isActive: s.isActive,
     });
     setNotice(null);
-    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const toggle = (s: Spot) => run(`toggle-${s.id}`, async () => {
@@ -140,7 +141,7 @@ export default function CampusSpotsPage() {
   });
 
   const remove = async (s: Spot) => {
-    if (!(await confirm({ title: `Delete "${s.name}"? Its chat room and messages are removed for everyone. To hide it for now, disable it instead.` }))) return;
+    if (!(await confirm({ title: `Delete “${s.name}”?`, description: 'Its chat room and messages are removed for everyone. To hide it for now, switch off Visible instead.', confirmLabel: 'Delete spot', tone: 'danger' }))) return;
     run(`delete-${s.id}`, async () => {
       await adminRequest(`/api/campus/admin/spots/${s.id}`, { method: 'DELETE' });
       if (editingId === s.id) resetForm();
@@ -179,138 +180,149 @@ export default function CampusSpotsPage() {
     load();
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center">
-        <div className="w-8 h-8 border-2 border-success/30 border-t-success/30 rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (loading && spots.length === 0 && !loadError) return <LoadingState label="Loading campus spots…" />;
+
+  const openNew = () => { setForm(EMPTY_FORM); setEditingId(null); setNotice(null); setSpotModal(true); };
+  const openEdit = (s: Spot) => { startEdit(s); setSpotModal(true); };
+  const closeModal = () => { if (busy === 'save') return; resetForm(); };
+
+  type Row = { s: Spot; i: number };
+  const columns: Column<Row>[] = [
+    {
+      key: 'order',
+      header: 'Order',
+      width: '76px',
+      cell: r => { const vi = visible.indexOf(r); return (
+        <div className="flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
+          <IconButton size="sm" label="Move up" disabled={!!busy || vi === 0} onClick={() => move(vi, -1)}><IconChevronUp size={14} /></IconButton>
+          <IconButton size="sm" label="Move down" disabled={!!busy || vi === visible.length - 1} onClick={() => move(vi, 1)}><IconChevronDown size={14} /></IconButton>
+        </div>
+      ); },
+    },
+    {
+      key: 'name',
+      header: 'Spot',
+      cell: ({ s }) => (
+        <div className="flex min-w-0 items-center gap-3">
+          <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-line bg-surface-2 text-lg text-fg-muted">
+            {s.emoji || <IconPin size={16} />}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate font-medium text-fg">{s.name}{!s.isActive && <Badge tone="warning" className="ml-2">Hidden</Badge>}</p>
+            {s.description && <p className="truncate text-xs text-fg-muted">{s.description}</p>}
+          </div>
+        </div>
+      ),
+    },
+    { key: 'campus', header: 'Campus', cell: ({ s }) => <span className="text-fg-muted">{s.campusName || 'Every campus'}</span> },
+    { key: 'category', header: 'Colour group', hideBelow: 'lg', cell: ({ s }) => <Badge>{humanize(s.category)}</Badge> },
+    {
+      key: 'active',
+      header: 'Visible',
+      cell: ({ s }) => (
+        <div onClick={e => e.stopPropagation()}>
+          <Switch size="sm" checked={s.isActive} disabled={!!busy} onChange={() => toggle(s)} label={<span className="sr-only">Visible in the app</span>} />
+        </div>
+      ),
+    },
+    {
+      key: 'actions',
+      header: <span className="sr-only">Actions</span>,
+      align: 'right',
+      cell: ({ s }) => (
+        <div className="flex justify-end gap-1" onClick={e => e.stopPropagation()}>
+          <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => openEdit(s)}>Edit</Button>
+          <Button size="sm" variant="ghost" className="text-danger-text" disabled={!!busy} loading={busy === `delete-${s.id}`} onClick={() => remove(s)}>Delete</Button>
+        </div>
+      ),
+    },
+  ];
 
   return (
-    <div className="space-y-8 animate-fade-in pb-20">
-      <header className="bg-surface-2/60 p-8 rounded-lg border border-line bg-surface border border-line flex justify-between items-start gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold text-fg">Campus spots</h1>
-          <p className="mt-1 max-w-3xl text-sm text-fg-muted">
-            Open chat rooms in Campus Buddy &gt; Campus. Only spots listed here exist; students see the active ones for their campus.
-          </p>
-        </div>
-        <button onClick={load} className="px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:bg-surface-2">
-          ↻ Refresh
-        </button>
-      </header>
+    <div className="text-fg">
+      <PageHeader
+        title="Campus spots"
+        description="Open chat rooms in Campus Buddy > Campus, such as the library or mess. Only spots listed here exist; students see the visible ones for their campus, in this order."
+        actions={(
+          <>
+            <Button leftIcon={<IconRefresh size={14} />} onClick={load}>Refresh</Button>
+            <Button variant="primary" leftIcon={<IconPlus size={14} />} onClick={openNew}>New spot</Button>
+          </>
+        )}
+      />
 
-      {loadError && (
-        <div className="rounded-lg border border-line bg-surface shadow-xs p-6 text-sm font-semibold text-danger-text flex items-center justify-between gap-4">
-          <span>{loadError}</span>
-          <button onClick={load} className={`${btn} bg-surface-2/60 border border-line text-fg`}>Retry</button>
-        </div>
-      )}
+      <Toolbar end={<span className="text-sm tabular-nums text-fg-muted">{visible.length} of {spots.length} spots</span>}>
+        <Select className="w-auto min-w-[220px]" value={campusFilter} onChange={(e) => setCampusFilter(e.target.value)} aria-label="Filter by campus">
+          <option value="all">All campuses</option>
+          <option value="global">Every-campus spots</option>
+          {campuses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </Select>
+      </Toolbar>
 
-      {notice && (
-        <p className={`text-xs font-semibold ${notice.kind === 'ok' ? 'text-success-text' : 'text-danger-text'}`}>{notice.text}</p>
-      )}
+      {notice && !spotModal && <Notice tone={notice.kind === 'error' ? 'danger' : 'success'} className="mb-3" onClose={() => setNotice(null)}>{notice.text}</Notice>}
 
-      {/* Create / edit */}
-      <div className="rounded-lg border border-line bg-surface shadow-xs p-8 space-y-5">
-        <h4 className="text-lg font-semibold text-fg">{editingId ? 'Edit spot' : 'New spot'}</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2">
-            <label className={label} htmlFor="spot-name">Name</label>
-            <input id="spot-name" className={input} maxLength={60} value={form.name} placeholder="Central Library 2F"
-              onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          </div>
-          <div>
-            <label className={label} htmlFor="spot-emoji">Emoji (optional)</label>
-            <input id="spot-emoji" className={input} maxLength={16} value={form.emoji} placeholder="📚"
-              onChange={(e) => setForm({ ...form, emoji: e.target.value })} />
-          </div>
-          <div className="md:col-span-3">
-            <label className={label} htmlFor="spot-desc">Description (optional, shown under the name)</label>
-            <input id="spot-desc" className={input} maxLength={120} value={form.description} placeholder="Quiet study zone, 2nd floor"
-              onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          </div>
-          <div>
-            <label className={label} htmlFor="spot-campus">Campus</label>
-            <select id="spot-campus" className={input} value={form.campusId} onChange={(e) => setForm({ ...form, campusId: e.target.value })}>
+      <DataTable
+        caption="Campus spots"
+        columns={columns}
+        rows={visible}
+        rowKey={r => r.s.id}
+        error={spots.length === 0 ? loadError : null}
+        onRetry={load}
+        onRowClick={r => openEdit(r.s)}
+        pageSize={500}
+        noun="spots"
+        empty={spots.length === 0
+          ? { title: 'No campus spots yet', description: 'Students see “No campus spots yet” until you create one.', action: <Button variant="primary" leftIcon={<IconPlus size={14} />} onClick={openNew}>New spot</Button> }
+          : { title: 'No spots for this campus' }}
+      />
+      {loadError && spots.length > 0 && <Notice tone="danger" className="mt-3" action={<Button size="sm" onClick={load}>Retry</Button>}>{loadError}</Notice>}
+
+      <Modal
+        open={spotModal}
+        onClose={closeModal}
+        dismissible={busy !== 'save'}
+        size="lg"
+        title={editingId ? 'Edit spot' : 'New spot'}
+        description={editingId ? 'Changes show in the app straight away.' : 'A new spot is live in the app as soon as you create it.'}
+        footer={(
+          <>
+            <Button onClick={closeModal} disabled={busy === 'save'}>Cancel</Button>
+            <Button variant="primary" disabled={!!busy && busy !== 'save'} loading={busy === 'save'} onClick={save}>{editingId ? 'Save changes' : 'Create spot'}</Button>
+          </>
+        )}
+      >
+        <div className="grid gap-4 md:grid-cols-3">
+          {notice?.kind === 'error' && <Notice tone="danger" className="md:col-span-3">{notice.text}</Notice>}
+          <Field label="Name" required hint="2 to 60 characters." className="md:col-span-2">
+            <Input maxLength={60} value={form.name} placeholder="Central Library 2F" onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </Field>
+          <Field label="Emoji" optional>
+            <Input maxLength={16} value={form.emoji} placeholder="📚" onChange={(e) => setForm({ ...form, emoji: e.target.value })} />
+          </Field>
+          <Field label="Description" optional hint="Shown under the name. Up to 120 characters." className="md:col-span-3">
+            <Input maxLength={120} value={form.description} placeholder="Quiet study zone, 2nd floor" onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          </Field>
+          <Field label="Campus">
+            <Select value={form.campusId} onChange={(e) => setForm({ ...form, campusId: e.target.value })}>
               <option value="">Every campus</option>
               {campuses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={label} htmlFor="spot-icon">Icon (used when no emoji)</label>
-            <select id="spot-icon" className={input} value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })}>
+            </Select>
+          </Field>
+          <Field label="Icon" hint="Used when there is no emoji.">
+            <Select value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })}>
               {icons.map(i => <option key={i} value={i}>{i}</option>)}
-            </select>
+            </Select>
+          </Field>
+          <Field label="Colour group">
+            <Select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+              {categories.map(c => <option key={c} value={c}>{humanize(c)}</option>)}
+            </Select>
+          </Field>
+          <div className="md:col-span-3">
+            <Switch checked={form.isActive} onChange={v => setForm({ ...form, isActive: v })} label="Visible in the app" description="Turn off to hide the spot without deleting its chat." />
           </div>
-          <div>
-            <label className={label} htmlFor="spot-cat">Colour group</label>
-            <select id="spot-cat" className={input} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-              {categories.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
         </div>
-        <label className="flex items-center gap-2 text-sm text-fg-muted">
-          <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />
-          Active (visible in the app)
-        </label>
-        <div className="flex gap-3">
-          <button onClick={save} disabled={!!busy} className={`${btn} bg-success hover:bg-success/90 text-on-solid`}>
-            {busy === 'save' ? 'Saving...' : editingId ? 'Save changes' : 'Create spot'}
-          </button>
-          {editingId && (
-            <button onClick={resetForm} disabled={!!busy} className={`${btn} bg-surface-2/60 border border-line text-fg-muted`}>Cancel</button>
-          )}
-        </div>
-      </div>
-
-      {/* List */}
-      <div className="rounded-lg border border-line bg-surface shadow-xs p-8 space-y-4">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <h4 className="text-lg font-semibold text-fg">Spots ({spots.length})</h4>
-          <select className={`${input} max-w-xs`} value={campusFilter} onChange={(e) => setCampusFilter(e.target.value)} aria-label="Filter by campus">
-            <option value="all">All campuses</option>
-            <option value="global">Every-campus spots</option>
-            {campuses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </div>
-        {spots.length === 0 ? (
-          <p className="text-sm text-fg-muted">No campus spots yet. Students see &quot;No campus spots yet&quot; until you create one.</p>
-        ) : visible.length === 0 ? (
-          <p className="text-sm text-fg-muted">No spots for this campus.</p>
-        ) : (
-          <ul className="space-y-2">
-            {visible.map(({ s }, vi) => (
-              <li key={s.id} className={`flex items-center gap-4 rounded-lg border border-line p-4 ${s.isActive ? 'bg-surface-2/60' : 'bg-surface-2/60 opacity-60'}`}>
-                <div className="flex flex-col gap-1">
-                  <button onClick={() => move(vi, -1)} disabled={!!busy || vi === 0} className="text-fg-muted hover:text-fg disabled:opacity-20" aria-label={`Move ${s.name} up`}>▲</button>
-                  <button onClick={() => move(vi, 1)} disabled={!!busy || vi === visible.length - 1} className="text-fg-muted hover:text-fg disabled:opacity-20" aria-label={`Move ${s.name} down`}>▼</button>
-                </div>
-                <div className="w-10 h-10 rounded-xl bg-surface-2/60 flex items-center justify-center text-xl">{s.emoji || '📍'}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-fg truncate">
-                    {s.name}
-                    {!s.isActive && <span className="ml-2 text-xs font-semibold text-warning-text">Disabled</span>}
-                  </p>
-                  <p className="text-xs text-fg-muted truncate">
-                    {s.campusName || 'Every campus'} · {s.category} · {s.icon}{s.description ? ` · ${s.description}` : ''}
-                  </p>
-                </div>
-                <div className="flex gap-2 flex-wrap justify-end">
-                  <button onClick={() => startEdit(s)} disabled={!!busy} className={`${btn} bg-surface-2/60 border border-line text-fg`}>Edit</button>
-                  <button onClick={() => toggle(s)} disabled={!!busy} className={`${btn} bg-surface-2/60 border border-line ${s.isActive ? 'text-warning-text' : 'text-success-text'}`}>
-                    {busy === `toggle-${s.id}` ? '...' : s.isActive ? 'Disable' : 'Enable'}
-                  </button>
-                  <button onClick={() => remove(s)} disabled={!!busy} className={`${btn} bg-danger-soft border border-danger/30 text-danger-text`}>
-                    {busy === `delete-${s.id}` ? '...' : 'Delete'}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      </Modal>
     </div>
   );
 }
