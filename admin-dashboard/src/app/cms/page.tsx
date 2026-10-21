@@ -1,5 +1,10 @@
 "use client";
-import { useConfirm } from '@/components/ui';
+import {
+  Badge, Button, Card, CardBody, CardHeader, Drawer, EmptyState, ErrorState, Field, Input, LoadingState, Notice, PageHeader, Switch, Textarea, useConfirm,
+  IconPlus,
+} from '@/components/ui';
+import ListImage from '@/components/ListImage';
+import { formatDateTime } from '@/lib/format';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { adminRequest as apiRequest } from '@/lib/api';
@@ -112,9 +117,12 @@ export default function CMSPage() {
       // cache: 'reload' skips the few-second read cache, so the conflict check sees the server copy.
       const latest = normalizeConfig((await apiRequest<{ config: AppConfig }>('/api/config', { cache: 'reload' }))?.config);
       const conflicts = base ? changed.filter(k => !same(latest[k], base[k])) : [];
-      if (conflicts.length && !(await confirm({ title: `Someone else changed ${conflicts.join(', ')} since this page loaded. Saving replaces their change with yours.
-
-Press Cancel, then Discard, to load their version first.` }))) {
+      if (conflicts.length && !(await confirm({
+        title: 'Someone else changed this page',
+        description: `${conflicts.join(', ')} changed since this page loaded. Saving replaces their change with yours. Press Cancel, then Discard, to load their version first.`,
+        confirmLabel: 'Save anyway',
+        tone: 'danger',
+      }))) {
         setStaleRemote(true);
         return;
       }
@@ -157,204 +165,219 @@ Press Cancel, then Discard, to load their version first.` }))) {
     edit({ ...config, categories });
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center">
-        <div className="w-8 h-8 border-2 border-success/30 border-t-success/30 rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const [openBanner, setOpenBanner] = useState<number | null>(null);
+
+  if (loading && !config) return <LoadingState label="Loading the home screen layout…" />;
 
   if (!config) {
     return (
-      <div className="max-w-xl mx-auto mt-16 rounded-lg border border-line bg-surface shadow-xs p-8 text-center space-y-4">
-        <p className="text-sm font-semibold text-danger-text">{error || 'Could not load the configuration.'}</p>
-        <button onClick={fetchConfig} className="px-6 py-2.5 bg-surface-2/60 hover:bg-surface-2 border border-line rounded-xl text-xs font-semibold text-fg">
-          Retry
-        </button>
+      <div className="text-fg">
+        <PageHeader title="Home screen layout" description="Banners, category shortcuts and status flags for the customer app home screen." />
+        <ErrorState title="Could not load the configuration" message={error || undefined} onRetry={fetchConfig} />
       </div>
     );
   }
 
+  const banner = openBanner != null ? config.banners[openBanner] : null;
+  const addBanner = () => {
+    edit({
+      ...config,
+      banners: [...config.banners, { imageUrl: '', tagline: '', title1: '', title2: '', description: '', buttonText: '', redirectUrl: '', isActive: false }],
+    });
+    setOpenBanner(config.banners.length);
+  };
+  const removeBanner = async (idx: number) => {
+    if (!(await confirm({ title: `Remove banner ${idx + 1}?`, description: 'It is deleted when you save.', confirmLabel: 'Remove banner', tone: 'danger' }))) return;
+    setOpenBanner(null);
+    edit({ ...config, banners: config.banners.filter((_, i) => i !== idx) });
+  };
+
   return (
-    <div className="p-8 max-w-7xl mx-auto text-fg">
-      <div className="flex justify-between items-start gap-6 mb-6 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold text-fg">Home screen layout</h1>
-          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Banners and sections on the customer app home screen.</p>
-          {config.updatedAt && (
-            <p className="text-fg-subtle text-xs mt-1">Last saved {new Date(config.updatedAt).toLocaleString()}</p>
-          )}
-        </div>
-        <div className="flex gap-3 items-center">
-          {dirty && <span className="text-xs font-semibold text-warning-text">Unsaved changes</span>}
-          <button
-            onClick={fetchConfig}
-            disabled={saving}
-            className="px-5 py-3 rounded-xl text-xs font-semibold bg-surface-2/60 hover:bg-surface-2 border border-line disabled:opacity-50"
-          >
-            {dirty ? 'Discard' : 'Reload'}
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving || !dirty}
-            className="bg-success hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed px-8 py-3 rounded-xl font-semibold text-sm shadow-emerald-500/20"
-          >
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
+    <div className="text-fg">
+      <PageHeader
+        title="Home screen layout"
+        description="Banners, category shortcuts and status flags for the customer app home screen."
+        meta={dirty ? <Badge tone="warning" dot>Unsaved changes</Badge> : config.updatedAt ? <span className="text-xs text-fg-subtle">Last saved {formatDateTime(config.updatedAt, { short: true })}</span> : undefined}
+        actions={(
+          <>
+            <Button onClick={fetchConfig} disabled={saving}>{dirty ? 'Discard' : 'Reload'}</Button>
+            <Button variant="primary" onClick={handleSave} loading={saving} disabled={!dirty}>Save changes</Button>
+          </>
+        )}
+      />
+
+      <div className="space-y-3">
+        <Notice tone="warning" title="Not shown in the app yet">
+          The current customer app does not read this config yet, so these banners, categories and flags are saved but not shown to students. Ordering hours and the delivery fee are set on Settings and fees.
+        </Notice>
+        {staleRemote && (
+          <Notice tone="warning" title="Changed elsewhere">
+            The app config was changed elsewhere while you were editing. Only the fields you edited will be saved, but use Discard to load the latest version if you are unsure.
+          </Notice>
+        )}
+        {error && <Notice tone="danger" onClose={() => setError(null)}>{error}</Notice>}
+        {notice && <Notice tone="success" onClose={() => setNotice(null)}>{notice}</Notice>}
       </div>
 
-      <div className="mb-6 p-4 rounded-lg border border-warning/30 bg-warning-soft text-xs text-warning-text leading-relaxed">
-        Heads-up: the current customer app does not read this config yet, so these banners, categories and flags are saved
-        but not shown to students. Ordering hours and the delivery fee are controlled elsewhere (Config page and backend env).
-      </div>
-
-      {staleRemote && (
-        <div role="alert" className="mb-6 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm font-semibold text-warning-text">
-          The app config was changed elsewhere while you were editing. Only the fields you edited will be saved, but use Discard to load the latest version if you are unsure.
-        </div>
-      )}
-      {error && (
-        <div className="mb-6 p-4 rounded-xl border border-danger/30 bg-danger-soft text-sm font-semibold text-danger-text">{error}</div>
-      )}
-      {notice && (
-        <div className="mb-6 p-4 rounded-xl border border-success/30 bg-success-soft text-sm font-semibold text-success-text">{notice}</div>
-      )}
-
-      {/* Global flags */}
-      <div className="bg-surface border border-line rounded-lg p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4 text-fg">Status Flags</h2>
-        <div className="flex gap-8 flex-wrap">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
+      <div className="mt-5 space-y-5">
+        <Card>
+          <CardHeader title="Status flags" description="Saved with the rest of the page." />
+          <CardBody className="space-y-4">
+            <Switch
               checked={config.maintenanceMode}
-              onChange={(e) => edit({ ...config, maintenanceMode: e.target.checked })}
-              className="w-5 h-5 accent-[rgb(var(--accent))]"
+              onChange={v => edit({ ...config, maintenanceMode: v })}
+              label="Maintenance mode"
+              description="Marks the app as under maintenance."
             />
-            <span className="font-semibold">Maintenance mode</span>
-          </label>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
+            <Switch
               checked={config.campusOpen}
-              onChange={(e) => edit({ ...config, campusOpen: e.target.checked })}
-              className="w-5 h-5 accent-[rgb(var(--accent))]"
+              onChange={v => edit({ ...config, campusOpen: v })}
+              label="Campus open"
+              description="Off marks campus services as closed."
             />
-            <span className="font-semibold">Campus open</span>
-          </label>
-        </div>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Promotional banners"
+            description="Click a banner to edit its text, image and link."
+            actions={<Button size="sm" leftIcon={<IconPlus size={14} />} onClick={addBanner}>Add banner</Button>}
+          />
+          {config.banners.length === 0 ? (
+            <EmptyState title="No banners yet" description="Add one to promote a store or feature." />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="zv-table">
+                <thead>
+                  <tr><th className="w-10">#</th><th>Banner</th><th>Opens</th><th>Active</th><th className="text-right"><span className="sr-only">Actions</span></th></tr>
+                </thead>
+                <tbody>
+                  {config.banners.map((b, idx) => (
+                    <tr key={idx} className="cursor-pointer" onClick={() => setOpenBanner(idx)}>
+                      <td className="tabular-nums text-fg-muted">{idx + 1}</td>
+                      <td>
+                        <div className="flex min-w-0 items-center gap-3">
+                          {b.imageUrl ? <ListImage thumb src={b.imageUrl} className="h-9 w-14 shrink-0 rounded border border-line object-cover" fallback={<div aria-hidden className="h-9 w-14 shrink-0 rounded border border-line bg-surface-2" />} /> : <div aria-hidden className="h-9 w-14 shrink-0 rounded border border-line bg-surface-2" />}
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-fg">{[b.title1, b.title2].filter(Boolean).join(' ') || 'Untitled banner'}</p>
+                            <p className="truncate text-xs text-fg-muted">{b.tagline || 'No tagline'}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="font-mono text-xs text-fg-muted">{b.redirectUrl || '–'}</td>
+                      <td onClick={e => e.stopPropagation()}>
+                        <Switch size="sm" checked={!!b.isActive} onChange={v => updateBanner(idx, 'isActive', v)} label={<span className="sr-only">Active</span>} />
+                      </td>
+                      <td className="text-right" onClick={e => e.stopPropagation()}>
+                        <Button size="sm" variant="ghost" onClick={() => setOpenBanner(idx)}>Edit</Button>
+                        <Button size="sm" variant="ghost" className="text-danger-text" onClick={() => removeBanner(idx)}>Remove</Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Category shortcuts"
+            description="Lower order numbers show first."
+            actions={(
+              <Button
+                size="sm"
+                leftIcon={<IconPlus size={14} />}
+                onClick={() => edit({
+                  ...config,
+                  categories: [...config.categories, { name: '', img: '', order: config.categories.length + 1, isActive: false }],
+                })}
+              >
+                Add category
+              </Button>
+            )}
+          />
+          {config.categories.length === 0 ? (
+            <EmptyState title="No categories yet" description="Add shortcuts such as Snacks or Groceries." />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="zv-table">
+                <thead>
+                  <tr><th className="w-24">Order</th><th>Name</th><th>Image URL or path</th><th>Active</th><th className="text-right"><span className="sr-only">Actions</span></th></tr>
+                </thead>
+                <tbody>
+                  {config.categories.map((cat, idx) => (
+                    <tr key={idx}>
+                      <td>
+                        <Input
+                          aria-label="Order"
+                          type="number"
+                          className="w-20"
+                          value={Number.isFinite(cat.order) ? cat.order : 0}
+                          onChange={e => updateCategory(idx, 'order', parseInt(e.target.value, 10) || 0)}
+                        />
+                      </td>
+                      <td><Input aria-label="Name" placeholder="Name" value={cat.name || ''} onChange={e => updateCategory(idx, 'name', e.target.value)} /></td>
+                      <td><Input aria-label="Image URL or path" placeholder="https://… or /images/…" value={cat.img || ''} onChange={e => updateCategory(idx, 'img', e.target.value)} /></td>
+                      <td><Switch size="sm" checked={!!cat.isActive} onChange={v => updateCategory(idx, 'isActive', v)} label={<span className="sr-only">Active</span>} /></td>
+                      <td className="text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-danger-text"
+                          onClick={async () => {
+                            if (!(await confirm({ title: `Remove “${cat.name || 'this category'}”?`, description: 'It is deleted when you save.', confirmLabel: 'Remove', tone: 'danger' }))) return;
+                            edit({ ...config, categories: config.categories.filter((_, i) => i !== idx) });
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
       </div>
 
-      {/* Banners */}
-      <div className="bg-surface border border-line rounded-lg p-6 mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-fg">Promotional Banners</h2>
-          <button
-            onClick={() => edit({
-              ...config,
-              banners: [...config.banners, { imageUrl: '', tagline: '', title1: '', title2: '', description: '', buttonText: '', redirectUrl: '', isActive: false }],
-            })}
-            className="text-success-text text-sm font-semibold bg-success-soft px-4 py-2 rounded-lg"
-          >
-            + Add Banner
-          </button>
-        </div>
-
-        {config.banners.length === 0 ? (
-          <p className="text-sm text-fg-muted py-6 text-center">No banners yet.</p>
-        ) : (
+      <Drawer
+        open={!!banner}
+        onClose={() => setOpenBanner(null)}
+        size="md"
+        title={openBanner != null ? `Banner ${openBanner + 1}` : 'Banner'}
+        description="Changes are kept on this page until you press Save changes."
+        footer={openBanner != null ? (
+          <div className="flex w-full justify-between gap-2">
+            <Button variant="ghost" className="text-danger-text" onClick={() => removeBanner(openBanner)}>Remove banner</Button>
+            <Button variant="primary" onClick={() => setOpenBanner(null)}>Done</Button>
+          </div>
+        ) : undefined}
+      >
+        {banner && openBanner != null && (
           <div className="space-y-4">
-            {config.banners.map((banner, idx) => (
-              <div key={idx} className={`p-4 border rounded-xl flex flex-col gap-3 ${banner.isActive ? 'border-success/30 bg-success-soft' : 'border-line opacity-60'}`}>
-                <div className="flex justify-between">
-                  <span className="font-semibold text-success-text">Banner #{idx + 1}</span>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={!!banner.isActive} onChange={(e) => updateBanner(idx, 'isActive', e.target.checked)} />
-                    <span className="text-xs">Active</span>
-                  </label>
-                </div>
-                <input placeholder="Image URL" value={banner.imageUrl || ''} onChange={e => updateBanner(idx, 'imageUrl', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm w-full" />
-                <div className="grid grid-cols-2 gap-3">
-                  <input placeholder="Tagline" value={banner.tagline || ''} onChange={e => updateBanner(idx, 'tagline', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm" />
-                  <input placeholder="Redirect path (e.g. /mega-basket)" value={banner.redirectUrl || ''} onChange={e => updateBanner(idx, 'redirectUrl', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm" />
-                  <input placeholder="Title line 1" value={banner.title1 || ''} onChange={e => updateBanner(idx, 'title1', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm" />
-                  <input placeholder="Title line 2" value={banner.title2 || ''} onChange={e => updateBanner(idx, 'title2', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm" />
-                  <input placeholder="Button text" value={banner.buttonText || ''} onChange={e => updateBanner(idx, 'buttonText', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm col-span-2" />
-                </div>
-                <textarea placeholder="Description" value={banner.description || ''} onChange={e => updateBanner(idx, 'description', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm w-full h-16" />
-                <div className="flex justify-end">
-                  <button
-                    onClick={async () => {
-                      if (!(await confirm({ title: `Remove banner #${idx + 1}? It is deleted when you save.` }))) return;
-                      edit({ ...config, banners: config.banners.filter((_, i) => i !== idx) });
-                    }}
-                    className="text-danger-text text-xs font-semibold hover:underline"
-                  >
-                    Remove Banner
-                  </button>
-                </div>
-              </div>
-            ))}
+            <Switch checked={!!banner.isActive} onChange={v => updateBanner(openBanner, 'isActive', v)} label="Active" description="Only active banners are shown." />
+            <Field label="Image URL">
+              <Input value={banner.imageUrl || ''} onChange={e => updateBanner(openBanner, 'imageUrl', e.target.value)} placeholder="https://…" />
+            </Field>
+            {banner.imageUrl && <ListImage src={banner.imageUrl} className="max-h-40 w-full rounded-lg border border-line object-cover" fallback={<div className="rounded-lg border border-line bg-surface-2 p-4 text-center text-xs text-fg-muted">Image could not be loaded.</div>} />}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Title line 1"><Input value={banner.title1 || ''} onChange={e => updateBanner(openBanner, 'title1', e.target.value)} /></Field>
+              <Field label="Title line 2"><Input value={banner.title2 || ''} onChange={e => updateBanner(openBanner, 'title2', e.target.value)} /></Field>
+              <Field label="Tagline"><Input value={banner.tagline || ''} onChange={e => updateBanner(openBanner, 'tagline', e.target.value)} /></Field>
+              <Field label="Button text"><Input value={banner.buttonText || ''} onChange={e => updateBanner(openBanner, 'buttonText', e.target.value)} /></Field>
+            </div>
+            <Field label="Opens" hint="An app path, for example /mega-basket.">
+              <Input value={banner.redirectUrl || ''} onChange={e => updateBanner(openBanner, 'redirectUrl', e.target.value)} placeholder="/mega-basket" />
+            </Field>
+            <Field label="Description">
+              <Textarea rows={3} value={banner.description || ''} onChange={e => updateBanner(openBanner, 'description', e.target.value)} />
+            </Field>
           </div>
         )}
-      </div>
-
-      {/* Categories */}
-      <div className="bg-surface border border-line rounded-lg p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-fg">Category Shortcuts</h2>
-          <button
-            onClick={() => edit({
-              ...config,
-              categories: [...config.categories, { name: '', img: '', order: config.categories.length + 1, isActive: false }],
-            })}
-            className="text-info-text text-sm font-semibold bg-info-soft px-4 py-2 rounded-lg"
-          >
-            + Add Category
-          </button>
-        </div>
-
-        {config.categories.length === 0 ? (
-          <p className="text-sm text-fg-muted py-6 text-center">No categories yet.</p>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {config.categories.map((cat, idx) => (
-              <div key={idx} className={`p-4 border rounded-xl flex flex-col gap-2 ${cat.isActive ? 'border-info/30 bg-info-soft' : 'border-line opacity-60'}`}>
-                <div className="flex justify-between items-center">
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={!!cat.isActive} onChange={(e) => updateCategory(idx, 'isActive', e.target.checked)} />
-                    <span className="text-xs">Active</span>
-                  </label>
-                  <label className="flex items-center gap-1 text-xs text-fg-muted">
-                    Order
-                    <input
-                      type="number"
-                      value={Number.isFinite(cat.order) ? cat.order : 0}
-                      onChange={e => updateCategory(idx, 'order', parseInt(e.target.value, 10) || 0)}
-                      className="w-12 bg-surface-2 border border-line p-1 rounded text-xs text-center text-fg"
-                    />
-                  </label>
-                </div>
-                <input placeholder="Name" value={cat.name || ''} onChange={e => updateCategory(idx, 'name', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm" />
-                <input placeholder="Image URL or path" value={cat.img || ''} onChange={e => updateCategory(idx, 'img', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm" />
-                <div className="flex justify-end mt-1">
-                  <button
-                    onClick={async () => {
-                      if (!(await confirm({ title: `Remove "${cat.name || 'this category'}"? It is deleted when you save.` }))) return;
-                      edit({ ...config, categories: config.categories.filter((_, i) => i !== idx) });
-                    }}
-                    className="text-danger-text text-xs font-semibold hover:underline"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      </Drawer>
     </div>
   );
 }

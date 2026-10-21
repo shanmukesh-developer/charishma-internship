@@ -85,7 +85,12 @@ export default function CouponManagement() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   // ?new=1 (header New > Coupon) opens the create form.
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get('new') === '1') setShowCreateModal(true);
+    if (new URLSearchParams(window.location.search).get('new') === '1') {
+      // Same prefill as the page's own "New coupon" button.
+      setCode(randomCode());
+      setExpiryDate(daysFromToday(7));
+      setShowCreateModal(true);
+    }
   }, []);
   const showCreateModalRef = useRef(false);
   showCreateModalRef.current = showCreateModal;
