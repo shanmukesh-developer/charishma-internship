@@ -1,4 +1,5 @@
 "use client";
+import { useConfirm } from '@/components/ui';
 import { useCallback, useEffect, useState } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { adminRequest as request, uploadImage } from '@/lib/api';
@@ -59,6 +60,7 @@ function validate(form: DealForm): { payload?: Record<string, unknown>; error?: 
 }
 
 export default function VaultPage() {
+  const confirm = useConfirm();
   const { isAuthed } = useAdminAuth();
   const [items, setItems] = useState<VaultItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,7 +96,7 @@ export default function VaultPage() {
 
   const toggleActive = async (item: VaultItem) => {
     if (busy[item._id]) return;
-    if (item.isActive && !window.confirm(`Hide "${item.name}" from the Vault? Students can no longer claim it.`)) return;
+    if (item.isActive && !(await confirm({ title: `Hide "${item.name}" from the Vault? Students can no longer claim it.` }))) return;
     setBusy(prev => ({ ...prev, [item._id]: true }));
     try {
       await save(item._id, { isActive: !item.isActive });
@@ -107,7 +109,7 @@ export default function VaultPage() {
   };
 
   const remove = async (item: VaultItem) => {
-    if (!window.confirm(`Delete "${item.name}" permanently? Coupons already claimed stay valid until midnight.`)) return;
+    if (!(await confirm({ title: `Delete "${item.name}" permanently? Coupons already claimed stay valid until midnight.` }))) return;
     setBusy(prev => ({ ...prev, [item._id]: true }));
     try {
       await request(`/api/admin/vault/${item._id}`, { method: 'DELETE' });

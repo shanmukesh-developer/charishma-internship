@@ -1,4 +1,5 @@
 "use client";
+import { useConfirm, usePrompt, useToast } from '@/components/ui';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAdminAuth } from '@/utils/useAdminAuth';
@@ -182,6 +183,7 @@ function UserPicker({ onPick, placeholder }: { onPick: (u: UserHit) => void; pla
 // ═════════════════════════════════════════════════════════════════════════════
 
 export default function PulseAdminPage() {
+  const confirm = useConfirm();
   const { isAuthed } = useAdminAuth();
   const [tab, setTab] = useState<Tab>('overview');
   const [campuses, setCampuses] = useState<Campus[]>([]);
@@ -306,8 +308,8 @@ export default function PulseAdminPage() {
     }
   };
 
-  const runBackfill = () => {
-    if (!window.confirm('Re-run the whisper import? It is safe to repeat: whispers already imported, or deleted by their author, are skipped.')) return;
+  const runBackfill = async () => {
+    if (!(await confirm({ title: 'Re-run the whisper import? It is safe to repeat: whispers already imported, or deleted by their author, are skipped.' }))) return;
     act(async () => {
       const r = await adminRequest<{ ok: boolean; stats: BackfillStats }>('/api/campus/pulse/admin/backfill-whispers', { method: 'POST' });
       setBackfill(r.stats);
@@ -485,14 +487,16 @@ function PostsTab({ items, loading, error, reload, more, status, setStatus, kind
   status: string; setStatus: (v: string) => void; kind: string; setKind: (v: string) => void; anon: string; setAnon: (v: string) => void;
   q: string; setQ: (v: string) => void; applyQ: () => void; busy: boolean; act: Act; afterAction: () => void; isFresh: (id: string) => boolean;
 }) {
-  const moderate = (p: AdminPost, action: 'approve' | 'hide' | 'remove' | 'restore') => {
+  const notifyError = useToast().error;
+  const ask = usePrompt();
+  const moderate = async (p: AdminPost, action: 'approve' | 'hide' | 'remove' | 'restore') => {
     let reason: string | null = '';
     if (action === 'hide' || action === 'remove') {
-      reason = window.prompt(`Reason to ${action} this ${p.kind} (the author sees it and can appeal; at least 3 characters):`, '');
+      reason = (await ask({ title: `Reason to ${action} this ${p.kind} (the author sees it and can appeal; at least 3 characters):`, label: 'Reason', defaultValue: '', minLength: 3 }));
       if (reason === null) return;
-      if (reason.trim().length < 3) { window.alert('Please give a reason of at least 3 characters.'); return; }
+      if (reason.trim().length < 3) { notifyError('Please give a reason of at least 3 characters.'); return; }
     } else if (action === 'restore') {
-      reason = window.prompt('Restore this post? Optional note for the audit log:', '');
+      reason = (await ask({ title: 'Restore this post? Optional note for the audit log:', label: 'Reason', defaultValue: '' }));
       if (reason === null) return;
     }
     const done: Record<typeof action, string> = { approve: 'Approved. The post is now visible.', hide: 'Hidden.', remove: 'Removed.', restore: 'Restored.' };
@@ -798,6 +802,7 @@ function EntitiesTab({ campusId, items, loading, error, reload, q, setQ, busy, a
 // ── Badges ───────────────────────────────────────────────────────────────────
 
 function BadgesTab({ busy, act }: { busy: boolean; act: Act }) {
+  const confirm = useConfirm();
   const [user, setUser] = useState<UserHit | null>(null);
   const [code, setCode] = useState('');
   const [granted, setGranted] = useState<GrantedBadge[]>([]);
@@ -814,9 +819,9 @@ function BadgesTab({ busy, act }: { busy: boolean; act: Act }) {
     }, `Badge "${c}" granted to ${user.name || 'the user'}.`, []);
   };
 
-  const revoke = (id: string, what: string) => {
+  const revoke = async (id: string, what: string) => {
     if (!UUID_RE.test(id)) return;
-    if (!window.confirm(`Revoke ${what}? This is logged.`)) return;
+    if (!(await confirm({ title: `Revoke ${what}? This is logged.` }))) return;
     act(async () => {
       await adminRequest(`/api/campus/mod/badges/${id}`, { method: 'DELETE' });
       setGranted((g) => g.map((x) => (x.id === id ? { ...x, revoked: true } : x)));

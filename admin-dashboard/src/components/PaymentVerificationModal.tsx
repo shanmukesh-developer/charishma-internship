@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
+import { useConfirm } from '@/components/ui';
 import { useEffect, useState } from 'react';
 
 
@@ -18,6 +19,7 @@ interface PaymentVerificationModalProps {
 }
 
 export default function PaymentVerificationModal({ isOpen, onClose, order, onVerify }: PaymentVerificationModalProps) {
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageFailed, setImageFailed] = useState(false);
@@ -31,7 +33,7 @@ export default function PaymentVerificationModal({ isOpen, onClose, order, onVer
 
   const handleAction = async (isVerified: boolean) => {
     if (loading) return;
-    if (!isVerified && !confirm('Reject this payment? The order will be cancelled.')) return;
+    if (!isVerified && !(await confirm({ title: 'Reject this payment?', description: 'The order will be cancelled.', confirmLabel: 'Reject payment', tone: 'danger' }))) return;
     setLoading(true);
     setError(null);
     const failure = await onVerify(order.id, isVerified);

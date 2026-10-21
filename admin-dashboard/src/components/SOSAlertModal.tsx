@@ -1,4 +1,5 @@
 "use client";
+import { useConfirm } from '@/components/ui';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAdminSocket } from '@/components/AdminSocketProvider';
 import { useAdminAuth } from '@/utils/useAdminAuth';
@@ -73,6 +74,7 @@ const coords = (s: SOSData) => {
  * first one. "Resolve" clears the rider's SOS on the server; "Hide" only closes it on this screen.
  */
 export default function SOSAlertModal() {
+  const confirm = useConfirm();
   const [queue, setQueue] = useState<SOSData[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -173,7 +175,7 @@ export default function SOSAlertModal() {
 
   const resolve = async () => {
     if (busy) return;
-    if (!confirm(`Mark ${current.riderName || 'this rider'}'s SOS as resolved? Only do this after you have reached the rider.`)) return;
+    if (!(await confirm({ title: `Mark ${current.riderName || 'this rider'}'s SOS as resolved?`, description: 'Only do this after you have reached the rider.', confirmLabel: 'Mark resolved' }))) return;
     setBusy(true);
     setError('');
     try {

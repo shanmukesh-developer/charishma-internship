@@ -1,9 +1,13 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { adminRequest as apiRequest } from '@/lib/api';
+import {
+  Badge, Button, Card, CardHeader, DataTable, Field, Input, Notice, PageHeader, Select, Skeleton, Textarea, useConfirm,
+  type Column, IconRefresh, IconUsers,
+} from '@/components/ui';
+import { formatDateTime, formatNumber, humanize } from '@/lib/format';
 
-/** fetch against the one backend; throws an Error carrying the server's friendly `message`. */
 const CATEGORIES = [
   { value: 'announcement', label: 'Announcement' },
   { value: 'service_update', label: 'Service update' },
@@ -14,7 +18,14 @@ const CATEGORIES = [
 const TITLE_MAX = 65;
 const BODY_MAX = 240;
 
+interface Audience { students: number; devices: number; campusWide: boolean }
+interface Broadcast {
+  id: string; sentAt: string; sentBy: string | null; title: string; body: string;
+  targetBlock: string | null; category: string | null; students: number | null; devices: number | null;
+}
+
 export default function NotificationsPage() {
+  const confirm = useConfirm();
   const { isAuthed } = useAdminAuth();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -23,6 +34,12 @@ export default function NotificationsPage() {
   const [blocks, setBlocks] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  // Recipients for the current audience (GET /api/admin/broadcast-push/preview: counted, nothing sent).
+  const [audience, setAudience] = useState<Audience | null>(null);
+  const [audienceLoading, setAudienceLoading] = useState(false);
+  const [history, setHistory] = useState<Broadcast[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   // Known hostel block names come from the server (same list the block leaderboard uses).
   useEffect(() => {
@@ -33,7 +50,33 @@ export default function NotificationsPage() {
   }, [isAuthed]);
 
   const trimmedBlock = targetBlock.trim();
-  const audienceLabel = trimmedBlock ? `students in "${trimmedBlock}"` : 'all active users';
+  const audienceLabel = trimmedBlock ? `students in ${trimmedBlock}` : 'all active users';
+
+  useEffect(() => {
+    if (!isAuthed) return;
+    setAudienceLoading(true);
+    const t = setTimeout(() => {
+      apiRequest<Audience>(`/api/admin/broadcast-push/preview${trimmedBlock ? `?targetBlock=${encodeURIComponent(trimmedBlock)}` : ''}`)
+        .then(setAudience)
+        .catch(() => setAudience(null)) // older server: the count is simply not shown
+        .finally(() => setAudienceLoading(false));
+    }, 350);
+    return () => clearTimeout(t);
+  }, [isAuthed, trimmedBlock]);
+
+  const loadHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const d = await apiRequest<{ broadcasts?: Broadcast[] }>('/api/admin/broadcast-push/history?limit=100');
+      setHistory(Array.isArray(d?.broadcasts) ? d.broadcasts : []);
+      setHistoryError(null);
+    } catch (err) {
+      setHistoryError(err instanceof Error ? err.message : 'Could not load the history.');
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+  useEffect(() => { if (isAuthed) loadHistory(); }, [isAuthed, loadHistory]);
 
   const handleSendNotification = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +91,8 @@ export default function NotificationsPage() {
       setStatus({ type: 'error', message: `Keep the title under ${TITLE_MAX} and the message under ${BODY_MAX} characters.` });
       return;
     }
-    if (!confirm(`Send this push notification to ${audienceLabel}? It cannot be recalled once sent.`)) return;
+    const reach = audience ? ` It reaches ${formatNumber(audience.students)} ${audience.students === 1 ? 'student' : 'students'} on ${formatNumber(audience.devices)} ${audience.devices === 1 ? 'device' : 'devices'}${audience.campusWide ? ', plus phones subscribed to campus-wide alerts' : ''}.` : '';
+    if (!(await confirm({ title: `Send this push notification to ${audienceLabel}?`, description: `It cannot be recalled once sent.${reach}`, confirmLabel: 'Send notification' }))) return;
 
     setSending(true);
     setStatus(null);
@@ -65,6 +109,7 @@ export default function NotificationsPage() {
       setStatus({ type: 'success', message: res?.message || 'Broadcast sent.' });
       setTitle('');
       setBody('');
+      loadHistory();
     } catch (err) {
       setStatus({ type: 'error', message: err instanceof Error ? err.message : 'Could not send the broadcast.' });
     } finally {
@@ -72,129 +117,117 @@ export default function NotificationsPage() {
     }
   };
 
+  const columns: Column<Broadcast>[] = [
+    { key: 'sent', header: 'Sent', width: '170px', sortValue: b => new Date(b.sentAt), cell: b => <span className="whitespace-nowrap text-xs text-fg-muted">{formatDateTime(b.sentAt, { short: true })}</span> },
+    {
+      key: 'message',
+      header: 'Notification',
+      cell: b => (
+        <div className="min-w-0 max-w-[460px]">
+          <p className="truncate font-medium text-fg">{b.title || '–'}</p>
+          <p className="line-clamp-2 text-xs text-fg-muted">{b.body}</p>
+        </div>
+      ),
+    },
+    { key: 'category', header: 'Category', hideBelow: 'xl', cell: b => <span className="text-fg-muted">{b.category ? (CATEGORIES.find(c => c.value === b.category)?.label || humanize(b.category)) : '–'}</span> },
+    { key: 'to', header: 'To', sortValue: b => b.targetBlock || '', cell: b => <span className="text-fg">{b.targetBlock || 'Everyone'}</span> },
+    { key: 'reach', header: 'Reached', align: 'right', hideBelow: 'lg', sortValue: b => b.students ?? -1, cell: b => (b.students === null ? <span className="text-fg-subtle">–</span> : <span className="tabular-nums">{formatNumber(b.students)} students{b.devices !== null ? `, ${formatNumber(b.devices)} devices` : ''}</span>) },
+    { key: 'by', header: 'Sent by', hideBelow: 'xl', cell: b => <span className="text-fg-muted">{b.sentBy || '–'}</span> },
+  ];
+
   return (
-    <div className="max-w-5xl mx-auto text-fg">
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-fg">Push notifications</h1>
-        <p className="mt-1 max-w-3xl text-sm text-fg-muted">
-          Send a push notification to student devices. It is also saved in each targeted student&apos;s in-app notification list.
-        </p>
-      </div>
+    <div className="text-fg">
+      <PageHeader
+        title="Push notifications"
+        description="Send a push notification to students. It is also saved in each recipient’s in-app notification list."
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-surface border border-line rounded-lg p-8">
-          <form onSubmit={handleSendNotification} className="flex flex-col gap-5">
-            {status && (
-              <div className={`p-4 rounded-xl border font-semibold text-sm ${status.type === 'success' ? 'bg-success-soft border-success/30 text-success-text' : 'bg-danger-soft border-danger/30 text-danger-text'}`}>
-                {status.message}
-              </div>
-            )}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <form onSubmit={handleSendNotification} className="space-y-5 p-5" noValidate>
+            {status && <Notice tone={status.type === 'success' ? 'success' : 'danger'} onClose={() => setStatus(null)}><span className="text-fg">{status.message}</span></Notice>}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
-                <label htmlFor="target-block" className="text-sm font-semibold text-fg-muted">Hostel block (optional)</label>
-                <input
-                  id="target-block"
-                  list="known-blocks"
-                  placeholder="Everyone"
-                  value={targetBlock}
-                  onChange={(e) => setTargetBlock(e.target.value)}
-                  className="bg-surface-2 border border-line p-4 rounded-xl text-fg outline-none focus:border-accent transition-colors placeholder:text-fg-subtle"
-                />
-                <datalist id="known-blocks">
-                  {blocks.map(b => <option key={b} value={b} />)}
-                </datalist>
-                <p className="text-xs text-fg-muted">Matches the hostel block saved on the student&apos;s profile exactly. Leave empty for everyone.</p>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label htmlFor="category" className="text-sm font-semibold text-fg-muted">Category</label>
-                <select
-                  id="category"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="bg-surface-2 border border-line p-4 rounded-xl text-fg outline-none focus:border-accent transition-colors"
-                >
-                  {CATEGORIES.map(c => (
-                    <option key={c.value} value={c.value} className="bg-surface text-fg">{c.label}</option>
-                  ))}
-                </select>
-              </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Field label="Hostel block" optional hint="Matches the hostel block on the student’s profile exactly. Leave empty for everyone.">
+                <Input id="target-block" list="known-blocks" placeholder="Everyone" value={targetBlock} onChange={(e) => setTargetBlock(e.target.value)} />
+              </Field>
+              <datalist id="known-blocks">{blocks.map(b => <option key={b} value={b} />)}</datalist>
+              <Field label="Category">
+                <Select id="category" value={category} onChange={(e) => setCategory(e.target.value)}>
+                  {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </Select>
+              </Field>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <div className="flex justify-between">
-                <label htmlFor="title" className="text-sm font-semibold text-fg-muted">Title</label>
-                <span className={`text-xs ${title.length > TITLE_MAX ? 'text-danger-text' : 'text-fg-subtle'}`}>{title.length}/{TITLE_MAX}</span>
-              </div>
-              <input
-                id="title"
-                type="text"
-                placeholder="e.g. Mess delivery delayed tonight"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="bg-surface-2 border border-line p-4 rounded-xl text-fg outline-none focus:border-accent transition-colors placeholder:text-fg-subtle"
-                required
-              />
-            </div>
+            <Field label="Title" labelAction={<span className={`text-xs tabular-nums ${title.length > TITLE_MAX ? 'text-danger-text' : 'text-fg-subtle'}`}>{title.length}/{TITLE_MAX}</span>} error={title.length > TITLE_MAX ? `Keep it under ${TITLE_MAX} characters.` : undefined}>
+              <Input id="title" placeholder="For example, Mess delivery delayed tonight" value={title} onChange={(e) => setTitle(e.target.value)} />
+            </Field>
+            <Field label="Message" labelAction={<span className={`text-xs tabular-nums ${body.length > BODY_MAX ? 'text-danger-text' : 'text-fg-subtle'}`}>{body.length}/{BODY_MAX}</span>} error={body.length > BODY_MAX ? `Keep it under ${BODY_MAX} characters.` : undefined}>
+              <Textarea id="body" rows={4} placeholder="Say what happened and what students should do." value={body} onChange={(e) => setBody(e.target.value)} />
+            </Field>
 
-            <div className="flex flex-col gap-2">
-              <div className="flex justify-between">
-                <label htmlFor="body" className="text-sm font-semibold text-fg-muted">Message</label>
-                <span className={`text-xs ${body.length > BODY_MAX ? 'text-danger-text' : 'text-fg-subtle'}`}>{body.length}/{BODY_MAX}</span>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+              <div className="flex items-center gap-2 text-sm text-fg-muted" aria-live="polite">
+                <IconUsers size={16} className="text-fg-subtle" />
+                {audienceLoading && !audience ? <Skeleton className="h-4 w-40" /> : audience ? (
+                  <span>
+                    Reaches <span className="font-medium text-fg tabular-nums">{formatNumber(audience.students)}</span> {audience.students === 1 ? 'student' : 'students'} on <span className="font-medium text-fg tabular-nums">{formatNumber(audience.devices)}</span> {audience.devices === 1 ? 'device' : 'devices'}
+                    {audience.campusWide ? ', plus campus-wide subscribers' : ''}
+                  </span>
+                ) : <span>Recipient count unavailable</span>}
+                {audience && !audience.campusWide && audience.students === 0 && <Badge tone="warning">No students in this block</Badge>}
               </div>
-              <textarea
-                id="body"
-                placeholder="Say what happened and what students should do."
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                className="bg-surface-2 border border-line p-4 rounded-xl text-fg outline-none focus:border-accent transition-colors min-h-[120px] placeholder:text-fg-subtle"
-                required
-              />
-            </div>
-
-            <div className="pt-4 border-t border-line mt-2 flex justify-end">
-              <button
-                type="submit"
-                disabled={sending || !title.trim() || !body.trim()}
-                className="bg-success hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed px-8 py-3 rounded-xl font-semibold text-sm shadow-emerald-500/20 transition-all"
-              >
-                {sending ? 'Sending...' : 'Send Notification'}
-              </button>
+              <Button type="submit" variant="primary" loading={sending} disabled={!title.trim() || !body.trim() || (!!audience && !audience.campusWide && audience.students === 0)}>
+                {sending ? 'Sending…' : 'Send notification'}
+              </Button>
             </div>
           </form>
-        </div>
+        </Card>
 
-        <div className="flex flex-col gap-4">
-          <div className="text-xs font-semibold text-fg-muted">Preview</div>
-          <div className="bg-surface border border-line rounded-lg p-4">
-            <div className="flex items-center justify-between pb-3 border-b border-line mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-md bg-surface-2 flex items-center justify-center text-xs font-semibold text-fg">Z</div>
-                <span className="text-xs font-semibold text-fg">Zenvy</span>
+        <div className="space-y-4">
+          <Card>
+            <CardHeader title="Preview" />
+            <div className="p-4">
+              <div className="rounded-lg border border-line bg-surface-2/50 p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-xs font-medium text-fg"><span className="flex h-5 w-5 items-center justify-center rounded bg-fg text-2xs font-semibold text-bg">Z</span>Zenvy</span>
+                  <span className="text-xs text-fg-subtle">now</span>
+                </div>
+                <p className="break-words text-sm font-medium text-fg">{title || 'Notification title'}</p>
+                <p className="line-clamp-3 break-words text-sm text-fg-muted">{body || 'Your message appears here.'}</p>
               </div>
-              <span className="text-xs text-fg-muted">now</span>
+              <p className="mt-2 text-xs text-fg-muted">To: {trimmedBlock || 'Everyone'}</p>
             </div>
-            <div className="text-xs font-semibold text-fg mb-1 break-words">{title || 'Notification title'}</div>
-            <div className="text-xs text-fg-muted line-clamp-3 break-words">{body || 'Your message appears here.'}</div>
-            <div className="mt-3 pt-2 border-t border-line text-xs font-semibold text-success-text">
-              To: {trimmedBlock || 'Everyone'}
-            </div>
-          </div>
-
-          <div className="bg-info-soft border border-info/30 rounded-lg p-5 text-xs text-info-text leading-relaxed space-y-2">
-            <h4 className="font-semibold text-info-text text-xs">What sending does</h4>
-            <p>• Push to the devices of every matching active user, plus an entry in their in-app notification list.</p>
-            <p>• A live in-app banner for everyone currently online.</p>
-            {trimmedBlock && (
-              <p className="text-warning-text">
-                Note: the server also posts to the general &quot;all&quot; push topic and the live banner goes to everyone online,
-                so a block-targeted message can still reach other blocks.
-              </p>
-            )}
-          </div>
+          </Card>
+          <Notice tone="info" title="What sending does">
+            A push to the devices of every matching active student, an entry in their in-app notification list, and a live banner for those who have the app open.
+            {trimmedBlock ? ' A block-targeted message goes only to students in that block.' : ' Campus-wide messages also reach phones subscribed to campus-wide alerts.'}
+          </Notice>
         </div>
       </div>
+
+      <section className="mt-8">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-fg">Sent notifications</h2>
+            <p className="mt-0.5 text-sm text-fg-muted">Every broadcast sent from this page, newest first.</p>
+          </div>
+          <Button leftIcon={<IconRefresh size={14} />} loading={historyLoading} onClick={loadHistory}>Refresh</Button>
+        </div>
+        <DataTable
+          caption="Sent notifications"
+          columns={columns}
+          rows={history}
+          rowKey={b => b.id}
+          loading={historyLoading}
+          error={historyError}
+          onRetry={loadHistory}
+          noun="notifications"
+          initialSort={{ key: 'sent', dir: 'desc' }}
+          empty={{ title: 'Nothing sent yet', description: 'Broadcasts appear here after they are sent.' }}
+        />
+      </section>
     </div>
   );
 }
+

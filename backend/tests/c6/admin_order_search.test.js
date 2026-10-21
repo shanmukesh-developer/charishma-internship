@@ -62,3 +62,15 @@ test('without q the list is unchanged; customers cannot use the admin search', a
   const denied = await api('GET', `/api/admin/orders?q=${orderA.id}`, customer.token);
   assert.ok(denied.status === 401 || denied.status === 403, String(denied.status));
 });
+
+test('userId filter returns only that customer\'s orders; a malformed id matches nothing', async () => {
+  const other = await H.mkUser();
+  const { store } = await H.mkStore();
+  await H.ctx.M('Order').create({ userId: other.id, restaurantId: store.id, items: [], totalPrice: 50, deliveryFee: 30, finalPrice: 80, paymentMethod: 'COD', paymentStatus: 'Pending', status: 'Pending' });
+  const mine = await api('GET', `/api/admin/orders?userId=${customer.id}`, admin.token);
+  assert.equal(mine.status, 200);
+  assert.ok(mine.body.orders.length >= 2);
+  assert.ok(mine.body.orders.every((o) => o.userId === customer.id));
+  const bad = await api('GET', '/api/admin/orders?userId=not-a-uuid', admin.token);
+  assert.equal(bad.body.orders.length, 0);
+});

@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirm } from '@/components/ui';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAdminAuth } from '@/utils/useAdminAuth';
@@ -59,6 +60,7 @@ const formatDay = (ymd: string) => {
 };
 
 export default function CommunityAdmin() {
+  const confirm = useConfirm();
   const { isAuthed } = useAdminAuth();
   const [activeTab, setActiveTab] = useState<'posts' | 'birthdays'>('posts');
   const [error, setError] = useState<string | null>(null);
@@ -117,7 +119,7 @@ export default function CommunityAdmin() {
     if (deletingId) return;
     const what = parent ? 'reply' : 'post';
     const extra = !parent && post.replyCount > 0 ? ` Its ${post.replyCount} repl${post.replyCount === 1 ? 'y' : 'ies'} will be deleted too.` : '';
-    if (!confirm(`Delete this ${what} by ${post.userName || 'this student'}?${extra} This cannot be undone.`)) return;
+    if (!(await confirm({ title: `Delete this ${what} by ${post.userName || 'this student'}?${extra} This cannot be undone.` }))) return;
     setDeletingId(post.id);
     setNotice(null);
     setError(null);
@@ -144,7 +146,7 @@ export default function CommunityAdmin() {
     const question = isToday
       ? `Approve ${b.candidateName}'s birthday? It goes live now and every active student gets a push notification.`
       : `Approve ${b.candidateName}'s birthday for ${formatDay(b.birthdayDate)}? It shows on the app on that day.`;
-    if (!confirm(question)) return;
+    if (!(await confirm({ title: question }))) return;
     setActioningBdayId(b.id);
     setNotice(null);
     setError(null);
@@ -161,7 +163,7 @@ export default function CommunityAdmin() {
 
   const handleRejectBday = async (b: BirthdayCelebration) => {
     if (actioningBdayId) return;
-    if (!confirm(`Reject ${b.candidateName}'s birthday request?`)) return;
+    if (!(await confirm({ title: `Reject ${b.candidateName}'s birthday request?` }))) return;
     setActioningBdayId(b.id);
     setNotice(null);
     setError(null);

@@ -119,6 +119,9 @@ const getAllTickets = async (req, res) => {
 
 // @desc    Update ticket status/response (Admin)
 // @route   PUT /api/tickets/:id
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const audit = (req, targetId, action, details) => require('./adminController').logAuditAction(req, targetId, action, details);
+
 const updateTicket = async (req, res) => {
   const { status, adminResponse } = req.body;
 
@@ -128,6 +131,24 @@ const updateTicket = async (req, res) => {
 
     if (!ticket) {
       return res.status(404).json({ message: 'Ticket not found' });
+    }
+
+    // Optional assignee change: { assigneeId: '<admin user id>' | null }. Only admin accounts can own tickets.
+    const assigneeChange = req.body && Object.prototype.hasOwnProperty.call(req.body, 'assigneeId');
+    if (assigneeChange) {
+      const raw = req.body.assigneeId;
+      if (raw === null || raw === '') {
+        ticket.assigneeId = null;
+        ticket.assigneeName = null;
+      } else {
+        if (typeof raw !== 'string' || !UUID_RE.test(raw)) return res.status(400).json({ message: 'Pick an admin to assign the ticket to.', code: 'INVALID_ASSIGNEE' });
+        const assignee = await getUserModel().findByPk(raw, { attributes: ['id', 'name', 'role', 'isActive'] });
+        if (!assignee || String(assignee.role || '').toLowerCase() !== 'admin' || assignee.isActive === false) {
+          return res.status(400).json({ message: 'Tickets can only be assigned to an active admin account.', code: 'INVALID_ASSIGNEE' });
+        }
+        ticket.assigneeId = assignee.id;
+        ticket.assigneeName = String(assignee.name || 'Admin').slice(0, 120);
+      }
     }
 
     const previousStatus = ticket.status;
@@ -141,13 +162,12 @@ const updateTicket = async (req, res) => {
       }
       thread.push({ text: adminResponse.trim().slice(0, 2000), at: new Date().toISOString(), by: 'support' });
       ticket.responses = thread.slice(-50);
-      const stamp = (iso) => new Date(iso).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
-      ticket.adminResponse = thread.length === 1
-        ? thread[0].text
-        : thread.map((r) => `[${stamp(r.at)}] ${r.text}`).join('\n\n');
+      // Same transcript as customer replies (ticketReplyController): customer lines start with "You:".
+      ticket.adminResponse = require('./ticketReplyController').transcriptOf(ticket.responses);
     }
 
     await ticket.save();
+    if (assigneeChange) await audit(req, ticket.id, 'TICKET_ASSIGNED', { assigneeId: ticket.assigneeId, assigneeName: ticket.assigneeName });
     realtime.notifyAdmin('ticket', 'updated', ticket.id);
     res.json(ticket);
 
@@ -194,4 +214,67 @@ const updateTicket = async (req, res) => {
   }
 };
 
-module.exports = { createTicket, getMyTickets, getAllTickets, updateTicket };
+// @desc    Admins a ticket can be assigned to
+// @route   GET /api/tickets/admin/assignees
+const getAssignees = async (req, res) => {
+  try {
+    const admins = await getUserModel().findAll({ where: { role: 'admin' }, attributes: ['id', 'name', 'isActive'], order: [['name', 'ASC']], limit: 200 });
+    res.json(admins.filter((a) => a.isActive !== false).map((a) => ({ id: a.id, name: a.name || 'Admin' })));
+  } catch (error) {
+    console.error('[TICKET_ASSIGNEES_ERROR]', error);
+    res.status(500).json({ message: 'Could not load the admin list.' });
+  }
+};
+
+// Canned replies support can insert into a reply. Stored in GlobalConfig; the defaults match how
+// Zenvy works today (COD + Wallet only, delivery PIN in the customer app).
+const CANNED_KEY = 'SUPPORT_CANNED_REPLIES';
+const DEFAULT_CANNED = [
+  { title: 'Expedited', text: 'Sorry for the delay. We have flagged your order as urgent with our campus delivery team.' },
+  { title: 'Wallet refund', text: 'We have reviewed your order and refunded the amount to your Zenvy Wallet. You can see it in the Wallet section of the app.' },
+  { title: 'Rider at gate', text: 'Your delivery partner is waiting at the hostel gate. Please share the delivery PIN shown on your order tracking screen to receive the order.' },
+  { title: 'Need details', text: 'Thanks for reaching out. Could you share a few more details (order time, item names, a photo if relevant) so we can sort this out?' },
+];
+const MAX_CANNED = 30;
+
+const readCanned = async () => {
+  const row = await require('../models/GlobalConfig').getGlobalConfigModel().findOne({ where: { key: CANNED_KEY } }).catch(() => null);
+  let v = row ? row.value : null;
+  if (typeof v === 'string') { try { v = JSON.parse(v); } catch { v = null; } }
+  return Array.isArray(v) ? v : DEFAULT_CANNED;
+};
+
+// @route GET /api/tickets/admin/canned-replies
+const getCannedReplies = async (req, res) => {
+  try {
+    res.json({ replies: await readCanned() });
+  } catch (error) {
+    console.error('[CANNED_REPLIES_ERROR]', error);
+    res.status(500).json({ message: 'Could not load the canned replies.' });
+  }
+};
+
+// @route PUT /api/tickets/admin/canned-replies { replies: [{ title, text }] }
+const putCannedReplies = async (req, res) => {
+  try {
+    const list = req.body && req.body.replies;
+    if (!Array.isArray(list) || list.length > MAX_CANNED) return res.status(400).json({ message: `Send a list of up to ${MAX_CANNED} replies.`, code: 'INVALID_INPUT' });
+    const clean = [];
+    for (const [i, r] of list.entries()) {
+      const title = String((r && r.title) || '').replace(/\s+/g, ' ').trim();
+      const text = String((r && r.text) || '').trim();
+      if (!title || title.length > 60) return res.status(400).json({ message: `Reply ${i + 1}: the title must be 1 to 60 characters.`, code: 'INVALID_INPUT', field: `replies.${i}.title` });
+      if (!text || text.length > 1000) return res.status(400).json({ message: `Reply ${i + 1}: the text must be 1 to 1000 characters.`, code: 'INVALID_INPUT', field: `replies.${i}.text` });
+      clean.push({ title, text });
+    }
+    const GlobalConfig = require('../models/GlobalConfig').getGlobalConfigModel();
+    await GlobalConfig.upsert({ key: CANNED_KEY, value: clean, description: 'Canned replies for support tickets (admin dashboard)' });
+    await audit(req, 'global', 'SUPPORT_CANNED_REPLIES_UPDATED', { count: clean.length });
+    res.json({ replies: clean });
+  } catch (error) {
+    console.error('[CANNED_REPLIES_SAVE_ERROR]', error);
+    res.status(500).json({ message: 'Could not save the canned replies.' });
+  }
+};
+
+module.exports = { createTicket, getMyTickets, getAllTickets, updateTicket, getAssignees, getCannedReplies, putCannedReplies, CANNED_KEY, DEFAULT_CANNED };

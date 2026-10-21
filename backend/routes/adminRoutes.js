@@ -90,6 +90,9 @@ router.post('/mail/test', async (req, res) => {
 
 // Admin Broadcast Push
 router.post('/broadcast-push', broadcastPushNotification);
+// Recipients preview (nothing is sent) and the history of past broadcasts (from the audit log).
+router.get('/broadcast-push/preview', require('../controllers/adminController').previewBroadcastAudience);
+router.get('/broadcast-push/history', require('../controllers/adminController').getBroadcastHistory);
 
 // Live Orders Intelligence
 router.get('/orders', getAllOrders);

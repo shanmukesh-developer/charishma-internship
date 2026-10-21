@@ -1,6 +1,7 @@
 "use client";
 // C4 legal / compliance: business + grievance officer details and policy version shown on the public
 // /legal pages (backend/utils/legalSettings.js). GET/PUT /api/admin/legal-settings (validated + audited).
+import { useConfirm } from '@/components/ui';
 import { useCallback, useEffect, useState } from 'react';
 import { adminRequest as apiRequest } from '@/lib/api';
 
@@ -44,6 +45,7 @@ const MISSING_LABELS: Record<string, string> = {
 const EMAIL = /^[^\s@<>"']+@[^\s@<>"']+\.[A-Za-z]{2,24}$/;
 
 export default function LegalCard() {
+  const confirm = useConfirm();
   const [data, setData] = useState<LegalResponse | null>(null);
   const [form, setForm] = useState<Settings | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -77,7 +79,7 @@ export default function LegalCard() {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(form.effectiveDate)) return setError('Effective date must be a date.');
     if (!/^[0-9A-Za-z][0-9A-Za-z.-]{0,19}$/.test(form.policyVersion.trim())) return setError('Policy version must be 1-20 letters, digits, dots or dashes (for example 1.1).');
     const versionChanged = form.policyVersion.trim() !== data.settings.policyVersion;
-    if (versionChanged && !confirm(`Change the policy version from ${data.settings.policyVersion} to ${form.policyVersion.trim()}? Every signed-in customer will be asked once to accept the updated Terms (they are never locked out). Only do this for a real change to the Terms or Privacy Policy.`)) return;
+    if (versionChanged && !(await confirm({ title: `Change the policy version from ${data.settings.policyVersion} to ${form.policyVersion.trim()}? Every signed-in customer will be asked once to accept the updated Terms (they are never locked out). Only do this for a real change to the Terms or Privacy Policy.` }))) return;
     setSaving(true);
     try {
       const d = await apiRequest<LegalResponse>('/api/admin/legal-settings', {

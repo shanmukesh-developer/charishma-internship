@@ -5,6 +5,7 @@
  * in the dashboard), enable with a code, one-time recovery codes (copy / download), new codes, turn off.
  * Endpoints: GET /api/admin/2fa/status, POST /api/admin/2fa/setup | enable | disable | recovery-codes.
  */
+import { useConfirm } from '@/components/ui';
 import { useCallback, useEffect, useState } from 'react';
 import { adminRequest } from '@/lib/api';
 import { getAuthState, startSession, verifySession } from '@/lib/session';
@@ -33,6 +34,7 @@ const adoptToken = async (token?: string) => {
 };
 
 export default function SecurityPage() {
+  const confirm = useConfirm();
   const { user } = useAdminAuth();
   const [status, setStatus] = useState<Status | null>(null);
   const [setup, setSetup] = useState<Setup | null>(null);
@@ -80,7 +82,7 @@ export default function SecurityPage() {
     await load();
   });
   const disable = () => run(async () => {
-    if (!window.confirm('Turn off 2-step sign-in for this admin account? Other sessions will be signed out.')) return;
+    if (!(await confirm({ title: 'Turn off 2-step sign-in for this admin account? Other sessions will be signed out.' }))) return;
     const c = offCode.trim();
     const body = /^[0-9 ]+$/.test(c) ? { code: c.split(' ').join('') } : { recoveryCode: c };
     const r = await adminRequest<{ token: string; message: string }>('/api/admin/2fa/disable', { method: 'POST', body: JSON.stringify(body) });

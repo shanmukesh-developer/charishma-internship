@@ -2,6 +2,7 @@
 
 // Campus Events admin building blocks. The look (square borders, dark panels, pills, dialogs) is shared
 // with Auto-Ride / Rentals through components/autoRide/ui.
+import { readableText } from '@/components/ui/Readable';
 import { useState, type ReactNode } from 'react';
 import {
   campusEventsApi, CATEGORY_LABELS, currentFieldValue, sameValue, sensitiveQuestion,
@@ -40,7 +41,7 @@ export function showValue(v: unknown): string {
   if (Array.isArray(v) && v.every((x) => x && typeof x === 'object' && 'label' in (x as object))) {
     return (v as { label: string; amount?: number; type?: string }[]).map((x) => `${x.label}${x.amount !== undefined ? ` ${inr(x.amount)}` : ''}${x.type ? ` (${label(x.type)})` : ''}`).join('; ');
   }
-  if (typeof v === 'object') return JSON.stringify(v);
+  if (typeof v === 'object') return readableText(v);
   return String(v);
 }
 

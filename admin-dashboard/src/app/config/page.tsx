@@ -1,4 +1,6 @@
 "use client";
+import { useConfirm } from '@/components/ui';
+import { readableText } from '@/components/ui/Readable';
 import { useState, useEffect, useCallback } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { adminRequest as apiRequest } from '@/lib/api';
@@ -61,13 +63,14 @@ const FEATURE_SWITCHES = [
 const formatValue = (value: unknown) => {
   // Lists of objects used to print "[object Object], [object Object]".
   if (Array.isArray(value) && value.every(v => v === null || ['string', 'number', 'boolean'].includes(typeof v))) return value.join(', ');
-  if (Array.isArray(value)) { const json = JSON.stringify(value); return json.length > 240 ? `${json.slice(0, 240)}… (${value.length} items)` : json; }
-  if (value === null || value === undefined || value === '') return '—';
-  if (typeof value === 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) { const text = readableText(value); return text.length > 240 ? `${text.slice(0, 240)}… (${value.length} items)` : text; }
+  if (value === null || value === undefined || value === '') return '–';
+  if (typeof value === 'object') { const text = readableText(value); return text.length > 240 ? `${text.slice(0, 240)}…` : text; }
   return String(value);
 };
 
 export default function ConfigTerminal() {
+  const confirm = useConfirm();
   const { isAuthed } = useAdminAuth();
   const [configs, setConfigs] = useState<ConfigRow[]>([]);
   const [serviceability, setServiceability] = useState<Serviceability | null>(null);
@@ -148,8 +151,8 @@ export default function ConfigTerminal() {
       return;
     }
     // A stored value that is not a number cannot be compared: always ask before saving.
-    if (!currentValid && !confirm(`The saved ${label.toLowerCase()} retention is not a valid number. Set it to ${days} day(s)? Older items are permanently deleted on the next hourly run.`)) return;
-    if (currentValid && days < current && !confirm(`Shorten ${label.toLowerCase()} retention from ${current} to ${days} day(s)? Older items are permanently deleted on the next hourly run.`)) return;
+    if (!currentValid && !(await confirm({ title: `The saved ${label.toLowerCase()} retention is not a valid number. Set it to ${days} day(s)? Older items are permanently deleted on the next hourly run.` }))) return;
+    if (currentValid && days < current && !(await confirm({ title: `Shorten ${label.toLowerCase()} retention from ${current} to ${days} day(s)? Older items are permanently deleted on the next hourly run.` }))) return;
     setSavingRet(key);
     try {
       await apiRequest('/api/admin/config', { method: 'POST', body: JSON.stringify({ key, value: days }) });
@@ -176,7 +179,7 @@ export default function ConfigTerminal() {
       setFeeNotice('No change to save.');
       return;
     }
-    if (!confirm(`Change the delivery fee from ₹${currentFee} to ₹${fee}? It applies to every new order quote immediately.`)) return;
+    if (!(await confirm({ title: `Change the delivery fee from ₹${currentFee} to ₹${fee}? It applies to every new order quote immediately.` }))) return;
     setSavingFee(true);
     try {
       await apiRequest('/api/admin/config', {
@@ -203,7 +206,7 @@ export default function ConfigTerminal() {
     const n = limitInput.trim() === '' ? NaN : Number(limitInput);
     if (!Number.isInteger(n) || n < 0 || n > MAX_CASH_LIMIT) { setLimitMsg({ kind: 'err', text: `Enter a whole number of rupees from 0 to ${MAX_CASH_LIMIT} (0 = off).` }); return; }
     if (n === currentLimit) { setLimitMsg({ kind: 'ok', text: 'No change to save.' }); return; }
-    if (n > 0 && !confirm(`Turn on a ₹${n} cash limit? Riders holding ₹${n} or more of COD cash will not be able to take new COD orders until they deposit.`)) return;
+    if (n > 0 && !(await confirm({ title: `Turn on a ₹${n} cash limit? Riders holding ₹${n} or more of COD cash will not be able to take new COD orders until they deposit.` }))) return;
     setSavingLimit(true);
     try {
       await apiRequest('/api/admin/config', { method: 'POST', body: JSON.stringify({ key: CASH_LIMIT_KEY, value: n }) });

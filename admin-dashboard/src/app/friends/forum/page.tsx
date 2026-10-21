@@ -1,4 +1,5 @@
 "use client";
+import { useConfirm, usePrompt, useToast } from '@/components/ui';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAdminAuth } from '@/utils/useAdminAuth';
@@ -461,6 +462,7 @@ function CommunitiesTab(props: {
   campusId: string; campusName: string; items: Community[]; loading: boolean; error?: string; status: string; setStatus: (s: string) => void;
   reload: () => void; busy: boolean; act: Act; post: Post; isFresh: (id: string) => boolean;
 }) {
+  const confirm = useConfirm();
   const { campusId, campusName, items, loading, error, status, setStatus, reload, busy, act, post, isFresh } = props;
   const [creating, setCreating] = useState<CommunityDraft | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -468,8 +470,8 @@ function CommunitiesTab(props: {
   const pendingReqs = items.filter((c) => c.status === 'pending');
 
   const seed = () => act(() => post('/seed', { campusId }), `Default communities checked for ${campusName}.`, [reload]);
-  const decide = (c: Community, approve: boolean) => {
-    if (!approve && !window.confirm(`Reject the request "${c.name}"? It will be archived.`)) return;
+  const decide = async (c: Community, approve: boolean) => {
+    if (!approve && !(await confirm({ title: `Reject the request "${c.name}"? It will be archived.` }))) return;
     act(() => post(`/communities/${c.id}`, { status: approve ? 'active' : 'archived' }, 'PUT'),
       approve ? `"${c.name}" approved. The requester is now its owner.` : `"${c.name}" rejected.`, [reload]);
   };
@@ -571,6 +573,7 @@ function CommunitiesTab(props: {
 }
 
 function CommunityDrawer({ c, onClose, busy, act, post, reload }: { c: Community; onClose: () => void; busy: boolean; act: Act; post: Post; reload: () => void }) {
+  const confirm = useConfirm();
   const [draft, setDraft] = useState<CommunityDraft>(() => draftOf(c));
   const [pick, setPick] = useState<UserHit | null>(null);
   const [role, setRole] = useState<'moderator' | 'owner'>('moderator');
@@ -595,9 +598,9 @@ function CommunityDrawer({ c, onClose, busy, act, post, reload }: { c: Community
     const body: Record<string, unknown> = draftBody(draft);
     act(() => post(`/communities/${c.id}`, body, 'PUT'), 'Community saved.', [reload]);
   };
-  const setStatus = (s: string) => {
+  const setStatus = async (s: string) => {
     const msg = s === 'archived' ? `Archive "${c.name}"? Students will no longer see it.` : `Make "${c.name}" ${s}?`;
-    if (!window.confirm(msg)) return;
+    if (!(await confirm({ title: msg }))) return;
     act(() => post(`/communities/${c.id}`, { status: s }, 'PUT'), `Status set to ${s}.`, [reload]);
   };
   const addMod = () => {
@@ -605,8 +608,8 @@ function CommunityDrawer({ c, onClose, busy, act, post, reload }: { c: Community
     act(() => post(`/communities/${c.id}/moderators`, { userId: pick.id, role }), `${pick.name || 'User'} is now ${role === 'owner' ? 'the owner' : 'a moderator'}.`, [reload, () => loadLog(null)])
       .then((okay) => { if (okay) setPick(null); });
   };
-  const removeMod = (m: ModeratorRow) => {
-    if (!window.confirm(`Remove ${m.user?.name || 'this user'} as ${m.role}?`)) return;
+  const removeMod = async (m: ModeratorRow) => {
+    if (!(await confirm({ title: `Remove ${m.user?.name || 'this user'} as ${m.role}?` }))) return;
     act(() => post(`/communities/${c.id}/moderators/${m.userId}`, undefined, 'DELETE'), 'Moderator removed.', [reload, () => loadLog(null)]);
   };
 
@@ -864,14 +867,15 @@ function TargetsTab(props: {
   campusId: string; items: ReviewTarget[]; loading: boolean; error?: string; status: string; setStatus: (s: string) => void; kind: string; setKind: (s: string) => void;
   reload: () => void; busy: boolean; act: Act; post: Post; isFresh: (id: string) => boolean;
 }) {
+  const ask = usePrompt();
   const { campusId, items, loading, error, status, setStatus, kind, setKind, reload, busy, act, post, isFresh } = props;
   const [creating, setCreating] = useState<TargetDraft | null>(null);
   const [edit, setEdit] = useState<{ t: ReviewTarget; d: TargetDraft } | null>(null);
 
-  const decide = (t: ReviewTarget, approve: boolean) => {
+  const decide = async (t: ReviewTarget, approve: boolean) => {
     let reason: string | null = '';
     if (!approve) {
-      reason = window.prompt(`Reject "${t.name}"? Optional reason (kept in the audit log):`, '');
+      reason = (await ask({ title: `Reject "${t.name}"? Optional reason (kept in the audit log):`, label: 'Reason', defaultValue: '' }));
       if (reason === null) return;
     }
     act(() => post(`/review-targets/${t.id}/${approve ? 'approve' : 'reject'}`, reason ? { reason: reason.slice(0, 300) } : {}),
@@ -985,16 +989,19 @@ function ReviewsTab({ items, loading, error, status, setStatus, reload, busy, ac
   items: ReviewPost[]; loading: boolean; error?: string; status: string; setStatus: (s: string) => void; reload: () => void;
   busy: boolean; act: Act; post: Post; isFresh: (id: string) => boolean;
 }) {
+  const notifyError = useToast().error;
+  const ask = usePrompt();
+  const confirm = useConfirm();
   const [replyFor, setReplyFor] = useState<ReviewPost | null>(null);
   const [reply, setReply] = useState('');
 
-  const moderate = (p: ReviewPost, action: 'approve' | 'remove' | 'restore') => {
+  const moderate = async (p: ReviewPost, action: 'approve' | 'remove' | 'restore') => {
     let reason: string | null = '';
     if (action === 'remove') {
-      reason = window.prompt('Reason for removal (the reviewer sees it and can appeal):', '');
+      reason = (await ask({ title: 'Reason for removal (the reviewer sees it and can appeal):', label: 'Reason', defaultValue: '' }));
       if (reason === null) return;
-      if (reason.trim().length < 3) { window.alert('Give a reason of at least 3 characters.'); return; }
-    } else if (action === 'approve' && !window.confirm('Publish this review? It will count towards the rating.')) return;
+      if (reason.trim().length < 3) { notifyError('Give a reason of at least 3 characters.'); return; }
+    } else if (action === 'approve' && !(await confirm({ title: 'Publish this review? It will count towards the rating.' }))) return;
     act(() => post(`/posts/${p.id}/${action}`, reason ? { reason: reason.trim().slice(0, 300) } : {}),
       action === 'approve' ? 'Review published.' : action === 'remove' ? 'Review removed. The reviewer was notified.' : 'Review restored.', [reload]);
   };

@@ -1,4 +1,6 @@
 "use client";
+import { useConfirm, usePrompt } from '@/components/ui';
+import { ReadableValue, readableText } from '@/components/ui/Readable';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { adminRequest } from '@/lib/api';
@@ -210,6 +212,8 @@ function LoggedNote({ children }: { children?: React.ReactNode }) {
 
 // ── Page ────────────────────────────────────────────────────────────────────
 export default function FriendsModerationPage() {
+  const ask = usePrompt();
+  const confirm = useConfirm();
   const { isAuthed, user } = useAdminAuth();
   const myId = user?.id ? String(user.id) : '';
   const [tab, setTab] = useState<Tab>('queue');
@@ -380,7 +384,7 @@ export default function FriendsModerationPage() {
         : `Restrict the author from ${sanctionScope} for ${sanctionDays} day(s)?`,
       escalate: 'Escalate this target? Open reports move to Escalated.',
     };
-    if (!window.confirm(confirmText[decision])) return;
+    if (!(await confirm({ title: confirmText[decision] }))) return;
     setBusy('resolve');
     try {
       const res = await adminRequest<{ reportsClosed?: number }>(`/api/campus/mod/reports/${encodeURIComponent(openId)}/resolve`, { method: 'POST', body: JSON.stringify(body) });
@@ -447,7 +451,7 @@ export default function FriendsModerationPage() {
     const msg = decisionValue === 'reversed'
       ? 'Reverse this decision? Sanctions are lifted and removed or hidden content is restored where possible.'
       : 'Uphold the original decision?';
-    if (!window.confirm(msg)) return;
+    if (!(await confirm({ title: msg }))) return;
     setBusy(`appeal:${a.id}`);
     try {
       const res = await adminRequest<{ effects?: string[] }>(`/api/campus/mod/appeals/${encodeURIComponent(a.id)}/decide`, {
@@ -498,7 +502,7 @@ export default function FriendsModerationPage() {
   }, [isAuthed, tab, sanctionActive]);
 
   const liftSanction = async (s: Sanction) => {
-    const reason = window.prompt('Reason for lifting this sanction (logged):', '');
+    const reason = (await ask({ title: 'Reason for lifting this sanction (logged):', label: 'Reason', defaultValue: '' }));
     if (reason === null) return;
     setBusy(`lift:${s.id}`);
     try {
@@ -999,7 +1003,7 @@ export default function FriendsModerationPage() {
                       {Object.entries(d.currentState).map(([k, v]) => (
                         <div key={k} className="contents">
                           <dt className="text-fg-muted font-semibold">{words(k)}</dt>
-                          <dd className="text-fg break-words">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</dd>
+                          <dd className="text-fg break-words"><ReadableValue value={v} /></dd>
                         </div>
                       ))}
                     </dl>
@@ -1187,7 +1191,7 @@ const metaText = (meta: Record<string, unknown>) => {
   const parts = Object.entries(meta || {})
     .filter(([, v]) => v !== null && v !== undefined && v !== '')
     .slice(0, 6)
-    .map(([k, v]) => `${words(k)}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`);
+    .map(([k, v]) => `${words(k)}: ${readableText(v, 1)}`);
   const s = parts.join(' · ');
   return s.length > 240 ? `${s.slice(0, 240)}…` : s;
 };

@@ -1,4 +1,5 @@
 "use client";
+import { useConfirm } from '@/components/ui';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { adminRequest } from '@/lib/api';
@@ -42,6 +43,7 @@ const STATUS_TONE: Record<string, string> = {
 };
 
 export default function CampusSafetyPanel() {
+  const confirm = useConfirm();
   const [switches, setSwitches] = useState<Switches | null>(null);
   const [rows, setRows] = useState<WhisperRow[]>([]);
   const [filter, setFilter] = useState<'all' | 'visible' | 'hidden'>('all');
@@ -68,7 +70,7 @@ export default function CampusSafetyPanel() {
   const flip = async (name: keyof Switches) => {
     if (!switches) return;
     const next = !switches[name];
-    if (!next && !window.confirm(`Turn OFF ${SWITCH_INFO[name].label} for every student?`)) return;
+    if (!next && !(await confirm({ title: `Turn OFF ${SWITCH_INFO[name].label} for every student?` }))) return;
     setBusy(`sw:${name}`);
     try {
       const res = await adminRequest<{ switches: Switches }>('/api/campus/mod/switches', { method: 'PUT', body: JSON.stringify({ [name]: next }) });
@@ -82,7 +84,7 @@ export default function CampusSafetyPanel() {
   };
 
   const act = async (row: WhisperRow, action: 'remove' | 'hide' | 'restore') => {
-    if (action !== 'restore' && !window.confirm(`${action === 'remove' ? 'Remove' : 'Hide'} this whisper for everyone?`)) return;
+    if (action !== 'restore' && !(await confirm({ title: `${action === 'remove' ? 'Remove' : 'Hide'} this whisper for everyone?` }))) return;
     setBusy(`w:${row.id}`);
     try {
       const res = await adminRequest<{ status: WhisperRow['status'] }>(`/api/campus/mod/content/whisper/${row.id}`, {

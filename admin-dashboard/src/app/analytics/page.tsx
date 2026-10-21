@@ -1,4 +1,5 @@
 "use client";
+import { useConfirm } from '@/components/ui';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useAdminAuth } from '@/utils/useAdminAuth';
@@ -72,6 +73,7 @@ const ErrorLine = ({ text, onRetry }: { text: string; onRetry: () => void }) => 
 );
 
 export default function AnalyticsIntel() {
+  const confirm = useConfirm();
   const { isAuthed } = useAdminAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Section<DashboardStats>>({ data: null, error: null });
@@ -116,7 +118,7 @@ export default function AnalyticsIntel() {
     if (deleting.current) return;
     const id = reviewId(rev);
     if (!id) return;
-    if (!confirm(`Remove this ${rev.rating ?? ''}★ review by ${rev.user?.name || 'a customer'} for ${rev.restaurantName || 'the store'}? The rating and text are deleted. This cannot be undone.`)) return;
+    if (!(await confirm({ title: `Remove this ${rev.rating ?? ''}★ review by ${rev.user?.name || 'a customer'} for ${rev.restaurantName || 'the store'}? The rating and text are deleted. This cannot be undone.` }))) return;
     deleting.current = true;
     setDeletingId(id);
     try {

@@ -1,4 +1,5 @@
 "use client";
+import { useConfirm } from '@/components/ui';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { adminRequest as apiRequest } from '@/lib/api';
@@ -44,6 +45,7 @@ const normalizeConfig = (raw: Partial<AppConfig> | null | undefined): AppConfig 
 });
 
 export default function CMSPage() {
+  const confirm = useConfirm();
   const { isAuthed } = useAdminAuth();
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -110,9 +112,9 @@ export default function CMSPage() {
       // cache: 'reload' skips the few-second read cache, so the conflict check sees the server copy.
       const latest = normalizeConfig((await apiRequest<{ config: AppConfig }>('/api/config', { cache: 'reload' }))?.config);
       const conflicts = base ? changed.filter(k => !same(latest[k], base[k])) : [];
-      if (conflicts.length && !confirm(`Someone else changed ${conflicts.join(', ')} since this page loaded. Saving replaces their change with yours.
+      if (conflicts.length && !(await confirm({ title: `Someone else changed ${conflicts.join(', ')} since this page loaded. Saving replaces their change with yours.
 
-Press Cancel, then Discard, to load their version first.`)) {
+Press Cancel, then Discard, to load their version first.` }))) {
         setStaleRemote(true);
         return;
       }
@@ -284,8 +286,8 @@ Press Cancel, then Discard, to load their version first.`)) {
                 <textarea placeholder="Description" value={banner.description || ''} onChange={e => updateBanner(idx, 'description', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm w-full h-16" />
                 <div className="flex justify-end">
                   <button
-                    onClick={() => {
-                      if (!confirm(`Remove banner #${idx + 1}? It is deleted when you save.`)) return;
+                    onClick={async () => {
+                      if (!(await confirm({ title: `Remove banner #${idx + 1}? It is deleted when you save.` }))) return;
                       edit({ ...config, banners: config.banners.filter((_, i) => i !== idx) });
                     }}
                     className="text-danger-text text-xs font-semibold hover:underline"
@@ -339,8 +341,8 @@ Press Cancel, then Discard, to load their version first.`)) {
                 <input placeholder="Image URL or path" value={cat.img || ''} onChange={e => updateCategory(idx, 'img', e.target.value)} className="bg-surface-2 border border-line p-2 rounded text-sm" />
                 <div className="flex justify-end mt-1">
                   <button
-                    onClick={() => {
-                      if (!confirm(`Remove "${cat.name || 'this category'}"? It is deleted when you save.`)) return;
+                    onClick={async () => {
+                      if (!(await confirm({ title: `Remove "${cat.name || 'this category'}"? It is deleted when you save.` }))) return;
                       edit({ ...config, categories: config.categories.filter((_, i) => i !== idx) });
                     }}
                     className="text-danger-text text-xs font-semibold hover:underline"

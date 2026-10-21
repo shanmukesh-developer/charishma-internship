@@ -2215,45 +2215,84 @@ exports.toggleUserBan = async (req, res) => {
   }
 };
 
+// Who a broadcast reaches: active users (optionally one hostel block) and their unique device tokens.
+// Shared by the send and the admin "recipients" preview so the two numbers always agree.
+const broadcastAudience = async (targetBlock) => {
+  const { getUserModel } = require('../models/User');
+  const User = getUserModel();
+  const whereClause = { isActive: true };
+  const isTargeted = !!(targetBlock && targetBlock !== 'All Campus Blocks');
+  if (isTargeted) whereClause.hostelBlock = targetBlock;
+  const activeUsers = await User.findAll({ where: whereClause, attributes: ['id', 'fcmTokens'] });
+  let allTokens = [];
+  activeUsers.forEach(user => {
+    let tokenList = user.fcmTokens;
+    if (!tokenList) return;
+    if (typeof tokenList === 'string') {
+      try { tokenList = JSON.parse(tokenList); } catch { tokenList = [tokenList]; }
+    }
+    if (Array.isArray(tokenList)) {
+      tokenList.forEach(t => {
+        const tokenStr = typeof t === 'string' ? t : t?.token;
+        if (tokenStr) allTokens.push(tokenStr);
+      });
+    }
+  });
+  allTokens = [...new Set(allTokens.filter(Boolean))];
+  return { isTargeted, activeUsers, allTokens };
+};
+
+// @route GET /api/admin/broadcast-push/preview?targetBlock= -> { students, devices, campusWide } (nothing is sent)
+exports.previewBroadcastAudience = async (req, res) => {
+  try {
+    const targetBlock = typeof req.query.targetBlock === 'string' ? req.query.targetBlock.trim().slice(0, 100) : '';
+    const { isTargeted, activeUsers, allTokens } = await broadcastAudience(targetBlock);
+    res.json({ students: activeUsers.length, devices: allTokens.length, campusWide: !isTargeted, targetBlock: isTargeted ? targetBlock : null });
+  } catch (error) {
+    sendServerError(res, error, '[ADMINCONTROLLER_ERROR]');
+  }
+};
+
+// @route GET /api/admin/broadcast-push/history?limit= -> recent broadcasts (from the audit log, newest first)
+exports.getBroadcastHistory = async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
+    const rows = await getVerificationLogModel().findAll({ where: { action: 'GLOBAL_PUSH_SENT' }, order: [['timestamp', 'DESC']], limit });
+    const { getUserModel } = require('../models/User');
+    const adminIds = [...new Set(rows.map((r) => r.adminId).filter((id) => UUID_RE.test(String(id))))];
+    const admins = adminIds.length ? await getUserModel().findAll({ where: { id: adminIds }, attributes: ['id', 'name'] }) : [];
+    const nameOf = Object.fromEntries(admins.map((a) => [a.id, a.name]));
+    res.json({
+      broadcasts: rows.map((r) => {
+        let d = {};
+        try { d = JSON.parse(r.details || '{}') || {}; } catch { d = {}; }
+        return {
+          id: r.id,
+          sentAt: r.timestamp,
+          sentBy: nameOf[r.adminId] || null,
+          title: typeof d.title === 'string' ? d.title : '',
+          body: typeof d.body === 'string' ? d.body : '',
+          targetBlock: typeof d.targetBlock === 'string' && d.targetBlock ? d.targetBlock : null,
+          category: typeof d.category === 'string' ? d.category : null,
+          students: typeof d.userCount === 'number' ? d.userCount : null,
+          devices: typeof d.devices === 'number' ? d.devices : null,
+        };
+      }),
+    });
+  } catch (error) {
+    sendServerError(res, error, '[ADMINCONTROLLER_ERROR]');
+  }
+};
+
 exports.broadcastPushNotification = async (req, res) => {
   try {
     const { title, body, targetBlock, category } = req.body;
     if (!title || !body) return res.status(400).json({ message: 'Title and body required' });
     
-    const { getUserModel } = require('../models/User');
-    const User = getUserModel();
-    let whereClause = { isActive: true };
-    const isTargeted = !!(targetBlock && targetBlock !== 'All Campus Blocks');
-    if (isTargeted) {
-      whereClause.hostelBlock = targetBlock;
-    }
-    const activeUsers = await User.findAll({ where: whereClause, attributes: ['id', 'fcmTokens'] });
+    const { isTargeted, activeUsers, allTokens } = await broadcastAudience(targetBlock);
     if (isTargeted && !activeUsers.length) {
       return res.status(404).json({ code: 'NO_RECIPIENTS', message: `No active students have "${String(targetBlock).slice(0, 60)}" as their hostel block, so nothing was sent. Check the spelling (it must match the profile exactly).` });
     }
-
-    let allTokens = [];
-    activeUsers.forEach(user => {
-      if (user.fcmTokens) {
-        let tokenList = user.fcmTokens;
-        if (typeof tokenList === 'string') {
-          try {
-            tokenList = JSON.parse(tokenList);
-          } catch {
-            tokenList = [tokenList];
-          }
-        }
-        if (Array.isArray(tokenList)) {
-          tokenList.forEach(t => {
-            const tokenStr = typeof t === 'string' ? t : t?.token;
-            if (tokenStr) allTokens.push(tokenStr);
-          });
-        }
-      }
-    });
-
-    // Remove duplicates
-    allTokens = [...new Set(allTokens.filter(Boolean))];
 
     if (activeUsers.length > 0) {
       const { sendPushToTokens } = require('../utils/push');
@@ -2293,7 +2332,7 @@ exports.broadcastPushNotification = async (req, res) => {
       console.error('Failed to emit admin broadcast socket announcement:', sockErr);
     }
 
-    await logAuditAction(req, null, 'GLOBAL_PUSH_SENT', { title, body, userCount: activeUsers.length });
+    await logAuditAction(req, null, 'GLOBAL_PUSH_SENT', { title, body, userCount: activeUsers.length, devices: allTokens.length, targetBlock: isTargeted ? targetBlock : null, category: category || 'announcement' });
     realtime.publish('announcement', 'created', null, { scope: 'broadcast' });
     
     // Students and devices are reported separately (the old text called the student count "devices").

@@ -994,6 +994,13 @@ const getAllOrders = async (req, res) => {
       }
       where.restaurantId = String(req.query.restaurantId);
     }
+    // ?userId=<uuid>: one customer's orders (admin Customers -> a customer -> Orders).
+    if (req.query.userId) {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(req.query.userId))) {
+        return res.json({ orders: [], total: 0, pages: 0 });
+      }
+      where.userId = String(req.query.userId);
+    }
     const from = req.query.from ? new Date(String(req.query.from)) : null;
     const to = req.query.to ? new Date(String(req.query.to)) : null;
     if ((from && Number.isNaN(from.getTime())) || (to && Number.isNaN(to.getTime()))) {

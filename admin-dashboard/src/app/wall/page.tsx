@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirm } from '@/components/ui';
 import React, { useState, useEffect } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { API_URL } from '@/lib/config';
@@ -73,6 +74,7 @@ const GRADIENT_OPTIONS = [
 ];
 
 export default function WallAdmin() {
+  const confirm = useConfirm();
   const { isAuthed } = useAdminAuth();
   const [activeTab, setActiveTab] = useState<'events' | 'moderation' | 'fame'>('events');
 
@@ -188,7 +190,7 @@ export default function WallAdmin() {
       setFormError(`Prize value must be a whole number from ₹1 to ₹${MAX_COUPON_VALUE}.`); return;
     }
     if (formSubmitting) return;
-    if (!confirm(`Launch "${formTitle.trim()}"? Every student gets a push notification that the contest is live.`)) return;
+    if (!(await confirm({ title: `Launch "${formTitle.trim()}"? Every student gets a push notification that the contest is live.` }))) return;
 
     setFormSubmitting(true);
     try {
@@ -261,7 +263,7 @@ export default function WallAdmin() {
   // ── End Event ──
   const handleEndEvent = async (eventId: string) => {
     if (actionLoading) return;
-    if (!confirm('End this contest now? The approved photo with the most votes wins and its owner gets the prize coupon. This cannot be undone.')) return;
+    if (!(await confirm({ title: 'End this contest now? The approved photo with the most votes wins and its owner gets the prize coupon. This cannot be undone.' }))) return;
     setActionLoading(eventId);
     setPageError(null);
     setNotice(null);
@@ -297,7 +299,7 @@ export default function WallAdmin() {
 
   const handleReject = async (submissionId: string) => {
     if (moderatingId) return;
-    if (!confirm('Reject this photo? It is permanently deleted and the student can submit a new one while the contest is open.')) return;
+    if (!(await confirm({ title: 'Reject this photo? It is permanently deleted and the student can submit a new one while the contest is open.' }))) return;
     setModeratingId(submissionId);
     setPageError(null);
     setNotice(null);

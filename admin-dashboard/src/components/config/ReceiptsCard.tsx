@@ -2,6 +2,7 @@
 // C8 receipts & compliance: platform GSTIN, GST rate, tax display (inclusive / breakdown), footer note and the
 // "hide stores without FSSAI" switch (backend/utils/receiptSettings.js). GET/PUT /api/admin/receipt-settings
 // (validated + audited, ifUpdatedAt guards against overwriting another admin's change).
+import { useConfirm } from '@/components/ui';
 import { useCallback, useEffect, useState } from 'react';
 import { adminRequest as apiRequest, ApiError } from '@/lib/api';
 
@@ -37,6 +38,7 @@ const formFrom = (s: Settings): Form => ({
 const validRate = (n: number) => Number.isFinite(n) && n > 0 && n <= 28 && Math.round(n * 100) === n * 100;
 
 export default function ReceiptsCard() {
+  const confirm = useConfirm();
   const [data, setData] = useState<ReceiptResponse | null>(null);
   const [form, setForm] = useState<Form | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -76,7 +78,7 @@ export default function ReceiptsCard() {
     if (/[<>]/.test(form.footerNote)) return setError('Footer note cannot contain < or >.');
     const mode: TaxMode = form.taxDisplayMode === 'breakdown' && !breakdownPossible ? 'inclusive' : form.taxDisplayMode;
     if (form.hideStoresWithoutFssai && !data.settings.hideStoresWithoutFssai
-      && !confirm('Hide every store without an FSSAI licence number from customer listings? They also cannot take new orders until a number is added. Check Stores → FSSAI: missing first.')) return;
+      && !(await confirm({ title: 'Hide every store without an FSSAI licence number from customer listings? They also cannot take new orders until a number is added. Check Stores → FSSAI: missing first.' }))) return;
     setSaving(true);
     try {
       const d = await apiRequest<ReceiptResponse>('/api/admin/receipt-settings', {

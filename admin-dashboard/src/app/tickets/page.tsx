@@ -5,7 +5,11 @@ import { useAdminAuth } from '@/utils/useAdminAuth';
 import { API_URL } from '@/lib/config';
 import { useAdminSocket } from '@/components/AdminSocketProvider';
 import { useLiveSync, useFreshIds, liveLabel, FRESH_ROW_CLASS } from '@/lib/useLiveSync';
-import { ListPager, usePagedRows } from '@/components/ListPager';
+import {
+  Badge, Button, DataTable, DescriptionList, Drawer, Field, IconButton, Input, Modal, Notice as NoticeBox, PageHeader, SearchInput,
+  SegmentedControl, Select, StatusPill, Textarea, Toolbar, useConfirm, useToast, type Column, IconPlus, IconRefresh, IconTrash,
+} from '@/components/ui';
+import { formatDateTime, formatPhone, formatRelative } from '@/lib/format';
 
 type TicketStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed';
 
@@ -20,13 +24,16 @@ interface Ticket {
   orderId?: string | null;
   adminResponse?: string | null;
   user?: { name: string | null; phone: string | null } | null;
+  assigneeId?: string | null;
+  assigneeName?: string | null;
 }
+interface CannedReply { title: string; text: string }
 
 const STATUSES: TicketStatus[] = ['Open', 'In Progress', 'Resolved', 'Closed'];
 type Filter = 'active' | 'all' | TicketStatus;
 
 // Quick replies reflect how Zenvy works today: COD + Wallet only, and the delivery PIN lives in the customer's app.
-const QUICK_REPLIES = [
+const QUICK_REPLIES_FALLBACK = [
   { label: 'Expedited', text: 'Sorry for the delay. We have flagged your order as urgent with our campus delivery team.' },
   { label: 'Wallet refund', text: 'We have reviewed your order and refunded the amount to your Zenvy Wallet. You can see it in the Wallet section of the app.' },
   { label: 'Rider at gate', text: 'Your delivery partner is waiting at the hostel gate. Please share the delivery PIN shown on your order tracking screen to receive the order.' },
@@ -45,7 +52,20 @@ const errorText = (err: unknown, fallback: string) =>
   err instanceof TypeError ? 'Could not reach the server. Check your connection.' : (err as Error)?.message || fallback;
 
 export default function SupportTickets() {
-  const { isAuthed } = useAdminAuth();
+  const { isAuthed, user: me } = useAdminAuth();
+  const confirm = useConfirm();
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  // ?search=<phone or text> (from Customers → a customer → Support tickets).
+  useEffect(() => {
+    const qs = new URLSearchParams(window.location.search);
+    const s0 = qs.get('search');
+    if (s0) { setSearch(s0); setFilter('all'); }
+  }, []);
+  const [owner, setOwner] = useState<'all' | 'mine' | 'unassigned'>('all');
+  const [assignees, setAssignees] = useState<{ id: string; name: string }[]>([]);
+  const [canned, setCanned] = useState<CannedReply[]>(QUICK_REPLIES_FALLBACK.map(r => ({ title: r.label, text: r.text })));
+  const [cannedOpen, setCannedOpen] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [replies, setReplies] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -77,6 +97,9 @@ export default function SupportTickets() {
   useEffect(() => {
     if (!isAuthed) return;
     fetchTickets();
+    // Admins a ticket can be assigned to, and the shared canned replies (older servers: keep the fallbacks).
+    fetch(`${API_URL}/api/tickets/admin/assignees`, { cache: 'no-store' }).then(r => (r.ok ? r.json() : [])).then(d => setAssignees(Array.isArray(d) ? d : [])).catch(() => {});
+    fetch(`${API_URL}/api/tickets/admin/canned-replies`, { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then(d => { if (Array.isArray(d?.replies)) setCanned(d.replies); }).catch(() => {});
   }, [isAuthed, fetchTickets]);
 
   // Realtime sync: new / updated tickets (customer, rider, or another admin tab) appear without a reload.
@@ -94,7 +117,7 @@ export default function SupportTickets() {
     return () => clearInterval(t);
   }, []);
 
-  const saveTicket = async (ticket: Ticket, body: { status?: TicketStatus; adminResponse?: string }) => {
+  const saveTicket = async (ticket: Ticket, body: { status?: TicketStatus; adminResponse?: string; assigneeId?: string | null }) => {
     if (savingId) return false;
     setSavingId(ticket.id);
     setRowError(prev => ({ ...prev, [ticket.id]: '' }));
@@ -108,7 +131,7 @@ export default function SupportTickets() {
       const updated = await res.json().catch(() => null);
       // Update only this ticket so unsent drafts on other tickets are kept.
       setTickets(prev => prev.map(t => (t.id === ticket.id
-        ? { ...t, status: updated?.status ?? body.status ?? t.status, adminResponse: updated?.adminResponse ?? body.adminResponse ?? t.adminResponse }
+        ? { ...t, status: updated?.status ?? body.status ?? t.status, adminResponse: updated?.adminResponse ?? body.adminResponse ?? t.adminResponse, assigneeId: updated ? updated.assigneeId ?? null : t.assigneeId, assigneeName: updated ? updated.assigneeName ?? null : t.assigneeName }
         : t)));
       return true;
     } catch (err) {
@@ -119,11 +142,12 @@ export default function SupportTickets() {
     }
   };
 
-  const updateStatus = (ticket: Ticket, status: TicketStatus) => {
-    if (status === 'Closed' && !confirm(`Close "${ticket.subject}"? The customer will be notified.`)) return;
-    if (status === 'Resolved' && !confirm(`Mark "${ticket.subject}" as resolved? The customer will be notified.`)) return;
+  const updateStatus = async (ticket: Ticket, status: TicketStatus) => {
+    if (status === 'Closed' && !(await confirm({ title: 'Close this ticket?', description: `“${ticket.subject}”. The customer is notified.`, confirmLabel: 'Close ticket' }))) return;
+    if (status === 'Resolved' && !(await confirm({ title: 'Mark this ticket as resolved?', description: `“${ticket.subject}”. The customer is notified.`, confirmLabel: 'Mark resolved' }))) return;
     saveTicket(ticket, { status });
   };
+  const assignTicket = (ticket: Ticket, assigneeId: string | null) => { saveTicket(ticket, { assigneeId }); };
 
   const sendReply = async (ticket: Ticket) => {
     const reply = replies[ticket.id]?.trim();
@@ -155,149 +179,219 @@ export default function SupportTickets() {
     () => tickets.filter(t => (filter === 'all' ? true : filter === 'active' ? isActive(t) : t.status === filter)),
     [tickets, filter],
   );
-  // 30 ticket cards per page: typing a reply re-renders the list, so keep it short.
-  const pager = usePagedRows(visible, 30, filter);
 
-  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
+  if (!isAuthed) return null; // AppShell shows the session check
+
+  const selected = openId ? tickets.find(t => t.id === openId) || null : null;
+  const priorityTone = (p: string): 'danger' | 'warning' | 'neutral' => (p === 'Critical' ? 'danger' : p === 'High' ? 'warning' : 'neutral');
+  const statusToneOf = (s: TicketStatus) => (s === 'Open' ? 'warning' : s === 'In Progress' ? 'info' : s === 'Resolved' ? 'success' : 'neutral') as 'warning' | 'info' | 'success' | 'neutral';
+  const q = search.trim().toLowerCase();
+  const shown = visible.filter(t =>
+    (owner === 'all' || (owner === 'mine' ? t.assigneeId === me?.id : !t.assigneeId)) &&
+    (!q || `${t.subject} ${t.user?.name || ''} ${t.user?.phone || ''} ${t.id} ${t.orderId || ''}`.toLowerCase().includes(q)));
+
+  const slaCell = (t: Ticket) => {
+    if (!isActive(t)) return <span className="text-xs text-fg-subtle">–</span>;
+    if (!t.slaBreachAt) return <span className="text-xs text-fg-muted">No SLA</span>;
+    const diffMs = new Date(t.slaBreachAt).getTime() - Date.now();
+    if (diffMs < 0) return <Badge tone="danger">Overdue</Badge>;
+    const hours = Math.floor(diffMs / 3600000);
+    const mins = Math.floor((diffMs % 3600000) / 60000);
+    return <span className={`text-xs tabular-nums ${hours < 2 ? 'text-warning-text' : 'text-fg-muted'}`}>{hours} h {mins} min left</span>;
+  };
+
+  const columns: Column<Ticket>[] = [
+    {
+      key: 'subject',
+      header: 'Ticket',
+      sortValue: t => t.subject,
+      cell: t => (
+        <div className="min-w-0 max-w-[420px]">
+          <p className="truncate font-medium text-fg">{t.subject}</p>
+          <p className="truncate text-xs text-fg-muted">{t.user?.name || 'Customer'}{t.user?.phone ? ` · ${formatPhone(t.user.phone)}` : ''}{t.orderId ? ` · order #${t.orderId.slice(-6).toUpperCase()}` : ''}</p>
+        </div>
+      ),
+    },
+    { key: 'priority', header: 'Priority', sortValue: t => ['Critical', 'High', 'Medium', 'Low'].indexOf(t.priority), cell: t => <Badge tone={priorityTone(t.priority)}>{t.priority}</Badge> },
+    { key: 'sla', header: 'Reply due', hideBelow: 'lg', sortValue: t => (t.slaBreachAt && isActive(t) ? new Date(t.slaBreachAt) : null), cell: slaCell },
+    { key: 'assignee', header: 'Assigned to', hideBelow: 'lg', sortValue: t => t.assigneeName || '', cell: t => (t.assigneeName ? <span className="text-fg">{t.assigneeId === me?.id ? 'You' : t.assigneeName}</span> : <span className="text-fg-subtle">Nobody</span>) },
+    { key: 'status', header: 'Status', sortValue: t => STATUSES.indexOf(t.status), cell: t => <StatusPill status={t.status} tone={statusToneOf(t.status)} label={t.status} /> },
+    { key: 'opened', header: 'Opened', align: 'right', sortValue: t => new Date(t.createdAt), cell: t => <span className="whitespace-nowrap text-xs text-fg-muted">{formatRelative(t.createdAt)}</span> },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap gap-4 items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-fg">Support tickets</h1>
-          <p className="mt-1 max-w-3xl text-sm text-fg-muted">
-            {activeCount} Active &middot; {tickets.length} Total
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {(['active', 'all', ...STATUSES] as Filter[]).map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${filter === f ? 'bg-accent text-on-solid' : 'bg-surface-2 text-fg-muted hover:text-fg'}`}
-            >
-              {f === 'active' ? 'Active' : f === 'all' ? 'All' : f}
-            </button>
-          ))}
-          <button onClick={() => { setLoading(true); fetchTickets(); }} disabled={loading} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface-2 text-fg-muted hover:text-fg disabled:opacity-40">Refresh</button>
-        </div>
-      </div>
+    <div>
+      <PageHeader
+        title="Support tickets"
+        description="Help requests from customers and riders: reply, assign an owner and move them to resolved."
+        meta={<Badge tone={activeCount ? 'warning' : 'success'}>{activeCount} active</Badge>}
+        actions={
+          <>
+            <Button onClick={() => setCannedOpen(true)}>Canned replies</Button>
+            <Button leftIcon={<IconRefresh size={14} />} loading={loading} onClick={() => { setLoading(true); fetchTickets(); }}>Refresh</Button>
+          </>
+        }
+      />
 
-      {loadError && (
-        <div role="alert" className="flex items-center justify-between gap-4 rounded-lg border border-danger/30 bg-danger-soft px-6 py-4 text-sm font-semibold text-danger-text">
-          <span>{loadError}</span>
-          <button onClick={() => { setLoading(true); fetchTickets(); }} className="text-xs text-fg hover:underline">Retry</button>
-        </div>
-      )}
+      <Toolbar end={<span className="text-sm tabular-nums text-fg-muted">{shown.length} of {tickets.length} tickets</span>}>
+        <SearchInput value={search} onChange={setSearch} placeholder="Search subject, name, phone or order" />
+        <SegmentedControl
+          ariaLabel="Status"
+          value={filter}
+          onChange={setFilter}
+          options={[{ value: 'active', label: 'Active', count: activeCount }, { value: 'all', label: 'All' }, ...STATUSES.map(s => ({ value: s as Filter, label: s }))]}
+        />
+        <Select aria-label="Owner" value={owner} onChange={e => setOwner(e.target.value as typeof owner)} className="w-auto">
+          <option value="all">Any owner</option>
+          <option value="mine">Assigned to me</option>
+          <option value="unassigned">Not assigned</option>
+        </Select>
+      </Toolbar>
 
-      <div className="grid gap-4">
-        {loading && tickets.length === 0 ? (
-          <div className="p-12 text-center text-fg-muted animate-pulse font-semibold">Loading tickets…</div>
-        ) : pager.visible.map(ticket => {
-          const sla = getSlaStatus(ticket.slaBreachAt);
-          const saving = savingId === ticket.id;
-          const draft = replies[ticket.id] ?? '';
-          return (
-            <div key={ticket.id} className={`bg-surface-2 border border-line p-6 rounded-lg flex flex-col gap-4 hover:border-line transition-colors ${isFresh(ticket.id) ? FRESH_ROW_CLASS : ''}`}>
-              <div className="flex flex-wrap gap-3 justify-between items-start">
-                <div className="min-w-0">
-                  <h3 className="text-lg font-semibold text-fg break-words">{ticket.subject}</h3>
-                  <p className="text-sm text-fg-muted mt-0.5">
-                    <span className="font-semibold">{ticket.user?.name || 'Customer'}</span>
-                    {ticket.user?.phone && (
-                      <a href={`tel:${ticket.user.phone}`} className="text-info-text hover:text-info-text ml-2 font-mono text-xs">
-                        {ticket.user.phone}
-                      </a>
-                    )}
-                    <span className="text-fg-subtle font-mono ml-2 text-xs">#{ticket.id.slice(0, 8)}</span>
-                    {ticket.orderId && <span className="text-fg-muted font-mono ml-2 text-xs">Order #{ticket.orderId.slice(-6).toUpperCase()}</span>}
-                  </p>
-                  <p className="text-xs text-fg-subtle mt-1">Opened {new Date(ticket.createdAt).toLocaleString()}</p>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <span className={`text-xs font-semibold ${priorityColors[ticket.priority] || 'text-info-text'}`}>
-                    {ticket.priority} Priority
-                  </span>
-                  {isActive(ticket) && (
-                    <span className={`text-xs ${sla.color}`}>SLA: {sla.text}</span>
-                  )}
-                </div>
-              </div>
+      <DataTable
+        caption="Support tickets"
+        columns={columns}
+        rows={shown}
+        rowKey={t => t.id}
+        loading={loading}
+        error={loadError}
+        onRetry={() => { setLoading(true); fetchTickets(); }}
+        onRowClick={t => setOpenId(t.id)}
+        rowClassName={t => (isFresh(t.id) ? FRESH_ROW_CLASS : undefined)}
+        initialSort={{ key: 'opened', dir: 'desc' }}
+        noun="tickets"
+        resetPageKey={`${filter}|${owner}|${search}`}
+        empty={{ title: tickets.length === 0 ? 'No support tickets yet' : 'No tickets match', description: tickets.length === 0 ? undefined : 'Change the filters or search.' }}
+      />
 
-              <div className="bg-surface-2 p-4 rounded-xl border border-line">
-                <p className="text-sm text-fg-muted whitespace-pre-wrap break-words">{ticket.description}</p>
-              </div>
+      <Drawer
+        open={!!selected}
+        onClose={() => setOpenId(null)}
+        size="lg"
+        title={selected?.subject || 'Ticket'}
+        description={selected ? `#${selected.id.slice(0, 8)} · opened ${formatDateTime(selected.createdAt)}` : undefined}
+        headerActions={selected ? <StatusPill status={selected.status} tone={statusToneOf(selected.status)} label={selected.status} /> : undefined}
+      >
+        {selected && (
+          <div className="space-y-6">
+            {rowError[selected.id] && <NoticeBox tone="danger"><span className="text-fg">{rowError[selected.id]}</span></NoticeBox>}
+            <DescriptionList
+              columns={2}
+              items={[
+                {
+                  label: 'From',
+                  value: (
+                    <>
+                      <span className="font-medium">{selected.user?.name || 'Customer'}</span>
+                      {selected.user?.phone && <a href={`tel:${selected.user.phone}`} className="block text-accent-text hover:underline">{formatPhone(selected.user.phone)}</a>}
+                      {selected.user?.phone && (
+                        <span className="mt-1 flex flex-wrap gap-3 text-xs">
+                          <a href={`/users?search=${encodeURIComponent(String(selected.user.phone).replace(/\D/g, '').slice(-10))}`} className="text-accent-text hover:underline">Customer record</a>
+                        </span>
+                      )}
+                    </>
+                  ),
+                },
+                { label: 'Priority', value: <Badge tone={priorityTone(selected.priority)}>{selected.priority}</Badge> },
+                { label: 'Order', value: selected.orderId ? <a href={`/orders?order=${encodeURIComponent(selected.orderId)}`} className="text-accent-text hover:underline">#{selected.orderId.slice(-6).toUpperCase()}</a> : 'None' },
+                { label: 'Reply due', value: slaCell(selected) },
+              ]}
+            />
 
-              {ticket.adminResponse && (
-                <div className="bg-info-soft p-4 rounded-xl border border-info/30">
-                  <p className="text-xs font-semibold text-info-text mb-1">Last reply sent to customer</p>
-                  <p className="text-sm text-fg-muted whitespace-pre-wrap break-words">{ticket.adminResponse}</p>
-                </div>
-              )}
+            <Field label="Assigned to" hint="The admin who owns this ticket. Every change is in the audit log.">
+              <Select value={selected.assigneeId || ''} disabled={!!savingId} onChange={e => assignTicket(selected, e.target.value || null)}>
+                <option value="">Nobody</option>
+                {me?.id && !assignees.some(a => a.id === me.id) && <option value={me.id}>Me</option>}
+                {assignees.map(a => <option key={a.id} value={a.id}>{a.id === me?.id ? `${a.name} (you)` : a.name}</option>)}
+              </Select>
+            </Field>
 
-              <div className="bg-surface-2 border border-info/30 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <p className="text-xs font-semibold text-info-text">Reply (customer gets a push notification)</p>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-xs font-semibold text-fg-muted">Quick insert:</span>
-                    {QUICK_REPLIES.map(tpl => (
-                      <button
-                        key={tpl.label}
-                        type="button"
-                        onClick={() => setReplies(prev => ({ ...prev, [ticket.id]: tpl.text }))}
-                        className="text-xs font-semibold px-2 py-0.5 bg-surface-2/60 hover:bg-surface-2 text-fg-muted rounded border border-line transition-colors"
-                      >
-                        {tpl.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <textarea
-                  rows={2}
-                  maxLength={1000}
-                  value={draft}
-                  onChange={e => setReplies(prev => ({ ...prev, [ticket.id]: e.target.value }))}
-                  placeholder="Type your response to the customer or pick a quick insert above…"
-                  className="w-full bg-surface-2 border border-line rounded-xl px-4 py-3 text-sm text-fg placeholder:text-fg-subtle outline-none focus:border-accent resize-none transition-all"
-                />
-                <button
-                  onClick={() => sendReply(ticket)}
-                  disabled={!!savingId || !draft.trim()}
-                  className="px-5 py-2 bg-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed text-on-solid text-xs font-semibold rounded-lg transition-all"
-                >
-                  {saving ? 'Sending…' : 'Send reply'}
-                </button>
-              </div>
-
-              {rowError[ticket.id] && <p role="alert" className="text-sm font-semibold text-danger-text">{rowError[ticket.id]}</p>}
-
-              <div className="flex gap-2 items-center flex-wrap">
-                <span className="text-xs font-semibold text-fg-muted">Status:</span>
-                {STATUSES.map(status => (
-                  <button
-                    key={status}
-                    onClick={() => updateStatus(ticket, status)}
-                    disabled={ticket.status === status || !!savingId}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:cursor-not-allowed ${
-                      ticket.status === status
-                        ? 'bg-accent text-on-solid'
-                        : 'bg-surface-2 text-fg-muted hover:text-fg hover:bg-surface-2 disabled:opacity-50'
-                    }`}
-                  >
-                    {status}
-                  </button>
-                ))}
-              </div>
+            <div>
+              <p className="mb-1 text-xs text-fg-muted">Message</p>
+              <div className="whitespace-pre-wrap break-words rounded-lg border border-line bg-surface-2/50 p-3 text-sm text-fg">{selected.description}</div>
             </div>
-          );
-        })}
-        <ListPager page={pager.page} pages={pager.pages} total={pager.total} pageSize={pager.pageSize} onPage={pager.setPage} noun="tickets" />
-        {!loading && !loadError && visible.length === 0 && (
-          <div className="p-12 text-center text-fg-muted bg-surface-2 rounded-lg border border-line">
-            {tickets.length === 0 ? 'No support tickets yet.' : 'No tickets match this filter.'}
+            {selected.adminResponse && (
+              <div>
+                <p className="mb-1 text-xs text-fg-muted">Replies sent to the customer</p>
+                <div className="whitespace-pre-wrap break-words rounded-lg border border-accent/20 bg-accent-soft/50 p-3 text-sm text-fg">{selected.adminResponse}</div>
+              </div>
+            )}
+
+            <section className="space-y-3 rounded-lg border border-line p-4">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <h3 className="text-sm font-semibold text-fg">Reply</h3>
+                <Select aria-label="Insert a canned reply" value="" onChange={e => { const r = canned[Number(e.target.value)]; if (r) setReplies(prev => ({ ...prev, [selected.id]: r.text })); }} className="w-auto">
+                  <option value="">Insert a canned reply</option>
+                  {canned.map((r, i) => <option key={`${r.title}-${i}`} value={i}>{r.title}</option>)}
+                </Select>
+              </div>
+              <Textarea rows={4} maxLength={1000} value={replies[selected.id] ?? ''} onChange={e => setReplies(prev => ({ ...prev, [selected.id]: e.target.value }))} placeholder="Type your reply. The customer gets a push notification." />
+              <div className="flex justify-end">
+                <Button variant="primary" disabled={!!savingId || !(replies[selected.id] ?? '').trim()} loading={savingId === selected.id} onClick={() => sendReply(selected)}>Send reply</Button>
+              </div>
+            </section>
+
+            <div>
+              <p className="mb-2 text-xs text-fg-muted">Status</p>
+              <SegmentedControl ariaLabel="Ticket status" value={selected.status} onChange={s => { if (s !== selected.status && !savingId) updateStatus(selected, s); }} options={STATUSES.map(s => ({ value: s, label: s }))} />
+            </div>
           </div>
         )}
-      </div>
+      </Drawer>
+
+      <CannedRepliesModal open={cannedOpen} onClose={() => setCannedOpen(false)} replies={canned} onSaved={setCanned} />
     </div>
+  );
+}
+
+/** Edit the canned replies support can insert (GET / PUT /api/tickets/admin/canned-replies). */
+function CannedRepliesModal({ open, onClose, replies, onSaved }: { open: boolean; onClose: () => void; replies: CannedReply[]; onSaved: (r: CannedReply[]) => void }) {
+  const toast = useToast();
+  const [draft, setDraft] = useState<CannedReply[]>(replies);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => { if (open) { setDraft(replies); setError(null); } }, [open, replies]);
+  const set = (i: number, patch: Partial<CannedReply>) => setDraft(prev => prev.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const save = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_URL}/api/tickets/admin/canned-replies`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ replies: draft }) });
+      if (!res.ok) throw new Error(await readError(res, 'Could not save the canned replies.'));
+      const data = await res.json();
+      onSaved(Array.isArray(data?.replies) ? data.replies : draft);
+      toast.success('Canned replies saved.');
+      onClose();
+    } catch (e) {
+      setError(errorText(e, 'Could not save the canned replies.'));
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      dismissible={!saving}
+      size="lg"
+      title="Canned replies"
+      description="Ready-made answers support can insert into a reply. Shared by every admin."
+      footer={<><Button onClick={onClose} disabled={saving}>Cancel</Button><Button variant="primary" loading={saving} onClick={save}>Save replies</Button></>}
+    >
+      <div className="space-y-3">
+        {error && <NoticeBox tone="danger"><span className="text-fg">{error}</span></NoticeBox>}
+        {draft.length === 0 && <p className="text-sm text-fg-muted">No canned replies yet.</p>}
+        {draft.map((r, i) => (
+          <div key={i} className="space-y-2 rounded-lg border border-line p-3">
+            <div className="flex items-end gap-2">
+              <Field label="Title" className="flex-1"><Input value={r.title} maxLength={60} onChange={e => set(i, { title: e.target.value })} /></Field>
+              <IconButton label={`Remove ${r.title || 'reply'}`} onClick={() => setDraft(prev => prev.filter((_, j) => j !== i))} className="mb-0.5 hover:text-danger-text"><IconTrash size={14} /></IconButton>
+            </div>
+            <Field label="Text"><Textarea rows={2} maxLength={1000} value={r.text} onChange={e => set(i, { text: e.target.value })} /></Field>
+          </div>
+        ))}
+        <Button leftIcon={<IconPlus size={14} />} disabled={draft.length >= 30} onClick={() => setDraft(prev => [...prev, { title: '', text: '' }])}>Add reply</Button>
+      </div>
+    </Modal>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 // C3 force update: per-app minimum / latest versions (backend/utils/appVersionPolicy.js).
 // GET/PUT /api/admin/app-versions (validated + audited on the server).
+import { useConfirm } from '@/components/ui';
 import { useCallback, useEffect, useState } from 'react';
 import { adminRequest as apiRequest } from '@/lib/api';
 
@@ -40,6 +41,7 @@ const toForm = (p: AppPolicy): Form => ({
 });
 
 export default function AppVersionsCard() {
+  const confirm = useConfirm();
   const [data, setData] = useState<PolicyResponse | null>(null);
   const [app, setApp] = useState<AppKey>('customer');
   const [form, setForm] = useState<Form | null>(null);
@@ -84,7 +86,7 @@ export default function AppVersionsCard() {
     const before = data.policy.apps[app];
     const label = data.labels[app];
     const raisingMin = (min && min !== before.minSupportedVersion) || (build && Number(build) !== (before.minSupportedBuild || 0));
-    if (raisingMin && !confirm(`Block every ${label} install older than ${min || '(any version)'}${build ? ` / build ${build}` : ''}? Those users will see only an "Update required" screen until they update from the store. Make sure that version is LIVE on the Play Store first.`)) return;
+    if (raisingMin && !(await confirm({ title: `Block every ${label} install older than ${min || '(any version)'}${build ? ` / build ${build}` : ''}? Those users will see only an "Update required" screen until they update from the store. Make sure that version is LIVE on the Play Store first.` }))) return;
     setSaving(true);
     try {
       const d = await apiRequest<PolicyResponse & { changed?: boolean }>('/api/admin/app-versions', {
@@ -117,7 +119,7 @@ export default function AppVersionsCard() {
   const toggleUnversioned = async () => {
     if (!data || saving) return;
     const next = !data.policy.blockUnversionedClients;
-    if (next && !confirm('Block OLD app builds that do not report their version at all? Every install from before the force-update release will stop working until updated. Web, admin and tests are not affected.')) return;
+    if (next && !(await confirm({ title: 'Block OLD app builds that do not report their version at all? Every install from before the force-update release will stop working until updated. Web, admin and tests are not affected.' }))) return;
     setSaving(true);
     setError(null);
     setNotice(null);

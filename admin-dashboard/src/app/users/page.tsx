@@ -1,4 +1,5 @@
 "use client";
+import { readableText } from '@/components/ui/Readable';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { API_URL } from '@/lib/config';
@@ -6,7 +7,7 @@ import { useLiveSync } from '@/lib/useLiveSync';
 import { WalletLedgerModal, WalletReconcileCard } from '@/components/wallet/WalletLedger';
 import {
   Badge, Button, DataTable, DescriptionList, Drawer, Field, Input, Notice as NoticeBox, PageHeader, SearchInput, Tabs, Toolbar,
-  useConfirm, type Column, IconHistory,
+  useConfirm, type Column, IconHistory, ButtonLink, IconDownload,
 } from '@/components/ui';
 import { formatDateTime, formatINR, formatPhone, humanize } from '@/lib/format';
 
@@ -47,18 +48,29 @@ async function readError(res: Response, fallback: string): Promise<string> {
 /** Audit `details` is stored as a JSON string; show it as readable key: value pairs. */
 function formatDetails(details: string | null): string {
   if (!details) return '—';
-  try {
-    const parsed = JSON.parse(details);
-    if (parsed && typeof parsed === 'object') {
-      return Object.entries(parsed)
-        .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
-        .join(' · ');
-    }
-  } catch { /* plain text */ }
-  return details;
+  return readableText(details);
 }
 
 const isAdminRole = (u: User) => String(u.role || '').toLowerCase() === 'admin';
+
+/** CSV cell: spreadsheet formula injection guarded ("=HYPERLINK(...)" stays text), quotes escaped. */
+const csvCell = (v: unknown) => {
+  let s = String(v ?? '');
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+const downloadCsv = (name: string, head: string[], rows: unknown[][]) => {
+  const csv = [head, ...rows].map(r => r.map(csvCell).join(',')).join('\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
 
 const money = (n: number | null | undefined) => formatINR(Number(n || 0));
 
@@ -366,7 +378,20 @@ export default function UserManagement() {
         <WalletReconcileCard />
       ) : activeTab === 'roster' ? (
         <>
-          <Toolbar end={<span className="text-sm tabular-nums text-fg-muted">{totalUsers.toLocaleString('en-IN')} accounts</span>}>
+          <Toolbar end={
+            <>
+              <span className="text-sm tabular-nums text-fg-muted">{totalUsers.toLocaleString('en-IN')} accounts</span>
+              <Button
+                leftIcon={<IconDownload size={14} />}
+                disabled={filteredUsers.length === 0}
+                onClick={() => downloadCsv(`zenvy_customers_page${userPage}_${new Date().toISOString().slice(0, 10)}.csv`,
+                  ['Customer ID', 'Name', 'Phone', 'Email', 'Hostel block', 'Account', 'Elite', 'Status', 'Wallet (INR)'],
+                  filteredUsers.map(u => [u._id, u.name || '', u.phone || '', u.email || '', u.hostelBlock || '', u.role || 'student', u.isElite ? 'Yes' : 'No', u.isActive ? 'Active' : 'Suspended', Number(u.walletBalance || 0)]))}
+              >
+                Export page (CSV)
+              </Button>
+            </>
+          }>
             <SearchInput value={search} onChange={setSearch} placeholder="Search name, phone or email" className="sm:w-80" />
           </Toolbar>
           <DataTable
@@ -422,6 +447,11 @@ export default function UserManagement() {
                 { label: 'Customer ID', value: <span className="break-all font-mono text-xs">{detail._id}</span> },
               ]}
             />
+
+            <div className="flex flex-wrap gap-2">
+              <ButtonLink size="sm" href={`/orders?customer=${encodeURIComponent(detail._id)}&name=${encodeURIComponent(detail.name || detail.phone || 'Customer')}`}>Orders</ButtonLink>
+              {detail.phone && <ButtonLink size="sm" href={`/tickets?search=${encodeURIComponent(String(detail.phone).replace(/\D/g, '').slice(-10))}`}>Support tickets</ButtonLink>}
+            </div>
 
             <section className="space-y-3 rounded-lg border border-line p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">

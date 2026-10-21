@@ -1,4 +1,5 @@
 "use client";
+import { useConfirm } from '@/components/ui';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAdminAuth } from '@/utils/useAdminAuth';
@@ -103,6 +104,7 @@ function Toggle({ checked, onChange, disabled, labelText }: { checked: boolean; 
 }
 
 export default function FriendsConfigPage() {
+  const confirm = useConfirm();
   const { isAuthed } = useAdminAuth();
   const [data, setData] = useState<ConfigResponse | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -194,7 +196,7 @@ export default function FriendsConfigPage() {
     if (typeof patch.body.connectConsentVersion === 'number') lines.push(`Connect consent v${patch.body.connectConsentVersion}: Connect users must consent again.`);
     const on = Object.entries((patch.body.features || {}) as Record<string, boolean>).filter(([, v]) => v).map(([f]) => f);
     if (on.length) lines.push(`Turn ON: ${on.join(', ')} (only shipped phases go live).`);
-    if (lines.length && !window.confirm(`${lines.join('\n')}\n\nSave these changes?`)) return;
+    if (lines.length && !(await confirm({ title: `${lines.join('\n')}\n\nSave these changes?` }))) return;
     setSaving(true);
     try {
       const res = await adminRequest<ConfigResponse>('/api/campus/mod/config', { method: 'PUT', body: JSON.stringify(patch.body) });

@@ -23,6 +23,10 @@ const initTicketModel = (sequelize) => {
       defaultValue: 'Medium'
     },
     slaBreachAt: { type: DataTypes.DATE, allowNull: true },
+    // Admin who owns the ticket (set from the admin dashboard; name kept so the list needs no join).
+    // Added to existing databases by config/db.js addMissingColumns.
+    assigneeId: { type: DataTypes.UUID, allowNull: true },
+    assigneeName: { type: DataTypes.STRING(120), allowNull: true },
     // Whole support conversation as text (every reply, oldest first, each stamped with its IST
     // time). Apps render it as-is; `responses` holds the same replies as structured data.
     adminResponse: { type: DataTypes.TEXT, allowNull: true },

@@ -1,4 +1,5 @@
 "use client";
+import { useConfirm, usePrompt } from '@/components/ui';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAdminAuth } from '@/utils/useAdminAuth';
@@ -178,16 +179,25 @@ function Stat({ k, v, tone, onClick }: { k: string; v: number | string; tone?: s
   return <div className="rounded-lg border border-line bg-surface-2/60 p-4">{body}</div>;
 }
 
-const askReason = (what: string, required = true): string | null => {
-  const r = window.prompt(`${what}${required ? ' (the student sees it; at least 3 characters)' : ' (optional note for the audit log)'}:`, '');
-  if (r === null) return null;
-  if (required && r.trim().length < 3) { window.alert('Please give a reason of at least 3 characters.'); return null; }
-  return r.trim();
+// Reason form (was a browser prompt): required reasons need at least 3 characters.
+const useAskReason = () => {
+  const ask = usePrompt();
+  return async (what: string, required = true): Promise<string | null> => {
+    const r = await ask({
+      title: what,
+      label: required ? 'Reason (the student sees it)' : 'Note for the audit log',
+      hint: required ? 'At least 3 characters.' : 'Optional.',
+      minLength: required ? 3 : 0,
+      defaultValue: '',
+    });
+    return r === null ? null : r.trim();
+  };
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
 
 export default function ConnectAdminPage() {
+  const confirm = useConfirm();
   const { isAuthed } = useAdminAuth();
   const [tab, setTab] = useState<Tab>('overview');
   const [campuses, setCampuses] = useState<Campus[]>([]);
@@ -299,8 +309,8 @@ export default function ConnectAdminPage() {
     }
   };
 
-  const runJobs = () => {
-    if (!window.confirm('Run the Connect clean-up now? It deletes chats of matches that ended more than the retention period ago, and selfies that were never reviewed. It also runs every hour on its own.')) return;
+  const runJobs = async () => {
+    if (!(await confirm({ title: 'Run the Connect clean-up now? It deletes chats of matches that ended more than the retention period ago, and selfies that were never reviewed. It also runs every hour on its own.' }))) return;
     act(async () => {
       const r = await adminRequest<{ stats: JobStats }>('/api/campus/connect/admin/jobs/run', { method: 'POST' });
       setJobStats(r.stats);
@@ -444,10 +454,11 @@ function PhotosTab({ items, loading, error, reload, more, status, setStatus, bus
   items: AdminPhoto[]; loading: boolean; error?: string; reload: () => void; more: (() => void) | null;
   status: string; setStatus: (v: string) => void; busy: boolean; act: Act; afterAction: () => void; isFresh: (id: string) => boolean;
 }) {
-  const decide = (p: AdminPhoto, decision: 'approve' | 'reject') => {
+  const askReason = useAskReason();
+  const decide = async (p: AdminPhoto, decision: 'approve' | 'reject') => {
     let reason = '';
     if (decision === 'reject') {
-      const r = askReason('Why is this photo rejected? It is deleted at once');
+      const r = await askReason('Why is this photo rejected? It is deleted at once');
       if (r === null) return;
       reason = r;
     }
@@ -509,12 +520,14 @@ function LivenessTab({ items, info, loading, error, reload, status, setStatus, b
   items: LivenessItem[]; info: LivenessInfo | null; loading: boolean; error?: string; reload: () => void;
   status: string; setStatus: (v: string) => void; busy: boolean; act: Act; afterAction: () => void; isFresh: (id: string) => boolean;
 }) {
-  const decide = (it: LivenessItem, pass: boolean) => {
+  const confirm = useConfirm();
+  const askReason = useAskReason();
+  const decide = async (it: LivenessItem, pass: boolean) => {
     let reason = '';
     if (pass) {
-      if (!window.confirm(`Pass the selfie check for ${it.displayName || 'this student'}? The selfie is deleted after the decision.`)) return;
+      if (!(await confirm({ title: `Pass the selfie check for ${it.displayName || 'this student'}? The selfie is deleted after the decision.` }))) return;
     } else {
-      const r = askReason('Why does the selfie check fail? The student can try again');
+      const r = await askReason('Why does the selfie check fail? The student can try again');
       if (r === null) return;
       reason = r;
     }
@@ -595,6 +608,8 @@ function LivenessTab({ items, info, loading, error, reload, status, setStatus, b
 // ── Profiles ─────────────────────────────────────────────────────────────────
 
 function ProfilesTab({ campuses, busy, act, afterAction }: { campuses: Campus[]; busy: boolean; act: Act; afterAction: () => void }) {
+  const confirm = useConfirm();
+  const askReason = useAskReason();
   const [items, setItems] = useState<ProfileRow[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -647,16 +662,16 @@ function ProfilesTab({ campuses, busy, act, afterAction }: { campuses: Campus[];
   const moderate = async (id: string, action: 'hide' | 'remove' | 'restore' | 'delete') => {
     let reason = '';
     if (action === 'delete') {
-      if (!window.confirm('Delete this Connect profile? It removes the profile, all photos and selfies, swipes, matches and their chats. Report evidence is kept. This cannot be undone.')) return;
-      const r = askReason('Reason for deleting');
+      if (!(await confirm({ title: 'Delete this Connect profile? It removes the profile, all photos and selfies, swipes, matches and their chats. Report evidence is kept. This cannot be undone.' }))) return;
+      const r = await askReason('Reason for deleting');
       if (r === null) return;
       reason = r;
     } else if (action === 'restore') {
-      const r = askReason('Restore this profile', false);
+      const r = await askReason('Restore this profile', false);
       if (r === null) return;
       reason = r;
     } else {
-      const r = askReason(action === 'remove' ? 'Why is this profile removed? Its active matches end' : 'Why is this profile hidden?');
+      const r = await askReason(action === 'remove' ? 'Why is this profile removed? Its active matches end' : 'Why is this profile hidden?');
       if (r === null) return;
       reason = r;
     }
@@ -882,6 +897,7 @@ function HelplineEditor({ list, onChange }: { list: Helpline[]; onChange: (l: He
 }
 
 function SettingsTab({ campuses, busy, act }: { campuses: Campus[]; busy: boolean; act: Act }) {
+  const confirm = useConfirm();
   const [s, setS] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -931,9 +947,9 @@ function SettingsTab({ campuses, busy, act }: { campuses: Campus[]; busy: boolea
   ];
   const consentBump = consentVersion > s.connectConsentVersion;
 
-  const save = () => {
+  const save = async () => {
     if (errors.length) return;
-    if (consentBump && !window.confirm(`Raise the Connect consent version to ${consentVersion}? Every student on Connect must accept the notice again before using it.`)) return;
+    if (consentBump && !(await confirm({ title: `Raise the Connect consent version to ${consentVersion}? Every student on Connect must accept the notice again before using it.` }))) return;
     const body: Record<string, unknown> = {
       policyText,
       helplines: cleanHelplines(helplines),

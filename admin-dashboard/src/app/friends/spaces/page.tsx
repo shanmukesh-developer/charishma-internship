@@ -1,4 +1,5 @@
 "use client";
+import { useConfirm, usePrompt, useToast } from '@/components/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAdminAuth } from '@/utils/useAdminAuth';
@@ -146,6 +147,9 @@ function Drawer({ title, onClose, children }: { title: string; onClose: () => vo
 // ═════════════════════════════════════════════════════════════════════════════
 
 export default function SpacesAdminPage() {
+  const notifyError = useToast().error;
+  const ask = usePrompt();
+  const confirm = useConfirm();
   const { isAuthed } = useAdminAuth();
   const [tab, setTab] = useState<Tab>('live');
   const [campuses, setCampuses] = useState<Campus[]>([]);
@@ -270,9 +274,9 @@ export default function SpacesAdminPage() {
 
   const forceEnd = async (s: AdminSpace) => {
     const what = s.status === 'live' ? 'End this live Space for everyone' : 'Cancel this scheduled Space';
-    const reason = window.prompt(`${what}: "${s.title}"\n\nReason for the audit log (at least 5 characters):`, '');
+    const reason = (await ask({ title: `${what}: "${s.title}"\n\nReason for the audit log (at least 5 characters):`, label: 'Reason', defaultValue: '', minLength: 5 }));
     if (reason === null) return;
-    if (reason.trim().length < 5) { window.alert('Please give a reason of at least 5 characters.'); return; }
+    if (reason.trim().length < 5) { notifyError('Please give a reason of at least 5 characters.'); return; }
     setBusy(true);
     try {
       await adminRequest(`/api/campus/spaces/admin/spaces/${encodeURIComponent(s.id)}/end`, { method: 'POST', body: JSON.stringify({ reason: reason.trim() }) });
@@ -290,7 +294,7 @@ export default function SpacesAdminPage() {
   };
 
   const runJobs = async () => {
-    if (!window.confirm('Run the Spaces jobs now? This sends due reminders, expires scheduled Spaces nobody started, and ends abandoned rooms. They also run on their own every 15 seconds.')) return;
+    if (!(await confirm({ title: 'Run the Spaces jobs now? This sends due reminders, expires scheduled Spaces nobody started, and ends abandoned rooms. They also run on their own every 15 seconds.' }))) return;
     setBusy(true);
     try {
       const r = await adminRequest<{ stats: JobStats }>('/api/campus/spaces/admin/jobs/run', { method: 'POST' });

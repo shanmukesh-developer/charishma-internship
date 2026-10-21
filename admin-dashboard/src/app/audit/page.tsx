@@ -1,4 +1,5 @@
 "use client";
+import { readableText } from '@/components/ui/Readable';
 import { useState, useEffect, useCallback } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { API_URL } from '@/lib/config';
@@ -36,13 +37,8 @@ const shortRef = (v: string | null) => {
 /** Pretty-print JSON details ({"code":"X"} → code: X) and leave plain text alone. */
 const formatDetails = (raw: string | null) => {
   if (!raw) return '';
-  try {
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object') {
-      return Object.entries(parsed).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`).join(' · ');
-    }
-  } catch { /* plain text */ }
-  return raw;
+  // Readable labels and values (dates in IST, Yes / No, nested values in brackets) instead of raw JSON.
+  return readableText(raw);
 };
 
 const actionTone = (action: string) => {

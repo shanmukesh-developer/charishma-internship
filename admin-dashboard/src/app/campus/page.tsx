@@ -1,4 +1,5 @@
 "use client";
+import { useConfirm } from '@/components/ui';
 import { useCallback, useEffect, useState } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { adminRequest } from '@/lib/api';
@@ -55,6 +56,7 @@ const btn = 'rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-40';
 const EMPTY_EVENT = { title: '', startsAt: '', endsAt: '', location: '', category: 'general', description: '' };
 
 export default function CampusAdminPage() {
+  const confirm = useConfirm();
   const { isAuthed } = useAdminAuth();
   const [notice, setNotice] = useState<Notice>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -148,8 +150,8 @@ export default function CampusAdminPage() {
     return `Mess menu saved for ${meal} on ${menuDate}.`;
   });
 
-  const removeMenu = (m: SavedMenu) => {
-    if (!confirm(`Remove the ${m.meal} menu for ${m.menuDate}?`)) return;
+  const removeMenu = async (m: SavedMenu) => {
+    if (!(await confirm({ title: `Remove the ${m.meal} menu for ${m.menuDate}?` }))) return;
     run(`menu-${m.id}`, async () => {
       await adminRequest(`/api/campus/admin/mess-menu/${encodeURIComponent(m.id)}`, { method: 'DELETE' });
       setSavedMenus(prev => prev.filter(x => x.id !== m.id));
@@ -198,8 +200,8 @@ export default function CampusAdminPage() {
     });
   };
 
-  const deleteEvent = (e: CampusEvent) => {
-    if (!confirm(`Delete the event "${e.title}"? Students will no longer see it.`)) return;
+  const deleteEvent = async (e: CampusEvent) => {
+    if (!(await confirm({ title: `Delete the event "${e.title}"? Students will no longer see it.` }))) return;
     run(`event-${e.id}`, async () => {
       await adminRequest(`/api/campus/admin/events/${encodeURIComponent(e.id)}`, { method: 'DELETE' });
       if (editingId === e.id) { setEditingId(null); setEventForm(EMPTY_EVENT); }

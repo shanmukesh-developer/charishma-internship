@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirm } from '@/components/ui';
 import React, { useState, useEffect, useCallback, useRef, useMemo, useDeferredValue } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { API_URL } from '@/lib/config';
@@ -68,6 +69,7 @@ const randomCode = () => {
 };
 
 export default function CouponManagement() {
+  const confirm = useConfirm();
   const { isAuthed } = useAdminAuth();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
@@ -247,7 +249,7 @@ export default function CouponManagement() {
   const handleDeleteCoupon = async (coupon: Coupon) => {
     if (inFlight.current) return;
     const owner = coupon.user?.name ? ` from ${coupon.user.name}` : '';
-    if (!confirm(`Revoke coupon ${coupon.code}${owner}? The customer will no longer be able to use it. This cannot be undone.`)) return;
+    if (!(await confirm({ title: `Revoke coupon ${coupon.code}${owner}? The customer will no longer be able to use it. This cannot be undone.` }))) return;
     const id = coupon.id || coupon._id;
     inFlight.current = true;
     setRevokingId(id);

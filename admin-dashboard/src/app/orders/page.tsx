@@ -6,7 +6,7 @@ import { API_URL } from '@/lib/config';
 import { formatDateTime, formatINR, humanize } from '@/lib/format';
 import {
   Badge, Button, DataTable, DescriptionList, Drawer, Field, Modal, Notice as NoticeBox, PageHeader, SegmentedControl, Select,
-  StatusPill, Textarea, Toolbar, useConfirm, type Column, type Tone, IconRefresh, IconExternal, IconX,
+  StatusPill, Textarea, Toolbar, useConfirm, type Column, type Tone, IconRefresh, IconExternal, IconX, IconDownload,
 } from '@/components/ui';
 import { useLiveSync, useFreshIds, liveLabel, FRESH_ROW_CLASS } from '@/lib/useLiveSync';
 import { useVisibleInterval } from '@/lib/useVisibleInterval';
@@ -96,6 +96,25 @@ const orderId = (o: { _id?: string; id?: string }) => String(o._id || o.id || ''
 const shortId = (id: string) => `#${id.slice(-6).toUpperCase()}`;
 const rupees = (n: number | null | undefined) => formatINR(Number(n || 0));
 const grandTotal = (o: Order) => (o.finalPrice ?? o.totalPrice ?? 0);
+
+/** CSV cell: spreadsheet formula injection guarded ("=HYPERLINK(...)" stays text), quotes escaped. */
+const csvCell = (v: unknown) => {
+  let s = String(v ?? '');
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+const downloadCsv = (name: string, head: string[], rows: unknown[][]) => {
+  const csv = [head, ...rows].map(r => r.map(csvCell).join(',')).join('\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
 const isLegacyUpiPending = (o: Order) => o.paymentMethod === 'UPI' && o.upiStatus === 'Pending' && !TERMINAL.includes(o.status);
 
 const parseJson = <T,>(v: T | string | null | undefined): T | null => {
@@ -235,12 +254,16 @@ export default function OrdersPage() {
   const [stuckHours, setStuckHours] = useState<number | null>(null);
   // ?store=<id> (from Stores → a store → "All orders").
   const [storeFilter, setStoreFilter] = useState<string | null>(null);
+  // ?customer=<user id>&name= (from Customers → a customer → Orders).
+  const [customerFilter, setCustomerFilter] = useState<{ id: string; name: string } | null>(null);
   // The first load waits until ?store= has been read, so a store link does not fetch twice.
   const [filtersReady, setFiltersReady] = useState(false);
   useEffect(() => {
     const qs = new URLSearchParams(window.location.search);
     const sid = qs.get('store');
     if (sid) setStoreFilter(sid);
+    const cid = qs.get('customer');
+    if (cid) setCustomerFilter({ id: cid, name: qs.get('name') || 'One customer' });
     // ?stuck=<hours> (overview "Stall orders stuck" tile).
     const stuck = Number(qs.get('stuck'));
     if (Number.isFinite(stuck) && stuck >= 1 && stuck <= 72) setStuckHours(Math.round(stuck));
@@ -250,6 +273,13 @@ export default function OrdersPage() {
     setStoreFilter(null);
     const url = new URL(window.location.href);
     url.searchParams.delete('store');
+    window.history.replaceState(window.history.state, '', url.toString());
+  };
+  const clearCustomerFilter = () => {
+    setCustomerFilter(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('customer');
+    url.searchParams.delete('name');
     window.history.replaceState(window.history.state, '', url.toString());
   };
   const [notice, setNotice] = useState<Notice>(null);
@@ -275,6 +305,7 @@ export default function OrdersPage() {
       if (stuckHours) params.set('stuckHours', String(stuckHours));
       else if (filterFulfilment !== 'All') params.set('fulfilment', filterFulfilment);
       if (storeFilter) params.set('restaurantId', storeFilter);
+      if (customerFilter) params.set('userId', customerFilter.id);
       const data = await requestJson<{ orders?: Order[]; total?: number; pages?: number }>(`${API_URL}/api/admin/orders?${params}`);
       if (seq !== requestSeq.current) return; // a newer request (filter/page change) superseded this one
       setOrders(Array.isArray(data.orders) ? data.orders : []);
@@ -289,7 +320,7 @@ export default function OrdersPage() {
     } finally {
       if (seq === requestSeq.current && showSpinner) setLoading(false);
     }
-  }, [filterStatus, filterFulfilment, storeFilter, stuckHours]);
+  }, [filterStatus, filterFulfilment, storeFilter, stuckHours, customerFilter]);
 
   /** Coalesces bursts of socket events into one quiet refresh. */
   const scheduleRefresh = useCallback(() => {
@@ -532,7 +563,20 @@ export default function OrdersPage() {
         title="Orders"
         description="Every food and store order: status, rider, payment and refunds. Select an order to see details and support actions."
         meta={<Badge tone={isConnected ? 'success' : 'warning'} dot>{isConnected ? 'Live' : 'Refreshing every 20 seconds'}</Badge>}
-        actions={<Button leftIcon={<IconRefresh size={14} />} loading={loading} onClick={() => fetchOrders(currentPage)}>Refresh</Button>}
+        actions={
+          <>
+            <Button
+              leftIcon={<IconDownload size={14} />}
+              disabled={visibleOrders.length === 0}
+              onClick={() => downloadCsv(`zenvy_orders_page${currentPage}_${new Date().toISOString().slice(0, 10)}.csv`,
+                ['Order ID', 'Placed (IST)', 'Customer', 'Phone', 'Store', 'Status', 'Payment', 'Payment status', 'Total (INR)', 'Delivered by'],
+                visibleOrders.map(o => [orderId(o), formatDateTime(o.createdAt), o.user?.name || '', o.user?.phone || '', o.restaurant?.name || '', statusLabel(o.status), o.paymentMethod || '', o.paymentStatus || '', grandTotal(o), isVendorOrder(o) ? 'Stall' : 'Zenvy rider']))}
+            >
+              Export page (CSV)
+            </Button>
+            <Button leftIcon={<IconRefresh size={14} />} loading={loading} onClick={() => fetchOrders(currentPage)}>Refresh</Button>
+          </>
+        }
       />
 
       <Toolbar end={<span className="text-sm tabular-nums text-fg-muted">{totalOrders.toLocaleString('en-IN')} orders</span>}>
@@ -557,6 +601,12 @@ export default function OrdersPage() {
           <Select aria-label="Stuck for at least" value={stuckHours} onChange={e => setStuckHours(Number(e.target.value))} className="w-auto">
             {[2, 4, 6, 12, 24, 48].map(h => <option key={h} value={h}>Open {h} h or more</option>)}
           </Select>
+        )}
+        {customerFilter && (
+          <span className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line bg-surface-2 pl-2.5 pr-1 text-sm text-fg">
+            Customer: {customerFilter.name}
+            <button type="button" onClick={clearCustomerFilter} aria-label="Show all customers" className="rounded p-1 text-fg-subtle hover:bg-surface-3 hover:text-fg"><IconX size={12} /></button>
+          </span>
         )}
         {storeFilter && (
           <span className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line bg-surface-2 pl-2.5 pr-1 text-sm text-fg">

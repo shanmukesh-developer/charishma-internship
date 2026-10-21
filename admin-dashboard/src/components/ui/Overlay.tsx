@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -183,7 +184,7 @@ export function Drawer({
   );
 }
 
-/* ------------------------------------------------------------------ Confirm dialog */
+/* ------------------------------------------------------------------ Confirm and prompt dialogs */
 
 export interface ConfirmOptions {
   title: string;
@@ -196,8 +197,28 @@ export interface ConfirmOptions {
   requireText?: string;
 }
 
+/** Text input version (replaces window.prompt): resolves to the text, or null when cancelled. */
+export interface PromptOptions extends Omit<ConfirmOptions, 'requireText'> {
+  label?: string;
+  defaultValue?: string;
+  placeholder?: string;
+  hint?: string;
+  /** Minimum length after trimming (the confirm button stays disabled until it is met). */
+  minLength?: number;
+  maxLength?: number;
+  multiline?: boolean;
+}
+
 type ConfirmFn = (opts: ConfirmOptions) => Promise<boolean>;
-const ConfirmContext = createContext<ConfirmFn | null>(null);
+type PromptFn = (opts: PromptOptions) => Promise<string | null>;
+const ConfirmContext = createContext<{ confirm: ConfirmFn; prompt: PromptFn } | null>(null);
+
+/** A message written for window.confirm ("Title?\n\nDetails") becomes a title and a description. */
+const splitMessage = <T extends { title: string; description?: ReactNode }>(o: T): T => {
+  if (o.description !== undefined || !o.title.includes('\n')) return o;
+  const [first, ...rest] = o.title.split('\n');
+  return { ...o, title: first.trim(), description: <span className="whitespace-pre-line">{rest.join('\n').trim()}</span> };
+};
 
 /**
  * `const confirm = useConfirm(); if (!(await confirm({ title: 'Delete item?', tone: 'danger' }))) return;`
@@ -205,45 +226,85 @@ const ConfirmContext = createContext<ConfirmFn | null>(null);
  */
 export function useConfirm(): ConfirmFn {
   const ctx = useContext(ConfirmContext);
-  return ctx || (async (o: ConfirmOptions) => window.confirm(typeof o.description === 'string' ? `${o.title}\n\n${o.description}` : o.title));
+  return ctx?.confirm || (async (o: ConfirmOptions) => window.confirm(typeof o.description === 'string' ? `${o.title}\n\n${o.description}` : o.title));
 }
 
+/** `const ask = usePrompt(); const reason = await ask({ title: 'Reason', minLength: 5 }); if (reason === null) return;` */
+export function usePrompt(): PromptFn {
+  const ctx = useContext(ConfirmContext);
+  return ctx?.prompt || (async (o: PromptOptions) => window.prompt(o.title, o.defaultValue));
+}
+
+type Req =
+  | ({ kind: 'confirm'; resolve: (v: boolean) => void } & ConfirmOptions)
+  | ({ kind: 'prompt'; resolve: (v: string | null) => void } & PromptOptions);
+
 export function ConfirmProvider({ children }: { children: ReactNode }) {
-  const [req, setReq] = useState<(ConfirmOptions & { resolve: (v: boolean) => void }) | null>(null);
+  const [req, setReq] = useState<Req | null>(null);
   const [typed, setTyped] = useState('');
-  const confirm = useCallback<ConfirmFn>(opts => new Promise<boolean>(resolve => { setTyped(''); setReq({ ...opts, resolve }); }), []);
-  const done = (v: boolean) => { req?.resolve(v); setReq(null); };
-  const blocked = !!req?.requireText && typed.trim() !== req.requireText.trim();
+  const confirm = useCallback<ConfirmFn>(opts => new Promise<boolean>(resolve => { setTyped(''); setReq({ kind: 'confirm', ...splitMessage(opts), resolve }); }), []);
+  const prompt = useCallback<PromptFn>(opts => new Promise<string | null>(resolve => { setTyped(opts.defaultValue || ''); setReq({ kind: 'prompt', ...splitMessage(opts), resolve }); }), []);
+  const api = useMemo(() => ({ confirm, prompt }), [confirm, prompt]);
+  const close = () => {
+    if (!req) return;
+    if (req.kind === 'confirm') req.resolve(false); else req.resolve(null);
+    setReq(null);
+  };
+  const accept = () => {
+    if (!req) return;
+    if (req.kind === 'confirm') req.resolve(true); else req.resolve(typed);
+    setReq(null);
+  };
+  const blocked = !!req && (req.kind === 'confirm'
+    ? !!req.requireText && typed.trim() !== req.requireText.trim()
+    : typed.trim().length < (req.minLength || 0));
   return (
-    <ConfirmContext.Provider value={confirm}>
+    <ConfirmContext.Provider value={api}>
       {children}
       <Modal
         open={!!req}
-        onClose={() => done(false)}
-        size="sm"
+        onClose={close}
+        size={req?.kind === 'prompt' ? 'md' : 'sm'}
         title={
           <span className="flex items-center gap-2">
-            {req?.tone === 'danger' && <span className="flex h-6 w-6 items-center justify-center rounded-full bg-danger-soft text-danger-text"><IconAlert size={14} /></span>}
+            {req?.tone === 'danger' && <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-danger-soft text-danger-text"><IconAlert size={14} /></span>}
             {req?.title}
           </span>
         }
         description={req?.description}
         footer={
           <>
-            <Button onClick={() => done(false)}>{req?.cancelLabel || 'Cancel'}</Button>
-            <Button variant={req?.tone === 'danger' ? 'destructive' : 'primary'} disabled={blocked} onClick={() => done(true)} data-autofocus={req?.requireText ? undefined : true}>
-              {req?.confirmLabel || (req?.tone === 'danger' ? 'Delete' : 'Confirm')}
+            <Button onClick={close}>{req?.cancelLabel || 'Cancel'}</Button>
+            <Button
+              variant={req?.tone === 'danger' ? 'destructive' : 'primary'}
+              disabled={blocked}
+              onClick={accept}
+              data-autofocus={req?.kind === 'confirm' && !req.requireText ? true : undefined}
+            >
+              {req?.confirmLabel || (req?.kind === 'prompt' ? 'Continue' : req?.tone === 'danger' ? 'Delete' : 'Confirm')}
             </Button>
           </>
         }
       >
-        {req?.requireText ? (
+        {req?.kind === 'confirm' && req.requireText ? (
           <div>
             <label htmlFor="zv-confirm-text" className="mb-1 block text-sm text-fg-muted">
               Type <span className="font-medium text-fg">{req.requireText}</span> to confirm.
             </label>
             <input id="zv-confirm-text" className="zv-control" value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" data-autofocus />
           </div>
+        ) : req?.kind === 'prompt' ? (
+          <form onSubmit={e => { e.preventDefault(); if (!blocked) accept(); }}>
+            <label htmlFor="zv-prompt-text" className="mb-1 block text-sm font-medium text-fg">{req.label || 'Your answer'}</label>
+            {req.multiline !== false ? (
+              <textarea id="zv-prompt-text" rows={3} className="zv-control" value={typed} maxLength={req.maxLength} placeholder={req.placeholder} onChange={e => setTyped(e.target.value)} data-autofocus />
+            ) : (
+              <input id="zv-prompt-text" className="zv-control" value={typed} maxLength={req.maxLength} placeholder={req.placeholder} onChange={e => setTyped(e.target.value)} autoComplete="off" data-autofocus />
+            )}
+            <p className="mt-1 text-xs text-fg-muted">
+              {req.hint || (req.minLength ? `At least ${req.minLength} characters.` : '')}
+            </p>
+          </form>
         ) : null}
       </Modal>
     </ConfirmContext.Provider>

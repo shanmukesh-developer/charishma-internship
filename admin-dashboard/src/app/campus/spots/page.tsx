@@ -1,4 +1,5 @@
 "use client";
+import { useConfirm } from '@/components/ui';
 import { useCallback, useEffect, useState } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { adminRequest } from '@/lib/api';
@@ -39,6 +40,7 @@ const btn = 'rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-40';
 const errText = (e: unknown, fallback: string) => (e instanceof Error && e.message ? e.message : fallback);
 
 export default function CampusSpotsPage() {
+  const confirm = useConfirm();
   const { isAuthed } = useAdminAuth();
   const [spots, setSpots] = useState<Spot[]>([]);
   const [campuses, setCampuses] = useState<Campus[]>([]);
@@ -137,8 +139,8 @@ export default function CampusSpotsPage() {
     return s.isActive ? `"${s.name}" is hidden from the app.` : `"${s.name}" is visible in the app.`;
   });
 
-  const remove = (s: Spot) => {
-    if (!confirm(`Delete "${s.name}"? Its chat room and messages are removed for everyone. To hide it for now, disable it instead.`)) return;
+  const remove = async (s: Spot) => {
+    if (!(await confirm({ title: `Delete "${s.name}"? Its chat room and messages are removed for everyone. To hide it for now, disable it instead.` }))) return;
     run(`delete-${s.id}`, async () => {
       await adminRequest(`/api/campus/admin/spots/${s.id}`, { method: 'DELETE' });
       if (editingId === s.id) resetForm();

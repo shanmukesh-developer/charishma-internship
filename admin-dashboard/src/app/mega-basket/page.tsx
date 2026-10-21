@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirm } from '@/components/ui';
 import { useEffect, useRef, useState } from 'react';
 import { API_URL } from '@/lib/config';
 import { useAdminAuth } from '@/utils/useAdminAuth';
@@ -66,6 +67,7 @@ const ADMIN_CANCELLABLE = new Set(['Created', 'PaidEstimate', 'PartnerAssigned',
 const STATUSES = ['Created', 'PaidEstimate', 'PartnerAssigned', 'Shopping', 'PriceApprovalPending', 'Approved', 'Purchased', 'Delivering', 'Delivered', 'Cancelled'];
 
 export default function MegaBasketAdminPage() {
+  const confirm = useConfirm();
   const { isAuthed } = useAdminAuth();
   const [baskets, setBaskets] = useState<MegaBasket[]>([]);
   const [status, setStatus] = useState('All');
@@ -81,7 +83,7 @@ export default function MegaBasketAdminPage() {
     if (cancellingId) return;
     const who = basket.user?.name || 'the student';
     const shopping = ['Shopping', 'PriceApprovalPending', 'Approved', 'Purchased', 'Delivering'].includes(basket.status);
-    if (!confirm(`Cancel ${who}'s basket #${basket.id.slice(-8).toUpperCase()}?${shopping ? ' The shopper has already started; tell them to stop before you cancel.' : ''} This cannot be undone.`)) return;
+    if (!(await confirm({ title: `Cancel ${who}'s basket #${basket.id.slice(-8).toUpperCase()}?${shopping ? ' The shopper has already started; tell them to stop before you cancel.' : ''} This cannot be undone.` }))) return;
     setCancellingId(basket.id);
     setNotice(null);
     try {
