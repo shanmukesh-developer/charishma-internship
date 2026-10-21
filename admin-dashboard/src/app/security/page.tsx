@@ -5,7 +5,11 @@
  * in the dashboard), enable with a code, one-time recovery codes (copy / download), new codes, turn off.
  * Endpoints: GET /api/admin/2fa/status, POST /api/admin/2fa/setup | enable | disable | recovery-codes.
  */
-import { useConfirm } from '@/components/ui';
+import {
+  Button, Card, CardBody, CardFooter, CardHeader, DescriptionList, Input, Notice, PageHeader, Skeleton, StatusPill, useConfirm,
+  IconCopy, IconDownload,
+} from '@/components/ui';
+import { formatDateTime, formatTime } from '@/lib/format';
 import { useCallback, useEffect, useState } from 'react';
 import { adminRequest } from '@/lib/api';
 import { getAuthState, startSession, verifySession } from '@/lib/session';
@@ -21,10 +25,6 @@ interface Status {
 }
 interface Setup { otpauthUri: string; secret: string; account: string; issuer: string; expiresInMinutes: number }
 
-const box = 'rounded-lg border border-line bg-surface-2/60 p-6 space-y-4';
-const btn = 'px-5 py-3 rounded-xl bg-accent text-accent-fg text-xs font-semibold hover:bg-surface-2 disabled:opacity-50';
-const btn2 = 'px-5 py-3 rounded-xl border border-line text-xs font-semibold text-fg-muted hover:bg-surface-2/60 disabled:opacity-50';
-const input = 'w-full max-w-xs bg-surface-2/60 border border-line rounded-xl py-3 px-4 text-fg font-semibold outline-none focus:border-accent text-center';
 
 /** Swap in the new session token the server issued (enable / disable revoke the old ones). */
 const adoptToken = async (token?: string) => {
@@ -82,7 +82,7 @@ export default function SecurityPage() {
     await load();
   });
   const disable = () => run(async () => {
-    if (!(await confirm({ title: 'Turn off 2-step sign-in for this admin account? Other sessions will be signed out.' }))) return;
+    if (!(await confirm({ title: 'Turn off 2-step sign-in?', description: 'This admin account will sign in with a password only. Other sessions will be signed out.', confirmLabel: 'Turn off', tone: 'danger' }))) return;
     const c = offCode.trim();
     const body = /^[0-9 ]+$/.test(c) ? { code: c.split(' ').join('') } : { recoveryCode: c };
     const r = await adminRequest<{ token: string; message: string }>('/api/admin/2fa/disable', { method: 'POST', body: JSON.stringify(body) });
@@ -109,65 +109,104 @@ export default function SecurityPage() {
   };
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-fg">Account security</h1>
-        <p className="mt-1 max-w-3xl text-sm text-fg-muted">2-step sign-in: after your password, a 6-digit code from an authenticator app on your phone.</p>
+    <div className="max-w-3xl text-fg">
+      <PageHeader
+        title="Account security"
+        description="2-step sign-in: after your password, a 6-digit code from an authenticator app on your phone."
+      />
+
+      <div className="space-y-4">
+        {user?.mfaSetupRequired && (
+          <Notice tone="warning" title="Set up 2-step sign-in to continue">2-step sign-in is required for admin accounts. Set it up below to use the dashboard.</Notice>
+        )}
+        {msg && <Notice tone="success" onClose={() => setMsg('')}>{msg}</Notice>}
+        {err && <Notice tone="danger" onClose={() => setErr('')}>{err}</Notice>}
+
+        <Card>
+          <CardHeader
+            title="2-step sign-in"
+            actions={status ? <StatusPill status={status.enabled ? 'on' : 'off'} tone={status.enabled ? 'success' : 'warning'} label={status.enabled ? 'On' : 'Off'} /> : undefined}
+          />
+          <CardBody className="space-y-3">
+            {!status ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <DescriptionList
+                columns={2}
+                items={[
+                  { label: 'Status', value: status.enabled ? `On${status.enabledAt ? ` since ${formatDateTime(status.enabledAt)}` : ''}` : 'Off' },
+                  ...(status.enabled ? [{ label: 'Recovery codes left', value: String(status.recoveryCodesLeft) }] : []),
+                ]}
+              />
+            )}
+            {status?.locked && <Notice tone="danger">Locked after too many wrong codes until {status.lockedUntil ? formatTime(status.lockedUntil) : 'later'}.</Notice>}
+          </CardBody>
+          {status && !status.enabled && !setup && (
+            <CardFooter>
+              <Button variant="primary" loading={busy} onClick={startSetup}>Set up 2-step sign-in</Button>
+            </CardFooter>
+          )}
+        </Card>
+
+        {setup && (
+          <Card>
+            <CardHeader title="Set up 2-step sign-in" description={`This key expires in ${setup.expiresInMinutes} minutes if not confirmed.`} />
+            <CardBody className="space-y-5">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-fg">1. Add the key to Google Authenticator (or any TOTP app)</p>
+                <p className="text-sm text-fg-muted">In the app: + → Enter a setup key. Account: <span className="text-fg">{setup.issuer}</span>, key below, type: Time based.</p>
+                <p className="select-all break-all rounded-md border border-line bg-surface-2 p-3 font-mono text-base text-fg">{setup.secret}</p>
+                <p className="break-all text-xs text-fg-muted">Or open this link on the phone: <a className="text-accent-text hover:underline" href={setup.otpauthUri}>{setup.otpauthUri}</a></p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-fg">2. Enter the 6-digit code the app shows</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    className="w-40 text-center font-mono tracking-widest"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={7}
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && enable()}
+                    placeholder="123456"
+                    aria-label="6-digit code"
+                  />
+                  <Button variant="primary" disabled={code.split(' ').join('').length !== 6} loading={busy} onClick={enable}>Turn on</Button>
+                  <Button variant="ghost" disabled={busy} onClick={() => setSetup(null)}>Cancel</Button>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        )}
+
+        {codes && (
+          <Card>
+            <CardHeader title="Recovery codes" description="Shown only once. If you lose your phone, each code signs you in once. Store them offline." />
+            <CardBody>
+              <pre className="grid select-all grid-cols-2 gap-2 rounded-md border border-line bg-surface-2 p-3 font-mono text-sm text-fg">{codes.join('\n')}</pre>
+            </CardBody>
+            <CardFooter>
+              <Button leftIcon={<IconCopy size={14} />} onClick={copyCodes}>Copy</Button>
+              <Button leftIcon={<IconDownload size={14} />} onClick={downloadCodes}>Download .txt</Button>
+            </CardFooter>
+          </Card>
+        )}
+
+        {status?.enabled && (
+          <Card>
+            <CardHeader title="Manage" description="Enter a current 6-digit code, or a recovery code to turn 2-step sign-in off." />
+            <CardBody className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Input className="w-48 text-center font-mono" value={offCode} onChange={(e) => setOffCode(e.target.value)} placeholder="Code" aria-label="Code" maxLength={16} />
+                <Button disabled={busy || !offCode.trim()} onClick={newCodes}>New recovery codes</Button>
+                <Button variant="ghost" className="text-danger-text" disabled={busy || !offCode.trim()} onClick={disable}>Turn off</Button>
+              </div>
+              {status.required && <p className="text-xs text-warning-text">2-step sign-in is required for admins: turning it off removes admin access until you set it up again.</p>}
+            </CardBody>
+          </Card>
+        )}
       </div>
-
-      {user?.mfaSetupRequired && (
-        <p className="rounded-xl border border-warning/30 bg-warning-soft p-4 text-sm text-warning-text">2-step sign-in is required for admin accounts. Set it up below to use the dashboard.</p>
-      )}
-      {msg && <p className="rounded-xl border border-success/30 bg-success-soft p-4 text-sm text-success-text" role="status">{msg}</p>}
-      {err && <p className="rounded-xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger-text" role="alert">{err}</p>}
-
-      <div className={box}>
-        <p className="text-sm text-fg font-semibold">Status: {status ? (status.enabled ? `On${status.enabledAt ? ` since ${new Date(status.enabledAt).toLocaleString('en-IN')}` : ''}` : 'Off') : '...'}</p>
-        {status?.enabled && <p className="text-sm text-fg-muted">Recovery codes left: {status.recoveryCodesLeft}</p>}
-        {status?.locked && <p className="text-sm text-danger-text">Locked after too many wrong codes until {status.lockedUntil ? new Date(status.lockedUntil).toLocaleTimeString('en-IN') : 'later'}.</p>}
-        {status && !status.enabled && !setup && <button className={btn} disabled={busy} onClick={startSetup}>Set up 2-step sign-in</button>}
-      </div>
-
-      {setup && (
-        <div className={box}>
-          <p className="text-sm text-fg font-semibold">1. Add the key to Google Authenticator (or any TOTP app)</p>
-          <p className="text-sm text-fg-muted">In the app: + &rarr; Enter a setup key. Account: <span className="text-fg">{setup.issuer}</span>, key below, type: Time based.</p>
-          <p className="font-mono text-lg text-fg break-all select-all bg-surface-2 rounded-xl p-4">{setup.secret}</p>
-          <p className="text-xs text-fg-muted break-all">Or open this link on the phone: <a className="text-info-text underline" href={setup.otpauthUri}>{setup.otpauthUri}</a></p>
-          <p className="text-sm text-fg font-semibold">2. Enter the 6-digit code the app shows</p>
-          <div className="flex flex-wrap gap-3 items-center">
-            <input className={input} inputMode="numeric" autoComplete="one-time-code" maxLength={7} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && enable()} placeholder="123456" aria-label="6-digit code" />
-            <button className={btn} disabled={busy || code.split(' ').join('').length !== 6} onClick={enable}>Turn on</button>
-            <button className={btn2} disabled={busy} onClick={() => setSetup(null)}>Cancel</button>
-          </div>
-          <p className="text-xs text-fg-muted">This key expires in {setup.expiresInMinutes} minutes if not confirmed.</p>
-        </div>
-      )}
-
-      {codes && (
-        <div className={box}>
-          <p className="text-sm text-fg font-semibold">Recovery codes (shown only once)</p>
-          <p className="text-sm text-fg-muted">If you lose your phone, each code signs you in once. Store them offline.</p>
-          <pre className="font-mono text-base text-fg bg-surface-2 rounded-xl p-4 grid grid-cols-2 gap-2 select-all">{codes.join('\n')}</pre>
-          <div className="flex gap-3">
-            <button className={btn2} onClick={copyCodes}>Copy</button>
-            <button className={btn2} onClick={downloadCodes}>Download .txt</button>
-          </div>
-        </div>
-      )}
-
-      {status?.enabled && (
-        <div className={box}>
-          <p className="text-sm text-fg font-semibold">Manage</p>
-          <p className="text-sm text-fg-muted">Enter a current 6-digit code (or a recovery code to turn it off).</p>
-          <div className="flex flex-wrap gap-3 items-center">
-            <input className={input} value={offCode} onChange={(e) => setOffCode(e.target.value)} placeholder="code" aria-label="Code" maxLength={16} />
-            <button className={btn2} disabled={busy || !offCode.trim()} onClick={newCodes}>New recovery codes</button>
-            <button className={btn2} disabled={busy || !offCode.trim()} onClick={disable}>Turn off</button>
-          </div>
-          {status.required && <p className="text-xs text-warning-text">2-step sign-in is required for admins: turning it off removes admin access until you set it up again.</p>}
-        </div>
-      )}
     </div>
   );
 }

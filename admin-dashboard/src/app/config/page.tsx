@@ -1,7 +1,11 @@
 "use client";
-import { useConfirm } from '@/components/ui';
+import {
+  Badge, Button, ButtonLink, Card, CardBody, CardHeader, EmptyState, ErrorState, Field, Input, LoadingState, Notice, PageHeader, StatusPill, Tabs, useConfirm,
+  IconRefresh,
+} from '@/components/ui';
+import { formatDateTime, formatINR } from '@/lib/format';
 import { readableText } from '@/components/ui/Readable';
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { adminRequest as apiRequest } from '@/lib/api';
 import Link from 'next/link';
@@ -69,6 +73,9 @@ const formatValue = (value: unknown) => {
   return String(value);
 };
 
+type SettingsTab = 'fees' | 'switches' | 'retention' | 'versions' | 'legal' | 'receipts' | 'other';
+const SETTINGS_TABS: SettingsTab[] = ['fees', 'switches', 'retention', 'versions', 'legal', 'receipts', 'other'];
+
 export default function ConfigTerminal() {
   const confirm = useConfirm();
   const { isAuthed } = useAdminAuth();
@@ -76,6 +83,18 @@ export default function ConfigTerminal() {
   const [serviceability, setServiceability] = useState<Serviceability | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // ?tab= opens a section directly (links from other pages and the command palette).
+  const [tab, setTab] = useState<SettingsTab>('fees');
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('tab') as SettingsTab | null;
+    if (t && SETTINGS_TABS.includes(t)) setTab(t);
+  }, []);
+  const selectTab = (t: SettingsTab) => {
+    setTab(t);
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', t);
+    window.history.replaceState(null, '', url.toString());
+  };
 
   const [feeInput, setFeeInput] = useState('');
   const [savingFee, setSavingFee] = useState(false);
@@ -151,8 +170,8 @@ export default function ConfigTerminal() {
       return;
     }
     // A stored value that is not a number cannot be compared: always ask before saving.
-    if (!currentValid && !(await confirm({ title: `The saved ${label.toLowerCase()} retention is not a valid number. Set it to ${days} day(s)? Older items are permanently deleted on the next hourly run.` }))) return;
-    if (currentValid && days < current && !(await confirm({ title: `Shorten ${label.toLowerCase()} retention from ${current} to ${days} day(s)? Older items are permanently deleted on the next hourly run.` }))) return;
+    if (!currentValid && !(await confirm({ title: `Set ${label.toLowerCase()} retention to ${days} day(s)?`, description: 'The saved value is not a valid number. Older items are permanently deleted on the next hourly run.', confirmLabel: 'Save retention', tone: 'danger' }))) return;
+    if (currentValid && days < current && !(await confirm({ title: `Shorten ${label.toLowerCase()} retention from ${current} to ${days} day(s)?`, description: 'Older items are permanently deleted on the next hourly run. This cannot be undone.', confirmLabel: 'Shorten retention', tone: 'danger' }))) return;
     setSavingRet(key);
     try {
       await apiRequest('/api/admin/config', { method: 'POST', body: JSON.stringify({ key, value: days }) });
@@ -179,7 +198,7 @@ export default function ConfigTerminal() {
       setFeeNotice('No change to save.');
       return;
     }
-    if (!(await confirm({ title: `Change the delivery fee from ₹${currentFee} to ₹${fee}? It applies to every new order quote immediately.` }))) return;
+    if (!(await confirm({ title: `Change the delivery fee from ₹${currentFee} to ₹${fee}?`, description: 'It applies to every new order quote immediately.', confirmLabel: 'Change fee' }))) return;
     setSavingFee(true);
     try {
       await apiRequest('/api/admin/config', {
@@ -206,7 +225,7 @@ export default function ConfigTerminal() {
     const n = limitInput.trim() === '' ? NaN : Number(limitInput);
     if (!Number.isInteger(n) || n < 0 || n > MAX_CASH_LIMIT) { setLimitMsg({ kind: 'err', text: `Enter a whole number of rupees from 0 to ${MAX_CASH_LIMIT} (0 = off).` }); return; }
     if (n === currentLimit) { setLimitMsg({ kind: 'ok', text: 'No change to save.' }); return; }
-    if (n > 0 && !(await confirm({ title: `Turn on a ₹${n} cash limit? Riders holding ₹${n} or more of COD cash will not be able to take new COD orders until they deposit.` }))) return;
+    if (n > 0 && !(await confirm({ title: `Set the rider cash limit to ₹${n}?`, description: `Riders holding ₹${n} or more of COD cash will not be able to take new COD orders until they deposit.`, confirmLabel: 'Set limit' }))) return;
     setSavingLimit(true);
     try {
       await apiRequest('/api/admin/config', { method: 'POST', body: JSON.stringify({ key: CASH_LIMIT_KEY, value: n }) });
@@ -219,250 +238,230 @@ export default function ConfigTerminal() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center">
-        <div className="w-8 h-8 border-2 border-info/30 border-t-info/30 rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const header = (
+    <PageHeader
+      title="Settings and fees"
+      description="Delivery fee, rider cash limit, feature switches, data retention, app versions, legal pages and receipts."
+      actions={<Button leftIcon={<IconRefresh size={14} />} loading={loading} onClick={fetchAll}>Refresh</Button>}
+    />
+  );
+
+  if (loading && configs.length === 0) return <div className="text-fg">{header}<LoadingState label="Loading settings…" /></div>;
 
   if (loadError) {
     return (
-      <div className="max-w-xl mx-auto mt-16 rounded-lg border border-line bg-surface shadow-xs p-8 text-center space-y-4">
-        <p className="text-sm font-semibold text-danger-text">{loadError}</p>
-        <button onClick={fetchAll} className="px-6 py-2.5 bg-surface-2/60 hover:bg-surface-2 border border-line rounded-xl text-xs font-semibold text-fg">
-          Retry
-        </button>
+      <div className="text-fg">
+        {header}
+        <ErrorState title="Could not load the settings" message={loadError} onRetry={fetchAll} />
       </div>
     );
   }
 
+  const saveRow = (input: React.ReactNode, button: React.ReactNode) => (
+    <div className="flex items-start gap-2">
+      <div className="w-40">{input}</div>
+      {button}
+    </div>
+  );
+
   return (
-    <div className="space-y-6 relative pb-20">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-fg">Settings and fees</h1>
-          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Delivery fees, feature switches, app versions, receipts and legal pages.</p>
-        </div>
-        <button onClick={fetchAll} className="px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:bg-surface-2">
-          ↻ Refresh
-        </button>
-      </header>
+    <div className="text-fg">
+      {header}
 
-      {/* What each feature switch does for users, and where it is changed. */}
-      <section className="rounded-lg border border-line bg-surface shadow-xs" aria-labelledby="feature-switches">
-        <div className="border-b border-line px-4 py-3">
-          <h2 id="feature-switches" className="text-base font-semibold text-fg">Feature switches</h2>
-          <p className="mt-0.5 text-sm text-fg-muted">Big features are switched on and off on their own pages. Each switch asks you to confirm before it changes anything.</p>
-        </div>
-        <ul className="divide-y divide-line">
-          {FEATURE_SWITCHES.map(f => (
-            <li key={f.key} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
-              <div className="min-w-0 max-w-3xl">
-                <p className="text-sm font-medium text-fg">{f.label} <span className="ml-1 font-mono text-xs font-normal text-fg-subtle">{f.key}</span></p>
-                <p className="mt-0.5 text-sm text-fg-muted">{f.what}</p>
-              </div>
-              <a href={f.href} className="inline-flex h-7 shrink-0 items-center rounded-md border border-line-strong/80 bg-surface px-2.5 text-xs font-medium text-fg shadow-xs hover:bg-surface-2">{f.where}</a>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <Tabs<SettingsTab>
+        className="mb-5"
+        value={tab}
+        onChange={selectTab}
+        tabs={[
+          { id: 'fees', label: 'Fees and ordering' },
+          { id: 'switches', label: 'Feature switches' },
+          { id: 'retention', label: 'Data retention' },
+          { id: 'versions', label: 'App versions' },
+          { id: 'legal', label: 'Legal' },
+          { id: 'receipts', label: 'Receipts' },
+          { id: 'other', label: 'Other stored', count: otherRows.length + elsewhereRows.length },
+        ]}
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Delivery fee: read by the server's order pricing */}
-        <div className="rounded-lg border border-line bg-surface shadow-xs p-10 space-y-6">
-          <div className="flex items-center gap-4">
-            <div>
-              <h4 className="text-lg font-semibold text-fg">Delivery Fee</h4>
-              <p className="text-xs text-fg-muted font-semibold">Used by the server for every order quote</p>
-            </div>
-          </div>
-
-          <div className="flex items-end gap-4">
-            <div className="flex-1 space-y-2">
-              <label htmlFor="delivery-fee" className="text-xs font-semibold text-fg-muted ml-1">Fee per order (₹)</label>
-              <input
-                id="delivery-fee"
-                type="number"
-                min={0}
-                max={MAX_DELIVERY_FEE}
-                step={1}
-                value={feeInput}
-                onChange={(e) => { setFeeInput(e.target.value); setFeeError(null); setFeeNotice(null); }}
-                className="w-full bg-surface-2/60 border border-line rounded-lg p-4 text-fg font-semibold"
-              />
-            </div>
-            <button
-              onClick={handleSaveFee}
-              disabled={savingFee}
-              className="px-6 py-4 bg-accent hover:bg-accent-hover disabled:opacity-50 rounded-lg text-xs font-semibold text-on-solid"
-            >
-              {savingFee ? 'Saving...' : 'Save'}
-            </button>
-          </div>
-          <p className="text-xs text-fg-muted">
-            Current: ₹{currentFee}{!feeRow && ' (server default, not set in the database yet)'}. Member perks may discount it per order.
-          </p>
-          {feeError && <p className="text-xs font-semibold text-danger-text">{feeError}</p>}
-          {feeNotice && <p className="text-xs font-semibold text-success-text">{feeNotice}</p>}
-        </div>
-
-        {/* Live ordering status (read-only) */}
-        <div className="rounded-lg border border-line bg-surface shadow-xs p-10 space-y-6">
-          <div className="flex items-center gap-4">
-            <div>
-              <h4 className="text-lg font-semibold text-fg">Ordering Status</h4>
-              <p className="text-xs text-fg-muted font-semibold">Live from /api/orders/serviceability</p>
-            </div>
-          </div>
-
-          {serviceability ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <span className={`w-3 h-3 rounded-full ${serviceability.open ? 'bg-success' : 'bg-danger'}`} />
-                <span className="text-sm font-semibold text-fg">
-                  {serviceability.open ? 'Campus ordering is open' : 'Campus ordering is closed'}
-                </span>
-              </div>
-              {!serviceability.open && (
-                <p className="text-xs text-fg-muted">
-                  {serviceability.message}{serviceability.reopensAt ? ` Reopens at ${serviceability.reopensAt} IST.` : ''}
-                </p>
-              )}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-semibold text-fg-muted">Payment methods:</span>
-                {(serviceability.paymentMethods || ['COD', 'Wallet']).map(m => (
-                  <span key={m} className="px-2 py-0.5 text-xs font-semibold rounded-full border border-line bg-surface-2/60 text-fg">{m}</span>
-                ))}
-              </div>
-              <p className="text-xs text-fg-muted leading-relaxed">
-                Night hours are set on the server (storeHours). Online UPI/card payments are off: new orders are Cash on Delivery or Wallet only.
-              </p>
-            </div>
-          ) : (
-            <p className="text-xs text-fg-muted">Could not read the live ordering status.</p>
-          )}
-        </div>
-      </div>
-
-      {/* C6 rider cash limit: read by the rider claim path (0 = off, the default) */}
-      <div className="rounded-lg border border-line bg-surface shadow-xs p-10 space-y-6">
-        <div className="flex items-center gap-4">
-          <div>
-            <h4 className="text-lg font-semibold text-fg">Rider cash limit</h4>
-            <p className="text-xs text-fg-muted font-semibold">COD cash a rider may hold before new COD orders are blocked · 0 = off</p>
-          </div>
-        </div>
-        <div className="flex items-end gap-4 max-w-md">
-          <div className="flex-1 space-y-2">
-            <label htmlFor="cash-limit" className="text-xs font-semibold text-fg-muted ml-1">Limit (₹)</label>
-            <input id="cash-limit" type="number" min={0} max={MAX_CASH_LIMIT} step={1} value={limitInput}
-              onChange={(e) => { setLimitInput(e.target.value); setLimitMsg(null); }}
-              className="w-full bg-surface-2/60 border border-line rounded-lg p-4 text-fg font-semibold" />
-          </div>
-          <button onClick={handleSaveLimit} disabled={savingLimit} className="px-6 py-4 bg-accent hover:bg-accent-hover disabled:opacity-50 rounded-lg text-xs font-semibold text-on-solid">
-            {savingLimit ? 'Saving...' : 'Save'}
-          </button>
-        </div>
-        <p className="text-xs text-fg-muted">
-          Current: {currentLimit > 0 ? `₹${currentLimit}` : 'Off (riders are never blocked; the rider app only shows the cash they hold)'}. Cash held and deposits are on Finance → Rider cash.
-        </p>
-        {limitMsg && <p className={`text-xs font-semibold ${limitMsg.kind === 'err' ? 'text-danger-text' : 'text-success-text'}`}>{limitMsg.text}</p>}
-      </div>
-
-      {/* Data retention: read by the backend's hourly cleanup job */}
-      <div className="rounded-lg border border-line bg-surface shadow-xs p-10 space-y-6">
-        <div className="flex items-center gap-4">
-          <div>
-            <h4 className="text-lg font-semibold text-fg">Data Retention</h4>
-            <p className="text-xs text-fg-muted font-semibold">Hourly cleanup permanently deletes older items · minimum 1 day</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {RETENTION.map(r => (
-            <div key={r.key} className="space-y-2">
-              <label htmlFor={`ret-${r.key}`} className="text-xs font-semibold text-fg-muted ml-1">{r.label} (days)</label>
-              <div className="flex items-end gap-3">
-                <input
-                  id={`ret-${r.key}`}
-                  type="number"
-                  min={1}
-                  max={MAX_RETENTION_DAYS}
-                  step={1}
-                  value={retInputs[r.key] ?? ''}
-                  onChange={(e) => { setRetInputs(prev => ({ ...prev, [r.key]: e.target.value })); setRetError(null); setRetNotice(null); }}
-                  className="w-full bg-surface-2/60 border border-line rounded-lg p-4 text-fg font-semibold"
-                />
-                <button
-                  onClick={() => handleSaveRetention(r.key, r.label, r.def)}
-                  disabled={!!savingRet}
-                  className="px-6 py-4 bg-accent hover:bg-accent-hover disabled:opacity-50 rounded-lg text-xs font-semibold text-on-solid"
+      {tab === 'fees' && (
+        <div className="space-y-5">
+          <div className="grid gap-5 lg:grid-cols-2">
+            <Card>
+              <CardHeader title="Delivery fee" description="Used by the server for every new order quote. Member perks may discount it per order." />
+              <CardBody className="space-y-3">
+                <Field
+                  label="Fee per order"
+                  hint={<>Current: {formatINR(currentFee)}{!feeRow && ' (server default, not set in the database yet)'}. Whole rupees, 0 to {MAX_DELIVERY_FEE}.</>}
+                  error={feeError || undefined}
                 >
-                  {savingRet === r.key ? 'Saving...' : 'Save'}
-                </button>
-              </div>
-              <p className="text-xs text-fg-muted">
-                {r.hint} {!configs.some(c => c.key === r.key) && `(server default ${r.def} days, not set in the database yet)`}
-              </p>
-            </div>
-          ))}
+                  {saveRow(
+                    <Input
+                      type="number"
+                      prefix="₹"
+                      min={0}
+                      max={MAX_DELIVERY_FEE}
+                      step={1}
+                      value={feeInput}
+                      onChange={(e) => { setFeeInput(e.target.value); setFeeError(null); setFeeNotice(null); }}
+                    />,
+                    <Button variant="primary" loading={savingFee} onClick={handleSaveFee}>Save</Button>,
+                  )}
+                </Field>
+                {feeNotice && <p className="text-sm text-success-text">{feeNotice}</p>}
+              </CardBody>
+            </Card>
+
+            <Card>
+              <CardHeader title="Ordering status" description="Live from the server. Night hours are set on the server (store hours)." />
+              <CardBody>
+                {serviceability ? (
+                  <div className="space-y-3">
+                    <StatusPill
+                      status={serviceability.open ? 'open' : 'closed'}
+                      tone={serviceability.open ? 'success' : 'danger'}
+                      label={serviceability.open ? 'Campus ordering is open' : 'Campus ordering is closed'}
+                    />
+                    {!serviceability.open && (
+                      <p className="text-sm text-fg-muted">
+                        {serviceability.message}{serviceability.reopensAt ? ` Reopens at ${serviceability.reopensAt} IST.` : ''}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm text-fg-muted">Payment methods</span>
+                      {(serviceability.paymentMethods || ['COD', 'Wallet']).map(m => <Badge key={m}>{m === 'COD' ? 'Cash on delivery' : m}</Badge>)}
+                    </div>
+                    <p className="text-xs text-fg-muted">Online UPI and card payments are off: new orders are cash on delivery or wallet only.</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-fg-muted">Could not read the live ordering status.</p>
+                )}
+              </CardBody>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader title="Rider cash limit" description="Cash-on-delivery money a rider may hold before new COD orders are blocked. 0 turns the limit off." />
+            <CardBody className="space-y-3">
+              <Field
+                label="Limit"
+                hint={<>Current: {currentLimit > 0 ? formatINR(currentLimit) : 'Off (riders are never blocked; the rider app only shows the cash they hold)'}. Cash held and deposits are on <Link href="/finance" className="text-accent-text hover:underline">Payments and payouts</Link>.</>}
+                error={limitMsg?.kind === 'err' ? limitMsg.text : undefined}
+              >
+                {saveRow(
+                  <Input
+                    type="number"
+                    prefix="₹"
+                    min={0}
+                    max={MAX_CASH_LIMIT}
+                    step={1}
+                    value={limitInput}
+                    onChange={(e) => { setLimitInput(e.target.value); setLimitMsg(null); }}
+                  />,
+                  <Button variant="primary" loading={savingLimit} onClick={handleSaveLimit}>Save</Button>,
+                )}
+              </Field>
+              {limitMsg?.kind === 'ok' && <p className="text-sm text-success-text">{limitMsg.text}</p>}
+            </CardBody>
+          </Card>
         </div>
-        {retError && <p className="text-xs font-semibold text-danger-text">{retError}</p>}
-        {retNotice && <p className="text-xs font-semibold text-success-text">{retNotice}</p>}
-      </div>
+      )}
 
-      {/* Force update: per-app minimum / latest versions */}
-      <AppVersionsCard />
-
-      <LegalCard />
-
-      <ReceiptsCard />
-
-      {/* Other stored keys: shown honestly as not enforced */}
-      <div className="rounded-lg border border-line bg-surface shadow-xs p-10 space-y-6">
-        <div>
-          <h4 className="text-lg font-semibold text-fg">Other Stored Settings</h4>
-          <p className="text-xs text-fg-muted mt-1 leading-relaxed">
-            These keys exist in the database but neither the backend nor the apps read them today, so changing them would have no effect.
-            They are shown read-only to avoid a false sense of control.
-          </p>
-        </div>
-        {elsewhereRows.length > 0 && (
-          <ul className="space-y-1 text-xs text-fg-muted">
-            {elsewhereRows.map(row => (
-              <li key={row.key}>
-                <span className="font-mono text-fg-muted">{row.key}</span> = <span className="font-semibold text-fg">{formatValue(row.value)}</span>
-                {' · '}{MANAGED_ELSEWHERE[row.key].label} is read by the server; change it on <Link href={MANAGED_ELSEWHERE[row.key].href} className="text-info-text underline">its own page</Link>.
+      {tab === 'switches' && (
+        <Card>
+          <CardHeader title="Feature switches" description="Big features are switched on and off on their own pages. Each switch asks you to confirm before it changes anything." />
+          <ul className="divide-y divide-line">
+            {FEATURE_SWITCHES.map(f => (
+              <li key={f.key} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
+                <div className="min-w-0 max-w-3xl">
+                  <p className="text-sm font-medium text-fg">{f.label} <span className="ml-1 font-mono text-xs font-normal text-fg-subtle">{f.key}</span></p>
+                  <p className="mt-0.5 text-sm text-fg-muted">{f.what}</p>
+                </div>
+                <ButtonLink href={f.href} size="sm">{f.where}</ButtonLink>
               </li>
             ))}
           </ul>
-        )}
-        {otherRows.length === 0 ? (
-          <p className="text-xs text-fg-subtle">No other settings stored.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="zv-table zv-table-dense">
-              <thead>
-                <tr className="text-xs text-fg-muted border-b border-line">
-                  <th className="py-2 pr-4">Key</th>
-                  <th className="py-2 pr-4">Value</th>
-                  <th className="py-2">Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                {otherRows.map(row => (
-                  <tr key={row._id || row.key} className="border-b border-line">
-                    <td className="py-2 pr-4 font-mono text-fg-muted">{row.key}</td>
-                    <td className="py-2 pr-4 text-fg font-semibold">{formatValue(row.value)}</td>
-                    <td className="py-2 text-fg-muted">{row.description || '—'}</td>
-                  </tr>
+        </Card>
+      )}
+
+      {tab === 'retention' && (
+        <Card>
+          <CardHeader title="Data retention" description="An hourly cleanup permanently deletes items older than this. Minimum 1 day." />
+          <CardBody className="space-y-4">
+            <div className="grid gap-5 md:grid-cols-2">
+              {RETENTION.map(r => (
+                <Field
+                  key={r.key}
+                  label={`${r.label} (days)`}
+                  hint={<>{r.hint} {!configs.some(c => c.key === r.key) && `(Server default ${r.def} days, not set in the database yet.)`}</>}
+                >
+                  {saveRow(
+                    <Input
+                      type="number"
+                      min={1}
+                      max={MAX_RETENTION_DAYS}
+                      step={1}
+                      value={retInputs[r.key] ?? ''}
+                      onChange={(e) => { setRetInputs(prev => ({ ...prev, [r.key]: e.target.value })); setRetError(null); setRetNotice(null); }}
+                    />,
+                    <Button variant="primary" disabled={!!savingRet && savingRet !== r.key} loading={savingRet === r.key} onClick={() => handleSaveRetention(r.key, r.label, r.def)}>Save</Button>,
+                  )}
+                </Field>
+              ))}
+            </div>
+            {retError && <Notice tone="danger">{retError}</Notice>}
+            {retNotice && <Notice tone="success">{retNotice}</Notice>}
+          </CardBody>
+        </Card>
+      )}
+
+      {tab === 'versions' && <AppVersionsCard />}
+      {tab === 'legal' && <LegalCard />}
+      {tab === 'receipts' && <ReceiptsCard />}
+
+      {tab === 'other' && (
+        <Card>
+          <CardHeader
+            title="Other stored settings"
+            description="These keys exist in the database but neither the backend nor the apps read them today, so changing them would have no effect. They are shown read-only."
+          />
+          {elsewhereRows.length > 0 && (
+            <div className="border-b border-line px-4 py-3">
+              <p className="mb-2 text-xs text-fg-muted">Read by the server, changed on their own page</p>
+              <ul className="space-y-1 text-sm">
+                {elsewhereRows.map(row => (
+                  <li key={row.key} className="flex flex-wrap items-center gap-x-2">
+                    <span className="text-fg">{MANAGED_ELSEWHERE[row.key].label}</span>
+                    <span className="font-mono text-xs text-fg-subtle">{row.key}</span>
+                    <span className="text-fg-muted">= {formatValue(row.value)}</span>
+                    <Link href={MANAGED_ELSEWHERE[row.key].href} className="text-accent-text hover:underline">Open</Link>
+                  </li>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+              </ul>
+            </div>
+          )}
+          {otherRows.length === 0 ? (
+            <EmptyState title="No other settings stored" />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="zv-table zv-table-dense">
+                <thead>
+                  <tr><th>Key</th><th>Value</th><th>Description</th><th className="text-right">Updated</th></tr>
+                </thead>
+                <tbody>
+                  {otherRows.map(row => (
+                    <tr key={row._id || row.key}>
+                      <td className="font-mono text-xs text-fg-muted">{row.key}</td>
+                      <td className="max-w-[420px] break-words text-fg">{formatValue(row.value)}</td>
+                      <td className="text-fg-muted">{row.description || '–'}</td>
+                      <td className="whitespace-nowrap text-right text-xs text-fg-muted">{row.updatedAt ? formatDateTime(row.updatedAt, { short: true }) : '–'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      )}
     </div>
   );
 }

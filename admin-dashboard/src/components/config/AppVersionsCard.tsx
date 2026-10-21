@@ -1,7 +1,9 @@
 "use client";
 // C3 force update: per-app minimum / latest versions (backend/utils/appVersionPolicy.js).
 // GET/PUT /api/admin/app-versions (validated + audited on the server).
-import { useConfirm } from '@/components/ui';
+import {
+  Button, Card, CardBody, CardFooter, CardHeader, Field, Input, LoadingState, Notice, SegmentedControl, Switch, Textarea, useConfirm,
+} from '@/components/ui';
 import { useCallback, useEffect, useState } from 'react';
 import { adminRequest as apiRequest } from '@/lib/api';
 
@@ -86,7 +88,7 @@ export default function AppVersionsCard() {
     const before = data.policy.apps[app];
     const label = data.labels[app];
     const raisingMin = (min && min !== before.minSupportedVersion) || (build && Number(build) !== (before.minSupportedBuild || 0));
-    if (raisingMin && !(await confirm({ title: `Block every ${label} install older than ${min || '(any version)'}${build ? ` / build ${build}` : ''}? Those users will see only an "Update required" screen until they update from the store. Make sure that version is LIVE on the Play Store first.` }))) return;
+    if (raisingMin && !(await confirm({ title: `Block ${label} installs older than ${min || '(any version)'}${build ? ` / build ${build}` : ''}?`, description: 'Those users will see only an “Update required” screen until they update from the store. Make sure that version is live on the Play Store first.', confirmLabel: 'Block older versions', tone: 'danger' }))) return;
     setSaving(true);
     try {
       const d = await apiRequest<PolicyResponse & { changed?: boolean }>('/api/admin/app-versions', {
@@ -119,7 +121,7 @@ export default function AppVersionsCard() {
   const toggleUnversioned = async () => {
     if (!data || saving) return;
     const next = !data.policy.blockUnversionedClients;
-    if (next && !(await confirm({ title: 'Block OLD app builds that do not report their version at all? Every install from before the force-update release will stop working until updated. Web, admin and tests are not affected.' }))) return;
+    if (next && !(await confirm({ title: 'Block old builds that do not report a version?', description: 'Every install from before the force-update release will stop working until updated. Web, admin and tests are not affected.', confirmLabel: 'Block old builds', tone: 'danger' }))) return;
     setSaving(true);
     setError(null);
     setNotice(null);
@@ -137,100 +139,78 @@ export default function AppVersionsCard() {
     }
   };
 
-  const input = 'w-full bg-surface-2/60 border border-line rounded-lg p-3 text-fg font-semibold text-sm';
-  const lbl = 'text-xs font-semibold text-fg-muted ml-1';
 
   return (
-    <div className="rounded-lg border border-line bg-surface shadow-xs p-10 space-y-6">
-      <div className="flex items-center gap-4">
-        <div>
-          <h4 className="text-lg font-semibold text-fg">App Versions (force update)</h4>
-          <p className="text-xs text-fg-muted font-semibold">Retire broken or insecure app versions · empty minimum = nobody is blocked</p>
-        </div>
-      </div>
+    <Card>
+      <CardHeader
+        title="App versions (force update)"
+        description="Retire broken or insecure app versions. An empty minimum means nobody is blocked. Apps pick up changes within about a minute."
+      />
+      <CardBody className="space-y-4">
+        {loadError && <Notice tone="danger" action={<Button size="sm" onClick={() => load(app)}>Retry</Button>}>{loadError}</Notice>}
+        {!data && !loadError && <LoadingState label="Loading app versions…" />}
 
-      {loadError && (
-        <div className="flex items-center gap-3">
-          <p className="text-xs font-semibold text-danger-text">{loadError}</p>
-          <button onClick={() => load(app)} className="px-3 py-1.5 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted">Retry</button>
-        </div>
-      )}
+        {data && form && (
+          <>
+            <SegmentedControl<AppKey>
+              ariaLabel="App"
+              value={app}
+              onChange={pick}
+              options={data.apps.map(k => {
+                const p = data.policy.apps[k];
+                return {
+                  value: k,
+                  label: <span className="inline-flex items-center gap-1.5">{data.labels[k]}{(p.minSupportedVersion || p.minSupportedBuild) ? <span aria-label="minimum version set" title="Minimum version set" className="h-1.5 w-1.5 rounded-full bg-warning" /> : null}</span>,
+                };
+              })}
+            />
 
+            <p className="text-xs text-fg-muted">Package <span className="font-mono">{data.packages[app]}</span>. A dot on a tab means that app has a minimum version set.</p>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <Field label="Minimum supported version" hint="Empty turns blocking off.">
+                <Input placeholder="e.g. 1.0.6" value={form.min} onChange={e => setForm({ ...form, min: e.target.value })} />
+              </Field>
+              <Field label="Latest version">
+                <Input placeholder="e.g. 1.0.7" value={form.latest} onChange={e => setForm({ ...form, latest: e.target.value })} />
+              </Field>
+              <Field label="Minimum build" optional hint="Android versionCode.">
+                <Input placeholder="e.g. 9" inputMode="numeric" value={form.build} onChange={e => setForm({ ...form, build: e.target.value })} />
+              </Field>
+            </div>
+            <Field label="Store link">
+              <Input placeholder={`https://play.google.com/store/apps/details?id=${data.packages[app]}`} value={form.storeUrl} onChange={e => setForm({ ...form, storeUrl: e.target.value })} />
+            </Field>
+            <Field label="Message on the Update screen" optional hint="Up to 300 characters.">
+              <Textarea rows={2} maxLength={300} placeholder={data.defaultMessage} value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} />
+            </Field>
+            <Switch
+              checked={form.soft}
+              onChange={v => setForm({ ...form, soft: v })}
+              label="Show a “new version available” banner"
+              description="Dismissible; shown once per version to users below the latest version."
+            />
+            {error && <Notice tone="danger">{error}</Notice>}
+            {notice && <Notice tone="success">{notice}</Notice>}
+          </>
+        )}
+      </CardBody>
       {data && form && (
-        <>
-          <div className="flex flex-wrap gap-2" role="tablist">
-            {data.apps.map(k => {
-              const p = data.policy.apps[k];
-              const active = k === app;
-              return (
-                <button
-                  key={k}
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => pick(k)}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold border ${active ? 'bg-accent border-info/30 text-on-solid' : 'bg-surface-2/60 border-line text-fg-muted hover:bg-surface-2'}`}
-                >
-                  {data.labels[k]}{p.minSupportedVersion || p.minSupportedBuild ? ' (minimum version set)' : ''}
-                </button>
-              );
-            })}
-          </div>
-
-          <p className="text-xs text-fg-muted">Package <span className="font-mono text-fg-muted">{data.packages[app]}</span></p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="av-min" className={lbl}>Minimum supported version</label>
-              <input id="av-min" className={input} placeholder="e.g. 1.0.6 (empty = off)" value={form.min} onChange={e => setForm({ ...form, min: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="av-latest" className={lbl}>Latest version</label>
-              <input id="av-latest" className={input} placeholder="e.g. 1.0.7" value={form.latest} onChange={e => setForm({ ...form, latest: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="av-build" className={lbl}>Minimum build (optional)</label>
-              <input id="av-build" className={input} placeholder="Android versionCode" inputMode="numeric" value={form.build} onChange={e => setForm({ ...form, build: e.target.value })} />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="av-url" className={lbl}>Store link</label>
-            <input id="av-url" className={input} placeholder={`https://play.google.com/store/apps/details?id=${data.packages[app]}`} value={form.storeUrl} onChange={e => setForm({ ...form, storeUrl: e.target.value })} />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="av-msg" className={lbl}>Message on the Update screen</label>
-            <textarea id="av-msg" rows={2} maxLength={300} className={input} placeholder={data.defaultMessage} value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} />
-          </div>
-          <label className="flex items-center gap-3 text-sm text-fg-muted">
-            <input type="checkbox" checked={form.soft} onChange={e => setForm({ ...form, soft: e.target.checked })} />
-            Show a dismissible &quot;new version available&quot; banner to users below the latest version (once per version)
-          </label>
-          <div className="flex items-center gap-4 flex-wrap">
-            <button onClick={save} disabled={saving} className="px-6 py-3 bg-accent hover:bg-accent-hover disabled:opacity-50 rounded-lg text-xs font-semibold text-on-solid">
-              {saving ? 'Saving…' : `Save ${data.labels[app]}`}
-            </button>
-            {error && <p className="text-xs font-semibold text-danger-text">{error}</p>}
-            {notice && <p className="text-xs font-semibold text-success-text">{notice}</p>}
-          </div>
-
-          <div className="border-t border-line pt-5 flex items-start justify-between gap-4 flex-wrap">
-            <div className="max-w-xl">
-              <p className="text-sm font-semibold text-fg">Block old builds that do not send a version</p>
-              <p className="text-xs text-fg-muted mt-1 leading-relaxed">
-                Builds released before force update do not report their version, so the rules above cannot see them.
-                Turn this on only once nearly everyone has updated: those installs then get &quot;update required&quot; errors.
-                Account deletion, logout and the website keep working.
-              </p>
-            </div>
-            <button
-              onClick={toggleUnversioned}
-              disabled={saving}
-              className={`px-5 py-2.5 rounded-xl text-xs font-semibold border ${data.policy.blockUnversionedClients ? 'bg-danger-soft border-danger/30 text-danger-text' : 'bg-surface-2/60 border-line text-fg-muted'}`}
-            >
-              {data.policy.blockUnversionedClients ? 'On · blocking old builds' : 'Off'}
-            </button>
-          </div>
-        </>
+        <CardFooter>
+          <Button variant="primary" loading={saving} onClick={save}>Save {data.labels[app]}</Button>
+        </CardFooter>
       )}
-    </div>
+      {data && (
+        <div className="border-t border-line px-4 py-4">
+          <Switch
+            checked={data.policy.blockUnversionedClients}
+            disabled={saving}
+            onChange={() => toggleUnversioned()}
+            label="Block old builds that do not send a version"
+            description="Builds released before force update do not report their version, so the rules above cannot see them. Turn this on only once nearly everyone has updated: those installs then get “update required” errors. Account deletion, logout and the website keep working."
+          />
+        </div>
+      )}
+    </Card>
   );
 }

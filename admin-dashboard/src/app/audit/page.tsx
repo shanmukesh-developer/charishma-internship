@@ -1,5 +1,10 @@
 "use client";
-import { readableText } from '@/components/ui/Readable';
+import { readableText, ReadableValue } from '@/components/ui/Readable';
+import {
+  Badge, Button, DataTable, DescriptionList, Drawer, PageHeader, SearchInput, Toolbar,
+  type Column, IconRefresh,
+} from '@/components/ui';
+import { formatDateTime, humanize, plural, shortId } from '@/lib/format';
 import { useState, useEffect, useCallback } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { API_URL } from '@/lib/config';
@@ -41,11 +46,11 @@ const formatDetails = (raw: string | null) => {
   return readableText(raw);
 };
 
-const actionTone = (action: string) => {
-  if (/DELETE|BAN|REJECT|REVOKE/.test(action)) return 'text-danger-text bg-danger-soft border-danger/30';
-  if (/CREATE|APPROVE|SETTLED|REFUND/.test(action)) return 'text-success-text bg-success-soft border-success/30';
-  if (/UPDATE|CHANGE/.test(action)) return 'text-info-text bg-info-soft border-info/30';
-  return 'text-warning-text bg-warning-soft border-warning/30';
+const actionTone = (action: string): 'danger' | 'success' | 'info' | 'neutral' => {
+  if (/DELETE|BAN|REJECT|REVOKE/.test(action)) return 'danger';
+  if (/CREATE|APPROVE|SETTLED|REFUND/.test(action)) return 'success';
+  if (/UPDATE|CHANGE/.test(action)) return 'info';
+  return 'neutral';
 };
 
 export default function AuditPage() {
@@ -57,6 +62,7 @@ export default function AuditPage() {
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const fetchLogs = useCallback(async (nextPage = 1) => {
     setLoading(true);
@@ -79,87 +85,78 @@ export default function AuditPage() {
     if (isAuthed) fetchLogs(1);
   }, [isAuthed, fetchLogs]);
 
-  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
+  if (!isAuthed) return null; // AppShell shows the session check
 
   const q = search.trim().toLowerCase();
   const visible = logs.filter(log =>
     !q || [log.action, log.adminId, log.targetId, log.details].some(v => String(v || '').toLowerCase().includes(q))
   );
   const myId = user?.id ? String(user.id) : '';
+  const who = (id: string | null) => (myId && id === myId ? 'You' : shortRef(id));
+  const open = openId ? logs.find(l => l.id === openId) || null : null;
+
+  const columns: Column<AuditLog>[] = [
+    { key: 'time', header: 'Time', width: '150px', sortValue: l => new Date(l.timestamp), cell: l => <span className="whitespace-nowrap text-xs text-fg-muted" title={formatDateTime(l.timestamp)}>{formatDateTime(l.timestamp, { short: true })}</span> },
+    { key: 'action', header: 'Action', sortValue: l => l.action || '', cell: l => <Badge tone={actionTone(l.action || '')}>{humanize((l.action || 'UNKNOWN').toLowerCase())}</Badge> },
+    { key: 'admin', header: 'Admin', hideBelow: 'md', sortValue: l => l.adminId || '', cell: l => <span className={`text-xs ${myId && l.adminId === myId ? 'text-fg' : 'font-mono text-fg-muted'}`} title={l.adminId || ''}>{who(l.adminId)}</span> },
+    { key: 'target', header: 'Target', hideBelow: 'lg', sortValue: l => l.targetId || '', cell: l => <span className="font-mono text-xs text-fg-muted" title={l.targetId || ''}>{shortRef(l.targetId)}</span> },
+    { key: 'details', header: 'Details', cell: l => <p className="line-clamp-2 max-w-[480px] break-words text-xs text-fg-muted">{formatDetails(l.details) || '–'}</p> },
+  ];
 
   return (
-    <div className="space-y-8 animate-fade-in relative">
-      <div className="flex flex-wrap gap-4 items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-fg">Audit log</h1>
-          <p className="mt-1 max-w-3xl text-sm text-fg-muted">{total} admin actions (refunds, payouts, coupons, deletions…) · page {page} of {pages}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <input
-            type="text"
-            placeholder="Filter this page: action, admin, target…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="bg-surface-2/60 border border-line rounded-lg px-4 py-2 text-sm text-fg outline-none focus:border-accent transition-all w-72"
-          />
-          <button onClick={() => fetchLogs(page)} disabled={loading} className="px-4 py-2 bg-info-soft text-info-text border border-info/30 rounded-lg text-xs font-semibold disabled:opacity-40">↻ Refresh</button>
-        </div>
-      </div>
+    <div className="text-fg">
+      <PageHeader
+        title="Audit log"
+        description="Every admin action that changes money, accounts or settings: refunds, payouts, coupons, bans, deletions and more. Newest first."
+        actions={<Button leftIcon={<IconRefresh size={14} />} loading={loading} onClick={() => fetchLogs(page)}>Refresh</Button>}
+      />
 
-      <div className="glass-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="zv-table">
-            <thead>
-              <tr className="border-b border-line bg-surface-2/60">
-                {['Time', 'Action', 'Admin', 'Target', 'Details'].map(h => (
-                  <th key={h} className="px-6 py-4 text-xs font-semibold text-fg-muted">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.03]">
-              {loading ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-xs text-fg-muted animate-pulse">Loading audit log…</td></tr>
-              ) : error ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
-                    <p className="text-xs text-danger-text font-semibold">{error}</p>
-                    <button onClick={() => fetchLogs(page)} className="mt-3 px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg">Try again</button>
-                  </td>
-                </tr>
-              ) : visible.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-xs text-fg-muted">{q ? 'No entries on this page match your search.' : 'No admin actions recorded yet.'}</td></tr>
-              ) : (
-                visible.map((log) => {
-                  const action = log.action || 'UNKNOWN';
-                  const details = formatDetails(log.details);
-                  return (
-                    <tr key={log.id} className="hover:bg-surface-2/60 transition-colors align-top">
-                      <td className="px-6 py-4 text-xs text-fg-muted font-medium whitespace-nowrap">{new Date(log.timestamp).toLocaleString()}</td>
-                      <td className="px-6 py-4">
-                        <span className={`text-xs font-semibold px-2 py-1 rounded-md border whitespace-nowrap ${actionTone(action)}`}>{action.replace(/_/g, ' ')}</span>
-                      </td>
-                      <td className="px-6 py-4 text-xs font-mono text-fg-muted" title={log.adminId || ''}>
-                        {myId && log.adminId === myId ? 'You' : shortRef(log.adminId)}
-                      </td>
-                      <td className="px-6 py-4 text-xs font-mono text-fg-muted" title={log.targetId || ''}>{shortRef(log.targetId)}</td>
-                      <td className="px-6 py-4 text-xs text-fg-muted max-w-md break-words">{details || '—'}</td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-        {pages > 1 && (
-          <div className="flex items-center justify-between border-t border-line px-6 py-4">
-            <span className="text-xs font-semibold text-fg-muted">Page {page} of {pages}</span>
-            <div className="flex gap-2">
-              <button disabled={loading || page <= 1} onClick={() => fetchLogs(page - 1)} className="px-5 py-2 bg-surface-2 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-30">Newer</button>
-              <button disabled={loading || page >= pages} onClick={() => fetchLogs(page + 1)} className="px-5 py-2 bg-surface-2 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg disabled:opacity-30">Older</button>
+      <Toolbar end={<span className="text-sm tabular-nums text-fg-muted">{plural(total, 'action')} · page {page} of {pages}</span>}>
+        <SearchInput value={search} onChange={setSearch} placeholder="Filter this page: action, admin, target, details" className="sm:w-80" />
+      </Toolbar>
+
+      <DataTable
+        caption="Audit log"
+        columns={columns}
+        rows={visible}
+        rowKey={l => l.id}
+        loading={loading}
+        error={error}
+        onRetry={() => fetchLogs(page)}
+        onRowClick={l => setOpenId(l.id)}
+        noun="actions"
+        // The server pages 100 entries at a time (adminController getAuditLogs default limit).
+        pagination={{ page, pages, total, pageSize: 100, onPage: p => fetchLogs(p) }}
+        empty={{ title: q ? 'No entries on this page match' : 'No admin actions recorded yet', description: q ? 'The filter only searches the page you are on.' : undefined }}
+      />
+
+      <Drawer
+        open={!!open}
+        onClose={() => setOpenId(null)}
+        size="md"
+        title={open ? humanize((open.action || 'UNKNOWN').toLowerCase()) : 'Action'}
+        description={open ? formatDateTime(open.timestamp) : undefined}
+      >
+        {open && (
+          <div className="space-y-5">
+            <DescriptionList
+              columns={2}
+              items={[
+                { label: 'Admin', value: <span className="break-all font-mono text-xs">{myId && open.adminId === myId ? 'You' : open.adminId || '–'}</span> },
+                { label: 'Target', value: <span className="break-all font-mono text-xs">{open.targetId || '–'}</span> },
+                { label: 'Action code', value: <span className="font-mono text-xs">{open.action || '–'}</span> },
+                { label: 'Entry', value: <span className="font-mono text-xs">{shortId(open.id)}</span> },
+              ]}
+            />
+            <div>
+              <p className="mb-1 text-xs text-fg-muted">Details</p>
+              <div className="rounded-lg border border-line p-3 text-sm">
+                {open.details ? <ReadableValue value={open.details} /> : <span className="text-fg-muted">No details recorded.</span>}
+              </div>
             </div>
           </div>
         )}
-      </div>
+      </Drawer>
     </div>
   );
 }
