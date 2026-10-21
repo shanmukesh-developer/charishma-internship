@@ -1,5 +1,10 @@
 "use client";
-import { useConfirm, usePrompt } from '@/components/ui';
+import {
+  Badge as UiBadge, Button, Card, CardBody, Checkbox, DataTable, DescriptionList, Drawer, EmptyState, ErrorState, Field, Input, LoadingState,
+  Notice as NoticeBox, PageHeader, SearchInput, SectionTitle, SegmentedControl, Select, Switch, Tabs, Textarea, Toolbar, useConfirm, usePrompt,
+  type Column, IconRefresh, IconShield,
+} from '@/components/ui';
+import { formatDateTime, humanize, plural } from '@/lib/format';
 import { ReadableValue, readableText } from '@/components/ui/Readable';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
@@ -156,7 +161,7 @@ const shortId = (v?: string | null) => (v ? (v.length > 12 ? `${v.slice(0, 8)}�
 const fmt = (iso?: string | null) => {
   if (!iso) return '—';
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+  return Number.isNaN(d.getTime()) ? '—' : formatDateTime(d, { short: true });
 };
 const relDue = (iso: string | null) => {
   if (!iso) return '—';
@@ -175,39 +180,25 @@ const qs = (params: Record<string, string | null | undefined>) => {
   return parts.length ? `?${parts.join('&')}` : '';
 };
 
-const SEVERITY_TONE: Record<string, string> = {
-  critical: 'text-danger-text bg-danger-soft border-danger/30',
-  high: 'text-warning-text bg-warning-soft border-warning/30',
-  medium: 'text-warning-text bg-warning-soft border-warning/30',
-  low: 'text-fg-muted bg-surface-2/60 border-line',
+type BadgeTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'accent';
+const SEVERITY_TONE: Record<string, BadgeTone> = {
+  critical: 'danger',
+  high: 'warning',
+  medium: 'warning',
+  low: 'neutral',
 };
-const STATUS_TONE: Record<string, string> = {
-  open: 'text-info-text bg-info-soft border-info/30',
-  in_review: 'text-accent-text bg-accent-soft border-accent/30',
-  escalated: 'text-danger-text bg-danger-soft border-danger/30',
-  actioned: 'text-success-text bg-success-soft border-success/30',
-  dismissed: 'text-fg-muted bg-surface-2/60 border-line',
-  upheld: 'text-fg-muted bg-surface-2/60 border-line',
-  reversed: 'text-success-text bg-success-soft border-success/30',
+const STATUS_TONE: Record<string, BadgeTone> = {
+  open: 'info',
+  in_review: 'accent',
+  escalated: 'danger',
+  actioned: 'success',
+  dismissed: 'neutral',
+  upheld: 'neutral',
+  reversed: 'success',
 };
-const pill = 'inline-block text-xs font-semibold px-2 py-1 rounded-md border whitespace-nowrap';
-const input = 'w-full rounded-xl border border-line bg-surface-2/60 px-3 py-2 text-sm text-fg outline-none focus:border-accent';
-const select = 'rounded-xl border border-line bg-surface px-3 py-2 text-xs text-fg outline-none focus:border-accent';
-const label = 'block text-xs font-semibold text-fg-muted mb-1';
-const btn = 'rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-40 transition-colors';
-const btnGhost = `${btn} border border-line bg-surface-2/60 text-fg-muted hover:text-fg`;
-const th = 'px-4 py-3 text-xs font-semibold text-fg-muted whitespace-nowrap';
 
-function Badge({ value, tones }: { value: string; tones: Record<string, string> }) {
-  return <span className={`${pill} ${tones[value] || tones.low || 'text-fg-muted bg-surface-2/60 border-line'}`}>{words(value)}</span>;
-}
-
-function LoggedNote({ children }: { children?: React.ReactNode }) {
-  return (
-    <p className="text-xs font-semibold text-warning-text flex items-center gap-2">
-      <span aria-hidden>●</span> {children || 'This access is logged'}
-    </p>
-  );
+function Badge({ value, tones }: { value: string; tones: Record<string, BadgeTone> }) {
+  return <UiBadge tone={tones[value] || 'neutral'}>{humanize(value)}</UiBadge>;
 }
 
 // ── Page ────────────────────────────────────────────────────────────────────
@@ -599,592 +590,491 @@ export default function FriendsModerationPage() {
 
   const filtersActive = !!(statusF || severityF || subTabF || categoryF || assigneeF || search);
 
-  return (
-    <div className="space-y-8 animate-fade-in relative">
-      <div className="flex flex-wrap gap-4 items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-fg">Reports and moderation</h1>
-          <p className="mt-1 max-w-3xl text-sm text-fg-muted">
-            Reports from Pulse, Forum, Tasks, Connect, Spaces and chats · live
-          </p>
-        </div>
-        <div className="flex gap-2" role="tablist">
-          {(['queue', 'appeals', 'sanctions', 'audit'] as Tab[]).map((t) => (
-            <button
-              key={t}
-              role="tab"
-              aria-selected={tab === t}
-              onClick={() => setTab(t)}
-              className={`${btn} border ${tab === t ? 'bg-info-soft border-info/30 text-info-text' : 'border-line bg-surface-2/60 text-fg-muted hover:text-fg'}`}
-            >
-              {t === 'audit' ? 'Audit log' : t.charAt(0).toUpperCase() + t.slice(1)}
-            </button>
-          ))}
-        </div>
-      </div>
+  const resetFilters = () => { setStatusF(''); setSeverityF(''); setSubTabF(''); setCategoryF(''); setAssigneeF(''); setSearch(''); setSearchInput(''); };
+  const loadMore = (loading: boolean, onClick: () => void, label: string) => (
+    <div className="mt-3 flex justify-center">
+      <Button size="sm" loading={loading} onClick={onClick}>{label}</Button>
+    </div>
+  );
 
-      {notice && (
-        <div role="status" className={`rounded-lg border px-4 py-3 text-xs font-semibold flex items-center justify-between gap-4 ${notice.kind === 'ok' ? 'border-success/30 bg-success-soft text-success-text' : 'border-danger/30 bg-danger-soft text-danger-text'}`}>
-          <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-xs font-semibold opacity-70 hover:opacity-100">Dismiss</button>
+  const queueColumns: Column<QueueItem>[] = [
+    { key: 'severity', header: 'Severity', width: '96px', sortValue: q => SEVERITIES.indexOf(q.severity as typeof SEVERITIES[number]), cell: q => <Badge value={q.severity} tones={SEVERITY_TONE} /> },
+    {
+      key: 'target',
+      header: 'Target',
+      sortValue: q => q.targetType,
+      cell: q => (
+        <div>
+          <p className="text-sm text-fg">{humanize(q.targetType)}</p>
+          <p className="text-xs text-fg-muted">{humanize(q.subTab)}</p>
         </div>
-      )}
+      ),
+    },
+    {
+      key: 'content',
+      header: 'Content',
+      cell: q => (
+        <div className="max-w-[360px]">
+          {q.snapshot?.anonymous && <UiBadge tone="accent" className="mb-1">Anonymous{q.snapshot.alias ? ` · ${q.snapshot.alias}` : ''}</UiBadge>}
+          <p className="line-clamp-2 break-words text-sm text-fg-muted">{q.snapshot?.excerpt || <em className="text-fg-subtle">No text</em>}</p>
+        </div>
+      ),
+    },
+    { key: 'reasons', header: 'Reasons', hideBelow: 'xl', cell: q => <span className="text-xs text-fg-muted">{q.categories.map(humanize).join(', ')}</span> },
+    { key: 'reporters', header: 'Reporters', align: 'right', sortValue: q => q.reporterCount, cell: q => <span className="font-medium tabular-nums">{q.reporterCount}</span> },
+    { key: 'status', header: 'Status', sortValue: q => q.status, cell: q => <Badge value={q.status} tones={STATUS_TONE} /> },
+    { key: 'assignee', header: 'Assignee', hideBelow: 'lg', cell: q => <span className="text-xs text-fg-muted">{q.assignedTo ? who(q.assignedTo) : 'Nobody'}</span> },
+    { key: 'sla', header: 'Due', sortValue: q => (q.slaDueAt ? new Date(q.slaDueAt) : null), cell: q => <span className={`whitespace-nowrap text-xs ${q.overdue ? 'font-medium text-danger-text' : 'text-fg-muted'}`}>{relDue(q.slaDueAt)}</span> },
+    { key: 'last', header: 'Last report', align: 'right', hideBelow: 'lg', sortValue: q => new Date(q.lastReportedAt), cell: q => <span className="whitespace-nowrap text-xs text-fg-muted">{fmt(q.lastReportedAt)}</span> },
+  ];
+
+  const sanctionColumns: Column<Sanction>[] = [
+    { key: 'user', header: 'User', cell: s => <span className="font-mono text-xs text-fg-muted" title={s.userId}>{shortId(s.userId)}</span> },
+    { key: 'scope', header: 'Scope', sortValue: s => s.scope, cell: s => <span className="text-fg">{s.scope === 'friends' ? 'All of Friends' : humanize(s.scope)}</span> },
+    {
+      key: 'until',
+      header: 'Until',
+      sortValue: s => (s.until ? new Date(s.until) : null),
+      cell: s => (
+        <span className="whitespace-nowrap text-xs text-fg-muted">
+          {s.liftedAt ? `Lifted ${fmt(s.liftedAt)}` : s.until ? fmt(s.until) : 'Permanent'}
+          {!s.active && !s.liftedAt && <UiBadge className="ml-2">Expired</UiBadge>}
+        </span>
+      ),
+    },
+    { key: 'reason', header: 'Reason', cell: s => <p className="max-w-[360px] break-words text-sm text-fg-muted">{s.reason || '–'}</p> },
+    { key: 'by', header: 'By', hideBelow: 'lg', cell: s => <span className="text-xs text-fg-muted">{who(s.createdBy)}</span> },
+    { key: 'created', header: 'Created', hideBelow: 'lg', sortValue: s => new Date(s.createdAt), cell: s => <span className="whitespace-nowrap text-xs text-fg-muted">{fmt(s.createdAt)}</span> },
+    { key: 'actions', header: <span className="sr-only">Actions</span>, align: 'right', cell: s => (s.active ? <Button size="sm" variant="ghost" loading={busy === `lift:${s.id}`} onClick={() => liftSanction(s)}>Lift</Button> : null) },
+  ];
+
+  const auditColumns = actionColumns(who, false);
+
+  return (
+    <div className="text-fg">
+      <PageHeader
+        title="Reports and moderation"
+        description="Reports from Pulse, Forum, Tasks, Connect, Spaces and chats. New reports appear live. Click a report to review the evidence and decide."
+        actions={(
+          <Button
+            leftIcon={<IconRefresh size={14} />}
+            loading={tab === 'queue' ? queueLoading : tab === 'appeals' ? appealsLoading : tab === 'sanctions' ? sanctionsLoading : auditLoading}
+            onClick={() => (tab === 'queue' ? loadQueue(false) : tab === 'appeals' ? loadAppeals(false) : tab === 'sanctions' ? loadSanctions(false) : loadAudit(false))}
+          >
+            Refresh
+          </Button>
+        )}
+      />
+
+      <Tabs<Tab>
+        className="mb-4"
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { id: 'queue', label: 'Queue', count: tab === 'queue' && !queueLoading ? queue.length : null },
+          { id: 'appeals', label: 'Appeals' },
+          { id: 'sanctions', label: 'Sanctions' },
+          { id: 'audit', label: 'Moderation log' },
+        ]}
+      />
+
+      {notice && <NoticeBox tone={notice.kind === 'ok' ? 'success' : 'danger'} className="mb-3" onClose={() => setNotice(null)}>{notice.text}</NoticeBox>}
       {liveToast && (
-        <div className="fixed bottom-6 right-6 z-[60] rounded-lg border border-info/30 bg-surface px-4 py-3 text-xs font-semibold text-info-text" role="status" aria-live="polite">
+        <div className="fixed bottom-6 right-6 z-[60] rounded-lg border border-line bg-surface px-4 py-3 text-sm text-fg shadow-pop" role="status" aria-live="polite">
           {liveToast}
         </div>
       )}
 
-      {/* ── Queue ── */}
       {tab === 'queue' && (
-        <div className="space-y-4">
-          <div className="rounded-lg border border-line bg-surface shadow-xs p-4 flex flex-wrap gap-3 items-end">
-            <div>
-              <span className={label}>Status</span>
-              <select className={select} value={statusF} onChange={(e) => setStatusF(e.target.value)} aria-label="Status">
-                <option value="">Needs action</option>
-                <option value="all">All</option>
-                {REPORT_STATUSES.map((s) => <option key={s} value={s}>{words(s)}</option>)}
-              </select>
-            </div>
-            <div>
-              <span className={label}>Severity</span>
-              <select className={select} value={severityF} onChange={(e) => setSeverityF(e.target.value)} aria-label="Severity">
-                <option value="">Any</option>
-                {SEVERITIES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-            <div>
-              <span className={label}>Sub-tab</span>
-              <select className={select} value={subTabF} onChange={(e) => setSubTabF(e.target.value)} aria-label="Sub-tab">
-                <option value="">Any</option>
-                {SUB_TABS.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-            <div>
-              <span className={label}>Category</span>
-              <select className={select} value={categoryF} onChange={(e) => setCategoryF(e.target.value)} aria-label="Category">
-                <option value="">Any</option>
-                {CATEGORIES.map((c) => <option key={c} value={c}>{words(c)}</option>)}
-              </select>
-            </div>
-            <div>
-              <span className={label}>Assignee</span>
-              <select className={select} value={assigneeF} onChange={(e) => setAssigneeF(e.target.value)} aria-label="Assignee">
-                <option value="">Anyone</option>
-                <option value="me">Me</option>
-                <option value="none">Unassigned</option>
-              </select>
-            </div>
-            <form
-              className="flex gap-2 items-end flex-1 min-w-[220px]"
-              onSubmit={(e) => { e.preventDefault(); setSearch(searchInput.trim()); }}
-            >
-              <div className="flex-1">
-                <span className={label}>Search notes and content</span>
-                <input className={input} value={searchInput} onChange={(e) => setSearchInput(e.target.value)} placeholder="Words from the report or the content" maxLength={80} />
-              </div>
-              <button type="submit" className={btnGhost}>Search</button>
+        <>
+          <Toolbar end={filtersActive ? <Button size="sm" variant="ghost" onClick={resetFilters}>Clear filters</Button> : undefined}>
+            <form className="flex min-w-[240px] flex-1 gap-2 sm:max-w-sm" onSubmit={(e) => { e.preventDefault(); setSearch(searchInput.trim()); }}>
+              <SearchInput value={searchInput} onChange={setSearchInput} onEnter={() => setSearch(searchInput.trim())} placeholder="Words from the report or the content" className="flex-1" ariaLabel="Search notes and content" />
             </form>
-            {filtersActive && (
-              <button
-                onClick={() => { setStatusF(''); setSeverityF(''); setSubTabF(''); setCategoryF(''); setAssigneeF(''); setSearch(''); setSearchInput(''); }}
-                className={btnGhost}
-              >
-                Clear
-              </button>
-            )}
-            <button onClick={() => loadQueue(false)} disabled={queueLoading} className={`${btn} bg-info-soft text-info-text border border-info/30`}>↻ Refresh</button>
-          </div>
+            <Select className="w-auto" value={statusF} onChange={(e) => setStatusF(e.target.value)} aria-label="Status">
+              <option value="">Needs action</option>
+              <option value="all">All statuses</option>
+              {REPORT_STATUSES.map((s) => <option key={s} value={s}>{humanize(s)}</option>)}
+            </Select>
+            <Select className="w-auto" value={severityF} onChange={(e) => setSeverityF(e.target.value)} aria-label="Severity">
+              <option value="">Any severity</option>
+              {SEVERITIES.map((s) => <option key={s} value={s}>{humanize(s)}</option>)}
+            </Select>
+            <Select className="w-auto" value={subTabF} onChange={(e) => setSubTabF(e.target.value)} aria-label="Where">
+              <option value="">Anywhere</option>
+              {SUB_TABS.map((s) => <option key={s} value={s}>{humanize(s)}</option>)}
+            </Select>
+            <Select className="w-auto" value={categoryF} onChange={(e) => setCategoryF(e.target.value)} aria-label="Reason">
+              <option value="">Any reason</option>
+              {CATEGORIES.map((c) => <option key={c} value={c}>{humanize(c)}</option>)}
+            </Select>
+            <Select className="w-auto" value={assigneeF} onChange={(e) => setAssigneeF(e.target.value)} aria-label="Assignee">
+              <option value="">Anyone</option>
+              <option value="me">Assigned to me</option>
+              <option value="none">Unassigned</option>
+            </Select>
+          </Toolbar>
 
-          <div className="glass-card overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="zv-table">
-                <thead>
-                  <tr className="border-b border-line bg-surface-2/60">
-                    {['Severity', 'Target', 'Content', 'Reasons', 'Reporters', 'Status', 'Assignee', 'SLA', 'Last report'].map((h) => <th key={h} className={th}>{h}</th>)}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.03]">
-                  {queueLoading && !queue.length ? (
-                    <tr><td colSpan={9} className="px-6 py-12 text-center text-xs text-fg-muted animate-pulse">Loading the queue…</td></tr>
-                  ) : queueError && !queue.length ? (
-                    <tr>
-                      <td colSpan={9} className="px-6 py-12 text-center">
-                        <p className="text-xs text-danger-text font-semibold">{queueError}</p>
-                        <button onClick={() => loadQueue(false)} className={`mt-3 ${btnGhost}`}>Try again</button>
-                      </td>
-                    </tr>
-                  ) : !queue.length ? (
-                    <tr><td colSpan={9} className="px-6 py-12 text-center text-xs text-fg-muted">{filtersActive ? 'No reports match these filters.' : 'Nothing to review. New reports appear here live.'}</td></tr>
-                  ) : (
-                    queue.map((q) => {
-                      const fresh = q.reportIds.some((id) => isFresh(id));
-                      const selected = openId && q.reportIds.includes(openId);
-                      return (
-                        <tr
-                          key={`${q.targetType}:${q.targetId}`}
-                          onClick={() => openReport(q.latestReportId)}
-                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openReport(q.latestReportId); } }}
-                          tabIndex={0}
-                          className={`cursor-pointer align-top hover:bg-surface-2/60 transition-colors outline-none focus:bg-surface-2/60 ${fresh ? FRESH_ROW_CLASS : ''} ${selected ? 'bg-info-soft' : ''}`}
-                        >
-                          <td className="px-4 py-3"><Badge value={q.severity} tones={SEVERITY_TONE} /></td>
-                          <td className="px-4 py-3">
-                            <p className="text-xs font-semibold text-fg">{words(q.targetType)}</p>
-                            <p className="text-xs text-fg-muted">{q.subTab}</p>
-                          </td>
-                          <td className="px-4 py-3 max-w-sm">
-                            {q.snapshot?.anonymous && <span className="text-xs font-semibold text-accent-text mr-2">Anon{q.snapshot.alias ? ` · ${q.snapshot.alias}` : ''}</span>}
-                            <span className="text-xs text-fg-muted break-words line-clamp-2">{q.snapshot?.excerpt || <em className="text-fg-subtle">No text</em>}</span>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-fg-muted">{q.categories.map(words).join(', ')}</td>
-                          <td className="px-4 py-3 text-sm font-semibold text-fg">{q.reporterCount}</td>
-                          <td className="px-4 py-3"><Badge value={q.status} tones={STATUS_TONE} /></td>
-                          <td className="px-4 py-3 text-xs font-mono text-fg-muted">{q.assignedTo ? who(q.assignedTo) : '—'}</td>
-                          <td className={`px-4 py-3 text-xs font-semibold whitespace-nowrap ${q.overdue ? 'text-danger-text' : 'text-fg-muted'}`}>{relDue(q.slaDueAt)}</td>
-                          <td className="px-4 py-3 text-xs text-fg-muted whitespace-nowrap">{fmt(q.lastReportedAt)}</td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-            {queueError && queue.length > 0 && <p className="px-6 py-3 text-xs text-danger-text border-t border-line">{queueError}</p>}
-            {queueCursor && (
-              <div className="border-t border-line px-6 py-4 text-center">
-                <button disabled={queueLoading} onClick={() => loadQueue(true, queueCursor)} className={btnGhost}>{queueLoading ? 'Loading…' : 'Load older reports'}</button>
-              </div>
-            )}
-          </div>
-        </div>
+          {queueError && queue.length > 0 && <NoticeBox tone="danger" className="mb-3">{queueError}</NoticeBox>}
+          <DataTable
+            caption="Moderation queue"
+            columns={queueColumns}
+            rows={queue}
+            rowKey={q => `${q.targetType}:${q.targetId}`}
+            loading={queueLoading && !queue.length}
+            error={!queue.length ? queueError || null : null}
+            onRetry={() => loadQueue(false)}
+            onRowClick={q => openReport(q.latestReportId)}
+            rowClassName={q => [q.reportIds.some(id => isFresh(id)) ? FRESH_ROW_CLASS : '', openId && q.reportIds.includes(openId) ? 'bg-accent-soft/40' : ''].join(' ')}
+            pageSize={0}
+            noun="reports"
+            empty={{ title: filtersActive ? 'No reports match these filters' : 'Nothing to review', description: filtersActive ? undefined : 'New reports appear here live.' }}
+          />
+          {queueCursor && loadMore(queueLoading, () => loadQueue(true, queueCursor), 'Load older reports')}
+        </>
       )}
 
-      {/* ── Appeals ── */}
       {tab === 'appeals' && (
-        <div className="space-y-4">
-          <div className="rounded-lg border border-line bg-surface shadow-xs p-4 flex flex-wrap gap-3 items-end">
-            <div>
-              <span className={label}>Status</span>
-              <select className={select} value={appealStatus} onChange={(e) => setAppealStatus(e.target.value)} aria-label="Appeal status">
-                <option value="open">Open</option>
-                <option value="upheld">Upheld</option>
-                <option value="reversed">Reversed</option>
-                <option value="open,upheld,reversed">All</option>
-              </select>
-            </div>
-            <button onClick={() => loadAppeals(false)} disabled={appealsLoading} className={`${btn} bg-info-soft text-info-text border border-info/30`}>↻ Refresh</button>
-          </div>
+        <>
+          <Toolbar>
+            <SegmentedControl
+              ariaLabel="Appeal status"
+              value={appealStatus}
+              onChange={setAppealStatus}
+              options={[
+                { value: 'open', label: 'Open' },
+                { value: 'upheld', label: 'Upheld' },
+                { value: 'reversed', label: 'Reversed' },
+                { value: 'open,upheld,reversed', label: 'All' },
+              ]}
+            />
+          </Toolbar>
           {appealsLoading && !appeals.length ? (
-            <p className="text-xs text-fg-muted animate-pulse text-center py-12">Loading appeals…</p>
+            <LoadingState label="Loading appeals…" />
           ) : appealsError && !appeals.length ? (
-            <div className="text-center py-12">
-              <p className="text-xs text-danger-text font-semibold">{appealsError}</p>
-              <button onClick={() => loadAppeals(false)} className={`mt-3 ${btnGhost}`}>Try again</button>
-            </div>
+            <ErrorState message={appealsError} onRetry={() => loadAppeals(false)} />
           ) : !appeals.length ? (
-            <p className="text-xs text-fg-muted text-center py-12">No appeals here.</p>
+            <Card><EmptyState title="No appeals here" /></Card>
           ) : (
-            <div className="grid gap-4">
+            <div className="space-y-3">
               {appeals.map((a) => (
-                <div key={a.id} className="rounded-lg border border-line bg-surface shadow-xs p-5 space-y-3">
-                  <div className="flex flex-wrap items-center gap-3 justify-between">
-                    <div className="flex items-center gap-3">
-                      <Badge value={a.status} tones={STATUS_TONE} />
-                      <span className="text-xs text-fg-muted">Filed {fmt(a.createdAt)} by user <span className="font-mono" title={a.userId}>{shortId(a.userId)}</span></span>
-                    </div>
-                    {a.action && (
-                      <span className="text-xs text-fg-muted">
-                        Appealing <b className="text-fg">{words(a.action.action)}</b>
-                        {a.action.targetType ? <> on {words(a.action.targetType)} <span className="font-mono" title={a.action.targetId || ''}>{shortId(a.action.targetId)}</span></> : null}
-                        {' · '}{fmt(a.action.createdAt)}
-                      </span>
-                    )}
-                  </div>
-                  {a.action?.reason && <p className="text-xs text-fg-muted"><span className="font-semibold text-fg-muted text-xs mr-2">Moderator note</span>{a.action.reason}</p>}
-                  {a.action?.meta && typeof a.action.meta.scope === 'string' && (
-                    <p className="text-xs text-fg-muted">
-                      <span className="font-semibold text-fg-muted text-xs mr-2">Sanction</span>
-                      {String(a.action.meta.scope)} {a.action.meta.until ? `until ${fmt(String(a.action.meta.until))}` : '(permanent)'}
-                    </p>
-                  )}
-                  <p className="text-sm text-fg whitespace-pre-wrap break-words border-l-2 border-line pl-3">{a.text}</p>
-                  {a.status === 'open' ? (
-                    <div className="flex flex-wrap gap-2 items-end">
-                      <div className="flex-1 min-w-[240px]">
-                        <span className={label}>Note to the student (optional)</span>
-                        <input className={input} maxLength={500} value={appealNotes[a.id] || ''} onChange={(e) => setAppealNotes((p) => ({ ...p, [a.id]: e.target.value }))} />
+                <Card key={a.id}>
+                  <CardBody className="space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge value={a.status} tones={STATUS_TONE} />
+                        <span className="text-xs text-fg-muted">Filed {fmt(a.createdAt)} by user <span className="font-mono" title={a.userId}>{shortId(a.userId)}</span></span>
                       </div>
-                      <button disabled={busy === `appeal:${a.id}`} onClick={() => decideAppeal(a, 'upheld')} className={btnGhost}>Uphold</button>
-                      <button disabled={busy === `appeal:${a.id}`} onClick={() => decideAppeal(a, 'reversed')} className={`${btn} bg-success-soft text-success-text border border-success/30`}>Reverse</button>
+                      {a.action && (
+                        <span className="text-xs text-fg-muted">
+                          Appealing <span className="font-medium text-fg">{humanize(a.action.action)}</span>
+                          {a.action.targetType ? <> on {humanize(a.action.targetType)} <span className="font-mono" title={a.action.targetId || ''}>{shortId(a.action.targetId)}</span></> : null}
+                          {' · '}{fmt(a.action.createdAt)}
+                        </span>
+                      )}
                     </div>
-                  ) : (
-                    <p className="text-xs text-fg-muted">Decided {fmt(a.reviewedAt)} by {who(a.reviewedBy)}{a.note ? ` · ${a.note}` : ''}</p>
-                  )}
-                </div>
+                    {a.action?.reason && <p className="text-sm text-fg-muted"><span className="mr-2 text-xs text-fg-subtle">Moderator note</span>{a.action.reason}</p>}
+                    {a.action?.meta && typeof a.action.meta.scope === 'string' && (
+                      <p className="text-sm text-fg-muted">
+                        <span className="mr-2 text-xs text-fg-subtle">Sanction</span>
+                        {String(a.action.meta.scope)} {a.action.meta.until ? `until ${fmt(String(a.action.meta.until))}` : '(permanent)'}
+                      </p>
+                    )}
+                    <blockquote className="whitespace-pre-wrap break-words border-l-2 border-line pl-3 text-sm text-fg">{a.text}</blockquote>
+                    {a.status === 'open' ? (
+                      <div className="flex flex-wrap items-end gap-2">
+                        <Field label="Note to the student" optional className="min-w-[240px] flex-1">
+                          <Input maxLength={500} value={appealNotes[a.id] || ''} onChange={(e) => setAppealNotes((p) => ({ ...p, [a.id]: e.target.value }))} />
+                        </Field>
+                        <Button disabled={busy === `appeal:${a.id}`} onClick={() => decideAppeal(a, 'upheld')}>Uphold</Button>
+                        <Button variant="primary" disabled={busy === `appeal:${a.id}`} onClick={() => decideAppeal(a, 'reversed')}>Reverse</Button>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-fg-muted">Decided {fmt(a.reviewedAt)} by {who(a.reviewedBy)}{a.note ? ` · ${a.note}` : ''}</p>
+                    )}
+                  </CardBody>
+                </Card>
               ))}
             </div>
           )}
-          {appealCursor && (
-            <div className="text-center">
-              <button disabled={appealsLoading} onClick={() => loadAppeals(true, appealCursor)} className={btnGhost}>{appealsLoading ? 'Loading…' : 'Load more'}</button>
-            </div>
-          )}
-        </div>
+          {appealCursor && loadMore(appealsLoading, () => loadAppeals(true, appealCursor), 'Load more')}
+        </>
       )}
 
-      {/* ── Sanctions ── */}
       {tab === 'sanctions' && (
-        <div className="space-y-4">
-          <div className="rounded-lg border border-line bg-surface shadow-xs p-4 flex flex-wrap gap-3 items-end">
-            <label className="flex items-center gap-2 text-xs text-fg-muted font-semibold">
-              <input type="checkbox" checked={sanctionActive} onChange={(e) => setSanctionActive(e.target.checked)} /> Active only
-            </label>
-            <form className="flex gap-2 items-end" onSubmit={(e) => { e.preventDefault(); loadSanctions(false); }}>
-              <div>
-                <span className={label}>User id</span>
-                <input className={`${input} w-80`} value={sanctionUser} onChange={(e) => setSanctionUser(e.target.value)} placeholder="Optional" />
-              </div>
-              <button type="submit" className={btnGhost}>Apply</button>
+        <>
+          <Toolbar>
+            <Switch size="sm" checked={sanctionActive} onChange={setSanctionActive} label="Active only" />
+            <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); loadSanctions(false); }}>
+              <Input className="w-72" value={sanctionUser} onChange={(e) => setSanctionUser(e.target.value)} placeholder="User ID (optional)" aria-label="User ID" />
+              <Button type="submit">Apply</Button>
             </form>
-            <button onClick={() => loadSanctions(false)} disabled={sanctionsLoading} className={`${btn} bg-info-soft text-info-text border border-info/30`}>↻ Refresh</button>
-          </div>
-          <div className="glass-card overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="zv-table">
-                <thead>
-                  <tr className="border-b border-line bg-surface-2/60">
-                    {['User', 'Scope', 'Until', 'Reason', 'By', 'Created', ''].map((h) => <th key={h} className={th}>{h}</th>)}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.03]">
-                  {sanctionsLoading && !sanctions.length ? (
-                    <tr><td colSpan={7} className="px-6 py-12 text-center text-xs text-fg-muted animate-pulse">Loading sanctions…</td></tr>
-                  ) : sanctionsError && !sanctions.length ? (
-                    <tr><td colSpan={7} className="px-6 py-12 text-center text-xs text-danger-text font-semibold">{sanctionsError}</td></tr>
-                  ) : !sanctions.length ? (
-                    <tr><td colSpan={7} className="px-6 py-12 text-center text-xs text-fg-muted">No sanctions.</td></tr>
-                  ) : sanctions.map((s) => (
-                    <tr key={s.id} className="align-top">
-                      <td className="px-4 py-3 text-xs font-mono text-fg-muted" title={s.userId}>{shortId(s.userId)}</td>
-                      <td className="px-4 py-3 text-xs font-semibold text-fg">{s.scope}</td>
-                      <td className="px-4 py-3 text-xs text-fg-muted whitespace-nowrap">
-                        {s.liftedAt ? <span className="text-fg-muted">Lifted {fmt(s.liftedAt)}</span> : s.until ? fmt(s.until) : 'Permanent'}
-                        {!s.active && !s.liftedAt && <span className="ml-2 text-xs text-fg-muted">expired</span>}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-fg-muted max-w-sm break-words">{s.reason || '—'}</td>
-                      <td className="px-4 py-3 text-xs font-mono text-fg-muted">{who(s.createdBy)}</td>
-                      <td className="px-4 py-3 text-xs text-fg-muted whitespace-nowrap">{fmt(s.createdAt)}</td>
-                      <td className="px-4 py-3 text-right">
-                        {s.active && <button disabled={busy === `lift:${s.id}`} onClick={() => liftSanction(s)} className={btnGhost}>Lift</button>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {sanctionCursor && (
-              <div className="border-t border-line px-6 py-4 text-center">
-                <button disabled={sanctionsLoading} onClick={() => loadSanctions(true, sanctionCursor)} className={btnGhost}>Load more</button>
-              </div>
-            )}
-          </div>
-        </div>
+          </Toolbar>
+          <DataTable
+            caption="Sanctions"
+            columns={sanctionColumns}
+            rows={sanctions}
+            rowKey={s => s.id}
+            loading={sanctionsLoading && !sanctions.length}
+            error={!sanctions.length ? sanctionsError || null : null}
+            onRetry={() => loadSanctions(false)}
+            pageSize={0}
+            noun="sanctions"
+            empty={{ title: 'No sanctions' }}
+          />
+          {sanctionCursor && loadMore(sanctionsLoading, () => loadSanctions(true, sanctionCursor), 'Load more')}
+        </>
       )}
 
-      {/* ── Audit ── */}
       {tab === 'audit' && (
-        <div className="space-y-4">
-          <div className="rounded-lg border border-line bg-surface shadow-xs p-4 flex flex-wrap gap-3 items-end">
-            <div>
-              <span className={label}>Action</span>
-              <select className={select} value={auditAction} onChange={(e) => setAuditAction(e.target.value)} aria-label="Action">
-                <option value="">Any</option>
-                {MOD_ACTIONS.map((a) => <option key={a} value={a}>{words(a)}</option>)}
-              </select>
-            </div>
-            <form className="flex flex-wrap gap-2 items-end" onSubmit={(e) => { e.preventDefault(); loadAudit(false); }}>
-              <div>
-                <span className={label}>Moderator id</span>
-                <input className={`${input} w-56`} value={auditActor} onChange={(e) => setAuditActor(e.target.value)} placeholder="Optional" />
-              </div>
-              <div>
-                <span className={label}>Target id</span>
-                <input className={`${input} w-56`} value={auditTarget} onChange={(e) => setAuditTarget(e.target.value)} placeholder="Optional" />
-              </div>
-              <div>
-                <span className={label}>Affected user id</span>
-                <input className={`${input} w-56`} value={auditSubject} onChange={(e) => setAuditSubject(e.target.value)} placeholder="Optional" />
-              </div>
-              <button type="submit" className={btnGhost}>Apply</button>
+        <>
+          <Toolbar>
+            <Select className="w-auto" value={auditAction} onChange={(e) => setAuditAction(e.target.value)} aria-label="Action">
+              <option value="">Any action</option>
+              {MOD_ACTIONS.map((a) => <option key={a} value={a}>{humanize(a)}</option>)}
+            </Select>
+            <form className="flex flex-wrap items-center gap-2" onSubmit={(e) => { e.preventDefault(); loadAudit(false); }}>
+              <Input className="w-52" value={auditActor} onChange={(e) => setAuditActor(e.target.value)} placeholder="Moderator ID" aria-label="Moderator ID" />
+              <Input className="w-52" value={auditTarget} onChange={(e) => setAuditTarget(e.target.value)} placeholder="Target ID" aria-label="Target ID" />
+              <Input className="w-52" value={auditSubject} onChange={(e) => setAuditSubject(e.target.value)} placeholder="Affected user ID" aria-label="Affected user ID" />
+              <Button type="submit">Apply</Button>
             </form>
-            <button onClick={() => loadAudit(false)} disabled={auditLoading} className={`${btn} bg-info-soft text-info-text border border-info/30`}>↻ Refresh</button>
-          </div>
-          <div className="glass-card overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="zv-table">
-                <thead>
-                  <tr className="border-b border-line bg-surface-2/60">
-                    {['Time', 'Action', 'By', 'Target', 'Affected user', 'Reason / details'].map((h) => <th key={h} className={th}>{h}</th>)}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.03]">
-                  {auditLoading && !audit.length ? (
-                    <tr><td colSpan={6} className="px-6 py-12 text-center text-xs text-fg-muted animate-pulse">Loading the log…</td></tr>
-                  ) : auditError && !audit.length ? (
-                    <tr><td colSpan={6} className="px-6 py-12 text-center text-xs text-danger-text font-semibold">{auditError}</td></tr>
-                  ) : !audit.length ? (
-                    <tr><td colSpan={6} className="px-6 py-12 text-center text-xs text-fg-muted">No moderation actions recorded.</td></tr>
-                  ) : audit.map((a) => <ActionRow key={a.id} a={a} who={who} />)}
-                </tbody>
-              </table>
-            </div>
-            {auditCursor && (
-              <div className="border-t border-line px-6 py-4 text-center">
-                <button disabled={auditLoading} onClick={() => loadAudit(true, auditCursor)} className={btnGhost}>Load older</button>
-              </div>
-            )}
-          </div>
-        </div>
+          </Toolbar>
+          <DataTable
+            caption="Moderation log"
+            columns={auditColumns}
+            rows={audit}
+            rowKey={a => a.id}
+            loading={auditLoading && !audit.length}
+            error={!audit.length ? auditError || null : null}
+            onRetry={() => loadAudit(false)}
+            pageSize={0}
+            noun="actions"
+            empty={{ title: 'No moderation actions recorded' }}
+          />
+          {auditCursor && loadMore(auditLoading, () => loadAudit(true, auditCursor), 'Load older')}
+        </>
       )}
 
-      {/* ── Detail drawer ── */}
-      {openId && (
-        <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Report details">
-          <button className="absolute inset-0 bg-surface-2" aria-label="Close" onClick={closeDrawer} />
-          <div className="relative h-full w-full max-w-2xl overflow-y-auto border-l border-line bg-surface p-8 space-y-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold text-fg-muted">Report</p>
-                <h2 className="text-xl font-semibold text-fg">
-                  {d ? `${words(d.report.targetType)} · ${d.report.subTab}` : 'Loading…'}
-                </h2>
-                {d && <p className="text-xs font-mono text-fg-muted mt-1" title={d.report.targetId}>Target {d.report.targetId}</p>}
-              </div>
-              <button onClick={closeDrawer} className={btnGhost}>Close</button>
-            </div>
+      <Drawer
+        open={!!openId}
+        onClose={closeDrawer}
+        size="lg"
+        title={d ? `${humanize(d.report.targetType)} in ${humanize(d.report.subTab)}` : 'Report'}
+        description={d ? <span className="font-mono" title={d.report.targetId}>Target {d.report.targetId}</span> : undefined}
+        headerActions={d ? <div className="flex gap-1.5"><Badge value={d.report.severity} tones={SEVERITY_TONE} /><Badge value={d.report.status} tones={STATUS_TONE} /></div> : undefined}
+        footer={d && isOpen ? (
+          <div className="flex w-full flex-wrap items-center justify-between gap-2">
+            <Switch size="sm" checked={notifyReporter} onChange={setNotifyReporter} label="Tell reporters the outcome" />
+            <Button
+              variant={['remove', 'sanction'].includes(decision) ? 'destructive' : 'primary'}
+              disabled={!!decisionDisabled[decision]}
+              loading={busy === 'resolve'}
+              onClick={resolve}
+            >
+              Apply: {humanize(decision)}
+            </Button>
+          </div>
+        ) : undefined}
+      >
+        {detailLoading && !d ? (
+          <LoadingState label="Loading report…" />
+        ) : detailError && !d ? (
+          <ErrorState message={detailError} onRetry={() => openId && loadDetail(openId)} />
+        ) : d ? (
+          <div className="space-y-5">
+            <DescriptionList
+              columns={3}
+              items={[
+                { label: 'Open reporters', value: d.reporterCount },
+                { label: 'Due', value: <span className={d.report.overdue ? 'text-danger-text' : ''}>{relDue(d.report.slaDueAt)}</span> },
+                {
+                  label: 'Assigned to',
+                  value: (
+                    <span className="inline-flex items-center gap-2">
+                      {d.report.assignedTo ? who(d.report.assignedTo) : 'Nobody'}
+                      {isOpen && d.report.assignedTo !== myId && <Button size="sm" variant="link" loading={busy === 'assign'} onClick={assignToMe}>Assign to me</Button>}
+                    </span>
+                  ),
+                },
+              ]}
+            />
 
-            {detailLoading && !d ? (
-              <p className="text-xs text-fg-muted animate-pulse">Loading report…</p>
-            ) : detailError && !d ? (
-              <div>
-                <p className="text-xs text-danger-text font-semibold">{detailError}</p>
-                <button onClick={() => loadDetail(openId)} className={`mt-3 ${btnGhost}`}>Try again</button>
-              </div>
-            ) : d ? (
-              <>
-                <div className="flex flex-wrap gap-2 items-center">
-                  <Badge value={d.report.severity} tones={SEVERITY_TONE} />
-                  <Badge value={d.report.status} tones={STATUS_TONE} />
-                  <span className="text-xs text-fg-muted font-semibold">{d.reporterCount} open reporter(s)</span>
-                  <span className={`text-xs font-semibold ${d.report.overdue ? 'text-danger-text' : 'text-fg-muted'}`}>SLA {relDue(d.report.slaDueAt)}</span>
-                  <span className="text-xs text-fg-muted">Assigned: {d.report.assignedTo ? who(d.report.assignedTo) : 'nobody'}</span>
-                </div>
-
-                {/* Evidence snapshot */}
-                <section className="rounded-lg border border-line bg-surface shadow-xs p-5 space-y-2">
-                  <p className={label}>Evidence (snapshot at report time)</p>
-                  {d.report.snapshot?.anonymous && (
-                    <p className="text-xs font-semibold text-accent-text">Anonymous post{d.report.snapshot.alias ? ` · shown as "${d.report.snapshot.alias}"` : ''}</p>
-                  )}
-                  <p className="text-sm text-fg whitespace-pre-wrap break-words">{d.report.snapshot?.excerpt || <em className="text-fg-muted">No text</em>}</p>
-                  {!!d.report.snapshot?.mediaIds?.length && (
-                    <p className="text-xs text-fg-muted">Media: {d.report.snapshot.mediaIds.map((m) => <span key={m} className="font-mono mr-2" title={m}>{shortId(m)}</span>)}</p>
-                  )}
-                  <p className="text-xs text-fg-muted">Created {fmt(d.report.snapshot?.createdAt)} · first reported {fmt(d.report.snapshot?.reportedAt || d.report.createdAt)}</p>
-                </section>
-
-                {/* Current state */}
-                <section className="rounded-lg border border-line bg-surface shadow-xs p-5 space-y-2">
-                  <p className={label}>Current state</p>
-                  {d.currentState ? (
-                    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
-                      {Object.entries(d.currentState).map(([k, v]) => (
-                        <div key={k} className="contents">
-                          <dt className="text-fg-muted font-semibold">{words(k)}</dt>
-                          <dd className="text-fg break-words"><ReadableValue value={v} /></dd>
-                        </div>
-                      ))}
-                    </dl>
-                  ) : <p className="text-xs text-fg-muted">Not available for this target type.</p>}
-                </section>
-
-                {/* Author */}
-                <section className="rounded-lg border border-line bg-surface shadow-xs p-5 space-y-3">
-                  <p className={label}>Author</p>
-                  {!d.authorHistory ? (
-                    <p className="text-xs text-fg-muted">No account linked to this target.</p>
-                  ) : d.authorHistory.anonymous ? (
-                    <p className="text-xs text-fg-muted">
-                      Anonymous author · {d.authorHistory.priorActionCount} prior action(s) · {d.authorHistory.sanctionCount} sanction(s) on record
-                    </p>
-                  ) : (
-                    <div className="space-y-1">
-                      <p className="text-xs text-fg">
-                        <b>{d.authorHistory.name || 'Unknown'}</b> <span className="font-mono text-fg-muted" title={d.authorHistory.userId}>{shortId(d.authorHistory.userId)}</span>
-                        {' · '}{d.authorHistory.priorActionCount} prior action(s)
-                      </p>
-                      {d.authorHistory.sanctions.length > 0 && (
-                        <ul className="text-xs text-fg-muted space-y-0.5">
-                          {d.authorHistory.sanctions.map((s) => (
-                            <li key={s.id}>
-                              {s.scope} · {s.until ? `until ${fmt(s.until)}` : 'permanent'}{s.liftedAt ? ` · lifted ${fmt(s.liftedAt)}` : ''}{s.reason ? ` · ${s.reason}` : ''}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  )}
-
-                  {d.moderation.canReveal && (
-                    <div className="border-t border-line pt-3 space-y-2">
-                      {revealed ? (
-                        <div className="rounded-xl border border-warning/30 bg-warning-soft p-3">
-                          <p className="text-xs text-warning-text">Author: <b>{revealed.name || 'Unknown'}</b> <span className="font-mono">{revealed.userId}</span></p>
-                          <LoggedNote>This reveal was logged with your reason</LoggedNote>
-                        </div>
-                      ) : revealOpen ? (
-                        <div className="space-y-2">
-                          <span className={label}>Why do you need the real author? (at least 20 characters)</span>
-                          <textarea className={`${input} min-h-[80px]`} maxLength={500} value={revealReason} onChange={(e) => setRevealReason(e.target.value)} />
-                          <div className="flex items-center justify-between gap-2">
-                            <LoggedNote />
-                            <div className="flex gap-2">
-                              <button onClick={() => { setRevealOpen(false); setRevealReason(''); }} className={btnGhost}>Cancel</button>
-                              <button disabled={busy === 'reveal' || revealReason.trim().length < 20} onClick={reveal} className={`${btn} bg-warning-soft text-warning-text border border-warning/30`}>
-                                {busy === 'reveal' ? 'Revealing…' : 'Reveal author'}
-                              </button>
-                            </div>
-                          </div>
-                          <p className="text-xs text-fg-muted">{revealReason.trim().length}/20 characters minimum</p>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between gap-2">
-                          <LoggedNote>Revealing an anonymous author is logged</LoggedNote>
-                          <button onClick={() => setRevealOpen(true)} className={`${btn} border border-warning/30 text-warning-text bg-warning-soft`}>Reveal author…</button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </section>
-
-                {/* Actions */}
-                {isOpen ? (
-                  <section className="rounded-lg border border-line bg-surface shadow-xs p-5 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <p className={label}>Decision</p>
-                      {d.report.assignedTo !== myId && (
-                        <button disabled={busy === 'assign'} onClick={assignToMe} className={btnGhost}>{busy === 'assign' ? 'Assigning…' : 'Assign to me'}</button>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Decision">
-                      {(['dismiss', 'remove', 'hide', 'warn', 'sanction', 'escalate'] as Decision[]).map((k) => {
-                        const why = decisionDisabled[k];
-                        return (
-                          <button
-                            key={k}
-                            role="radio"
-                            aria-checked={decision === k}
-                            disabled={!!why}
-                            title={why || undefined}
-                            onClick={() => setDecision(k)}
-                            className={`${btn} border ${decision === k ? 'bg-info-soft border-info/30 text-info-text' : 'border-line bg-surface-2/60 text-fg-muted hover:text-fg'}`}
-                          >
-                            {k}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {decision === 'sanction' && (
-                      <div className="flex flex-wrap gap-3 items-end">
-                        <div>
-                          <span className={label}>Scope</span>
-                          <select className={select} value={sanctionScope} onChange={(e) => setSanctionScope(e.target.value)} aria-label="Sanction scope">
-                            {SANCTION_SCOPES.map((s) => <option key={s} value={s}>{s === 'friends' ? 'all of Friends' : s}</option>)}
-                          </select>
-                        </div>
-                        <div>
-                          <span className={label}>Days (1-365)</span>
-                          <input type="number" min={1} max={365} disabled={sanctionPermanent} className={`${input} w-28`} value={sanctionDays} onChange={(e) => setSanctionDays(e.target.value)} />
-                        </div>
-                        <label className="flex items-center gap-2 text-xs text-fg-muted font-semibold pb-2">
-                          <input type="checkbox" checked={sanctionPermanent} onChange={(e) => setSanctionPermanent(e.target.checked)} /> Permanent
-                        </label>
-                      </div>
-                    )}
-                    <div>
-                      <span className={label}>Note (sent with the outcome; also the audit reason)</span>
-                      <textarea className={`${input} min-h-[70px]`} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <label className="flex items-center gap-2 text-xs text-fg-muted font-semibold">
-                        <input type="checkbox" checked={notifyReporter} onChange={(e) => setNotifyReporter(e.target.checked)} /> Tell reporters the outcome
-                      </label>
-                      <button
-                        disabled={busy === 'resolve' || !!decisionDisabled[decision]}
-                        onClick={resolve}
-                        className={`${btn} ${['remove', 'sanction'].includes(decision) ? 'bg-danger-soft text-danger-text border border-danger/30' : 'bg-info-soft text-info-text border border-info/30'}`}
-                      >
-                        {busy === 'resolve' ? 'Saving…' : `Apply: ${decision}`}
-                      </button>
-                    </div>
-                  </section>
-                ) : (
-                  <section className="rounded-lg border border-line bg-surface shadow-xs p-5">
-                    <p className="text-xs text-fg-muted">
-                      Closed: <b className="text-fg">{words(d.report.decision || d.report.status)}</b> by {who(d.report.resolvedBy)} · {fmt(d.report.resolvedAt)}
-                      {d.report.resolution ? ` · ${d.report.resolution}` : ''}
-                    </p>
-                  </section>
+            <section>
+              <SectionTitle title="Evidence" description="Snapshot taken when the content was reported." />
+              <div className="space-y-2 rounded-lg border border-line p-3">
+                {d.report.snapshot?.anonymous && (
+                  <UiBadge tone="accent">Anonymous post{d.report.snapshot.alias ? ` · shown as “${d.report.snapshot.alias}”` : ''}</UiBadge>
                 )}
+                <p className="whitespace-pre-wrap break-words text-sm text-fg">{d.report.snapshot?.excerpt || <em className="text-fg-muted">No text</em>}</p>
+                {!!d.report.snapshot?.mediaIds?.length && (
+                  <p className="text-xs text-fg-muted">Media: {d.report.snapshot.mediaIds.map((m) => <span key={m} className="mr-2 font-mono" title={m}>{shortId(m)}</span>)}</p>
+                )}
+                <p className="text-xs text-fg-muted">Created {fmt(d.report.snapshot?.createdAt)} · first reported {fmt(d.report.snapshot?.reportedAt || d.report.createdAt)}</p>
+              </div>
+            </section>
 
-                {/* All reports on the target */}
-                <section className="space-y-2">
-                  <p className={label}>Reports on this target ({d.reports.length})</p>
-                  <div className="glass-card divide-y divide-white/[0.04]">
-                    {d.reports.map((r) => (
-                      <div key={r.id} className={`p-4 space-y-1 ${r.id === d.report.id ? 'bg-surface-2/60' : ''}`}>
-                        <div className="flex flex-wrap gap-2 items-center">
-                          <span className="text-xs font-semibold text-fg">{words(r.category)}</span>
-                          <Badge value={r.severity} tones={SEVERITY_TONE} />
-                          <Badge value={r.status} tones={STATUS_TONE} />
-                          <span className="text-xs text-fg-muted">{r.isSystem ? 'System (auto-flag)' : <>reporter <span className="font-mono" title={r.reporterId || ''}>{shortId(r.reporterId)}</span></>}</span>
-                          <span className="text-xs text-fg-subtle ml-auto">{fmt(r.createdAt)}</span>
-                        </div>
-                        {r.note && <p className="text-xs text-fg-muted whitespace-pre-wrap break-words">{r.note}</p>}
+            <section>
+              <SectionTitle title="Current state" />
+              <div className="rounded-lg border border-line p-3">
+                {d.currentState ? (
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+                    {Object.entries(d.currentState).map(([k, v]) => (
+                      <div key={k} className="contents">
+                        <dt className="text-fg-muted">{humanize(k)}</dt>
+                        <dd className="break-words text-fg"><ReadableValue value={v} /></dd>
                       </div>
                     ))}
-                  </div>
-                </section>
+                  </dl>
+                ) : <p className="text-sm text-fg-muted">Not available for this target type.</p>}
+              </div>
+            </section>
 
-                {/* History */}
-                <section className="space-y-2">
-                  <p className={label}>Moderation history</p>
-                  {d.actions.length ? (
-                    <div className="glass-card overflow-x-auto">
-                      <table className="zv-table">
-                        <tbody className="divide-y divide-white/[0.03]">
-                          {d.actions.map((a) => <ActionRow key={a.id} a={a} who={who} compact />)}
-                        </tbody>
-                      </table>
+            <section>
+              <SectionTitle title="Author" />
+              <div className="space-y-3 rounded-lg border border-line p-3">
+                {!d.authorHistory ? (
+                  <p className="text-sm text-fg-muted">No account linked to this target.</p>
+                ) : d.authorHistory.anonymous ? (
+                  <p className="text-sm text-fg-muted">
+                    Anonymous author · {plural(d.authorHistory.priorActionCount, 'prior action')} · {plural(d.authorHistory.sanctionCount, 'sanction')} on record
+                  </p>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-sm text-fg">
+                      <span className="font-medium">{d.authorHistory.name || 'Unknown'}</span> <span className="font-mono text-xs text-fg-muted" title={d.authorHistory.userId}>{shortId(d.authorHistory.userId)}</span>
+                      <span className="text-fg-muted"> · {plural(d.authorHistory.priorActionCount, 'prior action')}</span>
+                    </p>
+                    {d.authorHistory.sanctions.length > 0 && (
+                      <ul className="space-y-0.5 text-xs text-fg-muted">
+                        {d.authorHistory.sanctions.map((s) => (
+                          <li key={s.id}>
+                            {s.scope} · {s.until ? `until ${fmt(s.until)}` : 'permanent'}{s.liftedAt ? ` · lifted ${fmt(s.liftedAt)}` : ''}{s.reason ? ` · ${s.reason}` : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
+                {d.moderation.canReveal && (
+                  <div className="space-y-2 border-t border-line pt-3">
+                    {revealed ? (
+                      <NoticeBox tone="warning" title="Author revealed">
+                        <span className="font-medium">{revealed.name || 'Unknown'}</span> <span className="font-mono text-xs">{revealed.userId}</span>
+                        <span className="mt-1 block text-xs">This reveal was logged with your reason.</span>
+                      </NoticeBox>
+                    ) : revealOpen ? (
+                      <div className="space-y-2">
+                        <Field label="Why do you need the real author?" hint={`${revealReason.trim().length}/20 characters minimum. This access is logged.`}>
+                          <Textarea rows={3} maxLength={500} value={revealReason} onChange={(e) => setRevealReason(e.target.value)} />
+                        </Field>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" onClick={() => { setRevealOpen(false); setRevealReason(''); }}>Cancel</Button>
+                          <Button variant="destructive" disabled={revealReason.trim().length < 20} loading={busy === 'reveal'} onClick={reveal}>Reveal author</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-warning-text"><IconShield size={13} /> Revealing an anonymous author is logged</span>
+                        <Button size="sm" onClick={() => setRevealOpen(true)}>Reveal author…</Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {isOpen ? (
+              <section>
+                <SectionTitle title="Decision" description="The note is sent with the outcome and is also the audit reason." />
+                <div className="space-y-3 rounded-lg border border-line p-3">
+                  <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Decision">
+                    {(['dismiss', 'remove', 'hide', 'warn', 'sanction', 'escalate'] as Decision[]).map((k) => {
+                      const why = decisionDisabled[k];
+                      return (
+                        <button
+                          key={k}
+                          type="button"
+                          role="radio"
+                          aria-checked={decision === k}
+                          disabled={!!why}
+                          title={why || undefined}
+                          onClick={() => setDecision(k)}
+                          className={`rounded-md border px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40 ${decision === k ? 'border-accent bg-accent-soft text-accent-text' : 'border-line text-fg-muted hover:bg-surface-2 hover:text-fg'}`}
+                        >
+                          {humanize(k)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {decision === 'sanction' && (
+                    <div className="flex flex-wrap items-end gap-3">
+                      <Field label="Scope">
+                        <Select className="w-auto" value={sanctionScope} onChange={(e) => setSanctionScope(e.target.value)}>
+                          {SANCTION_SCOPES.map((s) => <option key={s} value={s}>{s === 'friends' ? 'All of Friends' : humanize(s)}</option>)}
+                        </Select>
+                      </Field>
+                      <Field label="Days" hint="1 to 365.">
+                        <Input type="number" min={1} max={365} disabled={sanctionPermanent} className="w-28" value={sanctionDays} onChange={(e) => setSanctionDays(e.target.value)} />
+                      </Field>
+                      <div className="pb-6"><Checkbox checked={sanctionPermanent} onChange={(e) => setSanctionPermanent(e.target.checked)} label="Permanent" /></div>
                     </div>
-                  ) : <p className="text-xs text-fg-muted">No actions yet.</p>}
-                </section>
-              </>
-            ) : null}
+                  )}
+                  <Field label="Note">
+                    <Textarea rows={3} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
+                  </Field>
+                </div>
+              </section>
+            ) : (
+              <NoticeBox tone="neutral" title={`Closed: ${humanize(d.report.decision || d.report.status)}`}>
+                By {who(d.report.resolvedBy)} · {fmt(d.report.resolvedAt)}{d.report.resolution ? ` · ${d.report.resolution}` : ''}
+              </NoticeBox>
+            )}
+
+            <section>
+              <SectionTitle title={`Reports on this target (${d.reports.length})`} />
+              <ul className="divide-y divide-line rounded-lg border border-line">
+                {d.reports.map((r) => (
+                  <li key={r.id} className={`space-y-1 p-3 ${r.id === d.report.id ? 'bg-surface-2' : ''}`}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-medium text-fg">{humanize(r.category)}</span>
+                      <Badge value={r.severity} tones={SEVERITY_TONE} />
+                      <Badge value={r.status} tones={STATUS_TONE} />
+                      <span className="text-xs text-fg-muted">{r.isSystem ? 'System (auto-flag)' : <>reporter <span className="font-mono" title={r.reporterId || ''}>{shortId(r.reporterId)}</span></>}</span>
+                      <span className="ml-auto text-xs text-fg-subtle">{fmt(r.createdAt)}</span>
+                    </div>
+                    {r.note && <p className="whitespace-pre-wrap break-words text-sm text-fg-muted">{r.note}</p>}
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section>
+              <SectionTitle title="Moderation history" />
+              <DataTable
+                caption="Moderation history"
+                columns={actionColumns(who, true)}
+                rows={d.actions}
+                rowKey={a => a.id}
+                pageSize={0}
+                dense
+                noun="actions"
+                empty={{ title: 'No actions yet' }}
+              />
+            </section>
           </div>
-        </div>
-      )}
+        ) : null}
+      </Drawer>
     </div>
   );
 }
 
-const ACTION_TONE = (action: string) => {
-  if (/remove|sanction|reject|space_end|space_remove|reveal|view_/.test(action)) return 'text-danger-text bg-danger-soft border-danger/30';
-  if (/restore|lift|approve|reversed|badge_grant/.test(action)) return 'text-success-text bg-success-soft border-success/30';
-  if (/hide|warn|escalate/.test(action)) return 'text-warning-text bg-warning-soft border-warning/30';
-  return 'text-info-text bg-info-soft border-info/30';
+const ACTION_TONE = (action: string): 'danger' | 'success' | 'warning' | 'info' => {
+  if (/remove|sanction|reject|space_end|space_remove|reveal|view_/.test(action)) return 'danger';
+  if (/restore|lift|approve|reversed|badge_grant/.test(action)) return 'success';
+  if (/hide|warn|escalate/.test(action)) return 'warning';
+  return 'info';
 };
 
 const metaText = (meta: Record<string, unknown>) => {
@@ -1196,20 +1086,19 @@ const metaText = (meta: Record<string, unknown>) => {
   return s.length > 240 ? `${s.slice(0, 240)}…` : s;
 };
 
-function ActionRow({ a, who, compact = false }: { a: ModAction; who: (id?: string | null) => string; compact?: boolean }) {
-  const details = [a.reason, metaText(a.meta)].filter(Boolean).join(' — ');
-  return (
-    <tr className="align-top">
-      <td className="px-4 py-3 text-xs text-fg-muted whitespace-nowrap">{fmt(a.createdAt)}</td>
-      <td className="px-4 py-3"><span className={`${pill} ${ACTION_TONE(a.action)}`}>{words(a.action)}</span></td>
-      <td className="px-4 py-3 text-xs font-mono text-fg-muted whitespace-nowrap" title={a.actorId || ''}>{a.actorRole === 'system' ? 'system' : who(a.actorId)}</td>
-      {!compact && (
-        <td className="px-4 py-3 text-xs text-fg-muted whitespace-nowrap">
-          {a.targetType ? words(a.targetType) : '—'} <span className="font-mono text-fg-muted" title={a.targetId || ''}>{a.targetId ? shortId(a.targetId) : ''}</span>
-        </td>
-      )}
-      {!compact && <td className="px-4 py-3 text-xs font-mono text-fg-muted" title={a.subjectUserId || ''}>{shortId(a.subjectUserId)}</td>}
-      <td className="px-4 py-3 text-xs text-fg-muted max-w-md break-words">{details || '—'}</td>
-    </tr>
-  );
+/** Columns for moderation actions (the log tab and the history inside a report). */
+function actionColumns(who: (id?: string | null) => string, compact: boolean): Column<ModAction>[] {
+  const cols: Column<ModAction>[] = [
+    { key: 'time', header: 'Time', sortValue: a => new Date(a.createdAt), cell: a => <span className="whitespace-nowrap text-xs text-fg-muted">{fmt(a.createdAt)}</span> },
+    { key: 'action', header: 'Action', sortValue: a => a.action, cell: a => <UiBadge tone={ACTION_TONE(a.action)}>{humanize(a.action)}</UiBadge> },
+    { key: 'by', header: 'By', cell: a => <span className="whitespace-nowrap text-xs text-fg-muted" title={a.actorId || ''}>{a.actorRole === 'system' ? 'System' : who(a.actorId)}</span> },
+  ];
+  if (!compact) {
+    cols.push(
+      { key: 'target', header: 'Target', hideBelow: 'lg', cell: a => <span className="whitespace-nowrap text-xs text-fg-muted">{a.targetType ? humanize(a.targetType) : '–'} <span className="font-mono" title={a.targetId || ''}>{a.targetId ? shortId(a.targetId) : ''}</span></span> },
+      { key: 'subject', header: 'Affected user', hideBelow: 'xl', cell: a => <span className="font-mono text-xs text-fg-muted" title={a.subjectUserId || ''}>{shortId(a.subjectUserId)}</span> },
+    );
+  }
+  cols.push({ key: 'details', header: 'Reason and details', cell: a => { const details = [a.reason, metaText(a.meta)].filter(Boolean).join(' — '); return <p className="max-w-[420px] break-words text-xs text-fg-muted">{details || '–'}</p>; } });
+  return cols;
 }

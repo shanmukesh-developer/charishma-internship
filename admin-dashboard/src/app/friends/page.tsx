@@ -1,5 +1,9 @@
 "use client";
-import { useConfirm } from '@/components/ui';
+import {
+  Button, ButtonLink, Card, CardBody, CardHeader, ErrorState, Field, Input, LoadingState, Notice as NoticeBox, PageHeader, StatusPill, Switch, Textarea, useConfirm,
+  IconChevronRight, IconRefresh,
+} from '@/components/ui';
+import { humanize } from '@/lib/format';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAdminAuth } from '@/utils/useAdminAuth';
@@ -80,28 +84,6 @@ const toDraft = (c: FriendsConfig): Draft => ({
   slaHours: Object.fromEntries(SEVERITIES.map((s) => [s, String(c.slaHours[s])])) as Record<Severity, string>,
   connectConsentVersion: String(c.connectConsentVersion),
 });
-
-const input = 'w-full rounded-xl border border-line bg-surface-2/60 px-3 py-2 text-sm text-fg outline-none focus:border-accent';
-const label = 'block text-xs font-semibold text-fg-muted mb-1';
-const btn = 'rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-40 transition-colors';
-const btnGhost = `${btn} border border-line bg-surface-2/60 text-fg-muted hover:text-fg`;
-const card = 'rounded-lg border border-line bg-surface shadow-xs p-6 space-y-4';
-
-function Toggle({ checked, onChange, disabled, labelText }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean; labelText: string }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={labelText}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:opacity-40 ${checked ? 'bg-success-soft border-success/30' : 'bg-surface-2 border-line'}`}
-    >
-      <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${checked ? 'left-[22px]' : 'left-0.5'}`} />
-    </button>
-  );
-}
 
 export default function FriendsConfigPage() {
   const confirm = useConfirm();
@@ -196,7 +178,12 @@ export default function FriendsConfigPage() {
     if (typeof patch.body.connectConsentVersion === 'number') lines.push(`Connect consent v${patch.body.connectConsentVersion}: Connect users must consent again.`);
     const on = Object.entries((patch.body.features || {}) as Record<string, boolean>).filter(([, v]) => v).map(([f]) => f);
     if (on.length) lines.push(`Turn ON: ${on.join(', ')} (only shipped phases go live).`);
-    if (lines.length && !(await confirm({ title: `${lines.join('\n')}\n\nSave these changes?` }))) return;
+    if (lines.length && !(await confirm({
+      title: 'Save these changes?',
+      description: <ul className="list-disc space-y-1 pl-4">{lines.map(l => <li key={l}>{l}</li>)}</ul>,
+      confirmLabel: 'Save changes',
+      tone: patch.body.enabled === false ? 'danger' : 'default',
+    }))) return;
     setSaving(true);
     try {
       const res = await adminRequest<ConfigResponse>('/api/campus/mod/config', { method: 'PUT', body: JSON.stringify(patch.body) });
@@ -210,197 +197,180 @@ export default function FriendsConfigPage() {
     }
   };
 
-  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
+  if (!isAuthed) return null; // AppShell shows the session check
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((p) => (p ? { ...p, [key]: value } : p));
 
   return (
-    <div className="space-y-8 animate-fade-in relative">
-      <div className="flex flex-wrap gap-4 items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-fg">Friends app</h1>
-          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Friends features: connect, forum, pulse and spaces.</p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/moderation" className={btnGhost}>Open moderation queue</Link>
-          <button onClick={load} disabled={loading || saving} className={`${btn} bg-info-soft text-info-text border border-info/30`}>↻ Reload</button>
-        </div>
-      </div>
+    <div className="pb-24 text-fg">
+      <PageHeader
+        title="Friends app"
+        description="Switches, guidelines, content filters and review rules for Friends (Forum, Pulse, Tasks, Connect, Spaces). Every save is recorded in the moderation log."
+        actions={(
+          <>
+            <ButtonLink href="/moderation">Moderation queue</ButtonLink>
+            <Button leftIcon={<IconRefresh size={14} />} disabled={saving} loading={loading} onClick={load}>Reload</Button>
+          </>
+        )}
+      />
 
-      {notice && (
-        <div role="status" className={`rounded-lg border px-4 py-3 text-xs font-semibold flex items-center justify-between gap-4 ${notice.kind === 'ok' ? 'border-success/30 bg-success-soft text-success-text' : 'border-danger/30 bg-danger-soft text-danger-text'}`}>
-          <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-xs font-semibold opacity-70 hover:opacity-100">Dismiss</button>
-        </div>
-      )}
+      {notice && <NoticeBox tone={notice.kind === 'ok' ? 'success' : 'danger'} className="mb-4" onClose={() => setNotice(null)}>{notice.text}</NoticeBox>}
 
       {loading && !draft ? (
-        <p className="text-xs text-fg-muted animate-pulse text-center py-16">Loading configuration…</p>
+        <LoadingState label="Loading configuration…" />
       ) : loadError && !draft ? (
-        <div className="text-center py-16">
-          <p className="text-xs text-danger-text font-semibold">{loadError}</p>
-          <button onClick={load} className={`mt-3 ${btnGhost}`}>Try again</button>
-        </div>
+        <ErrorState title="Could not load the Friends configuration" message={loadError} onRetry={load} />
       ) : draft && data ? (
-        <>
-          {/* Feature flags */}
-          <section className={card}>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-sm font-semibold text-fg">Friends tab</h2>
-                <p className="text-xs text-fg-muted">Master switch. Off hides Friends for every student, including chats started from it.</p>
-              </div>
-              <Toggle checked={draft.enabled} onChange={(v) => set('enabled', v)} labelText="Friends master switch" />
+        <div className="space-y-5">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {SUBPAGES.map((p) => {
+              const feature = p.href.split('/').pop() as Feature;
+              const shipped = data.implemented[feature];
+              return shipped ? (
+                <Link key={p.href} href={p.href} className="group rounded-lg border border-line bg-surface p-4 shadow-xs transition-colors hover:border-line-strong hover:bg-surface-2">
+                  <p className="flex items-center justify-between text-sm font-medium text-fg">{p.label}<IconChevronRight size={14} className="text-fg-subtle group-hover:text-fg" /></p>
+                  <p className="mt-0.5 text-xs text-fg-muted">{p.detail}</p>
+                </Link>
+              ) : (
+                <div key={p.href} className="rounded-lg border border-line bg-surface p-4 opacity-60" aria-disabled="true">
+                  <p className="text-sm font-medium text-fg">{p.label} <span className="ml-1 text-xs font-normal text-fg-muted">Arrives with phase {p.phase}</span></p>
+                  <p className="mt-0.5 text-xs text-fg-muted">{p.detail}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          <Card>
+            <CardHeader title="Switches" description="A section is live for students only when its switch is on and its phase has shipped on the server, so turning one on early is harmless." />
+            <div className="border-b border-line px-4 py-3">
+              <Switch
+                checked={draft.enabled}
+                onChange={(v) => set('enabled', v)}
+                label="Friends tab"
+                description="Master switch. Off hides Friends for every student, including chats started from it."
+              />
             </div>
-            <div className="divide-y divide-line border-t border-line">
+            <ul className="divide-y divide-line">
               {FEATURES.slice().sort((a, b) => FEATURE_INFO[a].phase - FEATURE_INFO[b].phase).map((f) => {
                 const shipped = data.implemented[f];
                 const live = data.effective[f];
                 return (
-                  <div key={f} className="flex items-center justify-between gap-4 py-3">
-                    <div>
-                      <p className="text-xs font-semibold text-fg">
-                        {FEATURE_INFO[f].label}
-                        <span className="ml-2 text-xs text-fg-muted">Phase {FEATURE_INFO[f].phase}</span>
-                        <span className={`ml-2 text-xs px-2 py-0.5 rounded-md border ${live ? 'text-success-text border-success/30 bg-success-soft' : 'text-fg-muted border-line bg-surface-2/60'}`}>
-                          {live ? 'Live' : shipped ? 'Off' : 'Not shipped yet'}
+                  <li key={f} className="px-4 py-3">
+                    <Switch
+                      checked={draft.features[f]}
+                      onChange={(v) => set('features', { ...draft.features, [f]: v })}
+                      label={(
+                        <span className="inline-flex flex-wrap items-center gap-2">
+                          {FEATURE_INFO[f].label}
+                          <span className="text-xs font-normal text-fg-subtle">Phase {FEATURE_INFO[f].phase}</span>
+                          <StatusPill status={live ? 'live' : shipped ? 'off' : 'not shipped'} tone={live ? 'success' : 'neutral'} label={live ? 'Live' : shipped ? 'Off' : 'Not shipped yet'} />
                         </span>
-                      </p>
-                      <p className="text-xs text-fg-muted">{FEATURE_INFO[f].blurb}</p>
-                      {!shipped && draft.features[f] && <p className="text-xs text-warning-text">Flag is on, but this phase is not on the server yet. It goes live when it ships.</p>}
-                    </div>
-                    <Toggle checked={draft.features[f]} onChange={(v) => set('features', { ...draft.features, [f]: v })} labelText={`${FEATURE_INFO[f].label} flag`} />
-                  </div>
+                      )}
+                      description={(
+                        <>
+                          {FEATURE_INFO[f].blurb}
+                          {!shipped && draft.features[f] && <span className="mt-0.5 block text-warning-text">The switch is on, but this phase is not on the server yet. It goes live when it ships.</span>}
+                        </>
+                      )}
+                    />
+                  </li>
                 );
               })}
-            </div>
-          </section>
+            </ul>
+          </Card>
 
-          {/* Guidelines */}
-          <section className={card}>
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <h2 className="text-sm font-semibold text-fg">Community guidelines</h2>
-                <p className="text-xs text-fg-muted">Students must accept the current version before they can post. Raising the version asks everyone to accept again.</p>
-              </div>
-              <div className="flex items-end gap-2">
-                <div>
-                  <span className={label}>Version</span>
-                  <input type="number" min={data.config.guidelines.version} max={1000} className={`${input} w-24`} value={draft.guidelinesVersion} onChange={(e) => set('guidelinesVersion', e.target.value)} />
+          <Card>
+            <CardHeader
+              title="Community guidelines"
+              description="Students must accept the current version before they can post. Raising the version asks everyone to accept again."
+              actions={(
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    aria-label="Guidelines version"
+                    min={data.config.guidelines.version}
+                    max={1000}
+                    className="w-20"
+                    value={draft.guidelinesVersion}
+                    onChange={(e) => set('guidelinesVersion', e.target.value)}
+                  />
+                  <Button size="sm" onClick={() => set('guidelinesVersion', String(data.config.guidelines.version + 1))}>Publish as new version</Button>
                 </div>
-                <button type="button" className={btnGhost} onClick={() => set('guidelinesVersion', String(data.config.guidelines.version + 1))}>Publish as new version</button>
-              </div>
-            </div>
-            <div>
-              <span className={label}>Text ({draft.guidelinesText.length}/8000)</span>
-              <textarea className={`${input} min-h-[260px] font-mono text-xs leading-relaxed`} maxLength={8000} value={draft.guidelinesText} onChange={(e) => set('guidelinesText', e.target.value)} />
-            </div>
-            {draft.guidelinesText !== data.config.guidelines.text && Number(draft.guidelinesVersion) === data.config.guidelines.version && (
-              <p className="text-xs text-warning-text">You changed the text without raising the version. Students who already accepted will not be asked again.</p>
-            )}
-          </section>
+              )}
+            />
+            <CardBody className="space-y-2">
+              <Field label="Text" hint={`${draft.guidelinesText.length}/8000 characters`}>
+                <Textarea className="min-h-[260px] font-mono text-xs leading-relaxed" maxLength={8000} value={draft.guidelinesText} onChange={(e) => set('guidelinesText', e.target.value)} />
+              </Field>
+              {draft.guidelinesText !== data.config.guidelines.text && Number(draft.guidelinesVersion) === data.config.guidelines.version && (
+                <NoticeBox tone="warning">You changed the text without raising the version. Students who already accepted will not be asked again.</NoticeBox>
+              )}
+            </CardBody>
+          </Card>
 
-          {/* Content filters */}
-          <section className={card}>
-            <div>
-              <h2 className="text-sm font-semibold text-fg">Content filters</h2>
-              <p className="text-xs text-fg-muted">One word or phrase per line (or comma-separated). Matching is case-insensitive.</p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-4">
-              <div>
-                <span className={label}>Block ({fromLines(draft.keywordsBlock).length})</span>
-                <textarea className={`${input} min-h-[160px] text-xs`} value={draft.keywordsBlock} onChange={(e) => set('keywordsBlock', e.target.value)} placeholder="Refused outright" />
-                <p className="text-xs text-fg-muted mt-1">The post is refused and the student is told why.</p>
+          <Card>
+            <CardHeader title="Content filters" description="One word or phrase per line (or comma-separated). Matching ignores upper and lower case." />
+            <CardBody>
+              <div className="grid gap-4 md:grid-cols-3">
+                <Field label={`Block (${fromLines(draft.keywordsBlock).length})`} hint="The post is refused and the student is told why.">
+                  <Textarea className="min-h-[160px] text-xs" value={draft.keywordsBlock} onChange={(e) => set('keywordsBlock', e.target.value)} placeholder="Refused outright" />
+                </Field>
+                <Field label={`Flag for review (${fromLines(draft.keywordsFlag).length})`} hint="Saved as pending review and added to the queue as a system report.">
+                  <Textarea className="min-h-[160px] text-xs" value={draft.keywordsFlag} onChange={(e) => set('keywordsFlag', e.target.value)} placeholder="Held for review" />
+                </Field>
+                <Field label={`Blocked link hosts (${fromLines(draft.linkDenylist).length})`} hint="Links to these hosts are refused.">
+                  <Textarea className="min-h-[160px] text-xs" value={draft.linkDenylist} onChange={(e) => set('linkDenylist', e.target.value)} placeholder="example.com" />
+                </Field>
               </div>
-              <div>
-                <span className={label}>Flag for review ({fromLines(draft.keywordsFlag).length})</span>
-                <textarea className={`${input} min-h-[160px] text-xs`} value={draft.keywordsFlag} onChange={(e) => set('keywordsFlag', e.target.value)} placeholder="Held for review" />
-                <p className="text-xs text-fg-muted mt-1">Saved as pending review and added to the queue as a system report.</p>
-              </div>
-              <div>
-                <span className={label}>Blocked link hosts ({fromLines(draft.linkDenylist).length})</span>
-                <textarea className={`${input} min-h-[160px] text-xs`} value={draft.linkDenylist} onChange={(e) => set('linkDenylist', e.target.value)} placeholder="example.com" />
-                <p className="text-xs text-fg-muted mt-1">Links to these hosts are refused.</p>
-              </div>
-            </div>
-          </section>
+            </CardBody>
+          </Card>
 
-          {/* Review thresholds */}
-          <section className={card}>
-            <div>
-              <h2 className="text-sm font-semibold text-fg">Review rules</h2>
-              <p className="text-xs text-fg-muted">Reports never remove content by themselves. Only threats, self-harm and doxxing reports from enough distinct students hide content until a moderator decides.</p>
-            </div>
-            <div className="flex flex-wrap gap-6">
-              <div>
-                <span className={label}>Auto-hide after distinct reporters (2-20)</span>
-                <input type="number" min={2} max={20} className={`${input} w-32`} value={draft.autoHideThreshold} onChange={(e) => set('autoHideThreshold', e.target.value)} />
-              </div>
-              <div>
-                <span className={label}>Connect consent version</span>
-                <input type="number" min={data.config.connectConsentVersion} className={`${input} w-32`} value={draft.connectConsentVersion} onChange={(e) => set('connectConsentVersion', e.target.value)} />
-              </div>
-            </div>
-            <div>
-              <span className={label}>Review SLA (hours until a report is overdue)</span>
+          <Card>
+            <CardHeader title="Review rules" description="Reports never remove content by themselves. Only threats, self-harm and doxxing reports from enough different students hide content until a moderator decides." />
+            <CardBody className="space-y-4">
               <div className="flex flex-wrap gap-4">
-                {SEVERITIES.map((s) => (
-                  <div key={s}>
-                    <span className="block text-xs text-fg-muted font-semibold mb-1">{s}</span>
-                    <input type="number" min={1} max={720} className={`${input} w-28`} value={draft.slaHours[s]} onChange={(e) => set('slaHours', { ...draft.slaHours, [s]: e.target.value })} />
-                  </div>
-                ))}
+                <Field label="Auto-hide after this many reporters" hint="2 to 20.">
+                  <Input type="number" min={2} max={20} className="w-32" value={draft.autoHideThreshold} onChange={(e) => set('autoHideThreshold', e.target.value)} />
+                </Field>
+                <Field label="Connect consent version" hint="Raising it asks Connect users to consent again.">
+                  <Input type="number" min={data.config.connectConsentVersion} className="w-32" value={draft.connectConsentVersion} onChange={(e) => set('connectConsentVersion', e.target.value)} />
+                </Field>
               </div>
-              <p className="text-xs text-fg-muted mt-2">Applies to new reports.</p>
-            </div>
-          </section>
+              <div>
+                <p className="mb-1.5 text-sm font-medium text-fg">Review deadline (hours until a report is overdue)</p>
+                <div className="flex flex-wrap gap-3">
+                  {SEVERITIES.map((s) => (
+                    <Field key={s} label={humanize(s)}>
+                      <Input type="number" min={1} max={720} className="w-28" value={draft.slaHours[s]} onChange={(e) => set('slaHours', { ...draft.slaHours, [s]: e.target.value })} />
+                    </Field>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-fg-muted">1 to 720 hours. Applies to new reports.</p>
+              </div>
+            </CardBody>
+          </Card>
 
           {/* C2: Whispers / After Dark switches + whisper board */}
           <CampusSafetyPanel />
 
-          {/* Per-phase admin */}
-          <section className={card}>
-            <h2 className="text-sm font-semibold text-fg">Sub-tab admin</h2>
-            <div className="grid md:grid-cols-2 gap-3">
-              {SUBPAGES.map((p) => {
-                const feature = p.href.split('/').pop() as Feature;
-                const shipped = data.implemented[feature];
-                return shipped ? (
-                  <Link key={p.href} href={p.href} className="rounded-lg border border-line bg-surface-2/60 p-4 hover:border-info/30">
-                    <p className="text-xs font-semibold text-fg">{p.label}</p>
-                    <p className="text-xs text-fg-muted">{p.detail}</p>
-                  </Link>
-                ) : (
-                  <div key={p.href} className="rounded-lg border border-line bg-surface-2/60 p-4 opacity-60" aria-disabled="true">
-                    <p className="text-xs font-semibold text-fg">{p.label} <span className="text-xs text-fg-muted ml-1">Arrives with phase {p.phase}</span></p>
-                    <p className="text-xs text-fg-muted">{p.detail}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* Save bar */}
           <div className="sticky bottom-4 z-30">
-            <div className="rounded-lg border border-line bg-surface shadow-xs flex flex-wrap items-center justify-between gap-3 px-6 py-4 border border-line">
-              <div className="text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3 shadow-pop">
+              <div className="text-sm">
                 {patch.errors.length ? (
-                  <ul className="text-danger-text font-semibold space-y-0.5">{patch.errors.slice(0, 3).map((e) => <li key={e}>{e}</li>)}</ul>
+                  <ul className="space-y-0.5 text-danger-text">{patch.errors.slice(0, 3).map((e) => <li key={e}>{e}</li>)}</ul>
                 ) : patch.dirty ? (
-                  <span className="text-warning-text font-semibold">Unsaved changes: {Object.keys(patch.body).join(', ')}</span>
+                  <span className="text-warning-text">Unsaved changes: {Object.keys(patch.body).map(humanize).join(', ')}</span>
                 ) : (
-                  <span className="text-fg-muted">All changes saved. Every save is recorded in the moderation audit log.</span>
+                  <span className="text-fg-muted">All changes saved.</span>
                 )}
               </div>
               <div className="flex gap-2">
-                <button type="button" disabled={!patch.dirty || saving} onClick={() => setDraft(toDraft(data.config))} className={btnGhost}>Discard</button>
-                <button type="button" disabled={!patch.dirty || saving || patch.errors.length > 0} onClick={save} className={`${btn} bg-success-soft text-success-text border border-success/30`}>
-                  {saving ? 'Saving…' : 'Save changes'}
-                </button>
+                <Button disabled={!patch.dirty || saving} onClick={() => setDraft(toDraft(data.config))}>Discard</Button>
+                <Button variant="primary" disabled={!patch.dirty || patch.errors.length > 0} loading={saving} onClick={save}>Save changes</Button>
               </div>
             </div>
           </div>
-        </>
+        </div>
       ) : null}
     </div>
   );

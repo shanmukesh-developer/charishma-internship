@@ -1,5 +1,9 @@
 "use client";
-import { useConfirm } from '@/components/ui';
+import {
+  Badge, Button, Card, CardBody, CardHeader, DataTable, Notice, SectionTitle, SegmentedControl, StatusPill, Switch, useConfirm,
+  type Column, IconRefresh,
+} from '@/components/ui';
+import { formatDateTime, humanize } from '@/lib/format';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { adminRequest } from '@/lib/api';
@@ -26,8 +30,6 @@ interface WhisperRow {
   openReporters: number;
 }
 
-const btn = 'rounded-xl px-3 py-1.5 text-xs font-semibold disabled:opacity-40 transition-colors';
-const card = 'rounded-lg border border-line bg-surface shadow-xs p-6 space-y-4';
 const errText = (e: unknown, fallback: string) => (e instanceof Error && e.message ? e.message : fallback);
 
 const SWITCH_INFO: Record<keyof Switches, { label: string; blurb: string }> = {
@@ -35,11 +37,11 @@ const SWITCH_INFO: Record<keyof Switches, { label: string; blurb: string }> = {
   afterDark: { label: 'Zenvy After Dark', blurb: 'Legacy late-night lounge chats and rooms (/api/chat, /api/rooms, after-dark sockets).' },
 };
 
-const STATUS_TONE: Record<string, string> = {
-  visible: 'text-success-text border-success/30 bg-success-soft',
-  pending_review: 'text-warning-text border-warning/30 bg-warning-soft',
-  hidden: 'text-warning-text border-warning/30 bg-warning-soft',
-  removed: 'text-danger-text border-danger/30 bg-danger-soft',
+const STATUS_TONE: Record<string, 'success' | 'warning' | 'danger' | 'neutral'> = {
+  visible: 'success',
+  pending_review: 'warning',
+  hidden: 'warning',
+  removed: 'danger',
 };
 
 export default function CampusSafetyPanel() {
@@ -70,12 +72,12 @@ export default function CampusSafetyPanel() {
   const flip = async (name: keyof Switches) => {
     if (!switches) return;
     const next = !switches[name];
-    if (!next && !(await confirm({ title: `Turn OFF ${SWITCH_INFO[name].label} for every student?` }))) return;
+    if (!next && !(await confirm({ title: `Turn off ${SWITCH_INFO[name].label} for every student?`, description: SWITCH_INFO[name].blurb, confirmLabel: 'Turn off', tone: 'danger' }))) return;
     setBusy(`sw:${name}`);
     try {
       const res = await adminRequest<{ switches: Switches }>('/api/campus/mod/switches', { method: 'PUT', body: JSON.stringify({ [name]: next }) });
       setSwitches(res.switches);
-      setNotice({ kind: 'ok', text: `${SWITCH_INFO[name].label} is now ${next ? 'ON' : 'OFF'}. Every server picks it up within about 30 seconds.` });
+      setNotice({ kind: 'ok', text: `${SWITCH_INFO[name].label} is now ${next ? 'on' : 'off'}. Every server picks it up within about 30 seconds.` });
     } catch (e) {
       setNotice({ kind: 'error', text: errText(e, 'Could not change the switch.') });
     } finally {
@@ -84,7 +86,7 @@ export default function CampusSafetyPanel() {
   };
 
   const act = async (row: WhisperRow, action: 'remove' | 'hide' | 'restore') => {
-    if (action !== 'restore' && !(await confirm({ title: `${action === 'remove' ? 'Remove' : 'Hide'} this whisper for everyone?` }))) return;
+    if (action !== 'restore' && !(await confirm({ title: `${action === 'remove' ? 'Delete' : 'Hide'} this whisper for everyone?`, description: action === 'remove' ? 'It is removed from the board. You can restore it later from this list.' : 'It stays hidden until you restore it.', confirmLabel: action === 'remove' ? 'Delete whisper' : 'Hide whisper', tone: action === 'remove' ? 'danger' : 'default' }))) return;
     setBusy(`w:${row.id}`);
     try {
       const res = await adminRequest<{ status: WhisperRow['status'] }>(`/api/campus/mod/content/whisper/${row.id}`, {
@@ -99,88 +101,92 @@ export default function CampusSafetyPanel() {
     }
   };
 
+  const columns: Column<WhisperRow>[] = [
+    {
+      key: 'text',
+      header: 'Whisper',
+      cell: r => (
+        <div className="max-w-[480px]">
+          <p className="text-xs text-fg-muted"><span className="font-medium text-accent-text">{r.alias}</span> · {r.topic}</p>
+          <p className="mt-0.5 line-clamp-3 whitespace-pre-wrap break-words text-sm text-fg">{r.text}</p>
+        </div>
+      ),
+    },
+    { key: 'hearts', header: 'Hearts', align: 'right', hideBelow: 'lg', sortValue: r => r.hearts, cell: r => <span className="tabular-nums">{r.hearts}</span> },
+    { key: 'reports', header: 'Open reports', align: 'right', sortValue: r => r.openReporters, cell: r => (r.openReporters > 0 ? <Badge tone="warning">{r.openReporters}</Badge> : <span className="text-fg-subtle">0</span>) },
+    { key: 'status', header: 'Status', sortValue: r => r.status, cell: r => <StatusPill status={r.status} tone={STATUS_TONE[r.status] || 'neutral'} label={humanize(r.status)} /> },
+    { key: 'created', header: 'Posted', hideBelow: 'xl', sortValue: r => new Date(r.createdAt), cell: r => <span className="whitespace-nowrap text-xs text-fg-muted">{formatDateTime(r.createdAt, { short: true })}</span> },
+    {
+      key: 'actions',
+      header: <span className="sr-only">Actions</span>,
+      align: 'right',
+      cell: r => (
+        <div className="flex justify-end gap-1">
+          {r.status === 'visible' ? (
+            <>
+              <Button size="sm" variant="ghost" disabled={busy === `w:${r.id}`} onClick={() => act(r, 'hide')}>Hide</Button>
+              <Button size="sm" variant="ghost" className="text-danger-text" disabled={busy === `w:${r.id}`} onClick={() => act(r, 'remove')}>Delete</Button>
+            </>
+          ) : (
+            <Button size="sm" variant="ghost" disabled={busy === `w:${r.id}`} onClick={() => act(r, 'restore')}>Restore</Button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <section className={card}>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2 className="text-sm font-semibold text-fg">Campus safety (outside Friends)</h2>
-          <p className="text-xs text-fg-muted">
-            Whispers, community posts, lost &amp; found, campus spots, groups, polls and chat are reported into the same{' '}
-            <Link href="/moderation" className="text-info-text underline">moderation queue</Link> (sub-tab &quot;campus&quot;; chat messages under &quot;chat&quot;).
-            They are hidden pending review after 3 distinct reports (UGC_AUTO_HIDE_REPORTS); dismissing the reports brings them back.
-          </p>
-        </div>
-        <button onClick={load} className={`${btn} bg-info-soft text-info-text border border-info/30`}>↻ Reload</button>
-      </div>
-
-      {notice && (
-        <div role="status" className={`rounded-lg border px-4 py-3 text-xs font-semibold flex items-center justify-between gap-4 ${notice.kind === 'ok' ? 'border-success/30 bg-success-soft text-success-text' : 'border-danger/30 bg-danger-soft text-danger-text'}`}>
-          <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-xs font-semibold opacity-70 hover:opacity-100">Dismiss</button>
-        </div>
-      )}
-
-      <div className="divide-y divide-line border-t border-line">
+    <Card>
+      <CardHeader
+        title="Campus safety (outside Friends)"
+        description={(
+          <>
+            Whispers, community posts, lost and found, campus spots, groups, polls and chat are reported into the same{' '}
+            <Link href="/moderation" className="text-accent-text hover:underline">moderation queue</Link> (“campus”; chat messages under “chat”).
+            They are hidden pending review after 3 different reports; dismissing the reports brings them back.
+          </>
+        )}
+        actions={<Button size="sm" leftIcon={<IconRefresh size={14} />} onClick={load}>Reload</Button>}
+      />
+      {notice && <div className="border-b border-line px-4 py-3"><Notice tone={notice.kind === 'ok' ? 'success' : 'danger'} onClose={() => setNotice(null)}>{notice.text}</Notice></div>}
+      <ul className="divide-y divide-line border-b border-line">
         {(Object.keys(SWITCH_INFO) as (keyof Switches)[]).map((k) => (
-          <div key={k} className="flex items-center justify-between gap-4 py-3">
-            <div>
-              <p className="text-xs font-semibold text-fg">
-                {SWITCH_INFO[k].label}
-                {switches ? (
-                  <span className={`ml-2 text-xs px-2 py-0.5 rounded-md border ${switches[k] ? STATUS_TONE.visible : STATUS_TONE.removed}`}>{switches[k] ? 'On' : 'Off'}</span>
-                ) : null}
-              </p>
-              <p className="text-xs text-fg-muted">{SWITCH_INFO[k].blurb}</p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={!!switches?.[k]}
-              aria-label={`${SWITCH_INFO[k].label} switch`}
+          <li key={k} className="px-4 py-3">
+            <Switch
+              checked={!!switches?.[k]}
               disabled={!switches || busy === `sw:${k}`}
-              onClick={() => flip(k)}
-              className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:opacity-40 ${switches?.[k] ? 'bg-success-soft border-success/30' : 'bg-surface-2 border-line'}`}
-            >
-              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${switches?.[k] ? 'left-[22px]' : 'left-0.5'}`} />
-            </button>
-          </div>
+              onChange={() => flip(k)}
+              label={SWITCH_INFO[k].label}
+              description={SWITCH_INFO[k].blurb}
+            />
+          </li>
         ))}
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-        <h3 className="text-xs font-semibold text-fg">Recent whispers</h3>
-        <div className="flex gap-2">
-          {(['all', 'visible', 'hidden'] as const).map((f) => (
-            <button key={f} onClick={() => setFilter(f)} className={`${btn} border ${filter === f ? 'border-info/30 text-info-text bg-info-soft' : 'border-line text-fg-muted bg-surface-2/60'}`}>{f}</button>
-          ))}
-        </div>
-      </div>
-      <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-        {rows.length === 0 ? (
-          <p className="text-xs text-fg-muted">No whispers to show.</p>
-        ) : rows.map((r) => (
-          <div key={r.id} className="rounded-xl border border-line bg-surface-2/60 p-3 flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs text-fg-muted font-semibold">
-                <span className="text-accent-text">{r.alias}</span> · {r.topic} · {new Date(r.createdAt).toLocaleString()} · ♥ {r.hearts}
-                <span className={`ml-2 px-2 py-0.5 rounded-md border ${STATUS_TONE[r.status] || ''}`}>{r.status.replace('_', ' ')}</span>
-                {r.openReporters > 0 && <span className="ml-2 text-warning-text">{r.openReporters} open report{r.openReporters === 1 ? '' : 's'}</span>}
-              </p>
-              <p className="text-sm text-fg whitespace-pre-wrap break-words mt-1">{r.text}</p>
-            </div>
-            <div className="flex flex-col gap-1 shrink-0">
-              {r.status === 'visible' ? (
-                <>
-                  <button disabled={busy === `w:${r.id}`} onClick={() => act(r, 'hide')} className={`${btn} border border-warning/30 text-warning-text bg-warning-soft`}>Hide</button>
-                  <button disabled={busy === `w:${r.id}`} onClick={() => act(r, 'remove')} className={`${btn} border border-danger/30 text-danger-text bg-danger-soft`}>Delete</button>
-                </>
-              ) : (
-                <button disabled={busy === `w:${r.id}`} onClick={() => act(r, 'restore')} className={`${btn} border border-success/30 text-success-text bg-success-soft`}>Restore</button>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
+      </ul>
+      <CardBody>
+        <SectionTitle
+          title="Recent whispers"
+          description="The author is never shown here. Open the report in the moderation queue and use Reveal author (logged) if needed."
+          actions={(
+            <SegmentedControl
+              size="sm"
+              ariaLabel="Whisper status"
+              value={filter}
+              onChange={setFilter}
+              options={[{ value: 'all', label: 'All' }, { value: 'visible', label: 'Visible' }, { value: 'hidden', label: 'Hidden' }]}
+            />
+          )}
+        />
+        <DataTable
+          caption="Recent whispers"
+          columns={columns}
+          rows={rows}
+          rowKey={r => r.id}
+          maxHeight="480px"
+          pageSize={0}
+          noun="whispers"
+          empty={{ title: 'No whispers to show' }}
+        />
+      </CardBody>
+    </Card>
   );
 }

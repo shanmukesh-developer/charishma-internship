@@ -1,5 +1,10 @@
 "use client";
-import { useConfirm, usePrompt, useToast } from '@/components/ui';
+import {
+  Badge, Button, ButtonLink, Card, CardBody, CardHeader, DataTable, DescriptionList, Drawer, ErrorState, LoadingState, Notice as NoticeBox,
+  PageHeader, SearchInput, SectionTitle, Select, StatTile, StatusPill, Tabs, Toolbar, useConfirm, usePrompt, useToast,
+  type Column, IconCheckCircle, IconRefresh,
+} from '@/components/ui';
+import { formatDateTime, formatTime, humanize, plural } from '@/lib/format';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAdminAuth } from '@/utils/useAdminAuth';
@@ -56,16 +61,6 @@ interface JobStats { reminders: number; missed: number; expired: number; abandon
 type Tab = 'live' | 'all' | 'overview';
 type Notice = { kind: 'ok' | 'error'; text: string } | null;
 
-// ── Shared styles (same tokens as /friends, /friends/connect and /moderation) ─
-const input = 'w-full rounded-xl border border-line bg-surface-2/60 px-3 py-2 text-sm text-fg outline-none focus:border-accent';
-const label = 'block text-xs font-semibold text-fg-muted mb-1';
-const btn = 'rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-40 transition-colors';
-const btnGhost = `${btn} border border-line bg-surface-2/60 text-fg-muted hover:text-fg`;
-const btnWarn = `${btn} bg-danger-soft text-danger-text border border-danger/30 hover:bg-danger-soft`;
-const btnBlue = `${btn} bg-info-soft text-info-text border border-info/30`;
-const card = 'rounded-lg border border-line bg-surface shadow-xs p-6 space-y-4';
-const chip = 'text-xs px-2 py-0.5 rounded-md border font-semibold';
-
 const errText = (e: unknown, fallback: string) => (e instanceof Error && e.message ? e.message : fallback);
 const qs = (o: Record<string, string | undefined | null>) => {
   const p = new URLSearchParams();
@@ -73,7 +68,7 @@ const qs = (o: Record<string, string | undefined | null>) => {
   const s = p.toString();
   return s ? `?${s}` : '';
 };
-const fmt = (d?: string | null) => (d ? new Date(d).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '-');
+const fmt = (d?: string | null) => (d ? formatDateTime(d, { short: true }) : '–');
 const shortId = (id?: string | null) => (id ? `${id.slice(0, 8)}…` : '-');
 const since = (d?: string | null) => {
   if (!d) return '-';
@@ -82,66 +77,24 @@ const since = (d?: string | null) => {
 };
 const hostName = (h: Ident) => h.entity?.name ? `${h.entity.name} (by ${h.name || 'student'})` : (h.name || 'Former student');
 
-const TONE: Record<string, string> = {
-  live: 'text-success-text border-success/30 bg-success-soft',
-  visible: 'text-success-text border-success/30 bg-success-soft',
-  scheduled: 'text-info-text border-info/30 bg-info-soft',
-  pending_review: 'text-warning-text border-warning/30 bg-warning-soft',
-  ended: 'text-fg-muted border-line bg-surface-2/60',
-  hidden: 'text-fg-muted border-line bg-surface-2/60',
-  expired: 'text-fg-muted border-line bg-surface-2/60',
-  cancelled: 'text-danger-text border-danger/30 bg-danger-soft',
-  removed: 'text-danger-text border-danger/30 bg-danger-soft',
-  host: 'text-accent-text border-accent/30 bg-accent-soft',
-  cohost: 'text-accent-text border-accent/30 bg-accent-soft',
-  speaker: 'text-info-text border-info/30 bg-info-soft',
-  listener: 'text-fg-muted border-line bg-surface-2/60',
+type ChipTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'accent';
+const TONE: Record<string, ChipTone> = {
+  live: 'success',
+  visible: 'success',
+  scheduled: 'info',
+  pending_review: 'warning',
+  ended: 'neutral',
+  hidden: 'neutral',
+  expired: 'neutral',
+  cancelled: 'danger',
+  removed: 'danger',
+  host: 'accent',
+  cohost: 'accent',
+  speaker: 'info',
+  listener: 'neutral',
 };
 function Chip({ s }: { s: string }) {
-  return <span className={`${chip} ${TONE[s] || 'text-fg-muted border-line bg-surface-2/60'}`}>{s.replace('_', ' ')}</span>;
-}
-
-function Stat({ k, v, tone }: { k: string; v: number | string; tone?: string }) {
-  return (
-    <div className="rounded-lg border border-line bg-surface-2/60 p-4">
-      <p className="text-xs font-semibold text-fg-muted">{k}</p>
-      <p className={`text-2xl font-semibold mt-1 ${tone || 'text-fg'}`}>{v}</p>
-    </div>
-  );
-}
-
-function LoadState({ loading, error, empty, reload, emptyText }: { loading: boolean; error?: string; empty: boolean; reload: () => void; emptyText: string }) {
-  if (loading && empty) return <p className="text-xs text-fg-muted animate-pulse text-center py-12">Loading…</p>;
-  if (error && empty) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-xs text-danger-text font-semibold">{error}</p>
-        <button onClick={reload} className={`mt-3 ${btnGhost}`}>Try again</button>
-      </div>
-    );
-  }
-  if (empty) return <p className="text-xs text-fg-muted text-center py-12">{emptyText}</p>;
-  return null;
-}
-
-function Drawer({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={title}>
-      <button aria-label="Close" className="absolute inset-0 bg-surface-2" onClick={onClose} />
-      <div className="relative h-full w-full max-w-xl overflow-y-auto border-l border-line bg-surface p-6 space-y-5 shadow-pop">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="text-sm font-semibold text-fg truncate">{title}</h2>
-          <button onClick={onClose} className={btnGhost}>Close</button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
+  return <Badge tone={TONE[s] || 'neutral'}>{humanize(s)}</Badge>;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -274,7 +227,7 @@ export default function SpacesAdminPage() {
 
   const forceEnd = async (s: AdminSpace) => {
     const what = s.status === 'live' ? 'End this live Space for everyone' : 'Cancel this scheduled Space';
-    const reason = (await ask({ title: `${what}: "${s.title}"\n\nReason for the audit log (at least 5 characters):`, label: 'Reason', defaultValue: '', minLength: 5 }));
+    const reason = (await ask({ title: `${what}?`, label: 'Reason for the audit log', hint: `“${s.title}”. At least 5 characters.`, defaultValue: '', minLength: 5 }));
     if (reason === null) return;
     if (reason.trim().length < 5) { notifyError('Please give a reason of at least 5 characters.'); return; }
     setBusy(true);
@@ -294,7 +247,7 @@ export default function SpacesAdminPage() {
   };
 
   const runJobs = async () => {
-    if (!(await confirm({ title: 'Run the Spaces jobs now? This sends due reminders, expires scheduled Spaces nobody started, and ends abandoned rooms. They also run on their own every 15 seconds.' }))) return;
+    if (!(await confirm({ title: 'Run the Spaces jobs now?', description: 'This sends due reminders, expires scheduled Spaces nobody started, and ends abandoned rooms. They also run on their own every 15 seconds.', confirmLabel: 'Run jobs' }))) return;
     setBusy(true);
     try {
       const r = await adminRequest<{ stats: JobStats }>('/api/campus/spaces/admin/jobs/run', { method: 'POST' });
@@ -308,7 +261,7 @@ export default function SpacesAdminPage() {
     }
   };
 
-  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
+  if (!isAuthed) return null; // AppShell shows the session check
 
   const TABS: Array<{ id: Tab; label: string; count?: number }> = [
     { id: 'live', label: 'Live now', count: stats?.byStatus?.live },
@@ -316,269 +269,314 @@ export default function SpacesAdminPage() {
     { id: 'overview', label: 'Overview and jobs' },
   ];
 
-  const Row = ({ s }: { s: AdminSpace }) => (
-    <div className="rounded-lg border border-line bg-surface-2/60 p-4 flex flex-wrap items-start justify-between gap-4">
-      <button onClick={() => setOpenId(s.id)} className="text-left min-w-0 flex-1 space-y-1">
-        <div className="flex flex-wrap items-center gap-2">
+  const CampusSelect = (
+    <Select className="w-auto min-w-[180px]" value={campusId} onChange={(e) => setCampusId(e.target.value)} aria-label="Campus">
+      <option value="">All campuses</option>
+      {campuses.map((c) => <option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}
+    </Select>
+  );
+
+
+  const summary = (s: AdminSpace) => (s.status === 'live'
+    ? `Live for ${since(s.startedAt)}`
+    : s.status === 'scheduled'
+      ? `Starts ${fmt(s.scheduledFor)}`
+      : `${s.endReason ? `${humanize(s.endReason)} · ` : ''}${fmt(s.endedAt || s.createdAt)}`);
+
+  const columns: Column<AdminSpace>[] = [
+    {
+      key: 'title',
+      header: 'Space',
+      sortValue: s => s.title,
+      cell: s => (
+        <div className="min-w-0 max-w-[340px]">
+          <p className="truncate font-medium text-fg">{s.title}</p>
+          <p className="truncate text-xs text-fg-muted">{hostName(s.host)}{s.topic ? ` · ${s.topic}` : ''}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      sortValue: s => s.status,
+      cell: s => (
+        <div className="flex flex-wrap gap-1">
           <Chip s={s.status} />
           {s.modStatus !== 'visible' && <Chip s={s.modStatus} />}
-          <span className="text-xs font-semibold text-fg-muted">{campusName(s.campusId)}</span>
-          <span className="text-xs font-semibold text-fg-muted">{s.participation === 'open' ? 'open stage' : 'request to speak'}</span>
         </div>
-        <p className="text-sm font-semibold text-fg truncate">{s.title}</p>
-        <p className="text-xs text-fg-muted truncate">Host: {hostName(s.host)}{s.topic ? ` · ${s.topic}` : ''}</p>
-        <p className="text-xs text-fg-muted">
+      ),
+    },
+    { key: 'when', header: 'When', sortValue: s => new Date(s.startedAt || s.scheduledFor || s.createdAt), cell: s => <span className="whitespace-nowrap text-xs text-fg-muted">{summary(s)}</span> },
+    {
+      key: 'people',
+      header: 'People',
+      align: 'right',
+      sortValue: s => (s.status === 'live' ? s.speakerCount + s.listenerCount : s.status === 'scheduled' ? s.interestedCount : s.memberTotals.members),
+      cell: s => (
+        <span className="whitespace-nowrap text-xs tabular-nums text-fg-muted">
           {s.status === 'live'
-            ? `Live for ${since(s.startedAt)} · ${s.speakerCount}/${s.limits.maxSpeakers} on stage · ${s.listenerCount}/${s.limits.maxListeners} listening`
+            ? `${s.speakerCount}/${s.limits.maxSpeakers} stage · ${s.listenerCount}/${s.limits.maxListeners} listening`
             : s.status === 'scheduled'
-              ? `Starts ${fmt(s.scheduledFor)} · ${s.interestedCount} interested`
-              : `${s.endReason ? `${s.endReason.replace(/_/g, ' ')} · ` : ''}${fmt(s.endedAt || s.createdAt)} · peak ${s.peakListeners ?? 0} listening · ${s.memberTotals.members} joined`}
-        </p>
-      </button>
-      {(s.status === 'live' || s.status === 'scheduled') && (
-        <button disabled={busy} onClick={() => forceEnd(s)} className={btnWarn}>{s.status === 'live' ? 'Force end' : 'Cancel'}</button>
-      )}
-    </div>
-  );
-
-  const CampusSelect = (
-    <div className="min-w-[160px]">
-      <label className={label} htmlFor="sp-campus">Campus</label>
-      <select id="sp-campus" value={campusId} onChange={(e) => setCampusId(e.target.value)} className={input}>
-        <option value="" className="bg-surface">All campuses</option>
-        {campuses.map((c) => <option key={c.id} value={c.id} className="bg-surface">{c.code} · {c.name}</option>)}
-      </select>
-    </div>
-  );
+              ? `${s.interestedCount} interested`
+              : `${s.memberTotals.members} joined · peak ${s.peakListeners ?? 0}`}
+        </span>
+      ),
+    },
+    { key: 'campus', header: 'Campus', hideBelow: 'lg', cell: s => <span className="text-xs text-fg-muted">{campusName(s.campusId)}</span> },
+    { key: 'stage', header: 'Stage', hideBelow: 'xl', cell: s => <span className="text-xs text-fg-muted">{s.participation === 'open' ? 'Open stage' : 'Request to speak'}</span> },
+    {
+      key: 'actions',
+      header: <span className="sr-only">Actions</span>,
+      align: 'right',
+      cell: s => ((s.status === 'live' || s.status === 'scheduled')
+        ? <Button size="sm" variant="ghost" className="text-danger-text" disabled={busy} onClick={() => forceEnd(s)}>{s.status === 'live' ? 'Force end' : 'Cancel'}</Button>
+        : null),
+    },
+  ];
 
   return (
-    <div className="space-y-8 animate-fade-in relative pb-16">
-      <div className="flex flex-wrap gap-4 items-end justify-between">
-        <div>
-          <Link href="/friends" className="text-xs font-semibold text-fg-muted hover:text-fg">← Friends config</Link>
-          <h1 className="text-3xl font-semibold text-fg mt-1">Spaces admin</h1>
-          <p className="text-xs font-semibold text-fg-muted mt-1">Live audio rooms: monitor, inspect, force end</p>
-        </div>
-        <Link href="/moderation" className={btnGhost}>Reports queue</Link>
-      </div>
+    <div className="text-fg">
+      <PageHeader
+        title="Spaces"
+        description="Live audio rooms: monitor who is on stage, inspect a room and force end it. Reports on Spaces are handled in the moderation queue."
+        breadcrumbs={[{ label: 'Friends app', href: '/friends' }, { label: 'Spaces' }]}
+        actions={<ButtonLink href="/moderation?tab=queue">Reports queue</ButtonLink>}
+      />
 
-      <div className="rounded-lg border border-line bg-surface-2/60 px-4 py-3 text-xs text-fg-muted">
+      <NoticeBox tone="info" className="mb-4">
         Spaces are never recorded. Audio goes directly between students (WebRTC) and never passes through the server, so admins can see who is in a room but cannot listen. Force end is logged with your reason.
-      </div>
+      </NoticeBox>
 
-      {notice && (
-        <div role="status" className={`rounded-lg border px-4 py-3 text-xs font-semibold flex items-center justify-between gap-4 ${notice.kind === 'ok' ? 'border-success/30 bg-success-soft text-success-text' : 'border-danger/30 bg-danger-soft text-danger-text'}`}>
-          <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-xs font-semibold opacity-70 hover:opacity-100">Dismiss</button>
-        </div>
+      {notice && <NoticeBox tone={notice.kind === 'ok' ? 'success' : 'danger'} className="mb-4" onClose={() => setNotice(null)}>{notice.text}</NoticeBox>}
+
+      <Tabs<Tab>
+        className="mb-4"
+        value={tab}
+        onChange={setTab}
+        tabs={TABS.map(t => ({ id: t.id, label: t.label, count: t.count || null }))}
+      />
+
+      {tab !== 'overview' && (
+        <Toolbar end={tab === 'live'
+          ? <span className="text-xs text-fg-muted">{liveAt ? `Updated ${formatTime(liveAt)} · refreshes every 15 seconds` : ''}</span>
+          : undefined}
+        >
+          {CampusSelect}
+          {tab === 'live' && <Button size="sm" leftIcon={<IconRefresh size={14} />} loading={liveLoading} onClick={loadLive}>Refresh</Button>}
+          {tab === 'all' && (
+            <form className="flex flex-wrap items-center gap-2" onSubmit={(e) => { e.preventDefault(); setQuery(q.trim()); }}>
+              <Select className="w-auto" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status">
+                <option value="">Any status</option>
+                {SPACE_STATUS.map((s) => <option key={s} value={s}>{humanize(s)}</option>)}
+              </Select>
+              <Select className="w-auto" value={modStatus} onChange={(e) => setModStatus(e.target.value)} aria-label="Moderation">
+                <option value="">Any moderation</option>
+                {MOD_STATUS.map((s) => <option key={s} value={s}>{humanize(s)}</option>)}
+              </Select>
+              <SearchInput value={q} onChange={setQ} onEnter={() => setQuery(q.trim())} placeholder="Title or topic" className="w-56" />
+              <Button type="submit">Search</Button>
+            </form>
+          )}
+        </Toolbar>
       )}
 
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-wrap gap-2" role="tablist">
-          {TABS.map((t) => (
-            <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
-              className={`${btn} border ${tab === t.id ? 'border-info/30 bg-info-soft text-info-text' : 'border-line bg-surface-2/60 text-fg-muted hover:text-fg'}`}>
-              {t.label}
-              {!!t.count && <span className="ml-2 rounded-md bg-success-soft px-1.5 py-0.5 text-success-text">{t.count}</span>}
-            </button>
-          ))}
-        </div>
-        {CampusSelect}
-      </div>
-
       {tab === 'live' && (
-        <section className={card}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-fg">Live now</h2>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-fg-muted">{liveAt ? `Updated ${liveAt.toLocaleTimeString('en-IN')} · refreshes every 15 s` : ''}</span>
-              <button onClick={loadLive} disabled={liveLoading} className={btnBlue}>Refresh</button>
-            </div>
-          </div>
-          <LoadState loading={liveLoading} error={liveErr} empty={!live.length} reload={loadLive} emptyText="No Space is live right now." />
-          <div className="space-y-3">{live.map((s) => <Row key={s.id} s={s} />)}</div>
-        </section>
+        <DataTable
+          caption="Live Spaces"
+          columns={columns}
+          rows={live}
+          rowKey={s => s.id}
+          loading={liveLoading && !live.length}
+          error={!live.length ? liveErr || null : null}
+          onRetry={loadLive}
+          onRowClick={s => setOpenId(s.id)}
+          pageSize={0}
+          noun="Spaces"
+          empty={{ title: 'No Space is live right now' }}
+        />
       )}
 
       {tab === 'all' && (
-        <section className={card}>
-          <form className="flex flex-wrap items-end gap-3" onSubmit={(e) => { e.preventDefault(); setQuery(q.trim()); }}>
-            <div className="min-w-[140px]">
-              <label className={label} htmlFor="sp-status">Status</label>
-              <select id="sp-status" value={status} onChange={(e) => setStatus(e.target.value)} className={input}>
-                <option value="" className="bg-surface">Any</option>
-                {SPACE_STATUS.map((s) => <option key={s} value={s} className="bg-surface">{s}</option>)}
-              </select>
-            </div>
-            <div className="min-w-[160px]">
-              <label className={label} htmlFor="sp-mod">Moderation</label>
-              <select id="sp-mod" value={modStatus} onChange={(e) => setModStatus(e.target.value)} className={input}>
-                <option value="" className="bg-surface">Any</option>
-                {MOD_STATUS.map((s) => <option key={s} value={s} className="bg-surface">{s.replace('_', ' ')}</option>)}
-              </select>
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className={label} htmlFor="sp-q">Title or topic</label>
-              <input id="sp-q" value={q} maxLength={60} onChange={(e) => setQ(e.target.value)} className={input} placeholder="Search" />
-            </div>
-            <button type="submit" className={btnBlue}>Search</button>
-          </form>
-          <LoadState loading={allLoading} error={allErr} empty={!all.length} reload={() => loadAll(false)} emptyText="No Spaces match these filters." />
-          <div className="space-y-3">{all.map((s) => <Row key={s.id} s={s} />)}</div>
+        <>
+          <DataTable
+            caption="All Spaces"
+            columns={columns}
+            rows={all}
+            rowKey={s => s.id}
+            loading={allLoading && !all.length}
+            error={!all.length ? allErr || null : null}
+            onRetry={() => loadAll(false)}
+            onRowClick={s => setOpenId(s.id)}
+            pageSize={0}
+            noun="Spaces"
+            empty={{ title: 'No Spaces match these filters' }}
+          />
           {allCursor && (
-            <div className="text-center">
-              <button onClick={() => loadAll(true, allCursor)} disabled={allLoading} className={btnGhost}>{allLoading ? 'Loading…' : 'Load more'}</button>
+            <div className="mt-3 flex justify-center">
+              <Button size="sm" loading={allLoading} onClick={() => loadAll(true, allCursor)}>Load more</Button>
             </div>
           )}
-        </section>
+        </>
       )}
 
       {tab === 'overview' && (
-        <section className={card}>
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-fg">Overview</h2>
-            <button onClick={loadStats} className={btnBlue}>Refresh</button>
-          </div>
-          {statsErr && !stats && <LoadState loading={false} error={statsErr} empty reload={loadStats} emptyText="" />}
+        <div className="space-y-5">
+          <Toolbar end={<Button size="sm" leftIcon={<IconRefresh size={14} />} onClick={loadStats}>Refresh</Button>}>{CampusSelect}</Toolbar>
+          {statsErr && !stats && <ErrorState message={statsErr} onRetry={loadStats} />}
           {stats && (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <Stat k="Live rooms" v={stats.byStatus.live ?? 0} tone="text-success-text" />
-                <Stat k="People in rooms" v={stats.liveParticipants} />
-                <Stat k="Scheduled" v={stats.byStatus.scheduled ?? 0} tone="text-info-text" />
-                <Stat k="Under review" v={stats.pendingReview} tone={stats.pendingReview ? 'text-warning-text' : undefined} />
-                <Stat k="Created (24 h)" v={stats.created24h} />
-                <Stat k="Ended" v={stats.byStatus.ended ?? 0} />
-                <Stat k="Cancelled" v={stats.byStatus.cancelled ?? 0} />
-                <Stat k="Expired" v={stats.byStatus.expired ?? 0} />
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <StatTile label="Live rooms" value={stats.byStatus.live ?? 0} />
+                <StatTile label="People in rooms" value={stats.liveParticipants} />
+                <StatTile label="Scheduled" value={stats.byStatus.scheduled ?? 0} />
+                <StatTile label="Under review" value={stats.pendingReview} tone={stats.pendingReview ? 'warning' : 'neutral'} />
+                <StatTile label="Created (24 hours)" value={stats.created24h} />
+                <StatTile label="Ended" value={stats.byStatus.ended ?? 0} />
+                <StatTile label="Cancelled" value={stats.byStatus.cancelled ?? 0} />
+                <StatTile label="Expired" value={stats.byStatus.expired ?? 0} />
               </div>
-              <div className="grid md:grid-cols-3 gap-3 text-xs">
-                <div className="rounded-lg border border-line bg-surface-2/60 p-4">
-                  <p className={label}>Room caps</p>
-                  <p className="text-fg font-semibold">{stats.caps.maxSpeakers} on stage (host included) · {stats.caps.maxListeners} listeners</p>
-                  <p className="text-fg-muted mt-1">Set with SPACES_MAX_SPEAKERS and SPACES_MAX_LISTENERS on the server.</p>
-                </div>
-                <div className="rounded-lg border border-line bg-surface-2/60 p-4">
-                  <p className={label}>Relay (TURN)</p>
-                  <p className={stats.turnConfigured ? 'text-success-text font-semibold' : 'text-warning-text font-semibold'}>{stats.turnConfigured ? 'Configured' : 'Not configured (public STUN only)'}</p>
-                  <p className="text-fg-muted mt-1">Without TURN, students on strict networks may not hear each other.</p>
-                </div>
-                <div className="rounded-lg border border-line bg-surface-2/60 p-4">
-                  <p className={label}>Recording</p>
-                  <p className="text-fg font-semibold">Off. Spaces are never recorded.</p>
-                </div>
-              </div>
+              <Card>
+                <CardHeader title="Room setup" />
+                <CardBody>
+                  <DescriptionList
+                    columns={3}
+                    items={[
+                      { label: 'Room caps', value: <>{stats.caps.maxSpeakers} on stage (host included) · {stats.caps.maxListeners} listeners<span className="mt-0.5 block text-xs text-fg-muted">Set with SPACES_MAX_SPEAKERS and SPACES_MAX_LISTENERS on the server.</span></> },
+                      { label: 'Relay (TURN)', value: <><StatusPill status={stats.turnConfigured ? 'ok' : 'missing'} tone={stats.turnConfigured ? 'success' : 'warning'} label={stats.turnConfigured ? 'Configured' : 'Not configured (public STUN only)'} /><span className="mt-1 block text-xs text-fg-muted">Without TURN, students on strict networks may not hear each other.</span></> },
+                      { label: 'Recording', value: 'Off. Spaces are never recorded.' },
+                    ]}
+                  />
+                </CardBody>
+              </Card>
             </>
           )}
-          <div className="border-t border-line pt-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold text-fg">Background jobs</p>
-              <p className="text-xs text-fg-muted">Reminders, expiry of unstarted Spaces, ending abandoned rooms.</p>
-              {jobStats && (
-                <p className="text-xs text-fg-muted mt-1">
+          <Card>
+            <CardHeader
+              title="Background jobs"
+              description="Reminders, expiry of unstarted Spaces and ending abandoned rooms. They also run on their own every 15 seconds."
+              actions={<Button size="sm" loading={busy} onClick={runJobs}>Run now</Button>}
+            />
+            {jobStats && (
+              <CardBody>
+                <p className="text-sm text-fg-muted">
                   Last run: {jobStats.reminders} reminders sent, {jobStats.missed} skipped (missed start), {jobStats.expired} expired, {jobStats.abandoned} abandoned rooms ended, {jobStats.orphaned} lost rooms closed.
                 </p>
-              )}
-            </div>
-            <button onClick={runJobs} disabled={busy} className={btnGhost}>Run now</button>
-          </div>
-        </section>
+              </CardBody>
+            )}
+          </Card>
+        </div>
       )}
 
-      {openId && (
-        <Drawer title={detail?.space.title || 'Space'} onClose={() => setOpenId(null)}>
-          {!detail ? (
-            <LoadState loading={!detailErr} error={detailErr} empty reload={() => loadDetail(openId)} emptyText="" />
-          ) : (
-            <SpaceDetail d={detail} campusName={campusName} busy={busy} forceEnd={forceEnd} />
-          )}
-        </Drawer>
-      )}
+      <Drawer
+        open={!!openId}
+        onClose={() => setOpenId(null)}
+        size="md"
+        title={detail?.space.title || 'Space'}
+        description={detail ? `Host: ${hostName(detail.space.host)}` : undefined}
+        footer={detail && (detail.space.status === 'live' || detail.space.status === 'scheduled') ? (
+          <Button variant="destructive" loading={busy} onClick={() => forceEnd(detail.space)}>
+            {detail.space.status === 'live' ? 'Force end this Space' : 'Cancel this Space'}
+          </Button>
+        ) : undefined}
+      >
+        {openId && (!detail ? (
+          detailErr ? <ErrorState message={detailErr} onRetry={() => loadDetail(openId)} /> : <LoadingState label="Loading Space…" />
+        ) : (
+          <SpaceDetail d={detail} campusName={campusName} />
+        ))}
+      </Drawer>
     </div>
   );
 }
 
-function SpaceDetail({ d, campusName, busy, forceEnd }: { d: Detail; campusName: (id: string) => string; busy: boolean; forceEnd: (s: AdminSpace) => void }) {
+function SpaceDetail({ d, campusName }: { d: Detail; campusName: (id: string) => string }) {
   const s = d.space;
-  const open = s.status === 'live' || s.status === 'scheduled';
   return (
-    <div className="space-y-5 text-xs">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center gap-1.5">
         <Chip s={s.status} />
         <Chip s={s.modStatus} />
-        <span className="text-xs font-semibold text-fg-muted">{campusName(s.campusId)}</span>
-        {d.reports > 0 && <Link href="/moderation" className={`${chip} text-warning-text border-warning/30 bg-warning-soft`}>{d.reports} report{d.reports === 1 ? '' : 's'}</Link>}
+        <Badge>{campusName(s.campusId)}</Badge>
+        {d.reports > 0 && <Link href="/moderation?tab=queue"><Badge tone="warning">{plural(d.reports, 'report')}</Badge></Link>}
       </div>
-      <div className="space-y-1">
-        <p className="text-fg-muted">Host: <span className="text-fg font-semibold">{hostName(s.host)}</span></p>
-        {s.topic && <p className="text-fg-muted">Topic: {s.topic}</p>}
-        {s.description && <p className="text-fg-muted whitespace-pre-wrap">{s.description}</p>}
-        {s.removedReason && <p className="text-danger-text">Moderation: {s.removedReason}</p>}
-      </div>
-      <div className="grid grid-cols-2 gap-2 text-fg-muted">
-        <p>Created: <span className="text-fg">{fmt(s.createdAt)}</span></p>
-        <p>Scheduled: <span className="text-fg">{fmt(s.scheduledFor)}</span></p>
-        <p>Started: <span className="text-fg">{fmt(s.startedAt)}</span></p>
-        <p>Ended: <span className="text-fg">{fmt(s.endedAt)}</span></p>
-        <p>End reason: <span className="text-fg">{s.endReason ? s.endReason.replace(/_/g, ' ') : '-'}</span></p>
-        <p>Peak listeners: <span className="text-fg">{s.peakListeners ?? 0}</span></p>
-        <p>Interested: <span className="text-fg">{s.interestedCount}</span></p>
-        <p>Joined / removed: <span className="text-fg">{s.memberTotals.members} / {s.memberTotals.removed}</span></p>
-      </div>
-      {open && (
-        <button disabled={busy} onClick={() => forceEnd(s)} className={`${btnWarn} w-full`}>
-          {s.status === 'live' ? 'Force end this Space' : 'Cancel this Space'}
-        </button>
-      )}
-
-      {d.live && (
-        <div className="space-y-2">
-          <p className={label}>In the room now · {d.live.speakerCount}/{d.live.limits.maxSpeakers} on stage · {d.live.listenerCount}/{d.live.limits.maxListeners} listening</p>
-          {!d.live.participants.length && <p className="text-fg-muted">Nobody is connected.</p>}
-          {d.live.participants.map((p) => (
-            <div key={p.userId} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface-2/60 px-3 py-2">
-              <span className="text-fg truncate">{p.name || 'Student'}{p.verified ? ' ✓' : ''}</span>
-              <span className="flex flex-wrap items-center gap-1.5 shrink-0">
-                <Chip s={p.role} />
-                {p.hand && <span className={`${chip} text-warning-text border-warning/30 bg-warning-soft`}>hand up</span>}
-                {p.invited && <span className={`${chip} text-info-text border-info/30 bg-info-soft`}>invited</span>}
-                {p.mutedByHost ? <span className={`${chip} text-danger-text border-danger/30 bg-danger-soft`}>muted by host</span> : p.muted && <span className={`${chip} text-fg-muted border-line bg-surface-2/60`}>muted</span>}
-                {!p.connected && <span className={`${chip} text-fg-muted border-line bg-surface-2/60`}>reconnecting</span>}
-              </span>
-            </div>
-          ))}
+      {(s.topic || s.description || s.removedReason) && (
+        <div className="space-y-1 text-sm">
+          {s.topic && <p className="text-fg-muted">Topic: <span className="text-fg">{s.topic}</span></p>}
+          {s.description && <p className="whitespace-pre-wrap text-fg-muted">{s.description}</p>}
+          {s.removedReason && <p className="text-danger-text">Moderation: {s.removedReason}</p>}
         </div>
       )}
+      <DescriptionList
+        columns={2}
+        items={[
+          { label: 'Created', value: fmt(s.createdAt) },
+          { label: 'Scheduled', value: fmt(s.scheduledFor) },
+          { label: 'Started', value: fmt(s.startedAt) },
+          { label: 'Ended', value: fmt(s.endedAt) },
+          { label: 'End reason', value: s.endReason ? humanize(s.endReason) : '–' },
+          { label: 'Peak listeners', value: s.peakListeners ?? 0 },
+          { label: 'Interested', value: s.interestedCount },
+          { label: 'Joined / removed', value: `${s.memberTotals.members} / ${s.memberTotals.removed}` },
+        ]}
+      />
 
-      <div className="space-y-2">
-        <p className={label}>Everyone who joined ({d.members.length})</p>
-        {!d.members.length && <p className="text-fg-muted">Nobody joined.</p>}
-        {d.members.map((m, i) => (
-          <div key={`${m.user.userId || 'x'}-${i}`} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface-2/60 px-3 py-2">
-            <span className="min-w-0">
-              <span className="text-fg block truncate">{m.user.name || 'Former student'}</span>
-              <span className="text-xs text-fg-muted">Joined {fmt(m.joinedAt)}{m.leftAt ? ` · left ${fmt(m.leftAt)}` : ''}</span>
-            </span>
-            <span className="flex flex-wrap items-center gap-1.5 shrink-0">
-              <Chip s={m.role} />
-              {m.present && <span className={`${chip} text-success-text border-success/30 bg-success-soft`}>here</span>}
-              {m.removedAt && <span className={`${chip} text-danger-text border-danger/30 bg-danger-soft`}>removed</span>}
-            </span>
-          </div>
-        ))}
-      </div>
+      {d.live && (
+        <section>
+          <SectionTitle title="In the room now" description={`${d.live.speakerCount}/${d.live.limits.maxSpeakers} on stage · ${d.live.listenerCount}/${d.live.limits.maxListeners} listening`} />
+          {!d.live.participants.length ? <p className="text-sm text-fg-muted">Nobody is connected.</p> : (
+            <ul className="divide-y divide-line rounded-lg border border-line">
+              {d.live.participants.map((p) => (
+                <li key={p.userId} className="flex items-center justify-between gap-3 px-3 py-2">
+                  <span className="truncate text-sm text-fg">{p.name || 'Student'}{p.verified && <IconCheckCircle size={13} className="ml-1 inline text-accent-text" aria-label="verified" />}</span>
+                  <span className="flex shrink-0 flex-wrap items-center gap-1">
+                    <Chip s={p.role} />
+                    {p.hand && <Badge tone="warning">Hand up</Badge>}
+                    {p.invited && <Badge tone="info">Invited</Badge>}
+                    {p.mutedByHost ? <Badge tone="danger">Muted by host</Badge> : p.muted && <Badge>Muted</Badge>}
+                    {!p.connected && <Badge>Reconnecting</Badge>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
-      <div className="space-y-2">
-        <p className={label}>Audit trail</p>
-        {!d.actions.length && <p className="text-fg-muted">No actions recorded.</p>}
-        {d.actions.map((a) => (
-          <div key={a.id} className="rounded-xl border border-line bg-surface-2/60 px-3 py-2">
-            <p className="text-fg font-semibold">{a.action.replace(/_/g, ' ')} <span className="text-fg-muted font-normal">by {a.actorRole} {shortId(a.actorId)}</span></p>
-            {a.reason && <p className="text-fg-muted">{a.reason}</p>}
-            <p className="text-xs text-fg-muted">{fmt(a.createdAt)}{a.subjectUserId ? ` · subject ${shortId(a.subjectUserId)}` : ''}</p>
-          </div>
-        ))}
-      </div>
+      <section>
+        <SectionTitle title={`Everyone who joined (${d.members.length})`} />
+        {!d.members.length ? <p className="text-sm text-fg-muted">Nobody joined.</p> : (
+          <ul className="divide-y divide-line rounded-lg border border-line">
+            {d.members.map((m, i) => (
+              <li key={`${m.user.userId || 'x'}-${i}`} className="flex items-center justify-between gap-3 px-3 py-2">
+                <span className="min-w-0">
+                  <span className="block truncate text-sm text-fg">{m.user.name || 'Former student'}</span>
+                  <span className="text-xs text-fg-muted">Joined {fmt(m.joinedAt)}{m.leftAt ? ` · left ${fmt(m.leftAt)}` : ''}</span>
+                </span>
+                <span className="flex shrink-0 flex-wrap items-center gap-1">
+                  <Chip s={m.role} />
+                  {m.present && <Badge tone="success">Here</Badge>}
+                  {m.removedAt && <Badge tone="danger">Removed</Badge>}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section>
+        <SectionTitle title="Audit trail" />
+        {!d.actions.length ? <p className="text-sm text-fg-muted">No actions recorded.</p> : (
+          <ul className="divide-y divide-line rounded-lg border border-line">
+            {d.actions.map((a) => (
+              <li key={a.id} className="px-3 py-2">
+                <p className="text-sm font-medium text-fg">{humanize(a.action)} <span className="font-normal text-fg-muted">by {a.actorRole} {shortId(a.actorId)}</span></p>
+                {a.reason && <p className="text-sm text-fg-muted">{a.reason}</p>}
+                <p className="text-xs text-fg-muted">{fmt(a.createdAt)}{a.subjectUserId ? ` · subject ${shortId(a.subjectUserId)}` : ''}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
