@@ -27,6 +27,7 @@ import * as Haptics from 'expo-haptics';
 import { useIsFocused, useRouter } from 'expo-router';
 import { useTheme } from '../context/ThemeContext';
 import { artForType, CARD_H, ZippySquashContext } from './promo/FunnyPromoArt';
+import { featuredLabel } from '../utils/promoLabel';
 
 export interface PromoSlide {
   id: string;
@@ -419,8 +420,8 @@ export default function HighClassPromoCarousel({
         tagline: '🎓 SLEPT IN AGAIN?',
         title1: 'Missed the notes?',
         title2: "The group didn't.",
-        description: 'Class groups, polls & chats with your batch, in Campus Buddy.',
-        buttonText: 'Open Buddy →',
+        description: 'Class groups, polls and chats with your batch, in Campus.',
+        buttonText: 'Open Campus',
         accentColor: '#A78BFA',
         redirectAction: () => router.push('/friends' as any),
       },
@@ -482,7 +483,7 @@ export default function HighClassPromoCarousel({
         return {
           id: `feat-${id}`,
           type: 'featured_restaurant' as const,
-          tagline: `⭐ ${String(r.featuredBadge || 'Featured').toUpperCase()}`,
+          tagline: featuredLabel(r) || 'Featured',
           title1: String(r.name || 'Featured kitchen'),
           title2: promo,
           description: r.location ? `From ${r.location}` : 'Tap to see the full menu.',

@@ -24,7 +24,7 @@ export const SparkCard: React.FC<{ spark: { date: string; prompt: string } | nul
     );
   }
   return (
-    <LinearGradient colors={['rgba(232,196,127,0.16)', 'rgba(232,196,127,0.03)']} style={styles.card}>
+    <LinearGradient colors={['rgba(232,196,127,0.08)', 'rgba(232,196,127,0.08)']} style={styles.card}>
       <View style={styles.head}>
         <Sparkles size={16} color={FriendsColors.gold} />
         <Text style={[FT.kicker, { color: FriendsColors.gold, flex: 1 }]}>Today's Spark</Text>

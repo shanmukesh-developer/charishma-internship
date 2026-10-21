@@ -25,6 +25,10 @@ const STATUS_LABELS: Record<string, string> = {
   resolved: 'Resolved', closed: 'Closed',
 };
 const statusLabel = (status?: string | null) => STATUS_LABELS[String(status || '').trim().toLowerCase()] || 'Open';
+const REPLY_MAX = 2000;
+type ThreadEntry = { text: string; at?: string; by?: 'support' | 'customer' | string };
+const threadOf = (ticket: any): ThreadEntry[] =>
+  Array.isArray(ticket?.responses) ? ticket.responses.filter((r: any) => r && typeof r.text === 'string') : [];
 const priorityLabel = (p?: string | null) => {
   const v = String(p || 'Medium').trim();
   return v ? v.charAt(0).toUpperCase() + v.slice(1).toLowerCase() : 'Medium';
@@ -51,6 +55,10 @@ export default function SupportScreen() {
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
   const mountedRef = useRef(true);
+  // Reply on an open ticket (POST /api/tickets/:id/reply)
+  const [replyFor, setReplyFor] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [replySending, setReplySending] = useState(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -108,6 +116,8 @@ export default function SupportScreen() {
               }
             : tk
         )));
+        // The live event carries the text only: refetch for the structured thread.
+        fetchTickets();
       } else {
         fetchTickets();
       }
@@ -115,6 +125,31 @@ export default function SupportScreen() {
     socket.on('ticket_updated', onTicketUpdated);
     return () => { socket.off('ticket_updated', onTicketUpdated); };
   }, [user, fetchTickets]);
+
+  const sendReply = async (ticketId: string) => {
+    const text = replyText.trim();
+    if (!text || replySending) return;
+    setReplySending(true);
+    try {
+      const res = await apiFetch(`${ENDPOINTS.support}/${encodeURIComponent(ticketId)}/reply`, {
+        method: 'POST',
+        body: JSON.stringify({ text }),
+      });
+      const data = await readJson(res);
+      if (!mountedRef.current) return;
+      if (res.ok && data) {
+        setTickets(prev => prev.map(tk => (String(tk.id || tk._id) === String(ticketId) ? { ...tk, ...data, order: tk.order } : tk)));
+        setReplyText('');
+        setReplyFor(null);
+      } else {
+        Alert.alert("Couldn't send your reply", friendlyMessage(res, data, 'Please try again in a moment.'));
+      }
+    } catch {
+      if (mountedRef.current) Alert.alert("Couldn't send your reply", "Can't reach Zenvy right now. Check your internet and try again.");
+    } finally {
+      if (mountedRef.current) setReplySending(false);
+    }
+  };
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -212,7 +247,7 @@ export default function SupportScreen() {
             }
           }}
         >
-          <Text style={{ fontSize: 16, color: txt }}>←</Text>
+          <Ionicons name="chevron-back" size={18} color={txt} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={[s.subText, { color: goldColor }]}>Help and support</Text>
@@ -221,6 +256,8 @@ export default function SupportScreen() {
         <TouchableOpacity
           style={[s.newBtn, { backgroundColor: showNewForm ? 'rgba(239,68,68,0.15)' : activeBgColor }] as any}
           onPress={() => setShowNewForm(!showNewForm)}
+          accessibilityRole="button"
+          accessibilityLabel={showNewForm ? 'Cancel the new ticket' : 'Raise a new ticket'}
         >
           <Text style={[s.newBtnText, { color: showNewForm ? '#EF4444' : activeTextColor }]}>
             {showNewForm ? 'Cancel' : 'New ticket'}
@@ -236,6 +273,21 @@ export default function SupportScreen() {
         keyboardDismissMode="interactive"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={goldColor} />}
       >
+        {/* Help & FAQ: most questions are answered there before a ticket is needed */}
+        <TouchableOpacity
+          style={[s.formCard, { backgroundColor: cardBg, borderColor: border, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 16 }]}
+          onPress={() => router.push('/help' as any)}
+          accessibilityRole="button"
+          accessibilityLabel="Open Help and FAQ"
+        >
+          <Ionicons name="help-circle-outline" size={22} color={goldColor} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 13, fontWeight: '800', color: txt }}>Help and FAQ</Text>
+            <Text style={{ fontSize: 12, color: txtSec, marginTop: 2 }}>Ordering hours, payments, refunds, cancellations and more</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={txtSec} />
+        </TouchableOpacity>
+
         {/* Helpline Card */}
         <View style={[s.formCard, { backgroundColor: cardBg, borderColor: border, marginBottom: 16 }]}>
           <Text style={[s.subText, { color: goldColor, marginBottom: 4 }]}>Zenvy helpline</Text>
@@ -438,6 +490,10 @@ export default function SupportScreen() {
             {tickets.map((ticket, idx) => {
               const isClosed = ticket.status === 'Resolved' || ticket.status === 'Closed';
               const ticketOrderId = ticket.order?.id || ticket.orderId;
+              const ticketKey = String(ticket.id || ticket._id || '');
+              const thread = threadOf(ticket);
+              // Support answered last and the ticket is still open: the next step is the customer's.
+              const waitingForYou = !isClosed && thread.length > 0 && thread[thread.length - 1].by !== 'customer';
               return (
                 <View key={ticket.id || ticket._id || String(idx)} style={[s.ticketCard, { backgroundColor: cardBg, borderColor: border }]}>
                   <View style={s.ticketHeader}>
@@ -448,6 +504,11 @@ export default function SupportScreen() {
                       <View style={[s.prioBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}>
                         <Text style={s.prioText}>{priorityLabel(ticket.priority)}</Text>
                       </View>
+                      {waitingForYou && (
+                        <View style={[s.prioBadge, { backgroundColor: activeBgColor }]}>
+                          <Text style={[s.prioText, { color: activeTextColor }]}>Waiting for you</Text>
+                        </View>
+                      )}
                     </View>
                     <Text style={s.ticketId}>#{shortId(ticket.id || ticket._id)}</Text>
                   </View>
@@ -464,11 +525,70 @@ export default function SupportScreen() {
                     <Text style={{ fontSize: 12, fontWeight: '700', color: '#888', marginTop: 6 }}>Raised {formatWhen(ticket.createdAt)}</Text>
                   )}
 
-                  {!!ticket.adminResponse && (
+                  {thread.length > 0 ? (
                     <View style={[s.responseBox, { backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)', borderColor: border }]}>
-                      <Text style={s.responseLabel}>Reply from Zenvy Support</Text>
+                      {thread.map((r, i) => (
+                        <View key={`${r.at || ''}-${i}`} style={i > 0 ? { marginTop: 10 } : undefined}>
+                          <Text style={[s.responseLabel, r.by === 'customer' && { color: txtSec }]}>
+                            {r.by === 'customer' ? 'You' : 'Zenvy support'}{r.at ? ` · ${formatWhen(r.at)}` : ''}
+                          </Text>
+                          <Text style={[s.responseText, { color: txt }]}>{r.text}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : !!ticket.adminResponse && (
+                    <View style={[s.responseBox, { backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)', borderColor: border }]}>
+                      <Text style={s.responseLabel}>Reply from Zenvy support</Text>
                       <Text style={[s.responseText, { color: txt }]}>{ticket.adminResponse}</Text>
                     </View>
+                  )}
+
+                  {ticket.status !== 'Closed' && !!ticketKey && (
+                    replyFor === ticketKey ? (
+                      <View style={{ marginTop: 12 }}>
+                        <TextInput
+                          value={replyText}
+                          onChangeText={setReplyText}
+                          placeholder="Write your reply"
+                          placeholderTextColor={txtSec}
+                          multiline
+                          maxLength={REPLY_MAX}
+                          accessibilityLabel="Your reply"
+                          style={[s.input, s.textarea, { color: txt, borderColor: border, backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : '#FFF', marginBottom: 10 }]}
+                        />
+                        <View style={{ flexDirection: 'row', gap: 10 }}>
+                          <TouchableOpacity
+                            style={[s.replyBtn, { borderColor: border }]}
+                            onPress={() => { setReplyFor(null); setReplyText(''); }}
+                            accessibilityRole="button"
+                          >
+                            <Text style={[s.replyBtnText, { color: txtSec }]}>Cancel</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[s.replyBtn, { backgroundColor: goldColor, borderColor: goldColor, flex: 1, opacity: replyText.trim() && !replySending ? 1 : 0.5 }]}
+                            onPress={() => sendReply(ticketKey)}
+                            disabled={!replyText.trim() || replySending}
+                            accessibilityRole="button"
+                            accessibilityLabel="Send reply"
+                          >
+                            {replySending ? (
+                              <ActivityIndicator size="small" color={isDark ? '#000' : '#fff'} />
+                            ) : (
+                              <Text style={[s.replyBtnText, { color: isDark ? '#000' : '#fff' }]}>Send reply</Text>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={[s.replyBtn, { borderColor: border, alignSelf: 'flex-start', marginTop: 12 }]}
+                        onPress={() => { setReplyFor(ticketKey); setReplyText(''); }}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Reply on ticket ${shortId(ticketKey)}`}
+                      >
+                        <Text style={[s.replyBtnText, { color: activeTextColor }]}>{ticket.status === 'Resolved' ? 'Reply to reopen' : 'Reply'}</Text>
+                      </TouchableOpacity>
+                    )
                   )}
                 </View>
               );
@@ -524,5 +644,7 @@ const s = StyleSheet.create({
 
   responseBox: { marginTop: 12, padding: 12, borderRadius: 12, borderWidth: 1 },
   responseLabel: { fontSize: 12, fontWeight: '800', color: '#22c55e', marginBottom: 4 },
-  responseText: { fontSize: 12, fontWeight: '700', fontStyle: 'italic' }
+  responseText: { fontSize: 12, fontWeight: '600', lineHeight: 17 },
+  replyBtn: { minHeight: 40, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  replyBtnText: { fontSize: 12, fontWeight: '800' },
 });

@@ -275,7 +275,7 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({ visible, onClose, 
     <ScreenModal
       visible={visible}
       onClose={onClose}
-      title="Friends"
+      title="Your friends"
       subtitle={friends.length ? `${friends.length} friend${friends.length === 1 ? '' : 's'}` : undefined}
       right={
         <TouchableOpacity onPress={onAddFriend} style={ui.iconBtn} accessibilityLabel="Add friend">

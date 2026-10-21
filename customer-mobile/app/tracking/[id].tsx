@@ -27,6 +27,7 @@ import { apiFetch, readJson } from '../../utils/auth';
 import { safeId } from '../../utils/ids';
 import { StaggeredSection } from '../../components/AnimatedSection';
 import ConfettiCannon from 'react-native-confetti-cannon';
+import { useReduceMotion } from '../../utils/reduceMotion';
 import LiveOrderCockpit from '../../components/LiveOrderCockpit';
 import FssaiLine from '../../components/FssaiLine';
 import { isVendorFulfilled, vendorCallNumber, callVendor, stallPayCopy } from '../../utils/localVendor';
@@ -187,6 +188,7 @@ export default function TrackingScreen() {
   }, [orderId, receiptLoading]);
   const ratingPromptedRef = useRef(false);
   const confettiShownRef = useRef(false);
+  const reduceMotion = useReduceMotion();
   const gateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -658,7 +660,7 @@ export default function TrackingScreen() {
 
   return (
     <View style={[s.container, { backgroundColor: bg }]}>
-      {showConfetti && (
+      {showConfetti && !reduceMotion && (
         <View pointerEvents="none" style={StyleSheet.absoluteFill}>
           <ConfettiCannon count={200} origin={{ x: -10, y: 0 }} fadeOut={true} fallSpeed={2500} explosionSpeed={350} />
         </View>

@@ -82,6 +82,7 @@
     "plugins": [
       "@react-native-google-signin/google-signin",
       "expo-router",
+      "@react-native-firebase/crashlytics",
       [
         "expo-status-bar",
         {

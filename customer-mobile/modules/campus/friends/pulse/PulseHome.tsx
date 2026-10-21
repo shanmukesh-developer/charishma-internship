@@ -42,7 +42,7 @@ export interface PulseHomeProps extends LegacyPulseProps {
 let lastTab: PulseFeedTab = 'campus';
 
 /**
- * Campus Buddy > Friends > Pulse.
+ * Campus > Friends > Pulse.
  * - On (flag + verified): the real campus feed — Campus / Following, posts, replies, polls,
  *   hashtags, trends, reposts, bookmarks, Space cards — with Campus Moments (9 PM question,
  *   Branch Wars, Today, Birthdays, The Wall) on top. Posting anonymously happens here (the old
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
     backgroundColor: FriendsColors.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: FriendsColors.accentStrong,
+    shadowColor: '#000',
     shadowOpacity: 0.4,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },

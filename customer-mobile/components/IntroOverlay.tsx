@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useReduceMotion } from '../utils/reduceMotion';
 import { View, Text, StyleSheet, Animated, Dimensions, Platform, Easing, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -24,6 +25,12 @@ export default function IntroOverlay({ onComplete }: IntroOverlayProps) {
     doneRef.current = true;
     onCompleteRef.current();
   }, []);
+
+  // Reduce motion (OS setting): skip the animated intro.
+  const reduceMotion = useReduceMotion();
+  useEffect(() => {
+    if (reduceMotion) finish();
+  }, [reduceMotion, finish]);
 
   // Container & Logo Zoom Animations — ALL useNativeDriver: true
   const fadeOutAnim = useRef(new Animated.Value(1)).current;
@@ -272,7 +279,7 @@ export default function IntroOverlay({ onComplete }: IntroOverlayProps) {
 
         {/* Tagline text */}
         <Animated.View style={{ opacity: tagOpacity, transform: [{ translateY: tagY }] }}>
-          <Text style={styles.brandTagline}>THE LUXURY OF CONVENIENCE</Text>
+          <Text style={styles.brandTagline}>Food and essentials, delivered on campus</Text>
         </Animated.View>
       </View>
     </Animated.View>
@@ -441,9 +448,9 @@ const styles = StyleSheet.create({
   },
   brandTagline: {
     color: '#EBE3CE',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 5.5,
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.3,
     opacity: 0.6,
     marginTop: 6,
     textAlign: 'center',

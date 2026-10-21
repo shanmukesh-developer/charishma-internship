@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, Easing, StyleSheet, ViewStyle, StyleProp, Dimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useReduceMotion, isReduceMotionOn } from '../utils/reduceMotion';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -16,12 +17,24 @@ interface StaggeredSectionProps {
 }
 
 export function StaggeredSection({ children, delay = 0, duration = 500, direction = 'up', style }: StaggeredSectionProps) {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(direction === 'up' ? 30 : direction === 'down' ? -30 : direction === 'left' ? 40 : -40)).current;
-  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  // Reduce motion: start (and stay) at the final state.
+  const still = isReduceMotionOn();
+  const fadeAnim = useRef(new Animated.Value(still ? 1 : 0)).current;
+  const slideAnim = useRef(new Animated.Value(still ? 0 : direction === 'up' ? 30 : direction === 'down' ? -30 : direction === 'left' ? 40 : -40)).current;
+  const scaleAnim = useRef(new Animated.Value(still ? 1 : 0.95)).current;
+  const reduce = useReduceMotion();
 
   useEffect(() => {
+    if (!reduce) return;
+    fadeAnim.setValue(1);
+    slideAnim.setValue(0);
+    scaleAnim.setValue(1);
+  }, [reduce]);
+
+  useEffect(() => {
+    if (isReduceMotionOn()) return;
     const timeout = setTimeout(() => {
+      if (isReduceMotionOn()) return;
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -78,8 +91,13 @@ interface ShimmerProps {
 
 export function ShimmerSkeleton({ width, height, borderRadius = 12, style }: ShimmerProps) {
   const shimmerAnim = useRef(new Animated.Value(-1)).current;
+  const reduce = useReduceMotion();
 
   useEffect(() => {
+    if (reduce) {
+      shimmerAnim.setValue(-1);
+      return;
+    }
     const loop = Animated.loop(
       Animated.timing(shimmerAnim, {
         toValue: 2,
@@ -90,7 +108,7 @@ export function ShimmerSkeleton({ width, height, borderRadius = 12, style }: Shi
     );
     loop.start();
     return () => loop.stop();
-  }, []);
+  }, [reduce]);
 
   const translateX = shimmerAnim.interpolate({
     inputRange: [-1, 2],
@@ -137,8 +155,14 @@ interface PulseGlowProps {
 export function PulseGlow({ size, color = '#EF4F5F', children, style }: PulseGlowProps) {
   const pulseScale = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(0.6)).current;
+  const reduce = useReduceMotion();
 
   useEffect(() => {
+    if (reduce) {
+      pulseScale.setValue(1);
+      pulseOpacity.setValue(0.6);
+      return;
+    }
     const loop = Animated.loop(
       Animated.parallel([
         Animated.sequence([
@@ -153,7 +177,7 @@ export function PulseGlow({ size, color = '#EF4F5F', children, style }: PulseGlo
     );
     loop.start();
     return () => loop.stop();
-  }, []);
+  }, [reduce]);
 
   return (
     <View style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}>
@@ -186,8 +210,14 @@ interface FloatingPulseProps {
 export function FloatingPulse({ children, color = '#EF4F5F', style }: FloatingPulseProps) {
   const breathScale = useRef(new Animated.Value(1)).current;
   const breathOpacity = useRef(new Animated.Value(0.15)).current;
+  const reduce = useReduceMotion();
 
   useEffect(() => {
+    if (reduce) {
+      breathScale.setValue(1);
+      breathOpacity.setValue(0.15);
+      return;
+    }
     const loop = Animated.loop(
       Animated.parallel([
         Animated.sequence([
@@ -202,7 +232,7 @@ export function FloatingPulse({ children, color = '#EF4F5F', style }: FloatingPu
     );
     loop.start();
     return () => loop.stop();
-  }, []);
+  }, [reduce]);
 
   return (
     <View style={[{ position: 'relative' }, style]}>
@@ -236,6 +266,10 @@ export function AnimatedCounter({ target, duration = 1500, prefix = '', suffix =
   const [displayValue, setDisplayValue] = React.useState(0);
 
   useEffect(() => {
+    if (isReduceMotionOn()) {
+      setDisplayValue(Math.round(target));
+      return;
+    }
     animValue.setValue(0);
     let lastTime = 0;
     const listener = animValue.addListener(({ value }) => {
@@ -272,10 +306,17 @@ interface BounceInProps {
 }
 
 export function BounceIn({ children, delay = 0, style }: BounceInProps) {
-  const scale = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(isReduceMotionOn() ? 1 : 0)).current;
+  const reduce = useReduceMotion();
 
   useEffect(() => {
+    if (reduce) scale.setValue(1);
+  }, [reduce]);
+
+  useEffect(() => {
+    if (isReduceMotionOn()) return;
     const timeout = setTimeout(() => {
+      if (isReduceMotionOn()) return;
       Animated.spring(scale, {
         toValue: 1,
         friction: 3,

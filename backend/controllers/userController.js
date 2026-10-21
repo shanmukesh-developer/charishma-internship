@@ -583,6 +583,9 @@ const saveFcmToken = async (req, res) => {
       { token: fcmToken, appVersion: appVersion || null, platform: platform || null, updatedAt: new Date().toISOString() },
       ...existing
     ].slice(0, 5);
+    // Push categories the app switched off (sent with the token); older builds send none: keep what is stored.
+    const mutes = require('../utils/pushCategories').mutesFromPrefs((req.body || {}).pushPrefs);
+    if (mutes !== null && User.rawAttributes.pushMutes) user.pushMutes = mutes || null;
     await user.save();
 
     // A device belongs to whoever is signed in on it now: detach it from every other account
@@ -1240,6 +1243,43 @@ const verifyOtp = async (req, res) => {
   }
 };
 
+// @desc    Silent session refresh (sliding 30-day expiry) for customer accounts.
+// @route   POST /api/users/refresh   (alias /refresh-token)   protect
+// Refuses: store / rider tokens (their own refresh routes), admin sessions (short, 2-step sign-in; never
+// extended), suspended or deleted accounts (isActive false), and tokens older than the account's
+// tokenVersion (password change / deletion / admin logout). Re-reads the row, never the 60 s auth cache.
+const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
+const refreshUserToken = async (req, res) => {
+  try {
+    const role = String((req.user && req.user.role) || '').toLowerCase();
+    if (!req.user || role === 'restaurant' || role === 'rider' || role === 'auto_driver') {
+      return res.status(403).json({ code: 'WRONG_ACCOUNT_TYPE', message: 'Only a customer session can be refreshed here.' });
+    }
+    if (role === 'admin') {
+      return res.status(403).json({ code: 'ADMIN_REFRESH_NOT_ALLOWED', message: 'Admin sessions cannot be extended. Please sign in again.' });
+    }
+    const user = await getUserModel().findByPk(req.user.id, { attributes: ['id', 'role', 'isActive', 'tokenVersion'] });
+    if (!user) return res.status(401).json({ code: 'ACCOUNT_NOT_FOUND', message: 'Please sign in again.' });
+    if (user.isActive === false) {
+      return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'This account has been suspended. Please contact Zenvy support.' });
+    }
+    if (String(user.role || '').toLowerCase() === 'admin') {
+      return res.status(403).json({ code: 'ADMIN_REFRESH_NOT_ALLOWED', message: 'Admin sessions cannot be extended. Please sign in again.' });
+    }
+    const claims = require('../middleware/authMiddleware').presentedTokenClaims(req) || {};
+    if ((Number(claims.tv) || 0) !== (Number(user.tokenVersion) || 0)) {
+      return res.status(401).json({ code: 'SESSION_REVOKED', message: 'Your password was changed. Please sign in again.' });
+    }
+    const token = generateToken(user.id, user.role, user.tokenVersion);
+    if (!token) return res.status(500).json({ message: 'Server configuration error. Please try again later.' });
+    setSessionCookie(res, token);
+    return res.json({ token, expiresIn: SESSION_TTL_SECONDS, expiresAt: new Date(Date.now() + SESSION_TTL_SECONDS * 1000).toISOString() });
+  } catch (error) {
+    console.error('[USER_REFRESH_TOKEN_ERROR]', error && error.message);
+    return res.status(500).json({ message: 'Something went wrong. Please try again.' });
+  }
+};
+
 // @desc    Logout user & clear cookie (optionally unregisters this device's push token)
 // @route   POST /api/users/logout
 const logoutUser = async (req, res) => {
@@ -1294,6 +1334,7 @@ module.exports = {
   googleLogin,
   googleComplete,
   logoutUser,
+  refreshUserToken,
   sendOtp,
   sendEmailOtp,
   verifyOtp,

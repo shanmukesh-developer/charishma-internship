@@ -276,7 +276,7 @@ export default function LoginScreen() {
       setLoginMethod('otp');
       phoneOtp.reset();
       setOtp('');
-      setInfo(r.data.message || 'Almost there! Verify your mobile number to finish signing in with Google.');
+      setInfo(r.data.message || 'Almost there. Verify your mobile number to finish signing in with Google.');
       return;
     }
     if (r.code === 'SERVER_BUSY') setShowWakeup(true);
@@ -417,7 +417,7 @@ export default function LoginScreen() {
   const renderOtpSection = () => (
     !otpSent ? (
       <>
-        <Text style={[s.label, labelColor]}>PHONE NUMBER</Text>
+        <Text style={[s.label, labelColor]}>Phone number</Text>
         <TextInput
           style={[inputStyle, { fontSize: 15, fontWeight: '700' }]}
           value={phone}
@@ -437,7 +437,7 @@ export default function LoginScreen() {
           {busy ? (
             <ActivityIndicator color="#000" size="small" />
           ) : (
-            <Text style={s.realtimeOtpBtnText}>SEND OTP</Text>
+            <Text style={s.realtimeOtpBtnText}>Send code</Text>
           )}
         </ActionPressable>
         {smsFailed && !!googlePending?.email && (
@@ -449,7 +449,7 @@ export default function LoginScreen() {
     ) : (
       <>
         <Text style={[s.label, labelColor]}>
-          {phoneOtp.mode === 'email' ? `ENTER THE 6-DIGIT CODE SENT TO ${phoneOtp.emailSentTo || 'YOUR EMAIL'}` : `ENTER THE 6-DIGIT CODE SENT TO +91 ${phoneOtp.sentTo}`}
+          {phoneOtp.mode === 'email' ? `Enter the 6-digit code sent to ${phoneOtp.emailSentTo || 'your email'}` : `Enter the 6-digit code sent to +91 ${phoneOtp.sentTo}`}
         </Text>
         <TextInput
           style={[inputStyle, { letterSpacing: 8, textAlign: 'center', fontSize: 20, fontWeight: '900' }]}
@@ -470,7 +470,7 @@ export default function LoginScreen() {
           {busy ? (
             <ActivityIndicator color="#000" size="small" />
           ) : (
-            <Text style={s.realtimeOtpBtnText}>{googlePending ? 'VERIFY & FINISH' : 'VERIFY OTP'}</Text>
+            <Text style={s.realtimeOtpBtnText}>{googlePending ? 'Verify and finish' : 'Verify code'}</Text>
           )}
         </ActionPressable>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
@@ -571,7 +571,7 @@ export default function LoginScreen() {
             </BounceIn>
             <StaggeredSection delay={400} direction="down">
               <Text style={s.brand}>ZENVY</Text>
-              <Text style={s.tagline}>CAMPUS FOOD & MORE</Text>
+              <Text style={s.tagline}>Campus food and more</Text>
             </StaggeredSection>
           </Animated.View>
 
@@ -592,7 +592,7 @@ export default function LoginScreen() {
               {googlePending ? (
                 <>
                   <Text style={[s.cardTitle, { color: isDark ? '#fff' : '#1A1A2E' }]}>
-                    Almost there{googlePending.name ? `, ${googlePending.name.split(' ')[0]}` : ''}! 👋
+                    Almost there{googlePending.name ? `, ${googlePending.name.split(' ')[0]}` : ''}
                   </Text>
                   <Text style={[s.cardSubtitle, { color: isDark ? COLORS.textSecondary : '#617088' }]}>
                     Verify your mobile number once to finish signing in with Google{googlePending.email ? ` (${googlePending.email})` : ''}.
@@ -600,7 +600,7 @@ export default function LoginScreen() {
 
                   {!googlePending.name ? (
                     <>
-                      <Text style={[s.label, labelColor]}>YOUR NAME</Text>
+                      <Text style={[s.label, labelColor]}>Your name</Text>
                       <TextInput
                         style={inputStyle}
                         value={googleName}
@@ -637,20 +637,20 @@ export default function LoginScreen() {
                       onPress={() => { setLoginMethod('password'); setError(''); setInfo(''); }}
                       sound="click"
                     >
-                      <Text style={[s.tabText, loginMethod === 'password' && s.tabTextActive]}>PASSWORD LOGIN</Text>
+                      <Text style={[s.tabText, loginMethod === 'password' && s.tabTextActive]}>Password</Text>
                     </DopaminePressable>
                     <DopaminePressable
                       style={[s.tabBtn, loginMethod === 'otp' && s.tabBtnActive]}
                       onPress={() => { setLoginMethod('otp'); setError(''); setInfo(''); }}
                       sound="click"
                     >
-                      <Text style={[s.tabText, loginMethod === 'otp' && s.tabTextActive]}>OTP LOGIN</Text>
+                      <Text style={[s.tabText, loginMethod === 'otp' && s.tabTextActive]}>One-time code</Text>
                     </DopaminePressable>
                   </View>
 
                   {loginMethod === 'password' ? (
                     <>
-                      <Text style={[s.label, labelColor]}>PHONE NUMBER</Text>
+                      <Text style={[s.label, labelColor]}>Phone number</Text>
                       <TextInput
                         style={[s.input, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFC', borderColor: isDark ? COLORS.borderDark : '#E2E8F0', color: isDark ? '#fff' : '#1E293B' }]}
                         value={phone}
@@ -665,7 +665,7 @@ export default function LoginScreen() {
                         editable={!busy}
                       />
 
-                      <Text style={[s.label, labelColor]}>PASSWORD</Text>
+                      <Text style={[s.label, labelColor]}>Password</Text>
                       <TextInput
                         style={[s.input, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFC', borderColor: isDark ? COLORS.borderDark : '#E2E8F0', color: isDark ? '#fff' : '#1E293B' }]}
                         value={password}
@@ -695,14 +695,14 @@ export default function LoginScreen() {
                   {loginMethod === 'password' && (
                     <>
                       <TouchableOpacity style={s.forgotBtn} onPress={() => router.push('/forgot-password' as any)}>
-                        <Text style={s.forgotText}>FORGOT PASSWORD?</Text>
+                        <Text style={s.forgotText}>Forgot password?</Text>
                       </TouchableOpacity>
 
                       <ActionPressable style={[s.loginBtn, busy && { opacity: 0.7 }]} onPress={handleLogin} disabled={busy} sound="click">
                         {busy ? (
                           <ActivityIndicator color="#000" size="small" />
                         ) : (
-                          <Text style={s.loginBtnText}>SIGN IN</Text>
+                          <Text style={s.loginBtnText}>Sign in</Text>
                         )}
                       </ActionPressable>
                     </>
@@ -712,7 +712,7 @@ export default function LoginScreen() {
                     <>
                       <View style={s.orRow}>
                         <View style={[s.line, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }]} />
-                        <Text style={[s.orText, { color: isDark ? COLORS.textMuted : '#617088' }]}>OR</Text>
+                        <Text style={[s.orText, { color: isDark ? COLORS.textMuted : '#617088' }]}>or</Text>
                         <View style={[s.line, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }]} />
                       </View>
 
@@ -731,7 +731,7 @@ export default function LoginScreen() {
                   <TermsConsent isDark={isDark} />
 
                   <DopaminePressable onPress={() => router.push('/register' as any)} style={s.switchLink} sound="click">
-                    <Text style={s.switchText}>Don't have an account? <Text style={{ color: COLORS.gold, fontWeight: '800' }}>REGISTER</Text></Text>
+                    <Text style={s.switchText}>Don't have an account? <Text style={{ color: COLORS.gold, fontWeight: '800' }}>Register</Text></Text>
                   </DopaminePressable>
 
                   <TouchableOpacity
@@ -786,7 +786,7 @@ export default function LoginScreen() {
               borderBottomWidth: 1,
               borderBottomColor: 'rgba(255,255,255,0.08)'
             }}>
-              <Text style={{ fontSize: 13, fontWeight: '900', color: COLORS.gold, letterSpacing: 2 }}>ZENVY SECURE SIGN-IN</Text>
+              <Text style={{ fontSize: 15, fontWeight: '800', color: COLORS.gold }}>Sign in with Google</Text>
               <TouchableOpacity
                 onPress={() => setAuthModalVisible(false)}
                 style={{
@@ -796,7 +796,7 @@ export default function LoginScreen() {
                   backgroundColor: 'rgba(255,255,255,0.08)'
                 }}
               >
-                <Text style={{ fontSize: 12, fontWeight: '800', color: '#fff' }}>CLOSE</Text>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: '#fff' }}>Close</Text>
               </TouchableOpacity>
             </View>
 
@@ -844,7 +844,7 @@ const s = StyleSheet.create({
   iconBadge: { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(212, 175, 122, 0.1)', borderWidth: 1.5, borderColor: COLORS.goldBorder, alignItems: 'center', justifyContent: 'center', ...SHADOWS.goldGlow },
   logoIcon: { fontSize: 40, fontWeight: '300', fontStyle: 'italic', color: COLORS.gold, marginTop: Platform.OS === 'ios' ? 4 : 0 },
   brand: { fontSize: 36, fontWeight: '900', color: COLORS.gold, letterSpacing: 8, marginTop: 12, textShadowColor: COLORS.borderGold, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 },
-  tagline: { fontSize: 12, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 4, marginTop: 4, textTransform: 'uppercase' },
+  tagline: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, marginTop: 4 },
   
   card: {
     backgroundColor: 'rgba(26,26,28,0.94)',
@@ -867,18 +867,18 @@ const s = StyleSheet.create({
   cardTitle: { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
   cardSubtitle: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '600', marginTop: 4, marginBottom: 12, letterSpacing: 0.5 },
   
-  label: { fontSize: 12, fontWeight: '800', letterSpacing: 2, marginBottom: 6, marginTop: 12 },
+  label: { fontSize: 13, fontWeight: '700', marginBottom: 6, marginTop: 12 },
   input: { borderWidth: 1, borderRadius: 14, padding: 14, fontSize: 15, fontWeight: '700' },
   error: { color: '#EF4444', fontSize: 12, fontWeight: '600', marginTop: 8 },
   forgotBtn: { alignSelf: 'flex-end', marginTop: 10, padding: 2 },
-  forgotText: { fontSize: 12, fontWeight: '900', color: COLORS.gold, letterSpacing: 1.5 },
+  forgotText: { fontSize: 13, fontWeight: '700', color: COLORS.gold },
   
   loginBtn: { backgroundColor: COLORS.gold, paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginTop: 16, ...SHADOWS.goldGlow },
-  loginBtnText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 3 },
+  loginBtnText: { fontSize: 15, fontWeight: '800', color: '#000' },
   
   orRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 18, gap: 10 },
   line: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
-  orText: { fontSize: 12, fontWeight: '900', color: COLORS.textMuted, letterSpacing: 1.5 },
+  orText: { fontSize: 12, fontWeight: '700', color: COLORS.textMuted },
   
   googleBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#fff', paddingVertical: 14, borderRadius: 14 },
   googleIconG: { fontSize: 16, fontWeight: '900', color: '#333' },
@@ -890,15 +890,15 @@ const s = StyleSheet.create({
   tabRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 4, marginVertical: 14, borderWidth: 1, borderColor: COLORS.borderDark },
   tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
   tabBtnActive: { backgroundColor: 'rgba(201,168,76,0.15)', borderWidth: 1, borderColor: 'rgba(201,168,76,0.3)' },
-  tabText: { fontSize: 12, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.5 },
+  tabText: { fontSize: 13, fontWeight: '700', color: COLORS.textMuted },
   tabTextActive: { color: COLORS.gold },
 
   otpInputRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   sendOtpBtn: { backgroundColor: 'rgba(201,168,76,0.12)', borderWidth: 1, borderColor: 'rgba(201,168,76,0.4)', borderRadius: 14, paddingHorizontal: 16, height: 50, alignItems: 'center', justifyContent: 'center' },
-  sendOtpText: { fontSize: 12, fontWeight: '900', color: COLORS.gold, letterSpacing: 1 },
+  sendOtpText: { fontSize: 13, fontWeight: '800', color: COLORS.gold },
 
   realtimeOtpBtn: { backgroundColor: COLORS.gold, paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginTop: 12, ...SHADOWS.goldGlow },
-  realtimeOtpBtnText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 2 },
+  realtimeOtpBtnText: { fontSize: 14, fontWeight: '800', color: '#000' },
   info: { color: '#10B981', fontSize: 12, fontWeight: '700', marginTop: 8 },
   linkText: { fontSize: 12, fontWeight: '700' },
 });

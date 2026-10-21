@@ -273,7 +273,7 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
       </Text>
       <Text style={[T.muted, { textAlign: 'center', marginTop: 6 }]}>
         {step === 'done'
-          ? '+150 Buddy Points added. Whispers and verified-only features are now unlocked.'
+          ? '+150 Campus points added. Whispers and verified-only features are now unlocked.'
           : `Your student identity is confirmed${campusName ? ` for ${campusName}` : ''}.`}
         {status?.collegeEmail ? `\n${status.collegeEmail}` : ''}
       </Text>
@@ -310,7 +310,7 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
         <View style={styles.reward}>
           <Sparkles size={16} color={CampusColors.warm} />
           <Text style={[T.body, { flex: 1 }]}>
-            Verify once to earn <Text style={{ fontWeight: '800' }}>150 Buddy Points</Text>, post Whispers and show the verified badge.
+            Verify once to earn <Text style={{ fontWeight: '800' }}>150 Campus points</Text>, post Whispers and show the verified badge.
           </Text>
         </View>
       )}

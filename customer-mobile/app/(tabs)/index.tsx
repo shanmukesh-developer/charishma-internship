@@ -29,6 +29,7 @@ import AmbientBackground from '../../components/AmbientBackground';
 import DopaminePressable, { CardPressable, ActionPressable } from '../../components/DopaminePressable';
 import { StaggeredSection, RestaurantCardSkeleton, PulseGlow, BounceIn, FloatingPulse } from '../../components/AnimatedSection';
 import NightClosureBanner from '../../components/NightClosureBanner';
+import { featuredLabel } from '../../utils/promoLabel';
 import ZenvyEcosystemGrid from '../../components/ZenvyEcosystemGrid';
 import SafeImage from '../../components/SafeImage';
 import { Ionicons } from '@expo/vector-icons';
@@ -728,10 +729,10 @@ export default function HomeScreen() {
           </TouchableOpacity>
 
           <View style={s.navRight}>
-            {/* Campus (community, friends, chat, Pulse): an obvious entry, not only the floating button */}
+            {/* Campus: the one entry for chats, Friends (Pulse, Spaces, Forum, Tasks, Connect), Around campus and Me */}
             <DopaminePressable
               style={[s.campusPill, { backgroundColor: cardBg, borderColor: goldBorderColor }]}
-              onPress={() => router.push('/community' as any)}
+              onPress={() => router.push('/friends' as any)}
               sound="click"
               activeScale={0.92}
               accessibilityRole="button"
@@ -771,6 +772,8 @@ export default function HomeScreen() {
           <TouchableOpacity 
             activeOpacity={0.9}
             onPress={() => setIsSearchOpen(true)}
+            accessibilityRole="search"
+            accessibilityLabel="Search dishes and stores"
             style={[s.searchWrap, { backgroundColor: cardBg, borderColor: isDark ? goldBorderColor : COLORS.borderLight, flex: 1, marginBottom: 0 }]}
           >
             <Ionicons name="search-outline" size={17} color={txtSec} />
@@ -1047,6 +1050,9 @@ export default function HomeScreen() {
                 style={{ width: '48.5%' }}
               >
               <CardPressable 
+                accessibilityRole="button"
+                accessibilityLabel={`${r.name || 'Store'}${isOpen ? '' : opensAtLabel ? `, closed, opens ${opensAtLabel}` : ', closed'}${cuisineText ? `, ${cuisineText}` : ''}`}
+                accessibilityHint="Opens the menu"
                 style={[
                   s.rCard, 
                   { 
@@ -1101,8 +1107,8 @@ export default function HomeScreen() {
                     </Text>
                   </View>
 
-                  {/* Promoted / Sponsored Badge */}
-                  {r.isFeatured && (
+                  {/* Featured badge: only for stores the admin flagged as featured (utils/promoLabel) */}
+                  {!!featuredLabel(r) && (
                     <LinearGradient
                       colors={['#F59E0B', '#D97706']}
                       start={{ x: 0, y: 0 }}
@@ -1125,7 +1131,7 @@ export default function HomeScreen() {
                       }}
                     >
                       <Text style={{ fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.2 }}>
-                        {r.featuredBadge || 'Promoted'}
+                        {featuredLabel(r)}
                       </Text>
                     </LinearGradient>
                   )}
@@ -1372,8 +1378,8 @@ export default function HomeScreen() {
       <Modal visible={showBlockModal} animationType="slide" transparent={true} onRequestClose={() => setShowBlockModal(false)}>
         <View style={s.modalOverlay}>
           <View style={[s.modalContentBox, { backgroundColor: sheetBg }]}>
-            <Text style={[s.modalTitle, { color: txt }]}>🏆 BLOCKWARS ARENA</Text>
-            <Text style={[s.modalSubtitle, { color: txtSec }]}>CAMPUS HOSTEL BLOCK COMPETITION</Text>
+            <Text style={[s.modalTitle, { color: txt }]}>Hostel block leaderboard</Text>
+            <Text style={[s.modalSubtitle, { color: txtSec }]}>Hostel blocks compete for points each week</Text>
 
             {loadingBlock ? (
               <ActivityIndicator size="large" color={goldColor} style={{ marginVertical: 32 }} />
@@ -1383,13 +1389,13 @@ export default function HomeScreen() {
                   <View style={[s.challengeCardLayout, { borderColor: border }]}>
                     <Text style={s.challengeEmoji}>{activeChallenge.emoji || '🏆'}</Text>
                     <View style={{ flex: 1 }}>
-                      <Text style={[s.challengeTitle, { color: txt }]}>{activeChallenge.title.toUpperCase()}</Text>
+                      <Text style={[s.challengeTitle, { color: txt }]}>{activeChallenge.title}</Text>
                       <Text style={[s.challengeDesc, { color: txtSec }]}>{activeChallenge.description}</Text>
                     </View>
                   </View>
                 )}
 
-                <Text style={[s.leaderboardTitle, { color: txt }]}>LIVE LEADERBOARD STANDINGS</Text>
+                <Text style={[s.leaderboardTitle, { color: txt }]}>Standings</Text>
                 {blockLeaderboard.length > 0 ? (
                   blockLeaderboard.map((item, idx) => {
                     const isUserBlock = user?.hostelBlock === item.block;
@@ -1427,7 +1433,7 @@ export default function HomeScreen() {
               onPress={() => setShowBlockModal(false)}
               sound="click"
             >
-              <Text style={s.modalCloseText}>DISMISS ARENA</Text>
+              <Text style={s.modalCloseText}>Close</Text>
             </DopaminePressable>
           </View>
         </View>
@@ -1547,15 +1553,15 @@ export default function HomeScreen() {
       {/* ── FLOATING BOTTOM BASKET BAR (its own component: a basket change re-renders only it) ── */}
       <HomeFloatingCart isDark={isDark} txt={txt} onOpen={openBasket} />
 
-      {/* ── Floating community button: posts, birthdays, The Wall; its Friends card opens Campus Buddy ── */}
+      {/* ── Floating chat button: opens Campus (same place as the Campus pill) ── */}
       <FloatingPulse color={COLORS.red} style={s.fabBtnWrap}>
         <DopaminePressable
           style={s.fabBtn}
-          onPress={() => router.push('/community' as any)}
+          onPress={() => router.push('/friends' as any)}
           sound="click"
           activeScale={0.88}
           accessibilityRole="button"
-          accessibilityLabel="Open Community"
+          accessibilityLabel="Open Campus chats"
         >
           <Ionicons name="chatbubbles" size={22} color="#FFFFFF" />
         </DopaminePressable>

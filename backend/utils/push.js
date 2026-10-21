@@ -107,8 +107,32 @@ const buildMessage = (data, extraFCMOptions) => ({
 // Options that are ours, not FCM's:
 //   recipients: [userId]  saves the notification for these users (even if they have no device token)
 //   persist: false        do not save it in the in-app notification list
+// Device tokens of `recipients` who switched this push's category off in the app (utils/pushCategories).
+// Never throws: on any error nothing is filtered.
+const mutedTokensFor = async (recipients, category) => {
+  if (!category || !Array.isArray(recipients) || !recipients.length) return null;
+  try {
+    const User = require('../models/User').getUserModel();
+    if (!User || !User.rawAttributes.pushMutes) return null;
+    const { Op } = require('sequelize');
+    const ids = [...new Set(recipients.filter(Boolean).map(String))];
+    const muted = new Set();
+    for (let i = 0; i < ids.length; i += 500) {
+      const rows = await User.findAll({ where: { id: { [Op.in]: ids.slice(i, i + 500) }, pushMutes: { [Op.like]: `%,${category},%` } }, attributes: ['id', 'fcmTokens'] });
+      for (const row of rows) for (const t of (Array.isArray(row.fcmTokens) ? row.fcmTokens : [])) {
+        const v = typeof t === 'string' ? t : t && t.token;
+        if (v) muted.add(v);
+      }
+    }
+    return muted.size ? muted : null;
+  } catch (err) {
+    console.warn('[FCM_PREFS_WARN]', err.message);
+    return null;
+  }
+};
+
 const sendPushToTokens = async (tokens, title, body, data = {}, extraFCMOptions = {}) => {
-  const { recipients, persist, ...fcmOptions } = extraFCMOptions || {};
+  const { recipients, persist, category: explicitCategory, ...fcmOptions } = extraFCMOptions || {};
   extraFCMOptions = fcmOptions;
   let tokenList = tokens;
   if (typeof tokens === 'string') {
@@ -127,7 +151,10 @@ const sendPushToTokens = async (tokens, title, body, data = {}, extraFCMOptions 
   if (!firebaseReady()) return console.log('[FCM_SEND] Firebase not initialized — skipping push');
   if (tokenList.length === 0) return;
 
-  const validTokens = [...new Set(tokenList.map(t => typeof t === 'string' ? t : t && t.token).filter(Boolean))];
+  let validTokens = [...new Set(tokenList.map(t => typeof t === 'string' ? t : t && t.token).filter(Boolean))];
+  // Customer push categories: skip the devices of recipients who muted this category.
+  const muted = await mutedTokensFor(recipients, require('./pushCategories').categoryOf(data, explicitCategory));
+  if (muted) validTokens = validTokens.filter((t) => !muted.has(t));
   if (validTokens.length === 0) return { successCount: 0, failureCount: 0, staleTokens: [] };
 
   const MAX_BATCH_SIZE = batchSize();

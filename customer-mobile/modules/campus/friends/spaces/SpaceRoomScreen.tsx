@@ -559,7 +559,7 @@ export const SpaceRoomScreen: React.FC<SpaceRoomScreenProps> = ({ space, visible
 
           {invite ? (
             <View style={styles.invite} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-              <CardGlow tint="rgba(200,182,255,0.12)" />
+              <CardGlow tint="rgba(212,175,122,0.12)" />
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <UserPlus size={18} color={FriendsColors.accent} />
                 <Text style={[FT.h3, { flex: 1 }]}>The {invite.byRole === 'host' ? 'host' : 'co-host'} invited you to speak</Text>
@@ -853,7 +853,7 @@ const styles = StyleSheet.create({
   leaveText: { fontSize: 14, fontWeight: '800', color: FriendsColors.danger },
   handCount: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, minHeight: 32, borderRadius: FR.pill, backgroundColor: FriendsColors.goldSoft },
   mic: { width: 60, height: 60, borderRadius: 30, backgroundColor: FriendsColors.cardHi, borderWidth: 1, borderColor: FriendsColors.line, alignItems: 'center', justifyContent: 'center' },
-  micOn: { backgroundColor: FriendsColors.accent, borderColor: FriendsColors.accent, shadowColor: FriendsColors.accentStrong, shadowOpacity: 0.5, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+  micOn: { backgroundColor: FriendsColors.accent, borderColor: FriendsColors.accent },
   handBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 52, paddingHorizontal: 20, borderRadius: FR.pill, backgroundColor: FriendsColors.cardHi, borderWidth: 1, borderColor: FriendsColors.line },
   handOn: { backgroundColor: FriendsColors.gold, borderColor: FriendsColors.gold },
   handText: { fontSize: 14, fontWeight: '800', color: FriendsColors.ink },

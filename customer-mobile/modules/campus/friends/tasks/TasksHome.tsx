@@ -44,7 +44,7 @@ const META_KEY = 'meta';
 const COUNTS_KEY = 'counts';
 
 /**
- * Campus Buddy > Friends > Tasks: a commission-free help board for verified students on one campus.
+ * Campus > Friends > Tasks: a commission-free help board for verified students on one campus.
  * The board lists open tasks (category chips, sort, search); a task opens in an in-tab stack, so the
  * Friends sub-tab bar stays put. Posting, applying, choosing a helper, the task chat, completion,
  * disputes and mutual reviews all run on the real API; the server decides every state change.
@@ -158,7 +158,7 @@ export const TasksHome: React.FC<TasksHomeProps> = ({ focusId, onOpenChat, userI
       openComposer: (edit) => setComposer({ edit: edit || null }),
       openChat: (conversationId, name) => {
         if (onOpenChat) onOpenChat(conversationId, name);
-        else Alert.alert('Chat unavailable', 'Open Campus Buddy › Chats to find the task chat.');
+        else Alert.alert('Chat unavailable', 'Open Campus › Chats to find the task chat.');
       },
       openReputation: (uid, name) => setRep({ userId: uid, name }),
       onGateError: gate,
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
     borderRadius: FR.card,
     backgroundColor: FriendsColors.card,
     borderWidth: 1,
-    borderColor: 'rgba(200,182,255,0.3)',
+    borderColor: 'rgba(212,175,122,0.3)',
   },
   askPlus: { width: 40, height: 40, borderRadius: 20, backgroundColor: FriendsColors.accent, alignItems: 'center', justifyContent: 'center' },
   mineBtn: {

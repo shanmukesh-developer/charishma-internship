@@ -28,6 +28,7 @@ export interface SlideData {
   subheadline: string;
   punchline: string;
   howToUsePointers: {
+    /** Ionicons name shown before the pointer. */
     arrow: string;
     pointerText: string;
     targetLocation: string;
@@ -39,114 +40,75 @@ export interface SlideData {
 export const ONBOARDING_SLIDES: SlideData[] = [
   {
     id: 'food',
-    tag: '🍛 CAMPUS FOOD DELIVERY',
+    tag: 'Food delivery',
     tagColor: '#EF4444',
-    headline: 'Hot Meals to Your Room',
-    subheadline: 'Order from campus canteens & nearby restaurants and get it delivered right to your hostel block.',
-    punchline: 'No messy lines. No missed dinner.',
+    headline: 'Hot meals to your room',
+    subheadline: 'Order from campus canteens and nearby restaurants between 6 am and 9 pm, delivered to your hostel block.',
+    punchline: 'Pay with cash on delivery or your Zenvy Wallet',
     heroImage: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&q=85',
     howToUsePointers: [
-      {
-        arrow: '👉',
-        pointerText: 'Browse live menus from all campus canteens & night pantries',
-        targetLocation: 'Home ➔ Quick Filters',
-      },
-      {
-        arrow: '⚡',
-        pointerText: 'Track your order live and share your delivery PIN with the rider at handover',
-        targetLocation: 'Orders Tab ➔ Track Order',
-      }
+      { arrow: 'restaurant-outline', pointerText: 'Browse stores, dishes and today’s offers', targetLocation: 'Home' },
+      { arrow: 'basket-outline', pointerText: 'Check your items and place the order', targetLocation: 'Basket' },
     ],
-    studentPerk: '💵 Pay with Cash on Delivery or your Zenvy Wallet',
+    studentPerk: 'Share your delivery PIN with the rider only when you have your order',
   },
   {
-    id: 'mega-basket',
-    tag: '🛒 MEGA BASKET',
+    id: 'essentials',
+    tag: 'Groceries and essentials',
     tagColor: '#10B981',
-    headline: 'Mega Basket for Daily Essentials',
-    subheadline: 'Shop snacks, groceries and daily needs from the campus store, or request anything else and a Zenvy shopper buys it for you.',
-    punchline: 'Your shopping list, delivered.',
+    headline: 'Daily essentials, delivered',
+    subheadline: 'Snacks, groceries and daily needs from the campus store, or send a quick list and a Zenvy shopper buys it for you.',
+    punchline: 'Your shopping list, delivered',
     heroImage: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&q=85',
     howToUsePointers: [
-      {
-        arrow: '📦',
-        pointerText: 'Browse the campus store by category, brand or best deals',
-        targetLocation: 'Others Tab ➔ Food & Basket',
-      },
-      {
-        arrow: '🚀',
-        pointerText: 'Type a quick list like "2 maggi, 1 atta" and we fill your basket',
-        targetLocation: 'Food & Basket ➔ Categories ➔ ⚡',
-      }
+      { arrow: 'storefront-outline', pointerText: 'Shop the campus store by category', targetLocation: 'Others, Food and groceries' },
+      { arrow: 'list-outline', pointerText: 'Send a quick list like “2 maggi, 1 atta” with Mega basket', targetLocation: 'Others, Food and groceries' },
     ],
-    studentPerk: '💵 Pay by Cash on Delivery when it arrives',
+    studentPerk: 'Pay by cash on delivery when it arrives',
   },
   {
-    id: 'comms-wall',
-    tag: '🔥 CAMPUS WALL & COMMS',
-    tagColor: '#EC4899',
-    headline: 'Live Campus Moments & Hype',
-    subheadline: 'Drop birthday shoutouts, post on the campus wall and see what your campus is talking about.',
-    punchline: 'Your campus pulse, all in one place.',
-    heroImage: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=1200&q=85',
-    howToUsePointers: [
-      {
-        arrow: '🎂',
-        pointerText: 'Post birthday banners on the digital hostel wall with confetti',
-        targetLocation: 'Home ➔ 💬 Community',
-      },
-      {
-        arrow: '📸',
-        pointerText: 'Join photo contests on The Wall whenever one is running',
-        targetLocation: 'Community ➔ The Wall',
-      }
-    ],
-    studentPerk: '🤝 Made for your campus, by students',
-  },
-  {
-    id: 'social-streaks',
-    tag: '🛵 STREAKS & CAMPUS RIDES',
-    tagColor: '#F59E0B',
-    headline: 'Order Streaks & Shared Rides',
-    subheadline: 'Keep your daily order streak going and share rides with other students heading your way.',
-    punchline: 'Commute smarter together.',
-    heroImage: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=1200&q=85',
-    howToUsePointers: [
-      {
-        arrow: '🔥',
-        pointerText: 'See your current order streak on your profile',
-        targetLocation: 'Profile Tab',
-      },
-      {
-        arrow: '🛵',
-        pointerText: 'Offer or join a ride and split the fuel with fellow students',
-        targetLocation: 'Others Tab ➔ Co-Ride',
-      }
-    ],
-    studentPerk: '🛡️ Rides are listed by students on your campus',
-  },
-  {
-    id: 'doorstep-pg',
-    tag: '🛠️ CAMPUS SERVICES & PGS',
+    id: 'services',
+    tag: 'Services, stays and rides',
     tagColor: '#8B5CF6',
-    headline: 'Campus Services & Student Stays',
-    subheadline: 'Book repairs, prints, tailoring and more from campus service partners, and explore student PGs.',
-    punchline: 'Everything campus life demands under one roof.',
+    headline: 'Repairs, PG stays and rides',
+    subheadline: 'Book repairs and prints, explore student PGs, share rides, rent a vehicle and find campus events.',
+    punchline: 'Everything campus life needs, in one app',
     heroImage: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=85',
     howToUsePointers: [
-      {
-        arrow: '💻',
-        pointerText: 'Request repairs, printouts and other services from campus partners',
-        targetLocation: 'Others Tab ➔ Tech & Repairs',
-      },
-      {
-        arrow: '🏢',
-        pointerText: 'Explore student PGs and request a booking in the app',
-        targetLocation: 'Others Tab ➔ PG Stays',
-      }
+      { arrow: 'construct-outline', pointerText: 'Book repairs, prints and other services', targetLocation: 'Others, Tech and repairs' },
+      { arrow: 'business-outline', pointerText: 'Explore PGs and request a booking', targetLocation: 'Others, PG stays' },
+      { arrow: 'bicycle-outline', pointerText: 'Share a ride, rent a vehicle or get event passes', targetLocation: 'Others, Co-Ride, Rentals, Campus events' },
     ],
-    studentPerk: '📍 Everything campus life needs, in one app',
-  }
+    studentPerk: 'Pick a section at the top of the Others tab',
+  },
+  {
+    id: 'campus',
+    tag: 'Campus',
+    tagColor: '#D4AF7A',
+    headline: 'Your campus in one place',
+    subheadline: 'Chat with classmates, follow Pulse, join Spaces, ask in the Forum and get help through Tasks.',
+    punchline: 'For verified students of your campus',
+    heroImage: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=1200&q=85',
+    howToUsePointers: [
+      { arrow: 'people-outline', pointerText: 'Chats, Friends, Around campus and Me', targetLocation: 'Home, Campus button' },
+      { arrow: 'shield-checkmark-outline', pointerText: 'Verify your college once to unlock Campus', targetLocation: 'Campus, Me' },
+    ],
+    studentPerk: 'Lost something? Post it in Around campus, Lost and found',
+  },
+  {
+    id: 'orders-profile',
+    tag: 'Orders and profile',
+    tagColor: '#F59E0B',
+    headline: 'Track orders and get help',
+    subheadline: 'Follow every order live, see past orders and service bookings, and manage your Wallet and notifications.',
+    punchline: 'Help is one tap away',
+    heroImage: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=1200&q=85',
+    howToUsePointers: [
+      { arrow: 'receipt-outline', pointerText: 'Track live orders and see your history', targetLocation: 'Orders' },
+      { arrow: 'person-circle-outline', pointerText: 'Wallet, notifications, Help and FAQ, and support', targetLocation: 'Profile' },
+    ],
+    studentPerk: 'Choose which notifications you get in Profile',
+  },
 ];
 
 // ── Reusable OnboardingSlide Subcomponent ──
@@ -170,7 +132,7 @@ export function OnboardingSlide({ item }: { item: SlideData }) {
 
         {/* Punchline Micro-Pill Overlay */}
         <View style={s.punchlinePill}>
-          <Text style={s.punchlineText}>✨ {item.punchline}</Text>
+          <Text style={s.punchlineText}>{item.punchline}</Text>
         </View>
       </View>
 
@@ -183,11 +145,11 @@ export function OnboardingSlide({ item }: { item: SlideData }) {
         <View style={s.pointersContainer}>
           {item.howToUsePointers.map((p, idx) => (
             <View key={idx} style={[s.pointerCard, { borderColor: `${item.tagColor}35` }]}>
-              <Text style={s.pointerArrow}>{p.arrow}</Text>
+              <Ionicons name={p.arrow as any} size={17} color={item.tagColor} style={s.pointerArrow} />
               <View style={{ flex: 1 }}>
                 <Text style={s.pointerDesc}>{p.pointerText}</Text>
                 <View style={s.locationBadgeRow}>
-                  <Text style={s.locationLabel}>ACCESS VIA: </Text>
+                  <Text style={s.locationLabel}>Find it in </Text>
                   <Text style={[s.locationValue, { color: item.tagColor }]}>{p.targetLocation}</Text>
                 </View>
               </View>
@@ -261,7 +223,7 @@ export default function OnboardingScreen() {
             </View>
             <View>
               <Text style={s.brandName}>ZENVY</Text>
-              <Text style={s.brandSubtitle}>CAMPUS SUPER-APP</Text>
+              <Text style={s.brandSubtitle}>Campus app</Text>
             </View>
           </View>
 
@@ -277,8 +239,10 @@ export default function OnboardingScreen() {
               style={s.skipButton}
               onPress={() => handleFinishOnboarding('/register')}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Skip the introduction"
             >
-              <Text style={s.skipButtonText}>SKIP ➔</Text>
+              <Text style={s.skipButtonText}>Skip</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -355,7 +319,7 @@ export default function OnboardingScreen() {
               style={s.buttonGradient}
             >
               <Text style={s.buttonText}>
-                {isLastSlide ? 'GET STARTED & CREATE ACCOUNT 🚀' : 'NEXT SERVICE ➔'}
+                {isLastSlide ? 'Create your account' : 'Next'}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -364,7 +328,7 @@ export default function OnboardingScreen() {
           <View style={s.footerSignInRow}>
             <Text style={s.footerPromptText}>Already registered on campus?</Text>
             <TouchableOpacity onPress={() => handleFinishOnboarding('/login')} activeOpacity={0.7}>
-              <Text style={s.footerSignInLink}>SIGN IN</Text>
+              <Text style={s.footerSignInLink}>Sign in</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -419,8 +383,7 @@ const s = StyleSheet.create({
   brandSubtitle: {
     color: COLORS.textMuted,
     fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1.5,
+    fontWeight: '700',
   },
   topRightGroup: {
     flexDirection: 'row',
@@ -451,9 +414,8 @@ const s = StyleSheet.create({
   },
   skipButtonText: {
     color: '#FFF',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 0.8,
+    fontSize: 13,
+    fontWeight: '700',
   },
 
   // Slide Layout
@@ -487,8 +449,7 @@ const s = StyleSheet.create({
   },
   badgeTagText: {
     fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 1,
+    fontWeight: '800',
   },
   punchlinePill: {
     position: 'absolute',
@@ -545,7 +506,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
   },
   pointerArrow: {
-    fontSize: 15,
+    marginTop: 1,
   },
   pointerDesc: {
     color: '#F8FAFC',
@@ -555,19 +516,18 @@ const s = StyleSheet.create({
   },
   locationBadgeRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     marginTop: 2,
   },
   locationLabel: {
-    color: '#617088',
+    color: '#8B93A3',
     fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 0.8,
+    fontWeight: '600',
   },
   locationValue: {
     fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 0.5,
+    fontWeight: '800',
   },
 
   perkRow: {
@@ -612,9 +572,8 @@ const s = StyleSheet.create({
   },
   buttonText: {
     color: '#FFF',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 1.2,
+    fontSize: 15,
+    fontWeight: '800',
   },
   footerSignInRow: {
     flexDirection: 'row',
@@ -629,8 +588,7 @@ const s = StyleSheet.create({
   },
   footerSignInLink: {
     color: '#EF4444',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 0.5,
+    fontSize: 13,
+    fontWeight: '800',
   },
 });

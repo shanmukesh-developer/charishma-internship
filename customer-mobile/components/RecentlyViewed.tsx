@@ -79,11 +79,11 @@ export default function RecentlyViewed() {
     <View style={s.container}>
       <View style={s.headerRow}>
         <View>
-          <Text style={s.sectionLabel}>JUMP BACK IN</Text>
+          <Text style={s.sectionLabel}>Recently viewed</Text>
           <Text style={[s.sectionTitle, { color: txt }]}>Recently Visited</Text>
         </View>
         <TouchableOpacity onPress={handleClear} style={s.clearBtn}>
-          <Text style={[s.clearText, { color: txtSec }]}>CLEAR HISTORY</Text>
+          <Text style={[s.clearText, { color: txtSec }]}>Clear</Text>
         </TouchableOpacity>
       </View>
 
@@ -138,15 +138,11 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     color: COLORS.red,
-    letterSpacing: 3,
     marginBottom: 2,
-    textTransform: 'uppercase',
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
+    fontWeight: '800',
   },
   clearBtn: {
     paddingVertical: 4,
@@ -154,9 +150,7 @@ const s = StyleSheet.create({
   },
   clearText: {
     fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
+    fontWeight: '800',
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -193,6 +187,5 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     color: '#fff',
-    textTransform: 'uppercase',
   },
 });

@@ -38,7 +38,7 @@ export interface ForumHomeProps {
 const COMMUNITIES_KEY = 'communities';
 
 /**
- * Campus Buddy > Friends > Forum.
+ * Campus > Friends > Forum.
  * Home lists the campus communities (joined first), quick actions and the student's Forum standing.
  * Communities, posts, reviews, search, saved posts and moderator tools open in an in-tab stack, so
  * the Friends sub-tab bar stays put and each screen keeps its scroll position.
@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
   joinText: { fontSize: 13, fontWeight: '800', color: FriendsColors.accent },
   guide: { width: 200, padding: FS.md, borderRadius: FR.card, borderWidth: 1, minHeight: 104 },
   guideOfficial: { backgroundColor: 'rgba(232,196,127,0.06)', borderColor: 'rgba(232,196,127,0.35)' },
-  guideStudent: { backgroundColor: 'rgba(200,182,255,0.06)', borderColor: 'rgba(200,182,255,0.3)' },
+  guideStudent: { backgroundColor: 'rgba(212,175,122,0.06)', borderColor: 'rgba(212,175,122,0.3)' },
   guideLabel: { fontSize: 12, fontWeight: '800', letterSpacing: 0.4, textTransform: 'uppercase' },
   stale: { padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.warnSoft, minHeight: 44, flexDirection: 'row', alignItems: 'center' },
 });

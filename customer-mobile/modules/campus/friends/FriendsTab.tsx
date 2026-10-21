@@ -49,7 +49,7 @@ export interface FriendsTabProps {
 }
 
 /**
- * Campus Buddy > Friends.
+ * Campus > Friends.
  * - Pulse is always there. With the pulse flag on it is the real campus feed (posts, polls, hashtags,
  *   trends, follows, reposts, bookmarks) with Campus Moments (9 PM, Branch Wars, Today, Birthdays,
  *   The Wall); with the flag off it stays the previous campus feed so nothing is lost before launch.

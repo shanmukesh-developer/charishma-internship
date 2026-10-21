@@ -291,6 +291,32 @@ const authPartner = async (req, res) => {
   }
 };
 
+// @desc    Silent session refresh (sliding 30-day expiry) for delivery partners.
+// @route   POST /api/delivery/refresh   (alias /refresh-token)   protect + rider
+// Same rules as login: a deactivated (suspendedAt, not approved) or deleted rider is refused; riders
+// still waiting for approval may refresh (they can sign in too). The token's `tv` must match a fresh
+// DB read (password change, deactivation and deletion all bump tokenVersion).
+const RIDER_SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
+const refreshPartnerToken = async (req, res) => {
+  try {
+    const partner = await getDeliveryPartnerModel().findByPk(req.user.id, { attributes: ['id', 'tokenVersion', 'isApproved', 'suspendedAt', 'accountDeletedAt'] });
+    if (!partner || partner.accountDeletedAt) return res.status(401).json({ code: 'ACCOUNT_NOT_FOUND', message: 'Please sign in again.' });
+    if (partner.suspendedAt && partner.isApproved !== true) {
+      return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'Your Zenvy rider account has been deactivated. Please contact Zenvy support.' });
+    }
+    const claims = require('../middleware/authMiddleware').presentedTokenClaims(req) || {};
+    if ((Number(claims.tv) || 0) !== (Number(partner.tokenVersion) || 0)) {
+      return res.status(401).json({ code: 'SESSION_REVOKED', message: 'Your password was changed. Please sign in again.' });
+    }
+    const token = generateToken(partner.id, partner.tokenVersion);
+    if (!token) return res.status(500).json({ message: 'Server configuration error' });
+    res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: RIDER_SESSION_TTL_SECONDS * 1000 });
+    return res.json({ token, expiresIn: RIDER_SESSION_TTL_SECONDS, expiresAt: new Date(Date.now() + RIDER_SESSION_TTL_SECONDS * 1000).toISOString() });
+  } catch (error) {
+    return serverError(res, '[PARTNER_REFRESH_TOKEN_ERROR]', error);
+  }
+};
+
 // @desc    Accept an order
 // CampusBites stall orders (fulfilment 'VENDOR') are delivered by the stall: never in the rider pool,
 // never claimable. Old rows have fulfilment NULL (= Zenvy rider delivery).
@@ -1538,7 +1564,7 @@ const triggerSos = async (req, res) => {
 };
 
 module.exports = { 
-  registerPartner, authPartner, acceptOrder, getPendingOrders, getActiveOrders, 
+  registerPartner, authPartner, refreshPartnerToken, acceptOrder, getPendingOrders, getActiveOrders, 
   updateOrderStatus, toggleOnline, getOrderHistory, saveFcmToken, getLeaderboard,
   getRiderProfile, updateRiderProfile, getPublicRiderProfile, getTodayStats,
   cancelOrderByRider, changePassword, notifyArrivalAtGate,

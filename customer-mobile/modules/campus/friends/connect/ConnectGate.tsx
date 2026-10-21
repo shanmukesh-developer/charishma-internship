@@ -22,7 +22,7 @@ const GateFrame: React.FC<{ step?: number; children: React.ReactNode }> = ({ ste
 );
 
 const Hero: React.FC<{ title: string; subtitle: string; icon?: React.ReactNode }> = ({ title, subtitle, icon }) => (
-  <LinearGradient colors={['rgba(200,182,255,0.16)', 'rgba(200,182,255,0.02)']} style={styles.hero}>
+  <LinearGradient colors={['rgba(212,175,122,0.08)', 'rgba(212,175,122,0.08)']} style={styles.hero}>
     <View style={styles.heroIcon}>{icon || <ConnectHeart size={26} />}</View>
     <Text style={[FT.h1, { textAlign: 'center' }]} accessibilityRole="header">
       {title}
@@ -233,7 +233,7 @@ export const RemovedGate: React.FC<{ onAppeal: () => void; onOpenSafetyCenter: (
 );
 
 const styles = StyleSheet.create({
-  hero: { alignItems: 'center', gap: FS.sm, padding: FS.xl, borderRadius: FR.hero, borderWidth: 1, borderColor: 'rgba(200,182,255,0.18)' },
+  hero: { alignItems: 'center', gap: FS.sm, padding: FS.xl, borderRadius: FR.hero, borderWidth: 1, borderColor: 'rgba(212,175,122,0.18)' },
   heroIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: FriendsColors.accentSoft, marginBottom: 4 },
   dobRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: FS.md },
   dobInput: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', minHeight: 50 },

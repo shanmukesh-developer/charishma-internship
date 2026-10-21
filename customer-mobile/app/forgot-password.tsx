@@ -141,13 +141,13 @@ export default function ForgotPasswordScreen() {
             }
           }}
         >
-          <Text style={s.backText}>← {step === 2 ? 'CHANGE NUMBER' : 'BACK TO SIGN IN'}</Text>
+          <Text style={s.backText}>{step === 2 ? 'Change number' : 'Back to sign in'}</Text>
         </TouchableOpacity>
 
         <View style={s.logoWrap}>
           <Text style={s.logo}>✨</Text>
           <Text style={s.brand}>ZENVY</Text>
-          <Text style={s.tagline}>RESET PASSWORD</Text>
+          <Text style={s.tagline}>Reset password</Text>
         </View>
 
         <View style={s.card}>
@@ -165,7 +165,7 @@ export default function ForgotPasswordScreen() {
           {/* Step 1: Phone */}
           {step === 1 && (
             <View style={{ marginTop: 20 }}>
-              <Text style={s.label}>PHONE NUMBER</Text>
+              <Text style={s.label}>Phone number</Text>
               <View style={s.phoneInputWrap}>
                 <Text style={s.prefix}>+91</Text>
                 <TextInput
@@ -189,7 +189,7 @@ export default function ForgotPasswordScreen() {
                 {busy ? (
                   <ActivityIndicator size="small" color="#000" />
                 ) : (
-                  <Text style={s.actionBtnText}>SEND OTP</Text>
+                  <Text style={s.actionBtnText}>Send code</Text>
                 )}
               </TouchableOpacity>
               {smsFailed && (
@@ -210,7 +210,7 @@ export default function ForgotPasswordScreen() {
             <View style={{ marginTop: 20 }}>
               {!autoProof && (
                 <>
-                  <Text style={s.label}>6-DIGIT CODE</Text>
+                  <Text style={s.label}>6-digit code</Text>
                   <TextInput
                     style={[s.input, { letterSpacing: 8, textAlign: 'center', fontSize: 18, fontWeight: '900' }]}
                     value={otp}
@@ -238,7 +238,7 @@ export default function ForgotPasswordScreen() {
                 </>
               )}
 
-              <Text style={s.label}>NEW PASSWORD</Text>
+              <Text style={s.label}>New password</Text>
               <View style={[s.phoneInputWrap, { paddingRight: 14 }]}>
                 <TextInput
                   style={[s.phoneInput, { paddingHorizontal: 14 }]}
@@ -265,7 +265,7 @@ export default function ForgotPasswordScreen() {
                 {busy ? (
                   <ActivityIndicator size="small" color="#000" />
                 ) : (
-                  <Text style={s.actionBtnText}>RESET PASSWORD</Text>
+                  <Text style={s.actionBtnText}>Reset password</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -280,17 +280,17 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bgDark },
   scroll: { flexGrow: 1, paddingTop: 40, padding: 24, maxWidth: 520, width: '100%', alignSelf: 'center' },
   backLink: { position: 'absolute', top: Platform.OS === 'ios' ? 60 : 40, left: 24, padding: 8 },
-  backText: { color: COLORS.gold, fontSize: 12, fontWeight: '900', letterSpacing: 2 },
+  backText: { color: COLORS.gold, fontSize: 13, fontWeight: '700' },
   logoWrap: { alignItems: 'center', marginBottom: 30, marginTop: 40 },
   logo: { fontSize: 40, marginBottom: 8 },
   brand: { fontSize: 28, fontWeight: '900', color: COLORS.gold, letterSpacing: 10 },
-  tagline: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary, letterSpacing: 4, marginTop: 4 },
+  tagline: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, marginTop: 4 },
 
   card: { backgroundColor: COLORS.bgCard, borderWidth: 1, borderColor: COLORS.borderDark, borderRadius: 24, padding: 24, maxWidth: 520, width: '100%', alignSelf: 'center' },
   stepTitle: { fontSize: 18, fontWeight: '900', color: '#FFF' },
   stepSub: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary, marginTop: 4 },
 
-  label: { fontSize: 12, fontWeight: '900', color: COLORS.textSecondary, letterSpacing: 2, marginBottom: 8, marginTop: 16 },
+  label: { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 8, marginTop: 16 },
   phoneInputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.bgDark, borderWidth: 1, borderColor: COLORS.borderDark, borderRadius: 14, height: 48 },
   prefix: { paddingHorizontal: 16, fontSize: 14, fontWeight: '900', color: COLORS.gold },
   phoneInput: { flex: 1, height: '100%', color: '#FFF', fontSize: 14, fontWeight: '600' },
@@ -306,11 +306,11 @@ const s = StyleSheet.create({
   info: { color: '#10B981', fontSize: 12, fontWeight: '700', marginTop: 10 },
 
   actionBtn: { backgroundColor: COLORS.gold, paddingVertical: 14, borderRadius: 14, alignItems: 'center', marginTop: 24, ...SHADOWS.goldGlow },
-  actionBtnText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 2 },
+  actionBtnText: { fontSize: 15, fontWeight: '800', color: '#000' },
 
   tabRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 4, marginVertical: 14, borderWidth: 1, borderColor: COLORS.borderDark },
   tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
   tabBtnActive: { backgroundColor: 'rgba(201,168,76,0.15)', borderWidth: 1, borderColor: 'rgba(201,168,76,0.3)' },
-  tabText: { fontSize: 12, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.5 },
+  tabText: { fontSize: 13, fontWeight: '700', color: COLORS.textMuted },
   tabTextActive: { color: COLORS.gold },
 });

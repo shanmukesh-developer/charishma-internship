@@ -436,7 +436,7 @@ const RemovableChip: React.FC<{ label: string; onRemove: () => void }> = ({ labe
 const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: FS.sm },
   slot: { width: '31.5%', aspectRatio: 4 / 5, borderRadius: FR.md, overflow: 'hidden', backgroundColor: FriendsColors.card, borderWidth: 1, borderColor: FriendsColors.line, borderStyle: 'dashed' },
-  slotMain: { borderColor: 'rgba(200,182,255,0.45)' },
+  slotMain: { borderColor: 'rgba(212,175,122,0.45)' },
   slotEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
   slotBadge: { position: 'absolute', left: 6, bottom: 6 },
   slotBusy: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(14,13,18,0.6)', alignItems: 'center', justifyContent: 'center' },

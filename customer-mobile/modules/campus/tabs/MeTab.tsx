@@ -322,7 +322,7 @@ export const MeTab: React.FC<MeTabProps> = ({
       </View>
 
       {/* Points */}
-      <SectionTitle title="Buddy points" />
+      <SectionTitle title="Campus points" />
       <View style={[ui.cardPad, { flexDirection: 'row', alignItems: 'center', gap: S.md }]}>
         <Sparkles size={22} color={CampusColors.warm} />
         <View style={{ flex: 1 }}>

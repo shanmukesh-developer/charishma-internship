@@ -377,7 +377,7 @@ export default function RegisterScreen() {
                 <Text style={s.logoIcon}>✨</Text>
               </View>
               <Text style={s.brand}>ZENVY</Text>
-              <Text style={s.tagline}>CREATE YOUR ACCOUNT</Text>
+              <Text style={s.tagline}>Create your account</Text>
             </StaggeredSection>
           </Animated.View>
 
@@ -403,7 +403,7 @@ export default function RegisterScreen() {
                   : 'Get campus food & essentials delivered to your hostel room'}
               </Text>
 
-              <Text style={[s.label, labelColor]}>FULL NAME</Text>
+              <Text style={[s.label, labelColor]}>Full name</Text>
               <TextInput
                 style={inputStyle}
                 value={name}
@@ -418,11 +418,11 @@ export default function RegisterScreen() {
                 editable={!busy}
               />
 
-              <Text style={[s.label, labelColor]}>PHONE NUMBER</Text>
+              <Text style={[s.label, labelColor]}>Phone number</Text>
               {phoneVerified ? (
                 <View style={[inputStyle, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
                   <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#FFF' : '#111827' }}>+91 {normalizePhone(phone)}</Text>
-                  <Text style={{ fontSize: 12, fontWeight: '900', color: '#10B981', letterSpacing: 1 }}>✓ VERIFIED</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#10B981' }}>Verified</Text>
                 </View>
               ) : (
                 <TextInput
@@ -438,7 +438,7 @@ export default function RegisterScreen() {
                 />
               )}
 
-              <Text style={[s.label, labelColor]}>EMAIL (OPTIONAL)</Text>
+              <Text style={[s.label, labelColor]}>Email (optional)</Text>
               <TextInput
                 style={inputStyle}
                 value={email}
@@ -454,7 +454,7 @@ export default function RegisterScreen() {
 
               {showReferral ? (
                 <>
-                  <Text style={[s.label, labelColor]}>INVITE CODE (OPTIONAL)</Text>
+                  <Text style={[s.label, labelColor]}>Invite code (optional)</Text>
                   <TextInput
                     style={[inputStyle, referralError ? { borderColor: '#EF4444', borderWidth: 1.5 } : null]}
                     value={referralCode}
@@ -479,7 +479,7 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
               )}
 
-              <Text style={[s.label, labelColor]}>PASSWORD (OPTIONAL)</Text>
+              <Text style={[s.label, labelColor]}>Password (optional)</Text>
               <TextInput
                 style={inputStyle}
                 value={password}
@@ -495,7 +495,7 @@ export default function RegisterScreen() {
               {isOtpSent && !phoneVerified && (
                 <View style={{ marginTop: 12 }}>
                   <Text style={[s.label, { color: COLORS.gold, fontWeight: '900' }]}>
-                    {phoneOtp.mode === 'email' ? `ENTER THE 6-DIGIT CODE SENT TO ${phoneOtp.emailSentTo || 'YOUR EMAIL'}` : `ENTER THE 6-DIGIT CODE SENT TO +91 ${phoneOtp.sentTo}`}
+                    {phoneOtp.mode === 'email' ? `Enter the 6-digit code sent to ${phoneOtp.emailSentTo || 'your email'}` : `Enter the 6-digit code sent to +91 ${phoneOtp.sentTo}`}
                   </Text>
                   <TextInput
                     style={[
@@ -550,7 +550,7 @@ export default function RegisterScreen() {
                   {busy ? (
                     <ActivityIndicator color="#000" size="small" />
                   ) : (
-                    <Text style={s.regBtnText}>{phoneVerified ? 'CREATE ACCOUNT' : 'VERIFY & CREATE ACCOUNT'}</Text>
+                    <Text style={s.regBtnText}>{phoneVerified ? 'Create account' : 'Verify and create account'}</Text>
                   )}
                 </ActionPressable>
               ) : (
@@ -558,7 +558,7 @@ export default function RegisterScreen() {
                   {busy ? (
                     <ActivityIndicator color="#000" size="small" />
                   ) : (
-                    <Text style={s.regBtnText}>VERIFY PHONE & CONTINUE</Text>
+                    <Text style={s.regBtnText}>Verify phone and continue</Text>
                   )}
                 </ActionPressable>
               )}
@@ -570,7 +570,7 @@ export default function RegisterScreen() {
 
               <DopaminePressable onPress={goToLogin} style={s.switchLink} sound="click">
                 <Text style={[s.switchText, { color: isDark ? COLORS.textSecondary : '#6B7280' }]}>
-                  Already have an account? <Text style={{ color: COLORS.gold, fontWeight: '800' }}>SIGN IN</Text>
+                  Already have an account? <Text style={{ color: COLORS.gold, fontWeight: '800' }}>Sign in</Text>
                 </Text>
               </DopaminePressable>
             </StaggeredSection>
@@ -602,7 +602,7 @@ const s = StyleSheet.create({
   iconBadge: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(212, 175, 122, 0.1)', borderWidth: 1.5, borderColor: COLORS.goldBorder, alignItems: 'center', justifyContent: 'center', ...SHADOWS.goldGlow },
   logoIcon: { fontSize: 28 },
   brand: { fontSize: 32, fontWeight: '900', color: COLORS.gold, letterSpacing: 8, marginTop: 10, textShadowColor: COLORS.borderGold, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 },
-  tagline: { fontSize: 12, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 3, marginTop: 4, textTransform: 'uppercase' },
+  tagline: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, marginTop: 4 },
   
   card: {
     backgroundColor: 'rgba(26,26,28,0.94)',
@@ -625,13 +625,13 @@ const s = StyleSheet.create({
   cardTitle: { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
   cardSubtitle: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '600', marginTop: 4, marginBottom: 8, letterSpacing: 0.5 },
   
-  label: { fontSize: 12, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 2.5, marginBottom: 5, marginTop: 10 },
+  label: { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 5, marginTop: 10 },
   input: { backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: COLORS.borderDark, borderRadius: 14, padding: 13, fontSize: 13, color: '#fff', fontWeight: '600' },
   error: { color: '#EF4444', fontSize: 12, fontWeight: '600', marginTop: 8 },
   info: { color: '#10B981', fontSize: 12, fontWeight: '700', marginTop: 8 },
   
   regBtn: { backgroundColor: COLORS.gold, paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginTop: 20, ...SHADOWS.goldGlow },
-  regBtnText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 3 },
+  regBtnText: { fontSize: 15, fontWeight: '800', color: '#000' },
   
   switchLink: { alignItems: 'center', marginTop: 20 },
   switchText: { fontSize: 12, color: COLORS.textSecondary },

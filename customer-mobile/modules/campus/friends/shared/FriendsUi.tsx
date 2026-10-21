@@ -154,14 +154,8 @@ export const FriendsHeader: React.FC<{
   );
 };
 
-/** Faint light falloff along the top edge of a card (place as the card's first child). */
-export const CardGlow: React.FC<{ tint?: string; height?: number }> = ({ tint, height = 44 }) => (
-  <LinearGradient
-    colors={tint ? [tint, 'rgba(0,0,0,0)'] : FriendsGradients.cardGlow}
-    style={[StyleSheet.absoluteFill, { height, bottom: undefined, borderTopLeftRadius: FR.card, borderTopRightRadius: FR.card }]}
-    pointerEvents="none"
-  />
-);
+/** Was a light falloff along a card's top edge; cards are flat now, so it renders nothing. */
+export const CardGlow: React.FC<{ tint?: string; height?: number }> = () => null;
 
 /** Gradient ring around an avatar (live hosts, highlighted people). */
 export const GradientRing: React.FC<{ size: number; children: React.ReactNode; colors?: readonly [string, string, ...string[]]; width?: number }> = ({

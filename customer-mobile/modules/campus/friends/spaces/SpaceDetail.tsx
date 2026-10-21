@@ -384,7 +384,7 @@ const Fact: React.FC<{ icon: React.ReactNode; text: string; sub?: string }> = ({
 
 const styles = StyleSheet.create({
   round: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  hero: { backgroundColor: FriendsColors.card, borderRadius: FR.card, borderWidth: 1, borderColor: 'rgba(200,182,255,0.3)', padding: FS.lg },
+  hero: { backgroundColor: FriendsColors.card, borderRadius: FR.card, borderWidth: 1, borderColor: 'rgba(212,175,122,0.3)', padding: FS.lg },
   heroLive: { borderColor: 'rgba(243,139,128,0.45)' },
   facts: { marginTop: FS.lg, gap: FS.md, paddingTop: FS.md, borderTopWidth: 1, borderTopColor: FriendsColors.lineSoft },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: FS.sm },

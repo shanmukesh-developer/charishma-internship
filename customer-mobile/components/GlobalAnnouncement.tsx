@@ -245,7 +245,7 @@ export default function GlobalAnnouncement() {
           // Campus chats, calls, friend requests, verification results, birthdays and The Wall
           go(campusHref);
         } else if (data.type === 'BIRTHDAY_ALERT') {
-          go('/community');
+          go('/friends?tab=friends&sub=pulse&segment=posts');
         } else if (data.type === 'promo' || data.type === 'offer') {
           go('/others');
         } else if (['badge', 'BADGE', 'SPIN_EARNED', 'points', 'coupon', 'streak_nudge'].includes(data.type)) {
@@ -253,7 +253,7 @@ export default function GlobalAnnouncement() {
         } else if (data.type === 'PG_BOOKING' || data.type === 'PG_BOOKING_STATUS') {
           go('/others?tab=stays');
         } else if (typeof data.type === 'string' && data.type.startsWith('WALL_')) {
-          go('/community');
+          go('/friends?tab=friends&sub=pulse&segment=wall');
         } else if (data.type === 'abandoned_cart') {
           go('/basket');
         } else if (ORDER_PUSH_TYPES.includes(data.type)) {
@@ -399,7 +399,7 @@ export default function GlobalAnnouncement() {
   const handlePress = () => {
     hideAnnouncement();
     if (announcement.message.includes('Birthday')) {
-      router.push('/community' as any);
+      router.push('/friends?tab=friends&sub=pulse&segment=posts' as any);
     } else {
       router.push('/notifications' as any);
     }

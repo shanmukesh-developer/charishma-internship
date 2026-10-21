@@ -39,7 +39,7 @@ const { width: SW, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SH = SCREEN_HEIGHT;
 const DEPT_SIZE = (SW - 48 - 36) / 4;
 
-const ScalePressable = ({ children, onPress, style, activeOpacity = 0.85 }: any) => {
+const ScalePressable = ({ children, onPress, style, activeOpacity = 0.85, accessibilityLabel, accessibilityRole = 'button', accessibilityHint }: any) => {
   const scale = useRef(new Animated.Value(1)).current;
   
   const handlePressIn = () => {
@@ -67,6 +67,9 @@ const ScalePressable = ({ children, onPress, style, activeOpacity = 0.85 }: any)
       onPressOut={handlePressOut}
       onPress={onPress}
       style={style}
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
     >
       <Animated.View style={{ transform: [{ scale }] }}>
         {children}
@@ -1618,7 +1621,7 @@ export default function OthersScreen() {
     return (
       <View key={product.id} style={[s.bbProductCard, { backgroundColor: cardSurface, borderColor: border }]}>
         <View style={s.bbProductCardImgWrap}>
-          <TouchableOpacity style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }} onPress={() => openProduct(product)}>
+          <TouchableOpacity style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }} onPress={() => openProduct(product)} accessibilityRole="button" accessibilityLabel={`${product.name}${soldOut ? ', sold out' : ''}. Open details`}>
             <Image source={{ uri: product.image || PRODUCT_FALLBACK_IMG }} style={[s.bbProductCardImg, soldOut && { opacity: 0.4 }]} />
           </TouchableOpacity>
 
@@ -1632,23 +1635,23 @@ export default function OthersScreen() {
             </View>
           ) : null}
 
-          <TouchableOpacity style={s.bbWishlistBtn} onPress={() => toggleWishlistProduct(product)} activeOpacity={0.7}>
+          <TouchableOpacity style={s.bbWishlistBtn} onPress={() => toggleWishlistProduct(product)} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={saved ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}>
             <Text style={{ fontSize: 13, color: saved ? '#F59E0B' : '#999' }}>{saved ? '★' : '☆'}</Text>
           </TouchableOpacity>
 
           <View style={s.bbAddBtnOverlapping}>
             {quantity > 0 ? (
               <View style={s.bbStepperOverlapping}>
-                <TouchableOpacity style={s.bbStepperBtnMini} onPress={() => decProduct(product.id)}>
+                <TouchableOpacity style={s.bbStepperBtnMini} onPress={() => decProduct(product.id)} accessibilityRole="button" accessibilityLabel={`Remove one ${product.name}. ${quantity} in basket`}>
                   <Text style={s.bbStepperBtnTextMini}>-</Text>
                 </TouchableOpacity>
                 <Text style={s.bbStepperQtyMini}>{quantity}</Text>
-                <TouchableOpacity style={s.bbStepperBtnMini} onPress={() => addProduct(product)}>
+                <TouchableOpacity style={s.bbStepperBtnMini} onPress={() => addProduct(product)} accessibilityRole="button" accessibilityLabel={`Add one more ${product.name}. ${quantity} in basket`}>
                   <Text style={s.bbStepperBtnTextMini}>+</Text>
                 </TouchableOpacity>
               </View>
             ) : (
-              <TouchableOpacity style={[s.bbAddBtnSquare, soldOut && { opacity: 0.4 }]} onPress={() => addProduct(product)}>
+              <TouchableOpacity style={[s.bbAddBtnSquare, soldOut && { opacity: 0.4 }]} onPress={() => addProduct(product)} accessibilityRole="button" accessibilityLabel={soldOut ? `${product.name} is sold out` : `Add ${product.name} to basket`}>
                 <Text style={s.bbAddBtnPlus}>+</Text>
               </TouchableOpacity>
             )}
@@ -1698,7 +1701,7 @@ export default function OthersScreen() {
         }}
       >
         <View style={{ width: '100%', height: 96, backgroundColor: '#FFF', borderRadius: 12, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#F8FAFC' }}>
-          <TouchableOpacity style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }} onPress={onOpen}>
+          <TouchableOpacity style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }} onPress={onOpen} accessibilityRole="button" accessibilityLabel={`${product.name}${soldOut ? ', sold out' : ''}. Open details`}>
             <Image source={{ uri: product.image || PRODUCT_FALLBACK_IMG }} style={{ width: '88%', height: '88%', resizeMode: 'contain', opacity: soldOut ? 0.4 : 1 }} />
           </TouchableOpacity>
           {(soldOut || off) && (
@@ -1727,17 +1730,17 @@ export default function OthersScreen() {
             {quantity > 0 ? (
               <View style={{ borderRadius: 10, overflow: 'hidden' }}>
                 <LinearGradient colors={['#10B981', '#047857']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flexDirection: 'row', alignItems: 'center', height: 24, justifyContent: 'space-between', paddingHorizontal: 5 }}>
-                  <TouchableOpacity style={{ width: 16, height: 18, alignItems: 'center', justifyContent: 'center' }} onPress={() => decProduct(product.id)}>
+                  <TouchableOpacity style={{ width: 16, height: 18, alignItems: 'center', justifyContent: 'center' }} onPress={() => decProduct(product.id)} hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`Remove one ${product.name}. ${quantity} in basket`}>
                     <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }}>-</Text>
                   </TouchableOpacity>
                   <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12, paddingHorizontal: 2 }}>{quantity}</Text>
-                  <TouchableOpacity style={{ width: 16, height: 18, alignItems: 'center', justifyContent: 'center' }} onPress={() => addProduct(product)}>
+                  <TouchableOpacity style={{ width: 16, height: 18, alignItems: 'center', justifyContent: 'center' }} onPress={() => addProduct(product)} hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`Add one more ${product.name}. ${quantity} in basket`}>
                     <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }}>+</Text>
                   </TouchableOpacity>
                 </LinearGradient>
               </View>
             ) : (
-              <TouchableOpacity style={{ borderRadius: 10, overflow: 'hidden', opacity: soldOut ? 0.5 : 1 }} onPress={() => addProduct(product)} activeOpacity={0.85}>
+              <TouchableOpacity style={{ borderRadius: 10, overflow: 'hidden', opacity: soldOut ? 0.5 : 1 }} onPress={() => addProduct(product)} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={soldOut ? `${product.name} is sold out` : `Add ${product.name} to basket`}>
                 <LinearGradient colors={soldOut ? ['#9CA3AF', '#6B7280'] : ['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 24, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 }}>
                   <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFF', letterSpacing: 0.5 }}>{soldOut ? 'SOLD OUT' : 'ADD +'}</Text>
                 </LinearGradient>
@@ -1859,6 +1862,8 @@ export default function OthersScreen() {
             style={[s.bbSearchBar, { backgroundColor: isDark ? '#27272A' : '#F4F4F5', borderColor: border, height: 42, flex: 1 }]}
             onPress={() => setIsSearchOpen(true)}
             tilt={false}
+            accessibilityRole="button"
+            accessibilityLabel="Search groceries and essentials"
           >
             <Text style={{ fontSize: 14, color: '#F59E0B' }}>🔍</Text>
             <RotatingSearchPlaceholder color={txtSec} textColor={txt} style={[s.bbSearchInput, { fontSize: 12, fontWeight: '600' }]} />
@@ -2169,7 +2174,7 @@ export default function OthersScreen() {
                 />
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 6, marginTop: 6 }}>
                   <TouchableOpacity style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: isDark ? '#3F3F46' : '#E2E8F0' }} onPress={() => setShowAutoFillCard(false)}>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: txt }}>CANCEL</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: txt }}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: '#22C55E' }} onPress={handleSmartAutoFill}>
                     <Text style={{ fontSize: 12, fontWeight: '900', color: '#fff' }}>ADD ITEMS</Text>
@@ -2213,10 +2218,10 @@ export default function OthersScreen() {
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 6, marginTop: 4 }}>
                   <TouchableOpacity style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: isDark ? '#3F3F46' : '#E2E8F0' }} onPress={() => setShowCustomForm(false)}>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: txt }}>CANCEL</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: txt }}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: '#EF4444' }} onPress={handleAddCustomRequest}>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#fff' }}>ADD TO BASKET</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#fff' }}>Add to basket</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -2710,7 +2715,7 @@ export default function OthersScreen() {
       {/* ── PRODUCT CATALOG BOTTOM SHEET ── */}
       {selectedCategoryName !== null && (
         <Animated.View style={[StyleSheet.absoluteFill, { zIndex: 100 }]}>
-          <TouchableOpacity activeOpacity={1} style={StyleSheet.absoluteFill} onPress={closeCatalogSheet}>
+          <TouchableOpacity activeOpacity={1} style={StyleSheet.absoluteFill} onPress={closeCatalogSheet} accessibilityRole="button" accessibilityLabel="Close the category list">
             <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', opacity: catalogBackdropAnim }]} />
           </TouchableOpacity>
 
@@ -2809,7 +2814,7 @@ export default function OthersScreen() {
 
             <View style={{ alignItems: 'center', marginVertical: 12 }}>
               <Text style={{ fontSize: 32, marginBottom: 8 }}>🎉</Text>
-              <Text style={[s.modalTitle, { color: txt, textAlign: 'center', marginBottom: 4 }]}>CONGRATULATIONS!</Text>
+              <Text style={[s.modalTitle, { color: txt, textAlign: 'center', marginBottom: 4 }]}>Congratulations</Text>
               <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec, textAlign: 'center', marginBottom: 12 }}>
                 {wheelResult?.coupon ? 'Your coupon is ready to use at checkout.' : 'Added to your ZenPoints balance.'}
               </Text>
@@ -2845,7 +2850,7 @@ export default function OthersScreen() {
               )}
 
               <TouchableOpacity onPress={() => { setShowWheelModal(false); setWheelResult(null); }} style={{ paddingVertical: 12, marginTop: 6 }}>
-                <Text style={{ fontSize: 12, fontWeight: '900', color: COLORS.gold, letterSpacing: 1 }}>AWESOME!</Text>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: COLORS.gold }}>Done</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -2888,7 +2893,7 @@ export default function OthersScreen() {
                         <Text style={{ fontSize: 13, fontWeight: '900', color: '#10B981' }}>{item.price}</Text>
                         <View style={{ flexDirection: 'row', gap: 6 }}>
                           <TouchableOpacity style={{ paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, backgroundColor: isDark ? '#3F3F46' : '#E2E8F0' }} onPress={() => removeSaved(item.id)}>
-                            <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>REMOVE</Text>
+                            <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>Remove</Text>
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, backgroundColor: '#EF4444' }}

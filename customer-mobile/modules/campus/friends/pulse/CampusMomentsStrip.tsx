@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { Image } from 'expo-image';
-import { Moon, Trophy, CalendarDays, Cake, Camera, ChevronRight, Utensils, MapPin, Heart, Plus, Send } from '../../../../components/lucide';
+import { Moon, Trophy, CalendarDays, Cake, Camera, ChevronRight, Utensils, MapPin, Heart, Plus, Send, Images } from '../../../../components/lucide';
 import * as Haptics from 'expo-haptics';
 import { ENDPOINTS } from '../../../../constants/api';
 import { apiFetch } from '../../../../utils/auth';
@@ -103,7 +103,7 @@ export const CampusMomentsStrip: React.FC<{
   const [today, setToday] = useState<PulseToday | null | undefined>(snap?.today);
   const [birthdays, setBirthdays] = useState<Birthday[] | null | undefined>(snap?.birthdays);
   const [wall, setWall] = useState<string | null | undefined | false>(snap?.wall);
-  const [sheet, setSheet] = useState<null | 'today' | 'birthdays' | 'wall'>(null);
+  const [sheet, setSheet] = useState<null | 'today' | 'birthdays' | 'wall' | 'stories'>(null);
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -332,6 +332,25 @@ export const CampusMomentsStrip: React.FC<{
             <ChevronRight size={12} color={FriendsColors.faint} />
           </View>
         </TouchableOpacity>
+
+        {/* Stories: the earlier Community posts (48-hour stories, reviews, celebrations), kept here */}
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => setSheet('stories')}
+          activeOpacity={0.88}
+          accessibilityRole="button"
+          accessibilityLabel="Stories. 48-hour stories, reviews and celebrations from campus. Open"
+        >
+          <View style={styles.cardTop}>
+            <Images size={14} color={FriendsColors.accent} />
+            <Text style={[styles.cardKicker, { color: FriendsColors.accent }]}>STORIES</Text>
+          </View>
+          <Text style={styles.body} numberOfLines={3}>48-hour stories, reviews and celebrations from campus.</Text>
+          <View style={styles.openRow}>
+            <Text style={styles.cardFoot}>Open</Text>
+            <ChevronRight size={12} color={FriendsColors.faint} />
+          </View>
+        </TouchableOpacity>
       </ScrollView>
 
       <TodaySheet visible={sheet === 'today'} onClose={() => setSheet(null)} today={today || null} />
@@ -345,6 +364,9 @@ export const CampusMomentsStrip: React.FC<{
       />
       <ScreenModal visible={sheet === 'wall'} onClose={() => setSheet(null)} title="The Wall" subtitle="Campus photo contest">
         {sheet === 'wall' ? <CommunityFeed embedded tab="wall" /> : null}
+      </ScreenModal>
+      <ScreenModal visible={sheet === 'stories'} onClose={() => setSheet(null)} title="Stories" subtitle="Stories, reviews and celebrations">
+        {sheet === 'stories' ? <CommunityFeed embedded tab="all" /> : null}
       </ScreenModal>
     </View>
   );
@@ -686,7 +708,7 @@ const styles = StyleSheet.create({
     borderColor: FriendsColors.line,
     justifyContent: 'space-between',
   },
-  nightCard: { width: 236, backgroundColor: '#15112A', borderColor: 'rgba(200,182,255,0.35)' },
+  nightCard: { width: 236, backgroundColor: '#15112A', borderColor: 'rgba(212,175,122,0.35)' },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   cardKicker: { fontSize: 12, fontWeight: '900', letterSpacing: 0.9 },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: FriendsColors.danger, marginLeft: 'auto' },

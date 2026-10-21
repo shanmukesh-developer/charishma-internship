@@ -1,6 +1,8 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, StatusBar } from 'react-native';
 import { COLORS, SHADOWS, RADIUS } from '../constants/theme';
+import { recordJsError } from '../utils/crashReporting';
+import { Ionicons } from '@expo/vector-icons';
 
 interface Props {
   children: ReactNode;
@@ -23,7 +25,10 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('🔥 [ZEN_UNCAUGHT_REACT_ERROR]', error, errorInfo);
+    console.error('[ZEN_UNCAUGHT_REACT_ERROR]', error, errorInfo);
+    // Crashlytics in release builds only (utils/crashReporting); the component stack goes in as context.
+    const firstFrame = errorInfo?.componentStack ? String(errorInfo.componentStack).trim().split(/\r?\n/)[0] : '';
+    recordJsError(error, firstFrame ? `ErrorBoundary: ${firstFrame}` : 'ErrorBoundary');
   }
 
   private handleReset = () => {
@@ -41,12 +46,12 @@ export class ErrorBoundary extends Component<Props, State> {
           <StatusBar barStyle="light-content" backgroundColor="#09090B" />
           <View style={styles.card}>
             <View style={styles.iconCircle}>
-              <Text style={styles.icon}>⚡</Text>
+              <Ionicons name="alert-circle-outline" size={30} color={COLORS.gold} />
             </View>
 
-            <Text style={styles.title}>Oops, something went wrong</Text>
+            <Text style={styles.title}>Something went wrong</Text>
             <Text style={styles.subtitle}>
-              This screen hit a snag. Don't worry, your orders and basket are safe. Tap below to try again.
+              This screen could not load. Your orders and basket are safe. Tap below to try again.
             </Text>
 
             {__DEV__ && this.state.error && (
@@ -58,7 +63,7 @@ export class ErrorBoundary extends Component<Props, State> {
             )}
 
             <TouchableOpacity style={styles.primaryButton} activeOpacity={0.85} onPress={this.handleReset}>
-              <Text style={styles.primaryButtonText}>TRY AGAIN</Text>
+              <Text style={styles.primaryButtonText}>Try again</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -141,9 +146,8 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 1.5,
+    fontSize: 15,
+    fontWeight: '800',
   },
 });
 

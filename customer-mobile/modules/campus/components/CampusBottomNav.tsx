@@ -30,7 +30,7 @@ export const CampusBottomNav: React.FC<CampusBottomNavProps> = ({
   const tabs: { key: CampusTab; label: string; icon: typeof MessageSquare }[] = [
     { key: 'chats', label: 'Chats', icon: MessageSquare },
     { key: 'friends', label: 'Friends', icon: Users },
-    { key: 'campus', label: 'Campus', icon: School },
+    { key: 'campus', label: 'Around campus', icon: School },
     { key: 'me', label: 'Me', icon: User },
   ];
 
@@ -70,7 +70,12 @@ export const CampusBottomNav: React.FC<CampusBottomNavProps> = ({
                 ) : null;
               })()}
             </View>
-            <Text style={[styles.tabLabel, { color: idleColor }, isActive && styles.activeTabLabel, isActive && { color: activeColor }]}>
+            <Text
+              style={[styles.tabLabel, { color: idleColor }, isActive && styles.activeTabLabel, isActive && { color: activeColor }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+            >
               {tab.label}
             </Text>
           </TouchableOpacity>

@@ -38,7 +38,7 @@ const TABS: { key: SpaceListStatus; label: string }[] = [
 ];
 
 /**
- * Campus Buddy > Friends > Spaces: live audio rooms for verified students on one campus.
+ * Campus > Friends > Spaces: live audio rooms for verified students on one campus.
  * Live now / Upcoming / Hosted by me lists, a composer (start now or schedule, local time),
  * Space details with reminders and host controls, and the live room. The room keeps running
  * (audio included) while minimized or while another Friends sub-tab is open.

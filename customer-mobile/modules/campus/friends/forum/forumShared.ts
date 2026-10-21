@@ -193,7 +193,7 @@ export const patchPostList = (list: ForumPost[], post: ForumPost) => {
 
 export const excerpt = (body: string, n = 300) => (body && body.length > n ? `${body.slice(0, n)}...` : body || '');
 
-/** Share link that opens this post inside Campus Buddy > Friends > Forum. */
+/** Share link that opens this post inside Campus > Friends > Forum. */
 export const forumPostLink = (postId: string) => `zenvy://friends?tab=friends&sub=forum&id=${encodeURIComponent(postId)}`;
 
 export const compactCount = (n: number) => {

@@ -1786,8 +1786,8 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
               <Text style={{ fontSize: 20 }}>👥</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[s.friendsCardTitle, { color: txt }]}>Campus Buddy</Text>
-              <Text style={[s.friendsCardSub, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>CHATS, GROUPS & CAMPUS PULSE</Text>
+              <Text style={[s.friendsCardTitle, { color: txt }]}>Campus</Text>
+              <Text style={[s.friendsCardSub, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>Chats, groups and Pulse</Text>
             </View>
             <View style={s.streakPulseContainer}>
               <FloatingPulse color="#FF5A00">

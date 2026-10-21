@@ -48,7 +48,7 @@ const TABS: { key: Tab; label: string; icon: typeof Compass }[] = [
 let statusCache: { userId: string; value: ConnectStatus } | null = null;
 
 /**
- * Campus Buddy > Friends > Connect: optional, 18+, verified students on one campus.
+ * Campus > Friends > Connect: optional, 18+, verified students on one campus.
  * Server-driven stages: age (DOB) → consent (+18+ declaration) → profile + selfie check → active.
  * Then Discover (Like / Pass), Matches (Daily Spark, chat after a match), Profile (photos, privacy,
  * hide lists) and a Safety centre (pause, delete, my data, helplines). No GPS, no calls.

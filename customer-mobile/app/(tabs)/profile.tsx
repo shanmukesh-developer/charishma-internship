@@ -14,6 +14,7 @@ import {
   RefreshControl,
   Share,
   Linking,
+  Switch,
 } from 'react-native';
 import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
 import Clipboard from '@react-native-clipboard/clipboard';
@@ -43,6 +44,8 @@ import DeleteAccountModal from '../../components/DeleteAccountModal';
 import { cleanRoom, cleanBlock, formatHostel, useCampusHostelBlocks, HOSTEL_BLOCK_MAX, ROOM_NUMBER_MAX } from '../../utils/hostel';
 import { openLegal, LEGAL_LABELS, LegalPage } from '../../utils/legal';
 import { formatINR, formatCount, plural } from '../../utils/format';
+import { getSoundsEnabled, setSoundsEnabled, onSoundSettingChange } from '../../utils/sounds';
+import { loadPushPrefs, savePushPrefs, DEFAULT_PUSH_PREFS, PUSH_CATEGORY_ROWS, PushPrefs, PushCategory } from '../../utils/pushPrefs';
 import { Ionicons } from '@expo/vector-icons';
 
 const PHONE_RE = /^[6-9]\d{9}$/;
@@ -175,6 +178,9 @@ export default function ProfileScreen() {
   const [coupons, setCoupons] = useState<any[]>([]);
   const [giftPhone, setGiftPhone] = useState('');
   const [pushOn, setPushOn] = useState(false);
+  const [pushPrefs, setPushPrefs] = useState<PushPrefs>(DEFAULT_PUSH_PREFS);
+  const pushPrefsRef = useRef<PushPrefs>(DEFAULT_PUSH_PREFS);
+  const [soundsOn, setSoundsOn] = useState(getSoundsEnabled());
   const [sendingGift, setSendingGift] = useState(false);
   const giftRef = useRef(false);
   // One Idempotency-Key per gift (recipient + amount), kept across retries until the server answers,
@@ -254,6 +260,25 @@ export default function ProfileScreen() {
     }, [userId, fetchData])
   );
 
+  // Push categories (kept on this phone, sent with the token) and the App sounds switch.
+  useEffect(() => {
+    loadPushPrefs().then((p) => {
+      pushPrefsRef.current = p;
+      if (mountedRef.current) setPushPrefs(p);
+    });
+    return onSoundSettingChange((on) => { if (mountedRef.current) setSoundsOn(on); });
+  }, []);
+
+  const togglePushCategory = (key: PushCategory, value: boolean) => {
+    const next = { ...pushPrefsRef.current, [key]: value };
+    pushPrefsRef.current = next;
+    setPushPrefs(next);
+    savePushPrefs(next).then(() => {
+      // Tell the server (it skips muted categories). Silent: never prompts for permission here.
+      if (pushOn) handleEnablePush(true);
+    });
+  };
+
   // Register this device for push once per signed-in user (silent: never prompts here)
   useEffect(() => {
     if (userId) handleEnablePush(true);
@@ -317,9 +342,10 @@ export default function ProfileScreen() {
       }
       if (!fcmToken) throw new Error('No push token');
 
+      const pushPrefsNow = await loadPushPrefs();
       const res = await apiFetch(`${API_URL}/api/users/fcm-token`, {
         method: 'POST',
-        body: JSON.stringify({ fcmToken, appVersion: APP_VERSION, platform: Platform.OS }),
+        body: JSON.stringify({ fcmToken, appVersion: APP_VERSION, platform: Platform.OS, pushPrefs: pushPrefsNow }),
       });
 
       if (res.ok) {
@@ -902,6 +928,42 @@ export default function ProfileScreen() {
               <Text style={[s.pushBtnText, { color: pushOn ? COLORS.emerald : goldColor }]}>{pushOn ? 'On' : 'Turn on'}</Text>
             </View>
           </TouchableOpacity>
+          {/* Push categories: what this phone is notified about */}
+          <View style={[s.prefCard, { backgroundColor: cardBg, borderColor: border }]}>
+            {PUSH_CATEGORY_ROWS.map((row, i) => (
+              <View key={row.key} style={[s.prefRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: border }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[s.notifLabel, { color: txt }]}>{row.label}</Text>
+                  <Text style={[s.notifDesc, { color: txtSec }]}>{row.desc}</Text>
+                </View>
+                <Switch
+                  value={pushPrefs[row.key]}
+                  onValueChange={(v) => togglePushCategory(row.key, v)}
+                  trackColor={{ false: isDark ? '#3A3A3C' : '#D1D5DB', true: goldColor }}
+                  thumbColor="#FFFFFF"
+                  accessibilityLabel={`${row.label} notifications`}
+                />
+              </View>
+            ))}
+            <Text style={[s.notifDesc, { color: txtSec, paddingTop: 10 }]}>Chats, calls, wallet and support replies always come through.</Text>
+          </View>
+          {/* App sounds: off by default; silent or vibrate on the phone always wins */}
+          <View style={[s.themeBtn, { backgroundColor: cardBg, borderColor: border }]}>
+            <View style={[s.notifIconOuter, { backgroundColor: isDark ? '#1C1B1F' : '#F3F4F6' }]}>
+              <Ionicons name={soundsOn ? 'volume-medium-outline' : 'volume-mute-outline'} size={17} color={goldColor} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.notifLabel, { color: txt }]}>App sounds</Text>
+              <Text style={[s.notifDesc, { color: txtSec }]}>Taps, tabs and add to basket. Never plays when your phone is on silent.</Text>
+            </View>
+            <Switch
+              value={soundsOn}
+              onValueChange={(v) => { setSoundsOn(v); setSoundsEnabled(v); }}
+              trackColor={{ false: isDark ? '#3A3A3C' : '#D1D5DB', true: goldColor }}
+              thumbColor="#FFFFFF"
+              accessibilityLabel="App sounds"
+            />
+          </View>
         </StaggeredSection>
 
         {/* Your badges */}
@@ -1191,6 +1253,12 @@ export default function ProfileScreen() {
               <Ionicons name="help-buoy-outline" size={20} color={goldColor} />
               <Text style={[s.supportBtnTitle, { color: goldColor }]}>Support tickets</Text>
               <Text style={[s.supportBtnDesc, { color: txtSec }]}>Report an issue & track it</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[s.supportBtn, { backgroundColor: cardBg, borderColor: border }]} onPress={() => router.push('/help' as any)} accessibilityRole="button" accessibilityLabel="Help and FAQ">
+              <Ionicons name="help-circle-outline" size={20} color={goldColor} />
+              <Text style={[s.supportBtnTitle, { color: txt }]}>Help and FAQ</Text>
+              <Text style={[s.supportBtnDesc, { color: txtSec }]}>Hours, payments, refunds</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={[s.supportBtn, { backgroundColor: cardBg, borderColor: border }]} onPress={() => setShowAbout(true)}>
@@ -2455,6 +2523,22 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginTop: 2,
+  },
+  prefCard: {
+    marginHorizontal: 16,
+    marginTop: -8,
+    marginBottom: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    paddingBottom: 12,
+    borderRadius: 20,
+    borderWidth: 1.5,
+  },
+  prefRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
   },
   themeBtn: {
     flexDirection: 'row',

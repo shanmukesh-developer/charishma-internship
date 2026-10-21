@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   context: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.card, minHeight: 44 },
   parentWrap: { opacity: 0.92 },
   connector: { width: 2, height: FS.md, backgroundColor: FriendsColors.line, marginLeft: 30, marginBottom: -FS.md },
-  focus: { borderRadius: FR.card + 2, borderWidth: 1, borderColor: 'rgba(200,182,255,0.35)' },
+  focus: { borderRadius: FR.card + 2, borderWidth: 1, borderColor: 'rgba(212,175,122,0.35)' },
   repliesHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: FS.sm, marginBottom: FS.sm },
   replyBar: {
     position: 'absolute',

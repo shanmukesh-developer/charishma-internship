@@ -446,7 +446,7 @@ const MatchMoment: React.FC<{
 }> = ({ match, onClose, onMessage, onView }) => (
   <Modal visible={!!match} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
     <View style={styles.matchOverlay}>
-      <LinearGradient colors={['rgba(200,182,255,0.22)', 'rgba(14,13,18,0.98)']} style={styles.matchCard}>
+      <LinearGradient colors={['#18181B', '#18181B']} style={styles.matchCard}>
         {match ? (
           <>
             <ConnectHeart size={30} />
@@ -486,14 +486,14 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   passBtn: { backgroundColor: FriendsColors.cardHi, borderWidth: 1, borderColor: FriendsColors.line },
-  likeBtn: { backgroundColor: FriendsColors.accent, shadowColor: FriendsColors.accent, shadowOpacity: 0.35 },
+  likeBtn: { backgroundColor: FriendsColors.accent, shadowColor: '#000', shadowOpacity: 0.3 },
   stamp: { position: 'absolute', top: 36, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, borderWidth: 2 },
   stampLike: { left: 20, borderColor: FriendsColors.accent, transform: [{ rotate: '-12deg' }] },
   stampPass: { right: 20, borderColor: FriendsColors.muted, transform: [{ rotate: '12deg' }] },
   stampText: { fontSize: 22, fontWeight: '900', letterSpacing: 2 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: FS.sm },
   matchOverlay: { flex: 1, backgroundColor: FriendsColors.overlay, justifyContent: 'center', padding: FS.xl },
-  matchCard: { borderRadius: FR.hero, padding: FS.xl, alignItems: 'center', gap: FS.md, borderWidth: 1, borderColor: 'rgba(200,182,255,0.3)', backgroundColor: FriendsColors.card },
+  matchCard: { borderRadius: FR.hero, padding: FS.xl, alignItems: 'center', gap: FS.md, borderWidth: 1, borderColor: 'rgba(212,175,122,0.3)', backgroundColor: FriendsColors.card },
   matchTitle: { fontSize: 30, fontWeight: '800', color: FriendsColors.ink, letterSpacing: -0.5 },
   matchPhoto: { width: 120, height: 120, marginVertical: FS.sm, borderWidth: 2, borderColor: FriendsColors.accent },
 });

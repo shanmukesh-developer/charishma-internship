@@ -83,7 +83,7 @@ const sendPushToUser = async (userId, title, body, data = {}) => {
     }
     const tokens = Array.isArray(tokenList) ? tokenList.map(t => typeof t === 'string' ? t : t?.token).filter(Boolean) : [];
     // Also saved in the user's in-app notification list, even without a device token.
-    await sendPushToTokens(tokens, title, body, data, { recipients: [user.id] });
+    await sendPushToTokens(tokens, title, body, data, { recipients: [user.id], category: 'campus' });
   } catch (err) {
     console.error(`[PUSH_ERROR] Failed sending user push to ${userId}:`, err.message);
   }

@@ -753,7 +753,7 @@ const styles = StyleSheet.create({
     borderRadius: FR.card,
     backgroundColor: FriendsColors.card,
     borderWidth: 1,
-    borderColor: 'rgba(200,182,255,0.22)',
+    borderColor: 'rgba(212,175,122,0.22)',
   },
   cat: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 4, borderRadius: FR.pill, backgroundColor: FriendsColors.accentSoft, flexShrink: 1 },
   catText: { fontSize: 12, fontWeight: '800', color: FriendsColors.accent },

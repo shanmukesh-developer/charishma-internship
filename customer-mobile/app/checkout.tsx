@@ -870,6 +870,9 @@ export default function CheckoutScreen() {
                   onPress={() => setCampus(item.key)}
                   sound="click"
                   activeScale={0.95}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`${item.label}, ${item.sub}`}
+                  accessibilityState={{ selected: isActive, checked: isActive }}
                 >
                   <Text style={[s.campusLabelNew, { color: isActive ? goldColor : txt }]}>{item.label}</Text>
                   <Text style={[s.campusSubLabelNew, { color: txtSec }]} numberOfLines={2}>{item.sub}</Text>
@@ -918,6 +921,9 @@ export default function CheckoutScreen() {
                 return (
                   <DopaminePressable
                     key={block}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Hostel block ${block}`}
+                    accessibilityState={{ selected: isSelected, checked: isSelected }}
                     style={[s.blockChip, {
                       backgroundColor: isSelected ? (isDark ? goldColor : '#EF4F5F') : cardBg,
                       borderColor: isSelected ? (isDark ? goldColor : '#EF4F5F') : border,
@@ -1023,6 +1029,9 @@ export default function CheckoutScreen() {
                         key={cpn.id || cpn.code}
                         style={[s.couponCard, isActive && s.couponCardActive, { backgroundColor: cardBg }]}
                         onPress={() => setCouponCode(isActive ? null : cpn.code)}
+                        accessibilityRole="checkbox"
+                        accessibilityLabel={`Coupon ${cpn.code}`}
+                        accessibilityState={{ checked: isActive }}
                       >
                         <Ionicons name={cpn.type === 'FREEDEL' ? 'bicycle-outline' : 'pricetag-outline'} size={20} color={COLORS.gold} style={{ marginBottom: 4 }} />
                         <Text style={[s.couponCode, { color: txt }]}>{cpn.code}</Text>
@@ -1078,6 +1087,9 @@ export default function CheckoutScreen() {
                     isActive && { borderColor: COLORS.red, backgroundColor: isDark ? 'rgba(239,79,95,0.06)' : 'rgba(239,79,95,0.03)' }
                   ]}
                   onPress={() => { if (item.enabled) setPaymentMethod(item.key); }}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`${item.title}. ${item.desc}`}
+                  accessibilityState={{ selected: isActive, checked: isActive, disabled: !item.enabled }}
                   disabled={!item.enabled}
                   sound="click"
                   activeScale={0.97}
@@ -1210,6 +1222,9 @@ export default function CheckoutScreen() {
             onPress={handlePlaceOrder}
             disabled={placing}
             sound="success"
+            accessibilityRole="button"
+            accessibilityLabel={placing ? 'Placing your order' : 'Place order'}
+            accessibilityState={{ disabled: placing || !canPlace, busy: placing }}
           >
             {placing ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>

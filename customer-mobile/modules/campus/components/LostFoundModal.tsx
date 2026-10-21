@@ -27,6 +27,7 @@ import {
   Camera,
   ImagePlus,
   MoreHorizontal,
+  MessageCircle,
 } from '../../../components/lucide';
 import { ActionMenu } from '../friends/shared/ActionMenu';
 import * as Haptics from 'expo-haptics';
@@ -37,6 +38,7 @@ import {
   fetchLostFound,
   createLostFoundItem,
   resolveLostFoundItem,
+  openCampusDm,
 } from '../campusApi';
 import { CampusUserData } from '../../../types/campus';
 
@@ -48,6 +50,8 @@ interface LostFoundModalProps {
   campusCode?: string | null;
   /** Opens college verification (the board is for verified students of this campus only). */
   onRequestVerify?: () => void;
+  /** Opens an in-app chat (Campus chats) with the poster: the main way to reach them. */
+  onOpenChat?: (chatId: string, name: string) => void;
 }
 
 export const LostFoundModal: React.FC<LostFoundModalProps> = ({
@@ -56,7 +60,22 @@ export const LostFoundModal: React.FC<LostFoundModalProps> = ({
   currentUser,
   campusCode,
   onRequestVerify,
+  onOpenChat,
 }) => {
+  const [messagingId, setMessagingId] = useState<string | null>(null);
+  // In-app chat with the poster (no phone number needed). Same rules as Campus chats.
+  const messagePoster = async (item: CampusLostFoundItem) => {
+    if (!onOpenChat || messagingId) return;
+    setMessagingId(item.id);
+    try {
+      const { chatId, name } = await openCampusDm(item.userId);
+      if (chatId) onOpenChat(chatId, name || item.userName || 'Chat');
+    } catch (e: any) {
+      Alert.alert("Couldn't open the chat", e?.message || 'Please try again in a moment.');
+    } finally {
+      setMessagingId(null);
+    }
+  };
   const [filter, setFilter] = useState<'all' | 'lost' | 'found'>('all');
   const [items, setItems] = useState<CampusLostFoundItem[]>([]);
   // C2: Report / Block on other people's posts.
@@ -145,7 +164,7 @@ export const LostFoundModal: React.FC<LostFoundModalProps> = ({
   const handleCreate = async () => {
     if (submitting) return;
     if (!title.trim() || !location.trim()) {
-      Alert.alert('Required Fields', 'Please enter item title and last seen/found location.');
+      Alert.alert('Required fields', 'Please enter the item and where it was last seen or found.');
       return;
     }
     try {
@@ -424,7 +443,24 @@ export const LostFoundModal: React.FC<LostFoundModalProps> = ({
                       </View>
 
                       <View style={styles.actionRow}>
-                        {item.claimContact ? (
+                        {!isOwner && onOpenChat ? (
+                          <TouchableOpacity
+                            style={styles.contactBtn}
+                            onPress={() => messagePoster(item)}
+                            disabled={messagingId === item.id}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Message ${item.userName || 'the poster'} about ${item.title}`}
+                          >
+                            {messagingId === item.id ? (
+                              <ActivityIndicator size="small" color={CampusColors.accent} />
+                            ) : (
+                              <MessageCircle size={13} color={CampusColors.accent} />
+                            )}
+                            <Text style={styles.contactBtnText}>Message</Text>
+                          </TouchableOpacity>
+                        ) : null}
+                        {/* Contact details only when the poster chose to add them */}
+                        {item.claimContact && !isOwner ? (
                           <TouchableOpacity
                             style={styles.contactBtn}
                             onPress={() => {
@@ -442,7 +478,7 @@ export const LostFoundModal: React.FC<LostFoundModalProps> = ({
                             }}
                           >
                             <PhoneCall size={13} color={CampusColors.accent} />
-                            <Text style={styles.contactBtnText}>Contact</Text>
+                            <Text style={styles.contactBtnText}>Contact details</Text>
                           </TouchableOpacity>
                         ) : null}
 
@@ -452,7 +488,7 @@ export const LostFoundModal: React.FC<LostFoundModalProps> = ({
                             onPress={() => handleResolve(item)}
                           >
                             <CheckCircle size={13} color="#FFFFFF" />
-                            <Text style={styles.resolveBtnText}>Mark Returned</Text>
+                            <Text style={styles.resolveBtnText}>Mark returned</Text>
                           </TouchableOpacity>
                         )}
                       </View>
@@ -563,16 +599,17 @@ export const LostFoundModal: React.FC<LostFoundModalProps> = ({
                   onChangeText={setLocation}
                 />
 
-                <Text style={styles.inputLabel}>Contact / Claim Details</Text>
+                <Text style={styles.inputLabel}>Contact details (optional)</Text>
+                <Text style={[styles.metaText, { marginBottom: 6 }]}>Students can message you in the app. Add a phone number only if you are happy to share it.</Text>
                 <TextInput
                   style={styles.inputField}
-                  placeholder="e.g. WhatsApp 9888888888, Ganga Block Rm 312"
+                  placeholder="e.g. collect from Ganga block, room 312"
                   placeholderTextColor={CampusColors.muted}
                   value={claimContact}
                   onChangeText={setClaimContact}
                 />
 
-                <Text style={styles.inputLabel}>Description / Distinguishing Details</Text>
+                <Text style={styles.inputLabel}>Description and marks</Text>
                 <TextInput
                   style={[styles.inputField, { height: 75, textAlignVertical: 'top' }]}
                   placeholder="Any scratches, stickers, covers, or marks to verify ownership..."

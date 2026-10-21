@@ -31,6 +31,7 @@ let getToken: TokenGetter = () => null;
 let onUnauthorized: ((usedToken: string) => void) | null = null;
 let onForbiddenUnapproved: (() => void) | null = null;
 let onReachability: ((reachable: boolean) => void) | null = null;
+let onTokenRefreshed: ((oldToken: string, newToken: string) => void) | null = null;
 
 export function configureApiClient(opts: {
   getToken: TokenGetter;
@@ -38,8 +39,11 @@ export function configureApiClient(opts: {
   onUnauthorized?: (usedToken: string) => void;
   onUnapproved?: () => void;
   onReachability?: (reachable: boolean) => void;
+  /** Silent session refresh succeeded: store `newToken` if `oldToken` is still the one in use. */
+  onTokenRefreshed?: (oldToken: string, newToken: string) => void;
 }) {
   getToken = opts.getToken;
+  onTokenRefreshed = opts.onTokenRefreshed ?? null;
   onUnauthorized = opts.onUnauthorized ?? null;
   onForbiddenUnapproved = opts.onUnapproved ?? null;
   onReachability = opts.onReachability ?? null;
@@ -80,12 +84,85 @@ interface RequestOptions {
   token?: string;
 }
 
+// ── Silent session refresh (sliding 30 days) ─────────────────────────────────────
+// The rider session is a 30-day token. When the token in use is within REFRESH_WINDOW of expiry, the next
+// signed-in request (the app polls while open, so this runs at start and on every return to the app)
+// fires one POST /delivery/refresh in the background. Failure never signs the rider out here and never
+// loops: the same token is retried at most every RETRY_AFTER. An expired or revoked token still ends the
+// session through the normal 401 path.
+const REFRESH_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+const RETRY_AFTER_MS = 6 * 60 * 60 * 1000;
+let refreshInFlight = false;
+let lastRefreshAttempt: { token: string; at: number } | null = null;
+
+function base64UrlDecode(input: string): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  const str = input.replace(/-/g, '+').replace(/_/g, '/');
+  let out = '';
+  let buffer = 0;
+  let bits = 0;
+  for (let i = 0; i < str.length; i++) {
+    const v = chars.indexOf(str[i]);
+    if (v < 0) continue;
+    buffer = (buffer << 6) | v;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      out += String.fromCharCode((buffer >> bits) & 0xff);
+    }
+  }
+  return out;
+}
+
+/** Expiry of a JWT in ms since epoch, or null when it cannot be read. */
+export function tokenExpiresAt(token: string): number | null {
+  try {
+    const part = token.split('.')[1];
+    if (!part) return null;
+    const payload = JSON.parse(base64UrlDecode(part));
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Refreshes the session in the background when it is close to expiry. Safe to call often. */
+export function maybeRefreshSession(): void {
+  const token = getToken();
+  if (!token || refreshInFlight || !onTokenRefreshed) return;
+  const exp = tokenExpiresAt(token);
+  const now = Date.now();
+  if (exp === null || exp <= now || exp - now > REFRESH_WINDOW_MS) return;
+  if (lastRefreshAttempt && lastRefreshAttempt.token === token && now - lastRefreshAttempt.at < RETRY_AFTER_MS) return;
+  lastRefreshAttempt = { token, at: now };
+  refreshInFlight = true;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  fetch(`${apiBase}/delivery/refresh`, {
+    method: 'POST',
+    headers: { Accept: 'application/json', Authorization: `Bearer ${token}`, ...versionHeaders() },
+    signal: controller.signal,
+  })
+    .then(async (res) => {
+      if (!res.ok) return;
+      const data: any = await res.json().catch(() => null);
+      const next = data && typeof data.token === 'string' ? data.token : null;
+      if (next && next !== token) onTokenRefreshed?.(token, next);
+    })
+    .catch(() => undefined)
+    .finally(() => {
+      clearTimeout(timer);
+      refreshInFlight = false;
+    });
+}
+
 async function apiFetchOnce<T = unknown>(endpoint: string, opts: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, timeoutMs = 15000, auth = true } = opts;
   const headers: Record<string, string> = { Accept: 'application/json', ...versionHeaders() };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   const token = auth ? opts.token ?? getToken() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
+  if (auth && !opts.token) maybeRefreshSession();
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);

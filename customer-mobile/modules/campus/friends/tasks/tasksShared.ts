@@ -208,5 +208,5 @@ export const taskBus = {
   },
 };
 
-/** Share link that opens this task inside Campus Buddy > Friends > Tasks. */
+/** Share link that opens this task inside Campus > Friends > Tasks. */
 export const taskLink = (taskId: string) => `zenvy://friends?tab=friends&sub=tasks&id=${encodeURIComponent(taskId)}`;

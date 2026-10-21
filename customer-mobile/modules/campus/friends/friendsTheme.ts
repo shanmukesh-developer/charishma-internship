@@ -1,9 +1,9 @@
 /**
- * Zenvy Friends — "Night Campus" design system.
+ * Zenvy Friends design tokens.
  *
- * Friends is always dark: it is the social, after-hours side of Campus Buddy (like Threads / Discord),
- * while the rest of Campus Buddy and Community stay on the warm "paper" palette. The switch is
- * intentional and handled by the shell chrome (header + bottom nav turn dark with the Friends tab).
+ * Friends uses the main app's dark palette (constants/theme DARK_THEME: near-black neutrals with the
+ * Zenvy gold accent), so it reads as part of the app rather than a separate purple product. Surfaces
+ * are flat: gradient stops below are single colours and cards have no glow (21 Oct polish pass).
  *
  * Layers   base (bg) → raised (card) → raisedHi (cardHi, inputs/chips) → overlay (sheets/menus)
  * Text     ink (primary, 17:1) → muted (secondary, 8:1) → faint (tertiary, 5.4:1) — all WCAG AA on bg & card
@@ -18,32 +18,32 @@ import type { FriendsSubTab } from '../../../types/campus';
 export const FriendsColors = {
   // ── Layers ────────────────────────────────────────────────────────────────
   /** Screen background (base layer). */
-  bg: '#0C0B10',
+  bg: '#09090B',
   /** Raised surface (cards, list cells). */
-  card: '#16141C',
+  card: '#18181B',
   /** Second-level surface (inputs, chips, pressed rows, skeletons). */
-  cardHi: '#201D29',
+  cardHi: '#222226',
   /** Overlay surface (sheets, menus, dialogs). */
-  overlaySurface: '#1A1822',
+  overlaySurface: '#1C1C1F',
   /** Hairlines. */
-  line: '#2A2734',
-  lineSoft: '#1F1C27',
-  lineStrong: '#3A3647',
+  line: '#2A2A2E',
+  lineSoft: '#1F1F23',
+  lineStrong: '#3A3A40',
 
   // ── Text ──────────────────────────────────────────────────────────────────
-  ink: '#F5F2EC',
-  muted: '#ABA5BA',
+  ink: '#F4F4F5',
+  muted: '#A1A1AA',
   /** Tertiary text — lifted from #6F6A7C (3.6:1, failed AA) to 5.4:1. */
-  faint: '#8E889C',
+  faint: '#8B8B93',
 
   // ── Brand ─────────────────────────────────────────────────────────────────
   /** The one accent (text, icons, fills with accentInk on top). */
-  accent: '#C8B6FF',
+  accent: '#D4AF7A',
   /** Deeper end of the brand gradient (fills only, never small text on bg). */
-  accentStrong: '#9F7EFF',
-  accentInk: '#150F2B',
-  accentSoft: 'rgba(200,182,255,0.13)',
-  accentLine: 'rgba(200,182,255,0.30)',
+  accentStrong: '#C9A84C',
+  accentInk: '#1A1407',
+  accentSoft: 'rgba(212,175,122,0.13)',
+  accentLine: 'rgba(212,175,122,0.30)',
   /** Verified / top-rated only. */
   gold: '#E8C47F',
   goldSoft: 'rgba(232,196,127,0.14)',
@@ -59,34 +59,34 @@ export const FriendsColors = {
   info: '#9DB4FF',
   infoSoft: 'rgba(157,180,255,0.13)',
 
-  overlay: 'rgba(4,3,8,0.72)',
+  overlay: 'rgba(0,0,0,0.72)',
   /** Anonymous identities. */
-  mask: '#2A2740',
+  mask: '#27272A',
 };
 
 /** Per-section accent tints (used subtly: tab indicator, header dot, chips, icons). */
 export const SectionTints: Record<FriendsSubTab, { fg: string; soft: string; line: string; gradient: readonly [string, string] }> = {
-  pulse: { fg: '#C8B6FF', soft: 'rgba(200,182,255,0.13)', line: 'rgba(200,182,255,0.30)', gradient: ['#DCCFFF', '#A584FF'] },
-  spaces: { fg: '#7FDEC4', soft: 'rgba(127,222,196,0.12)', line: 'rgba(127,222,196,0.28)', gradient: ['#A8F0DA', '#4FC6A6'] },
-  forum: { fg: '#9DB4FF', soft: 'rgba(157,180,255,0.13)', line: 'rgba(157,180,255,0.30)', gradient: ['#C3D1FF', '#7393FF'] },
-  tasks: { fg: '#F2C07E', soft: 'rgba(242,192,126,0.12)', line: 'rgba(242,192,126,0.28)', gradient: ['#F8D9A8', '#E9A35A'] },
-  connect: { fg: '#F5A8C4', soft: 'rgba(245,168,196,0.12)', line: 'rgba(245,168,196,0.28)', gradient: ['#FBC9DB', '#E97BA4'] },
+  pulse: { fg: '#D4AF7A', soft: 'rgba(212,175,122,0.13)', line: 'rgba(212,175,122,0.30)', gradient: ['#D4AF7A', '#D4AF7A'] },
+  spaces: { fg: '#7FDEC4', soft: 'rgba(127,222,196,0.12)', line: 'rgba(127,222,196,0.28)', gradient: ['#7FDEC4', '#7FDEC4'] },
+  forum: { fg: '#9DB4FF', soft: 'rgba(157,180,255,0.13)', line: 'rgba(157,180,255,0.30)', gradient: ['#9DB4FF', '#9DB4FF'] },
+  tasks: { fg: '#F2C07E', soft: 'rgba(242,192,126,0.12)', line: 'rgba(242,192,126,0.28)', gradient: ['#F2C07E', '#F2C07E'] },
+  connect: { fg: '#F5A8C4', soft: 'rgba(245,168,196,0.12)', line: 'rgba(245,168,196,0.28)', gradient: ['#F5A8C4', '#F5A8C4'] },
 };
 
 /** Gradients (expo-linear-gradient colour stops). */
 export const FriendsGradients = {
   /** Primary buttons, active indicators, FABs. */
-  brand: ['#DDD1FF', '#C8B6FF', '#A98BFF'] as const,
+  brand: ['#D4AF7A', '#D4AF7A', '#D4AF7A'] as const,
   /** Avatar rings for live / highlighted people (gold → lavender → violet). */
-  ring: ['#F2D49B', '#C8B6FF', '#8F6BFF'] as const,
+  ring: ['#D4AF7A', '#D4AF7A', '#D4AF7A'] as const,
   /** Verified-only gold. */
-  gold: ['#F6DDA6', '#D9A955'] as const,
+  gold: ['#E8C47F', '#E8C47F'] as const,
   /** Soft top glow on cards (draw at the top edge, ~48px tall). */
-  cardGlow: ['rgba(255,255,255,0.045)', 'rgba(255,255,255,0)'] as const,
+  cardGlow: ['rgba(0,0,0,0)', 'rgba(0,0,0,0)'] as const,
   /** Header wash under the sub-tab bar / stack headers. */
-  header: ['#141220', '#0C0B10'] as const,
+  header: ['#09090B', '#09090B'] as const,
   /** Bottom scrim over images. */
-  scrim: ['rgba(12,11,16,0)', 'rgba(12,11,16,0.85)'] as const,
+  scrim: ['rgba(9,9,11,0)', 'rgba(9,9,11,0.85)'] as const,
 };
 
 export const FS = CampusLayout.spacing;
@@ -103,8 +103,8 @@ export const FElevation = {
     default: { elevation: 3 },
   }),
   accentGlow: Platform.select({
-    ios: { shadowColor: '#A98BFF', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14 },
-    default: { elevation: 6 },
+    ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10 },
+    default: { elevation: 3 },
   }),
 };
 

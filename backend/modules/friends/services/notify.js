@@ -49,7 +49,8 @@ const prefsFor = async (userIds) => {
 };
 
 const pusher = { send: null }; // tests may replace send(userIds, title, body, data)
-const defaultSend = (ids, title, body, data) => require('../../campus/campusHelpers').pushToUsers(ids, title, body, data);
+// Friends pushes follow the app's "Campus activity" switch (utils/pushCategories; chats and calls never muted).
+const defaultSend = (ids, title, body, data) => require('../../campus/campusHelpers').pushToUsers(ids, title, body, data, { category: 'campus' });
 
 /**
  * @param {string} type     one of TYPES

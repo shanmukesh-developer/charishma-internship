@@ -26,7 +26,7 @@ export const FriendsEmpty: React.FC<{
   <FadeIn style={[styles.wrap, compact && { paddingVertical: FS.xl }]}>
     {icon || emoji ? (
       <View style={styles.medallionWrap}>
-        <LinearGradient colors={[hexA(tint, 0.26), hexA(tint, 0.06)]} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={[styles.medallion, { borderColor: hexA(tint, 0.28) }]}>
+        <LinearGradient colors={[hexA(tint, 0.14), hexA(tint, 0.14)]} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={[styles.medallion, { borderColor: hexA(tint, 0.28) }]}>
           {icon || <Text style={styles.emoji}>{emoji}</Text>}
         </LinearGradient>
       </View>

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getUser, setUser as saveUser, removeToken, removeUser, getToken, onSessionInvalid } from '../utils/auth';
+import { getUser, setUser as saveUser, removeToken, removeUser, getToken, onSessionInvalid, refreshSessionIfNeeded } from '../utils/auth';
 
 // Per-user data kept on the device. Cleared on logout so the next account on a shared phone
 // never sees the previous user's addresses, favourites or alerts.
@@ -14,6 +15,7 @@ const USER_SCOPED_KEYS = [
   'zenvy_auto_answer_call',
   'zenvy_diet_prefs',
   'zenvy_notif_prefs',
+  'zenvy_push_prefs_v1',
   'zenvy_recently_viewed',
   'zenvy_fav_dishes',
 ];
@@ -240,6 +242,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     lastSessionCheckRef.current = now;
     refreshUserRef.current().catch(() => {});
   }), []);
+
+  // Silent sliding session refresh: on start (once signed in) and whenever the app comes back to the
+  // foreground. refreshSessionIfNeeded is a no-op unless the token is within 7 days of expiry.
+  const signedIn = !!user;
+  useEffect(() => {
+    if (isLoading || !signedIn) return;
+    refreshSessionIfNeeded();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshSessionIfNeeded();
+    });
+    return () => sub.remove();
+  }, [isLoading, signedIn]);
 
   // Login / registration changes the identity: re-handshake the shared socket with the new token
   // (setToken always runs before setUser). Logout is handled explicitly in logout().

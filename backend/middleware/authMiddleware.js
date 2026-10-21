@@ -236,4 +236,15 @@ const studentOnly = (req, res, next) => {
   return res.status(403).json({ code: 'STUDENTS_ONLY', message: 'This part of Zenvy is only for student accounts.' });
 };
 
-module.exports = { protect, admin, rider, vendor, approvedRider, clearCachedUser, isLiveAdminRequest, studentOnly, STUDENT_ROLES };
+// Claims of the token this request was authenticated with (after protect() verified it). Used by the
+// session refresh endpoints to re-check the token's `tv` against a fresh DB read.
+const presentedTokenClaims = (req) => {
+  let raw = null;
+  const h = req.headers && req.headers.authorization;
+  if (h && h.startsWith('Bearer') && !h.includes('cookie-managed')) raw = h.split(' ')[1];
+  else if (req.cookies && req.cookies.token) raw = req.cookies.token;
+  if (!raw) return null;
+  try { return jwt.decode(String(raw).replace(/['"]+/g, '').trim()) || null; } catch { return null; }
+};
+
+module.exports = { protect, admin, rider, vendor, approvedRider, clearCachedUser, isLiveAdminRequest, studentOnly, STUDENT_ROLES, presentedTokenClaims };

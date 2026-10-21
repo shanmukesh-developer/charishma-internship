@@ -1,5 +1,5 @@
 const express = require('express');
-const { registerPartner, authPartner, acceptOrder, getPendingOrders, getActiveOrders, updateOrderStatus, toggleOnline, getOrderHistory, saveFcmToken, getLeaderboard, getRiderProfile, updateRiderProfile, getPublicRiderProfile, getTodayStats, cancelOrderByRider, changePassword, notifyArrivalAtGate, getWeekStats, createRiderTicket, getRiderTickets, removeFcmToken, triggerSos } = require('../controllers/deliveryPartnerController');
+const { registerPartner, authPartner, refreshPartnerToken, acceptOrder, getPendingOrders, getActiveOrders, updateOrderStatus, toggleOnline, getOrderHistory, saveFcmToken, getLeaderboard, getRiderProfile, updateRiderProfile, getPublicRiderProfile, getTodayStats, cancelOrderByRider, changePassword, notifyArrivalAtGate, getWeekStats, createRiderTicket, getRiderTickets, removeFcmToken, triggerSos } = require('../controllers/deliveryPartnerController');
 const { protect, rider } = require('../middleware/authMiddleware');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
@@ -16,6 +16,9 @@ const { accountLockout } = require('../middleware/lockoutMiddleware');
 
 router.post('/register', authLimiter, registerPartner);
 router.post('/login', authLimiter, accountLockout, authPartner);
+// Silent session refresh (sliding 30 days): any signed-in rider, approved or waiting for approval.
+router.post('/refresh', protect, rider, refreshPartnerToken);
+router.post('/refresh-token', protect, rider, refreshPartnerToken);
 router.post('/fcm-token', protect, rider, saveFcmToken);
 // Logout on this phone: stop order pushes to its token (partners-3). Any rider session, approved or not.
 router.post('/fcm-token/remove', protect, rider, removeFcmToken);

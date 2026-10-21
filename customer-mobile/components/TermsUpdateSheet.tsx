@@ -89,7 +89,7 @@ export default function TermsUpdateSheet() {
           </View>
           {error ? <Text style={s.error}>{error}</Text> : null}
           <TouchableOpacity onPress={accept} disabled={busy} style={[s.accept, busy && { opacity: 0.7 }]} accessibilityRole="button">
-            {busy ? <ActivityIndicator color="#000" size="small" /> : <Text style={s.acceptText}>ACCEPT</Text>}
+            {busy ? <ActivityIndicator color="#000" size="small" /> : <Text style={s.acceptText}>Accept</Text>}
           </TouchableOpacity>
           <TouchableOpacity onPress={later} disabled={busy} style={s.later} accessibilityRole="button">
             <Text style={[s.laterText, { color: muted }]}>Later</Text>

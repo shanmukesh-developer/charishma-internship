@@ -65,7 +65,7 @@ export const FreshersGuideCard: React.FC<{ community: ForumCommunity }> = ({ com
 const styles = StyleSheet.create({
   card: { flexDirection: 'row', alignItems: 'center', gap: FS.md, padding: FS.md, borderRadius: FR.card, borderWidth: 1, minHeight: 64 },
   official: { backgroundColor: 'rgba(232,196,127,0.06)', borderColor: 'rgba(232,196,127,0.35)' },
-  student: { backgroundColor: 'rgba(200,182,255,0.06)', borderColor: 'rgba(200,182,255,0.3)' },
+  student: { backgroundColor: 'rgba(212,175,122,0.06)', borderColor: 'rgba(212,175,122,0.3)' },
   empty: { backgroundColor: FriendsColors.card, borderColor: FriendsColors.line, borderStyle: 'dashed' },
   icon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   label: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: FR.pill },

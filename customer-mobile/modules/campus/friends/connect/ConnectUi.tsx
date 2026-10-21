@@ -21,7 +21,7 @@ export const ConnectPhotoView: React.FC<{
       {src ? (
         <Image source={src} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory" transition={150} />
       ) : (
-        <LinearGradient colors={['#3A2340', '#16131E']} style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
+        <LinearGradient colors={['#222226', '#222226']} style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
           <Text style={styles.monogram}>{initialOf(name)}</Text>
         </LinearGradient>
       )}

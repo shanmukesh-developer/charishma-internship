@@ -22,7 +22,7 @@ import ThemedAlert, { showGlobalAlert } from '../components/ThemedAlert';
 import OfflineBanner from '../components/OfflineBanner';
 import ServerWakeBanner from '../components/ServerWakeBanner';
 import ErrorBoundary from '../components/ErrorBoundary';
-import { preloadSounds } from '../utils/sounds';
+import { preloadSounds, loadSoundSetting } from '../utils/sounds';
 import { scheduleApiEndpointCheck } from '../constants/api';
 import UpdateGate from '../utils/UpdateGate';
 
@@ -77,10 +77,14 @@ function AppContainer() {
     }
   }, []);
 
-  // UI sounds are bundled files: create their players once, after the intro, off the first-frame path.
+  // App sounds are off unless the user turned them on in Profile. When on, the bundled players are
+  // created once, after the intro, off the first-frame path.
   React.useEffect(() => {
-    const t = setTimeout(() => { try { preloadSounds(); } catch {} }, 1800);
-    return () => clearTimeout(t);
+    let t: ReturnType<typeof setTimeout> | undefined;
+    loadSoundSetting()
+      .then((on) => { if (on) t = setTimeout(() => { try { preloadSounds(); } catch {} }, 1800); })
+      .catch(() => {});
+    return () => { if (t) clearTimeout(t); };
   }, []);
 
   const handleIntroComplete = React.useCallback(() => {

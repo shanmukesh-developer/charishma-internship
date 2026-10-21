@@ -30,6 +30,9 @@ const initUserModel = (sequelize) => {
     // C4: Terms / Privacy version this account accepted, and when (null = never recorded; asked once after sign-in).
     termsAcceptedVersion: { type: DataTypes.STRING(20), allowNull: true },
     termsAcceptedAt: { type: DataTypes.DATE, allowNull: true },
+    // Push categories this account switched off in the app (",offers,campus,"; utils/pushCategories).
+    // Added on boot by addMissingColumns.
+    pushMutes: { type: DataTypes.STRING(80), allowNull: true },
     address: { type: DataTypes.STRING, allowNull: true },
     city: { type: DataTypes.STRING, defaultValue: 'Amaravathi' },
     profileImage: { type: DataTypes.TEXT, allowNull: true },

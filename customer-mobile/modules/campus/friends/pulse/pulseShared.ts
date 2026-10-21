@@ -149,7 +149,7 @@ export const dropBlocked = <T extends PulseFeedItem>(list: T[], userId: string):
   });
 
 // ── Links and counts ─────────────────────────────────────────────────────────
-/** Share link that opens this post inside Campus Buddy > Friends > Pulse. */
+/** Share link that opens this post inside Campus > Friends > Pulse. */
 export const pulsePostLink = (postId: string) => `zenvy://friends?tab=friends&sub=pulse&id=${encodeURIComponent(postId)}`;
 
 export const compactCount = (n: number) => {

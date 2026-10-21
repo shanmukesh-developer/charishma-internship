@@ -276,7 +276,7 @@ export const CampusShell: React.FC<CampusShellProps> = ({ onBack, link }) => {
           data.verificationStatus === 'verified' ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning
         ).catch(() => {});
         if (data.verificationStatus === 'verified') {
-          Alert.alert('You are verified', 'Your college ID was approved. +150 Buddy Points added.');
+          Alert.alert('You are verified', 'Your college ID was approved. +150 Campus points added.');
         } else if (data.verificationStatus === 'rejected' || data.reviewNotes) {
           Alert.alert(
             'ID card not approved',
@@ -633,6 +633,7 @@ export const CampusShell: React.FC<CampusShellProps> = ({ onBack, link }) => {
         currentUser={user}
         campusCode={profile?.campus?.code || null}
         onRequestVerify={() => switchTo('verify')}
+        onOpenChat={openChat}
       />
 
       {/* Rides: one entry for campus cab/auto pools and the main app's bike co-ride. */}

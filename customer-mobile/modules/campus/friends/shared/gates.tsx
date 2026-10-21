@@ -178,7 +178,7 @@ export const GuidelinesGate: React.FC<{
     <ScrollView contentContainerStyle={{ padding: FS.lg, paddingBottom: FS.xxxl }}>
       {!readOnly ? (
         <View style={{ alignItems: 'center', marginBottom: FS.lg }}>
-          <LinearGradient colors={['rgba(200,182,255,0.28)', 'rgba(200,182,255,0.06)']} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={styles.icon}>
+          <LinearGradient colors={['rgba(212,175,122,0.14)', 'rgba(212,175,122,0.14)']} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={styles.icon}>
             <BookOpen size={26} color={FriendsColors.accent} />
           </LinearGradient>
           <Text style={[FT.h1, { textAlign: 'center' }]} accessibilityRole="header">

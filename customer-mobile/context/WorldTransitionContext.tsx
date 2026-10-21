@@ -10,12 +10,12 @@ interface WorldTheme {
 }
 
 export const WORLD_THEMES: Record<WorldType, WorldTheme> = {
-  food: { label: 'ZENVY FOOD', colors: ['#EF4F5F', '#F5A623'] },
-  pg: { label: 'ZENVY HOMES', colors: ['#6366F1', '#4F46E5'] },
-  bikepool: { label: 'ZENVY CO-RIDE', colors: ['#10B981', '#059669'] },
-  others: { label: 'ZENVY OTHERS', colors: ['#8B5CF6', '#EC4899'] },
-  comms: { label: 'ZENVY COMMS', colors: ['#F43F5E', '#FB923C'] },
-  'mega-basket': { label: 'MEGA BASKET', colors: ['#10B981', '#D4AF7A'] }
+  food: { label: 'Food', colors: ['#EF4F5F', '#F5A623'] },
+  pg: { label: 'PG stays', colors: ['#6366F1', '#4F46E5'] },
+  bikepool: { label: 'Co-Ride', colors: ['#10B981', '#059669'] },
+  others: { label: 'Others', colors: ['#8B5CF6', '#EC4899'] },
+  comms: { label: 'Campus', colors: ['#F43F5E', '#FB923C'] },
+  'mega-basket': { label: 'Mega basket', colors: ['#10B981', '#D4AF7A'] }
 };
 
 interface WorldTransitionContextType {

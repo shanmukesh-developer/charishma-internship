@@ -1,4 +1,55 @@
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// ── App sounds switch ─────────────────────────────────────────────────────
+// Every UI sound (taps, tab switches, add to basket, sign-in success, transitions) goes through
+// playSound(), which stays silent unless the user turned "App sounds" on in Profile (off by default).
+// On a phone with the ringer on silent or vibrate, native sounds are suppressed as well
+// (expo-audio playsInSilentMode: false checks the Android ringer mode / the iOS silent switch).
+const SOUNDS_KEY = 'zenvy_app_sounds_v1';
+let soundsEnabled = false;
+let settingLoaded = false;
+const soundListeners = new Set<(on: boolean) => void>();
+
+export function getSoundsEnabled(): boolean {
+  return soundsEnabled;
+}
+
+/** Reads the saved switch (call once at startup). Off when nothing was saved or storage fails. */
+export async function loadSoundSetting(): Promise<boolean> {
+  try {
+    soundsEnabled = (await AsyncStorage.getItem(SOUNDS_KEY)) === '1';
+  } catch {
+    soundsEnabled = false;
+  }
+  settingLoaded = true;
+  soundListeners.forEach((cb) => { try { cb(soundsEnabled); } catch {} });
+  return soundsEnabled;
+}
+
+export async function setSoundsEnabled(on: boolean): Promise<void> {
+  soundsEnabled = on;
+  settingLoaded = true;
+  soundListeners.forEach((cb) => { try { cb(on); } catch {} });
+  try { await AsyncStorage.setItem(SOUNDS_KEY, on ? '1' : '0'); } catch { /* kept in memory for this run */ }
+  if (on) preloadSounds();
+}
+
+export function onSoundSettingChange(cb: (on: boolean) => void): () => void {
+  soundListeners.add(cb);
+  return () => { soundListeners.delete(cb); };
+}
+
+let audioModeSet = false;
+function ensureQuietAudioMode(): void {
+  if (audioModeSet || Platform.OS === 'web') return;
+  audioModeSet = true;
+  try {
+    const { setAudioModeAsync } = require('expo-audio');
+    // Respect silent / vibrate, and never take audio focus from music the user is playing.
+    setAudioModeAsync?.({ playsInSilentMode: false, interruptionMode: 'mixWithOthers' })?.catch?.(() => {});
+  } catch { /* audio unavailable: playSound stays a no-op */ }
+}
 
 // ── Zenvy Sound Engine ─────────────────────────────────────────────────────
 // Generates synthetic sounds using Web Audio API (web); native plays bundled WAVs via expo-audio.
@@ -32,34 +83,52 @@ const NATIVE_SOUND_FILES: Record<SoundType, number> = {
   brandSplash: require('../assets/sounds/success.wav'),
 };
 
-const soundCache: Partial<Record<SoundType, any>> = {};
 const lastPlayTime: Record<string, number> = {};
 const SOUND_THROTTLE_MS = 100;
+// A player is released this long after play() even if no "finished" event arrives (every bundled
+// sound is under 2 s).
+const PLAYER_MAX_LIFE_MS = 2500;
 
-function getPlayer(type: SoundType): any {
-  const cached = soundCache[type];
-  if (cached) return cached;
+// One short-lived player per sound. expo-audio's Android player opens a MediaSession for every player,
+// and a player kept alive (the old cache / preload) made Android 13+ show a "Unknown song / Unknown
+// artist" media card in the notification shade. Each player is now removed (which releases its
+// MediaSession) as soon as the sound finishes, on any error, or after PLAYER_MAX_LIFE_MS.
+function playOnce(type: SoundType): void {
   const { createAudioPlayer } = require('expo-audio');
-  if (!createAudioPlayer) return null;
-  const player = createAudioPlayer(NATIVE_SOUND_FILES[type]);
-  if (player) {
+  if (!createAudioPlayer) return;
+  let player: any = null;
+  let sub: any = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let released = false;
+  const release = () => {
+    if (released) return;
+    released = true;
+    if (timer) clearTimeout(timer);
+    try { sub?.remove?.(); } catch { /* already gone */ }
+    try { player?.remove?.(); } catch { /* already released */ }
+    player = null;
+  };
+  try {
+    player = createAudioPlayer(NATIVE_SOUND_FILES[type]);
+    if (!player) return;
     player.volume = type === 'click' ? 0.3 : 0.8;
-    soundCache[type] = player;
+    sub = player.addListener?.('playbackStatusUpdate', (status: any) => {
+      if (status?.didJustFinish) release();
+    });
+    timer = setTimeout(release, PLAYER_MAX_LIFE_MS);
+    player.play();
+  } catch {
+    release();
   }
-  return player;
 }
 
-let preloaded = false;
 /**
- * Creates every player once (call shortly after startup, off the first-frame path), so the first
- * tap's sound is not delayed by player creation. Safe to call more than once.
+ * Sets the quiet audio mode (respect silent / vibrate, never take audio focus) once sounds are on.
+ * Players are no longer created ahead of time (see playOnce). Safe to call more than once.
  */
 export function preloadSounds(): void {
-  if (preloaded || Platform.OS === 'web') return;
-  preloaded = true;
-  (Object.keys(NATIVE_SOUND_FILES) as SoundType[]).forEach((type) => {
-    try { getPlayer(type); } catch { /* audio unavailable: playSound stays a no-op */ }
-  });
+  if (Platform.OS === 'web' || !soundsEnabled) return;
+  ensureQuietAudioMode();
 }
 
 async function playNativeSound(type: SoundType) {
@@ -69,14 +138,8 @@ async function playNativeSound(type: SoundType) {
     if (lastPlayTime[type] && now - lastPlayTime[type] < SOUND_THROTTLE_MS) return;
     lastPlayTime[type] = now;
 
-    const p = getPlayer(type);
-    if (!p) return;
-    try {
-      if (p.seekTo) p.seekTo(0).catch(() => {});
-      p.play();
-    } catch {
-      soundCache[type] = undefined;
-    }
+    ensureQuietAudioMode();
+    playOnce(type);
   } catch (err) {
     // Fail silently in background to prevent native crashes
     console.warn('[SOUND_ERROR] Failed to play native sound safely:', err);
@@ -257,6 +320,7 @@ const WEB_SOUNDS: Record<SoundType, () => void> = {
 
 // ── Public API ──
 export function playSound(type: SoundType): void {
+  if (!soundsEnabled || !settingLoaded) return;
   try {
     if (Platform.OS === 'web') {
       resumeAudio();
@@ -271,7 +335,7 @@ export function playSound(type: SoundType): void {
 
 // Resume AudioContext after user interaction (browser requirement)
 export function resumeAudio(): void {
-  if (Platform.OS === 'web') {
+  if (Platform.OS === 'web' && soundsEnabled) {
     const ctx = getAudioContext();
     if (ctx?.state === 'suspended') {
       ctx.resume();

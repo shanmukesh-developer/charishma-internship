@@ -265,6 +265,14 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
         if (phaseRef.current === 'main') setPhase('pending');
       },
       onReachability: setServerReachable,
+      // Silent sliding refresh (apiClient.maybeRefreshSession): keep the newer token only if the session
+      // it extends is still the one in use (not logged out or replaced by a password change meanwhile).
+      onTokenRefreshed: (oldToken, newToken) => {
+        if (tokenRef.current !== oldToken || passwordChanging.current) return;
+        tokenRef.current = newToken;
+        sock.updateSocketToken(newToken);
+        session.saveToken(newToken).catch(() => undefined);
+      },
     });
   }, []);
 

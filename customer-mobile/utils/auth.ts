@@ -213,6 +213,53 @@ const apiFetchRaw = async (
   return res;
 };
 
+// ── Silent session refresh (sliding 30 days) ──────────────────────────────────
+// Sessions are 30-day tokens. On app start and every return to the foreground (AuthContext), a token
+// within REFRESH_WINDOW of expiry is swapped for a fresh one via POST /api/users/refresh. A failure
+// never signs the user out here and never loops: the same token is retried at most every RETRY_AFTER.
+// An expired or revoked token still ends the session through the normal paths above.
+const REFRESH_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+const REFRESH_RETRY_AFTER_MS = 6 * 60 * 60 * 1000;
+let refreshInFlight: Promise<void> | null = null;
+let lastRefreshAttempt: { token: string; at: number } | null = null;
+
+/** Expiry of a JWT in ms since epoch, or null when it cannot be read. */
+export const tokenExpiresAt = (token: string): number | null => {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+};
+
+export const refreshSessionIfNeeded = (): Promise<void> => {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    const token = await getToken();
+    if (!token) return;
+    const exp = tokenExpiresAt(token);
+    const now = Date.now();
+    if (exp === null || exp <= now || exp - now > REFRESH_WINDOW_MS) return;
+    if (lastRefreshAttempt && lastRefreshAttempt.token === token && now - lastRefreshAttempt.at < REFRESH_RETRY_AFTER_MS) return;
+    lastRefreshAttempt = { token, at: now };
+    const res = await fetchWithTimeout(`${API_URL}/api/users/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...versionHeaders() },
+    });
+    if (!res.ok) return;
+    const data = await readJson(res);
+    const next = data && typeof data.token === 'string' ? data.token : null;
+    // Keep the new token only if the session it extends is still the one in use (no logout / login meanwhile).
+    if (next && next !== token && (await getToken()) === token) await setToken(next);
+  })()
+    .catch(() => undefined)
+    .finally(() => { refreshInFlight = null; });
+  return refreshInFlight;
+};
+
 /** Parses a JSON body without throwing (HTML 502 pages during a cold start return null). */
 export const readJson = async (res: Response): Promise<any | null> => {
   try {

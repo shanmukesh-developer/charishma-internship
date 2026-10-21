@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     backgroundColor: FriendsColors.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: FriendsColors.accentStrong,
+    shadowColor: '#000',
     shadowOpacity: 0.4,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 4 },

@@ -166,6 +166,8 @@ const pushToUsers = async (userIds, title, body, data = {}, opts = {}) => {
     users.forEach((u) => tokens.push(...tokensOf(u)));
     await sendPushToTokens(tokens, title, body, data, {
       recipients: users.map((u) => u.id),
+      // opts.category: the app's push switch this belongs to (utils/pushCategories); none = never muted.
+      ...(opts.category ? { category: opts.category } : {}),
       ...(opts.persist === false ? { persist: false } : {}),
     });
   } catch (err) {

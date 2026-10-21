@@ -1,7 +1,7 @@
 const express = require('express');
 const {
   registerUser, authUser, saveFcmToken, removeFcmToken, getUserProfile, updateUserProfile, logoutUser,
-  sendOtp, sendEmailOtp, verifyOtp, googleLogin, googleComplete, resetPassword
+  sendOtp, sendEmailOtp, verifyOtp, googleLogin, googleComplete, resetPassword, refreshUserToken
 } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 const rateLimit = require('express-rate-limit');
@@ -91,6 +91,9 @@ router.post('/google-login', authLimiter, googleLogin);
 router.post('/google-complete', authLimiter, googleComplete);
 router.post('/reset-password', authLimiter, resetPassword);
 router.post('/logout', logoutUser);
+// Silent session refresh (sliding 30 days): the app calls it when its token is within ~7 days of expiry.
+router.post('/refresh', protect, refreshUserToken);
+router.post('/refresh-token', protect, refreshUserToken);
 router.post('/fcm-token', protect, saveFcmToken);
 router.delete('/fcm-token', protect, removeFcmToken);
 router.post('/fcm-token/remove', protect, removeFcmToken);

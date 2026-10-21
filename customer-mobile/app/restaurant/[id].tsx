@@ -86,6 +86,8 @@ const MenuAddControl = React.memo(function MenuAddControl({ itemId, soldOut, cus
           style={st.stepperActionBtn}
           onPress={() => updateQuantity(plainLine.cartKey, plainLine.quantity - 1)}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel={`Remove one. ${plainLine.quantity} in basket`}
         >
           <Text style={st.stepperActionText}>−</Text>
         </TouchableOpacity>
@@ -95,6 +97,8 @@ const MenuAddControl = React.memo(function MenuAddControl({ itemId, soldOut, cus
           onPress={() => updateQuantity(plainLine.cartKey, plainLine.quantity + 1)}
           disabled={plainLine.quantity >= MAX_ITEM_QTY}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel={`Add one more. ${plainLine.quantity} in basket`}
         >
           <Text style={[st.stepperActionText, plainLine.quantity >= MAX_ITEM_QTY && { opacity: 0.4 }]}>+</Text>
         </TouchableOpacity>

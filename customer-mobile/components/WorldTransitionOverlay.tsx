@@ -345,7 +345,7 @@ export default function WorldTransitionOverlay() {
           </View>
         </View>
 
-        <Text style={s.gatewayLabel}>• ZENVY PLATFORM GATEWAY •</Text>
+        <Text style={s.gatewayLabel}>Zenvy</Text>
         <Text style={s.worldTitle}>{theme.label}</Text>
 
         {/* Gold Line Divider */}
@@ -354,7 +354,7 @@ export default function WorldTransitionOverlay() {
         {/* Pulsing Status */}
         <View style={s.statusRow}>
           <View style={s.statusDot} />
-          <Text style={s.statusLabel}>INITIALIZING SECURE TUNNEL</Text>
+          <Text style={s.statusLabel}>Opening</Text>
         </View>
       </Animated.View>
     </View>
@@ -482,7 +482,7 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     color: 'rgba(212,175,122,0.8)',
-    letterSpacing: 4,
+    letterSpacing: 0.5,
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -491,9 +491,7 @@ const s = StyleSheet.create({
     fontSize: 30,
     fontWeight: '900',
     color: '#FFF',
-    letterSpacing: 3,
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
+    letterSpacing: 0.2,
     textAlign: 'center',
     textShadowColor: 'rgba(0,0,0,0.6)',
     textShadowOffset: { width: 0, height: 3 },
@@ -530,7 +528,7 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     color: 'rgba(255,255,255,0.45)',
-    letterSpacing: 2,
+    letterSpacing: 0.3,
     textAlign: 'center',
   },
 });
