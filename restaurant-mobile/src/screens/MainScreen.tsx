@@ -15,7 +15,7 @@ import OrdersScreen from './OrdersScreen';
 import SettingsScreen from './SettingsScreen';
 import TodayScreen from './TodayScreen';
 
-export type RootStack = { Main: undefined; OrderDetail: { orderId: string } };
+export type RootStack = { Main: undefined; OrderDetail: { orderId: string }; Payouts: undefined };
 
 export default function MainScreen({ navigation }: NativeStackScreenProps<RootStack, 'Main'>) {
   const [tab, setTab] = useState<MainTab>('orders');

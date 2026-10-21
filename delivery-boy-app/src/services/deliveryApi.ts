@@ -2,7 +2,7 @@
 import { ApiError, apiFetch } from './apiClient';
 import { normalizeOrder, normalizeOrders, toNumber } from './orderModel';
 import { APP_PUSH_VERSION } from '../config';
-import type { CashEntry, CashStatus, RiderCash, RiderOrder, RiderProfile, SupportTicket, TodayStats, WeekStats } from '../types';
+import type { CashEntry, CashStatus, EarningsRange, PayoutStatement, RiderCash, RiderOrder, RiderProfile, SupportTicket, TodayStats, WeekStats } from '../types';
 
 export function toProfile(raw: any, prev?: RiderProfile | null): RiderProfile {
   const str = (v: unknown) => {
@@ -161,6 +161,57 @@ export async function fetchWeek(): Promise<WeekStats | null> {
       totalEarnings: toNumber(d.totalEarnings) ?? 0,
       totalOrders: toNumber(d.totalOrders) ?? 0,
       source: 'server',
+    };
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
+}
+
+/** GET /delivery/stats/range?days=N (newer servers). Null when the server does not have it yet. */
+export async function fetchEarningsRange(days: number): Promise<EarningsRange | null> {
+  try {
+    const d = await apiFetch<any>(`/delivery/stats/range?days=${Math.max(1, Math.min(92, Math.round(days)))}`);
+    if (!d || !Array.isArray(d.days)) return null;
+    const bucket = (x: any) => ({ earnings: toNumber(x?.earnings) ?? 0, orders: toNumber(x?.orders) ?? 0, codCollected: toNumber(x?.codCollected) ?? 0 });
+    return {
+      from: String(d.from || ''),
+      to: String(d.to || ''),
+      days: d.days.map((x: any) => ({ date: String(x.date), ...bucket(x) })),
+      weeks: Array.isArray(d.weeks) ? d.weeks.map((x: any) => ({ weekStart: String(x.weekStart), from: String(x.from), to: String(x.to), ...bucket(x) })) : [],
+      totalEarnings: toNumber(d.totalEarnings) ?? 0,
+      totalOrders: toNumber(d.totalOrders) ?? 0,
+      codCollected: toNumber(d.codCollected) ?? 0,
+    };
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
+}
+
+/** GET /delivery/payouts?page= : this rider's payout statements, newest first (cancelled ones left out). */
+export async function fetchPayouts(page = 1): Promise<{ payouts: PayoutStatement[]; hasMore: boolean } | null> {
+  try {
+    const d = await apiFetch<any>(`/delivery/payouts?page=${page}&limit=20`);
+    const list = Array.isArray(d?.payouts) ? d.payouts : [];
+    const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v : null);
+    return {
+      payouts: list.map((p: any) => ({
+        id: String(p.id),
+        periodStart: str(p.periodStart),
+        periodEnd: str(p.periodEnd),
+        orderCount: toNumber(p.orderCount) ?? 0,
+        gross: toNumber(p.gross) ?? 0,
+        tips: toNumber(p.tips) ?? 0,
+        adjustments: toNumber(p.adjustments) ?? 0,
+        net: toNumber(p.net) ?? 0,
+        status: String(p.status || 'PENDING'),
+        method: str(p.method),
+        utr: str(p.utr),
+        paidAt: str(p.paidAt),
+        createdAt: str(p.createdAt),
+      })),
+      hasMore: d?.hasMore === true,
     };
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) return null;

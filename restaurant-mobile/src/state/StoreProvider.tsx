@@ -14,7 +14,7 @@ import { announce, cancelAnnouncements, detectVoices } from '../voice/voice';
 import { useToast } from '../ui/Toast';
 import { useSocket } from './SocketProvider';
 import { useSession } from './SessionProvider';
-import type { ConnStatus, ItemInput, MenuItem, Order, StoreProfile, StoreState } from '../types';
+import type { ConnStatus, ItemInput, MenuItem, OperatingHours, Order, StoreProfile, StoreState } from '../types';
 
 export type StockChange = { isAvailable: true } | { isAvailable: false } | { outOfStockUntil: string };
 export type BusyKind = 'accept' | 'reject' | 'ready';
@@ -55,6 +55,11 @@ interface StoreCtx {
   markReady: (o: Order) => Promise<boolean>;
   setOpen: (open: boolean) => Promise<{ ok: boolean; error?: string }>;
   setStock: (item: MenuItem, change: StockChange) => Promise<boolean>;
+  /** Every item of one menu category in / out of stock (one tap on the section header). */
+  setCategoryStock: (category: string, isAvailable: boolean) => Promise<boolean>;
+  /** Categories whose switch is saving. */
+  categoryPending: Record<string, boolean>;
+  setHours: (hours: OperatingHours) => Promise<{ ok: boolean; error?: string }>;
   setPrice: (item: MenuItem, price: number) => Promise<void>;
   /** Add (editing = null) or edit an item. Throws with a friendly message; the form shows it inline. */
   saveItem: (input: ItemInput, editing: MenuItem | null) => Promise<MenuItem>;
@@ -697,16 +702,73 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return { ok: true };
   }, [toast]);
 
+  // Whole category in / out of stock (MenuScreen section header). Keyed by the category name.
+  const [categoryPending, setCategoryPending] = useState<Record<string, boolean>>({});
+  const categoryPendingRef = useRef<Record<string, boolean>>({});
+  const setCategoryStock = useCallback(async (category: string, isAvailable: boolean) => {
+    if (categoryPendingRef.current[category]) return false;
+    categoryPendingRef.current = { ...categoryPendingRef.current, [category]: true };
+    setCategoryPending(categoryPendingRef.current);
+    try {
+      const res = await api.setCategoryStock(rid, category, isAvailable);
+      const changed = new Map((res?.items || []).map((x) => [String(x.id), x]));
+      setMenu((prev) => prev && prev.map((m) => {
+        const x = changed.get(m.id);
+        return x ? { ...m, isAvailable: x.isAvailable, outOfStockUntil: x.isAvailable ? null : (x.outOfStockUntil ?? m.outOfStockUntil ?? null) } : m;
+      }));
+      const n = typeof res?.total === 'number' ? res.total : changed.size;
+      toast.show(`${category}: ${n} item${n === 1 ? '' : 's'} ${isAvailable ? 'in stock' : 'out of stock'}`, isAvailable ? 'success' : 'info');
+      return true;
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        // Expired / revoked session: the http layer already logged out with a message.
+      } else if (e instanceof ApiError && e.status === 404 && e.code === 'CATEGORY_NOT_FOUND') {
+        toast.show('That category has changed. Refreshing your menu.', 'error');
+        refreshMenu();
+      } else if (e instanceof ApiError && e.status === 404) {
+        toast.show('Switching a whole category is not available yet. Switch the items one by one.', 'info');
+      } else {
+        toast.show(errorMessage(e, "Couldn't update this category."), 'error');
+      }
+      return false;
+    } finally {
+      const next = { ...categoryPendingRef.current };
+      delete next[category];
+      categoryPendingRef.current = next;
+      if (alive.current) setCategoryPending(next);
+    }
+  }, [rid, refreshMenu, toast]);
+
+  // Opening hours (Settings; same endpoint and sheet as the vendor app: PUT /api/restaurants/:id/hours).
+  const hoursBusy = useRef(false);
+  const setHours = useCallback(async (hours: OperatingHours): Promise<{ ok: boolean; error?: string }> => {
+    if (hoursBusy.current) return { ok: false }; // double tap on Save: the first save is still running
+    hoursBusy.current = true;
+    try {
+      const s = await api.setHours(rid, hours);
+      if (!alive.current) return { ok: true };
+      setStore((prev) => ({ ...(prev || s), ...s, operatingHours: s.operatingHours || hours }));
+      updateProfile({ operatingHours: s.operatingHours || hours });
+      toast.show('Opening hours saved', 'success');
+      return { ok: true };
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) return { ok: false };
+      return { ok: false, error: errorMessage(e, "Couldn't save the hours. Try again.") };
+    } finally {
+      hoursBusy.current = false;
+    }
+  }, [rid, updateProfile, toast]);
+
   const retryConnection = useCallback(() => { retry(); refreshOrdersRef.current({ pull: true }); }, [retry]);
 
   const value = useMemo<StoreCtx>(() => ({
     restaurant, store, storeError, openToggleSupported, orders, ordersLoaded, ordersError, refreshing, lastSyncedAt,
     menu, menuError, menuLoading, menuPending, conn, pushState, alertOrders, busy, actionErrors, retryConnection, refreshOrders, refreshStore,
-    refreshMenu, silence, isGhostTap, accept, reject, markReady, setOpen, setStock, setPrice, saveItem, deleteItem,
+    refreshMenu, silence, isGhostTap, accept, reject, markReady, setOpen, setHours, setStock, setCategoryStock, categoryPending, setPrice, saveItem, deleteItem,
   }), [
     restaurant, store, storeError, openToggleSupported, orders, ordersLoaded, ordersError, refreshing, lastSyncedAt,
     menu, menuError, menuLoading, menuPending, conn, pushState, alertOrders, busy, actionErrors, retryConnection, refreshOrders, refreshStore,
-    refreshMenu, silence, isGhostTap, accept, reject, markReady, setOpen, setStock, setPrice, saveItem, deleteItem,
+    refreshMenu, silence, isGhostTap, accept, reject, markReady, setOpen, setHours, setStock, setCategoryStock, categoryPending, setPrice, saveItem, deleteItem,
   ]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

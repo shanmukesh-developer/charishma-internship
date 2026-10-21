@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FormMode, ItemForm } from '../components/ItemForm';
 import { MenuRow, PriceSheet, StockSheet } from '../components/MenuParts';
@@ -11,7 +11,7 @@ import type { MenuItem } from '../types';
 type Filter = 'all' | 'in' | 'out';
 
 export default function MenuScreen() {
-  const { menu, menuError, menuLoading, menuPending, refreshMenu, setStock, setPrice, saveItem, deleteItem, store, restaurant } = useStore();
+  const { menu, menuError, menuLoading, menuPending, refreshMenu, setStock, setCategoryStock, categoryPending, setPrice, saveItem, deleteItem, store, restaurant } = useStore();
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [stockFor, setStockFor] = useState<MenuItem | null>(null);
@@ -119,6 +119,13 @@ export default function MenuScreen() {
             <View style={styles.section}>
               <Text style={[font.h3, { color: color.text, flex: 1 }]}>{section.title}</Text>
               <Text style={[font.small, { color: color.textMuted }]}>{section.inStock}/{section.total} in stock</Text>
+              <CategorySwitch
+                title={section.title}
+                inStock={section.inStock}
+                total={section.total}
+                busy={!!categoryPending[section.title]}
+                onSet={(on) => { setCategoryStock(section.title, on); }}
+              />
             </View>
           )}
           renderItem={({ item }) => (
@@ -176,6 +183,30 @@ export default function MenuScreen() {
   );
 }
 
+/** One tap: the whole category out of stock (or back in when it is all out). Saves on the server at once. */
+function CategorySwitch({ title, inStock, total, busy, onSet }: {
+  title: string; inStock: number; total: number; busy: boolean; onSet: (isAvailable: boolean) => void;
+}) {
+  const turnOn = inStock === 0;
+  const label = turnOn ? 'All in stock' : 'All out';
+  return (
+    <Pressable
+      onPress={() => { if (!busy) onSet(turnOn); }}
+      disabled={busy}
+      accessibilityRole="button"
+      accessibilityLabel={turnOn ? `Mark all ${total} ${title} items in stock` : `Mark all ${total} ${title} items out of stock`}
+      hitSlop={6}
+      style={({ pressed }) => [styles.catSwitch, turnOn ? styles.catOn : styles.catOff, pressed && { opacity: 0.75 }]}
+    >
+      {busy ? (
+        <ActivityIndicator size="small" color={turnOn ? color.textInverse : color.alertDark} />
+      ) : (
+        <Text style={[font.small, { color: turnOn ? color.textInverse : color.alertDark, fontWeight: '800' }]}>{label}</Text>
+      )}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   top: { padding: space.md, gap: space.sm, backgroundColor: color.bg },
   search: {
@@ -190,5 +221,8 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6,
   },
   firstItem: { alignItems: 'center', gap: space.sm, paddingVertical: space.xxl, paddingHorizontal: space.xl },
+  catSwitch: { minHeight: 36, minWidth: 96, paddingHorizontal: space.sm, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', marginLeft: space.xs },
+  catOn: { backgroundColor: color.open },
+  catOff: { backgroundColor: color.surface, borderWidth: 1, borderColor: color.alert },
   section: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.md, paddingVertical: space.sm, backgroundColor: color.bg, borderBottomWidth: 1, borderBottomColor: color.border },
 });

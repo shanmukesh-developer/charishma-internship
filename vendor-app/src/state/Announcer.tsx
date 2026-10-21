@@ -4,7 +4,7 @@
 //  - status changes from the server: customer cancelled / timed out.
 //  - connection lost (after OFFLINE_AFTER_MS) / back.
 // Announcements are keyed per order + event, so a refetch or a duplicate socket event never repeats them.
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AppState, Platform, Vibration } from 'react-native';
 import { RING_REPEAT_MS } from '../config';
 import { serverNow } from '../lib/http';
@@ -69,6 +69,10 @@ export function Announcer() {
   const alertKey = alertOrders.map((o) => `${o.id}:${o.partial ? 'p' : 'f'}`).join(',');
   const hasAlerts = alertOrders.length > 0;
   const isWaiting = (id: string) => alertRef.current.some((o) => o.id === id);
+  const lastRingAt = useRef(0);
+  // Bumped when the app comes back to the foreground: restarts the repeat timer below (Android may have
+  // frozen JS timers, or stopped the kitchen service, while the phone was locked).
+  const [armNonce, setArmNonce] = useState(0);
 
   useEffect(() => {
     const current = new Set(alertRef.current.map((o) => o.id));
@@ -82,7 +86,10 @@ export function Announcer() {
     const fresh = alertRef.current.filter((o) => !rung.current.has(o.id));
     for (const o of fresh.slice().reverse()) {
       rung.current.set(o.id, o.shortId);
-      if (stillFresh(o)) ring(o, isWaiting);
+      if (stillFresh(o)) {
+        lastRingAt.current = Date.now();
+        ring(o, isWaiting);
+      }
     }
   }, [alertKey]);
 
@@ -93,10 +100,29 @@ export function Announcer() {
     }
     const t = setInterval(() => {
       const oldest = alertRef.current.find(stillFresh);
-      if (oldest) ring(oldest, isWaiting);
+      if (oldest) {
+        lastRingAt.current = Date.now();
+        ring(oldest, isWaiting);
+      }
     }, RING_REPEAT_MS);
     return () => clearInterval(t);
-  }, [hasAlerts]);
+  }, [hasAlerts, armNonce]);
+
+  // Re-arm on return to the foreground: ring the oldest waiting order now (unless it rang moments ago)
+  // instead of waiting for a timer that may have been frozen in the background, then restart the timer.
+  // Pushes from the server (new order + waiting-order reminders) cover the time the app was closed.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s !== 'active') return;
+      const oldest = alertRef.current.find(stillFresh);
+      if (oldest && Date.now() - lastRingAt.current > RING_REPEAT_MS / 2) {
+        lastRingAt.current = Date.now();
+        ring(oldest, isWaiting);
+      }
+      setArmNonce((n) => n + 1);
+    });
+    return () => sub.remove();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Status changes the vendor did not make (customer cancel / timeout) ──
   const prev = useRef<Map<string, string> | null>(null);

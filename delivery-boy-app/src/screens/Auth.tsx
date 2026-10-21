@@ -130,13 +130,26 @@ export function LoginScreen() {
 
         <Btn title="Log in" icon="login" onPress={submit} loading={busy} disabled={!canSubmit} />
         <LegalLine />
-        <Btn
-          title="Forgot password? Call Zenvy"
-          icon="phone"
-          variant="outline"
-          size="mid"
-          onPress={() => links.callNumber(`+${SUPPORT_PHONE}`)}
-        />
+        <View style={styles.help}>
+          <Text style={[T.body, { color: C.ink, fontWeight: '800' }]}>Forgot password?</Text>
+          <Text style={[T.small, { color: C.ink2 }]}>Ask your Zenvy admin to reset it. They will send you a new password.</Text>
+          <View style={{ flexDirection: 'row', gap: S.sm }}>
+            <Btn title="Call" icon="phone" variant="outline" size="mid" onPress={() => links.callNumber(`+${SUPPORT_PHONE}`)} style={{ flex: 1 }} />
+            <Btn
+              title="WhatsApp"
+              icon="whatsapp"
+              variant="outline"
+              size="mid"
+              onPress={() =>
+                links.whatsapp(
+                  SUPPORT_PHONE,
+                  `Hi Zenvy, I am a rider and I forgot my password. Please reset it.${/^[6-9]\d{9}$/.test(phone) ? ` My number is ${phone}.` : ''}`,
+                )
+              }
+              style={{ flex: 1 }}
+            />
+          </View>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -197,5 +210,6 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, color: C.ink, minHeight: 54 },
   error: { flexDirection: 'row', gap: S.sm, alignItems: 'center', backgroundColor: C.redTint, padding: S.md, borderRadius: R.md },
+  help: { gap: S.sm, padding: S.lg, borderRadius: R.md, backgroundColor: C.card, borderWidth: 1, borderColor: C.line },
   pendingIcon: { width: 96, height: 96, borderRadius: 48, backgroundColor: C.amberTint, alignItems: 'center', justifyContent: 'center' },
 });

@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { apiFetch, ApiError, apiUploadForm, isWakingStatus, NetworkError, probeServer, UPLOAD_MESSAGES, uploadStatusMessage } from './http';
 import { normalizeMenuItem, normalizeOrder, normalizeStore } from './model';
-import type { Compliance, ComplianceEdit, MenuItem, Order, StoreState } from '../types';
+import type { Compliance, ComplianceEdit, MenuItem, OperatingHours, Order, StoreState } from '../types';
 
 const enc = encodeURIComponent;
 
@@ -91,6 +91,12 @@ export async function setOpen(id: string, isOpenNow: boolean): Promise<StoreStat
     }
     throw e;
   }
+}
+
+/** PUT /api/restaurants/:id/hours { operatingHours: { start, end } } (start === end = open all day). */
+export async function setHours(id: string, hours: OperatingHours): Promise<StoreState> {
+  const raw = await apiFetch(`/api/restaurants/${enc(id)}/hours`, { method: 'PUT', body: { operatingHours: hours } });
+  return normalizeStore(raw);
 }
 
 // ── Menu items (add / edit / delete) ────────────────────────────────────────
@@ -253,4 +259,67 @@ export async function saveCompliance(id: string, body: ComplianceEdit): Promise<
   const res = await apiFetch<any>(`/api/restaurants/${enc(id)}/compliance`, { method: 'PUT', body, no401Logout: true, timeoutMs: 30000 });
   if (!res?.compliance) throw new ApiError(500, 'Saved, but the reply was empty. Pull down to refresh.', res);
   return { compliance: res.compliance as Compliance, changed: Array.isArray(res.changed) ? res.changed : undefined };
+}
+
+// -- Whole category in / out of stock ------------------------------------------
+/** PUT /api/restaurants/:id/menu/category-stock: every item of one menu category (this store's own only). */
+export function setCategoryStock(id: string, category: string, isAvailable: boolean) {
+  return apiFetch<{ updated?: number; total?: number; items?: { id: string; isAvailable: boolean; outOfStockUntil?: string | null }[] }>(
+    `/api/restaurants/${enc(id)}/menu/category-stock`, { method: 'PUT', body: { category, isAvailable } },
+  );
+}
+
+// -- Payout statements (read only) ---------------------------------------------
+export interface PayoutStatement {
+  id: string;
+  periodStart: string | null;
+  periodEnd: string | null;
+  orderCount: number;
+  /** Rupees. net = gross - commission + adjustments (can be negative when the store kept the cash). */
+  gross: number;
+  commission: number;
+  adjustments: number;
+  net: number;
+  status: string; // PENDING | PAID
+  method: string | null;
+  utr: string | null;
+  paidAt: string | null;
+  createdAt: string | null;
+}
+export interface StorePayouts {
+  /** Delivered orders not on a statement yet. */
+  pending: { orders: number; net: number };
+  payouts: PayoutStatement[];
+  hasMore: boolean;
+}
+
+const moneyOf = (v: unknown) => {
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+const strOrNull = (v: unknown) => (typeof v === 'string' && v.trim() ? v : null);
+
+/** GET /api/restaurants/:id/payouts?page= : this store's statements, newest first (cancelled ones left out). */
+export async function getPayouts(id: string, page = 1): Promise<StorePayouts> {
+  const d: any = await apiFetch(`/api/restaurants/${enc(id)}/payouts?page=${page}&limit=20`);
+  const list = Array.isArray(d?.payouts) ? d.payouts : [];
+  return {
+    pending: { orders: moneyOf(d?.notYetOnStatement?.orders), net: moneyOf(d?.notYetOnStatement?.net) },
+    payouts: list.map((p: any) => ({
+      id: String(p.id),
+      periodStart: strOrNull(p.periodStart),
+      periodEnd: strOrNull(p.periodEnd),
+      orderCount: moneyOf(p.orderCount),
+      gross: moneyOf(p.gross),
+      commission: moneyOf(p.commission),
+      adjustments: moneyOf(p.adjustments),
+      net: moneyOf(p.net),
+      status: String(p.status || 'PENDING'),
+      method: strOrNull(p.method),
+      utr: strOrNull(p.utr),
+      paidAt: strOrNull(p.paidAt),
+      createdAt: strOrNull(p.createdAt),
+    })),
+    hasMore: d?.hasMore === true,
+  };
 }

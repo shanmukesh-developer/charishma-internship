@@ -1,7 +1,9 @@
 // SOS (adapted from delivery-boy-app/src/ui/Sos.tsx): one tap opens a sheet. "Call 112" is always first.
 // "Alert Zenvy" calls POST /api/auto-ride/driver/sos: a HIGH-priority SAFETY incident linked to the current
 // trip, shown live in the admin panel and pushed to every admin device. (An older server without /sos gets
-// the plain SAFETY incident instead.) There is no location in it: this app does not use GPS.
+// the plain SAFETY incident instead.) This app has no GPS module, so the server adds the last known spot:
+// the current trip's pickup stand (admin-entered map point, labelled "not live GPS"), like the rider SOS
+// carries the rider's location. The reply's locationSource says what was sent.
 import React, { useState } from 'react';
 import { Linking, StyleSheet, Text, TextInput, View } from 'react-native';
 import { color, font, radius, space } from '../theme';
@@ -48,7 +50,9 @@ export function SosButton({ tripId }: { tripId?: string | null }) {
       <Sheet visible={open} onClose={() => setOpen(false)} title="Need help?">
         <View style={{ gap: space.md }}>
           <Button label={`Call ${EMERGENCY_NUMBER} now`} icon="call" variant="reject" size="huge" onPress={() => call(EMERGENCY_NUMBER)} />
-          <Text style={[font.body, { color: color.textSecondary }]}>Or alert the Zenvy team. They will call you back.</Text>
+          <Text style={[font.body, { color: color.textSecondary }]}>
+            Or alert the Zenvy team. They get your name, phone and current trip, with its pickup stand as your last known spot, and will call you back.
+          </Text>
           <View style={styles.chips}>
             {QUICK.map((q) => (
               <Chip key={q} label={q} selected={note === q} tone="red" onPress={() => setNote((c) => (c === q ? '' : q))} style={{ flexGrow: 1 }} />

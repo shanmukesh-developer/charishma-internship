@@ -101,7 +101,8 @@ const pushStoreNewOrder = async (restaurant, order) => {
     const { pushToStore } = require('../utils/storePush');
     const items = normalizeItems(order.items);
     const count = items.reduce((s, i) => s + (Number(i.quantity) || 1), 0);
-    await pushToStore(restaurant, 'New order 🔔', `${count} item${count === 1 ? '' : 's'} · ₹${money(order.finalPrice)}${order.paymentMethod === 'COD' ? ' (cash)' : ''}`, { orderId: order.id, type: 'NEW_ORDER' });
+    // Tagged per order: the waiting-order reminders (utils/storeOrderReminder) replace it instead of stacking.
+    await pushToStore(restaurant, 'New order', `${count} item${count === 1 ? '' : 's'} · ₹${money(order.finalPrice)}${order.paymentMethod === 'COD' ? ' (cash)' : ''}`, { orderId: order.id, type: 'NEW_ORDER' }, { tag: `order-${order.id}` });
   } catch (err) {
     console.warn('[STORE_PUSH_WARN]', err.message);
   }
@@ -109,7 +110,7 @@ const pushStoreNewOrder = async (restaurant, order) => {
 const pushStoreCancelled = async (restaurantId, order, text) => {
   try {
     const { pushToStore } = require('../utils/storePush');
-    await pushToStore(restaurantId, 'Order cancelled', text || 'An order was cancelled.', { orderId: order.id, type: 'ORDER_CANCELLED' });
+    await pushToStore(restaurantId, 'Order cancelled', text || 'An order was cancelled.', { orderId: order.id, type: 'ORDER_CANCELLED' }, { tag: `order-${order.id}` });
   } catch (err) {
     console.warn('[STORE_PUSH_WARN]', err.message);
   }

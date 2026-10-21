@@ -58,6 +58,8 @@ export const KEYS = {
   queue: '@zenvy_rider_offline_queue_v2',
   legacyQueue: '@zenvy_native_offline_queue',
   cachePrefix: '@zenvy_rider_cache:',
+  /** The one-time "Stay reachable" battery / autostart guide was finished or dismissed. */
+  reachableGuide: '@zenvy_rider_reachable_guide_v1',
 };
 
 /** Foreground refresh cadence. Pool polling is the fallback for push / socket. */

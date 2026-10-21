@@ -72,7 +72,7 @@ const MenuRow = memo(function MenuRow({ item, pending, onToggle, onEdit }: {
 });
 
 export default function MenuScreen() {
-  const { menu, menuError, menuLoading, menuPending, refreshMenu, setStock, saveItem, deleteItem } = useStore();
+  const { menu, menuError, menuLoading, menuPending, refreshMenu, setStock, setCategoryStock, categoryPending, saveItem, deleteItem } = useStore();
   const [q, setQ] = useState('');
   const [form, setForm] = useState<FormMode | null>(null);
 
@@ -82,6 +82,17 @@ export default function MenuScreen() {
   }, [menu]);
 
   const offCount = menu ? menu.filter((m) => !m.isAvailable).length : 0;
+  // Whole-category counts (the section list may be narrowed by the search box; the switch is not).
+  const categoryCounts = useMemo(() => {
+    const map = new Map<string, { on: number; total: number }>();
+    for (const m of menu || []) {
+      const c = map.get(m.category) || { on: 0, total: 0 };
+      c.total += 1;
+      if (m.isAvailable) c.on += 1;
+      map.set(m.category, c);
+    }
+    return map;
+  }, [menu]);
 
   const sections = useMemo(() => {
     if (!menu) return [];
@@ -151,6 +162,13 @@ export default function MenuScreen() {
             <View style={styles.section}>
               <Text style={[font.h3, { color: color.text, flex: 1 }]}>{section.title}</Text>
               <Text style={[font.small, { color: color.textMuted }]}>{section.on}/{section.data.length} on</Text>
+              <CategorySwitch
+                title={section.title}
+                inStock={categoryCounts.get(section.title)?.on ?? section.on}
+                total={categoryCounts.get(section.title)?.total ?? section.data.length}
+                busy={!!categoryPending[section.title]}
+                onSet={(on) => { setCategoryStock(section.title, on); }}
+              />
             </View>
           )}
           renderItem={({ item }) => (
@@ -180,12 +198,39 @@ export default function MenuScreen() {
   );
 }
 
+/** One tap: the whole category out of stock (or back in when it is all out). Saves on the server at once. */
+function CategorySwitch({ title, inStock, total, busy, onSet }: {
+  title: string; inStock: number; total: number; busy: boolean; onSet: (isAvailable: boolean) => void;
+}) {
+  const turnOn = inStock === 0;
+  const label = turnOn ? 'All in stock' : 'All out';
+  return (
+    <Pressable
+      onPress={() => { if (!busy) onSet(turnOn); }}
+      disabled={busy}
+      accessibilityRole="button"
+      accessibilityLabel={turnOn ? `Mark all ${total} ${title} items in stock` : `Mark all ${total} ${title} items out of stock`}
+      hitSlop={6}
+      style={({ pressed }) => [styles.catSwitch, turnOn ? styles.catOn : styles.catOff, pressed && { opacity: 0.75 }]}
+    >
+      {busy ? (
+        <ActivityIndicator size="small" color={turnOn ? color.textInverse : color.alertDark} />
+      ) : (
+        <Text style={[font.small, { color: turnOn ? color.textInverse : color.alertDark, fontWeight: '800' }]}>{label}</Text>
+      )}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   top: { padding: space.md, gap: space.sm, backgroundColor: color.bg },
   search: {
     flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.surface, borderWidth: 1, borderColor: color.border,
     borderRadius: radius.md, paddingHorizontal: space.sm, minHeight: touch.secondary,
   },
+  catSwitch: { minHeight: 36, minWidth: 96, paddingHorizontal: space.sm, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', marginLeft: space.xs },
+  catOn: { backgroundColor: color.open },
+  catOff: { backgroundColor: color.surface, borderWidth: 1, borderColor: color.alert },
   section: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.md, paddingVertical: space.sm, backgroundColor: color.bg, borderBottomWidth: 1, borderBottomColor: color.border },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: space.sm, minHeight: 80, paddingHorizontal: space.md, paddingVertical: space.xs,

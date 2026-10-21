@@ -72,3 +72,30 @@ export function minutesAgo(d: string | null | undefined): string | null {
 export function km(n: number): string {
   return n < 1 ? `${Math.round(n * 1000)} m` : `${n.toFixed(1)} km`;
 }
+
+/** Exact money for statements: "₹1,234" or "₹1,234.50" (en-IN grouping). */
+export function rupeesExact(n: number | null | undefined): string {
+  if (n === null || n === undefined || !Number.isFinite(n)) return '—';
+  const neg = n < 0;
+  const abs = Math.round(Math.abs(n) * 100) / 100;
+  const body = Number.isInteger(abs)
+    ? abs.toLocaleString('en-IN')
+    : abs.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${neg ? '−' : ''}₹${body}`;
+}
+
+/** "21 Oct 2026" for an ISO date / time (IST calendar day). */
+export function dateIST(d: string | number | Date | null | undefined): string {
+  if (d === null || d === undefined) return '—';
+  const key = istDayKey(d);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return '—';
+  const [y, m, day] = key.split('-').map(Number);
+  return `${day} ${MONTHS[m - 1]} ${y}`;
+}
+
+/** "14 Oct" for a YYYY-MM-DD key. */
+export function shortDate(key: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return key;
+  const p = partsOfKey(key);
+  return `${p.day} ${p.month}`;
+}

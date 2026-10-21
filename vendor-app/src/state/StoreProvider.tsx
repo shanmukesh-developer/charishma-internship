@@ -55,6 +55,10 @@ interface StoreCtx {
   setOpen: (open: boolean) => Promise<Result>;
   setHours: (hours: OperatingHours) => Promise<Result>;
   setStock: (item: MenuItem, isAvailable: boolean) => Promise<boolean>;
+  /** Every item of one menu category in / out of stock (one tap on the section header). */
+  setCategoryStock: (category: string, isAvailable: boolean) => Promise<boolean>;
+  /** Categories whose switch is saving. */
+  categoryPending: Record<string, boolean>;
   /** Add (editing = null) or edit an item. Throws with a friendly message; the form shows it inline. */
   saveItem: (input: ItemInput, editing: MenuItem | null) => Promise<MenuItem>;
   deleteItem: (item: MenuItem) => Promise<DeleteResult>;
@@ -694,16 +698,53 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return { ok: true };
   }, [toast]);
 
+  // Whole category in / out of stock (MenuScreen section header). Keyed by the category name.
+  const [categoryPending, setCategoryPending] = useState<Record<string, boolean>>({});
+  const categoryPendingRef = useRef<Record<string, boolean>>({});
+  const setCategoryStock = useCallback(async (category: string, isAvailable: boolean) => {
+    if (categoryPendingRef.current[category]) return false;
+    categoryPendingRef.current = { ...categoryPendingRef.current, [category]: true };
+    setCategoryPending(categoryPendingRef.current);
+    try {
+      const res = await api.setCategoryStock(rid, category, isAvailable);
+      const changed = new Map((res?.items || []).map((x) => [String(x.id), x]));
+      setMenu((prev) => prev && prev.map((m) => {
+        const x = changed.get(m.id);
+        return x ? { ...m, isAvailable: x.isAvailable } : m;
+      }));
+      const n = typeof res?.total === 'number' ? res.total : changed.size;
+      toast.show(`${category}: ${n} item${n === 1 ? '' : 's'} ${isAvailable ? 'in stock' : 'out of stock'}`, isAvailable ? 'success' : 'info');
+      return true;
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        // Expired / revoked session: the http layer already logged out with a message.
+      } else if (e instanceof ApiError && e.status === 404 && e.code === 'CATEGORY_NOT_FOUND') {
+        toast.show('That category has changed. Refreshing your menu.', 'error');
+        refreshMenu();
+      } else if (e instanceof ApiError && e.status === 404) {
+        toast.show('Switching a whole category is not available yet. Switch the items one by one.', 'info');
+      } else {
+        toast.show(errorMessage(e, "Couldn't update this category."), 'error');
+      }
+      return false;
+    } finally {
+      const next = { ...categoryPendingRef.current };
+      delete next[category];
+      categoryPendingRef.current = next;
+      if (alive.current) setCategoryPending(next);
+    }
+  }, [rid, refreshMenu, toast]);
+
   const retryConnection = useCallback(() => { retry(); refreshOrdersRef.current({ pull: true }); }, [retry]);
 
   const value = useMemo<StoreCtx>(() => ({
     restaurant, store, storeError, orders, ordersLoaded, ordersError, refreshing, lastSyncedAt,
     menu, menuError, menuLoading, menuPending, conn, pushState, alertOrders, busy, actionErrors, retryConnection, refreshOrders, refreshStore,
-    refreshMenu, silence, accept, reject, outForDelivery, delivered, cancel, setOpen, setHours, setStock, saveItem, deleteItem,
+    refreshMenu, silence, accept, reject, outForDelivery, delivered, cancel, setOpen, setHours, setStock, setCategoryStock, categoryPending, saveItem, deleteItem,
   }), [
     restaurant, store, storeError, orders, ordersLoaded, ordersError, refreshing, lastSyncedAt,
     menu, menuError, menuLoading, menuPending, conn, pushState, alertOrders, busy, actionErrors, retryConnection, refreshOrders, refreshStore,
-    refreshMenu, silence, accept, reject, outForDelivery, delivered, cancel, setOpen, setHours, setStock, saveItem, deleteItem,
+    refreshMenu, silence, accept, reject, outForDelivery, delivered, cancel, setOpen, setHours, setStock, setCategoryStock, categoryPending, saveItem, deleteItem,
   ]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

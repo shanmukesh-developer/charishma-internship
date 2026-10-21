@@ -12,6 +12,7 @@ import { firstName, kitchenChip, stepFor, stepIndex } from '../services/orderMod
 import { minutesAgo, rupees } from '../services/format';
 import { OFFER_SECONDS } from '../config';
 import { ItemsLine, PaymentPill, distanceTo } from './parts';
+import { AlertHealthBanner, StayReachableCard } from './StayReachable';
 import type { RiderOrder } from '../types';
 
 // Offers whose countdown ran out (moved to "More orders"). Module-level so switching tabs does not restart the timer.
@@ -78,6 +79,7 @@ export function HomeScreen() {
           <Banner text={r.today.data.cash.message} tone="amber" icon="cash-lock" />
         ) : null}
 
+        <AlertHealthBanner />
         {r.locationDenied ? <Banner tone="blue" icon="crosshairs-off" text="Location is off. Turn it on so customers can see you." /> : null}
         {!r.locationDenied && r.backgroundLocationOff ? (
           <Banner
@@ -87,6 +89,8 @@ export function HomeScreen() {
             action={{ label: 'Allow', onPress: r.allowBackgroundLocation }}
           />
         ) : null}
+
+        {r.active.data.length === 0 ? <StayReachableCard /> : null}
 
         {r.active.data.length > 0 ? (
           <View style={{ gap: S.md }}>
@@ -385,7 +389,7 @@ function SmallOffer({
     <Card style={{ gap: S.sm }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm }}>
         <Text style={[T.h3, { color: C.ink, flex: 1 }]} numberOfLines={1}>
-          {order.buyAtStore ? '🛒 ' : ''}{order.restaurantName ?? 'Store'}
+          {order.buyAtStore ? 'Buy at store: ' : ''}{order.restaurantName ?? 'Store'}
         </Text>
         <Text style={[T.h2, { color: C.greenDark }]}>{order.earning !== null ? `+${rupees(order.earning)}` : ''}</Text>
       </View>
@@ -419,7 +423,7 @@ function WaitingCard() {
         </View>
       </View>
       <Text style={[T.h3, { color: C.ink }]}>Looking for orders…</Text>
-      <Text style={[T.body, { color: C.muted, textAlign: 'center' }]}>Keep the app open. You will hear a sound when an order comes.</Text>
+      <Text style={[T.body, { color: C.muted, textAlign: 'center' }]}>You will hear a sound when an order comes. Keep Zenvy Rider allowed in the background.</Text>
     </Card>
   );
 }

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SUPPORT_PHONE } from '../config';
 import { clockIST, formatHHMM, rupees, todayNumbers } from '../lib/model';
+import { openNotificationSettings } from '../lib/push';
 import { useStore } from '../state/StoreProvider';
 import { useVoice } from '../voice/useVoice';
 import { color, font, radius, space, touch } from '../theme';
@@ -173,25 +174,27 @@ export function ConnBanner() {
   );
 }
 
-/** Closed-app order alerts are off on this phone: new orders only ring while the app is open. */
+/** Closed-app order alerts are off (or silent) on this phone: new orders only ring while the app is open. */
 export function PushOffBanner() {
   const { pushState } = useStore();
-  if (pushState !== 'blocked' && pushState !== 'unavailable') return null;
-  const blocked = pushState === 'blocked';
-  const text = blocked
+  if (pushState !== 'blocked' && pushState !== 'unavailable' && pushState !== 'muted') return null;
+  const fixable = pushState === 'blocked' || pushState === 'muted';
+  const text = pushState === 'blocked'
     ? 'Do not close this app. Notifications are blocked, so new orders ring only while Zenvy is open. Tap to fix.'
-    : 'Do not close this app. Alerts with the app closed are not available on this phone, so new orders ring only while Zenvy is open.';
+    : pushState === 'muted'
+      ? 'The "New orders" sound is off in your phone settings, so a new order may not ring when Zenvy is closed. Tap to turn it on.'
+      : 'Do not close this app. Alerts with the app closed are not available on this phone, so new orders ring only while Zenvy is open.';
   return (
     <Pressable
-      onPress={blocked ? () => { Linking.openSettings().catch(() => {}); } : undefined}
-      disabled={!blocked}
-      accessibilityRole={blocked ? 'button' : 'text'}
-      accessibilityLabel={blocked ? `${text} Open settings` : text}
+      onPress={fixable ? () => { openNotificationSettings(pushState); } : undefined}
+      disabled={!fixable}
+      accessibilityRole={fixable ? 'button' : 'text'}
+      accessibilityLabel={fixable ? `${text} Open settings` : text}
       style={[styles.banner, { backgroundColor: color.alertTint }]}
     >
       <Ionicons name="notifications-off" size={22} color={color.alert} />
       <Text style={[font.body, { color: color.alertDark, fontWeight: '800', flex: 1 }]}>{text}</Text>
-      {blocked ? <Text style={[font.label, { color: color.alertDark }]}>FIX</Text> : null}
+      {fixable ? <Text style={[font.label, { color: color.alertDark }]}>FIX</Text> : null}
     </Pressable>
   );
 }

@@ -259,3 +259,44 @@ export async function takeLaunchPushTap(): Promise<Record<string, any> | null> {
     return null;
   }
 }
+
+// ── Alert health (Home banner) ─────────────────────────────────────────────
+/**
+ * Can a new-order push reach this rider with sound?
+ *  'ok'       permission granted and the order channel rings
+ *  'blocked'  notification permission refused (canAskAgain: the app may still ask)
+ *  'muted'    Android: the "New delivery orders" channel was switched off, set to silent or its sound removed
+ *  'unknown'  web, or the check failed (no banner)
+ */
+export type AlertHealth = { state: 'ok' | 'muted' | 'unknown' } | { state: 'blocked'; canAskAgain: boolean };
+
+const MUTED_IMPORTANCE = [
+  Notifications.AndroidImportance.NONE,
+  Notifications.AndroidImportance.MIN,
+  Notifications.AndroidImportance.LOW,
+];
+
+export async function checkAlertHealth(): Promise<AlertHealth> {
+  if (Platform.OS !== 'android' && Platform.OS !== 'ios') return { state: 'unknown' };
+  try {
+    const perm = await Notifications.getPermissionsAsync();
+    if (perm.status !== 'granted') return { state: 'blocked', canAskAgain: perm.canAskAgain !== false };
+    if (Platform.OS !== 'android') return { state: 'ok' };
+    await ensureChannels();
+    const ch = await Notifications.getNotificationChannelAsync(ALERT_CHANNEL);
+    if (!ch) return { state: 'unknown' };
+    if (MUTED_IMPORTANCE.includes(ch.importance) || ch.sound === null) return { state: 'muted' };
+    return { state: 'ok' };
+  } catch {
+    return { state: 'unknown' };
+  }
+}
+
+/** Asks for notification permission again (only when Android still allows the prompt). */
+export async function askNotificationPermission(): Promise<boolean> {
+  try {
+    return (await Notifications.requestPermissionsAsync()).status === 'granted';
+  } catch {
+    return false;
+  }
+}

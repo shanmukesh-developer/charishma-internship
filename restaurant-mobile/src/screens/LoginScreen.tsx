@@ -54,7 +54,7 @@ export default function LoginScreen() {
     if (submittingRef.current || locked) return;
     const id = identifier.trim();
     if (!id || !password) {
-      setError('Enter your restaurant ID and password.');
+      setError('Enter your store login ID and password.');
       return;
     }
     submittingRef.current = true;
@@ -74,7 +74,7 @@ export default function LoginScreen() {
       if (e instanceof ApiError && e.code === 'USE_VENDOR_APP') {
         setError('This is a stall account. Please log in with the Zenvy Vendor app.');
       } else if (e instanceof ApiError && e.status === 401 && /invalid credentials/i.test(e.message)) {
-        setError('Wrong restaurant ID or password. Check and try again.');
+        setError('Wrong store login ID or password. Check and try again.');
       } else if (e instanceof ApiError) {
         setError(e.message);
         if (e.status === 429) {
@@ -93,7 +93,7 @@ export default function LoginScreen() {
   };
 
   const call = () => Linking.openURL(`tel:+${SUPPORT_PHONE}`).catch(() => {});
-  const wa = () => Linking.openURL(`https://wa.me/${SUPPORT_PHONE}?text=${encodeURIComponent('Hi Zenvy, I need help logging in to the restaurant partner app.')}`).catch(() => {});
+  const wa = () => Linking.openURL(`https://wa.me/${SUPPORT_PHONE}?text=${encodeURIComponent(`Hi Zenvy, I forgot the password for the restaurant partner app. Please reset it.${identifier.trim() ? ` My store login ID: ${identifier.trim()}.` : ''}`)}`).catch(() => {});
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: color.bg }}>
@@ -115,11 +115,12 @@ export default function LoginScreen() {
         ) : null}
 
         <View style={styles.card}>
-          <Text style={styles.label}>Restaurant ID or name</Text>
+          <Text style={styles.label}>Store login ID</Text>
+          <Text style={[font.small, { color: color.textMuted, marginBottom: space.xxs }]}>From your Zenvy welcome message. Your store name also works.</Text>
           <TextInput
             value={identifier}
             onChangeText={(t) => { setIdentifier(t); setError(null); }}
-            placeholder="Your restaurant ID"
+            placeholder="Store login ID"
             placeholderTextColor={color.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
@@ -127,7 +128,7 @@ export default function LoginScreen() {
             returnKeyType="next"
             onSubmitEditing={() => pwRef.current?.focus()}
             style={styles.input}
-            accessibilityLabel="Restaurant ID or name"
+            accessibilityLabel="Store login ID, from your Zenvy welcome message"
           />
 
           <Text style={[styles.label, { marginTop: space.md }]}>Password</Text>
@@ -154,7 +155,7 @@ export default function LoginScreen() {
 
           <View style={styles.rememberRow}>
             <Text style={[font.body, { color: color.text, flex: 1 }]}>Remember my ID</Text>
-            <Switch value={remember} onValueChange={setRemember} trackColor={{ true: color.open, false: color.border }} thumbColor={color.surface} accessibilityLabel="Remember my restaurant ID" />
+            <Switch value={remember} onValueChange={setRemember} trackColor={{ true: color.open, false: color.border }} thumbColor={color.surface} accessibilityLabel="Remember my store login ID" />
           </View>
 
           {error ? (
@@ -165,7 +166,7 @@ export default function LoginScreen() {
           ) : null}
 
           <Button
-            label={locked ? `Try again in ${Math.max(1, Math.ceil((lockedUntil - now) / 1000))} s` : 'LOG IN'}
+            label={locked ? `Try again in ${Math.max(1, Math.ceil((lockedUntil - now) / 1000))} s` : 'Log in'}
             onPress={submit}
             loading={submitting}
             disabled={locked}
@@ -186,7 +187,8 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.help}>
-          <Text style={[font.body, { color: color.textSecondary, textAlign: 'center' }]}>Forgot password or new partner?</Text>
+          <Text style={[font.body, { color: color.text, fontWeight: '800', textAlign: 'center' }]}>Forgot password?</Text>
+          <Text style={[font.small, { color: color.textSecondary, textAlign: 'center' }]}>Ask your Zenvy admin to reset it. New partner? Contact us the same way.</Text>
           <View style={{ flexDirection: 'row', gap: space.sm }}>
             <Button label="Call" icon="call" variant="secondary" size="secondary" onPress={call} style={{ flex: 1 }} />
             <Button label="WhatsApp" icon="logo-whatsapp" variant="secondary" size="secondary" onPress={wa} style={{ flex: 1 }} />

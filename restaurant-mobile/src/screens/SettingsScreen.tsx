@@ -1,7 +1,10 @@
-// Settings: voice announcements (on/off, language, test), store info, licences & tax, support, log out.
+// Settings: voice announcements (on/off, language, test), store info and opening hours, payout statements,
+// licences & tax, support, log out.
 import React, { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SUPPORT_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_DISPLAY } from '../config';
 import { formatHHMM } from '../lib/model';
 import { useSession } from '../state/SessionProvider';
@@ -14,6 +17,8 @@ import { color, font, radius, space, touch } from '../theme';
 import { Button, Card, IconName, Sheet } from '../ui/kit';
 import { LEGAL_LABELS, SETTINGS_PAGES, openLegal } from '../lib/legal';
 import CompliancePanel from '../components/CompliancePanel';
+import { HoursSheet } from '../components/HoursSheet';
+import type { RootStack } from './MainScreen';
 
 function LinkRow({ icon, label, sub, onPress }: { icon: IconName; label: string; sub?: string; onPress: () => void }) {
   return (
@@ -36,6 +41,8 @@ export default function SettingsScreen() {
   const voice = useVoice();
   const [confirmOut, setConfirmOut] = useState(false);
   const [deleteInfo, setDeleteInfo] = useState(false);
+  const [hoursOpen, setHoursOpen] = useState(false);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStack>>();
   const [closing, setClosing] = useState(false);
   const [closeErr, setCloseErr] = useState<string | null>(null);
   // Logging out stops the ringing but not the store: offer to close it first, or orders keep coming in
@@ -128,10 +135,19 @@ export default function SettingsScreen() {
       <Card style={{ gap: 4 }}>
         <Text style={[font.h2, { color: color.text }]}>{name}</Text>
         {location ? <Text style={[font.body, { color: color.textSecondary }]}>{location}</Text> : null}
-        <Text style={[font.body, { color: color.textSecondary }]}>
-          Hours: {hours?.start && hours?.end && hours.start !== hours.end ? `${formatHHMM(hours.start)} – ${formatHHMM(hours.end)}` : 'Open all day'}
-        </Text>
+        <View style={[styles.row, { minHeight: touch.secondary }]}>
+          <Ionicons name="time-outline" size={22} color={color.text} />
+          <Text style={[font.body, { color: color.textSecondary, flex: 1 }]}>
+            Hours: {hours?.start && hours?.end && hours.start !== hours.end ? `${formatHHMM(hours.start)} – ${formatHHMM(hours.end)}` : 'Open all day'}
+          </Text>
+          <Button label="Change" icon="pencil" variant="secondary" size="secondary" onPress={() => setHoursOpen(true)} a11y="Change opening hours" />
+        </View>
         <Text style={[font.small, { color: color.textMuted }]} selectable>ID: {restaurant.id}</Text>
+      </Card>
+
+      <Text style={[font.label, { color: color.textMuted }]}>PAYOUTS</Text>
+      <Card style={{ paddingVertical: 0 }}>
+        <LinkRow icon="wallet-outline" label="Payout statements" sub="Amounts, status, UTR and paid dates" onPress={() => navigation.navigate('Payouts')} />
       </Card>
 
       <CompliancePanel />
@@ -140,7 +156,7 @@ export default function SettingsScreen() {
       <Card style={{ paddingVertical: 0 }}>
         <LinkRow icon="call" label="Call Zenvy support" sub={SUPPORT_PHONE_DISPLAY} onPress={() => Linking.openURL(`tel:+${SUPPORT_PHONE}`).catch(() => {})} />
         <View style={{ height: 1, backgroundColor: color.surfaceAlt }} />
-        <LinkRow icon="logo-whatsapp" label="WhatsApp support" sub="Menu, hours, payouts, anything else" onPress={wa} />
+        <LinkRow icon="logo-whatsapp" label="WhatsApp support" sub="Menu, password, payouts, anything else" onPress={wa} />
       </Card>
 
       <Text style={[font.label, { color: color.textMuted }]}>LEGAL</Text>
@@ -158,6 +174,10 @@ export default function SettingsScreen() {
       <Button label="Log out" icon="log-out-outline" variant="rejectOutline" size="secondary" onPress={() => { setCloseErr(null); setConfirmOut(true); }} />
 
       {/* C9: store accounts are created by Zenvy, so the Zenvy team closes them (Play account-deletion policy). */}
+      {hoursOpen ? (
+        <HoursSheet visible onClose={() => setHoursOpen(false)} start={hours?.start} end={hours?.end} weekly={!!(hours as any)?.weekly} />
+      ) : null}
+
       <Sheet visible={deleteInfo} onClose={() => setDeleteInfo(false)} title="Delete account">
         <Text style={[font.body, { color: color.textSecondary, marginBottom: space.sm }]}>
           Store accounts are set up by Zenvy, so the Zenvy team closes them for you. Email us from the owner's registered email or

@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SUPPORT_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_DISPLAY } from '../config';
 import { formatHHMM } from '../lib/model';
 import { useSession } from '../state/SessionProvider';
@@ -14,6 +16,7 @@ import { color, font, radius, space, touch } from '../theme';
 import { Button, Card, IconName, Sheet } from '../ui/kit';
 import { LEGAL_LABELS, SETTINGS_PAGES, openLegal } from '../lib/legal';
 import CompliancePanel from '../components/CompliancePanel';
+import type { RootStack } from './MainScreen';
 
 function LinkRow({ icon, label, sub, onPress }: { icon: IconName; label: string; sub?: string; onPress: () => void }) {
   return (
@@ -38,6 +41,7 @@ export default function SettingsScreen() {
   const voice = useVoice();
   const [confirmOut, setConfirmOut] = useState(false);
   const [deleteInfo, setDeleteInfo] = useState(false);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStack>>();
   const [closing, setClosing] = useState(false);
   const [closeErr, setCloseErr] = useState<string | null>(null);
   // Logging out stops the ringing but not the shop: offer to close it first, or orders keep coming in
@@ -140,6 +144,11 @@ export default function SettingsScreen() {
       </Card>
 
       <CompliancePanel />
+
+      <Text style={[font.label, { color: color.textMuted }]}>PAYOUTS</Text>
+      <Card style={{ paddingVertical: 0 }}>
+        <LinkRow icon="wallet-outline" label="Payout statements" sub="Amounts, status, UTR and paid dates" onPress={() => navigation.navigate('Payouts')} />
+      </Card>
 
       <Text style={[font.label, { color: color.textMuted }]}>HELP</Text>
       <Card style={{ paddingVertical: 0 }}>

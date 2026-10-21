@@ -14,6 +14,7 @@ import { color } from './src/theme';
 import LoginScreen from './src/screens/LoginScreen';
 import MainScreen, { RootStack } from './src/screens/MainScreen';
 import OrderDetailScreen from './src/screens/OrderDetailScreen';
+import PayoutsScreen from './src/screens/PayoutsScreen';
 import { scheduleApiEndpointCheck } from './src/config';
 import WakeBanner from './src/lib/WakeBanner';
 import UpdateGate from './src/lib/UpdateGate';
@@ -41,6 +42,9 @@ function Root() {
               <Stack.Screen name="Main" component={MainScreen} />
               <Stack.Screen name="OrderDetail">
                 {({ route, navigation }) => <OrderDetailScreen orderId={route.params.orderId} onBack={() => navigation.goBack()} />}
+              </Stack.Screen>
+              <Stack.Screen name="Payouts">
+                {({ navigation }) => <PayoutsScreen onBack={() => navigation.goBack()} />}
               </Stack.Screen>
             </Stack.Navigator>
           </NavigationContainer>

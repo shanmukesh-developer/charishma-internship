@@ -16,6 +16,7 @@ import * as api from '../services/deliveryApi';
 import { indianMobileDigits } from '../services/orderModel';
 import { SUPPORT_PHONE } from '../config';
 import { LEGAL_LABELS, SETTINGS_PAGES, openLegal } from '../services/legal';
+import { StayReachableSheet } from './StayReachable';
 
 const VEHICLES = ['Bicycle', 'Scooter', 'Motorcycle', 'E-bike'];
 
@@ -28,6 +29,7 @@ export function ProfileScreen() {
   const [pwd, setPwd] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [reachable, setReachable] = useState(false);
 
   useEffect(() => {
     r.refreshProfile();
@@ -111,6 +113,7 @@ export function ProfileScreen() {
             value={voice.enabled ? LANG_LABEL[voice.effectiveLang] : 'Off'}
             onPress={() => r.setOverlay({ kind: 'voice' })}
           />
+          <Row icon="battery-heart-variant" label="Stay reachable" value="Battery, autostart and notification settings" onPress={() => setReachable(true)} />
         </Card>
 
         <Card style={{ paddingVertical: S.xs }}>
@@ -133,6 +136,7 @@ export function ProfileScreen() {
 
       <EditProfileSheet visible={edit} onClose={() => setEdit(false)} />
       <ChangePasswordSheet visible={pwd} onClose={() => setPwd(false)} />
+      <StayReachableSheet visible={reachable} onClose={() => setReachable(false)} />
       <DeleteAccountSheet visible={deleting} onClose={() => setDeleting(false)} />
       <Sheet visible={confirmLogout} onClose={() => setConfirmLogout(false)} title="Log out?">
         <Text style={[T.body, { color: C.ink2 }]}>

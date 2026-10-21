@@ -1,5 +1,5 @@
 const express = require('express');
-const { registerPartner, authPartner, refreshPartnerToken, acceptOrder, getPendingOrders, getActiveOrders, updateOrderStatus, toggleOnline, getOrderHistory, saveFcmToken, getLeaderboard, getRiderProfile, updateRiderProfile, getPublicRiderProfile, getTodayStats, cancelOrderByRider, changePassword, notifyArrivalAtGate, getWeekStats, createRiderTicket, getRiderTickets, removeFcmToken, triggerSos } = require('../controllers/deliveryPartnerController');
+const { registerPartner, authPartner, refreshPartnerToken, acceptOrder, getPendingOrders, getActiveOrders, updateOrderStatus, toggleOnline, getOrderHistory, saveFcmToken, getLeaderboard, getRiderProfile, updateRiderProfile, getPublicRiderProfile, getTodayStats, cancelOrderByRider, changePassword, notifyArrivalAtGate, getWeekStats, getStatsRange, createRiderTicket, getRiderTickets, removeFcmToken, triggerSos } = require('../controllers/deliveryPartnerController');
 const { protect, rider } = require('../middleware/authMiddleware');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
@@ -31,6 +31,8 @@ router.get('/orders/history', protect, rider, getOrderHistory);
 router.get('/leaderboard', protect, rider, getLeaderboard);
 router.get('/stats/today', protect, rider, getTodayStats);
 router.get('/stats/week', protect, rider, getWeekStats);
+// Earnings history by day / week over a date range (read only, IST days, at most 92 days).
+router.get('/stats/range', protect, rider, getStatsRange);
 router.post('/support', protect, rider, createRiderTicket);
 router.get('/support', protect, rider, getRiderTickets);
 router.get('/profile', protect, rider, getRiderProfile);

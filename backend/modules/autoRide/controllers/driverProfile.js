@@ -279,10 +279,11 @@ const reportIncident = async (req, res) => {
 // POST /api/auto-ride/driver/sos { tripId?, note?, lat?, lon? }
 // A SAFETY incident with HIGH priority (linked to the given trip, else the driver's current trip), the admin
 // panel told live (admin:changed auto_incident) and every admin device pushed (utils/adminAlert.pushAdmins).
-// Works while the feature switch is off. Location only if the app sends it (this app does not track GPS).
+// Works while the feature switch is off. Location: lat / lon when the app sends them, otherwise the trip's
+// pickup stand as the last known spot (locationSource 'gps' | 'pickupPoint' | null in the reply).
 const sos = async (req, res) => {
   const body = req.body || {};
-  const { Trip, Incident } = M();
+  const { Trip, Incident, Pickup } = M();
   hit('sos', req.driver.id);
   let trip = null;
   if (body.tripId) {
@@ -294,7 +295,25 @@ const sos = async (req, res) => {
   const lat = num(body.lat, { min: -90, max: 90, field: 'lat', label: 'Latitude', decimals: 6 });
   const lon = num(body.lon, { min: -180, max: 180, field: 'lon', label: 'Longitude', decimals: 6 });
   const note = cleanText(body.note, 300, { multiline: true });
-  const where = lat !== null && lon !== null ? ` Location: ${lat},${lon} (https://www.google.com/maps/search/?api=1&query=${lat},${lon}).` : '';
+  let where = lat !== null && lon !== null ? ` Location: ${lat},${lon} (https://www.google.com/maps/search/?api=1&query=${lat},${lon}).` : '';
+  let locationSource = where ? 'gps' : null;
+  // No live GPS from this app: the trip's pickup stand (admin-entered coordinates) is the last known spot,
+  // clearly labelled as such so nobody mistakes it for a live position.
+  let spotName = null;
+  if (!where && trip && trip.pickupPointId) {
+    try {
+      const p = await Pickup.findByPk(trip.pickupPointId, { attributes: ['id', 'name', 'landmark', 'lat', 'lon'] });
+      if (p) {
+        spotName = p.name;
+        const plat = Number(p.lat);
+        const plon = Number(p.lon);
+        const coords = p.lat !== null && p.lon !== null && Number.isFinite(plat) && Number.isFinite(plon)
+          ? ` ${plat},${plon} (https://www.google.com/maps/search/?api=1&query=${plat},${plon})` : '';
+        where = ` Last known spot (trip pickup stand, not live GPS): ${p.name}${p.landmark ? `, ${p.landmark}` : ''}.${coords ? `${coords}.` : ''}`;
+        locationSource = 'pickupPoint';
+      }
+    } catch { /* the SOS itself must never fail on this */ }
+  }
   const description = `SOS from the Zenvy Auto Driver app${note ? `: ${note}` : '.'}${where}`.slice(0, 2000);
   const row = await Incident.create({
     tripId: trip ? trip.id : null, bookingId: null, reporterType: 'DRIVER', reporterId: req.driver.id,
@@ -306,12 +325,12 @@ const sos = async (req, res) => {
   // Fire-and-forget (never blocks the reply); pushAdmins never throws.
   Promise.resolve(require('../../../utils/adminAlert').pushAdmins(
     '🚨 Auto driver SOS',
-    `${S.shortName(d.name)} (${d.phone}) pressed SOS${trip ? ` on trip queue #${trip.queueNumber || '-'}` : ''}${note ? `: ${note}` : ''}. Call them now.`,
+    `${S.shortName(d.name)} (${d.phone}) pressed SOS${trip ? ` on trip queue #${trip.queueNumber || '-'}` : ''}${spotName ? ` near ${spotName}` : ''}${note ? `: ${note}` : ''}. Call them now.`,
     { type: 'AUTO_DRIVER_SOS', incidentId: String(row.id), ...(trip ? { tripId: String(trip.id) } : {}), driverId: String(d.id) },
     { io },
   )).catch(() => {});
   res.status(201).json({
-    incident: S.incident(row), emergencyNumber: '112',
+    incident: S.incident(row), emergencyNumber: '112', locationSource,
     message: 'Zenvy has been alerted and will call you back. If anyone is in danger call 112 now.',
   });
 };

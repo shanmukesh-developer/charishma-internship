@@ -6,7 +6,7 @@
 //    plugin) played through a local notification on an alarm-volume channel. It does not depend on the
 //    TTS engine, so a broken / missing voice never means a silent new order.
 // Every function is best effort and never throws.
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { registerPushToken, removePushToken } from './api';
 import { safeGet, safeSet } from './storage';
@@ -154,9 +154,46 @@ let currentToken: string | null = null;
  *  'ok'          token registered with the server
  *  'blocked'     notification permission refused: alerts only while the app is open
  *  'unavailable' this build / phone has no FCM device token (no google-services.json, no Play services)
+ *  'muted'       Android: token registered, but the "New orders" channel was switched off, set to silent or
+ *                its sound removed in the phone's settings, so a closed-app order push would not ring
  *  'unknown'     web, or a network / server hiccup (retried on the next start; no banner)
  */
-export type PushState = 'ok' | 'blocked' | 'unavailable' | 'unknown';
+export type PushState = 'ok' | 'blocked' | 'unavailable' | 'muted' | 'unknown';
+
+/** app.json android.package (Settings finds the app by it). */
+const ANDROID_PACKAGE = 'com.zenvy.restaurant';
+
+/** true when the order channel exists but cannot ring (switched off / silent / no sound). */
+async function orderChannelMuted(): Promise<boolean> {
+  if (Platform.OS !== 'android') return false;
+  try {
+    const ch = await Notifications.getNotificationChannelAsync(ORDERS_CHANNEL);
+    if (!ch) return false;
+    const quiet = [Notifications.AndroidImportance.NONE, Notifications.AndroidImportance.MIN, Notifications.AndroidImportance.LOW];
+    return quiet.includes(ch.importance) || ch.sound === null;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Opens this app's notification settings (the "New orders" channel page when only its sound is off).
+ * Standard Android Settings actions through Linking.sendIntent; falls back to the app's info page.
+ */
+export async function openNotificationSettings(state: PushState): Promise<void> {
+  if (Platform.OS === 'android') {
+    const app = { key: 'android.provider.extra.APP_PACKAGE', value: ANDROID_PACKAGE };
+    try {
+      if (state === 'muted') {
+        await Linking.sendIntent('android.settings.CHANNEL_NOTIFICATION_SETTINGS', [app, { key: 'android.provider.extra.CHANNEL_ID', value: ORDERS_CHANNEL }]);
+      } else {
+        await Linking.sendIntent('android.settings.APP_NOTIFICATION_SETTINGS', [app]);
+      }
+      return;
+    } catch { /* fall back below */ }
+  }
+  Linking.openSettings().catch(() => {});
+}
 
 /** Ask permission, then send this phone's FCM token to the server (once per store + token). */
 export async function registerStorePush(storeId: string): Promise<PushState> {
@@ -186,10 +223,10 @@ export async function registerStorePush(storeId: string): Promise<PushState> {
     // silent while closed forever. The server treats a repeat as a no-op.
     const saved = (await safeGet(REGISTERED_KEY)) || '';
     const [savedMarker, savedAt] = saved.split('|');
-    if (savedMarker === marker && Date.now() - Number(savedAt || 0) < REREGISTER_MS) return 'ok';
+    if (savedMarker === marker && Date.now() - Number(savedAt || 0) < REREGISTER_MS) return (await orderChannelMuted()) ? 'muted' : 'ok';
     await registerPushToken(token, APP);
     await safeSet(REGISTERED_KEY, `${marker}|${Date.now()}`);
-    return 'ok';
+    return (await orderChannelMuted()) ? 'muted' : 'ok';
   } catch (err) {
     console.warn('[PUSH_REGISTER]', (err as any)?.message || err);
     return 'unknown';

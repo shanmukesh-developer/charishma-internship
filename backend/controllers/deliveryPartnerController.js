@@ -1173,6 +1173,99 @@ const getWeekStats = async (req, res) => {
   }
 };
 
+// @desc    Earnings history over a date range (IST days), one bucket per day plus Monday-start weeks.
+// @route   GET /api/delivery/stats/range?from=YYYY-MM-DD&to=YYYY-MM-DD   (or ?days=1..92, default 30)
+//          Read only. The range is capped at RANGE_MAX_DAYS and never goes past today (IST).
+const RANGE_MAX_DAYS = 92;
+const DAY_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const istDayStart = (key) => new Date(Date.parse(`${key}T00:00:00.000Z`) - IST_OFFSET_MS);
+const getStatsRange = async (req, res) => {
+  try {
+    const DAY = 24 * 60 * 60 * 1000;
+    const q = req.query || {};
+    const todayKey = istDayKey(new Date());
+    const validKey = (v) => DAY_KEY_RE.test(String(v || '')) && !Number.isNaN(Date.parse(`${v}T00:00:00.000Z`)) && new Date(`${v}T00:00:00.000Z`).toISOString().slice(0, 10) === String(v);
+    let toKey = todayKey;
+    let fromKey;
+    if (q.to !== undefined && q.to !== '') {
+      if (!validKey(q.to)) return res.status(400).json({ message: 'to must be a date like 2026-10-21', code: 'BAD_RANGE' });
+      toKey = String(q.to) > todayKey ? todayKey : String(q.to);
+    }
+    if (q.from !== undefined && q.from !== '') {
+      if (!validKey(q.from)) return res.status(400).json({ message: 'from must be a date like 2026-10-01', code: 'BAD_RANGE' });
+      fromKey = String(q.from);
+    } else {
+      const n = parseInt(q.days, 10);
+      const days = Number.isFinite(n) && n > 0 ? Math.min(n, RANGE_MAX_DAYS) : 30;
+      fromKey = istDayKey(new Date(istDayStart(toKey).getTime() - (days - 1) * DAY + 60 * 1000));
+    }
+    if (fromKey > toKey) return res.status(400).json({ message: 'from must be on or before to', code: 'BAD_RANGE' });
+    const span = Math.round((istDayStart(toKey).getTime() - istDayStart(fromKey).getTime()) / DAY) + 1;
+    if (span > RANGE_MAX_DAYS) return res.status(400).json({ message: `Pick a range of ${RANGE_MAX_DAYS} days or less`, code: 'RANGE_TOO_LONG' });
+
+    const start = istDayStart(fromKey);
+    const end = new Date(istDayStart(toKey).getTime() + DAY);
+    const orders = await getOrderModel().findAll({
+      where: {
+        deliveryPartnerId: req.user.id,
+        status: 'Delivered',
+        [Op.or]: [
+          { deliveredAt: { [Op.gte]: start, [Op.lt]: end } },
+          { deliveredAt: null, updatedAt: { [Op.gte]: start, [Op.lt]: end } },
+        ],
+      },
+      attributes: ['id', 'deliveryFee', 'finalPrice', 'paymentMethod', 'fulfilment', 'deliveredAt', 'updatedAt'],
+    });
+    const { earningPaise } = require('../utils/riderEarnings');
+    const days = [];
+    for (let i = 0; i < span; i++) {
+      days.push({ date: istDayKey(new Date(start.getTime() + i * DAY + 60 * 1000)), earningsPaise: 0, orders: 0, codCollectedPaise: 0 });
+    }
+    const byDate = Object.fromEntries(days.map((d) => [d.date, d]));
+    for (const o of orders) {
+      const bucket = byDate[istDayKey(deliveredAtOf(o))];
+      if (!bucket) continue;
+      bucket.earningsPaise += earningPaise(o);
+      bucket.orders += 1;
+      if (o.paymentMethod === 'COD') bucket.codCollectedPaise += Math.round((Number(o.finalPrice) || 0) * 100);
+    }
+    // Weeks start on Monday (IST). The first / last week can be partial (clipped to the range).
+    const weeks = [];
+    for (const d of days) {
+      const dow = new Date(`${d.date}T00:00:00.000Z`).getUTCDay(); // 0 = Sunday
+      const monday = istDayKey(new Date(istDayStart(d.date).getTime() - ((dow + 6) % 7) * DAY + 60 * 1000));
+      let w = weeks[weeks.length - 1];
+      if (!w || w.weekStart !== monday) {
+        w = { weekStart: monday, from: d.date, to: d.date, earningsPaise: 0, orders: 0, codCollectedPaise: 0 };
+        weeks.push(w);
+      }
+      w.to = d.date;
+      w.earningsPaise += d.earningsPaise;
+      w.orders += d.orders;
+      w.codCollectedPaise += d.codCollectedPaise;
+    }
+    const rupees = (p) => Math.round(p) / 100;
+    const shape = (x) => ({ ...x, earnings: rupees(x.earningsPaise), codCollected: rupees(x.codCollectedPaise) });
+    const totalPaise = days.reduce((s, d) => s + d.earningsPaise, 0);
+    const codPaise = days.reduce((s, d) => s + d.codCollectedPaise, 0);
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      from: fromKey,
+      to: toKey,
+      days: days.map(shape),
+      weeks: weeks.map(shape),
+      totalEarningsPaise: totalPaise,
+      totalEarnings: rupees(totalPaise),
+      totalOrders: days.reduce((s, d) => s + d.orders, 0),
+      codCollectedPaise: codPaise,
+      codCollected: rupees(codPaise),
+      timezone: 'Asia/Kolkata',
+    });
+  } catch (error) {
+    serverError(res, '[RIDER_RANGE_ERROR]', error);
+  }
+};
+
 // @desc    Update rider's own profile
 const updateRiderProfile = async (req, res) => {
   try {
@@ -1568,7 +1661,7 @@ module.exports = {
   updateOrderStatus, toggleOnline, getOrderHistory, saveFcmToken, getLeaderboard,
   getRiderProfile, updateRiderProfile, getPublicRiderProfile, getTodayStats,
   cancelOrderByRider, changePassword, notifyArrivalAtGate,
-  getWeekStats, createRiderTicket, getRiderTickets, removeFcmToken, triggerSos,
+  getWeekStats, getStatsRange, createRiderTicket, getRiderTickets, removeFcmToken, triggerSos,
   sosLocationOf,
   claimForRider, // A2: the count + claim step (tests run it inside a transaction too)
 };

@@ -69,7 +69,7 @@ const runExpiryCleanup = async ({ io }) => {
 // + C1-5: riders who claimed an order but did not pick it up within RIDER_PICKUP_TIMEOUT_MIN of it
 // being ready are taken off it (back to the pool, admins told). Same single-runner tick.
 const runAutoCancel = async ({ io }) => {
-  const out = { orders: 0, baskets: 0, ridersReleased: 0 };
+  const out = { orders: 0, baskets: 0, ridersReleased: 0, storeReminders: 0 };
   try {
     const { autoCancelStalePendingOrders } = require('../controllers/orderController');
     out.orders = (await autoCancelStalePendingOrders(io)) || 0;
@@ -83,6 +83,13 @@ const runAutoCancel = async ({ io }) => {
     out.ridersReleased = (await releaseStalledRiderClaims(io)) || 0;
   } catch (e) {
     console.warn('[RIDER_PICKUP_TIMEOUT] Error:', e.message);
+  }
+  // Orders still waiting for the store: push the store's phones again (utils/storeOrderReminder).
+  // After the cancel pass, so an order cancelled this tick is never reminded.
+  try {
+    out.storeReminders = (await require('../utils/storeOrderReminder').remindPendingStoreOrders()) || 0;
+  } catch (e) {
+    console.warn('[STORE_REMINDER] Error:', e.message);
   }
   return out;
 };

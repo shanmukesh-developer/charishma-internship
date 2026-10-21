@@ -1,5 +1,5 @@
 const express = require('express');
-const { refreshStoreToken, getRestaurants, getRestaurantMenu, createRestaurant, restaurantLogin, getRestaurantOrders, toggleMenuItemAvailability, updateMenuItemTags, createMenuItem, updateMenuItem, deleteMenuItem, getLocalVendors, incrementClickCount, toggleRestaurantOffline, setRestaurantOpen, setRestaurantHours, saveStoreFcmToken, getMenuItemById } = require('../controllers/restaurantController');
+const { refreshStoreToken, getRestaurants, getRestaurantMenu, createRestaurant, restaurantLogin, getRestaurantOrders, toggleMenuItemAvailability, setCategoryStock, updateMenuItemTags, createMenuItem, updateMenuItem, deleteMenuItem, getLocalVendors, incrementClickCount, toggleRestaurantOffline, setRestaurantOpen, setRestaurantHours, saveStoreFcmToken, getMenuItemById } = require('../controllers/restaurantController');
 const { protect, admin, vendor } = require('../middleware/authMiddleware');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
@@ -36,6 +36,8 @@ router.put('/:id/compliance', protect, vendor, require('../controllers/complianc
 router.put('/:id/offline', protect, vendor, toggleRestaurantOffline);
 router.put('/:id/open', protect, vendor, setRestaurantOpen);
 router.put('/:id/hours', protect, vendor, setRestaurantHours);
+// Whole menu category in / out of stock in one tap (the store's own items only).
+router.put('/:id/menu/category-stock', protect, vendor, setCategoryStock);
 router.post('/fcm-token', protect, vendor, saveStoreFcmToken);
 router.post('/fcm-token/remove', protect, vendor, saveStoreFcmToken);
 router.post('/menu', protect, vendor, createMenuItem);

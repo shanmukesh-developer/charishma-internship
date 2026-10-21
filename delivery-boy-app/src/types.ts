@@ -146,3 +146,44 @@ export interface Loadable<T> {
   error: string | null;
   updatedAt: number | null;
 }
+
+/** GET /delivery/stats/range: earnings by IST day and Monday-start week. */
+export interface RangeBucket {
+  earnings: number;
+  orders: number;
+  codCollected: number;
+}
+export interface RangeDay extends RangeBucket {
+  date: string; // YYYY-MM-DD (IST)
+}
+export interface RangeWeek extends RangeBucket {
+  weekStart: string;
+  from: string;
+  to: string;
+}
+export interface EarningsRange {
+  from: string;
+  to: string;
+  days: RangeDay[];
+  weeks: RangeWeek[];
+  totalEarnings: number;
+  totalOrders: number;
+  codCollected: number;
+}
+
+/** One payout statement (GET /delivery/payouts). Amounts in rupees. */
+export interface PayoutStatement {
+  id: string;
+  periodStart: string | null;
+  periodEnd: string | null;
+  orderCount: number;
+  gross: number;
+  tips: number;
+  adjustments: number;
+  net: number;
+  status: 'PENDING' | 'PAID' | string;
+  method: string | null;
+  utr: string | null;
+  paidAt: string | null;
+  createdAt: string | null;
+}

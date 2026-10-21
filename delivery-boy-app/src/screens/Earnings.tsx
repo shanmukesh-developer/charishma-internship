@@ -1,4 +1,5 @@
-// Earnings from real data only: /stats/today, /stats/week (or recent deliveries), per-order list.
+// Earnings from real data only: /stats/today, /stats/week (or recent deliveries), per-order list,
+// plus history by week / day (/stats/range) and payout statements (/payouts) in EarningsHistory.tsx.
 import React, { useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { C, R, S, T, shadow } from '../theme';
@@ -8,10 +9,12 @@ import type { RiderCash } from '../types';
 import { useRider } from '../state/RiderStore';
 import { dayLabel, istDayKey, lastNDayKeys, rupees, shortWeekday, timeIST, todayKey } from '../services/format';
 import { OrderLine } from './History';
+import { EarningsHistory, PayoutHistory } from './EarningsHistory';
 
 export function EarningsScreen() {
   const r = useRider();
-  const [seg, setSeg] = useState<'today' | 'week'>('today');
+  const [seg, setSeg] = useState<'today' | 'week' | 'history' | 'payouts'>('today');
+  const [reloadKey, setReloadKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   // C6: cash held for Zenvy (COD) + what Zenvy owes, from GET /delivery/cash. Null on older servers.
   const [cashInfo, setCashInfo] = useState<RiderCash | null>(null);
@@ -52,6 +55,7 @@ export function EarningsScreen() {
           onRefresh={async () => {
             setRefreshing(true);
             try {
+              setReloadKey((k) => k + 1);
               await Promise.all([r.refreshEarnings(), loadCash()]);
             } finally {
               setRefreshing(false);
@@ -65,11 +69,18 @@ export function EarningsScreen() {
         <Segmented
           options={[
             { key: 'today', label: 'Today' },
-            { key: 'week', label: 'Last 7 days' },
+            { key: 'week', label: '7 days' },
+            { key: 'history', label: 'History' },
+            { key: 'payouts', label: 'Payouts' },
           ]}
           value={seg}
           onChange={setSeg}
         />
+
+        {seg === 'history' ? <EarningsHistory reloadKey={reloadKey} /> : null}
+        {seg === 'payouts' ? <PayoutHistory reloadKey={reloadKey} /> : null}
+        {seg === 'today' || seg === 'week' ? (
+        <>
 
         {r.today.error && r.today.updatedAt && seg === 'today' ? (
           <Text style={[T.small, { color: C.amber, fontWeight: '700' }]}>Offline. Showing data from {timeIST(r.today.updatedAt)}.</Text>
@@ -125,6 +136,9 @@ export function EarningsScreen() {
             ))}
           </Card>
         )}
+
+        </>
+        ) : null}
 
         {r.profile?.totalEarnings !== null && r.profile?.totalEarnings !== undefined ? (
           <Text style={[T.small, { color: C.muted, textAlign: 'center' }]}>

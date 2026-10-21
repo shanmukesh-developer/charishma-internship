@@ -445,6 +445,61 @@ const toggleMenuItemAvailability = async (req, res) => {
   }
 };
 
+// @desc    Whole category in or out of stock in one tap (partner apps' section switch).
+// @route   PUT /api/restaurants/:id/menu/category-stock  { category: string, isAvailable: boolean }
+//          Only the store's own items change. Category match is the one the partner apps group by:
+//          the trimmed category text, and 'Other' also covers items with no category.
+//          Back in stock clears any "back at" time; out of stock has no end time (like the single switch).
+const CATEGORY_STOCK_MAX = 500;
+const setCategoryStock = async (req, res) => {
+  try {
+    const isOwner = String(req.user.id) === String(req.params.id);
+    const isAdmin = req.user.role?.toLowerCase() === 'admin';
+    if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Not authorized to manage this menu' });
+    const body = req.body || {};
+    const category = typeof body.category === 'string' ? body.category.trim() : '';
+    if (!category || category.length > 100) return res.status(400).json({ message: 'Choose a category.', code: 'INVALID_CATEGORY' });
+    if (typeof body.isAvailable !== 'boolean') return res.status(400).json({ message: 'isAvailable must be true or false', code: 'INVALID_INPUT' });
+    const isAvailable = body.isAvailable;
+
+    const MenuItem = getMenuItemModel();
+    const rows = await MenuItem.findAll({ where: { restaurantId: req.params.id }, attributes: ['id', 'category', 'isAvailable', 'outOfStockUntil'], limit: 5000 });
+    const wanted = category.toLowerCase() === 'other' ? 'Other' : category;
+    const inCategory = rows.filter((m) => {
+      const c = typeof m.category === 'string' ? m.category.trim() : '';
+      return (c || 'Other') === wanted;
+    });
+    if (!inCategory.length) return res.status(404).json({ message: 'No items in this category. Pull to refresh your menu.', code: 'CATEGORY_NOT_FOUND' });
+    if (inCategory.length > CATEGORY_STOCK_MAX) return res.status(400).json({ message: 'This category is too big to switch at once.', code: 'TOO_MANY_ITEMS' });
+
+    const toChange = inCategory.filter((m) => m.isAvailable !== isAvailable || (isAvailable && m.outOfStockUntil));
+    const ids = toChange.map((m) => m.id);
+    if (ids.length) {
+      await MenuItem.update(
+        isAvailable ? { isAvailable: true, outOfStockUntil: null } : { isAvailable: false, outOfStockUntil: null },
+        { where: { id: { [Op.in]: ids }, restaurantId: req.params.id } },
+      );
+      clearPublicRestaurantsCache();
+      const io = req.app.get('io');
+      for (const id of ids) {
+        if (io) io.emit('inventory_updated', { itemId: id, restaurantId: req.params.id, isAvailable });
+        realtime.publish('product', 'updated', id, { storeId: req.params.id, scope: 'stock' });
+      }
+      partnerAudit(req, req.params.id, 'PARTNER_CATEGORY_STOCK', { restaurantId: req.params.id, category: wanted, isAvailable, items: ids.length });
+    }
+    res.json({
+      category: wanted,
+      isAvailable,
+      updated: ids.length,
+      total: inCategory.length,
+      items: inCategory.map((m) => ({ id: m.id, _id: m.id, isAvailable, outOfStockUntil: ids.includes(m.id) ? null : (m.outOfStockUntil || null) })),
+    });
+  } catch (error) {
+    console.error('[CATEGORY_STOCK_ERROR]', error);
+    res.status(500).json({ message: 'Could not update this category right now. Please try again.' });
+  }
+};
+
 // @desc    Update menu item tags (Dietary etc)
 // @route   PUT /api/restaurants/menu/:itemId/tags
 const updateMenuItemTags = async (req, res) => {
@@ -1018,6 +1073,7 @@ module.exports = {
   restaurantLogin,
   getRestaurantOrders,
   toggleMenuItemAvailability,
+  setCategoryStock,
   updateMenuItemTags,
   createMenuItem,
   updateMenuItem,
