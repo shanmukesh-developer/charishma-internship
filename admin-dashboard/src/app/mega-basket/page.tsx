@@ -1,6 +1,10 @@
 "use client";
 
-import { useConfirm } from '@/components/ui';
+import {
+  Button, DataTable, DescriptionList, Drawer, Notice as NoticeBox, PageHeader, SearchInput, Select, StatusPill, Toolbar, useConfirm,
+  type Column, IconRefresh,
+} from '@/components/ui';
+import { formatDateTime, formatINR, formatPhone, humanize } from '@/lib/format';
 import { useEffect, useRef, useState } from 'react';
 import { API_URL } from '@/lib/config';
 import { useAdminAuth } from '@/utils/useAdminAuth';
@@ -56,10 +60,7 @@ const paymentText = (basket: MegaBasket) => {
   return `Cash on delivery · ${state}`;
 };
 
-const formatDate = (value: string) => {
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-};
+const formatDate = (value: string) => formatDateTime(value, { short: true });
 
 // The admin can cancel any basket that has not been delivered yet (same rule as the backend).
 const ADMIN_CANCELLABLE = new Set(['Created', 'PaidEstimate', 'PartnerAssigned', 'Shopping', 'PriceApprovalPending', 'Approved', 'Purchased', 'Delivering']);
@@ -83,7 +84,7 @@ export default function MegaBasketAdminPage() {
     if (cancellingId) return;
     const who = basket.user?.name || 'the student';
     const shopping = ['Shopping', 'PriceApprovalPending', 'Approved', 'Purchased', 'Delivering'].includes(basket.status);
-    if (!(await confirm({ title: `Cancel ${who}'s basket #${basket.id.slice(-8).toUpperCase()}?${shopping ? ' The shopper has already started; tell them to stop before you cancel.' : ''} This cannot be undone.` }))) return;
+    if (!(await confirm({ title: `Cancel ${who}'s basket #${basket.id.slice(-8).toUpperCase()}?`, description: `${shopping ? 'The shopper has already started; tell them to stop before you cancel. ' : ''}This cannot be undone.`, confirmLabel: 'Cancel basket', cancelLabel: 'Keep basket', tone: 'danger' }))) return;
     setCancellingId(basket.id);
     setNotice(null);
     try {
@@ -176,79 +177,129 @@ export default function MegaBasketAdminPage() {
     return matchesStatus && matchesSearch;
   });
 
-  if (!isAuthed) return <div className="p-10 text-center text-sm text-fg-muted" role="status">Checking your admin session…</div>;
+  if (!isAuthed) return null; // AppShell shows the session check
+
+  const totalOf = (b: MegaBasket) => Number(b.actualTotal ?? b.estimatedTotal ?? 0) + Number(b.shoppingFee || 0) + Number(b.deliveryFee || 0);
+  const statusTone = (s: string) => (s === 'Delivered' ? 'success' : s === 'Cancelled' ? 'danger' : s === 'PriceApprovalPending' || s === 'Created' || s === 'PaidEstimate' ? 'warning' : 'info') as 'success' | 'danger' | 'warning' | 'info';
+  const open = expandedId ? baskets.find(b => b.id === expandedId) || null : null;
+
+  const columns: Column<MegaBasket>[] = [
+    { key: 'id', header: 'Basket', width: '110px', cell: b => <span className="font-mono text-xs text-fg-muted">#{b.id.slice(-8).toUpperCase()}</span> },
+    {
+      key: 'customer',
+      header: 'Customer',
+      sortValue: b => b.user?.name || '',
+      cell: b => (
+        <div className="min-w-0">
+          <p className="truncate font-medium text-fg">{b.user?.name || 'Student'}</p>
+          <p className="truncate text-xs text-fg-muted">{b.user?.phone ? formatPhone(b.user.phone) : 'Phone unavailable'}</p>
+        </div>
+      ),
+    },
+    { key: 'delivery', header: 'Delivery', hideBelow: 'xl', cell: b => <span className="line-clamp-2 max-w-[260px] text-sm text-fg-muted">{b.deliveryAddress || [b.user?.hostelBlock, b.user?.roomNumber].filter(Boolean).join(', ') || 'Not specified'}</span> },
+    { key: 'items', header: 'Items', align: 'right', hideBelow: 'lg', sortValue: b => (b.items || []).length, cell: b => <span className="tabular-nums">{(b.items || []).reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)}</span> },
+    { key: 'status', header: 'Status', sortValue: b => STATUSES.indexOf(b.status), cell: b => <StatusPill status={b.status} label={STATUS_LABELS[b.status] || humanize(b.status)} tone={statusTone(b.status)} /> },
+    {
+      key: 'total',
+      header: 'Total',
+      align: 'right',
+      sortValue: b => totalOf(b),
+      cell: b => (
+        <div className="tabular-nums">
+          <p className="font-medium text-fg">{formatINR(totalOf(b))}</p>
+          <p className="text-xs text-fg-muted">{b.actualTotal != null ? 'Bill' : 'Estimate'}</p>
+        </div>
+      ),
+    },
+    { key: 'created', header: 'Placed', align: 'right', sortValue: b => new Date(b.createdAt), cell: b => <span className="whitespace-nowrap text-xs text-fg-muted">{formatDate(b.createdAt)}</span> },
+  ];
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 text-fg">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
-        <div>
-          <h1 className="text-2xl font-semibold text-fg">Mega Basket</h1>
-          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Customer baskets, shopping progress, payment and shopper assignment. Stuck baskets can be cancelled before delivery. New baskets are cash on delivery; older UPI baskets are shown for reference.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-fg-muted">{filtered.length} of {baskets.length} baskets{baskets.length >= ADMIN_LIST_LIMIT ? ` (latest ${ADMIN_LIST_LIMIT})` : ''}</span>
-          <button type="button" disabled={loading} onClick={() => setRefreshCount(count => count + 1)} className="border border-line px-4 py-2 text-sm font-semibold text-fg-muted hover:text-fg disabled:opacity-50">{loading ? 'Refreshing...' : 'Refresh'}</button>
-        </div>
-      </header>
+    <div className="text-fg">
+      <PageHeader
+        title="Mega Basket"
+        description="Shopping-list orders that a rider buys and delivers: progress, payment and shopper. Stuck baskets can be cancelled before delivery. New baskets are cash on delivery; older UPI baskets are shown for reference."
+        actions={<Button leftIcon={<IconRefresh size={14} />} loading={loading} onClick={() => setRefreshCount(count => count + 1)}>Refresh</Button>}
+      />
 
-      <section className="grid gap-3 border border-line bg-surface-2/60 p-4 md:grid-cols-[1fr_2fr]" aria-label="Mega Basket filters">
-        <label className="space-y-1 text-xs font-semibold text-fg-muted">Status
-          <select value={status} onChange={event => setStatus(event.target.value)} className="mt-1 w-full border border-line bg-surface p-2.5 text-sm text-fg">
-            <option value="All">All</option>{STATUSES.map(value => <option key={value} value={value}>{STATUS_LABELS[value] || value}</option>)}
-          </select>
-        </label>
-        <label className="space-y-1 text-xs font-semibold text-fg-muted">Search
-          <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Basket ID, customer, phone, block, address" className="mt-1 w-full border border-line bg-surface p-2.5 text-sm font-normal text-fg placeholder:text-fg-subtle" />
-        </label>
-      </section>
+      <Toolbar end={<span className="text-sm tabular-nums text-fg-muted">{filtered.length} of {baskets.length} baskets{baskets.length >= ADMIN_LIST_LIMIT ? ` (latest ${ADMIN_LIST_LIMIT})` : ''}</span>}>
+        <SearchInput value={search} onChange={setSearch} placeholder="Basket ID, customer, phone, block" className="sm:w-72" />
+        <Select aria-label="Status" value={status} onChange={event => setStatus(event.target.value)} className="w-auto min-w-[200px]">
+          <option value="All">All statuses</option>
+          {STATUSES.map(value => <option key={value} value={value}>{STATUS_LABELS[value] || value}</option>)}
+        </Select>
+      </Toolbar>
 
-      {notice && <div role={notice.kind === 'error' ? 'alert' : 'status'} className={`flex items-center justify-between gap-3 border p-4 text-sm ${notice.kind === 'error' ? 'border-danger/30 bg-danger-soft text-danger-text' : 'border-success/30 bg-success-soft text-success-text'}`}>{notice.text}<button type="button" onClick={() => setNotice(null)} className="font-semibold underline">Dismiss</button></div>}
-      {error && <div role="alert" className="flex items-center justify-between gap-3 border border-danger/30 bg-danger-soft p-4 text-sm text-danger-text">{error}<button type="button" onClick={() => setRefreshCount(count => count + 1)} className="font-semibold underline">Retry</button></div>}
-      {loading ? <div role="status" className="border border-line p-8 text-sm text-fg-muted">Loading Mega Baskets...</div> : filtered.length === 0 ? (
-        <div className="border border-line p-10 text-center"><h2 className="font-semibold">No matching baskets</h2><p className="mt-2 text-sm text-fg-muted">Recent customer baskets will appear here.</p></div>
-      ) : (
-        <section className="divide-y divide-line border border-line" aria-label="Mega Basket list">
-          {filtered.map(basket => {
-            const itemCount = basket.items?.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0) || 0;
-            const total = Number(basket.actualTotal ?? basket.estimatedTotal ?? 0) + Number(basket.shoppingFee || 0) + Number(basket.deliveryFee || 0);
-            return (
-              <article key={basket.id} className="p-5">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-lg font-semibold">{basket.user?.name || 'Student'}’s basket</h2>
-                      <span className="border border-warning/30 bg-warning-soft px-2 py-1 text-xs font-semibold text-warning-text">{STATUS_LABELS[basket.status] || basket.status}</span>
-                    </div>
-                    <p className="mt-2 text-xs text-fg-muted">#{basket.id.slice(-8).toUpperCase()} · {formatDate(basket.createdAt)}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                  {ADMIN_CANCELLABLE.has(basket.status) && (
-                    <button type="button" disabled={!!cancellingId} onClick={() => cancelBasket(basket)} className="border border-danger/30 px-3 py-2 text-xs font-semibold text-danger-text hover:bg-danger-soft disabled:opacity-50">{cancellingId === basket.id ? 'Cancelling...' : 'Cancel basket'}</button>
-                  )}
-                  <button type="button" aria-expanded={expandedId === basket.id} onClick={() => setExpandedId(current => current === basket.id ? null : basket.id)} className="border border-line px-3 py-2 text-xs font-semibold text-fg-muted hover:text-fg">{expandedId === basket.id ? 'Hide items' : `View ${itemCount} items`}</button>
-                  </div>
-                </div>
-                <div className="mt-4 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                  <div><p className="text-xs text-fg-muted">Student</p><p className="mt-1">{basket.user?.phone || 'Phone unavailable'}</p></div>
-                  <div><p className="text-xs text-fg-muted">Delivery</p><p className="mt-1">{basket.deliveryAddress || [basket.user?.hostelBlock, basket.user?.roomNumber].filter(Boolean).join(', ') || 'Not specified'}</p></div>
-                  <div><p className="text-xs text-fg-muted">Payment</p><p className="mt-1">{paymentText(basket)}</p></div>
-                  <div><p className="text-xs text-fg-muted">{basket.actualTotal != null ? 'Bill total' : 'Current estimate'}</p><p className="mt-1 font-semibold">₹{total}</p></div>
-                </div>
-                {expandedId === basket.id && (
-                  <div className="mt-5 border-t border-line pt-4">
-                    <div className="mb-3 flex flex-wrap gap-x-6 gap-y-2 text-sm"><span><span className="text-fg-muted">Shopper: </span>{basket.deliveryPartner?.name ? `${basket.deliveryPartner.name}${basket.deliveryPartner.phone ? ` (${basket.deliveryPartner.phone})` : ''}` : 'Unassigned'}</span><span><span className="text-fg-muted">Shopping fee: </span>₹{basket.shoppingFee || 0}</span><span><span className="text-fg-muted">Delivery fee: </span>₹{basket.deliveryFee || 0}</span><span><span className="text-fg-muted">Estimated items: </span>₹{basket.estimatedTotal || 0}</span>{basket.actualTotal != null && <span><span className="text-fg-muted">Actual items: </span>₹{basket.actualTotal}</span>}</div>
-                    <div className="zv-table-wrap">
-                      <table className="zv-table"><thead className="bg-surface-2/60 text-xs text-fg-muted"><tr><th className="p-3">Item</th><th className="p-3">Qty</th><th className="p-3">Estimated</th><th className="p-3">Actual</th><th className="p-3">Status</th></tr></thead>
-                        <tbody className="divide-y divide-white/5">{(basket.items || []).map((item, index) => <tr key={item.id || `${item.name}-${index}`}><td className="p-3">{item.name}</td><td className="p-3">{item.quantity} {item.unit || ''}</td><td className="p-3">₹{item.priceEstimated ?? '—'}</td><td className="p-3">₹{item.priceActual ?? '—'}</td><td className="p-3">{item.status || 'Pending'}</td></tr>)}</tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </article>
-            );
-          })}
-        </section>
-      )}
+      {notice && <NoticeBox tone={notice.kind === 'error' ? 'danger' : 'success'} className="mb-3" onClose={() => setNotice(null)}><span className="text-fg">{notice.text}</span></NoticeBox>}
+
+      <DataTable
+        caption="Mega Basket orders"
+        columns={columns}
+        rows={filtered}
+        rowKey={b => b.id}
+        loading={loading}
+        error={error || null}
+        onRetry={() => setRefreshCount(count => count + 1)}
+        onRowClick={b => setExpandedId(b.id)}
+        initialSort={{ key: 'created', dir: 'desc' }}
+        noun="baskets"
+        resetPageKey={`${status}|${search}`}
+        empty={{ title: 'No matching baskets', description: 'Recent customer baskets appear here.' }}
+      />
+
+      <Drawer
+        open={!!open}
+        onClose={() => setExpandedId(null)}
+        size="lg"
+        title={open ? `${open.user?.name || 'Student'}’s basket` : 'Basket'}
+        description={open ? `#${open.id.slice(-8).toUpperCase()} · placed ${formatDate(open.createdAt)}` : undefined}
+        headerActions={open ? <StatusPill status={open.status} label={STATUS_LABELS[open.status] || humanize(open.status)} tone={statusTone(open.status)} /> : undefined}
+        footer={open && ADMIN_CANCELLABLE.has(open.status) ? (
+          <Button variant="destructive" disabled={!!cancellingId} loading={cancellingId === open.id} onClick={() => cancelBasket(open)}>Cancel basket</Button>
+        ) : undefined}
+      >
+        {open && (
+          <div className="space-y-5">
+            <DescriptionList
+              columns={2}
+              items={[
+                { label: 'Customer', value: <>{open.user?.name || 'Student'}<span className="block text-fg-muted">{open.user?.phone ? formatPhone(open.user.phone) : 'Phone unavailable'}</span></> },
+                { label: 'Delivery', value: open.deliveryAddress || [open.user?.hostelBlock, open.user?.roomNumber].filter(Boolean).join(', ') || 'Not specified' },
+                { label: 'Payment', value: paymentText(open) },
+                { label: 'Shopper', value: open.deliveryPartner?.name ? <>{open.deliveryPartner.name}{open.deliveryPartner.phone && <span className="block text-fg-muted">{formatPhone(open.deliveryPartner.phone)}</span>}</> : 'Unassigned' },
+              ]}
+            />
+            <div>
+              <p className="mb-1 text-xs text-fg-muted">Items</p>
+              <div className="zv-table-wrap">
+                <table className="zv-table">
+                  <thead><tr><th>Item</th><th>Qty</th><th className="text-right">Estimated</th><th className="text-right">Actual</th><th>Status</th></tr></thead>
+                  <tbody>
+                    {(open.items || []).length === 0 ? (
+                      <tr><td colSpan={5} className="text-center text-fg-muted">No items recorded.</td></tr>
+                    ) : (open.items || []).map((item, index) => (
+                      <tr key={item.id || `${item.name}-${index}`}>
+                        <td>{item.name}</td>
+                        <td className="tabular-nums">{item.quantity} {item.unit || ''}</td>
+                        <td className="text-right tabular-nums">{item.priceEstimated != null ? formatINR(item.priceEstimated) : '–'}</td>
+                        <td className="text-right tabular-nums">{item.priceActual != null ? formatINR(item.priceActual) : '–'}</td>
+                        <td>{humanize(item.status || 'Pending')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <dl className="space-y-1 rounded-lg border border-line p-3 text-sm">
+              <div className="flex justify-between"><dt className="text-fg-muted">Items (estimate)</dt><dd className="tabular-nums">{formatINR(open.estimatedTotal || 0)}</dd></div>
+              {open.actualTotal != null && <div className="flex justify-between"><dt className="text-fg-muted">Items (bill)</dt><dd className="tabular-nums">{formatINR(open.actualTotal)}</dd></div>}
+              <div className="flex justify-between"><dt className="text-fg-muted">Shopping fee</dt><dd className="tabular-nums">{formatINR(open.shoppingFee || 0)}</dd></div>
+              <div className="flex justify-between"><dt className="text-fg-muted">Delivery fee</dt><dd className="tabular-nums">{formatINR(open.deliveryFee || 0)}</dd></div>
+              <div className="flex justify-between border-t border-line pt-1 font-semibold"><dt>{open.actualTotal != null ? 'Bill total' : 'Current estimate'}</dt><dd className="tabular-nums">{formatINR(totalOf(open))}</dd></div>
+            </dl>
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }

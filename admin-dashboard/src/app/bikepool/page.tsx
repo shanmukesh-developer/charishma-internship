@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { adminRequest as apiRequest } from '@/lib/api';
+import {
+  Badge, Button, DataTable, DescriptionList, Drawer, Notice, PageHeader, SegmentedControl, StatusPill, Toolbar, useConfirm,
+  type Column, IconRefresh,
+} from '@/components/ui';
+import { formatDateTime as fmtDateTime, formatINR, formatPhone, humanize } from '@/lib/format';
 
 
 interface BikePool {
@@ -23,22 +28,21 @@ interface BikePool {
   createdAt: string;
 }
 
-const statusColors: Record<string, string> = {
-  Available: 'text-info-text bg-info-soft border-info/30',
-  Matched: 'text-success-text bg-success-soft border-success/30',
-  Completed: 'text-fg-muted bg-surface-2/60 border-line',
-  Cancelled: 'text-danger-text bg-danger-soft border-danger/30',
-};
+type Filter = 'all' | BikePool['status'];
+
+const statusTone = (s: string) => (s === 'Available' ? 'info' : s === 'Matched' ? 'success' : s === 'Cancelled' ? 'danger' : 'neutral') as 'info' | 'success' | 'danger' | 'neutral';
 
 /** fetch against the one backend; throws an Error carrying the server's friendly `message`. */
 export default function BikePoolAdmin() {
   const { isAuthed } = useAdminAuth();
+  const confirm = useConfirm();
   const [pools, setPools] = useState<BikePool[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<string>('all');
+  const [filter, setFilter] = useState<Filter>('all');
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const fetchPools = useCallback(async () => {
     setLoading(true);
@@ -59,18 +63,29 @@ export default function BikePoolAdmin() {
   }, [isAuthed, fetchPools]);
 
   const formatDateTime = (dateStr: string) => {
+    if (!dateStr) return '—';
     const d = new Date(dateStr);
     if (Number.isNaN(d.getTime())) return dateStr || '—';
-    return d.toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return fmtDateTime(d, { short: true });
   };
 
   const runAction = async (pool: BikePool, action: 'force-cancel' | 'mark-paid') => {
     if (busyId) return;
     const route = `${pool.origin} → ${pool.destination}`;
-    const question = action === 'force-cancel'
-      ? `Cancel the ride ${route} by ${pool.creator?.name || 'this student'}? Riders will no longer see it. This cannot be undone.`
-      : `Mark the ride ${route} as paid? Only do this once the co-riders have settled up.`;
-    if (!confirm(question)) return;
+    const ok = action === 'force-cancel'
+      ? await confirm({
+        title: 'Cancel this ride?',
+        description: `${route} by ${pool.creator?.name || 'this student'}. Riders will no longer see it. This cannot be undone.`,
+        confirmLabel: 'Cancel ride',
+        cancelLabel: 'Keep ride',
+        tone: 'danger',
+      })
+      : await confirm({
+        title: 'Mark this ride as paid?',
+        description: `${route}. Only do this once the co-riders have settled up.`,
+        confirmLabel: 'Mark as paid',
+      });
+    if (!ok) return;
     setBusyId(pool.id);
     setError(null);
     setNotice(null);
@@ -94,141 +109,115 @@ export default function BikePoolAdmin() {
   };
 
   const filtered = filter === 'all' ? pools : pools.filter(p => p.status === filter);
+  const open = openId ? pools.find(p => p.id === openId) || null : null;
+
+  const canMarkPaid = (p: BikePool) => p.paymentStatus === 'Unpaid' && p.status !== 'Cancelled' && Number(p.splitAmount) > 0;
+  const canCancel = (p: BikePool) => p.status === 'Available' || p.status === 'Matched';
+  const priceText = (p: BikePool) => (Number(p.splitAmount) > 0 ? `${formatINR(Number(p.splitAmount))} / seat` : 'Free');
+
+  const columns: Column<BikePool>[] = [
+    {
+      key: 'route',
+      header: 'Route',
+      sortValue: p => `${p.origin} ${p.destination}`,
+      cell: p => (
+        <div className="min-w-0 max-w-[340px]">
+          <p className="truncate font-medium text-fg">{p.origin} → {p.destination}</p>
+          <p className="truncate text-xs text-fg-muted">{p.creatorRole === 'rider' ? 'Offered by rider' : 'Requested by passenger'}{p.vehicleType ? ` · ${humanize(p.vehicleType)}` : ''}</p>
+        </div>
+      ),
+    },
+    { key: 'departure', header: 'Departs', sortValue: p => new Date(p.departureTime), cell: p => <span className="whitespace-nowrap">{formatDateTime(p.departureTime)}</span> },
+    {
+      key: 'creator',
+      header: 'Posted by',
+      hideBelow: 'lg',
+      sortValue: p => p.creator?.name || '',
+      cell: p => (
+        <div className="min-w-0">
+          <p className="truncate text-fg">{p.creator?.name || 'Unknown'}</p>
+          {p.coRider && <p className="truncate text-xs text-fg-muted">with {p.coRider.name}</p>}
+        </div>
+      ),
+    },
+    { key: 'seats', header: 'Seats left', align: 'right', hideBelow: 'xl', sortValue: p => p.availableSeats ?? -1, cell: p => <span className="tabular-nums">{typeof p.availableSeats === 'number' ? p.availableSeats : '–'}</span> },
+    { key: 'price', header: 'Split', align: 'right', sortValue: p => Number(p.splitAmount) || 0, cell: p => <span className="whitespace-nowrap tabular-nums">{priceText(p)}</span> },
+    { key: 'payment', header: 'Payment', hideBelow: 'lg', cell: p => (Number(p.splitAmount) > 0 ? <Badge tone={p.paymentStatus === 'Paid' ? 'success' : 'warning'}>{p.paymentStatus}</Badge> : <span className="text-xs text-fg-subtle">Not needed</span>) },
+    { key: 'status', header: 'Status', sortValue: p => p.status, cell: p => <StatusPill status={p.status} tone={statusTone(p.status)} label={p.status} /> },
+  ];
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      <header>
-        <h1 className="text-2xl font-semibold text-fg">Co-ride</h1>
-        <p className="mt-1 max-w-3xl text-sm text-fg-muted">Every co-ride listing, newest first. Zenvy does not collect ride money; co-riders settle directly</p>
-      </header>
+    <div className="text-fg">
+      <PageHeader
+        title="Co-ride"
+        description="Every co-ride listing, newest first. Zenvy does not collect ride money; co-riders settle directly."
+        actions={<Button leftIcon={<IconRefresh size={14} />} loading={loading} onClick={fetchPools}>Refresh</Button>}
+      />
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        {[
-          { label: 'Total', value: stats.total, color: 'text-fg' },
-          { label: 'Available', value: stats.active, color: 'text-info-text' },
-          { label: 'Matched', value: stats.matched, color: 'text-success-text' },
-          { label: 'Completed', value: stats.completed, color: 'text-fg-muted' },
-          { label: 'Cancelled', value: stats.cancelled, color: 'text-danger-text' },
-        ].map(s => (
-          <div key={s.label} className="rounded-lg border border-line bg-surface shadow-xs p-5">
-            <p className="text-xs text-fg-muted font-semibold">{s.label}</p>
-            <p className={`text-3xl font-semibold mt-1 ${s.color}`}>{s.value}</p>
+      <Toolbar end={<span className="text-sm tabular-nums text-fg-muted">{filtered.length} of {pools.length} rides</span>}>
+        <SegmentedControl<Filter>
+          ariaLabel="Ride status"
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { value: 'all', label: 'All', count: stats.total },
+            { value: 'Available', label: 'Available', count: stats.active },
+            { value: 'Matched', label: 'Matched', count: stats.matched },
+            { value: 'Completed', label: 'Completed', count: stats.completed },
+            { value: 'Cancelled', label: 'Cancelled', count: stats.cancelled },
+          ]}
+        />
+      </Toolbar>
+
+      {notice && <Notice tone="success" className="mb-3" onClose={() => setNotice(null)}>{notice}</Notice>}
+      {error && pools.length > 0 && <Notice tone="danger" className="mb-3" onClose={() => setError(null)}>{error}</Notice>}
+
+      <DataTable
+        caption="Co-ride listings"
+        columns={columns}
+        rows={filtered}
+        rowKey={p => p.id}
+        loading={loading && pools.length === 0}
+        error={pools.length === 0 ? error : null}
+        onRetry={fetchPools}
+        onRowClick={p => setOpenId(p.id)}
+        noun="rides"
+        resetPageKey={filter}
+        empty={{ title: filter === 'all' ? 'No co-ride listings yet' : `No ${filter.toLowerCase()} rides`, description: 'Rides students post in the app appear here.' }}
+      />
+
+      <Drawer
+        open={!!open}
+        onClose={() => setOpenId(null)}
+        size="md"
+        title={open ? `${open.origin} → ${open.destination}` : 'Ride'}
+        description={open ? `Departs ${formatDateTime(open.departureTime)}` : undefined}
+        headerActions={open ? <StatusPill status={open.status} tone={statusTone(open.status)} label={open.status} /> : undefined}
+        footer={open && (canMarkPaid(open) || canCancel(open)) ? (
+          <div className="flex w-full flex-wrap justify-end gap-2">
+            {canMarkPaid(open) && <Button disabled={!!busyId} loading={busyId === open.id} onClick={() => runAction(open, 'mark-paid')}>Mark as paid</Button>}
+            {canCancel(open) && <Button variant="destructive" disabled={!!busyId} loading={busyId === open.id} onClick={() => runAction(open, 'force-cancel')}>Cancel ride</Button>}
           </div>
-        ))}
-      </div>
-
-      {error && (
-        <div className="p-4 rounded-xl border border-danger/30 bg-danger-soft text-sm font-semibold text-danger-text flex justify-between items-center gap-4">
-          <span>{error}</span>
-          <button onClick={fetchPools} className="text-xs font-semibold underline">Retry</button>
-        </div>
-      )}
-      {notice && (
-        <div className="p-4 rounded-xl border border-success/30 bg-success-soft text-sm font-semibold text-success-text">{notice}</div>
-      )}
-
-      {/* Filter Bar */}
-      <div className="flex gap-2 flex-wrap">
-        {['all', 'Available', 'Matched', 'Completed', 'Cancelled'].map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${
-              filter === f ? 'bg-accent border-accent/30 text-on-solid' : 'bg-surface-2/60 border-line text-fg-muted hover:bg-surface-2'
-            }`}
-          >
-            {f === 'all' ? 'All' : f}
-          </button>
-        ))}
-        <button onClick={fetchPools} disabled={loading} className="ml-auto disabled:opacity-50 px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:bg-surface-2 transition-all">
-          ↻ Refresh
-        </button>
-      </div>
-
-      {/* Pool List */}
-      {loading ? (
-        <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-2 border-accent/30 border-t-accent/30 rounded-full animate-spin" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="py-16 text-center text-fg-subtle text-xs">
-          {error ? 'Listings could not be loaded.' : filter === 'all' ? 'No co-ride listings yet.' : `No ${filter.toLowerCase()} rides.`}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map(pool => (
-            <div key={pool.id} className="rounded-lg border border-line bg-surface shadow-xs p-5 space-y-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${statusColors[pool.status] || 'text-fg-muted'}`}>
-                    {pool.status}
-                  </span>
-                  <span className="ml-2 text-xs font-semibold text-fg-muted border border-line px-2 py-0.5 rounded-full">
-                    {pool.creatorRole === 'rider' ? 'Rider' : 'Passenger'}
-                  </span>
-                </div>
-                <span className="text-success-text font-semibold text-sm">{Number(pool.splitAmount) > 0 ? `₹${Number(pool.splitAmount)}/seat` : 'Free'}</span>
-              </div>
-
-              <div>
-                <p className="text-fg font-semibold text-sm">{pool.origin} → {pool.destination}</p>
-                <p className="text-xs text-fg-muted mt-0.5">
-                  Departs: {formatDateTime(pool.departureTime)}
-                  {pool.vehicleType ? ` · ${pool.vehicleType}` : ''}
-                  {typeof pool.availableSeats === 'number' ? ` · ${pool.availableSeats} seat${pool.availableSeats === 1 ? '' : 's'} left` : ''}
-                </p>
-              </div>
-
-              <div className="border-t border-line pt-3 grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <span className="text-fg-subtle block">Creator</span>
-                  <span className="text-fg font-semibold">{pool.creator?.name || 'Unknown'}</span>
-                  {pool.creator?.phone && <span className="text-fg-muted block">{pool.creator.phone}</span>}
-                </div>
-                {pool.coRider && (
-                  <div>
-                    <span className="text-fg-subtle block">Co-Rider</span>
-                    <span className="text-fg font-semibold">{pool.coRider.name}</span>
-                    {pool.coRider.phone && <span className="text-fg-muted block">{pool.coRider.phone}</span>}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-between items-center mt-2">
-                <div className="flex gap-2 text-xs font-semibold">
-                  <span className="border border-line px-2 py-1 rounded text-fg-muted">
-                    Gender Pref: {pool.genderPreference || 'Any'}
-                  </span>
-                  <span className={`border px-2 py-1 rounded ${pool.paymentStatus === 'Paid' ? 'text-success-text border-success/30' : 'text-warning-text border-warning/30'}`}>
-                    {pool.paymentStatus}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  {pool.paymentStatus === 'Unpaid' && pool.status !== 'Cancelled' && Number(pool.splitAmount) > 0 && (
-                    <button 
-                      onClick={() => runAction(pool, 'mark-paid')}
-                      disabled={busyId === pool.id}
-                      className="disabled:opacity-50 px-2 py-1 bg-success-soft text-success-text border border-success/30 rounded hover:bg-success-soft text-xs font-semibold"
-                    >
-                      Mark Paid
-                    </button>
-                  )}
-                  {(pool.status === 'Available' || pool.status === 'Matched') && (
-                    <button 
-                      onClick={() => runAction(pool, 'force-cancel')}
-                      disabled={busyId === pool.id}
-                      className="disabled:opacity-50 px-2 py-1 bg-danger-soft text-danger-text border border-danger/30 rounded hover:bg-danger-soft text-xs font-semibold"
-                    >
-                      {busyId === pool.id ? '...' : 'Cancel ride'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+        ) : undefined}
+      >
+        {open && (
+          <DescriptionList
+            columns={2}
+            items={[
+              { label: 'Posted by', value: <>{open.creator?.name || 'Unknown'}{open.creator?.phone && <span className="block text-fg-muted">{formatPhone(open.creator.phone)}</span>}</> },
+              { label: 'Co-rider', value: open.coRider ? <>{open.coRider.name}{open.coRider.phone && <span className="block text-fg-muted">{formatPhone(open.coRider.phone)}</span>}</> : 'Not matched yet' },
+              { label: 'Listing type', value: open.creatorRole === 'rider' ? 'Rider offering seats' : 'Passenger looking for a ride' },
+              { label: 'Vehicle', value: open.vehicleType ? humanize(open.vehicleType) : 'Not specified' },
+              { label: 'Seats left', value: typeof open.availableSeats === 'number' ? open.availableSeats : 'Not specified' },
+              { label: 'Gender preference', value: open.genderPreference || 'Any' },
+              { label: 'Split', value: priceText(open) },
+              { label: 'Estimated fuel cost', value: Number(open.estimatedFuelCost) > 0 ? formatINR(Number(open.estimatedFuelCost)) : 'Not given' },
+              { label: 'Payment', value: Number(open.splitAmount) > 0 ? open.paymentStatus : 'Not needed (free ride)' },
+              { label: 'Posted', value: formatDateTime(open.createdAt) },
+            ]}
+          />
+        )}
+      </Drawer>
     </div>
   );
 }
