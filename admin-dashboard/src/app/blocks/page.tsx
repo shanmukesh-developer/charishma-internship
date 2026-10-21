@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { API_URL } from '@/lib/config';
 import { useVisibleInterval } from '@/lib/useVisibleInterval';
+import { Button, DataTable, Notice, PageHeader, StatTile, type Column, IconRefresh } from '@/components/ui';
+import { formatNumber, formatTime } from '@/lib/format';
 
 interface BlockStats {
   name: string;
@@ -50,82 +52,77 @@ export default function BlockWarsHUD() {
   const maxCount = Math.max(...stats.map(s => s.count), 1);
   const leader = total > 0 ? stats[0] : null;
 
-  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
+  if (!isAuthed) return null; // AppShell shows the session check
+
+  type Row = BlockStats & { rank: number };
+  const rows: Row[] = stats.map((b, i) => ({ ...b, rank: i + 1 }));
+  const columns: Column<Row>[] = [
+    {
+      key: 'rank',
+      header: 'Rank',
+      width: '70px',
+      sortValue: r => r.rank,
+      cell: r => (total > 0 && r.count > 0
+        ? <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold tabular-nums ${r.rank === 1 ? 'bg-accent text-on-solid' : 'bg-surface-2 text-fg-muted'}`}>{r.rank}</span>
+        : <span className="text-fg-subtle">–</span>),
+    },
+    { key: 'name', header: 'Hostel block', sortValue: r => r.name, cell: r => <span className="font-medium text-fg">{r.name}</span> },
+    {
+      key: 'bar',
+      header: 'Share of orders',
+      hideBelow: 'md',
+      cell: r => (
+        <div className="flex items-center gap-3">
+          <div className="h-1.5 w-full max-w-[320px] overflow-hidden rounded-full bg-surface-2" aria-hidden>
+            <div className={`h-full ${r.rank === 1 && r.count > 0 ? 'bg-accent' : 'bg-fg-subtle/50'}`} style={{ width: `${(r.count / maxCount) * 100}%` }} />
+          </div>
+          <span className="w-12 text-right text-xs tabular-nums text-fg-muted">{total > 0 ? `${Math.round((r.count / total) * 100)}%` : '0%'}</span>
+        </div>
+      ),
+    },
+    { key: 'count', header: 'Orders delivered', align: 'right', sortValue: r => r.count, cell: r => <span className="font-medium tabular-nums">{formatNumber(r.count)}</span> },
+  ];
 
   return (
-    <div className="space-y-10 animate-fade-in relative">
-      <header className="flex flex-wrap gap-6 justify-between items-center bg-surface-2/60 p-8 rounded-lg border border-line bg-surface border border-line">
-        <div>
-          <h1 className="text-2xl font-semibold text-fg">Block wars</h1>
-          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Hostel block leaderboard.</p>
-          {updatedAt && <p className="text-xs text-fg-subtle font-semibold mt-2">Updated {updatedAt.toLocaleTimeString()} · refreshes every 30s</p>}
-        </div>
-        <div className="bg-surface border border-line px-10 py-4 rounded-lg border border-line flex flex-col items-center">
-          <span className="text-xs font-semibold text-info-text mb-1">Delivered orders (30d)</span>
-          <span className="text-3xl font-semibold text-fg">{loading ? '—' : total}</span>
-        </div>
-      </header>
+    <div className="text-fg">
+      <PageHeader
+        title="Block wars"
+        description="Hostel block leaderboard: delivered orders in the last 30 days from students who saved their block. Refreshes every 30 seconds."
+        meta={updatedAt ? <span className="text-xs text-fg-subtle">Updated {formatTime(updatedAt)}</span> : undefined}
+        actions={<Button leftIcon={<IconRefresh size={14} />} onClick={() => { setLoading(stats.length === 0); fetchStats(); }}>Refresh</Button>}
+      />
 
-      {error && (
-        <div role="alert" className="flex items-center justify-between gap-4 rounded-lg border border-danger/30 bg-danger-soft px-6 py-4 text-sm font-semibold text-danger-text">
-          <span>{error}{stats.length > 0 ? ' Showing the last loaded numbers.' : ''}</span>
-          <button onClick={() => { setLoading(stats.length === 0); fetchStats(); }} className="text-xs text-fg hover:underline">Retry</button>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-6">
-        {loading ? (
-          <div className="py-20 text-center font-semibold text-fg-muted animate-pulse">Loading block activity…</div>
-        ) : stats.length === 0 ? (
-          !error && <div className="py-20 text-center text-fg-muted font-semibold">No hostel blocks configured.</div>
-        ) : stats.map((block, i) => {
-          const ranked = total > 0 && block.count > 0;
-          return (
-            <div key={block.name} className="rounded-lg border border-line bg-surface shadow-xs p-10 relative overflow-hidden">
-              <div className="flex items-center justify-between relative z-10">
-                <div className="flex items-center gap-8">
-                  <div className={`w-12 h-12 rounded-[1.5rem] flex items-center justify-center text-xl font-semibold ${
-                    !ranked ? 'bg-surface-2/60 text-fg-subtle' :
-                    i === 0 ? 'bg-accent text-on-solid' :
-                    i === 1 ? 'bg-surface-2 text-fg-muted' :
-                    i === 2 ? 'bg-warning-soft text-warning-text' : 'bg-surface-2/60 text-fg-muted'
-                  }`}>
-                    {ranked ? i + 1 : '–'}
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-semibold text-fg">{block.name}</h4>
-                    <p className="text-xs text-fg-muted font-semibold">Hostel block</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-semibold text-fg-muted block mb-1">Orders delivered</span>
-                  <span className="text-3xl font-semibold text-fg">{block.count}</span>
-                </div>
-              </div>
-              <div className="mt-8 w-full h-1.5 bg-surface-2/60 rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-1000 ${i === 0 && ranked ? 'bg-accent' : 'bg-surface-3'}`}
-                  style={{ width: `${(block.count / maxCount) * 100}%` }}
-                />
-              </div>
-            </div>
-          );
-        })}
+      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+        <StatTile label="Delivered orders (30 days)" value={formatNumber(total)} loading={loading} />
+        <StatTile label="Leading block" value={leader ? leader.name : 'None yet'} loading={loading} />
+        <StatTile label="Blocks" value={formatNumber(stats.length)} loading={loading} />
       </div>
 
+      {error && stats.length > 0 && (
+        <Notice tone="danger" className="mb-3" action={<Button size="sm" onClick={() => fetchStats()}>Retry</Button>}>
+          {error} Showing the last loaded numbers.
+        </Notice>
+      )}
+
+      <DataTable
+        caption="Block leaderboard"
+        columns={columns}
+        rows={rows}
+        rowKey={r => r.name}
+        loading={loading}
+        error={stats.length === 0 ? error : null}
+        onRetry={() => { setLoading(true); fetchStats(); }}
+        initialSort={{ key: 'rank', dir: 'asc' }}
+        noun="blocks"
+        empty={{ title: 'No hostel blocks configured' }}
+      />
+
       {!loading && stats.length > 0 && (
-        <div className="rounded-lg border border-line bg-surface shadow-xs p-10 border-info/30 bg-info-soft">
-          <div className="flex items-center gap-6">
-            <div>
-              <h4 className="text-sm font-semibold text-fg">{leader ? `${leader.name} is leading` : 'No deliveries in the last 30 days'}</h4>
-              <p className="text-xs text-fg-muted leading-relaxed max-w-2xl">
-                {leader
-                  ? 'Counts only delivered orders from users who saved a hostel block in their profile. Use Config to announce block-specific offers.'
-                  : 'Rankings appear once delivered orders come in from users who have saved their hostel block.'}
-              </p>
-            </div>
-          </div>
-        </div>
+        <p className="mt-3 text-sm text-fg-muted">
+          {leader
+            ? 'Counts only delivered orders from students who saved a hostel block in their profile. Use Push notifications to announce block offers.'
+            : 'Rankings appear once delivered orders come in from students who have saved their hostel block.'}
+        </p>
       )}
     </div>
   );

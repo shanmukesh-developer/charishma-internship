@@ -3,6 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { API_URL } from '@/lib/config';
+import {
+  Badge, Button, Card, CardBody, CardHeader, DataTable, EmptyState, ErrorState, LoadingState, Notice, PageHeader, SectionTitle, StatTile,
+  type Column, IconRefresh,
+} from '@/components/ui';
+import { formatNumber, plural } from '@/lib/format';
 
 interface TopPerformer {
   name: string;
@@ -70,181 +75,113 @@ export default function RewardsAnalytics() {
     if (isAuthed) load();
   }, [isAuthed, load]);
 
-  if (!isAuthed) return <div className="p-20 text-center font-semibold text-fg animate-pulse">Checking access…</div>;
+  if (!isAuthed) return null; // AppShell shows the session check
 
-  if (loading && !data) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="w-12 h-12 border-4 border-info/30 border-t-info/30 rounded-full animate-spin" />
-    </div>
+  const header = (
+    <PageHeader
+      title="Rewards"
+      description="ZenPoints, spin-wheel use, loyalty tiers and badges across all students."
+      breadcrumbs={[{ label: 'Analytics', href: '/analytics' }, { label: 'Rewards' }]}
+      actions={<Button leftIcon={<IconRefresh size={14} />} loading={loading} onClick={load}>Refresh</Button>}
+    />
   );
 
+  if (loading && !data) return <div className="text-fg">{header}<LoadingState label="Loading rewards…" /></div>;
+
   if (!data) return (
-    <div className="py-20 text-center">
-      <p className="text-sm text-danger-text font-semibold">{error || 'Could not load rewards analytics.'}</p>
-      <button onClick={load} className="mt-4 px-4 py-2 bg-surface-2/60 border border-line rounded-xl text-xs font-semibold text-fg-muted hover:text-fg">Try again</button>
+    <div className="text-fg">
+      {header}
+      <ErrorState title="Could not load rewards" message={error || undefined} onRetry={load} />
     </div>
   );
 
   const tierTotal = Object.values(data.tierDistribution).reduce((s, n) => s + (Number(n) || 0), 0);
-  const badges = Object.entries(data.badgeDistribution);
+  const tiers = Object.entries(data.tierDistribution);
+  const badges = Object.entries(data.badgeDistribution).sort((a, b) => Number(b[1]) - Number(a[1]));
+
+  type Performer = TopPerformer & { rank: number };
+  const performerColumns: Column<Performer>[] = [
+    { key: 'rank', header: '#', width: '48px', sortValue: u => u.rank, cell: u => <span className="tabular-nums text-fg-muted">{u.rank}</span> },
+    { key: 'name', header: 'Student', sortValue: u => u.name || '', cell: u => <span className="font-medium text-fg">{u.name || 'Student'}</span> },
+    { key: 'orders', header: 'Orders', align: 'right', sortValue: u => u.completedOrders || 0, cell: u => <span className="tabular-nums">{formatNumber(u.completedOrders || 0)}</span> },
+    { key: 'points', header: 'ZenPoints', align: 'right', sortValue: u => u.zenPoints || 0, cell: u => <span className="tabular-nums">{formatNumber(u.zenPoints || 0)}</span> },
+    { key: 'tier', header: 'Tier', sortValue: u => u.tier, cell: u => (u.tier && u.tier !== 'None' ? <Badge tone={tierTone(u.tier)}>{u.tier}</Badge> : <span className="text-fg-subtle">–</span>) },
+  ];
 
   return (
-    <div className="space-y-10">
-      <div className="flex flex-wrap gap-4 justify-between items-end">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold text-fg">Rewards</h1>
-          <p className="mt-1 max-w-3xl text-sm text-fg-muted">Rewards and spin-wheel analytics.</p>
-        </div>
-        <button onClick={load} disabled={loading} className="px-4 py-2 bg-info-soft text-info-text border border-info/30 rounded-lg text-xs font-semibold disabled:opacity-40">{loading ? 'Refreshing…' : '↻ Refresh'}</button>
-      </div>
-      {error && <p className="text-xs text-danger-text font-semibold">{error}</p>}
+    <div className="text-fg">
+      {header}
+      {error && <Notice tone="danger" className="mb-4">{error} Showing the last loaded numbers.</Notice>}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatCard title="ZenPoints held" value={data.totalZenPoints.toLocaleString('en-IN')} icon="" color="blue" />
-        <StatCard title="Spins used / earned" value={`${data.totalSpinsUsed} / ${data.totalSpinsEarned}`} icon="" color="amber" />
-        <StatCard title="Students with orders" value={data.activeRewardUsers.toLocaleString('en-IN')} icon="" color="emerald" />
-        <StatCard title="Spin redemption" value={`${data.redemptionRate}%`} icon="" color="rose" />
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatTile label="ZenPoints held" value={formatNumber(data.totalZenPoints)} />
+        <StatTile label="Spins used" value={`${formatNumber(data.totalSpinsUsed)} of ${formatNumber(data.totalSpinsEarned)}`} hint="Used of earned" />
+        <StatTile label="Spin redemption" value={`${data.redemptionRate}%`} />
+        <StatTile label="Students with orders" value={formatNumber(data.activeRewardUsers)} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <section className="bg-surface border border-line p-8 rounded-lg border border-line">
-          <h3 className="text-xl font-semibold text-fg mb-6 flex items-center gap-2">
-            <span className="text-info-text"></span> Tier distribution
-          </h3>
-          {tierTotal === 0 ? (
-            <p className="text-xs text-fg-muted">No students yet.</p>
-          ) : (
-            <div className="space-y-6">
-              {Object.entries(data.tierDistribution).map(([tier, count]) => (
-                <div key={tier} className="space-y-2">
-                  <div className="flex justify-between text-xs font-semibold">
-                    <span className={tier === 'None' ? 'text-fg-muted' : 'text-fg-muted'}>{tier === 'None' ? 'No tier yet' : tier}</span>
-                    <span className="text-fg">{count}</span>
-                  </div>
-                  <div className="h-2 w-full bg-surface-2/60 rounded-full overflow-hidden">
-                    <div
-                      style={{ width: `${(Number(count) / tierTotal) * 100}%` }}
-                      className={`h-full transition-[width] duration-700 ${getTierColor(tier)}`}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="bg-surface border border-line p-8 rounded-lg border border-line">
-          <h3 className="text-xl font-semibold text-fg mb-6 flex items-center gap-2">
-            <span className="text-warning-text"></span> Top customers by orders
-          </h3>
-          {data.topPerformers.length === 0 ? (
-            <p className="text-xs text-fg-muted">No completed orders yet.</p>
-          ) : (
-            <div className="overflow-hidden">
-              <table className="zv-table">
-                <thead>
-                  <tr className="text-xs font-semibold text-fg-muted border-b border-line">
-                    <th className="pb-4">Student</th>
-                    <th className="pb-4">Orders</th>
-                    <th className="pb-4">Points</th>
-                    <th className="pb-4">Tier</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {data.topPerformers.map((user, i) => (
-                    <tr key={i} className="group hover:bg-surface-2/60 transition-colors">
-                      <td className="py-4"><p className="text-sm font-semibold text-fg">{user.name || 'Student'}</p></td>
-                      <td className="py-4 text-sm text-fg-muted font-mono">{user.completedOrders || 0}</td>
-                      <td className="py-4 text-sm text-info-text font-semibold">{user.zenPoints || 0}</td>
-                      <td className="py-4">
-                        <span className={`text-xs font-semibold px-2 py-1 rounded-md ${getTierBadgeStyle(user.tier)}`}>
-                          {user.tier === 'None' ? '—' : user.tier}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-      </div>
-
-      <section className="bg-surface border border-line p-8 rounded-lg border border-line">
-        <h3 className="text-xl font-semibold text-fg mb-6 flex items-center gap-2">
-          <span className="text-danger-text"></span> Badges earned
-        </h3>
-        {badges.length === 0 ? (
-          <p className="text-xs text-fg-muted">No badges earned yet.</p>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {badges.map(([badge, count]) => (
-              <div key={badge} className="p-4 rounded-lg bg-surface-2/60 border border-line flex flex-col items-center justify-center text-center gap-2 group hover:border-info/30 transition-all">
-                <div className="w-10 h-10 rounded-full bg-info-soft flex items-center justify-center text-xl transition-transform">
-                  {getBadgeIcon(badge)}
-                </div>
-                <p className="text-xs font-semibold text-fg-muted leading-tight">{badge}</p>
-                <p className="text-lg font-semibold text-fg leading-none">{count}</p>
+      <div className="mb-5 grid gap-5 lg:grid-cols-2">
+        <Card>
+          <CardHeader title="Tier distribution" description={tierTotal ? `${plural(tierTotal, 'student')} in total` : undefined} />
+          <CardBody>
+            {tierTotal === 0 ? (
+              <EmptyState title="No students yet" />
+            ) : (
+              <div className="space-y-3">
+                {tiers.map(([tier, count]) => {
+                  const n = Number(count) || 0;
+                  const pct = tierTotal ? Math.round((n / tierTotal) * 100) : 0;
+                  return (
+                    <div key={tier}>
+                      <div className="mb-1 flex justify-between text-sm">
+                        <span className={tier === 'None' ? 'text-fg-muted' : 'text-fg'}>{tier === 'None' ? 'No tier yet' : tier}</span>
+                        <span className="tabular-nums text-fg-muted">{formatNumber(n)} · {pct}%</span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2" aria-hidden>
+                        <div style={{ width: `${(n / tierTotal) * 100}%` }} className={`h-full rounded-full ${tier === 'None' ? 'bg-fg-subtle/50' : 'bg-accent'}`} />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-        )}
-      </section>
+            )}
+          </CardBody>
+        </Card>
+
+        <div>
+          <SectionTitle title="Top customers by orders" />
+          <DataTable
+            caption="Top customers by orders"
+            columns={performerColumns}
+            rows={data.topPerformers.map((u, i) => ({ ...u, rank: i + 1 }))}
+            rowKey={u => String(u.rank)}
+            initialSort={{ key: 'rank', dir: 'asc' }}
+            noun="students"
+            empty={{ title: 'No completed orders yet' }}
+          />
+        </div>
+      </div>
+
+      <SectionTitle title="Badges earned" description="How many students hold each badge." />
+      {badges.length === 0 ? (
+        <Card><EmptyState title="No badges earned yet" /></Card>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
+          {badges.map(([badge, count]) => (
+            <StatTile key={badge} label={badge} value={formatNumber(Number(count) || 0)} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function StatCard({ title, value, icon, color }: { title: string; value: string; icon: string; color: string }) {
-  const colors = {
-    blue: 'border-info/30 text-info-text',
-    amber: 'border-warning/30 text-warning-text',
-    emerald: 'border-success/30 text-success-text',
-    rose: 'border-danger/30 text-danger-text'
-  };
-
-  return (
-    <div className={`bg-surface border border-line p-6 rounded-lg border bg-surface-2 ${colors[color as keyof typeof colors]}`}>
-      <div className="flex justify-between items-start mb-4">
-        <span className="text-2xl">{icon}</span>
-      </div>
-      <div>
-        <p className="text-xs font-semibold text-fg-muted mb-1">{title}</p>
-        <p className="text-3xl font-semibold text-fg">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-function getTierColor(tier: string) {
+function tierTone(tier: string): 'neutral' | 'info' | 'success' | 'warning' | 'accent' {
   switch (tier) {
-    case 'Elite': return 'bg-surface-2';
-    case 'Diamond': return 'bg-surface-2';
-    case 'Platinum': return 'bg-surface-2';
-    case 'Gold': return 'bg-surface-2';
-    case 'Silver': return 'bg-surface-2';
-    case 'Bronze': return 'bg-surface-2';
-    default: return 'bg-surface-2';
+    case 'Elite': return 'accent';
+    case 'Diamond': return 'info';
+    case 'Gold': return 'warning';
+    case 'Bronze': return 'warning';
+    default: return 'neutral';
   }
-}
-
-function getTierBadgeStyle(tier: string) {
-    switch (tier) {
-      case 'Elite': return 'bg-accent-soft text-accent-text border border-accent/30';
-      case 'Diamond': return 'bg-info-soft text-info-text border border-info/30';
-      case 'Platinum': return 'bg-surface-2 text-fg border border-line';
-      case 'Gold': return 'bg-warning-soft text-warning-text border border-warning/30';
-      case 'Silver': return 'bg-surface-3 text-fg-muted border border-line-strong';
-      case 'Bronze': return 'bg-warning-soft text-warning-text border border-warning/30';
-      default: return 'bg-surface-3 text-fg-muted border border-line-strong';
-    }
-}
-
-function getBadgeIcon(badge: string) {
-    if (badge.includes('Beginner') || badge.includes('Bat') || badge.includes('Believer')) return '🌑';
-    if (badge.includes('Scaler') || badge.includes('Shadow') || badge.includes('Streaker')) return '🌙';
-    if (badge.includes('Grafter') || badge.includes('Ghost') || badge.includes('Guardian')) return '🌕';
-    if (badge.includes('Pro') || badge.includes('Phantom') || badge.includes('Persistence')) return '⭐';
-    if (badge.includes('Devotee') || badge.includes('Drifter') || badge.includes('Dynamo')) return '💎';
-    if (badge.includes('Eater')) return '⚡';
-    return '🔰';
 }
