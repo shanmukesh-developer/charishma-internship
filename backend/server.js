@@ -1330,6 +1330,18 @@ const initializeApp = async () => {
       console.warn('⚠️ [DEMO_MENU_FILL] not started:', fillErr.message);
     }
 
+    // 🏪 Demo CampusBites stalls (idempotent, ledger-keyed): 16 generic LOCAL_VENDOR stalls near SRM AP for
+    // the Home "Local vendor stalls" section. Background; never edits or re-creates a stall or item, and
+    // creates no partner login. DISABLE_DEMO_STALLS=true switches it off.
+    try {
+      const { runDemoStallsImport } = require('./scripts/demo_stalls_import');
+      runDemoStallsImport()
+        .then((r) => console.log('🏪 [DEMO_STALLS]', JSON.stringify(r)))
+        .catch((err) => console.warn('⚠️ [DEMO_STALLS] failed:', err.message));
+    } catch (stallErr) {
+      console.warn('⚠️ [DEMO_STALLS] not started:', stallErr.message);
+    }
+
     // 🧹 Demo-data cleanup (idempotent): switches off the demo riders / students / PG listings that
     // older builds seeded into production. Runs in the background; never deletes anything.
     try {
