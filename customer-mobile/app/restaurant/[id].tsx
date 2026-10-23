@@ -18,7 +18,7 @@ import { COLORS, SHADOWS, surfaceLift } from '../../constants/theme';
 import { API_URL } from '../../constants/api';
 import { apiFetch } from '../../utils/auth';
 import NightClosureBanner from '../../components/NightClosureBanner';
-import { useCartActions, useCartState, MAX_ITEM_QTY } from '../../context/CartContext';
+import { useCartActions, useCartState, MAX_ITEM_QTY, basketKindOf, BasketKind } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import FssaiLine from '../../components/FssaiLine';
@@ -134,14 +134,17 @@ const MenuAddControl = React.memo(function MenuAddControl({ itemId, soldOut, cus
 });
 
 /** "View basket" bar: the only part of the page that reads the basket totals. */
-const RestaurantFloatingCart = React.memo(function RestaurantFloatingCart({ tint, onOpen }: { tint: string; onOpen: () => void }) {
-  const { totalItems, totalPrice } = useCartState();
+const RestaurantFloatingCart = React.memo(function RestaurantFloatingCart({ tint, kind, onOpen }: { tint: string; kind: BasketKind; onOpen: (kind: BasketKind) => void }) {
+  // This store's basket only (the other two baskets have their own checkouts).
+  const { basketCounts, basketTotals } = useCartState();
+  const totalItems = basketCounts[kind];
+  const totalPrice = basketTotals[kind];
   if (!(totalItems > 0)) return null;
   return (
     <FloatingPulse color={tint} style={st.floatingCartContainer}>
       <DopaminePressable
         style={[st.floatingCart, { backgroundColor: tint, width: '100%' }]}
-        onPress={onOpen}
+        onPress={() => onOpen(kind)}
         accessibilityRole="button"
         accessibilityLabel={`View basket, ${plural(totalItems, 'item')}, item total ${formatINR(totalPrice)}`}
         sound="success"
@@ -202,7 +205,7 @@ export default function RestaurantDetail() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [addedId, setAddedId] = useState<string | null>(null);
   const [customizingItem, setCustomizingItem] = useState<any>(null);
-  const openBasket = useCallback(() => router.push('/(tabs)/basket' as any), [router]);
+  const openBasket = useCallback((kind: BasketKind) => router.push(`/(tabs)/basket?basket=${kind}` as any), [router]);
 
   const addedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
@@ -429,6 +432,7 @@ export default function RestaurantDetail() {
       image: item.image || item.imageUrl || '',
       restaurantId: String(restaurant.id || restaurant._id || id),
       restaurantName: restaurant.name,
+      vendorType: restaurant.vendorType || undefined,
       ...(isLocalVendor ? { isStall: true } : {}),
     });
     if (added) flashAdded(itemId);
@@ -447,6 +451,7 @@ export default function RestaurantDetail() {
       restaurantId: String(restaurant.id || restaurant._id || id),
       restaurantName: restaurant.name,
       customizations,
+      vendorType: restaurant.vendorType || undefined,
       ...(isLocalVendor ? { isStall: true } : {}),
     });
     setCustomizingItem(null);
@@ -762,7 +767,7 @@ export default function RestaurantDetail() {
       </ScrollView>
 
       {/* Floating Basket Bar (own component: re-renders alone when the basket changes) */}
-      <RestaurantFloatingCart tint={brand ? accent : '#EF4F5F'} onOpen={openBasket} />
+      <RestaurantFloatingCart tint={brand ? accent : '#EF4F5F'} kind={basketKindOf({ isStall: isLocalVendor, vendorType: restaurant.vendorType })} onOpen={openBasket} />
 
       {customizingItem && (
         <CustomizeDrawer

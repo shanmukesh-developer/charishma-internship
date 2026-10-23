@@ -21,7 +21,7 @@ import { peekCache, readCache, writeCache, peekCachedRestaurant } from '../../ut
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SHADOWS, RADIUS } from '../../constants/theme';
-import { useCart } from '../../context/CartContext';
+import { useCart, basketKindOf } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import CustomizeDrawer, { isCustomizable } from '../../components/CustomizeDrawer';
 import { apiFetch } from '../../utils/auth';
@@ -352,7 +352,8 @@ export default function ProductDetailScreen() {
    */
   const addWithStoreCheck = (payload: any) => {
     const isAddOn = String(product?.vendorType || '').toUpperCase() === 'EXTRAS';
-    addToCart(isAddOn ? { ...payload, isAddOn: true } : product?.isStall ? { ...payload, isStall: true } : payload);
+    const typed = { ...payload, vendorType: product?.vendorType || undefined };
+    addToCart(isAddOn ? { ...typed, isAddOn: true } : product?.isStall ? { ...typed, isStall: true } : typed);
   };
 
   const handleToggleTag = (tag: string) => {
@@ -562,7 +563,7 @@ export default function ProductDetailScreen() {
           onUpdateQuantity={updateQuantity}
           onOpenProduct={(pid) => router.push(`/products/${pid}` as any)}
           onOpenStore={() => { if (product.restaurantId) router.push(`/restaurant/${product.restaurantId}` as any); }}
-          onOpenBasket={() => router.push('/(tabs)/basket' as any)}
+          onOpenBasket={() => router.push(`/(tabs)/basket?basket=${basketKindOf({ isStall: !!product.isStall, vendorType: product.vendorType })}` as any)}
           onRate={() => {
             if (!user) {
               Alert.alert('Sign in to rate', "Sign in to rate items you've ordered.", [
@@ -1100,7 +1101,7 @@ export default function ProductDetailScreen() {
               style={styles.bottomViewCartBtn}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-                router.push('/(tabs)/basket' as any);
+                router.push(`/(tabs)/basket?basket=${basketKindOf({ isStall: !!product.isStall, vendorType: product.vendorType })}` as any);
               }}
             >
               <LinearGradient colors={['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bottomCtaGradient}>

@@ -41,7 +41,11 @@ export function useFoodV2State({ forceDark, sections, onSection }: { forceDark?:
   const { width: winW } = useWindowDimensions();
   const pageW = Math.min(winW, 600);
   const conn = useConnectionState();
-  const { cart, addToCart, updateQuantity, clearCart } = useCart();
+  // Food & groceries is the campus store basket: it reads, adds to and clears only that basket.
+  const { baskets, addToCart: addAnyBasket, updateQuantity, clearBasket } = useCart();
+  const cart = baskets.store;
+  const addToCart: typeof addAnyBasket = (item) => addAnyBasket({ ...item, basket: 'store' });
+  const clearCart = () => clearBasket('store');
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
@@ -176,7 +180,7 @@ export function useFoodV2State({ forceDark, sections, onSection }: { forceDark?:
     if (line) updateQuantity(line.cartKey, line.quantity - 1);
   };
   const storeIds = useMemo(() => new Set(catalogue.map(i => i.restaurantId)), [catalogue]);
-  const shopLines = cart.filter(i => storeIds.has(String(i.restaurantId)) || isCustomRequest(i));
+  const shopLines = cart; // the whole campus store basket (store items + shopping requests)
   const shopCount = shopLines.reduce((n, i) => n + i.quantity, 0);
   const shopTotal = shopLines.reduce((n, i) => n + i.price * i.quantity, 0);
   const cartCount = cart.reduce((n, i) => n + (i.quantity || 0), 0);

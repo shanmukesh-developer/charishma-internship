@@ -8,7 +8,7 @@ import { connectSocket } from '../../utils/socket';
 import { COLORS, SHADOWS, surfaceLift } from '../../constants/theme';
 import { ENDPOINTS } from '../../constants/api';
 import { useTheme } from '../../context/ThemeContext';
-import { useCartActions } from '../../context/CartContext';
+import { useCartActions, basketKindOf } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { apiFetch } from '../../utils/auth';
 import AmbientBackground from '../../components/AmbientBackground';
@@ -265,6 +265,7 @@ export default function OrdersScreen() {
             restaurantName: targetRestaurantName,
             quantity: Math.min(Math.max(Number(item.quantity) || 1, 1), 20),
             customizations: item.customizations || undefined,
+            vendorType: order.category || undefined,
             ...(isVendorFulfilled(order) ? { isStall: true } : {}),
         });
         if (added) addedAny = true;
@@ -277,7 +278,7 @@ export default function OrdersScreen() {
           `${dropped.join(', ')} ${dropped.length === 1 ? 'is' : 'are'} not available right now, so we left ${dropped.length === 1 ? 'it' : 'them'} out.`
         );
       }
-      router.push('/(tabs)/basket' as any);
+      router.push(`/(tabs)/basket?basket=${basketKindOf({ isStall: isVendorFulfilled(order), vendorType: order.category })}` as any);
     } catch (e) {
       console.error('Reorder error:', e);
       if (mountedRef.current) Alert.alert('Could not reorder', 'Please check your connection and try again.');

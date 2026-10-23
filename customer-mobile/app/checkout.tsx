@@ -20,6 +20,9 @@ import { API_URL, ENDPOINTS } from '../constants/api';
 import {
   useCart,
   useBasketQuote,
+  isBasketKind,
+  BASKET_ORDER_TITLES,
+  BasketKind,
   useServiceability,
   isCustomRequest,
   toOrderLine,
@@ -145,7 +148,19 @@ export default function CheckoutScreen() {
   // Real status-bar inset, never less than the old fixed padding (utils/useTopInset)
   const topPad = useTopInset();
   const router = useRouter();
-  const { cart, totalItems, addToCart, setCart, removeItems } = useCart();
+  const { baskets, basketCounts, activeBasket, setActiveBasket, addToCart, setCart, removeItems: removeAnyItems } = useCart();
+  // Three checkouts: /checkout?basket=restaurant|store|stall orders only that basket (default: the active one).
+  const { basket: basketParamRaw } = useLocalSearchParams<{ basket?: string | string[] }>();
+  const basketParam = Array.isArray(basketParamRaw) ? basketParamRaw[0] : basketParamRaw;
+  const basketKind: BasketKind = isBasketKind(basketParam) ? basketParam : activeBasket;
+  const cart = baskets[basketKind];
+  const totalItems = basketCounts[basketKind];
+  const removeItems = (m: { ids?: string[]; names?: string[] }) => removeAnyItems({ ...m, basket: basketKind });
+  useEffect(() => {
+    if (activeBasket !== basketKind) setActiveBasket(basketKind);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [basketKind]);
+  // After an order: back to the Basket tab on this (now empty) basket, with the order on top.
   const { user, refreshUser, setUser } = useAuth();
   const { isDark, colors } = useTheme();
 
@@ -203,7 +218,7 @@ export default function CheckoutScreen() {
   const hasOrder = orderLines.length > 0;
   const hasCustom = customLines.length > 0;
 
-  const { quote, loading: quoteLoading, error: quoteError, refresh: refreshQuote } = useBasketQuote(couponCode, !!user);
+  const { quote, loading: quoteLoading, error: quoteError, refresh: refreshQuote } = useBasketQuote(couponCode, !!user, true, basketKind);
   const { serviceability, refresh: refreshServiceability } = useServiceability();
   // CampusBites stall basket: the stall delivers, cash on delivery to the stall, no coupons / add-ons.
   const isStallOrder = hasOrder && (quote ? quote.fulfilment === 'VENDOR' : orderLines.some((i) => i.isStall));
@@ -497,6 +512,7 @@ export default function CheckoutScreen() {
     const keys = new Set(cartKeys);
     setCart((prev) => prev.filter((i) => !keys.has(i.cartKey)));
     refreshUser().catch(() => {});
+    // Tracking replaces checkout; Back returns to the Basket tab underneath (the other baskets stay intact).
     router.replace(`/tracking/${orderId}` as any);
   };
 
@@ -761,7 +777,9 @@ export default function CheckoutScreen() {
       if (mountedRef.current) setPlacing(false);
     }
     // Navigate only after the "placing" lock is released (the back guard would otherwise block it).
-    if (navigateTo) router.replace(navigateTo as any);
+    if (navigateTo) {
+      router.replace(navigateTo as any);
+    }
   };
 
   const bg = colors.bg;
@@ -770,6 +788,10 @@ export default function CheckoutScreen() {
   const txtSec = colors.textSecondary;
   const border = colors.border;
   const goldColor = isDark ? COLORS.gold : colors.gold;
+
+  const headerStoreName = quote?.store?.name
+    || orderLines.find((i) => !i.isAddOn)?.restaurantName
+    || (hasCustom ? 'Shopping list' : '');
 
   const goBack = () => {
     if (placingRef.current) {
@@ -785,7 +807,12 @@ export default function CheckoutScreen() {
       <TouchableOpacity onPress={goBack} style={[s.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} accessibilityRole="button" accessibilityLabel="Back">
         <Text style={{ color: txt, fontSize: 18 }}>‹</Text>
       </TouchableOpacity>
-      <Text style={[s.title, { color: goldColor }]}>Checkout</Text>
+      <View style={{ flexShrink: 1 }}>
+        <Text style={[s.title, { color: goldColor }]}>{BASKET_ORDER_TITLES[basketKind]}</Text>
+        {!!headerStoreName && (
+          <Text style={{ fontSize: 12, fontWeight: '600', color: txtSec }} numberOfLines={1}>from {headerStoreName}</Text>
+        )}
+      </View>
     </View>
   );
 
@@ -1077,6 +1104,7 @@ export default function CheckoutScreen() {
                         restaurantId: extra.restaurantId,
                         restaurantName: extra.storeName || 'Add-ons',
                         isAddOn: true,
+                        basket: basketKind,
                       });
                       if (added) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
                     }}

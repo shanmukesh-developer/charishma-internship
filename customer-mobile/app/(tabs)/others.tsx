@@ -589,7 +589,11 @@ export default function OthersScreen() {
   // Set true in the body too: fast refresh / StrictMode re-run effects, and a ref left false would drop every later update.
   useEffect(() => { isMountedRef.current = true; return () => { isMountedRef.current = false; }; }, []);
 
-  const { cart, addToCart, updateQuantity, clearCart } = useCart();
+  // The Others section is the campus store basket: it reads, adds to and clears only that basket.
+  const { baskets, addToCart: addAnyBasket, updateQuantity, clearBasket } = useCart();
+  const cart = baskets.store;
+  const addToCart: typeof addAnyBasket = (item) => addAnyBasket({ ...item, basket: 'store' });
+  const clearCart = () => clearBasket('store');
   const [activeCategoryPill, setActiveCategoryPill] = useState('All');
   const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
 

@@ -107,7 +107,12 @@ function CategoryDetailScreen() {
   const router = useRouter();
   const { isDark, colors } = useTheme();
   const { user } = useAuth();
-  const { addToCart, cart, updateQuantity, totalItems, totalPrice } = useCart();
+  // Shop categories fill the campus store basket.
+  const { addToCart: addAnyBasket, baskets, basketCounts, basketTotals, updateQuantity } = useCart();
+  const cart = baskets.store;
+  const totalItems = basketCounts.store;
+  const totalPrice = basketTotals.store;
+  const addToCart: typeof addAnyBasket = (item) => addAnyBasket({ ...item, basket: 'store' });
 
   const requestedId = String(rawId || 'electronics').toLowerCase().trim();
   const categoryId = CATEGORY_ALIASES[requestedId] || requestedId;
@@ -590,7 +595,7 @@ function CategoryDetailScreen() {
       {!isServiceCategory && totalItems > 0 && (
         <TouchableOpacity
           style={[s.basketBar, { bottom: 16 + insets.bottom }]}
-          onPress={() => router.push('/(tabs)/basket' as any)}
+          onPress={() => router.push('/(tabs)/basket?basket=store' as any)}
           accessibilityRole="button"
           accessibilityLabel={`${plural(totalItems, 'item')} in basket, ${formatINR(totalPrice)}. View basket.`}
           activeOpacity={0.9}

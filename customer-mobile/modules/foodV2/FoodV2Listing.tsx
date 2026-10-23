@@ -156,7 +156,7 @@ export default function FoodV2Listing({ shelf }: { shelf: string }) {
             <Icon name="arrow-back" size={22} color="#FFFFFF" />
           </PressScale>
           <Text style={s.listTitle} numberOfLines={1} accessibilityRole="header">{title}</Text>
-          {headerBtn('cart-outline', 'Basket', () => router.push('/(tabs)/basket' as any), cartCount)}
+          {headerBtn('cart-outline', 'Basket', () => router.push('/(tabs)/basket?basket=store' as any), cartCount)}
         </View>
       </LinearGradient>
       <Animated.ScrollView

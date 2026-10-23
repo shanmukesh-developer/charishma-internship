@@ -322,7 +322,9 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
                                       price: item.price,
                                       image: item.image,
                                       restaurantId: item.restaurantId,
-                                      restaurantName: item.restaurantName
+                                      restaurantName: item.restaurantName,
+                                      vendorType: item.vendorType || undefined,
+                                      ...(searchMode === 'grocery' ? { basket: 'store' as const } : {}),
                                     });
                                   }}
                                 >
@@ -340,7 +342,9 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
                                     price: item.price,
                                     image: item.image,
                                     restaurantId: item.restaurantId,
-                                    restaurantName: item.restaurantName
+                                    restaurantName: item.restaurantName,
+                                    vendorType: item.vendorType || undefined,
+                                    ...(searchMode === 'grocery' ? { basket: 'store' as const } : {}),
                                   });
                                 }}
                               >
