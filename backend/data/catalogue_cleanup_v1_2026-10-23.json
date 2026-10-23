@@ -1,0 +1,3342 @@
+{
+  "version": 1,
+  "marker": "CATALOGUE_CLEANUP_V1_DONE",
+  "snapshot": "GET /api/catalogue/items?type=grocery|toys|seeds|electronics&includeUnavailable=true on 2026-10-23 (164 items)",
+  "notes": "Each item is applied only when its current name, price and store still match expect/storeId; otherwise every op of that item is skipped. hide = isAvailable false (never deleted). setWeight/setBrand write specs.weight/specs.brand.",
+  "stores": [
+    {
+      "storeId": "3daea54e-247c-4a87-af91-93bd739d6eaa",
+      "storeName": "Seeds & Gardening",
+      "items": [
+        {
+          "id": "11289628-1a9a-4907-9761-73cd7b145eee",
+          "expect": {
+            "name": "Cucumber Khira Seeds",
+            "price": 59
+          },
+          "current": {
+            "category": "Seeds",
+            "weight": "10 g",
+            "brand": "BOMBAY SEEDS",
+            "originalPrice": 80,
+            "imageUrl": "https://images.unsplash.com/photo-1604977042946-1eecc30f269e?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Cucumber Seeds",
+              "reason": "long title"
+            },
+            {
+              "op": "setBrand",
+              "to": "Bombay Seeds",
+              "reason": "ALL CAPS brand"
+            }
+          ]
+        },
+        {
+          "id": "02f7ccae-b1b3-4c03-83ac-3ce3c4b73a96",
+          "expect": {
+            "name": "Chilli Hot Pepper Seeds",
+            "price": 59
+          },
+          "current": {
+            "category": "Seeds",
+            "weight": "10 g",
+            "brand": "BOMBAY SEEDS",
+            "originalPrice": 80,
+            "imageUrl": "https://images.unsplash.com/photo-1583119022894-919a68a3d0e3?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Chilli Seeds",
+              "reason": "long title"
+            },
+            {
+              "op": "setBrand",
+              "to": "Bombay Seeds",
+              "reason": "ALL CAPS brand"
+            }
+          ]
+        },
+        {
+          "id": "970ec26a-cfa2-412e-9d2b-c3e213f6c4d6",
+          "expect": {
+            "name": "Tomato Seeds",
+            "price": 40.8
+          },
+          "current": {
+            "category": "Seeds",
+            "weight": "10 g",
+            "brand": "BOMBAY SEEDS",
+            "originalPrice": 80,
+            "imageUrl": "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "setBrand",
+              "to": "Bombay Seeds",
+              "reason": "ALL CAPS brand"
+            },
+            {
+              "op": "setPrice",
+              "to": 41,
+              "reason": "paise removed (was 40.8)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "storeId": "a4812a39-5b09-43a6-9445-e0819b7915d4",
+      "storeName": "Campus Daily Mart",
+      "items": [
+        {
+          "id": "11846396-7ecb-4cfe-966b-185682844286",
+          "expect": {
+            "name": "Sandwich Bread 400g",
+            "price": 45
+          },
+          "current": {
+            "category": "Staples",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://images.unsplash.com/photo-1608198093002-ad4e005484ec?w=600&q=70&auto=format&fit=crop"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Sandwich Bread",
+              "reason": "size moved to weight"
+            },
+            {
+              "op": "setCategory",
+              "to": "Bakery",
+              "reason": "bread belongs in Bakery"
+            },
+            {
+              "op": "setWeight",
+              "to": "400 g",
+              "reason": "size was in the name"
+            }
+          ]
+        },
+        {
+          "id": "75ed53fc-63d5-41d8-b7c9-bd84f4fd1d46",
+          "expect": {
+            "name": "Roasted Almonds & Cashews (200g) (Campus)",
+            "price": 350
+          },
+          "current": {
+            "category": "Dry Fruits",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/6e9e8697-3271-4a11-848e-313a221da8c6"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Roasted Almonds & Cashews",
+              "reason": "junk ending \"(Campus)\" and size removed"
+            },
+            {
+              "op": "setWeight",
+              "to": "200 g",
+              "reason": "size was in the name"
+            }
+          ]
+        },
+        {
+          "id": "cd08428a-5a02-498b-b2d5-baf77447c4e9",
+          "expect": {
+            "name": "Imported Berry Box (250g) (Campus)",
+            "price": 499
+          },
+          "current": {
+            "category": "Fruits",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/ea7504e6-e2b6-4651-8489-bb7233b18ed5"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Imported Berry Box",
+              "reason": "junk ending \"(Campus)\" and size removed"
+            },
+            {
+              "op": "setWeight",
+              "to": "250 g",
+              "reason": "size was in the name"
+            }
+          ]
+        },
+        {
+          "id": "0183d79a-4574-48ef-8ce1-592827a54cd2",
+          "expect": {
+            "name": "Masala Instant Noodles (4 pack)",
+            "price": 56
+          },
+          "current": {
+            "category": "Snacks",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": null
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Masala Instant Noodles",
+              "reason": "pack size moved to weight"
+            },
+            {
+              "op": "setWeight",
+              "to": "Pack of 4",
+              "reason": "pack size was in the name"
+            },
+            {
+              "op": "setImage",
+              "to": "https://images.unsplash.com/photo-1628610688436-e635552020fc?w=600&q=70&auto=format&fit=crop",
+              "reason": "had no photo"
+            }
+          ]
+        },
+        {
+          "id": "f9619cb3-38eb-4c6d-b836-713833a2550c",
+          "expect": {
+            "name": "Roasted Salted Almonds (200g)",
+            "price": 290
+          },
+          "current": {
+            "category": "Snacks",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/8fe94f3b-ab7e-4527-8616-71179b0fe2f6"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Roasted Salted Almonds",
+              "reason": "size moved to weight"
+            },
+            {
+              "op": "setWeight",
+              "to": "200 g",
+              "reason": "size was in the name"
+            }
+          ]
+        },
+        {
+          "id": "53aa874a-913f-463e-a689-538c932b62da",
+          "expect": {
+            "name": "Basmati Rice 1kg",
+            "price": 149
+          },
+          "current": {
+            "category": "Staples",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&q=70&auto=format&fit=crop"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Basmati Rice",
+              "reason": "size moved to weight"
+            },
+            {
+              "op": "setCategory",
+              "to": "Rice & Grains",
+              "reason": "was \"Staples\""
+            },
+            {
+              "op": "setWeight",
+              "to": "1 kg",
+              "reason": "size was in the name"
+            }
+          ]
+        },
+        {
+          "id": "259ab36e-7ea3-493d-ae30-a91d0909fac4",
+          "expect": {
+            "name": "Farm Eggs (6 pcs)",
+            "price": 54
+          },
+          "current": {
+            "category": "Staples",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=600&q=70&auto=format&fit=crop"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Farm Eggs",
+              "reason": "count moved to weight"
+            },
+            {
+              "op": "setCategory",
+              "to": "Dairy",
+              "reason": "eggs were under \"Staples\""
+            },
+            {
+              "op": "setWeight",
+              "to": "6 pcs",
+              "reason": "count was in the name"
+            }
+          ]
+        },
+        {
+          "id": "1d9d3e9d-b251-4d1a-b12f-3c2a7772e815",
+          "expect": {
+            "name": "Sunflower Oil 1L",
+            "price": 165
+          },
+          "current": {
+            "category": "Staples",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": null
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Sunflower Oil",
+              "reason": "size moved to weight"
+            },
+            {
+              "op": "setCategory",
+              "to": "Edible Oils & Ghee",
+              "reason": "was \"Staples\""
+            },
+            {
+              "op": "setWeight",
+              "to": "1 L",
+              "reason": "size was in the name"
+            },
+            {
+              "op": "setImage",
+              "to": "https://images.unsplash.com/photo-1552592074-ea7a91b851b3?w=600&q=70&auto=format&fit=crop",
+              "reason": "had no photo"
+            }
+          ]
+        },
+        {
+          "id": "fca7db53-a3bf-4649-a6ef-0692b7c40cb5",
+          "expect": {
+            "name": "Toned Milk 500ml",
+            "price": 30
+          },
+          "current": {
+            "category": "Staples",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=600&q=70&auto=format&fit=crop"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Toned Milk",
+              "reason": "size moved to weight"
+            },
+            {
+              "op": "setCategory",
+              "to": "Dairy",
+              "reason": "milk was under \"Staples\""
+            },
+            {
+              "op": "setWeight",
+              "to": "500 ml",
+              "reason": "size was in the name"
+            }
+          ]
+        },
+        {
+          "id": "d8e1ab9d-b017-417a-b92e-0b36cdd6958c",
+          "expect": {
+            "name": "Toor Dal 500g",
+            "price": 95
+          },
+          "current": {
+            "category": "Staples",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": null
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Toor Dal",
+              "reason": "size moved to weight"
+            },
+            {
+              "op": "setCategory",
+              "to": "Dals & Pulses",
+              "reason": "was \"Staples\""
+            },
+            {
+              "op": "setWeight",
+              "to": "500 g",
+              "reason": "size was in the name"
+            },
+            {
+              "op": "setImage",
+              "to": "https://images.unsplash.com/photo-1612869538502-b5baa439abd7?w=600&q=70&auto=format&fit=crop",
+              "reason": "had no photo; raw dal"
+            }
+          ]
+        },
+        {
+          "id": "bf22e8b2-762a-48f7-974c-87079445b7d3",
+          "expect": {
+            "name": "Whole Wheat Atta 1kg",
+            "price": 65
+          },
+          "current": {
+            "category": "Staples",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=600&q=70&auto=format&fit=crop"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Whole Wheat Atta",
+              "reason": "size moved to weight"
+            },
+            {
+              "op": "setCategory",
+              "to": "Atta & Flours",
+              "reason": "was \"Staples\""
+            },
+            {
+              "op": "setWeight",
+              "to": "1 kg",
+              "reason": "size was in the name"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "storeId": "ef94588c-309a-4bd5-9ff1-16a748f8790b",
+      "storeName": "The Exotic Orchard",
+      "items": [
+        {
+          "id": "27900768-b1d7-4c49-8ce3-bbe6ae0631c1",
+          "expect": {
+            "name": "Washington Apples (4 pcs)",
+            "price": 199
+          },
+          "current": {
+            "category": "Fruits",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=600&q=70&auto=format&fit=crop"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Washington Apples",
+              "reason": "count moved to weight"
+            },
+            {
+              "op": "setWeight",
+              "to": "4 pcs",
+              "reason": "count was in the name"
+            }
+          ]
+        },
+        {
+          "id": "b05d8cce-2a81-4de8-9a63-f362403f19e2",
+          "expect": {
+            "name": "Premium Dates 250g",
+            "price": 249
+          },
+          "current": {
+            "category": "Dry Fruits",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": null
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Premium Dates",
+              "reason": "size moved to weight"
+            },
+            {
+              "op": "setWeight",
+              "to": "250 g",
+              "reason": "size was in the name"
+            },
+            {
+              "op": "setImage",
+              "to": "https://images.unsplash.com/photo-1771231591559-d19c89ad118a?w=600&q=70&auto=format&fit=crop",
+              "reason": "had no photo"
+            }
+          ]
+        },
+        {
+          "id": "9fdec6a0-c037-41bf-90b8-6da2baed82ca",
+          "expect": {
+            "name": "Roasted Almonds & Cashews (200g) (The)",
+            "price": 350
+          },
+          "current": {
+            "category": "Dry Fruits",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/d4b6b37a-2003-4cae-b8c1-b57556cc69de"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Roasted Almonds & Cashews",
+              "reason": "junk ending \"(The)\" and size removed"
+            },
+            {
+              "op": "setWeight",
+              "to": "200 g",
+              "reason": "size was in the name"
+            }
+          ]
+        },
+        {
+          "id": "a4db43a8-2191-4e96-8743-f3e8c375d0ec",
+          "expect": {
+            "name": "Walnut Kernels 200g",
+            "price": 320
+          },
+          "current": {
+            "category": "Dry Fruits",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": null
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Walnut Kernels",
+              "reason": "size moved to weight"
+            },
+            {
+              "op": "setWeight",
+              "to": "200 g",
+              "reason": "size was in the name"
+            },
+            {
+              "op": "setImage",
+              "to": "https://images.unsplash.com/photo-1524593000379-d4729b2c4f99?w=600&q=70&auto=format&fit=crop",
+              "reason": "had no photo"
+            }
+          ]
+        },
+        {
+          "id": "c7f44ac5-cda6-4153-949a-de734c4e9b1d",
+          "expect": {
+            "name": "Avocado (2 pcs)",
+            "price": 199
+          },
+          "current": {
+            "category": "Fruits",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": null
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Avocado",
+              "reason": "count moved to weight"
+            },
+            {
+              "op": "setWeight",
+              "to": "2 pcs",
+              "reason": "count was in the name"
+            },
+            {
+              "op": "setImage",
+              "to": "https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=600&q=70&auto=format&fit=crop",
+              "reason": "had no photo"
+            }
+          ]
+        },
+        {
+          "id": "33c9fa63-1986-43df-bc3e-a25f671ca8fb",
+          "expect": {
+            "name": "Dragon Fruit (1 pc)",
+            "price": 120
+          },
+          "current": {
+            "category": "Fruits",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": null
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Dragon Fruit",
+              "reason": "count moved to weight"
+            },
+            {
+              "op": "setWeight",
+              "to": "1 pc",
+              "reason": "count was in the name"
+            },
+            {
+              "op": "setImage",
+              "to": "https://images.unsplash.com/photo-1560070094-e1f2ddec4337?w=600&q=70&auto=format&fit=crop",
+              "reason": "had no photo"
+            }
+          ]
+        },
+        {
+          "id": "b0d713c0-30d0-48c2-a929-e643b07693ea",
+          "expect": {
+            "name": "Imported Berry Box (250g) (The)",
+            "price": 499
+          },
+          "current": {
+            "category": "Fruits",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/c192a186-844a-404a-a275-2e71627c806d"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Imported Berry Box",
+              "reason": "junk ending \"(The)\" and size removed"
+            },
+            {
+              "op": "setWeight",
+              "to": "250 g",
+              "reason": "size was in the name"
+            }
+          ]
+        },
+        {
+          "id": "3d738deb-5ae0-42ff-bd7f-4c4cce748af1",
+          "expect": {
+            "name": "Kiwi (3 pcs)",
+            "price": 99
+          },
+          "current": {
+            "category": "Fruits",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": null
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Kiwi",
+              "reason": "count moved to weight"
+            },
+            {
+              "op": "setWeight",
+              "to": "3 pcs",
+              "reason": "count was in the name"
+            },
+            {
+              "op": "setImage",
+              "to": "https://images.unsplash.com/photo-1585059895524-72359e06133a?w=600&q=70&auto=format&fit=crop",
+              "reason": "had no photo"
+            }
+          ]
+        },
+        {
+          "id": "8ae7668c-cc40-46d5-b8c3-fc83837ca2a9",
+          "expect": {
+            "name": "Premium Berry Box",
+            "price": 499
+          },
+          "current": {
+            "category": "Fruits",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/c192a186-844a-404a-a275-2e71627c806d"
+          },
+          "ops": [
+            {
+              "op": "hide",
+              "reason": "duplicate of Imported Berry Box (same store, same Rs 499, same photo)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "storeId": "b088cf51-1063-41ec-abf0-79df74272074",
+      "storeName": "Kirana & Late-Night Mart",
+      "items": [
+        {
+          "id": "28464954-5c8b-4b8d-ae5f-52b4e0ee761c",
+          "expect": {
+            "name": "Lifebuoy Total Germ Protection Soap",
+            "price": 32
+          },
+          "current": {
+            "category": "Health",
+            "weight": "125 g",
+            "brand": null,
+            "originalPrice": 35,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/0eab90b0-630c-440d-98f8-537585109ef7"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Lifebuoy Germ Protection Soap",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "99b6fa63-1e4f-400b-a564-9261a5758699",
+          "expect": {
+            "name": "Amul Dark Chocolate Fruit & Nut",
+            "price": 125
+          },
+          "current": {
+            "category": "Amul",
+            "weight": "150 g",
+            "brand": null,
+            "originalPrice": 140,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/85ff0ef0-cdf0-4728-b7c8-276c3b1e1dea"
+          },
+          "ops": [
+            {
+              "op": "setCategory",
+              "to": "Sweet Indulgences",
+              "reason": "chocolate was filed under the brand \"Amul\" (shown as Groceries)"
+            }
+          ]
+        },
+        {
+          "id": "b378c47b-644f-4e77-b768-f9f3e07a1ebd",
+          "expect": {
+            "name": "Amul Taaza Fresh Toned Milk",
+            "price": 54
+          },
+          "current": {
+            "category": "Amul",
+            "weight": "1 L",
+            "brand": null,
+            "originalPrice": 56,
+            "imageUrl": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Amul Taaza Toned Milk",
+              "reason": "cleaner name"
+            },
+            {
+              "op": "setCategory",
+              "to": "Dairy",
+              "reason": "milk was filed under the brand \"Amul\" (shown as Groceries)"
+            }
+          ]
+        },
+        {
+          "id": "be76beda-e761-4c7c-9218-3a61172132fe",
+          "expect": {
+            "name": "Fortune Premium Besan",
+            "price": 85
+          },
+          "current": {
+            "category": "Atta & Flours",
+            "weight": "1 kg",
+            "brand": null,
+            "originalPrice": 95,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/43970def-3938-4a5f-a356-b320c3a7d35e"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Fortune Besan",
+              "reason": "marketing word removed"
+            }
+          ]
+        },
+        {
+          "id": "872458f5-e849-4a1b-ad80-543673d822dc",
+          "expect": {
+            "name": "Dove Cream Beauty Bath Soap Bar",
+            "price": 65
+          },
+          "current": {
+            "category": "Bath, Body & Hair",
+            "weight": "100 g",
+            "brand": null,
+            "originalPrice": 75,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/5af3ef8b-c485-476c-8fa9-70ad58b7080e"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Dove Cream Beauty Soap",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "96c32486-9682-4869-88d0-683b95507b2b",
+          "expect": {
+            "name": "Nivea Soft Light Moisturising Cream",
+            "price": 110
+          },
+          "current": {
+            "category": "Bath, Body & Hair",
+            "weight": "100 ml",
+            "brand": null,
+            "originalPrice": 125,
+            "imageUrl": "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Nivea Soft Moisturising Cream",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "d120997f-4bec-4ce4-b4fd-4a9bff03373c",
+          "expect": {
+            "name": "Lakme Peach Milk Face Soft Cream",
+            "price": 160
+          },
+          "current": {
+            "category": "Beauty & Skincare",
+            "weight": "120 g",
+            "brand": null,
+            "originalPrice": 180,
+            "imageUrl": "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=600&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Lakme Peach Milk Soft Cream",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "4067558a-90b5-4b3d-88df-3ac68e9c6924",
+          "expect": {
+            "name": "Britannia Good Day Cashew cookies",
+            "price": 25
+          },
+          "current": {
+            "category": "Biscuits & Cakes",
+            "weight": "100 g",
+            "brand": null,
+            "originalPrice": 30,
+            "imageUrl": "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Britannia Good Day Cashew Cookies",
+              "reason": "casing"
+            }
+          ]
+        },
+        {
+          "id": "5cdc55ad-ba3f-4d25-b86a-9793ad3927b9",
+          "expect": {
+            "name": "Bagrrys Mixed Fruit Muesli Crunchy",
+            "price": 210
+          },
+          "current": {
+            "category": "Breakfast Options",
+            "weight": "400 g",
+            "brand": null,
+            "originalPrice": 240,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/5f41a20f-c22b-4094-b00f-1138a5e544d5"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Bagrry's Fruit Muesli",
+              "reason": "long title, brand spelling"
+            }
+          ]
+        },
+        {
+          "id": "2d833cf0-1bc8-43f3-a77c-f7f29c4ff941",
+          "expect": {
+            "name": "Kelloggs Corn Flakes Golden Cereal",
+            "price": 145
+          },
+          "current": {
+            "category": "Breakfast Options",
+            "weight": "300 g",
+            "brand": null,
+            "originalPrice": 160,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/a08cb64b-a5ed-43b2-b355-cd8e7fa5cf03"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Kellogg's Corn Flakes",
+              "reason": "long title, brand spelling"
+            }
+          ]
+        },
+        {
+          "id": "a9c23265-af17-4a40-ab0e-d1642ece7659",
+          "expect": {
+            "name": "Quaker Whole Grain Rolled Oats",
+            "price": 180
+          },
+          "current": {
+            "category": "Breakfast Options",
+            "weight": "1 kg",
+            "brand": null,
+            "originalPrice": 199,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/ea1a9d2f-7045-42b5-93da-2c6d079ae568"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Quaker Rolled Oats",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "e8a0145a-e74a-4200-ad92-9678f21a6e03",
+          "expect": {
+            "name": "Cadbury Bournvita Chocolate Health Drink",
+            "price": 230
+          },
+          "current": {
+            "category": "Cadbury",
+            "weight": "500 g",
+            "brand": null,
+            "originalPrice": 250,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/2c574c25-183c-49bc-9ab5-f8d84472b93a"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Cadbury Bournvita",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "ee8c9c57-932e-4d20-bb39-eef020ebbbf5",
+          "expect": {
+            "name": "Cadbury Dairy Milk Silk Chocolate Bar",
+            "price": 100
+          },
+          "current": {
+            "category": "Cadbury",
+            "weight": "150 g",
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/2ec8494f-9baf-4720-ac5a-9c47be000f3d"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Cadbury Dairy Milk Silk",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "36792fd8-54f3-446c-9c78-d651b81ee443",
+          "expect": {
+            "name": "Cadbury Oreo Chocolate Cookies",
+            "price": 35
+          },
+          "current": {
+            "category": "Cadbury",
+            "weight": "120 g",
+            "brand": null,
+            "originalPrice": 40,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/68087e58-44e9-450d-a6ac-d98b464d939f"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Oreo Chocolate Cookies",
+              "reason": "Oreo is not a Cadbury product"
+            },
+            {
+              "op": "setCategory",
+              "to": "Biscuits & Cakes",
+              "reason": "biscuit filed under \"Cadbury\""
+            },
+            {
+              "op": "hide",
+              "reason": "same store already lists Oreo Chocolate Sandwich Cookies (120 g, same price, same photo)"
+            }
+          ]
+        },
+        {
+          "id": "0bbe4881-b591-49f0-b362-0fcee650d49d",
+          "expect": {
+            "name": "Haldirams Bhujia Sev Premium",
+            "price": 55
+          },
+          "current": {
+            "category": "Chips & Namkeens",
+            "weight": "150 g",
+            "brand": null,
+            "originalPrice": 65,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/5c0d8b88-bc40-44ac-b455-9de6c531209f"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Haldiram's Bhujia Sev",
+              "reason": "long title, brand spelling"
+            }
+          ]
+        },
+        {
+          "id": "85958f8d-2722-4a4d-983a-e515dd4d428d",
+          "expect": {
+            "name": "Kurkure Masala Munch Crisps",
+            "price": 30
+          },
+          "current": {
+            "category": "Chips & Namkeens",
+            "weight": "90 g",
+            "brand": null,
+            "originalPrice": 35,
+            "imageUrl": "https://images.unsplash.com/photo-1613919113640-25732ec5e61f?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Kurkure Masala Munch",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "d4dcbef6-ec89-41e3-959d-d78731da510a",
+          "expect": {
+            "name": "Coca Cola Diet Coke Can Carbonated",
+            "price": 40
+          },
+          "current": {
+            "category": "Coca Cola",
+            "weight": "300 ml",
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Diet Coke Can",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "6e0c4223-8249-49de-a3e9-a9f414e7e52b",
+          "expect": {
+            "name": "Coca Cola Original Soft Drink Bottle",
+            "price": 60
+          },
+          "current": {
+            "category": "Coca Cola",
+            "weight": "1.25 L",
+            "brand": null,
+            "originalPrice": 65,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/b7bb9839-3f4c-44b7-abb9-413042e59f69"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Coca-Cola Original",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "f250274d-6c77-4809-9e7d-491a3dcef417",
+          "expect": {
+            "name": "Sprite Lemon Lime Clear Carbonated Drink",
+            "price": 40
+          },
+          "current": {
+            "category": "Coca Cola",
+            "weight": "300 ml",
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/7ba392d6-7a32-4a3e-9550-46fd74de05a5"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Sprite Lemon Lime",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "b47f0155-7ca4-4524-947f-e9ce5b10d384",
+          "expect": {
+            "name": "Amul Taaza Milk (500ml)",
+            "price": 27
+          },
+          "current": {
+            "category": "Daily Essentials",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=300&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Amul Taaza Toned Milk",
+              "reason": "size moved to weight"
+            },
+            {
+              "op": "setCategory",
+              "to": "Dairy",
+              "reason": "milk was filed under Daily Essentials (Groceries)"
+            },
+            {
+              "op": "setWeight",
+              "to": "500 ml",
+              "reason": "size was in the name"
+            }
+          ]
+        },
+        {
+          "id": "7df4f58a-e824-459f-9c1f-9c82d5d17585",
+          "expect": {
+            "name": "Campus Bakery Whole Wheat Bread",
+            "price": 85
+          },
+          "current": {
+            "category": "Daily Essentials",
+            "weight": "800g",
+            "brand": null,
+            "originalPrice": 95,
+            "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&q=80"
+          },
+          "ops": [
+            {
+              "op": "setCategory",
+              "to": "Bakery",
+              "reason": "bread belongs in Bakery"
+            }
+          ]
+        },
+        {
+          "id": "1c171248-8e8c-4018-9cc4-9702cad932be",
+          "expect": {
+            "name": "Campus Bakery Whole Wheat Bread",
+            "price": 45
+          },
+          "current": {
+            "category": "Daily Essentials",
+            "weight": "400g",
+            "brand": null,
+            "originalPrice": 50,
+            "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&q=80"
+          },
+          "ops": [
+            {
+              "op": "setCategory",
+              "to": "Bakery",
+              "reason": "bread belongs in Bakery"
+            }
+          ]
+        },
+        {
+          "id": "ed22e3ac-eb79-4722-8248-8b028dc56d2e",
+          "expect": {
+            "name": "Fresh Whole Wheat Bread",
+            "price": 45
+          },
+          "current": {
+            "category": "Daily Essentials",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=300&q=80"
+          },
+          "ops": [
+            {
+              "op": "setCategory",
+              "to": "Bakery",
+              "reason": "bread belongs in Bakery"
+            },
+            {
+              "op": "hide",
+              "reason": "duplicate of Campus Bakery Whole Wheat Bread 400 g (same store, same price, same photo, no size)"
+            }
+          ]
+        },
+        {
+          "id": "9f4b6e8f-39da-4fab-92a4-6b4c1ae8ac54",
+          "expect": {
+            "name": "Lays Magic Masala Chips",
+            "price": 20
+          },
+          "current": {
+            "category": "Daily Essentials",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/7cfb44b7-66ee-4457-8a13-8c20d67fc576"
+          },
+          "ops": [
+            {
+              "op": "setCategory",
+              "to": "Lays",
+              "reason": "chips were filed under Daily Essentials (Groceries); joins the other Lays flavours"
+            }
+          ]
+        },
+        {
+          "id": "cb9aebee-257f-4825-a677-dc04151f0cde",
+          "expect": {
+            "name": "Pure Ghee Jar",
+            "price": 340
+          },
+          "current": {
+            "category": "Dairy",
+            "weight": "500 ml",
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/6adcf911-b21c-4c50-9c8e-a2625d9ea123"
+          },
+          "ops": [
+            {
+              "op": "setCategory",
+              "to": "Edible Oils & Ghee",
+              "reason": "ghee sits with oils and ghee"
+            }
+          ]
+        },
+        {
+          "id": "bd008e78-216a-4fc7-a758-1eff2b223398",
+          "expect": {
+            "name": "Premium Moong Dal Split",
+            "price": 140
+          },
+          "current": {
+            "category": "Dals & Pulses",
+            "weight": "1 kg",
+            "brand": null,
+            "originalPrice": 160,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/afef83d4-4f0c-4e4e-b8f6-f4760a244fc1"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Premium Moong Dal",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "8fc5b8ea-6c3b-499e-8465-0cc7bf0cdbf5",
+          "expect": {
+            "name": "Harpic Disinfectant Toilet Cleaner Gel",
+            "price": 95
+          },
+          "current": {
+            "category": "Detergents & Cleaning",
+            "weight": "500 ml",
+            "brand": null,
+            "originalPrice": 105,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/414e1f8d-4451-452d-9fb9-86d1debc8873"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Harpic Toilet Cleaner",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "dfb24c7b-5374-4fb8-aff7-e507bc30f80d",
+          "expect": {
+            "name": "Vim Dishwash Gel Lemon Squeeze",
+            "price": 55
+          },
+          "current": {
+            "category": "Detergents & Cleaning",
+            "weight": "250 ml",
+            "brand": null,
+            "originalPrice": 60,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/37531bea-abf2-411b-87ae-3136a1ffe7ea"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Vim Dishwash Gel Lemon",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "9d689c52-4f57-4bca-8f61-e4d45a480d6b",
+          "expect": {
+            "name": "Red Bull Energy Drink Carbonated",
+            "price": 125
+          },
+          "current": {
+            "category": "Drinks & Juices",
+            "weight": "250 ml",
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/dea0f7e0-3d89-475e-98ad-3054aab37e62"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Red Bull Energy Drink",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "5843d9cf-9cb3-4e80-a095-2619eaf7a98f",
+          "expect": {
+            "name": "Tropicana 100% Pure Orange Juice",
+            "price": 115
+          },
+          "current": {
+            "category": "Drinks & Juices",
+            "weight": "1 L",
+            "brand": null,
+            "originalPrice": 130,
+            "imageUrl": "https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Tropicana Orange Juice",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "7ce6961d-6015-4f98-904e-b9de48c1b990",
+          "expect": {
+            "name": "B Natural Guava Fruit Beverage",
+            "price": 88
+          },
+          "current": {
+            "category": "Fresh",
+            "weight": "1 L",
+            "brand": null,
+            "originalPrice": 115,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/777f9d63-74f8-4f7c-9636-a9023c1f8996"
+          },
+          "ops": [
+            {
+              "op": "setCategory",
+              "to": "Drinks & Juices",
+              "reason": "a fruit drink was filed under Fresh (fruit and veg)"
+            }
+          ]
+        },
+        {
+          "id": "8a879f98-03e6-415a-bcc6-c6efb744ba01",
+          "expect": {
+            "name": "Carrot - Local",
+            "price": 39
+          },
+          "current": {
+            "category": "Fresh",
+            "weight": "500 g",
+            "brand": null,
+            "originalPrice": 56.16,
+            "imageUrl": "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Carrot",
+              "reason": "messy name"
+            },
+            {
+              "op": "setCategory",
+              "to": "Vegetables",
+              "reason": "vegetable shelf"
+            },
+            {
+              "op": "setOriginalPrice",
+              "to": 56,
+              "reason": "paise removed (was 56.16)"
+            }
+          ]
+        },
+        {
+          "id": "797f8fa6-70f8-47a7-af69-0459636f0565",
+          "expect": {
+            "name": "Fresh Lemon",
+            "price": 10
+          },
+          "current": {
+            "category": "Fresh",
+            "weight": "3 pcs",
+            "brand": null,
+            "originalPrice": 27,
+            "imageUrl": "https://images.unsplash.com/photo-1590502593747-42a996133562?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Lemon",
+              "reason": "messy name"
+            },
+            {
+              "op": "setCategory",
+              "to": "Vegetables",
+              "reason": "vegetable shelf"
+            },
+            {
+              "op": "clearOriginalPrice",
+              "reason": "MRP Rs 27 implied 63% off (cap 60%)"
+            }
+          ]
+        },
+        {
+          "id": "004b085c-de5e-4d38-a899-0b8745f098f8",
+          "expect": {
+            "name": "Fresh Royal Gala Apple Selection",
+            "price": 180
+          },
+          "current": {
+            "category": "Fresh",
+            "weight": "4 pcs",
+            "brand": null,
+            "originalPrice": 220,
+            "imageUrl": "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=600&q=80"
+          },
+          "ops": [
+            {
+              "op": "hide",
+              "reason": "third Royal Gala apple in the same store (4 pcs for Rs 180 vs 1 kg for Rs 149), same photo"
+            }
+          ]
+        },
+        {
+          "id": "cbf07e17-b84f-4c38-b4b8-b56da97d2335",
+          "expect": {
+            "name": "Fresh Banana Robusta Premium",
+            "price": 49
+          },
+          "current": {
+            "category": "Fresh Fruits",
+            "weight": "1 kg",
+            "brand": null,
+            "originalPrice": 65,
+            "imageUrl": "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Banana Robusta",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "1ce7395d-5598-4fae-a843-4e2a14e9e4c9",
+          "expect": {
+            "name": "Fresh Orange Kinnow Juicy",
+            "price": 89
+          },
+          "current": {
+            "category": "Fresh Fruits",
+            "weight": "6 pcs",
+            "brand": null,
+            "originalPrice": 119,
+            "imageUrl": "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Kinnow Orange",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "490c2fa4-bf72-41f7-936b-c6a8bb870471",
+          "expect": {
+            "name": "Barilla Penne Rigate Durum Semolina",
+            "price": 190
+          },
+          "current": {
+            "category": "Gourmet",
+            "weight": "500 g",
+            "brand": null,
+            "originalPrice": 220,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/5e153ff9-be80-4078-8c86-faf8e0eef6f1"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Barilla Penne Rigate",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "3ed77c05-76bd-408c-a713-dafbe27b3974",
+          "expect": {
+            "name": "Borges Extra Virgin Olive Oil bottle",
+            "price": 380
+          },
+          "current": {
+            "category": "Gourmet",
+            "weight": "250 ml",
+            "brand": null,
+            "originalPrice": 420,
+            "imageUrl": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Borges Extra Virgin Olive Oil",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "e4d3c8a0-b751-44e9-8ca2-34dd619c32a5",
+          "expect": {
+            "name": "Epigamia Blueberries Greek Yogurt",
+            "price": 50
+          },
+          "current": {
+            "category": "Gourmet",
+            "weight": "90 g",
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/7710956c-1957-496c-b285-68570df19e37"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Epigamia Blueberry Greek Yogurt",
+              "reason": "name"
+            },
+            {
+              "op": "setCategory",
+              "to": "Dairy",
+              "reason": "yogurt belongs in Dairy"
+            }
+          ]
+        },
+        {
+          "id": "e73aead4-261f-4d9b-9190-5abea15fd0c6",
+          "expect": {
+            "name": "Aashirvaad Shudh Chakki Atta",
+            "price": 260
+          },
+          "current": {
+            "category": "Grocery",
+            "weight": "5 kg",
+            "brand": null,
+            "originalPrice": 290,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/b3feae1e-a2e7-4a92-8834-200e16e216b2"
+          },
+          "ops": [
+            {
+              "op": "setCategory",
+              "to": "Atta & Flours",
+              "reason": "was \"Grocery\""
+            }
+          ]
+        },
+        {
+          "id": "12dcc141-0e59-4f61-838f-1cb9227d8e71",
+          "expect": {
+            "name": "Amul Pure Cow Ghee Tin",
+            "price": 680
+          },
+          "current": {
+            "category": "Grocery",
+            "weight": "1 L",
+            "brand": null,
+            "originalPrice": 720,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/6adcf911-b21c-4c50-9c8e-a2625d9ea123"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Amul Pure Ghee",
+              "reason": "long title"
+            },
+            {
+              "op": "setCategory",
+              "to": "Edible Oils & Ghee",
+              "reason": "was \"Grocery\""
+            }
+          ]
+        },
+        {
+          "id": "9d3e2fa2-8d02-4b1c-a1e6-9cfa4150553e",
+          "expect": {
+            "name": "Tata Sampann Toor Dal",
+            "price": 159
+          },
+          "current": {
+            "category": "Grocery",
+            "weight": "1 kg",
+            "brand": null,
+            "originalPrice": 180,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/8cbf2bbc-6421-41ef-b1cb-bf7719888108"
+          },
+          "ops": [
+            {
+              "op": "setCategory",
+              "to": "Dals & Pulses",
+              "reason": "was \"Grocery\""
+            },
+            {
+              "op": "setImage",
+              "to": "https://images.unsplash.com/photo-1612869538502-b5baa439abd7?w=600&q=70&auto=format&fit=crop",
+              "reason": "photo showed a cooked dish; now raw dal"
+            }
+          ]
+        },
+        {
+          "id": "83e59dae-44a3-407d-9177-f2a03c6f9c88",
+          "expect": {
+            "name": "Dettol Liquid Handwash Refill Pouch",
+            "price": 99
+          },
+          "current": {
+            "category": "Health",
+            "weight": "175 ml",
+            "brand": null,
+            "originalPrice": 110,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/5ea67bc5-eeda-4ea5-96d6-c0c3cda1cdb2"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Dettol Handwash Refill",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "4e44c55a-cd8e-4f6a-b282-ed545f8fb4f5",
+          "expect": {
+            "name": "Savlon Antiseptic Disinfectant Liquid",
+            "price": 45
+          },
+          "current": {
+            "category": "Health",
+            "weight": "100 ml",
+            "brand": null,
+            "originalPrice": 50,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/908ab752-eac2-46e8-9c3b-e15b154c012a"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Savlon Antiseptic Liquid",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "a8ff3597-dcba-4be8-8d9e-d4da28b6ea0f",
+          "expect": {
+            "name": "Knorr Classic Tomato Soup Mix",
+            "price": 35
+          },
+          "current": {
+            "category": "Instant & Frozen Food",
+            "weight": "50 g",
+            "brand": null,
+            "originalPrice": 40,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/9bcc8c78-ca02-41c0-9e57-9fe369cf2d06"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Knorr Classic Tomato Soup",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "c49884fb-5e74-43ef-b09d-d96c34862a26",
+          "expect": {
+            "name": "Maggi 2-Minute Masala Noodles Pack",
+            "price": 14
+          },
+          "current": {
+            "category": "Instant & Frozen Food",
+            "weight": "70 g",
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://images.unsplash.com/photo-1612927601601-6638404737ce?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Maggi 2-Minute Masala Noodles",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "c3efe7f5-a11e-4bf5-ae06-d6b92bc50043",
+          "expect": {
+            "name": "Safal Frozen Green Peas Extra Sweet",
+            "price": 95
+          },
+          "current": {
+            "category": "Instant & Frozen Food",
+            "weight": "500 g",
+            "brand": null,
+            "originalPrice": 110,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/705e4933-6f8a-477c-8a44-4df7dae9ffdc"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Safal Frozen Green Peas",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "df24915c-1738-4483-9ae4-fc64e78cb1a3",
+          "expect": {
+            "name": "Amul Taaza Toned Milk (1 Litre)",
+            "price": 60
+          },
+          "current": {
+            "category": "Kirana & Late-Night Mart",
+            "weight": null,
+            "brand": null,
+            "originalPrice": 65,
+            "imageUrl": "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=600&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Amul Taaza Toned Milk",
+              "reason": "size moved to weight"
+            },
+            {
+              "op": "setCategory",
+              "to": "Dairy",
+              "reason": "was the store name"
+            },
+            {
+              "op": "setWeight",
+              "to": "1 L",
+              "reason": "size was in the name"
+            },
+            {
+              "op": "hide",
+              "reason": "duplicate of Amul Taaza Toned Milk 1 L (same store, Rs 54 vs Rs 60); the cheaper copy is kept"
+            }
+          ]
+        },
+        {
+          "id": "86c35b56-228b-4da2-8731-a8919d603edd",
+          "expect": {
+            "name": "Bisleri Mineral Water Can (20 Litres)",
+            "price": 70
+          },
+          "current": {
+            "category": "Kirana & Late-Night Mart",
+            "weight": null,
+            "brand": null,
+            "originalPrice": 90,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/e2bf6e18-23bc-4543-ba04-978a54a6b9f0"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Bisleri Mineral Water Can",
+              "reason": "size moved to weight"
+            },
+            {
+              "op": "setCategory",
+              "to": "Drinks & Juices",
+              "reason": "was the store name"
+            },
+            {
+              "op": "setWeight",
+              "to": "20 L",
+              "reason": "size was in the name"
+            }
+          ]
+        },
+        {
+          "id": "0a824b43-d219-4f6b-af29-67a7717caa54",
+          "expect": {
+            "name": "Buldak 2x Spicy Korean Ramen",
+            "price": 135
+          },
+          "current": {
+            "category": "Kirana & Late-Night Mart",
+            "weight": null,
+            "brand": null,
+            "originalPrice": 150,
+            "imageUrl": "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Buldak 2x Spicy Ramen",
+              "reason": "name"
+            },
+            {
+              "op": "setCategory",
+              "to": "Instant & Frozen Food",
+              "reason": "was the store name"
+            }
+          ]
+        },
+        {
+          "id": "dacc3d31-899c-445d-994c-80b2f60efd3d",
+          "expect": {
+            "name": "Dark Fantasy Choco Fills (Pack of 3)",
+            "price": 120
+          },
+          "current": {
+            "category": "Kirana & Late-Night Mart",
+            "weight": null,
+            "brand": null,
+            "originalPrice": 150,
+            "imageUrl": "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=600&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Sunfeast Dark Fantasy Choco Fills",
+              "reason": "pack size moved to weight"
+            },
+            {
+              "op": "setCategory",
+              "to": "Biscuits & Cakes",
+              "reason": "was the store name"
+            },
+            {
+              "op": "setWeight",
+              "to": "Pack of 3",
+              "reason": "pack size was in the name"
+            }
+          ]
+        },
+        {
+          "id": "016ca84c-9056-43a1-ac13-4ba3fb61255a",
+          "expect": {
+            "name": "Maggi 2-Minute Noodles (Pack of 12)",
+            "price": 168
+          },
+          "current": {
+            "category": "Kirana & Late-Night Mart",
+            "weight": null,
+            "brand": null,
+            "originalPrice": 180,
+            "imageUrl": "https://images.unsplash.com/photo-1612927601601-6638404737ce?w=600&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Maggi 2-Minute Masala Noodles",
+              "reason": "pack size moved to weight"
+            },
+            {
+              "op": "setCategory",
+              "to": "Instant & Frozen Food",
+              "reason": "was the store name"
+            },
+            {
+              "op": "setWeight",
+              "to": "Pack of 12",
+              "reason": "pack size was in the name"
+            }
+          ]
+        },
+        {
+          "id": "25e956e8-f7d0-42a3-b3a9-bf272791adf7",
+          "expect": {
+            "name": "Nutella Hazelnut Cocoa Spread (350g)",
+            "price": 340
+          },
+          "current": {
+            "category": "Kirana & Late-Night Mart",
+            "weight": null,
+            "brand": null,
+            "originalPrice": 390,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/e1c526b2-d029-4950-b148-660b11a882bb"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Nutella Hazelnut Spread",
+              "reason": "size moved to weight"
+            },
+            {
+              "op": "setCategory",
+              "to": "Breakfast Options",
+              "reason": "was the store name"
+            },
+            {
+              "op": "setWeight",
+              "to": "350 g",
+              "reason": "size was in the name"
+            }
+          ]
+        },
+        {
+          "id": "bb047874-d7a8-404d-b484-4fcf2027e24f",
+          "expect": {
+            "name": "Quaker Instant Oats (1kg)",
+            "price": 185
+          },
+          "current": {
+            "category": "Kirana & Late-Night Mart",
+            "weight": null,
+            "brand": null,
+            "originalPrice": 220,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/ea1a9d2f-7045-42b5-93da-2c6d079ae568"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Quaker Instant Oats",
+              "reason": "size moved to weight"
+            },
+            {
+              "op": "setCategory",
+              "to": "Breakfast Options",
+              "reason": "was the store name"
+            },
+            {
+              "op": "setWeight",
+              "to": "1 kg",
+              "reason": "size was in the name"
+            }
+          ]
+        },
+        {
+          "id": "ea0a6b17-f302-42fa-ac8a-cda70241eb22",
+          "expect": {
+            "name": "Red Bull Energy Drink (4-Pack)",
+            "price": 460
+          },
+          "current": {
+            "category": "Kirana & Late-Night Mart",
+            "weight": null,
+            "brand": null,
+            "originalPrice": 500,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/dea0f7e0-3d89-475e-98ad-3054aab37e62"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Red Bull Energy Drink",
+              "reason": "pack size moved to weight"
+            },
+            {
+              "op": "setCategory",
+              "to": "Drinks & Juices",
+              "reason": "was the store name"
+            },
+            {
+              "op": "setWeight",
+              "to": "Pack of 4",
+              "reason": "pack size was in the name"
+            }
+          ]
+        },
+        {
+          "id": "5b3926e2-d56a-4ad7-8b74-503a3a0a780e",
+          "expect": {
+            "name": "Lays Spanish Tomato Tangy Crisps",
+            "price": 20
+          },
+          "current": {
+            "category": "Lays",
+            "weight": "50 g",
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/7cfb44b7-66ee-4457-8a13-8c20d67fc576"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Lays Spanish Tomato Tango",
+              "reason": "flavour name"
+            }
+          ]
+        },
+        {
+          "id": "35e7ccd9-ca1b-49cf-ac5b-588811410874",
+          "expect": {
+            "name": "Fresh Cardamom Green",
+            "price": 95
+          },
+          "current": {
+            "category": "Masalas & Spices",
+            "weight": "20 g",
+            "brand": null,
+            "originalPrice": 120,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/a31c347e-8abf-42b5-bdb6-cf09e46220e1"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Green Cardamom",
+              "reason": "messy name"
+            }
+          ]
+        },
+        {
+          "id": "7acb4718-bc68-42d2-b5ce-1ffec281acc2",
+          "expect": {
+            "name": "24 MANTRA ORGANIC Wild Honey",
+            "price": 380
+          },
+          "current": {
+            "category": "Monsoon Wellness Picks",
+            "weight": "500 g",
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/4153b1dd-9b90-4502-ad9d-d048e3376cc6"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "24 Mantra Organic Wild Honey",
+              "reason": "ALL CAPS"
+            }
+          ]
+        },
+        {
+          "id": "f574c02b-e19d-4315-a54d-ff04161d7b7c",
+          "expect": {
+            "name": "Fresh Garlic/Velluli",
+            "price": 65
+          },
+          "current": {
+            "category": "Monsoon Wellness Picks",
+            "weight": "250 g",
+            "brand": null,
+            "originalPrice": 114,
+            "imageUrl": "https://images.unsplash.com/photo-1540148426945-6cf22a6b2383?w=200&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Garlic",
+              "reason": "messy name"
+            },
+            {
+              "op": "setCategory",
+              "to": "Vegetables",
+              "reason": "garlic was under Monsoon Wellness Picks (Health)"
+            }
+          ]
+        },
+        {
+          "id": "0268626b-ccd7-4f83-9a4e-bd4791437d97",
+          "expect": {
+            "name": "Fresh Ginger",
+            "price": 35
+          },
+          "current": {
+            "category": "Monsoon Wellness Picks",
+            "weight": "100 g",
+            "brand": null,
+            "originalPrice": 50,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/e1f3406a-aa79-4fab-962d-f31c95608e52"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Ginger",
+              "reason": "messy name"
+            },
+            {
+              "op": "setCategory",
+              "to": "Vegetables",
+              "reason": "ginger was under Monsoon Wellness Picks (Health)"
+            }
+          ]
+        },
+        {
+          "id": "9681929b-6332-45e6-b3c5-77d5eaf092c9",
+          "expect": {
+            "name": "Nescafe Classic Instant Coffee Jar",
+            "price": 310
+          },
+          "current": {
+            "category": "Nescafe",
+            "weight": "100 g",
+            "brand": null,
+            "originalPrice": 340,
+            "imageUrl": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Nescafe Classic Instant Coffee",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "b4428383-3ea8-4e5b-b264-96d94867adc0",
+          "expect": {
+            "name": "Nescafe Sunrise Premium blend",
+            "price": 180
+          },
+          "current": {
+            "category": "Nescafe",
+            "weight": "100 g",
+            "brand": null,
+            "originalPrice": 200,
+            "imageUrl": "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Nescafe Sunrise",
+              "reason": "long title"
+            },
+            {
+              "op": "setImage",
+              "to": "https://images.unsplash.com/photo-1745892477174-61d2145109ed?w=600&q=70&auto=format&fit=crop",
+              "reason": "shared a tea photo with Tata Tea Premium"
+            }
+          ]
+        },
+        {
+          "id": "5a9b98c4-3894-4e12-8f8c-c155f4c4df10",
+          "expect": {
+            "name": "Fortune Sunflower Oil",
+            "price": 120
+          },
+          "current": {
+            "category": "Oils",
+            "weight": "1 L",
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/42ec0d08-40d7-4f2c-84c8-c9dbd82f712e"
+          },
+          "ops": [
+            {
+              "op": "setCategory",
+              "to": "Edible Oils & Ghee",
+              "reason": "was \"Oils\""
+            }
+          ]
+        },
+        {
+          "id": "a92399d0-c0c2-4942-acd1-ffed8f4707f9",
+          "expect": {
+            "name": "Organic Unpolished Chana Dal Split",
+            "price": 85
+          },
+          "current": {
+            "category": "Organic",
+            "weight": "500 g",
+            "brand": null,
+            "originalPrice": 99,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/c30a92b0-8359-42dc-a892-f89da55d9c17"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Organic Chana Dal",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "32833dff-ed80-413f-980e-61c55b73a883",
+          "expect": {
+            "name": "Organic Whole Wheat Atta Chakki",
+            "price": 140
+          },
+          "current": {
+            "category": "Organic",
+            "weight": "2 kg",
+            "brand": null,
+            "originalPrice": 160,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/b3feae1e-a2e7-4a92-8834-200e16e216b2"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Organic Whole Wheat Atta",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "c76120cd-9635-4ad9-be80-dd3a9578e6b0",
+          "expect": {
+            "name": "Double Horse Poha Thick",
+            "price": 45
+          },
+          "current": {
+            "category": "Rice & Grains",
+            "weight": "500 g",
+            "brand": null,
+            "originalPrice": 55,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/a5ee9a78-4eda-413a-9519-72ec3dd415f7"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Double Horse Thick Poha",
+              "reason": "word order"
+            }
+          ]
+        },
+        {
+          "id": "cd5f513d-6535-4da5-9c1c-47f3dfebdcc0",
+          "expect": {
+            "name": "India Gate Basmati Rice Feast",
+            "price": 499
+          },
+          "current": {
+            "category": "Rice & Grains",
+            "weight": "5 kg",
+            "brand": null,
+            "originalPrice": 550,
+            "imageUrl": "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=200&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "India Gate Basmati Rice",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "c2bbb3cc-52f3-4d19-aacf-3bbdaf266f99",
+          "expect": {
+            "name": "Madhur Sugar Pure Refined Crystals",
+            "price": 52
+          },
+          "current": {
+            "category": "Salt, Sugar & Jaggery",
+            "weight": "1 kg",
+            "brand": null,
+            "originalPrice": 60,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/6f6ee1d1-2fc1-40ad-9da6-81249fb0c013"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Madhur Refined Sugar",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "15f9f07f-160e-4511-b188-5d2700802abf",
+          "expect": {
+            "name": "Organic Jaggery Powder Bellam",
+            "price": 65
+          },
+          "current": {
+            "category": "Salt, Sugar & Jaggery",
+            "weight": "500 g",
+            "brand": null,
+            "originalPrice": 80,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/368f5785-ce50-47f8-8a0b-43244763d89b"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Organic Jaggery Powder",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "0c352a12-5e6a-44b7-b2cd-2715e34cc4f3",
+          "expect": {
+            "name": "Tata Salt Iodized Table Salt",
+            "price": 28
+          },
+          "current": {
+            "category": "Salt, Sugar & Jaggery",
+            "weight": "1 kg",
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/3f5e3481-d5c8-4d7b-b7c1-43fc4a89b89d"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Tata Salt",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "96827ae4-9a50-4547-a0e7-35c70b361308",
+          "expect": {
+            "name": "Organic Raw Salvia Chia Seeds",
+            "price": 120
+          },
+          "current": {
+            "category": "Seeds & Dry Fruits",
+            "weight": "150 g",
+            "brand": null,
+            "originalPrice": 150,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/34c8cb4b-c664-41e0-bb70-34e320056123"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Organic Chia Seeds",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "707ad192-0ff5-4895-a137-ea57b0ffcd07",
+          "expect": {
+            "name": "Premium Almonds Badam Value Pack",
+            "price": 210
+          },
+          "current": {
+            "category": "Seeds & Dry Fruits",
+            "weight": "200 g",
+            "brand": null,
+            "originalPrice": 250,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/82eab156-e577-47c5-a2b4-13f79bce1c72"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Premium Badam Almonds",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "7b2fc4b9-c505-4d4f-8da5-7eb227e10921",
+          "expect": {
+            "name": "Premium Whole Cashews Kaju pouch",
+            "price": 240
+          },
+          "current": {
+            "category": "Seeds & Dry Fruits",
+            "weight": "200 g",
+            "brand": null,
+            "originalPrice": 280,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/5efb0163-2e2a-48ff-aa9e-00763a3c4f69"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Premium Whole Cashews",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "32d35e09-7ea0-4836-adcf-8dea167e50b7",
+          "expect": {
+            "name": "Surf Excel Easy Wash Detergent Powder",
+            "price": 140
+          },
+          "current": {
+            "category": "Surf Excel",
+            "weight": "1 kg",
+            "brand": null,
+            "originalPrice": 160,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/9f804936-40df-49d1-a02a-edac544c1b79"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Surf Excel Easy Wash Powder",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "624c8167-fd10-42a5-9d75-a8926c3cecf3",
+          "expect": {
+            "name": "Ferrero Rocher Hazelnut Pralines",
+            "price": 150
+          },
+          "current": {
+            "category": "Sweet Indulgences",
+            "weight": "4 pcs",
+            "brand": null,
+            "originalPrice": 180,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/76a05fd0-178e-40c9-97c3-8ed270ba03ec"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Ferrero Rocher",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "067b7398-23e1-4e23-bd66-da74bfed55f1",
+          "expect": {
+            "name": "Brooke Bond Red Label Loose Tea",
+            "price": 140
+          },
+          "current": {
+            "category": "Tea & Coffee",
+            "weight": "250 g",
+            "brand": null,
+            "originalPrice": 155,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/0c017c37-96bb-43b9-a1e5-7d9ba3d8530c"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Brooke Bond Red Label Tea",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "86e57cd3-522b-48d8-9cc5-d02e7cb9ffe5",
+          "expect": {
+            "name": "Tata Tea Premium Cardamom Flavor",
+            "price": 220
+          },
+          "current": {
+            "category": "Tea & Coffee",
+            "weight": "500 g",
+            "brand": null,
+            "originalPrice": 245,
+            "imageUrl": "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Tata Tea Premium Cardamom",
+              "reason": "long title"
+            }
+          ]
+        },
+        {
+          "id": "2dbbbaa9-d8db-40eb-91a4-b47d787f5554",
+          "expect": {
+            "name": "Organic Toor Dal",
+            "price": 159
+          },
+          "current": {
+            "category": "Staples",
+            "weight": "1 kg",
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/8cbf2bbc-6421-41ef-b1cb-bf7719888108"
+          },
+          "ops": [
+            {
+              "op": "setCategory",
+              "to": "Dals & Pulses",
+              "reason": "was \"Staples\""
+            },
+            {
+              "op": "hide",
+              "reason": "duplicate of Tata Sampann Toor Dal 1 kg (same store, same Rs 159, same photo)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "storeId": "cb87cff9-10f6-4602-bd89-2c14b2cb0b8c",
+      "storeName": "Fresh Mart",
+      "items": [
+        {
+          "id": "b775b3b2-1382-4e9a-bbff-7b0b317d46d3",
+          "expect": {
+            "name": "Roasted Almonds & Cashews (200g) (Fresh)",
+            "price": 350
+          },
+          "current": {
+            "category": "Dry Fruits",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/e797e13c-6a2d-4b73-99f9-550bb0b58288"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Roasted Almonds & Cashews",
+              "reason": "junk ending \"(Fresh)\" and size removed"
+            },
+            {
+              "op": "setWeight",
+              "to": "200 g",
+              "reason": "size was in the name"
+            }
+          ]
+        },
+        {
+          "id": "e0b5d833-bb99-4d6e-a12b-903bc09da633",
+          "expect": {
+            "name": "Apple Box (4pc)",
+            "price": 79
+          },
+          "current": {
+            "category": "Fruits",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=600&h=400&fit=crop"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Apple Box",
+              "reason": "count moved to weight"
+            },
+            {
+              "op": "setWeight",
+              "to": "4 pcs",
+              "reason": "count was in the name"
+            }
+          ]
+        },
+        {
+          "id": "dffc9d4c-d777-4381-9414-38fc3ec39909",
+          "expect": {
+            "name": "Banana Bunch (6pc)",
+            "price": 39
+          },
+          "current": {
+            "category": "Fruits",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=600&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Banana Bunch",
+              "reason": "count moved to weight"
+            },
+            {
+              "op": "setWeight",
+              "to": "6 pcs",
+              "reason": "count was in the name"
+            }
+          ]
+        },
+        {
+          "id": "b176af57-bb43-4065-b15f-588d54209631",
+          "expect": {
+            "name": "Imported Berry Box (250g) (Fresh)",
+            "price": 499
+          },
+          "current": {
+            "category": "Fruits",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/f3c2c033-a0b8-435e-b9f2-fcab55f26edf"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Imported Berry Box",
+              "reason": "junk ending \"(Fresh)\" and size removed"
+            },
+            {
+              "op": "setWeight",
+              "to": "250 g",
+              "reason": "size was in the name"
+            }
+          ]
+        },
+        {
+          "id": "33bbb343-aabe-479f-87b9-a72010e20bc0",
+          "expect": {
+            "name": "Fresh Orange Juice 300ml",
+            "price": 79
+          },
+          "current": {
+            "category": "Juices & Cups",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=600&q=70&auto=format&fit=crop"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Fresh Orange Juice",
+              "reason": "size moved to weight"
+            },
+            {
+              "op": "setWeight",
+              "to": "300 ml",
+              "reason": "size was in the name"
+            }
+          ]
+        },
+        {
+          "id": "524df483-a295-4bf0-8958-99412b74f256",
+          "expect": {
+            "name": "Pomegranate Cup (200g)",
+            "price": 99
+          },
+          "current": {
+            "category": "Juices & Cups",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": null
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Pomegranate Cup",
+              "reason": "size moved to weight"
+            },
+            {
+              "op": "setWeight",
+              "to": "200 g",
+              "reason": "size was in the name"
+            },
+            {
+              "op": "setImage",
+              "to": "https://images.unsplash.com/photo-1764570208520-9c3dae3e467d?w=600&q=70&auto=format&fit=crop",
+              "reason": "had no photo"
+            }
+          ]
+        },
+        {
+          "id": "132099ed-d381-4dd8-bb80-6d5027cfbd13",
+          "expect": {
+            "name": "Sprouts Salad Cup",
+            "price": 69
+          },
+          "current": {
+            "category": "Juices & Cups",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": null
+          },
+          "ops": [
+            {
+              "op": "setImage",
+              "to": "https://images.unsplash.com/photo-1577110563838-e408b455c91d?w=600&q=70&auto=format&fit=crop",
+              "reason": "had no photo"
+            }
+          ]
+        },
+        {
+          "id": "799daf27-2ff4-45f4-bbe2-56cdf50d7404",
+          "expect": {
+            "name": "Pineapple (1 pc)",
+            "price": 79
+          },
+          "current": {
+            "category": "Fruits",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": "https://images.unsplash.com/photo-1550258987-190a2d41a8ba?w=600&q=70&auto=format&fit=crop"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Pineapple",
+              "reason": "count moved to weight"
+            },
+            {
+              "op": "setWeight",
+              "to": "1 pc",
+              "reason": "count was in the name"
+            }
+          ]
+        },
+        {
+          "id": "18322c60-22d5-47a7-8d23-b3d4ba54b103",
+          "expect": {
+            "name": "Seedless Grapes (500g)",
+            "price": 89
+          },
+          "current": {
+            "category": "Fruits",
+            "weight": null,
+            "brand": null,
+            "originalPrice": null,
+            "imageUrl": null
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Seedless Grapes",
+              "reason": "size moved to weight"
+            },
+            {
+              "op": "setWeight",
+              "to": "500 g",
+              "reason": "size was in the name"
+            },
+            {
+              "op": "setImage",
+              "to": "https://images.unsplash.com/photo-1637715924886-cbe4485f90b9?w=600&q=70&auto=format&fit=crop",
+              "reason": "had no photo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "storeId": "cf1a41c6-3dac-41c2-a96c-b6eb1d2e522f",
+      "storeName": "Toy Mania",
+      "items": [
+        {
+          "id": "5a37b734-4ed2-481b-9a9e-e2f5b44ba7fe",
+          "expect": {
+            "name": "Building Blocks Set 50 Pcs",
+            "price": 149
+          },
+          "current": {
+            "category": "Baby & toddler toys",
+            "weight": "1 box",
+            "brand": "BLOCKSTAR",
+            "originalPrice": 349,
+            "imageUrl": "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Building Blocks Set",
+              "reason": "piece count moved to weight"
+            },
+            {
+              "op": "setWeight",
+              "to": "50 pcs",
+              "reason": "piece count was in the name"
+            },
+            {
+              "op": "setBrand",
+              "to": "Blockstar",
+              "reason": "ALL CAPS brand"
+            }
+          ]
+        },
+        {
+          "id": "38711efa-e051-48c8-880b-1666927567b9",
+          "expect": {
+            "name": "Multicolor Stacking Rings Toy",
+            "price": 99
+          },
+          "current": {
+            "category": "Baby & toddler toys",
+            "weight": "1 pc",
+            "brand": "BABYJOY",
+            "originalPrice": 249,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/81acee69-6971-48ed-ae7d-9b6dc6bef74d"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Stacking Rings Toy",
+              "reason": "long title"
+            },
+            {
+              "op": "setBrand",
+              "to": "BabyJoy",
+              "reason": "ALL CAPS brand"
+            },
+            {
+              "op": "clearOriginalPrice",
+              "reason": "MRP Rs 249 implied 60% off (cap 60%)"
+            }
+          ]
+        },
+        {
+          "id": "288ea286-82c7-4bc0-88b2-c291d0a501db",
+          "expect": {
+            "name": "Musical Rattle Set for Infants",
+            "price": 79
+          },
+          "current": {
+            "category": "Baby & toddler toys",
+            "weight": "3 pcs",
+            "brand": "TINYTUNES",
+            "originalPrice": 199,
+            "imageUrl": "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Musical Rattle Set",
+              "reason": "long title"
+            },
+            {
+              "op": "setBrand",
+              "to": "TinyTunes",
+              "reason": "ALL CAPS brand"
+            },
+            {
+              "op": "clearOriginalPrice",
+              "reason": "MRP Rs 199 implied 60% off (cap 60%)"
+            }
+          ]
+        },
+        {
+          "id": "1af0a4ad-99f2-4a34-9e9b-a8b30f0b76d2",
+          "expect": {
+            "name": "Anti-Slip Yoga Mat 6mm Premium",
+            "price": 399
+          },
+          "current": {
+            "category": "Fitness ready",
+            "weight": "1 pc",
+            "brand": "ZENFLOW",
+            "originalPrice": 799,
+            "imageUrl": "https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Anti-Slip Yoga Mat",
+              "reason": "thickness moved to weight"
+            },
+            {
+              "op": "setWeight",
+              "to": "6 mm",
+              "reason": "thickness was in the name"
+            },
+            {
+              "op": "setBrand",
+              "to": "ZenFlow",
+              "reason": "ALL CAPS brand"
+            }
+          ]
+        },
+        {
+          "id": "b10e1f12-5726-4c14-9b88-7fa4371dc34c",
+          "expect": {
+            "name": "Premium Skipping Rope Adjustable",
+            "price": 99
+          },
+          "current": {
+            "category": "Fitness ready",
+            "weight": "1 pc",
+            "brand": "FITGEAR",
+            "originalPrice": 199,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/396eb83d-a475-49ea-b618-c6355cde0752"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Adjustable Skipping Rope",
+              "reason": "long title"
+            },
+            {
+              "op": "setBrand",
+              "to": "FitGear",
+              "reason": "ALL CAPS brand"
+            }
+          ]
+        },
+        {
+          "id": "872a6379-4be8-43ae-81c1-1fad473bcf39",
+          "expect": {
+            "name": "Resistance Band Set 5 Levels",
+            "price": 249
+          },
+          "current": {
+            "category": "Fitness ready",
+            "weight": "5 pcs",
+            "brand": "FLEXFIT",
+            "originalPrice": 499,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/d7b4a77c-ebc7-4e19-be6e-2eba1d15d955"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Resistance Band Set",
+              "reason": "levels already in weight (5 pcs)"
+            },
+            {
+              "op": "setBrand",
+              "to": "FlexFit",
+              "reason": "ALL CAPS brand"
+            }
+          ]
+        },
+        {
+          "id": "fc918230-6921-42e3-843b-44eb47b3313e",
+          "expect": {
+            "name": "Magnetic Chess Board Travel Set",
+            "price": 179
+          },
+          "current": {
+            "category": "Games & plushies",
+            "weight": "1 set",
+            "brand": "CHESSGURU",
+            "originalPrice": 350,
+            "imageUrl": "https://images.unsplash.com/photo-1529699211952-734e80c4d42b?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Magnetic Travel Chess Set",
+              "reason": "long title"
+            },
+            {
+              "op": "setBrand",
+              "to": "ChessGuru",
+              "reason": "ALL CAPS brand"
+            }
+          ]
+        },
+        {
+          "id": "9c0a7a7f-401d-4515-912e-ecec333705db",
+          "expect": {
+            "name": "Soft Plush Teddy Bear 2ft",
+            "price": 299
+          },
+          "current": {
+            "category": "Games & plushies",
+            "weight": "1 pc",
+            "brand": "CUDDLETOWN",
+            "originalPrice": 599,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/d81ebfc8-95c6-4a20-a5ce-796f5fe47a0b"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Soft Plush Teddy Bear",
+              "reason": "size moved to weight"
+            },
+            {
+              "op": "setWeight",
+              "to": "2 ft",
+              "reason": "size was in the name"
+            },
+            {
+              "op": "setBrand",
+              "to": "CuddleTown",
+              "reason": "ALL CAPS brand"
+            }
+          ]
+        },
+        {
+          "id": "f82c1141-b3ec-4ba4-9466-7b29c6f9e3f3",
+          "expect": {
+            "name": "Uno Original Card Game",
+            "price": 119
+          },
+          "current": {
+            "category": "Games & plushies",
+            "weight": "Pack of 1 - (108 pcs)",
+            "brand": "MATTEL",
+            "originalPrice": 149,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/35b2decc-cbdf-480f-b05a-1d1ed1f4961c"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Uno Card Game",
+              "reason": "name"
+            },
+            {
+              "op": "setWeight",
+              "to": "108 cards",
+              "reason": "was \"Pack of 1 - (108 pcs)\""
+            },
+            {
+              "op": "setBrand",
+              "to": "Mattel",
+              "reason": "ALL CAPS brand"
+            }
+          ]
+        },
+        {
+          "id": "b5d1d223-f74d-4503-bfa8-35ea2e8d3e29",
+          "expect": {
+            "name": "LCD Writing Tablet Board For Kids",
+            "price": 149
+          },
+          "current": {
+            "category": "Learning & education",
+            "weight": "1 pc",
+            "brand": "SMARTKID",
+            "originalPrice": 699,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/e9327460-1567-4bd4-9aec-66c86b8a3b2c"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "LCD Writing Tablet",
+              "reason": "long title"
+            },
+            {
+              "op": "setBrand",
+              "to": "SmartKid",
+              "reason": "ALL CAPS brand"
+            },
+            {
+              "op": "clearOriginalPrice",
+              "reason": "MRP Rs 699 implied 79% off (cap 60%)"
+            }
+          ]
+        },
+        {
+          "id": "b6d64ad3-3fe2-40a2-810c-dc61cfeb6be6",
+          "expect": {
+            "name": "Wooden Abacus Math Learning Toy",
+            "price": 129
+          },
+          "current": {
+            "category": "Learning & education",
+            "weight": "1 pc",
+            "brand": "EDUPLAY",
+            "originalPrice": 299,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/a864f729-6721-4d4b-9746-98f611bab6f0"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Wooden Abacus",
+              "reason": "long title"
+            },
+            {
+              "op": "setBrand",
+              "to": "EduPlay",
+              "reason": "ALL CAPS brand"
+            }
+          ]
+        },
+        {
+          "id": "dd0255af-594f-48cd-9c9c-eaf4e1d756c8",
+          "expect": {
+            "name": "World Map Jigsaw Puzzle 100 Pcs",
+            "price": 199
+          },
+          "current": {
+            "category": "Learning & education",
+            "weight": "1 box",
+            "brand": "BRAINBOX",
+            "originalPrice": 450,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/7597024f-71f1-45b5-ab06-511e2ccb8c00"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "World Map Jigsaw Puzzle",
+              "reason": "piece count moved to weight"
+            },
+            {
+              "op": "setWeight",
+              "to": "100 pcs",
+              "reason": "piece count was in the name"
+            },
+            {
+              "op": "setBrand",
+              "to": "BrainBox",
+              "reason": "ALL CAPS brand"
+            }
+          ]
+        },
+        {
+          "id": "759d60f6-e863-440e-bf0e-1076ebf827c1",
+          "expect": {
+            "name": "Badminton Racket Pair with Shuttle",
+            "price": 249
+          },
+          "current": {
+            "category": "Sports & games",
+            "weight": "1 set",
+            "brand": "YONEX",
+            "originalPrice": 550,
+            "imageUrl": "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "setBrand",
+              "to": "Yonex",
+              "reason": "ALL CAPS brand"
+            }
+          ]
+        },
+        {
+          "id": "353a3402-3d75-4474-97b9-16522109b22e",
+          "expect": {
+            "name": "FIFA Official Size Football",
+            "price": 349
+          },
+          "current": {
+            "category": "Sports & games",
+            "weight": "1 pc",
+            "brand": "NIVIA",
+            "originalPrice": 799,
+            "imageUrl": "https://images.unsplash.com/photo-1552318965-6e6be7484ada?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Football Size 5",
+              "reason": "no FIFA claim"
+            },
+            {
+              "op": "setBrand",
+              "to": "Nivia",
+              "reason": "ALL CAPS brand"
+            }
+          ]
+        },
+        {
+          "id": "5a31a528-fd51-476d-9431-c40efb3229da",
+          "expect": {
+            "name": "Kids Cricket Bat and Ball Set",
+            "price": 199
+          },
+          "current": {
+            "category": "Sports & games",
+            "weight": "Pack of 1",
+            "brand": "PLAYTIME",
+            "originalPrice": 499,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/c28fabc2-d32a-4b3d-b410-aa524f21986f"
+          },
+          "ops": [
+            {
+              "op": "setWeight",
+              "to": "1 set",
+              "reason": "was \"Pack of 1\""
+            },
+            {
+              "op": "setBrand",
+              "to": "Playtime",
+              "reason": "ALL CAPS brand"
+            },
+            {
+              "op": "clearOriginalPrice",
+              "reason": "MRP Rs 499 implied 60% off (cap 60%)"
+            }
+          ]
+        },
+        {
+          "id": "ff5bbb44-df88-4af6-832a-95fc32bdd408",
+          "expect": {
+            "name": "Speed Cube 3 x 3 High Speed Sticker Less 3D Cube",
+            "price": 89
+          },
+          "current": {
+            "category": "Toys",
+            "weight": "1 pc - Box",
+            "brand": "TOY CLOUD",
+            "originalPrice": 299,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/0f361733-fa0a-42bc-95fa-ab40c347d6fe"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Speed Cube 3x3 Stickerless",
+              "reason": "Amazon-style title"
+            },
+            {
+              "op": "setWeight",
+              "to": "1 pc",
+              "reason": "was \"1 pc - Box\""
+            },
+            {
+              "op": "setBrand",
+              "to": "Toy Cloud",
+              "reason": "ALL CAPS brand"
+            },
+            {
+              "op": "clearOriginalPrice",
+              "reason": "MRP Rs 299 implied 70% off (cap 60%)"
+            }
+          ]
+        },
+        {
+          "id": "e3e5782b-ab91-4d05-a64f-fcb42087ef77",
+          "expect": {
+            "name": "4x4 Monster Truck For 3+ Years",
+            "price": 49
+          },
+          "current": {
+            "category": "Vehicle toys",
+            "weight": "1 pc",
+            "brand": "KRIIDDAANK",
+            "originalPrice": 499,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/77ec356d-8f6a-42db-97d5-1bdc8ed33b08"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "4x4 Monster Truck",
+              "reason": "Amazon-style title"
+            },
+            {
+              "op": "setBrand",
+              "to": "Kriiddaank",
+              "reason": "ALL CAPS brand"
+            },
+            {
+              "op": "clearOriginalPrice",
+              "reason": "MRP Rs 499 implied 90% off (cap 60%)"
+            }
+          ]
+        },
+        {
+          "id": "ce63bf8e-341e-4535-966f-13531712ac72",
+          "expect": {
+            "name": "Construction Excavator Truck Toy",
+            "price": 149
+          },
+          "current": {
+            "category": "Vehicle toys",
+            "weight": "1 pc",
+            "brand": "BUILDZONE",
+            "originalPrice": 399,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/db47e575-4d24-431d-b5a8-bdf781fa7640"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Excavator Truck Toy",
+              "reason": "long title"
+            },
+            {
+              "op": "setBrand",
+              "to": "BuildZone",
+              "reason": "ALL CAPS brand"
+            },
+            {
+              "op": "clearOriginalPrice",
+              "reason": "MRP Rs 399 implied 63% off (cap 60%)"
+            }
+          ]
+        },
+        {
+          "id": "1608ecef-c59a-4fa0-b58f-e910d0058741",
+          "expect": {
+            "name": "Remote Control Racing Car Turbo",
+            "price": 299
+          },
+          "current": {
+            "category": "Vehicle toys",
+            "weight": "1 pc",
+            "brand": "SPEEDSTER",
+            "originalPrice": 699,
+            "imageUrl": "https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?w=400&q=80"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Remote Control Racing Car",
+              "reason": "long title"
+            },
+            {
+              "op": "setBrand",
+              "to": "Speedster",
+              "reason": "ALL CAPS brand"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "storeId": "6510737b-e054-4bc5-bc6b-1de04cd6b325",
+      "storeName": "Electronics & Tech",
+      "items": [
+        {
+          "id": "d8183e67-9d5d-413b-b9af-3165fbd6698c",
+          "expect": {
+            "name": "20,000mAh Fast Power Bank",
+            "price": 1799
+          },
+          "current": {
+            "category": "Electronics & Tech",
+            "weight": null,
+            "brand": null,
+            "originalPrice": 2999,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/a260b22a-788b-4cd3-9c7f-dfb9693877a5"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "20000mAh Fast Power Bank",
+              "reason": "number format"
+            }
+          ]
+        },
+        {
+          "id": "84d2a4ea-37fa-4c4e-a528-fe2a33c7de7e",
+          "expect": {
+            "name": "Scientific Calculator (fx-991EX)",
+            "price": 1250
+          },
+          "current": {
+            "category": "Electronics & Tech",
+            "weight": null,
+            "brand": null,
+            "originalPrice": 1595,
+            "imageUrl": "https://hostelbites-backend-jwmt.onrender.com/api/campus/media/48fb671f-2b53-4e1f-936a-c8882ccf7321"
+          },
+          "ops": [
+            {
+              "op": "rename",
+              "to": "Scientific Calculator fx-991EX",
+              "reason": "brackets removed"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

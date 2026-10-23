@@ -1342,6 +1342,19 @@ const initializeApp = async () => {
       console.warn('⚠️ [DEMO_STALLS] not started:', stallErr.message);
     }
 
+    // 🧽 Campus store catalogue clean-up v1 (runs once, GlobalConfig CATALOGUE_CLEANUP_V1_DONE): reviewed,
+    // id-keyed renames / categories / whole-rupee prices / photos / duplicate hides from
+    // data/catalogue_cleanup_v1_2026-10-23.json. Guarded on each item's name + price, so admin edits
+    // win; hides never delete. DISABLE_CATALOGUE_CLEANUP=true switches it off.
+    try {
+      const { runCatalogueCleanup } = require('./scripts/catalogue_cleanup_import');
+      runCatalogueCleanup()
+        .then((r) => console.log('🧽 [CATALOGUE_CLEANUP]', JSON.stringify({ ...r, skippedIds: undefined })))
+        .catch((err) => console.warn('⚠️ [CATALOGUE_CLEANUP] failed:', err.message));
+    } catch (cleanErr) {
+      console.warn('⚠️ [CATALOGUE_CLEANUP] not started:', cleanErr.message);
+    }
+
     // 🧹 Demo-data cleanup (idempotent): switches off the demo riders / students / PG listings that
     // older builds seeded into production. Runs in the background; never deletes anything.
     try {
