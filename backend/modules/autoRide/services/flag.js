@@ -100,6 +100,7 @@ const normaliseSettings = (raw) => {
     autoCompleteHours: clampInt(s.autoCompleteHours, 1, 48, d.autoCompleteHours),
     customerRefundBeforeConfirmPct: clampInt(s.customerRefundBeforeConfirmPct, 0, 100, d.customerRefundBeforeConfirmPct),
     customerRefundAfterConfirmPct: clampInt(s.customerRefundAfterConfirmPct, 0, 100, d.customerRefundAfterConfirmPct),
+    chargeMaxHours: clampInt(s.chargeMaxHours, 1, 24, d.chargeMaxHours),
   };
 };
 
@@ -113,6 +114,7 @@ const writeSettings = async (patch) => {
     platformMaxCapacity: [1, LIMITS.ABSOLUTE_MAX_CAPACITY], holdMinutes: [1, 30], privateRespondMinutes: [2, 120],
     maxSeatsPerBooking: [1, LIMITS.ABSOLUTE_MAX_CAPACITY], maxAdvanceDays: [0, 30], reminderMinutes: [0, 120],
     noShowGraceMinutes: [5, 240], autoCompleteHours: [1, 48], customerRefundBeforeConfirmPct: [0, 100], customerRefundAfterConfirmPct: [0, 100],
+    chargeMaxHours: [1, 24],
   };
   for (const [k, [min, max]] of Object.entries(ranges)) {
     if (patch[k] === undefined) continue;

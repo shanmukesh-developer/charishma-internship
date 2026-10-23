@@ -173,7 +173,20 @@ const B = BOOKING_STATUS;
 const LIVE_BOOKING_STATUSES = [B.HELD, B.CONFIRMED, B.BOARDED];
 // Seats that count as confirmed (FULL / threshold / earnings).
 const CONFIRMED_BOOKING_STATUSES = [B.CONFIRMED, B.BOARDED];
-const BOOKING_TYPE = { SHARED: 'SHARED', PRIVATE: 'PRIVATE' };
+// WALK_IN: one row per trip for people who sat in at the stand without the app. The driver adds / frees
+// these seats (real AutoSeats rows, so an app student can never be sold a seat that is physically taken).
+// userId is the driver's id (never a customer), amount 0 (the fare is paid to the driver directly).
+const BOOKING_TYPE = { SHARED: 'SHARED', PRIVATE: 'PRIVATE', WALK_IN: 'WALK_IN' };
+
+// Union queue ("on charge"). SCHEDULED (or null on older rows) = the published-departure trips.
+// ON_CHARGE = the driver put the auto in line at a stand: autos at one pickup point (= one route) form a
+// line in check-in order, only the FRONT auto is ON_CHARGE and takes bookings, the rest are WAITING.
+// When the front fills, departs, is cancelled or unavailable it becomes DONE and the next auto moves up.
+const DISPATCH_MODE = { SCHEDULED: 'SCHEDULED', ON_CHARGE: 'ON_CHARGE' };
+const QUEUE_STATE = { WAITING: 'WAITING', ON_CHARGE: 'ON_CHARGE', DONE: 'DONE' };
+// Walk-in seats can be changed while the auto is at the stand (waiting, on charge, departing, boarding).
+
+const WALK_IN_STATUSES = [T.PUBLISHED, T.OPEN_FOR_BOOKING, T.DEPARTURE_THRESHOLD_REACHED, T.FULL, T.DRIVER_CONFIRMED, T.BOARDING];
 
 const SEAT_STATUS = { HELD: 'HELD', CONFIRMED: 'CONFIRMED', BOARDED: 'BOARDED', RELEASED: 'RELEASED' };
 const LIVE_SEAT_STATUSES = [SEAT_STATUS.HELD, SEAT_STATUS.CONFIRMED, SEAT_STATUS.BOARDED];
@@ -240,6 +253,9 @@ const DEFAULT_SETTINGS = {
   // Refund policy (WALLET bookings): driver / admin / system cancellations are always 100 %.
   customerRefundBeforeConfirmPct: 100,
   customerRefundAfterConfirmPct: 0,
+  // Union queue: an auto on charge (or waiting in line) that has not left after this many hours is closed by
+  // the lifecycle job (every booking refunded in full), so a forgotten auto never blocks the line.
+  chargeMaxHours: 6,
 };
 
 module.exports = {
@@ -263,6 +279,9 @@ module.exports = {
   LIVE_BOOKING_STATUSES,
   CONFIRMED_BOOKING_STATUSES,
   BOOKING_TYPE,
+  DISPATCH_MODE,
+  QUEUE_STATE,
+  WALK_IN_STATUSES,
   SEAT_STATUS,
   LIVE_SEAT_STATUSES,
   PAYMENT_METHODS,

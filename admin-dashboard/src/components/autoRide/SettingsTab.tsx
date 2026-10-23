@@ -15,6 +15,7 @@ const FIELDS: { key: NumericSettingKey; name: string; hint: string }[] = [
   { key: 'reminderMinutes', name: 'Reminder (minutes)', hint: 'Passenger reminder before departure (0 = off)' },
   { key: 'noShowGraceMinutes', name: 'No-show grace (minutes)', hint: 'An auto still not boarding this long after departure time is closed as no-show' },
   { key: 'autoCompleteHours', name: 'Auto-complete (hours)', hint: 'Trips still in progress are completed after this' },
+  { key: 'chargeMaxHours', name: 'Time on charge (hours)', hint: 'An auto on charge that has not left after this long is closed and the next auto moves up' },
   { key: 'customerRefundBeforeConfirmPct', name: 'Refund % before driver confirms', hint: 'Wallet refund when a passenger cancels before departure is confirmed' },
   { key: 'customerRefundAfterConfirmPct', name: 'Refund % after driver confirms', hint: 'Wallet refund when a passenger cancels after confirmation' },
 ];

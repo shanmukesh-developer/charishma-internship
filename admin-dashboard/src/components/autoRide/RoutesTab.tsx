@@ -10,14 +10,14 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const numOrNull = (v: string) => (v.trim() === '' ? null : Number(v));
 
 interface RouteForm {
-  name: string; originLabel: string; destinationLabel: string; distanceKm: string; seatFareMin: string; seatFareMax: string;
+  name: string; originLabel: string; destinationLabel: string; distanceKm: string; seatFareMin: string; seatFareMax: string; seatFareDefault: string;
   fullFareMin: string; fullFareMax: string; minSeatsToDepartDefault: string; permittedStops: string; isActive: boolean; sortOrder: string;
   operatingPeriods: OperatingPeriod[];
 }
 const s = (v: number | null | undefined) => (v === null || v === undefined ? '' : String(v));
 const formOf = (r?: Route): RouteForm => ({
   name: r?.name || '', originLabel: r?.origin || 'SRM University-AP', destinationLabel: r?.destination || '', distanceKm: s(r?.distanceKm),
-  seatFareMin: s(r?.seatFareMin), seatFareMax: s(r?.seatFareMax), fullFareMin: s(r?.fullFareMin), fullFareMax: s(r?.fullFareMax),
+  seatFareMin: s(r?.seatFareMin), seatFareMax: s(r?.seatFareMax), seatFareDefault: s(r?.seatFareDefault), fullFareMin: s(r?.fullFareMin), fullFareMax: s(r?.fullFareMax),
   minSeatsToDepartDefault: s(r?.minSeatsToDepartDefault), permittedStops: (r?.permittedStops || []).join(', '), isActive: r ? r.isActive : true,
   sortOrder: s(r?.sortOrder ?? 0), operatingPeriods: r?.operatingPeriods ? r.operatingPeriods.map((p) => ({ ...p })) : [],
 });
@@ -28,6 +28,7 @@ function toInput(f: RouteForm): [RouteInput | null, string | null] {
   const nums: Record<string, number | null> = {};
   const rules: [keyof RouteForm, string, number, number, boolean][] = [
     ['distanceKm', 'Distance', 0, 500, false], ['seatFareMin', 'Seat fare min', 0, LIMITS.MAX_FARE, false], ['seatFareMax', 'Seat fare max', 0, LIMITS.MAX_FARE, false],
+    ['seatFareDefault', 'Default seat fare', 1, LIMITS.MAX_FARE, false],
     ['fullFareMin', 'Full-auto fare min', 0, LIMITS.MAX_FULL_FARE, false], ['fullFareMax', 'Full-auto fare max', 0, LIMITS.MAX_FULL_FARE, false],
     ['minSeatsToDepartDefault', 'Min seats to depart', 1, LIMITS.ABSOLUTE_MAX_CAPACITY, true], ['sortOrder', 'Sort order', 0, 10000, true],
   ];
@@ -37,6 +38,8 @@ function toInput(f: RouteForm): [RouteInput | null, string | null] {
     nums[k] = v;
   }
   if (nums.seatFareMin !== null && nums.seatFareMax !== null && nums.seatFareMin > nums.seatFareMax) return [null, 'Seat fare min is above the max.'];
+  if (nums.seatFareDefault !== null && nums.seatFareMin !== null && nums.seatFareDefault < nums.seatFareMin) return [null, 'The default seat fare is below the minimum.'];
+  if (nums.seatFareDefault !== null && nums.seatFareMax !== null && nums.seatFareDefault > nums.seatFareMax) return [null, 'The default seat fare is above the maximum.'];
   if (nums.fullFareMin !== null && nums.fullFareMax !== null && nums.fullFareMin > nums.fullFareMax) return [null, 'Full-auto fare min is above the max.'];
   if (f.operatingPeriods.length > 6) return [null, 'Up to 6 operating periods.'];
   const periods = f.operatingPeriods.map((p) => ({ key: p.key.toUpperCase().replace(/[^A-Z0-9_]/g, '').slice(0, 20), label: p.label.trim() || p.key, start: p.start, end: p.end }));
@@ -44,7 +47,7 @@ function toInput(f: RouteForm): [RouteInput | null, string | null] {
   if (new Set(periods.map((p) => p.key)).size !== periods.length) return [null, 'Period keys must be different.'];
   return [{
     name: f.name.trim(), originLabel: f.originLabel.trim(), destinationLabel: f.destinationLabel.trim(), distanceKm: nums.distanceKm,
-    seatFareMin: nums.seatFareMin, seatFareMax: nums.seatFareMax, fullFareMin: nums.fullFareMin, fullFareMax: nums.fullFareMax,
+    seatFareMin: nums.seatFareMin, seatFareMax: nums.seatFareMax, seatFareDefault: nums.seatFareDefault, fullFareMin: nums.fullFareMin, fullFareMax: nums.fullFareMax,
     minSeatsToDepartDefault: nums.minSeatsToDepartDefault, sortOrder: nums.sortOrder ?? 0, isActive: f.isActive, operatingPeriods: periods,
     permittedStops: f.permittedStops.split(',').map((x) => x.trim()).filter(Boolean).slice(0, 20),
   }, null];
@@ -74,6 +77,7 @@ export default function RoutesTab({ tick, onChanged }: { tick: number; onChanged
               <div>
                 <h3 className="text-lg font-semibold">{r.name} {!r.isActive && <Pill s="INACTIVE" />}</h3>
                 <p className="text-sm text-fg-muted">{r.origin} → {r.destination}{r.distanceKm !== null ? ` · ${r.distanceKm} km` : ''} · sort {r.sortOrder}</p>
+                <p className="mt-1 text-sm text-fg-muted">On charge {r.chargeSeatFare ? `${inr(r.chargeSeatFare)} a seat${r.seatFareDefault ? '' : ' (no default set, the minimum is used)'}` : 'no seat fare set yet'}</p>
                 <p className="mt-1 text-sm text-fg-muted">Seat fare {inr(r.seatFareMin)}–{inr(r.seatFareMax)} · full auto {inr(r.fullFareMin)}–{inr(r.fullFareMax)} · min seats to depart {r.minSeatsToDepartDefault ?? 'full'}</p>
                 <p className="mt-1 text-xs text-fg-muted">Periods (IST): {r.operatingPeriods.length ? r.operatingPeriods.map((p) => `${p.label} ${p.start}–${p.end}`).join(' · ') : 'any time'}</p>
                 {r.permittedStops.length > 0 && <p className="mt-1 text-xs text-fg-muted">Stops: {r.permittedStops.join(', ')}</p>}
@@ -119,6 +123,7 @@ function RouteEditor({ route, onCancel, onSaved }: { route?: Route; onCancel: ()
         {txt('distanceKm', 'Distance (km)', { type: 'number' })}
         {txt('seatFareMin', 'Seat fare min (₹)', { type: 'number' })}
         {txt('seatFareMax', 'Seat fare max (₹)', { type: 'number' })}
+        {txt('seatFareDefault', 'Default seat fare (₹)', { type: 'number', hint: 'Used when a driver puts an auto on charge. Empty = the minimum' })}
         {txt('fullFareMin', 'Full-auto fare min (₹)', { type: 'number' })}
         {txt('fullFareMax', 'Full-auto fare max (₹)', { type: 'number' })}
         {txt('minSeatsToDepartDefault', 'Min seats to depart', { type: 'number', hint: 'Empty = the auto departs only when full' })}

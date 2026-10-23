@@ -14,14 +14,15 @@ import { Badge, Button, LoadingState, Notice as NoticeBox, PageHeader, SectionTi
 import DriversTab from '@/components/autoRide/DriversTab';
 import VehiclesTab from '@/components/autoRide/VehiclesTab';
 import RoutesTab from '@/components/autoRide/RoutesTab';
+import LinesTab from '@/components/autoRide/LinesTab';
 import TripsTab from '@/components/autoRide/TripsTab';
 import BookingsTab from '@/components/autoRide/BookingsTab';
 import SettingsTab from '@/components/autoRide/SettingsTab';
 import { AuditTab, FaresTab, IncidentsTab, PrivateTab } from '@/components/autoRide/MiscTabs';
 
-type Tab = 'overview' | 'drivers' | 'vehicles' | 'routes' | 'trips' | 'bookings' | 'private' | 'incidents' | 'fares' | 'settings' | 'audit';
+type Tab = 'overview' | 'lines' | 'drivers' | 'vehicles' | 'routes' | 'trips' | 'bookings' | 'private' | 'incidents' | 'fares' | 'settings' | 'audit';
 const LIVE_TYPES = ['auto_driver', 'auto_vehicle', 'auto_route', 'auto_booking', 'auto_private_request', 'auto_incident', 'auto_trip'];
-const TAB_KEYS: Tab[] = ['overview', 'drivers', 'vehicles', 'routes', 'trips', 'bookings', 'private', 'incidents', 'fares', 'settings', 'audit'];
+const TAB_KEYS: Tab[] = ['overview', 'lines', 'drivers', 'vehicles', 'routes', 'trips', 'bookings', 'private', 'incidents', 'fares', 'settings', 'audit'];
 
 export default function AutoRideAdminPage() {
   const { isAuthed } = useAdminAuth();
@@ -73,6 +74,7 @@ export default function AutoRideAdminPage() {
 
   const tabs: { key: Tab; label: string; count?: number; alert?: boolean }[] = [
     { key: 'overview', label: 'Overview' },
+    { key: 'lines', label: 'Live lines' },
     { key: 'drivers', label: 'Drivers', count: summary?.pendingDrivers, alert: true },
     { key: 'vehicles', label: 'Vehicles', count: summary?.pendingVehicles, alert: true },
     { key: 'routes', label: 'Routes and pickup points' },
@@ -101,6 +103,7 @@ export default function AutoRideAdminPage() {
         {toast && <NoticeBox tone="danger" action={<Button size="sm" onClick={() => setTab('incidents')}>Open incidents</Button>}><span className="text-fg">{toast}</span></NoticeBox>}
 
         {tab === 'overview' && <Overview summary={summary} error={summaryError} retry={bump} go={setTab} />}
+        {tab === 'lines' && <LinesTab tick={tick} go={() => setTab('routes')} />}
         {tab === 'drivers' && <DriversTab tick={tick} onChanged={bump} openVehicle={openVehicle} />}
         {tab === 'vehicles' && <VehiclesTab tick={tick} onChanged={bump} lookups={lookups} focusId={vehicleFocus} clearFocus={clearFocus} />}
         {tab === 'routes' && <RoutesTab tick={tick} onChanged={bump} />}

@@ -10,7 +10,8 @@ export const TERMINAL: TripStatus[] = ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'DRI
 export const ACTIVE: TripStatus[] = ['PUBLISHED', 'OPEN_FOR_BOOKING', 'DEPARTURE_THRESHOLD_REACHED', 'FULL', 'DRIVER_CONFIRMED', 'BOARDING', 'IN_PROGRESS', 'DELAYED'];
 
 /** The status each driver action moves a trip to (null = no status change, e.g. 'arrive'). */
-export const ACTION_TARGET: Record<Exclude<DriverAction, 'unavailable' | 'resume'>, TripStatus | null> = {
+// 'depart' (union queue) is two steps on the server: DRIVER_CONFIRMED then BOARDING.
+export const ACTION_TARGET: Record<Exclude<DriverAction, 'unavailable' | 'resume' | 'depart'>, TripStatus | null> = {
   'confirm-departure': 'DRIVER_CONFIRMED',
   'start-boarding': 'BOARDING',
   start: 'IN_PROGRESS',

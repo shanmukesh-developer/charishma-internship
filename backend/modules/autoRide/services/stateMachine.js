@@ -44,6 +44,8 @@ const transitionTrip = async (trip, to, opts = {}) => {
   }, { transaction: t });
   Object.assign(trip, changes);
   if (typeof trip.setDataValue === 'function') for (const [k, v] of Object.entries(changes)) trip.setDataValue(k, v);
+  // Union queue: the front auto leaving the charge moves the next one up, in this same transaction.
+  if (trip.dispatchMode === E.DISPATCH_MODE.ON_CHARGE) await require('./chargeLine').afterTransition(trip, from, to, t);
   return trip;
 };
 

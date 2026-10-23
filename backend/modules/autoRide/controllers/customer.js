@@ -13,6 +13,7 @@ const payments = require('../services/payments');
 const clock = require('../services/clock');
 const { readFlag, publicSettings } = require('../services/flag');
 const { istDayStartOf } = require('../../../utils/istTime');
+const chargeLine = require('../services/chargeLine');
 
 const T = E.TRIP_STATUS;
 const B = E.BOOKING_STATUS;
@@ -148,7 +149,9 @@ const browse = async (req, res) => {
   const passengers = num(q.passengers, { min: 1, max: E.LIMITS.ABSOLUTE_MAX_CAPACITY, int: true, field: 'passengers' });
   const trips = await Trip.findAll({ where, order: [['departureAt', 'ASC'], ['queueNumber', 'ASC']], limit: 100 });
   const ctx = await tripContext(trips, req.user.id);
-  let list = trips.map((t) => S.tripCustomer(req, t, ctx(t)));
+  // Union queue autos have no departure time; they are offered on the on-charge board (GET /on-charge) instead.
+  const shown = trips.filter((t) => !chargeLine.isCharge(t));
+  let list = shown.map((t) => S.tripCustomer(req, t, ctx(t)));
   if (passengers) list = list.filter((t) => t.remainingSeats >= passengers || t.myBookingId || (String(q.mode || '') === 'private' && t.privateBookingAllowed && t.capacity >= passengers));
   if (String(q.mode || '') === 'private') list = list.filter((t) => t.privateBookingAllowed);
   res.json({ trips: list, serverTime: new Date(nowMs).toISOString() });
@@ -161,24 +164,89 @@ const detail = async (req, res) => {
   res.json({ trip: S.tripCustomer(req, trip, ctx(trip)), serverTime: clock.now().toISOString() });
 };
 
-/** Seat map (read-only: stale holds shown as available; the next write expires them). */
-const seatMapFor = async (trip, userId) => {
+/**
+ * Seat map (read-only: stale holds shown as available; the next write expires them). Walk-in seats (people who
+ * sat in without the app) are BOOKED for customers and WALK_IN for the driver (opts.driver), whose free seats
+ * stay AVAILABLE while walk-ins can still be added (the auto is at the stand).
+ */
+const seatMapFor = async (trip, userId, opts = {}) => {
   const { Seat, Booking } = M();
   const rows = await Seat.findAll({ where: { tripId: trip.id, status: { [Op.in]: E.LIVE_SEAT_STATUSES } } });
   const mine = new Set((await Booking.findAll({ where: { tripId: trip.id, userId: userId || null, status: { [Op.in]: E.LIVE_BOOKING_STATUSES } }, attributes: ['id'] })).map((b) => String(b.id)));
+  const walk = new Set((await Booking.findAll({ where: { tripId: trip.id, type: E.BOOKING_TYPE.WALK_IN, status: { [Op.in]: E.LIVE_BOOKING_STATUSES } }, attributes: ['id'] })).map((b) => String(b.id)));
   const nowMs = clock.nowMs();
   const state = new Map();
   for (const s of rows) {
     if (s.status === E.SEAT_STATUS.HELD && s.holdExpiresAt && new Date(s.holdExpiresAt).getTime() <= nowMs) continue;
+    if (walk.has(String(s.bookingId))) { state.set(Number(s.seatNo), opts.driver ? 'WALK_IN' : 'BOOKED'); continue; }
     const own = mine.has(String(s.bookingId));
     state.set(Number(s.seatNo), s.status === E.SEAT_STATUS.HELD ? (own ? 'MINE_HELD' : 'HELD') : (own ? 'MINE' : 'BOOKED'));
   }
-  const closed = !E.BOOKABLE_STATUSES.includes(trip.status) || trip.mode === E.MODE.PRIVATE;
+  const closed = opts.driver
+    ? !E.WALK_IN_STATUSES.includes(trip.status) || trip.mode === E.MODE.PRIVATE
+    : !E.BOOKABLE_STATUSES.includes(trip.status) || trip.mode === E.MODE.PRIVATE || (chargeLine.isCharge(trip) && ![E.QUEUE_STATE.ON_CHARGE, E.QUEUE_STATE.WAITING].includes(trip.queueState));
   const seats = Array.from({ length: Number(trip.capacity) || 0 }, (_, i) => {
     const n = i + 1;
     return { seatNo: n, state: state.get(n) || (closed ? 'UNAVAILABLE' : 'AVAILABLE') };
   });
-  return { layout: trip.seatLayout || require('../services/layout').defaultLayout(trip.capacity), seats, legend: ['AVAILABLE', 'HELD', 'BOOKED', 'UNAVAILABLE', 'MINE', 'MINE_HELD'] };
+  const legend = ['AVAILABLE', 'HELD', 'BOOKED', 'UNAVAILABLE', ...(opts.driver ? ['WALK_IN'] : ['MINE', 'MINE_HELD'])];
+  return { layout: trip.seatLayout || require('../services/layout').defaultLayout(trip.capacity), seats, legend };
+};
+
+/**
+ * Union queue board: per stand (pickup point = one destination) the auto on charge, then the autos waiting
+ * behind it (#2, #3 ...), each with its live seat map, fare and seats left (all of them take bookings).
+ * No passenger data. Lines with no auto at all are included (empty state) so the customer sees every
+ * destination ZCS Auto serves.
+ * filter: { routeId?, pickupPointId? }. userId marks the customer's own seats.
+ */
+const chargeBoard = async (req, userId, filter = {}) => {
+  const { Route, Pickup } = M();
+  const routeWhere = { isActive: { [Op.not]: false } };
+  if (filter.routeId) routeWhere.id = filter.routeId;
+  const routes = await Route.findAll({ where: routeWhere, order: [['sortOrder', 'ASC'], ['name', 'ASC']] });
+  const pickWhere = { routeId: { [Op.in]: routes.map((r) => r.id) }, isActive: { [Op.not]: false } };
+  if (filter.pickupPointId) pickWhere.id = filter.pickupPointId;
+  const pickups = routes.length ? await Pickup.findAll({ where: pickWhere, order: [['sequence', 'ASC'], ['name', 'ASC']] }) : [];
+  const lines = [];
+  for (const r of routes) {
+    for (const p of pickups.filter((x) => String(x.routeId) === String(r.id))) {
+      const inLine = await chargeLine.lineTrips(p.id, r.id);
+      const front = inLine.find((t) => t.queueState === E.QUEUE_STATE.ON_CHARGE) || null;
+      const waiting = inLine.filter((t) => t.queueState === E.QUEUE_STATE.WAITING);
+      const ctx = await tripContext(inLine, userId);
+      const card = async (t, position) => ({ ...S.tripCustomer(req, t, ctx(t)), position, seatMap: await seatMapFor(t, userId) });
+      const onCharge = front ? await card(front, 1) : null;
+      const waitingAutos = [];
+      for (const [i, t] of waiting.entries()) waitingAutos.push(await card(t, (front ? 2 : 1) + i));
+      const fare = chargeLine.routeSeatFare(r);
+      lines.push({
+        key: `${p.id}:${r.id}`,
+        route: S.routeBrief(r),
+        pickup: S.pickupBrief(p),
+        destination: r.destinationLabel,
+        seatFare: onCharge ? onCharge.seatFare : fare ? fare.fare : null,
+        onCharge,
+        waitingCount: waiting.length,
+        waiting: waiting.map((t, i) => ({ position: (front ? 2 : 1) + i, lineSeq: t.lineSeq || null })),
+        waitingAutos,
+      });
+    }
+  }
+  return lines;
+};
+
+// GET /api/auto-ride/on-charge?routeId=&pickupPointId=   (union queue board)
+const onChargeBoard = async (req, res) => {
+  const q = req.query || {};
+  for (const k of ['routeId', 'pickupPointId']) if (q[k] && !isUuid(String(q[k]))) throw fail(400, 'INVALID_INPUT', `Unknown ${k}.`, { field: k });
+  const settings = await publicSettings();
+  res.json({
+    lines: await chargeBoard(req, req.user.id, { routeId: q.routeId ? String(q.routeId) : null, pickupPointId: q.pickupPointId ? String(q.pickupPointId) : null }),
+    maxSeatsPerBooking: settings.maxSeatsPerBooking,
+    serverTime: clock.now().toISOString(),
+    note: 'Autos leave the stand in line order. You can book the auto on charge or one waiting behind it; pay the driver in cash when you board.',
+  });
 };
 
 // GET /api/auto-ride/trips/:id/seats
@@ -391,6 +459,6 @@ const reportIncident = async (req, res) => {
 };
 
 module.exports = {
-  status, settingsPublic, routes, pickupPoints, pickupQueue, browse, detail, seats, createHold, confirmBooking, releaseBooking, cancelBooking,
+  status, settingsPublic, routes, pickupPoints, pickupQueue, browse, onChargeBoard, chargeBoard, detail, seats, createHold, confirmBooking, releaseBooking, cancelBooking,
   myBookings, bookingDetail, createPrivate, myPrivate, privateDetail, cancelPrivate, reportIncident, seatMapFor, tripContext, queueFor,
 };

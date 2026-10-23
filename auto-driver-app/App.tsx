@@ -21,6 +21,8 @@ import { DocumentsScreen, SuspendedScreen, VerificationScreen } from './src/scre
 import { VehicleFormScreen, VehiclesScreen } from './src/screens/Vehicles';
 import HomeScreen from './src/screens/Home';
 import PublishScreen from './src/screens/Publish';
+import PutOnChargeScreen from './src/screens/PutOnCharge';
+import ChargeScreen from './src/screens/Charge';
 import TripDetailScreen from './src/screens/TripDetail';
 import CheckInScreen from './src/screens/CheckIn';
 import RequestsScreen from './src/screens/Requests';
@@ -65,6 +67,7 @@ function PushRouter() {
     if (data.type && /DRIVER_|VEHICLE_/.test(data.type)) refreshMe();
     if (!tapped || !navRef.isReady()) return;
     if (data.requestId || data.type === 'AUTO_PRIVATE_REQUEST') navRef.navigate('Requests');
+    else if (data.tripId && data.type === 'AUTO_ON_CHARGE') navRef.navigate('Charge', { tripId: String(data.tripId) });
     else if (data.tripId) navRef.navigate('TripDetail', { tripId: String(data.tripId) });
     else if (data.vehicleId) navRef.navigate('Vehicles');
     else navRef.navigate('Notifications');
@@ -84,6 +87,8 @@ function SignedIn() {
       <Stack.Screen name="Vehicles" component={VehiclesScreen} />
       <Stack.Screen name="VehicleForm" component={VehicleFormScreen} />
       <Stack.Screen name="Publish" component={PublishScreen} />
+      <Stack.Screen name="PutOnCharge" component={PutOnChargeScreen} />
+      <Stack.Screen name="Charge" component={ChargeScreen} />
       <Stack.Screen name="TripDetail" component={TripDetailScreen} />
       <Stack.Screen name="CheckIn" component={CheckInScreen} />
       <Stack.Screen name="Requests" component={RequestsScreen} />

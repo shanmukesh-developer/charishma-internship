@@ -19,7 +19,7 @@ import { ApiError, NetworkError, errorMessage, serverNow } from '../lib/http';
 import { ACTION_TARGET, TERMINAL, actionsFor } from '../lib/tripRules';
 import { countdown, dateTimeIst, rupees, timeIst } from '../lib/format';
 import { TRIP_POLL_MS } from '../config';
-import { TripSummaryCard } from './Home';
+import { TripSummaryCard, atStand } from './Home';
 import type { BookingDriver, DriverAction, Trip, TripStatus } from '../types';
 import type { ScreenProps } from '../nav';
 
@@ -141,6 +141,9 @@ export default function TripDetailScreen({ navigation, route }: ScreenProps<'Tri
       {tab === 'status' ? (
         <>
           <TripSummaryCard trip={trip} />
+          {atStand(trip) ? (
+            <Button label="Open the stand view" icon="people" variant="primary" onPress={() => navigation.navigate('Charge', { tripId: trip.id })} />
+          ) : null}
           {trip.mode === 'PRIVATE' ? <Banner tone="info" text="Booked as a full auto by one group. No other passengers can book." /> : null}
           {trip.status === 'PUBLISHED' && trip.bookingOpensAt ? <Banner tone="info" text={`Booking opens at ${timeIst(trip.bookingOpensAt)}.`} /> : null}
           {trip.status === 'OPEN_FOR_BOOKING' ? <Banner tone="info" text={`You can confirm departure when ${trip.minSeatsToDepart} seat${trip.minSeatsToDepart === 1 ? ' is' : 's are'} confirmed, or when the auto is full.`} /> : null}
@@ -167,7 +170,7 @@ export default function TripDetailScreen({ navigation, route }: ScreenProps<'Tri
           {!terminal && acts ? (
             <>
               <SectionTitle text="Problems" />
-              {acts.delay ? <Button label="Report a delay" icon="time" variant="secondary" disabled={!!uncertain} onPress={() => setSheet('delay')} /> : null}
+              {acts.delay && trip.dispatchMode !== 'ON_CHARGE' ? <Button label="Report a delay" icon="time" variant="secondary" disabled={!!uncertain} onPress={() => setSheet('delay')} /> : null}
               {acts.cancel ? <Button label="Cancel trip" icon="close-circle" variant="rejectOutline" disabled={!!uncertain} onPress={() => setSheet('cancel')} /> : null}
               <Button label="Report a problem" icon="flag" variant="ghost" size="secondary" onPress={() => navigation.navigate('Support')} />
             </>

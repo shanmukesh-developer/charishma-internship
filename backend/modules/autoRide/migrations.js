@@ -32,6 +32,10 @@ const INDEXES = [
   ['auto_vehicles_reg', `CREATE UNIQUE INDEX IF NOT EXISTS "auto_vehicles_reg" ON "AutoVehicles" ("registrationNumber") WHERE "status" IN (${inList(E.VEHICLE_LIVE_STATUSES)});`],
   // One open full-auto request per customer per trip.
   ['auto_private_req_open', `CREATE UNIQUE INDEX IF NOT EXISTS "auto_private_req_open" ON "AutoPrivateRequests" ("userId", "tripId") WHERE "status" = '${E.PRIVATE_STATUS.REQUESTED}';`],
+  // Union queue: at most one auto ON_CHARGE per pickup point + route (two autos can never both take bookings
+  // for one line, whatever process promotes them), and the line lookup in check-in order.
+  ['auto_trips_line_on_charge', `CREATE UNIQUE INDEX IF NOT EXISTS "auto_trips_line_on_charge" ON "AutoTrips" ("pickupPointId", "routeId") WHERE "queueState" = '${E.QUEUE_STATE.ON_CHARGE}';`],
+  ['auto_trips_line_seq', 'CREATE INDEX IF NOT EXISTS "auto_trips_line_seq" ON "AutoTrips" ("pickupPointId", "routeId", "queueState", "lineSeq");'],
   // Lifecycle scans.
   ['auto_seats_trip_seat', 'CREATE INDEX IF NOT EXISTS "auto_seats_trip_seat" ON "AutoSeats" ("tripId", "seatNo");'],
 ];

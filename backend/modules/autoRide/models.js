@@ -100,6 +100,9 @@ const initAutoRideModels = (sequelize) => {
     distanceKm: { type: DataTypes.FLOAT, allowNull: true },
     seatFareMin: { type: DataTypes.FLOAT, allowNull: true },
     seatFareMax: { type: DataTypes.FLOAT, allowNull: true },
+    // Union queue: the per-seat fare an auto put on charge uses (admin-set, within seatFareMin..seatFareMax).
+    // Null = the route's minimum (or maximum) seat fare is used instead.
+    seatFareDefault: { type: DataTypes.FLOAT, allowNull: true },
     fullFareMin: { type: DataTypes.FLOAT, allowNull: true },
     fullFareMax: { type: DataTypes.FLOAT, allowNull: true },
     // [{ key: 'MORNING', label: 'Morning', start: '06:00', end: '12:00' }] (IST). Empty = one 'DAY' period.
@@ -183,6 +186,18 @@ const initAutoRideModels = (sequelize) => {
     almostFullNotifiedAt: { type: DataTypes.DATE, allowNull: true },
     fullNotifiedAt: { type: DataTypes.DATE, allowNull: true },
     reminderNotifiedAt: { type: DataTypes.DATE, allowNull: true },
+    // Union queue (see enums DISPATCH_MODE / QUEUE_STATE). Null dispatchMode = an older scheduled trip.
+    // departureAt of an ON_CHARGE trip is the latest time it may stay in line (now + chargeMaxHours; reset when
+    // it moves to the front, set to the moment the driver taps Depart). Indexes live in migrations.js
+    // (auto_trips_line_on_charge: at most one ON_CHARGE auto per pickup point + route).
+    dispatchMode: { type: DataTypes.STRING(12), allowNull: true },
+    queueState: { type: DataTypes.STRING(12), allowNull: true },
+    // Check-in serial in the line (from the AutoQueueCounters row LINE / CHARGE of the pickup point + route).
+    lineSeq: { type: DataTypes.INTEGER, allowNull: true },
+    chargeStartedAt: { type: DataTypes.DATE, allowNull: true },
+    chargeEndedAt: { type: DataTypes.DATE, allowNull: true },
+    // Seats filled by walk-in passengers (recomputed from the seat rows with the other counters).
+    seatsWalkIn: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
   }, {
     tableName: 'AutoTrips',
     timestamps: true,

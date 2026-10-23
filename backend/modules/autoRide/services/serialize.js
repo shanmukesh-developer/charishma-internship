@@ -54,6 +54,8 @@ const AVAILABILITY_LABELS = {
   IN_PROGRESS: 'On the way',
   CLOSED: 'Closed',
 };
+const Q = E.QUEUE_STATE;
+const isChargeTrip = (trip) => trip.dispatchMode === E.DISPATCH_MODE.ON_CHARGE;
 
 /** The single status block for a trip (same for customers, drivers and admins). */
 const tripStatus = (trip) => {
@@ -74,11 +76,24 @@ const tripStatus = (trip) => {
   else if (trip.status === T.BOARDING) availability = 'BOARDING';
   else if (trip.status === T.DELAYED) availability = 'DELAYED';
   else if (trip.status === T.IN_PROGRESS) availability = 'IN_PROGRESS';
+  // Union queue: an auto behind the front is not open yet; one that left the charge takes no more bookings
+  // even if a seat frees up later (the next auto is on charge by then).
+  let label = AVAILABILITY_LABELS[availability];
+  const charge = isChargeTrip(trip);
+  if (charge && trip.queueState === Q.WAITING && ['NOT_OPEN', 'AVAILABLE', 'FILLING_FAST', 'READY_TO_DEPART'].includes(availability)) label = 'Waiting in line';
+  else if (charge && trip.queueState === Q.DONE && ['AVAILABLE', 'FILLING_FAST', 'READY_TO_DEPART'].includes(availability)) {
+    availability = 'CLOSED';
+    label = 'Not taking bookings';
+  } else if (charge && trip.queueState === Q.ON_CHARGE && ['AVAILABLE', 'FILLING_FAST', 'READY_TO_DEPART'].includes(availability)) label = 'On charge now';
+  const walkIn = Number(trip.seatsWalkIn) || 0;
+  // An auto on charge (or waiting) has no departure time: it leaves when full or when the driver taps Depart.
+  // Its stored departureAt is only the latest time it may stay in line, so it is not shown.
+  const leavesWhenFull = charge && [T.PUBLISHED, T.OPEN_FOR_BOOKING, T.DEPARTURE_THRESHOLD_REACHED, T.FULL].includes(trip.status);
   return {
     status: trip.status,
     statusLabel: E.STATUS_LABELS[trip.status] || trip.status,
     availability,
-    availabilityLabel: AVAILABILITY_LABELS[availability],
+    availabilityLabel: label,
     mode: trip.mode,
     capacity,
     confirmedSeats: confirmed,
@@ -87,10 +102,18 @@ const tripStatus = (trip) => {
     remainingSeats: trip.mode === E.MODE.PRIVATE ? 0 : remaining,
     minSeatsToDepart: Number(trip.minSeatsToDepart) || capacity,
     queueNumber: trip.queueNumber || null,
-    departureAt: iso(trip.departureAt),
-    originalDepartureAt: iso(trip.originalDepartureAt),
+    departureAt: leavesWhenFull ? null : iso(trip.departureAt),
+    originalDepartureAt: charge ? null : iso(trip.originalDepartureAt),
+    leavesWhenFull,
     delayMinutes: Number(trip.delayMinutes) || 0,
     version: Number(trip.version) || 0,
+    // Union queue (null / SCHEDULED for published-departure trips).
+    dispatchMode: trip.dispatchMode || E.DISPATCH_MODE.SCHEDULED,
+    queueState: charge ? trip.queueState || null : null,
+    onCharge: charge && trip.queueState === Q.ON_CHARGE,
+    lineSeq: charge ? trip.lineSeq || null : null,
+    walkInSeats: walkIn,
+    appSeats: Math.max(0, confirmed - walkIn),
   };
 };
 
@@ -109,7 +132,8 @@ const pickupBrief = (p) => (p ? {
 const extraChargesOf = (row) => (Number(row && row.extraChargesAmount) > 0
   ? { amount: Number(row.extraChargesAmount), note: row.extraChargesNote || null } : null);
 
-const bookable = (trip) => E.BOOKABLE_STATUSES.includes(trip.status) && trip.mode === E.MODE.SHARED;
+const bookable = (trip) => E.BOOKABLE_STATUSES.includes(trip.status) && trip.mode === E.MODE.SHARED
+  && (!isChargeTrip(trip) || trip.queueState === Q.ON_CHARGE || trip.queueState === Q.WAITING);
 
 /** Trip card / detail for a customer. ctx: { driver, vehicle, route, pickup, myBooking } */
 const tripCustomer = (req, trip, ctx = {}) => {
@@ -122,6 +146,7 @@ const tripCustomer = (req, trip, ctx = {}) => {
     ...st,
     driver: d ? {
       name: shortName(d.name),
+      firstName: firstName(d.name),
       verified: d.status === E.DRIVER_STATUS.VERIFIED,
       photo: signed(req, d.documents && d.documents.photo),
       rating: Number(d.ratingCount) > 0 ? { avg: Math.round(Number(d.ratingAvg) * 10) / 10, count: Number(d.ratingCount) } : null,
@@ -144,7 +169,9 @@ const tripCustomer = (req, trip, ctx = {}) => {
     sharedBookingAllowed: bookable(trip) && st.remainingSeats > 0,
     privateBookingAllowed: !!trip.privateBookingEnabled && !!trip.fullAutoFare && bookable(trip)
       && (Number(trip.seatsConfirmed) || 0) + (Number(trip.seatsHeld) || 0) === 0,
-    queueNote: 'Queue order shows when autos checked in; the departure order can differ.',
+    queueNote: isChargeTrip(trip)
+      ? 'Autos leave the stand in line order. The auto on charge leaves first.'
+      : 'Queue order shows when autos checked in; the departure order can differ.',
     myBookingId: ctx.myBooking ? ctx.myBooking.id : null,
     myBookingStatus: ctx.myBooking ? ctx.myBooking.status : null,
   };
@@ -179,6 +206,8 @@ const tripDriver = (req, trip, ctx = {}) => ({
   completedAt: iso(trip.completedAt),
   cancelReason: trip.cancelReason || null,
   delayReason: trip.delayReason || null,
+  chargeStartedAt: iso(trip.chargeStartedAt),
+  chargeEndedAt: iso(trip.chargeEndedAt),
   createdAt: iso(trip.createdAt),
 });
 
@@ -301,6 +330,9 @@ const vehicleSelf = (req, v) => ({
 const routeFull = (r, pickups = []) => ({
   ...routeBrief(r),
   campusId: r.campusId || null,
+  seatFareDefault: r.seatFareDefault === null || r.seatFareDefault === undefined ? null : Number(r.seatFareDefault),
+  // The fare an auto put on charge uses (default, else min, else max), null when none is set.
+  chargeSeatFare: (require('./chargeLine').routeSeatFare(r) || {}).fare || null,
   seatFareMin: r.seatFareMin, seatFareMax: r.seatFareMax, fullFareMin: r.fullFareMin, fullFareMax: r.fullFareMax,
   operatingPeriods: Array.isArray(r.operatingPeriods) ? r.operatingPeriods : [],
   minSeatsToDepartDefault: r.minSeatsToDepartDefault || null,

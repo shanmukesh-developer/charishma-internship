@@ -8,7 +8,7 @@ import { apiFetch, apiUploadXhr } from '../lib/http';
 import type {
   BookingDriver, DriverAction, DriverNotification, DriverSelf, DriverSettings, Earnings, HomeResponse, Incident, IncidentCategory,
   MeResponse, MediaUpload, PrivateRequest, ProfileInput, QueueResponse, RouteFull, SeatMapResponse, Trip, TripInput, TripStatusBlock,
-  Vehicle, VehicleInput,
+  Vehicle, VehicleInput, ChargeSetup, LineEntry,
 } from '../types';
 
 const D = DRIVER_API;
@@ -95,6 +95,30 @@ export const driverApi = {
   updateVehicle: (id: string, input: VehicleInput) => apiFetch<{ vehicle: Vehicle }>(`${D}/vehicles/${enc(id)}`, { method: 'PATCH', body: input }),
   routes: () => apiFetch<{ routes: RouteFull[] }>(`${D}/routes`),
 
+  // ── Union queue (put on charge at a stand) ─────────────────────────────
+  /** GET /charge/setup -> stands (one per destination, fare, line length), approved autos, current trip. */
+  chargeSetup: () => apiFetch<ChargeSetup>(`${D}/charge/setup`),
+  /**
+   * POST /charge { pickupPointId, vehicleId, seatFare? } -> 201 { trip, line }. The trip is on charge (front) or waiting;
+   * both take bookings. seatFare: inside the route range (default = the route's set fare).
+   * 403 FEATURE_OFF / DRIVER_NOT_VERIFIED / VEHICLE_NOT_APPROVED, 400 FARE_OUT_OF_RANGE { min, max }, 409 DRIVER_OFFLINE /
+   * ACTIVE_TRIP_EXISTS / FARE_NOT_SET / VEHICLE_PAPERS_EXPIRED / LICENCE_EXPIRED.
+   */
+  putOnCharge: (pickupPointId: string, vehicleId: string, seatFare?: number) =>
+    apiFetch<{ trip: Trip; line: LineEntry[] }>(`${D}/charge`, { method: 'POST', body: { pickupPointId, vehicleId, ...(seatFare ? { seatFare } : {}) } }),
+  /** POST /trips/:id/fare { seatFare } -> { trip }. 409 FARE_LOCKED once a student booked, 400 FARE_OUT_OF_RANGE { min, max }. */
+  changeFare: (id: string, seatFare: number) =>
+    apiFetch<{ trip: Trip }>(`${D}/trips/${enc(id)}/fare`, { method: 'POST', body: { seatFare } }),
+  /** GET /trips/:id/line -> { trip, line } (409 NOT_ON_CHARGE_TRIP for a scheduled trip). */
+  tripLine: (id: string) => apiFetch<{ trip: Trip; line: LineEntry[] }>(`${D}/trips/${enc(id)}/line`),
+  /**
+   * POST /trips/:id/walk-ins { action, seatNo? } -> { trip, seatNo, action, layout, seats }. add takes the lowest free seat,
+   * remove frees the highest walk-in seat. 409 SEAT_BOOKED_IN_APP / SEAT_BEING_BOOKED / APP_BOOKING_SEAT / NO_FREE_SEAT /
+   * NO_WALK_IN / WALK_IN_CLOSED.
+   */
+  walkIn: (id: string, action: 'add' | 'remove', seatNo?: number) =>
+    apiFetch<{ trip: Trip; seatNo: number; action: 'add' | 'remove' } & Pick<SeatMapResponse, 'layout' | 'seats' | 'legend'>>(`${D}/trips/${enc(id)}/walk-ins`, { method: 'POST', body: { action, ...(seatNo ? { seatNo } : {}) } }),
+
   // ── Trips ──────────────────────────────────────────────────────────────
   trips: (scope?: 'active' | 'past' | 'draft') => apiFetch<{ trips: Trip[] }>(`${D}/trips${scope ? `?scope=${scope}` : ''}`),
   createDraft: (input: TripInput) => apiFetch<{ trip: Trip }>(`${D}/trips`, { method: 'POST', body: input }),
@@ -108,11 +132,12 @@ export const driverApi = {
   publish: (id: string) => apiFetch<{ trip: Trip }>(`${D}/trips/${enc(id)}/publish`, { method: 'POST' }),
   /**
    * POST /trips/:id/actions/:action. Bodies: confirm-departure { ready: true }, start { safetyConfirmed: true },
-   * delay { minutes 5..120, reason? }, cancel { reason >= 3 chars }, unavailable { kind: DRIVER|VEHICLE, reason }.
+   * delay { minutes 5..120, reason? }, cancel { reason >= 3 chars }, unavailable { kind: DRIVER|VEHICLE, reason },
+   * depart {} (union queue: leave the stand now; 409 AUTO_EMPTY / WAITING_IN_LINE).
    * 409 INVALID_TRANSITION { from, to } for anything the state machine does not allow.
    */
   action: (id: string, action: DriverAction, body: Record<string, unknown> = {}) =>
-    apiFetch<{ trip: Trip; bookingsCancelled?: number }>(`${D}/trips/${enc(id)}/actions/${action}`, { method: 'POST', body }),
+    apiFetch<{ trip: Trip; bookingsCancelled?: number; bookingsMoved?: number }>(`${D}/trips/${enc(id)}/actions/${action}`, { method: 'POST', body }),
   bookings: (id: string) => apiFetch<{ trip: TripStatusBlock & { id: string }; bookings: BookingDriver[] }>(`${D}/trips/${enc(id)}/bookings`),
   seats: (id: string) => apiFetch<SeatMapResponse>(`${D}/trips/${enc(id)}/seats`),
   /** 400 WRONG_PIN { attemptsLeft }, 429 PIN_LOCKED { attemptsLeft: 0, lockedUntil } (15 min), 404 NOT_FOUND, 409 NOT_BOARDING / NOT_CONFIRMED. */

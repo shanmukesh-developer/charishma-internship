@@ -11,6 +11,12 @@
 //  - private (full auto): a pending request holds nothing; the driver's accept succeeds only when the
 //    trip has ZERO live seats (else the request becomes CONFLICT), then books seats 1..capacity as one
 //    PRIVATE booking and the trip is FULL / mode PRIVATE. Shared holds on a PRIVATE trip -> 409 TRIP_PRIVATE.
+//  - union queue (services/chargeLine.js): autos on charge and waiting in line take holds; one that left the
+//    charge refuses with 409 AUTO_JUST_FILLED / AUTO_OFF_CHARGE { nextTripId }. When an auto in the line is
+//    cancelled or unavailable, its confirmed bookings move to the next auto with room (moveLineBookings).
+//  - walk-ins: the driver fills / frees seats for people who sat in without the app. They are real seat rows
+//    (one WALK_IN booking per trip, status BOARDED), so they count towards FULL like any booking and an app
+//    student can never be sold them; the driver can never free a seat an app student booked.
 const { Op } = require('sequelize');
 const { getModel } = require('../index');
 const E = require('../enums');
@@ -20,6 +26,7 @@ const { withTripLock, lockOpt } = require('./locks');
 const { syncAvailability, transitionTrip } = require('./stateMachine');
 const payments = require('./payments');
 const { readSettings } = require('./flag');
+const chargeLine = require('./chargeLine');
 
 const T = E.TRIP_STATUS;
 const B = E.BOOKING_STATUS;
@@ -36,11 +43,13 @@ const M = () => ({
 /** Seat counters from the seat rows (inside t). Mutates and saves the trip. */
 const recomputeCounters = async (trip, t) => {
   const { Seat, Trip } = M();
-  const rows = await Seat.findAll({ where: { tripId: trip.id, status: { [Op.in]: E.LIVE_SEAT_STATUSES } }, attributes: ['status'], transaction: t });
+  const rows = await Seat.findAll({ where: { tripId: trip.id, status: { [Op.in]: E.LIVE_SEAT_STATUSES } }, attributes: ['status', 'bookingId'], transaction: t });
+  const walkIds = new Set((await M().Booking.findAll({ where: { tripId: trip.id, type: E.BOOKING_TYPE.WALK_IN, status: { [Op.in]: E.LIVE_BOOKING_STATUSES } }, attributes: ['id'], transaction: t })).map((b) => String(b.id)));
   const held = rows.filter((r) => r.status === S.HELD).length;
   const confirmed = rows.filter((r) => r.status === S.CONFIRMED || r.status === S.BOARDED).length;
   const boarded = rows.filter((r) => r.status === S.BOARDED).length;
-  const changes = { seatsHeld: held, seatsConfirmed: confirmed, seatsBoarded: boarded };
+  const walkIn = rows.filter((r) => walkIds.has(String(r.bookingId))).length;
+  const changes = { seatsHeld: held, seatsConfirmed: confirmed, seatsBoarded: boarded, seatsWalkIn: walkIn };
   await Trip.update(changes, { where: { id: trip.id }, transaction: t });
   Object.assign(trip, changes);
   if (typeof trip.setDataValue === 'function') for (const [k, v] of Object.entries(changes)) trip.setDataValue(k, v);
@@ -94,6 +103,9 @@ const uniqueCode = async (t) => {
 const assertBookable = (trip) => {
   if (!trip || trip.status === T.DRAFT) throw fail(404, 'NOT_FOUND', 'This auto trip was not found.');
   if (trip.mode === E.MODE.PRIVATE) throw fail(409, 'TRIP_PRIVATE', 'This auto has been booked as a full auto. Pick another auto.');
+  if (chargeLine.isCharge(trip) && ![E.QUEUE_STATE.ON_CHARGE, E.QUEUE_STATE.WAITING].includes(trip.queueState)) {
+    throw fail(409, 'AUTO_OFF_CHARGE', 'This auto is no longer taking bookings.');
+  }
   if (trip.status === T.FULL) throw fail(409, 'TRIP_FULL', 'This auto is full. Pick another auto.');
   if (!E.BOOKABLE_STATUSES.includes(trip.status)) throw fail(409, 'BOOKING_CLOSED', `Booking is closed for this auto (${E.STATUS_LABELS[trip.status] || trip.status}).`, { status: trip.status });
   if (new Date(trip.departureAt).getTime() <= clock.nowMs()) throw fail(409, 'BOOKING_CLOSED', 'This auto is about to depart. Booking is closed.');
@@ -144,8 +156,16 @@ const hold = async ({ tripId, userId, seatCount, seatNumbers, idempotencyKey }) 
           }
         }
       }
-      assertBookable(trip);
       const mine = await Booking.findOne({ where: { tripId: trip.id, userId, status: { [Op.in]: E.LIVE_BOOKING_STATUSES } }, transaction: t });
+      if (!mine) {
+        // Union queue: an auto that left the charge takes no more bookings; the refusal names the auto on charge.
+        const refusal = await chargeLine.bookingRefusal(trip, t);
+        if (refusal) {
+          if (expired.length) await recomputeCounters(trip, t);
+          return { refused: refusal, trip, expired };
+        }
+      }
+      assertBookable(trip);
       if (mine && mine.status === B.HELD) {
         if (expired.length) await recomputeCounters(trip, t);
         return { booking: mine, trip, created: false, expired };
@@ -173,7 +193,7 @@ const hold = async ({ tripId, userId, seatCount, seatNumbers, idempotencyKey }) 
         if (clash.length) throw fail(409, 'SEAT_TAKEN', `Seat ${clash.join(', ')} was just taken. Pick another seat.`, { seats: clash, available: free });
         chosen = want.sort((a, b) => a - b);
       } else {
-        if (free.length === 0) throw fail(409, 'TRIP_FULL', 'All seats on this auto are taken.');
+        if (free.length === 0) throw fail(409, 'TRIP_FULL', chargeLine.isCharge(trip) ? 'All seats on this auto are taken or being booked right now. Try again in a minute.' : 'All seats on this auto are taken.');
         if (free.length < count) throw fail(409, 'NOT_ENOUGH_SEATS', `Only ${free.length} seat${free.length === 1 ? '' : 's'} left on this auto.`, { available: free.length });
         chosen = free.slice(0, count);
       }
@@ -477,7 +497,9 @@ const checkIn = async ({ tripId, driverId, bookingCode, pin, cashCollected }) =>
   if (!p) throw fail(400, 'INVALID_INPUT', 'Enter the passenger\'s 4-digit PIN.', { field: 'pin' });
   const out = await withTripLock(tripId, async (t, trip) => {
     if (String(trip.driverId) !== String(driverId)) throw fail(404, 'NOT_FOUND', 'Trip not found.');
-    if (trip.status !== T.BOARDING) throw fail(409, 'NOT_BOARDING', 'Start boarding first, then check passengers in.');
+    // Union queue: students sit in the auto while it fills at the stand, so it can check them in while on charge.
+    const atStand = chargeLine.isCharge(trip) && [T.OPEN_FOR_BOOKING, T.DEPARTURE_THRESHOLD_REACHED, T.FULL, T.DRIVER_CONFIRMED].includes(trip.status);
+    if (trip.status !== T.BOARDING && !atStand) throw fail(409, 'NOT_BOARDING', 'Start boarding first, then check passengers in.');
     const b = await Booking.findOne({ where: { tripId: trip.id, bookingCode: code }, ...lockOpt(t) });
     if (!b) return { wrong: 'NO_BOOKING' };
     if (b.status === B.BOARDED) return { booking: b, trip, already: true };
@@ -533,6 +555,149 @@ const markNoShow = async ({ tripId, driverId, bookingId }) => {
   });
 };
 
+// ── Union queue: moving bookings off an auto that leaves the line ──────────────
+
+/**
+ * Inside the lock of trip `from` (an auto in a line that is being cancelled / made unavailable): moves every
+ * CONFIRMED / BOARDED app booking, whole, to the first other auto in the same line (on charge first, then in line
+ * order) that is still taking bookings and has enough free seats. A booking is never split; one that fits
+ * nowhere stays on `from` (the caller cancels it as before). The student keeps the original fare (amount and
+ * seatFare unchanged), the booking code and the PIN; a checked-in student must check in again on the new auto.
+ * Candidate rows are locked first, before anything takes the line row (lock order trip -> trips -> line).
+ * Returns { moved: [{ booking, to }], expired: [] }.
+ */
+const moveLineBookings = async (from, t) => {
+  const { Booking, Seat, Trip } = M();
+  const bookings = await Booking.findAll({
+    where: { tripId: from.id, status: { [Op.in]: [B.CONFIRMED, B.BOARDED] }, type: E.BOOKING_TYPE.SHARED },
+    order: [['confirmedAt', 'ASC'], ['createdAt', 'ASC']], transaction: t,
+  });
+  if (!bookings.length || !chargeLine.isCharge(from)) return { moved: [], expired: [] };
+  const line = (await chargeLine.lineTrips(from.pickupPointId, from.routeId, t)).filter((x) => String(x.id) !== String(from.id));
+  const cands = [];
+  for (const c of line) {
+    const tr = await Trip.findByPk(c.id, lockOpt(t));
+    if (tr) cands.push(tr);
+  }
+  const open = (c) => E.BOOKABLE_STATUSES.includes(c.status) && c.mode === E.MODE.SHARED
+    && [E.QUEUE_STATE.ON_CHARGE, E.QUEUE_STATE.WAITING].includes(c.queueState);
+  const expired = [];
+  for (const c of cands) {
+    if (!open(c)) continue;
+    const ex = await expireStaleHolds(c, t);
+    if (ex.length) { expired.push(...ex); await recomputeCounters(c, t); }
+  }
+  const now = clock.now();
+  const moved = [];
+  for (const b of bookings) {
+    let target = null;
+    let seats = null;
+    for (const c of cands) {
+      if (!open(c)) continue;
+      const taken = await liveSeatNumbers(c.id, t);
+      const free = seatList(c).filter((n) => !taken.has(n));
+      if (free.length < Number(b.seatCount)) continue;
+      // One live booking per student per auto (unique index): a student already on that auto stays put.
+      const clash = await Booking.findOne({ where: { tripId: c.id, userId: b.userId, status: { [Op.in]: E.LIVE_BOOKING_STATUSES } }, attributes: ['id'], transaction: t });
+      if (clash) continue;
+      target = c;
+      seats = free.slice(0, Number(b.seatCount));
+      break;
+    }
+    if (!target) continue;
+    await releaseSeatsOf([b.id], t);
+    await Seat.bulkCreate(seats.map((seatNo) => ({ tripId: target.id, seatNo, bookingId: b.id, status: S.CONFIRMED })), { transaction: t });
+    const fb = { ...(b.fareBreakdown || {}), movedFromTripId: from.id, movedAt: now.toISOString() };
+    const [n] = await Booking.update(
+      { tripId: target.id, driverId: target.driverId, seatNumbers: seats, status: B.CONFIRMED, boardedAt: null, pinAttempts: 0, pinLockedUntil: null, fareBreakdown: fb },
+      { where: { id: b.id, tripId: from.id, status: b.status }, transaction: t },
+    );
+    if (!n) throw fail(409, 'BOOKING_CHANGED', 'A booking changed just now. Please try again.');
+    await recomputeCounters(target, t);
+    await syncAvailability(target, { t });
+    moved.push({ booking: await Booking.findByPk(b.id, { transaction: t }), to: target });
+  }
+  await recomputeCounters(from, t);
+  return { moved, expired };
+};
+
+// ── Walk-in passengers (union queue stand) ──────────────────────────────────
+
+const walkInBookingOf = (tripId, t) => M().Booking.findOne({ where: { tripId, type: E.BOOKING_TYPE.WALK_IN, status: { [Op.in]: E.LIVE_BOOKING_STATUSES } }, ...lockOpt(t) });
+
+/**
+ * The driver fills (action 'add') or frees (action 'remove') one walk-in seat. seatNo optional: add takes the
+ * lowest free seat, remove frees the highest walk-in seat. Returns { trip, seatNo, action, statusChanged, expired }.
+ * Refusals: 409 SEAT_BOOKED_IN_APP / SEAT_BEING_BOOKED (add on an app seat), APP_BOOKING_SEAT (remove an app
+ * student's seat), ALREADY_WALK_IN, NO_FREE_SEAT, NO_WALK_IN, WALK_IN_CLOSED (auto not at the stand), TRIP_PRIVATE.
+ */
+const walkIn = async ({ tripId, driverId, action, seatNo }) => {
+  const { Booking, Seat } = M();
+  const act = String(action || '').toLowerCase();
+  if (!['add', 'remove'].includes(act)) throw fail(400, 'INVALID_INPUT', 'action must be add or remove.', { field: 'action' });
+  const want = seatNo === undefined || seatNo === null || seatNo === '' ? null : Number(seatNo);
+  return withTripLock(tripId, async (t, trip) => {
+    if (String(trip.driverId) !== String(driverId)) throw fail(404, 'NOT_FOUND', 'Trip not found.');
+    if (!E.WALK_IN_STATUSES.includes(trip.status)) throw fail(409, 'WALK_IN_CLOSED', 'Walk-in seats can be changed only while the auto is at the stand.', { status: trip.status });
+    if (trip.mode === E.MODE.PRIVATE) throw fail(409, 'TRIP_PRIVATE', 'This auto is booked as a full auto.');
+    const cap = Number(trip.capacity) || 0;
+    if (want !== null && (!Number.isInteger(want) || want < 1 || want > cap)) throw fail(400, 'INVALID_INPUT', `Seat must be 1 to ${cap}.`, { field: 'seatNo' });
+    const expired = await expireStaleHolds(trip, t);
+    const live = await Seat.findAll({ where: { tripId: trip.id, status: { [Op.in]: E.LIVE_SEAT_STATUSES } }, transaction: t });
+    let walk = await walkInBookingOf(trip.id, t);
+    const walkNos = new Set((walk ? live.filter((x) => String(x.bookingId) === String(walk.id)) : []).map((x) => Number(x.seatNo)));
+    const now = clock.now();
+    let chosen;
+    if (act === 'add') {
+      const byNo = new Map(live.map((x) => [Number(x.seatNo), x]));
+      if (want !== null) {
+        const row = byNo.get(want);
+        if (row && walkNos.has(want)) throw fail(409, 'ALREADY_WALK_IN', `Seat ${want} is already marked as filled.`, { seatNo: want });
+        if (row && row.status === S.HELD) throw fail(409, 'SEAT_BEING_BOOKED', `Seat ${want} is being booked in the app right now. Pick another seat.`, { seatNo: want });
+        if (row) throw fail(409, 'SEAT_BOOKED_IN_APP', `Seat ${want} is booked in the app by a student.`, { seatNo: want });
+        chosen = want;
+      } else {
+        chosen = seatList(trip).find((n) => !byNo.has(n));
+        if (!chosen) throw fail(409, 'NO_FREE_SEAT', 'Every seat is already filled or being booked.');
+      }
+      if (!walk) {
+        walk = await Booking.create({
+          bookingCode: await uniqueCode(t), tripId: trip.id, userId: trip.driverId, driverId: trip.driverId, type: E.BOOKING_TYPE.WALK_IN,
+          seatCount: 1, seatNumbers: [chosen], status: B.BOARDED, confirmedAt: now, boardedAt: now,
+          paymentMethod: E.PAYMENT_METHODS.CASH, paymentStatus: E.PAYMENT_STATUS.NONE, seatFare: money(trip.seatFare), amount: 0,
+          fareBreakdown: { walkIn: true, note: 'Paid to the driver directly' }, passengerCount: 1,
+        }, { transaction: t });
+      } else {
+        const nums = [...walkNos, chosen].sort((a, b) => a - b);
+        await Booking.update({ seatCount: nums.length, seatNumbers: nums, passengerCount: nums.length }, { where: { id: walk.id }, transaction: t });
+      }
+      await Seat.create({ tripId: trip.id, seatNo: chosen, bookingId: walk.id, status: S.BOARDED }, { transaction: t });
+    } else {
+      if (want !== null) {
+        if (!walkNos.has(want)) {
+          if (live.some((x) => Number(x.seatNo) === want)) throw fail(409, 'APP_BOOKING_SEAT', `Seat ${want} was booked in the app by a student. Only walk-in seats can be freed here.`, { seatNo: want });
+          throw fail(409, 'NO_WALK_IN', `Seat ${want} is already free.`, { seatNo: want });
+        }
+        chosen = want;
+      } else {
+        if (!walkNos.size) throw fail(409, 'NO_WALK_IN', 'There are no walk-in seats to free.');
+        chosen = Math.max(...walkNos);
+      }
+      await Seat.update({ status: S.RELEASED, releasedAt: now }, { where: { tripId: trip.id, bookingId: walk.id, seatNo: chosen, status: { [Op.in]: E.LIVE_SEAT_STATUSES } }, transaction: t });
+      const nums = [...walkNos].filter((n) => n !== chosen).sort((a, b) => a - b);
+      if (nums.length) {
+        await Booking.update({ seatCount: nums.length, seatNumbers: nums, passengerCount: nums.length }, { where: { id: walk.id }, transaction: t });
+      } else {
+        await Booking.update({ seatCount: 0, seatNumbers: [], passengerCount: 0, status: B.CANCELLED, cancelledAt: now, cancelledBy: 'driver', cancelReason: 'Walk-in seats freed' }, { where: { id: walk.id }, transaction: t });
+      }
+    }
+    await recomputeCounters(trip, t);
+    const before = trip.status;
+    await syncAvailability(trip, { t, actor: 'system' });
+    return { trip, seatNo: chosen, action: act, statusChanged: before !== trip.status, expired };
+  });
+};
+
 /** Lifecycle helper: expire stale holds of one trip in its lock. */
 const expireTripHolds = (tripId) => withTripLock(tripId, async (t, trip) => {
   const expired = await expireStaleHolds(trip, t);
@@ -546,5 +711,5 @@ const expireTripHolds = (tripId) => withTripLock(tripId, async (t, trip) => {
 module.exports = {
   hold, confirm, cancelByCustomer, cancelOneInTx, closeTripBookings, recomputeCounters, expireStaleHolds, expireTripHolds,
   releaseSeatsOf, liveSeatNumbers, createPrivateRequest, acceptPrivateRequest, declinePrivateRequest, cancelPrivateRequest,
-  checkIn, markNoShow, assertBookable, transitionTrip, privateFare,
+  checkIn, markNoShow, assertBookable, transitionTrip, privateFare, walkIn, moveLineBookings,
 };

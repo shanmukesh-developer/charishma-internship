@@ -5,9 +5,11 @@
  * The arrangement is the trip's seatLayout (server, set by the admin at vehicle approval): rows front to
  * back, 'D' = driver seat, null = gap, numbers = passenger seats 1..capacity (up to 6 rows x 5 places).
  * Every state has its own colour AND icon AND word, so it never relies on colour alone.
+ * Union queue: WALK_IN = a seat the driver marked as filled by someone without the app. With onSeatPress the
+ * seats become buttons (tap a free seat to fill it, a walk-in seat to free it).
  */
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Path, Rect, Stop } from 'react-native-svg';
 import type { LayoutCell, SeatState } from '../types';
 
@@ -18,15 +20,20 @@ export const SEAT_META: Record<DriverSeatState, { label: string; word: string; i
   HELD: { label: 'Held (not paid yet)', word: 'HELD', icon: '⏳', color: '#F59E0B', fg: '#78350F', bg: '#FEF3C7' },
   BOOKED: { label: 'Booked', word: 'BOOKED', icon: '✓', color: '#475569', fg: '#FFFFFF', bg: '#64748B' },
   BOARDED: { label: 'Boarded', word: 'IN', icon: '★', color: '#7C3AED', fg: '#FFFFFF', bg: '#7C3AED' },
+  WALK_IN: { label: 'Walk-in', word: 'Walk-in', icon: '●', color: '#0F766E', fg: '#FFFFFF', bg: '#0F766E' },
   UNAVAILABLE: { label: 'Closed', word: 'CLOSED', icon: '—', color: '#CBD5E1', fg: '#64748B', bg: '#F1F5F9' },
 };
-const LEGEND: DriverSeatState[] = ['AVAILABLE', 'HELD', 'BOOKED', 'BOARDED', 'UNAVAILABLE'];
+const LEGEND: DriverSeatState[] = ['AVAILABLE', 'HELD', 'BOOKED', 'BOARDED', 'WALK_IN', 'UNAVAILABLE'];
 
-export default function SeatMap({ rows, states, labels }: {
+export default function SeatMap({ rows, states, labels, onSeatPress, busySeat }: {
   rows: LayoutCell[][];
   states: Record<number, DriverSeatState>;
   /** seat -> passenger first name (bookings list) */
   labels?: Record<number, string>;
+  /** Makes every passenger seat a button (walk-in editing). */
+  onSeatPress?: (seatNo: number, state: DriverSeatState) => void;
+  /** Seat whose change is being sent (dimmed). */
+  busySeat?: number | null;
 }) {
   const [w, setW] = useState(0);
   const cols = useMemo(() => Math.max(1, ...rows.map((r) => r.length)), [rows]);
@@ -74,15 +81,31 @@ export default function SeatMap({ rows, states, labels }: {
                 const state = states[n] || 'UNAVAILABLE';
                 const m = SEAT_META[state];
                 const who = labels && labels[n];
-                return (
-                  <View
-                    key={ci}
-                    accessibilityLabel={`Seat ${n}, ${m.label}${who ? `, ${who}` : ''}`}
-                    style={[st.seat, { width: seat, height: seat, backgroundColor: m.bg, borderColor: m.color, borderStyle: state === 'UNAVAILABLE' ? 'dashed' : 'solid' }]}
-                  >
+                const seatStyle = [st.seat, { width: seat, height: seat, backgroundColor: m.bg, borderColor: m.color, borderStyle: state === 'UNAVAILABLE' ? 'dashed' as const : 'solid' as const }, busySeat === n ? { opacity: 0.5 } : null];
+                const inner = (
+                  <>
                     <View style={[st.backrest, { backgroundColor: m.color }]} />
                     <Text style={{ fontSize: seat * 0.32, fontWeight: '900', color: m.fg }}>{n}</Text>
                     <Text style={[st.seatSub, { color: m.fg }]} numberOfLines={1}>{who ? who.slice(0, 8) : `${m.icon ? `${m.icon} ` : ''}${m.word}`}</Text>
+                  </>
+                );
+                if (onSeatPress) {
+                  return (
+                    <Pressable
+                      key={ci}
+                      onPress={() => onSeatPress(n, state)}
+                      disabled={busySeat === n}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Seat ${n}, ${m.label}${who ? `, ${who}` : ''}${state === 'AVAILABLE' ? '. Tap to mark as filled' : state === 'WALK_IN' ? '. Tap to free' : ''}`}
+                      style={({ pressed }) => [...seatStyle, pressed ? { transform: [{ scale: 0.96 }] } : null]}
+                    >
+                      {inner}
+                    </Pressable>
+                  );
+                }
+                return (
+                  <View key={ci} accessibilityLabel={`Seat ${n}, ${m.label}${who ? `, ${who}` : ''}`} style={seatStyle}>
+                    {inner}
                   </View>
                 );
               })}

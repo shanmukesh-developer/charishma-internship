@@ -58,6 +58,12 @@ driverRouter.post('/incidents', handler(DP.reportIncident, 'AUTORIDE_DRIVER'));
 driverRouter.post('/sos', handler(DP.sos, 'AUTORIDE_DRIVER_SOS'));
 driverRouter.get('/settings', handler(DP.settings, 'AUTORIDE_DRIVER'));
 driverRouter.get('/pickup-points/:id/queue', handler(DP.pickupQueue, 'AUTORIDE_DRIVER'));
+// Union queue: put the auto on charge at a stand, the line, walk-in seats (Depart = actions/depart).
+driverRouter.get('/charge/setup', handler(DT.chargeSetup, 'AUTORIDE_DRIVER_CHARGE'));
+driverRouter.post('/charge', handler(DT.putOnCharge, 'AUTORIDE_DRIVER_CHARGE'));
+driverRouter.get('/trips/:id/line', handler(DT.tripLine, 'AUTORIDE_DRIVER_CHARGE'));
+driverRouter.post('/trips/:id/walk-ins', handler(DT.walkIns, 'AUTORIDE_DRIVER_WALKIN'));
+driverRouter.post('/trips/:id/fare', handler(DT.changeFare, 'AUTORIDE_DRIVER_CHARGE'));
 driverRouter.get('/trips', handler(DT.list, 'AUTORIDE_DRIVER_TRIPS'));
 driverRouter.post('/trips', handler(DT.create, 'AUTORIDE_DRIVER_TRIPS'));
 driverRouter.get('/trips/:id', handler(DT.detail, 'AUTORIDE_DRIVER_TRIPS'));
@@ -84,6 +90,7 @@ router.get('/settings/public', own, handler(C.settingsPublic, 'AUTORIDE_STATUS')
 router.get('/routes', on, handler(C.routes, 'AUTORIDE_ROUTES'));
 router.get('/pickup-points', on, handler(C.pickupPoints, 'AUTORIDE_PICKUPS'));
 router.get('/pickup-points/:id/queue', on, handler(C.pickupQueue, 'AUTORIDE_QUEUE'));
+router.get('/on-charge', on, handler(C.onChargeBoard, 'AUTORIDE_BOARD'));
 router.get('/trips', on, handler(C.browse, 'AUTORIDE_BROWSE'));
 router.get('/trips/:id', on, handler(C.detail, 'AUTORIDE_TRIP'));
 router.get('/trips/:id/seats', on, handler(C.seats, 'AUTORIDE_SEATS'));
@@ -135,6 +142,7 @@ adminRouter.get('/trips', a(A.trips));
 adminRouter.get('/trips/:id', a(A.tripDetail));
 adminRouter.post('/trips/:id/cancel', a(A.cancelTrip));
 adminRouter.get('/queues', a(A.queues));
+adminRouter.get('/lines', a(A.lines));
 adminRouter.get('/bookings', a(A.bookings));
 adminRouter.post('/bookings/:id/cancel', a(A.cancelBooking));
 adminRouter.post('/bookings/:id/refund', a(A.retryRefund));

@@ -10,6 +10,8 @@ export type RootStack = {
   Vehicles: undefined;
   VehicleForm: { vehicleId?: string } | undefined;
   Publish: { draftId?: string } | undefined;
+  PutOnCharge: undefined;
+  Charge: { tripId: string };
   TripDetail: { tripId: string; tab?: 'status' | 'seats' | 'bookings' };
   CheckIn: { tripId: string };
   Requests: undefined;

@@ -30,8 +30,13 @@ export const STATUS_TONE = (s: string): { fg: string; bg: string } => {
   return { fg: color.alertDark, bg: color.alertTint };
 };
 
+/** Union queue: an auto put on charge that is still at the stand (the stand view is its home). */
+export const atStand = (t: Pick<Trip, 'dispatchMode' | 'status'>) => t.dispatchMode === 'ON_CHARGE'
+  && ['PUBLISHED', 'OPEN_FOR_BOOKING', 'DEPARTURE_THRESHOLD_REACHED', 'FULL'].includes(t.status);
+
 export function TripSummaryCard({ trip, onPress }: { trip: Trip; onPress?: () => void }) {
   const tone = STATUS_TONE(trip.status);
+  const charge = trip.dispatchMode === 'ON_CHARGE';
   return (
     <Pressable onPress={onPress} disabled={!onPress} accessibilityRole="button" accessibilityLabel={`Current trip ${trip.route?.name || ''}, ${trip.statusLabel}`}
       style={({ pressed }) => [styles.trip, pressed && onPress ? { opacity: 0.85 } : null]}>
@@ -39,14 +44,19 @@ export function TripSummaryCard({ trip, onPress }: { trip: Trip; onPress?: () =>
         <Badge text={trip.statusLabel.toUpperCase()} fg={tone.fg} bg={tone.bg} />
         {trip.mode === 'PRIVATE' ? <Badge text="FULL AUTO" fg={color.boarded} bg={color.boardedTint} /> : null}
         <View style={{ flex: 1 }} />
-        {trip.queueNumber ? <Text style={[font.h2, { color: color.text }]}>Queue #{trip.queueNumber}</Text> : null}
+        {charge && trip.line ? <Text style={[font.h2, { color: color.text }]}>{trip.onCharge ? 'On charge' : `Waiting · #${trip.line.position}`}</Text>
+          : trip.queueNumber && !charge ? <Text style={[font.h2, { color: color.text }]}>Queue #{trip.queueNumber}</Text> : null}
       </View>
       <Text style={[font.h2, { color: color.text }]} numberOfLines={2}>{trip.route ? `${trip.route.origin} → ${trip.destination || trip.route.destination}` : trip.destination}</Text>
       <Text style={[font.body, { color: color.textSecondary }]}>Pickup: {trip.pickup?.name || '—'}{trip.pickup?.landmark ? ` (${trip.pickup.landmark})` : ''}</Text>
       <View style={{ flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' }}>
         <StatBox label="Passengers" value={`${trip.confirmedSeats}/${trip.capacity}`} sub={trip.heldSeats ? `${trip.heldSeats} seat${trip.heldSeats === 1 ? '' : 's'} being booked` : undefined} />
         <StatBox label="Seats left" value={String(trip.remainingSeats)} />
-        <StatBox label="Departure" value={timeIst(trip.departureAt)} sub={`${dayIst(trip.departureAt)} · ${relative(trip.departureAt)}${trip.delayMinutes ? ` · delayed ${trip.delayMinutes} min` : ''}`} />
+        {charge && atStand(trip) ? (
+          <StatBox label="Walk-in" value={String(trip.walkInSeats || 0)} sub="Leaves when full or on Depart" />
+        ) : (
+          <StatBox label="Departure" value={timeIst(trip.departureAt)} sub={`${dayIst(trip.departureAt)} · ${relative(trip.departureAt)}${trip.delayMinutes ? ` · delayed ${trip.delayMinutes} min` : ''}`} />
+        )}
       </View>
       {onPress ? <Text style={[font.small, { color: color.info, fontWeight: '800' }]}>Open trip ›</Text> : null}
     </Pressable>
@@ -102,6 +112,11 @@ export default function HomeScreen({ navigation }: ScreenProps<'Home'>) {
     }
   };
 
+  const openTrip = (t: Trip) => (atStand(t) ? navigation.navigate('Charge', { tripId: t.id }) : navigation.navigate('TripDetail', { tripId: t.id }));
+  const putOnCharge = () => {
+    if (h?.currentTrip) { openTrip(h.currentTrip); return; }
+    navigation.navigate('PutOnCharge');
+  };
   const startTrip = () => {
     if (h?.currentTrip) {
       Alert.alert('You have an active trip', 'Finish or cancel the current trip before starting a new one.', [
@@ -158,9 +173,16 @@ export default function HomeScreen({ navigation }: ScreenProps<'Home'>) {
             ) : null}
 
             <SectionTitle text="Current trip" />
-            {cur ? <TripSummaryCard trip={cur} onPress={() => navigation.navigate('TripDetail', { tripId: cur.id })} /> : (
-              <Card><Text style={[font.body, { color: color.textSecondary }]}>No active trip. Start a new auto trip when you are at the pickup point.</Text></Card>
+            {cur ? <TripSummaryCard trip={cur} onPress={() => openTrip(cur)} /> : (
+              <Card><Text style={[font.body, { color: color.textSecondary }]}>No active trip. Put your auto on charge when you reach the stand.</Text></Card>
             )}
+            <Button
+              label={cur && atStand(cur) ? 'Open the stand view' : cur ? 'Open current trip' : 'Put on charge'}
+              icon={cur ? 'arrow-forward' : 'flash'}
+              size="huge"
+              variant="accept"
+              onPress={putOnCharge}
+            />
 
             <View style={{ flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' }}>
               <StatBox label="Today's trips" value={String(h.todayTrips.length)} sub={`${h.todayTrips.filter((t) => t.status === 'COMPLETED').length} completed`} />
@@ -182,7 +204,7 @@ export default function HomeScreen({ navigation }: ScreenProps<'Home'>) {
               </>
             ) : null}
 
-            <Button label="Start new auto trip" icon="add-circle" size="huge" variant="accept" onPress={startTrip} />
+            <Button label="Schedule a trip with a set time" icon="calendar" variant="secondary" size="secondary" onPress={startTrip} />
             <SectionTitle text="Menu" />
             <ListRow icon="grid" title="Manage seats" onPress={() => needTrip('seats')} />
             <ListRow icon="list" title="View bookings" onPress={() => needTrip('bookings')} />

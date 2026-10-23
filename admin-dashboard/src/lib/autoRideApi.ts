@@ -106,18 +106,36 @@ export interface Route {
   seatFareMin: number | null; seatFareMax: number | null; fullFareMin: number | null; fullFareMax: number | null;
   operatingPeriods: OperatingPeriod[]; minSeatsToDepartDefault: number | null; permittedStops: string[]; isActive: boolean;
   sortOrder: number; pickupPoints: PickupPoint[];
+  /** Union queue: the default seat fare autos put on charge use, and the fare in effect (default, else min, else max). */
+  seatFareDefault?: number | null; chargeSeatFare?: number | null;
 }
 /** Body for POST /routes and PATCH /routes/:id (controllers/admin.js routeInput). */
 export interface RouteInput {
   name: string; originLabel: string; destinationLabel: string; distanceKm: number | null;
   seatFareMin: number | null; seatFareMax: number | null; fullFareMin: number | null; fullFareMax: number | null;
   operatingPeriods: OperatingPeriod[]; minSeatsToDepartDefault: number | null; permittedStops: string[]; isActive: boolean; sortOrder: number;
+  seatFareDefault?: number | null;
 }
 export interface PickupInput { name: string; landmark: string | null; lat: number | null; lon: number | null; sequence: number; isActive: boolean }
 
 export interface QueueItem extends TripStatusBlock {
   id: string; pickup: { id: string; name: string; landmark: string | null; lat: number | null; lon: number | null; mapsUrl: string | null } | null;
   periodKey: string | null; driverId: string; checkInAt: string | null;
+}
+
+/** GET /lines: one auto in a stand's line (position 1 = on charge). */
+export interface ChargeLineAuto {
+  position: number; tripId: string; driverId: string; driverName: string | null; driverPhoneMasked: string | null; registration: string | null;
+  queueState: 'WAITING' | 'ON_CHARGE' | 'DONE' | null; status: string; statusLabel: string; capacity: number; appSeats: number; walkInSeats: number;
+  heldSeats: number; remainingSeats: number; seatFare: number; lineSeq: number | null; checkedInAt: string | null; onChargeSince: string | null;
+}
+/** GET /lines: a stand (pickup point + route) and its live line. */
+export interface ChargeLine {
+  key: string;
+  route: { id: string; name: string; origin: string; destination: string; distanceKm: number | null; isActive: boolean; seatFareDefault: number | null; seatFareMin: number | null; seatFareMax: number | null };
+  pickup: { id: string; name: string; landmark: string | null; mapsUrl: string | null; isActive: boolean };
+  seatFare: number | null; fareSource: 'DEFAULT' | 'MIN' | 'MAX' | null;
+  autos: ChargeLineAuto[];
 }
 
 export interface FareRoute { routeId: string; name: string; seatFareMin: number | null; seatFareMax: number | null; fullFareMin: number | null; fullFareMax: number | null; trips: number; avgSeatFare: number | null }
@@ -128,6 +146,7 @@ export interface Settings {
   platformMaxCapacity: number; holdMinutes: number; privateRespondMinutes: number; maxSeatsPerBooking: number; maxAdvanceDays: number;
   reminderMinutes: number; noShowGraceMinutes: number; autoCompleteHours: number;
   customerRefundBeforeConfirmPct: number; customerRefundAfterConfirmPct: number;
+  chargeMaxHours: number;
 }
 export type NumericSettingKey = Exclude<keyof Settings, 'enabled' | 'walletEnabled' | 'devOverride'>;
 /** Same ranges as services/flag.js writeSettings (whole numbers). */
@@ -135,6 +154,7 @@ export const SETTING_RANGES: Record<NumericSettingKey, [number, number]> = {
   platformMaxCapacity: [1, LIMITS.ABSOLUTE_MAX_CAPACITY], holdMinutes: [1, 30], privateRespondMinutes: [2, 120],
   maxSeatsPerBooking: [1, LIMITS.ABSOLUTE_MAX_CAPACITY], maxAdvanceDays: [0, 30], reminderMinutes: [0, 120],
   noShowGraceMinutes: [5, 240], autoCompleteHours: [1, 48], customerRefundBeforeConfirmPct: [0, 100], customerRefundAfterConfirmPct: [0, 100],
+  chargeMaxHours: [1, 24],
 };
 
 export interface AuditEntry { id: string | number; adminId: string; actor?: { id: string; name: string | null }; targetId: string; action: string; details: unknown; at: string | null }
@@ -176,6 +196,8 @@ export const autoRideApi = {
   trips: (opts: { status?: string; date?: string; driverId?: string; routeId?: string; pickupPointId?: string; vehicleId?: string } & PageOpts = {}) => get<{ trips: Trip[]; pagination?: Pagination }>(`/trips${qs({ ...opts })}`),
   trip: (tripId: string) => get<{ trip: Trip; bookings: Booking[]; privateRequests: PrivateRequest[]; events: TripEvent[] }>(`/trips/${id(tripId)}`),
   cancelTrip: (tripId: string, reason: string) => send<{ trip: Trip; bookingsCancelled: number }>('POST', `/trips/${id(tripId)}/cancel`, { reason }),
+  /** Union queue: every stand with the auto on charge, the autos waiting behind it, app seats and walk-ins. */
+  lines: () => get<{ lines: ChargeLine[]; serverTime: string }>('/lines'),
   queues: (opts: { date?: string; pickupPointId?: string; routeId?: string } & PageOpts = {}) => get<{ date: string; queue: QueueItem[]; pagination?: Pagination }>(`/queues${qs({ ...opts })}`),
 
   /** phone: the full 10-digit number, or its last 4 digits together with code (400 otherwise). */

@@ -82,6 +82,9 @@ export interface RouteFull extends RouteBrief {
   seatFareMin: number | null; seatFareMax: number | null; fullFareMin: number | null; fullFareMax: number | null;
   operatingPeriods: OperatingPeriod[];
   minSeatsToDepartDefault: number | null;
+  /** Union queue: the admin's default seat fare, and the fare an auto put on charge uses (default, else min, else max). */
+  seatFareDefault?: number | null;
+  chargeSeatFare?: number | null;
   permittedStops: string[];
   isActive: boolean;
   sortOrder: number;
@@ -106,7 +109,22 @@ export interface TripStatusBlock {
   originalDepartureAt: string | null;
   delayMinutes: number;
   version: number;
+  /** Union queue. SCHEDULED = published with a departure time; ON_CHARGE = put in line at a stand. */
+  dispatchMode?: DispatchMode;
+  queueState?: QueueState | null;
+  /** True while this auto is the front of the line and takes bookings. */
+  onCharge?: boolean;
+  lineSeq?: number | null;
+  /** Seats filled by people who sat in without the app (part of confirmedSeats). */
+  walkInSeats?: number;
+  /** Seats booked in the app (confirmed / boarded, without walk-ins). */
+  appSeats?: number;
 }
+
+export type DispatchMode = 'SCHEDULED' | 'ON_CHARGE';
+export type QueueState = 'WAITING' | 'ON_CHARGE' | 'DONE';
+/** Where an auto stands in the line: 1 = on charge. */
+export interface LinePosition { position: number; ahead: number; inLine: number }
 
 export interface Trip extends TripStatusBlock {
   id: string;
@@ -135,14 +153,55 @@ export interface Trip extends TripStatusBlock {
   completedAt: string | null;
   cancelReason: string | null;
   delayReason: string | null;
+  chargeStartedAt?: string | null;
+  chargeEndedAt?: string | null;
+  /** Union queue only: the position in the line, null once the auto left the line. */
+  line?: LinePosition | null;
+  /** Union queue only: the seat fare range the driver may pick (route bounds; null = no bound). */
+  fareRange?: { min: number | null; max: number | null };
+  /** Union queue only: true once a student booked (or is booking) this auto, or it left the line. */
+  fareLocked?: boolean;
+  /** No departure time yet: the auto leaves when full or when the driver taps Depart. */
+  leavesWhenFull?: boolean;
   createdAt: string | null;
 }
+
+/** One auto in a stand's line as a driver sees it (other drivers: first name + masked number only). */
+export interface LineEntry {
+  position: number;
+  tripId: string | null;
+  mine: boolean;
+  onCharge: boolean;
+  driverName: string;
+  registration: string | null;
+  capacity: number;
+  filledSeats: number;
+  walkInSeats: number;
+  checkedInAt: string | null;
+}
+
+/** GET /driver/charge/setup: the stands (one per destination) and the driver's approved autos. */
+export interface ChargeStand {
+  pickupPointId: string;
+  routeId: string;
+  pickup: PickupBrief;
+  route: RouteBrief;
+  destination: string;
+  seatFare: number | null;
+  fareSet: boolean;
+  seatFareMin: number | null;
+  seatFareMax: number | null;
+  inLine: number;
+  onCharge: boolean;
+}
+export interface ChargeVehicle { id: string; registration: string | null; capacity: number; make: string | null; model: string | null }
+export interface ChargeSetup { stands: ChargeStand[]; vehicles: ChargeVehicle[]; currentTrip: Trip | null; chargeMaxHours: number }
 
 export interface BookingDriver {
   id: string;
   bookingCode: string;
   tripId: string;
-  type: 'SHARED' | 'PRIVATE';
+  type: 'SHARED' | 'PRIVATE' | 'WALK_IN';
   seatCount: number;
   seatNumbers: number[];
   status: BookingStatus;
@@ -160,7 +219,7 @@ export interface BookingDriver {
   cashCollectedAt: string | null;
 }
 
-export type SeatState = 'AVAILABLE' | 'HELD' | 'BOOKED' | 'UNAVAILABLE' | 'MINE' | 'MINE_HELD';
+export type SeatState = 'AVAILABLE' | 'HELD' | 'BOOKED' | 'UNAVAILABLE' | 'MINE' | 'MINE_HELD' | 'WALK_IN';
 export interface SeatMapResponse extends TripStatusBlock {
   tripId: string;
   layout: SeatLayout;
@@ -294,4 +353,4 @@ export interface ProfileInput {
   preferredRouteIds?: string[];
 }
 
-export type DriverAction = 'confirm-departure' | 'start-boarding' | 'start' | 'arrive' | 'complete' | 'delay' | 'resume' | 'cancel' | 'unavailable';
+export type DriverAction = 'confirm-departure' | 'start-boarding' | 'start' | 'arrive' | 'complete' | 'delay' | 'resume' | 'cancel' | 'unavailable' | 'depart';

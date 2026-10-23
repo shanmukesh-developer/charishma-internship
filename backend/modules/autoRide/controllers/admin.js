@@ -309,6 +309,10 @@ const routeInput = (body, current = null) => {
   for (const k of ['seatFareMin', 'seatFareMax']) out[k] = num(pick(k), { min: 0, max: E.LIMITS.MAX_FARE, field: k });
   for (const k of ['fullFareMin', 'fullFareMax']) out[k] = num(pick(k), { min: 0, max: E.LIMITS.MAX_FULL_FARE, field: k });
   if (out.seatFareMin !== null && out.seatFareMax !== null && out.seatFareMin > out.seatFareMax) throw fail(400, 'INVALID_INPUT', 'Minimum seat fare is above the maximum.', { field: 'seatFareMin' });
+  // Union queue: the seat fare autos put on charge use (null = the minimum, else the maximum seat fare).
+  out.seatFareDefault = num(pick('seatFareDefault'), { min: 1, max: E.LIMITS.MAX_FARE, field: 'seatFareDefault', label: 'Default seat fare' });
+  if (out.seatFareDefault !== null && out.seatFareMin !== null && out.seatFareDefault < out.seatFareMin) throw fail(400, 'INVALID_INPUT', `The default seat fare must be at least the minimum (₹${out.seatFareMin}).`, { field: 'seatFareDefault' });
+  if (out.seatFareDefault !== null && out.seatFareMax !== null && out.seatFareDefault > out.seatFareMax) throw fail(400, 'INVALID_INPUT', `The default seat fare can be at most the maximum (₹${out.seatFareMax}).`, { field: 'seatFareDefault' });
   if (out.fullFareMin !== null && out.fullFareMax !== null && out.fullFareMin > out.fullFareMax) throw fail(400, 'INVALID_INPUT', 'Minimum full-auto fare is above the maximum.', { field: 'fullFareMin' });
   const periods = pick('operatingPeriods');
   if (periods !== undefined && periods !== null) {
@@ -451,6 +455,46 @@ const queues = async (req, res) => {
   const pickups = rows.length ? await Pickup.findAll({ where: { id: { [Op.in]: [...new Set(rows.map((r) => r.pickupPointId))] } } }) : [];
   const pmap = new Map(pickups.map((p) => [String(p.id), p]));
   res.json({ date, queue: rows.map((t) => ({ id: t.id, pickup: S.pickupBrief(pmap.get(String(t.pickupPointId))), periodKey: t.periodKey, driverId: t.driverId, ...S.tripStatus(t), checkInAt: S.iso(t.publishedAt) })), pagination });
+};
+
+// GET /api/admin/auto-ride/lines   union queue: every stand (pickup point + route) with the auto on charge, the
+// autos waiting behind it in check-in order, and the seats filled by app bookings vs walk-ins.
+const lines = async (req, res) => {
+  const { Route, Pickup, Driver, Vehicle } = M();
+  const chargeLine = require('../services/chargeLine');
+  const routes = await Route.findAll({ order: [['sortOrder', 'ASC'], ['name', 'ASC']] });
+  const pickups = routes.length ? await Pickup.findAll({ where: { routeId: { [Op.in]: routes.map((r) => r.id) } }, order: [['sequence', 'ASC'], ['name', 'ASC']] }) : [];
+  const out = [];
+  for (const r of routes) {
+    for (const p of pickups.filter((x) => String(x.routeId) === String(r.id))) {
+      const rows = await chargeLine.lineTrips(p.id, r.id);
+      if (!rows.length && (r.isActive === false || p.isActive === false)) continue;
+      const [drivers, vehicles] = await Promise.all([
+        byIdsOf(Driver, rows.map((t) => t.driverId), ['id', 'name', 'phone']),
+        byIdsOf(Vehicle, rows.map((t) => t.vehicleId), ['id', 'registrationNumber']),
+      ]);
+      const fare = chargeLine.routeSeatFare(r);
+      out.push({
+        key: `${p.id}:${r.id}`,
+        route: { ...S.routeBrief(r), isActive: r.isActive !== false, seatFareDefault: r.seatFareDefault === null || r.seatFareDefault === undefined ? null : Number(r.seatFareDefault), seatFareMin: r.seatFareMin, seatFareMax: r.seatFareMax },
+        pickup: { ...S.pickupBrief(p), isActive: p.isActive !== false },
+        seatFare: fare ? fare.fare : null,
+        fareSource: fare ? fare.source : null,
+        autos: rows.map((t, i) => {
+          const d = drivers.get(String(t.driverId));
+          const v = vehicles.get(String(t.vehicleId));
+          const st = S.tripStatus(t);
+          return {
+            position: i + 1, tripId: t.id, driverId: t.driverId, driverName: d ? d.name : null, driverPhoneMasked: d ? maskPhone(d.phone) : null,
+            registration: v ? S.prettyReg(v.registrationNumber) : null, queueState: t.queueState, status: t.status, statusLabel: st.statusLabel,
+            capacity: st.capacity, appSeats: st.appSeats, walkInSeats: st.walkInSeats, heldSeats: st.heldSeats, remainingSeats: st.remainingSeats,
+            seatFare: Number(t.seatFare), lineSeq: t.lineSeq || null, checkedInAt: S.iso(t.publishedAt), onChargeSince: S.iso(t.chargeStartedAt),
+          };
+        }),
+      });
+    }
+  }
+  res.json({ lines: out, serverTime: clock.now().toISOString() });
 };
 
 // ── Bookings ────────────────────────────────────────────────────────────────
@@ -657,6 +701,6 @@ const auditLog = async (req, res) => {
 module.exports = { createDriver,
   summary, drivers, driverDetail, verifyDriver, rejectDriver, suspendDriver, unsuspendDriver,
   vehicles, vehicleDetail, approveVehicle, rejectVehicle, suspendVehicle, listRoutes, createRoute, updateRoute, createPickup, updatePickup,
-  trips, tripDetail, cancelTrip, queues, bookings, cancelBooking, retryRefund, privateRequests, incidents, updateIncident,
+  trips, tripDetail, cancelTrip, queues, lines, bookings, cancelBooking, retryRefund, privateRequests, incidents, updateIncident,
   fares, getSettings, putSettings, auditLog,
 };

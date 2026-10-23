@@ -59,7 +59,8 @@ const passengerBookings = async (tripId, statuses) => {
   const Booking = getModel('AutoBooking');
   if (!Booking) return [];
   const { Op } = require('sequelize');
-  const rows = await Booking.findAll({ where: { tripId, status: { [Op.in]: statuses } }, attributes: ['id', 'userId'], order: [['createdAt', 'ASC']] });
+  // WALK_IN rows (people who sat in without the app) belong to no customer.
+  const rows = await Booking.findAll({ where: { tripId, status: { [Op.in]: statuses }, type: { [Op.ne]: 'WALK_IN' } }, attributes: ['id', 'userId'], order: [['createdAt', 'ASC']] });
   return rows.map((r) => ({ userId: String(r.userId), bookingId: String(r.id) }));
 };
 
@@ -94,4 +95,4 @@ const bookingEvent = (b, { title, body, type, driverTitle, driverBody, requestId
   admin('auto_booking', 'updated', b.id);
 };
 
-module.exports = { toCustomers, toDriver, nudgeCustomers, nudgeDriver, admin, tripChanged, tripEvent, bookingEvent, passengersOf, passengerBookings, idle };
+module.exports = { track, toCustomers, toDriver, nudgeCustomers, nudgeDriver, admin, tripChanged, tripEvent, bookingEvent, passengersOf, passengerBookings, idle };
