@@ -1342,14 +1342,15 @@ const initializeApp = async () => {
       console.warn('⚠️ [DEMO_STALLS] not started:', stallErr.message);
     }
 
-    // 🧽 Campus store catalogue clean-up v1 (runs once, GlobalConfig CATALOGUE_CLEANUP_V1_DONE): reviewed,
-    // id-keyed renames / categories / whole-rupee prices / photos / duplicate hides from
-    // data/catalogue_cleanup_v1_2026-10-23.json. Guarded on each item's name + price, so admin edits
+    // 🧽 Catalogue clean-ups, each version once (GlobalConfig CATALOGUE_CLEANUP_V1_DONE / _V2_DONE):
+    // reviewed, id-keyed renames / categories / whole-rupee prices / photos / duplicate hides (v1,
+    // data/catalogue_cleanup_v1_2026-10-23.json) and repair descriptions + Today's deals names (v2,
+    // data/catalogue_cleanup_v2_2026-10-24.json). Guarded on each row's name + price, so admin edits
     // win; hides never delete. DISABLE_CATALOGUE_CLEANUP=true switches it off.
     try {
-      const { runCatalogueCleanup } = require('./scripts/catalogue_cleanup_import');
-      runCatalogueCleanup()
-        .then((r) => console.log('🧽 [CATALOGUE_CLEANUP]', JSON.stringify({ ...r, skippedIds: undefined })))
+      const { runCatalogueCleanups } = require('./scripts/catalogue_cleanup_import');
+      runCatalogueCleanups()
+        .then((r) => console.log('🧽 [CATALOGUE_CLEANUP]', JSON.stringify(Object.fromEntries(Object.entries(r).map(([k, v]) => [k, { ...v, skippedIds: undefined }])))))
         .catch((err) => console.warn('⚠️ [CATALOGUE_CLEANUP] failed:', err.message));
     } catch (cleanErr) {
       console.warn('⚠️ [CATALOGUE_CLEANUP] not started:', cleanErr.message);

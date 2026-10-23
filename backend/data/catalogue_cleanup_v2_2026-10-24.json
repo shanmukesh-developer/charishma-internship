@@ -1,0 +1,97 @@
+{
+  "version": 2,
+  "marker": "CATALOGUE_CLEANUP_V2_DONE",
+  "snapshot": "GET /api/catalogue/items?type=repairs&includeUnavailable=true and GET /api/vault on 2026-10-23 at about 10:30 PM IST (read only)",
+  "notes": "Same rules as v1: each entry is applied only when its current name and price (and store, or original price for deals) still match expect; otherwise every op of that entry is skipped, so an admin edit is never overwritten. Nothing is deleted. stores[].items are MenuItem rows; vault[] are VaultItem rows (Others > Deals & spin > Today's deals). setDescription writes MenuItem.description.",
+  "stores": [
+    {
+      "storeId": "60a539ca-63e1-4eb6-9f89-4f42ae5905da",
+      "storeName": "Laptop & Tech Repairs",
+      "items": [
+        {
+          "id": "e920d3ed-da46-4e75-aa9c-6372668b812a",
+          "expect": {
+            "name": "SSD Upgrade & OS Migration (512GB)",
+            "price": 2499
+          },
+          "current": {
+            "category": "Repairs",
+            "description": "Make your slow laptop 10x faster with NVMe SSD + Genuine Windows"
+          },
+          "ops": [
+            {
+              "op": "setDescription",
+              "to": "Faster start-up and app loading with a 512 GB NVMe SSD. Your files and operating system are moved to the new drive.",
+              "reason": "ad copy: a '10x faster' promise and 'Genuine Windows', which the repair does not sell (audit 46)"
+            }
+          ]
+        },
+        {
+          "id": "22260efc-edee-45bd-aeb4-e1ef5865166b",
+          "expect": {
+            "name": "Laptop Deep Clean & Thermal Paste",
+            "price": 499
+          },
+          "current": {
+            "category": "Repairs",
+            "description": "Fix overheating, noisy fans and boost speed with Arctic MX-4 paste"
+          },
+          "ops": [
+            {
+              "op": "setDescription",
+              "to": "Fixes overheating and noisy fans: a full fan clean and fresh thermal paste.",
+              "reason": "over-promise: thermal paste does not 'boost speed'; brand name of the paste removed"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "vault": [
+    {
+      "id": "04ba017d-787b-46b9-b908-fcfd2d3c452e",
+      "expect": {
+        "name": "₹50 Off Next Order",
+        "price": 20,
+        "originalPrice": 50
+      },
+      "ops": [
+        {
+          "op": "rename",
+          "to": "₹30 off one order",
+          "reason": "the claim creates a ₹30 coupon (original price 50 minus price 20) valid until midnight; the name promised ₹50"
+        }
+      ]
+    },
+    {
+      "id": "61bd1bb1-1d42-45b0-a8d8-a4454c2973cf",
+      "expect": {
+        "name": "Free Delivery Pass (3 Orders)",
+        "price": 0,
+        "originalPrice": 90
+      },
+      "ops": [
+        {
+          "op": "rename",
+          "to": "Free delivery on one order",
+          "reason": "the claim creates one free-delivery coupon valid until midnight, not a pass for 3 orders"
+        }
+      ]
+    },
+    {
+      "id": "b8457c5e-3546-4241-b98e-8bdb9ad3fdbf",
+      "expect": {
+        "name": "Exclusive Brownie Box",
+        "price": 99,
+        "originalPrice": 249
+      },
+      "ops": [
+        {
+          "op": "rename",
+          "to": "₹150 off an order of ₹249 or more",
+          "reason": "the claim creates a ₹150-off coupon for any order of ₹249 or more (no store or product is set); the name promised a brownie box"
+        }
+      ]
+    }
+  ]
+}

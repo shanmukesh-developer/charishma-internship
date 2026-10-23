@@ -125,7 +125,8 @@ router.get('/home', responseCache.cacheGet('pg_home', { ttlMs: 60 * 1000 }), asy
       rail('verified', 'Verified', items.filter((x) => x.isVerified)),
       rail('new', 'New on Zenvy', items.filter((x) => x.createdAt && now - new Date(x.createdAt).getTime() <= NEW_DAYS * 86400000)
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))),
-      rail('budget', 'Under ₹6,000', items.filter((x) => rent(x) <= 6000).sort((a, b) => rent(a) - rent(b))),
+      // "Up to": the rail includes ₹6,000 itself (same words as the app's budget filter).
+      rail('budget', 'Up to ₹6,000', items.filter((x) => rent(x) <= 6000).sort((a, b) => rent(a) - rent(b))),
       rail('girls', 'For girls', items.filter((x) => gender(x).startsWith('girl'))),
       rail('boys', 'For boys', items.filter((x) => gender(x).startsWith('boy'))),
     ].filter((r) => r.ids.length >= RAIL_MIN);
