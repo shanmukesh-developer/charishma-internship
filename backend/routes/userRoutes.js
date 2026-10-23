@@ -104,6 +104,11 @@ router.post('/legal/accept', protect, require('../controllers/legalController').
 router.put('/profile', protect, updateUserProfile);
 // C5: my wallet history (newest first, paginated, human labels + order / booking links).
 router.get('/wallet/transactions', protect, require('../controllers/walletController').getMyWalletTransactions);
+// Customer polish: favourite stores and saved addresses, synced to the account (the app keeps a local copy).
+router.get('/favorites', protect, require('../controllers/customerExtrasController').getFavorites);
+router.put('/favorites', protect, require('../controllers/customerExtrasController').putFavorites);
+router.get('/addresses', protect, require('../controllers/customerExtrasController').getAddresses);
+router.put('/addresses', protect, require('../controllers/customerExtrasController').putAddresses);
 
 // Public Asset Discovery (short server cache + ETag; cleared on every store / product / config write)
 const { cacheGet } = require('../utils/responseCache');

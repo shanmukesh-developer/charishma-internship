@@ -322,7 +322,10 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
 
   // Zenvy-funded perks never apply to stall orders (the stall collects the cash).
   const perks = isStall ? { deliveryDiscount: 0, orderDiscount: 0 } : calculateBadgePerks(user);
-  if (perks.deliveryDiscount > 0) addDeliveryDiscount('perk_delivery', `${perks.status} delivery perk`, Math.round(deliveryFee * perks.deliveryDiscount));
+  // Plain bill labels ("Gold member: delivery discount"), never the badge nicknames.
+  const tierWord = perks.tier ? `${perks.tier} member` : 'Member';
+  const perkDeliveryLabel = perks.pointsFreeDelivery ? '200+ ZenPoints: free delivery' : `${tierWord}: delivery discount`;
+  if (perks.deliveryDiscount > 0) addDeliveryDiscount('perk_delivery', perkDeliveryLabel, Math.round(deliveryFee * perks.deliveryDiscount));
 
   let coupon = null;
   if (couponCode) {
@@ -341,7 +344,7 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
   };
   if (perks.orderDiscount > 0) {
     // A flat perk can take at most half of the item total, so no order becomes free.
-    addItemsDiscount('perk_order', `${perks.status} perk`, Math.min(perks.orderDiscount, Math.floor(subtotal * 0.5)));
+    addItemsDiscount('perk_order', `${tierWord}: order discount`, Math.min(perks.orderDiscount, Math.floor(subtotal * 0.5)));
   }
   if (coupon) {
     const c = couponDiscountFor(coupon, { subtotal, deliveryFee });

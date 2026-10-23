@@ -30,6 +30,18 @@ const initTicketModel = (sequelize) => {
     // Whole support conversation as text (every reply, oldest first, each stamped with its IST
     // time). Apps render it as-is; `responses` holds the same replies as structured data.
     adminResponse: { type: DataTypes.TEXT, allowNull: true },
+    // Up to 3 photos the customer attached (campus media paths, purpose 'support', private).
+    attachments: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      get() {
+        const raw = this.getDataValue('attachments');
+        try { const v = raw ? JSON.parse(raw) : []; return Array.isArray(v) ? v : []; } catch { return []; }
+      },
+      set(val) {
+        this.setDataValue('attachments', JSON.stringify(Array.isArray(val) ? val : []));
+      }
+    },
     responses: {
       type: DataTypes.TEXT,
       allowNull: true,

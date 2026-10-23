@@ -24,6 +24,8 @@ const PRIVATE_PURPOSES = new Set([
   // S0: chat photos (conversation participants), order bills / item photos / delivery proof (order
   // customer, assigned rider, store, admin).
   'chat', 'bill', 'basket', 'delivery_proof',
+  // Support ticket photos (the ticket's customer and admins; utils/ticketAttachments).
+  'support',
 ]);
 
 const CHAT_PURPOSES = new Set(['chat']);

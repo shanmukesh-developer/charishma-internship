@@ -103,12 +103,15 @@ const calculateBadgePerks = (user) => {
   }
 
   // ── Zen Point Threshold (200 Points = Free Delivery) ──
+  let pointsFreeDelivery = false;
   if (user.zenPoints >= 200 && deliveryDiscount < 1) {
     deliveryDiscount = 1;
     status = 'Zen Champion';
+    pointsFreeDelivery = true;
   }
 
-  return { deliveryDiscount, orderDiscount, status };
+  // tier / pointsFreeDelivery: plain words for the bill ("Gold member: order discount").
+  return { deliveryDiscount, orderDiscount, status, tier, pointsFreeDelivery };
 };
 
 // The streak a user actually has right now: it lapses once a whole IST day passes with no order

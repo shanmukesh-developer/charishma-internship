@@ -58,6 +58,30 @@ const initUserModel = (sequelize) => {
         this.setDataValue('badges', JSON.stringify(val));
       }
     },
+    // Customer polish (22 Oct): favourite stores (store ids) and saved delivery addresses
+    // ([{ id, label, block, room, landmark }]); JSON text like badges. See customerExtrasController.
+    favoriteStores: {
+      type: DataTypes.TEXT,
+      defaultValue: '[]',
+      get() {
+        const val = this.getDataValue('favoriteStores');
+        try { const v = val ? JSON.parse(val) : []; return Array.isArray(v) ? v : []; } catch { return []; }
+      },
+      set(val) {
+        this.setDataValue('favoriteStores', JSON.stringify(Array.isArray(val) ? val : []));
+      }
+    },
+    savedAddresses: {
+      type: DataTypes.TEXT,
+      defaultValue: '[]',
+      get() {
+        const val = this.getDataValue('savedAddresses');
+        try { const v = val ? JSON.parse(val) : []; return Array.isArray(v) ? v : []; } catch { return []; }
+      },
+      set(val) {
+        this.setDataValue('savedAddresses', JSON.stringify(Array.isArray(val) ? val : []));
+      }
+    },
     dietaryPreference: { type: DataTypes.STRING, defaultValue: 'None' }, // Veg, Jain, Eggless, etc.
     lateNightOrders: { type: DataTypes.INTEGER, defaultValue: 0 },
     // F1: Referral System

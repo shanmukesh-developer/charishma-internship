@@ -47,6 +47,11 @@ const createTicket = async (req, res) => {
     const breachTime = new Date();
     breachTime.setHours(breachTime.getHours() + slaHours);
 
+    // Optional photos (max 3): the customer's own private 'support' uploads (utils/ticketAttachments).
+    const ta = require('../utils/ticketAttachments');
+    const attach = await ta.validateAttachments(req.user.id, (req.body || {}).attachments);
+    if (attach.error) return res.status(400).json({ message: attach.error });
+
     const ticket = await Ticket.create({
       userId: req.user.id,
       orderId: orderId || null,
@@ -54,11 +59,12 @@ const createTicket = async (req, res) => {
       description,
       priority: prio,
       status: 'Open',
-      slaBreachAt: breachTime
+      slaBreachAt: breachTime,
+      attachments: attach.paths,
     });
 
     realtime.notifyAdmin('ticket', 'created', ticket.id);
-    res.status(201).json(ticket);
+    res.status(201).json((await ta.signTicketAttachments(req, [ticket.toJSON()]))[0]);
   } catch (error) {
     console.error('[CREATE_TICKET_ERROR]', error);
     res.status(500).json({ message: 'Something went wrong on our side. Please try again in a moment.' });
@@ -78,7 +84,7 @@ const getMyTickets = async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
 
-    res.json(tickets);
+    res.json(await require('../utils/ticketAttachments').signTicketAttachments(req, tickets.map((t) => t.toJSON())));
   } catch (error) {
     console.error('[GET_TICKETS_ERROR]', error);
     res.status(500).json({ message: 'Something went wrong on our side. Please try again in a moment.' });
@@ -105,12 +111,12 @@ const getAllTickets = async (req, res) => {
       const riders = await getDeliveryPartnerModel().findAll({ where: { id: riderIds }, attributes: ['id', 'name', 'phone'] });
       riderMap = Object.fromEntries(riders.map(r => [r.id, r]));
     }
-    res.json(tickets.map(t => {
+    res.json(await require('../utils/ticketAttachments').signTicketAttachments(req, tickets.map(t => {
       const json = t.toJSON();
       const rider = json.riderId ? riderMap[json.riderId] : null;
       if (!json.user && rider) json.user = { id: rider.id, name: `Rider: ${rider.name}`, phone: rider.phone };
       return { ...json, requesterRole: json.riderId && !json.userId ? 'rider' : 'customer' };
-    }));
+    })));
   } catch (error) {
     console.error('[GET_ALL_TICKETS_ERROR]', error);
     res.status(500).json({ message: 'Something went wrong on our side. Please try again in a moment.' });

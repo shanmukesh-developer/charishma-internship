@@ -781,11 +781,14 @@ const getMyOrders = async (req, res) => {
   try {
     const Order = getOrderModel();
     const Restaurant = getRestaurantModel();
+    // Optional ?before= / ?limit= / ?q= (utils/myOrdersQuery); none of them = the newest 50 as before.
+    const { parseMyOrdersQuery, buildMyOrdersWhere } = require('../utils/myOrdersQuery');
+    const { limit, before, q } = parseMyOrdersQuery(req.query);
     const orders = await Order.findAll({
-      where: { userId: req.user.id },
+      where: await buildMyOrdersWhere({ userId: req.user.id, before, q, Restaurant }),
       include: [{ model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'imageUrl', 'vendorType'] }],
       order: [['createdAt', 'DESC']],
-      limit: 50
+      limit,
     });
     // Customer-facing fields only: PIN attempt counters, UPI proof, payout flags, rider id and
     // pickup internals stayed in this list before.
