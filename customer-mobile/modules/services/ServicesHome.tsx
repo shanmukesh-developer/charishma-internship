@@ -24,8 +24,8 @@ import { SERVICE_FAMILY_META, familyOf, hexAlpha, useServicePalette } from './se
 type Family = 'repairs' | 'tailoring' | 'print' | 'laundry';
 
 const HERO: Record<Family, { kicker: string; title: string; sub: string; cta: string; image: string; icon: IconName }> = {
-  repairs: { kicker: 'Campus tech care', title: 'Laptop & phone repair', sub: 'Doorstep pickup. Price confirmed before any work.', cta: 'Book a repair', image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=900&q=80', icon: 'laptop-outline' },
-  tailoring: { kicker: 'Campus tailoring', title: 'Your style, our stitching', sub: 'Alterations, fittings and custom stitching from your hostel.', cta: 'Book a tailor', image: 'https://images.unsplash.com/photo-1528458909336-e7a0adfed0a5?w=900&q=80', icon: 'cut-outline' },
+  repairs: { kicker: 'Campus tech care', title: 'Laptop & phone repair', sub: 'Doorstep pickup. You approve the quote before any work.', cta: 'Book a repair', image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=900&q=80', icon: 'laptop-outline' },
+  tailoring: { kicker: 'Campus tailoring', title: 'Tailoring & alterations', sub: 'Alterations, fittings and stitching, collected from your hostel.', cta: 'Book a tailor', image: 'https://images.unsplash.com/photo-1528458909336-e7a0adfed0a5?w=900&q=80', icon: 'cut-outline' },
   print: { kicker: 'Document hub', title: 'Print & binding', sub: 'Assignments, A3 drawings and thesis binding, delivered to your room.', cta: 'Send a print job', image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=900&q=80', icon: 'print-outline' },
   laundry: { kicker: 'Pickup & drop', title: 'Laundry & dry cleaning', sub: 'Washed, ironed and folded. Collected from your hostel.', cta: 'Schedule a pickup', image: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=900&q=80', icon: 'shirt-outline' },
 };
@@ -161,7 +161,7 @@ export default function ServicesHome({ categoryId }: { categoryId: Family }) {
         <View style={paused ? { opacity: 0.45 } : undefined}><Tile p={p} icon={ic.icon} color={ic.color} size={48} /></View>
         <View style={{ flex: 1 }}>
           <Text style={[s.rowTitle, { color: paused ? p.muted : p.text }]} numberOfLines={2}>{it.name}</Text>
-          {it.desc ? <Text style={[s.rowSub, { color: p.sub }]} numberOfLines={1}>{it.desc}</Text> : null}
+          {it.desc ? <Text style={[s.rowSub, { color: p.sub }]} numberOfLines={2} ellipsizeMode="tail">{it.desc}</Text> : null}
           {paused ? (
             <Text style={[s.rowMeta, { color: p.muted }]}>Paused for now</Text>
           ) : (
@@ -187,7 +187,7 @@ export default function ServicesHome({ categoryId }: { categoryId: Family }) {
     <View style={[s.screen, { backgroundColor: p.page }]}>
       <View style={[s.header, { paddingTop: Math.max(insets.top, 12) + 4 }]}>
         <PressScale style={s.iconBtn} onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)' as any))} accessibilityRole="button" accessibilityLabel="Back">
-          <Ionicons name="chevron-back" size={24} color={p.text} />
+          <Ionicons name="arrow-back" size={24} color={p.text} />
         </PressScale>
         <Text style={[s.headerTitle, { color: p.text }]} numberOfLines={1} accessibilityRole="header">{SERVICE_FAMILY_META[family].title}</Text>
         <PressScale style={s.iconBtn} onPress={() => router.push({ pathname: '/(tabs)/orders', params: { segment: 'services' } } as any)} accessibilityRole="button" accessibilityLabel="My service bookings">

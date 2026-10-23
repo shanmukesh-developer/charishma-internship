@@ -17,7 +17,7 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: 'dark',
+  theme: 'light',
   toggleTheme: () => {},
   isDark: true,
   activeColors: COLORS,
@@ -26,7 +26,8 @@ const ThemeContext = createContext<ThemeContextType>({
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark');
+  // Owner rule: light by default, whatever the phone's dark mode. Only the student's own toggle (saved) changes it.
+  const [theme, setTheme] = useState<Theme>('light');
   const [isThemeReady, setIsThemeReady] = useState(false);
 
   useEffect(() => {

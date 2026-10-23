@@ -13,7 +13,7 @@
     },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "scheme": "zenvy",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -76,6 +76,8 @@
       "allowBackup": false
     },
     "web": {
+      "name": "ZCS",
+      "shortName": "ZCS",
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },

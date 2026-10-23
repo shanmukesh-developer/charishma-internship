@@ -52,7 +52,8 @@ export default function BannerSlider({ slides, style, dotsStyle, every = 3500 /*
 
   return (
     <>
-      <View style={style} {...pan.panHandlers} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      {/* overflow hidden: the incoming slide starts 24 px to the right; unclipped it widened the page and shifted it sideways on web */}
+      <View style={[style, { overflow: 'hidden' }]} {...pan.panHandlers} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {list.map((src, i) => (
           <Animated.View key={i} style={[StyleSheet.absoluteFill, { opacity: vals[i], transform: [{ translateX: vals[i].interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }, { scale: vals[i].interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }] }]}>
             <Image source={src} style={StyleSheet.absoluteFill} contentFit="contain" />

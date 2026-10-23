@@ -34,7 +34,8 @@ import { useAutoRideStatus } from '../../modules/autoRide/ui';
 import CampusEventsSection from '../../modules/campusEvents/CampusEventsSection';
 import { useCampusEventsStatus } from '../../modules/campusEvents/ui';
 import CoRideHub from '../../modules/coride/CoRideHub';
-import SectionPills from '../../modules/others/SectionPills';
+import SectionHeader, { FOOD_HEADER, type HeaderColors } from '../../modules/foodV2/FoodV2SectionHeader';
+import { useUnreadDot } from '../../modules/foodV2/FoodV2HomeTop';
 import { ACCENTS as OTHERS_ACCENTS, PILL_ACCENT, shadow as othersShadow, TYPE as OTHERS_TYPE, RADIUS as OTHERS_RADIUS, STATUS as OTHERS_STATUS, SURFACE as OTHERS_SURFACE } from '../../modules/others/othersTheme';
 import PostRideSheet, { maxSeatsFor } from '../../modules/coride/PostRideSheet';
 import { fmtRideWhen, groupMyRides, topDestinations, sameDestination, inr } from '../../modules/coride/coRideFormat';
@@ -139,7 +140,7 @@ const PROMOS_FOOD = [
 
 const PROMOS_SERVICES = [
   { id: 's1', tagline: 'Laptop and phone', title: 'Tech repairs on campus', subtitle: '', desc: 'Screen replacement, fan cleaning, thermal paste and hardware fixes. Book a slot in the app.', btn: 'Book a repair', img: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=1200&q=80' },
-  { id: 's2', tagline: 'Campus tailoring', title: 'Uniform and fabric alterations', subtitle: '', desc: 'Lab coat tailoring, fitting alterations, blazer adjustments and stitching requests.', btn: 'Request a tailor', img: 'https://images.unsplash.com/photo-1528458909336-e7a0adfed0a5?w=1200&q=80' },
+  { id: 's2', tagline: 'Campus tailoring', title: 'Uniform and fabric alterations', subtitle: '', desc: 'Lab coat tailoring, fitting alterations, blazer adjustments and stitching requests.', btn: 'Request a tailor', img: 'https://images.unsplash.com/photo-1630930678172-63343537a00a?w=1200&q=80' },
   { id: 's3', tagline: 'Document hub', title: 'Printing and binding', subtitle: '', desc: 'Project reports, spiral binding, colour charts and assignment prints.', btn: 'Send a print job', img: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=1200&q=80' },
 ];
 
@@ -242,6 +243,21 @@ const LISTING_HEROES: Record<string, ListingHero> = {
 };
 const FOOD_HERO_IMG = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&q=70';
 
+/** Tech & repairs search hints (the header search opens the repairs page with its search). */
+const SERVICE_SEARCH_HINTS = ["Search for 'laptop screen'", "Search for 'phone battery'", "Search for 'keyboard repair'", "Search for 'fan cleaning'"];
+/** Others header per section: Food & groceries' structure, each section in its own accent (deep tones for white text). */
+const SECTION_HEADER: Record<string, HeaderColors> = {
+  food: FOOD_HEADER,
+  services: { top: '#211A6B', bottom: '#2D2491', pillOnBg: '#EFEDFF', pillOnInk: '#3B2FC4' },
+  pg: { top: '#0E2A66', bottom: '#15398C', pillOnBg: '#EBF2FF', pillOnInk: '#1E40AF' },
+  coride: { top: '#0E2A66', bottom: '#15398C', pillOnBg: '#EAF1FF', pillOnInk: '#1E40AF' },
+  promos: { top: '#2A1670', bottom: '#381F94', pillOnBg: '#EFEBFF', pillOnInk: '#4B2BC8' },
+  neutral: { top: '#1B2433', bottom: '#263247', pillOnBg: '#F1F3F6', pillOnInk: '#1E293B' },
+};
+const SECTION_SUBTITLE: Record<string, string> = {
+  services: 'Campus services · Tech & repairs', pg: 'PG stays near campus', coride: 'Co-Ride · Lifts and autos',
+  rentals: 'Rentals', events: 'Campus events', promos: 'Deals & spin',
+};
 const SEARCH_PLACEHOLDERS = ["Search for 'rice'", "Search for 'chips'", "Search for 'curd'", "Search for 'atta'", "Search for 'ghee'", "Search for 'toys'", "Search for 'seeds'"];
 
 // Shelf tiles only: each tile's badge ("Up to x% off" / "From ₹y") is computed from the real catalogue.
@@ -514,6 +530,7 @@ export default function OthersScreen() {
   const pageW = Math.min(winW, 600);
   const { user, setUser, refreshUser } = useAuth();
   const router = useRouter();
+  const unreadDot = useUnreadDot();
   const { tab, sub } = useLocalSearchParams<{ tab: string; sub?: string }>();
   const [activeTab, setActiveTab] = useState('food');
   const [groceryMode, setGroceryMode] = useState<'home' | 'categories'>('home');
@@ -1936,7 +1953,7 @@ export default function OthersScreen() {
   };
   const SERVICE_CARDS = [
     { id: 'LAPTOP_REPAIR', title: 'Laptop and phone repairs', tag: 'Book a slot', desc: 'Screen replacement, thermal paste, fan cleaning, SSD upgrades and hardware fixes.', icon: '💻', cat: 'repairs', priceKey: 'repairs', image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600&q=80' },
-    { id: 'TAILORING', title: 'Tailoring and stitching', tag: 'Alterations', desc: 'Length shortening, shirt and kurti alterations, lab coat resizing and zip replacement.', icon: '✂️', cat: 'tailoring', priceKey: 'tailoring', image: 'https://images.unsplash.com/photo-1528458909336-e7a0adfed0a5?w=600&q=80' },
+    { id: 'TAILORING', title: 'Tailoring and stitching', tag: 'Alterations', desc: 'Length shortening, shirt and kurti alterations, lab coat resizing and zip replacement.', icon: '✂️', cat: 'tailoring', priceKey: 'tailoring', image: 'https://images.unsplash.com/photo-1630930678172-63343537a00a?w=600&q=80' },
     { id: 'PRINTOUT', title: 'Printouts and binding', tag: 'Print jobs', desc: 'B&W and colour printouts, project reports, spiral and hard binding.', icon: '📄', cat: 'print', priceKey: 'print', image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=600&q=80' },
     { id: 'LAUNDRY', title: 'Wash, dry clean and ironing', tag: 'Pickup and drop', desc: 'Daily clothes, bedsheets, blankets and shoe cleaning from your hostel.', icon: '👕', cat: 'laundry', priceKey: 'laundry', image: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=600&q=80' },
     { id: 'MATTRESSES', title: 'Mattresses and room gear', tag: 'Move-in essentials', desc: 'Foam mattresses, pillows, bedsheets, buckets and drying racks.', icon: '📦', cat: 'mattresses', priceKey: 'home', image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80' },
@@ -1959,79 +1976,27 @@ export default function OthersScreen() {
   }
 
   return (
-    <View style={[s.container, { paddingTop: topPad, backgroundColor: bg }]}>
+    <View style={[s.container, { paddingTop: 0, backgroundColor: bg }]}>
       <AmbientBackground />
-      {/* ── HEADER: title, open status, search and quick actions ── */}
-      <View style={s.hubHeader}>
-        <View style={s.hubTitleRow}>
-          <PressScale
-            style={[s.hubIconBtn, iconBtnSurface]}
-            onPress={() => router.replace('/(tabs)')}
-            accessibilityRole="button"
-            accessibilityLabel="Back to Home"
-          >
-            <Ionicons name="arrow-back" size={20} color={txt} />
-          </PressScale>
-
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <View style={s.hubTitleLine}>
-              <Text style={[s.hubTitle, { color: txt }]} numberOfLines={1} accessibilityRole="header">Campus Hub</Text>
-              {serviceability && (
-                <View
-                  style={[s.hubStatus, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#ECEEF2' }]}
-                  accessibilityLabel={serviceability.open
-                    ? `Open, ordering until ${fmtShortClock(serviceability.closesAt || CAMPUS_CLOSES_AT)}`
-                    : `Closed, opens at ${fmtShortClock(serviceability.reopensAt) || 'soon'}`}
-                >
-                  <View style={[s.hubStatusDot, { backgroundColor: serviceability.open ? (isDark ? OTHERS_STATUS.dark.success : OTHERS_STATUS.light.success) : (isDark ? OTHERS_STATUS.dark.warn : OTHERS_STATUS.light.warn) }]} />
-                  <Text style={[s.hubStatusText, { color: txtSec }]} numberOfLines={1}>
-                    {serviceability.open
-                      ? `Open · till ${fmtShortClock(serviceability.closesAt || CAMPUS_CLOSES_AT)}`
-                      : `Opens ${fmtShortClock(serviceability.reopensAt) || 'soon'}`}
-                  </Text>
-                </View>
-              )}
-            </View>
-            <Text style={[s.hubSubtitle, { color: txtSec }]} numberOfLines={1}>Food, groceries and services for your hostel</Text>
-          </View>
-        </View>
-
-        <View style={s.hubSearchRow}>
-          <CardPressable
-            style={[s.hubSearch, fieldSurface]}
-            onPress={() => setSelectedCategoryName(SEARCH_SHELF)}
-            tilt={false}
-            activeScale={0.98}
-            accessibilityRole="button"
-            accessibilityLabel="Search groceries and essentials"
-          >
-            <Ionicons name="search" size={18} color={txtSec} />
-            <RotatingSearchPlaceholder color={txtSec} textColor={txt} style={s.hubSearchInput} />
-          </CardPressable>
-
-          <PressScale
-            style={[s.hubIconBtn, s.hubIconBtnLg, iconBtnSurface]}
-            onPress={() => selectTab('promos')}
-            accessibilityRole="button"
-            accessibilityLabel="Deals and rewards"
-          >
-            <Ionicons name="gift-outline" size={20} color={txt} />
-          </PressScale>
-          <PressScale
-            style={[s.hubIconBtn, s.hubIconBtnLg, iconBtnSurface]}
-            onPress={() => setFavoritesModalVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Saved items"
-          >
-            <Ionicons name="heart-outline" size={20} color={txt} />
-          </PressScale>
-        </View>
-      </View>
-
-      {/* ── SECTION PILLS ── modules/others/SectionPills: sliding indicator in each section's accent */}
-      <View style={{ marginBottom: 4 }}>
-        <SectionPills tabs={visibleTabs} active={activeTab} onSelect={selectTab} fallbackAccent={accent} fallbackOnAccent={onAccent} />
-      </View>
+      {/* ── HEADER: the same header as Food & groceries (modules/foodV2/FoodV2SectionHeader); only the accent changes ── */}
+      <SectionHeader
+        topPad={topPad}
+        pageW={Math.min(SW, 600)}
+        compact={SW < 360}
+        colors={SECTION_HEADER[activeTab] || SECTION_HEADER.neutral}
+        subtitle={SECTION_SUBTITLE[activeTab] || 'Campus services'}
+        hints={activeTab === 'services' ? SERVICE_SEARCH_HINTS : SEARCH_PLACEHOLDERS}
+        searchLabel={activeTab === 'services' ? 'Search repairs' : 'Search groceries and essentials'}
+        onSearch={() => { if (activeTab === 'services') router.push('/category/repairs' as any); else setSelectedCategoryName(SEARCH_SHELF); }}
+        pills={visibleTabs.map(t => [t.key, t.label] as [string, string])}
+        active={activeTab}
+        onPill={selectTab}
+        onBack={() => router.replace('/(tabs)')}
+        actions={[
+          { icon: 'heart-outline', label: 'Saved items', onPress: () => setFavoritesModalVisible(true) },
+          { icon: 'notifications-outline', label: unreadDot ? 'Notifications, unread' : 'Notifications', onPress: () => router.push('/notifications' as any), dot: unreadDot },
+        ]}
+      />
 
       <Animated.View style={{ opacity: tabContentFade, transform: [{ translateY: tabContentTranslateY }], flex: 1 }}>
         <ScrollView
@@ -2066,10 +2031,7 @@ export default function OthersScreen() {
                 >
                   <View style={{ flexDirection: 'row', padding: 14, gap: 14 }}>
                     <View style={{ width: 90, height: 90, borderRadius: 16, overflow: 'hidden' }}>
-                      <Image source={{ uri: srv.image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.5)']} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, justifyContent: 'flex-end', padding: 6 }}>
-                        <Ionicons name={SERVICE_CARD_ICON[srv.cat] || 'construct-outline'} size={16} color="#FFFFFF" />
-                      </LinearGradient>
+                      <Image source={{ uri: srv.image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" accessibilityElementsHidden />
                     </View>
 
                     <View style={{ flex: 1, justifyContent: 'space-between' }}>
@@ -2078,10 +2040,12 @@ export default function OthersScreen() {
                           <View style={{ backgroundColor: isDark ? OTHERS_ACCENTS.services.tint.dark : OTHERS_ACCENTS.services.tint.light, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 }}>
                             <Text style={{ fontSize: 12, fontWeight: '700', color: isDark ? OTHERS_ACCENTS.services.ink.dark : OTHERS_ACCENTS.services.ink.light }}>{srv.tag}</Text>
                           </View>
-                          {from > 0 && <Text style={{ fontSize: 13, fontWeight: '800', color: txt }}>From {fmtPrice(from)}</Text>}
+                          {from > 0 && <Text style={{ fontSize: 13, fontWeight: '800', color: txt, flexShrink: 1, marginLeft: 8, textAlign: 'right' }} numberOfLines={1}>{srv.cat === 'repairs' ? `${fmtPrice(from)} inspection` : `From ${fmtPrice(from)}`}</Text>}
                         </View>
                         <Text style={{ fontSize: 14, fontWeight: '700', color: txt, lineHeight: 18, letterSpacing: -0.2 }}>{srv.title}</Text>
-                        <Text style={{ fontSize: 12, color: txtSec, lineHeight: 15, marginTop: 5 }} numberOfLines={2}>{srv.desc}</Text>
+                        <Text style={{ fontSize: 12, color: txtSec, lineHeight: 16, marginTop: 5 }} numberOfLines={2} ellipsizeMode="tail">{srv.desc}</Text>
+                        {/* The ₹99 is the doorstep inspection (catalogue item); the partner's quote replaces it and nothing is charged for a declined quote. */}
+                        {srv.cat === 'repairs' && from > 0 && <Text style={{ fontSize: 12, color: txtSec, lineHeight: 16, marginTop: 4, fontWeight: '600' }} numberOfLines={1}>You approve the quote before any work</Text>}
                       </View>
 
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 10 }}>

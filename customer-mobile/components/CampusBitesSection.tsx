@@ -18,6 +18,7 @@ import { useLiveSync } from '../utils/useLiveSync';
 import { useCartActions, useCartState } from '../context/CartContext';
 import { isCustomizable } from './CustomizeDrawer';
 import CampusBitesAdWindow from './CampusBitesAdWindow';
+import { liveOpenState } from '../utils/storeOpenNow';
 
 /**
  * CampusBites: food stalls near campus (Restaurant rows with vendorType LOCAL_VENDOR / LOCAL / STALL).
@@ -64,14 +65,15 @@ const hoursText = (vendor: any): string | null => {
   return start === end ? 'Open 24 hours' : `${start} – ${end}`;
 };
 
-/** The server decides open / closed (vendor switch + hours in IST); the vendor's offline switch wins. */
-const isVendorOpen = (vendor: any): boolean => {
-  if (vendor.isActive === false || vendor.isOffline === true) return false;
-  return vendor.isOpen !== false;
-};
+/**
+ * Open / closed right now: the vendor's switches, then its hours in India time, re-checked on the
+ * device clock (utils/storeOpenNow, same rules as the server) so a list fetched at 8:55 PM shows
+ * "Closed" at 9:00 PM. The vendor's offline switch wins.
+ */
+const isVendorOpen = (vendor: any): boolean => liveOpenState(vendor).isOpen;
 
 const closedLabel = (vendor: any): string => {
-  const at = fmtTime(vendor.opensAt);
+  const at = fmtTime(liveOpenState(vendor).opensAt);
   if (vendor.isOffline === true) return 'Not taking orders right now';
   return at ? `Closed · opens ${at}` : 'Closed now';
 };
@@ -97,7 +99,7 @@ const hoursShort = (vendor: any): string | null => {
 /** Status line: "Open · closes 9:00 PM" / "Closed · opens 10:00 AM" (the server decides open / closed). */
 const statusLine = (vendor: any, open: boolean): string => {
   if (open) {
-    const at = fmtTime(vendor.closesAt);
+    const at = fmtTime(liveOpenState(vendor).closesAt);
     return at ? `Open · closes ${at}` : 'Open now';
   }
   return closedLabel(vendor);
@@ -149,6 +151,12 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
   const [stallSearch, setStallSearch] = useState('');
   const { addToCart } = useCartActions();
   const [addedKey, setAddedKey] = useState<string | null>(null);
+  // Re-check open / closed every minute (a stall closing at 9 PM flips without a refetch).
+  const [clockTick, setClockTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setClockTick((n) => n + 1), 60000);
+    return () => clearInterval(t);
+  }, []);
 
   const stallsSWR = useSWRJson<any[]>('/api/restaurants/local-vendors', { validate: Array.isArray });
   const campusSWR = useSWRJson<CampusItem[]>('/api/campus/campuses', { validate: Array.isArray, freshMs: 30 * 60 * 1000 });
@@ -206,7 +214,8 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
       .map((x, i) => ({ x: x as { vendor: any; dishes: any[]; dishMatches: number }, i }))
       .sort((a, b) => (Number(isVendorOpen(b.x.vendor)) - Number(isVendorOpen(a.x.vendor))) || (a.i - b.i))
       .map(({ x }) => x);
-  }, [allVendors, selectedCampus, q, campusOf]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allVendors, selectedCampus, q, campusOf, clockTick]);
 
   /** ADD a stall dish straight to the basket (customisable dishes open their page first). */
   const addStallItem = (vendor: any, item: any, open: boolean) => {
@@ -214,7 +223,9 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
     const vendorId = idOf(vendor);
     if (!itemId || !vendorId) return;
     if (!open) {
-      Alert.alert('Closed right now', vendor.closedReason || `${vendor.name || 'This stall'} is not taking orders right now. Try again when it opens.`);
+      const opensAt = fmtTime(liveOpenState(vendor).opensAt);
+      Alert.alert('Closed right now', (vendor.isOpen === false && vendor.closedReason)
+        || `${vendor.name || 'This stall'} is closed now.${opensAt ? ` It opens at ${opensAt}.` : ' Try again when it opens.'}`);
       return;
     }
     if (item.isAvailable === false) {

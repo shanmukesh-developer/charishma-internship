@@ -46,11 +46,14 @@ export const toList = (raws: any[]) => {
 };
 
 export const groupIN = (d: string) => (d.length <= 3 ? d : `${d.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ',')},${d.slice(-3)}`);
+/** "₹499", "₹40.80": paise only when there are some (float noise like 39.999 shows as ₹40). */
 export const fmt = (n: number) => {
-  const v = Math.abs(Number(n) || 0);
-  const [w, f] = (Number.isInteger(v) ? String(v) : v.toFixed(2)).split('.');
-  return `${Number(n) < 0 ? '-' : ''}₹${groupIN(w)}${f ? `.${f}` : ''}`;
+  const paise = Math.round(Math.abs(Number(n) || 0) * 100);
+  const f = paise % 100;
+  return `${Number(n) < 0 && paise ? '-' : ''}₹${groupIN(String(Math.floor(paise / 100)))}${f ? `.${String(f).padStart(2, '0')}` : ''}`;
 };
+/** MRP (struck-out price): whole rupees only. */
+export const fmtMrp = (n: number) => `₹${groupIN(String(Math.round(Math.abs(Number(n) || 0))))}`;
 export const sentence = (t: string) => (t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : t);
 export const offLabel = (p: Item) => (p.discountPercent ? `${p.discountPercent}% off` : null);
 export const fmtShortClock = (hhmm?: string | null) => {
@@ -130,7 +133,7 @@ export const HEROES: Record<string, Hero> = {
   'Bakery & breakfast': { title: 'Freshly baked, every day', sub: 'Bread · Biscuits · Breakfast', img: FOOD_IMG.heroBakery },
   'Health & care': { title: 'Stay healthy, stay fresh', sub: 'Wellness · Personal care · Hygiene', img: FOOD_IMG.heroHealth },
   Toys: { title: 'Play time, delivered', sub: 'Games · Plushies · Sports', img: FOOD_IMG.heroToys },
-  Deals: { title: 'Best deals today', sub: 'Biggest savings, at the price you pay', img: FOOD_IMG.heroDeals },
+  Deals: { title: 'Best deals', sub: "Today's biggest savings", img: FOOD_IMG.heroDeals },
   Seeds: { title: 'Grow your own greens', sub: 'Seeds for your balcony garden', img: FOOD_IMG.heroSeeds },
   Electronics: { title: 'Chargers and gadgets', sub: 'Cables · Adapters · Study tech', img: FOOD_IMG.heroElectronics },
 };
@@ -213,6 +216,7 @@ export type Route =
   | { name: 'listing'; shelf: string }
   | { name: 'product'; id: string }
   | { name: 'saved' }
+  | { name: 'categories' }
   | { name: 'mega' };
 export type DemoState = null | 'loading' | 'offline' | 'waking' | 'error' | 'empty';
 

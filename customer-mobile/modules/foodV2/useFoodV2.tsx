@@ -42,7 +42,7 @@ export function useFoodV2State({ forceDark, sections, onSection }: { forceDark?:
   const pageW = Math.min(winW, 600);
   const conn = useConnectionState();
   // Food & groceries is the campus store basket: it reads, adds to and clears only that basket.
-  const { baskets, addToCart: addAnyBasket, updateQuantity, clearBasket } = useCart();
+  const { baskets, addToCart: addAnyBasket, updateQuantity, clearBasket, totalItems } = useCart();
   const cart = baskets.store;
   const addToCart: typeof addAnyBasket = (item) => addAnyBasket({ ...item, basket: 'store' });
   const clearCart = () => clearBasket('store');
@@ -85,9 +85,13 @@ export function useFoodV2State({ forceDark, sections, onSection }: { forceDark?:
   }, [stack.length, savedSheet]));
 
   // ── Catalogue ──
-  const [catalogue, setCatalogue] = useState<Item[]>([]);
+  const [rawCatalogue, setCatalogue] = useState<Item[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [storeHours, setStoreHours] = useState<Record<string, { isOpen: boolean; opensAt: string | null }>>({});
+  // The item list's `orderable` follows the store's own hours only; the store list also applies the
+  // campus night window (9 pm – 6 am). A store the server lists as closed makes its items closed too,
+  // so cards say "Opens 6 am" and block adding instead of "In stock".
+  const catalogue = useMemo(() => rawCatalogue.map(p => (p.orderable && storeHours[p.restaurantId]?.isOpen === false ? { ...p, orderable: false } : p)), [rawCatalogue, storeHours]);
   const fromNet = useRef(false);
   useEffect(() => {
     readCache<any[]>(CATALOGUE_CACHE_KEY).then(cached => {
@@ -183,27 +187,40 @@ export function useFoodV2State({ forceDark, sections, onSection }: { forceDark?:
   const shopLines = cart; // the whole campus store basket (store items + shopping requests)
   const shopCount = shopLines.reduce((n, i) => n + i.quantity, 0);
   const shopTotal = shopLines.reduce((n, i) => n + i.price * i.quantity, 0);
-  const cartCount = cart.reduce((n, i) => n + (i.quantity || 0), 0);
+  /** Header basket badge: items in all three baskets, the same number as the Basket tab badge. */
+  const cartCount = totalItems;
 
-  // ── Shopping request (Mega Basket, POST at checkout: same as the app) ──
-  const [reqName, setReqName] = useState('');
-  const [reqQty, setReqQty] = useState('1');
-  const [reqPrice, setReqPrice] = useState('');
+  // ── Shopping list (Mega Basket, POST at checkout: same as the app). Several lines; price optional. ──
+  type ReqLine = { key: string; name: string; qty: string; price: string };
+  const newLine = (): ReqLine => ({ key: `l${Date.now()}${Math.random().toString(36).slice(2, 6)}`, name: '', qty: '1', price: '' });
+  const [reqLines, setReqLines] = useState<ReqLine[]>(() => [newLine()]);
+  const addReqLine = () => setReqLines(ls => (ls.length >= 15 ? ls : [...ls, newLine()]));
+  const updateReqLine = (key: string, patch: Partial<ReqLine>) => setReqLines(ls => ls.map(l => (l.key === key ? { ...l, ...patch } : l)));
+  const removeReqLine = (key: string) => setReqLines(ls => (ls.length <= 1 ? [newLine()] : ls.filter(l => l.key !== key)));
+  const setFirstReqName = (name: string) => setReqLines(ls => {
+    const empty = ls.find(l => !l.name.trim());
+    if (empty) return ls.map(l => (l.key === empty.key ? { ...l, name } : l));
+    return ls.length >= 15 ? ls : [...ls, { ...newLine(), name }];
+  });
   const addRequest = () => {
-    const name = reqName.trim();
-    if (!name) { Alert.alert('What should we buy?', 'Please type the item name (and brand, if you have one in mind).'); return; }
-    const price = Number(reqPrice);
-    if (!Number.isFinite(price) || price <= 0 || price > 10000) { Alert.alert('Add an estimated price', 'Enter the approximate price per unit (₹1 – ₹10,000). You approve the real bill later.'); return; }
-    const qty = Math.min(20, Math.max(1, parseInt(reqQty, 10) || 1));
+    const filled = reqLines.filter(l => l.name.trim());
+    if (!filled.length) { Alert.alert('What should we buy?', 'Please type at least one item (and brand, if you have one in mind).'); return; }
+    const bad = filled.find(l => l.price.trim() && !(Number(l.price) > 0 && Number(l.price) <= 10000));
+    if (bad) { Alert.alert('Check the price', `The price for "${bad.name.trim()}" should be between ₹1 and ₹10,000, or leave it empty.`); return; }
     const doAdd = () => {
-      addToCart({ id: `custom-${Date.now()}`, name: `[Custom Request] ${name}`, price: Math.round(price * 100) / 100, quantity: qty, image: '', restaurantId: MEGA_BASKET_VENDOR, restaurantName: 'Shopping list' } as any);
+      const stamp = Date.now();
+      filled.forEach((l, i) => {
+        const price = l.price.trim() ? Math.round(Number(l.price) * 100) / 100 : 0;
+        const qty = Math.min(20, Math.max(1, parseInt(l.qty, 10) || 1));
+        addToCart({ id: `custom-${stamp}-${i}`, name: `[Custom Request] ${l.name.trim()}`, price, quantity: qty, image: '', restaurantId: MEGA_BASKET_VENDOR, restaurantName: 'Shopping list' } as any);
+      });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      Alert.alert('Request added', `"${name}" × ${qty} is in your basket. A shopper buys it for you, and you approve the final bill before paying.`);
-      setReqName(''); setReqPrice(''); setReqQty('1');
+      Alert.alert(filled.length === 1 ? 'Request added' : 'List added', `${filled.length === 1 ? `"${filled[0].name.trim()}" is` : `${filled.length} items are`} in your basket. A shopper buys ${filled.length === 1 ? 'it' : 'them'} for you, and you approve the final bill before paying.`);
+      setReqLines([newLine()]);
       pop();
     };
     if (cart.some(i => !isCustomRequest(i))) {
-      Alert.alert('Start a new basket?', 'Shopping requests are ordered separately from store and restaurant items. Clear your basket and add this request?', [
+      Alert.alert('Start a new basket?', 'Shopping requests are ordered separately from store and restaurant items. Clear your basket and add this list?', [
         { text: 'Keep basket', style: 'cancel' },
         { text: 'Clear & add', style: 'destructive', onPress: () => { clearCart(); doAdd(); } },
       ]);
@@ -253,5 +270,5 @@ export function useFoodV2State({ forceDark, sections, onSection }: { forceDark?:
   const savedChips = ['All', ...GROUP_ORDER.filter(g => savedCounts[g]), ...(savedCounts.Other ? ['Other'] : [])];
 
 
-  return { sections, onSection, toast, setToast, router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, reqName, setReqName, reqQty, setReqQty, reqPrice, setReqPrice, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark };
+  return { sections, onSection, toast, setToast, router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, reqLines, addReqLine, updateReqLine, removeReqLine, setFirstReqName, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark };
 }

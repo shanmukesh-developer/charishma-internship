@@ -807,9 +807,9 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
         {devices.map((d) => (
           <PressScale key={d.kind} onPress={() => { setDevice(d.kind); push('issue'); }}
             accessibilityRole="button" accessibilityLabel={`${d.title}, ${d.sub}`}
-            style={[st.deviceCard, { backgroundColor: p.card }, p.shadow, d.kind === 'Other' && { minHeight: 84 }]}>
-            <View style={[st.deviceArt, { backgroundColor: p.tint }, d.kind === 'Other' && { width: 64, height: 64 }]}>
-              <Ionicons name={d.icon} size={d.kind === 'Other' ? 30 : 40} color={p.accent} />
+            style={[st.deviceCard, { backgroundColor: p.card }, p.shadow]}>
+            <View style={[st.deviceArt, { backgroundColor: p.tint }]}>
+              <Ionicons name={d.icon} size={40} color={p.accent} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[st.deviceTitle, { color: p.text }]}>{d.title}</Text>
@@ -889,7 +889,7 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
                     <Tile p={p} icon={ic.icon} color={ic.color} />
                     <View style={{ flex: 1 }}>
                       <Text style={[st.rowTitle, { color: p.text }]} numberOfLines={2}>{it.name}</Text>
-                      {it.desc ? <Text style={[st.rowSub, { color: p.sub }]} numberOfLines={1}>{it.desc}</Text> : null}
+                      {it.desc ? <Text style={[st.rowSub, { color: p.sub }]} numberOfLines={2} ellipsizeMode="tail">{it.desc}</Text> : null}
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text style={[st.rowPrice, { color: p.text }]}>{paused ? 'Paused' : price.main}</Text>
@@ -912,7 +912,8 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
     if (!cur) return null;
     const ic = issue ? { icon: issue.icon, color: issue.color } : itemIcon(shelfId, cur.name);
     const deviceLabel = device === 'Phone' ? 'Mobile phone' : device === 'Laptop' ? 'Laptop' : device === 'Other' ? 'Tablet or other device' : null;
-    const kicker = family === 'repairs' ? [deviceLabel, issue?.title].filter(Boolean).join(' · ') : (cur.storeName || shelfTitle);
+    const issueViaInspection = !!issue && (issue.locked.length > 0 || issue.prefill.problems !== undefined);
+    const kicker = family === 'repairs' ? [deviceLabel, issueViaInspection ? issue?.title : null].filter(Boolean).join(' · ') : (cur.storeName || shelfTitle);
     const canChange = stack.length > 1 && (step === 'details' ? stack.length >= 2 : true);
     if (!compact && family !== 'repairs' && cur.image) {
       return (
@@ -940,7 +941,7 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
           </View>
         ) : <Tile p={p} icon={ic.icon} color={ic.color} size={56} />}
         <View style={{ flex: 1 }}>
-          {kicker ? <Text style={[st.kicker, { color: p.accent }]} numberOfLines={1}>{kicker}</Text> : null}
+          {kicker ? <Text style={[st.kicker, { color: p.accent }]} numberOfLines={2}>{kicker}</Text> : null}
           <Text style={[st.rowTitle, { color: p.text, fontSize: 16 }]} numberOfLines={2}>{cur.name}</Text>
           <Text style={[st.rowSub, { color: p.sub }]}>
             {compact && amount > 0 ? `${form.pricing.kind === 'fixed' && form.priceLabel === 'Starting price' ? 'From ' : ''}${formatRupees(amount)}${form.pricing.kind !== 'fixed' ? ' estimate' : ''}` : `${priceInfo.main}${priceInfo.note ? ` ${priceInfo.note}` : ''}`}
@@ -1118,7 +1119,11 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
           <View style={[st.pill, { backgroundColor: p.raised }]}><Text style={[st.pillText, { color: p.sub }]}>{family === 'repairs' ? 'Cash after the job' : 'Cash on delivery'}</Text></View>
         </View>
         <Text style={[st.helper, { color: p.sub, marginTop: 10 }]}>
-          {family === 'repairs' ? 'The technician confirms the final price and repair time after checking the device. Nothing is charged before you approve.' : `The ${PARTNER_NOUN[family]} confirms the final price before starting. Pay in cash when the job is done.`}
+          {family === 'repairs'
+            ? (form.priceLabel === 'Inspection charge'
+              ? 'This is the doorstep inspection charge. The technician checks the device, then sends the repair quote in the app. You approve the quote before any work; if you decline, the booking is cancelled.'
+              : 'The technician checks the device and confirms the final price and repair time in the app. You approve the quote before any work.')
+            : `The ${PARTNER_NOUN[family]} confirms the final price before starting. Pay in cash when the job is done.`}
         </Text>
       </View>
 
@@ -1204,7 +1209,7 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
   const footerPrice = printNoPages && amount > 0
     ? `${formatRupees(amount)} / page`
     : amount > 0
-      ? `${form.pricing.kind === 'fixed' && form.priceLabel === 'Starting price' ? 'from ' : ''}${formatRupees(amount)}`
+      ? `${form.pricing.kind === 'fixed' && form.priceLabel === 'Starting price' ? 'From ' : ''}${formatRupees(amount)}`
       : 'On quote';
 
   return (
@@ -1212,8 +1217,8 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
       <View style={[st.screen, { backgroundColor: p.page }]}>
         <View style={[st.header, { paddingTop: Math.max(insets.top, 12) + 4, backgroundColor: p.page }]}>
           <PressScale onPress={back} style={st.iconBtn} accessibilityRole="button"
-            accessibilityLabel={step === 'success' || stack.length <= 1 ? 'Close' : 'Back'}>
-            <Ionicons name={step === 'success' || stack.length <= 1 ? 'close' : 'chevron-back'} size={24} color={p.text} />
+            accessibilityLabel={step === 'success' ? 'Close' : 'Back'}>
+            <Ionicons name={step === 'success' ? 'close' : 'arrow-back'} size={24} color={p.text} />
           </PressScale>
           <Text style={[st.headerTitle, { color: p.text }]} numberOfLines={1}>{headerTitle}</Text>
           {stepIndex >= 0 && step !== 'success' ? (
@@ -1246,7 +1251,7 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
               ) : null}
               <View style={st.footerRow}>
                 <View style={{ marginRight: 14 }}>
-                  <Text style={[st.footerLabel, { color: p.sub }]}>{form.priceLabel}</Text>
+                  <Text style={[st.footerLabel, { color: p.sub }]}>{form.pricing.kind === 'fixed' && form.priceLabel === 'Starting price' ? 'Price' : form.priceLabel}</Text>
                   <Text style={[st.footerPrice, { color: p.text }]}>{footerPrice}</Text>
                 </View>
                 <PressScale
@@ -1396,7 +1401,7 @@ const st = StyleSheet.create({
   handoverRow: { flexDirection: 'row', gap: 10 },
   handover: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 52, borderRadius: 14, borderWidth: 1.5, paddingHorizontal: 12 },
   handoverText: { flex: 1, fontSize: 14, fontWeight: '700' },
-  dayChip: { width: 82, minHeight: 60, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', paddingVertical: 8 },
+  dayChip: { minWidth: 88, minHeight: 60, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', paddingVertical: 8, paddingHorizontal: 14 },
   dayTop: { fontSize: 14, fontWeight: '800' },
   dayBottom: { fontSize: 12, fontWeight: '600', marginTop: 2 },
   timeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

@@ -822,7 +822,8 @@ export const friendlyNetworkMessage = "We couldn't reach Zenvy. Check your inter
  */
 export function useBasketQuote(couponCode: string | null | undefined, enabled: boolean, active: boolean = true, basket?: BasketKind) {
   const { baskets, activeBasket } = useCartState();
-  const cart = baskets[basket || activeBasket];
+  const kind: BasketKind = basket || activeBasket;
+  const cart = baskets[kind];
   const orderLines = useMemo(() => cart.filter((i) => !isCustomRequest(i)), [cart]);
   const signature = useMemo(
     () => JSON.stringify(orderLines.map((l) => [l.id, l.quantity, l.customizations || null])),
@@ -832,6 +833,9 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
   const [quote, setQuote] = useState<OrderQuote | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<QuoteError | null>(null);
+  // Which basket the quote / error above belongs to: switching baskets must never show the other
+  // basket's bill (or its error) while the new quote is on its way.
+  const [resultKind, setResultKind] = useState<BasketKind | null>(null);
   const [nonce, setNonce] = useState(0);
   const refresh = useCallback(() => setNonce((n) => n + 1), []);
   // Live-sync refreshes run silently: the current bill stays on screen (no "Calculating…" flash)
@@ -859,6 +863,7 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
     if (!enabled || orderLines.length === 0) {
       setQuote(null);
       setError(null);
+      setResultKind(null);
       setLoading(false);
       return;
     }
@@ -868,7 +873,7 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     // A silent (live-sync) re-quote only keeps the old bill on screen when the basket and coupon are
     // unchanged; if they changed in the same render, the old bill no longer matches and must not be placeable.
-    const requestSig = `${signature}|${couponCode || ''}`;
+    const requestSig = `${kind}|${signature}|${couponCode || ''}`;
     const silent = silentRef.current && lastQuoteSigRef.current === requestSig;
     silentRef.current = false;
     lastQuoteSigRef.current = requestSig;
@@ -887,6 +892,7 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
         });
         const data = await res.json().catch(() => null);
         if (cancelled) return;
+        setResultKind(kind);
         if (res.ok && data && typeof data.finalPrice === 'number') {
           setQuote(data);
           setError(null);
@@ -901,6 +907,7 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
       } catch (e: any) {
         if (cancelled || (e?.name === 'AbortError' && !timedOut)) return;
         if (silent) return; // background re-quote hit a network blip: keep the bill we have
+        setResultKind(kind);
         setQuote(null);
         setError({ message: friendlyNetworkMessage, network: true });
       } finally {
@@ -915,9 +922,19 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
       try { controller?.abort(); } catch {}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signature, couponCode, enabled, nonce, active]);
+  }, [signature, couponCode, enabled, nonce, active, kind]);
 
-  return { quote, loading, error, refresh, hasOrderLines: orderLines.length > 0 };
+  // Only this basket's result counts; until it arrives the caller sees "loading" (a skeleton), not the
+  // last basket's bill.
+  const fresh = resultKind === kind;
+  const waitingForThisBasket = !fresh && enabled && orderLines.length > 0;
+  return {
+    quote: fresh ? quote : null,
+    loading: loading || waitingForThisBasket,
+    error: fresh ? error : null,
+    refresh,
+    hasOrderLines: orderLines.length > 0,
+  };
 }
 
 /** GET /api/orders/serviceability — is campus ordering open right now? */

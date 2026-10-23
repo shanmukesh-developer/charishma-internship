@@ -6,7 +6,7 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import { useRouter, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import TabBackButton from '../../components/TabBackButton';
-import { COLORS, SHADOWS } from '../../constants/theme';
+import { COLORS, SHADOWS, BUTTON } from '../../constants/theme';
 import { plainDiscountLabel } from '../../utils/billLabel';
 import { useTopInset } from '../../utils/useTopInset';
 import { useCart, useBasketQuote, useServiceability, isCustomRequest, isBasketKind, BASKET_KINDS, BASKET_LABELS, BasketKind, DELIVERY_INSTRUCTIONS, DELIVERY_INSTRUCTIONS_KEY } from '../../context/CartContext';
@@ -41,6 +41,10 @@ export default function BasketScreen() {
   const [inputCode, setInputCode] = useState('');
   const [selectedInstructions, setSelectedInstructions] = useState<string[]>([]);
   const router = useRouter();
+  // Group basket: starting, joining or leaving always lands on a clean card (no half-open join row).
+  const resetGroupCard = () => { setIsJoinOpen(false); setInputCode(''); };
+  const onHostRoom = () => { resetGroupCard(); handleHostRoom(); };
+  const onLeaveGroup = () => { resetGroupCard(); handleDisconnect(); };
 
   // Three baskets (restaurants, campus store, local stalls), each with its own checkout.
   // The screen below shows the selected basket exactly as a single basket.
@@ -86,6 +90,8 @@ export default function BasketScreen() {
   const closedMessage = stripEmoji(String(quote?.serviceability?.message || serviceability?.message ||
     `Campus stores are closed for the night. Ordering opens again at ${serviceability?.reopensAt ? formatClock(serviceability.reopensAt) : '6:00 AM'}.`));
   const customCount = cart.filter((i) => isCustomRequest(i)).length;
+  // Send a list: the price is optional, so a list can be "price after shopping" (total 0).
+  const customTotal = cart.filter((i) => isCustomRequest(i)).reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0);
 
   useEffect(() => {
     let cancelled = false;
@@ -118,11 +124,16 @@ export default function BasketScreen() {
   const stallLine = cart.find((i) => i.isStall && !isCustomRequest(i));
   const isStallBasket = quote ? quote.fulfilment === 'VENDOR' : !!stallLine;
   const stallName = quote?.store?.name || stallLine?.restaurantName || 'the stall';
+  // This store / stall is closed (its own hours), told by the quote: a calm notice, not a bill error.
+  const storeClosed = quoteError?.code === 'STORE_CLOSED';
+  const storeOpensAt = storeClosed && typeof quoteError?.body?.opensAt === 'string' ? formatClock(quoteError.body.opensAt) : '';
+  const storeClosedTitle = basketKind === 'stall' ? 'This stall is closed now' : `${stallLine?.restaurantName || cart[0]?.restaurantName || 'This store'} is closed now`;
+  const storeClosedText = storeOpensAt ? `Opens at ${storeOpensAt}. Your basket is saved.` : 'Your basket is saved. Check back when it opens.';
   // Don't send people to checkout just to be refused there.
-  const checkoutBlocked = !!user && (isClosed || unavailable.length > 0);
+  const checkoutBlocked = !!user && (isClosed || storeClosed || unavailable.length > 0);
   const checkoutLabel = !user
     ? `Go to checkout · ${plural(totalItems, 'item')}`
-    : isClosed
+    : isClosed || storeClosed
       ? 'Ordering closed'
       : unavailable.length > 0
         ? 'Remove unavailable items first'
@@ -152,14 +163,16 @@ export default function BasketScreen() {
           {cart.length > 0 && (
             <TouchableOpacity
               style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.08)' }}
+              accessibilityRole="button"
+              accessibilityLabel={`Clear your ${BASKET_LABELS[basketKind]} basket`}
               onPress= {() => {
                 Alert.alert(
-                  'Clear your basket?',
-                  'This removes every item from your basket.',
+                  `Clear your ${BASKET_LABELS[basketKind]} basket?`,
+                  `This removes the ${plural(totalItems, 'item')} in your ${BASKET_LABELS[basketKind]} basket. Your other baskets stay as they are.`,
                   [
                     { text: 'Cancel', style: 'cancel' },
                     {
-                      text: 'Clear basket',
+                      text: 'Clear this basket',
                       style: 'destructive',
                       onPress: () => clearBasket(basketKind),
                     }
@@ -167,7 +180,7 @@ export default function BasketScreen() {
                 );
               }}
             >
-              <Text style={{ fontSize: 12, fontWeight: '900', color: '#EF4444', letterSpacing: 0.2 }}>Clear basket</Text>
+              <Text style={{ fontSize: 12, fontWeight: '900', color: '#EF4444', letterSpacing: 0.2 }}>Clear this basket</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -204,11 +217,11 @@ export default function BasketScreen() {
                 <Text style={{ fontSize: 12, fontWeight: '900', color: goldColor, letterSpacing: 0.3, marginBottom: 2 }}>Group basket</Text>
                 <Text style={[s.groupDesc, { color: txtSec }]}>Build one basket with your roommates. One person checks out and pays.</Text>
                 <View style={s.groupBtns}>
-                  <TouchableOpacity style={[s.hostBtn, { borderColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]} onPress={handleHostRoom}>
-                    <Text style={[s.hostBtnText, { color: txt }]}>Start a group basket</Text>
+                  <TouchableOpacity style={[s.hostBtn, { borderColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]} onPress={onHostRoom} accessibilityRole="button">
+                    <Text style={[s.hostBtnText, { color: txt }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Start a group basket</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[s.joinBtn, { backgroundColor: goldColor }]} onPress={() => setIsJoinOpen(!isJoinOpen)}>
-                    <Text style={s.joinBtnText}>Join a group basket</Text>
+                  <TouchableOpacity style={[s.joinBtn, { backgroundColor: goldColor }]} onPress={() => setIsJoinOpen(!isJoinOpen)} accessibilityRole="button" accessibilityState={{ expanded: isJoinOpen }}>
+                    <Text style={s.joinBtnText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Join a group basket</Text>
                   </TouchableOpacity>
                 </View>
                 {isJoinOpen && (
@@ -239,7 +252,7 @@ export default function BasketScreen() {
               </View>
             ) : (
               <View style={s.activeRoomCard}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: roomMessage ? 6 : 12 }}>
+                <View style={[s.roomStatusRow, { marginBottom: 6 }]}>
                   {roomStatus === 'connecting' ? (
                     <ActivityIndicator size="small" color={goldColor} />
                   ) : (
@@ -257,10 +270,11 @@ export default function BasketScreen() {
                             : `Group basket (${isHosting ? "you're the host" : 'joined'})`}
                   </Text>
                 </View>
-                {!!roomMessage && (
-                  <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', marginBottom: 10, lineHeight: 15 }}>{roomMessage}</Text>
-                )}
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                {/* Always the same height (idle message or none), so the card never jumps between states. */}
+                <Text style={s.roomMessage} numberOfLines={2}>
+                  <Text style={{ color: txtSec }}>{roomMessage || ''}</Text>
+                </Text>
+                <View style={s.roomCodeRow}>
                   <View>
                     <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700', letterSpacing: 0.2, marginBottom: 2 }}>Room code</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -276,8 +290,8 @@ export default function BasketScreen() {
                       </TouchableOpacity>
                     </View>
                   </View>
-                  <TouchableOpacity style={s.disconnectBtn} onPress={handleDisconnect}>
-                    <Text style={s.disconnectText}>Leave group</Text>
+                  <TouchableOpacity style={s.disconnectBtn} onPress={onLeaveGroup} accessibilityRole="button">
+                    <Text style={s.disconnectText} numberOfLines={1}>Leave group</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -295,8 +309,8 @@ export default function BasketScreen() {
                 {basketKind === 'store'
                   ? 'Add groceries, snacks and room essentials from the campus store.'
                   : basketKind === 'stall'
-                    ? 'Add snacks and meals from CampusBites stalls. You pay the stall in cash.'
-                    : 'Add food from campus restaurants, snacks or groceries for your room.'}
+                    ? 'Add snacks and meals from local stalls near campus. You pay the stall in cash.'
+                    : 'Add meals from campus restaurants. Groceries and stall food have their own baskets.'}
               </Text>
               <TouchableOpacity 
                 style={[s.exploreBtn, { backgroundColor: COLORS.red }]}
@@ -316,6 +330,18 @@ export default function BasketScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={[s.multiRestTitle, { color: txt }]}>Ordering is closed</Text>
                     <Text style={[s.multiRestSub, { color: txtSec }]}>{closedMessage} Your basket is saved.</Text>
+                  </View>
+                </View>
+              </StaggeredSection>
+            )}
+
+            {!isClosed && storeClosed && (
+              <StaggeredSection delay={60} direction="up">
+                <View style={[s.multiRestBanner, { backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.08)', borderColor: 'rgba(99,102,241,0.3)' }]}>
+                  <Ionicons name="time-outline" size={16} color={txtSec} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.multiRestTitle, { color: txt }]}>{storeClosedTitle}</Text>
+                    <Text style={[s.multiRestSub, { color: txtSec }]}>{storeClosedText}</Text>
                   </View>
                 </View>
               </StaggeredSection>
@@ -361,18 +387,24 @@ export default function BasketScreen() {
                         {summarizeCustomizations(item.customizations)}
                       </Text>
                     )}
-                    {item.addedBy && (
+                    {!!item.addedBy && !!roomCode && (
                       <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)', alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4 }}>
                         <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>Added by {item.addedBy}</Text>
                       </View>
                     )}
                     <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
-                      <Text style={{ fontSize: 16, fontWeight: '900', color: txt }}>{formatINR(Number(item.price) * Number(item.quantity))}</Text>
-                      {item.quantity > 1 && (
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec }}>{formatINR(item.price)} each</Text>
-                      )}
-                      {isCustomRequest(item) && (
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec }}>est.</Text>
+                      {isCustomRequest(item) && !(Number(item.price) > 0) ? (
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: txtSec }}>Price after shopping</Text>
+                      ) : (
+                        <>
+                          <Text style={{ fontSize: 16, fontWeight: '900', color: txt }}>{formatINR(Number(item.price) * Number(item.quantity))}</Text>
+                          {item.quantity > 1 && (
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec }}>{formatINR(item.price)} each</Text>
+                          )}
+                          {isCustomRequest(item) && (
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec }}>est.</Text>
+                          )}
+                        </>
                       )}
                     </View>
                   </View>
@@ -432,7 +464,7 @@ export default function BasketScreen() {
                   <>
                     <View style={s.billRow}>
                       <Text style={[s.billLabel, { color: txtSec }]}>Shopping list (est.)</Text>
-                      <Text style={[s.billVal, { color: txt }]}>{formatINR(totalPrice)}</Text>
+                      <Text style={[s.billVal, { color: customTotal > 0 ? txt : txtSec }]}>{customTotal > 0 ? formatINR(customTotal) : 'After shopping'}</Text>
                     </View>
                     <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>A rider shops your list. You pay the actual shop bill plus fees in cash on delivery.</Text>
                   </>
@@ -478,10 +510,27 @@ export default function BasketScreen() {
                     )}
                   </View>
                 ) : quoteLoading ? (
-                  <View style={{ paddingVertical: 12, alignItems: 'center' }}>
-                    <ActivityIndicator color={goldColor} />
-                    <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', marginTop: 8 }}>Calculating your bill…</Text>
+                  // Skeleton until this basket's own bill arrives (never the other basket's bill).
+                  <View accessibilityLabel="Calculating your bill">
+                    {[0.42, 0.34, 0.5].map((w, idx) => (
+                      <View style={s.billRow} key={idx}>
+                        <View style={[s.skelBar, { width: `${w * 100}%` as any, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#ECEEF2' }]} />
+                        <View style={[s.skelBar, { width: 56, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#ECEEF2' }]} />
+                      </View>
+                    ))}
+                    <View style={[s.billRow, { borderTopWidth: 1, borderTopColor: border, paddingTop: 12, marginTop: 4, marginBottom: 0 }]}>
+                      <View style={[s.skelBar, { width: 60, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#ECEEF2' }]} />
+                      <View style={[s.skelBar, { width: 80, height: 18, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#ECEEF2' }]} />
+                    </View>
                   </View>
+                ) : storeClosed ? (
+                  <>
+                    <View style={s.billRow}>
+                      <Text style={[s.billLabel, { color: txtSec }]}>Item total</Text>
+                      <Text style={[s.billVal, { color: txt }]}>{formatINR(totalPrice)}</Text>
+                    </View>
+                    <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>Your full bill shows here once {basketKind === 'stall' ? 'the stall' : 'the store'} opens.</Text>
+                  </>
                 ) : quoteError ? (
                   <View>
                     <Text style={{ fontSize: 12, fontWeight: '800', color: txt, marginBottom: 4 }}>We couldn't calculate your bill</Text>
@@ -533,7 +582,8 @@ export default function BasketScreen() {
           </>
         )}
 
-        <View style={{ height: 200 }} />
+        {/* Room for the floating checkout button (and the tab bar) under the last card. */}
+        <View style={{ height: totalItems > 0 ? (Platform.OS === 'ios' ? 260 : 240) : 120 }} />
       </ScrollView>
 
       {totalItems > 0 && (
@@ -577,10 +627,14 @@ const s = StyleSheet.create({
   groupCard: { marginHorizontal: 16, padding: 16, borderRadius: 20, marginBottom: 16, borderWidth: 1 },
   groupDesc: { fontSize: 12, fontWeight: '600', letterSpacing: 0.1, lineHeight: 16, marginBottom: 12 },
   groupBtns: { flexDirection: 'row', gap: 10 },
-  hostBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, borderWidth: 1.5, alignItems: 'center' },
-  hostBtnText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
-  joinBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
-  joinBtnText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.2 },
+  // Fixed-height, equal-width buttons: one line at 360 px and 390 px (the label shrinks a little before it wraps).
+  hostBtn: { flex: 1, height: BUTTON.height, paddingHorizontal: 6, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  hostBtnText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2, textAlign: 'center' },
+  joinBtn: { flex: 1, height: BUTTON.height, paddingHorizontal: 6, borderRadius: 12, borderWidth: 1.5, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
+  joinBtnText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.2, textAlign: 'center' },
+  roomStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 20 },
+  roomMessage: { fontSize: 12, fontWeight: '600', lineHeight: 15, height: 30, marginBottom: 8 },
+  roomCodeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: BUTTON.height + 4 },
   empty: { padding: 60, alignItems: 'center' },
   emptyText: { fontSize: 13, fontWeight: '600' },
   emptyBox: { marginHorizontal: 16, marginTop: 24, padding: 32, borderRadius: 24, alignItems: 'center', borderWidth: 1, ...SHADOWS.card },
@@ -592,6 +646,7 @@ const s = StyleSheet.create({
   itemImg: { width: 60, height: 60, borderRadius: 12, marginRight: 12 },
   itemInfo: { flex: 1 },
   itemName: { fontSize: 13, fontWeight: '700' },
+  skelBar: { height: 12, borderRadius: 6 },
   qtyWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, padding: 4 },
   qtyBtn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', ...SHADOWS.card },
   qtyText: { fontSize: 16, fontWeight: '700' },
@@ -606,7 +661,7 @@ const s = StyleSheet.create({
   joinSubmitText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.2 },
   activeRoomCard: { width: '100%' },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#10B981' },
-  disconnectBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.2)' },
+  disconnectBtn: { paddingHorizontal: 12, height: 36, justifyContent: 'center', borderRadius: 8, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.2)' },
   disconnectText: { fontSize: 12, fontWeight: '900', color: '#EF4444', letterSpacing: 0.2 },
   checkoutBtnContainer: {
     position: 'absolute',

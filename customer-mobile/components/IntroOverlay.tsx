@@ -267,7 +267,10 @@ export default function IntroOverlay({ onComplete, ready = true }: IntroOverlayP
     }
 
     const seq = Animated.timing(t, { toValue: SEQ_END, duration: SEQ_END, easing: Easing.linear, useNativeDriver: ND });
-    seq.start(({ finished }) => {
+    // Start after the first two frames: the overlay (and the app behind it) mounts first, so no frames drop at t=0.
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => { raf2 = requestAnimationFrame(() => seq.start(onSeqEnd)); });
+    function onSeqEnd({ finished }: { finished: boolean }) {
       if (!finished || phase.current !== 'intro') return;
       if (readyRef.current) { beginExit(EXIT_MS); return; }
       // Slow phone: the app is still rendering. The glow breathes gently until it is (or until the cap).
@@ -277,11 +280,13 @@ export default function IntroOverlay({ onComplete, ready = true }: IntroOverlayP
         Animated.timing(breath, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.sin), useNativeDriver: ND }),
       ]));
       breathLoop.current.start();
-    });
+    }
     const cap = setTimeout(() => beginExit(EXIT_MS), HOLD_CAP);
 
     return () => {
       clearTimeout(cap);
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
       if (safety.current) clearTimeout(safety.current);
       seq.stop();
       breathLoop.current?.stop();
@@ -332,7 +337,7 @@ export default function IntroOverlay({ onComplete, ready = true }: IntroOverlayP
       accessibilityLabel="ZCS, Zenvy Community and Services. Tap to skip"
     >
       {/* ── Beat 1: black with a soft cinematic vignette ── */}
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: a.backdrop }]}>
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: a.backdrop }]} renderToHardwareTextureAndroid shouldRasterizeIOS>
         <LinearGradient colors={[BG, '#110E0A', BG]} locations={[0, 0.48, 1]} style={StyleSheet.absoluteFill} />
         <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
           <Defs>
@@ -374,7 +379,7 @@ export default function IntroOverlay({ onComplete, ready = true }: IntroOverlayP
           {/* Beat 5 glow sits behind everything in the monogram */}
           <View style={[styles.centreLayer, { top: (g.rowH - GLOW_H) / 2, height: GLOW_H }]}>
             <Animated.View style={{ opacity: breath }}>
-              <Animated.View style={{ opacity: a.glow, transform: [{ scale: a.glowScale }] }}>
+              <Animated.View style={{ opacity: a.glow, transform: [{ scale: a.glowScale }] }} renderToHardwareTextureAndroid shouldRasterizeIOS>
                 <GoldGlow id="zcsIntroGlow" w={GLOW_W} h={GLOW_H} strength={0.3} />
               </Animated.View>
             </Animated.View>
@@ -383,7 +388,7 @@ export default function IntroOverlay({ onComplete, ready = true }: IntroOverlayP
           {/* Beat 2: light line (full window width) + lens flare through the letters' centre line */}
           {!still && (
             <>
-              <Animated.View style={[styles.streak, { top: g.rowH / 2 - 0.75, opacity: a.streakOpacity, transform: [{ scaleX: a.streakScale }] }]}>
+              <Animated.View style={[styles.streak, { top: g.rowH / 2 - 0.75, opacity: a.streakOpacity, transform: [{ scaleX: a.streakScale }] }]} renderToHardwareTextureAndroid shouldRasterizeIOS>
                 <LinearGradient
                   colors={['rgba(212,175,55,0)', 'rgba(212,175,55,0.55)', 'rgba(255,240,200,0.95)', 'rgba(212,175,55,0.55)', 'rgba(212,175,55,0)']}
                   locations={[0, 0.3, 0.5, 0.7, 1]}
@@ -393,7 +398,7 @@ export default function IntroOverlay({ onComplete, ready = true }: IntroOverlayP
                 />
               </Animated.View>
               <View style={[styles.centreLayer, { top: (g.rowH - FLARE_H) / 2, height: FLARE_H }]}>
-                <Animated.View style={[styles.flare, { opacity: a.flareOpacity, transform: [{ translateX: a.flareX }] }]}>
+                <Animated.View style={[styles.flare, { opacity: a.flareOpacity, transform: [{ translateX: a.flareX }] }]} renderToHardwareTextureAndroid shouldRasterizeIOS>
                   <GoldGlow id="zcsIntroFlareHalo" w={FLARE_W} h={FLARE_H} strength={0.55} />
                   <View style={styles.flareCore}>
                     <GoldGlow id="zcsIntroFlareCore" w={56} h={56} strength={0.95} color="#FFF4D6" />
@@ -410,6 +415,8 @@ export default function IntroOverlay({ onComplete, ready = true }: IntroOverlayP
                 <Animated.View
                   key={ch}
                   style={{ opacity: a.letters[i].opacity, transform: [{ translateY: a.letters[i].y }] }}
+                  renderToHardwareTextureAndroid
+                  shouldRasterizeIOS
                 >
                   <GoldLetter ch={ch} g={g} />
                 </Animated.View>
@@ -419,12 +426,12 @@ export default function IntroOverlay({ onComplete, ready = true }: IntroOverlayP
             {!still && (
               <>
                 <Animated.View style={[styles.band, { width: SOFT_BAND, height: g.rowH, opacity: 0.55, transform: [{ translateX: a.softX }] }]}>
-                  <Animated.View style={[styles.bandInner, rowBox, { transform: [{ translateX: a.softInner }] }]}>
+                  <Animated.View style={[styles.bandInner, rowBox, { transform: [{ translateX: a.softInner }] }]} renderToHardwareTextureAndroid shouldRasterizeIOS>
                     {shineRow('#F3DFA6')}
                   </Animated.View>
                 </Animated.View>
                 <Animated.View style={[styles.band, { width: CORE_BAND, height: g.rowH, transform: [{ translateX: a.coreX }] }]}>
-                  <Animated.View style={[styles.bandInner, rowBox, { transform: [{ translateX: a.coreInner }] }]}>
+                  <Animated.View style={[styles.bandInner, rowBox, { transform: [{ translateX: a.coreInner }] }]} renderToHardwareTextureAndroid shouldRasterizeIOS>
                     {shineRow('#FFF7E2')}
                   </Animated.View>
                 </Animated.View>
@@ -434,7 +441,7 @@ export default function IntroOverlay({ onComplete, ready = true }: IntroOverlayP
         </View>
 
         {/* Beat 4: hairline + the full name */}
-        <Animated.View style={{ opacity: a.hairlineOpacity, transform: [{ scaleX: a.hairline }] }}>
+        <Animated.View style={{ opacity: a.hairlineOpacity, transform: [{ scaleX: a.hairline }] }} renderToHardwareTextureAndroid shouldRasterizeIOS>
           <LinearGradient
             colors={['rgba(212,175,55,0)', 'rgba(212,175,55,0.8)', 'rgba(212,175,55,0)']}
             start={{ x: 0, y: 0.5 }}
@@ -442,7 +449,7 @@ export default function IntroOverlay({ onComplete, ready = true }: IntroOverlayP
             style={styles.hairline}
           />
         </Animated.View>
-        <Animated.View style={{ opacity: a.nameOpacity, transform: [{ translateY: a.nameY }] }}>
+        <Animated.View style={{ opacity: a.nameOpacity, transform: [{ translateY: a.nameY }] }} renderToHardwareTextureAndroid shouldRasterizeIOS>
           <Text allowFontScaling={false} style={[styles.name, { maxWidth: winW - SIDE_PAD * 2 }]}>{NAME}</Text>
         </Animated.View>
       </Animated.View>

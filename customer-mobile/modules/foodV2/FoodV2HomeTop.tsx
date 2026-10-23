@@ -16,7 +16,8 @@ import { FOOD } from './foodV2Theme';
 import { SEARCH, SEARCH_HINTS, TILES, fmtShortClock } from './FoodV2Data';
 import { s } from './FoodV2Styles';
 import { useFoodV2 } from './useFoodV2';
-import { useFoodV2Ui, Enter, useHint } from './FoodV2Ui';
+import { useFoodV2Ui, Enter } from './FoodV2Ui';
+import SectionHeader, { FOOD_HEADER } from './FoodV2SectionHeader';
 import { CUT, TILE_ART } from './FoodV2Art';
 import { FloatY, ShineSweep } from './FoodV2Motion';
 import { Icon } from './FoodV2Icons';
@@ -24,7 +25,7 @@ import { useFoodScale } from './FoodV2Scale';
 import { apiFetch } from '../../utils/auth';
 
 /** Gold dot on the bell only when the signed-in student has unread notifications (GET, read-only). */
-function useUnreadDot() {
+export function useUnreadDot() {
   const [dot, setDot] = React.useState(false);
   React.useEffect(() => {
     let live = true;
@@ -37,72 +38,35 @@ function useUnreadDot() {
   return dot;
 }
 
-const PILLS: [string, string][] = [['food', 'Food & groc.'], ['services', 'Tech & repairs'], ['pg', 'PG'], ['coride', 'Co-Ride'], ['promos', 'Deals & spin']];
+const PILLS: [string, string][] = [['food', 'Food & groceries'], ['services', 'Tech & repairs'], ['pg', 'PG'], ['coride', 'Co-Ride'], ['promos', 'Deals & spin']];
 
 /** Luxury header palette (owner feedback): deep emerald, one soft light, fine grain, gold hairline. */
 export const LUX = { top: '#0B3D24', bottom: '#0F5132', gold: '#C9A24A', goldSoft: 'rgba(201,162,74,0.35)', badge: '#E9C46A' };
-const EMBLEM = require('./assets/food-v2-brand-gold-z-emblem-2026-10-23.webp');
-
-/** One large, very soft light from the top-right (about 10% white). Smooth gradient only, no texture. */
-function HeaderLight({ width, height }: { width: number; height: number }) {
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
-        <Defs>
-          <RadialGradient id="fv2hdrlight" cx="92%" cy="0%" rx="78%" ry="90%">
-            <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.10" />
-            <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
-          </RadialGradient>
-        </Defs>
-        <Rect x="0" y="0" width={width} height={height} fill="url(#fv2hdrlight)" />
-      </Svg>
-    </View>
-  );
-}
 
 export function HomeHeader() {
   const { router, topPad, pageW, push, setSavedChip, openListing, sections, onSection } = useFoodV2();
-  const pills: [string, string][] = sections && sections.length ? sections.map(t => [t.key, t.key === 'food' ? 'Food & groc.' : t.label] as [string, string]) : PILLS;
-  const { headerBtn } = useFoodV2Ui();
-  const hintIdx = useHint();
+  const pills: [string, string][] = sections && sections.length ? sections.map(t => [t.key, t.label] as [string, string]) : PILLS;
   const sc = useFoodScale();
   const unread = useUnreadDot();
   return (
-    <LinearGradient colors={[LUX.top, LUX.bottom]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ paddingTop: topPad, overflow: 'hidden' }}>
-      <HeaderLight width={pageW} height={topPad + 220} />
-      <View style={[s.brandRow, { paddingHorizontal: sc.compact ? 16 : 20 }]}>
-        <View style={st.brandBlock}>
-          <View style={st.emblemGlow}>
-            <View style={st.emblemRing}><Image source={EMBLEM} style={st.emblem} contentFit="cover" accessibilityLabel="ZCS emblem" /></View>
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={s.brandWord} accessibilityRole="header">ZCS</Text>
-            <Text style={[s.brandSub, { fontSize: sc.compact ? 12 : 12.5 }]} numberOfLines={1}>{sc.compact ? 'Campus store' : 'Campus store · Food & groceries'}</Text>
-          </View>
-        </View>
-        <View style={st.iconRow}>
-          {headerBtn('heart-outline', 'Saved items', () => { setSavedChip('All'); push({ name: 'saved' }); })}
-          {headerBtn('notifications-outline', unread ? 'Notifications, unread' : 'Notifications', () => router.push('/notifications' as any), 0, unread)}
-        </View>
-      </View>
-      <PressScale style={[s.search, { marginHorizontal: sc.compact ? 16 : 20 }]} onPress={() => openListing(SEARCH)} scaleTo={0.99} accessibilityRole="search" accessibilityLabel="Search groceries and essentials">
-        <Icon name="search" size={20} color="#1F3B4D" />
-        <Text style={s.searchHint} numberOfLines={1}>{SEARCH_HINTS[hintIdx % SEARCH_HINTS.length]}</Text>
-      </PressScale>
-      <ScrollView horizontal style={s.hScroll} showsHorizontalScrollIndicator={false} contentContainerStyle={s.pillRail}>
-        {pills.map(([k, label]) => {
-          const on = k === 'food';
-          return (
-            <PressScale key={k} onPress={() => { if (!on) { if (onSection) onSection(k); else router.push(`/(tabs)/others?tab=${k}` as any); } }} scaleTo={0.95} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={label}
-              style={[s.pill, on ? s.pillOn : s.pillOff]}>
-              <Text style={[s.pillText, { color: on ? '#0B5A2E' : 'rgba(255,255,255,0.85)', fontWeight: '500' }]} numberOfLines={1}>{label}</Text>
-            </PressScale>
-          );
-        })}
-      </ScrollView>
-      {/* soft fade at the right edge: the pill row scrolls */}
-      <LinearGradient colors={['rgba(15,81,50,0)', LUX.bottom]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={st.pillFade} pointerEvents="none" />
-    </LinearGradient>
+    <SectionHeader
+      topPad={topPad}
+      pageW={pageW}
+      compact={sc.compact}
+      colors={FOOD_HEADER}
+      subtitle={sc.compact ? 'Campus store' : 'Campus store · Food & groceries'}
+      hints={SEARCH_HINTS}
+      searchLabel="Search groceries and essentials"
+      onSearch={() => openListing(SEARCH)}
+      pills={pills}
+      active="food"
+      onPill={k => { if (onSection) onSection(k); else router.push(`/(tabs)/others?tab=${k}` as any); }}
+      onBack={() => router.replace('/(tabs)' as any)}
+      actions={[
+        { icon: 'heart-outline', label: 'Saved items', onPress: () => { setSavedChip('All'); push({ name: 'saved' }); } },
+        { icon: 'notifications-outline', label: unread ? 'Notifications, unread' : 'Notifications', onPress: () => router.push('/notifications' as any), dot: unread },
+      ]}
+    />
   );
 }
 
@@ -114,8 +78,11 @@ export function HomeBandHero() {
   const heroH = sc.hero.minH;
   const heroW = pageW - 32;
   const bandH = (showNote ? 74 : 0) + 6 + Math.round(heroH * 0.6);
-  const artW = Math.round(Math.min(heroW * sc.hero.artRatio, sc.hero.artMax));
+  // Narrow phones (< 400 px): the basket stays inside the card; larger phones keep the spill-over look.
+  const inside = sc.w < 400;
+  const artW = Math.round(inside ? Math.min(heroW * 0.42, heroH - 16) : Math.min(heroW * sc.hero.artRatio, sc.hero.artMax));
   const artH = Math.round(artW * 0.96);
+  const textPct = inside ? 0.58 : sc.hero.textRatio;
   return (
     <View style={{ zIndex: 2 }}>
       <LinearGradient colors={[LUX.bottom, '#10573A']} style={{ position: 'absolute', left: 0, right: 0, top: -2, height: bandH + 2 }} />
@@ -153,22 +120,13 @@ export function HomeBandHero() {
             <Rect x="0" y="0" width={heroW} height={heroH + 120} fill="url(#fv2heroglow)" />
           </Svg>
         </View>
-        {/* soft shadow under the basket, then the floating cut-out spilling over the right / bottom edges */}
-        <Svg width={artW} height={34} style={{ position: 'absolute', right: -6, bottom: -26 }} pointerEvents="none">
-          <Defs>
-            <RadialGradient id="fv2heroshadow" cx="50%" cy="50%" rx="50%" ry="50%">
-              <Stop offset="0" stopColor="#000000" stopOpacity="0.32" />
-              <Stop offset="1" stopColor="#000000" stopOpacity="0" />
-            </RadialGradient>
-          </Defs>
-          <Ellipse cx={artW / 2} cy={17} rx={artW / 2.3} ry={12} fill="url(#fv2heroshadow)" />
-        </Svg>
-        <FloatY style={{ position: 'absolute', right: -16, bottom: -20, width: artW, height: artH }}>
+        <FloatY style={{ position: 'absolute', right: inside ? 8 : -16, bottom: inside ? 8 : -20, width: artW, height: artH }}>
           <Image source={CUT.hero} style={{ width: artW, height: artH }} contentFit="contain" accessibilityElementsHidden />
         </FloatY>
-        <View style={[s.heroText, { width: `${Math.round(sc.hero.textRatio * 100)}%` as any, flex: 0, paddingBottom: 20 }]}>
-          <Text style={[s.heroTitle, { fontSize: sc.hero.title, lineHeight: Math.round(sc.hero.title * 1.25) }]} numberOfLines={3} adjustsFontSizeToFit minimumFontScale={0.85} accessibilityRole="header">Campus essentials delivered to you</Text>
-          <Text style={[s.heroSub, { fontSize: sc.hero.sub, lineHeight: Math.round(sc.hero.sub * 1.45) }]} numberOfLines={2}>Fresh groceries · Tasty snacks · Daily needs</Text>
+        <View style={[s.heroText, { width: `${Math.round(textPct * 100)}%` as any, flex: 0, paddingBottom: 20 }]}>
+          {/* wraps freely (no "…"): the card grows if a small phone needs a fourth line */}
+          <Text style={[s.heroTitle, { fontSize: inside ? Math.min(sc.hero.title, 20) : sc.hero.title, lineHeight: Math.round((inside ? Math.min(sc.hero.title, 20) : sc.hero.title) * 1.25) }]} accessibilityRole="header">Campus essentials delivered to you</Text>
+          <Text style={[s.heroSub, { fontSize: sc.hero.sub, lineHeight: Math.round(sc.hero.sub * 1.45) }]}>Fresh groceries · Tasty snacks · Daily needs</Text>
           <PressScale style={s.brightWrapSm} onPress={() => openListing('All Groceries')} accessibilityRole="button" accessibilityLabel="Shop now: open the whole campus store">
             <LinearGradient colors={FOOD.bright} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.heroBtn}>
               <Text style={[s.heroBtnText, { fontSize: sc.f(14) }]} numberOfLines={1}>Shop now</Text>
@@ -184,7 +142,7 @@ export function HomeBandHero() {
 
 /** Shop by category: 3 + 2 tiles, cut-out subjects on tinted plates. */
 export function CategoryTiles() {
-  const { isDark, pageW, c, shadow, hasShelf, openListing } = useFoodV2();
+  const { isDark, pageW, c, shadow, hasShelf, openListing, push } = useFoodV2();
   const { head } = useFoodV2Ui();
   const sc = useFoodScale();
   const tiles = TILES.filter(t => hasShelf(t.key));
@@ -194,7 +152,7 @@ export function CategoryTiles() {
     : tiles.length === 5 ? [tiles.slice(0, 3), tiles.slice(3)] : tiles.length === 4 ? [tiles.slice(0, 2), tiles.slice(2)] : tiles.length === 6 ? [tiles.slice(0, 3), tiles.slice(3)] : [tiles];
   return (
     <View style={[s.sec, { marginTop: 30 }]}>
-      {head('Shop by category', { onAll: () => openListing('All Groceries'), arrow: true })}
+      {head('Shop by category', { onAll: () => push({ name: 'categories' }), arrow: true })}
       {rows.map((row, ri) => (
         <View key={ri} style={[s.tileRow, { marginTop: 12 }]}>
           {row.map((t, ti) => {

@@ -29,15 +29,18 @@ import { useFoodV2States } from './FoodV2States';
 import { Icon } from './FoodV2Icons';
 
 export default function FoodV2Saved({ sheet = false }: { sheet?: boolean }) {
-  const { router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, reqName, setReqName, reqQty, setReqQty, reqPrice, setReqPrice, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark } = useFoodV2();
+  const { router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark } = useFoodV2();
   const { headerBtn, chipOnWhite, chipOnGreen, head, addControl, priceRow, productRow, productCard, miniTile, basketBar } = useFoodV2Ui();
   const { loadingCard, stateCard, stockingUp } = useFoodV2States();
   const savedEmpty = () => (
-    <View style={[s.emptyCard, { backgroundColor: c.soft }]}>
-      <Icon name="heart-outline" size={40} color={FOOD.primary} />
+    // One soft surface only: the white sheet itself (no card inside it).
+    <View style={[s.emptyCard, { paddingVertical: 36 }]}>
+      <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: c.soft, alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name="heart-outline" size={32} color={FOOD.primary} />
+      </View>
       <Text style={[s.emptyTitle, { color: c.title }]}>No saved items yet</Text>
       <Text style={[s.emptyText, { color: c.slate }]}>Tap the heart icon on any product to save it here.</Text>
-      <PressScale style={[s.emptyBtn, { backgroundColor: FOOD.primary, alignSelf: 'stretch' }]} onPress={() => { setSavedSheet(false); reset({ name: 'home' }); }} accessibilityRole="button">
+      <PressScale style={[s.emptyBtn, { backgroundColor: FOOD.primary }]} onPress={() => { setSavedSheet(false); reset({ name: 'home' }); }} accessibilityRole="button">
         <Text style={s.emptyBtnText}>Browse the campus store</Text>
       </PressScale>
     </View>

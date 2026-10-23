@@ -21,15 +21,30 @@ import { useConnectionState } from '../../utils/offlineStatus';
 import { useTopInset } from '../../utils/useTopInset';
 import { FOOD } from './foodV2Theme';
 import { FOOD_IMG, StorefrontArt, ShoppingBasketArt, WaveArt, LoadingDots } from './FoodV2Kit';
-import { IonName, Item, SHOP_TYPES, CATALOGUE_CACHE_KEY, FALLBACK_IMG, MEGA_BASKET_VENDOR, WISHLIST_KEY, toItem, toList, groupIN, fmt, sentence, offLabel, fmtShortClock, squash, Shelf, SHELVES, shelfItems, SEARCH, SEARCH_HINTS, TILES, Hero, HEROES, LIST_TITLES, AISLES, aisleOf, SHORT_CHIP, chipLabel, FRESH_CATS, GROUP_ORDER, groupOf, BRANDS, TOY_TILES, HEALTH_TILES, ESSENTIAL_AISLES, HERO_BG, LHERO_BG, POPULAR_REQUESTS, Route, DemoState, Saved } from './FoodV2Data';
+import { IonName, Item, SHOP_TYPES, CATALOGUE_CACHE_KEY, FALLBACK_IMG, MEGA_BASKET_VENDOR, WISHLIST_KEY, toItem, toList, groupIN, fmt, fmtMrp, sentence, offLabel, fmtShortClock, squash, Shelf, SHELVES, shelfItems, SEARCH, SEARCH_HINTS, TILES, Hero, HEROES, LIST_TITLES, AISLES, aisleOf, SHORT_CHIP, chipLabel, FRESH_CATS, GROUP_ORDER, groupOf, BRANDS, TOY_TILES, HEALTH_TILES, ESSENTIAL_AISLES, HERO_BG, LHERO_BG, POPULAR_REQUESTS, Route, DemoState, Saved } from './FoodV2Data';
 import { s } from './FoodV2Styles';
 import { useFoodV2 } from './useFoodV2';
 import { Icon } from './FoodV2Icons';
 import Thumb from './FoodV2Thumb';
 import FoodV2BasketBar from './FoodV2BasketBar';
 
+const st = StyleSheet.create({
+  rowCol: { flex: 1, minWidth: 0, alignSelf: 'stretch', justifyContent: 'space-between' },
+  rowText: { paddingRight: 22 },
+  rowName: { lineHeight: 18, maxHeight: 36 },
+  rowMeta: { height: 16, lineHeight: 16 },
+  priceLine: { height: 22, lineHeight: 22, marginTop: 6 },
+  rowCtl: { height: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
+});
+
+/** Listing rows have one fixed height (FlatList getItemLayout): name (2 lines), size, price line, then the
+ *  "+" / stepper on its own line, so the stepper never covers the price or the % off. */
+export const ROW_H = 134;
+/** Gap below each listing row (part of the row's FlatList slot). */
+export const ROW_GAP = 10;
+
 export function useFoodV2Ui() {
-  const { router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, reqName, setReqName, reqQty, setReqQty, reqPrice, setReqPrice, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark } = useFoodV2();
+  const { router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark } = useFoodV2();
   /** Plain header icon (no circle): lucide 22 / 1.6 in a 44 px tap area; gold count pill or unread dot. */
   const headerBtn = (icon: IonName, label: string, onPress: () => void, badge = 0, dot = false) => (
     <PressScale style={s.hdrBtn} scaleTo={0.92} haptic onPress={onPress} accessibilityRole="button" accessibilityLabel={badge ? `${label}, ${badge} item${badge === 1 ? '' : 's'}` : label}>
@@ -110,37 +125,40 @@ export function useFoodV2Ui() {
     );
   };
 
+  /** One line: price, struck MRP (whole rupees) and % off; never wraps under the add control. */
   const priceRow = (p: Item, big = false) => {
     const off = offLabel(p);
     return (
-      <View style={s.priceRow}>
+      <Text style={st.priceLine} numberOfLines={1}>
         <Text style={[big ? s.priceBig : s.price, { color: c.price }]}>{fmt(p.price)}</Text>
-        {!!p.originalPrice && <Text style={[s.was, { color: c.was }]}>{fmt(p.originalPrice)}</Text>}
-        {!!off && <Text style={[s.off, { color: c.off }]}>{off}</Text>}
-      </View>
+        {!!p.originalPrice && <Text style={[s.was, { color: c.was }]}>{'  '}{fmtMrp(p.originalPrice)}</Text>}
+        {!!off && <Text style={[s.off, { color: c.off }]}>{'  '}{off}</Text>}
+      </Text>
     );
   };
 
-  /** Product row (listings, search, saved sheet): photo, name, price row, heart, "+". */
+  /** Product row (listings, search, saved sheet): photo, name, size, price line, heart, then "+" / stepper. */
   const productRow = (p: Item, opts?: { plate?: number; flat?: boolean; onOpen?: () => void }) => {
     const plate = opts?.plate || 76;
     const isSaved = savedIds.has(p.id) || (savedSample && sampleSaved.some(f => f.id === p.id));
-    const showMeta = !!p.weight;
     const open = opts?.onOpen || (() => openProduct(p));
     return (
-      <View key={p.id} style={[s.row, { backgroundColor: c.card, minHeight: plate + 24 }, opts?.flat ? { borderRadius: 0, borderBottomWidth: 1, borderBottomColor: c.line } : shadow]}>
-        <PressScale onPress={open} accessibilityRole="button" accessibilityLabel={`${p.name}, ${fmt(p.price)}${!p.isAvailable ? ', sold out' : ''}. Open details`}>
+      <View key={p.id} style={[s.row, { backgroundColor: c.card, height: Math.max(ROW_H, plate + 24) }, opts?.flat ? { borderRadius: 0, borderBottomWidth: 1, borderBottomColor: c.line } : shadow]}>
+        <PressScale onPress={open} accessibilityRole="button" accessibilityLabel={`${p.name}${p.weight ? `, ${p.weight}` : ''}, ${fmt(p.price)}${!p.isAvailable ? ', sold out' : ''}. Open details`}>
           <Thumb uri={p.image} size={plate} isDark={isDark} group={groupOf(p)} dim={!p.isAvailable} />
         </PressScale>
-        <PressScale style={s.rowBody} onPress={open} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Text style={[s.rowName, { color: c.name }]} numberOfLines={2}>{p.name}</Text>
-          {showMeta && <Text style={[s.rowMeta, { color: c.slate }]} numberOfLines={1}>{p.weight}</Text>}
-          {priceRow(p)}
-        </PressScale>
+        <View style={st.rowCol}>
+          <PressScale style={st.rowText} onPress={open} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <Text style={[s.rowName, st.rowName, { color: c.name }]} numberOfLines={2}>{p.name}</Text>
+            {/* size line always has its slot, so look-alike names still differ by size */}
+            <Text style={[s.rowMeta, st.rowMeta, { color: c.slate }]} numberOfLines={1}>{p.weight || ' '}</Text>
+            {priceRow(p)}
+          </PressScale>
+          <View style={st.rowCtl}>{addControl(p)}</View>
+        </View>
         <PressScale style={s.rowHeart} onPress={() => { if (!savedSample) toggleSaved(p); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={isSaved ? `Remove ${p.name} from saved items` : `Save ${p.name}`}>
           <Icon name={isSaved ? 'heart' : 'heart-outline'} size={16} strokeWidth={1.5} color={isSaved ? FOOD.primary : c.was} />
         </PressScale>
-        <View style={s.rowCtl}>{addControl(p)}</View>
       </View>
     );
   };
@@ -161,6 +179,7 @@ export function useFoodV2Ui() {
         </View>
         <PressScale onPress={() => openProduct(p)} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <Text style={[s.cardName, { color: c.name }]} numberOfLines={2}>{p.name}</Text>
+          <Text style={[s.rowMeta, { color: c.slate, paddingHorizontal: 2 }]} numberOfLines={1}>{p.weight || ' '}</Text>
           <View style={s.priceRow}>
             <Text style={[s.price, { color: c.price }]}>{fmt(p.price)}</Text>
             {!!off && <Text style={[s.off, { color: c.off, marginLeft: 6 }]}>{off}</Text>}

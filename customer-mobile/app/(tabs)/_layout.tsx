@@ -59,6 +59,8 @@ export default function TabLayout() {
   // Theme-aware tab bar style, memoized so the navigator's options stay referentially stable.
   const screenOptions = useMemo(() => ({
     headerShown: false,
+    // Hidden tabs stop re-rendering (react-native-screens freeze): less JS work, smoother taps on the visible tab.
+    freezeOnBlur: true,
     tabBarShowLabel: false,
     tabBarStyle: {
       backgroundColor: isDark ? '#09090B' : '#FFFFFF',

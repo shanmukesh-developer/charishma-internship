@@ -127,7 +127,7 @@ function AppContainer() {
           <UpdateGate>
           <AuthProvider>
           <CartProvider>
-            <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
+            <Stack screenOptions={{ headerShown: false, animation: 'fade', freezeOnBlur: true }} />
             <WorldTransitionOverlay />
             <GlobalAnnouncement />
             {/* C4: one-time, non-blocking "We've updated our Terms" sheet */}
@@ -148,7 +148,22 @@ function AppContainer() {
   );
 }
 
+/** Web only: the browser tab reads "ZCS" (the brand), whatever a screen or the app name sets. */
+function useWebTitle() {
+  React.useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const want = 'ZCS';
+    if (document.title !== want) document.title = want;
+    const el = document.querySelector('title');
+    if (!el || typeof MutationObserver === 'undefined') return;
+    const obs = new MutationObserver(() => { if (document.title !== want) document.title = want; });
+    obs.observe(el, { childList: true, characterData: true, subtree: true });
+    return () => obs.disconnect();
+  }, []);
+}
+
 export default function RootLayout() {
+  useWebTitle();
   return (
     <ErrorBoundary>
       <ThemeProvider>

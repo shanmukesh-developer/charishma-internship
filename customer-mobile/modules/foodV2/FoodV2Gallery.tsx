@@ -38,7 +38,7 @@ export default function FoodV2Gallery({ images, topPad, isSaved, onBack, onShare
         </ScrollView>
         <View style={[st.topRow, { top: topPad + 8 }]} pointerEvents="box-none">
           <PressScale style={st.round} onPress={onBack} accessibilityRole="button" accessibilityLabel="Go back">
-            <Icon name="chevron-back" size={22} color="#FFFFFF" />
+            <Icon name="arrow-back" size={22} color="#FFFFFF" />
           </PressScale>
           <View style={{ flex: 1 }} />
           <PressScale style={st.round} onPress={onShare} accessibilityRole="button" accessibilityLabel="Share">

@@ -413,7 +413,7 @@ function CategoryDetailScreen() {
         </View>
         <View style={s.cardInfo}>
           <Text style={[s.itemName, { color: txt }]} numberOfLines={2}>{item.name}</Text>
-          <Text style={[s.itemDesc, { color: txtSec }]} numberOfLines={2}>
+          <Text style={[s.itemDesc, { color: txtSec }]} numberOfLines={2} ellipsizeMode="tail">
             {item.weight ? `${item.weight}${item.desc ? ' · ' : ''}` : ''}{item.desc}
           </Text>
 
@@ -482,7 +482,7 @@ function CategoryDetailScreen() {
           accessibilityRole="button"
           accessibilityLabel="Back"
         >
-          <Ionicons name="chevron-back" size={24} color={txt} />
+          <Ionicons name="arrow-back" size={24} color={txt} />
         </TouchableOpacity>
         <View style={[s.headerIcon, { backgroundColor: t.soft }]}>
           <Ionicons name={meta.icon} size={20} color={txt} />

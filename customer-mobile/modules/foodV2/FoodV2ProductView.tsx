@@ -14,6 +14,10 @@ import FoodV2Gallery from './FoodV2Gallery';
 import { demoGallery } from './demoGallery';
 import { s, MAX_QTY, PRODUCT_FALLBACK_IMG, WISHLIST_KEY, NON_FOOD, specValue, sentence, tidy, discountOf } from './FoodV2ProductStyles';
 import { Icon } from './FoodV2Icons';
+import { fmtShortClock } from './FoodV2Data';
+
+/** The seller name used everywhere in Food & groceries (header, basket tab, saved items). */
+const SELLER_LABEL = 'Campus store';
 
 /**
  * Product page for Others → Food & groceries items (grocery, toys, seeds, electronics), after the
@@ -125,6 +129,21 @@ export default function FoodV2ProductView(p: Props) {
   const bandH = Math.round(Math.min(pageW * 0.62, 300));
   const plateW = Math.round(Math.min(pageW * 0.56, 260));
   const storeName: string = p.store?.name || product.restaurantName || '';
+  // The item's own flag follows the store's hours only; the store (GET /api/users/restaurants/:id) also
+  // applies the campus night window. Either one closed = show "Opens 6 am" and block adding.
+  const storeClosed = !!product.isAvailable && (p.store?.isOpen === false || product.storeIsOpen === false);
+  const opensAt = fmtShortClock(p.store?.opensAt);
+  const closedText = opensAt ? `Opens ${opensAt}` : 'Closed now';
+  const canAdd = p.canAdd && !storeClosed;
+  const reason = storeClosed
+    ? `The ${SELLER_LABEL.toLowerCase()} is closed now.${opensAt ? ` Opens ${opensAt}.` : ''} You can add this once it opens.`
+    : p.unavailableReason;
+  // You may also like: same category first, then the rest of the store.
+  const related = useMemo(() => {
+    const cat = String(product.category || '').toLowerCase();
+    const same = (r: any) => (cat && String(r.category || '').toLowerCase() === cat ? 1 : 0);
+    return [...p.moreItems].map((r, i) => ({ r, i })).sort((a, b) => same(b.r) - same(a.r) || a.i - b.i).map(x => x.r);
+  }, [p.moreItems, product.category]);
   const isFood = String(product.vendorType || '').toUpperCase() === 'GROCERY' && !NON_FOOD.test(String(product.category || ''));
   const specs = product.specs && typeof product.specs === 'object' ? product.specs : {};
 
@@ -156,9 +175,9 @@ export default function FoodV2ProductView(p: Props) {
     if (!name) return '';
     const byBrand = brand && !name.toLowerCase().includes(brand.toLowerCase()) ? ` by ${brand}` : '';
     const pack = size && !name.toLowerCase().includes(size.toLowerCase().replace(/\s+/g, '')) && !name.toLowerCase().includes(size.toLowerCase()) ? `, ${size} pack` : '';
-    const from = storeName ? ` Sold by ${storeName} and delivered to your hostel.` : ' Delivered to your hostel.';
+    const from = ` Sold by the ${SELLER_LABEL.toLowerCase()} and delivered to your hostel.`;
     return `${name}${byBrand}${pack}.${from}`;
-  }, [product.description, product.name, brand, size, storeName]);
+  }, [product.description, product.name, brand, size]);
 
   const qtyShown = inCart > 0 ? inCart : pickQty;
   const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -188,7 +207,9 @@ export default function FoodV2ProductView(p: Props) {
 
   const stock = !product.isAvailable
     ? { text: 'Sold out', color: isDark ? STATUS.dark.error : STATUS.light.error }
-    : p.canAdd
+    : storeClosed
+      ? { text: closedText, color: isDark ? STATUS.dark.warn : STATUS.light.warn }
+      : canAdd
       ? { text: 'In stock', color: c.off }
       : null;
   const hasRating = p.totalRatingCount > 0 && p.averageRating > 0;
@@ -202,11 +223,9 @@ export default function FoodV2ProductView(p: Props) {
 
         {/* ── Name, rating / stock, price ── */}
         <View style={s.block}>
+          {/* one save heart only: the one on the photo */}
           <View style={s.nameRow}>
             <Text style={[s.name, { color: c.title }]} accessibilityRole="header">{product.name}</Text>
-            <PressScale onPress={p.onToggleSaved} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={p.isSaved ? 'Remove from saved' : 'Save item'} style={s.nameHeart}>
-              <Icon name={p.isSaved ? 'heart' : 'heart-outline'} size={24} color={p.isSaved ? FOOD.primary : c.name} />
-            </PressScale>
           </View>
 
           <View style={s.metaRow}>
@@ -226,25 +245,27 @@ export default function FoodV2ProductView(p: Props) {
 
           <View style={s.priceRow}>
             <Text style={[s.price, { color: c.price, fontSize: 26, fontWeight: '600' }]}>{formatINR(product.price)}</Text>
-            {!!product.originalPrice && <Text style={[s.was, { color: c.was }]}>{formatINR(product.originalPrice)}</Text>}
+            {!!product.originalPrice && <Text style={[s.was, { color: c.was }]}>{formatINR(product.originalPrice, { paise: 'never' })}</Text>}
             {!!product.discountPercent && <Text style={[s.off, { color: c.off }]}>{product.discountPercent}% off</Text>}
           </View>
 
           <View style={[s.metaItem, { marginTop: 8 }]}>
             <Icon name="truck" size={14} color={c.slate} />
-            <Text style={[s.deliver, { color: c.slate }]}>{p.store?.time ? `Delivered in ${p.store.time}` : 'Delivered to your hostel'} · Cash or Wallet</Text>
+            <Text style={[s.deliver, { color: c.slate, flex: 1 }]}>{p.store?.time ? `Delivered in about ${p.store.time}` : 'Delivered to your hostel'} · Cash or Wallet</Text>
           </View>
+          {/* The fee is set on the server and can change with offers or Elite, so it is never guessed here. */}
+          <Text style={[s.deliver, { color: c.slate, marginTop: 4, marginLeft: 19 }]}>Delivery fee shown in basket</Text>
 
-          {!p.canAdd && (
+          {!canAdd && (
             <View style={[s.notice, { backgroundColor: isDark ? STATUS.dark.warnTint : STATUS.light.warnTint }]}>
               <Icon name="time-outline" size={16} color={isDark ? STATUS.dark.warn : STATUS.light.warn} />
-              <Text style={[s.noticeText, { color: c.title }]}>{p.unavailableReason}</Text>
+              <Text style={[s.noticeText, { color: c.title }]}>{reason}</Text>
             </View>
           )}
 
           {/* ── Quantity + Add to basket ── */}
           <View style={s.actionRow}>
-            {p.canAdd && !p.customizable && (
+            {canAdd && !p.customizable && (
               <View style={[s.stepper, { backgroundColor: c.mint }]}>
                 <PressScale style={s.stepBtn} onPress={dec} disabled={inCart === 0 && pickQty <= 1} accessibilityRole="button" accessibilityLabel={inCart > 0 ? 'Remove one' : 'One less'}>
                   <Icon name="remove" size={20} color={inCart === 0 && pickQty <= 1 ? c.was : c.mintInk} />
@@ -255,9 +276,9 @@ export default function FoodV2ProductView(p: Props) {
                 </PressScale>
               </View>
             )}
-            {!p.canAdd ? (
+            {!canAdd ? (
               <View style={[s.cta, { backgroundColor: isDark ? '#3F3F46' : '#D5DEDA' }]} accessibilityRole="text">
-                <Text style={s.ctaText}>{!product.isAvailable ? 'Sold out' : 'Unavailable'}</Text>
+                <Text style={s.ctaText}>{!product.isAvailable ? 'Sold out' : storeClosed ? closedText : 'Unavailable'}</Text>
               </View>
             ) : inCart > 0 ? (
               <PressScale style={[s.cta, { backgroundColor: FOOD.cta }]} onPress={p.onOpenBasket} accessibilityRole="button" accessibilityLabel={`View basket, ${plural(inCart, 'item')} of this product`}>
@@ -287,9 +308,9 @@ export default function FoodV2ProductView(p: Props) {
             </View>
           )}
           {!!storeName && (
-            <PressScale style={s.soldBy} onPress={p.onOpenStore} disabled={!product.restaurantId} accessibilityRole="button" accessibilityLabel={`Sold by ${storeName}. Open the store`}>
+            <PressScale style={s.soldBy} onPress={p.onOpenStore} disabled={!product.restaurantId} accessibilityRole="button" accessibilityLabel={`Sold by the ${SELLER_LABEL}, packed by ${storeName}. Open the store`}>
               <Icon name="storefront-outline" size={15} color={FOOD.primary} />
-              <Text style={[s.soldByText, { color: c.slate }]}>Sold by <Text style={{ color: c.name, fontWeight: '500' }}>{storeName}</Text></Text>
+              <Text style={[s.soldByText, { color: c.slate, flex: 1 }]} numberOfLines={2}>Sold by <Text style={{ color: c.name, fontWeight: '500' }}>{SELLER_LABEL}</Text>{storeName && storeName !== SELLER_LABEL ? ` · ${storeName}` : ''}</Text>
               <Icon name="chevron-forward" size={15} color={c.slate} />
             </PressScale>
           )}
@@ -308,11 +329,11 @@ export default function FoodV2ProductView(p: Props) {
         )}
 
         {/* ── You may also like (same store) ── */}
-        {p.moreItems.length > 0 && (
+        {related.length > 0 && (
           <View style={{ marginTop: 20 }}>
             <Text style={[s.secTitle, { color: c.title, paddingHorizontal: 20 }]}>You may also like</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.moreRail}>
-              {p.moreItems.map((rel: any) => {
+              {related.map((rel: any) => {
                 const relId = String(rel.id || rel._id);
                 const relImg = p.getImageUri(rel.imageUrl || rel.image) || PRODUCT_FALLBACK_IMG;
                 const relQty = p.cart.find((i: any) => i.cartKey === relId)?.quantity || 0;

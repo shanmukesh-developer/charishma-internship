@@ -30,6 +30,7 @@ import FoodV2Listing from './FoodV2Listing';
 import FoodV2Search from './FoodV2Search';
 import FoodV2Saved from './FoodV2Saved';
 import FoodV2MegaBasket from './FoodV2MegaBasket';
+import FoodV2Categories from './FoodV2Categories';
 import { AddedToast } from './FoodV2Motion';
 
 /** Others → Food & groceries. `sections` / `onSection` drive the section pills in the green header. */
@@ -52,6 +53,7 @@ function FoodV2Body() {
       {route.name === 'listing' && (route.shelf === SEARCH ? <FoodV2Search /> : <FoodV2Listing shelf={route.shelf} />)}
       {route.name === 'saved' && <FoodV2Saved />}
       {route.name === 'mega' && <FoodV2MegaBasket />}
+      {route.name === 'categories' && <FoodV2Categories />}
       <FoodV2Saved sheet />
       <AddedToast stamp={toast.stamp} label={toast.label} bottom={shopCount > 0 ? 92 : 24} />
     </View>
