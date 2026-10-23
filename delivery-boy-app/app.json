@@ -1,11 +1,13 @@
 {
   "expo": {
     "extra": {
-      "trustedApiHosts": ["hostelbites-backend-jwmt.onrender.com"]
+      "trustedApiHosts": [
+        "hostelbites-backend-jwmt.onrender.com"
+      ]
     },
     "name": "Zenvy Rider",
     "slug": "zenvy-rider",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -38,7 +40,7 @@
       },
       "package": "com.srm.hostelbitesdelivery",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 8,
+      "versionCode": 9,
       "compileSdkVersion": 36,
       "targetSdkVersion": 36,
       "minSdkVersion": 24,
@@ -106,7 +108,8 @@
             "buildToolsVersion": "36.0.0",
             "usesCleartextTraffic": false,
             "enableMinifyInReleaseBuilds": true,
-            "enableShrinkResourcesInReleaseBuilds": true
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "-keep class com.swmansion.reanimated.** { *; }\n-keep class com.facebook.react.turbomodule.** { *; }\n# Background location (expo-task-manager) loads the headless app loader by name from the manifest; R8 must keep it.\n-keep class * implements expo.modules.apploader.HeadlessAppLoader { *; }\n-keep class expo.modules.adapters.react.apploader.** { *; }\n-keep class expo.modules.taskManager.** { *; }"
           }
         }
       ],
