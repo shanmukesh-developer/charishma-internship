@@ -5,7 +5,7 @@
     },
     "name": "Zenvy Rider",
     "slug": "zenvy-rider",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -38,7 +38,7 @@
       },
       "package": "com.srm.hostelbitesdelivery",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 7,
+      "versionCode": 8,
       "compileSdkVersion": 36,
       "targetSdkVersion": 36,
       "minSdkVersion": 24,
