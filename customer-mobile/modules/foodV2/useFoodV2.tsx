@@ -1,0 +1,253 @@
+/**
+ * Food & groceries v2: state (catalogue, saved items, basket rules, navigation) shared through context.
+ * Others → Food & groceries (modules/foodV2).
+ */
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, Platform, Alert, Modal, useWindowDimensions, BackHandler } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
+import Svg, { Path } from 'react-native-svg';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { CachedImage as Image } from '../../components/SafeImage';
+import ShimmerLoader from '../../components/ShimmerLoader';
+import { PressScale, BounceOnChange, FadeInUp, SlowLoadHint } from '../../modules/others/motion';
+import { useCart, isCustomRequest } from '../../context/CartContext';
+import { apiFetch, readJson } from '../../utils/auth';
+import { API_URL } from '../../constants/api';
+import { readCache } from '../../utils/swrCache';
+import { useConnectionState } from '../../utils/offlineStatus';
+import { useTopInset } from '../../utils/useTopInset';
+import { FOOD } from './foodV2Theme';
+import { FOOD_IMG, StorefrontArt, ShoppingBasketArt, WaveArt, LoadingDots } from './FoodV2Kit';
+import { IonName, Item, SHOP_TYPES, CATALOGUE_CACHE_KEY, FALLBACK_IMG, MEGA_BASKET_VENDOR, WISHLIST_KEY, toItem, toList, groupIN, fmt, sentence, offLabel, fmtShortClock, squash, Shelf, SHELVES, shelfItems, SEARCH, SEARCH_HINTS, TILES, Hero, HEROES, LIST_TITLES, AISLES, aisleOf, SHORT_CHIP, chipLabel, FRESH_CATS, GROUP_ORDER, groupOf, BRANDS, TOY_TILES, HEALTH_TILES, ESSENTIAL_AISLES, HERO_BG, LHERO_BG, POPULAR_REQUESTS, Route, DemoState, Saved } from './FoodV2Data';
+
+export type FoodV2Ctx = ReturnType<typeof useFoodV2State>;
+const Ctx = React.createContext<FoodV2Ctx | null>(null);
+export const FoodV2Provider = Ctx.Provider;
+export function useFoodV2(): FoodV2Ctx {
+  const v = useContext(Ctx);
+  if (!v) throw new Error('useFoodV2 outside FoodV2Provider');
+  return v;
+}
+
+export function useFoodV2State({ forceDark, sections, onSection }: { forceDark?: boolean; sections?: { key: string; label: string }[]; onSection?: (key: string) => void }) {
+  const clean = true;
+  const router = useRouter();
+  const isDark = !!forceDark;
+  const m = isDark ? 'dark' : 'light';
+  const topPad = useTopInset(36, Platform.OS === 'web' ? 12 : 44);
+  const { width: winW } = useWindowDimensions();
+  const pageW = Math.min(winW, 600);
+  const conn = useConnectionState();
+  const { cart, addToCart, updateQuantity, clearCart } = useCart();
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+
+  const c = {
+    page: FOOD.page[m], surface: FOOD.surface[m], card: FOOD.card[m], plate: FOOD.plate[m], title: FOOD.title[m],
+    name: FOOD.name[m], price: FOOD.price[m], slate: FOOD.slate[m], was: FOOD.was[m], off: FOOD.off[m], line: FOOD.line[m],
+    mint: FOOD.mint[m], mintInk: FOOD.mintInk[m], chip: FOOD.chip[m], side: FOOD.side[m], field: FOOD.field[m], soft: FOOD.soft[m],
+    tile: isDark ? FOOD.card.dark : '#F7FBFA', link: isDark ? FOOD.off.dark : '#2F9A58',
+  };
+  const shadow = isDark ? { borderWidth: 1, borderColor: FOOD.line.dark } : Platform.select<any>({
+    web: { boxShadow: '0px 1px 2px rgba(16,40,30,0.05), 0px 4px 14px rgba(16,40,30,0.07)' },
+    default: { shadowColor: '#0F2A1E', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 2 },
+  });
+  const greenGlow = Platform.select<any>({
+    web: { boxShadow: '0px 2px 8px rgba(7,132,63,0.28)' },
+    default: { shadowColor: FOOD.primary, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 3 },
+  });
+
+  // ── Navigation (internal stack) and the dev strip's forced states ──
+  const [stack, setStack] = useState<Route[]>([{ name: 'home' }]);
+  const route = stack[stack.length - 1];
+  const push = (r: Route) => setStack(s => [...s, r]);
+  const pop = () => setStack(s => (s.length > 1 ? s.slice(0, -1) : s));
+  const [homeKey, setHomeKey] = useState(0);
+  const reset = (r: Route) => { setHomeKey(k => k + 1); setStack(r.name === 'home' ? [r] : [{ name: 'home' }, r]); };
+  const [demo, setDemo] = useState<DemoState>(null);
+  const [savedSheet, setSavedSheet] = useState(false);
+  /** Dev strip only: show four catalogue items as if saved (nothing is written to the device). */
+  const [savedSample, setSavedSample] = useState(false);
+  useFocusEffect(useCallback(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (savedSheet) { setSavedSheet(false); return true; }
+      if (stack.length > 1) { pop(); return true; }
+      return false;
+    });
+    return () => sub.remove();
+  }, [stack.length, savedSheet]));
+
+  // ── Catalogue ──
+  const [catalogue, setCatalogue] = useState<Item[]>([]);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [storeHours, setStoreHours] = useState<Record<string, { isOpen: boolean; opensAt: string | null }>>({});
+  const fromNet = useRef(false);
+  useEffect(() => {
+    readCache<any[]>(CATALOGUE_CACHE_KEY).then(cached => {
+      if (!mounted.current || fromNet.current || !cached || !Array.isArray(cached.data)) return;
+      setCatalogue(toList(cached.data));
+      setStatus('ready');
+    }).catch(() => {});
+  }, []);
+  const fetchCatalogue = useCallback(async () => {
+    setStatus(prev => (prev === 'ready' ? prev : 'loading'));
+    try {
+      const settled = await Promise.allSettled(SHOP_TYPES.map(async t => {
+        const res = await apiFetch(`${API_URL}/api/catalogue/items?type=${encodeURIComponent(t)}&limit=200`);
+        if (!res.ok) throw new Error(`catalogue ${res.status}`);
+        const data = await readJson(res);
+        const hours: Record<string, { isOpen: boolean; opensAt: string | null }> = {};
+        (Array.isArray(data?.stores) ? data.stores : []).forEach((st: any) => {
+          const sid = String(st?.id || st?._id || '');
+          if (sid) hours[sid] = { isOpen: st.isOpen !== false, opensAt: typeof st.opensAt === 'string' ? st.opensAt : null };
+        });
+        if (mounted.current && Object.keys(hours).length) setStoreHours(prev => ({ ...prev, ...hours }));
+        return Array.isArray(data?.items) ? data.items : [];
+      }));
+      const ok = settled.filter((r): r is PromiseFulfilledResult<any[]> => r.status === 'fulfilled');
+      if (!ok.length) throw new Error('catalogue unavailable');
+      if (!mounted.current) return;
+      fromNet.current = true;
+      setCatalogue(toList(ok.map(r => r.value).flat()));
+      setStatus('ready');
+    } catch {
+      if (mounted.current) setStatus(prev => (prev === 'ready' ? prev : 'error'));
+    }
+  }, []);
+  useEffect(() => { fetchCatalogue(); }, [fetchCatalogue]);
+
+  // ── Saved items (same device list as the app) ──
+  const [saved, setSaved] = useState<Saved[]>([]);
+  const loadSaved = useCallback(() => {
+    AsyncStorage.getItem(WISHLIST_KEY).then(raw => {
+      if (!mounted.current) return;
+      try {
+        const list = raw ? JSON.parse(raw) : [];
+        setSaved(Array.isArray(list) ? list.filter((f: any) => f && typeof f === 'object' && f.id && f.title) : []);
+      } catch { setSaved([]); }
+    }).catch(() => {});
+  }, []);
+  useEffect(() => { loadSaved(); }, [loadSaved, route]);
+  const savedIds = useMemo(() => new Set(saved.map(f => f.id)), [saved]);
+  const persistSaved = (next: Saved[]) => { setSaved(next); AsyncStorage.setItem(WISHLIST_KEY, JSON.stringify(next)).catch(() => {}); };
+  const toggleSaved = (p: Item) => {
+    Haptics.selectionAsync().catch(() => {});
+    if (savedIds.has(p.id)) persistSaved(saved.filter(f => f.id !== p.id));
+    else persistSaved([{ id: p.id, title: p.name, subtitle: [p.storeName, p.weight].filter(Boolean).join(' • ') || 'Campus store', price: fmt(p.price), image: p.image || FALLBACK_IMG, targetRoute: `/products/${p.id}` }, ...saved]);
+  };
+
+  /** "Added to basket" toast (FoodV2Motion AddedToast). */
+  const [toast, setToast] = useState({ stamp: 0, label: '' });
+  // ── Basket (real CartContext rules: one store per basket, shopping requests apart) ──
+  const qtyOf = (id: string) => cart.filter(i => i.id === id).reduce((n, i) => n + i.quantity, 0);
+  const closedLabel = (p: Item) => {
+    if (p.orderable || !p.isAvailable) return null;
+    const t = fmtShortClock(storeHours[p.restaurantId]?.opensAt);
+    return t ? `Opens ${t}` : 'Closed now';
+  };
+  const addProduct = (p: Item) => {
+    if (!p.orderable || !p.isAvailable) {
+      const opens = closedLabel(p);
+      Alert.alert(p.isAvailable ? `${p.storeName || 'This store'} is closed` : 'Sold out', p.isAvailable
+        ? (opens ? `It ${opens.toLowerCase()}. You can browse now and add items once it opens.` : 'You can browse now and add items once it opens again.')
+        : 'This item is out of stock right now. Please check back soon.');
+      return;
+    }
+    const doAdd = () => {
+      if (addToCart({ id: p.id, name: p.name, price: p.price, image: p.image || FALLBACK_IMG, restaurantId: p.restaurantId, restaurantName: p.storeName || 'Campus store' })) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        setToast({ stamp: Date.now(), label: p.name });
+      }
+    };
+    if (cart.some(i => isCustomRequest(i))) {
+      Alert.alert('Start a new basket?', 'Your basket has a shopping request, which is ordered separately. Clear it and add this item?', [
+        { text: 'Keep basket', style: 'cancel' },
+        { text: 'Clear & add', style: 'destructive', onPress: () => { clearCart(); doAdd(); } },
+      ]);
+      return;
+    }
+    doAdd();
+  };
+  const decProduct = (id: string) => {
+    const line = cart.find(i => i.id === id);
+    if (line) updateQuantity(line.cartKey, line.quantity - 1);
+  };
+  const storeIds = useMemo(() => new Set(catalogue.map(i => i.restaurantId)), [catalogue]);
+  const shopLines = cart.filter(i => storeIds.has(String(i.restaurantId)) || isCustomRequest(i));
+  const shopCount = shopLines.reduce((n, i) => n + i.quantity, 0);
+  const shopTotal = shopLines.reduce((n, i) => n + i.price * i.quantity, 0);
+  const cartCount = cart.reduce((n, i) => n + (i.quantity || 0), 0);
+
+  // ── Shopping request (Mega Basket, POST at checkout: same as the app) ──
+  const [reqName, setReqName] = useState('');
+  const [reqQty, setReqQty] = useState('1');
+  const [reqPrice, setReqPrice] = useState('');
+  const addRequest = () => {
+    const name = reqName.trim();
+    if (!name) { Alert.alert('What should we buy?', 'Please type the item name (and brand, if you have one in mind).'); return; }
+    const price = Number(reqPrice);
+    if (!Number.isFinite(price) || price <= 0 || price > 10000) { Alert.alert('Add an estimated price', 'Enter the approximate price per unit (₹1 – ₹10,000). You approve the real bill later.'); return; }
+    const qty = Math.min(20, Math.max(1, parseInt(reqQty, 10) || 1));
+    const doAdd = () => {
+      addToCart({ id: `custom-${Date.now()}`, name: `[Custom Request] ${name}`, price: Math.round(price * 100) / 100, quantity: qty, image: '', restaurantId: MEGA_BASKET_VENDOR, restaurantName: 'Shopping list' } as any);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      Alert.alert('Request added', `"${name}" × ${qty} is in your basket. A shopper buys it for you, and you approve the final bill before paying.`);
+      setReqName(''); setReqPrice(''); setReqQty('1');
+      pop();
+    };
+    if (cart.some(i => !isCustomRequest(i))) {
+      Alert.alert('Start a new basket?', 'Shopping requests are ordered separately from store and restaurant items. Clear your basket and add this request?', [
+        { text: 'Keep basket', style: 'cancel' },
+        { text: 'Clear & add', style: 'destructive', onPress: () => { clearCart(); doAdd(); } },
+      ]);
+      return;
+    }
+    doAdd();
+  };
+
+  // ── Listing / search state ──
+  const [query, setQuery] = useState('');
+  const [chip, setChip] = useState('All');
+  const [chipsOpen, setChipsOpen] = useState(false);
+  const [aisle, setAisle] = useState('all');
+  const [savedChip, setSavedChip] = useState('All');
+  const openListing = (shelf: string, q = '') => { setQuery(q); setChip('All'); setChipsOpen(false); setAisle('all'); push({ name: 'listing', shelf }); };
+  // Product pages use the app route (app/products/[id].tsx renders FoodV2ProductView for shop items).
+  const openProduct = (p: Item | string) => router.push(`/products/${typeof p === 'string' ? p : p.id}` as any);
+
+  // ── Derived home data ──
+  const inStock = catalogue.filter(p => p.isAvailable);
+  const closedShare = inStock.length ? inStock.filter(p => !p.orderable).length / inStock.length : 0;
+  const allClosed = status === 'ready' && inStock.length > 0 && closedShare === 1;
+  const someClosed = status === 'ready' && closedShare >= 0.3 && closedShare < 1;
+  const earliestOpen = Object.values(storeHours).filter(s => !s.isOpen).map(s => s.opensAt).filter(Boolean).sort()[0] || null;
+  const hasShelf = (name: string) => status !== 'ready' || shelfItems(name, catalogue).length > 0;
+  const dealShelf = useMemo(() => shelfItems('Deals', catalogue), [catalogue]);
+  const topDeal = dealShelf[0] || null;
+  const fromPrice = (items: Item[]) => (items.length ? `From ${fmt(Math.min(...items.map(i => i.price)))}` : null);
+  const upTo = (items: Item[]) => {
+    const max = items.reduce((mx, i) => Math.max(mx, i.discountPercent || 0), 0);
+    return max >= 10 ? `Up to ${max}% off` : null;
+  };
+
+  const failKind: 'offline' | 'waking' | 'error' = conn === 'offline' ? 'offline' : conn === 'waking' ? 'waking' : 'error';
+  const forcedFail: 'offline' | 'waking' | 'error' | null = demo === 'offline' ? 'offline' : demo === 'waking' ? 'waking' : demo === 'error' ? 'error' : null;
+  const isLoading = demo === 'loading' || (!demo && status === 'loading' && catalogue.length === 0);
+  const isFailed = !!forcedFail || (!demo && status === 'error' && catalogue.length === 0);
+  const isEmpty = demo === 'empty' || (!demo && status === 'ready' && catalogue.length === 0);
+
+  const sampleSaved: Saved[] = savedSample
+    ? catalogue.filter(p => p.image && p.discountPercent).slice(0, 4).map(p => ({ id: p.id, title: p.name, subtitle: p.storeName || 'Campus store', price: fmt(p.price), image: p.image || FALLBACK_IMG, targetRoute: `/products/${p.id}` }))
+    : [];
+  const savedResolved = (savedSample ? sampleSaved : saved).map(f => ({ f, p: catalogue.find(x => x.id === f.id) || null }));
+  const savedGroup = (r: { p: Item | null }) => (r.p ? groupOf(r.p) : 'Other');
+  const savedCounts: Record<string, number> = {};
+  savedResolved.forEach(r => { const g = savedGroup(r); savedCounts[g] = (savedCounts[g] || 0) + 1; });
+  const savedChips = ['All', ...GROUP_ORDER.filter(g => savedCounts[g]), ...(savedCounts.Other ? ['Other'] : [])];
+
+
+  return { sections, onSection, toast, setToast, router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, reqName, setReqName, reqQty, setReqQty, reqPrice, setReqPrice, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark };
+}

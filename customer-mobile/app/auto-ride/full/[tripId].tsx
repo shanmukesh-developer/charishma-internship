@@ -2,6 +2,8 @@
 // driver accepts; then the server books every seat as one booking. Fare, capacity and rules come from the server.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { PressScale } from '../../../modules/others/motion';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { KeyboardAvoidingView } from '../../../components/KeyboardAvoidingView';
 import { useAuth } from '../../../context/AuthContext';
@@ -126,22 +128,30 @@ export default function FullAutoRequestScreen() {
         </Card>
 
         <Card>
-          <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 0.8, marginBottom: 6 }}>PAYMENT</Text>
-          {methods.map((m) => {
+          <Text style={{ fontSize: 15, fontWeight: '800', color: p.text, marginBottom: 8 }}>Payment</Text>
+          {methods.length <= 1 && (methods[0] || 'CASH') === 'CASH' ? (
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 12, borderRadius: 14, backgroundColor: p.accentSoft }}>
+              <Ionicons name="cash-outline" size={20} color={p.accent} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, fontWeight: '800', color: p.text }}>Pay the driver in cash when you board</Text>
+                <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>Nothing is charged in the app.</Text>
+              </View>
+            </View>
+          ) : methods.map((m) => {
             const on = payment === m;
             return (
-              <TouchableOpacity key={m} onPress={() => setPayment(m)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={PAYMENT_LABEL[m]}
+              <PressScale key={m} onPress={() => setPayment(m)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={PAYMENT_LABEL[m]}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14, borderWidth: 1.5, borderColor: on ? p.accent : p.border, backgroundColor: on ? p.accentSoft : p.card2, marginBottom: 8, minHeight: 48 }}>
-                <Text style={{ fontSize: 18 }}>{m === 'CASH' ? '💵' : '👛'}</Text>
+                <Ionicons name={m === 'CASH' ? 'cash-outline' : 'wallet-outline'} size={20} color={on ? p.accent : p.sub} />
                 <Text style={{ flex: 1, fontSize: 13.5, fontWeight: '900', color: p.text }}>{PAYMENT_LABEL[m]}</Text>
-                <Text style={{ fontSize: 16, color: on ? p.accent : p.muted }}>{on ? '◉' : '○'}</Text>
-              </TouchableOpacity>
+                <Ionicons name={on ? 'radio-button-on' : 'radio-button-off'} size={20} color={on ? p.accent : p.muted} />
+              </PressScale>
             );
           })}
         </Card>
 
         <Notice tone="info">
-          🧾 How it works: the driver must accept your request (they get a few minutes to answer). Nothing is booked or charged until they accept. If someone books a seat first, the request cannot be served and you are told at once.
+          How it works: the driver must accept your request (they get a few minutes to answer). Nothing is booked or charged until they accept. If someone books a seat first, the request cannot be served and you are told at once.
           {'\n'}Cancellation: you can cancel a waiting request any time. After acceptance you can cancel until the driver confirms departure{payment === 'WALLET' ? '; wallet refunds follow the Zenvy refund policy shown on the booking' : '; cash is paid only at boarding'}.
         </Notice>
 

@@ -179,7 +179,9 @@ export default function DopaminePressable({
       onLongPress={onLongPress}
       disabled={disabled}
       accessibilityLabel={accessibilityLabel}
-      accessibilityRole={accessibilityRole}
+      // react-native-web turns role "button" into a real <button>, and cards contain buttons (heart,
+      // add), which nests <button>s on web only. Native keeps the role for screen readers.
+      accessibilityRole={Platform.OS === 'web' && accessibilityRole === 'button' ? undefined : accessibilityRole}
       accessibilityHint={accessibilityHint}
       accessibilityState={accessibilityState ?? (disabled ? { disabled: true } : undefined)}
       testID={testID}

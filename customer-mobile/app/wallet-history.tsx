@@ -1,15 +1,19 @@
-// C5 Wallet history: every change of the Zenvy Wallet from GET /api/users/wallet/transactions (newest
+// C5 Wallet history: every change of the wallet from GET /api/users/wallet/transactions (newest
 // first, 20 per page). Each row: what it was (label), +/- amount in green / red, date, the balance right
 // after it, and a link to the order / booking / registration it belongs to. Real server data only.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { COLORS } from '../constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch, readJson, NETWORK_ERROR_MESSAGE } from '../utils/auth';
 import { ENDPOINTS } from '../constants/api';
 import { formatINR, formatISTDateTime } from '../utils/format';
+import { useTopInset } from '../utils/useTopInset';
+import { ACCENTS, SURFACE, STATUS, shadow as othersShadow } from '../modules/others/othersTheme';
+import { PressScale, FadeInUp, StateCard, SkeletonList } from '../modules/others/motion';
 
 interface WalletTx {
   id: string;
@@ -24,8 +28,6 @@ interface WalletTx {
 }
 
 const PAGE = 20;
-const GREEN = '#22C55E';
-const RED = '#EF4F5F';
 
 const inr = (n: number) => formatINR(Math.abs(Number(n) || 0));
 const when = (iso: string) => formatISTDateTime(iso, { year: true });
@@ -36,6 +38,8 @@ const safeLink = (link: string | null | undefined) =>
   typeof link === 'string' && ALLOWED_LINK_PREFIXES.some((p) => link.startsWith(p)) ? link : null;
 
 export default function WalletHistoryScreen() {
+  // Real status-bar inset, never less than the old fixed padding (utils/useTopInset)
+  const topPad = useTopInset(36, Platform.OS === 'web' ? 12 : 44); // same top as the Others hub
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
@@ -48,7 +52,7 @@ export default function WalletHistoryScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mounted = useRef(true);
-  useEffect(() => () => { mounted.current = false; }, []);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
   const load = useCallback(async (p: number) => {
     try {
@@ -81,26 +85,45 @@ export default function WalletHistoryScreen() {
     if (mounted.current) setLoadingMore(false);
   };
 
-  const gold = isDark ? COLORS.gold : colors.gold;
+  // Deals & spin palette from the Others tokens (modules/others/othersTheme.ts): purple accent, white cards.
+  const A = ACCENTS.deals;
+  const sf = isDark ? SURFACE.dark : SURFACE.light;
+  const stt = isDark ? STATUS.dark : STATUS.light;
+  const dp = {
+    solid: isDark ? '#7C5CFF' : A.solid,
+    ink: isDark ? A.ink.dark : A.ink.light,
+    tint: isDark ? A.tint.dark : A.tint.light,
+    heroA: isDark ? '#3B2A99' : '#6D4AFF',
+    heroB: isDark ? '#24185F' : A.deep,
+    card: sf.card,
+    hair: 'transparent',
+    bg: sf.page,
+  };
+  // Credit / debit in contrast-safe green and red (WCAG AA on white and on dark cards).
+  const GREEN = stt.success;
+  const RED = stt.error;
+  const shadow = othersShadow(isDark);
+  const shownBalance = balance !== null ? balance : (typeof (user as any)?.walletBalance === 'number' ? (user as any).walletBalance : null);
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)/profile' as any));
 
-  const renderItem = ({ item }: { item: WalletTx }) => {
+  const renderItem = ({ item, index }: { item: WalletTx; index: number }) => {
     const credit = item.amount >= 0;
     const link = safeLink(item.ref && item.ref.link);
     return (
-      <View style={[s.row, { backgroundColor: colors.card, borderColor: colors.border }]} accessible accessibilityLabel={`${item.label}, ${credit ? 'added' : 'paid'} ${inr(item.amount)}, ${when(item.createdAt)}, balance after ${inr(item.balanceAfter)}`}>
-        <View style={[s.badge, { backgroundColor: credit ? 'rgba(34,197,94,0.12)' : 'rgba(239,79,95,0.12)' }]}>
-          <Text style={{ fontSize: 16, fontWeight: '900', color: credit ? GREEN : RED }}>{credit ? '+' : '−'}</Text>
+      <FadeInUp index={index}>
+      <View style={[s.row, shadow, { backgroundColor: dp.card, borderColor: dp.hair }]} accessible accessibilityLabel={`${item.label}, ${credit ? 'added' : 'paid'} ${inr(item.amount)}, ${when(item.createdAt)}, balance after ${inr(item.balanceAfter)}`}>
+        <View style={[s.badge, { backgroundColor: credit ? stt.successTint : stt.errorTint }]}>
+          <Ionicons name={credit ? 'arrow-down' : 'arrow-up'} size={18} color={credit ? GREEN : RED} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={[s.label, { color: colors.text }]} numberOfLines={1}>{item.label}</Text>
+          <Text style={[s.label, { color: colors.text }]} numberOfLines={2}>{item.label}</Text>
           <Text style={[s.meta, { color: colors.textSecondary }]}>{when(item.createdAt)}</Text>
           {item.note ? <Text style={[s.meta, { color: colors.textSecondary }]} numberOfLines={2}>{item.note}</Text> : null}
           {item.ref && item.ref.label ? (
             link ? (
-              <TouchableOpacity onPress={() => router.push(link as any)} accessibilityRole="link" hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
-                <Text style={[s.link, { color: gold }]}>{item.ref.label} ›</Text>
-              </TouchableOpacity>
+              <PressScale onPress={() => router.push(link as any)} accessibilityRole="link" hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+                <Text style={[s.link, { color: dp.ink }]}>{item.ref.label} ›</Text>
+              </PressScale>
             ) : <Text style={[s.meta, { color: colors.textSecondary }]}>{item.ref.label}</Text>
           ) : null}
         </View>
@@ -109,55 +132,66 @@ export default function WalletHistoryScreen() {
           <Text style={[s.meta, { color: colors.textSecondary }]}>Balance {inr(item.balanceAfter)}</Text>
         </View>
       </View>
+      </FadeInUp>
     );
   };
 
-  return (
-    <View style={[s.container, { backgroundColor: colors.bg }]}>
-      <View style={[s.header, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
-        <TouchableOpacity style={[s.backBtn, { borderColor: colors.border, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6' }]} onPress={goBack} accessibilityRole="button" accessibilityLabel="Back">
-          <Text style={{ fontSize: 16, color: colors.text }}>←</Text>
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={[s.subText, { color: gold }]}>Zenvy Wallet</Text>
-          <Text style={[s.title, { color: colors.text }]}>Wallet history</Text>
+  const header = (
+    <View>
+      <LinearGradient colors={[dp.heroA, dp.heroB]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+        <View style={s.heroIcon}>
+          <Ionicons name="wallet-outline" size={22} color="#FFFFFF" />
         </View>
-        {balance !== null ? (
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={[s.subText, { color: colors.textSecondary }]}>Balance</Text>
-            <Text style={[s.title, { color: gold }]}>{inr(balance)}</Text>
-          </View>
-        ) : null}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={s.heroLabel}>Wallet balance</Text>
+          <Text style={s.heroValue}>{shownBalance !== null ? inr(shownBalance) : '—'}</Text>
+        </View>
+      </LinearGradient>
+      <View style={[s.note, { backgroundColor: dp.tint }]}>
+        <Ionicons name="information-circle-outline" size={18} color={dp.ink} />
+        <Text style={[s.noteText, { color: colors.text }]}>Your wallet is credit for orders: refunds land here and wallet payments leave from here. It cannot be withdrawn or sent to others.</Text>
+      </View>
+      <Text style={[s.section, { color: colors.text }]}>Recent activity</Text>
+    </View>
+  );
+
+  return (
+    <View style={[s.container, { paddingTop: topPad, backgroundColor: dp.bg }]}>
+      <View style={s.header}>
+        <PressScale style={[s.backBtn, shadow, { backgroundColor: dp.card, borderColor: dp.hair }]} onPress={goBack} accessibilityRole="button" accessibilityLabel="Back">
+          <Ionicons name="arrow-back" size={20} color={colors.text} />
+        </PressScale>
+        <Text style={[s.title, { color: colors.text }]} accessibilityRole="header">My wallet</Text>
       </View>
 
       {!user ? (
-        <View style={s.center}>
-          <Text style={[s.meta, { color: colors.textSecondary, textAlign: 'center', marginBottom: 12 }]}>Sign in to see your wallet history.</Text>
-          <TouchableOpacity onPress={() => router.push('/login' as any)} style={[s.retry, { borderColor: gold }]} accessibilityRole="button" accessibilityLabel="Sign in">
-            <Text style={{ color: gold, fontWeight: '900' }}>Sign in</Text>
-          </TouchableOpacity>
+        <View style={s.stateWrap}>
+          <StateCard kind="signin" section="deals" title="Sign in to see your wallet" message="Your balance and every refund or payment show here." actionLabel="Sign in" onAction={() => router.push('/login' as any)} />
         </View>
       ) : loading ? (
-        <View style={s.center}><ActivityIndicator color={gold} /></View>
+        <View style={s.stateWrap}><SkeletonList count={1} height={92} /><SkeletonList count={4} height={72} style={{ marginTop: 24 }} /></View>
       ) : error && rows.length === 0 ? (
-        <View style={s.center}>
-          <Text style={[s.meta, { color: colors.textSecondary, textAlign: 'center', marginBottom: 12 }]}>{error}</Text>
-          <TouchableOpacity onPress={() => { setLoading(true); load(1).finally(() => mounted.current && setLoading(false)); }} style={[s.retry, { borderColor: gold }]} accessibilityRole="button">
-            <Text style={{ color: gold, fontWeight: '900' }}>Try again</Text>
-          </TouchableOpacity>
+        <View style={s.stateWrap}>
+          <StateCard kind="error" section="deals" title="Could not load your wallet" message={error} actionLabel="Try again"
+            onAction={() => { setLoading(true); load(1).finally(() => mounted.current && setLoading(false)); }} />
         </View>
       ) : (
         <FlatList
           data={rows}
           keyExtractor={(r) => r.id}
           renderItem={renderItem}
-          contentContainerStyle={{ padding: 16, paddingBottom: 48, gap: 10 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={gold} />}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 48, gap: 12 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={dp.solid} />}
           onEndReached={onEnd}
           onEndReachedThreshold={0.4}
-          ListHeaderComponent={<Text style={[s.meta, { color: colors.textSecondary, marginBottom: 4 }]}>Your wallet is Zenvy credit for orders: refunds and credits land here, wallet payments leave from here. It cannot be withdrawn or sent to others.</Text>}
-          ListEmptyComponent={<Text style={[s.meta, { color: colors.textSecondary, textAlign: 'center', marginTop: 40 }]}>No wallet activity yet. Refunds and wallet payments will show here.</Text>}
-          ListFooterComponent={loadingMore ? <ActivityIndicator color={gold} style={{ marginTop: 12 }} /> : error ? <Text style={[s.meta, { color: RED, textAlign: 'center' }]}>{error}</Text> : null}
+          ListHeaderComponent={header}
+          ListEmptyComponent={
+            <View style={[s.empty, shadow, { backgroundColor: dp.card, borderColor: dp.hair }]}>
+              <Ionicons name="receipt-outline" size={22} color={dp.ink} />
+              <Text style={[s.meta, { color: colors.textSecondary, flex: 1, marginTop: 0 }]}>No wallet activity yet. Refunds and wallet payments will show here.</Text>
+            </View>
+          }
+          ListFooterComponent={loadingMore ? <ActivityIndicator color={dp.solid} style={{ marginTop: 12 }} /> : error ? <Text style={[s.meta, { color: RED, textAlign: 'center' }]}>{error}</Text> : null}
         />
       )}
     </View>
@@ -165,17 +199,26 @@ export default function WalletHistoryScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, paddingTop: Platform.OS === 'android' ? 40 : 50, maxWidth: 600, width: '100%', alignSelf: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1, gap: 8 },
-  backBtn: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginRight: 4 },
-  subText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.3 },
-  title: { fontSize: 18, fontWeight: '900' },
+  container: { flex: 1, maxWidth: 600, width: '100%', alignSelf: 'center' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 6, paddingBottom: 12, gap: 12 },
+  backBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  title: { fontSize: 17, fontWeight: '800' },
+  hero: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, borderRadius: 20, marginTop: 4 },
+  heroIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  heroLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '500' },
+  heroValue: { color: '#FFFFFF', fontSize: 28, fontWeight: '800', marginTop: 2 },
+  note: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 12, borderRadius: 14, marginTop: 12 },
+  noteText: { flex: 1, fontSize: 13, fontWeight: '400', lineHeight: 18 },
+  section: { fontSize: 17, fontWeight: '800', marginTop: 24, marginBottom: 12 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  stateWrap: { paddingHorizontal: 16, paddingTop: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1 },
-  badge: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  label: { fontSize: 14, fontWeight: '800' },
-  meta: { fontSize: 12, fontWeight: '600', marginTop: 2 },
-  link: { fontSize: 12, fontWeight: '800', marginTop: 4 },
-  amount: { fontSize: 15, fontWeight: '900' },
-  retry: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
+  badge: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  label: { fontSize: 14, fontWeight: '600' },
+  meta: { fontSize: 12, fontWeight: '400', marginTop: 2 },
+  link: { fontSize: 12, fontWeight: '600', marginTop: 4 },
+  amount: { fontSize: 15, fontWeight: '800' },
+  empty: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, borderWidth: 1 },
+  retry: { height: 44, paddingHorizontal: 24, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  retryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
 });

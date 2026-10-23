@@ -88,7 +88,7 @@ export function PgHero({ photos, onOpen, topInset }: { photos: PgPhoto[]; onOpen
             const on = current?.category === c.cat;
             return (
               <Press key={c.cat} onPress={() => jump(c.first)} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={`${PHOTO_CATEGORY_LABEL[c.cat]}, ${c.count} photo${c.count === 1 ? '' : 's'}`} style={st.jump}>
-                <Text style={[st.jumpText, { color: on ? p.text : p.sub, fontWeight: on ? '600' : '400' }]}>
+                <Text style={[st.jumpText, { color: on ? p.accent : p.sub, fontWeight: on ? '600' : '400' }]}>
                   {PHOTO_CATEGORY_LABEL[c.cat]} <Text style={{ color: p.muted, fontWeight: '400' }}>{c.count}</Text>
                 </Text>
               </Press>
@@ -128,8 +128,8 @@ export function PgPhotoSection({ photos, onOpen, sub }: { photos: PgPhoto[]; onO
             const on = cat === key;
             return (
               <Press key={key} hitSlop={4} onPress={() => { setCat(key as any); setExpanded(false); }} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={label}
-                style={[st.chip, { borderColor: on ? p.text : p.line, backgroundColor: on ? p.text : 'transparent' }]}>
-                <Text style={[st.chipText, { color: on ? p.bg : p.sub }]}>{label}</Text>
+                style={[st.chip, { borderColor: on ? p.accentFill : p.line, backgroundColor: on ? p.accentFill : 'transparent' }]}>
+                <Text style={[st.chipText, { color: on ? '#fff' : p.sub }]}>{label}</Text>
               </Press>
             );
           })}

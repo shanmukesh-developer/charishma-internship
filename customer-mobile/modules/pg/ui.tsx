@@ -5,12 +5,14 @@
  * PG-only: nothing here is shared with other sections.
  */
 import React, { useEffect, useMemo, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet, Animated, ActivityIndicator, type StyleProp, type ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, Animated, ActivityIndicator, type StyleProp, type ViewStyle } from 'react-native';
+import { PressScale } from '../others/motion';
+import { useConnectionState } from '../../utils/offlineStatus';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
-import { COLORS } from '../../constants/theme';
+import { ACCENTS } from '../others/othersTheme';
 
 export { default as IconArrowLeft } from 'lucide-react-native/icons/arrow-left';
 export { default as IconBadgeCheck } from 'lucide-react-native/icons/badge-check';
@@ -83,6 +85,8 @@ export { default as IconSiren } from 'lucide-react-native/icons/siren';
 export { default as IconMap } from 'lucide-react-native/icons/map';
 export { default as IconSearch } from 'lucide-react-native/icons/search';
 export { default as IconSort } from 'lucide-react-native/icons/arrow-up-down';
+export { default as IconHousePlus } from 'lucide-react-native/icons/house-plus';
+export { default as IconBadgePercent } from 'lucide-react-native/icons/badge-indian-rupee';
 import IconWifi from 'lucide-react-native/icons/wifi';
 import IconSnow from 'lucide-react-native/icons/snowflake';
 import IconShirt from 'lucide-react-native/icons/washing-machine';
@@ -125,14 +129,20 @@ export const usePgPalette = () => {
     sub: colors.textSecondary,
     muted: colors.textMuted,
     line: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)',
-    // One accent (Zenvy red). The darker shade keeps white text readable on buttons in both themes.
-    accent: isDark ? '#F2707D' : COLORS.redDark,
-    accentFill: COLORS.redDark,
-    accentSoft: isDark ? 'rgba(239,79,95,0.14)' : 'rgba(212,63,79,0.08)',
+    // One accent for PG: blue. accentFill keeps white text readable on buttons in both themes.
+    accent: isDark ? ACCENTS.pg.ink.dark : ACCENTS.pg.ink.light,
+    accentFill: ACCENTS.pg.solid,
+    accentSoft: isDark ? 'rgba(96,165,250,0.14)' : 'rgba(37,99,235,0.08)',
+    accentLine: isDark ? 'rgba(96,165,250,0.45)' : 'rgba(37,99,235,0.35)',
     success: isDark ? '#34D399' : '#047857',
     successSoft: isDark ? 'rgba(52,211,153,0.12)' : 'rgba(4,120,87,0.08)',
     skeleton: isDark ? '#1F1F23' : '#E9ECEF',
     overlay: 'rgba(0,0,0,0.55)',
+    star: '#F59E0B',
+    // Clean white cards: a soft shadow in light mode, a hairline border in dark mode.
+    shadow: isDark
+      ? { borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.08)' }
+      : { shadowColor: '#0F172A', shadowOpacity: 0.07, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   }), [isDark, colors]);
 };
 export type PgPalette = ReturnType<typeof usePgPalette>;
@@ -196,7 +206,7 @@ export function Press({ children, onPress, style, disabled, accessibilityLabel, 
   accessibilityState?: { selected?: boolean; disabled?: boolean; busy?: boolean }; hitSlop?: number;
 }) {
   return (
-    <Pressable
+    <PressScale
       onPress={onPress}
       disabled={disabled}
       hitSlop={hitSlop}
@@ -204,10 +214,10 @@ export function Press({ children, onPress, style, disabled, accessibilityLabel, 
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: !!disabled, ...accessibilityState }}
-      style={({ pressed }) => [{ minHeight: 44, minWidth: 44, opacity: disabled ? 0.45 : pressed ? 0.6 : 1 }, style]}
+      style={[{ minHeight: 44, minWidth: 44, opacity: disabled ? 0.45 : 1 }, style]}
     >
       {children}
-    </Pressable>
+    </PressScale>
   );
 }
 
@@ -271,14 +281,22 @@ export function StateMessage({ title, body, actionLabel, onAction, busy, icon }:
   title: string; body?: string; actionLabel?: string; onAction?: () => void; busy?: boolean; icon?: React.ReactNode;
 }) {
   const p = usePgPalette();
+  // Designed state card (Others kit look): icon on a soft blue disc, one title, one line, one action.
+  // Load failures read the app-wide connection state (offline banner, server wake-up).
+  const conn = useConnectionState();
+  const failure = /couldn.t|could not/i.test(title);
+  const offline = failure && conn === 'offline';
+  const waking = failure && conn === 'waking';
+  const shownTitle = offline ? 'You are offline' : waking ? 'Waking the server up' : title;
+  const shownBody = offline ? 'Check your internet connection and try again.' : waking ? 'This takes a few seconds the first time. Try again in a moment.' : body;
   return (
-    <View style={s.state} accessibilityLiveRegion="polite">
-      {icon}
-      <Text style={[s.stateTitle, { color: p.text }]}>{title}</Text>
-      {body ? <Text style={[s.body, { color: p.sub, textAlign: 'center', marginTop: 4 }]}>{body}</Text> : null}
+    <View style={[s.stateCard, { backgroundColor: p.card }, p.shadow]} accessibilityLiveRegion="polite">
+      {icon ? <View style={[s.stateIcon, { backgroundColor: p.accentSoft }]}>{icon}</View> : null}
+      <Text style={[s.stateTitle, { color: p.text }]}>{shownTitle}</Text>
+      {shownBody ? <Text style={[s.body, { color: p.sub, textAlign: 'center', marginTop: 4 }]}>{shownBody}</Text> : null}
       {actionLabel && onAction ? (
-        <Press onPress={onAction} disabled={busy} style={[s.secondaryBtn, { borderColor: p.line, marginTop: 16 }]} accessibilityLabel={actionLabel}>
-          {busy ? <ActivityIndicator color={p.text} /> : <Text style={[s.btnLabel, { color: p.text }]}>{actionLabel}</Text>}
+        <Press onPress={onAction} disabled={busy} style={[s.secondaryBtn, { borderColor: p.accentFill, backgroundColor: offline || waking ? 'transparent' : p.accentFill, borderWidth: offline || waking ? 1.5 : 0, marginTop: 16, minWidth: 150 }]} accessibilityLabel={actionLabel}>
+          {busy ? <ActivityIndicator color={offline || waking ? p.accent : '#FFFFFF'} /> : <Text style={[s.btnLabel, { color: offline || waking ? p.accent : '#FFFFFF', fontWeight: '700' }]}>{actionLabel}</Text>}
         </Press>
       ) : null}
     </View>
@@ -294,7 +312,9 @@ export const s = StyleSheet.create({
   body: { fontSize: 14, lineHeight: 20 },
   small: { fontSize: 12, lineHeight: 16 },
   state: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 32 },
-  stateTitle: { fontSize: 16, fontWeight: '600', marginTop: 12, textAlign: 'center' },
+  stateCard: { alignItems: 'center', borderRadius: 16, paddingVertical: 28, paddingHorizontal: 24, marginVertical: 8 },
+  stateIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  stateTitle: { fontSize: 16, fontWeight: '700', marginTop: 12, textAlign: 'center' },
   secondaryBtn: { minHeight: 44, paddingHorizontal: 20, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   btnLabel: { fontSize: 14, fontWeight: '600' },
 });

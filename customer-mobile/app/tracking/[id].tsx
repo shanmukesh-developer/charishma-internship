@@ -34,6 +34,7 @@ import { isVendorFulfilled, vendorCallNumber, callVendor, stallPayCopy } from '.
 import { Ionicons } from '@expo/vector-icons';
 import { formatINR } from '../../utils/format';
 import { useServiceability } from '../../context/CartContext';
+import { useTopInset } from '../../utils/useTopInset';
 
 
 /**
@@ -118,6 +119,8 @@ const distanceKm = (aLat: number, aLng: number, bLat: number, bLng: number) => {
 };
 
 export default function TrackingScreen() {
+  // Real status-bar inset, never less than the old fixed padding (utils/useTopInset)
+  const topPad = useTopInset();
   const params = useLocalSearchParams<{ id: string | string[] }>();
   // Reject anything that is not a plain id (deep links / push data could carry '../' paths).
   const orderId = safeId(Array.isArray(params.id) ? params.id[0] : params.id);
@@ -204,11 +207,11 @@ export default function TrackingScreen() {
     setStatus(step);
   };
 
-  // Copy the delivery OTP (stored as deliveryPin)
+  // Copy the Delivery PIN (stored as deliveryPin)
   const copyPinToClipboard = () => {
     if (!orderInfo?.deliveryPin) return;
     Clipboard.setString(orderInfo.deliveryPin);
-    Alert.alert('OTP copied', 'Share it with your rider only when you receive your order.');
+    Alert.alert('PIN copied', 'Share it with your rider only when you receive your order.');
   };
 
   const storeName = orderInfo?.restaurant?.name || orderInfo?.restaurantName || '';
@@ -585,7 +588,7 @@ export default function TrackingScreen() {
     return (
       <View style={[s.container, { backgroundColor: bg, justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
         <ActivityIndicator size="large" color={COLORS.gold} />
-        <Text style={{ fontSize: 13, fontWeight: '900', color: txt, letterSpacing: 0.2, marginTop: 18 }}>
+        <Text style={{ fontSize: 13, fontWeight: '700', color: txt, letterSpacing: 0.2, marginTop: 18 }}>
           Loading your order…
         </Text>
         <Text style={{ fontSize: 12, color: txtSec, marginTop: 6, textAlign: 'center' }}>
@@ -614,7 +617,7 @@ export default function TrackingScreen() {
           </TouchableOpacity>
         )}
         <TouchableOpacity style={{ marginTop: 16 }} onPress={() => router.replace('/(tabs)/orders' as any)}>
-          <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>View all orders</Text>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: txtSec }}>View all orders</Text>
         </TouchableOpacity>
       </View>
     );
@@ -649,10 +652,10 @@ export default function TrackingScreen() {
           <Text style={s.returnBtnText}>Back to Home</Text>
         </TouchableOpacity>
         <TouchableOpacity style={{ marginTop: 16 }} onPress={() => router.replace('/(tabs)/orders' as any)}>
-          <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>View all orders</Text>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: txtSec }}>View all orders</Text>
         </TouchableOpacity>
         <TouchableOpacity style={{ marginTop: 12 }} onPress={openHelp}>
-          <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>Need help?</Text>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: txtSec }}>Need help?</Text>
         </TouchableOpacity>
       </View>
     );
@@ -666,7 +669,7 @@ export default function TrackingScreen() {
         </View>
       )}
       {/* ── HEADER ── */}
-      <View style={[s.header, { backgroundColor: isDark ? '#000' : '#fff', borderBottomColor: border }]}>
+      <View style={[s.header, { paddingTop: topPad, backgroundColor: isDark ? '#000' : '#fff', borderBottomColor: border }]}>
         <TouchableOpacity 
           onPress={() => {
             if (router.canGoBack()) {
@@ -684,7 +687,7 @@ export default function TrackingScreen() {
         <View style={{ flex: 1 }}>
           <Text style={[s.headerTitle, { color: txt }]}>Order tracking</Text>
           {orderId && (
-            <Text style={{ fontSize: 12, color: COLORS.gold, fontWeight: '800', letterSpacing: 1 }}>
+            <Text style={{ fontSize: 12, color: COLORS.gold, fontWeight: '600', letterSpacing: 1 }}>
               #{orderId.slice(-6).toUpperCase()}
             </Text>
           )}
@@ -707,7 +710,7 @@ export default function TrackingScreen() {
             <Ionicons name="notifications" size={22} color="#fff" />
             <View style={{ flex: 1 }}>
               <Text style={s.gateBannerTitle}>{gateNotification}</Text>
-              <Text style={s.gateBannerSub}>Keep your delivery OTP ready.</Text>
+              <Text style={s.gateBannerSub}>Keep your Delivery PIN ready.</Text>
             </View>
             {!!rider?.phone && (
               <TouchableOpacity style={s.gateBannerBtn} onPress={callRider}>
@@ -715,7 +718,7 @@ export default function TrackingScreen() {
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={() => setGateNotification(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Dismiss">
-              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '900' }}>✕</Text>
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>✕</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -790,7 +793,7 @@ export default function TrackingScreen() {
             <View style={[s.receiptCard, { backgroundColor: cardBg, borderColor: COLORS.goldBorder }]}>
               <View style={{ flex: 1 }}>
                 <Text style={[s.stageLabel, { color: txtSec }]}>Receipt</Text>
-                <Text style={{ color: txt, fontSize: 13, fontWeight: '800', marginTop: 2 }}>
+                <Text style={{ color: txt, fontSize: 13, fontWeight: '600', marginTop: 2 }}>
                   {orderInfo.receiptNumber ? `No. ${orderInfo.receiptNumber}` : 'Your order receipt'}
                 </Text>
                 <FssaiLine number={orderInfo.restaurant ? (orderInfo.restaurant.fssaiLicenseNumber ?? null) : undefined} color={txtSec} style={{ marginTop: 2 }} />
@@ -830,7 +833,7 @@ export default function TrackingScreen() {
                   <Ionicons name="basket-outline" size={16} color="#F59E0B" />
                 </View>
                 <View>
-                  <Text style={{ fontSize: 12, fontWeight: '900', color: '#F59E0B', letterSpacing: 0.2 }}>Shopping list</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#F59E0B', letterSpacing: 0.2 }}>Shopping list</Text>
                   <Text style={{ fontSize: 13, fontWeight: 'bold', color: txt }}>Check your shopping</Text>
                 </View>
               </View>
@@ -938,7 +941,7 @@ export default function TrackingScreen() {
           </StaggeredSection>
         )}
 
-        {/* ── DELIVERY OTP (stored as deliveryPin) ── */}
+        {/* ── DELIVERY PIN (stored as deliveryPin) ── */}
         {!!orderInfo?.deliveryPin && !isVendorOrder && status < 6 && (
           <StaggeredSection delay={170} direction="up">
             <View style={[s.pinCard, { backgroundColor: cardBg, borderColor: status >= 4 ? COLORS.gold : border }]}>
@@ -947,16 +950,16 @@ export default function TrackingScreen() {
                   <Ionicons name="key-outline" size={18} color={COLORS.gold} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[s.pinLabel, { color: txtSec }]}>Delivery OTP</Text>
-                  <Text style={[s.pinDesc, { color: txt }]}>Share this OTP with your rider only at handover</Text>
+                  <Text style={[s.pinLabel, { color: txtSec }]}>Delivery PIN</Text>
+                  <Text style={[s.pinDesc, { color: txt }]}>Share this PIN with your rider only at handover</Text>
                 </View>
               </View>
               <View style={s.pinDisplayRow}>
-                <TouchableOpacity style={s.pinButton} onPress={copyPinToClipboard} accessibilityLabel="Copy delivery OTP">
+                <TouchableOpacity style={s.pinButton} onPress={copyPinToClipboard} accessibilityLabel="Copy Delivery PIN">
                   <Text style={s.pinText}>{orderInfo.deliveryPin}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={s.zoomBtn} onPress={() => setZoomPin(true)} accessibilityRole="button" accessibilityLabel="Enlarge delivery OTP">
-                  <Text style={{ fontSize: 12, fontWeight: '800', color: txt }}>Enlarge</Text>
+                <TouchableOpacity style={s.zoomBtn} onPress={() => setZoomPin(true)} accessibilityRole="button" accessibilityLabel="Enlarge Delivery PIN">
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: txt }}>Enlarge</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1033,9 +1036,9 @@ export default function TrackingScreen() {
               <Ionicons name="star-outline" size={20} color={COLORS.gold} />
               <View style={{ flex: 1 }}>
                 <Text style={[s.rateCtaTitle, { color: txt }]}>How was your order?</Text>
-                <Text style={[s.rateCtaSub, { color: txtSec }]}>Rate it and earn ZenPoints</Text>
+                <Text style={[s.rateCtaSub, { color: txtSec }]}>Rate it and earn 10 points</Text>
               </View>
-              <Text style={{ fontSize: 16, color: COLORS.gold, fontWeight: '900' }}>›</Text>
+              <Text style={{ fontSize: 16, color: COLORS.gold, fontWeight: '700' }}>›</Text>
             </TouchableOpacity>
           </StaggeredSection>
         )}
@@ -1055,7 +1058,7 @@ export default function TrackingScreen() {
         {!!orderInfo && (
           <StaggeredSection delay={300} direction="up">
             <View style={[s.timelineCard, { backgroundColor: cardBg, borderColor: border }]}>
-              <Text style={{ fontSize: 12, fontWeight: '900', color: txtSec, letterSpacing: 0.2, marginBottom: 12 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec, letterSpacing: 0.2, marginBottom: 12 }}>
                 Order summary{storeName ? ` · ${storeName}` : ''}
               </Text>
               {(Array.isArray(orderInfo.items) ? orderInfo.items : []).map((it, idx) => (
@@ -1090,13 +1093,13 @@ export default function TrackingScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* ── ENLARGED DELIVERY OTP ── */}
+      {/* ── ENLARGED DELIVERY PIN ── */}
       <Modal visible={zoomPin} transparent animationType="fade" onRequestClose={() => setZoomPin(false)}>
         <View style={[s.modalOverlay, { justifyContent: 'center' }]}>
           <TouchableOpacity style={StyleSheet.absoluteFill} onPress={() => setZoomPin(false)} />
           <View style={[s.zoomPinBox, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={s.zoomTitle}>Delivery OTP</Text>
-            <Text style={[s.zoomDesc, { color: txtSec }]}>Show this OTP to your rider at handover</Text>
+            <Text style={s.zoomTitle}>Delivery PIN</Text>
+            <Text style={[s.zoomDesc, { color: txtSec }]}>Show this PIN to your rider at handover</Text>
             <View style={s.zoomPinDisplay}>
               <Text style={s.zoomPinText}>{orderInfo?.deliveryPin}</Text>
             </View>
@@ -1153,7 +1156,7 @@ export default function TrackingScreen() {
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 4 }}>
                 <Text style={[s.ratingModalTitle, { color: txt, marginBottom: 0 }]}>Rate your order</Text>
                 <TouchableOpacity onPress={() => setShowRatingModal(false)} style={{ padding: 4 }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Close">
-                  <Text style={{ fontSize: 18, color: txtSec, fontWeight: '800' }}>✕</Text>
+                  <Text style={{ fontSize: 18, color: txtSec, fontWeight: '600' }}>✕</Text>
                 </TouchableOpacity>
               </View>
               <Text style={[s.ratingModalDesc, { color: txtSec }]}>
@@ -1205,7 +1208,7 @@ export default function TrackingScreen() {
                 style={{ marginTop: 10, paddingVertical: 8, alignItems: 'center', width: '100%' }}
                 onPress={() => setShowRatingModal(false)}
               >
-                <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>Maybe later</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: txtSec }}>Maybe later</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1218,7 +1221,7 @@ export default function TrackingScreen() {
 const s = StyleSheet.create({
   receiptCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 12 },
   receiptBtn: { backgroundColor: COLORS.gold, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, minWidth: 110, alignItems: 'center' },
-  receiptBtnText: { color: '#000', fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
+  receiptBtnText: { color: '#000', fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
   container: { flex: 1, width: '100%', maxWidth: 600, alignSelf: 'center' },
 
   // Rider-at-gate banner
@@ -1232,10 +1235,10 @@ const s = StyleSheet.create({
     marginBottom: 16,
     ...SHADOWS.card
   },
-  gateBannerTitle: { fontSize: 13, fontWeight: '900', color: '#fff' },
+  gateBannerTitle: { fontSize: 13, fontWeight: '700', color: '#fff' },
   gateBannerSub: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.85)', marginTop: 2 },
   gateBannerBtn: { backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
-  gateBannerBtnText: { fontSize: 12, fontWeight: '900', color: COLORS.emerald },
+  gateBannerBtnText: { fontSize: 12, fontWeight: '700', color: COLORS.emerald },
 
   // Rate CTA
   rateCta: {
@@ -1248,7 +1251,7 @@ const s = StyleSheet.create({
     borderColor: COLORS.goldBorder,
     marginBottom: 16
   },
-  rateCtaTitle: { fontSize: 13, fontWeight: '800' },
+  rateCtaTitle: { fontSize: 13, fontWeight: '600' },
   rateCtaSub: { fontSize: 12, fontWeight: '600', marginTop: 2 },
   tipChip: {
     paddingHorizontal: 12,
@@ -1263,8 +1266,8 @@ const s = StyleSheet.create({
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 },
   summaryItem: { flex: 1, fontSize: 12, fontWeight: '600' },
   summaryDivider: { height: 1, marginVertical: 10 },
-  summaryTotalLabel: { fontSize: 12, fontWeight: '800' },
-  summaryTotal: { fontSize: 15, fontWeight: '900' },
+  summaryTotalLabel: { fontSize: 12, fontWeight: '600' },
+  summaryTotal: { fontSize: 15, fontWeight: '700' },
   summaryAddress: { fontSize: 12, fontWeight: '600', marginTop: 8 },
   header: {
     flexDirection: 'row',
@@ -1283,7 +1286,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 16
   },
-  headerTitle: { fontSize: 15, fontWeight: '900', letterSpacing: 0.2 },
+  headerTitle: { fontSize: 15, fontWeight: '700', letterSpacing: 0.2 },
   statusIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1293,7 +1296,7 @@ const s = StyleSheet.create({
     gap: 4
   },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
+  statusText: { fontSize: 12, fontWeight: '600', letterSpacing: 0.2 },
   scroll: { padding: 16 },
 
   // Stage card
@@ -1306,7 +1309,7 @@ const s = StyleSheet.create({
     marginBottom: 16
   },
   stageEmoji: { marginRight: 12, alignItems: 'center', justifyContent: 'center' },
-  stageLabel: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2, marginBottom: 2 },
+  stageLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 0.2, marginBottom: 2 },
   stageText: { fontSize: 13, fontWeight: '700' },
   etaChip: {
     backgroundColor: COLORS.goldMuted,
@@ -1316,7 +1319,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.goldBorder
   },
-  etaText: { fontSize: 12, fontWeight: '900', color: COLORS.gold },
+  etaText: { fontSize: 12, fontWeight: '700', color: COLORS.gold },
 
   // Eco banner
   ecoBanner: {
@@ -1329,7 +1332,7 @@ const s = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 16
   },
-  ecoTitle: { fontSize: 12, fontWeight: '900', color: COLORS.emerald, letterSpacing: 0.2 },
+  ecoTitle: { fontSize: 12, fontWeight: '700', color: COLORS.emerald, letterSpacing: 0.2 },
   ecoSubtitle: { fontSize: 12, color: '#888', fontWeight: '500', marginTop: 2 },
 
   // PIN card
@@ -1348,7 +1351,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
-  pinLabel: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
+  pinLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 0.2 },
   pinDesc: { fontSize: 12, fontWeight: '600', marginTop: 2 },
   pinDisplayRow: { flexDirection: 'row', gap: 8 },
   pinButton: {
@@ -1360,7 +1363,7 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     ...SHADOWS.goldGlow
   },
-  pinText: { fontSize: 18, fontWeight: '900', color: '#000', letterSpacing: 6 },
+  pinText: { fontSize: 18, fontWeight: '700', color: '#000', letterSpacing: 6 },
   zoomBtn: {
     paddingHorizontal: 16,
     backgroundColor: 'rgba(255,255,255,0.05)',
@@ -1389,7 +1392,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.borderDark
   },
-  riderName: { fontSize: 13, fontWeight: '800' },
+  riderName: { fontSize: 13, fontWeight: '600' },
   verifiedBadge: {
     backgroundColor: 'rgba(16,185,129,0.1)',
     borderWidth: 1,
@@ -1398,7 +1401,7 @@ const s = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4
   },
-  verifiedText: { fontSize: 12, fontWeight: '900', color: COLORS.emerald },
+  verifiedText: { fontSize: 12, fontWeight: '700', color: COLORS.emerald },
   riderVehicle: { fontSize: 12, fontWeight: '600', marginTop: 2 },
   progressTrack: {
     width: '100%',
@@ -1423,7 +1426,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     ...SHADOWS.card
   },
-  actionBtnText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
+  actionBtnText: { fontSize: 12, fontWeight: '600', letterSpacing: 0.2 },
 
   // Timeline
   timelineCard: {
@@ -1451,12 +1454,12 @@ const s = StyleSheet.create({
     zIndex: 5
   },
   timelineContent: { flex: 1, paddingBottom: 24 },
-  timelineTitle: { fontSize: 12, fontWeight: '800' },
+  timelineTitle: { fontSize: 12, fontWeight: '600' },
   timelineDesc: { fontSize: 12, marginTop: 2, color: '#888' },
 
   // Cancel countdown
   waitStoreBox: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 16, marginTop: 12, padding: 14, borderRadius: 14, borderWidth: 1 },
-  waitStoreTitle: { fontSize: 14, fontWeight: '800' },
+  waitStoreTitle: { fontSize: 14, fontWeight: '600' },
   waitStoreSub: { fontSize: 12, fontWeight: '500', marginTop: 3, lineHeight: 17 },
   cancelBox: {
     paddingVertical: 14,
@@ -1468,7 +1471,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 16
   },
-  cancelBoxText: { fontSize: 13, fontWeight: '900', color: COLORS.red, letterSpacing: 0.2 },
+  cancelBoxText: { fontSize: 13, fontWeight: '700', color: COLORS.red, letterSpacing: 0.2 },
 
   // Cancel circle / screen
   cancelledCircle: {
@@ -1480,7 +1483,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 16
   },
-  cancelledTitle: { fontSize: 18, fontWeight: '900', marginBottom: 8 },
+  cancelledTitle: { fontSize: 18, fontWeight: '700', marginBottom: 8 },
   cancelledDesc: { fontSize: 12, textAlign: 'center', lineHeight: 16, marginBottom: 24, maxWidth: 260 },
   returnBtn: {
     backgroundColor: '#fff',
@@ -1490,7 +1493,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)'
   },
-  returnBtnText: { fontSize: 13, fontWeight: '900', color: '#000', letterSpacing: 0.2 },
+  returnBtnText: { fontSize: 13, fontWeight: '700', color: '#000', letterSpacing: 0.2 },
 
   // Modals overlays
   modalOverlay: {
@@ -1509,7 +1512,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40
   },
-  zoomTitle: { fontSize: 15, fontWeight: '900', color: COLORS.gold, letterSpacing: 0.2, marginBottom: 4 },
+  zoomTitle: { fontSize: 15, fontWeight: '700', color: COLORS.gold, letterSpacing: 0.2, marginBottom: 4 },
   zoomDesc: { fontSize: 12, fontWeight: '700', marginBottom: 20 },
   zoomPinDisplay: {
     width: '100%',
@@ -1521,7 +1524,7 @@ const s = StyleSheet.create({
     marginBottom: 20,
     ...SHADOWS.goldGlow
   },
-  zoomPinText: { fontSize: 48, fontWeight: '900', color: '#000', letterSpacing: 10 },
+  zoomPinText: { fontSize: 48, fontWeight: '700', color: '#000', letterSpacing: 10 },
   zoomCloseBtn: {
     width: '100%',
     paddingVertical: 14,
@@ -1529,7 +1532,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center'
   },
-  zoomCloseText: { fontSize: 12, fontWeight: '800', color: '#888' },
+  zoomCloseText: { fontSize: 12, fontWeight: '600', color: '#888' },
 
   // Cancel Modal Box
   cancelModalBox: {
@@ -1539,7 +1542,7 @@ const s = StyleSheet.create({
     marginBottom: 40,
     alignItems: 'center'
   },
-  cancelModalTitle: { fontSize: 14, fontWeight: '900', marginBottom: 8 },
+  cancelModalTitle: { fontSize: 14, fontWeight: '700', marginBottom: 8 },
   cancelModalDesc: { fontSize: 12, textAlign: 'center', lineHeight: 16, color: '#888', marginBottom: 24 },
   confirmCancelBtn: {
     width: '100%',
@@ -1549,14 +1552,14 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8
   },
-  confirmCancelBtnText: { fontSize: 13, fontWeight: '900', color: '#fff', letterSpacing: 0.2 },
+  confirmCancelBtnText: { fontSize: 13, fontWeight: '700', color: '#fff', letterSpacing: 0.2 },
   dismissCancelBtn: {
     width: '100%',
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center'
   },
-  dismissCancelBtnText: { fontSize: 12, fontWeight: '800' },
+  dismissCancelBtnText: { fontSize: 12, fontWeight: '600' },
 
   // Chat Drawer container
   chatContainer: {
@@ -1581,7 +1584,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
-  chatRiderName: { fontSize: 12, fontWeight: '800' },
+  chatRiderName: { fontSize: 12, fontWeight: '600' },
   chatCloseBtn: {
     width: 32,
     height: 32,
@@ -1608,7 +1611,7 @@ const s = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.1)',
     marginRight: 6
   },
-  quickReplyText: { fontSize: 12, fontWeight: '900', letterSpacing: 1, color: '#aaa' },
+  quickReplyText: { fontSize: 12, fontWeight: '700', letterSpacing: 1, color: '#aaa' },
   chatInputRow: { flexDirection: 'row', gap: 8 },
   chatInput: {
     flex: 1,
@@ -1634,7 +1637,7 @@ const s = StyleSheet.create({
     marginBottom: 40,
     alignItems: 'center'
   },
-  ratingModalTitle: { fontSize: 14, fontWeight: '900', marginBottom: 4 },
+  ratingModalTitle: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
   ratingModalDesc: { fontSize: 12, color: '#888', marginBottom: 20 },
   starsRow: { flexDirection: 'row', marginBottom: 20 },
   ratingInput: {
@@ -1654,7 +1657,7 @@ const s = StyleSheet.create({
     marginTop: 20,
     ...SHADOWS.goldGlow
   },
-  submitRatingText: { fontSize: 13, fontWeight: '900', color: '#000', letterSpacing: 0.2 },
+  submitRatingText: { fontSize: 13, fontWeight: '700', color: '#000', letterSpacing: 0.2 },
 
   // Driver Profile Modal Styles
   driverModalBox: {
@@ -1717,7 +1720,7 @@ const s = StyleSheet.create({
   },
   driverModalName: {
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.5
   },
   driverRatingPill: {
@@ -1748,13 +1751,13 @@ const s = StyleSheet.create({
   },
   driverInfoLabel: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 1,
     marginBottom: 4
   },
   driverInfoValue: {
     fontSize: 12,
-    fontWeight: '900'
+    fontWeight: '700'
   },
   driverActionCallBtn: {
     flex: 1,

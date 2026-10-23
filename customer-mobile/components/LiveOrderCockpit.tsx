@@ -136,7 +136,7 @@ export default function LiveOrderCockpit({
 
   const subtitle =
     isVendor ? (status >= 6 ? 'Thanks for ordering with Zenvy' : `Pay ${stallName} in cash when it arrives`)
-    : status === 5 ? 'Share your delivery PIN at handover'
+    : status === 5 ? 'Share your Delivery PIN at handover'
     : [restaurantName, hostelAddress].filter(Boolean).join(' ➔ ');
 
   const showEstimate = !!estMinutes && estMinutes > 0 && status >= 2 && status <= 4;
@@ -270,7 +270,7 @@ export default function LiveOrderCockpit({
             <Text style={[styles.pinHeading, { color: COLORS.gold }]}>DELIVERY PIN</Text>
             <Text style={[styles.pinDescription, { color: txtSec }]}>Share this code with your rider only at handover</Text>
           </View>
-          <TouchableOpacity style={styles.pinCodePill} onPress={handleCopyPin} accessibilityLabel="Copy delivery PIN">
+          <TouchableOpacity style={styles.pinCodePill} onPress={handleCopyPin} accessibilityLabel="Copy Delivery PIN">
             <Text style={styles.pinDigits}>{deliveryPin}</Text>
             <Text style={{ fontSize: 12, marginLeft: 4 }}>{copiedPin ? '✅' : '📋'}</Text>
           </TouchableOpacity>

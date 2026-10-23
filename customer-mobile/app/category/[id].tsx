@@ -29,6 +29,7 @@ import { readCache, writeCache } from '../../utils/swrCache';
 import SafeImage from '../../components/SafeImage';
 import { ShimmerCard } from '../../components/ShimmerLoader';
 import ServiceBookingSheet from '../../modules/services/ServiceBookingSheet';
+import ServicesHome from '../../modules/services/ServicesHome';
 import { resolveServiceForm } from '../../modules/services/serviceForms';
 import { formatClock, formatINR, plural } from '../../utils/format';
 
@@ -88,7 +89,19 @@ interface StoreInfo { id: string; name: string; isOpen: boolean; opensAt: string
 /** "7:00 AM" from the store's HH:MM opening time, or null when it is missing. */
 const formatOpensAt = (hhmm: string | null) => (hhmm && /^\d{1,2}:\d{2}$/.test(hhmm) ? formatClock(hhmm) : null);
 
-export default function CategoryDetailScreen() {
+/** Service shelves (repairs, tailoring, print, laundry) get the services page; every other shelf the store grid. */
+export default function CategoryRoute() {
+  const params = useLocalSearchParams<{ id: string | string[] }>();
+  const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const requestedId = String(rawId || 'electronics').toLowerCase().trim();
+  const categoryId = CATEGORY_ALIASES[requestedId] || requestedId;
+  if (categoryId === 'repairs' || categoryId === 'tailoring' || categoryId === 'print' || categoryId === 'laundry') {
+    return <ServicesHome key={categoryId} categoryId={categoryId} />;
+  }
+  return <CategoryDetailScreen />;
+}
+
+function CategoryDetailScreen() {
   const params = useLocalSearchParams<{ id: string | string[] }>();
   const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
   const router = useRouter();
@@ -114,7 +127,7 @@ export default function CategoryDetailScreen() {
   const [serviceModalVisible, setServiceModalVisible] = useState(false);
 
   const mountedRef = useRef(true);
-  useEffect(() => () => { mountedRef.current = false; }, []);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
   // Print rates come from the same catalogue rows the print cards show
   const printRates = useMemo(() => {
@@ -196,7 +209,7 @@ export default function CategoryDetailScreen() {
       writeCache(cacheKey, data);
       setLoadError(null);
     } catch {
-      if (mountedRef.current && mode !== 'silent') setLoadError('We could not reach Zenvy. Check your internet connection and try again.');
+      if (mountedRef.current && mode !== 'silent') setLoadError('We could not connect. Check your internet connection and try again.');
     } finally {
       if (mountedRef.current) {
         setLoading(false);

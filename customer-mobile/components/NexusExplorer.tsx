@@ -9,6 +9,7 @@ import { useCartActions } from '../context/CartContext';
 import { useDietary } from '../context/DietaryContext';
 import DopaminePressable, { CardPressable, ActionPressable } from './DopaminePressable';
 import SafeImage from './SafeImage';
+import { storeEtaMins } from '../utils/storeEta';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -17,6 +18,9 @@ interface NexusExplorerProps {
   activeCategory: string;
   onSelectItem: (restaurantId: string) => void;
 }
+
+// Owner: tapping a Popular dishes category shows only its top 4 dishes.
+const TOP_N = 4;
 
 export default function NexusExplorer({ restaurants, activeCategory, onSelectItem }: NexusExplorerProps) {
   const router = useRouter();
@@ -128,7 +132,7 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
           restaurantName: res.name,
           restaurantId: res._id || res.id,
           rating: Number(res.rating) || 0,
-          deliveryTime: item.deliveryTime ?? res.deliveryTime,
+          deliveryTime: storeEtaMins(res),
           storeOpen: res.isOpen !== false,
         };
       })
@@ -188,7 +192,8 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
       if (activeSort === 'fastest') {
         return (Number(a.deliveryTime) || 999) - (Number(b.deliveryTime) || 999);
       }
-      return 0;
+      // Recommended: the best-rated dishes first, so the top 4 are the ones worth showing.
+      return (Number(b.rating) || 0) - (Number(a.rating) || 0);
     });
   }, [restaurants, activeCategory, activeFilter, activeSort, sortValue, isItemAllowed]);
 
@@ -345,7 +350,7 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
       ) : (
         <>
           <View style={s.grid}>
-            {(showAll ? filteredItems : filteredItems.slice(0, 6)).map((item, idx) => {
+            {filteredItems.slice(0, TOP_N).map((item, idx) => {
               const itemId = item._id || item.id || idx.toString();
               const isFav = favorites.includes(itemId);
               const isAdded = !!addedIds[itemId];
@@ -409,7 +414,7 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
             })}
           </View>
 
-          {filteredItems.length > 6 && (
+          {false && (
             <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
               <TouchableOpacity
                 style={{

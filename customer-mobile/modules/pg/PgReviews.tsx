@@ -22,7 +22,7 @@ export function Stars({ value, size = 14 }: { value: number; size?: number }) {
   return (
     <View style={{ flexDirection: 'row', gap: 2 }} accessible accessibilityLabel={`${value} out of 5`}>
       {[1, 2, 3, 4, 5].map((i) => (
-        <IconStar key={i} size={size} color={i <= Math.round(value) ? p.text : p.line} fill={i <= Math.round(value) ? p.text : 'transparent'} strokeWidth={1.5} />
+        <IconStar key={i} size={size} color={i <= Math.round(value) ? p.star : p.line} fill={i <= Math.round(value) ? p.star : 'transparent'} strokeWidth={1.5} />
       ))}
     </View>
   );
@@ -90,7 +90,7 @@ export function ReviewsSection({ pgId, summary, eligibility, signedIn, onLoginNe
                   <View key={n} style={st.distRow} accessible accessibilityLabel={`${n} stars: ${c}`}>
                     <Text style={[ui.small, { color: p.sub, width: 12 }]}>{n}</Text>
                     <View style={[st.track, { backgroundColor: p.sunken }]}>
-                      <View style={[st.fill, { backgroundColor: p.text, width: `${count ? (c / count) * 100 : 0}%` }]} />
+                      <View style={[st.fill, { backgroundColor: p.accentFill, width: `${count ? (c / count) * 100 : 0}%` }]} />
                     </View>
                     <Text style={[ui.small, { color: p.muted, width: 24, textAlign: 'right' }]}>{c}</Text>
                   </View>
@@ -116,8 +116,8 @@ export function ReviewsSection({ pgId, summary, eligibility, signedIn, onLoginNe
         </Press>
       ) : null}
       {canReview ? (
-        <Press onPress={() => setWriting(true)} accessibilityLabel="Review your stay" style={[ui.secondaryBtn, { borderColor: p.text, marginTop: 16 }]}>
-          <Text style={[ui.btnLabel, { color: p.text }]}>Review your stay</Text>
+        <Press onPress={() => setWriting(true)} accessibilityLabel="Review your stay" style={[ui.secondaryBtn, { borderColor: p.accentFill, marginTop: 16 }]}>
+          <Text style={[ui.btnLabel, { color: p.accent }]}>Review your stay</Text>
         </Press>
       ) : null}
       {writing ? (
@@ -246,7 +246,7 @@ function WriteReview({ pgId, onClose, onDone }: { pgId: string; onClose: () => v
           <View style={st.picker} accessibilityRole="radiogroup" accessibilityLabel="Rating">
             {[1, 2, 3, 4, 5].map((n) => (
               <Press key={n} onPress={() => setRating(n)} accessibilityRole="button" accessibilityState={{ selected: rating === n }} accessibilityLabel={`${n} star${n === 1 ? '' : 's'}, ${RATING_WORD[n]}`} style={st.starBtn}>
-                <IconStar size={28} color={n <= rating ? p.text : p.line} fill={n <= rating ? p.text : 'transparent'} strokeWidth={1.5} />
+                <IconStar size={28} color={n <= rating ? p.star : p.line} fill={n <= rating ? p.star : 'transparent'} strokeWidth={1.5} />
               </Press>
             ))}
           </View>

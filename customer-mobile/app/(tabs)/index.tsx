@@ -8,7 +8,7 @@ import { useLiveSync, hasType } from '../../utils/useLiveSync';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect, useIsFocused } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { COLORS, SHADOWS, RADIUS } from '../../constants/theme';
+import { COLORS, SHADOWS, RADIUS, surfaceLift, surfaceShadow, LIGHT_HAIRLINE } from '../../constants/theme';
 import { API_URL, ENDPOINTS } from '../../constants/api';
 import { useAuth } from '../../context/AuthContext';
 import { useCartState } from '../../context/CartContext';
@@ -34,10 +34,16 @@ import ZenvyEcosystemGrid from '../../components/ZenvyEcosystemGrid';
 import SafeImage from '../../components/SafeImage';
 import { Ionicons } from '@expo/vector-icons';
 import { formatINR, istHour, plural } from '../../utils/format';
+import { storeEtaMins, storeEtaText } from '../../utils/storeEta';
+import { isNewStore as isNewStoreRule } from '../../utils/storeBadge';
+import { syncFavorites, toggleFavoriteStore, onFavoritesChange, isFavoriteIn } from '../../utils/favorites';
+import { useTopInset } from '../../utils/useTopInset';
 
 const VaultTimerBadge = ({ pulseAnim }: { pulseAnim: any }) => {
   const [vaultTimer, setVaultTimer] = useState('00:00:00');
   const isFocused = useIsFocused();
+  // Light mode: the timer was white on a white card (invisible); dark mode is unchanged
+  const { isDark } = useTheme();
   useEffect(() => {
     if (!isFocused) return; // 1 s ticker only while the Home tab is on screen
     const iv = setInterval(() => {
@@ -55,9 +61,9 @@ const VaultTimerBadge = ({ pulseAnim }: { pulseAnim: any }) => {
   }, [isFocused]);
   
   return (
-    <View style={StyleSheet.create({ vaultTimerWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 } }).vaultTimerWrap}>
+    <View style={StyleSheet.create({ vaultTimerWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.06)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 } }).vaultTimerWrap}>
       <Animated.View style={[{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981', shadowColor: '#10B981', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 8 }, { opacity: pulseAnim }]} />
-      <Text style={{ fontSize: 13, fontWeight: '900', color: '#fff', fontVariant: ['tabular-nums'] }}>{vaultTimer}</Text>
+      <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#fff' : '#0F172A', fontVariant: ['tabular-nums'] }}>{vaultTimer}</Text>
     </View>
   );
 };
@@ -101,17 +107,38 @@ const RotatingSearchInput = React.memo(function RotatingSearchInput({ search, co
 
 const { width: SW } = Dimensions.get('window');
 
-const FILTERS = [
-  { key: 'all', label: 'All' },
-  { key: 'veg', label: 'Veg' },
-  { key: 'under99', label: 'Under ₹99' },
-  { key: 'topRated', label: 'Rated 4.5+' },
-  { key: 'express', label: 'Under 20 min' },
-  { key: 'premium', label: 'Featured' },
-  { key: 'budget', label: 'Under ₹150' },
-  { key: 'jain', label: 'Jain' },
-  { key: 'eggless', label: 'Eggless' },
+const FILTERS: { key: string; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'all', label: 'All', icon: 'grid-outline' },
+  // Shown only once the user has hearted a store (see the chip row)
+  { key: 'favorites', label: 'Favourites', icon: 'heart-outline' },
+  { key: 'veg', label: 'Veg', icon: 'leaf-outline' },
+  { key: 'under99', label: 'Under ₹99', icon: 'cash-outline' },
+  { key: 'topRated', label: 'Rated 4.5+', icon: 'star-outline' },
+  { key: 'express', label: 'Under 20 min', icon: 'time-outline' },
+  { key: 'premium', label: 'Featured', icon: 'sparkles-outline' },
+  { key: 'budget', label: 'Under ₹150', icon: 'wallet-outline' },
+  { key: 'jain', label: 'Jain', icon: 'flower-outline' },
+  { key: 'eggless', label: 'Eggless', icon: 'egg-outline' },
 ];
+
+// The small live dot in the "open now" pill: a soft pulse while Home is on screen (still otherwise).
+const LiveDot = React.memo(function LiveDot({ color, active }: { color: string; active: boolean }) {
+  const pulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!active) { pulse.setValue(1); return; }
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 0.35, duration: 900, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [active, pulse]);
+  return (
+    <View style={{ width: 8, height: 8, alignItems: 'center', justifyContent: 'center' }}>
+      <Animated.View style={{ position: 'absolute', width: 8, height: 8, borderRadius: 4, backgroundColor: color, opacity: pulse }} />
+    </View>
+  );
+});
 
 const CLASSICS = [
   { name: 'Biryani', img: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?q=80&w=200' },
@@ -255,7 +282,7 @@ const HomeFloatingCart = React.memo(function HomeFloatingCart({ isDark, txt, onO
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
           <View style={[s.floatingCartBadge, { backgroundColor: isDark ? COLORS.gold : COLORS.red }]}>
-            <Text style={{ fontSize: 12, fontWeight: '900', color: isDark ? '#000' : '#FFF' }}>{totalItems}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: isDark ? '#000' : '#FFF' }}>{totalItems}</Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[s.floatingCartLabel, { color: txt }]} numberOfLines={1}>
@@ -268,7 +295,7 @@ const HomeFloatingCart = React.memo(function HomeFloatingCart({ isDark, txt, onO
         </View>
         <View style={[s.floatingCartCta, { backgroundColor: isDark ? COLORS.gold : COLORS.red }]}>
           <Text style={[s.floatingCartCtaText, { color: isDark ? '#000' : '#FFF' }]}>View basket</Text>
-          <Text style={{ fontSize: 14, color: isDark ? '#000' : '#FFF', fontWeight: '900' }}>›</Text>
+          <Text style={{ fontSize: 14, color: isDark ? '#000' : '#FFF', fontWeight: '700' }}>›</Text>
         </View>
       </TouchableOpacity>
     </View>
@@ -276,6 +303,8 @@ const HomeFloatingCart = React.memo(function HomeFloatingCart({ isDark, txt, onO
 });
 
 export default function HomeScreen() {
+  // Real status-bar inset, never less than the old fixed padding (utils/useTopInset)
+  const topPad = useTopInset();
   // Keyboard lift only while Home is the visible tab (it stays mounted under other screens).
   const homeFocused = useIsFocused();
   const router = useRouter();
@@ -289,22 +318,19 @@ export default function HomeScreen() {
   const carouselHeight = useRef(0);
   const [carouselVisible, setCarouselVisible] = useState(false);
   const carouselVisibleRef = useRef(false);
-  // The restaurant grid renders in pages of 12 (it sits inside this ScrollView, so it cannot be a
-  // virtualized list): first paint mounts 12 cards instead of ~60, more mount as the user nears the end.
+  // The restaurant grid renders 12 cards first (it sits inside this ScrollView, so it cannot be a
+  // virtualized list). It no longer grows on its own while scrolling: a "Show all" button ends it,
+  // so Recently viewed and the stalls below stay reachable without scrolling past every store.
   const GRID_PAGE = 12;
   const [gridLimit, setGridLimit] = useState(GRID_PAGE);
-  const growingGrid = useRef(false);
   const gridBottom = useRef(0);
+  // Where the user was when they tapped "Show all", so "Show fewer" can return them to that spot.
+  const homeScrollY = useRef(0);
+  const scrollYBeforeShowAll = useRef<number | null>(null);
   const onHomeScroll = useCallback((e: any) => {
     const ne = e?.nativeEvent || {};
     const y = ne.contentOffset?.y || 0;
-    // Near the bottom of the grid (not of the page: other sections follow it)
-    const nearEnd = gridBottom.current > 0 && y + (ne.layoutMeasurement?.height || 0) > gridBottom.current - 900;
-    if (nearEnd && !growingGrid.current) {
-      growingGrid.current = true;
-      setGridLimit((n) => n + GRID_PAGE);
-      setTimeout(() => { growingGrid.current = false; }, 250);
-    }
+    homeScrollY.current = y;
     const viewH = ne.layoutMeasurement?.height || 0;
     const visible = carouselHeight.current <= 0
       || (y + viewH > carouselTop.current && y < carouselTop.current + carouselHeight.current);
@@ -341,6 +367,22 @@ export default function HomeScreen() {
     () => CATEGORIES.filter((c) => c.key !== 'rides' || sectionsSWR.data?.sections?.coride?.live !== false),
     [sectionsSWR.data],
   );
+  // Live count for the "All restaurants" header: food stores in the grid and how many are open now
+  const storeCounts = React.useMemo(() => {
+    const food = restaurants.filter(isHomeFoodVendor);
+    return { total: food.length, open: food.filter(isRestaurantOpenNow).length };
+  }, [restaurants]);
+  // "Under 20 min" only when the server has measured delivery times (utils/storeEta)
+  const hasMeasuredEta = React.useMemo(() => restaurants.some((r: any) => !!storeEtaMins(r)), [restaurants]);
+  // Promo slides for switched-off sections are left out. "Find a ride" waits for a confirmed live
+  // Co-Ride (no slide that pops in and out); PG stays unless the server says it is off.
+  const hiddenPromoSlides = React.useMemo(() => {
+    const sec = sectionsSWR.data?.sections;
+    const out: string[] = [];
+    if (sec?.coride?.live !== true) out.push('ride');
+    if (sec?.pg?.live === false) out.push('stays');
+    return out;
+  }, [sectionsSWR.data]);
 
   // Search Overlay State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -352,10 +394,6 @@ export default function HomeScreen() {
   const [vaultError, setVaultError] = useState(false);
   const [claimingItemId, setClaimingItemId] = useState<string | null>(null);
 
-  const [showBlockModal, setShowBlockModal] = useState(false);
-  const [activeChallenge, setActiveChallenge] = useState<any>(null);
-  const [blockLeaderboard, setBlockLeaderboard] = useState<any[]>([]);
-  const [loadingBlock, setLoadingBlock] = useState(false);
   const [showCatPrefModal, setShowCatPrefModal] = useState(false);
 
   // Zomato-range luxury animations
@@ -399,39 +437,22 @@ export default function HomeScreen() {
     }
   }, [classicFilter]);
 
+  // Favourite stores: local list, synced to the account when signed in (utils/favorites)
+  useEffect(() => onFavoritesChange(setFavorites), []);
   useEffect(() => {
-    (async () => {
-      try {
-        const favs = await AsyncStorage.getItem('zenvy_favorites');
-        if (favs) {
-          const parsed = JSON.parse(favs);
-          if (Array.isArray(parsed)) setFavorites(parsed);
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    })();
-  }, []);
+    let alive = true;
+    syncFavorites(user?.id || null).then((ids) => { if (alive) setFavorites(ids); }).catch(() => {});
+    return () => { alive = false; };
+  }, [user?.id]);
+  useEffect(() => {
+    if (filter === 'favorites' && favorites.length === 0) setFilter('all');
+  }, [filter, favorites.length]);
 
   const toggleFavorite = async (id: string) => {
     try {
-      const favsStr = await AsyncStorage.getItem('zenvy_favorites');
-      let favs = [];
-      try {
-        favs = favsStr ? JSON.parse(favsStr) : [];
-      } catch (e) {
-        console.warn('[FAVORITES] Failed to parse stored favorites:', e);
-      }
-      if (!Array.isArray(favs)) favs = [];
-      if ((Array.isArray(favs) ? favs.includes(id) : false)) {
-        favs = favs.filter((f: string) => f !== id);
-      } else {
-        favs.push(id);
-      }
-      setFavorites(favs);
-      await AsyncStorage.setItem('zenvy_favorites', JSON.stringify(favs));
+      setFavorites(await toggleFavoriteStore(id, !!user));
     } catch (e) {
-      console.error(e);
+      console.warn('[FAVORITES] toggle failed:', e);
     }
   };
 
@@ -492,22 +513,6 @@ export default function HomeScreen() {
     }
   };
 
-  const fetchBlockChallenges = async () => {
-    setLoadingBlock(true);
-    try {
-      // Fetch active challenge
-      const resChallenge = await apiFetch(ENDPOINTS.activeChallenge);
-      if (resChallenge.ok) {
-        const data = await resChallenge.json();
-        setActiveChallenge(data.challenge);
-        setBlockLeaderboard(data.leaderboard || []);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoadingBlock(false);
-    }
-  };
 
 
 
@@ -648,10 +653,11 @@ export default function HomeScreen() {
       return true;
     })
     .filter(r => {
+      if (filter === 'favorites') return isFavoriteIn(favorites, r._id || r.id);
       if (filter === 'veg') return isPureVegRestaurant(r);
       if (filter === 'under99') return availableMenu(r).some((i:any) => Number(i.price) <= 99);
       if (filter === 'topRated') return Number(r.rating) >= 4.5;
-      if (filter === 'express') { const d = Number(r.deliveryTime); return d > 0 && d <= 20; }
+      if (filter === 'express') { const d = storeEtaMins(r); return !!d && d <= 20; }
       if (filter === 'budget') return availableMenu(r).some((i:any) => Number(i.price) < 150);
       if (filter === 'premium') return r.subscriptionTier === 'premium' || r.isFeatured;
       if (filter === 'jain') return hasDietTag(r, 'jain');
@@ -674,7 +680,7 @@ export default function HomeScreen() {
       if (aMatch && !bMatch) return -1;
       if (!aMatch && bMatch) return 1;
       return 0;
-    }), [restaurants, vegOnly, filter, search, classicFilter]);
+    }), [restaurants, vegOnly, filter, search, classicFilter, favorites]);
 
   const cardBg = isDark ? 'rgba(255, 255, 255, 0.08)' : colors.card;
   const txt = colors.text;
@@ -689,9 +695,13 @@ export default function HomeScreen() {
   const goldBorderColor = isDark ? COLORS.goldBorder : 'rgba(239, 79, 95, 0.35)';
   const goldMutedColor = isDark ? COLORS.goldMuted : 'rgba(239, 79, 95, 0.1)';
   const goldGlowShadow = isDark ? SHADOWS.goldGlow : SHADOWS.redGlow;
+  // Light mode: cards, tiles and pills get a soft lift so they separate from the page (dark: none)
+  const lift = surfaceLift(isDark);
+  const liftSm = surfaceLift(isDark, true);
+  const shadowSm = surfaceShadow(isDark, true);
 
   return (
-    <KeyboardAvoidingView style={[s.container, { backgroundColor: bg }]} enabled={homeFocused}>
+    <KeyboardAvoidingView style={[s.container, { paddingTop: topPad, backgroundColor: bg }]} enabled={homeFocused}>
       <AmbientBackground />
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} scrollEventThrottle={200} onScroll={onHomeScroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} tintColor={goldColor} />}>
 
@@ -703,7 +713,7 @@ export default function HomeScreen() {
             activeOpacity={0.8}
             onPress={() => router.push('/(tabs)/profile')}
           >
-            <View style={[s.avatar, { backgroundColor: cardBg, borderColor: goldBorderColor, overflow: 'hidden' }, user?.isElite && [s.avatarElite, { borderColor: goldColor }, goldGlowShadow]]}>
+            <View style={[s.avatar, { backgroundColor: cardBg, borderColor: goldBorderColor, overflow: 'hidden' }, liftSm, user?.isElite && [s.avatarElite, { borderColor: goldColor }, goldGlowShadow]]}>
               {user?.profileImage ? (
                 <SafeImage
                   source={{ uri: user.profileImage }}
@@ -721,7 +731,7 @@ export default function HomeScreen() {
                 <Text style={[s.userName, { color: txt }]}>{(user?.name || 'Guest').trim().split(' ')[0] || 'Guest'}</Text>
                 {!!user?.isElite && (
                   <View style={[s.eliteBadge, { backgroundColor: '#D4AF7A', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }]}>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.3 }}>Elite</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#000', letterSpacing: 0.3 }}>Elite</Text>
                   </View>
                 )}
               </View>
@@ -731,7 +741,7 @@ export default function HomeScreen() {
           <View style={s.navRight}>
             {/* Campus: the one entry for chats, Friends (Pulse, Spaces, Forum, Tasks, Connect), Around campus and Me */}
             <DopaminePressable
-              style={[s.campusPill, { backgroundColor: cardBg, borderColor: goldBorderColor }]}
+              style={[s.campusPill, { backgroundColor: cardBg, borderColor: goldBorderColor }, liftSm]}
               onPress={() => router.push('/friends' as any)}
               sound="click"
               activeScale={0.92}
@@ -742,7 +752,7 @@ export default function HomeScreen() {
               <Text style={[s.campusPillText, { color: goldColor }]}>Campus</Text>
             </DopaminePressable>
             <DopaminePressable 
-              style={[s.navBtn, { backgroundColor: cardBg, borderColor: goldBorderColor }]} 
+              style={[s.navBtn, { backgroundColor: cardBg, borderColor: goldBorderColor }, liftSm]} 
               onPress={toggleTheme}
               sound="click"
               activeScale={0.9}
@@ -774,7 +784,7 @@ export default function HomeScreen() {
             onPress={() => setIsSearchOpen(true)}
             accessibilityRole="search"
             accessibilityLabel="Search dishes and stores"
-            style={[s.searchWrap, { backgroundColor: cardBg, borderColor: isDark ? goldBorderColor : COLORS.borderLight, flex: 1, marginBottom: 0 }]}
+            style={[s.searchWrap, { backgroundColor: cardBg, borderColor: isDark ? goldBorderColor : LIGHT_HAIRLINE, flex: 1, marginBottom: 0 }, lift]}
           >
             <Ionicons name="search-outline" size={17} color={txtSec} />
             <RotatingSearchInput search={search} color={txt} placeholderColor={txtSec} inputStyle={s.searchInput} />
@@ -784,7 +794,7 @@ export default function HomeScreen() {
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 accessibilityLabel="Clear search"
               >
-                <Text style={{ fontSize: 14, fontWeight: '800', color: txtSec }}>✕</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: txtSec }}>✕</Text>
               </TouchableOpacity>
             )}
           </TouchableOpacity>
@@ -792,6 +802,9 @@ export default function HomeScreen() {
           {/* VEG MODE Switch (Swiggy / Zomato Style) */}
           <TouchableOpacity
             activeOpacity={0.8}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: vegOnly }}
+            accessibilityLabel="Veg only"
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
               const nextVal = !vegOnly;
@@ -801,7 +814,8 @@ export default function HomeScreen() {
             }}
             style={[
               s.vegToggleWrap,
-              { backgroundColor: cardBg, borderColor: vegOnly ? '#10B981' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)') }
+              { backgroundColor: cardBg, borderColor: vegOnly ? '#10B981' : (isDark ? 'rgba(255,255,255,0.1)' : LIGHT_HAIRLINE) },
+              vegOnly ? surfaceShadow(isDark) : lift,
             ]}
           >
             <Text style={[s.vegToggleText, { color: vegOnly ? '#10B981' : txtSec }]}>Veg</Text>
@@ -810,6 +824,54 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
         </View>
+        </StaggeredSection>
+
+        {/* ── PROMO CAROUSEL right under the search bar (owner's choice) ── */}
+        <View style={{ height: 8 }} onLayout={(e) => { carouselTop.current = e.nativeEvent.layout.y + e.nativeEvent.layout.height; }} />
+        {/* ── HIGH-CLASS SWIGGY/ZOMATO PROMO CAROUSEL (WITH MINIATURE ANIMATIONS & ADMIN SPOTLIGHT) ── */}
+        <StaggeredSection delay={100} direction="up">
+          <View onLayout={(e) => { carouselHeight.current = e.nativeEvent.layout.height; }}>
+          <HighClassPromoCarousel 
+            visible={carouselVisible}
+            hiddenSlideIds={hiddenPromoSlides}
+            featuredRestaurants={restaurants}
+            onSelectRestaurant={(id) => router.push(`/restaurant/${id}` as any)}
+            onSelectSlide={(slide) => {
+              if (slide.id === 'gold-pass') router.push('/(tabs)/profile');
+              else if (slide.id === 'biryani') {
+                const wasOpen = classicFilter !== '';
+                setClassicFilter('Biryani');
+                scrollToNexusSoon(wasOpen);
+              } else if (slide.id === 'kfc') {
+                const kfc = restaurants.find((r: any) => /kfc/i.test(r?.name || ''));
+                if (kfc) router.push(`/restaurant/${kfc.id || kfc._id}` as any);
+                else { setSearch('KFC'); scrollToGrid(); }
+              } else if (slide.id === 'mega-basket') {
+                router.push('/mega-basket' as any);
+              } else if (slide.id === 'campus-buddy') {
+                router.push('/friends' as any);
+              } else if (slide.id === 'ride') {
+                router.push({ pathname: '/(tabs)/others', params: { tab: 'rides' } } as any);
+              } else if (slide.id === 'stays') {
+                router.push({ pathname: '/(tabs)/others', params: { tab: 'stays' } } as any);
+              } else if (slide.id === 'express-canteen') {
+                router.push('/category/express' as any);
+              } else if (slide.id === 'welcome-benefits') {
+                fetchVaultItems();
+                setShowVaultModal(true);
+              } else if (slide.id === 'free-cash') {
+                scrollToGrid();
+              }
+            }}
+          />
+          </View>
+        </StaggeredSection>
+
+        {/* ── LIVE CAMPUS TICKER (SWIGGY / ZOMATO DEALS & PULSE) ── */}
+        <StaggeredSection delay={150} direction="up">
+          <View style={{ marginTop: 6, marginBottom: 2 }}>
+            <CampusLiveTicker />
+          </View>
         </StaggeredSection>
 
         {/* ── NIGHT CLOSURE (9 PM to 6 AM): say it on Home, not first at checkout ── */}
@@ -825,8 +887,9 @@ export default function HomeScreen() {
                 s.premiumCatBtn, 
                 { 
                   backgroundColor: cardBg, 
-                  borderColor: border,
-                }
+                  borderColor: isDark ? border : LIGHT_HAIRLINE,
+                },
+                lift,
               ]} 
               onPress={() => {
                 if (c.key === 'food') {
@@ -882,7 +945,7 @@ export default function HomeScreen() {
                 sound="tabSwitch"
                 activeScale={0.92}
               >
-                <View style={[s.classicImgWrap, isActive && { borderColor: COLORS.red, ...SHADOWS.redGlow }]}>
+                <View style={[s.classicImgWrap, shadowSm, isActive && { borderColor: COLORS.red, ...SHADOWS.redGlow }]}>
                   <SafeImage source={{ uri: c.img }} style={s.classicImg} />
                 </View>
                 <Text style={[s.classicName, { color: isActive ? COLORS.red : txt }]}>{c.name}</Text>
@@ -922,7 +985,7 @@ export default function HomeScreen() {
             <View style={s.sectionHeader}>
               <Text style={[s.sectionTitle, { color: txt }]}>{classicFilter}</Text>
               <TouchableOpacity onPress={() => setClassicFilter('')}>
-                <Text style={{ fontSize: 12, fontWeight: '800', color: COLORS.red, letterSpacing: 0.2 }}>Clear</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: COLORS.red, letterSpacing: 0.2 }}>Clear</Text>
               </TouchableOpacity>
             </View>
             <NexusExplorer
@@ -933,29 +996,90 @@ export default function HomeScreen() {
           </Animated.View>
         )}
 
-        {/* ── FILTERS ── */}
-        <View onLayout={(e) => { gridY.current = e.nativeEvent.layout.y; }} style={s.sectionHeader}><Text style={[s.sectionTitle, { color: txt }]}>All restaurants</Text></View>
-        <Text style={[s.sectionSub, { color: txtSec }]}>Restaurants on your campus</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 16, marginBottom: 16 }}>
-          {FILTERS.map(f => {
-            const isChipActive = filter === f.key;
-            return (
-              <DopaminePressable 
-                key={f.key} 
-                onPress={() => setFilter(f.key)} 
-                style={[
-                  s.filterChip, 
-                  isChipActive ? s.filterActive : {}, 
-                  { borderColor: isChipActive ? COLORS.red : (isDark ? COLORS.borderDark : COLORS.borderLight) }
-                ]}
-                sound="tabSwitch"
-                activeScale={0.93}
-              >
-                <Text style={[s.filterText, isChipActive ? s.filterTextActive : {}]}>{f.label}</Text>
-              </DopaminePressable>
-            );
-          })}
-        </ScrollView>
+        {/* ── DAILY DEALS ── */}
+        <StaggeredSection delay={600} direction="up">
+        <CardPressable 
+          style={[s.vaultCard, { backgroundColor: cardBg }, lift]} 
+          onPress={() => {
+            fetchVaultItems();
+            setShowVaultModal(true);
+          }}
+          sound="click"
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+            <View style={s.vaultLeft}>
+              <PulseGlow size={44} color={COLORS.gold}>
+                <View style={s.vaultIcon}><Ionicons name="pricetags" size={22} color={COLORS.gold} /></View>
+              </PulseGlow>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={[s.vaultTitle, { color: txt }]} numberOfLines={1}>Daily deals</Text>
+                <Text style={[s.vaultSub, { color: txtSec }]} numberOfLines={2}>Today's coupons, valid until midnight</Text>
+              </View>
+            </View>
+            <View style={s.vaultRight}>
+              <Text style={[s.vaultUntil, { color: txtSec, marginTop: 0, marginBottom: 4 }]}>Ends in</Text>
+              <VaultTimerBadge pulseAnim={pulseAnim} />
+            </View>
+          </View>
+        </CardPressable>
+        </StaggeredSection>
+
+        {/* Recently viewed: right under Daily deals (owner's choice) */}
+        <RecentlyViewed />
+
+        {/* ── ALL RESTAURANTS: header with the live open count, then the filter chips ── */}
+        <View onLayout={(e) => { gridY.current = e.nativeEvent.layout.y; }} style={s.sectionHeader}>
+          <Text style={[s.sectionTitle, { color: txt }]}>All restaurants</Text>
+          {!loading && storeCounts.total > 0 && (
+            <View
+              style={[s.livePill, { backgroundColor: storeCounts.open > 0 ? (isDark ? 'rgba(16,185,129,0.14)' : '#ECFDF5') : (isDark ? 'rgba(245,158,11,0.14)' : '#FFFBEB'), borderColor: storeCounts.open > 0 ? (isDark ? 'rgba(16,185,129,0.35)' : 'transparent') : (isDark ? 'rgba(245,158,11,0.35)' : 'transparent') }, surfaceShadow(isDark, true)]}
+              accessible
+              accessibilityLabel={storeCounts.open > 0 ? `${storeCounts.open} of ${storeCounts.total} restaurants open now` : 'All restaurants are closed right now'}
+            >
+              <LiveDot color={storeCounts.open > 0 ? '#10B981' : '#F59E0B'} active={homeFocused && storeCounts.open > 0} />
+              <Text maxFontSizeMultiplier={1.3} style={[s.livePillText, { color: storeCounts.open > 0 ? (isDark ? '#34D399' : '#047857') : (isDark ? '#FBBF24' : '#B45309') }]}>
+                {storeCounts.open > 0 ? `${storeCounts.open} open now` : 'Closed right now'}
+              </Text>
+            </View>
+          )}
+        </View>
+        <Text style={[s.sectionSub, { color: txtSec }]}>Fresh from campus kitchens, delivered to your hostel</Text>
+        <View style={{ marginTop: -4, marginBottom: 12 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 16, paddingRight: 28, paddingVertical: 4 }}>
+            {FILTERS.filter(f => (f.key !== 'express' || hasMeasuredEta) && (f.key !== 'favorites' || favorites.length > 0)).map(f => {
+              const isChipActive = filter === f.key;
+              const activeBg = isDark ? goldColor : COLORS.red;
+              const fg = isChipActive ? (isDark ? '#000' : '#FFF') : txtSec;
+              return (
+                <DopaminePressable
+                  key={f.key}
+                  onPress={() => setFilter(f.key)}
+                  style={[
+                    s.filterChip,
+                    { backgroundColor: isChipActive ? activeBg : cardBg, borderColor: isChipActive ? activeBg : (isDark ? COLORS.borderDark : LIGHT_HAIRLINE) },
+                    isChipActive ? s.filterActiveShadow : liftSm,
+                  ]}
+                  sound="tabSwitch"
+                  activeScale={0.93}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isChipActive }}
+                  accessibilityLabel={`Filter: ${f.label}`}
+                >
+                  <Ionicons name={f.icon} size={13} color={isChipActive ? fg : (isDark ? goldColor : COLORS.red)} />
+                  <Text style={[s.filterText, { color: fg }]} maxFontSizeMultiplier={1.3}>{f.label}</Text>
+                </DopaminePressable>
+              );
+            })}
+          </ScrollView>
+          {/* Edge fade: the row reads as scrollable */}
+          <LinearGradient
+            pointerEvents="none"
+            colors={[isDark ? 'rgba(9,9,11,0)' : 'rgba(244,245,247,0)', bg]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={s.chipFade}
+          />
+        </View>
 
         {/* ── RESTAURANT GRID ── */}
         <View style={s.grid} onLayout={(e) => { gridBottom.current = e.nativeEvent.layout.y + e.nativeEvent.layout.height; }}>
@@ -1024,8 +1148,8 @@ export default function HomeScreen() {
             const id = r._id || r.id;
             // Real data only: no invented ratings, ETAs, offers or prices
             const rating = Number(r.rating) || 0;
-            const deliveryMins = Number(r.deliveryTime) || 0;
-            const time: string | null = r.time || (deliveryMins > 0 ? `${deliveryMins} min` : null);
+            // Measured from real deliveries only (utils/storeEta): seed times never show as fact
+            const time: string | null = storeEtaText(r);
             const img = r.imageUrl || r.image || '';
 
             // Open/Closed status from the server (vendor toggle + operating hours, IST)
@@ -1036,11 +1160,11 @@ export default function HomeScreen() {
             const cuisineText = Array.isArray(r.tags) && r.tags.length
               ? r.tags.slice(0, 3).map((t: any) => String(t)).join(', ')
               : (r.cuisine || r.description || '');
-            const isFav = (Array.isArray(favorites) ? favorites.includes(id) : false);
+            const isFav = isFavoriteIn(favorites, id);
             const isPremium = r.subscriptionTier === 'premium' || r.isFeatured;
             // "New" only for a recently listed store; an old store without ratings shows no badge.
             const createdMs = r.createdAt ? new Date(r.createdAt).getTime() : NaN;
-            const isNewStore = Number.isFinite(createdMs) && Date.now() - createdMs < 30 * 86400000;
+            const isNewStore = Number.isFinite(createdMs) && isNewStoreRule(r);
 
             return (
               <StaggeredSection 
@@ -1057,10 +1181,11 @@ export default function HomeScreen() {
                   s.rCard, 
                   { 
                     backgroundColor: cardBg, 
-                    borderColor: r.isFeatured ? '#F59E0B' : (isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)'), 
+                    borderColor: r.isFeatured ? '#F59E0B' : (isDark ? 'rgba(255,255,255,0.10)' : LIGHT_HAIRLINE), 
                     borderWidth: r.isFeatured ? 1.5 : 1, 
                     width: '100%', 
                     marginHorizontal: 0,
+                    ...(!isDark && !r.isFeatured ? lift : {}),
                     ...(r.isFeatured ? { shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 4 } : {})
                   }
                 ]} 
@@ -1102,7 +1227,7 @@ export default function HomeScreen() {
                       backgroundColor: '#fff',
                       opacity: isOpen ? pulseAnim : 0.6
                     }} />
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#fff', letterSpacing: 0.2 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff', letterSpacing: 0.2 }}>
                       {isOpen ? 'Open' : 'Closed'}
                     </Text>
                   </View>
@@ -1130,7 +1255,7 @@ export default function HomeScreen() {
                         elevation: 3
                       }}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.2 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#000', letterSpacing: 0.2 }}>
                         {featuredLabel(r)}
                       </Text>
                     </LinearGradient>
@@ -1150,7 +1275,7 @@ export default function HomeScreen() {
                       s.offerRibbon, 
                       r.isFeatured && { backgroundColor: '#F59E0B' }
                     ]}>
-                      <Text style={[s.offerText, r.isFeatured && { color: '#000', fontWeight: '900' }]} numberOfLines={1}>
+                      <Text style={[s.offerText, r.isFeatured && { color: '#000', fontWeight: '700' }]} numberOfLines={1}>
                         {activeOffer}
                       </Text>
                     </View>
@@ -1161,12 +1286,12 @@ export default function HomeScreen() {
                     <Text style={[s.rName, { color: txt }]} numberOfLines={1}>{r.name}</Text>
                     {rating > 0 ? (
                       <View style={s.ratingBadge}>
-                        <Text style={s.ratingText}>{rating.toFixed(1)}</Text>
-                        <Text style={{ fontSize: 12, color: '#fff', fontWeight: '900' }}>★</Text>
+                        <Text style={s.ratingText} maxFontSizeMultiplier={1.3}>{rating.toFixed(1)}</Text>
+                        <Text style={{ fontSize: 12, color: '#fff', fontWeight: '700' }}>★</Text>
                       </View>
                     ) : isNewStore ? (
                       <View style={s.ratingBadge}>
-                        <Text style={s.ratingText}>New</Text>
+                        <Text style={s.ratingText} maxFontSizeMultiplier={1.3}>New</Text>
                       </View>
                     ) : null}
                   </View>
@@ -1206,83 +1331,37 @@ export default function HomeScreen() {
         )}
         </View>
 
-        {/* ── OFFERS AND CAMPUS PROMOS (below the stores, so restaurants are on the first screen) ── */}
-        <View style={{ height: 8 }} onLayout={(e) => { carouselTop.current = e.nativeEvent.layout.y + e.nativeEvent.layout.height; }} />
-        {/* ── HIGH-CLASS SWIGGY/ZOMATO PROMO CAROUSEL (WITH MINIATURE ANIMATIONS & ADMIN SPOTLIGHT) ── */}
-        <StaggeredSection delay={100} direction="up">
-          <View onLayout={(e) => { carouselHeight.current = e.nativeEvent.layout.height; }}>
-          <HighClassPromoCarousel 
-            visible={carouselVisible}
-            featuredRestaurants={restaurants}
-            onSelectRestaurant={(id) => router.push(`/restaurant/${id}` as any)}
-            onSelectSlide={(slide) => {
-              if (slide.id === 'gold-pass') router.push('/(tabs)/profile');
-              else if (slide.id === 'biryani') {
-                const wasOpen = classicFilter !== '';
-                setClassicFilter('Biryani');
-                scrollToNexusSoon(wasOpen);
-              } else if (slide.id === 'kfc') {
-                const kfc = restaurants.find((r: any) => /kfc/i.test(r?.name || ''));
-                if (kfc) router.push(`/restaurant/${kfc.id || kfc._id}` as any);
-                else { setSearch('KFC'); scrollToGrid(); }
-              } else if (slide.id === 'mega-basket') {
-                router.push('/mega-basket' as any);
-              } else if (slide.id === 'campus-buddy') {
-                router.push('/friends' as any);
-              } else if (slide.id === 'ride') {
-                router.push({ pathname: '/(tabs)/others', params: { tab: 'rides' } } as any);
-              } else if (slide.id === 'stays') {
-                router.push({ pathname: '/(tabs)/others', params: { tab: 'stays' } } as any);
-              } else if (slide.id === 'express-canteen') {
-                router.push('/category/express' as any);
-              } else if (slide.id === 'welcome-benefits') {
-                fetchVaultItems();
-                setShowVaultModal(true);
-              } else if (slide.id === 'free-cash') {
-                scrollToGrid();
-              }
+        {/* The grid ends here: one tap shows the rest (the sections below stay reachable) */}
+        {!loading && filtered.length > gridLimit && (
+          <TouchableOpacity
+            style={[s.resetFilterBtn, { alignSelf: 'center', marginTop: 12, marginBottom: 8, backgroundColor: cardBg, borderWidth: 1, borderColor: isDark ? goldBorderColor : LIGHT_HAIRLINE }, lift]}
+            onPress={() => { scrollYBeforeShowAll.current = homeScrollY.current; setGridLimit(filtered.length); }}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={`Show all ${filtered.length} restaurants`}
+          >
+            <Text style={[s.resetFilterBtnText, { color: goldColor }]}>Show all {filtered.length} restaurants</Text>
+          </TouchableOpacity>
+        )}
+        {/* Expanded: one tap goes back to the short list, at the spot the user left */}
+        {!loading && gridLimit > GRID_PAGE && filtered.length > GRID_PAGE && (
+          <TouchableOpacity
+            style={[s.resetFilterBtn, { alignSelf: 'center', marginTop: 12, marginBottom: 8, backgroundColor: cardBg, borderWidth: 1, borderColor: isDark ? goldBorderColor : LIGHT_HAIRLINE, flexDirection: 'row', alignItems: 'center', gap: 6 }, lift]}
+            onPress={() => {
+              const back = scrollYBeforeShowAll.current;
+              setGridLimit(GRID_PAGE);
+              scrollYBeforeShowAll.current = null;
+              if (back != null) setTimeout(() => scrollRef.current?.scrollTo({ y: back, animated: true }), 60);
             }}
-          />
-          </View>
-        </StaggeredSection>
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Show fewer restaurants"
+          >
+            <Ionicons name="chevron-up" size={16} color={goldColor} />
+            <Text style={[s.resetFilterBtnText, { color: goldColor }]}>Show fewer</Text>
+          </TouchableOpacity>
+        )}
 
-        {/* ── LIVE CAMPUS TICKER (SWIGGY / ZOMATO DEALS & PULSE) ── */}
-        <StaggeredSection delay={150} direction="up">
-          <View style={{ marginTop: 6, marginBottom: 2 }}>
-            <CampusLiveTicker />
-          </View>
-        </StaggeredSection>
-
-        {/* ── DAILY DEALS ── */}
-        <StaggeredSection delay={600} direction="up">
-        <CardPressable 
-          style={[s.vaultCard, { backgroundColor: cardBg }]} 
-          onPress={() => {
-            fetchVaultItems();
-            setShowVaultModal(true);
-          }}
-          sound="click"
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
-            <View style={s.vaultLeft}>
-              <PulseGlow size={44} color={COLORS.gold}>
-                <View style={s.vaultIcon}><Ionicons name="pricetags" size={22} color={COLORS.gold} /></View>
-              </PulseGlow>
-              <View>
-                <Text style={[s.vaultTitle, { color: txt }]}>Daily deals</Text>
-                <Text style={[s.vaultSub, { color: txtSec }]}>Today's coupons, valid until midnight</Text>
-              </View>
-            </View>
-            <View style={s.vaultRight}>
-              <VaultTimerBadge pulseAnim={pulseAnim} />
-              <Text style={[s.vaultUntil, { color: txtSec }]}>Ends in</Text>
-            </View>
-          </View>
-        </CardPressable>
-        </StaggeredSection>
-
-        {/* Recently Visited Memory Cache */}
-        <RecentlyViewed />
 
         {/* ── SECTION BREATHING SPACE ── */}
         <View style={{ height: 20 }} />
@@ -1315,10 +1394,11 @@ export default function HomeScreen() {
                   const hasStreak = userStreak >= streakReq;
                   const remaining = Number(item.remainingCount);
                   const showRemaining = item.remainingCount !== null && item.remainingCount !== undefined && item.remainingCount !== '' && Number.isFinite(remaining) && remaining >= 0;
-                  const itemImg = item.imageUrl || 'https://images.unsplash.com/photo-1618331835717-801e976710b2?w=400';
+                  // No photo: the neutral placeholder (never a stock picture that looks like the deal)
+                  const itemImg = item.imageUrl || item.image || '';
                   return (
                     <View key={item.id} style={[s.vaultItemCard, { borderColor: border }]}>
-                      <Image source={{ uri: itemImg }} style={s.vaultItemImg} />
+                      <SafeImage source={{ uri: itemImg }} style={s.vaultItemImg} placeholderIcon="pricetag-outline" />
                       <View style={s.vaultItemInfo}>
                         <Text style={[s.vaultItemName, { color: txt }]}>{item.name}</Text>
                         {!!item.description && <Text style={[s.vaultItemDesc, { color: txtSec }]}>{item.description}</Text>}
@@ -1374,71 +1454,6 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      {/* ── BLOCKWARS ARENA MODAL ── */}
-      <Modal visible={showBlockModal} animationType="slide" transparent={true} onRequestClose={() => setShowBlockModal(false)}>
-        <View style={s.modalOverlay}>
-          <View style={[s.modalContentBox, { backgroundColor: sheetBg }]}>
-            <Text style={[s.modalTitle, { color: txt }]}>Hostel block leaderboard</Text>
-            <Text style={[s.modalSubtitle, { color: txtSec }]}>Hostel blocks compete for points each week</Text>
-
-            {loadingBlock ? (
-              <ActivityIndicator size="large" color={goldColor} style={{ marginVertical: 32 }} />
-            ) : (
-              <ScrollView style={{ width: '100%' }} showsVerticalScrollIndicator={false}>
-                {activeChallenge && (
-                  <View style={[s.challengeCardLayout, { borderColor: border }]}>
-                    <Text style={s.challengeEmoji}>{activeChallenge.emoji || '🏆'}</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[s.challengeTitle, { color: txt }]}>{activeChallenge.title}</Text>
-                      <Text style={[s.challengeDesc, { color: txtSec }]}>{activeChallenge.description}</Text>
-                    </View>
-                  </View>
-                )}
-
-                <Text style={[s.leaderboardTitle, { color: txt }]}>Standings</Text>
-                {blockLeaderboard.length > 0 ? (
-                  blockLeaderboard.map((item, idx) => {
-                    const isUserBlock = user?.hostelBlock === item.block;
-                    return (
-                      <View key={item.block} style={[s.leaderboardRow, { borderColor: border }, isUserBlock && { borderColor: goldColor, backgroundColor: isDark ? 'rgba(201,168,76,0.06)' : 'rgba(239,79,95,0.06)' }]}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                          <Text style={[s.rankText, { color: idx === 0 ? goldColor : idx === 1 ? '#9CA3AF' : idx === 2 ? '#B45309' : txtSec }]}>
-                            #{idx + 1}
-                          </Text>
-                          <View style={{ flex: 1 }}>
-                            <Text style={[s.blockName, { color: txt }]}>
-                              BLOCK {item.block?.toUpperCase()} {isUserBlock && ' (MY BLOCK)'}
-                            </Text>
-                            <Text style={{ fontSize: 12, color: txtSec }}>
-                              {item.participants || 0} ORDERERS • ₹{item.spend || 0} TOTAL VALUE
-                            </Text>
-                          </View>
-                        </View>
-                        <Text style={[s.scoreVal, { color: idx === 0 ? goldColor : txt }]}>
-                          {item.orders || item.score || 0} ORDERS
-                        </Text>
-                      </View>
-                    );
-                  })
-                ) : (
-                  <View style={{ padding: 24, alignItems: 'center' }}>
-                    <Text style={{ color: txtSec, fontSize: 12, fontWeight: '700' }}>No active standings yet this week.</Text>
-                  </View>
-                )}
-              </ScrollView>
-            )}
-
-            <DopaminePressable 
-              style={s.modalCloseBtn} 
-              onPress={() => setShowBlockModal(false)}
-              sound="click"
-            >
-              <Text style={s.modalCloseText}>Close</Text>
-            </DopaminePressable>
-          </View>
-        </View>
-      </Modal>
-
       {/* ── CATEGORY PREFERENCE & FILTER MODAL ── */}
       <Modal visible={showCatPrefModal} animationType="slide" transparent={true} onRequestClose={() => setShowCatPrefModal(false)}>
         <View style={s.modalOverlay}>
@@ -1447,7 +1462,7 @@ export default function HomeScreen() {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 6 }}>
               <Text style={[s.modalTitle, { color: txt, marginBottom: 0 }]}>Filters</Text>
               <TouchableOpacity onPress={() => setShowCatPrefModal(false)} style={{ padding: 4 }} accessibilityRole="button" accessibilityLabel="Close filters">
-                <Text style={{ fontSize: 18, color: txtSec, fontWeight: '800' }}>✕</Text>
+                <Text style={{ fontSize: 18, color: txtSec, fontWeight: '600' }}>✕</Text>
               </TouchableOpacity>
             </View>
             <Text style={[s.modalSubtitle, { color: txtSec, marginBottom: 14 }]}>Diet and cuisine shortcuts</Text>
@@ -1455,7 +1470,7 @@ export default function HomeScreen() {
             <ScrollView style={{ width: '100%', maxHeight: 360 }} showsVerticalScrollIndicator={false}>
               {/* Dietary Fast Switcher */}
               <View style={{ marginBottom: 16, padding: 12, borderRadius: 14, backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC', borderWidth: 1, borderColor: border }}>
-                <Text style={{ fontSize: 12, fontWeight: '800', color: goldColor, letterSpacing: 0.2, marginBottom: 8 }}>Diet</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: goldColor, letterSpacing: 0.2, marginBottom: 8 }}>Diet</Text>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <TouchableOpacity
                     style={{
@@ -1476,7 +1491,7 @@ export default function HomeScreen() {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
                     }}
                   >
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: filter === 'all' && !vegOnly ? (isDark ? '#000' : '#FFF') : txt }}>All restaurants</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: filter === 'all' && !vegOnly ? (isDark ? '#000' : '#FFF') : txt }}>All restaurants</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={{
@@ -1495,13 +1510,13 @@ export default function HomeScreen() {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
                     }}
                   >
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: vegOnly || filter === 'veg' ? '#FFF' : txt }}>Pure veg only</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: vegOnly || filter === 'veg' ? '#FFF' : txt }}>Pure veg only</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               {/* Quick Jump Category Cards */}
-              <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec, letterSpacing: 0.2, marginBottom: 8 }}>Popular cuisines</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: txtSec, letterSpacing: 0.2, marginBottom: 8 }}>Popular cuisines</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
                 {classics.map((c, i) => {
                   const isSelected = classicFilter === c.name;
@@ -1527,7 +1542,7 @@ export default function HomeScreen() {
                         if (!isSelected) scrollToNexusSoon(wasOpen);
                       }}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: '800', color: isSelected ? (isDark ? '#000' : '#FFF') : txt }}>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: isSelected ? (isDark ? '#000' : '#FFF') : txt }}>
                         {c.name}
                       </Text>
                     </TouchableOpacity>
@@ -1572,7 +1587,7 @@ export default function HomeScreen() {
 
 const s = StyleSheet.create({
   campusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 36, paddingHorizontal: 12, borderRadius: 18, borderWidth: 1 },
-  campusPillText: { fontSize: 13, fontWeight: '800' },
+  campusPillText: { fontSize: 13, fontWeight: '600' },
   container: { 
     flex: 1, 
     paddingTop: Platform.OS === 'android' ? 40 : 50,
@@ -1585,32 +1600,32 @@ const s = StyleSheet.create({
   navLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   avatar: { width: 40, height: 40, borderRadius: 14, backgroundColor: COLORS.bgCard, borderWidth: 1.5, borderColor: COLORS.goldBorder, alignItems: 'center', justifyContent: 'center' },
   avatarElite: { borderColor: COLORS.gold, ...SHADOWS.goldGlow },
-  avatarText: { fontSize: 13, fontWeight: '900', color: COLORS.gold },
-  greeting: { fontSize: 12, fontWeight: '800', letterSpacing: 0.3 },
-  userName: { fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
+  avatarText: { fontSize: 13, fontWeight: '700', color: COLORS.gold },
+  greeting: { fontSize: 12, fontWeight: '600', letterSpacing: 0.3 },
+  userName: { fontSize: 18, fontWeight: '700', letterSpacing: -0.5 },
   eliteBadge: { backgroundColor: COLORS.gold, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  eliteBadgeText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.3 },
+  eliteBadgeText: { fontSize: 12, fontWeight: '700', color: '#000', letterSpacing: 0.3 },
   navRight: { flexDirection: 'row', gap: 6, alignItems: 'center' },
   goldNavBadge: { borderRadius: 12, overflow: 'hidden' },
   goldNavBadgeGradient: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 12 },
-  goldNavBadgeText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.8 },
+  goldNavBadgeText: { fontSize: 12, fontWeight: '700', color: '#000', letterSpacing: 0.8 },
   walletNavBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 4.5, borderRadius: 12, borderWidth: 1 },
-  walletNavText: { fontSize: 12, fontWeight: '900' },
+  walletNavText: { fontSize: 12, fontWeight: '700' },
   navBtn: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.goldBorder },
   profileBtn: { borderColor: COLORS.gold, ...SHADOWS.goldGlow },
   badge: { position: 'absolute', top: -4, right: -4, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4, backgroundColor: COLORS.red, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { fontSize: 12, fontWeight: '900', color: '#fff' },
+  badgeText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   // Hero
   heroWrap: { marginHorizontal: 16, borderRadius: RADIUS.hero, overflow: 'hidden', height: 220, marginBottom: 16 },
   heroImg: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
   heroOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.55)' },
   heroContent: { flex: 1, justifyContent: 'center', padding: 24, zIndex: 2 },
-  heroTag: { fontSize: 12, fontWeight: '900', color: COLORS.gold, letterSpacing: 0.3, marginBottom: 8 },
-  heroTitle: { fontSize: 28, fontWeight: '900', color: '#fff', fontStyle: 'italic', lineHeight: 30 },
-  heroSub: { fontSize: 28, fontWeight: '900', color: COLORS.gold, fontStyle: 'italic', lineHeight: 30, marginBottom: 8 },
+  heroTag: { fontSize: 12, fontWeight: '700', color: COLORS.gold, letterSpacing: 0.3, marginBottom: 8 },
+  heroTitle: { fontSize: 28, fontWeight: '700', color: '#fff', fontStyle: 'italic', lineHeight: 30 },
+  heroSub: { fontSize: 28, fontWeight: '700', color: COLORS.gold, fontStyle: 'italic', lineHeight: 30, marginBottom: 8 },
   heroDesc: { fontSize: 12, fontWeight: '700', color: '#aaa', letterSpacing: 0.3, marginBottom: 16, maxWidth: 260 },
   heroCta: { backgroundColor: COLORS.gold, paddingVertical: 14, paddingHorizontal: 28, borderRadius: 30, alignSelf: 'flex-start', ...SHADOWS.goldGlow },
-  heroCtaText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.3 },
+  heroCtaText: { fontSize: 12, fontWeight: '700', color: '#000', letterSpacing: 0.3 },
   heroDots: { position: 'absolute', bottom: 14, left: 24, flexDirection: 'row', gap: 4, zIndex: 3 },
   dot: { width: 6, height: 6, borderRadius: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
   dotActive: { width: 22, backgroundColor: COLORS.gold, borderColor: COLORS.gold },
@@ -1618,41 +1633,48 @@ const s = StyleSheet.create({
   catRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 16 },
   catBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderDark },
   catIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.goldMuted, borderWidth: 1, borderColor: COLORS.goldBorder, alignItems: 'center', justifyContent: 'center' },
-  catLabel: { fontSize: 12, fontWeight: '900', letterSpacing: 0.3 },
+  catLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
   // Search & Veg Mode Bar
   searchBarContainer: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, gap: 8, marginBottom: 16 },
   searchWrap: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 16, borderWidth: 1.5, gap: 8 },
   searchInput: { flex: 1, fontSize: 12, fontWeight: '600', padding: 0 },
   vegToggleWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 10, borderRadius: 14, borderWidth: 1.5 },
-  vegToggleText: { fontSize: 12, fontWeight: '900', letterSpacing: 0.8 },
+  vegToggleText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
   vegSwitchTrack: { width: 32, height: 18, borderRadius: 9, padding: 2, justifyContent: 'center' },
   vegSwitchThumb: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#94A3B8' },
   vegSwitchThumbActive: { transform: [{ translateX: 14 }], backgroundColor: '#FFFFFF' },
   // Classics
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 12 },
-  sectionTitle: { fontSize: 14, fontWeight: '900', letterSpacing: 0.3 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', letterSpacing: 0.3 },
   sectionSub: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3, paddingHorizontal: 16, marginBottom: 12, marginTop: -4 },
   manageBtn: { backgroundColor: COLORS.bgCard, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: COLORS.borderDark },
-  manageBtnText: { fontSize: 12, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 0.3 },
+  manageBtnText: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary, letterSpacing: 0.3 },
   classicItem: { alignItems: 'center', marginRight: 16, width: 70 },
   classicImgWrap: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: COLORS.gold, overflow: 'hidden', marginBottom: 6, ...SHADOWS.goldGlow },
   classicImg: { width: '100%', height: '100%' },
-  classicName: { fontSize: 12, fontWeight: '800', letterSpacing: 0.3, textAlign: 'center' },
+  classicName: { fontSize: 12, fontWeight: '600', letterSpacing: 0.3, textAlign: 'center' },
   // Vault
   vaultCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16, padding: 16, borderRadius: 28, borderWidth: 1, borderColor: COLORS.goldBorder, marginBottom: 24 },
-  vaultLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  vaultLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, marginRight: 12 },
   vaultIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#000', borderWidth: 1, borderColor: COLORS.goldBorder, alignItems: 'center', justifyContent: 'center' },
-  vaultTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 0.3 },
+  vaultTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
   vaultSub: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3, marginTop: 2 },
-  vaultRight: { alignItems: 'flex-end' },
+  vaultRight: { alignItems: 'flex-end', flexShrink: 0 },
   vaultTimerWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.goldMuted, borderWidth: 1, borderColor: COLORS.goldBorder, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   vaultDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.gold },
-  vaultTimer: { fontSize: 12, fontWeight: '900', color: COLORS.gold, fontVariant: ['tabular-nums'] },
-  vaultUntil: { fontSize: 12, fontWeight: '900', letterSpacing: 0.3, marginTop: 4 },
+  vaultTimer: { fontSize: 12, fontWeight: '700', color: COLORS.gold, fontVariant: ['tabular-nums'] },
+  vaultUntil: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3, marginTop: 4 },
   // Filters
-  filterChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1.5, marginRight: 8 },
+  filterChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, borderWidth: 1.5, marginRight: 8 },
   filterActive: { backgroundColor: COLORS.red },
-  filterText: { fontSize: 12, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 0.3 },
+  filterActiveShadow: Platform.select({
+    web: { boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.12), 0px 4px 10px rgba(0, 0, 0, 0.10)' },
+    default: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.16, shadowRadius: 6, elevation: 3 },
+  }) as any,
+  chipFade: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 28 },
+  livePill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1 },
+  livePillText: { fontSize: 12, fontWeight: '600', letterSpacing: 0.2 },
+  filterText: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary, letterSpacing: 0.3 },
   filterTextActive: { color: '#fff' },
   // Grid
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, justifyContent: 'space-between', rowGap: 12 },
@@ -1661,55 +1683,55 @@ const s = StyleSheet.create({
   rImg: { width: '100%', height: '100%' },
   heartBtn: { position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...SHADOWS.card },
   promotedBadge: { position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  promotedText: { fontSize: 12, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
+  promotedText: { fontSize: 12, fontWeight: '700', color: '#fff', letterSpacing: 0.3 },
   timeChip: { position: 'absolute', bottom: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.8)', paddingHorizontal: 7, paddingVertical: 3.5, borderRadius: 6 },
-  timeText: { fontSize: 12, fontWeight: '900', color: '#fff' },
+  timeText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   offerRibbon: { position: 'absolute', bottom: 8, left: 0, backgroundColor: COLORS.blueOffer, paddingHorizontal: 8, paddingVertical: 4, borderTopRightRadius: 6, borderBottomRightRadius: 6 },
-  offerText: { fontSize: 12, fontWeight: '900', color: '#fff' },
+  offerText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   rInfo: { padding: 10 },
   rTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  rName: { fontSize: 13, fontWeight: '900', color: '#111', flex: 1, marginRight: 4 },
+  rName: { fontSize: 13, fontWeight: '700', color: '#111', flex: 1, marginRight: 4 },
   ratingBadge: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: COLORS.greenRating, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6 },
-  ratingText: { fontSize: 12, fontWeight: '900', color: '#fff' },
+  ratingText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   rCuisine: { fontSize: 12, color: '#888', fontWeight: '600' },
   // BlockWars & Modals styles
   blockwarsBanner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16, padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 20 },
   blockwarsIcon: { width: 38, height: 38, borderRadius: 10, backgroundColor: COLORS.goldMuted, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.goldBorder },
-  blockwarsTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 0.3 },
-  blockwarsSub: { fontSize: 12, fontWeight: '800', letterSpacing: 0.3, marginTop: 1 },
+  blockwarsTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
+  blockwarsSub: { fontSize: 12, fontWeight: '600', letterSpacing: 0.3, marginTop: 1 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   modalContentBox: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, height: '80%', alignItems: 'center' },
-  modalTitle: { fontSize: 14, fontWeight: '900', letterSpacing: 0.3, marginBottom: 6 },
-  modalSubtitle: { fontSize: 12, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 0.3, marginBottom: 20, textAlign: 'center' },
+  modalTitle: { fontSize: 14, fontWeight: '700', letterSpacing: 0.3, marginBottom: 6 },
+  modalSubtitle: { fontSize: 12, fontWeight: '600', color: COLORS.textMuted, letterSpacing: 0.3, marginBottom: 20, textAlign: 'center' },
   modalCloseBtn: { width: '100%', paddingVertical: 14, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', marginTop: 16 },
-  modalCloseText: { fontSize: 12, fontWeight: '900', color: COLORS.textSecondary, letterSpacing: 0.3 },
+  modalCloseText: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary, letterSpacing: 0.3 },
 
   vaultItemCard: { flexDirection: 'row', padding: 12, borderRadius: 20, borderWidth: 1, marginBottom: 12 },
   vaultItemImg: { width: 80, height: 80, borderRadius: 12, marginRight: 12 },
   vaultItemInfo: { flex: 1, justifyContent: 'space-between' },
-  vaultItemName: { fontSize: 12, fontWeight: '900' },
+  vaultItemName: { fontSize: 12, fontWeight: '700' },
   vaultItemDesc: { fontSize: 12, fontWeight: '600', marginVertical: 2 },
-  vaultItemStock: { fontSize: 12, fontWeight: '800', marginBottom: 6 },
+  vaultItemStock: { fontSize: 12, fontWeight: '600', marginBottom: 6 },
   vaultItemReqRow: { flexDirection: 'row', marginBottom: 8 },
   reqBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  reqBadgeText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.3 },
+  reqBadgeText: { fontSize: 12, fontWeight: '600', letterSpacing: 0.3 },
   claimBtn: { paddingVertical: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  claimBtnText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.3 },
+  claimBtnText: { fontSize: 12, fontWeight: '700', color: '#000', letterSpacing: 0.3 },
   lockedBtn: { paddingVertical: 8, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center' },
-  lockedBtnText: { fontSize: 12, fontWeight: '800', color: COLORS.textMuted },
+  lockedBtnText: { fontSize: 12, fontWeight: '600', color: COLORS.textMuted },
 
   challengeCardLayout: { flexDirection: 'row', gap: 12, padding: 14, borderRadius: 18, borderWidth: 1, marginBottom: 20, alignItems: 'center' },
   challengeEmoji: { fontSize: 32 },
-  challengeTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 0.3 },
+  challengeTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
   challengeDesc: { fontSize: 12, fontWeight: '600', marginTop: 2, marginBottom: 4 },
-  challengeReward: { fontSize: 12, fontWeight: '900', color: COLORS.gold, letterSpacing: 0.3 },
+  challengeReward: { fontSize: 12, fontWeight: '700', color: COLORS.gold, letterSpacing: 0.3 },
 
-  leaderboardTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 0.3, marginBottom: 10 },
+  leaderboardTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3, marginBottom: 10 },
   leaderboardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderRadius: 16, borderWidth: 1, marginBottom: 8 },
-  rankText: { fontSize: 12, fontWeight: '900', width: 24 },
-  blockName: { fontSize: 12, fontWeight: '900' },
-  scoreVal: { fontSize: 12, fontWeight: '900' },
+  rankText: { fontSize: 12, fontWeight: '700', width: 24 },
+  blockName: { fontSize: 12, fontWeight: '700' },
+  scoreVal: { fontSize: 12, fontWeight: '700' },
 
   // Floating Community FAB
   fabBtnWrap: { position: 'absolute', bottom: 20, right: 20, width: 54, height: 54, zIndex: 999 },
@@ -1764,7 +1786,7 @@ const s = StyleSheet.create({
   },
   premiumCatLabel: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
     textAlign: 'center',
   },
@@ -1780,7 +1802,7 @@ const s = StyleSheet.create({
   },
   emptyFilterTitle: {
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
     marginBottom: 6,
   },
@@ -1801,7 +1823,7 @@ const s = StyleSheet.create({
   },
   resetFilterBtnText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
 
@@ -1833,12 +1855,12 @@ const s = StyleSheet.create({
   },
   floatingCartLabel: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.5,
   },
   floatingCartSub: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   floatingCartCta: {
     flexDirection: 'row',
@@ -1850,7 +1872,7 @@ const s = StyleSheet.create({
   },
   floatingCartCtaText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
 });

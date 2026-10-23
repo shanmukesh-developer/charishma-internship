@@ -2,6 +2,8 @@
 // REQUESTED (driver answers by respondBy) -> ACCEPTED (booking created) | DECLINED | CONFLICT | EXPIRED | CANCELLED.
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Alert } from 'react-native';
+import { PressScale } from '../../../modules/others/motion';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   autoRideApi, AutoRideError, errorCopy, inr, fmtDeparture, mmss, PRIVATE_STATUS_META, PAYMENT_LABEL, type PrivateRequest, type Trip,
@@ -82,8 +84,10 @@ export default function FullAutoRequestStatusScreen() {
     <View style={{ flex: 1, backgroundColor: p.bg }}>
       <AHeader title="Full-auto request" subtitle={trip ? `${trip.pickup?.name || 'Pickup'} → ${trip.destination || ''}` : undefined} right={<Badge label={m.label.toUpperCase()} color={m.color} />} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}>
-        <Card style={{ alignItems: 'center', borderColor: m.color }}>
-          <Text style={{ fontSize: 42 }}>{hero.icon}</Text>
+        <Card style={{ alignItems: 'center' }}>
+          <View style={{ width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: `${m.color}1F` }}>
+            <Ionicons name={req.status === 'ACCEPTED' ? 'checkmark-circle' : req.status === 'REQUESTED' ? 'time-outline' : req.status === 'CONFLICT' ? 'alert-circle-outline' : 'close-circle-outline'} size={34} color={m.color} />
+          </View>
           <Text style={{ fontSize: 17, fontWeight: '900', color: p.text, marginTop: 4, textAlign: 'center' }}>{hero.title}</Text>
           <Text style={{ fontSize: 12.5, color: p.sub, marginTop: 6, textAlign: 'center', lineHeight: 18 }}>{hero.body}</Text>
           {waiting && req.respondBy ? (

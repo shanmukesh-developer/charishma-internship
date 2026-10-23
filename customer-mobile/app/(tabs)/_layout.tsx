@@ -15,7 +15,7 @@ const CartBadge = React.memo(function CartBadge({ isDark }: { isDark: boolean })
   if (!(totalItems > 0)) return null;
   return (
     <View style={[styles.cartBadge, { borderColor: isDark ? '#09090B' : '#FFFFFF' }]}>
-      <Text style={styles.cartBadgeText}>{totalItems > 99 ? '99+' : totalItems}</Text>
+      <Text style={styles.cartBadgeText} maxFontSizeMultiplier={1.3}>{totalItems > 99 ? '99+' : totalItems}</Text>
     </View>
   );
 });
@@ -36,7 +36,7 @@ const TabIcon = React.memo(function TabIcon({ name, focused, iconName, isDark, s
         />
         {showCartBadge && <CartBadge isDark={isDark} />}
       </View>
-      <Text style={[styles.tabLabel, { color: focused ? COLORS.red : labelColor, fontWeight: focused ? '900' : '700' }]}>
+      <Text style={[styles.tabLabel, { color: focused ? COLORS.red : labelColor, fontWeight: focused ? '900' : '700' }]} maxFontSizeMultiplier={1.3}>
         {name}
       </Text>
     </View>
@@ -63,14 +63,15 @@ export default function TabLayout() {
     tabBarStyle: {
       backgroundColor: isDark ? '#09090B' : '#FFFFFF',
       borderTopWidth: 1,
-      borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+      // Light mode: the bar lifts off the page with a soft shadow, no top outline
+      borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'transparent',
       height: Platform.OS === 'ios' ? 88 : 60 + insets.bottom,
       paddingTop: 8,
       paddingBottom: Platform.OS === 'ios' ? 24 : insets.bottom > 0 ? insets.bottom : 8,
       elevation: 20,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: -4 },
-      shadowOpacity: isDark ? 0.35 : 0.06,
+      shadowOpacity: isDark ? 0.35 : 0.08,
       shadowRadius: 12,
     },
   }), [isDark, insets.bottom]);

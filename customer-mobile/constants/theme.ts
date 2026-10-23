@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 // ── Zenvy Design System ──────────────────────────────────────────────────────
 // High-performance, luxury campus dining & services design tokens.
 
@@ -6,7 +8,7 @@ export const COLORS = {
   bgDark: '#09090B',
   bgCard: '#18181B',
   bgCardHover: '#27272A',
-  bgLight: '#F8F9FA',
+  bgLight: '#F4F5F7',
   bgLightCard: '#FFFFFF',
 
   // Primary Accents
@@ -32,7 +34,7 @@ export const COLORS = {
 
   // Borders
   borderDark: 'rgba(255, 255, 255, 0.08)',
-  borderLight: 'rgba(0, 0, 0, 0.08)',
+  borderLight: 'rgba(0, 0, 0, 0.06)',
   borderGold: 'rgba(212, 175, 122, 0.3)',
 
   // Overlays
@@ -53,11 +55,12 @@ export const COLORS = {
 } as const;
 
 export const LIGHT_THEME = {
-  bg: '#F8F9FA',
+  // A touch off-white so white cards (with LIGHT_SURFACE below) separate from the page.
+  bg: '#F4F5F7',
   bgSubtle: '#F1F3F5',
   card: '#FFFFFF',
   cardSecondary: '#F8F9FB',
-  cardBorder: 'rgba(0, 0, 0, 0.07)',
+  cardBorder: 'rgba(0, 0, 0, 0.05)',
   cardHover: '#F1F3F9',
   text: '#0F172A',
   textSecondary: '#475569',
@@ -104,6 +107,29 @@ export const DARK_THEME = {
   isDark: true,
 };
 
+/**
+ * Light mode only: cards, tiles, pills and bars separate from the off-white page with a realistic,
+ * layered shadow (a tight contact shadow plus a soft ambient one), not with outlines. `surfaceLift`
+ * also makes the light-mode border transparent (the width stays, so nothing moves). Dark mode keeps
+ * its own look: both helpers return nothing there.
+ */
+export const LIGHT_SURFACE: any = Platform.select({
+  web: { boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.06), 0px 6px 16px rgba(0, 0, 0, 0.08)' },
+  default: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3 },
+});
+/** Same recipe, a step smaller, for chips and small pills. */
+export const LIGHT_SURFACE_SM: any = Platform.select({
+  web: { boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.06), 0px 3px 10px rgba(0, 0, 0, 0.07)' },
+  default: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 2 },
+});
+/** Light-mode card edge: none (the shadow does the job). */
+export const LIGHT_HAIRLINE = 'transparent';
+/** Shadow plus a transparent border, light mode only. */
+export const surfaceLift = (isDark: boolean, small = false): any =>
+  (isDark ? null : { ...(small ? LIGHT_SURFACE_SM : LIGHT_SURFACE), borderColor: 'transparent' });
+/** Shadow only (keeps the element's own accent border, e.g. a ring or an active state). */
+export const surfaceShadow = (isDark: boolean, small = false): any => (isDark ? null : small ? LIGHT_SURFACE_SM : LIGHT_SURFACE);
+
 export const getThemeColors = (isDark: boolean) => (isDark ? DARK_THEME : LIGHT_THEME);
 
 export const SPACING = {
@@ -136,6 +162,26 @@ export const FONTS = {
   extrabold: '800' as const,
   black: '900' as const,
 };
+
+/**
+ * Typography scale (22 Oct): lighter, more refined weights. Same system font and colours.
+ * title 700 · heading 600 · label 600 · body 400/500 · button 600 · price 700.
+ * Rule for older styles: weight 900 reads as 700 and 800 as 600 (TYPE_WEIGHT below).
+ */
+export const TYPE = {
+  title: { fontSize: 20, fontWeight: '700' as const, letterSpacing: 0.1 },
+  heading: { fontSize: 15, fontWeight: '600' as const, letterSpacing: 0.1 },
+  label: { fontSize: 13, fontWeight: '600' as const, letterSpacing: 0.2 },
+  body: { fontSize: 13, fontWeight: '400' as const },
+  bodyMedium: { fontSize: 13, fontWeight: '500' as const },
+  caption: { fontSize: 12, fontWeight: '400' as const },
+  chip: { fontSize: 12, fontWeight: '500' as const },
+  button: { fontSize: 14, fontWeight: '600' as const, letterSpacing: 0.2 },
+  price: { fontSize: 15, fontWeight: '700' as const },
+} as const;
+export const TYPE_WEIGHT = { black: '700' as const, extrabold: '600' as const };
+/** Buttons: about 44 high, radius close to the cards'. */
+export const BUTTON = { height: 44, radius: 14, paddingHorizontal: 16 } as const;
 
 export const SHADOWS = {
   card: {

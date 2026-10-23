@@ -2,13 +2,15 @@
 // (only when the server returns it), pickup instructions, cancel (refund info from the server) and report a problem.
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Alert, Linking, Modal, TouchableOpacity } from 'react-native';
+import { PressScale } from '../../../modules/others/motion';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { KeyboardAvoidingView } from '../../../components/KeyboardAvoidingView';
 import {
   autoRideApi, AutoRideError, errorCopy, inr, fmtDeparture, fmtClock, fromNow, mmss, queueLabel, BOOKING_STATUS_META, PAYMENT_LABEL,
   PAYMENT_STATUS_LABEL, TIMELINE, EXCEPTION_STATUSES, INCIDENT_CATEGORIES, type Booking,
 } from '../../../modules/autoRide/autoRideApi';
-import { AHeader, usePalette, Card, Btn, Badge, StateView, Notice, Row, Field, Chips, StatusChip, VerifiedBadge, useAutoRideLive, useAutoRideStatus, useNow, AUTO_HOME } from '../../../modules/autoRide/ui';
+import { AHeader, usePalette, Card, Btn, Badge, StateView, Notice, Row, Field, Chips, StatusChip, VerifiedBadge, useAutoRideLive, useAutoRideStatus, useNow, AUTO_HOME, AutoTile } from '../../../modules/autoRide/ui';
 
 export default function AutoBookingScreen() {
   const params = useLocalSearchParams<{ id: string | string[] }>();
@@ -124,7 +126,7 @@ export default function AutoBookingScreen() {
         ) : null}
 
         {(b.status === 'CONFIRMED' || b.status === 'BOARDED') ? (
-          <Card style={{ alignItems: 'center', borderColor: p.accent, backgroundColor: p.accentSoft }}>
+          <Card style={{ alignItems: 'center' }}>
             <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 1 }}>BOOKING CODE</Text>
             <Text selectable style={{ fontSize: 28, fontWeight: '900', color: p.text, letterSpacing: 4, marginTop: 2 }}>{b.bookingCode}</Text>
             {b.boardingPin ? (
@@ -146,7 +148,8 @@ export default function AutoBookingScreen() {
         {t ? (
           <Card>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <Text style={{ fontSize: 12, fontWeight: '900', color: p.text }}>🛺 {queueLabel(t.queueNumber)}</Text>
+              <AutoTile size={40} />
+              <Text style={{ fontSize: 15, fontWeight: '800', color: p.text }}>{b.type === 'PRIVATE' ? 'Full auto' : 'Shared auto'} · {queueLabel(t.queueNumber)}</Text>
               <View style={{ flex: 1 }} />
               <StatusChip trip={t} />
             </View>
@@ -171,10 +174,10 @@ export default function AutoBookingScreen() {
               return (
                 <View key={x.key} style={{ flexDirection: 'row', gap: 10, minHeight: 34 }} accessibilityLabel={`${x.label}${current ? ', current' : doneStep ? ', done' : ''}`}>
                   <View style={{ alignItems: 'center', width: 18 }}>
-                    <View style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: doneStep || current ? p.success : p.border, backgroundColor: doneStep ? p.success : current ? p.successSoft : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-                      {doneStep ? <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>✓</Text> : null}
+                    <View style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: doneStep || current ? p.button : p.border, backgroundColor: doneStep ? p.button : current ? p.accentSoft : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+                      {doneStep ? <Ionicons name="checkmark" size={11} color="#FFFFFF" /> : null}
                     </View>
-                    {i < TIMELINE.length - 1 ? <View style={{ width: 2, flex: 1, backgroundColor: doneStep ? p.success : p.border }} /> : null}
+                    {i < TIMELINE.length - 1 ? <View style={{ width: 2, flex: 1, backgroundColor: doneStep ? p.button : p.border }} /> : null}
                   </View>
                   <View style={{ flex: 1, paddingBottom: 8 }}>
                     <Text style={{ fontSize: 13, fontWeight: current ? '900' : '700', color: doneStep || current ? p.text : p.muted }}>{x.label}</Text>
@@ -197,7 +200,7 @@ export default function AutoBookingScreen() {
             </>
           ) : b.type === 'PRIVATE' ? <Row label="Full auto fare" value={inr(b.fareBreakdown.fare ?? b.amount)} /> : null}
           <Row label="Total" value={inr(b.amount)} strong />
-          <Row label="Payment" value={b.paymentMethod ? PAYMENT_LABEL[b.paymentMethod] : '—'} />
+          <Row label="Payment" value={b.paymentMethod === 'CASH' ? 'Cash to the driver at boarding' : b.paymentMethod ? PAYMENT_LABEL[b.paymentMethod] : '—'} />
           {b.paymentStatus ? <Row label="Payment status" value={PAYMENT_STATUS_LABEL[b.paymentStatus] || b.paymentStatus} /> : null}
           {b.refundAmount > 0 ? <Row label="Refund" value={`${inr(b.refundAmount)}${b.refundedAt ? ' · done' : ' · pending'}`} /> : null}
           {b.cancelledAt ? <Row label="Cancelled" value={`${b.cancelledBy ? `by ${b.cancelledBy}` : ''}${b.cancelReason ? ` · ${b.cancelReason}` : ''}`} /> : null}
@@ -220,9 +223,9 @@ export default function AutoBookingScreen() {
           <View style={{ backgroundColor: p.card, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 16, paddingBottom: 28 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
               <Text style={{ flex: 1, fontSize: 16, fontWeight: '900', color: p.text }}>Report a problem</Text>
-              <TouchableOpacity onPress={() => setReport(false)} accessibilityRole="button" accessibilityLabel="Close" hitSlop={10}><Text style={{ fontSize: 20, color: p.sub }}>✕</Text></TouchableOpacity>
+              <PressScale onPress={() => setReport(false)} accessibilityRole="button" accessibilityLabel="Close" hitSlop={10}><Ionicons name="close" size={22} color={p.sub} /></PressScale>
             </View>
-            <Chips value={category} onChange={(v: string) => setCategory(v)} options={INCIDENT_CATEGORIES.map((c) => ({ key: c.key, label: `${c.icon} ${c.label}` }))} />
+            <Chips value={category} onChange={(v: string) => setCategory(v)} options={INCIDENT_CATEGORIES.map((c) => ({ key: c.key, label: c.label }))} />
             <View style={{ height: 12 }} />
             <Field label="What happened?" value={desc} onChangeText={(x) => setDesc(x.slice(0, 2000))} multiline placeholder="Tell the Zenvy team what happened" />
             {category === 'SAFETY' || category === 'HARASSMENT' ? <Notice tone="danger">If you are in danger, call 112 now.</Notice> : null}

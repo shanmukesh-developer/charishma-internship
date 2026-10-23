@@ -1,17 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, PanResponder } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, SHADOWS } from '../constants/theme';
+import { COLORS } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
+import { useReduceMotion } from '../utils/reduceMotion';
 import SafeImage from './SafeImage';
-import DopaminePressable, { ActionPressable } from './DopaminePressable';
+import { ActionPressable } from './DopaminePressable';
 
 export interface PromoOffer {
   id: string;
   imageUrl: string;
+  /** Small label above the title (sentence case, shown as written). */
   tagline: string;
   title1: string;
-  title2: string;
+  /** Optional second title line; most slides leave it empty. */
+  title2?: string;
   description: string;
   buttonText: string;
   redirectAction?: () => void;
@@ -20,72 +23,72 @@ export interface PromoOffer {
 interface PromoCarouselProps {
   offers: PromoOffer[];
   containerStyle?: any;
+  /** Section accent for the button (Others sections); the app accent when omitted. */
+  accent?: string;
 }
 
-export default function PromoCarousel({ offers, containerStyle }: PromoCarouselProps) {
+const AUTO_ADVANCE_MS = 5000;
+
+/**
+ * Others-tab hero card: a full photo under a dark gradient scrim, so white text reads on any image in
+ * both themes. Text is shown as written (sentence case): small label, 21/700 title, 13/400 line and a
+ * compact button. Swipe, dots and the 5 s auto-advance stay; with the OS "reduce motion" setting on,
+ * slides switch without the crossfade and never advance on their own.
+ */
+export default function PromoCarousel({ offers, containerStyle, accent: sectionAccent }: PromoCarouselProps) {
   const { isDark } = useTheme();
+  const reduceMotion = useReduceMotion();
   const [currentIndex, setCurrentIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
-  const timerRef = useRef<any>(null);
   const currentIndexRef = useRef(0);
+  const reduceMotionRef = useRef(reduceMotion);
+  const offersRef = useRef(offers);
+  offersRef.current = offers;
+  reduceMotionRef.current = reduceMotion;
 
   useEffect(() => {
     currentIndexRef.current = currentIndex;
   }, [currentIndex]);
 
+  // A shorter list (tab switch) must not leave the index past the end.
+  useEffect(() => {
+    if (currentIndex >= (offers?.length || 0)) setCurrentIndex(0);
+  }, [offers?.length]);
+
   const goToSlide = (nextIndex: number) => {
-    if (nextIndex === currentIndexRef.current || !offers || offers.length === 0) return;
-    
-    // Pure crossfade — no translate so content never bleeds outside borders
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
+    const list = offersRef.current;
+    if (nextIndex === currentIndexRef.current || !list || list.length === 0) return;
+    if (reduceMotionRef.current) {
       setCurrentIndex(nextIndex);
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
+      return;
+    }
+    // Pure crossfade: no translate, so content never bleeds outside the card.
+    Animated.timing(fadeAnim, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => {
+      setCurrentIndex(nextIndex);
+      Animated.timing(fadeAnim, { toValue: 1, duration: 240, useNativeDriver: true }).start();
     });
   };
 
-  const nextSlide = () => {
-    if (!offers || offers.length <= 1) return;
-    goToSlide((currentIndexRef.current + 1) % offers.length);
+  const step = (dir: 1 | -1) => {
+    const n = offersRef.current?.length || 0;
+    if (n <= 1) return;
+    goToSlide((currentIndexRef.current + dir + n) % n);
   };
 
-  const prevSlide = () => {
-    if (!offers || offers.length <= 1) return;
-    goToSlide((currentIndexRef.current - 1 + offers.length) % offers.length);
-  };
-
-  // Auto-scroll loop (5 seconds)
+  // Auto-advance (off while reduce motion is on). Restarts after a manual change so a swipe is never
+  // followed by an instant jump.
   useEffect(() => {
-    if (!offers || offers.length <= 1) return;
+    if (!offers || offers.length <= 1 || reduceMotion) return;
+    const t = setTimeout(() => step(1), AUTO_ADVANCE_MS);
+    return () => clearTimeout(t);
+  }, [offers?.length, reduceMotion, currentIndex]);
 
-    timerRef.current = setInterval(() => {
-      nextSlide();
-    }, 5000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [offers?.length]);
-
-  // Swipe gesture recognizer
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dx) > 15 && Math.abs(gestureState.dy) < 20;
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx < -30) {
-          nextSlide();
-        } else if (gestureState.dx > 30) {
-          prevSlide();
-        }
+      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 15 && Math.abs(g.dy) < 20,
+      onPanResponderRelease: (_, g) => {
+        if (g.dx < -30) step(1);
+        else if (g.dx > 30) step(-1);
       },
     })
   ).current;
@@ -93,69 +96,75 @@ export default function PromoCarousel({ offers, containerStyle }: PromoCarouselP
   if (!offers || offers.length === 0) return null;
   const currentOffer = offers[currentIndex] || offers[0];
 
-  const accent = isDark ? COLORS.gold : COLORS.red;
-  const title1Color = isDark ? '#FFF' : '#111827';
-  const descColor = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.65)';
-  const ctaBtnGradientColors: [string, string, ...string[]] = isDark 
-    ? ['#D4AF37', '#F5DEB3', '#C9962C'] 
-    : ['#EF4F5F', '#FF7E8B', '#E03546'];
-  const ctaTextColor = isDark ? '#000' : '#FFF';
-  const border = isDark ? 'rgba(212, 175, 122, 0.4)' : COLORS.borderLight;
+  const accent = sectionAccent || (isDark ? COLORS.gold : COLORS.red);
+  const ctaText = sectionAccent ? '#FFFFFF' : isDark ? '#0A0A0B' : '#FFFFFF';
+  const labelColor = sectionAccent ? 'rgba(255,255,255,0.9)' : isDark ? COLORS.goldLight : 'rgba(255,255,255,0.9)';
 
   return (
-    <View 
+    <View
       {...panResponder.panHandlers}
-      style={[s.container, { borderColor: border, borderWidth: isDark ? 1.5 : 1, backgroundColor: isDark ? '#0A0A0B' : '#FFF' }, containerStyle]}
+      style={[s.container, { backgroundColor: isDark ? '#111113' : '#1F2937' }, containerStyle]}
+      accessibilityRole="adjustable"
+      accessibilityLabel={`${currentOffer.title1}. Slide ${currentIndex + 1} of ${offers.length}`}
+      accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+      onAccessibilityAction={(e) => step(e.nativeEvent.actionName === 'decrement' ? -1 : 1)}
     >
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim, overflow: 'hidden', borderRadius: 24 }]}>
-        {/* Background Image */}
-        <View style={StyleSheet.absoluteFill}>
-          <SafeImage source={{ uri: currentOffer.imageUrl }} style={s.bgImage} maxWidth={800} />
-          <LinearGradient 
-            colors={isDark 
-              ? ['rgba(10, 10, 11, 0.95)', 'rgba(10, 10, 11, 0.75)', 'rgba(10, 10, 11, 0.25)'] 
-              : ['rgba(255, 255, 255, 0.98)', 'rgba(255, 255, 255, 0.85)', 'rgba(255, 255, 255, 0.35)']} 
-            start={{ x: 0, y: 0 }} 
-            end={{ x: 1, y: 0 }} 
-            style={StyleSheet.absoluteFill} 
-          />
-        </View>
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}>
+        {/* Every slide's photo stays mounted (only the current one shows), so a slide change never
+            fades in on an empty card while its photo downloads. */}
+        {offers.map((o, idx) => (
+          <View key={o.id || idx} style={[StyleSheet.absoluteFill, { opacity: idx === currentIndex ? 1 : 0 }]} pointerEvents="none">
+            <SafeImage source={{ uri: o.imageUrl }} style={s.bgImage} maxWidth={800} />
+          </View>
+        ))}
+        {/* Scrim: strong at the bottom-left where the text sits, clear at the top-right. */}
+        <LinearGradient
+          colors={['rgba(0,0,0,0.08)', 'rgba(0,0,0,0.38)', 'rgba(0,0,0,0.8)']}
+          locations={[0, 0.4, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <LinearGradient
+          colors={['rgba(0,0,0,0.42)', 'rgba(0,0,0,0)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.75, y: 0 }}
+          style={StyleSheet.absoluteFill}
+        />
 
-        {/* Content wrapper */}
         <View style={s.content}>
-          <Text style={[s.tagline, { color: accent }]}>{currentOffer.tagline?.toUpperCase()}</Text>
-          <Text style={[s.title1, { color: title1Color }]}>{currentOffer.title1?.toUpperCase()}</Text>
-          <Text style={[s.title2, { color: accent }]}>{currentOffer.title2?.toUpperCase()}</Text>
-          <Text style={[s.desc, { color: descColor }]}>{currentOffer.description?.toUpperCase()}</Text>
+          {!!currentOffer.tagline && (
+            <Text style={[s.label, { color: labelColor }]} numberOfLines={1}>{currentOffer.tagline}</Text>
+          )}
+          <Text style={s.title} numberOfLines={2}>
+            {currentOffer.title1}{currentOffer.title2 ? ` ${currentOffer.title2}` : ''}
+          </Text>
+          {!!currentOffer.description && (
+            <Text style={s.desc} numberOfLines={2}>{currentOffer.description}</Text>
+          )}
 
-          <ActionPressable 
-            style={[s.ctaBtnWrapper, !isDark && { shadowColor: COLORS.red }]} 
+          <ActionPressable
+            style={[s.cta, { backgroundColor: accent }]}
             onPress={() => currentOffer.redirectAction && currentOffer.redirectAction()}
             sound="click"
+            accessibilityRole="button"
+            accessibilityLabel={`${currentOffer.buttonText}: ${currentOffer.title1}`}
           >
-            <LinearGradient
-              colors={ctaBtnGradientColors}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={s.ctaBtnGradient}
-            >
-              <Text style={[s.ctaText, { color: ctaTextColor }]}>{currentOffer.buttonText?.toUpperCase()} →</Text>
-            </LinearGradient>
+            <Text style={[s.ctaText, { color: ctaText }]}>{currentOffer.buttonText}</Text>
           </ActionPressable>
         </View>
       </Animated.View>
 
-      {/* Elongated pill indicators */}
       {offers.length > 1 && (
-        <View style={s.dotsContainer}>
-          {offers.map((_, idx) => (
-            <TouchableOpacity 
-              key={idx} 
+        <View style={s.dotsContainer} pointerEvents="box-none">
+          {offers.map((o, idx) => (
+            <TouchableOpacity
+              key={o.id || idx}
               onPress={() => goToSlide(idx)}
-              style={[
-                s.dot, 
-                idx === currentIndex ? [s.dotActive, { backgroundColor: accent }] : null
-              ]} 
+              hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
+              accessibilityRole="button"
+              accessibilityLabel={`Show slide ${idx + 1} of ${offers.length}`}
+              style={[s.dot, idx === currentIndex && [s.dotActive, { backgroundColor: '#FFFFFF' }]]}
             />
           ))}
         </View>
@@ -167,12 +176,10 @@ export default function PromoCarousel({ offers, containerStyle }: PromoCarouselP
 const s = StyleSheet.create({
   container: {
     marginHorizontal: 16,
-    borderRadius: 24,
-    borderWidth: 1,
-    height: 220,
+    borderRadius: 20,
+    height: 196,
     overflow: 'hidden',
     position: 'relative',
-    ...SHADOWS.card,
   },
   bgImage: {
     width: '100%',
@@ -181,71 +188,61 @@ const s = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    zIndex: 10,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+    paddingRight: 72,
   },
-  tagline: {
+  label: {
     fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 4,
-    marginBottom: 6,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    marginBottom: 4,
   },
-  title1: {
-    fontSize: 22,
-    fontWeight: '900',
-    lineHeight: 24,
-  },
-  title2: {
-    fontSize: 22,
-    fontWeight: '900',
-    lineHeight: 24,
-    marginBottom: 6,
+  title: {
+    fontSize: 21,
+    fontWeight: '700',
+    lineHeight: 26,
+    color: '#FFFFFF',
+    letterSpacing: 0.1,
   },
   desc: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 2,
-    marginBottom: 16,
-    maxWidth: 240,
-    lineHeight: 12,
+    fontSize: 13,
+    fontWeight: '400',
+    lineHeight: 18,
+    color: 'rgba(255,255,255,0.86)',
+    marginTop: 4,
+    maxWidth: 280,
   },
-  ctaBtnWrapper: {
+  cta: {
     alignSelf: 'flex-start',
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  ctaBtnGradient: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    height: 32,
+    paddingHorizontal: 16,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 12,
   },
   ctaText: {
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 2,
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   dotsContainer: {
     position: 'absolute',
-    bottom: 16,
-    left: 24,
+    bottom: 22,
+    right: 18,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    zIndex: 20,
+    gap: 5,
   },
   dot: {
-    width: 8,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
   },
   dotActive: {
-    width: 28,
+    width: 18,
   },
 });

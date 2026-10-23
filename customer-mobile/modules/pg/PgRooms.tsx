@@ -46,15 +46,15 @@ export function RoomsSection({ pg, selectedKey, onSelect, onOpenPhotos, roomType
             accessibilityRole="button"
             accessibilityState={{ selected: on, disabled: full }}
             accessibilityLabel={`${roomTitle(t)}. ${roomFacts(t)}. ${rentText(t)} a month. ${full ? 'Full' : `${plural(t.availableBeds, 'bed')} available`}`}
-            style={[st.card, { backgroundColor: p.card, borderColor: on ? p.text : p.line, borderWidth: on ? 1.5 : StyleSheet.hairlineWidth }, full && { opacity: 0.6 }]}
+            style={[st.card, { backgroundColor: on ? p.accentSoft : p.card, borderColor: on ? p.accentFill : 'transparent', borderWidth: 1.5 }, !on && p.shadow, full && { opacity: 0.6 }]}
           >
             <View style={st.top}>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={[st.title, { color: p.text }]} numberOfLines={1}>{roomTitle(t)}</Text>
                 <Text style={[ui.small, { color: p.sub, marginTop: 4 }]} numberOfLines={2}>{roomFacts(t)}</Text>
               </View>
-              <View style={[st.radio, { borderColor: on ? p.text : p.line, backgroundColor: on ? p.text : 'transparent' }]}>
-                {on ? <IconCheck size={14} color={p.bg} strokeWidth={2.5} /> : null}
+              <View style={[st.radio, { borderColor: on ? p.accentFill : p.line, backgroundColor: on ? p.accentFill : 'transparent' }]}>
+                {on ? <IconCheck size={14} color="#fff" strokeWidth={2.5} /> : null}
               </View>
             </View>
             {photos.length ? (
@@ -135,7 +135,7 @@ function CompareRooms({ types, pgDeposit, selectedKey, onClose, onChoose }: {
               {types.map((t) => {
                 const on = selectedKey === t.key;
                 return (
-                  <View key={t.key} style={{ width: COL_W, backgroundColor: on ? p.sunken : 'transparent' }} accessible accessibilityLabel={`${roomTitle(t)}: ${rows.map((r) => `${r.label} ${r.value(t)}`).join(', ')}`}>
+                  <View key={t.key} style={{ width: COL_W, backgroundColor: on ? p.accentSoft : 'transparent' }} accessible accessibilityLabel={`${roomTitle(t)}: ${rows.map((r) => `${r.label} ${r.value(t)}`).join(', ')}`}>
                     <View style={[st.headCell, { height: 72 }]}>
                       <Text style={[ui.body, { color: p.text, fontWeight: '600' }]} numberOfLines={2}>{roomTitle(t)}</Text>
                     </View>
@@ -150,8 +150,8 @@ function CompareRooms({ types, pgDeposit, selectedKey, onClose, onChoose }: {
                     <Divider />
                     <View style={[st.cell, { height: 68 }]}>
                       {t.bookRoomId ? (
-                        <Press onPress={() => onChoose(t.key)} accessibilityState={{ selected: on }} accessibilityLabel={`Choose ${roomTitle(t)}`} style={[st.choose, { borderColor: on ? p.text : p.line, backgroundColor: on ? p.text : 'transparent' }]}>
-                          <Text style={[ui.small, { color: on ? p.bg : p.text, fontWeight: '600' }]}>{on ? 'Selected' : 'Choose'}</Text>
+                        <Press onPress={() => onChoose(t.key)} accessibilityState={{ selected: on }} accessibilityLabel={`Choose ${roomTitle(t)}`} style={[st.choose, { borderColor: on ? p.accentFill : p.line, backgroundColor: on ? p.accentFill : 'transparent' }]}>
+                          <Text style={[ui.small, { color: on ? '#fff' : p.text, fontWeight: '600' }]}>{on ? 'Selected' : 'Choose'}</Text>
                         </Press>
                       ) : null}
                     </View>
@@ -168,7 +168,7 @@ function CompareRooms({ types, pgDeposit, selectedKey, onClose, onChoose }: {
 }
 
 const st = StyleSheet.create({
-  card: { borderRadius: 12, padding: 16, marginBottom: 12 },
+  card: { borderRadius: 16, padding: 16, marginBottom: 12 },
   top: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   title: { fontSize: TYPE.heading, fontWeight: '600' },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginTop: 2 },

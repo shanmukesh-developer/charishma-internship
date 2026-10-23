@@ -1,13 +1,16 @@
 /**
- * PG detail. Top to bottom: photos (with category quick-jump), name and key place facts, a sticky
- * section bar (Overview · Rooms · Mess · Rules · Policies · Safety · Location · FAQ · Reviews, only the
- * sections this PG has; it follows the scroll and jumps on tap), then the sections themselves.
- * A bar at the bottom keeps the rent and two actions in reach: Enquire (WhatsApp the Zenvy housing desk;
- * no personal numbers are shown) and Request a bed (POST /api/pg/:roomId/book; nothing is charged in
- * the app). Data: GET /api/pg/:id (backend/utils/pgContent.publicPg); live-synced on 'pg' events.
+ * PG detail (clean white cards, blue accent). Top to bottom: photos (swipe, counter, category quick-jump),
+ * a header card (name, "Verified" only when the PG is verified, rating from real reviews, distance,
+ * "View on map", rent with "(incl. food)" when food is in the rent, share), room types as picture cards
+ * (tap to choose the one to book), an amenities icon row, then the sticky section bar (Overview · Rooms ·
+ * Mess · Rules · Policies · Safety · Location · FAQ · Reviews, only the sections this PG has) and the
+ * sections. The bottom bar: Enquire (WhatsApp the Zenvy housing desk; no personal numbers are shown) and
+ * Book now, which opens the booking summary: room type, move-in date, stay terms, price breakdown, how
+ * payment works (at the PG; nothing is charged in the app), next steps and "Send booking request"
+ * (POST /api/pg/:roomId/book; the housing team confirms it). Data: GET /api/pg/:id, live-synced on 'pg'.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Linking, Alert, Modal, ActivityIndicator, useWindowDimensions, Platform, Animated, Share, type LayoutChangeEvent } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Linking, Alert, Modal, ActivityIndicator, useWindowDimensions, Animated, Share, Platform, type LayoutChangeEvent } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -16,27 +19,29 @@ import { apiFetch, readJson } from '../../utils/auth';
 import { useLiveSync } from '../../utils/useLiveSync';
 import { useAuth } from '../../context/AuthContext';
 import {
-  distanceLabel, genderLabel, inr, mapsUrl, pgLink, plural, ratingText, sectionsOf,
-  type MyPgBooking, type PgDetail, type PgPhoto, type PgReviewEligibility, type SectionKey,
+  distanceLabel, genderLabel, inr, mapsUrl, months, pgLink, plural, ratingText, sectionsOf,
+  type MyPgBooking, type PgDetail, type PgPhoto, type PgReviewEligibility, type PgRoomType, type SectionKey,
 } from '../../modules/pg/pgApi';
 import {
-  usePgPalette, PgHeader, Press, Divider, Skeleton, StateMessage, PG_HOME, TYPE,
-  IconBadgeCheck, IconMessage, IconAlert, IconShare, IconStar, IconMapPin, ICON, s as ui,
+  usePgPalette, PgHeader, Press, Divider, Skeleton, StateMessage, PgImage, PG_HOME, TYPE, amenityIcon, amenityLabel,
+  IconMessage, IconAlert, IconShare, IconStar, IconMapPin, IconArrowLeft, IconCheck, IconBed, IconCalendarDays, IconWallet,
+  IconClipboard, ICON, s as ui,
 } from '../../modules/pg/ui';
 import { PgHero, PgPhotoSection, PhotoViewer } from '../../modules/pg/PgGallery';
 import { PgVideoSection } from '../../modules/pg/PgVideos';
 import { PgMessSection } from '../../modules/pg/PgMess';
 import { PgSectionNav, SECTION_NAV_H } from '../../modules/pg/PgSectionNav';
-import { RoomsSection, roomTitle } from '../../modules/pg/PgRooms';
+import { RoomsSection, roomTitle, roomFacts, rentText } from '../../modules/pg/PgRooms';
 import { KeyFacts, Highlights, About, Amenities, RulesSection, PoliciesSection, SafetySection, LocationSection, FaqSection } from '../../modules/pg/PgSections';
 import { ReviewsSection } from '../../modules/pg/PgReviews';
+import { VerifiedTag } from '../../modules/pg/PgListCard';
 import { formatISTDate } from '../../utils/format';
 
 /** Local (device-time) YYYY-MM-DD, so the default is never "yesterday" before 5:30 AM IST. */
 function toLocalYmd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
-/** Next 30 days, starting today, for the check-in date picker. */
+/** Next 30 days, starting today, for the move-in date picker. */
 function buildCheckInOptions(): { ymd: string; top: string; bottom: string }[] {
   const out: { ymd: string; top: string; bottom: string }[] = [];
   const base = new Date();
@@ -55,12 +60,14 @@ function buildCheckInOptions(): { ymd: string; top: string; bottom: string }[] {
 function prettyDate(ymd: string): string {
   const [y, m, d] = ymd.split('-').map(Number);
   if (!y || !m || !d) return ymd;
-  return new Date(y, m - 1, d, 12).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+  return new Date(y, m - 1, d, 12).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 }
 const deskUrl = (text: string) => `https://wa.me/${ZENVY_SUPPORT_WHATSAPP.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`;
+const METHOD_LABEL: Record<string, string> = { cash: 'cash', upi: 'UPI', bank: 'bank transfer' };
+const listText = (items: string[]) => (items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} or ${items[items.length - 1]}`);
 
 export default function PGDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, pgSummary } = useLocalSearchParams<{ id: string; pgSummary?: string }>();
   const pgId = (Array.isArray(id) ? id[0] : id || '').trim();
   const router = useRouter();
   const p = usePgPalette();
@@ -87,7 +94,7 @@ export default function PGDetailScreen() {
   const [cancelling, setCancelling] = useState(false);
   const [viewer, setViewer] = useState<{ list: PgPhoto[]; index: number } | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const [checkInOptions] = useState(buildCheckInOptions);
   const [checkInDate, setCheckInDate] = useState(() => toLocalYmd(new Date()));
   const [sending, setSending] = useState(false);
@@ -184,18 +191,27 @@ export default function PGDetailScreen() {
     const cover = list.find((x) => x.isCover);
     return cover ? [cover, ...list.filter((x) => x !== cover)] : list;
   }, [pg?.photos]);
+  const photosByType = useMemo(() => {
+    const m: Record<string, PgPhoto[]> = {};
+    (pg?.photos || []).forEach((ph) => { if (ph.roomType) (m[ph.roomType] = m[ph.roomType] || []).push(ph); });
+    return m;
+  }, [pg?.photos]);
 
   const promptLogin = (why = 'Sign in to send a booking request.') => Alert.alert('Sign in to continue', why, [
     { text: 'Not now', style: 'cancel' },
     { text: 'Sign in', onPress: () => router.push('/login' as any) },
   ]);
 
-  const openRequest = () => {
+  // Dev web preview only: `?pgSummary=1` opens the booking summary for screenshots (sending still needs sign-in).
+  const devSummary = __DEV__ && Platform.OS === 'web' && pgSummary === '1';
+  useEffect(() => { if (devSummary && selected) setSummaryOpen(true); }, [devSummary, !!selected]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const openSummary = () => {
     if (!pg) return;
     if (!user) { promptLogin(); return; }
     if (!selected) return;
     Haptics.selectionAsync().catch(() => {});
-    setSheetOpen(true);
+    setSummaryOpen(true);
   };
 
   const sendRequest = async () => {
@@ -206,19 +222,19 @@ export default function PGDetailScreen() {
       const res = await apiFetch(ENDPOINTS.pgBook(selected.bookRoomId), { method: 'POST', body: JSON.stringify({ checkInDate }) });
       const data = await readJson(res);
       if (!mounted.current) return;
-      if (res.status === 401) { setSheetOpen(false); promptLogin(); return; }
+      if (res.status === 401) { setSummaryOpen(false); promptLogin(); return; }
       if (!res.ok) {
-        if (data?.code === 'BOOKING_EXISTS') { loadMine(); setSheetOpen(false); }
+        if (data?.code === 'BOOKING_EXISTS') { loadMine(); setSummaryOpen(false); }
         Alert.alert(data?.code === 'BOOKING_EXISTS' ? 'Request already sent' : 'Could not send the request', data?.message || 'Please try again.');
         if (res.status === 400) load('silent'); // e.g. the last bed went meanwhile
         return;
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      setSheetOpen(false);
+      setSummaryOpen(false);
       load('silent');
       const buttons: any[] = [{ text: 'Done', style: 'cancel' }];
       if (data?.whatsappUrl) buttons.unshift({ text: 'Message housing desk', onPress: () => Linking.openURL(data.whatsappUrl).catch(() => {}) });
-      Alert.alert('Request sent', `${data?.message || 'The Zenvy housing team will confirm it with you.'}\n\n${roomTitle(selected)} · check-in ${prettyDate(checkInDate)}`, buttons);
+      Alert.alert('Request sent', `${data?.message || 'The Zenvy housing team will confirm it with you.'}\n\n${roomTitle(selected)} · move-in ${prettyDate(checkInDate)}`, buttons);
     } catch {
       if (mounted.current) Alert.alert('No connection', 'Check your internet and try again.');
     } finally {
@@ -259,10 +275,11 @@ export default function PGDetailScreen() {
           <View style={{ padding: 16 }}>
             <Skeleton style={{ width: '70%', height: 24 }} />
             <Skeleton style={{ width: '50%', height: 14, marginTop: 12 }} />
-            <Skeleton style={{ width: '100%', height: 40, marginTop: 24, borderRadius: 8 }} />
-            <Skeleton style={{ width: '100%', height: 72, marginTop: 24, borderRadius: 12 }} />
-            <Skeleton style={{ width: '60%', height: 14, marginTop: 24 }} />
-            <Skeleton style={{ width: '80%', height: 14, marginTop: 12 }} />
+            <Skeleton style={{ width: '40%', height: 28, marginTop: 16 }} />
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 24 }}>
+              {[0, 1, 2].map((i) => <Skeleton key={i} style={{ flex: 1, height: 120, borderRadius: 12 }} />)}
+            </View>
+            <Skeleton style={{ width: '100%', height: 64, marginTop: 24, borderRadius: 12 }} />
           </View>
         </View>
       </View>
@@ -286,14 +303,19 @@ export default function PGDetailScreen() {
 
   // ── Detail ─────────────────────────────────────────────────────────────────────────────────────
   const rentFrom = pg.rentFrom ?? pg.baseRent;
-  const barRent = selected?.rentFrom ?? rentFrom;
+  const shownRent = selected?.rentFrom ?? rentFrom;
   const myOpen = myBooking && (myBooking.status === 'Pending' || myBooking.status === 'Confirmed') ? myBooking : null;
   const hasRooms = roomTypes.length > 0;
-  const bottomBarH = 72 + insets.bottom;
+  const bottomBarH = 76 + insets.bottom;
   const summary = pg.reviewSummary || { average: null, count: 0 };
-  const showLocation = sections.includes('location');
   const maps = mapsUrl(pg);
-  const meta = [genderLabel(pg.genderType), pg.area, distanceLabel(pg.distanceFromCollege)].filter(Boolean).join(' · ');
+  const foodIncluded = !!pg.policies?.included?.includes('food');
+  const dist = distanceLabel(pg.distanceFromCollege);
+  const amenityList = pg.amenities.map((a) => ({ raw: a, label: amenityLabel(a) })).filter((a) => a.label);
+  const amenitySlots = Math.max(4, Math.min(6, Math.floor((width - 32) / 68)));
+  const amenityShown = amenityList.length > amenitySlots ? amenityList.slice(0, amenitySlots - 1) : amenityList;
+  const amenityMore = amenityList.length - amenityShown.length;
+  const roomCardW = Math.max(104, Math.floor((width - 32 - 16) / 3));
 
   const enquire = () => {
     Linking.openURL(deskUrl(`Hi, I found ${pg.name} on Zenvy. Could you share current availability and a time to visit?`))
@@ -305,6 +327,7 @@ export default function PGDetailScreen() {
   const share = () => {
     Share.share({ message: `${pg.name}${pg.area ? `, ${pg.area}` : ''} on Zenvy\n${pgLink(pg.id)}` }).catch(() => {});
   };
+  const openMaps = () => { if (maps) Linking.openURL(maps).catch(() => Alert.alert('Could not open Maps')); };
 
   const block = (k: SectionKey, i: number, children: React.ReactNode) => (
     <View key={k} onLayout={onSectionLayout(k)} style={[st.section, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.line, marginTop: 32 }]}>
@@ -319,7 +342,8 @@ export default function PGDetailScreen() {
             <KeyFacts pg={pg} />
             <Highlights items={pg.highlights || []} />
             <About text={pg.description} />
-            <Amenities items={pg.amenities} />
+            {/* The icon row above already shows the amenities; the full list only when some did not fit there. */}
+            {amenityMore > 0 ? <Amenities items={pg.amenities} /> : null}
             {pg.photos.length > 1 ? <PgPhotoSection sub photos={pg.photos} onOpen={(list, index) => setViewer({ list, index })} /> : null}
             {!hasRooms && pg.videos.length ? <View style={{ marginTop: 24 }}><PgVideoSection videos={pg.videos} roomTypeLabels={roomTypeLabels} /></View> : null}
           </View>
@@ -376,53 +400,105 @@ export default function PGDetailScreen() {
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true, listener: (e: any) => onScrollJS(e.nativeEvent.contentOffset.y) })}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load('refresh')} tintColor={p.sub} colors={[p.accentFill]} />}
       >
-        {/* 0: photos */}
+        {/* 0: photos (swipe, counter, category quick-jump) */}
         <PgHero photos={heroPhotos} topInset={0} onOpen={(list, index) => setViewer({ list, index })} />
 
-        {/* 1: name, place, rating, my request */}
+        {/* 1: header card, room type cards, amenities row, my request */}
         <View style={st.pad}>
-          <Text style={[st.title, { color: p.text }]} accessibilityRole="header">{pg.name}</Text>
-          <View style={st.metaRow}>
-            {pg.isVerified ? (
-              <View style={st.verified} accessibilityLabel="Verified by the Zenvy housing team">
-                <IconBadgeCheck size={14} color={p.success} strokeWidth={2} />
-                <Text style={[ui.small, { color: p.success, fontWeight: '600' }]}>Verified</Text>
+          <View style={[st.headCard, { backgroundColor: p.card }, p.shadow]}>
+            <View style={st.nameRow}>
+              <Text style={[st.title, { color: p.text }]} accessibilityRole="header">{pg.name}</Text>
+              {pg.isVerified ? <VerifiedTag /> : null}
+            </View>
+            <View style={st.metaRow}>
+              {summary.count > 0 ? (
+                <Press onPress={() => goTo('reviews')} accessibilityLabel={`Rated ${ratingText(summary.average)} out of 5 from ${plural(summary.count, 'review')}. Opens reviews`} style={st.ratingBtn}>
+                  <IconStar size={14} color={p.star} fill={p.star} strokeWidth={1.5} />
+                  <Text style={[ui.small, { color: p.text, fontWeight: '600' }]}>{ratingText(summary.average)}</Text>
+                  <Text style={[ui.small, { color: p.sub }]}>({summary.count})</Text>
+                </Press>
+              ) : null}
+              <Text style={[ui.small, { color: p.sub, flexShrink: 1 }]} numberOfLines={1}>{[dist, genderLabel(pg.genderType)].filter(Boolean).join(' · ')}</Text>
+            </View>
+            {pg.area || pg.address ? (
+              <View style={st.addressRow}>
+                <IconMapPin size={14} color={p.muted} strokeWidth={2} style={{ marginTop: 2 }} />
+                <Text style={[ui.small, { color: p.sub, flex: 1 }]} numberOfLines={2}>{pg.area ? `${pg.area}${pg.address && !pg.address.includes(pg.area) ? ` · ${pg.address}` : ''}` : pg.address}</Text>
+                {maps ? (
+                  <Press onPress={openMaps} accessibilityRole="link" accessibilityLabel="View on map" style={st.linkBtn}>
+                    <Text style={[ui.small, { color: p.accent, fontWeight: '600' }]}>View on map</Text>
+                  </Press>
+                ) : null}
               </View>
             ) : null}
-            <Text style={[ui.small, { color: p.sub, flexShrink: 1 }]} numberOfLines={2}>{meta}</Text>
+            <View style={[st.priceRow, { borderTopColor: p.line }]}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={[st.bigPrice, { color: p.text }]} numberOfLines={1}>
+                  {shownRent ? inr(shownRent) : '—'}<Text style={[ui.body, { color: p.sub, fontWeight: '400' }]}> /month</Text>
+                </Text>
+                <Text style={[ui.small, { color: p.muted }]} numberOfLines={1}>
+                  {[selected ? roomTitle(selected) : hasRooms ? 'Rent from' : '', foodIncluded ? 'incl. food' : ''].filter(Boolean).join(' · ') || 'per bed'}
+                </Text>
+              </View>
+            </View>
           </View>
-          {summary.count > 0 ? (
-            <Press onPress={() => goTo('reviews')} accessibilityLabel={`Rated ${ratingText(summary.average)} out of 5 from ${plural(summary.count, 'review')}. Opens reviews`} style={st.ratingRow}>
-              <IconStar size={14} color={p.text} fill={p.text} strokeWidth={1.5} />
-              <Text style={[ui.body, { color: p.text, fontWeight: '600' }]}>{ratingText(summary.average)}</Text>
-              <Text style={[ui.body, { color: p.sub, textDecorationLine: 'underline' }]}>{plural(summary.count, 'review')}</Text>
-            </Press>
-          ) : null}
-          {!showLocation && pg.address ? (
-            <View style={st.addressRow}>
-              <IconMapPin size={16} color={p.sub} strokeWidth={ICON.stroke} style={{ marginTop: 2 }} />
-              <Text style={[ui.body, { color: p.text, flex: 1 }]}>{pg.address}</Text>
-              {maps ? (
-                <Press onPress={() => Linking.openURL(maps).catch(() => Alert.alert('Could not open Maps'))} accessibilityRole="link" accessibilityLabel="Open in Maps" style={st.textBtn}>
-                  <Text style={[ui.small, { color: p.text, fontWeight: '600' }]}>Open in Maps</Text>
+
+          {myOpen ? (
+            <View style={[st.notice, { backgroundColor: myOpen.status === 'Confirmed' ? p.successSoft : p.accentSoft }]} accessibilityLiveRegion="polite">
+              <View style={{ flex: 1 }}>
+                <Text style={[ui.body, { color: p.text, fontWeight: '600' }]}>{myOpen.status === 'Confirmed' ? 'Your bed is confirmed' : 'Booking request sent'}</Text>
+                <Text style={[ui.small, { color: p.sub, marginTop: 2 }]}>
+                  {[myOpen.room?.roomNumber ? `Room ${myOpen.room.roomNumber}` : '', myOpen.checkInDate && formatISTDate(myOpen.checkInDate) ? `Move-in ${formatISTDate(myOpen.checkInDate)}` : '', myOpen.status === 'Pending' ? 'The housing team will call you' : ''].filter(Boolean).join(' · ')}
+                </Text>
+              </View>
+              {myOpen.status === 'Pending' ? (
+                <Press onPress={cancelMyBooking} disabled={cancelling} accessibilityLabel="Cancel request" style={st.linkBtn}>
+                  {cancelling ? <ActivityIndicator color={p.sub} /> : <Text style={[ui.small, { color: p.accent, fontWeight: '600' }]}>Cancel</Text>}
                 </Press>
               ) : null}
             </View>
           ) : null}
 
-          {myOpen ? (
-            <View style={[st.notice, { borderColor: myOpen.status === 'Confirmed' ? p.success : p.line, backgroundColor: myOpen.status === 'Confirmed' ? p.successSoft : p.sunken }]} accessibilityLiveRegion="polite">
-              <View style={{ flex: 1 }}>
-                <Text style={[ui.body, { color: p.text, fontWeight: '600' }]}>{myOpen.status === 'Confirmed' ? 'Your bed is confirmed' : 'Request sent'}</Text>
-                <Text style={[ui.small, { color: p.sub, marginTop: 2 }]}>
-                  {[myOpen.room?.roomNumber ? `Room ${myOpen.room.roomNumber}` : '', myOpen.checkInDate && formatISTDate(myOpen.checkInDate) ? `Check-in ${formatISTDate(myOpen.checkInDate)}` : '', myOpen.status === 'Pending' ? 'The housing team will call you' : ''].filter(Boolean).join(' · ')}
-                </Text>
+          {/* Room types as picture cards */}
+          {hasRooms ? (
+            <View style={{ marginTop: 24 }}>
+              <View style={st.blockHead}>
+                <Text style={[st.heading, { color: p.text }]} accessibilityRole="header">Room types</Text>
+                <Text style={[ui.small, { color: p.muted }]}>Rent per bed</Text>
               </View>
-              {myOpen.status === 'Pending' ? (
-                <Press onPress={cancelMyBooking} disabled={cancelling} accessibilityLabel="Cancel request" style={st.textBtn}>
-                  {cancelling ? <ActivityIndicator color={p.sub} /> : <Text style={[ui.small, { color: p.accent, fontWeight: '600' }]}>Cancel</Text>}
-                </Press>
-              ) : null}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.roomRow}>
+                {roomTypes.map((t) => (
+                  <RoomTypeCard key={t.key} t={t} w={roomCardW} photo={photosByType[t.key]?.[0]?.url || null} on={selected?.key === t.key} onPress={() => setSelectedType(t.key)} />
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
+
+          {/* Amenities icon row */}
+          {amenityList.length ? (
+            <View style={{ marginTop: 24 }}>
+              <Text style={[st.heading, { color: p.text, marginBottom: 12 }]} accessibilityRole="header">Amenities</Text>
+              <View style={st.amenityRow}>
+                {amenityShown.map((a) => {
+                  const Icon = amenityIcon(a.raw);
+                  return (
+                    <View key={a.raw} style={st.amenity} accessible accessibilityLabel={a.label}>
+                      <View style={[st.amenityIcon, { backgroundColor: p.accentSoft }]}>
+                        <Icon size={18} color={p.accent} strokeWidth={ICON.stroke} />
+                      </View>
+                      <Text style={[st.amenityText, { color: p.sub }]} numberOfLines={2}>{a.label}</Text>
+                    </View>
+                  );
+                })}
+                {amenityMore > 0 ? (
+                  <Press onPress={() => goTo('overview')} accessibilityLabel={`See all ${amenityList.length} amenities`} style={st.amenity}>
+                    <View style={[st.amenityIcon, { backgroundColor: p.sunken }]}>
+                      <Text style={[ui.small, { color: p.text, fontWeight: '700' }]}>+{amenityMore}</Text>
+                    </View>
+                    <Text style={[st.amenityText, { color: p.sub }]}>More</Text>
+                  </Press>
+                ) : null}
+              </View>
             </View>
           ) : null}
         </View>
@@ -434,125 +510,286 @@ export default function PGDetailScreen() {
         {sections.map((k, i) => render(k, i))}
       </Animated.ScrollView>
 
-      {/* Bottom bar */}
-      <View style={[st.bar, { paddingBottom: insets.bottom + 12, backgroundColor: p.bg, borderTopColor: p.line }]}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={[ui.small, { color: p.sub }]} numberOfLines={1}>{selected ? roomTitle(selected) : 'Rent from'}</Text>
-          <Text style={[st.barPrice, { color: p.text }]} numberOfLines={1}>{barRent ? inr(barRent) : '—'}<Text style={[ui.small, { color: p.sub, fontWeight: '400' }]}>/month</Text></Text>
-        </View>
-        <Press onPress={enquire} accessibilityLabel="Enquire with the Zenvy housing desk on WhatsApp" style={[st.barBtn, { borderColor: p.line, borderWidth: 1 }]}>
-          <IconMessage size={16} color={p.text} strokeWidth={ICON.stroke} />
-          <Text style={[ui.btnLabel, { color: p.text }]}>Enquire</Text>
+      {/* Bottom bar: Enquire + Book now */}
+      <View style={[st.bar, { paddingBottom: insets.bottom + 12, backgroundColor: p.card, borderTopColor: p.line }]}>
+        <Press onPress={enquire} accessibilityLabel="Enquire with the Zenvy housing desk on WhatsApp" style={[st.barBtn, { borderColor: p.accentFill, borderWidth: 1.5 }]}>
+          <IconMessage size={16} color={p.accent} strokeWidth={ICON.stroke} />
+          <Text style={[ui.btnLabel, { color: p.accent }]}>Enquire</Text>
         </Press>
         {myOpen ? (
           <View style={[st.barBtn, { backgroundColor: p.sunken }]} accessibilityLabel={myOpen.status === 'Confirmed' ? 'Booked' : 'Request sent'}>
-            <Text style={[ui.btnLabel, { color: p.sub }]}>{myOpen.status === 'Confirmed' ? 'Booked' : 'Requested'}</Text>
+            <Text style={[ui.btnLabel, { color: p.sub }]}>{myOpen.status === 'Confirmed' ? 'Booked' : 'Request sent'}</Text>
           </View>
         ) : (
-          <Press onPress={openRequest} disabled={!selected} accessibilityLabel={selected ? 'Request a bed' : hasRooms ? 'No beds available' : 'Rooms not listed yet'} style={[st.barBtn, { backgroundColor: p.accentFill }]}>
-            <Text style={[ui.btnLabel, { color: '#fff' }]}>{selected ? 'Request a bed' : hasRooms ? 'Full' : 'Rooms not listed yet'}</Text>
+          <Press onPress={openSummary} disabled={!selected} accessibilityLabel={selected ? `Book now, ${roomTitle(selected)}` : hasRooms ? 'No beds available' : 'Rooms not listed yet'} style={[st.barBtn, { backgroundColor: p.accentFill }]}>
+            <Text style={[ui.btnLabel, { color: '#fff' }]}>{selected ? 'Book now' : hasRooms ? 'Full' : 'Rooms not listed yet'}</Text>
           </Press>
         )}
       </View>
 
-      {/* Request sheet: room type + check-in date + summary (the existing booking request) */}
-      <Modal visible={sheetOpen} transparent animationType="slide" onRequestClose={() => !sending && setSheetOpen(false)} statusBarTranslucent>
-        <View style={st.sheetBackdrop}>
-          <Press onPress={() => !sending && setSheetOpen(false)} accessibilityLabel="Close" style={{ flex: 1 }}><View /></Press>
-          <View style={[st.sheet, { backgroundColor: p.bg, paddingBottom: insets.bottom + 16 }]}>
-            <View style={[st.grabber, { backgroundColor: p.line }]} />
-            <Text style={[st.sheetTitle, { color: p.text }]} accessibilityRole="header">Request a bed</Text>
-            <Text style={[ui.small, { color: p.sub, marginTop: 4 }]} numberOfLines={1}>{pg.name}</Text>
-
-            {bookable.length > 1 ? (
-              <>
-                <Text style={[st.sheetLabel, { color: p.sub }]}>Room</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                  {bookable.map((t) => {
-                    const on = selected?.key === t.key;
-                    return (
-                      <Press key={t.key} onPress={() => setSelectedType(t.key)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${roomTitle(t)}, ${inr(t.rentFrom)} a month`}
-                        style={[st.option, { borderColor: on ? p.text : p.line, backgroundColor: on ? p.text : 'transparent' }]}>
-                        <Text style={[ui.small, { color: on ? p.bg : p.text, fontWeight: '600' }]} numberOfLines={1}>{roomTitle(t)}</Text>
-                        <Text style={[ui.small, { color: on ? p.bg : p.sub }]}>{inr(t.rentFrom)}</Text>
-                      </Press>
-                    );
-                  })}
-                </ScrollView>
-              </>
-            ) : null}
-
-            <Text style={[st.sheetLabel, { color: p.sub }]}>Check-in</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-              {checkInOptions.map((o) => {
-                const on = o.ymd === checkInDate;
-                return (
-                  <Press key={o.ymd} onPress={() => setCheckInDate(o.ymd)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${o.top}, ${o.bottom}`}
-                    style={[st.dateChip, { borderColor: on ? p.text : p.line, backgroundColor: on ? p.text : 'transparent' }]}>
-                    <Text style={[ui.small, { color: on ? p.bg : p.sub }]}>{o.top}</Text>
-                    <Text style={[ui.small, { color: on ? p.bg : p.text, fontWeight: '600', marginTop: 2 }]}>{o.bottom}</Text>
-                  </Press>
-                );
-              })}
-            </ScrollView>
-
-            {selected ? (
-              <View style={[st.table, { borderColor: p.line, marginTop: 16 }]}>
-                <SummaryRow label="Room" value={`${roomTitle(selected)} · ${selected.hasAC ? 'AC' : 'Non-AC'}`} />
-                <Divider />
-                <SummaryRow label="Rent" value={`${inr(selected.rentFrom)}/month`} />
-                <Divider />
-                <SummaryRow label="Deposit" value={Number(selected.deposit) > 0 ? inr(selected.deposit) : 'None'} />
-                <Divider />
-                <SummaryRow label="Check-in" value={prettyDate(checkInDate)} />
-              </View>
-            ) : null}
-            <Text style={[ui.small, { color: p.muted, marginTop: 12 }]}>Nothing is charged in the app. The Zenvy housing team will call you to confirm, and you pay at the PG.</Text>
-
-            <Press onPress={sendRequest} disabled={sending || !selected} accessibilityLabel="Send request" accessibilityState={{ busy: sending }} style={[st.primary, { backgroundColor: p.accentFill }]}>
-              {sending ? <ActivityIndicator color="#fff" /> : <Text style={[ui.btnLabel, { color: '#fff' }]}>Send request</Text>}
-            </Press>
-          </View>
-        </View>
-      </Modal>
+      {summaryOpen && selected ? (
+        <BookingSummary
+          pg={pg}
+          bookable={bookable}
+          selected={selected}
+          onSelect={setSelectedType}
+          cover={heroPhotos[0]?.url || null}
+          photosByType={photosByType}
+          checkInOptions={checkInOptions}
+          checkInDate={checkInDate}
+          onDate={setCheckInDate}
+          sending={sending}
+          onSend={sendRequest}
+          onClose={() => !sending && setSummaryOpen(false)}
+        />
+      ) : null}
 
       {viewer ? <PhotoViewer photos={viewer.list} index={viewer.index} onClose={() => setViewer(null)} /> : null}
     </View>
   );
 }
 
-function SummaryRow({ label, value }: { label: string; value: string }) {
+function RoomTypeCard({ t, w, photo, on, onPress }: { t: PgRoomType; w: number; photo: string | null; on: boolean; onPress: () => void }) {
+  const p = usePgPalette();
+  const full = !t.bookRoomId;
+  const h = Math.round(w * 0.72);
+  return (
+    <Press
+      onPress={full ? undefined : onPress}
+      disabled={full}
+      accessibilityRole="button"
+      accessibilityState={{ selected: on, disabled: full }}
+      accessibilityLabel={`${roomTitle(t)}, ${rentText(t)} a month${full ? ', full' : ''}`}
+      style={[st.roomCard, { width: w, backgroundColor: p.card, borderColor: on ? p.accentFill : 'transparent' }, p.shadow, full && { opacity: 0.55 }]}
+    >
+      <View>
+        {photo ? (
+          <PgImage uri={photo} style={{ width: w - 4, height: h, borderTopLeftRadius: 12, borderTopRightRadius: 12 }} recyclingKey={`rtc-${t.key}`} priority="low" />
+        ) : (
+          // No photo for this room type: a quiet bed mark (never another room's photo).
+          <View style={{ width: w - 4, height: h, borderTopLeftRadius: 12, borderTopRightRadius: 12, backgroundColor: p.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+            <IconBed size={26} color={p.accent} strokeWidth={ICON.stroke} />
+            <Text style={[ui.small, { color: p.accent, marginTop: 4 }]}>{t.sharingType === 1 ? '1 bed' : `${t.sharingType} beds`} / room</Text>
+          </View>
+        )}
+        {on ? (
+          <View style={[st.roomCheck, { backgroundColor: p.accentFill }]}>
+            <IconCheck size={12} color="#fff" strokeWidth={3} />
+          </View>
+        ) : null}
+      </View>
+      <View style={{ padding: 8 }}>
+        <Text style={[ui.small, { color: p.text, fontWeight: '600' }]} numberOfLines={1}>{roomTitle(t)}</Text>
+        <Text style={[ui.small, { color: on ? p.accent : p.sub, fontWeight: on ? '600' : '400' }]} numberOfLines={1}>{full ? 'Full' : `${rentText(t)}/mo`}</Text>
+      </View>
+    </Press>
+  );
+}
+
+// ── Booking summary (full screen; Android back closes it) ─────────────────────────────────────────
+function BookingSummary({ pg, bookable, selected, onSelect, cover, photosByType, checkInOptions, checkInDate, onDate, sending, onSend, onClose }: {
+  pg: PgDetail; bookable: PgRoomType[]; selected: PgRoomType; onSelect: (k: string) => void; cover: string | null;
+  photosByType: Record<string, PgPhoto[]>; checkInOptions: { ymd: string; top: string; bottom: string }[];
+  checkInDate: string; onDate: (ymd: string) => void; sending: boolean; onSend: () => void; onClose: () => void;
+}) {
+  const p = usePgPalette();
+  const insets = useSafeAreaInsets();
+  const pol = pg.policies || null;
+  const rent = Number(selected.rentFrom) || 0;
+  const deposit = Number(selected.deposit ?? pol?.deposit?.amount ?? pg.securityDeposit) || 0;
+  const token = Number(pol?.booking?.tokenAmount) || 0;
+  const foodIncluded = !!pol?.included?.includes('food');
+  const refundable = typeof pol?.deposit?.refundDays === 'number';
+  const methods = (pol?.rent?.methods || []).map((m) => METHOD_LABEL[m]).filter(Boolean);
+  const lockIn = pol?.stay?.lockInMonths;
+  const notice = pol?.stay?.noticeMonths;
+  const summary = pg.reviewSummary || { average: null, count: 0 };
+  const rangeRent = selected.rentTo !== null && selected.rentTo !== selected.rentFrom;
+
+  return (
+    <Modal visible animationType="slide" onRequestClose={onClose} statusBarTranslucent presentationStyle="fullScreen">
+      <View style={{ flex: 1, backgroundColor: p.bg, paddingTop: insets.top }}>
+        <View style={[st.sumHead, { backgroundColor: p.card, borderBottomColor: p.line }]}>
+          <Press onPress={onClose} disabled={sending} accessibilityLabel="Back to the PG" style={st.headerBtn}>
+            <IconArrowLeft size={22} color={p.text} strokeWidth={ICON.stroke} />
+          </Press>
+          <Text style={[st.heading, { color: p.text, flex: 1 }]} accessibilityRole="header">Booking summary</Text>
+        </View>
+
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 + insets.bottom }} showsVerticalScrollIndicator={false}>
+          {/* PG */}
+          <View style={[st.sumCard, st.pgRow, { backgroundColor: p.card }, p.shadow]}>
+            <PgImage uri={cover} style={{ width: 72, height: 72, borderRadius: 12 }} recyclingKey={`sum-${pg.id}`} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={[ui.body, { color: p.text, fontWeight: '700' }]} numberOfLines={1}>{pg.name}</Text>
+              {pg.area || pg.address ? <Text style={[ui.small, { color: p.sub, marginTop: 2 }]} numberOfLines={1}>{pg.area || pg.address}</Text> : null}
+              <View style={[st.metaRow, { marginTop: 4 }]}>
+                {summary.count > 0 ? (
+                  <>
+                    <IconStar size={12} color={p.star} fill={p.star} strokeWidth={1.5} />
+                    <Text style={[ui.small, { color: p.text, fontWeight: '600' }]}>{ratingText(summary.average)}</Text>
+                    <Text style={[ui.small, { color: p.muted }]}>({summary.count})</Text>
+                  </>
+                ) : null}
+                <Text style={[ui.small, { color: p.sub }]}>{genderLabel(pg.genderType)}</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Room type */}
+          <Label text="Room type" icon={IconBed} />
+          <View style={[st.sumCard, { backgroundColor: p.card, paddingVertical: 4 }, p.shadow]}>
+            {bookable.map((t, i) => {
+              const on = t.key === selected.key;
+              return (
+                <Press key={t.key} onPress={() => onSelect(t.key)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${roomTitle(t)}, ${rentText(t)} a month`}
+                  style={[st.optRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.line }]}>
+                  <View style={[st.radio, { borderColor: on ? p.accentFill : p.line }]}>
+                    {on ? <View style={[st.radioDot, { backgroundColor: p.accentFill }]} /> : null}
+                  </View>
+                  {photosByType[t.key]?.[0] ? <PgImage uri={photosByType[t.key][0].url} style={{ width: 40, height: 40, borderRadius: 8 }} recyclingKey={`sumr-${t.key}`} priority="low" /> : null}
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={[ui.body, { color: p.text, fontWeight: on ? '600' : '400' }]} numberOfLines={1}>{roomTitle(t)}</Text>
+                    <Text style={[ui.small, { color: p.muted }]} numberOfLines={1}>{roomFacts(t)}</Text>
+                  </View>
+                  <Text style={[ui.body, { color: on ? p.accent : p.text, fontWeight: '600' }]}>{rentText(t)}</Text>
+                </Press>
+              );
+            })}
+          </View>
+
+          {/* Move-in date */}
+          <Label text="Move-in date" icon={IconCalendarDays} detail={prettyDate(checkInDate)} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
+            {checkInOptions.map((o) => {
+              const on = o.ymd === checkInDate;
+              return (
+                <Press key={o.ymd} onPress={() => onDate(o.ymd)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${o.top}, ${o.bottom}`}
+                  style={[st.dateChip, { backgroundColor: on ? p.accentFill : p.card }, !on && p.shadow]}>
+                  <Text style={[ui.small, { color: on ? 'rgba(255,255,255,0.85)' : p.sub }]}>{o.top}</Text>
+                  <Text style={[ui.small, { color: on ? '#fff' : p.text, fontWeight: '700', marginTop: 2 }]}>{o.bottom}</Text>
+                </Press>
+              );
+            })}
+          </ScrollView>
+          {typeof lockIn === 'number' || typeof notice === 'number' ? (
+            <Text style={[ui.small, { color: p.sub, marginTop: 8 }]}>
+              {[typeof lockIn === 'number' && lockIn > 0 ? `Minimum stay ${months(lockIn).toLowerCase()}` : '', typeof notice === 'number' && notice > 0 ? `${months(notice).toLowerCase()} notice to move out` : ''].filter(Boolean).join(' · ') || 'No minimum stay'}
+            </Text>
+          ) : null}
+
+          {/* Price breakdown */}
+          <Label text="Price breakdown" icon={IconClipboard} />
+          <View style={[st.sumCard, { backgroundColor: p.card }, p.shadow]}>
+            <Row label="Monthly rent" value={`${rangeRent ? rentText(selected) : inr(rent)}`} />
+            {foodIncluded ? <Row label="Food" value="Included in rent" /> : null}
+            <Row label={refundable ? 'Security deposit (refundable)' : 'Security deposit'} value={deposit > 0 ? inr(deposit) : 'None'} />
+            {token > 0 ? <Row label="Token to hold the bed" value={`${inr(token)}`} detail="Adjusted against your first payment" /> : null}
+            <Divider />
+            <Row label="First payment at move-in" value={rangeRent ? `from ${inr(rent + deposit)}` : inr(rent + deposit)} strong detail="First month's rent plus the deposit" />
+          </View>
+
+          {/* Payment */}
+          <Label text="Payment" icon={IconWallet} />
+          <View style={[st.sumCard, { backgroundColor: p.card }, p.shadow]}>
+            <Text style={[ui.body, { color: p.text, fontWeight: '600' }]}>Pay at the PG</Text>
+            <Text style={[ui.small, { color: p.sub, marginTop: 4 }]}>
+              {methods.length ? `Pay rent and the deposit at the PG by ${listText(methods)}. ` : 'Pay rent and the deposit at the PG. '}Nothing is charged in the app.
+            </Text>
+          </View>
+
+          {/* What happens next */}
+          <Label text="What happens next" />
+          <View style={[st.sumCard, { backgroundColor: p.card, gap: 12 }, p.shadow]}>
+            {[
+              'Send your booking request.',
+              pol?.booking?.confirmation || 'The Zenvy housing team calls you to confirm the bed and your move-in date.',
+              'Move in on your date and pay at the PG.',
+            ].map((t, i) => (
+              <View key={i} style={st.stepRow}>
+                <View style={[st.stepNum, { backgroundColor: p.accentSoft }]}><Text style={[ui.small, { color: p.accent, fontWeight: '700' }]}>{i + 1}</Text></View>
+                <Text style={[ui.body, { color: p.text, flex: 1 }]}>{t}</Text>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+
+        <View style={[st.sumBar, { paddingBottom: insets.bottom + 12, backgroundColor: p.card, borderTopColor: p.line }]}>
+          <Press onPress={onSend} disabled={sending} accessibilityLabel="Send booking request" accessibilityState={{ busy: sending }} style={[st.sumCta, { backgroundColor: p.accentFill }]}>
+            {sending ? <ActivityIndicator color="#fff" /> : <Text style={[ui.btnLabel, { color: '#fff' }]}>Send booking request</Text>}
+          </Press>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function Label({ text, icon: Icon, detail }: { text: string; icon?: React.ComponentType<any>; detail?: string }) {
   const p = usePgPalette();
   return (
-    <View style={st.summaryRow}>
-      <Text style={[ui.small, { color: p.muted, width: 84 }]}>{label}</Text>
-      <Text style={[ui.body, { color: p.text, flex: 1, textAlign: 'right' }]} numberOfLines={1}>{value}</Text>
+    <View style={st.label}>
+      {Icon ? <Icon size={16} color={p.accent} strokeWidth={ICON.stroke} /> : null}
+      <Text style={[ui.body, { color: p.text, fontWeight: '700', flex: 1 }]} accessibilityRole="header">{text}</Text>
+      {detail ? <Text style={[ui.small, { color: p.sub }]}>{detail}</Text> : null}
+    </View>
+  );
+}
+
+function Row({ label, value, strong, detail }: { label: string; value: string; strong?: boolean; detail?: string }) {
+  const p = usePgPalette();
+  return (
+    <View style={st.sumRow} accessible accessibilityLabel={`${label}: ${value}${detail ? `. ${detail}` : ''}`}>
+      <View style={{ flex: 1 }}>
+        <Text style={[ui.body, { color: strong ? p.text : p.sub, fontWeight: strong ? '700' : '400' }]}>{label}</Text>
+        {detail ? <Text style={[ui.small, { color: p.muted, marginTop: 2 }]}>{detail}</Text> : null}
+      </View>
+      <Text style={[strong ? st.total : ui.body, { color: p.text, fontWeight: strong ? '700' : '600' }]}>{value}</Text>
     </View>
   );
 }
 
 const st = StyleSheet.create({
   headerBtn: { width: 44, height: 48, alignItems: 'center', justifyContent: 'center' },
-  pad: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 },
+  pad: { paddingHorizontal: 16, paddingBottom: 16 },
   section: { marginHorizontal: 16, paddingTop: 32 },
-  title: { fontSize: TYPE.title, fontWeight: '700', letterSpacing: -0.2 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  verified: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
-  addressRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 8 },
-  notice: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, paddingLeft: 16, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, marginTop: 16 },
-  textBtn: { paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
-  table: { borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, minHeight: 44, paddingVertical: 10 },
-  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
-  barPrice: { fontSize: TYPE.heading, fontWeight: '700', marginTop: 2 },
-  barBtn: { minHeight: 48, paddingHorizontal: 16, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingHorizontal: 16, paddingTop: 8, ...(Platform.OS === 'android' ? { elevation: 12 } : {}) },
-  grabber: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginBottom: 12 },
-  sheetTitle: { fontSize: TYPE.heading, fontWeight: '700' },
-  sheetLabel: { fontSize: TYPE.small, fontWeight: '600', marginTop: 16, marginBottom: 8 },
-  option: { minHeight: 52, minWidth: 104, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, justifyContent: 'center' },
-  dateChip: { width: 76, minHeight: 52, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  primary: { minHeight: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
+  title: { fontSize: TYPE.title, fontWeight: '700', letterSpacing: -0.2, flexShrink: 1 },
+  heading: { fontSize: TYPE.heading, fontWeight: '700' },
+
+  headCard: { borderRadius: 20, padding: 16, marginTop: 16 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
+  ratingBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 24, minWidth: 0 },
+  addressRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 6 },
+  linkBtn: { minHeight: 24, minWidth: 0, paddingHorizontal: 4, justifyContent: 'center' },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth },
+  bigPrice: { fontSize: 24, fontWeight: '700', letterSpacing: -0.3 },
+  shareBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36, borderRadius: 18, paddingHorizontal: 14 },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, paddingLeft: 16, borderRadius: 14, marginTop: 16 },
+
+  blockHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 },
+  roomRow: { gap: 8, paddingVertical: 6, paddingRight: 16 },
+  roomCard: { borderRadius: 14, borderWidth: 2, overflow: 'hidden' },
+  roomCheck: { position: 'absolute', top: 6, right: 6, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  amenityRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  amenity: { width: 60, alignItems: 'center', minHeight: 0 },
+  amenityIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  amenityText: { fontSize: 11, textAlign: 'center', marginTop: 6, lineHeight: 14 },
+
+  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
+  barBtn: { flex: 1, minHeight: 52, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+
+  sumHead: { flexDirection: 'row', alignItems: 'center', paddingRight: 16, minHeight: 56, borderBottomWidth: StyleSheet.hairlineWidth },
+  sumCard: { borderRadius: 16, padding: 14 },
+  pgRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  label: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 24, marginBottom: 10 },
+  optRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, paddingVertical: 8 },
+  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  radioDot: { width: 10, height: 10, borderRadius: 5 },
+  dateChip: { width: 72, minHeight: 56, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  sumRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  total: { fontSize: TYPE.heading },
+  stepRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  stepNum: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  sumBar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
+  sumCta: { minHeight: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
 });

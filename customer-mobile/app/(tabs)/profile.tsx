@@ -1,3 +1,4 @@
+import TabBackButton from '../../components/TabBackButton';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
@@ -22,7 +23,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-import { COLORS, SHADOWS } from '../../constants/theme';
+import { COLORS, SHADOWS, surfaceLift } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useDietary, DietPrefs } from '../../context/DietaryContext';
@@ -41,12 +42,15 @@ try {
 import Constants from 'expo-constants';
 import { pickAndUploadImage, alertUploadError } from '../../utils/imageUpload';
 import DeleteAccountModal from '../../components/DeleteAccountModal';
+import ProfileSettingsSection from '../../components/ProfileSettingsSection';
+import AboutZcsModal from '../../components/AboutZcsModal';
 import { cleanRoom, cleanBlock, formatHostel, useCampusHostelBlocks, HOSTEL_BLOCK_MAX, ROOM_NUMBER_MAX } from '../../utils/hostel';
 import { openLegal, LEGAL_LABELS, LegalPage } from '../../utils/legal';
 import { formatINR, formatCount, plural } from '../../utils/format';
 import { getSoundsEnabled, setSoundsEnabled, onSoundSettingChange } from '../../utils/sounds';
 import { loadPushPrefs, savePushPrefs, DEFAULT_PUSH_PREFS, PUSH_CATEGORY_ROWS, PushPrefs, PushCategory } from '../../utils/pushPrefs';
 import { Ionicons } from '@expo/vector-icons';
+import { useTopInset } from '../../utils/useTopInset';
 
 const PHONE_RE = /^[6-9]\d{9}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -110,6 +114,8 @@ type StatsState = 'loading' | 'ready' | 'error';
 // Wallet gifts / P2P transfers are turned off (owner decision: refund credit is not transferable).
 const WALLET_GIFTS_ENABLED: boolean = false;
 export default function ProfileScreen() {
+  // Real status-bar inset, never less than the old fixed padding (utils/useTopInset)
+  const topPad = useTopInset();
   const { user, setUser, logout } = useAuth();
   const { isDark, toggleTheme, colors } = useTheme();
   const router = useRouter();
@@ -118,6 +124,8 @@ export default function ProfileScreen() {
   // Color Palette mappings
   const bg = colors.bg;
   const cardBg = colors.card;
+  // Light mode: cards get a soft lift so they separate from the page (dark: none)
+  const lift = surfaceLift(isDark);
   const txt = colors.text;
   const txtSec = colors.textSecondary;
   const border = colors.border;
@@ -613,27 +621,40 @@ export default function ProfileScreen() {
 
   if (!user) {
     return (
-      <View style={[s.container, { backgroundColor: bg, justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+      <View style={[s.container, { paddingTop: topPad, backgroundColor: bg }]}>
         <AmbientBackground />
-        <Ionicons name="lock-closed-outline" size={48} color={txtSec} style={{ marginBottom: 16 }} />
-        <Text style={{ fontSize: 18, fontWeight: '900', color: txt, letterSpacing: 0.2, textAlign: 'center', marginBottom: 8 }}>
-          Sign in to see your profile
-        </Text>
-        <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', textAlign: 'center', marginBottom: 24, lineHeight: 18 }}>
-          Sign in to see your profile, orders, coupons and rewards.
-        </Text>
-        <TouchableOpacity
-          style={{
-            backgroundColor: COLORS.red,
-            paddingHorizontal: 32,
-            paddingVertical: 14,
-            borderRadius: 16,
-            ...SHADOWS.redGlow
-          }}
-          onPress={() => router.push('/login' as any)}
-        >
-          <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '900', letterSpacing: 0.3 }}>Sign in or sign up</Text>
-        </TouchableOpacity>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+          <View style={{ alignItems: 'center', paddingHorizontal: 20, paddingTop: 64, paddingBottom: 36 }}>
+            <Ionicons name="lock-closed-outline" size={48} color={txtSec} style={{ marginBottom: 16 }} />
+            <Text style={{ fontSize: 18, fontWeight: '700', color: txt, letterSpacing: 0.2, textAlign: 'center', marginBottom: 8 }}>
+              Sign in to see your profile
+            </Text>
+            <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', textAlign: 'center', marginBottom: 24, lineHeight: 18 }}>
+              Sign in to see your profile, orders, coupons and rewards.
+            </Text>
+            <TouchableOpacity
+              style={{
+                backgroundColor: COLORS.red,
+                paddingHorizontal: 32,
+                paddingVertical: 14,
+                borderRadius: 16,
+                ...SHADOWS.redGlow
+              }}
+              onPress={() => router.push('/login' as any)}
+            >
+              <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '700', letterSpacing: 0.3 }}>Sign in or sign up</Text>
+            </TouchableOpacity>
+          </View>
+          {/* Guests can still switch the theme and sounds, read the policies and see About */}
+          <ProfileSettingsSection
+            signedIn={false}
+            soundsOn={soundsOn}
+            onSoundsChange={(v) => { setSoundsOn(v); setSoundsEnabled(v); }}
+            onOpenHelp={() => router.push('/help' as any)}
+            onOpenAbout={() => setShowAbout(true)}
+          />
+        </ScrollView>
+        <AboutZcsModal visible={showAbout} onClose={() => setShowAbout(false)} />
       </View>
     );
   }
@@ -648,7 +669,7 @@ export default function ProfileScreen() {
   const inputBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
 
   return (
-    <View style={[s.container, { backgroundColor: bg }]}>
+    <View style={[s.container, { paddingTop: topPad, backgroundColor: bg }]}>
       <AmbientBackground />
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -662,10 +683,15 @@ export default function ProfileScreen() {
           />
         }
       >
+        {/* Back (goes to the previous screen, or Home) */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 12 }}>
+          <TabBackButton />
+          <Text style={{ fontSize: 20, fontWeight: '700', color: txt }}>Profile</Text>
+        </View>
 
         {/* Profile Card */}
         <StaggeredSection delay={100} direction="down">
-          <View style={[s.profileCard, { backgroundColor: cardBg, borderColor: border }]}>
+          <View style={[s.profileCard, { backgroundColor: cardBg, borderColor: border }, lift]}>
 
             {/* Top row: Avatar + Zenvy Badge / Streak */}
             <View style={s.profileCardHeader}>
@@ -743,7 +769,7 @@ export default function ProfileScreen() {
             {/* Bio and contact */}
             <View style={{ width: '100%', gap: 10, marginVertical: 12 }}>
               <TouchableOpacity activeOpacity={0.8} onPress={openEditor} style={{ padding: 12, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB', borderRadius: 12, borderWidth: 1, borderColor: border }}>
-                <Text style={{ fontSize: 12, fontWeight: '800', color: goldColor, letterSpacing: 0.2, marginBottom: 4 }}>About me</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: goldColor, letterSpacing: 0.2, marginBottom: 4 }}>About me</Text>
                 <Text style={{ fontSize: 13, color: txt, fontStyle: user?.about ? 'normal' : 'italic', lineHeight: 18 }}>
                   {user?.about || 'No bio yet. Tap to add one.'}
                 </Text>
@@ -751,13 +777,13 @@ export default function ProfileScreen() {
 
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1, padding: 12, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB', borderRadius: 12, borderWidth: 1, borderColor: border }}>
-                  <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec, letterSpacing: 0.2, marginBottom: 4 }}>Mobile</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: txtSec, letterSpacing: 0.2, marginBottom: 4 }}>Mobile</Text>
                   <Text style={{ fontSize: 13, fontWeight: '700', color: txt }} numberOfLines={1}>
                     {user?.phone ? `+91 ${user.phone}` : 'Not set'}
                   </Text>
                 </View>
                 <View style={{ flex: 1, padding: 12, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB', borderRadius: 12, borderWidth: 1, borderColor: border }}>
-                  <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec, letterSpacing: 0.2, marginBottom: 4 }}>Email</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: txtSec, letterSpacing: 0.2, marginBottom: 4 }}>Email</Text>
                   <Text style={{ fontSize: 13, fontWeight: '700', color: txt }} numberOfLines={1}>
                     {user?.email || 'Not set'}
                   </Text>
@@ -809,7 +835,7 @@ export default function ProfileScreen() {
         {/* Dietary preferences */}
         <StaggeredSection delay={180} direction="up">
           <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111' }]}>Food preference</Text>
-          <View style={[s.dietCard, { backgroundColor: cardBg, borderColor: border }]}>
+          <View style={[s.dietCard, { backgroundColor: cardBg, borderColor: border }, lift]}>
             <Text style={[s.dietLabel, { color: txtSec }]}>Filters menus wherever you order</Text>
             <View style={s.dietModeGrid}>
               {([
@@ -914,7 +940,7 @@ export default function ProfileScreen() {
         <StaggeredSection delay={200} direction="up">
           <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111' }]}>Notifications</Text>
           <TouchableOpacity
-            style={[s.themeBtn, { backgroundColor: cardBg, borderColor: border }]}
+            style={[s.themeBtn, { backgroundColor: cardBg, borderColor: border }, lift]}
             onPress={() => handleEnablePush(false)}
           >
             <View style={[s.notifIconOuter, { backgroundColor: isDark ? '#1C1B1F' : '#F3F4F6' }]}>
@@ -929,7 +955,7 @@ export default function ProfileScreen() {
             </View>
           </TouchableOpacity>
           {/* Push categories: what this phone is notified about */}
-          <View style={[s.prefCard, { backgroundColor: cardBg, borderColor: border }]}>
+          <View style={[s.prefCard, { backgroundColor: cardBg, borderColor: border }, lift]}>
             {PUSH_CATEGORY_ROWS.map((row, i) => (
               <View key={row.key} style={[s.prefRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: border }]}>
                 <View style={{ flex: 1 }}>
@@ -947,29 +973,12 @@ export default function ProfileScreen() {
             ))}
             <Text style={[s.notifDesc, { color: txtSec, paddingTop: 10 }]}>Chats, calls, wallet and support replies always come through.</Text>
           </View>
-          {/* App sounds: off by default; silent or vibrate on the phone always wins */}
-          <View style={[s.themeBtn, { backgroundColor: cardBg, borderColor: border }]}>
-            <View style={[s.notifIconOuter, { backgroundColor: isDark ? '#1C1B1F' : '#F3F4F6' }]}>
-              <Ionicons name={soundsOn ? 'volume-medium-outline' : 'volume-mute-outline'} size={17} color={goldColor} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[s.notifLabel, { color: txt }]}>App sounds</Text>
-              <Text style={[s.notifDesc, { color: txtSec }]}>Taps, tabs and add to basket. Never plays when your phone is on silent.</Text>
-            </View>
-            <Switch
-              value={soundsOn}
-              onValueChange={(v) => { setSoundsOn(v); setSoundsEnabled(v); }}
-              trackColor={{ false: isDark ? '#3A3A3C' : '#D1D5DB', true: goldColor }}
-              thumbColor="#FFFFFF"
-              accessibilityLabel="App sounds"
-            />
-          </View>
         </StaggeredSection>
 
         {/* Your badges */}
         <StaggeredSection delay={220} direction="up">
           <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111' }]}>Your badges</Text>
-          <View style={[s.achievementsCard, { backgroundColor: cardBg, borderColor: border }]}>
+          <View style={[s.achievementsCard, { backgroundColor: cardBg, borderColor: border }, lift]}>
             {Array.isArray(user?.badges) && user.badges.length > 0 ? (
               <View style={s.badgeGrid}>
                 {user.badges.map((badgeName: string) => {
@@ -1042,7 +1051,7 @@ export default function ProfileScreen() {
               })}
             </ScrollView>
           ) : (
-            <View style={[s.emptyCard, { backgroundColor: cardBg, borderColor: border }]}>
+            <View style={[s.emptyCard, { backgroundColor: cardBg, borderColor: border }, lift]}>
               <Ionicons name="ticket-outline" size={24} color={goldColor} style={{ marginBottom: 8 }} />
               <Text style={[s.emptyText, { color: txtSec }]}>No coupons yet</Text>
               <Text style={[s.emptySubText, { color: txtSec, marginBottom: 12 }]}>Spin the wheel to win coupons</Text>
@@ -1050,7 +1059,7 @@ export default function ProfileScreen() {
                 style={{ backgroundColor: goldColor, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 }}
                 onPress={() => router.push('/rewards')}
               >
-                <Text style={{ color: '#000', fontSize: 12, fontWeight: '900', letterSpacing: 0.2 }}>Spin the wheel</Text>
+                <Text style={{ color: '#000', fontSize: 12, fontWeight: '700', letterSpacing: 0.2 }}>Spin the wheel</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -1068,7 +1077,7 @@ export default function ProfileScreen() {
                 <View style={s.buddyLinkHeaderText}>
                   <Text style={[s.buddyLinkTitle, { color: isDark ? '#FFF' : '#111' }]}>Invite friends to Zenvy</Text>
                   <Text style={[s.buddyLinkSubtitle, { color: txtSec }]}>
-                    When a friend signs up with your code, you both get <Text style={{ color: goldColor, fontWeight: '900' }}>50 ZenPoints</Text>
+                    When a friend signs up with your code, you both get <Text style={{ color: goldColor, fontWeight: '700' }}>50 ZenPoints</Text>
                   </Text>
                 </View>
               </View>
@@ -1116,7 +1125,7 @@ export default function ProfileScreen() {
         {WALLET_GIFTS_ENABLED && user?.isElite ? (
           <StaggeredSection delay={280} direction="up">
             <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111' }]}>SEND A GIFT</Text>
-            <View style={[s.giftCard, { backgroundColor: cardBg, borderColor: border }]}>
+            <View style={[s.giftCard, { backgroundColor: cardBg, borderColor: border }, lift]}>
               <Text style={[s.giftLabel, { color: txtSec }]}>GIFT WALLET MONEY TO A FRIEND (ELITE PERK)</Text>
               <TextInput
                 value={giftPhone}
@@ -1150,35 +1159,35 @@ export default function ProfileScreen() {
         <StaggeredSection delay={300} direction="up">
           <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111' }]}>Your spending</Text>
           {statsState === 'loading' && !spendStats ? (
-            <View style={[s.emptyCard, { backgroundColor: cardBg, borderColor: border }]}>
+            <View style={[s.emptyCard, { backgroundColor: cardBg, borderColor: border }, lift]}>
               <ActivityIndicator color={goldColor} />
             </View>
           ) : statsState === 'error' && !spendStats ? (
-            <View style={[s.emptyCard, { backgroundColor: cardBg, borderColor: border }]}>
+            <View style={[s.emptyCard, { backgroundColor: cardBg, borderColor: border }, lift]}>
               <Ionicons name="cloud-offline-outline" size={22} color={txtSec} style={{ marginBottom: 6 }} />
               <Text style={[s.emptyText, { color: txtSec }]}>Couldn't load your spending</Text>
               <TouchableOpacity
                 style={{ marginTop: 10, backgroundColor: goldColor, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 }}
                 onPress={() => { setStatsState('loading'); fetchData('focus'); }}
               >
-                <Text style={{ color: '#000', fontSize: 12, fontWeight: '900', letterSpacing: 0.2 }}>Try again</Text>
+                <Text style={{ color: '#000', fontSize: 12, fontWeight: '700', letterSpacing: 0.2 }}>Try again</Text>
               </TouchableOpacity>
             </View>
           ) : !hasSpend ? (
-            <View style={[s.emptyCard, { backgroundColor: cardBg, borderColor: border }]}>
+            <View style={[s.emptyCard, { backgroundColor: cardBg, borderColor: border }, lift]}>
               <Ionicons name="receipt-outline" size={22} color={txtSec} style={{ marginBottom: 6 }} />
               <Text style={[s.emptyText, { color: txtSec }]}>Your spending shows up here after your first order</Text>
               <TouchableOpacity
                 style={{ marginTop: 10, backgroundColor: goldColor, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 }}
                 onPress={() => router.push('/(tabs)' as any)}
               >
-                <Text style={{ color: '#000', fontSize: 12, fontWeight: '900', letterSpacing: 0.2 }}>Order now</Text>
+                <Text style={{ color: '#000', fontSize: 12, fontWeight: '700', letterSpacing: 0.2 }}>Order now</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={s.spendingWrapper}>
               {monthlySpend.length > 0 && (
-                <View style={[s.chartCard, { backgroundColor: cardBg, borderColor: border }]}>
+                <View style={[s.chartCard, { backgroundColor: cardBg, borderColor: border }, lift]}>
                   <Text style={[s.chartTitle, { color: txtSec }]}>Last 6 months</Text>
                   <View style={s.chartRow}>
                     {(() => {
@@ -1208,12 +1217,12 @@ export default function ProfileScreen() {
               )}
 
               {topItems.length > 0 && (
-                <View style={[s.topItemsCard, { backgroundColor: cardBg, borderColor: border }]}>
+                <View style={[s.topItemsCard, { backgroundColor: cardBg, borderColor: border }, lift]}>
                   <Text style={[s.chartTitle, { color: txtSec }]}>Most ordered</Text>
                   {topItems.map((item: any, i: number) => (
                     <View key={`${item.name}-${i}`} style={s.topItemRow}>
                       <View style={s.topItemLeft}>
-                        <Text style={{ fontSize: 13, fontWeight: '900', color: goldColor, minWidth: 16, textAlign: 'center' }}>{i + 1}</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: goldColor, minWidth: 16, textAlign: 'center' }}>{i + 1}</Text>
                         <View style={{ marginLeft: 10, flexShrink: 1 }}>
                           <Text style={[s.topItemName, { color: txt }]} numberOfLines={1}>{item.name}</Text>
                           <Text style={[s.topItemCount, { color: txtSec }]}>Ordered {plural(item.count, 'time')}</Text>
@@ -1232,7 +1241,7 @@ export default function ProfileScreen() {
                   { label: 'Streak', value: plural(streak, 'day'), icon: 'flame-outline' },
                   { label: 'Favourite', value: favRestaurant, icon: 'heart-outline' },
                 ].map((stat) => (
-                  <View key={stat.label} style={[s.smallStatCard, { backgroundColor: cardBg, borderColor: border }]}>
+                  <View key={stat.label} style={[s.smallStatCard, { backgroundColor: cardBg, borderColor: border }, lift]}>
                     <Ionicons name={stat.icon as any} size={18} color={goldColor} style={{ marginBottom: 4 }} />
                     <Text style={[s.smallStatVal, { color: txt }]} numberOfLines={1}>
                       {stat.value}
@@ -1249,66 +1258,34 @@ export default function ProfileScreen() {
         <StaggeredSection delay={320} direction="up">
           <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111' }]}>Help & support</Text>
           <View style={s.supportGrid}>
-            <TouchableOpacity style={[s.supportBtn, { backgroundColor: cardBg, borderColor: border }]} onPress={() => router.push('/support' as any)}>
+            <TouchableOpacity style={[s.supportBtn, { backgroundColor: cardBg, borderColor: border }, lift]} onPress={() => router.push('/support' as any)}>
               <Ionicons name="help-buoy-outline" size={20} color={goldColor} />
               <Text style={[s.supportBtnTitle, { color: goldColor }]}>Support tickets</Text>
               <Text style={[s.supportBtnDesc, { color: txtSec }]}>Report an issue & track it</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[s.supportBtn, { backgroundColor: cardBg, borderColor: border }]} onPress={() => router.push('/help' as any)} accessibilityRole="button" accessibilityLabel="Help and FAQ">
+            <TouchableOpacity style={[s.supportBtn, { backgroundColor: cardBg, borderColor: border }, lift]} onPress={() => router.push('/help' as any)} accessibilityRole="button" accessibilityLabel="Help and FAQ">
               <Ionicons name="help-circle-outline" size={20} color={goldColor} />
               <Text style={[s.supportBtnTitle, { color: txt }]}>Help and FAQ</Text>
               <Text style={[s.supportBtnDesc, { color: txtSec }]}>Hours, payments, refunds</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[s.supportBtn, { backgroundColor: cardBg, borderColor: border }]} onPress={() => setShowAbout(true)}>
+            <TouchableOpacity style={[s.supportBtn, { backgroundColor: cardBg, borderColor: border }, lift]} onPress={() => setShowAbout(true)}>
               <Ionicons name="information-circle-outline" size={20} color={goldColor} />
-              <Text style={[s.supportBtnTitle, { color: txt }]}>About Zenvy</Text>
+              <Text style={[s.supportBtnTitle, { color: txt }]}>About ZCS</Text>
               <Text style={[s.supportBtnDesc, { color: txtSec }]}>Version & info</Text>
             </TouchableOpacity>
           </View>
-          <View style={s.supportGrid}>
-            <TouchableOpacity style={[s.supportBtn, { backgroundColor: cardBg, borderColor: border }]} onPress={() => Linking.openURL(ENDPOINTS.privacyPolicy).catch(() => {})} accessibilityRole="link">
-              <Ionicons name="lock-closed-outline" size={20} color={goldColor} />
-              <Text style={[s.supportBtnTitle, { color: txt }]}>Privacy policy</Text>
-              <Text style={[s.supportBtnDesc, { color: txtSec }]}>What we collect & why</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[s.supportBtn, { backgroundColor: cardBg, borderColor: border }]} onPress={() => openLegal('terms')} accessibilityRole="link">
-              <Ionicons name="document-text-outline" size={20} color={goldColor} />
-              <Text style={[s.supportBtnTitle, { color: txt }]}>Terms of service</Text>
-              <Text style={[s.supportBtnDesc, { color: txtSec }]}>Orders, wallet & rules</Text>
-            </TouchableOpacity>
-          </View>
-          {/* C4: the remaining policies (Refunds, Grievance, Community Guidelines) */}
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: -6, marginBottom: 20, marginHorizontal: 20 }}>
-            {(['refunds', 'grievance', 'community', 'index'] as LegalPage[]).map((p) => (
-              <TouchableOpacity key={p} onPress={() => openLegal(p)} accessibilityRole="link" hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                <Text style={{ color: COLORS.gold, fontSize: 12, fontWeight: '800' }}>{LEGAL_LABELS[p]} ↗</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
         </StaggeredSection>
 
-        {/* Theme switch button */}
+        {/* Settings: preferences, help and legal, account, delete, version */}
         <StaggeredSection delay={340} direction="up">
-          <TouchableOpacity style={[s.themeBtn, { backgroundColor: cardBg, borderColor: border }]} onPress={toggleTheme}>
-            <View style={[s.notifIconOuter, { backgroundColor: isDark ? '#1C1B1F' : '#F3F4F6' }]}>
-              <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={17} color={goldColor} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[s.notifLabel, { color: txt }]}>{isDark ? 'Light mode' : 'Dark mode'}</Text>
-              <Text style={[s.notifDesc, { color: txtSec }]}>
-                {isDark ? 'Switch to the light theme' : 'Switch to the dark theme'}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </StaggeredSection>
-
-        {/* Logout */}
-        <StaggeredSection delay={360} direction="up">
-          <TouchableOpacity
-            style={[s.logoutBtn, { borderColor: '#EF4444' }]}
-            onPress={() => {
+          <ProfileSettingsSection
+            signedIn
+            soundsOn={soundsOn}
+            onSoundsChange={(v) => { setSoundsOn(v); setSoundsEnabled(v); }}
+            onOpenHelp={() => router.push('/help' as any)}
+            onSignOut={() => {
               Alert.alert(
                 'Sign out?',
                 'You can sign back in anytime with your mobile number.',
@@ -1320,20 +1297,14 @@ export default function ProfileScreen() {
                     onPress: async () => {
                       await logout();
                       router.replace('/login');
-                    }
-                  }
-                ]
+                    },
+                  },
+                ],
               );
             }}
-          >
-            <Text style={s.logoutText}>Sign out</Text>
-          </TouchableOpacity>
-          <Text style={s.logoutSubText}>Sign out of your Zenvy account on this phone</Text>
-
-          {/* Account deletion (Google Play requirement): anonymises the account + deletes personal data */}
-          <TouchableOpacity onPress={() => setShowDeleteAccount(true)} accessibilityRole="button" style={{ alignItems: 'center', paddingVertical: 14 }}>
-            <Text style={{ color: '#EF4444', fontSize: 13, fontWeight: '700', textDecorationLine: 'underline' }}>Delete my account</Text>
-          </TouchableOpacity>
+            // Account deletion (Google Play requirement): anonymises the account + deletes personal data
+            onDeleteAccount={() => setShowDeleteAccount(true)}
+          />
         </StaggeredSection>
 
       </ScrollView>
@@ -1361,12 +1332,12 @@ export default function ProfileScreen() {
                   <Avatar
                     uri={editProfileImage}
                     style={{ width: '100%', height: '100%' }}
-                    fallback={<Text style={{ fontSize: 24, fontWeight: '900', color: goldColor }}>{initials}</Text>}
+                    fallback={<Text style={{ fontSize: 24, fontWeight: '700', color: goldColor }}>{initials}</Text>}
                   />
                 </View>
                 {editProfileImage ? (
                   <TouchableOpacity onPress={() => setEditProfileImage(null)} style={{ marginTop: 6, padding: 4 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '800', color: '#EF4444', letterSpacing: 0.2 }}>Remove photo</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#EF4444', letterSpacing: 0.2 }}>Remove photo</Text>
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -1444,7 +1415,7 @@ export default function ProfileScreen() {
                         style={[s.modalInput, { color: txt, backgroundColor: inputBg, borderColor: goldColor, letterSpacing: 6, textAlign: 'center' }]}
                       />
                       <TouchableOpacity onPress={sendPhoneOtp} disabled={sendingOtp || resendIn > 0} style={{ alignSelf: 'flex-end', padding: 4 }}>
-                        <Text style={{ fontSize: 12, fontWeight: '800', color: resendIn > 0 ? txtSec : goldColor }}>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: resendIn > 0 ? txtSec : goldColor }}>
                           {sendingOtp ? 'Sending…' : resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend OTP'}
                         </Text>
                       </TouchableOpacity>
@@ -1499,7 +1470,7 @@ export default function ProfileScreen() {
                         accessibilityState={{ selected: on }}
                         style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, borderWidth: 1, borderColor: on ? goldColor : border, backgroundColor: on ? goldColor : inputBg }}
                       >
-                        <Text style={{ fontSize: 12, fontWeight: '800', color: on ? '#000' : txt }}>{block}</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: on ? '#000' : txt }}>{block}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -1605,48 +1576,8 @@ export default function ProfileScreen() {
         }}
       />
 
-      {/* ─── Modal: about ─── */}
-      <Modal visible={showAbout} animationType="slide" transparent={true} onRequestClose={() => setShowAbout(false)}>
-        <View style={s.modalOverlay}>
-          <View style={[s.modalContent, { backgroundColor: cardBg, borderColor: border }]}>
-            <View style={s.aboutHeader}>
-              <View style={[s.aboutLogo, { backgroundColor: goldColor }]}>
-                <Ionicons name="flash" size={24} color="#000" />
-              </View>
-              <View>
-                <Text style={[s.aboutTitle, { color: goldColor }]}>Zenvy</Text>
-                <Text style={[s.aboutSub, { color: txtSec }]}>Campus app</Text>
-              </View>
-            </View>
-
-            <Text style={s.aboutQuote}>
-              Food, essentials and campus services delivered to your hostel, built by a student.
-            </Text>
-
-            <View style={s.aboutStatsRow}>
-              <View style={s.aboutStatCol}>
-                <Text style={s.aboutStatLabel}>Version</Text>
-                <Text style={s.aboutStatVal}>
-                  {APP_VERSION}
-                </Text>
-              </View>
-              <View style={s.aboutStatCol}>
-                <Text style={s.aboutStatLabel}>Platform</Text>
-                <Text style={s.aboutStatVal}>{Platform.OS === 'ios' ? 'iOS' : Platform.OS === 'android' ? 'Android' : 'Web'}</Text>
-              </View>
-            </View>
-
-            <Text style={s.aboutFooter}>
-              Designed and developed by {'\n'}
-              <Text style={{ color: goldColor }}>Shanmukesh Kunjam</Text>
-            </Text>
-
-            <TouchableOpacity style={s.aboutCloseBtn} onPress={() => setShowAbout(false)}>
-              <Text style={s.aboutCloseText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {/* ─── About ZCS ─── */}
+      <AboutZcsModal visible={showAbout} onClose={() => setShowAbout(false)} />
 
     </View>
   );
@@ -1701,7 +1632,7 @@ const s = StyleSheet.create({
   },
   avatarText: {
     fontSize: 24,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   streakBadge: {
     position: 'absolute',
@@ -1714,7 +1645,7 @@ const s = StyleSheet.create({
   },
   streakBadgeText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#FFF',
   },
   headerBadges: {
@@ -1732,7 +1663,7 @@ const s = StyleSheet.create({
   },
   zenvyBadgeText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#000',
     letterSpacing: 2,
   },
@@ -1756,12 +1687,12 @@ const s = StyleSheet.create({
   },
   streakCapsuleText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#FFF',
   },
   name: {
     fontSize: 22,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
     marginBottom: 4,
     textAlign: 'left',
@@ -1769,7 +1700,7 @@ const s = StyleSheet.create({
   },
   tierText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
     marginBottom: 16,
     alignSelf: 'flex-start',
@@ -1795,7 +1726,7 @@ const s = StyleSheet.create({
   },
   barcodeText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
   primaryAddressBox: {
@@ -1815,7 +1746,7 @@ const s = StyleSheet.create({
   },
   editAddrText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   telemetryContainer: {
     width: '100%',
@@ -1840,13 +1771,13 @@ const s = StyleSheet.create({
   },
   telemetryLabel: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#888',
     marginBottom: 4,
   },
   telemetryVal: {
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   progressContainer: {
     borderTopWidth: 1,
@@ -1860,12 +1791,12 @@ const s = StyleSheet.create({
   },
   progressTitle: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#888',
   },
   progressVal: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   progressBarBg: {
     height: 6,
@@ -1886,7 +1817,7 @@ const s = StyleSheet.create({
   },
   sectionTitleText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
     borderLeftWidth: 3,
     borderLeftColor: '#D4AF7A',
@@ -1896,7 +1827,7 @@ const s = StyleSheet.create({
   },
   sectionAddBtn: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
   emptyCard: {
@@ -1910,7 +1841,7 @@ const s = StyleSheet.create({
   },
   emptyText: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   emptySubText: {
     fontSize: 12,
@@ -1943,7 +1874,7 @@ const s = StyleSheet.create({
   },
   savedAddressLabel: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
   savedAddressVal: {
@@ -1956,7 +1887,7 @@ const s = StyleSheet.create({
     fontSize: 14,
     color: '#EF4444',
     paddingHorizontal: 8,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   dietCard: {
     marginHorizontal: 16,
@@ -1967,7 +1898,7 @@ const s = StyleSheet.create({
   },
   dietLabel: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
     marginBottom: 10,
   },
@@ -1985,7 +1916,7 @@ const s = StyleSheet.create({
   },
   dietModeBtnText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
   divider: {
@@ -2009,7 +1940,7 @@ const s = StyleSheet.create({
   },
   allergyBadgeText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   allergyInputRow: {
     flexDirection: 'row',
@@ -2033,7 +1964,7 @@ const s = StyleSheet.create({
   },
   allergyAddBtnText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#000',
   },
   pushBtn: {
@@ -2044,7 +1975,7 @@ const s = StyleSheet.create({
   },
   pushBtnText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   notifCard: {
     marginHorizontal: 16,
@@ -2073,7 +2004,7 @@ const s = StyleSheet.create({
   },
   notifLabel: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   notifDesc: {
     fontSize: 12,
@@ -2105,7 +2036,7 @@ const s = StyleSheet.create({
   },
   badgeTitle: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#FFF',
     letterSpacing: 0.5,
   },
@@ -2121,7 +2052,7 @@ const s = StyleSheet.create({
   },
   emptyAchievementsText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
   grayEmojis: {
@@ -2159,12 +2090,12 @@ const s = StyleSheet.create({
   },
   footerLabel: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     marginBottom: 2,
   },
   footerVal: {
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   couponsScroll: {
     paddingLeft: 16,
@@ -2179,12 +2110,12 @@ const s = StyleSheet.create({
   },
   couponType: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
   couponHeader: {
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '700',
     marginVertical: 6,
   },
   couponCodeRow: {
@@ -2199,7 +2130,7 @@ const s = StyleSheet.create({
   },
   couponCodeText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 1.5,
   },
   couponCopyBtn: {
@@ -2210,7 +2141,7 @@ const s = StyleSheet.create({
   },
   couponCopyBtnText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#FFF',
   },
   // ── Buddy Link Styles ─────────────────────────────
@@ -2243,7 +2174,7 @@ const s = StyleSheet.create({
   },
   buddyLinkTitle: {
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
     marginBottom: 2,
   },
@@ -2264,13 +2195,13 @@ const s = StyleSheet.create({
   },
   buddyCodeLabel: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
     marginBottom: 3,
   },
   buddyCodeValue: {
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 2.5,
   },
   buddyCopyChip: {
@@ -2280,7 +2211,7 @@ const s = StyleSheet.create({
   },
   buddyCopyChipText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
   buddyLinkUrlRow: {
@@ -2341,7 +2272,7 @@ const s = StyleSheet.create({
   },
   buddyShareBtnText: {
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#000',
     letterSpacing: 0.3,
   },
@@ -2357,7 +2288,7 @@ const s = StyleSheet.create({
   },
   buddyStatNum: {
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
     marginBottom: 2,
   },
   buddyStatLabel: {
@@ -2374,7 +2305,7 @@ const s = StyleSheet.create({
   },
   giftLabel: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
     marginBottom: 10,
   },
@@ -2400,12 +2331,12 @@ const s = StyleSheet.create({
   },
   giftAmtText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   giftSubText: {
     fontSize: 12,
     color: '#666',
-    fontWeight: '800',
+    fontWeight: '600',
     textAlign: 'center',
   },
   spendingWrapper: {
@@ -2420,7 +2351,7 @@ const s = StyleSheet.create({
   },
   chartTitle: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
     marginBottom: 14,
   },
@@ -2443,12 +2374,12 @@ const s = StyleSheet.create({
   },
   chartBarMonth: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     marginTop: 6,
   },
   chartBarTotal: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     marginTop: 2,
   },
   topItemsCard: {
@@ -2468,7 +2399,7 @@ const s = StyleSheet.create({
   },
   topItemName: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   topItemCount: {
     fontSize: 12,
@@ -2477,7 +2408,7 @@ const s = StyleSheet.create({
   },
   topItemSpend: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   statsGridRow: {
     flexDirection: 'row',
@@ -2492,11 +2423,11 @@ const s = StyleSheet.create({
   },
   smallStatVal: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   smallStatLabel: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#888',
     marginTop: 2,
   },
@@ -2515,7 +2446,7 @@ const s = StyleSheet.create({
   },
   supportBtnTitle: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.3,
     marginTop: 8,
   },
@@ -2558,7 +2489,7 @@ const s = StyleSheet.create({
   },
   logoutText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#EF4444',
     letterSpacing: 0.3,
     textAlign: 'center',
@@ -2566,7 +2497,7 @@ const s = StyleSheet.create({
   logoutSubText: {
     fontSize: 12,
     color: '#666',
-    fontWeight: '800',
+    fontWeight: '600',
     textAlign: 'center',
     marginTop: 6,
     marginBottom: 40,
@@ -2597,14 +2528,14 @@ const s = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#FFF',
     letterSpacing: 0.3,
     marginBottom: 16,
   },
   inputLabel: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#888',
     letterSpacing: 0.3,
     alignSelf: 'flex-start',
@@ -2639,7 +2570,7 @@ const s = StyleSheet.create({
   },
   localUploadBtnText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#D4AF7A',
     letterSpacing: 0.3,
   },
@@ -2681,7 +2612,7 @@ const s = StyleSheet.create({
   },
   modalCancelBtnText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#FFF',
   },
   modalSaveBtn: {
@@ -2693,7 +2624,7 @@ const s = StyleSheet.create({
   },
   modalSaveBtnText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#000',
   },
 
@@ -2723,7 +2654,7 @@ const s = StyleSheet.create({
   },
   qrAvatarText: {
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   qrContainer: {
     padding: 16,
@@ -2733,13 +2664,13 @@ const s = StyleSheet.create({
   },
   qrName: {
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#FFF',
     marginTop: 10,
   },
   qrCity: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 2.5,
     marginTop: 4,
   },
@@ -2759,7 +2690,7 @@ const s = StyleSheet.create({
   },
   modalCloseBtnText: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#000',
   },
 
@@ -2781,84 +2712,4 @@ const s = StyleSheet.create({
     height: '100%',
   },
 
-  // About Modal specifically
-  aboutHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-    alignSelf: 'flex-start',
-  },
-  aboutLogo: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  aboutTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  aboutSub: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#888',
-    letterSpacing: 0.3,
-  },
-  aboutQuote: {
-    fontSize: 12,
-    fontWeight: '600',
-    fontStyle: 'italic',
-    color: '#CCC',
-    lineHeight: 16,
-    marginVertical: 12,
-    textAlign: 'left',
-  },
-  aboutStatsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '100%',
-    marginVertical: 14,
-  },
-  aboutStatCol: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  aboutStatLabel: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#888',
-    marginBottom: 4,
-  },
-  aboutStatVal: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#FFF',
-  },
-  aboutFooter: {
-    fontSize: 12,
-    color: '#888',
-    fontWeight: '700',
-    textAlign: 'center',
-    lineHeight: 14,
-    marginVertical: 16,
-  },
-  aboutCloseBtn: {
-    width: '100%',
-    height: 44,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  aboutCloseText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#FFF',
-  },
 });

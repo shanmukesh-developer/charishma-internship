@@ -1,12 +1,13 @@
 import * as Haptics from 'expo-haptics';
 import React, { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Platform, TextInput, ActivityIndicator, Alert, Modal, Linking, Animated, Vibration, RefreshControl, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, useWindowDimensions, Platform, TextInput, ActivityIndicator, Alert, Modal, Linking, Animated, Vibration, RefreshControl, BackHandler, Share } from 'react-native';
+import { PressScale, BounceOnChange, FadeInUp, StateCard, SlowLoadHint } from '../../modules/others/motion';
 import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
 // expo-image (memory + disk cache, downsampled CDN URLs) in place of react-native's Image
 import { CachedImage as Image } from '../../components/SafeImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams, useFocusEffect, useIsFocused } from 'expo-router';
-import { COLORS, SHADOWS, RADIUS } from '../../constants/theme';
+import { COLORS, SHADOWS, RADIUS, surfaceLift, LIGHT_HAIRLINE, LIGHT_SURFACE, LIGHT_SURFACE_SM } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { apiFetch, readJson, SERVER_BUSY_MESSAGE, NETWORK_ERROR_MESSAGE } from '../../utils/auth';
@@ -14,6 +15,7 @@ import { readCache, writeCache, useSWRJson } from '../../utils/swrCache';
 import { ENDPOINTS, API_URL, ZENVY_SUPPORT_PHONE } from '../../constants/api';
 import { useCart, isCustomRequest } from '../../context/CartContext';
 import PromoCarousel from '../../components/PromoCarousel';
+import SpinWheelSvg from '../../components/others/SpinWheelSvg';
 import SearchOverlay from '../../components/SearchOverlay';
 import AmbientBackground from '../../components/AmbientBackground';
 import DopaminePressable, { CardPressable } from '../../components/DopaminePressable';
@@ -31,9 +33,13 @@ import AutoRideSection from '../../modules/autoRide/AutoRideSection';
 import { useAutoRideStatus } from '../../modules/autoRide/ui';
 import CampusEventsSection from '../../modules/campusEvents/CampusEventsSection';
 import { useCampusEventsStatus } from '../../modules/campusEvents/ui';
-import { Segmented, KarmaLine, PoolTabs, RideFilters, RideCard, MyRideCard, RideSkeleton, CoRideState, SectionLabel } from '../../modules/coride/CoRideUI';
+import CoRideHub from '../../modules/coride/CoRideHub';
+import SectionPills from '../../modules/others/SectionPills';
+import { ACCENTS as OTHERS_ACCENTS, PILL_ACCENT, shadow as othersShadow, TYPE as OTHERS_TYPE, RADIUS as OTHERS_RADIUS, STATUS as OTHERS_STATUS, SURFACE as OTHERS_SURFACE } from '../../modules/others/othersTheme';
 import PostRideSheet, { maxSeatsFor } from '../../modules/coride/PostRideSheet';
 import { fmtRideWhen, groupMyRides, topDestinations, sameDestination, inr } from '../../modules/coride/coRideFormat';
+import { useTopInset } from '../../utils/useTopInset';
+import FoodV2Screen from '../../modules/foodV2/FoodV2Screen';
 
 const { width: SW, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SH = SCREEN_HEIGHT;
@@ -61,8 +67,7 @@ const ScalePressable = ({ children, onPress, style, activeOpacity = 0.85, access
   };
 
   return (
-    <TouchableOpacity
-      activeOpacity={activeOpacity}
+    <PressScale
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       onPress={onPress}
@@ -74,76 +79,89 @@ const ScalePressable = ({ children, onPress, style, activeOpacity = 0.85, access
       <Animated.View style={{ transform: [{ scale }] }}>
         {children}
       </Animated.View>
-    </TouchableOpacity>
+    </PressScale>
   );
 };
 
-const TABS = [
-  { key: 'food', label: 'Food & groceries', icon: '🧺' },
-  { key: 'services', label: 'Tech & Repairs', icon: '🛠️' },
-  { key: 'pg', label: 'PG Stays', icon: '🏢' },
-  { key: 'coride', label: 'Co-Ride', icon: '🏍️' },
-  { key: 'rentals', label: 'Rentals', icon: '🚗' },
-  // Zenvy Campus Events: shown only while GET /api/campus-events/status says enabled (see visibleTabs).
-  { key: 'events', label: 'Campus Events', icon: '🎟️' },
-  { key: 'promos', label: 'Deals & Spin', icon: '🎁' },
+type IonName = React.ComponentProps<typeof Ionicons>['name'];
+
+const TABS: { key: string; label: string; icon: IonName }[] = [
+  { key: 'food', label: 'Food & groceries', icon: 'basket-outline' },
+  { key: 'services', label: 'Tech & repairs', icon: 'construct-outline' },
+  { key: 'pg', label: 'PG stays', icon: 'business-outline' },
+  { key: 'coride', label: 'Co-Ride', icon: 'bicycle-outline' },
+  { key: 'rentals', label: 'Rentals', icon: 'car-outline' },
+  // Campus Events: shown only while GET /api/campus-events/status says enabled (see visibleTabs).
+  { key: 'events', label: 'Campus events', icon: 'ticket-outline' },
+  { key: 'promos', label: 'Deals & spin', icon: 'gift-outline' },
 ];
 
-const BB_CATEGORIES = [
-  { key: 'Fresh', label: 'Fruits & Veggies', icon: '🍎', bg: '#F0FDF4', border: '#DCFCE7', text: '#15803D' },
-  { key: 'Grocery', label: 'Atta & Staples', icon: '🌾', bg: '#FFFBEB', border: '#FEF3C7', text: '#B45309' },
-  { key: 'Chips & Namkeens', label: 'Snacks & Chips', icon: '🍟', bg: '#FEF2F2', border: '#FEE2E2', text: '#B91C1C' },
-  { key: 'Biscuits & Cakes', label: 'Biscuits & Cakes', icon: '🍪', bg: '#FAF5FF', border: '#F3E8FF', text: '#6B21A8' },
-  { key: 'Health', label: 'Health & Care', icon: '🥗', bg: '#ECFDF5', border: '#D1FAE5', text: '#047857' },
-  { key: 'Electronics', label: 'Electronics', icon: '🔌', bg: '#F0F9FF', border: '#E0F2FE', text: '#0369A1' },
-  { key: 'Toys', label: 'Toys & Play', icon: '🧸', bg: '#EFF6FF', border: '#DBEAFE', text: '#1D4ED8' },
-  { key: 'Seeds', label: 'Seeds & Greens', icon: '🌱', bg: '#F5F5F4', border: '#E7E5E4', text: '#44403C' },
+const BB_CATEGORIES: { key: string; label: string; icon: IonName }[] = [
+  { key: 'Fresh', label: 'Fruits & veggies', icon: 'nutrition-outline' },
+  { key: 'Grocery', label: 'Atta & staples', icon: 'basket-outline' },
+  { key: 'Chips & Namkeens', label: 'Snacks & chips', icon: 'fast-food-outline' },
+  { key: 'Biscuits & Cakes', label: 'Biscuits & cakes', icon: 'cafe-outline' },
+  { key: 'Health', label: 'Health & care', icon: 'medkit-outline' },
+  { key: 'Electronics', label: 'Electronics', icon: 'flash-outline' },
+  { key: 'Toys', label: 'Toys & play', icon: 'game-controller-outline' },
+  { key: 'Seeds', label: 'Seeds & greens', icon: 'leaf-outline' },
 ];
 
 // Wheel look only. The prizes (labels, order) come from GET /api/rewards/spin-eligibility and the
 // server picks the result in POST /api/rewards/use-spin.
-const WHEEL_STYLES = [
-  { emoji: '🛵', color: '#F59E0B' },
-  { emoji: '💎', color: '#10B981' },
-  { emoji: '💎', color: '#3B82F6' },
-  { emoji: '💎', color: '#8B5CF6' },
-  { emoji: '💎', color: '#EC4899' },
-  { emoji: '💎', color: '#EF4444' },
-  { emoji: '💎', color: '#06B6D4' },
-  { emoji: '💎', color: '#6B7280' },
+// Display mirror of the server's 8-sector prize table (same order as backend SPIN_PRIZES), used only to
+// draw the wheel before the live table arrives (signed out). The server still picks every prize.
+const WHEEL_PRIZE_MIRROR = [
+  { label: 'FREE DEL', display: 'Free delivery' }, { label: '10 ZEN' }, { label: '20 ZEN' }, { label: '5 ZEN' },
+  { label: '50 ZEN' }, { label: '100 ZEN' }, { label: '5 ZEN' }, { label: '2 ZEN' },
 ];
 
+const ACCENTS_FOOD_SOLID = OTHERS_ACCENTS.food.solid;
+const ACCENTS_FOOD_DEEP = OTHERS_ACCENTS.food.deep;
+
+const WHEEL_STYLES = [
+  { color: '#F59E0B' },
+  { color: '#10B981' },
+  { color: '#3B82F6' },
+  { color: '#8B5CF6' },
+  { color: '#EC4899' },
+  { color: '#EF4444' },
+  { color: '#06B6D4' },
+  { color: '#6B7280' },
+];
+
+// Hero carousel copy: sentence case, shown as written (components/PromoCarousel).
 const PROMOS_FOOD = [
-  { id: 'f1', tagline: 'CAMPUS STATIONERY 📚', title: 'EXAM ESSENTIALS', subtitle: 'STATIONERY HUB', desc: 'Notebooks, pens, lab coats & study kits delivered to your hostel.', btn: 'EXPLORE SUPPLIES →', img: 'https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?w=600' },
-  { id: 'f2', tagline: 'FITNESS GEAR 🏋️', title: 'STAY ACTIVE', subtitle: 'FIT & ACTIVE', desc: 'Skipping ropes, resistance bands & yoga mats for your hostel workouts.', btn: 'SHOP FITNESS →', img: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600' },
-  { id: 'f3', tagline: 'NIGHT CANTEEN & PANTRY 🛒', title: 'HOSTEL BASKET', subtitle: 'GROCERY RUN', desc: 'Snacks, dairy, instant noodles & beverages from the campus mart.', btn: 'ORDER GROCERIES →', img: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600' },
+  { id: 'f1', tagline: 'Campus stationery', title: 'Exam essentials', subtitle: '', desc: 'Notebooks, pens, lab coats and study kits, delivered to your hostel.', btn: 'Explore', img: 'https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?w=900&q=80' },
+  { id: 'f2', tagline: 'Fitness gear', title: 'Stay active in the hostel', subtitle: '', desc: 'Skipping ropes, resistance bands and yoga mats for your room workouts.', btn: 'Explore', img: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=900&q=80' },
+  { id: 'f3', tagline: 'Night canteen and pantry', title: 'Your hostel grocery run', subtitle: '', desc: 'Snacks, dairy, instant noodles and drinks from the campus mart.', btn: 'Explore', img: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=900&q=80' },
 ];
 
 const PROMOS_SERVICES = [
-  { id: 's1', tagline: 'LAPTOP & PHONE 💻', title: 'TECH REPAIRS', subtitle: 'ON CAMPUS', desc: 'Screen replacement, fan cleaning, thermal paste & hardware fixes. Book a slot in the app.', btn: 'BOOK REPAIR →', img: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=1200&q=80' },
-  { id: 's2', tagline: 'CAMPUS TAILORING ✂️', title: 'UNIFORM & FABRIC', subtitle: 'ALTERATIONS', desc: 'Lab coat tailoring, fitting alterations, blazer adjustments & stitching requests.', btn: 'REQUEST TAILOR →', img: 'https://images.unsplash.com/photo-1528458909336-e7a0adfed0a5?w=1200&q=80' },
-  { id: 's3', tagline: 'DOCUMENT HUB 🖨️', title: 'PRINTING', subtitle: '& BINDING', desc: 'Project reports, spiral binding, colour charts and assignment prints.', btn: 'SUBMIT PRINT JOB →', img: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=1200&q=80' },
+  { id: 's1', tagline: 'Laptop and phone', title: 'Tech repairs on campus', subtitle: '', desc: 'Screen replacement, fan cleaning, thermal paste and hardware fixes. Book a slot in the app.', btn: 'Book a repair', img: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=1200&q=80' },
+  { id: 's2', tagline: 'Campus tailoring', title: 'Uniform and fabric alterations', subtitle: '', desc: 'Lab coat tailoring, fitting alterations, blazer adjustments and stitching requests.', btn: 'Request a tailor', img: 'https://images.unsplash.com/photo-1528458909336-e7a0adfed0a5?w=1200&q=80' },
+  { id: 's3', tagline: 'Document hub', title: 'Printing and binding', subtitle: '', desc: 'Project reports, spiral binding, colour charts and assignment prints.', btn: 'Send a print job', img: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=1200&q=80' },
 ];
 
 const PROMOS_PG = [
-  { id: 'p1', tagline: 'STUDENT STAYS 🏢', title: 'PG RESIDENCES', subtitle: 'NEAR CAMPUS', desc: 'Compare rent, sharing type and distance from campus, then request a bed right here.', btn: 'BROWSE STAYS →', img: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80' },
-  { id: 'p2', tagline: 'BOOK IN THE APP 🤝', title: 'REQUEST A BED', subtitle: 'WE CONFIRM IT', desc: 'Send a booking request and the Zenvy housing team confirms it with you.', btn: 'VIEW LISTINGS →', img: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80' },
+  { id: 'p1', tagline: 'Student stays', title: 'PG residences near campus', subtitle: '', desc: 'Compare rent, sharing type and distance from campus, then request a bed right here.', btn: 'Browse stays', img: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80' },
+  { id: 'p2', tagline: 'Book in the app', title: 'Request a bed, we confirm it', subtitle: '', desc: 'Send a booking request and the housing team confirms it with you.', btn: 'View listings', img: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80' },
 ];
 
 const PROMOS_CORIDE = [
   // Not shown in the carousel any more (the Co-Ride tab opens on its own mode switch); kept for TAB_PROMOS.
-  { id: 'c1', tagline: 'Student bike pool', title: 'Co-Ride', subtitle: 'Split the fuel', desc: 'Share rides between campus, Vijayawada and Guntur with other students and split the fuel.', btn: 'Post a ride →', img: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=1200&q=80' },
-  { id: 'c4', tagline: 'Zenvy Auto', title: 'Shared autos', subtitle: 'Book a seat', desc: 'Book a seat in a shared auto with a verified Zenvy driver. Pay the driver at boarding.', btn: 'Book a seat →', img: 'https://images.unsplash.com/photo-1449965408869-ebd13bc9e5a8?w=1200&q=80' },
+  { id: 'c1', tagline: 'Student bike pool', title: 'Co-Ride', subtitle: '', desc: 'Share rides between campus, Vijayawada and Guntur with other students and split the fuel.', btn: 'Post a ride', img: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=1200&q=80' },
+  { id: 'c4', tagline: 'Shared autos', title: 'Book a seat', subtitle: '', desc: 'Book a seat in a shared auto with a verified driver. Pay the driver at boarding.', btn: 'Book a seat', img: 'https://images.unsplash.com/photo-1449965408869-ebd13bc9e5a8?w=1200&q=80' },
 ];
 
 const PROMOS_OFFERS = [
-  { id: 'o1', tagline: 'ORDER REWARDS 🎁', title: 'LUCKY REWARD', subtitle: 'SPIN WHEEL', desc: 'Every 2 delivered orders earn a spin. Win ZenPoints or a free-delivery coupon.', btn: 'SPIN THE WHEEL →', img: 'https://images.unsplash.com/photo-1596451190630-186aff535bf2?w=600' },
-  { id: 'o2', tagline: 'YOUR COUPONS 🎫', title: 'READY TO USE', subtitle: 'AT CHECKOUT', desc: 'Coupons you have won show up here with their expiry date.', btn: 'SEE MY COUPONS →', img: 'https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=600' },
+  { id: 'o1', tagline: 'Order rewards', title: 'Spin the reward wheel', subtitle: '', desc: 'Every 2 delivered orders earn a spin. Win ZenPoints or a free-delivery coupon.', btn: 'Spin the wheel', img: 'https://images.unsplash.com/photo-1596451190630-186aff535bf2?w=900&q=80' },
+  { id: 'o2', tagline: 'Your coupons', title: 'Ready to use at checkout', subtitle: '', desc: 'Coupons you have won show up here with their expiry date.', btn: 'See my coupons', img: 'https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=900&q=80' },
 ];
 
 const PROMOS_RENTALS = [
-  { id: 'r1', tagline: 'STUDENT VEHICLES 🏍️', title: 'RENT A RIDE', subtitle: 'FROM CLASSMATES', desc: 'Bikes, scooters and cars from college-verified students. PIN pickup, cash at handover.', btn: 'BROWSE VEHICLES →', img: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=1200&q=80' },
-  { id: 'r2', tagline: 'EARN FROM YOUR VEHICLE 💸', title: 'RENT IT OUT', subtitle: 'YOU SET THE PRICE', desc: 'List your bike, scooter or car in minutes. Zenvy verifies every renter and their licence.', btn: 'LIST MY VEHICLE →', img: 'https://images.unsplash.com/photo-1449965408869-ebd13bc9e5a8?w=1200&q=80' },
+  { id: 'r1', tagline: 'Student vehicles', title: 'Rent a ride from classmates', subtitle: '', desc: 'Bikes, scooters and cars from college-verified students. PIN pickup, cash at handover.', btn: 'Browse vehicles', img: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=1200&q=80' },
+  { id: 'r2', tagline: 'Earn from your vehicle', title: 'Rent it out, you set the price', subtitle: '', desc: 'List your bike, scooter or car in minutes. Every renter and their licence is verified.', btn: 'List my vehicle', img: 'https://images.unsplash.com/photo-1449965408869-ebd13bc9e5a8?w=1200&q=80' },
 ];
 
 const TAB_PROMOS: Record<string, typeof PROMOS_FOOD> = {
@@ -179,7 +197,7 @@ const GROCERY_CATEGORIES = [
       { name: 'Drinks & Juices', img: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=400&q=80' },
       { name: 'Tea & Coffee', img: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=400&q=80' },
       { name: 'Sweet Indulgences', img: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&q=80' },
-      { name: 'Gourmet', img: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=80' }
+      { name: 'Gourmet', img: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&q=80' }
     ]
   },
   {
@@ -193,9 +211,40 @@ const GROCERY_CATEGORIES = [
   }
 ];
 
+/** Campus ordering closes at 9 pm (backend utils/storeHours NIGHT_START_HOUR) when the server sends no closesAt. */
+const CAMPUS_CLOSES_AT = '21:00';
+
+// ── Food & groceries (owner reference, 22 Oct): green accent, basket category tiles, listing heroes ──
+// Tiles open real catalogue shelves (SHELVES below); tiles with no products are hidden. Photos are
+// Unsplash images checked by hand for the subject.
+const BASKET_TILES: { key: string; label: string; img: string; tint: string }[] = [
+  { key: 'Grocery', label: 'Groceries', img: 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=300&q=70', tint: '#EAF5EC' },
+  { key: 'Fresh', label: 'Fruits & vegetables', img: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&q=70', tint: '#E8F1FB' },
+  { key: 'Snacks & beverages', label: 'Snacks & beverages', img: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=300&q=70', tint: '#E6F4F8' },
+  { key: 'Bakery & breakfast', label: 'Bakery & breakfast', img: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&q=70', tint: '#FDF0E6' },
+  { key: 'Toys', label: 'Toys & games', img: 'https://images.unsplash.com/photo-1594787318286-3d835c1d207f?w=300&q=70', tint: '#F1ECFB' },
+  { key: 'Health & care', label: 'Health & personal care', img: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=300&q=70', tint: '#E7F0FA' },
+];
+
+type ListingHero = { title: string; sub: string; img: string; tint: string; tintDark: string };
+const HERO_GREEN = { tint: '#EAF5EC', tintDark: '#14241A' };
+const LISTING_HEROES: Record<string, ListingHero> = {
+  'All Groceries': { title: 'Everything in the campus store', sub: 'Groceries · Snacks · Essentials', img: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&q=70', ...HERO_GREEN },
+  Grocery: { title: 'Fresh groceries at best prices', sub: 'Quality · Fresh · Daily', img: 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=500&q=70', ...HERO_GREEN },
+  Fresh: { title: 'Fresh and healthy, always', sub: 'Farm fresh · Daily', img: 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=500&q=70', ...HERO_GREEN },
+  'Snacks & beverages': { title: 'Snack time, sorted', sub: 'Chips · Drinks · Chocolates', img: 'https://images.unsplash.com/photo-1621939514649-280e2ee25f60?w=500&q=70', tint: '#FFF6E2', tintDark: '#2A2416' },
+  'Bakery & breakfast': { title: 'Freshly baked, every day', sub: 'Biscuits · Cakes · Breakfast', img: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&q=70', tint: '#FDF0E6', tintDark: '#2A1F16' },
+  'Health & care': { title: 'Stay healthy, stay fresh', sub: 'Wellness · Personal care · Hygiene', img: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&q=70', tint: '#E6F1FB', tintDark: '#16202B' },
+  Toys: { title: 'Play time, delivered', sub: 'Games · Plushies · Sports', img: 'https://images.unsplash.com/photo-1594787318286-3d835c1d207f?w=500&q=70', tint: '#F1ECFB', tintDark: '#211B2E' },
+  Deals: { title: 'Best deals today', sub: 'Biggest savings, at the price you pay', img: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&q=70', ...HERO_GREEN },
+  Seeds: { title: 'Grow your own greens', sub: 'Seeds for your balcony garden', img: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=500&q=70', ...HERO_GREEN },
+  Electronics: { title: 'Chargers and gadgets', sub: 'Cables · Adapters · Study tech', img: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=500&q=70', tint: '#E6F1FB', tintDark: '#16202B' },
+};
+const FOOD_HERO_IMG = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&q=70';
+
 const SEARCH_PLACEHOLDERS = ["Search for 'rice'", "Search for 'chips'", "Search for 'curd'", "Search for 'atta'", "Search for 'ghee'", "Search for 'toys'", "Search for 'seeds'"];
 
-// Shelf tiles only: each tile's badge ("UP TO x% OFF" / "FROM ₹y") is computed from the real catalogue.
+// Shelf tiles only: each tile's badge ("Up to x% off" / "From ₹y") is computed from the real catalogue.
 const TOY_MANIA_CATEGORIES = [
   {
     title: 'Vehicle toys',
@@ -254,6 +303,9 @@ type CatalogueItem = {
   restaurantId: string;
   storeName: string | null;
   vendorType: string | null;
+  /** Real customer rating (shown only when ratingCount > 0). */
+  rating: number | null;
+  ratingCount: number;
 };
 
 // Store types sold on the Food & Basket tab, and the booking-only service types (for "From ₹X" prices).
@@ -299,11 +351,37 @@ const toCatalogueItem = (raw: any): CatalogueItem | null => {
     restaurantId: String(raw.restaurantId || raw.storeId || ''),
     storeName: raw.storeName || null,
     vendorType: raw.vendorType || null,
+    rating: Number.isFinite(Number(raw.rating)) && Number(raw.rating) > 0 ? Number(raw.rating) : null,
+    ratingCount: Math.max(0, Math.floor(Number(raw.ratingCount) || 0)),
   };
 };
 
-const fmtPrice = (n: number) => `₹${Number.isInteger(n) ? n : Number(n).toFixed(2)}`;
-const discountLabel = (p: CatalogueItem) => (p.discountPercent ? `${p.discountPercent}% OFF` : null);
+/** Indian digit grouping (₹1,23,456.50) without relying on Intl, which older Hermes builds lack. */
+const groupIN = (digits: string) => {
+  if (digits.length <= 3) return digits;
+  const last3 = digits.slice(-3);
+  return `${digits.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ',')},${last3}`;
+};
+const fmtPrice = (n: number) => {
+  const v = Math.abs(Number(n) || 0);
+  const [whole, frac] = (Number.isInteger(v) ? String(v) : v.toFixed(2)).split('.');
+  return `${Number(n) < 0 ? '-' : ''}₹${groupIN(whole)}${frac ? `.${frac}` : ''}`;
+};
+/** "Salt, Sugar & Jaggery" -> "Salt, sugar & jaggery" (display only; shelf keys keep their names). */
+const sentence = (t: string) => (t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : t);
+/** Veg / non-veg marks only make sense on food: not on soap, toys, seeds or chargers. */
+const NON_FOOD_CATEGORY = /bath|body|hair|beauty|skin|detergent|clean|hygiene|health|electronic|toy|seed|stationer/i;
+const isFoodProduct = (p: CatalogueItem) => p.vendorType === 'GROCERY' && !NON_FOOD_CATEGORY.test(p.category || '');
+/** What a daily deal's coupon is worth, the way the server builds it (routes/vaultRoutes claim):
+ *  a free-delivery coupon, or (original price - deal price) off. */
+const vaultDealTag = (item: any): string | null => {
+  if (/free\s*delivery/i.test(String(item?.name || ''))) return 'Free delivery';
+  const value = Math.max(0, (Number(item?.originalPrice) || 0) - (Number(item?.price) || 0));
+  return value > 0 ? `${fmtPrice(value)} off` : null;
+};
+/** Server prize text without the emoji ("10 ZenPoints 💎" -> "10 ZenPoints"). */
+const stripEmoji = (t: string) => String(t || '').replace(/[\uD800-\uDFFF\u2600-\u27BF\uFE0F]/g, '').replace(/\s+/g, ' ').trim();
+const discountLabel = (p: CatalogueItem) => (p.discountPercent ? `${p.discountPercent}% off` : null);
 
 // Which catalogue items a tile / pill / brand opens. Anything not listed here matches its own
 // category name (or product names containing it). Tiles with no real products are hidden.
@@ -311,7 +389,10 @@ type Shelf = { categories?: string[]; keywords?: string[]; vendorTypes?: string[
 const SHELVES: Record<string, Shelf> = {
   'All Groceries': { vendorTypes: ['GROCERY'] },
   Fresh: { categories: ['Fresh', 'Fresh Fruits', 'Fruits', 'Vegetables', 'Leafy Greens'] },
-  Grocery: { categories: ['Grocery', 'Atta & Flours', 'Dals & Pulses', 'Rice & Grains', 'Edible Oils & Ghee', 'Masalas & Spices', 'Salt, Sugar & Jaggery', 'Daily Essentials'] },
+  Grocery: { categories: ['Grocery', 'Staples', 'Atta & Flours', 'Dals & Pulses', 'Rice & Grains', 'Edible Oils & Ghee', 'Oils', 'Masalas & Spices', 'Salt, Sugar & Jaggery', 'Daily Essentials', 'Dairy', 'Dry Fruits'] },
+  'Snacks & beverages': { categories: ['Snacks', 'Chips & Namkeens', 'Lays', 'Drinks & Juices', 'Juices & Cups', 'Coca Cola', 'Tea & Coffee', 'Nescafe', 'Cadbury', 'Sweet Indulgences', 'Instant & Frozen Food'] },
+  'Bakery & breakfast': { categories: ['Bakery', 'Biscuits & Cakes', 'Breakfast Options'] },
+  'Health & care': { categories: ['Health', 'Monsoon Wellness Picks', 'Bath, Body & Hair', 'Beauty & Skincare'] },
   Electronics: { vendorTypes: ['ELECTRONICS'] },
   Organic: { categories: ['Organic'] },
   Health: { categories: ['Health', 'Monsoon Wellness Picks'] },
@@ -330,6 +411,9 @@ const SHELVES: Record<string, Shelf> = {
   'Detergents & Cleaning': { categories: ['Detergents & Cleaning', 'Surf Excel'] },
   'Fit & active': { categories: ['Fitness ready'] },
 };
+
+/** Listing page key for "search the whole campus store" (header search on Food & groceries). */
+const SEARCH_SHELF = '__search';
 
 const shelfItems = (name: string | null, items: CatalogueItem[]): CatalogueItem[] => {
   if (!name) return [];
@@ -422,8 +506,13 @@ const Confetti = memo(() => (
 ));
 
 export default function OthersScreen() {
+  // Real status-bar inset, never less than the old fixed padding (utils/useTopInset)
+  const topPad = useTopInset(36, Platform.OS === 'web' ? 12 : 44);
   const { isDark, toggleTheme, colors } = useTheme();
-  const { user, setUser } = useAuth();
+  // Live window width (follows rotation / window resizes); the screen is capped at 600 wide.
+  const { width: winW } = useWindowDimensions();
+  const pageW = Math.min(winW, 600);
+  const { user, setUser, refreshUser } = useAuth();
   const router = useRouter();
   const { tab, sub } = useLocalSearchParams<{ tab: string; sub?: string }>();
   const [activeTab, setActiveTab] = useState('food');
@@ -437,6 +526,8 @@ export default function OthersScreen() {
   const [customItemPrice, setCustomItemPrice] = useState('');
   const [showCustomForm, setShowCustomForm] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  /** Y of the PG section inside the Others scroll view (PgListSection asks to scroll back to it). */
+  const pgSectionYRef = useRef(0);
 
   useEffect(() => {
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
@@ -479,7 +570,8 @@ export default function OthersScreen() {
   const sectionsSWR = useSWRJson<{ sections?: Record<string, { live?: boolean }> }>('/api/config/sections', { freshMs: 60 * 1000 });
   const sectionLive = useCallback((key: string) => {
     const sec = sectionsSWR.data?.sections;
-    const k = key === 'pg' ? 'pg' : key === 'coride' ? 'coride' : key === 'rentals' ? 'rentals' : null;
+    // Co-Ride always shows: posting a ride is how its listings start, so hiding it while empty was a dead end.
+    const k = key === 'pg' ? 'pg' : key === 'rentals' ? 'rentals' : null;
     if (!k || !sec || !sec[k]) return true;
     return sec[k].live !== false;
   }, [sectionsSWR.data]);
@@ -494,7 +586,8 @@ export default function OthersScreen() {
     if (!sectionLive(activeTab)) setActiveTab('food');
   }, [activeTab, sectionLive]);
   const isMountedRef = useRef(true);
-  useEffect(() => () => { isMountedRef.current = false; }, []);
+  // Set true in the body too: fast refresh / StrictMode re-run effects, and a ref left false would drop every later update.
+  useEffect(() => { isMountedRef.current = true; return () => { isMountedRef.current = false; }; }, []);
 
   const { cart, addToCart, updateQuantity, clearCart } = useCart();
   const [activeCategoryPill, setActiveCategoryPill] = useState('All');
@@ -518,6 +611,7 @@ export default function OthersScreen() {
     return () => { cancelled = true; };
   }, []);
 
+  const [storeHours, setStoreHours] = useState<Record<string, { name: string; isOpen: boolean; opensAt: string | null }>>({});
   const fetchCatalogue = useCallback(async () => {
     setCatalogueStatus(prev => (prev === 'ready' ? prev : 'loading'));
     try {
@@ -526,6 +620,13 @@ export default function OthersScreen() {
         const res = await apiFetch(`${API_URL}/api/catalogue/items?type=${encodeURIComponent(t)}&limit=200`);
         if (!res.ok) throw new Error(`catalogue ${res.status}`);
         const data = await readJson(res);
+        // Store hours (isOpen / opensAt) so closed shops show "Opens 9 am" on their cards.
+        const hours: Record<string, { name: string; isOpen: boolean; opensAt: string | null }> = {};
+        (Array.isArray(data?.stores) ? data.stores : []).forEach((st: any) => {
+          const sid = String(st?.id || st?._id || '');
+          if (sid) hours[sid] = { name: String(st.name || ''), isOpen: st.isOpen !== false, opensAt: typeof st.opensAt === 'string' ? st.opensAt : null };
+        });
+        if (isMountedRef.current && Object.keys(hours).length) setStoreHours(prev => ({ ...prev, ...hours }));
         return Array.isArray(data?.items) ? data.items : [];
       }));
       const ok = settled.filter((r): r is PromiseFulfilledResult<any[]> => r.status === 'fulfilled');
@@ -585,9 +686,12 @@ export default function OthersScreen() {
   // Mega Basket shopping requests are ordered separately, so they never share a basket with store items.
   const addProduct = (product: CatalogueItem) => {
     if (!product.orderable || !product.isAvailable) {
+      const opens = closedOpensLabel(product);
       Alert.alert(
         product.isAvailable ? `${product.storeName || 'This store'} is closed` : 'Sold out',
-        product.isAvailable ? 'You can order from here once the store opens again.' : 'This item is out of stock right now. Please check back soon.'
+        product.isAvailable
+          ? (opens ? `It ${opens.toLowerCase()}. You can browse now and add items once it opens.` : 'You can browse now and add items once it opens again.')
+          : 'This item is out of stock right now. Please check back soon.'
       );
       return;
     }
@@ -658,6 +762,62 @@ export default function OthersScreen() {
       if (isMountedRef.current) setRewardsStatus(prev => (prev === 'ready' ? prev : 'error'));
     }
   }, [myId]);
+
+  // ── Deals & spin: today's deals (GET /api/vault, the same list and claim as Home) and the spin page ──
+  const [vaultItems, setVaultItems] = useState<any[]>([]);
+  const [claimingVaultId, setClaimingVaultId] = useState<string | null>(null);
+  const claimingVaultRef = useRef(false);
+  const [spinOpen, setSpinOpen] = useState(false);
+  // Deal detail sheet: one of today's deals with real "how to avail" steps.
+  const [dealDetail, setDealDetail] = useState<any | null>(null);
+  // /rewards (Profile, checkout, notifications) lands on this tab; ?tab=promos&sub=spin opens the spin page.
+  useEffect(() => {
+    if ((tab === 'promos' || tab === 'offers') && sub === 'spin') {
+      setSpinOpen(true);
+      // One-shot: clear it so a later tab switch back to Deals & spin does not reopen the wheel.
+      try { router.setParams({ sub: undefined } as any); } catch {}
+    }
+  }, [tab, sub]);
+  const fetchVault = useCallback(async () => {
+    try {
+      const res = await apiFetch(ENDPOINTS.vaultList);
+      const data = await readJson(res);
+      if (res.ok && isMountedRef.current) setVaultItems(Array.isArray(data) ? data : []);
+    } catch {
+      // The deals row simply stays hidden when the list cannot load.
+    }
+  }, []);
+  const claimVault = async (item: any) => {
+    if (!myId) {
+      Alert.alert('Sign in to claim', "Sign in to claim today's deals.", [
+        { text: 'Not now', style: 'cancel' },
+        { text: 'Sign in', onPress: () => router.push('/login' as any) },
+      ]);
+      return;
+    }
+    if (claimingVaultRef.current) return; // a double tap must not claim twice
+    claimingVaultRef.current = true;
+    setClaimingVaultId(item.id);
+    try {
+      const res = await apiFetch(ENDPOINTS.vaultClaim(item.id), { method: 'POST' });
+      const data: any = await readJson(res);
+      if (res.ok) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        const code = data?.code || data?.coupon?.code;
+        Alert.alert('Deal claimed', code ? `Use code ${code} at checkout. It's valid until midnight.` : (data?.message || 'Added to your coupons.'));
+        fetchVault();
+        fetchRewards();
+        refreshUser?.().catch?.(() => {});
+      } else {
+        Alert.alert("Couldn't claim this deal", data?.message || (res.status >= 500 ? SERVER_BUSY_MESSAGE : 'Please try again in a moment.'));
+      }
+    } catch {
+      Alert.alert("Couldn't claim this deal", NETWORK_ERROR_MESSAGE);
+    } finally {
+      claimingVaultRef.current = false;
+      if (isMountedRef.current) setClaimingVaultId(null);
+    }
+  };
 
   // -- MICRO ANIMATIONS + STAGGERED ENTRANCE SYSTEM --
   const spinBtnScale = useRef(new Animated.Value(1)).current;
@@ -734,7 +894,7 @@ export default function OthersScreen() {
 
   // Persistent loop animations — only run when promos tab is active to save CPU
   useEffect(() => {
-    if (activeTab !== 'promos') return;
+    if (activeTab !== 'promos' || !spinOpen) return;
     const loops = [
       Animated.loop(Animated.sequence([
         Animated.timing(spinBtnScale, { toValue: 1.08, duration: 800, useNativeDriver: true }),
@@ -751,7 +911,7 @@ export default function OthersScreen() {
     ];
     loops.forEach(l => l.start());
     return () => loops.forEach(l => l.stop());
-  }, [activeTab]);
+  }, [activeTab, spinOpen]);
 
   const handleCopyCode = (code: string) => {
     try {
@@ -772,9 +932,9 @@ export default function OthersScreen() {
   const handleSpin = async () => {
     if (isSpinning || spinLockRef.current) return;
     if (!myId) {
-      Alert.alert('Log in to spin', 'Spins are earned with delivered orders. Log in to see yours.', [
+      Alert.alert('Sign in to spin', 'Spins are earned with delivered orders. Sign in to see yours.', [
         { text: 'Not now', style: 'cancel' },
-        { text: 'Log in', onPress: () => router.push('/login' as any) },
+        { text: 'Sign in', onPress: () => router.push('/login' as any) },
       ]);
       return;
     }
@@ -846,7 +1006,10 @@ export default function OthersScreen() {
 
   // Backdrop & Sheet Animations
   const catalogBackdropAnim = useRef(new Animated.Value(0)).current;
-  const catalogSheetAnim = useRef(new Animated.Value(600)).current;
+  const catalogSheetAnim = useRef(new Animated.Value(SW)).current;
+  // Category listing page: search text and sub-category chip (reset each time a listing opens).
+  const [listQuery, setListQuery] = useState('');
+  const [listChip, setListChip] = useState('All');
 
   // Floating Cart Status Bar Animation
   const cartBarAnim = useRef(new Animated.Value(100)).current;
@@ -864,10 +1027,12 @@ export default function OthersScreen() {
   useEffect(() => {
     if (selectedCategoryName !== null) {
       catalogBackdropAnim.setValue(0);
-      catalogSheetAnim.setValue(600);
+      catalogSheetAnim.setValue(winW);
+      setListQuery('');
+      setListChip('All');
       Animated.parallel([
         Animated.timing(catalogBackdropAnim, { toValue: 0.65, duration: 250, useNativeDriver: true }),
-        Animated.spring(catalogSheetAnim, { toValue: 0, friction: 8, tension: 40, useNativeDriver: true }),
+        Animated.spring(catalogSheetAnim, { toValue: 0, friction: 10, tension: 60, useNativeDriver: true }),
       ]).start();
     }
   }, [selectedCategoryName]);
@@ -875,7 +1040,7 @@ export default function OthersScreen() {
   const closeCatalogSheet = () => {
     Animated.parallel([
       Animated.timing(catalogBackdropAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
-      Animated.timing(catalogSheetAnim, { toValue: 600, duration: 200, useNativeDriver: true }),
+      Animated.timing(catalogSheetAnim, { toValue: winW, duration: 200, useNativeDriver: true }),
     ]).start(() => {
       if (isMountedRef.current) setSelectedCategoryName(null);
     });
@@ -885,6 +1050,10 @@ export default function OthersScreen() {
   useFocusEffect(
     useCallback(() => {
       const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        if (spinOpen) {
+          setSpinOpen(false);
+          return true;
+        }
         if (selectedCategoryName !== null) {
           closeCatalogSheet();
           return true;
@@ -892,7 +1061,7 @@ export default function OthersScreen() {
         return false;
       });
       return () => sub.remove();
-    }, [selectedCategoryName])
+    }, [selectedCategoryName, spinOpen])
   );
 
   // Basket bar: only the lines from this screen's stores (plus Mega Basket shopping requests).
@@ -964,11 +1133,13 @@ export default function OthersScreen() {
   const submittingRideRef = useRef(false); // a double tap lands before the state flips (two rides posted)
 
   // Ordering hours (real: GET /api/orders/serviceability)
-  const [serviceability, setServiceability] = useState<{ open: boolean; reopensAt?: string } | null>(null);
+  const [serviceability, setServiceability] = useState<{ open: boolean; reopensAt?: string; closesAt?: string } | null>(null);
 
   // 5xx bodies can carry raw server/database errors: never show those to a student.
   const friendlyError = (res: Response | null, data: any, fallback: string): string => {
-    if (res && res.status >= 500) return SERVER_BUSY_MESSAGE;
+    // 502-504 survived the cold-start retry (still starting); any other 5xx is a real server error, not a wake-up.
+    if (res && res.status >= 502 && res.status <= 504) return 'The server is starting up. Try again in a few seconds.';
+    if (res && res.status >= 500) return 'Something went wrong on our side. Try again in a moment.';
     const msg = data && typeof data.message === 'string' ? data.message.trim() : '';
     if (!msg || msg === 'Unauthorized') return fallback;
     if (/gender preferences mismatch/i.test(msg)) return 'This ride is set to same-gender riders only, so you cannot join it.';
@@ -982,10 +1153,32 @@ export default function OthersScreen() {
     return `${h % 12 === 0 ? 12 : h % 12}:${m[2]} ${h < 12 ? 'AM' : 'PM'}`;
   };
 
+  // "9 pm", "6:30 am": the short form used by the header status chip.
+  const fmtShortClock = (hhmm?: string) => {
+    const m = String(hhmm || '').match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return '';
+    const h = parseInt(m[1], 10);
+    return `${h % 12 === 0 ? 12 : h % 12}${m[2] === '00' ? '' : `:${m[2]}`} ${h < 12 ? 'am' : 'pm'}`;
+  };
+  /** "Opens 9 am" for an in-stock item whose store is closed right now; null when it can be ordered. */
+  function closedOpensLabel(product: CatalogueItem): string | null {
+    if (product.orderable || !product.isAvailable) return null;
+    const st = storeHours[product.restaurantId];
+    const t = st && st.opensAt ? fmtShortClock(st.opensAt) : '';
+    return t ? `Opens ${t}` : 'Closed now';
+  }
+  // Shops that are closed right now while the campus itself is open (e.g. 8 am, shops open at 9 am).
+  const closedShops = Object.values(storeHours).filter(st => !st.isOpen);
+  const earliestOpen = closedShops.map(st => st.opensAt).filter(Boolean).sort()[0] || null;
+  const inStock = catalogue.filter(pr => pr.isAvailable);
+  const closedItemShare = inStock.length ? inStock.filter(pr => !pr.orderable).length / inStock.length : 0;
+  const allShopsClosed = catalogueStatus === 'ready' && inStock.length > 0 && closedItemShare === 1;
+  const someShopsClosed = catalogueStatus === 'ready' && closedItemShare >= 0.3 && closedItemShare < 1;
+
   const promptLogin = (title: string, message: string) => {
     Alert.alert(title, message, [
       { text: 'Not now', style: 'cancel' },
-      { text: 'Log in', onPress: () => router.push('/login' as any) },
+      { text: 'Sign in', onPress: () => router.push('/login' as any) },
     ]);
   };
 
@@ -998,7 +1191,7 @@ export default function OthersScreen() {
       const res = await apiFetch(`${API_URL}/api/orders/serviceability`);
       const data = await readJson(res);
       if (res.ok && data && typeof data.open === 'boolean' && isMountedRef.current) {
-        setServiceability({ open: data.open, reopensAt: data.reopensAt });
+        setServiceability({ open: data.open, reopensAt: data.reopensAt, closesAt: typeof data.closesAt === 'string' ? data.closesAt : undefined });
       }
     } catch {
       // The badge simply stays hidden when we cannot tell.
@@ -1089,9 +1282,9 @@ export default function OthersScreen() {
     else if (activeTab === 'services') { run('servicePrices', fetchServicePrices); run('catalogue', fetchCatalogue); }
     else if (activeTab === 'pg') run('pg', () => fetchPGs());
     else if (activeTab === 'coride' && myId) { run('rides', fetchRides, false); run('myRides', fetchMyRides, false); }
-    else if (activeTab === 'promos') run('rewards', fetchRewards, false);
+    else if (activeTab === 'promos') { run('rewards', fetchRewards, false); run('vault', fetchVault); }
     return Promise.all(jobs);
-  }, [activeTab, myId, fetchServiceability, fetchCatalogue, fetchServicePrices, fetchPGs, fetchRides, fetchMyRides, fetchRewards]);
+  }, [activeTab, myId, fetchServiceability, fetchCatalogue, fetchServicePrices, fetchPGs, fetchRides, fetchMyRides, fetchRewards, fetchVault]);
 
   useFocusEffect(
     useCallback(() => {
@@ -1155,7 +1348,7 @@ export default function OthersScreen() {
   };
 
   const handleJoinRide = (ride: any) => {
-    if (!myId) { promptLogin('Log in to join rides', 'Co-rides are only for signed-in students.'); return; }
+    if (!myId) { promptLogin('Sign in to join rides', 'Co-rides are only for signed-in students.'); return; }
     const together = ride.creatorRole === 'passenger';
     Alert.alert(
       together ? 'Ride together?' : 'Join this ride?',
@@ -1224,7 +1417,7 @@ export default function OthersScreen() {
   };
 
   const openCreateRide = () => {
-    if (!myId) { promptLogin('Log in to post a ride', 'Co-rides are only for signed-in students.'); return; }
+    if (!myId) { promptLogin('Sign in to post a ride', 'Co-rides are only for signed-in students.'); return; }
     setShowCreateModal(true);
   };
 
@@ -1370,7 +1563,7 @@ export default function OthersScreen() {
     const notes2: string[] = [];
     if (missed.length) notes2.push(`Not found: ${missed.join(', ')}`);
     if (skipped) notes2.push(`${skipped} item${skipped === 1 ? '' : 's'} from another store were skipped (one store per order).`);
-    Alert.alert('Added to basket ⚡', `${sameStore.length} item${sameStore.length === 1 ? '' : 's'} from ${sameStore[0].item.storeName || 'the store'}.${notes2.length ? `\n\n${notes2.join('\n')}` : ''}`);
+    Alert.alert('Added to basket', `${sameStore.length} item${sameStore.length === 1 ? '' : 's'} from ${sameStore[0].item.storeName || 'the store'}.${notes2.length ? `\n\n${notes2.join('\n')}` : ''}`);
   };
 
   const openCustomRequest = () => {
@@ -1403,7 +1596,7 @@ export default function OthersScreen() {
         restaurantName: 'Shopping list',
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      Alert.alert('Request added 🛍️', `"${name}" × ${qty} is in your basket. A Zenvy shopper buys it for you, and you approve the final bill before paying.`);
+      Alert.alert('Request added', `"${name}" × ${qty} is in your basket. A shopper buys it for you, and you approve the final bill before paying.`);
       setCustomItemName('');
       setCustomItemPrice('');
       setCustomItemQty('1');
@@ -1515,13 +1708,94 @@ export default function OthersScreen() {
   };
 
   const cardBg = isDark ? 'rgba(255, 255, 255, 0.08)' : colors.card;
-  const cardSurface = isDark ? '#1D1D20' : colors.card;
+  const cardSurface = isDark ? OTHERS_SURFACE.dark.card : colors.card;
   const txt = colors.text;
   const txtSec = colors.textSecondary;
   const border = isDark ? 'rgba(255, 255, 255, 0.18)' : colors.border;
+  // Light mode: cards, tiles and pills get a soft lift so they separate from the page (dark: none)
+  const lift = surfaceLift(isDark);
+  const liftSm = surfaceLift(isDark, true);
+  const cardEdge = isDark ? border : LIGHT_HAIRLINE;
   const bg = colors.bg;
+  // Grid widths from the live window (16 px gutters, 12 px gaps).
+  const TILE_W = Math.floor((pageW - 32 - 12) / 2);
+  const GRID_CARD_W = Math.floor((pageW - 76 - 24 - 10) / 2); // Categories mode: 76 px aisle rail
+  const LIST_CARD_W = Math.floor((pageW - 32 - 12) / 2);
+  const BASKET_TILE_W = Math.floor((pageW - 32 - 24) / 3);
+  const DEAL_CARD_W = Math.floor((pageW - 32 - 12) / 2);
+  const spinWheelSize = Math.min(pageW - 64, 320);
 
   const accentGradient: [string, string] = isDark ? [COLORS.gold, COLORS.goldLight] : ['#EF4F5F', '#D43F4F'];
+  // Solid accent (pills, buttons) and the accent used for small text (a step darker in light for contrast).
+  const accent = isDark ? COLORS.gold : COLORS.red;
+  const onAccent = isDark ? '#0A0A0B' : '#FFFFFF';
+  const accentInk = isDark ? COLORS.gold : COLORS.redDark;
+  // Soft card surfaces: light = white with the layered shadow, dark = raised grey with a hairline.
+  const fieldSurface = isDark
+    ? { backgroundColor: OTHERS_SURFACE.dark.card, borderColor: 'rgba(255,255,255,0.08)' }
+    : [{ backgroundColor: '#FFFFFF', borderColor: 'transparent' }, LIGHT_SURFACE_SM];
+  const iconBtnSurface = fieldSurface;
+  // Food & groceries accent: fresh green on white cards (owner's choice, 22 Oct).
+  // Section accents come from the Others tokens (modules/others/othersTheme.ts).
+  const fg = {
+    solid: OTHERS_ACCENTS.food.solid,
+    ink: isDark ? OTHERS_ACCENTS.food.ink.dark : OTHERS_ACCENTS.food.ink.light,
+    tint: isDark ? OTHERS_ACCENTS.food.tint.dark : OTHERS_ACCENTS.food.tint.light,
+    heroBg: isDark ? '#14241A' : '#EAF5EC',
+    plate: isDark ? '#232327' : '#F4F5F7',
+  };
+  // Deals & spin accent: purple / indigo (owner's choice, 22 Oct).
+  const dp = {
+    solid: isDark ? '#7C5CFF' : OTHERS_ACCENTS.deals.solid,
+    ink: isDark ? OTHERS_ACCENTS.deals.ink.dark : OTHERS_ACCENTS.deals.ink.light,
+    tint: isDark ? OTHERS_ACCENTS.deals.tint.dark : OTHERS_ACCENTS.deals.tint.light,
+    heroA: isDark ? '#3B2A99' : '#6D4AFF',
+    heroB: isDark ? '#24185F' : OTHERS_ACCENTS.deals.deep,
+  };
+  const greenShadow = Platform.select<any>({
+    web: { boxShadow: '0px 2px 8px rgba(30,142,62,0.28)' },
+    default: { shadowColor: '#1E8E3E', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 3 },
+  });
+  const activePillShadow = Platform.select<any>({
+    web: { boxShadow: isDark ? '0px 2px 10px rgba(212,175,122,0.22)' : '0px 2px 8px rgba(239,79,95,0.28)' },
+    default: { shadowColor: accent, shadowOffset: { width: 0, height: 3 }, shadowOpacity: isDark ? 0.2 : 0.26, shadowRadius: 8, elevation: 3 },
+  });
+
+  /** Section pills (size md, 40 high) and category chips (size sm, 36 high) share one look. */
+  const renderPill = ({ key, label, icon, active, onPress, size = 'md', sound = 'click', green = false, tone }: {
+    key: string; label: string; icon?: IonName; active: boolean; onPress: () => void; size?: 'md' | 'sm'; sound?: 'click' | 'tabSwitch';
+    /** Food & groceries: green accent (owner's section colour). */
+    green?: boolean;
+    /** Section colour for the active state (Deals & spin: purple). */
+    tone?: string;
+  }) => {
+    const sm = size === 'sm';
+    const on = tone || (green ? fg.solid : accent);
+    const onText = tone || green ? '#FFFFFF' : onAccent;
+    const toneShadow = tone ? Platform.select<any>({
+      web: { boxShadow: `0px 2px 8px ${tone}55` },
+      default: { shadowColor: tone, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 3 },
+    }) : null;
+    return (
+      <DopaminePressable
+        key={key}
+        onPress={onPress}
+        sound={sound}
+        activeScale={0.95}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: active }}
+        accessibilityLabel={label}
+        style={[
+          s.pill,
+          sm && s.pillSm,
+          active ? [{ backgroundColor: on, borderColor: on }, tone ? toneShadow : green ? greenShadow : activePillShadow] : fieldSurface,
+        ]}
+      >
+        {!!icon && <Ionicons name={icon} size={sm ? 15 : 16} color={active ? onText : txtSec} />}
+        <Text style={[s.pillLabel, sm && s.pillLabelSm, { color: active ? onText : txt, fontWeight: active ? '600' : '500' }]} numberOfLines={1}>{label}</Text>
+      </DopaminePressable>
+    );
+  };
 
   const handlePromoAction = (promoId: string) => {
     switch (promoId) {
@@ -1552,7 +1826,7 @@ export default function OthersScreen() {
     title1: p.title,
     title2: p.subtitle,
     description: p.desc,
-    buttonText: p.btn.replace(' →', ''),
+    buttonText: p.btn,
     redirectAction: () => handlePromoAction(p.id),
   }));
 
@@ -1571,21 +1845,21 @@ export default function OthersScreen() {
     { name: 'Organic', label: 'Organic', img: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&q=80' },
     { name: 'Monsoon Wellness Picks', label: 'Wellness picks', img: 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=200&q=80' },
   ];
-  const CATEGORY_PILLS = [
-    { label: 'All', icon: '🍽️', shelf: 'All Groceries' },
-    { label: 'Fresh', icon: '🍎', shelf: 'Fresh' },
-    { label: 'Grocery', icon: '🛒', shelf: 'Grocery' },
-    { label: 'Electronics', icon: '🔌', shelf: 'Electronics' },
-    { label: 'Organic', icon: '🌱', shelf: 'Organic' },
-    { label: 'Health', icon: '🥗', shelf: 'Health' },
-    { label: 'Deals', icon: '🏷️', shelf: 'Deals' },
+  const CATEGORY_PILLS: { label: string; icon: IonName; shelf: string }[] = [
+    { label: 'All', icon: 'apps-outline', shelf: 'All Groceries' },
+    { label: 'Fresh', icon: 'nutrition-outline', shelf: 'Fresh' },
+    { label: 'Grocery', icon: 'cart-outline', shelf: 'Grocery' },
+    { label: 'Electronics', icon: 'flash-outline', shelf: 'Electronics' },
+    { label: 'Organic', icon: 'leaf-outline', shelf: 'Organic' },
+    { label: 'Health', icon: 'fitness-outline', shelf: 'Health' },
+    { label: 'Deals', icon: 'pricetag-outline', shelf: 'Deals' },
   ];
   const oilShelf = useMemo(() => shelfItems('Edible Oils & Ghee', catalogue), [catalogue]);
   const toyTiles = useMemo(() => TOY_MANIA_CATEGORIES.map(t => {
     const items = shelfItems(t.title, catalogue);
     const maxOff = items.reduce((m, i) => Math.max(m, i.discountPercent || 0), 0);
     const minPrice = items.length ? Math.min(...items.map(i => i.price)) : 0;
-    return { ...t, count: items.length, badge: maxOff >= 10 ? `UP TO ${maxOff}% OFF` : `FROM ${fmtPrice(minPrice)}` };
+    return { ...t, count: items.length, badge: maxOff >= 10 ? `Up to ${maxOff}% off` : `From ${fmtPrice(minPrice)}` };
   }).filter(t => t.count > 0), [catalogue]);
   const groceryGrid = useMemo(() => GROCERY_CATEGORIES
     .map(section => ({ ...section, items: section.items.filter(i => shelfItems(i.name, catalogue).length > 0) }))
@@ -1595,7 +1869,18 @@ export default function OthersScreen() {
     return prices.length ? Math.min(...prices) : 0;
   }, [catalogue]);
 
-  const sheetProducts = selectedCategoryName ? shelfItems(selectedCategoryName, catalogue) : [];
+  const sheetProducts = selectedCategoryName === SEARCH_SHELF ? catalogue : selectedCategoryName ? shelfItems(selectedCategoryName, catalogue) : [];
+  // Sub-category chips from the products' own categories (most stocked first), only when there are 2+.
+  const listChips = useMemo(() => {
+    const counts = new Map<string, number>();
+    sheetProducts.forEach(p => { if (p.category) counts.set(p.category, (counts.get(p.category) || 0) + 1); });
+    const keys = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => k).slice(0, 8);
+    return keys.length > 1 ? keys : [];
+  }, [selectedCategoryName, catalogue]);
+  const listQ = listQuery.trim().toLowerCase();
+  const listProducts = sheetProducts.filter(p =>
+    (listChip === 'All' || p.category === listChip)
+    && (!listQ || p.name.toLowerCase().includes(listQ) || (p.brand || '').toLowerCase().includes(listQ) || (p.category || '').toLowerCase().includes(listQ)));
   const visibleBBCategories = BB_CATEGORIES.filter(c => hasShelf(c.key));
   const bbProducts = shelfItems(selectedBBOption, catalogue).filter(p => !showVegOnly || p.isVegetarian);
 
@@ -1612,308 +1897,136 @@ export default function OthersScreen() {
     if (line) updateQuantity(line.cartKey, line.quantity - 1);
   };
 
-  // Horizontal shelf card
-  const renderShelfCard = (product: CatalogueItem) => {
-    const quantity = qtyOf(product.id);
-    const saved = wishlistIds.includes(product.id);
-    const off = discountLabel(product);
-    const soldOut = !product.isAvailable;
-    return (
-      <View key={product.id} style={[s.bbProductCard, { backgroundColor: cardSurface, borderColor: border }]}>
-        <View style={s.bbProductCardImgWrap}>
-          <TouchableOpacity style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }} onPress={() => openProduct(product)} accessibilityRole="button" accessibilityLabel={`${product.name}${soldOut ? ', sold out' : ''}. Open details`}>
-            <Image source={{ uri: product.image || PRODUCT_FALLBACK_IMG }} style={[s.bbProductCardImg, soldOut && { opacity: 0.4 }]} />
-          </TouchableOpacity>
-
-          {soldOut ? (
-            <View style={[s.bbDiscountTag, { position: 'absolute', top: 6, left: 6, backgroundColor: '#6B7280' }]}>
-              <Text style={[s.bbDiscountTagText, { color: '#fff' }]}>SOLD OUT</Text>
-            </View>
-          ) : off ? (
-            <View style={[s.bbDiscountTag, { position: 'absolute', top: 6, left: 6, backgroundColor: '#FCD34D' }]}>
-              <Text style={[s.bbDiscountTagText, { color: '#78350F' }]}>{off}</Text>
-            </View>
-          ) : null}
-
-          <TouchableOpacity style={s.bbWishlistBtn} onPress={() => toggleWishlistProduct(product)} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={saved ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}>
-            <Text style={{ fontSize: 13, color: saved ? '#F59E0B' : '#999' }}>{saved ? '★' : '☆'}</Text>
-          </TouchableOpacity>
-
-          <View style={s.bbAddBtnOverlapping}>
-            {quantity > 0 ? (
-              <View style={s.bbStepperOverlapping}>
-                <TouchableOpacity style={s.bbStepperBtnMini} onPress={() => decProduct(product.id)} accessibilityRole="button" accessibilityLabel={`Remove one ${product.name}. ${quantity} in basket`}>
-                  <Text style={s.bbStepperBtnTextMini}>-</Text>
-                </TouchableOpacity>
-                <Text style={s.bbStepperQtyMini}>{quantity}</Text>
-                <TouchableOpacity style={s.bbStepperBtnMini} onPress={() => addProduct(product)} accessibilityRole="button" accessibilityLabel={`Add one more ${product.name}. ${quantity} in basket`}>
-                  <Text style={s.bbStepperBtnTextMini}>+</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity style={[s.bbAddBtnSquare, soldOut && { opacity: 0.4 }]} onPress={() => addProduct(product)} accessibilityRole="button" accessibilityLabel={soldOut ? `${product.name} is sold out` : `Add ${product.name} to basket`}>
-                <Text style={s.bbAddBtnPlus}>+</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        <TouchableOpacity onPress={() => openProduct(product)}>
-          {!!product.brand && (
-            <Text style={{ fontSize: 12, fontWeight: '900', color: txtSec, textTransform: 'uppercase', marginBottom: 2 }} numberOfLines={1}>{product.brand}</Text>
-          )}
-          <Text style={[s.bbProductCardName, { color: txt, height: 26 }]} numberOfLines={2}>{product.name}</Text>
-          {!!product.weight && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-              <Text style={s.bbProductCardWeight}>{product.weight}</Text>
-            </View>
-          )}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-            <Text style={[s.bbProductCardPrice, { color: txt }]}>{fmtPrice(product.price)}</Text>
-            {!!product.originalPrice && <Text style={s.bbProductCardOrigPrice}>{fmtPrice(product.originalPrice)}</Text>}
-          </View>
-        </TouchableOpacity>
+  /** Section title (sentence case, title weight) with an optional subtitle and "See all". */
+  const renderSectionHeader = (title: string, subtitle?: string | null, onSeeAll?: (() => void) | null) => (
+    <View style={s.secHead}>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={[s.secTitle, { color: txt }]} numberOfLines={1} accessibilityRole="header">{title}</Text>
+        {!!subtitle && <Text style={[s.secSub, { color: txtSec }]} numberOfLines={1}>{subtitle}</Text>}
       </View>
-    );
-  };
+      {!!onSeeAll && (
+        <PressScale style={s.textBtn} onPress={onSeeAll} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`See all: ${title}`}>
+          <Text style={[s.textBtnText, { color: fg.ink }]}>See all</Text>
+          <Ionicons name="chevron-forward" size={15} color={fg.ink} />
+        </PressScale>
+      )}
+    </View>
+  );
 
-  // Grid card (category mode + product sheet)
-  const renderGridCard = (product: CatalogueItem, cardWidth: number, onOpen: () => void) => {
-    const quantity = qtyOf(product.id);
-    const off = discountLabel(product);
-    const soldOut = !product.isAvailable;
-    return (
-      <View
-        key={product.id}
-        style={{
-          width: cardWidth,
-          backgroundColor: isDark ? '#18181B' : '#FFFFFF',
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#F1F5F9',
-          padding: 8,
-          marginBottom: 4,
-          shadowColor: '#0F172A',
-          shadowOffset: { width: 0, height: 3 },
-          shadowOpacity: isDark ? 0.3 : 0.06,
-          shadowRadius: 8,
-          elevation: 3,
-        }}
-      >
-        <View style={{ width: '100%', height: 96, backgroundColor: '#FFF', borderRadius: 12, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#F8FAFC' }}>
-          <TouchableOpacity style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }} onPress={onOpen} accessibilityRole="button" accessibilityLabel={`${product.name}${soldOut ? ', sold out' : ''}. Open details`}>
-            <Image source={{ uri: product.image || PRODUCT_FALLBACK_IMG }} style={{ width: '88%', height: '88%', resizeMode: 'contain', opacity: soldOut ? 0.4 : 1 }} />
-          </TouchableOpacity>
-          {(soldOut || off) && (
-            <View style={{ position: 'absolute', top: 4, left: 4, borderRadius: 6, overflow: 'hidden' }}>
-              <LinearGradient colors={soldOut ? ['#6B7280', '#4B5563'] : ['#EF4444', '#B91C1C']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ paddingHorizontal: 5, paddingVertical: 2 }}>
-                <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFF', letterSpacing: 0.3 }}>{soldOut ? 'SOLD OUT' : off}</Text>
-              </LinearGradient>
-            </View>
-          )}
-          <View style={{ position: 'absolute', top: 4, right: 4 }}>
-            <View style={{ width: 12, height: 12, borderWidth: 1, borderColor: product.isVegetarian ? '#22C55E' : '#EF4444', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: 2 }}>
-              <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: product.isVegetarian ? '#22C55E' : '#EF4444' }} />
-            </View>
-          </View>
-        </View>
-
-        <Text style={{ fontSize: 12, fontWeight: '800', color: txt, marginTop: 6, height: 26, lineHeight: 12 }} numberOfLines={2}>{product.name}</Text>
-        <Text style={{ fontSize: 12, color: txtSec, marginTop: 2, fontWeight: '600' }} numberOfLines={1}>{product.weight || product.storeName || ' '}</Text>
-
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-          <View>
-            <Text style={{ fontSize: 12, fontWeight: '900', color: isDark ? '#F3F4F6' : '#0F172A' }}>{fmtPrice(product.price)}</Text>
-            {!!product.originalPrice && <Text style={{ fontSize: 12, color: txtSec, textDecorationLine: 'line-through' }}>{fmtPrice(product.originalPrice)}</Text>}
-          </View>
-          <View style={{ minWidth: 50 }}>
-            {quantity > 0 ? (
-              <View style={{ borderRadius: 10, overflow: 'hidden' }}>
-                <LinearGradient colors={['#10B981', '#047857']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flexDirection: 'row', alignItems: 'center', height: 24, justifyContent: 'space-between', paddingHorizontal: 5 }}>
-                  <TouchableOpacity style={{ width: 16, height: 18, alignItems: 'center', justifyContent: 'center' }} onPress={() => decProduct(product.id)} hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`Remove one ${product.name}. ${quantity} in basket`}>
-                    <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }}>-</Text>
-                  </TouchableOpacity>
-                  <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12, paddingHorizontal: 2 }}>{quantity}</Text>
-                  <TouchableOpacity style={{ width: 16, height: 18, alignItems: 'center', justifyContent: 'center' }} onPress={() => addProduct(product)} hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`Add one more ${product.name}. ${quantity} in basket`}>
-                    <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }}>+</Text>
-                  </TouchableOpacity>
-                </LinearGradient>
-              </View>
-            ) : (
-              <TouchableOpacity style={{ borderRadius: 10, overflow: 'hidden', opacity: soldOut ? 0.5 : 1 }} onPress={() => addProduct(product)} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={soldOut ? `${product.name} is sold out` : `Add ${product.name} to basket`}>
-                <LinearGradient colors={soldOut ? ['#9CA3AF', '#6B7280'] : ['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 24, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFF', letterSpacing: 0.5 }}>{soldOut ? 'SOLD OUT' : 'ADD +'}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      </View>
-    );
-  };
-
-  const renderShelf = (title: string, subtitle: string, items: CatalogueItem[], seeAll: string | null) => {
-    if (!items.length) return null;
-    return (
-      <View style={{ marginTop: 16 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 8 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 16, fontWeight: '900', color: txt }}>{title}</Text>
-            {!!subtitle && <Text style={{ fontSize: 12, color: txtSec, marginTop: 1 }}>{subtitle}</Text>}
-          </View>
-          {seeAll && (
-            <TouchableOpacity onPress={() => setSelectedCategoryName(seeAll)} style={s.wellnessSeeAll} accessibilityLabel={`See all ${title}`}>
-              <Text style={{ fontSize: 14, color: txtSec }}>›</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12, paddingBottom: 8 }}>
-          {items.map(renderShelfCard)}
-        </ScrollView>
-      </View>
-    );
-  };
-
+  // Designed state card in the section's accent; it tells offline / waking-up / error apart itself.
   const renderLoadError = (message: string, onRetry: () => void) => (
-    <View style={[s.emptyState, { paddingVertical: 36, paddingHorizontal: 24 }]}>
-      <Text style={{ fontSize: 32, marginBottom: 8 }}>📡</Text>
-      <Text style={{ color: txt, fontSize: 13, fontWeight: '900', marginBottom: 4, textAlign: 'center' }}>Couldn't load this</Text>
-      <Text style={{ color: txtSec, fontSize: 12, fontWeight: '600', textAlign: 'center', marginBottom: 14 }}>{message}</Text>
-      <TouchableOpacity style={[s.resetBtn, { backgroundColor: COLORS.red }]} onPress={onRetry}>
-        <Text style={[s.resetBtnText, { color: '#fff' }]}>TRY AGAIN</Text>
-      </TouchableOpacity>
-    </View>
+    <StateCard
+      kind="error"
+      section={activeTab === 'promos' ? 'deals' : 'food'}
+      title="Could not load this"
+      message={message}
+      actionLabel="Try again"
+      onAction={onRetry}
+      style={{ marginHorizontal: 16, marginTop: 12 }}
+    />
   );
 
-  const renderShelfSkeleton = () => (
-    <View style={{ paddingTop: 16 }}>
-      {[0, 1].map(row => (
-        <View key={row} style={{ marginBottom: 18 }}>
-          <ShimmerLoader width={160} height={16} borderRadius={8} style={{ marginLeft: 16, marginBottom: 10 }} />
-          <View style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 16 }}>
-            {[0, 1, 2].map(i => <ShimmerLoader key={i} width={120} height={180} borderRadius={16} />)}
-          </View>
-        </View>
-      ))}
-    </View>
-  );
-
+  const SERVICE_CARD_ICON: Record<string, IonName> = {
+    repairs: 'laptop-outline', tailoring: 'cut-outline', print: 'print-outline', laundry: 'shirt-outline',
+    mattresses: 'bed-outline', electronics: 'hardware-chip-outline',
+  };
   const SERVICE_CARDS = [
-    { id: 'LAPTOP_REPAIR', title: 'Laptop & Phone Repairs', tag: '💻 BOOK A SLOT', desc: 'Screen replacement, thermal paste, fan cleaning, SSD upgrades and hardware fixes.', icon: '💻', cat: 'repairs', priceKey: 'repairs', image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600&q=80' },
-    { id: 'TAILORING', title: 'Tailoring & Stitching', tag: '🪡 ALTERATIONS', desc: 'Length shortening, shirt and kurti alterations, lab coat resizing and zip replacement.', icon: '✂️', cat: 'tailoring', priceKey: 'tailoring', image: 'https://images.unsplash.com/photo-1528458909336-e7a0adfed0a5?w=600&q=80' },
-    { id: 'PRINTOUT', title: 'Printouts & Binding', tag: '🖨️ PRINT JOBS', desc: 'B&W and colour printouts, project reports, spiral and hard binding.', icon: '📄', cat: 'print', priceKey: 'print', image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=600&q=80' },
-    { id: 'LAUNDRY', title: 'Wash, Dry Clean & Ironing', tag: '🧺 PICKUP & DROP', desc: 'Daily clothes, bedsheets, blankets and shoe cleaning from your hostel.', icon: '👕', cat: 'laundry', priceKey: 'laundry', image: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=600&q=80' },
-    { id: 'MATTRESSES', title: 'Mattresses & Room Gear', tag: '🛏️ MOVE-IN ESSENTIALS', desc: 'Foam mattresses, pillows, bedsheets, buckets and drying racks.', icon: '📦', cat: 'mattresses', priceKey: 'home', image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80' },
-    { id: 'ELECTRONICS', title: 'Chargers & Gadgets', tag: '🔌 TECH ESSENTIALS', desc: 'Laptop adapters, extension boards, calculators and study lamps.', icon: '🔋', cat: 'electronics', priceKey: 'electronics', image: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=600&q=80' },
+    { id: 'LAPTOP_REPAIR', title: 'Laptop and phone repairs', tag: 'Book a slot', desc: 'Screen replacement, thermal paste, fan cleaning, SSD upgrades and hardware fixes.', icon: '💻', cat: 'repairs', priceKey: 'repairs', image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600&q=80' },
+    { id: 'TAILORING', title: 'Tailoring and stitching', tag: 'Alterations', desc: 'Length shortening, shirt and kurti alterations, lab coat resizing and zip replacement.', icon: '✂️', cat: 'tailoring', priceKey: 'tailoring', image: 'https://images.unsplash.com/photo-1528458909336-e7a0adfed0a5?w=600&q=80' },
+    { id: 'PRINTOUT', title: 'Printouts and binding', tag: 'Print jobs', desc: 'B&W and colour printouts, project reports, spiral and hard binding.', icon: '📄', cat: 'print', priceKey: 'print', image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=600&q=80' },
+    { id: 'LAUNDRY', title: 'Wash, dry clean and ironing', tag: 'Pickup and drop', desc: 'Daily clothes, bedsheets, blankets and shoe cleaning from your hostel.', icon: '👕', cat: 'laundry', priceKey: 'laundry', image: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=600&q=80' },
+    { id: 'MATTRESSES', title: 'Mattresses and room gear', tag: 'Move-in essentials', desc: 'Foam mattresses, pillows, bedsheets, buckets and drying racks.', icon: '📦', cat: 'mattresses', priceKey: 'home', image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80' },
+    { id: 'ELECTRONICS', title: 'Chargers and gadgets', tag: 'Tech essentials', desc: 'Laptop adapters, extension boards, calculators and study lamps.', icon: '🔋', cat: 'electronics', priceKey: 'electronics', image: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=600&q=80' },
   ];
 
+  const wheelDisplayPrizes = spinPrizes.length ? spinPrizes : WHEEL_PRIZE_MIRROR;
   const wheelSectors = spinPrizes.map((p, i) => ({ label: p.label, ...WHEEL_STYLES[i % WHEEL_STYLES.length] }));
   const sectorDeg = 360 / Math.max(1, wheelSectors.length || WHEEL_STYLES.length);
   const zenPoints = Number(user?.zenPoints) || 0;
 
+  // Food & groceries v2 (modules/foodV2): its own green header, section pills, listings, product
+  // links and basket bar. Real catalogue, CartContext rules, Mega Basket and saved items live there.
+  if (activeTab === 'food') {
+    return (
+      <View style={{ flex: 1, backgroundColor: isDark ? '#09090B' : '#FFFFFF' }}>
+        <FoodV2Screen forceDark={isDark} sections={visibleTabs} onSection={selectTab} />
+      </View>
+    );
+  }
+
   return (
-    <View style={[s.container, { backgroundColor: bg }]}>
+    <View style={[s.container, { paddingTop: topPad, backgroundColor: bg }]}>
       <AmbientBackground />
-      {/* ── UNIFIED LUXURY CAMPUS HEADER ── */}
-      <View style={[s.bbHeader, { backgroundColor: cardSurface, borderBottomWidth: 1, borderColor: border, paddingBottom: 12, paddingTop: 6 }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
-            <TouchableOpacity
-              style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F1F5F9', borderWidth: 1, borderColor: border, alignItems: 'center', justifyContent: 'center', marginRight: 10 }}
-              onPress={() => router.replace('/(tabs)')}
-              activeOpacity={0.7}
-              accessibilityLabel="Back to Home"
-            >
-              <Ionicons name="arrow-back" size={19} color={txt} />
-            </TouchableOpacity>
+      {/* ── HEADER: title, open status, search and quick actions ── */}
+      <View style={s.hubHeader}>
+        <View style={s.hubTitleRow}>
+          <PressScale
+            style={[s.hubIconBtn, iconBtnSurface]}
+            onPress={() => router.replace('/(tabs)')}
+            accessibilityRole="button"
+            accessibilityLabel="Back to Home"
+          >
+            <Ionicons name="arrow-back" size={20} color={txt} />
+          </PressScale>
 
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 13, fontWeight: '900', color: txt, letterSpacing: 0.3 }} numberOfLines={1}>
-                Campus Hub & Services 🚀
-              </Text>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: txtSec, fontStyle: 'italic' }} numberOfLines={1}>
-                “Everything you need for effortless hostel life”
-              </Text>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <View style={s.hubTitleLine}>
+              <Text style={[s.hubTitle, { color: txt }]} numberOfLines={1} accessibilityRole="header">Campus Hub</Text>
+              {serviceability && (
+                <View
+                  style={[s.hubStatus, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#ECEEF2' }]}
+                  accessibilityLabel={serviceability.open
+                    ? `Open, ordering until ${fmtShortClock(serviceability.closesAt || CAMPUS_CLOSES_AT)}`
+                    : `Closed, opens at ${fmtShortClock(serviceability.reopensAt) || 'soon'}`}
+                >
+                  <View style={[s.hubStatusDot, { backgroundColor: serviceability.open ? (isDark ? OTHERS_STATUS.dark.success : OTHERS_STATUS.light.success) : (isDark ? OTHERS_STATUS.dark.warn : OTHERS_STATUS.light.warn) }]} />
+                  <Text style={[s.hubStatusText, { color: txtSec }]} numberOfLines={1}>
+                    {serviceability.open
+                      ? `Open · till ${fmtShortClock(serviceability.closesAt || CAMPUS_CLOSES_AT)}`
+                      : `Opens ${fmtShortClock(serviceability.reopensAt) || 'soon'}`}
+                  </Text>
+                </View>
+              )}
             </View>
+            <Text style={[s.hubSubtitle, { color: txtSec }]} numberOfLines={1}>Food, groceries and services for your hostel</Text>
           </View>
-
-          {serviceability && (
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: serviceability.open ? (isDark ? 'rgba(34, 197, 94, 0.15)' : '#DCFCE7') : (isDark ? 'rgba(245, 158, 11, 0.15)' : '#FEF3C7'),
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              borderRadius: 10,
-              borderWidth: 1,
-              borderColor: serviceability.open ? (isDark ? 'rgba(34, 197, 94, 0.3)' : '#86EFAC') : (isDark ? 'rgba(245, 158, 11, 0.3)' : '#FCD34D'),
-            }}>
-              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: serviceability.open ? '#22C55E' : '#F59E0B', marginRight: 5 }} />
-              <Text style={{ fontSize: 12, fontWeight: '900', color: serviceability.open ? (isDark ? '#4ADE80' : '#15803D') : (isDark ? '#FCD34D' : '#B45309'), letterSpacing: 0.5 }}>
-                {serviceability.open ? 'OPEN NOW' : `OPENS ${fmtClock(serviceability.reopensAt) || 'SOON'}`}
-              </Text>
-            </View>
-          )}
         </View>
 
-        {/* Search Bar & Wishlist */}
-        <View style={s.bbHeaderSearchRow}>
+        <View style={s.hubSearchRow}>
           <CardPressable
-            style={[s.bbSearchBar, { backgroundColor: isDark ? '#27272A' : '#F4F4F5', borderColor: border, height: 42, flex: 1 }]}
-            onPress={() => setIsSearchOpen(true)}
+            style={[s.hubSearch, fieldSurface]}
+            onPress={() => setSelectedCategoryName(SEARCH_SHELF)}
             tilt={false}
+            activeScale={0.98}
             accessibilityRole="button"
             accessibilityLabel="Search groceries and essentials"
           >
-            <Text style={{ fontSize: 14, color: '#F59E0B' }}>🔍</Text>
-            <RotatingSearchPlaceholder color={txtSec} textColor={txt} style={[s.bbSearchInput, { fontSize: 12, fontWeight: '600' }]} />
-            <TouchableOpacity
-              style={{ padding: 4, backgroundColor: 'rgba(245, 158, 11, 0.15)', borderRadius: 8 }}
-              onPress={() => selectTab('promos')}
-              accessibilityLabel="Deals and rewards"
-            >
-              <Text style={{ fontSize: 13 }}>🎁</Text>
-            </TouchableOpacity>
+            <Ionicons name="search" size={18} color={txtSec} />
+            <RotatingSearchPlaceholder color={txtSec} textColor={txt} style={s.hubSearchInput} />
           </CardPressable>
 
-          <TouchableOpacity
-            style={[s.bbShortcutBtn, { backgroundColor: isDark ? '#27272A' : '#F4F4F5', borderWidth: 1, borderColor: border, width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }]}
+          <PressScale
+            style={[s.hubIconBtn, s.hubIconBtnLg, iconBtnSurface]}
+            onPress={() => selectTab('promos')}
+            accessibilityRole="button"
+            accessibilityLabel="Deals and rewards"
+          >
+            <Ionicons name="gift-outline" size={20} color={txt} />
+          </PressScale>
+          <PressScale
+            style={[s.hubIconBtn, s.hubIconBtnLg, iconBtnSurface]}
             onPress={() => setFavoritesModalVisible(true)}
-            activeOpacity={0.8}
+            accessibilityRole="button"
             accessibilityLabel="Saved items"
           >
-            <Text style={{ fontSize: 15 }}>❤️</Text>
-          </TouchableOpacity>
+            <Ionicons name="heart-outline" size={20} color={txt} />
+          </PressScale>
         </View>
       </View>
 
-      {/* ── TAB SELECTOR (HORIZONTAL SCROLLABLE CHIPS) ── */}
-      <View style={{ marginBottom: 14 }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, alignItems: 'center' }}>
-          {visibleTabs.map(t => {
-            const isActive = activeTab === t.key;
-            return (
-              <DopaminePressable key={t.key} onPress={() => selectTab(t.key)} sound="tabSwitch" activeScale={0.95}>
-                {isActive ? (
-                  <LinearGradient
-                    colors={accentGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 14, shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 3 }}
-                  >
-                    <Text style={{ fontSize: 15 }}>{t.icon}</Text>
-                    <Text style={{ color: '#000', fontWeight: '900', fontSize: 12, letterSpacing: 0.2 }}>{t.label}</Text>
-                  </LinearGradient>
-                ) : (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, backgroundColor: cardBg, borderWidth: 1, borderColor: border }}>
-                    <Text style={{ fontSize: 14 }}>{t.icon}</Text>
-                    <Text style={{ color: txtSec, fontWeight: '700', fontSize: 12 }}>{t.label}</Text>
-                  </View>
-                )}
-              </DopaminePressable>
-            );
-          })}
-        </ScrollView>
+      {/* ── SECTION PILLS ── modules/others/SectionPills: sliding indicator in each section's accent */}
+      <View style={{ marginBottom: 4 }}>
+        <SectionPills tabs={visibleTabs} active={activeTab} onSelect={selectTab} fallbackAccent={accent} fallbackOnAccent={onAccent} />
       </View>
 
       <Animated.View style={{ opacity: tabContentFade, transform: [{ translateY: tabContentTranslateY }], flex: 1 }}>
@@ -1925,420 +2038,18 @@ export default function OthersScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.red} colors={[COLORS.red]} />}
         >
           {/* ── HERO CAROUSEL CARD ── */}
-          {!(activeTab === 'food' && groceryMode === 'categories') && activeTab !== 'events' && activeTab !== 'pg' && activeTab !== 'coride' && (
-            <View style={[s.heroCarouselCard, { borderColor: border }]}>
-              <PromoCarousel offers={carouselOffers} containerStyle={s.heroCarousel} />
+          {activeTab !== 'food' && activeTab !== 'promos' && activeTab !== 'events' && activeTab !== 'pg' && activeTab !== 'coride' && (
+            <View style={[s.heroCarouselCard, isDark ? { borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' } : LIGHT_SURFACE]}>
+              <PromoCarousel offers={carouselOffers} containerStyle={s.heroCarousel} accent={PILL_ACCENT[activeTab] ? OTHERS_ACCENTS[PILL_ACCENT[activeTab]!].solid : undefined} />
             </View>
           )}
-
-          {/* ── MODE SELECTOR ── */}
-          {activeTab === 'food' && (
-            <View style={{ flexDirection: 'row', marginHorizontal: 12, marginTop: 4, marginBottom: 4, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', borderRadius: 24, padding: 3, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0' }}>
-              {(['home', 'categories'] as const).map(mode => (
-                <TouchableOpacity key={mode} style={{ flex: 1, borderRadius: 20, overflow: 'hidden' }} onPress={() => setGroceryMode(mode)} activeOpacity={0.85}>
-                  {groceryMode === mode ? (
-                    <LinearGradient colors={['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ paddingVertical: 6, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFF', letterSpacing: 0.5 }}>{mode === 'home' ? '🏠 HOME' : '🗂️ CATEGORIES'}</Text>
-                    </LinearGradient>
-                  ) : (
-                    <View style={{ paddingVertical: 6, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec, letterSpacing: 0.3 }}>{mode === 'home' ? '🏠 HOME' : '🗂️ CATEGORIES'}</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-        {/* ── FOOD / MEGA BASKET TAB ── */}
-        {activeTab === 'food' && groceryMode === 'home' && (
-          <View>
-            {catalogueStatus === 'loading' && catalogue.length === 0 ? (
-              renderShelfSkeleton()
-            ) : catalogueStatus === 'error' && catalogue.length === 0 ? (
-              renderLoadError('The campus store did not load. Check your internet and try again.', fetchCatalogue)
-            ) : catalogue.length === 0 ? (
-              <View style={[s.emptyState, { paddingVertical: 36 }]}>
-                <Text style={{ fontSize: 32, marginBottom: 8 }}>🧺</Text>
-                <Text style={{ color: txt, fontSize: 13, fontWeight: '900', marginBottom: 4 }}>The store is stocking up</Text>
-                <Text style={{ color: txtSec, fontSize: 12, fontWeight: '600', textAlign: 'center', marginBottom: 14 }}>
-                  Need something now? Send a shopping request and a Zenvy shopper will buy it for you.
-                </Text>
-                <TouchableOpacity style={[s.resetBtn, { backgroundColor: '#10B981' }]} onPress={openCustomRequest}>
-                  <Text style={[s.resetBtnText, { color: '#fff' }]}>REQUEST AN ITEM</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <>
-                {/* ── TOP DEAL (real discount from the catalogue) ── */}
-                {topDeal && (
-                  <View style={[s.flashDealContainer, { backgroundColor: '#FEF2F2', borderColor: '#FCA5A5', marginTop: 12 }]}>
-                    <LinearGradient colors={['#EF4444', '#DC2626']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.flashBadge}>
-                      <Text style={s.flashBadgeText}>⚡ TOP DEAL</Text>
-                    </LinearGradient>
-                    <View style={{ flex: 1, paddingLeft: 8 }}>
-                      <Text style={s.flashDealTitle} numberOfLines={1}>{topDeal.name} — {topDeal.discountPercent}% OFF</Text>
-                      <Text style={s.flashDealTimerLabel} numberOfLines={1}>Now {fmtPrice(topDeal.price)}{topDeal.originalPrice ? ` (was ${fmtPrice(topDeal.originalPrice)})` : ''}</Text>
-                    </View>
-                    <TouchableOpacity style={s.flashDealCta} onPress={() => setSelectedCategoryName('Deals')}>
-                      <Text style={s.flashDealCtaText}>ALL DEALS ➔</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                <View style={{ height: 4 }} />
-
-                {/* ── CATEGORY PILLS ── */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, marginTop: 8, marginBottom: 16 }}>
-                  {CATEGORY_PILLS.filter(p => hasShelf(p.shelf)).map(pill => {
-                    const isActive = activeCategoryPill === pill.label;
-                    return (
-                      <DopaminePressable
-                        key={pill.label}
-                        style={[s.pillBtn, isActive && s.pillBtnActive, { borderColor: border, backgroundColor: isActive ? '#DCFCE7' : cardBg }]}
-                        onPress={() => {
-                          setActiveCategoryPill(pill.label);
-                          setSelectedCategoryName(pill.shelf);
-                        }}
-                        activeScale={0.94}
-                        sound="click"
-                      >
-                        <Text style={{ fontSize: 14, marginRight: 4 }}>{pill.icon}</Text>
-                        <Text style={[s.pillText, { color: isActive ? '#15803D' : txt }]}>{pill.label}</Text>
-                      </DopaminePressable>
-                    );
-                  })}
-                </ScrollView>
-
-                {/* ── SHOP BY BRAND ── */}
-                {BRANDS.some(b => hasShelf(b.name)) && (
-                  <View style={{ marginBottom: 20 }}>
-                    <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
-                      <Text style={[s.sectionTitle, { color: txt, marginVertical: 0, paddingLeft: 0 }]}>SHOP BY BRAND</Text>
-                    </View>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}>
-                      {BRANDS.filter(b => hasShelf(b.name)).map(brand => (
-                        <DopaminePressable
-                          key={brand.name}
-                          style={{ width: 140, height: 200, borderRadius: 22, borderWidth: 1.5, borderColor: brand.border, overflow: 'hidden', backgroundColor: isDark ? '#1C1917' : '#F8FAFC', justifyContent: 'center', alignItems: 'center' }}
-                          onPress={() => setSelectedCategoryName(brand.name)}
-                          activeScale={0.96}
-                          sound="click"
-                        >
-                          <SafeImage source={{ uri: brand.img }} style={{ width: '100%', height: '100%', position: 'absolute' }} />
-                          <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingVertical: 8, paddingHorizontal: 10, backgroundColor: 'rgba(0,0,0,0.65)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 12, letterSpacing: 0.5 }}>{brand.name}</Text>
-                            <Text style={{ color: '#F59E0B', fontWeight: '800', fontSize: 12 }}>SHOP →</Text>
-                          </View>
-                        </DopaminePressable>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
-
-                {/* ── TOYS ── */}
-                {renderShelf(toyStartPrice !== null ? `Toys from ${fmtPrice(toyStartPrice)}` : 'Toys & games', 'Games, plushies, sports & more', toyShelf, 'Toys')}
-
-                {/* ── TOYS & SPORTS GRID ── */}
-                {toyTiles.length > 0 && (
-                  <View style={{ paddingHorizontal: 16, marginTop: 20, marginBottom: 12 }}>
-                    <Text style={{ fontSize: 17, fontWeight: '900', color: txt, letterSpacing: 0.3, marginBottom: 14 }}>Toys & Sports Mania</Text>
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-                      {toyTiles.map(item => (
-                        <ScalePressable key={item.title} onPress={() => setSelectedCategoryName(item.title)} style={{ width: (SW - 32 - 10) / 2 }}>
-                          <View style={{ width: '100%', height: 130, borderRadius: 18, overflow: 'hidden' }}>
-                            <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }} resizeMode="cover" />
-                            <LinearGradient
-                              colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0.15)', 'rgba(0,0,0,0.6)']}
-                              start={{ x: 0, y: 0 }}
-                              end={{ x: 0, y: 1 }}
-                              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'space-between', padding: 12 }}
-                            >
-                              <Text style={{ fontSize: 14, fontWeight: '900', color: '#fff', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 }} numberOfLines={2}>
-                                {item.title}
-                              </Text>
-                              <View style={{ backgroundColor: item.badgeBg, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
-                                <Text style={{ fontSize: 12, fontWeight: '900', color: '#fff', letterSpacing: 0.8 }}>{item.badge}</Text>
-                              </View>
-                            </LinearGradient>
-                          </View>
-                        </ScalePressable>
-                      ))}
-                    </View>
-                  </View>
-                )}
-
-                {/* ── SEEDS ── */}
-                {renderShelf('Bring home fresh greens', 'Seeds for your balcony garden', seedShelf, 'Seeds')}
-
-                {/* ── BEST DEALS ── */}
-                {dealShelf.length > 0 && (
-                  <>
-                    <View style={{ marginHorizontal: 16, marginTop: 20, height: 38, borderRadius: 10, backgroundColor: isDark ? '#27272A' : '#EFF6FF', borderStyle: 'dashed', borderWidth: 1, borderColor: isDark ? '#3F3F46' : '#BFDBFE', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                      <Text style={{ fontSize: 14 }}>🏷️</Text>
-                      <Text style={{ fontSize: 12, fontWeight: '900', color: isDark ? '#93C5FD' : '#1D4ED8', letterSpacing: 1.5 }}>BEST DEALS</Text>
-                    </View>
-                    {renderShelf('Biggest savings right now', 'Prices you pay at checkout', dealShelf, 'Deals')}
-                  </>
-                )}
-
-                {/* ── COOKING OILS & GHEE ── */}
-                {renderShelf('Cooking Oils & Ghee', 'Kitchen staples for your hostel', oilShelf, 'Edible Oils & Ghee')}
-
-                {/* ── BETTER HEALTH ── */}
-                {HEALTH_TILES.some(h => hasShelf(h.name)) && (
-                  <>
-                    <Text style={[s.sectionTitle, { color: txt, marginTop: 24, paddingLeft: 16 }]}>Better health starts here</Text>
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 12, marginBottom: 12 }}>
-                      {HEALTH_TILES.filter(h => hasShelf(h.name)).map(h => (
-                        <TouchableOpacity key={h.name} style={{ width: (SW - 32 - 24) / 3, alignItems: 'center', marginBottom: 12 }} onPress={() => setSelectedCategoryName(h.name)}>
-                          <View style={{ width: '100%', height: 90, borderRadius: 16, backgroundColor: '#E6F4EA', overflow: 'hidden', justifyContent: 'flex-end', borderWidth: 1, borderColor: border }}>
-                            <View style={{ position: 'absolute', top: 20, left: 10, right: 10, bottom: 0, borderTopLeftRadius: 36, borderTopRightRadius: 36, backgroundColor: '#10B981', opacity: 0.7 }} />
-                            <Image source={{ uri: h.img }} style={{ width: '75%', height: '80%', resizeMode: 'cover', alignSelf: 'center', borderBottomLeftRadius: 10, borderBottomRightRadius: 10 }} />
-                          </View>
-                          <Text style={{ fontSize: 12, fontWeight: '900', color: txt, textAlign: 'center', marginTop: 6 }} numberOfLines={2}>{h.label || h.name}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </>
-                )}
-
-                {/* ── WELLNESS PICKS ── */}
-                {renderShelf('Wellness picks', 'Honey, ginger, lemon & more', wellnessShelf, 'Monsoon Wellness Picks')}
-
-                {/* ── DAILY ESSENTIALS, SNACKS, HOME NEEDS GRIDS ── */}
-                <View style={{ height: 16 }} />
-                {groceryGrid.map((section, sectionIdx) => {
-                  const sectionColors = ['#059669', '#EA580C', '#7C3AED'];
-                  return (
-                    <View key={section.title} style={{ paddingHorizontal: 16, marginBottom: 20 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
-                        <Text style={{ fontSize: 17, fontWeight: '900', color: txt, letterSpacing: 0.3 }}>{section.title}</Text>
-                        <View style={{ marginLeft: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: sectionColors[sectionIdx % sectionColors.length] }} />
-                      </View>
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-                        {section.items.map(item => (
-                          <ScalePressable key={item.name} onPress={() => setSelectedCategoryName(item.name)} style={{ width: (SW - 32 - 10) / 2 }}>
-                            <View style={{ width: '100%', height: 120, borderRadius: 16, overflow: 'hidden' }}>
-                              <Image source={{ uri: item.img }} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }} resizeMode="cover" />
-                              <LinearGradient
-                                colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.65)']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 0, y: 1 }}
-                                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'flex-end', padding: 10 }}
-                              >
-                                <Text style={{ fontSize: 12, fontWeight: '900', color: '#fff', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }} numberOfLines={2}>{item.name}</Text>
-                              </LinearGradient>
-                            </View>
-                          </ScalePressable>
-                        ))}
-                      </View>
-                    </View>
-                  );
-                })}
-
-                {/* ── CAN'T FIND IT? (real Mega Basket shopping request) ── */}
-                <TouchableOpacity activeOpacity={0.9} onPress={openCustomRequest} style={{ marginHorizontal: 16, marginBottom: 8, borderRadius: 18, overflow: 'hidden' }}>
-                  <LinearGradient colors={['#115E59', '#134E4A']} style={s.monsoonStoreBanner}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.monsoonBannerSubtitle}>CAN'T FIND IT?</Text>
-                      <Text style={s.monsoonBannerTitle}>REQUEST ANY ITEM 🛍️</Text>
-                      <Text style={s.monsoonBannerDesc}>Tell us what you need. A Zenvy shopper buys it and you approve the bill before paying.</Text>
-                    </View>
-                    <View style={s.frogMascotContainer}>
-                      <Text style={{ fontSize: 44 }}>📝</Text>
-                    </View>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        )}
-
-        {/* ── CATEGORY MODE ── */}
-        {activeTab === 'food' && groceryMode === 'categories' && (
-          <View style={{ flex: 1, height: SH > 700 ? SH - 200 : 540, backgroundColor: isDark ? '#0B0B0D' : '#F8FAFC' }}>
-            {/* Quick List Auto Fill Card */}
-            {showAutoFillCard && (
-              <View style={{ marginHorizontal: 10, backgroundColor: cardBg, borderWidth: 1, borderColor: '#22C55E', borderRadius: 14, padding: 10, marginVertical: 4, elevation: 3 }}>
-                <Text style={{ fontSize: 12, fontWeight: '900', color: txt, marginBottom: 4 }}>⚡ QUICK LIST</Text>
-                <Text style={{ fontSize: 12, color: txtSec, marginBottom: 6 }}>Type your list and we'll add the matching items from the store.</Text>
-                <TextInput
-                  style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF', borderWidth: 1, borderColor: border, borderRadius: 8, padding: 6, fontSize: 12, color: txt, height: 52, textAlignVertical: 'top' }}
-                  multiline
-                  maxLength={500}
-                  placeholder="e.g. 2 maggi, 1 atta, lays"
-                  placeholderTextColor={txtSec}
-                  value={listText}
-                  onChangeText={setListText}
-                />
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 6, marginTop: 6 }}>
-                  <TouchableOpacity style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: isDark ? '#3F3F46' : '#E2E8F0' }} onPress={() => setShowAutoFillCard(false)}>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: txt }}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: '#22C55E' }} onPress={handleSmartAutoFill}>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#fff' }}>ADD ITEMS</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-
-            {/* Custom Request Form */}
-            {showCustomForm && (
-              <View style={{ marginHorizontal: 10, backgroundColor: cardBg, borderWidth: 1, borderColor: '#EF4444', borderRadius: 14, padding: 10, marginVertical: 4, elevation: 3 }}>
-                <Text style={{ fontSize: 12, fontWeight: '900', color: txt, marginBottom: 4 }}>🛍️ REQUEST ANY ITEM</Text>
-                <Text style={{ fontSize: 12, color: txtSec, marginBottom: 6 }}>A Zenvy shopper buys it for you. You approve the real bill before paying (Cash on Delivery).</Text>
-                <TextInput
-                  style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF', borderWidth: 1, borderColor: border, borderRadius: 6, paddingHorizontal: 8, height: 32, fontSize: 12, color: txt, marginBottom: 6 }}
-                  placeholder="Item name and brand"
-                  placeholderTextColor={txtSec}
-                  maxLength={60}
-                  value={customItemName}
-                  onChangeText={setCustomItemName}
-                />
-                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}>
-                  <TextInput
-                    style={{ flex: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF', borderWidth: 1, borderColor: border, borderRadius: 6, paddingHorizontal: 8, height: 32, fontSize: 12, color: txt }}
-                    placeholder="Qty (1–20)"
-                    placeholderTextColor={txtSec}
-                    keyboardType="number-pad"
-                    maxLength={2}
-                    value={customItemQty}
-                    onChangeText={t => setCustomItemQty(t.replace(/[^0-9]/g, ''))}
-                  />
-                  <TextInput
-                    style={{ flex: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF', borderWidth: 1, borderColor: border, borderRadius: 6, paddingHorizontal: 8, height: 32, fontSize: 12, color: txt }}
-                    placeholder="Est. price ₹ / unit"
-                    placeholderTextColor={txtSec}
-                    keyboardType="decimal-pad"
-                    maxLength={7}
-                    value={customItemPrice}
-                    onChangeText={t => setCustomItemPrice(t.replace(/[^0-9.]/g, ''))}
-                  />
-                </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 6, marginTop: 4 }}>
-                  <TouchableOpacity style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: isDark ? '#3F3F46' : '#E2E8F0' }} onPress={() => setShowCustomForm(false)}>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: txt }}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: '#EF4444' }} onPress={handleAddCustomRequest}>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#fff' }}>Add to basket</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-
-            {/* Split Grid */}
-            <View style={{ flexDirection: 'row', flex: 1, width: '100%', borderTopWidth: 1, borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0' }}>
-              {/* Sidebar */}
-              <ScrollView
-                style={{ width: 68, maxWidth: 68, minWidth: 68, flexGrow: 0, flexShrink: 0, borderRightWidth: 1, borderRightColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0', backgroundColor: isDark ? '#0D0E12' : '#F8FAFC' }}
-                contentContainerStyle={{ alignItems: 'center', paddingBottom: 100 }}
-                nestedScrollEnabled={true}
-                showsVerticalScrollIndicator={false}
-              >
-                {visibleBBCategories.map(cat => {
-                  const isSelected = selectedBBOption === cat.key;
-                  return (
-                    <TouchableOpacity
-                      key={cat.key}
-                      style={{ width: 68, paddingVertical: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? (isDark ? 'rgba(16,185,129,0.08)' : '#F0FDF4') : 'transparent' }}
-                      onPress={() => setSelectedBBOption(cat.key)}
-                      activeOpacity={0.8}
-                    >
-                      {isSelected && (
-                        <View style={{ position: 'absolute', left: 0, top: 10, bottom: 10, width: 3.5, backgroundColor: '#10B981', borderTopRightRadius: 3, borderBottomRightRadius: 3 }} />
-                      )}
-                      {isSelected ? (
-                        <LinearGradient colors={['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
-                          <Text style={{ fontSize: 18 }}>{cat.icon}</Text>
-                        </LinearGradient>
-                      ) : (
-                        <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', alignItems: 'center', justifyContent: 'center', marginBottom: 4, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0' }}>
-                          <Text style={{ fontSize: 17 }}>{cat.icon}</Text>
-                        </View>
-                      )}
-                      <Text
-                        style={{ fontSize: 12, fontWeight: isSelected ? '900' : '600', color: isSelected ? (isDark ? '#34D399' : '#047857') : txtSec, textAlign: 'center', paddingHorizontal: 2, lineHeight: 9 }}
-                        numberOfLines={2}
-                      >
-                        {cat.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-
-              {/* Right Product Grid */}
-              <ScrollView
-                style={{ flex: 1, backgroundColor: isDark ? '#0B0B0D' : '#FAFAFA' }}
-                contentContainerStyle={{ padding: 8, paddingBottom: 140 }}
-                nestedScrollEnabled={true}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-              >
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, paddingHorizontal: 2 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '900', color: txt, textTransform: 'uppercase', letterSpacing: 0.8, flex: 1 }} numberOfLines={1}>
-                    ✨ {BB_CATEGORIES.find(c => c.key === selectedBBOption)?.label || selectedBBOption}
-                  </Text>
-
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <TouchableOpacity
-                      style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: isDark ? 'rgba(16,185,129,0.2)' : '#DCFCE7', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isDark ? 'rgba(16,185,129,0.4)' : '#86EFAC' }}
-                      onPress={() => { setShowCustomForm(false); setShowAutoFillCard(v => !v); }}
-                      accessibilityLabel="Quick list"
-                    >
-                      <Text style={{ fontSize: 12 }}>⚡</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: isDark ? 'rgba(239,68,68,0.2)' : '#FEE2E2', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isDark ? 'rgba(239,68,68,0.4)' : '#FCA5A5' }}
-                      onPress={() => { setShowAutoFillCard(false); setShowCustomForm(v => !v); }}
-                      accessibilityLabel="Request any item"
-                    >
-                      <Text style={{ fontSize: 12 }}>🛍️</Text>
-                    </TouchableOpacity>
-
-                    <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec, marginLeft: 2 }}>🟢 Veg</Text>
-                    <TouchableOpacity
-                      style={{ width: 28, height: 16, borderRadius: 9, backgroundColor: showVegOnly ? '#10B981' : '#D1D5DB', justifyContent: 'center', paddingHorizontal: 2 }}
-                      onPress={() => setShowVegOnly(v => !v)}
-                      accessibilityLabel="Veg only"
-                    >
-                      <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#fff', alignSelf: showVegOnly ? 'flex-end' : 'flex-start' }} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {catalogueStatus === 'loading' && catalogue.length === 0 ? (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                    {[0, 1, 2, 3].map(i => <ShimmerLoader key={i} width={(SW - 68 - 24) / 2} height={170} borderRadius={16} />)}
-                  </View>
-                ) : catalogueStatus === 'error' && catalogue.length === 0 ? (
-                  renderLoadError('The campus store did not load.', fetchCatalogue)
-                ) : bbProducts.length === 0 ? (
-                  <View style={{ alignItems: 'center', paddingVertical: 40, paddingHorizontal: 12 }}>
-                    <Text style={{ fontSize: 28, marginBottom: 6 }}>🧺</Text>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: txt, textAlign: 'center' }}>{showVegOnly ? 'No veg items here' : 'Nothing here yet'}</Text>
-                    <Text style={{ fontSize: 12, color: txtSec, textAlign: 'center', marginTop: 4, marginBottom: 12 }}>Request any item and a Zenvy shopper will buy it for you.</Text>
-                    <TouchableOpacity style={[s.resetBtn, { backgroundColor: '#EF4444' }]} onPress={() => { setShowAutoFillCard(false); setShowCustomForm(true); }}>
-                      <Text style={[s.resetBtnText, { color: '#fff' }]}>REQUEST AN ITEM</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                    {bbProducts.map(product => renderGridCard(product, (SW - 68 - 24) / 2, () => openProduct(product)))}
-                  </View>
-                )}
-              </ScrollView>
-            </View>
-          </View>
-        )}
 
         {/* ── TECH & REPAIRS & SERVICES TAB ── */}
         {activeTab === 'services' && (
           <View style={{ paddingHorizontal: 16 }}>
             <View style={{ marginBottom: 14, marginTop: 4 }}>
-              <Text style={{ fontSize: 12, fontWeight: '900', color: '#3B82F6', letterSpacing: 1.5 }}>CAMPUS SERVICES</Text>
-              <Text style={{ fontSize: 16, fontWeight: '900', color: txt, marginTop: 2 }}>Book it from your hostel 🛠️</Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: isDark ? OTHERS_ACCENTS.services.ink.dark : OTHERS_ACCENTS.services.ink.light }}>Campus services</Text>
+              <Text style={{ ...OTHERS_TYPE.heading, color: txt, marginTop: 2 }}>Book it from your hostel</Text>
             </View>
 
             {SERVICE_CARDS.map(srv => {
@@ -2346,32 +2057,33 @@ export default function OthersScreen() {
               return (
                 <ScalePressable
                   key={srv.id}
-                  style={{ borderRadius: 20, backgroundColor: cardSurface, borderWidth: 1, borderColor: border, marginBottom: 14, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: isDark ? 0.25 : 0.07, shadowRadius: 10, elevation: 4 }}
+                  style={[{ borderRadius: 16, backgroundColor: cardSurface, marginBottom: 12, overflow: 'hidden' }, othersShadow(isDark)]}
                   onPress={() => router.push(`/category/${srv.cat}` as any)}
                 >
                   <View style={{ flexDirection: 'row', padding: 14, gap: 14 }}>
                     <View style={{ width: 90, height: 90, borderRadius: 16, overflow: 'hidden' }}>
                       <Image source={{ uri: srv.image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
                       <LinearGradient colors={['transparent', 'rgba(0,0,0,0.5)']} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, justifyContent: 'flex-end', padding: 6 }}>
-                        <Text style={{ fontSize: 16 }}>{srv.icon}</Text>
+                        <Ionicons name={SERVICE_CARD_ICON[srv.cat] || 'construct-outline'} size={16} color="#FFFFFF" />
                       </LinearGradient>
                     </View>
 
                     <View style={{ flex: 1, justifyContent: 'space-between' }}>
                       <View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                          <View style={{ backgroundColor: isDark ? 'rgba(59,130,246,0.15)' : '#EFF6FF', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, borderWidth: 1, borderColor: isDark ? 'rgba(59,130,246,0.3)' : '#BFDBFE' }}>
-                            <Text style={{ fontSize: 12, fontWeight: '900', color: '#3B82F6', letterSpacing: 0.5 }}>{srv.tag}</Text>
+                          <View style={{ backgroundColor: isDark ? OTHERS_ACCENTS.services.tint.dark : OTHERS_ACCENTS.services.tint.light, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 }}>
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: isDark ? OTHERS_ACCENTS.services.ink.dark : OTHERS_ACCENTS.services.ink.light }}>{srv.tag}</Text>
                           </View>
-                          {from > 0 && <Text style={{ fontSize: 12, fontWeight: '900', color: '#10B981' }}>From {fmtPrice(from)}</Text>}
+                          {from > 0 && <Text style={{ fontSize: 13, fontWeight: '800', color: txt }}>From {fmtPrice(from)}</Text>}
                         </View>
-                        <Text style={{ fontSize: 14, fontWeight: '900', color: txt, lineHeight: 18, letterSpacing: -0.2 }}>{srv.title}</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: txt, lineHeight: 18, letterSpacing: -0.2 }}>{srv.title}</Text>
                         <Text style={{ fontSize: 12, color: txtSec, lineHeight: 15, marginTop: 5 }} numberOfLines={2}>{srv.desc}</Text>
                       </View>
 
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 10 }}>
-                        <LinearGradient colors={isDark ? ['#3B82F6', '#2563EB'] : ['#1D4ED8', '#2563EB']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10 }}>
-                          <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFF', letterSpacing: 0.4 }}>{['repairs', 'tailoring', 'print', 'laundry'].includes(srv.cat) ? 'BOOK NOW ➔' : 'SHOP NOW ➔'}</Text>
+                        <LinearGradient colors={[OTHERS_ACCENTS.services.deep, OTHERS_ACCENTS.services.solid]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }}>
+                          <Text style={{ fontSize: 13, fontWeight: '700', color: '#FFF' }}>{['repairs', 'tailoring', 'print', 'laundry'].includes(srv.cat) ? 'Book now' : 'Shop now'}</Text>
+                          <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
                         </LinearGradient>
                       </View>
                     </View>
@@ -2390,319 +2102,312 @@ export default function OthersScreen() {
 
         {/* ── PG STAYS TAB (modules/pg) ── */}
         {activeTab === 'pg' && (
-          <PgListSection pgs={pgs} home={pgHome} loading={loadingPgs} error={pgError} onRetry={() => fetchPGs()} />
+          <View onLayout={(e) => { pgSectionYRef.current = e.nativeEvent.layout.y; }}>
+            <PgListSection
+              pgs={pgs}
+              home={pgHome}
+              loading={loadingPgs}
+              error={pgError}
+              onRetry={() => fetchPGs()}
+              // PG home <-> listing: bring the section's top back into view.
+              onRequestTop={() => scrollViewRef.current?.scrollTo({ y: Math.max(0, pgSectionYRef.current - 8), animated: false })}
+            />
+          </View>
         )}
 
-        {/* ── CO-RIDE (BIKEPOOL) TAB ── modules/coride: student bike pool + Zenvy Auto */}
+        {/* ── CO-RIDE TAB ── modules/coride/CoRideHub: rides home, student bike and car pool, and Zenvy Auto */}
         {activeTab === 'coride' && (
           <View style={{ paddingHorizontal: 16, paddingBottom: 24 }}>
-            {/* Mode: student bike pool or Zenvy shared auto (the switch exists only while Zenvy Auto is on) */}
-            {autoRideOn && (
-              <Segmented
-                label="Ride mode"
-                value={corideTab === 'auto' ? 'auto' : 'pool'}
-                onChange={m => setCorideTab(m === 'auto' ? 'auto' : 'browse')}
-                options={[
-                  { key: 'pool', label: 'Bike pool', icon: 'motorbike', iconSet: 'mci' },
-                  { key: 'auto', label: 'Zenvy Auto', icon: 'rickshaw', iconSet: 'mci' },
-                ]}
-              />
-            )}
-            <Text style={{ fontSize: 13, lineHeight: 18, color: txtSec, marginTop: 8 }}>
-              {corideTab === 'auto' && autoRideOn
-                ? 'Book a seat in a shared auto with a verified driver. Pay the driver in cash when you board.'
-                : 'Ride with students going your way and split the fuel.'}
-            </Text>
-
-            {!myId ? (
-              <View style={{ marginTop: 16 }}>
-                <CoRideState
-                  icon="person-circle-outline"
-                  title="Log in to use Co-Ride"
-                  message="Co-Ride is only for signed-in students, so you always know who you ride with."
-                  actionLabel="Log in"
-                  onAction={() => router.push('/login' as any)}
-                />
-              </View>
-            ) : corideTab === 'auto' && autoRideOn ? (
-              <View style={{ marginTop: 16 }}>
-                <AutoRideSection />
-              </View>
-            ) : (
-              <>
-                <KarmaLine points={Number(user?.karmaPoints) || 0} />
-                <PoolTabs
-                  value={corideTab === 'my-rides' ? 'my-rides' : 'browse'}
-                  onChange={setCorideTab}
-                  myRidesCount={myRideGroups.upcoming.length}
-                  onPost={openCreateRide}
-                />
-
-                {/* FIND A RIDE */}
-                {corideTab === 'browse' && (
-                  <View>
-                    {rides.length > 0 && (
-                      <RideFilters
-                        vehicle={vehicleFilter}
-                        onVehicle={v => { setVehicleFilter(v); setGoingTo(null); }}
-                        destinations={rideDestinations}
-                        goingTo={goingTo}
-                        onGoingTo={setGoingTo}
-                      />
-                    )}
-
-                    {loadingRides && rides.length === 0 ? (
-                      <RideSkeleton />
-                    ) : rideError && rides.length === 0 ? (
-                      <CoRideState icon="cloud-offline-outline" title="Rides did not load" message={rideError} actionLabel="Try again" onAction={fetchRides} />
-                    ) : filteredRides.length > 0 ? (
-                      filteredRides.map(ride => (
-                        <RideCard
-                          key={ride.id}
-                          ride={ride}
-                          joinStatus={myJoinStatus[String(ride.id)]}
-                          busy={rideActionBusy === ride.id}
-                          onJoin={() => { if (rideActionBusy !== ride.id) handleJoinRide(ride); }}
-                          onOpenMyRides={() => setCorideTab('my-rides')}
-                        />
-                      ))
-                    ) : rides.length > 0 ? (
-                      <CoRideState
-                        icon="funnel-outline"
-                        title={`No ${vehicleFilter === 'All' ? '' : `${vehicleFilter.toLowerCase()} `}rides${goingTo ? ` to ${goingTo}` : ''} right now`}
-                        message="Try another vehicle or destination, or post your own ride."
-                        actionLabel="Clear filters"
-                        secondary
-                        onAction={() => { setVehicleFilter('All'); setGoingTo(null); }}
-                      />
-                    ) : (
-                      <CoRideState
-                        icon="map-outline"
-                        title="No rides posted yet"
-                        message="Post where you are going and students heading the same way can join you."
-                        actionLabel="Post a ride"
-                        onAction={openCreateRide}
-                      />
-                    )}
-                  </View>
-                )}
-
-                {/* MY RIDES */}
-                {corideTab === 'my-rides' && (
-                  <View>
-                    {loadingMyRides && myRides.length === 0 ? (
-                      <RideSkeleton count={2} />
-                    ) : myRidesError && myRides.length === 0 ? (
-                      <CoRideState icon="cloud-offline-outline" title="Your rides did not load" message={myRidesError} actionLabel="Try again" onAction={fetchMyRides} />
-                    ) : myRides.length > 0 ? (
-                      ([['Upcoming', myRideGroups.upcoming], ['Past', myRideGroups.past]] as const).map(([title, list]) => list.length > 0 && (
-                        <View key={title} style={{ marginBottom: 8 }}>
-                          <SectionLabel title={title} count={list.length} />
-                          {list.map(ride => (
-                            <MyRideCard
-                              key={ride.id}
-                              ride={ride}
-                              myId={myId}
-                              busy={rideActionBusy === ride.id}
-                              onApprove={reqId => handleApproveRequest(ride.id, reqId)}
-                              onDecline={reqId => handleRejectRequest(ride.id, reqId)}
-                              onComplete={() => { if (rideActionBusy !== ride.id) handleCompleteRide(ride.id); }}
-                              onCancel={kind => { if (rideActionBusy !== ride.id) handleCancelRide(ride.id, kind); }}
-                              onWhatsApp={contactOnWhatsApp}
-                              onSafety={handleSOS}
-                            />
-                          ))}
-                        </View>
-                      ))
-                    ) : (
-                      <CoRideState
-                        icon="calendar-outline"
-                        title="No rides yet"
-                        message="Rides you post or ask to join show up here."
-                        actionLabel="Find a ride"
-                        secondary
-                        onAction={() => setCorideTab('browse')}
-                      />
-                    )}
-                  </View>
-                )}
-              </>
-            )}
+            <CoRideHub
+              myId={myId}
+              karma={Number(user?.karmaPoints) || 0}
+              autoRideOn={autoRideOn}
+              autoSection={<AutoRideSection />}
+              corideTab={corideTab}
+              setCorideTab={setCorideTab}
+              rides={rides}
+              loadingRides={loadingRides}
+              rideError={rideError}
+              onRetryRides={fetchRides}
+              myRides={myRides}
+              myRideGroups={myRideGroups}
+              loadingMyRides={loadingMyRides}
+              myRidesError={myRidesError}
+              onRetryMyRides={fetchMyRides}
+              myJoinStatus={myJoinStatus}
+              rideActionBusy={rideActionBusy}
+              vehicleFilter={vehicleFilter}
+              setVehicleFilter={setVehicleFilter}
+              goingTo={goingTo}
+              setGoingTo={setGoingTo}
+              onJoin={handleJoinRide}
+              onApprove={handleApproveRequest}
+              onDecline={handleRejectRequest}
+              onComplete={handleCompleteRide}
+              onCancel={handleCancelRide}
+              onWhatsApp={contactOnWhatsApp}
+              onSafety={handleSOS}
+              onPost={(role) => { setCreatorRole(role); openCreateRide(); }}
+              onSignIn={() => router.push('/login' as any)}
+            />
           </View>
         )}
 
         {/* ── DEALS & SPINS TAB ── */}
         {activeTab === 'promos' && (
-          <View style={{ paddingHorizontal: 16 }}>
-            {/* 1. Rewards hero: real ZenPoints */}
-            <Animated.View style={{ opacity: heroEnterO, transform: [{ translateY: heroEnterY }] }}>
-              <View style={{ borderRadius: 24, overflow: 'hidden', marginBottom: 16, borderWidth: 1.5, borderColor: border }}>
-                <LinearGradient
-                  colors={isDark ? ['#1E1B4B', '#311042'] : ['#FDF4E3', '#FCE7C8']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{ padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: COLORS.gold, letterSpacing: 2 }}>ZENVY REWARDS</Text>
-                    <Text style={{ fontSize: 24, fontWeight: '900', color: txt, marginTop: 4 }}>Your Rewards Hub</Text>
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec, marginTop: 2 }}>Every 2 delivered orders earn a spin.</Text>
-                  </View>
-                  {myId ? (
-                    <View style={{ alignItems: 'flex-end', minWidth: 80 }}>
-                      <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>ZENPOINTS</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                        <Animated.View style={{ transform: [{ translateY: coinFloatAnim }] }}>
-                          <Text style={{ fontSize: 20 }}>💎</Text>
-                        </Animated.View>
-                        <Text style={{ fontSize: 20, fontWeight: '900', color: COLORS.gold }}>{zenPoints}</Text>
-                      </View>
-                    </View>
-                  ) : (
-                    <TouchableOpacity style={{ backgroundColor: COLORS.red, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }} onPress={() => router.push('/login' as any)}>
-                      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>LOG IN</Text>
-                    </TouchableOpacity>
-                  )}
-                </LinearGradient>
+          <View>
+            {/* ── HERO: Deals & spin ── */}
+            <LinearGradient colors={[dp.heroA, dp.heroB]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.dlHero}>
+              <View style={s.dlHeroText}>
+                <Text style={s.dlHeroTitle} accessibilityRole="header">Deals & spin</Text>
+                <Text style={s.dlHeroTag}>Spin. Win. Save.</Text>
+                <Text style={s.dlHeroSub}>Every 2 delivered orders earn a spin. Win ZenPoints or a free-delivery coupon.</Text>
+                <PressScale style={s.dlHeroBtn} onPress={() => setSpinOpen(true)} accessibilityRole="button" accessibilityLabel="Spin now">
+                  <Ionicons name="sync-circle-outline" size={16} color={dp.heroB} />
+                  <Text style={[s.dlHeroBtnText, { color: dp.heroB }]}>{!myId || spinsLeft > 0 ? 'Spin now' : 'See the wheel'}</Text>
+                </PressScale>
               </View>
-            </Animated.View>
-
-            {/* 2. Spin wheel (server picks the prize) */}
-            <Animated.View style={{ opacity: wheelEnterO, transform: [{ translateY: wheelEnterY }, { scale: wheelScaleIn }] }}>
-              <View style={{ borderRadius: 24, borderWidth: 1.5, borderColor: border, backgroundColor: cardBg, padding: 20, alignItems: 'center', marginBottom: 16, ...SHADOWS.card }}>
-                <Text style={{ fontSize: 13, fontWeight: '900', color: txt, letterSpacing: 1.5 }}>LUCKY SPIN WHEEL 🎡</Text>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec, marginTop: 2, marginBottom: 16 }}>Win ZenPoints or a free-delivery coupon</Text>
-
-                <View style={{ width: 260, height: 260, justifyContent: 'center', alignItems: 'center', marginVertical: 12 }}>
-                  <Animated.Text style={{ fontSize: 26, color: '#D4AF7A', position: 'absolute', top: -16, zIndex: 15, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4, transform: [{ translateY: pointerBounce }] }}>▼</Animated.Text>
-
-                  <View style={{ width: 250, height: 250, borderRadius: 125, borderWidth: 6, borderColor: '#D4AF7A', backgroundColor: '#0B0B0D', justifyContent: 'center', alignItems: 'center', shadowColor: '#D4AF7A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 6 }}>
-                    <Animated.View style={{
-                      width: 238,
-                      height: 238,
-                      borderRadius: 119,
-                      backgroundColor: '#111318',
-                      overflow: 'hidden',
-                      transform: [{ rotate: spinAnim.interpolate({ inputRange: [0, 360000], outputRange: ['0deg', '360000deg'] }) }]
-                    }}>
-                      {wheelSectors.map((_, idx) => (
-                        <View
-                          key={`line-${idx}`}
-                          style={{ position: 'absolute', width: 1.5, height: 119, backgroundColor: 'rgba(212, 175, 122, 0.25)', top: 0, left: 118, transform: [{ rotate: `${idx * sectorDeg + sectorDeg / 2}deg` }, { translateY: 59.5 }] }}
-                        />
-                      ))}
-                      {wheelSectors.map((sector, idx) => (
-                        <View
-                          key={`sector-${idx}`}
-                          style={{ position: 'absolute', width: 86, height: 86, top: 76, left: 76, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: `${idx * sectorDeg}deg` }, { translateY: -64 }] }}
-                        >
-                          <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: sector.color, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' }}>
-                            <Text style={{ fontSize: 15 }}>{sector.emoji}</Text>
-                          </View>
-                          <Text style={{ fontSize: 12, fontWeight: '900', color: '#fff', textAlign: 'center', marginTop: 3, width: 70 }}>{sector.label}</Text>
-                        </View>
-                      ))}
-                      {wheelSectors.length === 0 && (
-                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                          {rewardsStatus === 'loading' ? <ActivityIndicator color="#D4AF7A" /> : <Text style={{ fontSize: 40 }}>🎡</Text>}
-                        </View>
-                      )}
-                    </Animated.View>
+              <View style={s.dlHeroWheel}>
+                <SpinWheelSvg sectors={wheelDisplayPrizes} size={112} showLabels={false} />
+                <View style={s.dlHeroHub} />
+                {!!myId && spinsLeft > 0 && (
+                  <View style={s.dlHeroBadge}>
+                    <Text style={[s.dlHeroBadgeText, { color: dp.heroB }]}>{spinsLeft} spin{spinsLeft === 1 ? '' : 's'}</Text>
                   </View>
-
-                  <Animated.View style={{ position: 'absolute', transform: [{ scale: spinBtnScale }], zIndex: 10 }}>
-                    <TouchableOpacity
-                      activeOpacity={0.85}
-                      disabled={isSpinning || (!!myId && wheelSectors.length === 0)}
-                      onPress={handleSpin}
-                      accessibilityLabel="Spin the wheel"
-                      style={{ width: 58, height: 58, borderRadius: 29, backgroundColor: spinsLeft > 0 || !myId ? '#D4AF7A' : '#9CA3AF', alignItems: 'center', justifyContent: 'center', shadowColor: '#D4AF7A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.6, shadowRadius: 6, elevation: 5, borderWidth: 3, borderColor: '#fff' }}
-                    >
-                      {isSpinning ? (
-                        <ActivityIndicator size="small" color="#000" />
-                      ) : (
-                        <Text style={{ fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 0.5 }}>{spinsLeft > 0 || !myId ? 'SPIN' : 'LOCKED'}</Text>
-                      )}
-                    </TouchableOpacity>
-                  </Animated.View>
-                </View>
-
-                <Text style={{ fontSize: 12, fontWeight: '800', color: spinsLeft > 0 ? COLORS.gold : txtSec, marginTop: 8, textAlign: 'center' }}>
-                  {!myId
-                    ? 'Log in to see your spins'
-                    : rewardsStatus === 'error' || (rewardsStatus === 'ready' && wheelSectors.length === 0)
-                      ? 'Could not load your spins. Pull down to retry.'
-                      : spinsLeft > 0
-                        ? `🎉 YOU HAVE ${spinsLeft} SPIN${spinsLeft === 1 ? '' : 'S'} READY`
-                        : spinNextIn
-                          ? `${spinNextIn} more delivered order${spinNextIn === 1 ? '' : 's'} to your next spin`
-                          : 'Every 2 delivered orders earn a spin'}
-                </Text>
-              </View>
-            </Animated.View>
-
-            {/* 3. Your coupons (real, usable ones only) */}
-            <Animated.View style={{ opacity: couponsEnterO, transform: [{ translateY: couponsEnterY }] }}>
-              <View style={{ marginBottom: 20 }}>
-                <Text style={{ fontSize: 13, fontWeight: '900', color: txt, letterSpacing: 1.5, marginBottom: 12, textAlign: 'center' }}>YOUR COUPONS 🎟️</Text>
-
-                {!myId ? (
-                  <View style={[s.emptyState, { padding: 24 }]}>
-                    <Text style={{ color: txtSec, fontSize: 12, fontWeight: '600', textAlign: 'center' }}>Log in to see the coupons you have won.</Text>
-                  </View>
-                ) : rewardsStatus === 'loading' && coupons.length === 0 ? (
-                  <View style={{ gap: 10 }}>
-                    {[0, 1].map(i => <ShimmerLoader key={i} width={SW - 32} height={70} borderRadius={16} />)}
-                  </View>
-                ) : rewardsStatus === 'error' && coupons.length === 0 ? (
-                  renderLoadError('Your coupons did not load.', fetchRewards)
-                ) : coupons.length === 0 ? (
-                  <View style={[s.emptyState, { padding: 24 }]}>
-                    <Text style={{ fontSize: 28, marginBottom: 6 }}>🎫</Text>
-                    <Text style={{ color: txt, fontSize: 12, fontWeight: '900', marginBottom: 4 }}>No coupons yet</Text>
-                    <Text style={{ color: txtSec, fontSize: 12, fontWeight: '600', textAlign: 'center' }}>Spin the wheel or claim a daily deal — coupons you win show up here.</Text>
-                  </View>
-                ) : (
-                  coupons.map((coupon: any, index: number) => {
-                    const code = String(coupon.code || '');
-                    const anim = couponAnims[index] || null;
-                    const days = Number(coupon.expiresInDays);
-                    const expiry = Number.isFinite(days) && coupon.expiresInDays !== null
-                      ? (days <= 0 ? 'Expires today' : `Expires in ${days} day${days === 1 ? '' : 's'}`)
-                      : 'No expiry';
-                    return (
-                      <Animated.View key={code || index} style={anim ? { opacity: anim.o, transform: [{ translateY: anim.y }] } : undefined}>
-                        <View style={{ backgroundColor: cardBg, borderWidth: 1.5, borderColor: border, borderRadius: 16, padding: 14, marginBottom: 10, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <View style={{ position: 'absolute', left: -7, width: 14, height: 14, borderRadius: 7, backgroundColor: isDark ? '#0B0B0D' : '#F8FAFC', borderWidth: 1.5, borderColor: border }} />
-                          <View style={{ position: 'absolute', right: -7, width: 14, height: 14, borderRadius: 7, backgroundColor: isDark ? '#0B0B0D' : '#F8FAFC', borderWidth: 1.5, borderColor: border }} />
-
-                          <View style={{ flex: 1, paddingHorizontal: 6 }}>
-                            <Text style={{ fontSize: 12, fontWeight: '900', color: COLORS.gold, letterSpacing: 1 }}>{expiry.toUpperCase()}</Text>
-                            <Text style={{ fontSize: 12, fontWeight: '900', color: txt, marginTop: 2 }}>{coupon.label || 'Coupon'}</Text>
-                            <Text style={{ fontSize: 12, color: txtSec, marginTop: 2 }}>Use code {code} at checkout</Text>
-                          </View>
-
-                          <View style={{ width: 1, height: 40, borderStyle: 'dashed', borderWidth: 0.5, borderColor: border, marginHorizontal: 8 }} />
-
-                          <Animated.View style={{ transform: [{ scale: popBtnCode === code ? btnScaleAnim : 1.0 }] }}>
-                            <TouchableOpacity
-                              onPress={() => {
-                                handleCopyCode(code);
-                                Haptics.selectionAsync().catch(() => {});
-                              }}
-                              style={{ backgroundColor: copiedCode === code ? COLORS.emerald : COLORS.red, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, minWidth: 85, alignItems: 'center', justifyContent: 'center' }}
-                              accessibilityLabel={`Copy code ${code}`}
-                            >
-                              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 0.5 }} numberOfLines={1}>{copiedCode === code ? 'COPIED ✓' : code}</Text>
-                            </TouchableOpacity>
-                          </Animated.View>
-                        </View>
-                      </Animated.View>
-                    );
-                  })
                 )}
               </View>
-            </Animated.View>
+            </LinearGradient>
+
+            {/* ── BALANCES: ZenPoints and wallet (signed in) ── */}
+            {!!myId ? (
+              <View style={s.dlStatRow}>
+                <View style={[s.dlStat, { backgroundColor: cardSurface, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'transparent' }, lift]}>
+                  <View style={[s.dlStatIcon, { backgroundColor: dp.tint }]}>
+                    <Ionicons name="diamond-outline" size={18} color={dp.ink} />
+                  </View>
+                  <Text style={[s.dlStatLabel, { color: txtSec }]}>ZenPoints</Text>
+                  <Text style={[s.dlStatValue, { color: txt }]}>{zenPoints.toLocaleString('en-IN')}</Text>
+                </View>
+                <PressScale
+                  style={[s.dlStat, { backgroundColor: cardSurface, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'transparent' }, lift]}
+                  onPress={() => router.push('/wallet-history' as any)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Wallet balance and history"
+                >
+                  <View style={[s.dlStatIcon, { backgroundColor: dp.tint }]}>
+                    <Ionicons name="wallet-outline" size={18} color={dp.ink} />
+                  </View>
+                  <Text style={[s.dlStatLabel, { color: txtSec }]}>Wallet</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={[s.dlStatValue, { color: txt }]}>{fmtPrice(Number((user as any)?.walletBalance) || 0)}</Text>
+                    <Ionicons name="chevron-forward" size={16} color={txtSec} />
+                  </View>
+                </PressScale>
+              </View>
+            ) : (
+              <View style={[s.dlSignIn, { backgroundColor: cardSurface, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'transparent' }, lift]}>
+                <View style={[s.dlStatIcon, { backgroundColor: dp.tint }]}>
+                  <Ionicons name="person-outline" size={18} color={dp.ink} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={[s.dlCardTitle, { color: txt }]}>Sign in for your rewards</Text>
+                  <Text style={[s.dlCardSub, { color: txtSec }]}>See your spins, ZenPoints, coupons and wallet.</Text>
+                </View>
+                <PressScale style={[s.dlSmallBtn, { backgroundColor: dp.solid }]} onPress={() => router.push('/login' as any)} accessibilityRole="button">
+                  <Text style={s.dlSmallBtnText}>Sign in</Text>
+                </PressScale>
+              </View>
+            )}
+
+            {/* ── TODAY'S DEALS (GET /api/vault; claiming gives a real coupon) ── */}
+            {vaultItems.length > 0 && (
+              <View style={s.secBlock}>
+                <View style={s.secHead}>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={[s.secTitle, { color: txt }]} accessibilityRole="header">Today's deals</Text>
+                    <Text style={[s.secSub, { color: txtSec }]} numberOfLines={1}>
+                      {myId ? `Your order streak: ${Number((user as any)?.streakCount) || 0} day${(Number((user as any)?.streakCount) || 0) === 1 ? '' : 's'} · use codes before midnight` : 'Claim one and use the code before midnight'}
+                    </Text>
+                  </View>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.railContent}>
+                  {vaultItems.map((item: any, di: number) => {
+                    const tag = vaultDealTag(item);
+                    const streak = Number(item.streakRequirement) || 0;
+                    const left = Number(item.remainingCount) || 0;
+                    const busy = claimingVaultId === item.id;
+                    return (
+                      <FadeInUp key={item.id} index={di}><View style={[s.dlDeal, { width: DEAL_CARD_W, backgroundColor: cardSurface, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'transparent' }, liftSm]}>
+                        <PressScale onPress={() => setDealDetail(item)} accessibilityRole="button" accessibilityLabel={`${item.name}: how to avail`}>
+                        <View style={[s.dlDealImg, { backgroundColor: isDark ? '#232327' : '#EEF0F3' }]}>
+                          {item.imageUrl ? <Image source={{ uri: item.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : (
+                            <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', backgroundColor: dp.tint }]}>
+                              <Ionicons name={tag === 'Free delivery' ? 'bicycle-outline' : 'pricetag-outline'} size={30} color={dp.ink} />
+                            </View>
+                          )}
+                          {!!tag && (
+                            <View style={[s.dlTag, { backgroundColor: dp.solid }]}>
+                              <Text style={s.dlTagText}>{tag}</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={[s.dlDealName, { color: txt }]} numberOfLines={2}>{item.name}</Text>
+                        </PressScale>
+                        <View style={s.dlDealMeta}>
+                          <Ionicons name={streak > 0 ? 'flame-outline' : 'time-outline'} size={13} color={txtSec} />
+                          <Text style={[s.dlDealMetaText, { color: txtSec }]} numberOfLines={1}>
+                            {streak > 0 ? `${streak}-day streak needed` : `${left} left today`}
+                          </Text>
+                        </View>
+                        {(() => {
+                          // Streak deals: show what is still needed instead of a Claim button the server will refuse.
+                          const myStreak = Number((user as any)?.streakCount) || 0;
+                          const need = !!myId && streak > myStreak ? streak - myStreak : 0;
+                          return need > 0 ? (
+                            <PressScale
+                              style={[s.dlDealBtn, { backgroundColor: dp.tint, flexDirection: 'row', gap: 6 }]}
+                              onPress={() => Alert.alert('Keep your order streak', `Order on ${need} more day${need === 1 ? '' : 's'} in a row to unlock ${item.name}.`)}
+                              accessibilityRole="button"
+                              accessibilityLabel={`${item.name} is locked. ${need} more day${need === 1 ? '' : 's'} of orders needed`}
+                            >
+                              <Ionicons name="lock-closed-outline" size={14} color={dp.ink} />
+                              <Text style={[s.dlSmallBtnText, { color: dp.ink }]}>{need} more day{need === 1 ? '' : 's'}</Text>
+                            </PressScale>
+                          ) : (
+                            <PressScale
+                              style={[s.dlDealBtn, { backgroundColor: dp.solid, opacity: busy ? 0.7 : 1 }]}
+                              onPress={() => claimVault(item)}
+                              disabled={busy}
+                              accessibilityRole="button"
+                              accessibilityLabel={`Claim ${item.name}`}
+                            >
+                              {busy ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={s.dlSmallBtnText}>Claim deal</Text>}
+                            </PressScale>
+                          );
+                        })()}
+                      </View></FadeInUp>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* ── SPIN & WIN STRIP ── */}
+            <PressScale
+              style={[s.dlStrip, { backgroundColor: dp.tint }]}
+              onPress={() => setSpinOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Open the spin wheel"
+            >
+              <View style={s.dlStripWheel}>
+                <SpinWheelSvg sectors={wheelDisplayPrizes} size={48} showLabels={false} ring={false} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={[s.dlCardTitle, { color: txt }]}>Spin & win</Text>
+                <Text style={[s.dlCardSub, { color: txtSec }]} numberOfLines={2}>
+                  {!myId
+                    ? 'Sign in to see your spins'
+                    : spinsLeft > 0
+                      ? `You have ${spinsLeft} spin${spinsLeft === 1 ? '' : 's'} ready`
+                      : spinNextIn
+                        ? `${spinNextIn} more delivered order${spinNextIn === 1 ? '' : 's'} to your next spin`
+                        : 'Every 2 delivered orders earn a spin'}
+                </Text>
+              </View>
+              <View style={[s.dlSmallBtn, { backgroundColor: dp.solid }]}>
+                <Text style={s.dlSmallBtnText}>{!myId || spinsLeft > 0 ? 'Play now' : 'View wheel'}</Text>
+              </View>
+            </PressScale>
+
+            {/* ── YOUR COUPONS (real, usable ones only) ── */}
+            {!!myId && (
+              <View style={s.secBlock}>
+                {renderSectionHeader('Your coupons', coupons.length ? `${coupons.length} ready to use at checkout` : null)}
+                <View style={{ paddingHorizontal: 16, gap: 12 }}>
+                  {rewardsStatus === 'loading' && coupons.length === 0 ? (
+                    [0, 1].map(i => <ShimmerLoader key={i} width={pageW - 32} height={76} borderRadius={16} />)
+                  ) : rewardsStatus === 'error' && coupons.length === 0 ? (
+                    renderLoadError('Your coupons did not load.', () => { fetchRewards(); fetchVault(); })
+                  ) : coupons.length === 0 ? (
+                    <View style={[s.dlEmpty, { backgroundColor: cardSurface, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'transparent' }, liftSm]}>
+                      <Ionicons name="ticket-outline" size={22} color={dp.ink} />
+                      <Text style={[s.dlCardSub, { color: txtSec, flex: 1 }]}>No coupons yet. Spin the wheel or claim a daily deal and they show up here.</Text>
+                    </View>
+                  ) : (
+                    coupons.map((coupon: any, index: number) => {
+                      const code = String(coupon.code || '');
+                      const days = Number(coupon.expiresInDays);
+                      const expiry = Number.isFinite(days) && coupon.expiresInDays !== null
+                        ? (days <= 0 ? 'Expires today' : `Expires in ${days} day${days === 1 ? '' : 's'}`)
+                        : 'No expiry';
+                      const copied = copiedCode === code;
+                      return (
+                        <FadeInUp key={code || index} index={index}><View style={[s.dlCoupon, { backgroundColor: cardSurface, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'transparent' }, liftSm]}>
+                          <View style={[s.dlCouponIcon, { backgroundColor: dp.tint }]}>
+                            <Ionicons name={coupon.type === 'FREEDEL' ? 'bicycle-outline' : 'pricetag-outline'} size={20} color={dp.ink} />
+                          </View>
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <Text style={[s.dlCardTitle, { color: txt }]} numberOfLines={1}>{coupon.label || 'Coupon'}</Text>
+                            <Text style={[s.dlCardSub, { color: txtSec }]} numberOfLines={1}>{code} · {expiry}</Text>
+                          </View>
+                          <PressScale
+                            style={[s.dlOutlineBtn, { borderColor: copied ? (isDark ? '#34D399' : '#047857') : dp.solid }]}
+                            onPress={() => { handleCopyCode(code); Haptics.selectionAsync().catch(() => {}); }}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Copy code ${code}`}
+                          >
+                            <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={14} color={copied ? (isDark ? '#34D399' : '#047857') : dp.ink} />
+                            <Text style={[s.dlOutlineBtnText, { color: copied ? (isDark ? '#34D399' : '#047857') : dp.ink }]}>{copied ? 'Copied' : 'Copy'}</Text>
+                          </PressScale>
+                        </View></FadeInUp>
+                      );
+                    })
+                  )}
+                </View>
+              </View>
+            )}
+
+            {/* ── REFER & EARN (real referral code; both get 50 ZenPoints) ── */}
+            {!!myId && !!(user as any)?.referralCode && (
+              <View style={[s.dlRefer, { backgroundColor: cardSurface, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'transparent' }, lift]}>
+                <View style={s.dlReferTop}>
+                  <View style={[s.dlCouponIcon, { backgroundColor: dp.tint }]}>
+                    <Ionicons name="gift-outline" size={20} color={dp.ink} />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={[s.dlCardTitle, { color: txt }]}>Invite friends, earn ZenPoints</Text>
+                    <Text style={[s.dlCardSub, { color: txtSec }]}>When a friend signs up with your code, you both get 50 ZenPoints.</Text>
+                  </View>
+                </View>
+                <View style={s.dlReferRow}>
+                  <PressScale
+                    style={[s.dlCodeBox, { borderColor: dp.solid, backgroundColor: dp.tint }]}
+                    onPress={() => { handleCopyCode(String((user as any).referralCode)); Haptics.selectionAsync().catch(() => {}); }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Copy referral code ${(user as any).referralCode}`}
+                  >
+                    <Text style={[s.dlCodeLabel, { color: txtSec }]}>Your code</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={[s.dlCodeText, { color: txt }]}>{(user as any).referralCode}</Text>
+                      <Ionicons name={copiedCode === String((user as any).referralCode) ? 'checkmark' : 'copy-outline'} size={14} color={dp.ink} />
+                    </View>
+                  </PressScale>
+                  <PressScale
+                    style={[s.dlShareBtn, { backgroundColor: dp.solid }]}
+                    onPress={async () => {
+                      const name = (user as any)?.name?.split(' ')[0] || 'Your friend';
+                      try {
+                        await Share.share({ message: `${name} invited you: campus food and essentials delivered to your hostel. Sign up with code ${(user as any).referralCode} and you both get 50 ZenPoints.` });
+                      } catch {}
+                    }}
+                    accessibilityRole="button"
+                  >
+                    <Ionicons name="share-social-outline" size={16} color="#FFFFFF" />
+                    <Text style={s.dlSmallBtnText}>Share</Text>
+                  </PressScale>
+                </View>
+              </View>
+            )}
           </View>
         )}
 
@@ -2712,147 +2417,222 @@ export default function OthersScreen() {
 
       <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} searchMode={activeTab === 'food' ? 'grocery' : 'food'} />
 
-      {/* ── PRODUCT CATALOG BOTTOM SHEET ── */}
-      {selectedCategoryName !== null && (
-        <Animated.View style={[StyleSheet.absoluteFill, { zIndex: 100 }]}>
-          <TouchableOpacity activeOpacity={1} style={StyleSheet.absoluteFill} onPress={closeCatalogSheet} accessibilityRole="button" accessibilityLabel="Close the category list">
-            <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', opacity: catalogBackdropAnim }]} />
-          </TouchableOpacity>
-
-          <Animated.View
-            style={[
-              s.catalogContentBox,
-              {
-                backgroundColor: cardSurface,
-                borderTopWidth: 1,
-                borderTopColor: border,
-                transform: [{ translateY: catalogSheetAnim }],
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: '75%',
-                borderTopLeftRadius: 28,
-                borderTopRightRadius: 28,
-                padding: 20,
-              }
-            ]}
-          >
-            <View style={s.grabHandle} />
-
-            <View style={s.catalogHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={[s.catalogTitle, { color: txt }]} numberOfLines={1}>{(selectedCategoryName === 'All Groceries' ? 'All groceries' : selectedCategoryName).toUpperCase()}</Text>
-                {sheetProducts.length > 0 && <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700', marginTop: 2 }}>{sheetProducts.length} item{sheetProducts.length === 1 ? '' : 's'}</Text>}
+      {/* ── DEAL DETAIL (real steps: claim, copy the code, apply it at checkout before midnight) ── */}
+      <Modal visible={!!dealDetail} transparent animationType="slide" onRequestClose={() => setDealDetail(null)}>
+        <View style={s.ddBackdrop}>
+          <PressScale style={StyleSheet.absoluteFill} onPress={() => setDealDetail(null)} accessibilityLabel="Close" />
+          {!!dealDetail && (() => {
+            const tag = vaultDealTag(dealDetail);
+            const streak = Number(dealDetail.streakRequirement) || 0;
+            const left = Number(dealDetail.remainingCount) || 0;
+            const busy = claimingVaultId === dealDetail.id;
+            const need = !!myId && streak > (Number((user as any)?.streakCount) || 0) ? streak - (Number((user as any)?.streakCount) || 0) : 0;
+            const steps = [
+              streak > 0 ? `Keep a ${streak}-day order streak (order on consecutive days).` : null,
+              'Tap "Claim deal". You get your own coupon code.',
+              'Apply the code at checkout. It works until midnight today.',
+            ].filter(Boolean) as string[];
+            return (
+              <View style={[s.ddSheet, { backgroundColor: cardSurface }]}>
+                <View>
+                  {dealDetail.imageUrl ? <Image source={{ uri: dealDetail.imageUrl }} style={s.ddImg} resizeMode="cover" /> : <View style={[s.ddImg, { backgroundColor: dp.tint }]} />}
+                  {!!tag && <View style={[s.dlTag, { backgroundColor: dp.solid, top: 12, left: 12 }]}><Text style={s.dlTagText}>{tag}</Text></View>}
+                  <PressScale style={s.ddClose} onPress={() => setDealDetail(null)} accessibilityRole="button" accessibilityLabel="Close">
+                    <Ionicons name="close" size={20} color="#0F172A" />
+                  </PressScale>
+                </View>
+                <View style={s.ddBody}>
+                  <Text style={[s.ddTitle, { color: txt }]}>{dealDetail.name}</Text>
+                  <View style={s.ddMetaRow}>
+                    <View style={[s.ddMeta, { backgroundColor: dp.tint }]}>
+                      <Ionicons name="time-outline" size={14} color={dp.ink} />
+                      <Text style={[s.ddMetaText, { color: txt }]}>Valid till midnight</Text>
+                    </View>
+                    <View style={[s.ddMeta, { backgroundColor: dp.tint }]}>
+                      <Ionicons name="pricetags-outline" size={14} color={dp.ink} />
+                      <Text style={[s.ddMetaText, { color: txt }]}>{left} left today</Text>
+                    </View>
+                  </View>
+                  <Text style={[s.ddHow, { color: txt }]}>How to avail</Text>
+                  {steps.map((t, i) => (
+                    <View key={i} style={s.ddStep}>
+                      <View style={[s.ddStepNum, { backgroundColor: dp.tint }]}>
+                        <Text style={[s.ddStepNumText, { color: dp.ink }]}>{i + 1}</Text>
+                      </View>
+                      <Text style={[s.ddStepText, { color: txt }]}>{t}</Text>
+                    </View>
+                  ))}
+                </View>
+                {need > 0 ? (
+                  <View style={[s.ddCta, { backgroundColor: dp.tint, flexDirection: 'row', gap: 8 }]} accessible accessibilityLabel={`Locked. ${need} more day${need === 1 ? '' : 's'} of orders needed`}>
+                    <Ionicons name="lock-closed-outline" size={16} color={dp.ink} />
+                    <Text style={[s.wonPrimaryText, { color: dp.ink }]}>Unlocks after {need} more day{need === 1 ? '' : 's'} of orders</Text>
+                  </View>
+                ) : (
+                <PressScale
+                  style={[s.ddCta, { backgroundColor: dp.solid, opacity: busy ? 0.7 : 1 }]}
+                  onPress={() => claimVault(dealDetail)}
+                  disabled={busy}
+                  accessibilityRole="button"
+                >
+                  {busy ? <ActivityIndicator color="#FFFFFF" /> : <Text style={s.wonPrimaryText}>Claim deal</Text>}
+                </PressScale>
+                )}
               </View>
-              <TouchableOpacity style={s.catalogCloseBtn} onPress={closeCatalogSheet} accessibilityLabel="Close">
-                <Text style={{ fontSize: 18, color: txtSec, fontWeight: '800' }}>✕</Text>
-              </TouchableOpacity>
+            );
+          })()}
+        </View>
+      </Modal>
+
+      {/* ── SPIN PAGE (Deals & spin; the server picks the prize, the wheel animates to it) ── */}
+      {spinOpen && (
+        <View style={[StyleSheet.absoluteFill, { zIndex: 110 }]}>
+          <LinearGradient colors={['#2E1F86', '#1C1257']} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} style={[StyleSheet.absoluteFill, { paddingTop: topPad }]}>
+            <View style={s.spHead}>
+              <PressScale style={s.spBack} onPress={() => setSpinOpen(false)} accessibilityRole="button" accessibilityLabel="Back">
+                <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+              </PressScale>
+              <Text style={s.spHeadTitle} accessibilityRole="header">Spin & win</Text>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-              {catalogueStatus === 'loading' && catalogue.length === 0 ? (
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-                  {[0, 1, 2, 3].map(i => <ShimmerLoader key={i} width={(SW - 40 - 12 - 8) / 2} height={190} borderRadius={20} />)}
-                </View>
-              ) : catalogueStatus === 'error' && catalogue.length === 0 ? (
-                renderLoadError('The campus store did not load.', fetchCatalogue)
-              ) : sheetProducts.length === 0 ? (
-                <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-                  <Text style={{ fontSize: 32, marginBottom: 8 }}>🧺</Text>
-                  <Text style={{ fontSize: 13, fontWeight: '900', color: txt }}>Nothing here yet</Text>
-                  <Text style={{ fontSize: 12, color: txtSec, textAlign: 'center', marginTop: 4, marginBottom: 14, maxWidth: 260 }}>Request it and a Zenvy shopper will buy it for you.</Text>
-                  <TouchableOpacity style={[s.resetBtn, { backgroundColor: '#10B981' }]} onPress={() => { closeCatalogSheet(); openCustomRequest(); }}>
-                    <Text style={[s.resetBtnText, { color: '#fff' }]}>REQUEST AN ITEM</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingHorizontal: 4 }}>
-                  {sheetProducts.map(product => renderGridCard(product, (SW - 40 - 12 - 8) / 2, () => { closeCatalogSheet(); openProduct(product); }))}
+            <ScrollView contentContainerStyle={s.spBody} showsVerticalScrollIndicator={false}>
+              {!!myId && (
+                <View style={s.spChip}>
+                  <Ionicons name="gift-outline" size={14} color="#FFFFFF" />
+                  <Text style={s.spChipText}>{spinsLeft} spin{spinsLeft === 1 ? '' : 's'} left</Text>
                 </View>
               )}
-            </ScrollView>
-          </Animated.View>
-        </Animated.View>
-      )}
+              <Text style={s.spTitle}>Spin the wheel</Text>
+              <Text style={s.spSub}>Win ZenPoints or a free-delivery coupon</Text>
 
-      {/* ── FLOATING BASKET BAR ── */}
-      {hasShopItems && (
-        <Animated.View style={[s.floatingCartBar, { transform: [{ translateY: cartBarAnim }] }]}>
-          <TouchableOpacity activeOpacity={0.95} style={s.floatingCartBarTouch} onPress={() => router.push('/checkout' as any)}>
-            <LinearGradient colors={['#16A34A', '#15803D']} style={s.floatingCartBarGradient}>
-              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, marginRight: 8 }}>
-                <Text style={{ fontSize: 18 }}>🛒</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.cartBarTitle}>{shopCount} ITEM{shopCount > 1 ? 'S' : ''} ADDED</Text>
-                  <Text style={s.cartBarSubtitle} numberOfLines={1}>{fmtPrice(Math.round(shopSubtotal * 100) / 100)} • {shopStoreName}</Text>
+              <View style={[s.spWheelWrap, { width: spinWheelSize + 24, height: spinWheelSize + 24 }]}>
+                <View style={[s.spGlow, { width: spinWheelSize + 24, height: spinWheelSize + 24, borderRadius: (spinWheelSize + 24) / 2 }]} />
+                <Animated.View style={{ width: spinWheelSize, height: spinWheelSize, transform: [{ rotate: spinAnim.interpolate({ inputRange: [0, 360000], outputRange: ['0deg', '360000deg'] }) }] }}>
+                  <SpinWheelSvg sectors={wheelDisplayPrizes} size={spinWheelSize} />
+                </Animated.View>
+                <View style={s.spPointer} pointerEvents="none">
+                  <Ionicons name="caret-down" size={34} color="#F6C453" />
                 </View>
+                {wheelSectors.length === 0 && rewardsStatus === 'loading' && (
+                  <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color="#FFFFFF" /></View>
+                  </View>
+                )}
+                <Animated.View style={[s.spHubWrap, { transform: [{ scale: spinsLeft > 0 && !isSpinning ? spinBtnScale : 1 }] }]}>
+                  <PressScale
+                    disabled={isSpinning || (!!myId && wheelSectors.length === 0)}
+                    onPress={handleSpin}
+                    accessibilityRole="button"
+                    accessibilityLabel="Spin the wheel"
+                    style={[s.spHub, { backgroundColor: spinsLeft > 0 || !myId ? '#F6C453' : '#A1A1AA' }]}
+                  >
+                    {isSpinning ? <ActivityIndicator size="small" color="#1C1257" /> : (
+                      <Text style={s.spHubText}>{spinsLeft > 0 || !myId ? 'Spin' : 'Locked'}</Text>
+                    )}
+                  </PressScale>
+                </Animated.View>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Text style={[s.cartBarCta, { fontSize: 12 }]}>VIEW BASKET</Text>
-                <Text style={{ fontSize: 12, color: '#fff', marginLeft: 2 }}>➔</Text>
+
+              <Text style={s.spStatus}>
+                {!myId
+                  ? 'Sign in to see your spins'
+                  : rewardsStatus === 'error' || (rewardsStatus === 'ready' && wheelSectors.length === 0)
+                    ? 'Could not load your spins. Go back and pull down to retry.'
+                    : spinsLeft > 0
+                      ? `You have ${spinsLeft} spin${spinsLeft === 1 ? '' : 's'} ready`
+                      : spinNextIn
+                        ? `${spinNextIn} more delivered order${spinNextIn === 1 ? '' : 's'} to your next spin`
+                        : 'Every 2 delivered orders earn a spin'}
+              </Text>
+
+              {!!myId && spinsLeft === 0 && rewardsStatus === 'ready' && wheelSectors.length > 0 ? (
+                <PressScale
+                  onPress={() => { setSpinOpen(false); selectTab('food'); }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Shop the campus store to earn your next spin"
+                  style={s.spEarnBtn}
+                >
+                  <Ionicons name="basket-outline" size={18} color="#1C1257" />
+                  <Text style={s.spEarnText}>Shop the campus store</Text>
+                </PressScale>
+              ) : null}
+
+              <View style={s.spNote}>
+                <View style={s.spNoteIcon}>
+                  <Ionicons name="information-circle-outline" size={20} color="#F6C453" />
+                </View>
+                <Text style={s.spNoteText}>Every 2 delivered orders earn a spin. ZenPoints are added to your balance at once; a coupon shows up in Your coupons.</Text>
               </View>
-            </LinearGradient>
-          </TouchableOpacity>
-        </Animated.View>
+            </ScrollView>
+          </LinearGradient>
+        </View>
       )}
 
-      {/* ── SPIN RESULT MODAL ── */}
+      {/* ── SPIN RESULT ("Congratulations") ── */}
       <Modal
         visible={showWheelModal}
         transparent={true}
         animationType="fade"
         onRequestClose={() => { setShowWheelModal(false); setWheelResult(null); }}
       >
-        <View style={s.promoOverlayCentred}>
+        <View style={[s.wonPage, { backgroundColor: isDark ? '#0E0B1F' : '#F7F5FF', paddingTop: topPad }]}>
           {wheelResult !== null && <Confetti />}
+          <View style={s.spHead}>
+            <PressScale style={[s.spBack, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF' }]} onPress={() => { setShowWheelModal(false); setWheelResult(null); }} accessibilityRole="button" accessibilityLabel="Close">
+              <Ionicons name="close" size={20} color={txt} />
+            </PressScale>
+            <Text style={[s.spHeadTitle, { color: txt }]}>Spin & win</Text>
+          </View>
 
-          <View style={[s.promoPopupCard, { backgroundColor: isDark ? '#1F2937' : '#fff' }]}>
-            <TouchableOpacity style={s.promoCloseBtn} onPress={() => { setShowWheelModal(false); setWheelResult(null); }} accessibilityLabel="Close">
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>✕</Text>
-            </TouchableOpacity>
-
-            <View style={{ alignItems: 'center', marginVertical: 12 }}>
-              <Text style={{ fontSize: 32, marginBottom: 8 }}>🎉</Text>
-              <Text style={[s.modalTitle, { color: txt, textAlign: 'center', marginBottom: 4 }]}>Congratulations</Text>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec, textAlign: 'center', marginBottom: 12 }}>
-                {wheelResult?.coupon ? 'Your coupon is ready to use at checkout.' : 'Added to your ZenPoints balance.'}
-              </Text>
-
-              {wheelResult && (
-                <LinearGradient colors={['#AA7C11', '#D4AF7A', '#AA7C11']} style={{ paddingHorizontal: 20, paddingVertical: 16, borderRadius: 20, width: '100%', alignItems: 'center', marginVertical: 10 }}>
-                  <Text style={{ fontSize: 18, fontWeight: '900', color: '#000', textAlign: 'center' }}>{wheelResult.display}</Text>
-                  {wheelResult.coupon && (
-                    <>
-                      <Text style={{ fontSize: 12, fontWeight: '800', color: '#451A03', marginTop: 6, letterSpacing: 0.5 }}>YOUR COUPON CODE</Text>
-                      <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', letterSpacing: 1.5, marginTop: 4 }}>{wheelResult.coupon.code}</Text>
-                      {!!wheelResult.coupon.expiryDate && !isNaN(new Date(wheelResult.coupon.expiryDate).getTime()) && (
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#451A03', marginTop: 4 }}>
-                          Valid till {new Date(wheelResult.coupon.expiryDate).toLocaleDateString([], { day: 'numeric', month: 'short' })}
-                        </Text>
-                      )}
-                    </>
-                  )}
-                </LinearGradient>
-              )}
-
-              {wheelResult?.coupon && (
-                <TouchableOpacity
-                  onPress={() => {
-                    const code = wheelResult.coupon!.code;
-                    handleCopyCode(code);
-                    Haptics.selectionAsync().catch(() => {});
-                  }}
-                  style={{ backgroundColor: '#111827', width: '100%', paddingVertical: 12, borderRadius: 14, alignItems: 'center', marginTop: 10 }}
-                >
-                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 1 }}>{copiedCode === wheelResult.coupon.code ? 'CODE COPIED ✓' : 'COPY COUPON CODE'}</Text>
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity onPress={() => { setShowWheelModal(false); setWheelResult(null); }} style={{ paddingVertical: 12, marginTop: 6 }}>
-                <Text style={{ fontSize: 12, fontWeight: '900', color: COLORS.gold }}>Done</Text>
-              </TouchableOpacity>
+          <View style={s.wonBody}>
+            <View style={[s.wonIcon, { backgroundColor: dp.tint }]}>
+              <Ionicons name={wheelResult?.coupon ? 'ticket' : 'diamond'} size={44} color={dp.ink} />
             </View>
+            <Text style={[s.wonTitle, { color: txt }]}>Congratulations!</Text>
+            <Text style={[s.wonSub, { color: txtSec }]}>You won</Text>
+
+            {wheelResult && (
+              <View style={[s.wonPrize, { backgroundColor: isDark ? 'rgba(246,196,83,0.10)' : '#FFF8E6', borderColor: '#F6C453' }]}>
+                <Text style={[s.wonPrizeText, { color: txt }]}>{stripEmoji(wheelResult.display) || wheelResult.display}</Text>
+                <Text style={[s.wonPrizeSub, { color: txtSec }]}>
+                  {wheelResult.coupon ? 'Your coupon is ready to use at checkout.' : 'Added to your ZenPoints balance.'}
+                </Text>
+              </View>
+            )}
+
+            {!!wheelResult?.coupon && (
+              <>
+                <Text style={[s.wonCode, { color: txt }]}>Code: {wheelResult.coupon.code}</Text>
+                {!!wheelResult.coupon.expiryDate && !isNaN(new Date(wheelResult.coupon.expiryDate).getTime()) && (
+                  <Text style={[s.wonValid, { color: txtSec }]}>
+                    Valid till {new Date(wheelResult.coupon.expiryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </Text>
+                )}
+              </>
+            )}
+          </View>
+
+          <View style={s.wonActions}>
+            {!!wheelResult?.coupon ? (
+              <PressScale
+                style={[s.wonPrimary, { backgroundColor: dp.solid }]}
+                onPress={() => { handleCopyCode(wheelResult.coupon!.code); Haptics.selectionAsync().catch(() => {}); }}
+                accessibilityRole="button"
+              >
+                <Text style={s.wonPrimaryText}>{copiedCode === wheelResult.coupon.code ? 'Code copied' : 'Copy code'}</Text>
+              </PressScale>
+            ) : spinsLeft > 0 ? (
+              <PressScale style={[s.wonPrimary, { backgroundColor: dp.solid }]} onPress={() => { setShowWheelModal(false); setWheelResult(null); }} accessibilityRole="button">
+                <Text style={s.wonPrimaryText}>Spin again</Text>
+              </PressScale>
+            ) : null}
+            <PressScale
+              style={[s.wonSecondary, { borderColor: dp.solid }]}
+              onPress={() => { setShowWheelModal(false); setWheelResult(null); setSpinOpen(false); }}
+              accessibilityRole="button"
+            >
+              <Text style={[s.wonSecondaryText, { color: dp.ink }]}>Back to deals</Text>
+            </PressScale>
           </View>
         </View>
       </Modal>
@@ -2860,50 +2640,52 @@ export default function OthersScreen() {
       {/* ── SAVED ITEMS MODAL ── */}
       <Modal visible={favoritesModalVisible} animationType="slide" transparent={true} onRequestClose={() => setFavoritesModalVisible(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' }}>
-          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setFavoritesModalVisible(false)} />
-          <View style={{ backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '85%', minHeight: '45%', paddingBottom: Platform.OS === 'ios' ? 36 : 24, borderWidth: 1, borderColor: border }}>
-            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: isDark ? '#3F3F46' : '#E4E4E7', alignSelf: 'center', marginTop: 10, marginBottom: 14 }} />
+          <PressScale style={StyleSheet.absoluteFill} onPress={() => setFavoritesModalVisible(false)} />
+          <View style={{ backgroundColor: isDark ? OTHERS_SURFACE.dark.card : OTHERS_SURFACE.light.card, borderTopLeftRadius: OTHERS_RADIUS.sheet, borderTopRightRadius: OTHERS_RADIUS.sheet, maxHeight: '85%', minHeight: '45%', paddingBottom: Platform.OS === 'ios' ? 36 : 24 }}>
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: isDark ? OTHERS_SURFACE.dark.line : OTHERS_SURFACE.light.line, alignSelf: 'center', marginTop: 10, marginBottom: 14 }} />
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 14, borderBottomWidth: 1, borderColor: border }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: isDark ? OTHERS_SURFACE.dark.line : OTHERS_SURFACE.light.line }}>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontSize: 17, fontWeight: '900', color: txt }}>Saved Items ❤️</Text>
+                  <Text style={{ ...OTHERS_TYPE.heading, color: txt }}>Saved items</Text>
                   {savedFavoritesList.length > 0 && (
-                    <View style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
-                      <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '900' }}>{savedFavoritesList.length} SAVED</Text>
+                    <View style={{ backgroundColor: fg.tint, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 }}>
+                      <Text style={{ color: fg.ink, fontSize: 12, fontWeight: '700' }}>{savedFavoritesList.length} saved</Text>
                     </View>
                   )}
                 </View>
-                <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', marginTop: 2 }}>Products you starred in the campus store</Text>
+                <Text style={{ fontSize: 13, color: txtSec, marginTop: 2 }}>Products you saved in the campus store</Text>
               </View>
-              <TouchableOpacity style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: isDark ? '#27272A' : '#F1F5F9', alignItems: 'center', justifyContent: 'center' }} onPress={() => setFavoritesModalVisible(false)} accessibilityLabel="Close">
-                <Ionicons name="close" size={18} color={txt} />
-              </TouchableOpacity>
+              <PressScale style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: isDark ? OTHERS_SURFACE.dark.raised : OTHERS_SURFACE.light.raised, alignItems: 'center', justifyContent: 'center' }} onPress={() => setFavoritesModalVisible(false)} accessibilityRole="button" accessibilityLabel="Close">
+                <Ionicons name="close" size={20} color={txt} />
+              </PressScale>
             </View>
 
             <ScrollView style={{ paddingHorizontal: 16, paddingTop: 12 }} showsVerticalScrollIndicator={false}>
               {savedFavoritesList.length > 0 ? (
                 savedFavoritesList.map(item => (
-                  <View key={item.id} style={{ flexDirection: 'row', backgroundColor: isDark ? '#242428' : '#F8FAFC', borderRadius: 16, borderWidth: 1, borderColor: border, padding: 12, marginBottom: 12, gap: 12, alignItems: 'center' }}>
-                    <Image source={{ uri: item.image }} style={{ width: 64, height: 64, borderRadius: 12, backgroundColor: isDark ? '#333' : '#E2E8F0' }} />
+                  <View key={item.id} style={{ flexDirection: 'row', backgroundColor: isDark ? OTHERS_SURFACE.dark.raised : OTHERS_SURFACE.light.raised, borderRadius: 16, padding: 12, marginBottom: 12, gap: 12, alignItems: 'center' }}>
+                    <Image source={{ uri: item.image }} style={{ width: 64, height: 64, borderRadius: 12, backgroundColor: isDark ? OTHERS_SURFACE.dark.field : '#E9EDF2' }} />
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 12.5, fontWeight: '900', color: txt, lineHeight: 16 }} numberOfLines={2}>{item.title}</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: txt, lineHeight: 18 }} numberOfLines={2}>{item.title}</Text>
                       <Text style={{ fontSize: 12, color: txtSec, marginTop: 2 }} numberOfLines={1}>{item.subtitle}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-                        <Text style={{ fontSize: 13, fontWeight: '900', color: '#10B981' }}>{item.price}</Text>
+                        <Text style={{ fontSize: 15, fontWeight: '800', color: txt }}>{item.price}</Text>
                         <View style={{ flexDirection: 'row', gap: 6 }}>
-                          <TouchableOpacity style={{ paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, backgroundColor: isDark ? '#3F3F46' : '#E2E8F0' }} onPress={() => removeSaved(item.id)}>
-                            <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>Remove</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, backgroundColor: '#EF4444' }}
+                          <PressScale style={{ height: 36, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: isDark ? OTHERS_SURFACE.dark.line : OTHERS_SURFACE.light.line, alignItems: 'center', justifyContent: 'center' }} onPress={() => removeSaved(item.id)} accessibilityRole="button" accessibilityLabel={`Remove ${item.title}`}>
+                            <Text style={{ fontSize: 13, fontWeight: '600', color: txtSec }}>Remove</Text>
+                          </PressScale>
+                          <PressScale
+                            style={{ height: 36, paddingHorizontal: 16, borderRadius: 12, backgroundColor: fg.solid, alignItems: 'center', justifyContent: 'center' }}
+                            accessibilityRole="button"
+                            accessibilityLabel={`View ${item.title}`}
                             onPress={() => {
                               setFavoritesModalVisible(false);
                               router.push(item.targetRoute as any);
                             }}
                           >
-                            <Text style={{ fontSize: 12, fontWeight: '900', color: '#FFF' }}>VIEW ➔</Text>
-                          </TouchableOpacity>
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: '#FFFFFF' }}>View</Text>
+                          </PressScale>
                         </View>
                       </View>
                     </View>
@@ -2911,11 +2693,18 @@ export default function OthersScreen() {
                 ))
               ) : (
                 <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
-                  <Text style={{ fontSize: 36, marginBottom: 10 }}>🔖</Text>
-                  <Text style={{ fontSize: 15, fontWeight: '900', color: txt }}>Nothing saved yet</Text>
+                  <View style={{ width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: fg.tint, marginBottom: 12 }}><Ionicons name="heart-outline" size={24} color={fg.ink} /></View>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: txt }}>Nothing saved yet</Text>
                   <Text style={{ fontSize: 12, color: txtSec, marginTop: 4, textAlign: 'center', maxWidth: 260 }}>
-                    Tap the ☆ on any product in Food & groceries to save it here.
+                    Tap the heart on any product in Food & groceries to save it here.
                   </Text>
+                  <PressScale
+                    onPress={() => { setFavoritesModalVisible(false); selectTab('food'); }}
+                    accessibilityRole="button"
+                    style={{ marginTop: 16, height: 44, paddingHorizontal: 20, borderRadius: 12, backgroundColor: fg.solid, alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#FFFFFF' }}>Browse the campus store</Text>
+                  </PressScale>
                 </View>
               )}
             </ScrollView>
@@ -2959,717 +2748,201 @@ export default function OthersScreen() {
 const s = StyleSheet.create({
   container: { flex: 1, paddingTop: Platform.OS === 'android' ? 36 : Platform.OS === 'web' ? 12 : 44, width: '100%', maxWidth: 600, alignSelf: 'center' },
 
-  // BigBasket Custom Header Styles
-  bbHeader: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 3,
-    marginBottom: 8,
-  },
-  bbHeaderTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  bbHeaderLeft: {
-    flex: 1,
-  },
-  bbProfileBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: '#16A34A',
-    backgroundColor: '#fff',
-  },
-  bbProfileImg: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  bbHeaderSearchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  bbSearchBar: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    height: 38,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 6,
-  },
-  bbSearchInput: {
-    flex: 1,
-    fontSize: 12,
-    fontWeight: '600',
-    padding: 0,
-  },
-  bbShortcutsPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    height: 38,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 8,
-  },
-  bbShortcutBtn: {
-    padding: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // BigBasket Product Card Styles
-  bbProductCard: {
-    width: 140,
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
-    padding: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  bbProductCardImgWrap: {
-    width: '100%',
-    height: 100,
-    borderRadius: 12,
-    backgroundColor: '#F8FAFC',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    marginBottom: 8,
-  },
-  bbProductCardImg: {
-    width: '90%',
-    height: '90%',
-    resizeMode: 'contain',
-  },
-  bbWishlistBtn: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    borderRadius: 12,
-    width: 22,
-    height: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bbAddBtnOverlapping: {
-    position: 'absolute',
-    bottom: -6,
-    right: -6,
-  },
-  bbAddBtnSquare: {
-    backgroundColor: '#16A34A',
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#16A34A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  bbAddBtnPlus: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '900',
-  },
-  bbStepperOverlapping: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#16A34A',
-    borderRadius: 8,
-    paddingHorizontal: 4,
-    height: 28,
-    gap: 4,
-  },
-  bbStepperBtnMini: {
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bbStepperBtnTextMini: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  bbStepperQtyMini: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '900',
-    minWidth: 12,
-    textAlign: 'center',
-  },
-  bbProductCardDetails: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  bbProductCardPrice: {
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  bbProductCardOrigPrice: {
-    fontSize: 12,
-    color: '#8B8B93',
-    textDecorationLine: 'line-through',
-  },
-  bbDiscountTag: {
-    backgroundColor: '#FEF08A',
-    borderRadius: 4,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    alignSelf: 'flex-start',
-    marginTop: 2,
-  },
-  bbDiscountTagText: {
-    color: '#854D0E',
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  bbProductCardName: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 4,
-    lineHeight: 13,
-    height: 26,
-  },
-  bbProductCardWeight: {
-    fontSize: 12,
-    color: '#617088',
-    fontWeight: '600',
-  },
-
-  bbCategoryCardCell: {
-    width: (SW - 32 - 18) / 4,
-    height: 90,
-    borderRadius: 14,
-    borderWidth: 1,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 6,
-    marginBottom: 8,
-  },
-  bbCategoryCardName: {
-    fontSize: 12,
-    fontWeight: '900',
-    textAlign: 'center',
-    lineHeight: 10,
-    height: 20,
-    marginTop: 2,
-  },
-  bbCategoryCardImgWrap: {
-    width: '100%',
-    height: 55,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bbCategoryCardImg: {
-    width: '90%',
-    height: '90%',
-    resizeMode: 'contain',
-  },
-
-  // Nav
-  nav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 12 },
-  loc: { fontSize: 12, fontWeight: '800', letterSpacing: 2 },
-  greeting: { fontSize: 12, fontWeight: '800', letterSpacing: 2, marginTop: 2 },
-  navRight: { flexDirection: 'row', gap: 8 },
-  navBtn: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(212, 175, 122, 0.25)' },
-  
-  // Hero Header
-  heroHeader: { alignItems: 'center', marginBottom: 16 },
-  ecoBadgeWrapper: { borderRadius: 20, overflow: 'hidden', marginBottom: 8 },
-  ecoBadgeGradient: { paddingHorizontal: 16, paddingVertical: 6, alignItems: 'center', justifyContent: 'center' },
-  ecoBadgeText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 4 },
-  heroTitle: { fontSize: 26, fontWeight: '900', letterSpacing: -0.5 },
-  underline: { width: 40, height: 3, backgroundColor: '#D4AF7A', borderRadius: 2, marginTop: 6 },
-  
-  // Search
-  searchWrap: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, borderWidth: 1, gap: 10, marginBottom: 16 },
-  searchInput: { flex: 1, fontSize: 12, fontWeight: '600', padding: 0 },
-  searchBtnGradient: { paddingHorizontal: 14, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
-  searchBtnText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 2 },
-  
-  // Tabs
-  tabRow: { flexDirection: 'row', marginHorizontal: 16, borderRadius: 16, padding: 4, marginBottom: 16, borderWidth: 1 },
-  tabBtn: { flex: 1, borderRadius: 12, alignItems: 'center', overflow: 'hidden' },
-  tabBtnActive: { },
-  tabBtnActiveGradient: { width: '100%', paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
-  tabLabel: { fontSize: 12, fontWeight: '800', letterSpacing: 1.5 },
-  tabLabelActive: { color: '#000' },
-  
-  // Promo
-  promoWrap: { marginHorizontal: 16, borderRadius: 24, overflow: 'hidden', height: 200, marginBottom: 24 },
-  promoImg: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
-  promoOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.45)' },
-  promoContent: { flex: 1, justifyContent: 'center', padding: 20, zIndex: 2 },
-  promoTag: { fontSize: 12, fontWeight: '900', color: '#D4AF7A', letterSpacing: 4, marginBottom: 6 },
-  promoTitle: { fontSize: 24, fontWeight: '900', color: '#fff', fontStyle: 'italic' },
-  promoSub: { fontSize: 24, fontWeight: '900', color: '#D4AF7A', fontStyle: 'italic', marginBottom: 6 },
-  promoDesc: { fontSize: 12, fontWeight: '700', color: '#bbb', letterSpacing: 2, marginBottom: 14, maxWidth: 250 },
-  promoCta: { backgroundColor: '#D4AF7A', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 24, alignSelf: 'flex-start', ...SHADOWS.goldGlow },
-  promoCtaText: { fontSize: 12, fontWeight: '900', color: '#000', letterSpacing: 3 },
-  promoDots: { position: 'absolute', bottom: 12, left: 20, flexDirection: 'row', gap: 4, zIndex: 3 },
-  dot: { width: 6, height: 6, borderRadius: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
-  dotActive: { width: 20, backgroundColor: '#D4AF7A', borderColor: '#D4AF7A' },
-  
-  // Departments
-  sectionTitle: { fontSize: 13, fontWeight: '900', letterSpacing: 3, paddingHorizontal: 16, marginTop: 24, marginBottom: 16 },
-  deptGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 12, marginBottom: 28 },
-  deptItem: { width: DEPT_SIZE, alignItems: 'center' },
-  deptImgWrap: { 
-    width: DEPT_SIZE - 4, 
-    height: DEPT_SIZE - 4, 
-    borderRadius: 18, 
-    position: 'relative',
-    overflow: 'hidden',
-    shadowColor: 'rgba(212, 175, 122, 0.15)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  deptTextWrap: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingVertical: 6,
-    paddingHorizontal: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deptName: { fontSize: 12, fontWeight: '900', textAlign: 'center', letterSpacing: 0.5 },
-  
-  // Trending
-  trendCard: { marginHorizontal: 16, borderRadius: 20, overflow: 'hidden', height: 180, marginBottom: 12, position: 'relative' },
-  trendImg: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
-  trendOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.5)' },
-  trendContent: { flex: 1, justifyContent: 'flex-end', padding: 16, zIndex: 2 },
-  trendTag: { backgroundColor: COLORS.red, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start' },
-  trendTagText: { fontSize: 12, fontWeight: '900', color: '#fff', letterSpacing: 2 },
-  trendBadgeWrap: { backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start' },
-  trendBadgeText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  trendTitle: { fontSize: 18, fontWeight: '900', color: '#fff', marginBottom: 2 },
-  trendDesc: { fontSize: 12, fontWeight: '500', color: 'rgba(255,255,255,0.7)', lineHeight: 14 },
-
   // PG filters
 
-  emptyState: { padding: 48, alignItems: 'center', justifyContent: 'center' },
-  resetBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  resetBtnText: { fontSize: 12, fontWeight: '900', letterSpacing: 1.5 },
-
-
-
-
-
-
-
-
-
-
-  floatingFab: { paddingVertical: 14, borderRadius: 16, backgroundColor: COLORS.red, alignItems: 'center', justifyContent: 'center', marginVertical: 12, ...SHADOWS.redGlow },
-  floatingFabText: { color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 2 },
-
-  // Modal styling
-  modalContentBox: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, height: '80%', alignItems: 'center' },
-  modalTitle: { fontSize: 14, fontWeight: '900', letterSpacing: 3, marginBottom: 16 },
-  formLabel: { fontSize: 12, fontWeight: '900', letterSpacing: 1, alignSelf: 'flex-start', marginTop: 12, marginBottom: 6 },
-  formInput: { width: '100%', height: 44, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, fontSize: 12, fontWeight: '700', marginBottom: 6 },
-  formRoleRow: { flexDirection: 'row', gap: 10, width: '100%', marginBottom: 6 },
-  roleBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.borderDark, alignItems: 'center' },
-  roleBtnActive: { backgroundColor: COLORS.gold, borderColor: COLORS.gold },
-  roleBtnTextLabel: { fontSize: 12, fontWeight: '800', color: COLORS.textSecondary, letterSpacing: 1 },
-  roleBtnTextLabelActive: { color: '#000' },
-  formSubmitBtn: { width: '100%', paddingVertical: 14, borderRadius: 16, backgroundColor: COLORS.red, alignItems: 'center', justifyContent: 'center', marginTop: 24, ...SHADOWS.redGlow },
-  formSubmitText: { color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 2 },
-  formCancelBtn: { width: '100%', paddingVertical: 12, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
-  formCancelText: { fontSize: 12, fontWeight: '900', color: COLORS.textSecondary, letterSpacing: 2 },
-
-  // Redesigned Grocery Styles
-  pillBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
-  pillBtnActive: { borderColor: '#22C55E' },
-  pillText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
-
-  monsoonStoreBanner: { borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', overflow: 'hidden' },
-  monsoonBannerTitle: { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: 2, marginVertical: 4 },
-  monsoonBannerSubtitle: { fontSize: 12, fontWeight: '900', color: '#34D399', letterSpacing: 1.5 },
-  monsoonBannerDesc: { fontSize: 12, fontWeight: '600', color: '#ccc', letterSpacing: 0.5 },
-  frogMascotContainer: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
-
-  oilStackContainer: { height: 160, width: SW, position: 'relative', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginVertical: 12 },
-  oilCardStackItem: { width: SW * 0.55, height: 140, position: 'absolute', borderRadius: 20, overflow: 'hidden', ...SHADOWS.card },
-  oilCardGradient: { flex: 1, padding: 12, position: 'relative', justifyContent: 'space-between' },
-  oilCardLabel: { fontSize: 12, fontWeight: '900', color: 'rgba(255,255,255,0.7)', letterSpacing: 1 },
-  oilCardTitle: { fontSize: 14, fontWeight: '900', color: '#fff', letterSpacing: 0.5, lineHeight: 18, marginTop: 4 },
-  oilCardImgWrapper: { width: 80, height: 80, position: 'absolute', bottom: -10, right: -10 },
-  oilCardImg: { width: '100%', height: '100%', resizeMode: 'contain' },
-
-  healthCardCell: { width: 100, alignItems: 'center' },
-  healthCardBacking: { width: 90, height: 90, borderRadius: 24, backgroundColor: '#DCFCE7', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' },
-  healthCardImg: { width: '80%', height: '80%', resizeMode: 'contain' },
-  healthCardText: { fontSize: 12, fontWeight: '900', textAlign: 'center', marginTop: 8, letterSpacing: 0.5, height: 26 },
-
-  wellnessSeeAll: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' },
-  wellnessCard: { width: 140, borderRadius: 20, borderWidth: 1, overflow: 'hidden', ...SHADOWS.card },
-  wellnessCardImgWrap: { width: '100%', height: 110, position: 'relative', backgroundColor: 'rgba(0,0,0,0.01)', alignItems: 'center', justifyContent: 'center' },
-  wellnessCardImg: { width: '80%', height: '80%', resizeMode: 'contain' },
-  discountBadge: { position: 'absolute', bottom: 8, left: 8, backgroundColor: '#F59E0B', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  discountText: { fontSize: 12, fontWeight: '900', color: '#fff' },
-  wellnessCardContent: { padding: 10, flex: 1, justifyContent: 'space-between' },
-  vegBadge: { width: 12, height: 12, borderWidth: 1.5, borderRadius: 3, alignItems: 'center', justifyContent: 'center' },
-  vegDotInner: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#22C55E' },
-  weightLabel: { fontSize: 12, fontWeight: '700', color: '#666' },
-  wellnessTitle: { fontSize: 12, fontWeight: '800', marginVertical: 4, height: 32 },
-  wellnessPriceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  wellnessPrice: { fontSize: 12, fontWeight: '900' },
-  wellnessOriginalPrice: { fontSize: 12, color: '#999', textDecorationLine: 'line-through' },
-  addBtnWellness: { backgroundColor: '#fff', borderColor: '#22C55E', borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4, flexDirection: 'row', alignItems: 'center', gap: 2 },
-  addBtnWellnessText: { fontSize: 12, fontWeight: '900', color: '#22C55E' },
-  addBtnWellnessPlus: { fontSize: 12, fontWeight: '900', color: '#22C55E', position: 'absolute', top: 1, right: 3 },
-  stepperWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#22C55E', borderRadius: 8, overflow: 'hidden', backgroundColor: '#fff' },
-  stepperBtn: { paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#DCFCE7' },
-  stepperBtnText: { fontSize: 12, fontWeight: '900', color: '#22C55E' },
-  stepperQty: { fontSize: 12, fontWeight: '900', paddingHorizontal: 6, textAlign: 'center', minWidth: 16 },
-
-  categorySectionHeader: { fontSize: 13, fontWeight: '900', letterSpacing: 2, marginBottom: 12 },
-  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  categoryItemCell: { width: (SW - 32 - 24) / 4, alignItems: 'center', marginBottom: 16 },
-  categoryImageCard: { width: (SW - 32 - 24) / 4, height: (SW - 32 - 24) / 4, borderRadius: 16, borderWidth: 1, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  categoryCellImage: { width: '80%', height: '80%', resizeMode: 'contain' },
-  categoryCellName: { fontSize: 12, fontWeight: '800', textAlign: 'center', marginTop: 4, letterSpacing: 0.2 },
-
-  promoOverlayCentred: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  promoPopupCard: { width: '100%', maxWidth: 340, backgroundColor: '#fff', borderRadius: 28, padding: 18, alignItems: 'center', position: 'relative' },
-  promoCloseBtn: { position: 'absolute', top: -36, right: 0, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-  promoPopupHeader: { alignItems: 'center', marginBottom: 14 },
-  promoPopupHeaderSub: { fontSize: 12, fontWeight: '800', color: '#666', textAlign: 'center', marginBottom: 8 },
-  perksRow: { flexDirection: 'row', gap: 8, justifyContent: 'center' },
-  perkBadge: { width: 85, paddingVertical: 6, borderRadius: 10, backgroundColor: '#FEF3C7', borderStyle: 'dashed', borderWidth: 1, borderColor: '#F59E0B', alignItems: 'center' },
-  perkBadgeVal: { fontSize: 12, fontWeight: '900', color: '#B45309' },
-  perkBadgeLabel: { fontSize: 12, fontWeight: '800', color: '#B45309', textAlign: 'center', marginTop: 2, height: 16 },
-  promoPopupGradient: { width: '100%', borderRadius: 20, padding: 14, alignItems: 'center', marginVertical: 8 },
-  promoStoreTitle: { fontSize: 14, fontWeight: '900', color: '#fff', letterSpacing: 4, marginBottom: 8 },
-  promoItemsGrid: { flexDirection: 'row', gap: 12, width: '100%', justifyContent: 'center', marginVertical: 8 },
-  promoPopupItem: { width: 100, alignItems: 'center' },
-  promoItemImgBg: { width: 75, height: 75, borderRadius: 16, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  promoItemImg: { width: '80%', height: '80%', resizeMode: 'contain' },
-  promoItemTag: { fontSize: 12, fontWeight: '900', backgroundColor: '#FEF3C7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, color: '#B45309', marginTop: -8 },
-  promoItemTitle: { fontSize: 12, fontWeight: '800', color: '#fff', marginTop: 6 },
-  promoItemPrice: { fontSize: 12, fontWeight: '900', color: '#FCD34D' },
-  promoPesticidesText: { fontSize: 12, fontWeight: '800', color: '#34D399', letterSpacing: 0.5, marginTop: 8 },
-  promoPopupCta: { width: '100%', backgroundColor: '#111', paddingVertical: 12, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 10 },
-  promoPopupCtaText: { fontSize: 12, fontWeight: '900', color: '#fff', letterSpacing: 2 },
-  promoPopupFooterText: { fontSize: 12, color: '#999', marginTop: 8 },
-
-  // Catalog Bottom Sheet Styles
-  catalogOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  catalogContentBox: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, height: '75%' },
-  grabHandle: { width: 36, height: 4, backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 2, alignSelf: 'center', marginBottom: 12 },
-  catalogHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  catalogTitle: { fontSize: 13, fontWeight: '900', letterSpacing: 2 },
-  catalogCloseBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.03)', alignItems: 'center', justifyContent: 'center' },
-  catalogProductRow: { flexDirection: 'row', paddingVertical: 12, borderBottomWidth: 0.5 },
-  catalogProductImgBg: { width: 85, height: 85, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.02)', overflow: 'hidden', alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  catalogProductImg: { width: '80%', height: '80%', resizeMode: 'contain' },
-  catalogDiscountBadge: { position: 'absolute', top: 4, left: 4, backgroundColor: '#F59E0B', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4 },
-  catalogDiscountText: { fontSize: 12, fontWeight: '900', color: '#fff' },
-  catalogProductTitle: { fontSize: 12, fontWeight: '800', lineHeight: 14 },
-  catalogProductPrice: { fontSize: 12, fontWeight: '900' },
-  catalogProductOrigPrice: { fontSize: 12, color: '#999', textDecorationLine: 'line-through', marginTop: 1 },
 
   // Floating Cart Status Bar
-  floatingCartBar: {
-    position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 24 : 16,
-    left: 16,
-    right: 16,
-    zIndex: 90,
-  },
-  floatingCartBarTouch: {
-    borderRadius: 18,
-    overflow: 'hidden',
-    shadowColor: '#15803D',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  floatingCartBarGradient: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  cartBarTitle: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#fff',
-    letterSpacing: 1.5,
-  },
-  cartBarSubtitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#E8F5E9',
-    marginTop: 1,
-  },
-  cartBarCta: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#fff',
-    letterSpacing: 1,
-  },
-
-  // Flash Deal Ticker
-  flashDealContainer: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  flashBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  flashBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  flashDealTitle: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#1E293B',
-  },
-  flashDealTimerLabel: {
-    fontSize: 12,
-    color: '#617088',
-    marginTop: 1,
-  },
-  flashDealCta: {
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  flashDealCtaText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '900',
-  },
-
-  // Brand Spotlight Grid
-  brandGridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 4,
-  },
-  brandGridCell: {
-    width: (SW - 32 - 16) / 3,
-    paddingVertical: 14,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brandCellText: {
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-
-  // Interactive Ad Video Card
-  adVideoCard: {
-    borderRadius: 24,
-    padding: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  adVideoHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  adLiveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#EF4444',
-  },
-  adLiveText: {
-    color: '#8B8B93',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-  adBrandTag: {
-    color: '#34D399',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-  adVideoBody: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 16,
-  },
-  adVideoSubtitle: {
-    color: '#38BDF8',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 1.5,
-  },
-  adVideoTitle: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '900',
-    marginTop: 2,
-  },
-  adVideoDesc: {
-    color: '#8B8B93',
-    fontSize: 12,
-    lineHeight: 14,
-    marginTop: 4,
-  },
-  adVisualPlayer: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  adRotatingDisk: {
-    width: 60,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  musicNoteContainer: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: '#38BDF8',
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  adVideoControls: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  adPlayBtn: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-    paddingVertical: 10,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  adPlayBtnText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-  adCtaBtn: {
-    flex: 1,
-    backgroundColor: '#34D399',
-    paddingVertical: 10,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  adCtaBtnText: {
-    color: '#000',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-
-  // Smart Cross-Promotion Card
-  crossPromoCard: {
-    width: SW * 0.65,
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  crossPromoImg: {
-    width: 54,
-    height: 54,
-    resizeMode: 'contain',
-  },
-  crossPromoTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  crossPromoWeight: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 1,
-  },
-  crossPromoPrice: {
-    fontSize: 12,
-    fontWeight: '900',
-    flex: 1,
-  },
   heroCarouselCard: {
     marginHorizontal: 16,
-    borderRadius: 24,
-    overflow: 'hidden',
-    marginBottom: 16,
-    borderWidth: 1,
-    marginTop: 12,
+    borderRadius: 20,
+    marginBottom: 12,
+    marginTop: 8,
   },
   heroCarousel: {
     marginHorizontal: 0,
-    borderRadius: 0,
-    borderWidth: 0,
   },
+
+  // -- Campus Hub header (Food & groceries redesign, 22 Oct) --
+  hubHeader: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 12, gap: 12 },
+  hubTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  hubTitleLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  hubTitle: { ...OTHERS_TYPE.title },
+  hubSubtitle: { ...OTHERS_TYPE.label, fontWeight: '400', marginTop: 2 },
+  hubStatus: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 24, paddingHorizontal: 9, borderRadius: 12, flexShrink: 0 },
+  hubStatusDot: { width: 6, height: 6, borderRadius: 3 },
+  hubStatusText: { fontSize: 12, fontWeight: '600' },
+  hubSearchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  hubSearch: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, height: 44, paddingHorizontal: 14, borderRadius: OTHERS_RADIUS.button, borderWidth: 1 },
+  hubSearchInput: { flex: 1, fontSize: 14, fontWeight: '400', padding: 0, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : null) },
+  hubIconBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  hubIconBtnLg: { width: 44, height: 44, borderRadius: OTHERS_RADIUS.button },
+
+  // Section pills (40) and category chips (36): one style, two sizes.
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1 },
+  pillSm: { height: 36, paddingHorizontal: 12, borderRadius: 18, gap: 5 },
+  pillLabel: { fontSize: 13, letterSpacing: 0.1 },
+  pillLabelSm: { fontSize: 12.5 },
+
+  // Top deal card
+
+  // Section header + rails (16 px gutters, 12 px gaps)
+  secBlock: { marginTop: 24 },
+  secHead: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, marginBottom: 12 },
+  secTitle: { fontSize: 18, fontWeight: '700', letterSpacing: 0.1 },
+  secSub: { fontSize: 13, fontWeight: '400', marginTop: 2 },
+  railContent: { paddingHorizontal: 16, gap: 12, paddingBottom: 6 },
+  dietMark: { position: 'absolute', top: 8, right: 13, width: 14, height: 14, borderRadius: 3, borderWidth: 1.2, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  dietDot: { width: 6, height: 6, borderRadius: 3 },
+
+  // Brand rail
+
+  // Photo tiles (toys, health, grocery aisles)
+
+  // Empty / error states
+
+  // Categories mode
+
+  // ── Food & groceries rebuild (owner reference, 22 Oct) ──
+
+
+
+  // Product card
+  fCard: { borderRadius: 16, borderWidth: 1, padding: 8 },
+  fPlate: { width: '100%', aspectRatio: 1.12, borderRadius: 12, overflow: 'hidden', marginBottom: 8 },
+  fPlateTouch: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', borderRadius: 12, overflow: 'hidden' },
+  fImg: { width: '78%', height: '82%', resizeMode: 'contain' },
+  fTag: { position: 'absolute', top: 6, left: 6, paddingHorizontal: 6, height: 20, borderRadius: 6, justifyContent: 'center' },
+  fTagText: { fontSize: 11, fontWeight: '600', letterSpacing: 0.1 },
+  fHeart: { position: 'absolute', top: 6, right: 6, width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  fPlus: { position: 'absolute', right: 6, bottom: 6, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  fClosedPill: { position: 'absolute', right: 6, bottom: 6, flexDirection: 'row', alignItems: 'center', gap: 4, height: 26, paddingHorizontal: 8, borderRadius: 13 },
+  fClosedText: { fontSize: 11, fontWeight: '700' },
+  fStepper: { position: 'absolute', right: 6, bottom: 6, height: 30, minWidth: 84, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4 },
+  fStepBtn: { width: 24, height: 28, alignItems: 'center', justifyContent: 'center' },
+  fStepQty: { color: '#FFFFFF', fontSize: 13, fontWeight: '600', minWidth: 18, textAlign: 'center' },
+  fName: { fontSize: 13, fontWeight: '600', lineHeight: 18, height: 36, marginTop: 4, paddingRight: 2 },
+  fMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+  fMeta: { fontSize: 12, fontWeight: '400', flexShrink: 1 },
+  fPriceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 6 },
+  fPrice: { fontSize: 15, fontWeight: '700' },
+  fWas: { fontSize: 12, fontWeight: '400', textDecorationLine: 'line-through' },
+  fRateRow: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 18, marginTop: 2 },
+  fRate: { fontSize: 12, fontWeight: '600' },
+  fRateCount: { fontSize: 12, fontWeight: '400' },
+
+  // Categories mode header
+
+  // Category listing page
+  dietInline: { position: 'relative', top: 0, right: 0, width: 12, height: 12, borderRadius: 2 },
+
+  // ── Deals & spin (owner reference, 22 Oct): purple accent ──
+  dlHero: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 8, borderRadius: 20, padding: 18, paddingRight: 12, gap: 8, overflow: 'hidden' },
+  dlHeroText: { flex: 1, minWidth: 0 },
+  dlHeroTitle: { color: '#FFFFFF', fontSize: 22, fontWeight: '700', letterSpacing: 0.1 },
+  dlHeroTag: { color: 'rgba(255,255,255,0.92)', fontSize: 14, fontWeight: '600', marginTop: 2 },
+  dlHeroSub: { color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: '400', lineHeight: 17, marginTop: 6 },
+  dlHeroBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', height: 36, paddingHorizontal: 16, borderRadius: 18, backgroundColor: '#FFFFFF', marginTop: 12 },
+  dlHeroBtnText: { fontSize: 13, fontWeight: '600', letterSpacing: 0.2 },
+  dlHeroWheel: { width: 116, height: 116, alignItems: 'center', justifyContent: 'center' },
+  dlHeroHub: { position: 'absolute', width: 22, height: 22, borderRadius: 11, backgroundColor: '#F6C453', borderWidth: 3, borderColor: '#FFFFFF' },
+  dlHeroBadge: { position: 'absolute', top: -2, right: -2, paddingHorizontal: 8, height: 22, borderRadius: 11, backgroundColor: '#FFFFFF', justifyContent: 'center' },
+  dlHeroBadgeText: { fontSize: 11, fontWeight: '700' },
+
+  dlStatRow: { flexDirection: 'row', gap: 12, marginHorizontal: 16, marginTop: 16 },
+  dlStat: { flex: 1, padding: 14, borderRadius: 16, borderWidth: 1, gap: 4 },
+  dlStatIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  dlStatLabel: { fontSize: 12, fontWeight: '500' },
+  dlStatValue: { fontSize: 20, fontWeight: '700' },
+  dlSignIn: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 16, marginTop: 16, padding: 14, borderRadius: 16, borderWidth: 1 },
+
+  dlCardTitle: { fontSize: 15, fontWeight: '600' },
+  dlCardSub: { fontSize: 13, fontWeight: '400', lineHeight: 18, marginTop: 2 },
+  dlSmallBtn: { height: 32, paddingHorizontal: 14, borderRadius: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
+  dlSmallBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600', letterSpacing: 0.2 },
+
+  dlDeal: { borderRadius: 16, borderWidth: 1, padding: 8 },
+  dlDealImg: { width: '100%', aspectRatio: 16 / 10, borderRadius: 12, overflow: 'hidden' },
+  dlTag: { position: 'absolute', top: 8, left: 8, paddingHorizontal: 8, height: 22, borderRadius: 11, justifyContent: 'center' },
+  dlTagText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700', letterSpacing: 0.2 },
+  dlDealName: { fontSize: 14, fontWeight: '600', lineHeight: 19, height: 38, marginTop: 8 },
+  dlDealMeta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  dlDealMetaText: { fontSize: 12, fontWeight: '400', flexShrink: 1 },
+  dlDealBtn: { height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 10 },
+
+  dlStrip: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 16, marginTop: 20, padding: 14, borderRadius: 16 },
+  dlStripWheel: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+
+  dlEmpty: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, borderWidth: 1 },
+  dlCoupon: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1 },
+  dlCouponIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  dlOutlineBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 32, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1 },
+  dlOutlineBtnText: { fontSize: 13, fontWeight: '600' },
+
+  dlRefer: { marginHorizontal: 16, marginTop: 24, marginBottom: 8, padding: 16, borderRadius: 16, borderWidth: 1 },
+  dlReferTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  dlReferRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 },
+  dlCodeBox: { flex: 1, height: 48, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', paddingHorizontal: 12, justifyContent: 'center' },
+  dlCodeLabel: { fontSize: 11, fontWeight: '500' },
+  dlCodeText: { fontSize: 15, fontWeight: '700', letterSpacing: 1 },
+  dlShareBtn: { height: 48, paddingHorizontal: 18, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 6 },
+
+  // Deal detail sheet
+  ddBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+  ddSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', paddingBottom: Platform.OS === 'ios' ? 32 : 20, maxWidth: 600, width: '100%', alignSelf: 'center' },
+  ddImg: { width: '100%', aspectRatio: 16 / 9 },
+  ddClose: { position: 'absolute', top: 12, right: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center' },
+  ddBody: { paddingHorizontal: 16, paddingTop: 16 },
+  ddTitle: { fontSize: 20, fontWeight: '700', lineHeight: 26 },
+  ddMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  ddMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 30, paddingHorizontal: 10, borderRadius: 15 },
+  ddMetaText: { fontSize: 12, fontWeight: '500' },
+  ddHow: { fontSize: 15, fontWeight: '600', marginTop: 20, marginBottom: 4 },
+  ddStep: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 10 },
+  ddStepNum: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  ddStepNumText: { fontSize: 12, fontWeight: '700' },
+  ddStepText: { flex: 1, fontSize: 14, fontWeight: '400', lineHeight: 19 },
+  ddCta: { height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', marginHorizontal: 16, marginTop: 20 },
+
+  // Spin page
+  spHead: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 8 },
+  spBack: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  spHeadTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
+  spBody: { alignItems: 'center', paddingHorizontal: 16, paddingBottom: 48 },
+  spChip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 28, paddingHorizontal: 12, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.14)', marginTop: 4 },
+  spChipText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
+  spTitle: { color: '#FFFFFF', fontSize: 26, fontWeight: '700', marginTop: 12, textAlign: 'center' },
+  spSub: { color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '400', marginTop: 4, textAlign: 'center' },
+  spWheelWrap: { alignItems: 'center', justifyContent: 'center', marginTop: 28 },
+  spGlow: { position: 'absolute', backgroundColor: 'rgba(124,92,255,0.35)' },
+  spPointer: { position: 'absolute', top: -6, alignItems: 'center' },
+  spHubWrap: { position: 'absolute' },
+  spHub: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: '#FFFFFF' },
+  spEarnBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, alignSelf: 'center', height: 44, paddingHorizontal: 20, borderRadius: 12, backgroundColor: '#F6C453', marginTop: 14 },
+  spEarnText: { color: '#1C1257', fontSize: 14, fontWeight: '700' },
+  spHubText: { color: '#1C1257', fontSize: 16, fontWeight: '700', letterSpacing: 0.4 },
+  spStatus: { color: '#FFFFFF', fontSize: 14, fontWeight: '600', marginTop: 24, textAlign: 'center' },
+  spNote: { flexDirection: 'row', alignItems: 'center', gap: 12, alignSelf: 'stretch', marginTop: 24, padding: 14, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.10)' },
+  spNoteIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(246,196,83,0.16)', alignItems: 'center', justifyContent: 'center' },
+  spNoteText: { flex: 1, color: 'rgba(255,255,255,0.86)', fontSize: 13, fontWeight: '400', lineHeight: 18 },
+
+  // Spin result
+  wonPage: { flex: 1 },
+  wonBody: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
+  wonIcon: { width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+  wonTitle: { fontSize: 26, fontWeight: '700', textAlign: 'center' },
+  wonSub: { fontSize: 16, fontWeight: '500', marginTop: 2, textAlign: 'center' },
+  wonPrize: { alignSelf: 'stretch', marginTop: 20, paddingVertical: 20, paddingHorizontal: 16, borderRadius: 18, borderWidth: 1.5, borderStyle: 'dashed', alignItems: 'center' },
+  wonPrizeText: { fontSize: 24, fontWeight: '700', textAlign: 'center' },
+  wonPrizeSub: { fontSize: 13, fontWeight: '400', marginTop: 6, textAlign: 'center' },
+  wonCode: { fontSize: 15, fontWeight: '600', marginTop: 16, letterSpacing: 0.5 },
+  wonValid: { fontSize: 13, fontWeight: '400', marginTop: 4 },
+  wonActions: { paddingHorizontal: 16, paddingBottom: Platform.OS === 'ios' ? 36 : 24, gap: 10 },
+  wonPrimary: { height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
+  wonPrimaryText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  wonSecondary: { height: 52, borderRadius: 26, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  wonSecondaryText: { fontSize: 16, fontWeight: '600' },
+
+  // Text button with a chevron ("All deals", "See all")
+  textBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 32, paddingLeft: 4 },
+  textBtnText: { fontSize: 13, fontWeight: '600', letterSpacing: 0.1 },
 });

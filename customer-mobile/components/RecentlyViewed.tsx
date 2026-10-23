@@ -80,7 +80,7 @@ export default function RecentlyViewed() {
       <View style={s.headerRow}>
         <View>
           <Text style={s.sectionLabel}>Recently viewed</Text>
-          <Text style={[s.sectionTitle, { color: txt }]}>Recently Visited</Text>
+          <Text style={[s.sectionTitle, { color: txt }]}>Pick up where you left off</Text>
         </View>
         <TouchableOpacity onPress={handleClear} style={s.clearBtn}>
           <Text style={[s.clearText, { color: txtSec }]}>Clear</Text>

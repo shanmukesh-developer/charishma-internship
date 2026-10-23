@@ -10,7 +10,12 @@ import { usePgPalette, Divider, ICON, TYPE, IconCheck, IconCircleMinus, s as ui 
 
 export function Card({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   const p = usePgPalette();
-  return <View style={[st.card, { borderColor: p.line, backgroundColor: p.card }, style]}>{children}</View>;
+  // Outer view carries the soft shadow; the inner one clips rows to the rounded corners.
+  return (
+    <View style={[st.card, { backgroundColor: p.card }, p.shadow, style]}>
+      <View style={st.clip}>{children}</View>
+    </View>
+  );
 }
 
 /** Card rows with dividers between them (null / false children are skipped). */
@@ -90,7 +95,8 @@ export function CheckRow({ label, on, detail }: { label: string; on: boolean; de
 }
 
 const st = StyleSheet.create({
-  card: { borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
+  card: { borderRadius: 16 },
+  clip: { borderRadius: 16, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
   sub: { fontSize: TYPE.body, fontWeight: '600' },
   bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },

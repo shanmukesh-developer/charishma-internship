@@ -85,13 +85,13 @@ export function FeaturedCarousel({ promos, onOpenPg, onPlay, onBookVisit }: {
         snapToInterval={step}
         decelerationRate="fast"
         disableIntervalMomentum
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 12, paddingVertical: 6 }}
         onTouchStart={pause}
         onScrollBeginDrag={pause}
         onMomentumScrollEnd={onEnd}
         getItemLayout={(_, i) => ({ length: step, offset: step * i, index: i })}
         renderItem={({ item: x }) => (
-          <View style={[st.promo, { width: cardW, borderColor: p.line, backgroundColor: p.card }]}>
+          <View style={[st.promo, { width: cardW, backgroundColor: p.card }, p.shadow]}>
             <Press onPress={() => tapCard(x)} accessibilityRole={x.type === 'VIDEO' ? 'button' : 'link'} accessibilityLabel={`${x.labelText}. ${x.headline}${x.pg ? `, ${x.pg.name}` : ''}. ${x.type === 'VIDEO' ? 'Plays the video' : 'Opens the PG'}`} style={{ width: cardW, height: imgH }}>
               <PgImage uri={x.imageUrl} style={{ width: cardW, height: imgH }} recyclingKey={`promo-${x.id}`} priority="high" />
               {x.type === 'VIDEO' ? <View style={[StyleSheet.absoluteFill, st.center]} pointerEvents="none"><PlayMark /></View> : null}
@@ -105,8 +105,8 @@ export function FeaturedCarousel({ promos, onOpenPg, onPlay, onBookVisit }: {
                 </Text>
               </View>
               <Press onPress={() => act(x)} accessibilityLabel={`${x.ctaLabel}${x.pg ? `, ${x.pg.name}` : ''}`} style={st.cta}>
-                <Text style={[ui.body, { color: p.text, fontWeight: '600' }]}>{x.ctaLabel}</Text>
-                <IconChevronRight size={16} color={p.text} strokeWidth={ICON.stroke} />
+                <Text style={[ui.body, { color: p.accent, fontWeight: '600' }]}>{x.ctaLabel}</Text>
+                <IconChevronRight size={16} color={p.accent} strokeWidth={ICON.stroke} />
               </Press>
             </View>
           </View>
@@ -114,7 +114,7 @@ export function FeaturedCarousel({ promos, onOpenPg, onPlay, onBookVisit }: {
       />
       {promos.length > 1 ? (
         <View style={st.dots} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          {promos.map((x, i) => <View key={x.id} style={[st.dot, { backgroundColor: i === index ? p.text : p.line, width: i === index ? 16 : 6 }]} />)}
+          {promos.map((x, i) => <View key={x.id} style={[st.dot, { backgroundColor: i === index ? p.accentFill : p.line, width: i === index ? 16 : 6 }]} />)}
         </View>
       ) : null}
     </View>
@@ -170,7 +170,7 @@ export function PgRail({ title, items, onOpen }: { title: string; items: PgListI
 const st = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },
   play: { backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center', paddingLeft: 3 },
-  promo: { borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
+  promo: { borderRadius: 16, overflow: 'hidden' },
   label: { position: 'absolute', left: 12, top: 12, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: 'rgba(0,0,0,0.55)' },
   labelText: { color: '#fff', fontSize: TYPE.small, fontWeight: '500' },
   promoBody: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 16, paddingRight: 8, paddingVertical: 12 },
@@ -181,5 +181,5 @@ const st = StyleSheet.create({
   rail: { marginTop: 32 },
   railHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 },
   railTitle: { fontSize: TYPE.heading, fontWeight: '700' },
-  railRow: { paddingHorizontal: 16, gap: 12 },
+  railRow: { paddingHorizontal: 16, gap: 12, paddingVertical: 6 },
 });

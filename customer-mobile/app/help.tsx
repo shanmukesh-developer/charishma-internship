@@ -5,9 +5,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { COLORS } from '../constants/theme';
 import { HELP_FAQ } from '../constants/helpFaq';
+import { useTopInset } from '../utils/useTopInset';
 
 /** Help & FAQ: short answers from constants/helpFaq.ts, then a way to reach support. */
 export default function HelpScreen() {
+  // Real status-bar inset, never less than the old fixed padding (utils/useTopInset)
+  const topPad = useTopInset();
   const router = useRouter();
   const { isDark, colors } = useTheme();
   const [open, setOpen] = useState<string | null>(null);
@@ -22,7 +25,7 @@ export default function HelpScreen() {
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)/profile' as any));
 
   return (
-    <View style={[s.container, { backgroundColor: bg }]}>
+    <View style={[s.container, { paddingTop: topPad, backgroundColor: bg }]}>
       <View style={[s.header, { borderBottomColor: border }]}>
         <TouchableOpacity style={[s.backBtn, { borderColor: border }]} onPress={goBack} accessibilityRole="button" accessibilityLabel="Back">
           <Ionicons name="chevron-back" size={18} color={txt} />

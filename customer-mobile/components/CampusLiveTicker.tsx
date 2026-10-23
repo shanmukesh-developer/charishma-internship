@@ -1,7 +1,7 @@
 import { useIsFocused } from 'expo-router';
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { COLORS } from '../constants/theme';
+import { COLORS, surfaceLift, LIGHT_HAIRLINE } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
 
 interface TickerItem {
@@ -15,11 +15,11 @@ interface TickerItem {
 
 // Evergreen, factual tips only (no invented live stats or counts)
 const DEFAULT_TICKER_ITEMS: TickerItem[] = [
-  { id: '1', icon: '🍛', tag: 'TOP PICK', tagColor: '#F59E0B', text: 'Tap a Classic below to see real dishes from campus kitchens' },
+  { id: '1', icon: '🍛', tag: 'TOP PICK', tagColor: '#F59E0B', text: 'Tap a cuisine below to see campus dishes' },
   { id: '2', icon: '🛵', tag: 'TRACKING', tagColor: '#10B981', text: 'Track your rider live from the Orders tab' },
   { id: '3', icon: '⏰', tag: 'HOURS', tagColor: '#8B5CF6', text: 'Campus ordering is open 6 AM to 9 PM every day' },
   { id: '4', icon: '💵', tag: 'PAYMENTS', tagColor: '#3B82F6', text: 'Pay with Cash on Delivery or your Zenvy Wallet' },
-  { id: '5', icon: '🎉', tag: 'SAVER', tagColor: '#EF4444', text: 'Elite members & 200+ ZenPoints get free delivery' },
+  { id: '5', icon: '🎉', tag: 'SAVER', tagColor: '#EF4444', text: 'Free delivery with 200+ ZenPoints or a Platinum+ badge' },
 ];
 
 export default function CampusLiveTicker() {
@@ -100,8 +100,9 @@ export default function CampusLiveTicker() {
         styles.container,
         {
           backgroundColor: isDark ? 'rgba(24, 24, 27, 0.95)' : 'rgba(255, 255, 255, 0.98)',
-          borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+          borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : LIGHT_HAIRLINE,
         },
+        surfaceLift(isDark, true),
       ]}
     >
       {/* Live Badge */}

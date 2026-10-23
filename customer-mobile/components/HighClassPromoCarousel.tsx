@@ -28,6 +28,7 @@ import { useIsFocused, useRouter } from 'expo-router';
 import { useTheme } from '../context/ThemeContext';
 import { artForType, CARD_H, ZippySquashContext } from './promo/FunnyPromoArt';
 import { featuredLabel } from '../utils/promoLabel';
+import { storeEtaMins } from '../utils/storeEta';
 
 export interface PromoSlide {
   id: string;
@@ -72,6 +73,8 @@ interface HighClassPromoCarouselProps {
   onSelectSlide?: (slide: PromoSlide) => void;
   /** False while the carousel is scrolled off-screen: auto-advance and card animations pause. */
   visible?: boolean;
+  /** Slide ids to leave out (sections switched off in /api/config/sections, e.g. 'ride'). */
+  hiddenSlideIds?: string[];
 }
 
 const GAP = 10;
@@ -228,7 +231,8 @@ const PromoCard = memo(function PromoCard({
 
   const shadow = isDark
     ? { shadowColor: '#000', shadowOpacity: 0.45, shadowOffset: { width: 0, height: 8 }, shadowRadius: 14 }
-    : { shadowColor: accent, shadowOpacity: 0.22, shadowOffset: { width: 0, height: 10 }, shadowRadius: 18 };
+    // Light mode: a neutral soft lift (no coloured glow), like every other light-mode card
+    : { shadowColor: '#000', shadowOpacity: 0.12, shadowOffset: { width: 0, height: 6 }, shadowRadius: 16 };
 
   return (
     <Animated.View
@@ -350,6 +354,7 @@ export default function HighClassPromoCarousel({
   onSelectRestaurant,
   onSelectSlide,
   visible = true,
+  hiddenSlideIds,
 }: HighClassPromoCarouselProps) {
   const router = useRouter();
   const { isDark } = useTheme();
@@ -478,7 +483,7 @@ export default function HighClassPromoCarousel({
       .map((r: any) => {
         const id = String(r._id || r.id);
         const rating = Number(r.rating);
-        const dt = Number(r.deliveryTime);
+        const dt = storeEtaMins(r) || 0;
         const promo = typeof r.promoOffer === 'string' && r.promoOffer.trim() ? r.promoOffer.trim() : 'On Zenvy now.';
         return {
           id: `feat-${id}`,
@@ -498,8 +503,9 @@ export default function HighClassPromoCarousel({
         };
       });
 
-    return [...tour, ...featured];
-  }, [customSlides, featuredRestaurants, router]);
+    const hidden = hiddenSlideIds && hiddenSlideIds.length ? new Set(hiddenSlideIds) : null;
+    return [...(hidden ? tour.filter((t) => !hidden.has(t.id)) : tour), ...featured];
+  }, [customSlides, featuredRestaurants, router, hiddenSlideIds]);
 
   const n = slides.length;
   const loop = n > 1;

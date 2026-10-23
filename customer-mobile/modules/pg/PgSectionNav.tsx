@@ -37,8 +37,8 @@ export function PgSectionNav({ sections, active, onPress }: { sections: SectionK
                 style={st.tab}
               >
                 <View style={st.tabInner}>
-                  <Text style={[st.label, { color: on ? p.text : p.sub, fontWeight: on ? '600' : '500' }]}>{SECTION_LABEL[k]}</Text>
-                  <View style={[st.underline, { backgroundColor: on ? p.text : 'transparent' }]} />
+                  <Text style={[st.label, { color: on ? p.accent : p.sub, fontWeight: on ? '600' : '500' }]}>{SECTION_LABEL[k]}</Text>
+                  <View style={[st.underline, { backgroundColor: on ? p.accentFill : 'transparent' }]} />
                 </View>
               </Press>
             </View>

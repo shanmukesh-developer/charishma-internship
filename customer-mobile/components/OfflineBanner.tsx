@@ -3,10 +3,13 @@ import { StyleSheet, Text, View, Animated, Dimensions, Platform } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { API_URL } from '../constants/api';
 import { lastServerResponseAt } from '../utils/serverWake';
+import { setOfflineStatus } from '../utils/offlineStatus';
 
 export default function OfflineBanner() {
   const insets = useSafeAreaInsets();
   const [isOffline, setIsOffline] = useState(false);
+  // Publish the verdict app-wide (utils/offlineStatus) so screens can show an offline state.
+  useEffect(() => { setOfflineStatus(isOffline); }, [isOffline]);
   const slideAnim = useRef(new Animated.Value(-100)).current;
   const pulseAnim = useRef(new Animated.Value(0.4)).current;
 

@@ -4,7 +4,8 @@
  * inline validation. Autos are not offered here: they belong to Zenvy Auto (onOpenAuto).
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal, StyleSheet, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, TextInput, Modal, StyleSheet, Platform, useWindowDimensions } from 'react-native';
+import { PressScale } from '../others/motion';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
@@ -106,26 +107,25 @@ export default function PostRideSheet(props: PostRideSheetProps) {
   const input = (extra?: object) => [st.input, { borderColor: p.border, backgroundColor: p.surfaceAlt, color: p.text }, extra];
   const errText = (msg: string) => (tried && msg ? (
     <View style={st.errRow} accessibilityLiveRegion="polite">
-      <Ionicons name="alert-circle-outline" size={14} color={p.accent} />
-      <Text style={[st.err, { color: p.accent }]}>{msg}</Text>
+      <Ionicons name="alert-circle-outline" size={14} color={p.error} />
+      <Text style={[st.err, { color: p.error }]}>{msg}</Text>
     </View>
   ) : null);
 
   const chips = (items: { key: string; label: string; on: boolean; onPress: () => void }[]) => (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={st.chips}>
       {items.map(c => (
-        <TouchableOpacity
+        <PressScale
           key={c.key}
-          style={[st.chip, { backgroundColor: c.on ? p.text : p.surface, borderColor: c.on ? p.text : p.border }]}
+          style={[st.chip, { backgroundColor: c.on ? p.button : p.surface, borderColor: c.on ? p.button : p.border }]}
           onPress={c.onPress}
-          activeOpacity={0.8}
           hitSlop={{ top: 6, bottom: 6 }}
           accessibilityRole="button"
           accessibilityState={{ selected: c.on }}
           accessibilityLabel={c.label}
         >
-          <Text style={[st.chipText, { color: c.on ? p.surface : p.text }]}>{c.label}</Text>
-        </TouchableOpacity>
+          <Text style={[st.chipText, { color: c.on ? '#FFFFFF' : p.text }]}>{c.label}</Text>
+        </PressScale>
       ))}
     </ScrollView>
   );
@@ -141,14 +141,14 @@ export default function PostRideSheet(props: PostRideSheetProps) {
     <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={[st.overlay, { backgroundColor: p.isDark ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0.45)' }]}>
-          <TouchableOpacity style={StyleSheet.absoluteFill} onPress={close} accessibilityLabel="Close" accessibilityRole="button" />
+          <PressScale style={StyleSheet.absoluteFill} onPress={close} accessibilityLabel="Close" accessibilityRole="button" />
           <View style={[st.sheet, { backgroundColor: p.surface, height: Math.round(winH * 0.92) }]}>
             <View style={[st.grabber, { backgroundColor: p.border }]} />
             <View style={[st.head, { borderBottomColor: p.divider }]}>
               <Text style={[st.title, { color: p.text }]} accessibilityRole="header">Post a ride</Text>
-              <TouchableOpacity style={[st.close, { backgroundColor: p.surfaceAlt }]} onPress={close} accessibilityRole="button" accessibilityLabel="Close">
+              <PressScale style={[st.close, { backgroundColor: p.surfaceAlt }]} onPress={close} accessibilityRole="button" accessibilityLabel="Close">
                 <Ionicons name="close" size={20} color={p.text} />
-              </TouchableOpacity>
+              </PressScale>
             </View>
 
             <ScrollView style={{ flex: 1 }} contentContainerStyle={st.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
@@ -171,7 +171,7 @@ export default function PostRideSheet(props: PostRideSheetProps) {
               <View style={st.section}>
                 {label('From')}
                 <TextInput
-                  style={input(tried && errors.origin ? { borderColor: p.accent } : undefined)}
+                  style={input(tried && errors.origin ? { borderColor: p.error } : undefined)}
                   placeholder="Pickup point, e.g. Campus Gate"
                   placeholderTextColor={p.muted}
                   maxLength={80}
@@ -186,7 +186,7 @@ export default function PostRideSheet(props: PostRideSheetProps) {
               <View style={st.section}>
                 {label('To')}
                 <TextInput
-                  style={input(tried && errors.destination ? { borderColor: p.accent } : undefined)}
+                  style={input(tried && errors.destination ? { borderColor: p.error } : undefined)}
                   placeholder="Destination, e.g. PVP Square Mall"
                   placeholderTextColor={p.muted}
                   maxLength={80}
@@ -202,7 +202,7 @@ export default function PostRideSheet(props: PostRideSheetProps) {
               <View style={st.section}>
                 {label('Leaving')}
                 <TextInput
-                  style={input(tried && errors.time ? { borderColor: p.accent } : undefined)}
+                  style={input(tried && errors.time ? { borderColor: p.error } : undefined)}
                   placeholder="e.g. 18:30 or 6:30 pm"
                   placeholderTextColor={p.muted}
                   maxLength={40}
@@ -229,11 +229,11 @@ export default function PostRideSheet(props: PostRideSheetProps) {
                     { key: 'Car', label: 'Car', icon: 'car-side', iconSet: 'mci' },
                   ]}
                 />
-                <TouchableOpacity style={st.autoLink} onPress={onOpenAuto} accessibilityRole="link" accessibilityLabel="Need an auto? Book a seat in Zenvy Auto">
+                <PressScale style={st.autoLink} onPress={onOpenAuto} accessibilityRole="link" accessibilityLabel="Need an auto? Book a seat in Zenvy Auto">
                   <Text style={[st.helper, { color: p.sub, marginTop: 0 }]}>
-                    Need an auto? <Text style={{ color: p.text, fontWeight: '600', textDecorationLine: 'underline' }}>Book a seat in Zenvy Auto</Text>
+                    Need an auto? <Text style={{ color: p.accent, fontWeight: '700' }}>Book a seat in Zenvy Auto</Text>
                   </Text>
-                </TouchableOpacity>
+                </PressScale>
               </View>
 
               <View style={[st.section, st.seatRow]}>
@@ -252,7 +252,7 @@ export default function PostRideSheet(props: PostRideSheetProps) {
                     null,
                     { icon: 'add', next: seats + 1, off: seats >= maxSeats, a11y: 'More seats' },
                   ].map((b, i) => b ? (
-                    <TouchableOpacity
+                    <PressScale
                       key={i}
                       style={[st.stepBtn, { borderColor: p.border, backgroundColor: p.surface, opacity: b.off ? 0.4 : 1 }]}
                       disabled={b.off}
@@ -262,7 +262,7 @@ export default function PostRideSheet(props: PostRideSheetProps) {
                       accessibilityState={{ disabled: b.off }}
                     >
                       <Ionicons name={b.icon as any} size={18} color={p.text} />
-                    </TouchableOpacity>
+                    </PressScale>
                   ) : (
                     <Text key={i} style={[st.stepVal, { color: p.text }]}>{seats}</Text>
                   ))}
@@ -336,7 +336,7 @@ export default function PostRideSheet(props: PostRideSheetProps) {
 
             <View style={[st.footer, { borderTopColor: p.divider, paddingBottom: 12 + Math.max(insets.bottom, 4) }]}>
               {tried && hasErrors ? (
-                <Text style={[st.err, { color: p.accent, marginBottom: 8, textAlign: 'center' }]}>Fill in the highlighted details to post.</Text>
+                <Text style={[st.err, { color: p.error, marginBottom: 8, textAlign: 'center' }]}>Fill in the highlighted details to post.</Text>
               ) : null}
               <CoBtn label="Post ride" onPress={submit} loading={submitting} style={{ minHeight: 48 }} />
             </View>

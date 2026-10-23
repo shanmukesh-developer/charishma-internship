@@ -41,6 +41,13 @@ import { cleanBlock, cleanRoom as cleanRoomNo, saveHostelToProfile } from '../ut
 import FssaiLine from '../components/FssaiLine';
 import { Ionicons } from '@expo/vector-icons';
 import { formatINR, formatClock, plural } from '../utils/format';
+import { plainDiscountLabel } from '../utils/billLabel';
+import { useTopInset } from '../utils/useTopInset';
+import { syncPlaces, addPlace, removePlace, placeText, placeFromText, PLACE_LABELS, type SavedPlace } from '../utils/savedAddresses';
+
+const PLACE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
+  Hostel: 'home-outline', Library: 'library-outline', Lab: 'flask-outline', Friend: 'people-outline', Other: 'location-outline',
+};
 
 type IonName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -135,6 +142,8 @@ const parseHostelAddress = (addr: string): { block: string; room: string } | nul
 };
 
 export default function CheckoutScreen() {
+  // Real status-bar inset, never less than the old fixed padding (utils/useTopInset)
+  const topPad = useTopInset();
   const router = useRouter();
   const { cart, totalItems, addToCart, setCart, removeItems } = useCart();
   const { user, refreshUser, setUser } = useAuth();
@@ -150,6 +159,9 @@ export default function CheckoutScreen() {
     AsyncStorage.setItem(CHECKOUT_CAMPUS_KEY, key).catch(() => {});
   };
   const [address, setAddress] = useState('');
+  // Saved places (utils/savedAddresses): local list, synced to the account when signed in
+  const [places, setPlaces] = useState<SavedPlace[]>([]);
+  const [pickingLabel, setPickingLabel] = useState(false);
   const [landmark, setLandmark] = useState('');
   const [instructionIds, setInstructionIds] = useState<string[]>([]);
   const [campusBlocks, setCampusBlocks] = useState<Record<string, string[]>>({});
@@ -229,6 +241,12 @@ export default function CheckoutScreen() {
     });
     return () => sub.remove();
   }, [placing, navigation]);
+
+  useEffect(() => {
+    let alive = true;
+    syncPlaces((user as any)?.id || null).then((list) => { if (alive) setPlaces(list); }).catch(() => {});
+    return () => { alive = false; };
+  }, [(user as any)?.id]);
 
   // Prefill the address from the profile
   useEffect(() => {
@@ -763,7 +781,7 @@ export default function CheckoutScreen() {
   };
 
   const header = (
-    <View style={[s.header, { backgroundColor: bg, borderBottomColor: border }]}>
+    <View style={[s.header, { paddingTop: topPad, backgroundColor: bg, borderBottomColor: border }]}>
       <TouchableOpacity onPress={goBack} style={[s.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} accessibilityRole="button" accessibilityLabel="Back">
         <Text style={{ color: txt, fontSize: 18 }}>‹</Text>
       </TouchableOpacity>
@@ -822,6 +840,23 @@ export default function CheckoutScreen() {
     } finally {
       if (mountedRef.current) setSavingHostel(false);
     }
+  };
+  const typedPlaceSaved = places.some((pl) => placeText(pl).toLowerCase() === address.trim().toLowerCase());
+  const saveTypedPlace = async (label: string) => {
+    setPickingLabel(false);
+    try {
+      const next = await addPlace(placeFromText(address, label, typedHostel), !!user);
+      if (mountedRef.current) setPlaces(next);
+      Haptics.selectionAsync().catch(() => {});
+    } catch {
+      Alert.alert("Couldn't save", 'Please try again.');
+    }
+  };
+  const confirmRemovePlace = (pl: SavedPlace) => {
+    Alert.alert('Remove saved place?', `${pl.label}: ${placeText(pl)}`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: async () => { const next = await removePlace(pl.id, !!user); if (mountedRef.current) setPlaces(next); } },
+    ]);
   };
   const profileBlock = (user as any)?.hostelBlock ? String((user as any).hostelBlock) : null;
   const blockChips = profileBlock && !blocks.includes(profileBlock) ? [profileBlock, ...blocks] : blocks;
@@ -888,6 +923,37 @@ export default function CheckoutScreen() {
             })}
           </View>
 
+          {/* Saved places: one tap fills the address; long press removes */}
+          {places.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }} contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
+              {places.map((pl) => {
+                const text = placeText(pl);
+                const isSelected = text.toLowerCase() === address.trim().toLowerCase();
+                return (
+                  <DopaminePressable
+                    key={pl.id}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`${pl.label}, ${text}`}
+                    accessibilityHint="Long press to remove"
+                    accessibilityState={{ selected: isSelected, checked: isSelected }}
+                    style={[s.placeChip, {
+                      backgroundColor: isSelected ? (isDark ? goldColor : '#EF4F5F') : cardBg,
+                      borderColor: isSelected ? (isDark ? goldColor : '#EF4F5F') : border,
+                    }]}
+                    onPress={() => setAddress(text)}
+                    onLongPress={() => confirmRemovePlace(pl)}
+                  >
+                    <Ionicons name={PLACE_ICON[pl.label] || 'location-outline'} size={14} color={isSelected ? (isDark ? '#000' : '#FFF') : goldColor} />
+                    <View style={{ maxWidth: 170 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: isSelected ? (isDark ? '#000' : '#FFF') : txt }} numberOfLines={1}>{pl.label}</Text>
+                      <Text style={{ fontSize: 11, fontWeight: '400', color: isSelected ? (isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.85)') : txtSec }} numberOfLines={1}>{text}</Text>
+                    </View>
+                  </DopaminePressable>
+                );
+              })}
+            </ScrollView>
+          )}
+
           <TextInput
             style={[s.input, { backgroundColor: cardBg, color: txt, borderColor: address.trim().length >= 3 ? border : 'rgba(239,68,68,0.5)' }]}
             placeholder="Hostel block & room no. (e.g. Ganga, Room 304)"
@@ -907,12 +973,45 @@ export default function CheckoutScreen() {
               style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: -4, marginBottom: 10, alignSelf: 'flex-start', paddingVertical: 4 }}
             >
               <View style={{ width: 18, height: 18, borderRadius: 5, borderWidth: 1.5, borderColor: hostelSaved ? COLORS.emerald : border, backgroundColor: hostelSaved ? COLORS.emerald : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-                {savingHostel ? <ActivityIndicator size="small" color={txt} /> : hostelSaved ? <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>✓</Text> : null}
+                {savingHostel ? <ActivityIndicator size="small" color={txt} /> : hostelSaved ? <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>✓</Text> : null}
               </View>
               <Text style={{ fontSize: 12, fontWeight: '700', color: hostelSaved ? COLORS.emerald : txtSec }}>
                 {hostelSaved ? 'Saved as my hostel & room' : 'Save as my hostel & room'}
               </Text>
             </TouchableOpacity>
+          )}
+          {/* Save the typed address as a labelled place (Hostel, Library...) */}
+          {address.trim().length >= 3 && !typedPlaceSaved && (
+            pickingLabel ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: -4, marginBottom: 10 }}>
+                <Text style={{ fontSize: 12, fontWeight: '500', color: txtSec, marginRight: 2 }}>Save as</Text>
+                {PLACE_LABELS.map((label) => (
+                  <TouchableOpacity
+                    key={label}
+                    onPress={() => saveTypedPlace(label)}
+                    style={[s.blockChip, { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: cardBg, borderColor: border }]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Save this address as ${label}`}
+                  >
+                    <Ionicons name={PLACE_ICON[label]} size={12} color={goldColor} />
+                    <Text style={{ fontSize: 12, fontWeight: '500', color: txt }}>{label}</Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity onPress={() => setPickingLabel(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityLabel="Cancel">
+                  <Text style={{ fontSize: 12, fontWeight: '500', color: txtSec, marginLeft: 4 }}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={() => setPickingLabel(true)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: -4, marginBottom: 10, alignSelf: 'flex-start', paddingVertical: 4 }}
+                accessibilityRole="button"
+                accessibilityLabel="Save this address as a place"
+              >
+                <Ionicons name="bookmark-outline" size={14} color={goldColor} />
+                <Text style={{ fontSize: 12, fontWeight: '600', color: goldColor }}>Save this place for next time</Text>
+              </TouchableOpacity>
+            )
           )}
           {blockChips.length > 0 && (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
@@ -937,7 +1036,7 @@ export default function CheckoutScreen() {
                     sound="click"
                     activeScale={0.92}
                   >
-                    <Text style={{ fontSize: 12, fontWeight: '800', color: isSelected ? '#FFFFFF' : txt, letterSpacing: 0.2 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: isSelected ? '#FFFFFF' : txt, letterSpacing: 0.2 }}>
                       {block}
                     </Text>
                   </DopaminePressable>
@@ -1004,7 +1103,7 @@ export default function CheckoutScreen() {
             <View style={{ flex: 1 }}>
               <Text style={[s.noticeTitle, { color: txt }]}>{stallName} delivers this order</Text>
               <Text style={[s.noticeSub, { color: txtSec }]}>
-                {stallPayCopy(stallName)}. No Zenvy rider and no delivery OTP. Coupons and add-ons don't apply to stall orders.
+                {stallPayCopy(stallName)}. No Zenvy rider and no Delivery PIN. Coupons and add-ons don't apply to stall orders.
               </Text>
               {addOnLines.length > 0 && (
                 <TouchableOpacity style={[s.smallBtn, { marginTop: 10 }]} onPress={removeAddOns}>
@@ -1184,13 +1283,13 @@ export default function CheckoutScreen() {
                 )}
                 {(quote.discounts || []).filter((d) => d && d.amount > 0).map((d, idx) => (
                   <View style={s.billRow} key={`${d.type}-${idx}`}>
-                    <Text style={[s.billLabel, { color: COLORS.emerald, flex: 1 }]} numberOfLines={1}>{String(d.label || 'Discount')}</Text>
+                    <Text style={[s.billLabel, { color: COLORS.emerald, flex: 1 }]} numberOfLines={1}>{plainDiscountLabel(d.label)}</Text>
                     <Text style={[s.billVal, { color: COLORS.emerald }]}>{formatINR(-Math.abs(Number(d.amount) || 0))}</Text>
                   </View>
                 ))}
                 <View style={[s.billRow, { borderTopWidth: 1, borderTopColor: border, paddingTop: 12, marginTop: 8 }]}>
-                  <Text style={{ fontSize: 14, fontWeight: '900', color: txt }}>{isStallOrder ? 'Pay the stall' : 'To pay'}</Text>
-                  <Text style={{ fontSize: 22, fontWeight: '900', color: COLORS.red }}>{formatINR(quote.finalPrice)}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: txt }}>{isStallOrder ? 'Pay the stall' : 'To pay'}</Text>
+                  <Text style={{ fontSize: 22, fontWeight: '700', color: COLORS.red }}>{formatINR(quote.finalPrice)}</Text>
                 </View>
                 {isStallOrder && (
                   <Text style={[s.helperText, { color: txtSec, marginTop: 6 }]}>{stallPayCopy(stallName)}.</Text>
@@ -1251,29 +1350,30 @@ const s = StyleSheet.create({
   container: { flex: 1, width: '100%', maxWidth: 600, alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: Platform.OS === 'android' ? 40 : 50, paddingBottom: 16, borderBottomWidth: 1 },
   backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
-  title: { fontSize: 17, fontWeight: '900', letterSpacing: 0.2 },
+  title: { fontSize: 17, fontWeight: '700', letterSpacing: 0.2 },
   scroll: { padding: 16 },
-  sectionTitle: { fontSize: 13, fontWeight: '900', letterSpacing: 0.2, marginBottom: 12 },
+  sectionTitle: { fontSize: 13, fontWeight: '700', letterSpacing: 0.2, marginBottom: 12 },
   campusRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   campusBtnNew: { flex: 1, paddingVertical: 12, paddingHorizontal: 6, borderRadius: 16, alignItems: 'center', borderWidth: 1.5, position: 'relative', overflow: 'hidden' },
-  campusLabelNew: { fontSize: 12, fontWeight: '900', letterSpacing: 0.2 },
+  campusLabelNew: { fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
   campusSubLabelNew: { fontSize: 12, fontWeight: '600', color: COLORS.textMuted, marginTop: 2, textAlign: 'center' },
   activeCheckBadge: { position: 'absolute', top: 0, right: 0, borderBottomLeftRadius: 8, width: 14, height: 14, alignItems: 'center', justifyContent: 'center' },
-  activeCheckText: { color: '#000', fontSize: 12, fontWeight: '900' },
+  activeCheckText: { color: '#000', fontSize: 12, fontWeight: '700' },
   input: { borderWidth: 1, borderRadius: 12, padding: 14, fontSize: 13, marginBottom: 10, fontWeight: '600' },
   blockChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 1.5 },
+  placeChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 14, borderWidth: 1.5 },
   helperText: { fontSize: 12, fontWeight: '600', lineHeight: 15, marginBottom: 6 },
   payRowNew: { gap: 10, marginBottom: 12 },
   payCardNew: { padding: 14, borderRadius: 16, borderWidth: 1.5 },
-  payCardTitle: { fontSize: 13, fontWeight: '900', letterSpacing: 0.2 },
+  payCardTitle: { fontSize: 13, fontWeight: '700', letterSpacing: 0.2 },
   payCardDesc: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '600', marginTop: 2 },
   radioOuter: { width: 16, height: 16, borderRadius: 8, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   radioInner: { width: 8, height: 8, borderRadius: 4 },
   billCard: { padding: 16, borderRadius: 20 },
   billRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, gap: 8 },
   billLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
-  billVal: { fontSize: 12, fontWeight: '800' },
-  savingsText: { fontSize: 12, fontWeight: '800', color: COLORS.emerald, marginTop: 8, textAlign: 'center' },
+  billVal: { fontSize: 12, fontWeight: '600' },
+  savingsText: { fontSize: 12, fontWeight: '600', color: COLORS.emerald, marginTop: 8, textAlign: 'center' },
   placeBtnContainer: {
     marginTop: 24,
     marginBottom: Platform.OS === 'android' ? 80 : 40,
@@ -1285,35 +1385,35 @@ const s = StyleSheet.create({
     alignItems: 'center',
     ...SHADOWS.redGlow,
   },
-  placeText: { fontSize: 15, fontWeight: '900', color: '#fff', letterSpacing: 0.2 },
+  placeText: { fontSize: 15, fontWeight: '700', color: '#fff', letterSpacing: 0.2 },
 
   noticeCard: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 16 },
-  noticeTitle: { fontSize: 12, fontWeight: '900' },
+  noticeTitle: { fontSize: 12, fontWeight: '700' },
   noticeSub: { fontSize: 12, fontWeight: '600', marginTop: 2, lineHeight: 15 },
   smallBtn: { alignSelf: 'flex-start', backgroundColor: COLORS.red, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
-  smallBtnText: { color: '#fff', fontSize: 12, fontWeight: '900' },
+  smallBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 
   centerBox: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  centerTitle: { fontSize: 18, fontWeight: '800', marginBottom: 8, textAlign: 'center' },
+  centerTitle: { fontSize: 18, fontWeight: '600', marginBottom: 8, textAlign: 'center' },
   centerSub: { fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
   primaryBtn: { backgroundColor: COLORS.red, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 16, ...SHADOWS.redGlow },
-  primaryBtnText: { color: '#fff', fontSize: 14, fontWeight: '900', letterSpacing: 0.2 },
+  primaryBtnText: { color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
 
   // Suggested Extras
   extrasScroll: { gap: 10, paddingRight: 16 },
   extraCard: { width: 120, padding: 12, borderRadius: 20, borderWidth: 1, borderColor: COLORS.borderDark, alignItems: 'center' },
-  extraName: { fontSize: 12, fontWeight: '800', marginTop: 4, width: '100%', textAlign: 'center' },
-  extraPrice: { fontSize: 12, fontWeight: '900', color: COLORS.gold, marginTop: 2 },
-  extraAddBtn: { fontSize: 12, fontWeight: '900', color: '#000', backgroundColor: COLORS.gold, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, marginTop: 8, overflow: 'hidden' },
+  extraName: { fontSize: 12, fontWeight: '600', marginTop: 4, width: '100%', textAlign: 'center' },
+  extraPrice: { fontSize: 12, fontWeight: '700', color: COLORS.gold, marginTop: 2 },
+  extraAddBtn: { fontSize: 12, fontWeight: '700', color: '#000', backgroundColor: COLORS.gold, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, marginTop: 8, overflow: 'hidden' },
 
   // Coupons
   couponsScroll: { gap: 10, paddingRight: 16 },
   couponCard: { width: 130, padding: 12, borderRadius: 20, borderWidth: 1, borderColor: COLORS.borderDark, alignItems: 'center', position: 'relative' },
   couponCardActive: { borderColor: COLORS.gold, borderWidth: 1.5 },
-  couponCode: { fontSize: 12, fontWeight: '900' },
-  couponType: { fontSize: 12, fontWeight: '800', color: COLORS.textSecondary, marginTop: 2 },
-  activeIndicator: { fontSize: 12, fontWeight: '900', color: COLORS.gold, marginTop: 6 },
+  couponCode: { fontSize: 12, fontWeight: '700' },
+  couponType: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary, marginTop: 2 },
+  activeIndicator: { fontSize: 12, fontWeight: '700', color: COLORS.gold, marginTop: 6 },
   emptyCoupons: { padding: 20, borderRadius: 20, borderWidth: 1, borderStyle: 'dashed', borderColor: COLORS.borderDark, alignItems: 'center' },
-  emptyCouponsText: { fontSize: 12, fontWeight: '900', color: COLORS.textSecondary },
+  emptyCouponsText: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary },
   emptyCouponsSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
 });

@@ -1089,11 +1089,19 @@ export const buildDetails = (form: ServiceForm, a: Answers): BookingDetail[] => 
 };
 
 /** Readable text for ServiceBooking.description (max 2000 characters on the server). */
-export const bookingSummary = (form: ServiceForm, a: Answers, itemName: string, notes: string): { description: string; details: BookingDetail[] } => {
+export const bookingSummary = (
+  form: ServiceForm,
+  a: Answers,
+  itemName: string,
+  notes: string,
+  /** Booking-step answers that are not form fields (e.g. pickup and drop), added before the note. */
+  extra: BookingDetail[] = [],
+): { description: string; details: BookingDetail[] } => {
   const details = buildDetails(form, a);
   if (form.pricing.kind === 'perUnit' && form.category === 'laundry') {
     details.unshift({ key: QUANTITY_KEY, label: 'Quantity', value: laundryMeasure(itemName).summary(unitCount(form, a)) });
   }
+  for (const d of extra) if (d.value) details.push({ ...d, value: d.value.slice(0, 500) });
   const note = notes.trim();
   if (note) details.push({ key: 'notes', label: 'Note', value: note.slice(0, 500) });
   const description = details.map((d) => `${d.label}: ${d.value}`).join('\n').slice(0, 2000);

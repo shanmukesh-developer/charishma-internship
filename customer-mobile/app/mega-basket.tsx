@@ -14,6 +14,7 @@ import { StaggeredSection, FloatingPulse, BounceIn } from '../components/Animate
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { formatINR, formatISTDate } from '../utils/format';
+import { useTopInset } from '../utils/useTopInset';
 
 interface BasketItem {
   id?: string;
@@ -65,6 +66,8 @@ const basketTotal = (b: MegaBasket) =>
 const cleanRoom = (room: any) => String(room || '').replace(/^\s*room\s*/i, '').trim();
 
 export default function MegaBasketScreen() {
+  // Real status-bar inset, never less than the old fixed padding (utils/useTopInset)
+  const topPad = useTopInset();
   const router = useRouter();
   const { user } = useAuth();
   const { isDark, colors } = useTheme();
@@ -411,7 +414,7 @@ export default function MegaBasketScreen() {
 
 
   return (
-    <KeyboardAvoidingView style={[s.container, { backgroundColor: bg }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={[s.container, { paddingTop: topPad, backgroundColor: bg }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* Header */}
       <View style={[s.header, { borderBottomColor: border }]}>
         <TouchableOpacity 
@@ -429,8 +432,8 @@ export default function MegaBasketScreen() {
           <Text style={[s.backIcon, { color: txt }]}>‹</Text>
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={[s.subText, { color: '#F59E0B' }]}>Shopping list</Text>
-          <Text style={[s.title, { color: txt }]}>Groceries and essentials</Text>
+          <Text style={[s.subText, { color: '#F59E0B' }]}>A shopper buys it for you</Text>
+          <Text style={[s.title, { color: txt }]}>Shopping list</Text>
         </View>
       </View>
 
@@ -687,10 +690,10 @@ export default function MegaBasketScreen() {
                   </View>
                   )}
 
-                  {/* Delivery OTP (stored as deliveryPin) */}
+                  {/* Delivery PIN (stored as deliveryPin) */}
                   {!!selectedBasket.deliveryPin && getStatusStep(selectedBasket.status) >= getStatusStep('Approved') && selectedBasket.status !== 'Delivered' && (
                     <View style={s.pinBox}>
-                      <Text style={s.pinLabel}>Delivery OTP</Text>
+                      <Text style={s.pinLabel}>Delivery PIN</Text>
                       <Text style={s.pinVal}>{selectedBasket.deliveryPin}</Text>
                       <Text style={s.pinSub}>Share this with your shopper at handover</Text>
                     </View>

@@ -29,7 +29,7 @@ export function KeyFacts({ pg }: { pg: PgDetail }) {
   const hasRooms = types.length > 0;
   const varies = types.some((t) => t.deposit !== null && t.deposit !== pg.securityDeposit);
   return (
-    <View style={[st.facts, { borderColor: p.line, backgroundColor: p.card }]}>
+    <View style={[st.facts, { backgroundColor: p.card }, p.shadow]}>
       <Fact label="Rent from" value={rentFrom ? inr(rentFrom) : '—'} sub="per month" />
       <View style={[st.factSep, { backgroundColor: p.line }]} />
       <Fact label="Deposit" value={Number(deposit) > 0 ? inr(deposit) : 'None'} sub={varies ? 'varies by room' : Number(deposit) > 0 ? 'one time' : ' '} />
@@ -444,7 +444,7 @@ export function FaqSection({ items }: { items: { id: string; q: string; a: strin
 
 
 const st = StyleSheet.create({
-  facts: { flexDirection: 'row', borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
+  facts: { flexDirection: 'row', borderRadius: 16 },
   fact: { flex: 1, paddingHorizontal: 12, paddingVertical: 12 },
   factValue: { fontSize: TYPE.heading, fontWeight: '700', marginTop: 4, marginBottom: 2 },
   factSep: { width: StyleSheet.hairlineWidth, marginVertical: 12 },

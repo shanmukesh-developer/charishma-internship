@@ -33,6 +33,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { formatINR, isAmount, plural } from '../../utils/format';
+import FoodV2ProductView from '../../modules/foodV2/FoodV2ProductView';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -121,6 +122,9 @@ function ProductPhoto({ uri, style, emoji, isDark }: { uri: string | null; style
 type LoadState = 'loading' | 'ready' | 'notfound' | 'error';
 
 // Booking-only services (backend utils/vendorTypes.js) open their booking page
+/** Store types sold on Others → Food & groceries (FoodV2ProductView). */
+const SHOP_VENDOR_TYPES = ['GROCERY', 'TOYS', 'SEEDS', 'ELECTRONICS'];
+
 const SERVICE_CATEGORY_BY_VENDOR: Record<string, string> = {
   REPAIRS: 'repairs',
   PRINT: 'print',
@@ -377,7 +381,7 @@ export default function ProductDetailScreen() {
       const data = await res.json().catch(() => null);
       if (!mountedRef.current) return;
       if (res.status === 401) {
-        Alert.alert('Please sign in', "Sign in to rate items you've ordered.", [
+        Alert.alert('Sign in to rate', "Sign in to rate items you've ordered.", [
           { text: 'Not now', style: 'cancel' },
           { text: 'Sign in', onPress: () => { setShowReviewModal(false); router.push('/login' as any); } },
         ]);
@@ -530,8 +534,48 @@ export default function ProductDetailScreen() {
     }
   };
 
+  // Others → Food & groceries items (campus store, toys, seeds, electronics) use the Others layout;
+  // food dishes, stalls and services keep this screen's own layout below.
+  const isShopItem = SHOP_VENDOR_TYPES.includes(String(product.vendorType || '').toUpperCase()) && !isStall && !product.bookingOnly && !directOrder;
+
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#0B0C10' : '#F8FAFC' }]}>
+      {isShopItem ? (
+        <FoodV2ProductView
+          product={product}
+          store={store}
+          moreItems={moreItems}
+          cart={cart}
+          isDark={isDark}
+          isSaved={isSaved}
+          averageRating={averageRating}
+          totalRatingCount={totalRatingCount}
+          reviewsList={reviewsList}
+          canAdd={canAdd}
+          unavailableReason={unavailableReason}
+          customizable={customizable}
+          onBack={goBack}
+          onToggleSaved={handleToggleSaved}
+          onShare={handleShare}
+          onAdd={addWithStoreCheck}
+          onCustomize={() => setCustomizing(true)}
+          onUpdateQuantity={updateQuantity}
+          onOpenProduct={(pid) => router.push(`/products/${pid}` as any)}
+          onOpenStore={() => { if (product.restaurantId) router.push(`/restaurant/${product.restaurantId}` as any); }}
+          onOpenBasket={() => router.push('/(tabs)/basket' as any)}
+          onRate={() => {
+            if (!user) {
+              Alert.alert('Sign in to rate', "Sign in to rate items you've ordered.", [
+                { text: 'Not now', style: 'cancel' },
+                { text: 'Sign in', onPress: () => router.push('/login' as any) },
+              ]);
+              return;
+            }
+            setShowReviewModal(true);
+          }}
+          getImageUri={getRealImageUri}
+        />
+      ) : (<>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
         {/* ZONE 1 — IMAGE GALLERY */}
         <View
@@ -858,7 +902,7 @@ export default function ProductDetailScreen() {
               style={styles.writeReviewTopBtn}
               onPress={() => {
                 if (!user) {
-                  Alert.alert('Please sign in', "Sign in to rate items you've ordered.", [
+                  Alert.alert('Sign in to rate', "Sign in to rate items you've ordered.", [
                     { text: 'Not now', style: 'cancel' },
                     { text: 'Sign in', onPress: () => router.push('/login' as any) },
                   ]);
@@ -1070,6 +1114,7 @@ export default function ProductDetailScreen() {
           </>
         )}
       </View>
+      </>)}
 
       {customizing && (
         <CustomizeDrawer

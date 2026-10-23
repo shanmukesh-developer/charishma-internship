@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Platform, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { COLORS, SHADOWS, RADIUS } from '../constants/theme';
+import { COLORS, SHADOWS, RADIUS, surfaceLift } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useDietary } from '../context/DietaryContext';
@@ -18,6 +18,7 @@ import { campusEventHrefForNotification } from '../modules/campusEvents/campusEv
 import { safeId } from '../utils/ids';
 import { Ionicons } from '@expo/vector-icons';
 import { formatISTDate } from '../utils/format';
+import { useTopInset } from '../utils/useTopInset';
 
 interface NotificationItem {
   id: string;
@@ -38,6 +39,8 @@ const LOCAL_KEY = 'zenvy_notifications';
 // arrived while the app was closed are here too. Guests only have this device's announcements.
 // Older app versions seeded made-up sample alerts with ids 'default-*'; they are purged on load.
 const isLegacySample = (n: any) => typeof n?.id === 'string' && n.id.startsWith('default-');
+
+const PAGE_SIZE = 30;
 
 const fromServer = (n: any): NotificationItem => ({
   id: String(n.id || n._id),
@@ -63,6 +66,8 @@ const markLocalAllRead = () => {
 };
 
 export default function NotificationsScreen() {
+  // Real status-bar inset, never less than the old fixed padding (utils/useTopInset)
+  const topPad = useTopInset();
   const router = useRouter();
   const { isDark, colors } = useTheme();
   const { user } = useAuth();
@@ -72,22 +77,20 @@ export default function NotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Paging: 30 at a time from the server (GET /api/notifications?before=), "Load older" at the end
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const mountedRef = useRef(true);
   const signedInRef = useRef(signedIn);
   signedInRef.current = signedIn;
-  const hadUnreadRef = useRef(false);
 
+  // Each notification is marked read when it is opened (handleNotificationPress), or all at once with
+  // "Mark all read". Leaving the screen no longer marks everything read, so the user can keep some
+  // unread to deal with later.
   useEffect(() => {
     mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      // Leaving the notification center marks everything as read, so the Home bell badge clears.
-      markLocalAllRead();
-      if (signedInRef.current && hadUnreadRef.current) {
-        apiFetch('/api/notifications/read-all', { method: 'PUT' }).catch(() => {});
-      }
-    };
+    return () => { mountedRef.current = false; };
   }, []);
 
   useEffect(() => {
@@ -95,9 +98,6 @@ export default function NotificationsScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signedIn]);
 
-  useEffect(() => {
-    hadUnreadRef.current = notifications.some(n => !n.read);
-  }, [notifications]);
 
   const loadLocal = async (): Promise<NotificationItem[]> => {
     const stored = await AsyncStorage.getItem(LOCAL_KEY);
@@ -116,10 +116,11 @@ export default function NotificationsScreen() {
       let list: NotificationItem[];
       if (signedIn) {
         try {
-          const res = await apiFetch('/api/notifications?limit=100');
+          const res = await apiFetch(`/api/notifications?limit=${PAGE_SIZE}`);
           const data = await res.json().catch(() => null);
           if (!res.ok || !data || !Array.isArray(data.notifications)) throw new Error(`status ${res.status}`);
           list = data.notifications.map(fromServer);
+          if (mountedRef.current) setHasMore(data.hasMore === true || (data.hasMore === undefined && list.length >= PAGE_SIZE));
           if (mountedRef.current) setLoadError(null);
         } catch (e) {
           console.warn('Notifications sync error:', e);
@@ -129,6 +130,7 @@ export default function NotificationsScreen() {
         }
       } else {
         list = await loadLocal();
+        if (mountedRef.current) setHasMore(false);
       }
       list.sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
       if (mountedRef.current) setNotifications(list);
@@ -139,6 +141,30 @@ export default function NotificationsScreen() {
         setLoading(false);
         setRefreshing(false);
       }
+    }
+  };
+
+  // Older notifications: the page before the oldest one on screen
+  const loadOlder = async () => {
+    if (!signedIn || loadingMore) return;
+    const oldest = notifications[notifications.length - 1]?.timestamp;
+    if (!oldest) { setHasMore(false); return; }
+    setLoadingMore(true);
+    try {
+      const res = await apiFetch(`/api/notifications?limit=${PAGE_SIZE}&before=${encodeURIComponent(String(oldest))}`);
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || !Array.isArray(data.notifications)) throw new Error(`status ${res.status}`);
+      const page: NotificationItem[] = data.notifications.map(fromServer);
+      if (!mountedRef.current) return;
+      setNotifications((cur) => {
+        const ids = new Set(cur.map((n) => n.id));
+        return [...cur, ...page.filter((n) => !ids.has(n.id))];
+      });
+      setHasMore(data.hasMore === true && page.length > 0);
+    } catch {
+      if (mountedRef.current) Alert.alert("Couldn't load older notifications", 'Check your connection and try again.');
+    } finally {
+      if (mountedRef.current) setLoadingMore(false);
     }
   };
 
@@ -347,7 +373,7 @@ export default function NotificationsScreen() {
   });
 
   return (
-    <View style={[s.container, { backgroundColor: bg }]}>
+    <View style={[s.container, { paddingTop: topPad, backgroundColor: bg }]}>
       {/* Header */}
       <View style={[s.header, { borderBottomColor: border, backgroundColor: cardBg }]}>
         <TouchableOpacity
@@ -471,6 +497,18 @@ export default function NotificationsScreen() {
               })}
             </View>
           </StaggeredSection>
+          {signedIn && hasMore && (
+            <TouchableOpacity
+              style={[s.olderBtn, { backgroundColor: cardBg, borderColor: border }, surfaceLift(isDark)]}
+              onPress={loadOlder}
+              disabled={loadingMore}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Load older notifications"
+            >
+              {loadingMore ? <ActivityIndicator size="small" color={goldColor} /> : <Text style={[s.olderBtnText, { color: goldColor }]}>Load older notifications</Text>}
+            </TouchableOpacity>
+          )}
         </ScrollView>
       )}
     </View>
@@ -594,6 +632,8 @@ const s = StyleSheet.create({
     lineHeight: 16,
   },
 
+  olderBtn: { alignSelf: 'center', marginTop: 4, marginBottom: 24, paddingHorizontal: 20, height: 44, minWidth: 200, alignItems: 'center', justifyContent: 'center', borderRadius: 14, borderWidth: 1 },
+  olderBtnText: { fontSize: 13, fontWeight: '600', letterSpacing: 0.2 },
   deleteBtn: {
     padding: 6,
     marginLeft: 4,

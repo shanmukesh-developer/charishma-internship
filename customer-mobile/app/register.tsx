@@ -236,7 +236,7 @@ export default function RegisterScreen() {
       Alert.alert('You already have an account', r.message, [
         { text: 'Not now', style: 'cancel' },
         {
-          text: 'Log in',
+          text: 'Sign in',
           onPress: () => {
             if (router.canGoBack()) router.back();
             else router.replace('/login' as any);

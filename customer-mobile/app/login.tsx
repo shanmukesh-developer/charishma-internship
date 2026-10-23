@@ -221,7 +221,7 @@ export default function LoginScreen() {
   };
 
   const loginWithProof = async (phone10: string, proof: PhoneProof) => {
-    if ('emailOtp' in proof) throw new Error('Please log in with your password, or try the SMS code again.');
+    if ('emailOtp' in proof) throw new Error('Please sign in with your password, or try the SMS code again.');
     const r = 'otp' in proof
       ? await postAuth(ENDPOINTS.verifyOtp, { phone: phone10, otp: proof.otp })
       : await postAuth(ENDPOINTS.login, { phone: phone10, firebaseToken: proof.firebaseToken });
@@ -363,7 +363,7 @@ export default function LoginScreen() {
       });
     } else if (data?.type === 'AUTH_ERROR') {
       setAuthModalVisible(false);
-      setError('Sign-in could not be completed. Please try OTP or password login.');
+      setError('Sign-in could not be completed. Please try the one-time code or your password.');
     }
   };
 
@@ -475,7 +475,7 @@ export default function LoginScreen() {
         </ActionPressable>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
           <TouchableOpacity onPress={changeNumber} disabled={busy} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={[s.linkText, { color: COLORS.textSecondary }]}>← Change Number</Text>
+            <Text style={[s.linkText, { color: COLORS.textSecondary }]}>← Change number</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -627,7 +627,7 @@ export default function LoginScreen() {
                 </>
               ) : (
                 <>
-                  <Text style={[s.cardTitle, { color: isDark ? '#fff' : '#1A1A2E' }]}>Welcome Back</Text>
+                  <Text style={[s.cardTitle, { color: isDark ? '#fff' : '#1A1A2E' }]}>Welcome back</Text>
                   <Text style={[s.cardSubtitle, { color: isDark ? COLORS.textSecondary : '#617088' }]}>Sign in to your campus account</Text>
 
                   {/* Login Method Tabs */}
@@ -731,7 +731,7 @@ export default function LoginScreen() {
                   <TermsConsent isDark={isDark} />
 
                   <DopaminePressable onPress={() => router.push('/register' as any)} style={s.switchLink} sound="click">
-                    <Text style={s.switchText}>Don't have an account? <Text style={{ color: COLORS.gold, fontWeight: '800' }}>Register</Text></Text>
+                    <Text style={s.switchText}>Don't have an account? <Text style={{ color: COLORS.gold, fontWeight: '800' }}>Sign up</Text></Text>
                   </DopaminePressable>
 
                   <TouchableOpacity
@@ -753,7 +753,7 @@ export default function LoginScreen() {
                   >
                     <Text style={{ fontSize: 13 }}>🗺️</Text>
                     <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? '#FFF' : '#334155' }}>
-                      First Time User? <Text style={{ color: '#3B82F6', fontWeight: '900' }}>Explore All Services & Access Guide ➔</Text>
+                      New here? <Text style={{ color: '#3B82F6', fontWeight: '900' }}>See what Zenvy does ➔</Text>
                     </Text>
                   </TouchableOpacity>
                 </>

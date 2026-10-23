@@ -42,12 +42,12 @@ export const HELP_FAQ: FaqSection[] = [
     title: 'Delivery',
     items: [
       {
-        q: 'What is the delivery PIN?',
-        a: 'Each order has a delivery PIN on its tracking screen. Share it with the rider only when you have the order in your hands. After several wrong tries the PIN is locked for a while to keep your order safe.',
+        q: 'What is the Delivery PIN?',
+        a: 'Each order has a Delivery PIN on its tracking screen. Share it with the rider only when you have the order in your hands. After several wrong tries the PIN is locked for a while to keep your order safe.',
       },
       {
         q: 'Where is my order delivered?',
-        a: 'To the hostel block and room in your profile. Keep them up to date in Profile so the rider finds you quickly.',
+        a: 'To the address you confirm at checkout. Your saved hostel and room are filled in for you, and you can pick a saved place or type a different one.',
       },
     ],
   },

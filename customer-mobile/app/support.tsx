@@ -10,6 +10,12 @@ import { ENDPOINTS, ZENVY_SUPPORT_PHONE, ZENVY_SUPPORT_WHATSAPP } from '../const
 import { connectSocket } from '../utils/socket';
 import { Ionicons } from '@expo/vector-icons';
 import { formatISTDateTime } from '../utils/format';
+import { useTopInset } from '../utils/useTopInset';
+import { pickAndUploadImage, alertUploadError, resolveMediaUrl } from '../utils/imageUpload';
+import { CachedImage } from '../components/SafeImage';
+
+// Up to 3 photos per ticket (a missing or wrong item is easiest to sort out with a picture)
+const MAX_TICKET_PHOTOS = 3;
 
 const SUBJECT_MAX = 120;
 const DESCRIPTION_MAX = 2000;
@@ -35,22 +41,28 @@ const priorityLabel = (p?: string | null) => {
 };
 
 export default function SupportScreen() {
+  // Real status-bar inset, never less than the old fixed padding (utils/useTopInset)
+  const topPad = useTopInset();
   const router = useRouter();
   const { isDark, colors } = useTheme();
   const { user } = useAuth();
   const params = useLocalSearchParams<{ orderId?: string | string[] }>();
   const paramOrderId = (Array.isArray(params.orderId) ? params.orderId[0] : params.orderId) || '';
+  // "Need help with this booking?" (Orders > Services) passes the booking: name it in the subject
+  const paramBookingId = (Array.isArray((params as any).bookingId) ? (params as any).bookingId[0] : (params as any).bookingId) || '';
 
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [showNewForm, setShowNewForm] = useState(!!paramOrderId);
+  const [showNewForm, setShowNewForm] = useState(!!paramOrderId || !!paramBookingId);
 
   // Form states (when opened from an order, the ticket is linked to it)
   const [linkedOrderId, setLinkedOrderId] = useState<string>(paramOrderId);
-  const [subject, setSubject] = useState(paramOrderId ? `Help with order #${shortId(paramOrderId)}` : '');
+  const [subject, setSubject] = useState(paramOrderId ? `Help with order #${shortId(paramOrderId)}` : paramBookingId ? `Help with booking #${shortId(paramBookingId)}` : '');
   const [description, setDescription] = useState('');
+  const [photos, setPhotos] = useState<{ ref: string; preview: string }[]>([]);
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [priority, setPriority] = useState('Medium');
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
@@ -160,6 +172,22 @@ export default function SupportScreen() {
     }
   };
 
+  const addPhoto = async () => {
+    if (!user) { Alert.alert('Sign in required', 'Please sign in to attach photos.'); return; }
+    if (photos.length >= MAX_TICKET_PHOTOS || photoBusy) return;
+    setPhotoBusy(true);
+    try {
+      const up = await pickAndUploadImage('support', { maxEdge: 1280 });
+      if (up && mountedRef.current) {
+        setPhotos((cur) => (cur.length >= MAX_TICKET_PHOTOS ? cur : [...cur, { ref: up.url, preview: up.previewUrl || up.localUri || up.absoluteUrl }]));
+      }
+    } catch (e) {
+      alertUploadError(e, addPhoto);
+    } finally {
+      if (mountedRef.current) setPhotoBusy(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!user) {
       Alert.alert(
@@ -190,15 +218,25 @@ export default function SupportScreen() {
           description: description.trim().slice(0, DESCRIPTION_MAX),
           priority,
           ...(linkedOrderId ? { orderId: linkedOrderId } : {}),
+          ...(photos.length ? { attachments: photos.map((p) => p.ref) } : {}),
         }),
       });
       const data = await readJson(res);
       if (!mountedRef.current) return;
 
       if (res.ok) {
-        Alert.alert('Ticket raised', "Our team will reply here, and we'll notify you as soon as they do.");
+        // A server without ticket photos yet ignores them: say so instead of pretending they went.
+        const photosLost = photos.length > 0 && !(Array.isArray((data as any)?.attachments) && (data as any).attachments.length > 0);
+        // Expected reply time from the server's reply-by time (4 h for a live order, 12 h otherwise)
+        const breach = new Date((data as any)?.slaBreachAt || 0).getTime();
+        const hours = breach > Date.now() ? Math.max(1, Math.round((breach - Date.now()) / 3600000)) : 0;
+        const replyLine = hours ? ` We usually reply within ${hours} ${hours === 1 ? 'hour' : 'hours'}.` : '';
+        Alert.alert('Ticket raised', (photosLost
+          ? "Our team will reply here. Your photos couldn't be attached this time, so please describe the problem in words."
+          : "Our team will reply here, and we'll notify you as soon as they do.") + replyLine);
         setSubject('');
         setDescription('');
+        setPhotos([]);
         setPriority('Medium');
         setLinkedOrderId('');
         setShowNewForm(false);
@@ -232,7 +270,7 @@ export default function SupportScreen() {
   const activeTextColor = isDark ? COLORS.gold : COLORS.red;
 
   return (
-    <KeyboardAvoidingView style={[s.container, { backgroundColor: bg }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={[s.container, { paddingTop: topPad, backgroundColor: bg }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* Header */}
       <View style={[s.header, { borderBottomColor: border, backgroundColor: cardBg }]}>
         <TouchableOpacity
@@ -420,6 +458,41 @@ export default function SupportScreen() {
               maxLength={DESCRIPTION_MAX}
             />
 
+            {/* Photos (optional, up to 3) */}
+            <Text style={[s.label, { color: txtSec }]}>Photos (optional, up to {MAX_TICKET_PHOTOS})</Text>
+            <View style={s.photoRow}>
+              {photos.map((p, i) => (
+                <View key={p.ref} style={[s.photoThumb, { borderColor: border }]}>
+                  <CachedImage source={{ uri: p.preview }} style={{ width: '100%', height: '100%' }} />
+                  <TouchableOpacity
+                    style={s.photoRemove}
+                    onPress={() => setPhotos((cur) => cur.filter((_, j) => j !== i))}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove photo ${i + 1}`}
+                  >
+                    <Ionicons name="close" size={12} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {photos.length < MAX_TICKET_PHOTOS && (
+                <TouchableOpacity
+                  style={[s.photoAdd, { borderColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)' }]}
+                  onPress={addPhoto}
+                  disabled={photoBusy}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add a photo"
+                >
+                  {photoBusy ? <ActivityIndicator size="small" color={goldColor} /> : (
+                    <>
+                      <Ionicons name="camera-outline" size={20} color={txtSec} />
+                      <Text style={{ fontSize: 11, fontWeight: '500', color: txtSec, marginTop: 2 }}>Add photo</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+
             <TouchableOpacity
               style={[s.submitBtn, { backgroundColor: goldColor }, submitting && { opacity: 0.7 }]}
               onPress={handleSubmit}
@@ -521,8 +594,25 @@ export default function SupportScreen() {
                     </TouchableOpacity>
                   )}
                   <Text style={[s.ticketDesc, { color: txtSec }]}>{ticket.description}</Text>
+                  {Array.isArray(ticket.attachments) && ticket.attachments.length > 0 && (
+                    <View style={[s.photoRow, { marginTop: 8, marginBottom: 0 }]}>
+                      {ticket.attachments.slice(0, MAX_TICKET_PHOTOS).map((u: string, i: number) => (
+                        <View key={`${ticket.id || idx}-ph-${i}`} style={[s.photoThumb, { width: 56, height: 56, borderColor: border }]}>
+                          <CachedImage source={{ uri: resolveMediaUrl(u) || u }} style={{ width: '100%', height: '100%' }} />
+                        </View>
+                      ))}
+                    </View>
+                  )}
                   {!!formatWhen(ticket.createdAt) && (
                     <Text style={{ fontSize: 12, fontWeight: '700', color: '#888', marginTop: 6 }}>Raised {formatWhen(ticket.createdAt)}</Text>
+                  )}
+                  {/* Expected reply time from the ticket's own reply-by time (slaBreachAt) */}
+                  {!isClosed && !!ticket.slaBreachAt && (
+                    <Text style={{ fontSize: 12, fontWeight: '500', color: txtSec, marginTop: 2 }}>
+                      {new Date(ticket.slaBreachAt).getTime() > Date.now()
+                        ? `We aim to reply by ${formatWhen(ticket.slaBreachAt)}`
+                        : 'Taking a little longer than usual. We are on it.'}
+                    </Text>
                   )}
 
                   {thread.length > 0 ? (
@@ -626,6 +716,10 @@ const s = StyleSheet.create({
 
   submitBtn: { height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   submitText: { fontSize: 13, fontWeight: '900', color: '#fff' },
+  photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
+  photoThumb: { width: 72, height: 72, borderRadius: 12, overflow: 'hidden', borderWidth: 1 },
+  photoRemove: { position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
+  photoAdd: { width: 72, height: 72, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
 
   sectionTitle: { fontSize: 13, fontWeight: '900', letterSpacing: 0.2, marginBottom: 12, marginLeft: 4 },
   emptyCard: { paddingVertical: 40, alignItems: 'center', borderRadius: 24, borderWidth: 1 },

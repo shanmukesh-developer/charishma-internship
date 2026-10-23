@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { LIGHT_THEME } from '../constants/theme';
 
 // ── Screen background ───────────────────────────────────────────────────
 // A flat, theme-coloured fill behind the main tabs. It used to draw drifting orbs, dust particles,
@@ -9,7 +10,7 @@ import { useTheme } from '../context/ThemeContext';
 
 const AmbientBackground = React.memo(function AmbientBackground(_props: { isStatic?: boolean }) {
   const { isDark } = useTheme();
-  return <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? '#0A0A0B' : '#FBFBFC' }]} pointerEvents="none" />;
+  return <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? '#0A0A0B' : LIGHT_THEME.bg }]} pointerEvents="none" />;
 });
 
 export default AmbientBackground;

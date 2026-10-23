@@ -2,6 +2,7 @@
 // Queue numbers show the order autos checked in; the departure order can differ. No device location is used.
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Linking, Alert, TouchableOpacity } from 'react-native';
+import { PressScale } from '../../../modules/others/motion';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { autoRideApi, AutoRideError, istDate, istDayLabel, fmtClock, queueLabel, inr, type QueueEntry, type PickupBrief } from '../../../modules/autoRide/autoRideApi';
 import { AHeader, usePalette, Card, Btn, StateView, Notice, Chips, StatusChip, VerifiedBadge, useAutoRideLive, useNow, AUTO_HOME } from '../../../modules/autoRide/ui';
@@ -61,7 +62,7 @@ export default function PickupQueueScreen() {
         ) : data.queue.map((q) => {
           const ended = ENDED.includes(q.status);
           return (
-            <TouchableOpacity key={q.id} activeOpacity={0.9} onPress={() => router.push(`/auto-ride/trip/${q.id}` as any)} accessibilityRole="button"
+            <PressScale key={q.id} onPress={() => router.push(`/auto-ride/trip/${q.id}` as any)} accessibilityRole="button"
               accessibilityLabel={`${queueLabel(q.queueNumber)}, ${q.statusLabel}, ${q.confirmedSeats} of ${q.capacity} booked`}>
               <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12, opacity: ended ? 0.6 : 1 }}>
                 <View style={{ width: 54, height: 54, borderRadius: 14, backgroundColor: ended ? p.card2 : '#FACC15', alignItems: 'center', justifyContent: 'center' }}>
@@ -85,7 +86,7 @@ export default function PickupQueueScreen() {
                   </View>
                 </View>
               </Card>
-            </TouchableOpacity>
+            </PressScale>
           );
         })}
       </ScrollView>

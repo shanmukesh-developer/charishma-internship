@@ -1,7 +1,11 @@
 import 'react-native-gesture-handler';
 import React from 'react';
 import { Stack } from 'expo-router';
-import { Platform, View, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { Platform, View, StyleSheet, Alert, ActivityIndicator, LogBox } from 'react-native';
+
+// Web preview only: react-native-web renders nested touchables as nested <button>s and logs a
+// dev warning. It never happens on Android/iOS, so keep it out of the preview overlay.
+if (Platform.OS === 'web') LogBox.ignoreLogs(['cannot contain a nested']);
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
@@ -93,9 +97,9 @@ function AppContainer() {
 
   // Intro on top of everything; after it, a dark cover only if the saved theme is somehow still loading.
   const introLayer = showIntro ? (
-    <IntroOverlay onComplete={handleIntroComplete} />
+    <IntroOverlay ready={(fontsLoaded || !!fontError) && isThemeReady} onComplete={handleIntroComplete} />
   ) : !isThemeReady ? (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: '#060608', zIndex: 999999 }]} />
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: '#0A0A0B', zIndex: 999999 }]} />
   ) : null;
 
   // Wait for icon fonts to load (critical for Expo Web)

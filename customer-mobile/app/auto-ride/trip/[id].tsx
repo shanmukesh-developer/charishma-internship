@@ -2,7 +2,9 @@
 // server's fare breakdown -> confirm (cash to driver; wallet only when the server offers it) -> booking code + PIN.
 // Holds are released when the passenger backs out or leaves the screen. Idempotency keys make retries safe.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, RefreshControl, Alert, Linking, BackHandler, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, Alert, Linking, BackHandler, StyleSheet } from 'react-native';
+import { PressScale } from '../../../modules/others/motion';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import SafeImage from '../../../components/SafeImage';
 import {
@@ -11,7 +13,7 @@ import {
 } from '../../../modules/autoRide/autoRideApi';
 import {
   AHeader, usePalette, Card, Btn, Badge, StateView, Notice, Row, Stepper, StatusChip, VerifiedBadge, useAutoRideLive, useNow,
-  refreshAutoRideStatus, AUTO_HOME,
+  refreshAutoRideStatus, AUTO_HOME, AutoTile,
 } from '../../../modules/autoRide/ui';
 import SeatMap from '../../../modules/autoRide/SeatMap';
 
@@ -314,200 +316,272 @@ export default function AutoTripScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: p.bg }}>
         <AHeader title="Booking confirmed" subtitle={`${queueLabel(trip.queueNumber)} · ${fmtDeparture(trip.departureAt)}`} onBack={headerBack} />
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
-          <Card style={{ alignItems: 'center', borderColor: p.success, backgroundColor: p.successSoft }}>
-            <Text style={{ fontSize: 44 }}>✅</Text>
-            <Text style={{ fontSize: 18, fontWeight: '900', color: p.text, marginTop: 4 }}>Seat{done.seatCount === 1 ? '' : 's'} booked</Text>
-            <Text style={{ fontSize: 12, color: p.sub, marginTop: 4, textAlign: 'center' }}>The auto leaves when the driver confirms departure. We will notify you.</Text>
-          </Card>
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48, width: '100%', maxWidth: 640, alignSelf: 'center' }}>
+          <View style={{ alignItems: 'center', marginTop: 6, marginBottom: 18 }}>
+            <View style={[ts.halo, { backgroundColor: p.successSoft }]}>
+              <View style={[ts.dot, { backgroundColor: '#16A34A' }]}><Ionicons name="checkmark" size={40} color="#FFFFFF" /></View>
+            </View>
+            <Text style={[ts.h1, { color: p.text, marginTop: 16 }]} accessibilityRole="header">Booking confirmed!</Text>
+            <Text style={{ fontSize: 14, color: p.sub, marginTop: 4, textAlign: 'center', maxWidth: 320, lineHeight: 20 }}>
+              Your seat{done.seatCount === 1 ? ' is' : 's are'} booked. The auto leaves when the driver confirms departure; we will notify you.
+            </Text>
+          </View>
           <Card style={{ alignItems: 'center' }}>
-            <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 1 }}>BOOKING CODE</Text>
-            <Text selectable style={{ fontSize: 28, fontWeight: '900', color: p.text, letterSpacing: 4, marginTop: 4 }}>{done.bookingCode}</Text>
+            <Text style={[ts.kicker, { color: p.sub }]}>Booking code</Text>
+            <Text selectable style={{ fontSize: 26, fontWeight: '800', color: p.text, letterSpacing: 4, marginTop: 4 }}>{done.bookingCode}</Text>
             {done.boardingPin ? (
               <>
-                <Text style={{ fontSize: 12, fontWeight: '900', color: p.accent, letterSpacing: 1, marginTop: 14 }}>BOARDING PIN</Text>
-                <Text style={{ fontSize: 40, fontWeight: '900', color: p.text, letterSpacing: 12, marginTop: 2 }} accessibilityLabel={`Boarding PIN ${done.boardingPin.split('').join(' ')}`}>{done.boardingPin}</Text>
-                <Text style={{ fontSize: 12, color: p.sub, textAlign: 'center' }}>Show the code and PIN to the driver when you board. Never share the PIN before that.</Text>
+                <Text style={[ts.kicker, { color: p.accent, marginTop: 14 }]}>Boarding PIN</Text>
+                <Text style={{ fontSize: 38, fontWeight: '800', color: p.text, letterSpacing: 12, marginTop: 2 }} accessibilityLabel={`Boarding PIN ${done.boardingPin.split('').join(' ')}`}>{done.boardingPin}</Text>
+                <Text style={{ fontSize: 13, color: p.sub, textAlign: 'center', lineHeight: 18 }}>Show the code and PIN to the driver when you board. Never share the PIN before that.</Text>
               </>
             ) : null}
           </Card>
           <Card>
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 6 }}>
+              <View style={{ alignItems: 'center', paddingTop: 4, width: 14 }}>
+                <View style={{ width: 10, height: 10, borderRadius: 5, borderWidth: 2.5, borderColor: p.accent }} />
+                <View style={{ width: 2, flex: 1, backgroundColor: p.border, marginVertical: 3 }} />
+                <Ionicons name="location" size={13} color={p.accent} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: p.text }}>{trip.pickup?.name || 'Pickup point'}</Text>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: p.text, marginTop: 8 }}>{trip.destination || trip.route?.destination || 'Destination'}</Text>
+              </View>
+            </View>
+            <Row label="Departure" value={fmtDeparture(trip.departureAt)} />
             <Row label="Seats" value={`${done.seatCount}${done.seatNumbers.length ? ` (no. ${done.seatNumbers.join(', ')})` : ''}`} />
+            <Row label="Payment" value={done.paymentMethod === 'CASH' || !done.paymentMethod ? 'Cash to the driver at boarding' : PAYMENT_LABEL[done.paymentMethod]} />
+            <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: p.border, marginVertical: 6 }} />
             <Row label="Total" value={inr(done.amount)} strong />
-            <Row label="Payment" value={done.paymentMethod ? PAYMENT_LABEL[done.paymentMethod] : '—'} />
           </Card>
-          {done.pickupInstructions ? <Notice tone="info">📍 {done.pickupInstructions}</Notice> : null}
-          <Btn label="View my booking" icon="🎫" onPress={() => router.replace(`/auto-ride/booking/${done.id}` as any)} />
-          <Btn label="Back to autos" kind="secondary" style={{ marginTop: 10 }} onPress={() => router.replace(AUTO_HOME as any)} />
+          {done.pickupInstructions ? <Notice tone="info">{done.pickupInstructions}</Notice> : null}
+          <Btn label="View booking" icon="ticket-outline" onPress={() => router.replace(`/auto-ride/booking/${done.id}` as any)} />
+          <Btn label="Back to home" kind="ghost" style={{ marginTop: 10 }} onPress={() => router.replace(AUTO_HOME as any)} />
         </ScrollView>
       </View>
     );
   }
 
+  const cashOnly = methods.length <= 1 && (methods[0] || 'CASH') === 'CASH';
+  const totalPreview = seatCount > 0 ? seatCount * (Number(trip.seatFare) || 0) : 0;
+
   return (
     <View style={{ flex: 1, backgroundColor: p.bg }}>
-      <AHeader title={`${queueLabel(trip.queueNumber)} → ${trip.destination || 'Destination'}`} subtitle="Zenvy Auto · verified driver" onBack={headerBack} right={<Badge label={`${trip.confirmedSeats}/${trip.capacity}`} color="#16A34A" />} />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-          <StatusChip trip={trip} now={now + skew} />
-          <Text style={{ fontSize: 12, color: p.sub }}>{trip.statusLabel}</Text>
-        </View>
-
+      <AHeader title={step === 'review' ? 'Review and book' : 'Auto details and booking'} subtitle={`${queueLabel(trip.queueNumber)} to ${trip.destination || 'destination'}`} onBack={headerBack} />
+      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 4, paddingBottom: 150, width: '100%', maxWidth: 640, alignSelf: 'center' }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}>
         {mineConfirmed ? (
-          <TouchableOpacity onPress={() => router.push(`/auto-ride/booking/${trip.myBookingId}` as any)} accessibilityRole="button">
-            <Notice tone="success">🎫 You have a booking on this auto. <Text style={{ fontWeight: '900', color: p.accent }}>Open it ›</Text></Notice>
-          </TouchableOpacity>
+          <PressScale onPress={() => router.push(`/auto-ride/booking/${trip.myBookingId}` as any)} accessibilityRole="button">
+            <Notice tone="success">You have a booking on this auto. <Text style={{ fontWeight: '800', color: p.accent }}>Open it</Text></Notice>
+          </PressScale>
         ) : null}
-        {trip.mode === 'PRIVATE' && !mineConfirmed ? <Notice tone="warn">🔒 This auto has been booked as a full auto. Pick another auto.</Notice> : null}
-        {trip.availability === 'NOT_OPEN' ? <Notice tone="info">🕒 Booking for this auto opens soon. Pull down to refresh.</Notice> : null}
+        {trip.mode === 'PRIVATE' && !mineConfirmed ? <Notice tone="warn">This auto has been booked as a full auto. Pick another auto.</Notice> : null}
+        {trip.availability === 'NOT_OPEN' ? <Notice tone="info">Booking for this auto opens soon. Pull down to refresh.</Notice> : null}
 
-        {/* Route */}
+        {/* Auto + driver */}
         <Card>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <View style={{ alignItems: 'center', paddingTop: 4 }}>
-              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: p.success }} />
-              <View style={{ width: 2, flex: 1, backgroundColor: p.border, marginVertical: 3 }} />
-              <View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: p.danger }} />
+          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+            <AutoTile size={64} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontSize: 16, fontWeight: '800', color: p.text }}>{trip.mode === 'PRIVATE' ? 'Full auto' : 'Shared auto'} · {queueLabel(trip.queueNumber)}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                {trip.driver?.rating ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                    <Ionicons name="star" size={13} color="#F5A524" />
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: p.text }}>{trip.driver.rating.avg.toFixed(1)}</Text>
+                    <Text style={{ fontSize: 12, color: p.muted }}>({trip.driver.rating.count})</Text>
+                  </View>
+                ) : <Text style={{ fontSize: 12, color: p.muted }}>No ratings yet</Text>}
+                <VerifiedBadge verified={!!trip.driver?.verified} />
+              </View>
+              <View style={{ marginTop: 6 }}><StatusChip trip={trip} now={now + skew} /></View>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 12, color: p.muted, fontWeight: '800' }}>PICKUP</Text>
-              <Text style={{ fontSize: 15, fontWeight: '900', color: p.text }}>{trip.pickup?.name || trip.route?.origin || 'Pickup point'}</Text>
-              {trip.pickup?.landmark ? <Text style={{ fontSize: 12, color: p.sub }}>{trip.pickup.landmark}</Text> : null}
-              {trip.stops.length ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 8 }}>Stops: {trip.stops.join(' · ')}</Text> : null}
-              <Text style={{ fontSize: 12, color: p.muted, fontWeight: '800', marginTop: 10 }}>DESTINATION</Text>
-              <Text style={{ fontSize: 15, fontWeight: '900', color: p.text }}>{trip.destination || trip.route?.destination || '—'}</Text>
-              {trip.route ? <Text style={{ fontSize: 12, color: p.sub }}>{trip.route.name}{trip.route.distanceKm ? ` · ${trip.route.distanceKm} km` : ''}</Text> : null}
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: p.text }}>{inr(trip.seatFare)}</Text>
+              <Text style={{ fontSize: 12, color: p.sub }}>per seat</Text>
             </View>
           </View>
-          {trip.pickup?.mapsUrl ? <Btn label="Open pickup in Maps" icon="🗺️" kind="secondary" small onPress={openMaps} style={{ marginTop: 12 }} /> : null}
+          <View style={[ts.driverRow, { borderTopColor: p.border }]}>
+            <View style={{ width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: p.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+              {trip.driver?.photo ? <SafeImage source={{ uri: trip.driver.photo }} style={{ width: 44, height: 44 }} contentFit="cover" /> : <Ionicons name="person" size={20} color={p.accent} />}
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontSize: 14, fontWeight: '800', color: p.text }} numberOfLines={1}>{trip.driver?.name || 'Driver'}</Text>
+              <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }} numberOfLines={2}>
+                {trip.vehicle?.registration || 'Registration after booking'}{trip.vehicle?.registrationMasked ? ' (full number after booking)' : ''}
+                {[trip.vehicle?.colour, trip.vehicle?.make, trip.vehicle?.model, trip.vehicle?.fuel].filter(Boolean).length ? ` · ${[trip.vehicle?.colour, trip.vehicle?.make, trip.vehicle?.model, trip.vehicle?.fuel].filter(Boolean).join(' ')}` : ''}
+              </Text>
+            </View>
+          </View>
         </Card>
 
-        {/* Time, fare, driver */}
+        {/* Ride details */}
         <Card>
+          <Text style={[ts.cardTitle, { color: p.text }]}>Ride details</Text>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+            <View style={{ alignItems: 'center', paddingTop: 4, width: 14 }}>
+              <View style={{ width: 11, height: 11, borderRadius: 6, borderWidth: 2.5, borderColor: p.accent }} />
+              <View style={{ width: 2, flex: 1, backgroundColor: p.border, marginVertical: 3 }} />
+              <Ionicons name="location" size={14} color={p.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 12, color: p.muted, fontWeight: '700' }}>Pickup</Text>
+              <Text style={{ fontSize: 15, fontWeight: '800', color: p.text }}>{trip.pickup?.name || trip.route?.origin || 'Pickup point'}</Text>
+              {trip.pickup?.landmark ? <Text style={{ fontSize: 13, color: p.sub }}>{trip.pickup.landmark}</Text> : null}
+              {trip.stops.length ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 8 }}>Stops: {trip.stops.join(' · ')}</Text> : null}
+              <Text style={{ fontSize: 12, color: p.muted, fontWeight: '700', marginTop: 12 }}>Drop</Text>
+              <Text style={{ fontSize: 15, fontWeight: '800', color: p.text }}>{trip.destination || trip.route?.destination || '—'}</Text>
+              {trip.route ? <Text style={{ fontSize: 13, color: p.sub }}>{trip.route.name}{trip.route.distanceKm ? ` · ${trip.route.distanceKm} km` : ''}</Text> : null}
+            </View>
+          </View>
+          {trip.pickup?.mapsUrl ? <Btn label="Open pickup in Maps" icon="navigate-outline" kind="secondary" small onPress={openMaps} style={{ marginTop: 12, alignSelf: 'flex-start' }} /> : null}
+          <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: p.border, marginVertical: 10 }} />
           <Row label="Departure" value={fmtDeparture(trip.departureAt)} strong />
           {trip.delayMinutes > 0 && trip.originalDepartureAt ? <Row label="Originally" value={`${fmtClock(trip.originalDepartureAt)} (delayed ${trip.delayMinutes} min)`} /> : null}
           <Row label="Leaves" value={fromNow(trip.departureAt, now + skew) || '—'} />
-          <Row label="Fare per seat" value={inr(trip.seatFare)} strong />
-          {trip.fullAutoFare ? <Row label="Full auto fare" value={inr(trip.fullAutoFare)} /> : null}
-          <Row label="Seats" value={`${trip.confirmedSeats} booked · ${trip.heldSeats} on hold · ${trip.remainingSeats} left of ${trip.capacity}`} />
+          <Row label="Seats" value={`${trip.remainingSeats} left of ${trip.capacity}${trip.heldSeats ? ` · ${trip.heldSeats} on hold` : ''}`} />
           {trip.minSeatsToDepart && trip.minSeatsToDepart < trip.capacity ? <Row label="Can leave with" value={`${trip.minSeatsToDepart}+ passengers`} /> : null}
           {trip.queueNumber ? <Text style={{ fontSize: 12, color: p.muted, marginTop: 6 }}>{queueLabel(trip.queueNumber)} at this stand. {trip.queueNote}</Text> : null}
         </Card>
-        <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 48, height: 48, borderRadius: 24, overflow: 'hidden', backgroundColor: p.card2, alignItems: 'center', justifyContent: 'center' }}>
-            {trip.driver?.photo ? <SafeImage source={{ uri: trip.driver.photo }} style={{ width: 48, height: 48 }} contentFit="cover" /> : <Text style={{ fontSize: 22 }}>🧑‍✈️</Text>}
+
+        {/* Fare */}
+        <Card>
+          <Text style={[ts.cardTitle, { color: p.text }]}>Fare</Text>
+          <View style={{ marginTop: 6 }}>
+            <Row label="Fare per seat" value={inr(trip.seatFare)} />
+            {trip.fullAutoFare ? <Row label="Whole auto" value={inr(trip.fullAutoFare)} /> : null}
           </View>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={{ fontSize: 14.5, fontWeight: '900', color: p.text }}>{trip.driver?.name || 'Driver'}</Text>
-              <VerifiedBadge verified={!!trip.driver?.verified} />
-            </View>
-            <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>
-              {trip.driver?.rating ? `★ ${trip.driver.rating.avg.toFixed(1)} (${trip.driver.rating.count} ratings)` : 'No ratings yet'}
-            </Text>
-            <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>
-              🔢 {trip.vehicle?.registration || '—'}{trip.vehicle?.registrationMasked ? ' (full number after booking)' : ''}
-              {[trip.vehicle?.colour, trip.vehicle?.make, trip.vehicle?.model, trip.vehicle?.fuel].filter(Boolean).length ? ` · ${[trip.vehicle?.colour, trip.vehicle?.make, trip.vehicle?.model, trip.vehicle?.fuel].filter(Boolean).join(' ')}` : ''}
-            </Text>
+          <View style={[ts.cashRow, { backgroundColor: p.accentSoft }]}>
+            <Ionicons name="cash-outline" size={18} color={p.accent} />
+            <Text style={{ flex: 1, fontSize: 13, color: p.text, lineHeight: 18 }}>Pay the driver in cash when you board. Nothing is charged in the app for cash bookings.</Text>
           </View>
         </Card>
 
         {/* Seat map */}
         <Card>
-          <Text style={{ fontSize: 15, fontWeight: '900', color: p.text, marginBottom: 4 }}>{step === 'review' ? 'Your held seats' : pickMode ? 'Pick your seats' : 'Seat layout'}</Text>
-          <Text style={{ fontSize: 12, color: p.sub, marginBottom: 12 }}>
+          <Text style={[ts.cardTitle, { color: p.text }]}>{step === 'review' ? 'Your held seats' : pickMode ? 'Select seats' : 'Seat layout'}</Text>
+          <Text style={{ fontSize: 13, color: p.sub, marginTop: 4, marginBottom: 14, lineHeight: 18 }}>
             {step === 'review' ? 'These seats are held for you until the timer runs out.' : pickMode ? 'Tap free seats to select them. The driver seat cannot be booked.' : 'Seats are assigned automatically on this auto; choose how many you need.'}
           </Text>
           <SeatMap rows={map.layout.rows} states={states} selected={step === 'select' ? selected : []} onToggle={toggle} selectable={pickMode && step === 'select' && canBook} />
+
+          {step === 'select' && canBook ? (
+            <View style={[ts.seatSummary, { borderTopColor: p.border }]}>
+              <Text style={{ fontSize: 13, color: p.sub, textAlign: 'center', marginBottom: 10 }}>
+                {free} seat{free === 1 ? '' : 's'} available{pickMode && selected.length ? ` · ${selected.length} selected (${selected.join(', ')})` : ''}
+              </Text>
+              {pickMode ? null : <Stepper value={seatCount} min={1} max={Math.max(1, maxAllowed)} onChange={setCount} label="Seats" />}
+              <View style={{ marginTop: pickMode ? 0 : 12 }}>
+                <Row label="Price per seat" value={inr(trip.seatFare)} />
+                <Row label={`Total (${seatCount} seat${seatCount === 1 ? '' : 's'})`} value={seatCount > 0 ? inr(totalPreview) : '—'} strong />
+                <Text style={{ fontSize: 12, color: p.muted, marginTop: 2 }}>Up to {maxAllowed} seat{maxAllowed === 1 ? '' : 's'} per booking. The exact total is confirmed on the next step.</Text>
+              </View>
+            </View>
+          ) : null}
         </Card>
 
-        {/* Step: choose seats */}
-        {step === 'select' && canBook ? (
-          <Card>
-            {pickMode ? (
-              <Text style={{ fontSize: 14, fontWeight: '900', color: p.text, textAlign: 'center' }}>
-                {selected.length ? `${selected.length} seat${selected.length === 1 ? '' : 's'} selected: ${selected.join(', ')}` : 'No seats selected yet'}
-              </Text>
-            ) : (
-              <Stepper value={seatCount} min={1} max={Math.max(1, maxAllowed)} onChange={setCount} label="Seats" />
-            )}
-            <Text style={{ fontSize: 12, color: p.sub, textAlign: 'center', marginTop: 8 }}>
-              {seatCount > 0 ? `${seatCount} × ${inr(trip.seatFare)} per seat · the exact total is confirmed on the next step` : `Up to ${maxAllowed} seat${maxAllowed === 1 ? '' : 's'} per booking`}
-            </Text>
-          </Card>
-        ) : null}
         {step === 'select' && !canBook && !trip.myBookingId && trip.mode !== 'PRIVATE' && trip.availability !== 'NOT_OPEN' ? (
           <Notice tone="warn">Seat booking is closed for this auto ({trip.availabilityLabel}).</Notice>
         ) : null}
 
-        {/* Step: review */}
+        {/* Review */}
         {step === 'review' && hold ? (
-          <Card style={{ borderColor: holdExpired ? p.danger : p.warn }}>
+          <Card style={{ borderWidth: 1.5, borderColor: holdExpired ? p.danger : p.warn }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <Text style={{ fontSize: 15, fontWeight: '900', color: p.text }}>Review & confirm</Text>
-              <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: holdExpired ? p.dangerSoft : p.warnSoft }}
+              <Text style={[ts.cardTitle, { color: p.text }]}>Review and confirm</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: holdExpired ? p.dangerSoft : p.warnSoft }}
                 accessibilityLabel={holdExpired ? 'Hold expired' : `Hold expires in ${mmss(holdLeft)}`} accessibilityLiveRegion="polite">
-                <Text style={{ fontWeight: '900', color: holdExpired ? p.danger : p.warn, fontSize: 13 }}>⏳ {holdExpired ? 'Expired' : mmss(holdLeft)}</Text>
+                <Ionicons name="time-outline" size={14} color={holdExpired ? p.danger : p.warn} />
+                <Text style={{ fontWeight: '800', color: holdExpired ? p.danger : p.warn, fontSize: 13 }}>{holdExpired ? 'Expired' : mmss(holdLeft)}</Text>
               </View>
             </View>
             {notice ? <Notice tone="info">{notice}</Notice> : null}
-            <Row label="Route" value={`${trip.pickup?.name || 'Pickup'} → ${trip.destination || '—'}`} />
+            <Row label="Route" value={`${trip.pickup?.name || 'Pickup'} to ${trip.destination || '—'}`} />
             <Row label="Pickup" value={trip.pickup?.landmark ? `${trip.pickup.name} (${trip.pickup.landmark})` : trip.pickup?.name || '—'} />
             <Row label="Departure" value={fmtDeparture(trip.departureAt)} />
-            <Row label="Passengers / seats" value={`${hold.seatCount}${hold.seatNumbers.length ? ` (no. ${hold.seatNumbers.join(', ')})` : ''}`} />
-            <View style={{ height: 1, backgroundColor: p.border, marginVertical: 8 }} />
+            <Row label="Seats" value={`${hold.seatCount}${hold.seatNumbers.length ? ` (no. ${hold.seatNumbers.join(', ')})` : ''}`} />
+            <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: p.border, marginVertical: 8 }} />
             <Row label={`${hold.fareBreakdown.seats ?? hold.seatCount} seat${(hold.fareBreakdown.seats ?? hold.seatCount) === 1 ? '' : 's'} × ${inr(hold.fareBreakdown.seatFare ?? hold.seatFare)}`} value={inr(hold.fareBreakdown.total ?? hold.amount)} />
             <Row label="Total to pay" value={inr(hold.amount)} strong />
 
-            <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 0.8, marginTop: 12, marginBottom: 6 }}>PAYMENT</Text>
-            {methods.map((m) => {
+            <Text style={{ fontSize: 14, fontWeight: '800', color: p.text, marginTop: 14, marginBottom: 8 }}>Payment</Text>
+            {cashOnly ? (
+              <View style={[ts.cashRow, { backgroundColor: p.accentSoft, marginTop: 0 }]}>
+                <Ionicons name="cash-outline" size={20} color={p.accent} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: p.text }}>Pay the driver in cash when you board</Text>
+                  <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>Show your booking code and PIN, then pay {inr(hold.amount)}.</Text>
+                </View>
+              </View>
+            ) : methods.map((m) => {
               const on = payment === m;
               return (
-                <TouchableOpacity key={m} onPress={() => setPayment(m)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={PAYMENT_LABEL[m]}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14, borderWidth: 1.5, borderColor: on ? p.accent : p.border, backgroundColor: on ? p.accentSoft : p.card2, marginBottom: 8, minHeight: 48 }}>
-                  <Text style={{ fontSize: 18 }}>{m === 'CASH' ? '💵' : '👛'}</Text>
+                <PressScale key={m} onPress={() => setPayment(m)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={PAYMENT_LABEL[m]}
+                  style={[ts.payRow, { borderColor: on ? p.accent : p.border, backgroundColor: on ? p.accentSoft : p.card }]}>
+                  <Ionicons name={m === 'CASH' ? 'cash-outline' : 'wallet-outline'} size={20} color={on ? p.accent : p.sub} />
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13.5, fontWeight: '900', color: p.text }}>{PAYMENT_LABEL[m]}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: p.text }}>{m === 'CASH' ? 'Cash to the driver' : PAYMENT_LABEL[m]}</Text>
                     <Text style={{ fontSize: 12, color: p.sub }}>{m === 'CASH' ? 'Pay the driver when you board' : 'Paid now from your Zenvy Wallet; refunds go back to it'}</Text>
                   </View>
-                  <Text style={{ fontSize: 16, color: on ? p.accent : p.muted }}>{on ? '◉' : '○'}</Text>
-                </TouchableOpacity>
+                  <View style={[ts.radio, { borderColor: on ? p.accent : p.border }]}>{on ? <View style={[ts.radioDot, { backgroundColor: p.accent }]} /> : null}</View>
+                </PressScale>
               );
             })}
-            <Text style={{ fontSize: 12, color: p.muted, marginTop: 2 }}>You can cancel before the driver confirms departure. Cash bookings are never charged in the app.</Text>
+            <Text style={{ fontSize: 12, color: p.muted, marginTop: 6 }}>You can cancel before the driver confirms departure. Cash bookings are never charged in the app.</Text>
           </Card>
         ) : null}
 
         {retry ? (
-          <Notice tone="warn">📶 {retry.message} Your request is saved; tap Retry to send it again safely (you will not be booked twice).</Notice>
+          <Notice tone="warn">{retry.message} Your request is saved; tap Retry to send it again safely (you will not be booked twice).</Notice>
         ) : null}
       </ScrollView>
 
       {/* Sticky action bar */}
-      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 16, paddingBottom: 24, backgroundColor: p.bg, borderTopWidth: 1, borderTopColor: p.border, gap: 8 }}>
-        {step === 'select' ? (
-          canBook ? (
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Btn label={retry?.kind === 'hold' ? 'Retry' : `Hold ${seatCount || ''} seat${seatCount === 1 ? '' : 's'}`.replace('  ', ' ')} icon="🛺" style={{ flex: 1 }}
-                onPress={() => doHold()} loading={busy === 'hold'} disabled={seatCount < 1} />
-              {trip.privateBookingAllowed ? <Btn label="Full auto" kind="ghost" onPress={() => router.push(`/auto-ride/full/${trip.id}` as any)} /> : null}
-            </View>
-          ) : trip.privateBookingAllowed ? (
-            <Btn label={`Book Full Auto · ${inr(trip.fullAutoFare)}`} icon="🔒" onPress={() => router.push(`/auto-ride/full/${trip.id}` as any)} />
-          ) : (
-            <Btn label="Find another auto" kind="secondary" onPress={() => router.replace(AUTO_HOME as any)} />
-          )
-        ) : step === 'review' && hold ? (
-          holdExpired ? (
-            <Btn label="Hold expired · pick seats again" onPress={() => { setHold(null); holdKey.current = null; confirmKey.current = null; setStep('select'); load(); }} />
-          ) : (
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Btn label="Release" kind="secondary" onPress={askRelease} loading={busy === 'release'} disabled={busy === 'confirm'} />
-              <Btn label={retry?.kind === 'confirm' ? 'Retry confirm' : `Confirm · ${inr(hold.amount)}`} icon="✅" style={{ flex: 1 }} onPress={doConfirm} loading={busy === 'confirm'} disabled={busy === 'release'} />
-            </View>
-          )
-        ) : null}
+      <View style={[ts.bar, { backgroundColor: p.card, borderTopColor: p.border }]}>
+        <View style={{ width: '100%', maxWidth: 640, alignSelf: 'center', gap: 8 }}>
+          {step === 'select' ? (
+            canBook ? (
+              <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                <View style={{ minWidth: 84 }}>
+                  <Text style={{ fontSize: 12, color: p.sub }}>{seatCount > 0 ? `${seatCount} seat${seatCount === 1 ? '' : 's'}` : 'No seats yet'}</Text>
+                  <Text style={{ fontSize: 18, fontWeight: '800', color: p.text }}>{seatCount > 0 ? inr(totalPreview) : inr(trip.seatFare)}</Text>
+                </View>
+                <Btn label={retry?.kind === 'hold' ? 'Retry' : 'Continue'} icon="arrow-forward" style={{ flex: 1 }}
+                  onPress={() => doHold()} loading={busy === 'hold'} disabled={seatCount < 1} />
+                {trip.privateBookingAllowed ? <Btn label="Full auto" kind="ghost" onPress={() => router.push(`/auto-ride/full/${trip.id}` as any)} /> : null}
+              </View>
+            ) : trip.privateBookingAllowed ? (
+              <Btn label={`Book the whole auto · ${inr(trip.fullAutoFare)}`} icon="lock-closed-outline" onPress={() => router.push(`/auto-ride/full/${trip.id}` as any)} />
+            ) : (
+              <Btn label="Find another auto" kind="secondary" onPress={() => router.replace(AUTO_HOME as any)} />
+            )
+          ) : step === 'review' && hold ? (
+            holdExpired ? (
+              <Btn label="Hold expired · pick seats again" onPress={() => { setHold(null); holdKey.current = null; confirmKey.current = null; setStep('select'); load(); }} />
+            ) : (
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <Btn label="Release" kind="secondary" onPress={askRelease} loading={busy === 'release'} disabled={busy === 'confirm'} />
+                <Btn label={retry?.kind === 'confirm' ? 'Retry booking' : `Book now · ${inr(hold.amount)}`} icon="checkmark" style={{ flex: 1 }} onPress={doConfirm} loading={busy === 'confirm'} disabled={busy === 'release'} />
+              </View>
+            )
+          ) : null}
+        </View>
       </View>
     </View>
   );
 }
+
+const ts = StyleSheet.create({
+  h1: { fontSize: 22, fontWeight: '800', textAlign: 'center' },
+  kicker: { fontSize: 12, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
+  halo: { width: 128, height: 128, borderRadius: 64, alignItems: 'center', justifyContent: 'center' },
+  dot: { width: 82, height: 82, borderRadius: 41, alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { fontSize: 16, fontWeight: '800' },
+  driverRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth },
+  cashRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderRadius: 14, padding: 12, marginTop: 12 },
+  seatSummary: { marginTop: 14, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth },
+  payRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14, borderWidth: 1.5, marginBottom: 8, minHeight: 56 },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  radioDot: { width: 10, height: 10, borderRadius: 5 },
+  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20, borderTopWidth: StyleSheet.hairlineWidth },
+});

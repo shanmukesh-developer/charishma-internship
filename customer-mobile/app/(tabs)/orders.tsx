@@ -1,10 +1,11 @@
+import TabBackButton from '../../components/TabBackButton';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, RefreshControl, Animated, LayoutAnimation, UIManager, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, RefreshControl, Animated, LayoutAnimation, UIManager, Alert, ActivityIndicator, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { ShimmerCard } from '../../components/ShimmerLoader';
 import { connectSocket } from '../../utils/socket';
-import { COLORS, SHADOWS } from '../../constants/theme';
+import { COLORS, SHADOWS, surfaceLift } from '../../constants/theme';
 import { ENDPOINTS } from '../../constants/api';
 import { useTheme } from '../../context/ThemeContext';
 import { useCartActions } from '../../context/CartContext';
@@ -16,6 +17,8 @@ import { ActionPressable } from '../../components/DopaminePressable';
 import { isVendorFulfilled } from '../../utils/localVendor';
 import { formatINR, formatISTDate, formatISTDateTime, plural } from '../../utils/format';
 import { Ionicons } from '@expo/vector-icons';
+import { plainDiscountLabel } from '../../utils/billLabel';
+import { useTopInset } from '../../utils/useTopInset';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -95,6 +98,18 @@ const FILTER_LABEL: Record<string, string> = { ALL: 'All', ACTIVE: 'Active', PAS
 const isActiveStatus = (s?: string) => s !== 'Delivered' && s !== 'Cancelled';
 const PIN_STATUSES = ['Accepted', 'Preparing', 'ReadyForPickup', 'Picking', 'PickedUp', 'ArrivedAtGate'];
 
+// The server sends at most this many orders per page (GET /api/orders/myorders).
+const ORDERS_SERVER_PAGE = 50;
+const orderKey = (o: any) => String(o?._id || o?.id || '');
+// Order search, on the phone too (a server without ?q= support still gets a working search box).
+const orderMatches = (o: any, q: string): boolean => {
+  if (!q) return true;
+  const hay = [o?.restaurantName, o?.restaurant?.name, o?.category === 'Mega Basket' ? 'shopping list' : '']
+    .concat(parseItems(o?.items).map((i: any) => i?.name))
+    .filter(Boolean).join(' ').toLowerCase();
+  return q.split(' ').every((w) => hay.includes(w));
+};
+
 const parseItems = (raw: any): any[] => {
   if (Array.isArray(raw)) return raw;
   if (typeof raw === 'string') {
@@ -128,11 +143,19 @@ const formatWhen = (iso?: string) => formatISTDateTime(iso);
 const amountCharged = (o: any) => Number(o.finalPrice ?? o.priceBreakdown?.finalPrice ?? o.totalPrice ?? 0) || 0;
 
 export default function OrdersScreen() {
+  // Real status-bar inset, never less than the old fixed padding (utils/useTopInset)
+  const topPad = useTopInset();
   const router = useRouter();
   const { isDark, colors } = useTheme();
   const { user, refreshUser } = useAuth();
   const { addToCart } = useCartActions();
   const [orders, setOrders] = useState<any[]>([]);
+  // Paging past the newest 50 (?before=) and search (?q=); both degrade to the loaded list.
+  const [hasMoreOrders, setHasMoreOrders] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [orderSearch, setOrderSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<any[] | null>(null);
+  const [searching, setSearching] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -273,7 +296,16 @@ export default function OrdersScreen() {
       if (!res.ok) throw new Error(`Server returned status ${res.status}`);
       const data = await res.json();
       if (!mountedRef.current) return;
-      setOrders(Array.isArray(data) ? data : []);
+      const fresh: any[] = Array.isArray(data) ? data : [];
+      // A refresh brings the newest page; older pages the user already loaded stay below it.
+      setOrders((prev) => {
+        if (!prev.length || fresh.length < ORDERS_SERVER_PAGE) return fresh;
+        const ids = new Set(fresh.map(orderKey));
+        const oldest = new Date(fresh[fresh.length - 1]?.createdAt || 0).getTime();
+        const older = prev.filter((o) => !ids.has(orderKey(o)) && new Date(o?.createdAt || 0).getTime() < oldest);
+        return [...fresh, ...older];
+      });
+      if (!hasLoadedRef.current) setHasMoreOrders(fresh.length >= ORDERS_SERVER_PAGE);
       setError(null);
       hasLoadedRef.current = true;
     } catch (e: any) {
@@ -284,6 +316,63 @@ export default function OrdersScreen() {
       if (mountedRef.current) setLoading(false);
     }
   }, []);
+
+  // Older orders: the page before the oldest one on screen. A server that ignores ?before= sends the
+  // same newest page again; nothing new is added and the button goes away.
+  const loadOlderOrders = useCallback(async () => {
+    if (loadingOlder) return;
+    const oldest = orders[orders.length - 1]?.createdAt;
+    if (!oldest) { setHasMoreOrders(false); return; }
+    setLoadingOlder(true);
+    try {
+      const res = await apiFetch(`${ENDPOINTS.myOrders}?before=${encodeURIComponent(String(oldest))}&limit=${ORDERS_SERVER_PAGE}`);
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const data = await res.json();
+      if (!mountedRef.current) return;
+      const page: any[] = Array.isArray(data) ? data : [];
+      let added = 0;
+      setOrders((prev) => {
+        const ids = new Set(prev.map(orderKey));
+        const extra = page.filter((o) => !ids.has(orderKey(o)));
+        added = extra.length;
+        return extra.length ? [...prev, ...extra] : prev;
+      });
+      setHasMoreOrders(page.length >= ORDERS_SERVER_PAGE && added > 0);
+      setOrderLimit((n) => n + ORDER_PAGE);
+    } catch {
+      if (mountedRef.current) Alert.alert("Couldn't load older orders", 'Check your connection and try again.');
+    } finally {
+      if (mountedRef.current) setLoadingOlder(false);
+    }
+  }, [orders, loadingOlder]);
+
+  // Search: instant on the loaded orders, then the server's ?q= finds older ones (debounced).
+  const searchQ = orderSearch.trim().toLowerCase().replace(/\s+/g, ' ');
+  useEffect(() => {
+    if (searchQ.length < 2) { setSearchResults(null); setSearching(false); return; }
+    let alive = true;
+    setSearching(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await apiFetch(`${ENDPOINTS.myOrders}?q=${encodeURIComponent(searchQ)}&limit=${ORDERS_SERVER_PAGE}`);
+        const data = res.ok ? await res.json() : null;
+        if (alive && mountedRef.current) setSearchResults(Array.isArray(data) ? data : null);
+      } catch {
+        if (alive && mountedRef.current) setSearchResults(null);
+      } finally {
+        if (alive && mountedRef.current) setSearching(false);
+      }
+    }, 400);
+    return () => { alive = false; clearTimeout(t); };
+  }, [searchQ]);
+  const listOrders: any[] = React.useMemo(() => {
+    if (!searchQ) return orders;
+    const seen = new Set<string>();
+    return [...orders, ...(searchResults || [])]
+      .filter((o) => { const k = orderKey(o); if (!k || seen.has(k)) return false; seen.add(k); return true; })
+      .filter((o) => orderMatches(o, searchQ))
+      .sort((a, b) => new Date(b?.createdAt || 0).getTime() - new Date(a?.createdAt || 0).getTime());
+  }, [orders, searchResults, searchQ]);
 
   const fetchBookings = useCallback(async () => {
     setBookingsLoading(true);
@@ -493,6 +582,8 @@ export default function OrdersScreen() {
 
   const bg = colors.bg;
   const cardBg = colors.card;
+  // Light mode: cards get a soft lift so they separate from the page (dark: none)
+  const lift = surfaceLift(isDark);
   const txt = colors.text;
   const txtSec = colors.textSecondary;
   const border = colors.border;
@@ -500,14 +591,14 @@ export default function OrdersScreen() {
 
   if (!user) {
     return (
-      <View style={[st.container, { backgroundColor: bg, justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+      <View style={[st.container, { paddingTop: topPad, backgroundColor: bg, justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
         <AmbientBackground />
         <Ionicons name="lock-closed-outline" size={48} color={txtSec} style={{ marginBottom: 16 }} />
-        <Text style={{ fontSize: 18, fontWeight: '900', color: txt, letterSpacing: 0.2, textAlign: 'center', marginBottom: 8 }}>
+        <Text style={{ fontSize: 18, fontWeight: '700', color: txt, letterSpacing: 0.2, textAlign: 'center', marginBottom: 8 }}>
           Sign in to see your orders
         </Text>
         <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', textAlign: 'center', marginBottom: 24, lineHeight: 18 }}>
-          Track deliveries and get your Delivery OTP.
+          Track deliveries and get your Delivery PIN.
         </Text>
         <TouchableOpacity 
           style={{ 
@@ -519,7 +610,7 @@ export default function OrdersScreen() {
           }} 
           onPress={() => router.push('/login' as any)}
         >
-          <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '900', letterSpacing: 0.3 }}>Sign in or sign up</Text>
+          <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '700', letterSpacing: 0.3 }}>Sign in or sign up</Text>
         </TouchableOpacity>
       </View>
     );
@@ -547,7 +638,7 @@ export default function OrdersScreen() {
     }
     if (bookingsError && bookings.length === 0) {
       return (
-        <View style={[st.emptyBox, { backgroundColor: cardBg, borderColor: border }]}>
+        <View style={[st.emptyBox, { backgroundColor: cardBg, borderColor: border }, lift]}>
           <Ionicons name="cloud-offline-outline" size={44} color={txtSec} style={{ marginBottom: 12 }} />
           <Text style={[st.emptyTitle, { color: txt }]}>Couldn't load your bookings</Text>
           <Text style={[st.emptyDesc, { color: txtSec }]}>{bookingsError}</Text>
@@ -559,7 +650,7 @@ export default function OrdersScreen() {
     }
     if (bookings.length === 0) {
       return (
-        <View style={[st.emptyBox, { backgroundColor: cardBg, borderColor: border }]}>
+        <View style={[st.emptyBox, { backgroundColor: cardBg, borderColor: border }, lift]}>
           <Ionicons name="construct-outline" size={44} color={txtSec} style={{ marginBottom: 12 }} />
           <Text style={[st.emptyTitle, { color: txt }]}>No service bookings yet</Text>
           <Text style={[st.emptyDesc, { color: txtSec }]}>
@@ -586,11 +677,11 @@ export default function OrdersScreen() {
       const color = b.status === 'COMPLETED' ? COLORS.emerald : b.status === 'CANCELLED' ? '#EF4444' : goldColor;
       return (
         <StaggeredSection key={bid} delay={idx * 60} direction="up">
-          <ScalePressable style={[st.card, { backgroundColor: cardBg, borderColor: border }]} onPress={() => toggleBooking(bid)}>
+          <ScalePressable style={[st.card, { backgroundColor: cardBg, borderColor: border }, lift]} onPress={() => toggleBooking(bid)}>
             <View style={st.cardHeader}>
               <View style={{ flex: 1, marginRight: 8 }}>
                 <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700', letterSpacing: 0.3 }}>
-                  <Text style={{ color: goldColor, fontWeight: '800' }}>Booking #{shortRef(bid)}</Text>
+                  <Text style={{ color: goldColor, fontWeight: '600' }}>Booking #{shortRef(bid)}</Text>
                 </Text>
                 <Text style={[st.restaurantName, { color: txt }]} numberOfLines={2}>{b.title || 'Service booking'}</Text>
                 <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>
@@ -618,6 +709,14 @@ export default function OrdersScreen() {
                 {callerLine(detail)}
               </Text>
             )}
+            <TouchableOpacity
+              style={{ marginTop: 8, alignSelf: 'flex-start', minHeight: 32, justifyContent: 'center' }}
+              onPress={() => router.push(`/service-booking/${bid}` as any)}
+              accessibilityRole="button"
+              accessibilityLabel={`Track booking ${shortRef(bid)}`}
+            >
+              <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? goldColor : COLORS.red }}>Track booking ›</Text>
+            </TouchableOpacity>
 
             {isExpanded && (
               <View style={[st.details, { borderTopColor: border }]}>
@@ -633,7 +732,7 @@ export default function OrdersScreen() {
                   <View key={`h-${i}`} style={{ flexDirection: 'row', gap: 8, paddingVertical: 4 }}>
                     <Text style={{ fontSize: 12, color: i === history.length - 1 ? goldColor : txtSec }}>●</Text>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 12, color: txt, fontWeight: '800' }}>{serviceStatusLabel(h.stage)}</Text>
+                      <Text style={{ fontSize: 12, color: txt, fontWeight: '600' }}>{serviceStatusLabel(h.stage)}</Text>
                       {h.note ? <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>{h.note}</Text> : null}
                       <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>{formatWhen(h.timestamp)}</Text>
                     </View>
@@ -656,12 +755,12 @@ export default function OrdersScreen() {
                     onPress={() => cancelBooking(b)}
                   >
                     {busy ? <ActivityIndicator size="small" color="#EF4444" /> : (
-                      <Text style={{ fontSize: 12, fontWeight: '900', color: '#EF4444', letterSpacing: 0.3 }}>Cancel booking</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#EF4444', letterSpacing: 0.3 }}>Cancel booking</Text>
                     )}
                   </TouchableOpacity>
                 )}
-                <TouchableOpacity style={{ marginTop: 10, alignSelf: 'flex-start' }} onPress={() => router.push('/support' as any)}>
-                  <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? goldColor : COLORS.red }}>Need help with this booking? ›</Text>
+                <TouchableOpacity style={{ marginTop: 10, alignSelf: 'flex-start' }} onPress={() => router.push({ pathname: '/support', params: { bookingId: bid } } as any)}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: isDark ? goldColor : COLORS.red }}>Need help with this booking? ›</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -672,7 +771,7 @@ export default function OrdersScreen() {
   };
 
   return (
-    <View style={[st.container, { backgroundColor: bg }]}>
+    <View style={[st.container, { paddingTop: topPad, backgroundColor: bg }]}>
       <AmbientBackground />
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -682,7 +781,10 @@ export default function OrdersScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={goldColor} colors={[COLORS.red, COLORS.gold]} />
         }
       >
-        <Text style={[st.pageTitle, { color: txt }]}>Your orders</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
+          <TabBackButton />
+          <Text style={[st.pageTitle, { color: txt, paddingHorizontal: 0, marginBottom: 0 }]}>Your orders</Text>
+        </View>
 
         <View style={st.filterRow}>
           {['ALL', 'ACTIVE', 'PAST', 'SERVICES'].map((f) => {
@@ -693,13 +795,14 @@ export default function OrdersScreen() {
                 style={[
                   st.filterBtn,
                   { 
-                    backgroundColor: isActive ? (isDark ? goldColor : COLORS.red) : (isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6'),
+                    backgroundColor: isActive ? (isDark ? goldColor : COLORS.red) : (isDark ? 'rgba(255,255,255,0.05)' : cardBg),
                     borderColor: isActive ? 'transparent' : border
-                  }
+                  },
+                  !isActive && surfaceLift(isDark, true),
                 ]}
                 onPress={() => setFilter(f as any)}
               >
-                <Text style={[
+                <Text maxFontSizeMultiplier={1.3} style={[
                   st.filterBtnText, 
                   { color: isActive ? (isDark ? '#000' : '#FFF') : txtSec }
                 ]}>
@@ -709,6 +812,27 @@ export default function OrdersScreen() {
             );
           })}
         </View>
+
+        {filter !== 'SERVICES' && orders.length > 0 && (
+          <View style={[st.orderSearch, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : cardBg, borderColor: border }, lift]}>
+            <Ionicons name="search-outline" size={16} color={txtSec} />
+            <TextInput
+              value={orderSearch}
+              onChangeText={setOrderSearch}
+              placeholder="Search by store or dish"
+              placeholderTextColor={txtSec}
+              style={[st.orderSearchInput, { color: txt }]}
+              returnKeyType="search"
+              autoCorrect={false}
+              accessibilityLabel="Search your orders"
+            />
+            {searching ? <ActivityIndicator size="small" color={txtSec} /> : !!orderSearch && (
+              <TouchableOpacity onPress={() => setOrderSearch('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityLabel="Clear search">
+                <Ionicons name="close-circle" size={17} color={txtSec} />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {filter === 'SERVICES' ? renderServices() : null}
 
@@ -731,7 +855,7 @@ export default function OrdersScreen() {
             <ShimmerCard />
           </View>
         ) : error && orders.length === 0 ? (
-          <View style={[st.emptyBox, { backgroundColor: cardBg, borderColor: border }]}>
+          <View style={[st.emptyBox, { backgroundColor: cardBg, borderColor: border }, lift]}>
             <Ionicons name="cloud-offline-outline" size={44} color={txtSec} style={{ marginBottom: 12 }} />
             <Text style={[st.emptyTitle, { color: txt }]}>Couldn't load your orders</Text>
             <Text style={[st.emptyDesc, { color: txtSec }]}>
@@ -746,7 +870,7 @@ export default function OrdersScreen() {
             </TouchableOpacity>
           </View>
         ) : orders.length === 0 ? (
-          <View style={[st.emptyBox, { backgroundColor: cardBg, borderColor: border }]}>
+          <View style={[st.emptyBox, { backgroundColor: cardBg, borderColor: border }, lift]}>
             <FloatingPulse>
               <Ionicons name="receipt-outline" size={50} color={txtSec} style={{ marginBottom: 16 }} />
             </FloatingPulse>
@@ -762,34 +886,36 @@ export default function OrdersScreen() {
               <Text style={st.browseBtnText}>Browse restaurants</Text>
             </TouchableOpacity>
           </View>
-        ) : !loading && orders.filter(o => {
+        ) : !loading && listOrders.filter(o => {
           if (filter === 'ACTIVE') return o.status !== 'Delivered' && o.status !== 'Cancelled';
           if (filter === 'PAST') return o.status === 'Delivered' || o.status === 'Cancelled';
           return true;
         }).length === 0 ? (
-          <View style={[st.emptyBox, { backgroundColor: cardBg, borderColor: border }]}>
+          <View style={[st.emptyBox, { backgroundColor: cardBg, borderColor: border }, lift]}>
             <Ionicons name={filter === 'ACTIVE' ? 'bicycle-outline' : 'document-text-outline'} size={44} color={txtSec} style={{ marginBottom: 12 }} />
             <Text style={[st.emptyTitle, { color: txt }]}>
-              {filter === 'ACTIVE' ? 'No active orders' : 'No past orders'}
+              {searchQ ? 'No matching orders' : filter === 'ACTIVE' ? 'No active orders' : 'No past orders'}
             </Text>
             <Text style={[st.emptyDesc, { color: txtSec }]}>
-              {filter === 'ACTIVE' 
+              {searchQ
+                ? `No ${filter === 'ACTIVE' ? 'active ' : filter === 'PAST' ? 'past ' : ''}orders match "${orderSearch.trim()}".`
+                : filter === 'ACTIVE'
                 ? 'You have no orders on the way right now.'
                 : 'Delivered and cancelled orders will show up here.'}
             </Text>
             <TouchableOpacity 
               style={[st.browseBtn, { backgroundColor: COLORS.red }]}
               activeOpacity={0.85}
-              onPress={() => filter === 'ACTIVE' ? router.push('/(tabs)' as any) : setFilter('ALL')}
+              onPress={() => searchQ ? setOrderSearch('') : filter === 'ACTIVE' ? router.push('/(tabs)' as any) : setFilter('ALL')}
             >
               <Text style={st.browseBtnText}>
-                {filter === 'ACTIVE' ? 'Browse restaurants' : 'See all orders'}
+                {searchQ ? 'Clear search' : filter === 'ACTIVE' ? 'Browse restaurants' : 'See all orders'}
               </Text>
             </TouchableOpacity>
           </View>
         ) : null}
 
-        {filter !== 'SERVICES' && !loading && orders.filter(o => {
+        {filter !== 'SERVICES' && !loading && listOrders.filter(o => {
           if (filter === 'ACTIVE') return o.status !== 'Delivered' && o.status !== 'Cancelled';
           if (filter === 'PAST') return o.status === 'Delivered' || o.status === 'Cancelled';
           return true;
@@ -814,21 +940,21 @@ export default function OrdersScreen() {
             ? breakdown.discounts.filter((d: any) => Number(d?.amount) > 0)
             : [
                 ...(Number(o.batchDiscount) > 0 ? [{ label: 'Shared delivery discount', amount: Number(o.batchDiscount) }] : []),
-                ...(Number(o.gateDiscount) > 0 ? [{ label: 'Perk discount', amount: Number(o.gateDiscount) }] : []),
+                ...(Number(o.gateDiscount) > 0 ? [{ label: 'Member discount', amount: Number(o.gateDiscount) }] : []),
               ];
           const paymentLabel = o.paymentMethod === 'Wallet' ? 'Paid from Zenvy Wallet' : o.paymentMethod === 'COD' ? 'Cash on Delivery' : null;
 
           return (
             <StaggeredSection key={o._id || o.id} delay={idx * 80} direction="up">
               <ScalePressable 
-                style={[st.card, { backgroundColor: cardBg, borderColor: border }]} 
+                style={[st.card, { backgroundColor: cardBg, borderColor: border }, lift]} 
                 onPress={() => toggleExpand(o._id || o.id)}
               >
               <View style={st.cardHeader}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700', letterSpacing: 0.3 }}>
                     {o.status === 'Cancelled' ? '✕' : o.status === 'Delivered' ? '✓' : '◉'}{' '}
-                    <Text style={{ color: goldColor, fontWeight: '800' }}>Order #{id}</Text>
+                    <Text style={{ color: goldColor, fontWeight: '600' }}>Order #{id}</Text>
                   </Text>
                   <Text style={[st.restaurantName, { color: txt }]} numberOfLines={1}>{restaurantName}</Text>
                   <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>{[plural(orderItems.length, 'item'), formatISTDate(o.createdAt)].filter(Boolean).join(' · ')}</Text>
@@ -862,10 +988,10 @@ export default function OrdersScreen() {
                     router.push(`/tracking/${o._id || o.id}` as any);
                   }}
                 >
-                  <Text style={{ fontSize: 12, fontWeight: '900', color: isDark ? goldColor : COLORS.red, letterSpacing: 0.2 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: isDark ? goldColor : COLORS.red, letterSpacing: 0.2 }}>
                     {statusLabel(o.status)} · Track order
                   </Text>
-                  <Text style={{ fontSize: 13, fontWeight: '900', color: isDark ? goldColor : COLORS.red }}>›</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? goldColor : COLORS.red }}>›</Text>
                 </TouchableOpacity>
               )}
 
@@ -887,8 +1013,8 @@ export default function OrdersScreen() {
                     router.push(`/tracking/${o._id || o.id}` as any);
                   }}
                 >
-                  <Text style={{ fontSize: 12, fontWeight: '900', color: goldColor, letterSpacing: 0.2 }}>Rate this order</Text>
-                  <Text style={{ fontSize: 13, fontWeight: '900', color: goldColor }}>›</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: goldColor, letterSpacing: 0.2 }}>Rate this order</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: goldColor }}>›</Text>
                 </TouchableOpacity>
               )}
 
@@ -896,10 +1022,10 @@ export default function OrdersScreen() {
                 <View style={[st.details, { borderTopColor: border }]}>
                   {showPin && (
                     <View style={[st.otpSection, { borderColor: isDark ? 'rgba(212,175,122,0.3)' : 'rgba(201,151,46,0.3)', backgroundColor: isDark ? 'rgba(212,175,122,0.08)' : 'rgba(201,151,46,0.08)' }]}>
-                      <Text style={{ fontSize: 12, fontWeight: '900', color: goldColor, letterSpacing: 0.3, marginBottom: 4 }}>Delivery OTP</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: goldColor, letterSpacing: 0.3, marginBottom: 4 }}>Delivery PIN</Text>
                       <View style={st.otpBox}>
                         <Text style={[st.otpText, { color: goldColor }]}>{o.deliveryPin}</Text>
-                        <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700', lineHeight: 14 }}>Share this OTP with your{'\n'}rider at handover only</Text>
+                        <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700', lineHeight: 14 }}>Share this PIN with your{'\n'}rider at handover only</Text>
                       </View>
                     </View>
                   )}
@@ -912,7 +1038,7 @@ export default function OrdersScreen() {
                     return (
                       <View key={i} style={st.itemRow}>
                         <Text style={{ fontSize: 12, color: txt, fontWeight: '600', flex: 1, marginRight: 8 }} numberOfLines={2}>{qty} × {item.name}</Text>
-                        <Text style={{ fontSize: 12, color: txt, fontWeight: '800' }}>{formatINR(line)}</Text>
+                        <Text style={{ fontSize: 12, color: txt, fontWeight: '600' }}>{formatINR(line)}</Text>
                       </View>
                     );
                   })}
@@ -929,13 +1055,13 @@ export default function OrdersScreen() {
                     )}
                     {discounts.map((d: any, i: number) => (
                       <View key={`d-${i}`} style={st.itemRow}>
-                        <Text style={{ fontSize: 12, color: COLORS.emerald, fontWeight: '600', flex: 1, marginRight: 8 }} numberOfLines={1}>{d.label || 'Discount'}</Text>
+                        <Text style={{ fontSize: 12, color: COLORS.emerald, fontWeight: '600', flex: 1, marginRight: 8 }} numberOfLines={1}>{plainDiscountLabel(d.label)}</Text>
                         <Text style={{ fontSize: 12, color: COLORS.emerald, fontWeight: '700' }}>{formatINR(-Math.abs(Number(d.amount)))}</Text>
                       </View>
                     ))}
                     <View style={st.itemRow}>
-                      <Text style={{ fontSize: 12, color: txt, fontWeight: '900' }}>{o.status === 'Cancelled' ? 'Order total' : 'Total'}</Text>
-                      <Text style={{ fontSize: 12, color: txt, fontWeight: '900' }}>{formatINR(charged)}</Text>
+                      <Text style={{ fontSize: 12, color: txt, fontWeight: '700' }}>{o.status === 'Cancelled' ? 'Order total' : 'Total'}</Text>
+                      <Text style={{ fontSize: 12, color: txt, fontWeight: '700' }}>{formatINR(charged)}</Text>
                     </View>
                     {paymentLabel && (
                       <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', marginTop: 2 }}>
@@ -949,14 +1075,14 @@ export default function OrdersScreen() {
                     style={{ marginTop: 10, alignSelf: 'flex-start' }}
                     onPress={() => router.push({ pathname: '/support', params: { orderId: String(o._id || o.id) } } as any)}
                   >
-                    <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? goldColor : COLORS.red }}>Need help with this order? ›</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: isDark ? goldColor : COLORS.red }}>Need help with this order? ›</Text>
                   </TouchableOpacity>
                   {needsRating && (
                     <TouchableOpacity
                       style={{ marginTop: 8, alignSelf: 'flex-start' }}
                       onPress={() => router.push(`/tracking/${o._id || o.id}` as any)}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: '800', color: goldColor }}>Rate this order ›</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: goldColor }}>Rate this order ›</Text>
                     </TouchableOpacity>
                   )}
                   {o.status !== 'Delivered' && o.status !== 'Cancelled' ? (
@@ -992,6 +1118,22 @@ export default function OrdersScreen() {
             </StaggeredSection>
           );
         })}
+        {filter !== 'SERVICES' && !loading && !searchQ && hasMoreOrders && orderLimit >= listOrders.filter(o => {
+          if (filter === 'ACTIVE') return o.status !== 'Delivered' && o.status !== 'Cancelled';
+          if (filter === 'PAST') return o.status === 'Delivered' || o.status === 'Cancelled';
+          return true;
+        }).length && (
+          <TouchableOpacity
+            style={[st.olderBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : cardBg, borderColor: border }, lift]}
+            onPress={loadOlderOrders}
+            disabled={loadingOlder}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Load older orders"
+          >
+            {loadingOlder ? <ActivityIndicator size="small" color={goldColor} /> : <Text style={[st.olderBtnText, { color: goldColor }]}>Load older orders</Text>}
+          </TouchableOpacity>
+        )}
         <View style={{ height: 100 }} />
       </ScrollView>
     </View>
@@ -1000,30 +1142,34 @@ export default function OrdersScreen() {
 
 const st = StyleSheet.create({
   quotePill: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1 },
-  quotePillText: { flex: 1, fontSize: 13, fontWeight: '800' },
+  quotePillText: { flex: 1, fontSize: 13, fontWeight: '600' },
   callLine: { fontSize: 12, fontWeight: '600', marginTop: 8, lineHeight: 17 },
   container: { flex: 1, paddingTop: Platform.OS === 'android' ? 40 : 50, width: '100%', maxWidth: 600, alignSelf: 'center' },
-  pageTitle: { fontSize: 24, fontWeight: '900', letterSpacing: 0.3, paddingHorizontal: 16, marginBottom: 16 },
+  pageTitle: { fontSize: 24, fontWeight: '700', letterSpacing: 0.3, paddingHorizontal: 16, marginBottom: 16 },
   empty: { padding: 40, alignItems: 'center' },
   emptyText: { fontSize: 12, fontWeight: '600' },
   emptyBox: { marginHorizontal: 16, marginTop: 20, padding: 32, borderRadius: 24, alignItems: 'center', borderWidth: 1, ...SHADOWS.card },
-  emptyTitle: { fontSize: 18, fontWeight: '800', marginBottom: 8, textAlign: 'center' },
+  emptyTitle: { fontSize: 18, fontWeight: '600', marginBottom: 8, textAlign: 'center' },
   emptyDesc: { fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 24, paddingHorizontal: 12 },
   browseBtn: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 16, ...SHADOWS.redGlow },
-  browseBtnText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900', letterSpacing: 0.3 },
+  browseBtnText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, marginBottom: 20, gap: 8 },
   filterBtn: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, borderWidth: 1 },
-  filterBtnText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
+  filterBtnText: { fontSize: 12, fontWeight: '600', letterSpacing: 0.2 },
+  orderSearch: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginTop: -8, marginBottom: 16, paddingHorizontal: 14, height: 42, borderRadius: 14, borderWidth: 1 },
+  orderSearchInput: { flex: 1, fontSize: 13, fontWeight: '600', paddingVertical: 0 },
+  olderBtn: { alignSelf: 'center', marginTop: 4, marginBottom: 8, paddingHorizontal: 20, paddingVertical: 10, minWidth: 160, alignItems: 'center', borderRadius: 14, borderWidth: 1 },
+  olderBtnText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
   card: { marginHorizontal: 16, marginBottom: 12, borderRadius: 20, padding: 16, borderWidth: 1, ...SHADOWS.card },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-  restaurantName: { fontSize: 15, fontWeight: '900', marginVertical: 3, letterSpacing: -0.2 },
-  statusBadge: { fontSize: 12, fontWeight: '900', letterSpacing: 0.2 },
-  price: { fontSize: 16, fontWeight: '900', marginTop: 4 },
+  restaurantName: { fontSize: 15, fontWeight: '700', marginVertical: 3, letterSpacing: -0.2 },
+  statusBadge: { fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
+  price: { fontSize: 16, fontWeight: '700', marginTop: 4 },
   details: { marginTop: 12, paddingTop: 12, borderTopWidth: 1 },
   otpSection: { marginBottom: 12, padding: 12, borderRadius: 12, borderWidth: 1 },
   otpBox: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  otpText: { fontSize: 28, fontWeight: '900', color: '#D4AF7A', fontVariant: ['tabular-nums'], letterSpacing: 6 },
+  otpText: { fontSize: 28, fontWeight: '700', color: '#D4AF7A', fontVariant: ['tabular-nums'], letterSpacing: 6 },
   itemRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
   trackBtnGradient: { paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
-  trackBtnText: { fontSize: 13, fontWeight: '900', color: '#000', letterSpacing: 0.3 },
+  trackBtnText: { fontSize: 13, fontWeight: '700', color: '#000', letterSpacing: 0.3 },
 });

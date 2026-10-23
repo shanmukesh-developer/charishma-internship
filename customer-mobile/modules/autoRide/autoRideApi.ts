@@ -61,12 +61,20 @@ export interface TripStatusBlock {
   originalDepartureAt: string | null;
   delayMinutes: number;
   version: number;
+  /** ZCS Auto union queue: ON_CHARGE autos line up at a stand; only the front one (onCharge) takes bookings. */
+  dispatchMode?: 'SCHEDULED' | 'ON_CHARGE';
+  queueState?: 'WAITING' | 'ON_CHARGE' | 'DONE' | null;
+  onCharge?: boolean;
+  /** No departure time: the auto leaves when full or when the driver departs (departureAt is null then). */
+  leavesWhenFull?: boolean;
+  walkInSeats?: number;
+  appSeats?: number;
 }
 
 /** serialize.tripCustomer() */
 export interface Trip extends TripStatusBlock {
   id: string;
-  driver: { name: string; verified: boolean; photo: string | null; rating: { avg: number; count: number } | null } | null;
+  driver: { name: string; firstName?: string; verified: boolean; photo: string | null; rating: { avg: number; count: number } | null } | null;
   vehicle: { registration: string | null; registrationMasked: boolean; make: string | null; model: string | null; colour: string | null; fuel: string | null } | null;
   route: RouteBrief | null;
   pickup: PickupBrief | null;
@@ -159,6 +167,22 @@ export interface RouteFull extends RouteBrief {
   pickupPoints: (PickupBrief & { routeId: string; sequence: number; isActive: boolean })[];
 }
 
+/** One auto in a stand's line on the board (position 1 = on charge); every one of them takes bookings. */
+export type ChargeAuto = Trip & { position: number; seatMap: Pick<SeatMap, 'layout' | 'seats' | 'legend'> };
+/** GET /on-charge: one stand (pickup point + destination) with the auto on charge and the autos waiting behind. */
+export interface ChargeLine {
+  key: string;
+  route: RouteBrief | null;
+  pickup: PickupBrief | null;
+  destination: string | null;
+  seatFare: number | null;
+  onCharge: ChargeAuto | null;
+  waitingCount: number;
+  waiting: { position: number; lineSeq: number | null }[];
+  /** The waiting autos in line order (#2, #3 ...), each bookable. */
+  waitingAutos?: ChargeAuto[];
+}
+
 export interface QueueEntry extends Trip { periodKey: string | null; checkInAt: string | null }
 
 export const INCIDENT_CATEGORIES = [
@@ -232,6 +256,9 @@ export const autoRideApi = {
   pickupPoints: (routeId?: string | null) => call<{ pickupPoints: (PickupBrief & { route: RouteBrief | null })[]; note: string }>(`${AR}/pickup-points${qs({ routeId })}`),
   queue: (pickupPointId: string, date?: string | null) =>
     call<{ pickupPoint: PickupBrief; date: string; queue: QueueEntry[]; note: string }>(`${AR}/pickup-points/${enc(pickupPointId)}/queue${qs({ date })}`),
+  /** ZCS Auto union queue board: per stand the auto on charge (live seats + seat map) and how many wait behind. */
+  onCharge: (f: { routeId?: string | null; pickupPointId?: string | null } = {}) =>
+    call<{ lines: ChargeLine[]; maxSeatsPerBooking: number; serverTime: string; note: string }>(`${AR}/on-charge${qs(f)}`),
   browse: (f: BrowseFilter = {}) => call<{ trips: Trip[]; serverTime: string }>(`${AR}/trips${qs(f as any)}`),
   trip: (id: string) => call<{ trip: Trip; serverTime: string }>(`${AR}/trips/${enc(id)}`),
   seats: (id: string) => call<SeatMap>(`${AR}/trips/${enc(id)}/seats`),
@@ -282,7 +309,8 @@ export const istDayLabel = (date: string) => {
 };
 /** 'Today · 5:30 PM' / 'Tue 21 Oct · 9:00 AM' (IST). */
 export const fmtDeparture = (iso?: string | null) => {
-  if (!iso) return 'Time not set';
+  // Only an auto on charge has no departure time (scheduled trips always have one).
+  if (!iso) return 'Leaves when full';
   const d = ist(iso);
   if (Number.isNaN(d.getTime())) return '';
   return `${istDayLabel(d.toISOString().slice(0, 10))} · ${fmtClock(iso)}`;
@@ -380,6 +408,9 @@ export const errorCopy = (e: any): { title: string; message: string } => {
     case 'HOLD_EXPIRED': return { title: 'Hold expired', message: msg };
     case 'TRIP_PRIVATE': return { title: 'Booked as a full auto', message: msg };
     case 'TRIP_FULL': return { title: 'This auto is full', message: msg };
+    case 'AUTO_JUST_FILLED': return { title: 'This auto just filled', message: msg };
+    case 'AUTO_OFF_CHARGE': return { title: 'No longer taking bookings', message: msg };
+    case 'WAITING_IN_LINE': return { title: 'Waiting in line', message: msg };
     case 'NOT_ENOUGH_SEATS': return { title: 'Not enough seats', message: msg };
     case 'BOOKING_CLOSED': return { title: 'Booking closed', message: msg };
     case 'ALREADY_BOOKED': return { title: 'Already booked', message: msg };

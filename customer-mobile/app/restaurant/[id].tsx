@@ -9,11 +9,12 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  TextInput,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, SHADOWS } from '../../constants/theme';
+import { COLORS, SHADOWS, surfaceLift } from '../../constants/theme';
 import { API_URL } from '../../constants/api';
 import { apiFetch } from '../../utils/auth';
 import NightClosureBanner from '../../components/NightClosureBanner';
@@ -32,6 +33,10 @@ import { useLiveSync, affectsStore } from '../../utils/useLiveSync';
 import { peekCache, readCache, writeCache, peekCachedRestaurant } from '../../utils/swrCache';
 import { Ionicons } from '@expo/vector-icons';
 import { formatINR, plural } from '../../utils/format';
+import { storeEtaText } from '../../utils/storeEta';
+import { isNewStore } from '../../utils/storeBadge';
+import { getLocalFavorites, toggleFavoriteStore, isFavoriteIn } from '../../utils/favorites';
+import { useTopInset } from '../../utils/useTopInset';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Booking-only service stores (backend utils/vendorTypes.js) and the shelf that books them.
@@ -159,6 +164,8 @@ const RestaurantFloatingCart = React.memo(function RestaurantFloatingCart({ tint
 });
 
 export default function RestaurantDetail() {
+  // Real status-bar inset, never less than the old fixed padding (utils/useTopInset)
+  const topPad = useTopInset();
   const params = useLocalSearchParams<{ id: string | string[] }>();
   const id = String((Array.isArray(params.id) ? params.id[0] : params.id) || '').trim();
   const router = useRouter();
@@ -175,6 +182,23 @@ export default function RestaurantDetail() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<{ notFound: boolean; message: string } | null>(null);
   const [activeCategory, setActiveCategory] = useState('All');
+  // In-store search: filters the loaded menu by dish name, category or tag (all categories at once)
+  const [menuSearch, setMenuSearch] = useState('');
+  // Long menus (a mart can list hundreds of items) mount 20 at a time; more mount as the user nears
+  // the end of the list. A category or search change starts again at 20.
+  const MENU_PAGE = 20;
+  const [menuLimit, setMenuLimit] = useState(MENU_PAGE);
+  useEffect(() => { setMenuLimit(MENU_PAGE); }, [activeCategory, menuSearch, id]);
+  const growingMenu = useRef(false);
+  const onMenuScroll = useCallback((e: any) => {
+    const ne = e?.nativeEvent || {};
+    const nearEnd = (ne.contentOffset?.y || 0) + (ne.layoutMeasurement?.height || 0) > (ne.contentSize?.height || 0) - 900;
+    if (nearEnd && !growingMenu.current) {
+      growingMenu.current = true;
+      setMenuLimit((n) => n + MENU_PAGE);
+      setTimeout(() => { growingMenu.current = false; }, 250);
+    }
+  }, []);
   const [isFavorite, setIsFavorite] = useState(false);
   const [addedId, setAddedId] = useState<string | null>(null);
   const [customizingItem, setCustomizingItem] = useState<any>(null);
@@ -267,9 +291,8 @@ export default function RestaurantDetail() {
     let cancelled = false;
     (async () => {
       try {
-        const favsStr = await AsyncStorage.getItem('zenvy_favorites');
-        const favs = favsStr ? JSON.parse(favsStr) : [];
-        if (!cancelled) setIsFavorite(Array.isArray(favs) ? favs.includes(id) : false);
+        const favs = await getLocalFavorites();
+        if (!cancelled) setIsFavorite(isFavoriteIn(favs, id));
       } catch {}
     })();
     return () => { cancelled = true; };
@@ -307,7 +330,7 @@ export default function RestaurantDetail() {
   if (!restaurant) {
     const notFound = !!loadError?.notFound;
     return (
-      <View style={[st.container, { backgroundColor: isDark ? '#08090C' : COLORS.bgLight, paddingTop: Platform.OS === 'android' ? 40 : 50, paddingHorizontal: 20 }]}>
+      <View style={[st.container, { backgroundColor: isDark ? '#08090C' : COLORS.bgLight, paddingTop: topPad, paddingHorizontal: 20 }]}>
         <TouchableOpacity
           style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB', alignItems: 'center', justifyContent: 'center', marginBottom: 30 }}
           accessibilityRole="button"
@@ -358,7 +381,8 @@ export default function RestaurantDetail() {
   const isFoodStore = isFoodVendorType(restaurant.vendorType);
   const vendorCall = isLocalVendor ? vendorCallNumber(restaurant) : null;
   const stallOffline = isLocalVendor && restaurant.isOffline === true;
-  const deliveryTimeText = isLocalVendor ? null : (restaurant.time || (Number(restaurant.deliveryTime) > 0 ? `${restaurant.deliveryTime} min` : null));
+  // Measured from real deliveries only (utils/storeEta): seed times never show as fact
+  const deliveryTimeText = isLocalVendor ? null : storeEtaText(restaurant);
   const heroImg = restaurant.imageUrl || restaurant.image || null;
   const isOpen = restaurant.isOpen !== false;
   const opensAtText = formatOpensAt(restaurant.opensAt);
@@ -366,20 +390,9 @@ export default function RestaurantDetail() {
 
   async function toggleFavorite() {
     try {
-      const favsStr = await AsyncStorage.getItem('zenvy_favorites');
-      let favs: string[] = [];
-      try {
-        const parsed = favsStr ? JSON.parse(favsStr) : [];
-        favs = Array.isArray(parsed) ? parsed : [];
-      } catch {}
-      if (favs.includes(id)) {
-        favs = favs.filter((f: string) => f !== id);
-        setIsFavorite(false);
-      } else {
-        favs.push(id);
-        setIsFavorite(true);
-      }
-      await AsyncStorage.setItem('zenvy_favorites', JSON.stringify(favs));
+      // Local list + account sync (utils/favorites); Home's hearts update through its listener
+      const favs = await toggleFavoriteStore(id, !!user);
+      setIsFavorite(isFavoriteIn(favs, id));
     } catch {}
   }
 
@@ -440,7 +453,13 @@ export default function RestaurantDetail() {
     if (added) flashAdded(itemId);
   };
 
+  const menuQ = menuSearch.trim().toLowerCase().replace(/\s+/g, ' ');
   const filteredMenu = menu.filter((item: any) => {
+    if (menuQ) {
+      const tags = Array.isArray(item.tags) ? item.tags.join(' ') : '';
+      const hay = `${item.name || ''} ${item.category || ''} ${tags}`.toLowerCase();
+      return menuQ.split(' ').every((w) => hay.includes(w));
+    }
     if (activeCategory === 'All') return true;
     return String(item.category || '').trim().toLowerCase() === activeCategory.toLowerCase();
   });
@@ -460,6 +479,8 @@ export default function RestaurantDetail() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
+        onScroll={onMenuScroll}
+        scrollEventThrottle={200}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadRestaurant('refresh'); }} tintColor={accent} colors={[COLORS.red]} />}
       >
         {/* Hero Banner */}
@@ -503,9 +524,12 @@ export default function RestaurantDetail() {
               <View style={[st.statusBadge, { backgroundColor: isOpen ? '#10B981' : '#6B7280' }]}>
                 <Text style={st.statusBadgeText}>{isOpen ? 'Open now' : 'Closed'}</Text>
               </View>
-              <Text style={{ color: txt, fontSize: 12, fontWeight: '700' }}>
-                {hasRating ? `★ ${ratingNum.toFixed(1)}` : 'New'}
-              </Text>
+              {/* Same rule as Home (utils/storeBadge): a rating, else "New" only for a recently listed store */}
+              {(hasRating || isNewStore(restaurant)) && (
+                <Text style={{ color: txt, fontSize: 12, fontWeight: '700' }}>
+                  {hasRating ? `★ ${ratingNum.toFixed(1)}` : 'New'}
+                </Text>
+              )}
             </View>
           </View>
 
@@ -573,8 +597,30 @@ export default function RestaurantDetail() {
           </View>
         )}
 
-        {/* Category Filter Pills */}
-        {categories.length > 2 && (
+        {/* In-store search (shown once a menu is long enough to need it) */}
+        {menu.length > 6 && (
+          <View style={[st.menuSearch, { backgroundColor: cardBg, borderColor: border }, surfaceLift(isDark)]}>
+            <Ionicons name="search-outline" size={16} color={txtSec} />
+            <TextInput
+              value={menuSearch}
+              onChangeText={setMenuSearch}
+              placeholder={`Search in ${restaurant.name || 'this store'}`}
+              placeholderTextColor={txtSec}
+              style={[st.menuSearchInput, { color: txt }]}
+              returnKeyType="search"
+              autoCorrect={false}
+              accessibilityLabel="Search this menu"
+            />
+            {!!menuSearch && (
+              <TouchableOpacity onPress={() => setMenuSearch('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityLabel="Clear search">
+                <Ionicons name="close-circle" size={17} color={txtSec} />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Category Filter Pills (hidden while searching: the search covers every category) */}
+        {categories.length > 2 && !menuQ && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={st.categoryScroll} contentContainerStyle={{ paddingHorizontal: 16 }}>
             {categories.map(cat => {
               const isActive = activeCategory === cat;
@@ -590,7 +636,7 @@ export default function RestaurantDetail() {
                   sound="tabSwitch"
                   activeScale={0.94}
                 >
-                  <Text style={[st.categoryText, { color: isActive ? '#FFF' : txt }]}>
+                  <Text style={[st.categoryText, { color: isActive ? '#FFF' : txt }]} maxFontSizeMultiplier={1.3}>
                     {String(cat)}
                   </Text>
                 </DopaminePressable>
@@ -603,10 +649,23 @@ export default function RestaurantDetail() {
         <View style={{ padding: 16, paddingBottom: 100 }}>
           <Text style={[st.menuTitle, { color: txt }]}>Menu</Text>
           <Text style={[st.menuSub, { color: txtSec }]}>
-            {plural(filteredMenu.length, 'item')}{hiddenByDiet > 0 ? ` · ${hiddenByDiet} hidden by your food preferences` : ''}
+            {menuQ ? `${plural(filteredMenu.length, 'match', 'matches')} for "${menuSearch.trim()}"` : plural(filteredMenu.length, 'item')}{hiddenByDiet > 0 ? ` · ${hiddenByDiet} hidden by your food preferences` : ''}
           </Text>
 
-          {filteredMenu.length === 0 && (
+          {filteredMenu.length === 0 && menuQ ? (
+            <View style={[st.emptyMenu, { backgroundColor: cardBg, borderColor: border }]}>
+              <Ionicons name="search-outline" size={36} color={txtSec} style={{ marginBottom: 8 }} />
+              <Text style={{ color: txt, fontSize: 14, fontWeight: '800', textAlign: 'center' }}>No matching items</Text>
+              <Text style={{ color: txtSec, fontSize: 12, marginTop: 4, textAlign: 'center', lineHeight: 16 }}>
+                {`Nothing on this menu matches "${menuSearch.trim()}". Try another word.`}
+              </Text>
+              <TouchableOpacity style={[st.emptyMenuBtn, { backgroundColor: brand ? accent : '#EF4F5F' }]} onPress={() => setMenuSearch('')}>
+                <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '900' }}>Clear search</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {filteredMenu.length === 0 && !menuQ && (
             <View style={[st.emptyMenu, { backgroundColor: cardBg, borderColor: border }]}>
               <Ionicons name={hiddenByDiet > 0 ? 'filter-outline' : 'file-tray-outline'} size={36} color={txtSec} style={{ marginBottom: 8 }} />
               <Text style={{ color: txt, fontSize: 14, fontWeight: '800', textAlign: 'center' }}>
@@ -625,7 +684,7 @@ export default function RestaurantDetail() {
             </View>
           )}
 
-          {filteredMenu.map((item: any, i: number) => {
+          {filteredMenu.slice(0, menuLimit).map((item: any, i: number) => {
             const itemImg = item.image || item.imageUrl || null;
             const isVeg = isVegItem(item);
             const itemId = String(item._id || item.id || i);
@@ -693,6 +752,11 @@ export default function RestaurantDetail() {
               </StaggeredSection>
             );
           })}
+          {filteredMenu.length > menuLimit && (
+            <View style={{ alignItems: 'center', paddingVertical: 12 }}>
+              <ActivityIndicator size="small" color={brand ? accent : '#EF4F5F'} />
+            </View>
+          )}
         </View>
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -812,6 +876,8 @@ const st = StyleSheet.create({
 
   // Category Filter Pills
   categoryScroll: { marginVertical: 12 },
+  menuSearch: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginTop: 12, paddingHorizontal: 14, height: 42, borderRadius: 14, borderWidth: 1 },
+  menuSearchInput: { flex: 1, fontSize: 13, fontWeight: '600', paddingVertical: 0 },
   categoryPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8, borderWidth: 1 },
   categoryText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
 

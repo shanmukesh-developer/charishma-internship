@@ -1,33 +1,30 @@
 /**
- * Others > Co-Ride > 🛺 AUTO: Zenvy Auto-Ride (shared autos run by verified Zenvy Auto drivers; NOT the
- * peer-to-peer "Auto" pools of Co-Ride). Four segments: Shared Auto | Book Full Auto | My Auto Bookings |
- * Nearby Pickup Points. Routes and pickup points are the ones the Zenvy admin configured (server); every
- * count, fare and status on a card comes from the server. No device location is used.
+ * Others > Co-Ride > Auto: Zenvy Auto-Ride (shared autos run by verified Zenvy Auto drivers; NOT the
+ * peer-to-peer pools of Co-Ride). Tabs: Shared seat | Full auto | My bookings, plus Pickup points.
+ * Routes and pickup points are the ones the Zenvy admin configured (server); every count, fare and status
+ * on a card comes from the server. No device location is used.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Linking, Alert, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, Text, Linking, Alert, LayoutAnimation, Platform, UIManager, StyleSheet } from 'react-native';
+import { PressScale, FadeInUp } from '../others/motion';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { readCache, writeCache } from '../../utils/swrCache';
 import {
   autoRideApi, type Trip, type RouteFull, type Booking, type PrivateRequest, type PickupBrief, type RouteBrief,
   inr, fmtDeparture, fromNow, istDate, istDayLabel, fmtHHMM, queueLabel, AutoRideError, BOOKING_STATUS_META, PRIVATE_STATUS_META, LIVE_BOOKING,
 } from './autoRideApi';
-import { Ionicons } from '@expo/vector-icons';
-import { usePalette, Card, Btn, Badge, StateView, Notice, Chips, StatusChip, VerifiedBadge, Stepper, useAutoRideLive, useNow, useAutoRideStatus } from './ui';
+import { usePalette, Card, Btn, Badge, StateView, Notice, Chips, Tabs, StatusChip, VerifiedBadge, Stepper, AutoTile, useAutoRideLive, useNow, useAutoRideStatus } from './ui';
+import ChargeBoard from './ChargeBoard';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch { /* new arch: no-op */ }
 }
 const ease = () => { try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch { /* ignore */ } };
 
-type Seg = 'shared' | 'full' | 'bookings' | 'pickups';
-const SEGS: { key: Seg; label: string; icon: string }[] = [
-  { key: 'shared', label: 'Shared auto', icon: 'people-outline' },
-  { key: 'full', label: 'Book full auto', icon: 'lock-closed-outline' },
-  { key: 'bookings', label: 'My auto bookings', icon: 'ticket-outline' },
-  { key: 'pickups', label: 'Pickup points', icon: 'location-outline' },
-];
-const isSeg = (v: any): v is Seg => SEGS.some((x) => x.key === v);
+// 'charge' = the ZCS Auto union queue board (autos on charge at each stand); 'shared' = autos published with a time.
+type Seg = 'charge' | 'shared' | 'full' | 'bookings' | 'pickups';
+const isSeg = (v: any): v is Seg => v === 'charge' || v === 'shared' || v === 'full' || v === 'bookings' || v === 'pickups';
 
 const ROUTES_KEY = 'autoride:routes';
 
@@ -57,28 +54,38 @@ function useRoutes() {
 export default function AutoRideSection() {
   const p = usePalette();
   const params = useLocalSearchParams<{ seg?: string }>();
-  const [seg, setSeg] = useState<Seg>(isSeg(params.seg) ? params.seg : 'shared');
+  const [seg, setSeg] = useState<Seg>(isSeg(params.seg) ? params.seg : 'charge');
   useEffect(() => { if (isSeg(params.seg)) setSeg(params.seg); }, [params.seg]);
   const routesState = useRoutes();
+  // The on-charge board needs a backend that serves it; until then the section opens on Scheduled as before.
+  const [chargeOk, setChargeOk] = useState(true);
+  const chargeGone = useCallback(() => { setChargeOk(false); setSeg((cur) => (cur === 'charge' ? 'shared' : cur)); }, []);
+  const home: Seg = chargeOk ? 'charge' : 'shared';
 
   return (
     <View>
-      {/* The Co-Ride tab (others.tsx) already introduces Zenvy Auto above this: one plain line, no gradient hero. */}
-      <Text style={{ fontSize: 13, lineHeight: 18, color: p.sub, marginBottom: 12 }}>
-        Book a seat, or the whole auto. Zenvy checks every driver and auto.
-      </Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4, paddingRight: 8 }} style={{ marginBottom: 12 }}>
-        {SEGS.map((x) => {
-          const on = seg === x.key;
-          return (
-            <TouchableOpacity key={x.key} onPress={() => { ease(); setSeg(x.key); }} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={x.label}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, backgroundColor: on ? p.text : p.card, borderColor: on ? p.text : p.border, minHeight: 44 }}>
-              <Ionicons name={x.icon as any} size={16} color={on ? p.card : p.sub} />
-              <Text style={{ fontSize: 13, fontWeight: '600', color: on ? p.card : p.text }}>{x.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      <Tabs
+        label="Zenvy Auto"
+        value={seg === 'pickups' ? home : seg}
+        onChange={(v) => { ease(); setSeg(v); }}
+        options={[
+          ...(chargeOk ? [{ key: 'charge' as Seg, label: 'On charge' }] : []),
+          { key: 'shared' as Seg, label: chargeOk ? 'Scheduled' : 'Shared seat' },
+          { key: 'full' as Seg, label: 'Full auto' },
+          { key: 'bookings' as Seg, label: 'My bookings' },
+        ]}
+      />
+      <PressScale onPress={() => { ease(); setSeg(seg === 'pickups' ? home : 'pickups'); }} accessibilityRole="button"
+        accessibilityLabel={seg === 'pickups' ? 'Back to autos' : 'Pickup points and live queues'}
+        style={[st.linkRow, { backgroundColor: p.card }, p.shadow]}>
+        <View style={[st.linkIcon, { backgroundColor: p.accentSoft }]}><Ionicons name={seg === 'pickups' ? 'arrow-back' : 'location-outline'} size={18} color={p.accent} /></View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: p.text }}>{seg === 'pickups' ? 'Back to autos' : 'Pickup points and live queues'}</Text>
+          {seg !== 'pickups' ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 1 }}>Stands set by Zenvy, with the autos waiting at each</Text> : null}
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={p.muted} />
+      </PressScale>
+      {seg === 'charge' && chargeOk ? <ChargeBoard onUnavailable={chargeGone} /> : null}
       {seg === 'shared' ? <TripSearch mode="shared" {...routesState} /> : null}
       {seg === 'full' ? <TripSearch mode="full" {...routesState} /> : null}
       {seg === 'bookings' ? <MyBookings /> : null}
@@ -87,7 +94,7 @@ export default function AutoRideSection() {
   );
 }
 
-// ── Shared Auto / Book Full Auto ────────────────────────────────────────────
+// ── Shared seat / Full auto ─────────────────────────────────────────────────
 const TIME_OPTIONS = (() => {
   const out: string[] = [];
   for (let h = 5; h < 24; h++) for (const m of [0, 30]) out.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
@@ -118,6 +125,7 @@ function TripSearch({ mode, routes, error: routesError, reload: reloadRoutes }: 
     return routeId ? all.filter((x) => x.routeId === routeId) : all;
   }, [routes, routeId]);
   useEffect(() => { if (pickupId && !pickups.some((x) => x.id === pickupId)) setPickupId(''); }, [pickups, pickupId]);
+  const pickup = pickups.find((x) => x.id === pickupId) || null;
 
   const search = useCallback(async () => {
     setLoading(true);
@@ -146,41 +154,54 @@ function TripSearch({ mode, routes, error: routesError, reload: reloadRoutes }: 
     return <StateView kind="empty" icon="🛺" title="Zenvy Auto is not open yet" message={error.message} />;
   }
 
+  const placeRow = (icon: 'radio-button-on' | 'location', label: string, value: string, hint?: string) => (
+    <View style={[st.place, { backgroundColor: p.card2 }]}>
+      <Ionicons name={icon} size={16} color={p.accent} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={{ fontSize: 11, color: p.muted, fontWeight: '700' }}>{label}</Text>
+        <Text style={{ fontSize: 14, color: p.text, fontWeight: '700' }} numberOfLines={1}>{value}</Text>
+        {hint ? <Text style={{ fontSize: 12, color: p.sub }} numberOfLines={1}>{hint}</Text> : null}
+      </View>
+    </View>
+  );
+
   return (
     <View>
       {mode === 'full' ? (
-        <Notice tone="info">🔒 Book the whole auto for your group. You send a request at the driver's full-auto fare; nothing is booked until the driver accepts. Only autos with no seats booked yet can be taken as a full auto.</Notice>
+        <Notice tone="info">Book the whole auto for your group. You send a request at the driver's full-auto fare; nothing is booked until the driver accepts. Only autos with no seats booked yet can be taken as a full auto.</Notice>
       ) : null}
 
       <Card>
-        <TouchableOpacity onPress={() => { ease(); setShowFilters((v) => !v); }} accessibilityRole="button" accessibilityLabel={showFilters ? 'Hide search options' : 'Show search options'}
-          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 32 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 14, fontWeight: '900', color: p.text }}>🔎 Find an auto</Text>
-            <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }} numberOfLines={1}>
-              {(route ? `→ ${route.destination || route.name}` : 'Any route')} · {istDayLabel(date)}{time ? ` · ~${fmtHHMM(time)}` : ''} · {passengers} {passengers === 1 ? 'passenger' : 'passengers'}
-            </Text>
-          </View>
-          <Text style={{ color: p.accent, fontWeight: '900', fontSize: 12 }}>{showFilters ? 'Hide ▲' : 'Edit ▼'}</Text>
-        </TouchableOpacity>
+        <View style={{ gap: 8 }}>
+          {placeRow('radio-button-on', 'Pickup point', pickup ? pickup.name : 'Any pickup point', pickup?.landmark || undefined)}
+          {placeRow('location', 'Drop', route ? (route.destination || route.name) : 'Any route', route?.origin ? `from ${route.origin}` : undefined)}
+        </View>
+        <PressScale onPress={() => { ease(); setShowFilters((v) => !v); }} accessibilityRole="button" accessibilityLabel={showFilters ? 'Hide search options' : 'Show search options'}
+          style={st.summaryRow}>
+          <Ionicons name="calendar-outline" size={16} color={p.sub} />
+          <Text style={{ flex: 1, fontSize: 13, color: p.text, fontWeight: '600' }} numberOfLines={1}>
+            {istDayLabel(date)}{time ? ` · around ${fmtHHMM(time)}` : ' · any time'} · {passengers} {passengers === 1 ? 'passenger' : 'passengers'}
+          </Text>
+          <Text style={{ color: p.accent, fontWeight: '700', fontSize: 13 }}>{showFilters ? 'Hide' : 'Edit'}</Text>
+        </PressScale>
 
         {showFilters ? (
-          <View style={{ marginTop: 12 }}>
-            <Label text="Destination / route" />
-            {routes === null && !routesError ? <Text style={{ color: p.muted, fontSize: 12 }}>Loading routes…</Text> : null}
+          <View>
+            <Label text="Drop / route" />
+            {routes === null && !routesError ? <Text style={{ color: p.muted, fontSize: 13 }}>Loading routes…</Text> : null}
             {routesError && !routes ? (
-              <TouchableOpacity onPress={reloadRoutes} accessibilityRole="button"><Text style={{ color: p.sub, fontSize: 12 }}>⚠️ {routesError.message} <Text style={{ color: p.accent, fontWeight: '900' }}>Retry</Text></Text></TouchableOpacity>
+              <PressScale onPress={reloadRoutes} accessibilityRole="button"><Text style={{ color: p.sub, fontSize: 13 }}>{routesError.message} <Text style={{ color: p.accent, fontWeight: '700' }}>Retry</Text></Text></PressScale>
             ) : null}
-            {routes && routes.length === 0 ? <Text style={{ color: p.muted, fontSize: 12 }}>No routes are set up yet.</Text> : null}
+            {routes && routes.length === 0 ? <Text style={{ color: p.muted, fontSize: 13 }}>No routes are set up yet.</Text> : null}
             {routes && routes.length > 0 ? (
               <Chips wrap={false} value={routeId || 'ALL'} onChange={(v: string) => setRouteId(v === 'ALL' ? '' : v)}
-                options={[{ key: 'ALL', label: 'All routes' }, ...routes.map((r) => ({ key: r.id, label: `→ ${r.destination || r.name}`, hint: r.origin ? `from ${r.origin}` : undefined }))]} />
+                options={[{ key: 'ALL', label: 'All routes' }, ...routes.map((r) => ({ key: r.id, label: r.destination || r.name, hint: r.origin ? `from ${r.origin}` : undefined }))]} />
             ) : null}
 
             <Label text="Pickup point" />
-            {pickups.length === 0 ? <Text style={{ color: p.muted, fontSize: 12 }}>{routes ? 'No pickup points on this route yet.' : '—'}</Text> : (
+            {pickups.length === 0 ? <Text style={{ color: p.muted, fontSize: 13 }}>{routes ? 'No pickup points on this route yet.' : '—'}</Text> : (
               <Chips wrap={false} value={pickupId || 'ALL'} onChange={(v: string) => setPickupId(v === 'ALL' ? '' : v)}
-                options={[{ key: 'ALL', label: 'Any pickup' }, ...pickups.map((x) => ({ key: x.id, label: `📍 ${x.name}`, hint: x.landmark || undefined }))]} />
+                options={[{ key: 'ALL', label: 'Any pickup' }, ...pickups.map((x) => ({ key: x.id, label: x.name, hint: x.landmark || undefined }))]} />
             )}
 
             <Label text="Date" />
@@ -193,7 +214,7 @@ function TripSearch({ mode, routes, error: routesError, reload: reloadRoutes }: 
             <Label text="Passengers" />
             <Stepper value={passengers} min={1} max={maxPassengers} onChange={setPassengers} label="Passengers" />
 
-            <Btn label={loading ? 'Searching…' : 'Search autos'} icon="🔎" onPress={search} loading={loading} style={{ marginTop: 14 }} />
+            <Btn label={loading ? 'Searching…' : 'Search autos'} icon="search" onPress={search} loading={loading} style={{ marginTop: 16 }} />
           </View>
         ) : null}
       </Card>
@@ -201,24 +222,27 @@ function TripSearch({ mode, routes, error: routesError, reload: reloadRoutes }: 
       {trips === null && !error ? (
         <StateView kind="loading" message="Looking for autos…" />
       ) : error && !trips ? (
-        <StateView kind="error" title={error.isNetwork ? 'You seem to be offline' : 'Could not load autos'} message={error.message} actionLabel="Retry" onAction={search} />
+        <StateView kind="error" title={error.isNetwork ? 'You seem to be offline' : 'Could not load autos'} message={error.message} actionLabel="Retry" onAction={() => { if (routesError && !routes) reloadRoutes(); search(); }} />
       ) : (
         <View>
-          {error ? <Notice tone="warn">⚠️ {error.message} Showing the last results.</Notice> : null}
-          <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 1, marginBottom: 8, marginTop: 4 }}>
-            {(trips || []).length} AUTO{(trips || []).length === 1 ? '' : 'S'} · {istDayLabel(date).toUpperCase()}
-          </Text>
+          {error ? <Notice tone="warn">{error.message} Showing the last results.</Notice> : null}
+          <View style={st.listHead}>
+            <Text style={{ fontSize: 17, fontWeight: '800', color: p.text }}>{mode === 'full' ? 'Autos for your group' : 'Autos leaving'}</Text>
+            <Text style={{ fontSize: 13, color: p.sub, fontWeight: '600' }}>{(trips || []).length} · {istDayLabel(date)}</Text>
+          </View>
           {(trips || []).length === 0 ? (
             <StateView kind="empty" icon="🛺" title={mode === 'full' ? 'No autos open for full booking' : 'No autos match'}
               message={mode === 'full' ? 'Full-auto booking is possible only on autos that have no seats booked yet and whose driver allows it. Try another time or route.' : 'Drivers publish their trips through the day. Try another date, time or route, or check the pickup point queue.'}
               actionLabel="Refresh" onAction={search} />
           ) : (
-            (trips || []).map((t) => (
-              <TripCard key={t.id} t={t} now={now} mode={mode}
+            (trips || []).map((t, i) => (
+              <FadeInUp key={t.id} index={i}>
+              <TripCard t={t} now={now} mode={mode}
                 onView={() => router.push(`/auto-ride/trip/${t.id}` as any)}
                 onBook={() => router.push(`/auto-ride/trip/${t.id}?book=1` as any)}
                 onFull={() => router.push(`/auto-ride/full/${t.id}` as any)}
                 onMine={() => t.myBookingId && router.push(`/auto-ride/booking/${t.myBookingId}` as any)} />
+              </FadeInUp>
             ))
           )}
         </View>
@@ -229,7 +253,7 @@ function TripSearch({ mode, routes, error: routesError, reload: reloadRoutes }: 
 
 function Label({ text }: { text: string }) {
   const p = usePalette();
-  return <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 0.8, marginTop: 12, marginBottom: 6 }}>{text.toUpperCase()}</Text>;
+  return <Text style={{ fontSize: 13, fontWeight: '700', color: p.text, marginTop: 16, marginBottom: 8 }}>{text}</Text>;
 }
 
 export function TripCard({ t, now, mode = 'shared', onView, onBook, onFull, onMine }: {
@@ -238,74 +262,82 @@ export function TripCard({ t, now, mode = 'shared', onView, onBook, onFull, onMi
   const p = usePalette();
   const filled = t.capacity ? Math.min(1, (t.confirmedSeats + t.heldSeats) / t.capacity) : 0;
   const mine = !!t.myBookingId;
+  const full = mode === 'full';
   return (
     <Card style={{ padding: 0, overflow: 'hidden' }}>
-      <TouchableOpacity onPress={onView} activeOpacity={0.9} accessibilityRole="button"
+      <PressScale onPress={onView} accessibilityRole="button"
         accessibilityLabel={`${queueLabel(t.queueNumber)} to ${t.destination || 'destination'}, departs ${fmtDeparture(t.departureAt)}, ${inr(t.seatFare)} per seat, ${t.remainingSeats} of ${t.capacity} seats left`}
         style={{ padding: 14 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={{ backgroundColor: '#FACC15', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 }}>
-            <Text style={{ fontSize: 12, fontWeight: '900', color: '#1F2937' }}>🛺 {queueLabel(t.queueNumber)}</Text>
-          </View>
-          <View style={{ flex: 1 }} />
-          <StatusChip trip={t} now={now} />
-        </View>
-
-        <View style={{ flexDirection: 'row', marginTop: 12, gap: 10 }}>
-          <View style={{ alignItems: 'center', paddingTop: 3 }}>
-            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: p.success }} />
-            <View style={{ width: 2, flex: 1, backgroundColor: p.border, marginVertical: 2 }} />
-            <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: p.danger }} />
-          </View>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <AutoTile size={60} />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={{ fontSize: 13.5, fontWeight: '800', color: p.text }} numberOfLines={1}>{t.pickup?.name || t.route?.origin || 'Pickup point'}</Text>
-            {t.pickup?.landmark ? <Text style={{ fontSize: 12, color: p.muted }} numberOfLines={1}>{t.pickup.landmark}</Text> : null}
-            <Text style={{ fontSize: 15, fontWeight: '900', color: p.text, marginTop: 6 }} numberOfLines={1}>{t.destination || t.route?.destination || 'Destination'}</Text>
-            {t.route?.name ? <Text style={{ fontSize: 12, color: p.muted }} numberOfLines={1}>{t.route.name}{t.route.distanceKm ? ` · ${t.route.distanceKm} km` : ''}</Text> : null}
+            <Text style={{ fontSize: 15, fontWeight: '800', color: p.text }} numberOfLines={1}>{full ? 'Full auto' : 'Shared auto'} · {queueLabel(t.queueNumber)}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
+              <Text style={{ fontSize: 12, color: p.sub }} numberOfLines={1}>{t.driver?.name || 'Driver'}</Text>
+              <VerifiedBadge verified={!!t.driver?.verified} />
+              {t.driver?.rating ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                  <Ionicons name="star" size={12} color="#F5A524" />
+                  <Text style={{ fontSize: 12, color: p.text, fontWeight: '700' }}>{t.driver.rating.avg.toFixed(1)}</Text>
+                  <Text style={{ fontSize: 12, color: p.muted }}>({t.driver.rating.count})</Text>
+                </View>
+              ) : null}
+            </View>
+            <View style={{ marginTop: 6 }}><StatusChip trip={t} now={now} /></View>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
-            <Text style={{ fontSize: 20, fontWeight: '900', color: p.text }}>{inr(t.seatFare)}</Text>
-            <Text style={{ fontSize: 12, color: p.sub, fontWeight: '700' }}>per seat</Text>
-            {t.fullAutoFare ? <Text style={{ fontSize: 12, color: '#8B5CF6', fontWeight: '800', marginTop: 4 }}>Full {inr(t.fullAutoFare)}</Text> : null}
+            <Text style={{ fontSize: 19, fontWeight: '800', color: p.text }}>{full && t.fullAutoFare ? inr(t.fullAutoFare) : inr(t.seatFare)}</Text>
+            <Text style={{ fontSize: 12, color: p.sub }}>{full && t.fullAutoFare ? 'whole auto' : 'per seat'}</Text>
           </View>
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 }}>
-          <Text style={{ fontSize: 12, fontWeight: '800', color: p.text }}>🕒 {fmtDeparture(t.departureAt)}</Text>
-          <Text style={{ fontSize: 12, color: p.muted }}>{fromNow(t.departureAt, now)}</Text>
+        <View style={{ flexDirection: 'row', marginTop: 14, gap: 10 }}>
+          <View style={{ alignItems: 'center', paddingTop: 4, width: 14 }}>
+            <View style={{ width: 10, height: 10, borderRadius: 5, borderWidth: 2.5, borderColor: p.accent }} />
+            <View style={{ width: 2, flex: 1, backgroundColor: p.border, marginVertical: 3 }} />
+            <Ionicons name="location" size={13} color={p.accent} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: p.text }} numberOfLines={1}>{t.pickup?.name || t.route?.origin || 'Pickup point'}</Text>
+            {t.pickup?.landmark ? <Text style={{ fontSize: 12, color: p.muted }} numberOfLines={1}>{t.pickup.landmark}</Text> : null}
+            <Text style={{ fontSize: 14, fontWeight: '700', color: p.text, marginTop: 8 }} numberOfLines={1}>{t.destination || t.route?.destination || 'Destination'}</Text>
+            {t.route?.name ? <Text style={{ fontSize: 12, color: p.muted }} numberOfLines={1}>{t.route.name}{t.route.distanceKm ? ` · ${t.route.distanceKm} km` : ''}</Text> : null}
+          </View>
+        </View>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 }}>
+          <Ionicons name="time-outline" size={15} color={p.sub} />
+          <Text style={{ fontSize: 13, fontWeight: '700', color: p.text }}>{fmtDeparture(t.departureAt)}</Text>
+          <Text style={{ fontSize: 13, color: p.muted }}>{fromNow(t.departureAt, now)}</Text>
         </View>
 
         <View style={{ marginTop: 10 }}>
-          <View style={{ height: 8, borderRadius: 4, backgroundColor: p.card2, overflow: 'hidden' }}>
-            <View style={{ width: `${Math.round(filled * 100)}%`, height: 8, backgroundColor: filled >= 1 ? p.danger : filled >= 0.75 ? '#F97316' : p.success }} />
+          <View style={{ height: 6, borderRadius: 3, backgroundColor: p.card2, overflow: 'hidden' }}>
+            <View style={{ width: `${Math.round(filled * 100)}%`, height: 6, backgroundColor: filled >= 1 ? p.danger : filled >= 0.75 ? p.warn : p.button }} />
           </View>
           <Text style={{ fontSize: 12, color: p.sub, marginTop: 5 }}>
-            <Text style={{ fontWeight: '900', color: p.text }}>{t.confirmedSeats}/{t.capacity}</Text> booked
-            {t.heldSeats ? ` · ${t.heldSeats} on hold` : ''} · <Text style={{ fontWeight: '900', color: t.remainingSeats ? p.success : p.danger }}>{t.remainingSeats} left</Text>
+            <Text style={{ fontWeight: '800', color: p.text }}>{t.remainingSeats} of {t.capacity}</Text> seats left
+            {t.heldSeats ? ` · ${t.heldSeats} on hold` : ''}
+            {t.vehicle?.registration ? ` · ${t.vehicle.registration}` : ''}
           </Text>
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-          <Text style={{ fontSize: 12, color: p.text, fontWeight: '800' }}>👤 {t.driver?.name || 'Driver'}</Text>
-          <VerifiedBadge verified={!!t.driver?.verified} />
-          {t.driver?.rating ? <Text style={{ fontSize: 12, color: p.sub }}>★ {t.driver.rating.avg.toFixed(1)} ({t.driver.rating.count})</Text> : null}
-          {t.vehicle?.registration ? <Text style={{ fontSize: 12, color: p.sub }}>🔢 {t.vehicle.registration}</Text> : null}
+        <View style={{ flexDirection: 'row', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+          {!t.sharedBookingAllowed ? <Badge label="Seat booking closed" color="#64748B" /> : null}
+          {t.fullAutoFare && !full ? <Badge label={t.privateBookingAllowed ? `Whole auto ${inr(t.fullAutoFare)}` : 'Whole auto not possible now'} color={t.privateBookingAllowed ? '#2563EB' : '#64748B'} /> : null}
+          {t.seatSelectionEnabled ? <Badge label="Pick your seat" color="#2563EB" /> : null}
         </View>
-        <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-          <Badge label={t.sharedBookingAllowed ? 'SEAT BOOKING OPEN' : 'SEAT BOOKING CLOSED'} color={t.sharedBookingAllowed ? '#10B981' : '#64748B'} />
-          <Badge label={t.privateBookingAllowed ? 'FULL AUTO POSSIBLE' : t.fullAutoFare ? 'FULL AUTO NOT POSSIBLE NOW' : 'NO FULL AUTO'} color={t.privateBookingAllowed ? '#8B5CF6' : '#64748B'} />
-          {t.seatSelectionEnabled ? <Badge label="PICK YOUR SEAT" color="#0EA5E9" /> : null}
-        </View>
-      </TouchableOpacity>
+      </PressScale>
 
-      <View style={{ flexDirection: 'row', gap: 8, padding: 12, paddingTop: 0 }}>
+      <View style={[st.cardFoot, { borderTopColor: p.border }]}>
         {mine ? (
-          <Btn label={t.myBookingStatus === 'HELD' ? 'Finish booking' : 'My booking'} icon="🎫" small style={{ flex: 1 }} onPress={t.myBookingStatus === 'HELD' ? onBook : onMine} />
+          <Btn label={t.myBookingStatus === 'HELD' ? 'Finish booking' : 'My booking'} icon="ticket-outline" small style={{ flex: 1 }} onPress={t.myBookingStatus === 'HELD' ? onBook : onMine} />
         ) : (
           <>
-            <Btn label="View Auto" kind="secondary" small style={{ flex: 1 }} onPress={onView} />
-            {mode === 'shared' ? <Btn label="Book Seats" small style={{ flex: 1.2 }} onPress={onBook} disabled={!t.sharedBookingAllowed} /> : null}
-            {t.fullAutoFare ? <Btn label="Book Full Auto" kind={mode === 'full' ? 'primary' : 'ghost'} small style={{ flex: 1.2 }} onPress={onFull} disabled={!t.privateBookingAllowed} /> : null}
+            <Btn label="Details" kind="secondary" small style={{ flex: 1 }} onPress={onView} />
+            {!full ? <Btn label="Book seats" small style={{ flex: 1.3 }} onPress={onBook} disabled={!t.sharedBookingAllowed} /> : null}
+            {!full && t.fullAutoFare && t.privateBookingAllowed ? <Btn label="Full auto" kind="ghost" small onPress={onFull} /> : null}
+            {full && t.fullAutoFare ? <Btn label="Request full auto" small style={{ flex: 1.5 }} onPress={onFull} disabled={!t.privateBookingAllowed} /> : null}
           </>
         )}
       </View>
@@ -313,7 +345,7 @@ export function TripCard({ t, now, mode = 'shared', onView, onBook, onFull, onMi
   );
 }
 
-// ── My Auto Bookings ────────────────────────────────────────────────────────
+// ── My bookings ──────────────────────────────────────────────────────────────
 function MyBookings() {
   const p = usePalette();
   const router = useRouter();
@@ -340,24 +372,24 @@ function MyBookings() {
 
   return (
     <View>
-      <Chips value={scope} onChange={(v: 'upcoming' | 'past') => setScope(v)} options={[{ key: 'upcoming', label: '⏳ Upcoming' }, { key: 'past', label: '🗂️ Past' }]} />
+      <Tabs label="My auto bookings" value={scope} onChange={setScope} options={[{ key: 'upcoming', label: 'Upcoming' }, { key: 'past', label: 'History' }]} />
       <View style={{ height: 12 }} />
       {openReqs.length ? (
         <View style={{ marginBottom: 6 }}>
-          <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 1, marginBottom: 8 }}>FULL-AUTO REQUESTS</Text>
+          <Text style={{ fontSize: 15, fontWeight: '800', color: p.text, marginBottom: 8 }}>Full-auto requests</Text>
           {openReqs.map((r) => {
             const m = PRIVATE_STATUS_META[r.status];
             return (
-              <TouchableOpacity key={r.id} onPress={() => router.push(`/auto-ride/request/${r.id}` as any)} accessibilityRole="button" accessibilityLabel={`Full-auto request, ${m.label}`}>
-                <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <Text style={{ fontSize: 24 }}>🔒</Text>
+              <PressScale key={r.id} onPress={() => router.push(`/auto-ride/request/${r.id}` as any)} accessibilityRole="button" accessibilityLabel={`Full-auto request, ${m.label}`}>
+                <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={[st.linkIcon, { backgroundColor: p.accentSoft, width: 44, height: 44 }]}><Ionicons name="lock-closed-outline" size={20} color={p.accent} /></View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13.5, fontWeight: '900', color: p.text }}>Full auto · {r.passengers} passenger{r.passengers === 1 ? '' : 's'}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: p.text }}>Full auto · {r.passengers} passenger{r.passengers === 1 ? '' : 's'}</Text>
                     <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>{inr(r.fare)} · {r.status === 'REQUESTED' && r.respondBy ? `driver answers ${fromNow(r.respondBy)}` : (r.declineReason || m.label)}</Text>
                   </View>
-                  <Badge label={`${m.icon} ${m.label.toUpperCase()}`} color={m.color} />
+                  <Badge label={m.label} color={m.color} />
                 </Card>
-              </TouchableOpacity>
+              </PressScale>
             );
           })}
         </View>
@@ -366,9 +398,9 @@ function MyBookings() {
       {bookings === null && !error ? <StateView kind="loading" message="Loading your auto bookings…" /> : error && !bookings ? (
         <StateView kind="error" title={error.isNetwork ? 'You seem to be offline' : 'Could not load'} message={error.message} actionLabel="Retry" onAction={load} />
       ) : (bookings || []).length === 0 ? (
-        <StateView kind="empty" icon="🎫" title={scope === 'upcoming' ? 'No upcoming auto bookings' : 'No past auto bookings'} message={scope === 'upcoming' ? 'Book a seat on a shared auto and it shows up here with your booking code and PIN.' : 'Completed and cancelled bookings appear here.'} />
+        <StateView kind="empty" icon="ticket-outline" title={scope === 'upcoming' ? 'No upcoming auto bookings' : 'No past auto bookings'} message={scope === 'upcoming' ? 'Book a seat on a shared auto and it shows up here with your booking code and PIN.' : 'Completed and cancelled bookings appear here.'} />
       ) : (
-        (bookings || []).map((b) => <BookingRow key={b.id} b={b} onPress={() => router.push(`/auto-ride/booking/${b.id}` as any)} />)
+        (bookings || []).map((b, i) => <FadeInUp key={b.id} index={i}><BookingRow b={b} onPress={() => router.push(`/auto-ride/booking/${b.id}` as any)} /></FadeInUp>)
       )}
     </View>
   );
@@ -379,27 +411,29 @@ function BookingRow({ b, onPress }: { b: Booking; onPress: () => void }) {
   const m = BOOKING_STATUS_META[b.status];
   const t = b.trip;
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.9} accessibilityRole="button" accessibilityLabel={`Booking ${b.bookingCode}, ${m.label}`}>
-      <Card>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={{ fontSize: 13, fontWeight: '900', color: p.text, letterSpacing: 1 }}>{b.bookingCode}</Text>
-          {b.type === 'PRIVATE' ? <Badge label="FULL AUTO" color="#8B5CF6" /> : null}
-          <View style={{ flex: 1 }} />
-          <Badge label={`${m.icon} ${m.label.toUpperCase()}`} color={m.color} />
+    <PressScale onPress={onPress} accessibilityRole="button" accessibilityLabel={`Booking ${b.bookingCode}, ${m.label}`}>
+      <Card style={{ flexDirection: 'row', gap: 12 }}>
+        <AutoTile size={48} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={{ fontSize: 15, fontWeight: '800', color: p.text, flex: 1 }} numberOfLines={1}>{b.type === 'PRIVATE' ? 'Full auto' : 'Shared auto'}</Text>
+            <Badge label={m.label} color={m.color} />
+          </View>
+          <Text style={{ fontSize: 13, color: p.text, fontWeight: '600', marginTop: 4 }} numberOfLines={1}>
+            {t?.pickup?.name || 'Pickup'} to {t?.destination || 'Destination'}
+          </Text>
+          <Text style={{ fontSize: 12, color: p.sub, marginTop: 3 }}>
+            {fmtDeparture(t?.departureAt)} · {b.seatCount} seat{b.seatCount === 1 ? '' : 's'}{b.seatNumbers.length && b.type === 'SHARED' ? ` (${b.seatNumbers.join(', ')})` : ''} · {inr(b.amount)}
+          </Text>
+          <Text style={{ fontSize: 12, color: p.muted, marginTop: 2, letterSpacing: 0.5 }}>{b.bookingCode}</Text>
+          {t && LIVE_BOOKING.includes(b.status) ? <View style={{ marginTop: 8 }}><StatusChip trip={t} /></View> : null}
         </View>
-        <Text style={{ fontSize: 14.5, fontWeight: '900', color: p.text, marginTop: 8 }} numberOfLines={1}>
-          {t?.pickup?.name || 'Pickup'} → {t?.destination || 'Destination'}
-        </Text>
-        <Text style={{ fontSize: 12, color: p.sub, marginTop: 3 }}>
-          🕒 {fmtDeparture(t?.departureAt)} · {b.seatCount} seat{b.seatCount === 1 ? '' : 's'}{b.seatNumbers.length && b.type === 'SHARED' ? ` (${b.seatNumbers.join(', ')})` : ''} · {inr(b.amount)}
-        </Text>
-        {t && LIVE_BOOKING.includes(b.status) ? <View style={{ marginTop: 8 }}><StatusChip trip={t} /></View> : null}
       </Card>
-    </TouchableOpacity>
+    </PressScale>
   );
 }
 
-// ── Nearby Pickup Points ────────────────────────────────────────────────────
+// ── Pickup points ────────────────────────────────────────────────────────────
 function PickupPoints() {
   const p = usePalette();
   const router = useRouter();
@@ -433,26 +467,26 @@ function PickupPoints() {
   }
   return (
     <View>
-      <Notice tone="info">📍 {data?.note || 'Pickup stands set by Zenvy.'} Your phone's location is not used.</Notice>
-      {groups.length === 0 ? <StateView kind="empty" icon="📍" title="No pickup points yet" message="Zenvy has not set up auto stands yet." /> : null}
+      <Notice tone="info">{data?.note || 'Pickup stands set by Zenvy.'} Your phone's location is not used.</Notice>
+      {groups.length === 0 ? <StateView kind="empty" icon="location-outline" title="No pickup points yet" message="Zenvy has not set up auto stands yet." /> : null}
       {groups.map((g) => (
         <View key={g.route?.id || 'none'} style={{ marginBottom: 8 }}>
-          <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 1, marginBottom: 8 }}>
-            {(g.route ? `${g.route.origin || ''} → ${g.route.destination || g.route.name}` : 'OTHER').toUpperCase()}
+          <Text style={{ fontSize: 15, fontWeight: '800', color: p.text, marginBottom: 8 }}>
+            {g.route ? `${g.route.origin ? `${g.route.origin} to ` : ''}${g.route.destination || g.route.name}` : 'Other stands'}
           </Text>
           {g.points.map((x) => (
             <Card key={x.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <TouchableOpacity style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 }} onPress={() => router.push(`/auto-ride/pickup/${x.id}` as any)}
+              <PressScale style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 }} onPress={() => router.push(`/auto-ride/pickup/${x.id}` as any)}
                 accessibilityRole="button" accessibilityLabel={`${x.name}, view live queue`}>
-                <Text style={{ fontSize: 24 }}>🚏</Text>
+                <View style={[st.linkIcon, { backgroundColor: p.accentSoft, width: 44, height: 44 }]}><Ionicons name="flag-outline" size={20} color={p.accent} /></View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '900', color: p.text }}>{x.name}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: p.text }}>{x.name}</Text>
                   {x.landmark ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 2 }}>{x.landmark}</Text> : null}
-                  <Text style={{ fontSize: 12, color: p.accent, fontWeight: '800', marginTop: 3 }}>View live queue ›</Text>
+                  <Text style={{ fontSize: 12, color: p.accent, fontWeight: '700', marginTop: 3 }}>View live queue</Text>
                 </View>
-              </TouchableOpacity>
+              </PressScale>
               {x.mapsUrl ? (
-                <Btn label="Maps" icon="🗺️" kind="secondary" small onPress={() => Linking.openURL(x.mapsUrl!).catch(() => Alert.alert('Could not open maps'))} />
+                <Btn label="Maps" icon="navigate-outline" kind="secondary" small onPress={() => Linking.openURL(x.mapsUrl!).catch(() => Alert.alert('Could not open maps'))} />
               ) : null}
             </Card>
           ))}
@@ -461,3 +495,12 @@ function PickupPoints() {
     </View>
   );
 }
+
+const st = StyleSheet.create({
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, padding: 12, marginTop: 12, marginBottom: 12, minHeight: 56 },
+  linkIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  place: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
+  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, marginTop: 6 },
+  listHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 4, marginBottom: 10 },
+  cardFoot: { flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: StyleSheet.hairlineWidth },
+});

@@ -105,7 +105,7 @@ export default function ForgotPasswordScreen() {
       const r = await postAuth(ENDPOINTS.resetPassword, { phone: phone10, newPassword, ...proof });
       if (r.ok) {
         try { require('../utils/sounds').playSound('success'); } catch {}
-        Alert.alert('Password updated 🎉', 'You can now sign in with your new password.');
+        Alert.alert('Password updated', 'You can now sign in with your new password.');
         if (router.canGoBack()) router.back();
         else router.replace('/login' as any);
         return;
@@ -152,7 +152,7 @@ export default function ForgotPasswordScreen() {
 
         <View style={s.card}>
           <Text style={s.stepTitle}>
-            {step === 1 ? 'Reset Password' : 'Choose New Password'}
+            {step === 1 ? 'Reset password' : 'Choose a new password'}
           </Text>
           <Text style={s.stepSub}>
             {step === 1

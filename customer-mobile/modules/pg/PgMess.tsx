@@ -61,9 +61,9 @@ export function PgMessSection({ timetable }: { timetable: MessTimetable | null }
           const today = d === now.day;
           return (
             <Press key={d} onPress={() => setDay(d)} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={`${DAY_LONG[d]}${today ? ', today' : ''}`}
-              style={[st.dayTab, { backgroundColor: on ? p.text : 'transparent', borderColor: on ? p.text : p.line }]}>
-              <Text style={[st.dayText, { color: on ? p.bg : p.text }]}>{DAY_SHORT[d]}</Text>
-              <Text style={[st.todayText, { color: on ? p.bg : p.accent, opacity: today ? 1 : 0 }]}>Today</Text>
+              style={[st.dayTab, { backgroundColor: on ? p.accentFill : 'transparent', borderColor: on ? p.accentFill : p.line }]}>
+              <Text style={[st.dayText, { color: on ? '#fff' : p.text }]}>{DAY_SHORT[d]}</Text>
+              <Text style={[st.todayText, { color: on ? 'rgba(255,255,255,0.85)' : p.accent, opacity: today ? 1 : 0 }]}>Today</Text>
             </Press>
           );
         })}

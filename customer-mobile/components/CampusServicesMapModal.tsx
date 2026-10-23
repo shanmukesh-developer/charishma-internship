@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SHADOWS } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
+import { useSWRJson } from '../utils/swrCache';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -38,11 +39,11 @@ const CAMPUS_SERVICES_MAP: ServicePillar[] = [
     title: 'Canteen & Food Delivery',
     category: 'FOOD & DINING',
     tagline: 'Campus kitchens delivered to your hostel',
-    howToAccess: 'Home tab ➔ pick a restaurant or tap a Classic.',
+    howToAccess: 'Home tab ➔ pick a restaurant or a cuisine under Popular dishes.',
     keyFeatures: [
       'Real menus and prices from campus kitchens',
       'Ordering open 6 AM – 9 PM, Cash on Delivery or Zenvy Wallet',
-      'Live order status and a delivery PIN only you can share'
+      'Live order status and a Delivery PIN only you can share'
     ],
     image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80',
     accentColor: '#EF4444',
@@ -169,7 +170,12 @@ export default function CampusServicesMapModal({ visible, onClose }: Props) {
   const txtSec = colors.textSecondary;
   const border = isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)';
 
-  const activePillar = CAMPUS_SERVICES_MAP.find(p => p.id === selectedPillar) || CAMPUS_SERVICES_MAP[0];
+  // Only sections that are switched on (GET /api/config/sections): Co-Ride shows once it is confirmed
+  // live; PG unless the server says it is off.
+  const sectionsSWR = useSWRJson<{ sections?: Record<string, { live?: boolean }> }>('/api/config/sections', { freshMs: 60 * 1000 });
+  const sec = sectionsSWR.data?.sections;
+  const pillars = CAMPUS_SERVICES_MAP.filter((p) => (p.id !== 'coride' || sec?.coride?.live === true) && (p.id !== 'pg' || sec?.pg?.live !== false));
+  const activePillar = pillars.find(p => p.id === selectedPillar) || pillars[0];
 
   const handleGoToSignup = () => {
     onClose();
@@ -206,7 +212,7 @@ export default function CampusServicesMapModal({ visible, onClose }: Props) {
           {/* Service Pillar Category Chips */}
           <View style={{ paddingVertical: 10, paddingHorizontal: 16 }}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-              {CAMPUS_SERVICES_MAP.map((item) => {
+              {pillars.map((item) => {
                 const active = selectedPillar === item.id;
                 return (
                   <TouchableOpacity
@@ -285,7 +291,7 @@ export default function CampusServicesMapModal({ visible, onClose }: Props) {
                 COMPLETE PLATFORM MAP AT A GLANCE
               </Text>
               <View style={s.gridContainer}>
-                {CAMPUS_SERVICES_MAP.map((item) => (
+                {pillars.map((item) => (
                   <TouchableOpacity
                     key={item.id}
                     style={[
