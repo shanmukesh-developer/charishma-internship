@@ -56,7 +56,7 @@ export default function PickupQueueScreen() {
         <Notice tone="info">ℹ️ {data.note}</Notice>
         {error ? <Notice tone="warn">⚠️ {error.message}</Notice> : null}
 
-        <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 1, marginBottom: 8 }}>LIVE QUEUE · {istDayLabel(data.date).toUpperCase()}</Text>
+        <Text style={{ fontSize: 13, fontWeight: '600', color: p.sub, marginBottom: 8 }}>Live queue · {istDayLabel(data.date)}</Text>
         {data.queue.length === 0 ? (
           <StateView kind="empty" icon="🛺" title="No autos in the queue" message="No auto has checked in at this stand for this day yet. Pull down to refresh." />
         ) : data.queue.map((q) => {

@@ -1,6 +1,6 @@
 /**
  * Look of the campus services screens (category page, booking flow, booking tracking).
- * One accent per service family: repairs purple, tailoring green, print teal, laundry blue.
+ * Every service family wears the Tech & repairs purple (modules/others/othersTheme.ts ACCENTS).
  * Light-first: white cards with a soft shadow on a light grey page; dark mode keeps the layout
  * with dark surfaces and the same accent.
  */

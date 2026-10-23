@@ -33,8 +33,9 @@ import FoodV2MegaBasket from './FoodV2MegaBasket';
 import FoodV2Categories from './FoodV2Categories';
 import { AddedToast } from './FoodV2Motion';
 
-/** Others → Food & groceries. `sections` / `onSection` drive the section pills in the green header. */
-export default function FoodV2Screen(props: { forceDark?: boolean; sections?: { key: string; label: string }[]; onSection?: (key: string) => void }) {
+/** Others → Food & groceries. `sections` / `onSection` drive the section pills in the green header;
+ * `openSearch` opens the store search (then `onSearchOpened` is called once). */
+export default function FoodV2Screen(props: { forceDark?: boolean; sections?: { key: string; label: string }[]; onSection?: (key: string) => void; openSearch?: boolean; onSearchOpened?: () => void }) {
   const ctx = useFoodV2State(props);
   return <FoodV2Provider value={ctx}><FoodV2Body /></FoodV2Provider>;
 }

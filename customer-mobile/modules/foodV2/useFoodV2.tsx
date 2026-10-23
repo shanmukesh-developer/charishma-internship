@@ -32,7 +32,7 @@ export function useFoodV2(): FoodV2Ctx {
   return v;
 }
 
-export function useFoodV2State({ forceDark, sections, onSection }: { forceDark?: boolean; sections?: { key: string; label: string }[]; onSection?: (key: string) => void }) {
+export function useFoodV2State({ forceDark, sections, onSection, openSearch, onSearchOpened }: { forceDark?: boolean; sections?: { key: string; label: string }[]; onSection?: (key: string) => void; openSearch?: boolean; onSearchOpened?: () => void }) {
   const clean = true;
   const router = useRouter();
   const isDark = !!forceDark;
@@ -236,6 +236,13 @@ export function useFoodV2State({ forceDark, sections, onSection }: { forceDark?:
   const [aisle, setAisle] = useState('all');
   const [savedChip, setSavedChip] = useState('All');
   const openListing = (shelf: string, q = '') => { setQuery(q); setChip('All'); setChipsOpen(false); setAisle('all'); push({ name: 'listing', shelf }); };
+  // Another Others section's header search ("Search the campus store") lands here on the search screen.
+  useEffect(() => {
+    if (!openSearch) return;
+    openListing(SEARCH);
+    onSearchOpened?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openSearch]);
   // Product pages use the app route (app/products/[id].tsx renders FoodV2ProductView for shop items).
   const openProduct = (p: Item | string) => router.push(`/products/${typeof p === 'string' ? p : p.id}` as any);
 

@@ -10,17 +10,18 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 const IST_MS = 330 * 60000;
 const ist = (ms: number) => new Date(ms + IST_MS); // read with getUTC*
 
-/** "6:30 pm" (IST) */
+/** "6:30 PM" (IST) */
 export const fmtClock12 = (d: Date) => {
   const t = ist(d.getTime());
   const h = t.getUTCHours();
   const m = String(t.getUTCMinutes()).padStart(2, '0');
-  return `${h % 12 === 0 ? 12 : h % 12}:${m} ${h < 12 ? 'am' : 'pm'}`;
+  // "AM" / "PM" like ZCS Auto in the same section (utils/format formatClock), not "am" / "pm".
+  return `${h % 12 === 0 ? 12 : h % 12}:${m} ${h < 12 ? 'AM' : 'PM'}`;
 };
 
 const istDayNumber = (ms: number) => Math.floor((ms + IST_MS) / 86400000);
 
-/** { label: "Today, 6:30 pm", relative: "in 25 min" | null } */
+/** { label: "Today, 6:30 PM", relative: "in 25 min" | null } */
 export function fmtRideWhen(iso: any, now = Date.now()): { label: string; relative: string | null } {
   const d = iso instanceof Date ? iso : new Date(iso);
   if (isNaN(d.getTime())) return { label: 'Time not set', relative: null };

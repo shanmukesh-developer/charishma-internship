@@ -176,6 +176,36 @@ export const amenityIcon = (name: string): LucideIcon => {
 /** Amenity labels from the admin's list without decorative emoji ("WiFi ⚡" -> "WiFi"). */
 export const amenityLabel = (name: string) => String(name || '').replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, '').replace(/\s+/g, ' ').trim();
 
+/** One key per amenity, so "AC" twice, "WiFi" + "High Speed WiFi" or "Food/Mess" + "Unlimited Food" count once. */
+const amenityKey = (label: string) => {
+  const v = label.toLowerCase();
+  if (/wi-?fi|internet/.test(v)) return 'wifi';
+  if (/\bac\b|air con/.test(v)) return 'ac';
+  if (/food|mess|meal/.test(v)) return 'food';
+  if (/gym|fitness/.test(v)) return 'gym';
+  if (/\blift\b|elevator/.test(v)) return 'lift';
+  if (/hot water|geyser/.test(v)) return 'hotwater';
+  if (/cctv|camera/.test(v)) return 'cctv';
+  if (/power|backup|inverter/.test(v)) return 'power';
+  return v.replace(/[^a-z0-9]/g, '');
+};
+/**
+ * The amenity list as students should read it: emoji removed, each amenity once (the more descriptive
+ * label wins, in the place it first appears). Housing-team lists often repeat an amenity in two words.
+ */
+export const cleanAmenities = (list: unknown): string[] => {
+  const out: { key: string; label: string }[] = [];
+  for (const raw of Array.isArray(list) ? list : []) {
+    const label = amenityLabel(String(raw ?? ''));
+    if (!label) continue;
+    const key = amenityKey(label);
+    const at = out.findIndex((x) => x.key === key);
+    if (at < 0) out.push({ key, label });
+    else if (label.length > out[at].label.length) out[at] = { key, label };
+  }
+  return out.map((x) => x.label);
+};
+
 /**
  * Back button + optional title. `titleOpacity` (an Animated value) lets a screen fade the title in once
  * its own heading has scrolled away, so the name is never shown twice at once.

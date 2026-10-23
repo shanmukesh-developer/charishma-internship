@@ -11,7 +11,7 @@ import React from 'react';
 import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { distanceLabel, genderLabel, inr, plural, ratingText, type PgListItem } from './pgApi';
 import { SlowLoadHint } from '../others/motion';
-import { usePgPalette, PgImage, Press, Skeleton, IconBadgeCheck, IconStar, IconMapPin, amenityLabel, TYPE, s as ui } from './ui';
+import { usePgPalette, PgImage, Press, Skeleton, IconBadgeCheck, IconStar, IconMapPin, cleanAmenities, TYPE, s as ui } from './ui';
 
 export const RAIL_CARD_W = 220;
 const RAIL_RATIO = 3 / 4;
@@ -60,7 +60,7 @@ export function PgListCard({ pg, onPress }: { pg: PgListItem; onPress: () => voi
   const p = usePgPalette();
   const { width } = useWindowDimensions();
   const size = listPhotoSize(width);
-  const amenities = (pg.amenities || []).map(amenityLabel).filter(Boolean).slice(0, 3);
+  const amenities = cleanAmenities(pg.amenities).slice(0, 3);
   const beds = bedsOf(pg);
   const rent = pg.rentFrom ?? pg.baseRent;
   const dist = shortDistance(pg.distanceFromCollege);
@@ -76,7 +76,7 @@ export function PgListCard({ pg, onPress }: { pg: PgListItem; onPress: () => voi
 
       <View style={st.body}>
         <View style={st.nameRow}>
-          <Text style={[st.name, { color: p.text }]} numberOfLines={1}>{pg.name}</Text>
+          <Text style={[st.name, { color: p.text }]} numberOfLines={2}>{pg.name}</Text>
           {pg.isVerified ? <VerifiedTag small /> : null}
         </View>
 

@@ -275,6 +275,10 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
   const keysOf = (fields: FormField[]) => new Set(fields.flatMap((f) => [f.key, textKey(f.key)]));
   const detailKeys = keysOf(detailFields);
   const bookingKeys = keysOf(bookingFields);
+  // Tailoring jobs that take your size (fit / measurements / length fields, or the measurement visit)
+  // say "measurement"; a button, zip or seam repair does not.
+  const takesMeasurements = family === 'tailoring'
+    && (form.id === 'tailoring.measurement' || form.fields.some((f) => MEASURE_KEYS.includes(f.key)));
 
   const locationErrors = (): Record<string, string> => {
     const e: Record<string, string> = {};
@@ -844,7 +848,7 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
                 accessibilityRole="button"
                 accessibilityLabel={`${it.title}, ${it.sub}. ${viaDiagnosis ? `Inspection ${price.main}` : price.main}`}
                 style={[st.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.line }]}>
-                <Tile p={p} icon={it.icon} color={it.color} />
+                <Tile p={p} icon={it.icon} />
                 <View style={{ flex: 1 }}>
                   <Text style={[st.rowTitle, { color: p.text }]}>{it.title}</Text>
                   <Text style={[st.rowSub, { color: p.sub }]} numberOfLines={2}>{it.sub}</Text>
@@ -886,7 +890,7 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
                     accessibilityRole="button" accessibilityState={{ disabled: paused }}
                     accessibilityLabel={`${it.name}, ${price.main}${price.note ? ` ${price.note}` : ''}${paused ? ', paused' : ''}`}
                     style={[st.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.line }, paused && { opacity: 0.5 }]}>
-                    <Tile p={p} icon={ic.icon} color={ic.color} />
+                    <Tile p={p} icon={ic.icon} />
                     <View style={{ flex: 1 }}>
                       <Text style={[st.rowTitle, { color: p.text }]} numberOfLines={2}>{it.name}</Text>
                       {it.desc ? <Text style={[st.rowSub, { color: p.sub }]} numberOfLines={2} ellipsizeMode="tail">{it.desc}</Text> : null}
@@ -939,7 +943,7 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
           <View style={[st.summaryArt, { backgroundColor: p.tint }]}>
             <Ionicons name={device === 'Phone' ? 'phone-portrait-outline' : device === 'Laptop' ? 'laptop-outline' : 'tablet-portrait-outline'} size={30} color={p.accent} />
           </View>
-        ) : <Tile p={p} icon={ic.icon} color={ic.color} size={56} />}
+        ) : <Tile p={p} icon={ic.icon} size={56} />}
         <View style={{ flex: 1 }}>
           {kicker ? <Text style={[st.kicker, { color: p.accent }]} numberOfLines={2}>{kicker}</Text> : null}
           <Text style={[st.rowTitle, { color: p.text, fontSize: 16 }]} numberOfLines={2}>{cur.name}</Text>
@@ -1122,7 +1126,7 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
           {family === 'repairs'
             ? (form.priceLabel === 'Inspection charge'
               ? 'This is the doorstep inspection charge. The technician checks the device, then sends the repair quote in the app. You approve the quote before any work; if you decline, the booking is cancelled.'
-              : 'The technician checks the device and confirms the final price and repair time in the app. You approve the quote before any work.')
+              : 'The technician checks the device and confirms the final price and repair time in the app. You approve the quote before any work. If you decline it, the booking is cancelled and you pay nothing.')
             : `The ${PARTNER_NOUN[family]} confirms the final price before starting. Pay in cash when the job is done.`}
         </Text>
       </View>
@@ -1200,10 +1204,11 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
   // ── Header / footer ───────────────────────────────────────────────────────────────────────
   const headerTitle = step === 'success' ? '' : family === 'repairs'
     ? (device === 'Phone' ? 'Phone repair' : device === 'Laptop' ? 'Laptop repair' : device === 'Other' ? 'Device repair' : 'Laptop & phone repair')
-    : step === 'list' ? shelfTitle : step === 'details' ? DETAILS_TITLE[family] : BOOKING_TITLE[family];
+    : step === 'list' ? shelfTitle : step === 'details' ? DETAILS_TITLE[family]
+      : family === 'tailoring' && !takesMeasurements ? 'Pickup & booking' : BOOKING_TITLE[family];
 
   const errorCount = step === 'details' ? (tried.details ? Object.keys(detailErrors).length : 0) : step === 'booking' ? (tried.booking ? Object.keys(bookingErrors).length : 0) : 0;
-  const ctaLabel = step === 'details' ? (family === 'tailoring' ? 'Proceed to measurement' : 'Continue') : 'Confirm booking';
+  const ctaLabel = step === 'details' ? (takesMeasurements ? 'Proceed to measurement' : 'Continue') : 'Confirm booking';
   // Print before the page count is typed: show the page rate, not a 1-page total.
   const printNoPages = form.pricing.kind === 'print' && !String(answers.pageCount ?? '').trim() && (answers.bindingType || 'none') === 'none' && String(answers.copies ?? '1') === '1';
   const footerPrice = printNoPages && amount > 0
@@ -1302,10 +1307,14 @@ function Check({ p, on }: { p: ServicePalette; on: boolean }) {
   );
 }
 
-export function Tile({ p, icon, color, size = 44 }: { p: ServicePalette; icon: IconName; color: string; size?: number }) {
+/** Icon tile. Without `color` it wears the section accent (catalogue rows: one calm colour per section
+ * instead of a different colour for every service). */
+export function Tile({ p, icon, color, size = 44 }: { p: ServicePalette; icon: IconName; color?: string; size?: number }) {
+  const bg = color ? hexAlpha(color, p.isDark ? 0.2 : 0.11) : p.tint;
+  const ink = color ? (p.isDark ? lighten(color) : color) : p.accent;
   return (
-    <View style={[st.tile, { width: size, height: size, borderRadius: size * 0.3, backgroundColor: hexAlpha(color, p.isDark ? 0.2 : 0.11) }]}>
-      <Ionicons name={icon} size={size * 0.5} color={p.isDark ? lighten(color) : color} />
+    <View style={[st.tile, { width: size, height: size, borderRadius: size * 0.3, backgroundColor: bg }]}>
+      <Ionicons name={icon} size={size * 0.5} color={ink} />
     </View>
   );
 }
@@ -1349,7 +1358,7 @@ const st = StyleSheet.create({
   rowSub: { fontSize: 13, lineHeight: 18, marginTop: 1 },
   rowPrice: { fontSize: 14, fontWeight: '800' },
   rowPriceNote: { fontSize: 11, fontWeight: '600', marginTop: 1 },
-  groupLabel: { fontSize: 13, fontWeight: '700', marginBottom: 8, marginLeft: 4, textTransform: 'uppercase', letterSpacing: 0.4 },
+  groupLabel: { fontSize: 13, fontWeight: '600', marginBottom: 8, marginLeft: 4 },
   footnote: { fontSize: 12, lineHeight: 17, marginTop: 12, marginHorizontal: 4 },
   // summary
   summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },

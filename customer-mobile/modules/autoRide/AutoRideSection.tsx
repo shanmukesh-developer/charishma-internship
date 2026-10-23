@@ -66,7 +66,8 @@ export default function AutoRideSection() {
     <View>
       <Tabs
         label="Zenvy Auto"
-        value={seg === 'pickups' ? home : seg}
+        // Pickup points is not a tab: no tab looks selected while it is open.
+        value={seg}
         onChange={(v) => { ease(); setSeg(v); }}
         options={[
           ...(chargeOk ? [{ key: 'charge' as Seg, label: 'On charge' }] : []),
@@ -83,7 +84,7 @@ export default function AutoRideSection() {
           <Text style={{ fontSize: 14, fontWeight: '700', color: p.text }}>{seg === 'pickups' ? 'Back to autos' : 'Pickup points and live queues'}</Text>
           {seg !== 'pickups' ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 1 }}>Stands set by Zenvy, with the autos waiting at each</Text> : null}
         </View>
-        <Ionicons name="chevron-forward" size={18} color={p.muted} />
+        {seg !== 'pickups' ? <Ionicons name="chevron-forward" size={18} color={p.muted} /> : null}
       </PressScale>
       {seg === 'charge' && chargeOk ? <ChargeBoard onUnavailable={chargeGone} /> : null}
       {seg === 'shared' ? <TripSearch mode="shared" {...routesState} /> : null}
@@ -149,9 +150,25 @@ function TripSearch({ mode, routes, error: routesError, reload: reloadRoutes }: 
   useAutoRideLive((e) => { if (e.kind === 'trip' || e.kind === 'reconnect' || e.kind === 'booking') search(); });
 
   const dates = useMemo(() => Array.from({ length: 7 }, (_, i) => istDate(i)), []);
+  // Today only offers times that are still ahead (IST); a time that has passed falls back to "Any time".
+  const timeOptions = useMemo(() => {
+    if (date !== istDate(0)) return TIME_OPTIONS;
+    const ist = new Date(now + 5.5 * 60 * 60 * 1000);
+    const nowHHMM = `${String(ist.getUTCHours()).padStart(2, '0')}:${String(ist.getUTCMinutes()).padStart(2, '0')}`;
+    return TIME_OPTIONS.filter((t) => t > nowHHMM);
+  }, [date, now]);
+  useEffect(() => { if (time && !timeOptions.includes(time)) setTime(''); }, [time, timeOptions]);
 
   if (error && error.code === 'FEATURE_OFF') {
     return <StateView kind="empty" icon="🛺" title="Zenvy Auto is not open yet" message={error.message} />;
+  }
+  // No routes yet: a search form with nothing to pick from is a dead end; say so calmly instead.
+  if (routes && routes.length === 0) {
+    return (
+      <StateView kind="empty" icon="map-outline" title="No auto routes yet"
+        message="Scheduled and full autos show up here once routes and stands are set up. Until then, find a co-ride or check the On charge board."
+        actionLabel="Check again" onAction={reloadRoutes} />
+    );
   }
 
   const placeRow = (icon: 'radio-button-on' | 'location', label: string, value: string, hint?: string) => (
@@ -209,7 +226,7 @@ function TripSearch({ mode, routes, error: routesError, reload: reloadRoutes }: 
 
             <Label text="Preferred time" />
             <Chips wrap={false} value={time || 'ANY'} onChange={(v: string) => setTime(v === 'ANY' ? '' : v)}
-              options={[{ key: 'ANY', label: 'Any time' }, ...TIME_OPTIONS.map((t) => ({ key: t, label: fmtHHMM(t) }))]} />
+              options={[{ key: 'ANY', label: 'Any time' }, ...timeOptions.map((t) => ({ key: t, label: fmtHHMM(t) }))]} />
 
             <Label text="Passengers" />
             <Stepper value={passengers} min={1} max={maxPassengers} onChange={setPassengers} label="Passengers" />

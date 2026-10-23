@@ -54,7 +54,8 @@ export function HomeHeader() {
       pageW={pageW}
       compact={sc.compact}
       colors={FOOD_HEADER}
-      subtitle={sc.compact ? 'Campus store' : 'Campus store · Food & groceries'}
+      // The active pill already says "Food & groceries"; the short line fits every phone width.
+      subtitle="Campus store"
       hints={SEARCH_HINTS}
       searchLabel="Search groceries and essentials"
       onSearch={() => openListing(SEARCH)}

@@ -36,7 +36,7 @@ export default function BasketScreen() {
   const basketFocused = useIsFocused();
   const { isDark, colors } = useTheme();
   const { user } = useAuth();
-  const { baskets, basketCounts, basketTotals, activeBasket, setActiveBasket, lastAddedBasket, lastAddedAt, removeFromCart, updateQuantity, clearBasket, removeItems: removeAnyItems, roomCode, isHosting, roomStatus, roomMessage, handleHostRoom, handleJoinRoom, handleDisconnect } = useCart();
+  const { baskets, basketCounts, basketTotals, activeBasket, setActiveBasket, lastAddedBasket, lastAddedAt, cartLoaded, removeFromCart, updateQuantity, clearBasket, removeItems: removeAnyItems, roomCode, isHosting, roomStatus, roomMessage, handleHostRoom, handleJoinRoom, handleDisconnect } = useCart();
   const [isJoinOpen, setIsJoinOpen] = useState(false);
   const [inputCode, setInputCode] = useState('');
   const [selectedInstructions, setSelectedInstructions] = useState<string[]>([]);
@@ -55,13 +55,14 @@ export default function BasketScreen() {
   const removeItems = (m: { ids?: string[]; names?: string[] }) => removeAnyItems({ ...m, basket: basketKind });
 
   // Opens on ?basket=… (deep links, after an order), else on the basket that just got a new item,
-  // else on a basket that has items when the selected one is empty.
+  // else on a basket that has items when the selected one is empty. Waits for the saved baskets to
+  // load: on a cold start every basket reads 0 until then, which used to leave an empty basket open.
   const { basket: basketParamRaw } = useLocalSearchParams<{ basket?: string | string[] }>();
   const basketParam = Array.isArray(basketParamRaw) ? basketParamRaw[0] : basketParamRaw;
   const seenAddedAtRef = useRef(0);
   const skipAutoPickRef = useRef(false);
   useEffect(() => {
-    if (!basketFocused) return;
+    if (!basketFocused || !cartLoaded) return;
     if (isBasketKind(basketParam)) {
       setActiveBasket(basketParam);
       seenAddedAtRef.current = lastAddedAt;
@@ -81,7 +82,7 @@ export default function BasketScreen() {
     }
     seenAddedAtRef.current = lastAddedAt;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [basketFocused, basketParam]);
+  }, [basketFocused, basketParam, cartLoaded]);
 
   // The bill comes from the server (POST /api/orders/quote); guests see an item estimate only.
   const { quote, loading: quoteLoading, error: quoteError, refresh: refreshQuote, hasOrderLines } = useBasketQuote(null, !!user, basketFocused, basketKind);
@@ -147,9 +148,15 @@ export default function BasketScreen() {
   const goldColor = isDark ? COLORS.gold : colors.gold;
   const actionBtnBg = COLORS.red;
 
+  // The checkout button floats over the page. The list stops above it (its measured height plus its
+  // offset), so no card can ever sit under it, at rest or scrolled to the end.
+  const [checkoutH, setCheckoutH] = useState(CHECKOUT_EST_HEIGHT);
+  const listBottom = totalItems > 0 ? CHECKOUT_BOTTOM + checkoutH + 12 : 0;
+
   return (
     <KeyboardAvoidingView style={[s.container, { paddingTop: topPad, backgroundColor: bg }]} enabled={basketFocused}>
       <AmbientBackground />
+      <View style={{ flex: 1, marginBottom: listBottom }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -582,12 +589,13 @@ export default function BasketScreen() {
           </>
         )}
 
-        {/* Room for the floating checkout button (and the tab bar) under the last card. */}
-        <View style={{ height: totalItems > 0 ? (Platform.OS === 'ios' ? 260 : 240) : 120 }} />
+        {/* Breathing room under the last card (the list already ends above the checkout button). */}
+        <View style={{ height: totalItems > 0 ? 8 : 120 }} />
       </ScrollView>
+      </View>
 
       {totalItems > 0 && (
-        <FloatingPulse color={COLORS.red} style={s.checkoutBtnContainer}>
+        <FloatingPulse color={COLORS.red} style={s.checkoutBtnContainer} onLayout={(e) => { const h = Math.round(e.nativeEvent.layout.height); if (h > 0 && h !== checkoutH) setCheckoutH(h); }}>
           <ActionPressable 
             style={[s.checkoutBtn, { backgroundColor: actionBtnBg, width: '100%' }, checkoutBlocked && { opacity: 0.55 }]}
             disabled={checkoutBlocked}
@@ -616,6 +624,11 @@ export default function BasketScreen() {
     </KeyboardAvoidingView>
   );
 }
+
+// Floating checkout button: its offset from the bottom of the screen and a first guess at its height
+// (measured on first layout).
+const CHECKOUT_BOTTOM = Platform.OS === 'ios' ? 100 : 80;
+const CHECKOUT_EST_HEIGHT = 52;
 
 const s = StyleSheet.create({
   container: { flex: 1, paddingTop: Platform.OS === 'android' ? 40 : 50, width: '100%', maxWidth: 600, alignSelf: 'center', position: 'relative' },
@@ -665,7 +678,7 @@ const s = StyleSheet.create({
   disconnectText: { fontSize: 12, fontWeight: '900', color: '#EF4444', letterSpacing: 0.2 },
   checkoutBtnContainer: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 100 : 80,
+    bottom: CHECKOUT_BOTTOM,
     left: 16,
     right: 16,
     zIndex: 100,

@@ -82,7 +82,7 @@ export default function FullAutoRequestStatusScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: p.bg }}>
-      <AHeader title="Full-auto request" subtitle={trip ? `${trip.pickup?.name || 'Pickup'} → ${trip.destination || ''}` : undefined} right={<Badge label={m.label.toUpperCase()} color={m.color} />} />
+      <AHeader title="Full-auto request" subtitle={trip ? `${trip.pickup?.name || 'Pickup'} → ${trip.destination || ''}` : undefined} right={<Badge label={m.label} color={m.color} />} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}>
         <Card style={{ alignItems: 'center' }}>
           <View style={{ width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: `${m.color}1F` }}>

@@ -4,7 +4,7 @@
  * Featured, Upcoming and the category sections from GET /sections, each opening the full list. Real data
  * only: an empty campus shows an empty state, never sample events.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Dimensions, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
@@ -17,7 +17,17 @@ import { useCampusEventsLive } from './useCampusEventsLive';
 const { width: SW } = Dimensions.get('window');
 const CARD_W = Math.min(260, SW * 0.68);
 
-export default function CampusEventsSection() {
+/** focusSearchTick: bumped by the Others header search to focus "Search events, venues" (a remount keeps the
+ * last value and does not focus). */
+export default function CampusEventsSection({ focusSearchTick = 0 }: { focusSearchTick?: number } = {}) {
+  const searchRef = useRef<TextInput>(null);
+  const seenTickRef = useRef(focusSearchTick);
+  useEffect(() => {
+    if (focusSearchTick === seenTickRef.current) return;
+    seenTickRef.current = focusSearchTick;
+    const t = setTimeout(() => searchRef.current?.focus(), 60);
+    return () => clearTimeout(t);
+  }, [focusSearchTick]);
   const router = useRouter();
   const p = usePalette();
   const { user } = useAuth();
@@ -101,7 +111,7 @@ export default function CampusEventsSection() {
       <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, minHeight: 46, borderRadius: 14, borderWidth: 1, borderColor: p.border, backgroundColor: p.card2 }}>
           <Ionicons name="search-outline" size={17} color={p.muted} />
-          <TextInput value={q} onChangeText={setQ} onSubmitEditing={search} returnKeyType="search" placeholder="Search events, venues" placeholderTextColor={p.muted}
+          <TextInput ref={searchRef} value={q} onChangeText={setQ} onSubmitEditing={search} returnKeyType="search" placeholder="Search events, venues" placeholderTextColor={p.muted}
             accessibilityLabel="Search campus events" style={{ flex: 1, color: p.text, fontSize: 14, paddingVertical: 8 }} maxLength={60} />
         </View>
         <TouchableOpacity onPress={() => router.push('/campus-events?filters=1' as any)} accessibilityRole="button" accessibilityLabel="Filter and sort events"

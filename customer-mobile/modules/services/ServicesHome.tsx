@@ -4,7 +4,7 @@
  * opens the step booking flow (ServiceBookingSheet). Prices come from the catalogue.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Alert, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Alert, TextInput, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -25,7 +25,7 @@ type Family = 'repairs' | 'tailoring' | 'print' | 'laundry';
 
 const HERO: Record<Family, { kicker: string; title: string; sub: string; cta: string; image: string; icon: IconName }> = {
   repairs: { kicker: 'Campus tech care', title: 'Laptop & phone repair', sub: 'Doorstep pickup. You approve the quote before any work.', cta: 'Book a repair', image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=900&q=80', icon: 'laptop-outline' },
-  tailoring: { kicker: 'Campus tailoring', title: 'Tailoring & alterations', sub: 'Alterations, fittings and stitching, collected from your hostel.', cta: 'Book a tailor', image: 'https://images.unsplash.com/photo-1528458909336-e7a0adfed0a5?w=900&q=80', icon: 'cut-outline' },
+  tailoring: { kicker: 'Campus tailoring', title: 'Tailoring & alterations', sub: 'Alterations, fittings and stitching, collected from your hostel.', cta: 'Book a tailor', image: 'https://images.unsplash.com/photo-1630930678172-63343537a00a?w=900&q=80', icon: 'cut-outline' },
   print: { kicker: 'Document hub', title: 'Print & binding', sub: 'Assignments, A3 drawings and thesis binding, delivered to your room.', cta: 'Send a print job', image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=900&q=80', icon: 'print-outline' },
   laundry: { kicker: 'Pickup & drop', title: 'Laundry & dry cleaning', sub: 'Washed, ironed and folded. Collected from your hostel.', cta: 'Schedule a pickup', image: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=900&q=80', icon: 'shirt-outline' },
 };
@@ -39,13 +39,16 @@ const TRUST: Record<Family, { icon: IconName; text: string }[]> = {
 
 const LIST_TITLE: Record<Family, string> = { repairs: 'Popular repairs', tailoring: 'All tailoring services', print: 'Prints and binding', laundry: 'Laundry services' };
 
-const SHELF_TITLE: Record<Family, string> = { repairs: 'Laptop & phone repair', tailoring: 'Stitching', print: 'Print & binding', laundry: 'Laundry' };
+const SHELF_TITLE: Record<Family, string> = { repairs: 'Laptop & phone repair', tailoring: 'Tailoring', print: 'Print & binding', laundry: 'Laundry' };
 
 interface Row extends BookableItem { storeId: string }
 
 export default function ServicesHome({ categoryId }: { categoryId: Family }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width: winW } = useWindowDimensions();
+  // The hero photo gives up width on narrow phones so the hero button keeps its label on one line.
+  const heroArtW = Math.round(Math.min(112, Math.max(88, (Math.min(winW, 720) - 32) * 0.3)));
   const family = familyOf(categoryId) as Family;
   const p = useServicePalette(family);
   const hero = HERO[family];
@@ -131,7 +134,7 @@ export default function ServicesHome({ categoryId }: { categoryId: Family }) {
         || items.find((i) => i.inStock !== false);
       if (main) openItem(main);
     } else {
-      openList(family === 'tailoring' ? 'Choose a service' : 'Choose a laundry service', items, family === 'laundry' ? 'Prices are set by each laundry partner.' : undefined);
+      openList(family === 'tailoring' ? 'Choose a tailoring service' : 'Choose a laundry service', items, family === 'laundry' ? 'Prices are set by each laundry partner.' : 'The tailor confirms the price before starting.');
     }
   };
 
@@ -158,7 +161,7 @@ export default function ServicesHome({ categoryId }: { categoryId: Family }) {
         accessibilityRole="button" accessibilityState={{ disabled: paused }}
         accessibilityLabel={`${it.name}, ${price.main}${price.note ? ` ${price.note}` : ''}${paused ? ', paused' : ''}`}
         style={[s.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.line }]}>
-        <View style={paused ? { opacity: 0.45 } : undefined}><Tile p={p} icon={ic.icon} color={ic.color} size={48} /></View>
+        <View style={paused ? { opacity: 0.45 } : undefined}><Tile p={p} icon={ic.icon} size={48} /></View>
         <View style={{ flex: 1 }}>
           <Text style={[s.rowTitle, { color: paused ? p.muted : p.text }]} numberOfLines={2}>{it.name}</Text>
           {it.desc ? <Text style={[s.rowSub, { color: p.sub }]} numberOfLines={2} ellipsizeMode="tail">{it.desc}</Text> : null}
@@ -208,11 +211,11 @@ export default function ServicesHome({ categoryId }: { categoryId: Family }) {
             <Text style={s.heroTitle}>{hero.title}</Text>
             <Text style={s.heroSub}>{hero.sub}</Text>
             <PressScale onPress={openHero} haptic disabled={loading && !items.length} accessibilityRole="button" accessibilityLabel={hero.cta} style={s.heroBtn}>
-              <Text style={[s.heroBtnText, { color: p.button }]}>{hero.cta}</Text>
+              <Text style={[s.heroBtnText, { color: p.button }]} numberOfLines={1}>{hero.cta}</Text>
               <Ionicons name="arrow-forward" size={16} color={p.button} />
             </PressScale>
           </View>
-          <View style={s.heroArt}>
+          <View style={[s.heroArt, { width: heroArtW }]}>
             <SafeImage source={{ uri: hero.image }} fallbackUri={items.find((i) => i.image)?.image || undefined} style={s.heroImg} maxWidth={500} placeholderIcon={hero.icon} />
           </View>
         </LinearGradient>
@@ -262,8 +265,8 @@ export default function ServicesHome({ categoryId }: { categoryId: Family }) {
                       <PressScale onPress={() => openList(g.label, rows)} haptic
                         accessibilityRole="button" accessibilityLabel={`${g.label}, ${g.sub}, ${fromPrice(rows)}`}
                         style={[s.catTile, { width: '100%', backgroundColor: p.card }, p.shadow]}>
-                        <View style={[s.catArt, { backgroundColor: hexAlpha(g.color, p.isDark ? 0.18 : 0.1) }]}>
-                          {img ? <SafeImage source={{ uri: img }} style={s.catImg} maxWidth={400} placeholderIcon={g.icon} /> : <Ionicons name={g.icon} size={34} color={g.color} />}
+                        <View style={[s.catArt, { backgroundColor: p.tint }]}>
+                          {img ? <SafeImage source={{ uri: img }} style={s.catImg} maxWidth={400} placeholderIcon={g.icon} /> : <Ionicons name={g.icon} size={34} color={p.accent} />}
                         </View>
                         <Text style={[s.catTitle, { color: p.text }]} numberOfLines={1}>{g.label}</Text>
                         <Text style={[s.catSub, { color: p.sub }]} numberOfLines={1}>{g.sub}</Text>
@@ -310,7 +313,8 @@ export default function ServicesHome({ categoryId }: { categoryId: Family }) {
           {others.map((k) => {
             const m = SERVICE_FAMILY_META[k];
             return (
-              <OtherTile key={k} family={k} title={m.short} sub={m.sub} icon={m.icon as IconName} onPress={() => router.push(`/category/${k}` as any)} />
+              // replace, not push: hopping between service pages never piles them up behind the back button
+              <OtherTile key={k} family={k} title={m.short} sub={m.sub} icon={m.icon as IconName} onPress={() => router.replace(`/category/${k}` as any)} />
             );
           })}
           <PressScale onPress={() => router.push({ pathname: '/(tabs)/orders', params: { segment: 'services' } } as any)}
@@ -361,11 +365,11 @@ const s = StyleSheet.create({
   headerTitle: { flex: 1, fontSize: 17, fontWeight: '700', textAlign: 'center' },
   body: { paddingHorizontal: 16, paddingTop: 6, width: '100%', maxWidth: 720, alignSelf: 'center' },
   hero: { borderRadius: 22, padding: 18, flexDirection: 'row', alignItems: 'center', minHeight: 176, overflow: 'hidden' },
-  heroKicker: { color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
+  heroKicker: { color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: '600' },
   heroTitle: { color: '#FFFFFF', fontSize: 22, fontWeight: '800', lineHeight: 27, marginTop: 4 },
   heroSub: { color: 'rgba(255,255,255,0.88)', fontSize: 13, lineHeight: 18, marginTop: 6 },
   heroBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: '#FFFFFF', borderRadius: 999, paddingHorizontal: 16, minHeight: 40, marginTop: 14 },
-  heroBtnText: { fontSize: 14, fontWeight: '800' },
+  heroBtnText: { fontSize: 14, fontWeight: '800', flexShrink: 1 },
   heroArt: { width: 112, height: 136, borderRadius: 18, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)' },
   heroImg: { width: '100%', height: '100%' },
   trust: { flexDirection: 'row', borderRadius: 16, paddingVertical: 12, marginTop: 12 },
@@ -374,7 +378,7 @@ const s = StyleSheet.create({
   sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 22, marginBottom: 10 },
   sectionTitle: { fontSize: 18, fontWeight: '800', marginTop: 22, marginBottom: 10 },
   sectionCount: { fontSize: 13, fontWeight: '600' },
-  groupLabel: { fontSize: 12, fontWeight: '700', marginBottom: 8, marginLeft: 4, textTransform: 'uppercase', letterSpacing: 0.4 },
+  groupLabel: { fontSize: 13, fontWeight: '600', marginBottom: 8, marginLeft: 4 },
   listCard: { borderRadius: 18, paddingHorizontal: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, minHeight: 76 },
   rowTitle: { fontSize: 15, fontWeight: '700' },

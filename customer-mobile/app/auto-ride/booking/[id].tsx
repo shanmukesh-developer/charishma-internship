@@ -117,7 +117,7 @@ export default function AutoBookingScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: p.bg }}>
-      <AHeader title={`Booking ${b.bookingCode}`} subtitle={b.type === 'PRIVATE' ? 'Full auto · Zenvy Auto' : 'Shared auto · Zenvy Auto'} right={<Badge label={`${m.icon} ${m.label.toUpperCase()}`} color={m.color} />} />
+      <AHeader title={`Booking ${b.bookingCode}`} subtitle={b.type === 'PRIVATE' ? 'Full auto · Zenvy Auto' : 'Shared auto · Zenvy Auto'} right={<Badge label={m.label} color={m.color} />} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}>
         {exception ? <Notice tone="danger">⚠️ {t?.statusLabel}. {b.cancelReason || ''} {b.refundAmount > 0 ? `Refund: ${inr(b.refundAmount)} to your Zenvy Wallet.` : ''}</Notice> : null}
         {tripStatus === 'DELAYED' ? <Notice tone="warn">⚠️ The auto is delayed{t?.delayMinutes ? ` by ${t.delayMinutes} min` : ''}. New departure: {fmtDeparture(t?.departureAt)}.</Notice> : null}

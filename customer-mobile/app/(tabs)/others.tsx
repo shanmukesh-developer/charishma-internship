@@ -245,6 +245,12 @@ const FOOD_HERO_IMG = 'https://images.unsplash.com/photo-1540420773420-3366772f4
 
 /** Tech & repairs search hints (the header search opens the repairs page with its search). */
 const SERVICE_SEARCH_HINTS = ["Search for 'laptop screen'", "Search for 'phone battery'", "Search for 'keyboard repair'", "Search for 'fan cleaning'"];
+/** PG stays and Co-Ride: the header search focuses the section's own search box (never the grocery search). */
+const PG_SEARCH_HINTS = ['Search PGs by area or name', "Search for 'girls PG'", "Search for 'Neerukonda'"];
+const CORIDE_SEARCH_HINTS = ['Search lifts by destination', "Search for 'Vijayawada'", "Search for 'Guntur'"];
+const EVENTS_SEARCH_HINTS = ['Search events and venues', "Search for 'hackathon'", "Search for 'cricket'"];
+/** Sections without a search of their own (Deals, Rentals): the search says what it searches. */
+const STORE_SEARCH_HINTS = ['Search the campus store'];
 /** Others header per section: Food & groceries' structure, each section in its own accent (deep tones for white text). */
 const SECTION_HEADER: Record<string, HeaderColors> = {
   food: FOOD_HEADER,
@@ -255,7 +261,7 @@ const SECTION_HEADER: Record<string, HeaderColors> = {
   neutral: { top: '#1B2433', bottom: '#263247', pillOnBg: '#F1F3F6', pillOnInk: '#1E293B' },
 };
 const SECTION_SUBTITLE: Record<string, string> = {
-  services: 'Campus services · Tech & repairs', pg: 'PG stays near campus', coride: 'Co-Ride · Lifts and autos',
+  services: 'Campus services', pg: 'PG stays near campus', coride: 'Co-Ride · Lifts and autos',
   rentals: 'Rentals', events: 'Campus events', promos: 'Deals & spin',
 };
 const SEARCH_PLACEHOLDERS = ["Search for 'rice'", "Search for 'chips'", "Search for 'curd'", "Search for 'atta'", "Search for 'ghee'", "Search for 'toys'", "Search for 'seeds'"];
@@ -394,6 +400,14 @@ const vaultDealTag = (item: any): string | null => {
   if (/free\s*delivery/i.test(String(item?.name || ''))) return 'Free delivery';
   const value = Math.max(0, (Number(item?.originalPrice) || 0) - (Number(item?.price) || 0));
   return value > 0 ? `${fmtPrice(value)} off` : null;
+};
+/** Minimum order for a coupon claimed from this deal, as the server sets it (routes/vaultRoutes.js
+ * vaultMinOrder): the deal's own minimum, else its original price. */
+const vaultMinOrder = (item: any): number => {
+  const own = Number(item?.minOrderValue);
+  if (Number.isFinite(own) && own > 0) return Math.round(own);
+  const mrp = Number(item?.originalPrice);
+  return Number.isFinite(mrp) && mrp > 0 ? Math.round(mrp) : 0;
 };
 /** Server prize text without the emoji ("10 ZenPoints 💎" -> "10 ZenPoints"). */
 const stripEmoji = (t: string) => String(t || '').replace(/[\uD800-\uDFFF\u2600-\u27BF\uFE0F]/g, '').replace(/\s+/g, ' ').trim();
@@ -543,6 +557,10 @@ export default function OthersScreen() {
   const [customItemPrice, setCustomItemPrice] = useState('');
   const [showCustomForm, setShowCustomForm] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  // Header search on PG stays / Co-Ride: bumped to focus that section's own search box.
+  const [sectionSearchTick, setSectionSearchTick] = useState(0);
+  // Deals / Rentals header search: open Food & groceries on its search screen (the store search lives there).
+  const [storeSearchOnOpen, setStoreSearchOnOpen] = useState(false);
   /** Y of the PG section inside the Others scroll view (PgListSection asks to scroll back to it). */
   const pgSectionYRef = useRef(0);
 
@@ -1970,7 +1988,7 @@ export default function OthersScreen() {
   if (activeTab === 'food') {
     return (
       <View style={{ flex: 1, backgroundColor: isDark ? '#09090B' : '#FFFFFF' }}>
-        <FoodV2Screen forceDark={isDark} sections={visibleTabs} onSection={selectTab} />
+        <FoodV2Screen forceDark={isDark} sections={visibleTabs} onSection={selectTab} openSearch={storeSearchOnOpen} onSearchOpened={() => setStoreSearchOnOpen(false)} />
       </View>
     );
   }
@@ -1985,9 +2003,19 @@ export default function OthersScreen() {
         compact={SW < 360}
         colors={SECTION_HEADER[activeTab] || SECTION_HEADER.neutral}
         subtitle={SECTION_SUBTITLE[activeTab] || 'Campus services'}
-        hints={activeTab === 'services' ? SERVICE_SEARCH_HINTS : SEARCH_PLACEHOLDERS}
-        searchLabel={activeTab === 'services' ? 'Search repairs' : 'Search groceries and essentials'}
-        onSearch={() => { if (activeTab === 'services') router.push('/category/repairs' as any); else setSelectedCategoryName(SEARCH_SHELF); }}
+        hints={activeTab === 'services' ? SERVICE_SEARCH_HINTS : activeTab === 'pg' ? PG_SEARCH_HINTS : activeTab === 'coride' ? CORIDE_SEARCH_HINTS : activeTab === 'events' ? EVENTS_SEARCH_HINTS : STORE_SEARCH_HINTS}
+        searchLabel={activeTab === 'services' ? 'Search repairs' : activeTab === 'pg' ? 'Search PGs by area or name' : activeTab === 'coride' ? 'Search lifts by destination' : activeTab === 'events' ? 'Search events and venues' : 'Search the campus store'}
+        onSearch={() => {
+          if (activeTab === 'services') { router.push('/category/repairs' as any); return; }
+          if (activeTab === 'pg' || activeTab === 'coride' || activeTab === 'events') {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+            setSectionSearchTick((n) => n + 1);
+            return;
+          }
+          // The grocery search sheet only exists in Food & groceries: go there, already searching.
+          setStoreSearchOnOpen(true);
+          selectTab('food');
+        }}
         pills={visibleTabs.map(t => [t.key, t.label] as [string, string])}
         active={activeTab}
         onPill={selectTab}
@@ -2066,7 +2094,7 @@ export default function OthersScreen() {
         {activeTab === 'rentals' && <RentalsSection />}
 
         {/* ── CAMPUS EVENTS TAB: discovery, registrations, tickets (only while the server enables it) ── */}
-        {activeTab === 'events' && campusEventsOn && <CampusEventsSection />}
+        {activeTab === 'events' && campusEventsOn && <CampusEventsSection focusSearchTick={sectionSearchTick} />}
 
         {/* ── PG STAYS TAB (modules/pg) ── */}
         {activeTab === 'pg' && (
@@ -2079,6 +2107,7 @@ export default function OthersScreen() {
               onRetry={() => fetchPGs()}
               // PG home <-> listing: bring the section's top back into view.
               onRequestTop={() => scrollViewRef.current?.scrollTo({ y: Math.max(0, pgSectionYRef.current - 8), animated: false })}
+              focusSearchTick={sectionSearchTick}
             />
           </View>
         )}
@@ -2117,6 +2146,7 @@ export default function OthersScreen() {
               onSafety={handleSOS}
               onPost={(role) => { setCreatorRole(role); openCreateRide(); }}
               onSignIn={() => router.push('/login' as any)}
+              focusSearchTick={sectionSearchTick}
             />
           </View>
         )}
@@ -2398,7 +2428,10 @@ export default function OthersScreen() {
             const steps = [
               streak > 0 ? `Keep a ${streak}-day order streak (order on consecutive days).` : null,
               'Tap "Claim deal". You get your own coupon code.',
-              'Apply the code at checkout. It works until midnight today.',
+              // The server refuses the code below the deal's minimum order, so say it before checkout does.
+              vaultMinOrder(dealDetail) > 0
+                ? `Apply the code at checkout on an order of ${fmtPrice(vaultMinOrder(dealDetail))} or more. It works until midnight today.`
+                : 'Apply the code at checkout. It works until midnight today.',
             ].filter(Boolean) as string[];
             return (
               <View style={[s.ddSheet, { backgroundColor: cardSurface }]}>

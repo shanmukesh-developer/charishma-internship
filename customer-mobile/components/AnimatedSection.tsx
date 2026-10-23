@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, Easing, StyleSheet, ViewStyle, StyleProp, Dimensions, Platform } from 'react-native';
+import { View, Animated, Easing, StyleSheet, ViewStyle, StyleProp, Dimensions, Platform, type LayoutChangeEvent } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useReduceMotion, isReduceMotionOn } from '../utils/reduceMotion';
 
@@ -205,9 +205,11 @@ interface FloatingPulseProps {
   children: React.ReactNode;
   color?: string;
   style?: StyleProp<ViewStyle>;
+  /** Size of the floating bar, so a screen can keep its scroll content clear of it. */
+  onLayout?: (e: LayoutChangeEvent) => void;
 }
 
-export function FloatingPulse({ children, color = '#EF4F5F', style }: FloatingPulseProps) {
+export function FloatingPulse({ children, color = '#EF4F5F', style, onLayout }: FloatingPulseProps) {
   const breathScale = useRef(new Animated.Value(1)).current;
   const breathOpacity = useRef(new Animated.Value(0.15)).current;
   const reduce = useReduceMotion();
@@ -235,7 +237,7 @@ export function FloatingPulse({ children, color = '#EF4F5F', style }: FloatingPu
   }, [reduce]);
 
   return (
-    <View style={[{ position: 'relative' }, style]}>
+    <View style={[{ position: 'relative' }, style]} onLayout={onLayout}>
       <Animated.View
         pointerEvents="none"
         style={{

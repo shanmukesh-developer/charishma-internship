@@ -23,7 +23,7 @@ import {
   type MyPgBooking, type PgDetail, type PgPhoto, type PgReviewEligibility, type PgRoomType, type SectionKey,
 } from '../../modules/pg/pgApi';
 import {
-  usePgPalette, PgHeader, Press, Divider, Skeleton, StateMessage, PgImage, PG_HOME, TYPE, amenityIcon, amenityLabel,
+  usePgPalette, PgHeader, Press, Divider, Skeleton, StateMessage, PgImage, PG_HOME, TYPE, amenityIcon, amenityLabel, cleanAmenities,
   IconMessage, IconAlert, IconShare, IconStar, IconMapPin, IconArrowLeft, IconCheck, IconBed, IconCalendarDays, IconWallet,
   IconClipboard, ICON, s as ui,
 } from '../../modules/pg/ui';
@@ -40,6 +40,14 @@ import { formatISTDate } from '../../utils/format';
 /** Local (device-time) YYYY-MM-DD, so the default is never "yesterday" before 5:30 AM IST. */
 function toLocalYmd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+/** First move-in date to suggest: today until 6 PM, tomorrow after that (the housing team calls to
+ * confirm the bed first, so a move-in "today" chosen late at night cannot happen). */
+function defaultCheckInYmd(now = new Date()): string {
+  if (now.getHours() < 18) return toLocalYmd(now);
+  const t = new Date(now);
+  t.setDate(t.getDate() + 1);
+  return toLocalYmd(t);
 }
 /** Next 30 days, starting today, for the move-in date picker. */
 function buildCheckInOptions(): { ymd: string; top: string; bottom: string }[] {
@@ -96,7 +104,7 @@ export default function PGDetailScreen() {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [checkInOptions] = useState(buildCheckInOptions);
-  const [checkInDate, setCheckInDate] = useState(() => toLocalYmd(new Date()));
+  const [checkInDate, setCheckInDate] = useState(() => defaultCheckInYmd());
   const [sending, setSending] = useState(false);
   const sendingRef = useRef(false);
 
@@ -129,7 +137,7 @@ export default function PGDetailScreen() {
       const res = await apiFetch(ENDPOINTS.pgDetail(pgId));
       const data = await readJson(res);
       if (!mounted.current) return;
-      if (res.ok && data && data.id) { setPg(data); setLoadError(null); }
+      if (res.ok && data && data.id) { setPg({ ...data, amenities: cleanAmenities(data.amenities) }); setLoadError(null); }
       else if (res.status === 404) { setPg(null); setLoadError('notfound'); }
       else if (!pgRef.current) setLoadError('error');
     } catch {
@@ -650,7 +658,7 @@ function BookingSummary({ pg, bookable, selected, onSelect, cover, photosByType,
                   {photosByType[t.key]?.[0] ? <PgImage uri={photosByType[t.key][0].url} style={{ width: 40, height: 40, borderRadius: 8 }} recyclingKey={`sumr-${t.key}`} priority="low" /> : null}
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={[ui.body, { color: p.text, fontWeight: on ? '600' : '400' }]} numberOfLines={1}>{roomTitle(t)}</Text>
-                    <Text style={[ui.small, { color: p.muted }]} numberOfLines={1}>{roomFacts(t)}</Text>
+                    <Text style={[ui.small, { color: p.muted }]} numberOfLines={2}>{roomFacts(t)}</Text>
                   </View>
                   <Text style={[ui.body, { color: on ? p.accent : p.text, fontWeight: '600' }]}>{rentText(t)}</Text>
                 </Press>

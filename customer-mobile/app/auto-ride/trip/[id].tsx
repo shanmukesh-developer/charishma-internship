@@ -573,7 +573,7 @@ export default function AutoTripScreen() {
 
 const ts = StyleSheet.create({
   h1: { fontSize: 22, fontWeight: '800', textAlign: 'center' },
-  kicker: { fontSize: 12, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
+  kicker: { fontSize: 13, fontWeight: '600' },
   halo: { width: 128, height: 128, borderRadius: 64, alignItems: 'center', justifyContent: 'center' },
   dot: { width: 82, height: 82, borderRadius: 41, alignItems: 'center', justifyContent: 'center' },
   cardTitle: { fontSize: 16, fontWeight: '800' },

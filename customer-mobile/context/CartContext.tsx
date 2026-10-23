@@ -113,6 +113,8 @@ interface CartContextType {
   /** The basket that got the most recent new line (null when all are empty). */
   lastAddedBasket: BasketKind | null;
   lastAddedAt: number;
+  /** True once the saved baskets have been read from storage (before that every basket looks empty). */
+  cartLoaded: boolean;
   /** Empties one basket only. */
   clearBasket: (kind: BasketKind) => void;
   /** Adds the item to its basket. Returns false when that basket holds another store's items (a "Replace basket?" prompt is shown instead). */
@@ -729,9 +731,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const state = useMemo<CartState>(() => ({
     cart, quantityOf, totalItems, totalPrice,
-    baskets, basketCounts, basketTotals, activeBasket, lastAddedBasket, lastAddedAt,
+    baskets, basketCounts, basketTotals, activeBasket, lastAddedBasket, lastAddedAt, cartLoaded: isLoaded,
     roomCode, isHosting, isJoined, roomStatus, roomMessage,
-  }), [cart, quantityOf, totalItems, totalPrice, baskets, basketCounts, basketTotals, activeBasket, lastAddedBasket, lastAddedAt,
+  }), [cart, quantityOf, totalItems, totalPrice, baskets, basketCounts, basketTotals, activeBasket, lastAddedBasket, lastAddedAt, isLoaded,
     roomCode, isHosting, isJoined, roomStatus, roomMessage]);
 
   return (

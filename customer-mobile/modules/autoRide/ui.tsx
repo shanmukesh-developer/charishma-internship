@@ -179,7 +179,7 @@ export function Tabs<T extends string>({ options, value, onChange, label }: { op
         return (
           <PressScale key={o.key} onPress={() => onChange(o.key)} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={o.label}
             style={[s.tab, on && { backgroundColor: p.button }]}>
-            <Text style={{ fontSize: 13, fontWeight: on ? '800' : '600', color: on ? '#FFFFFF' : p.sub }} numberOfLines={1}>{o.label}</Text>
+            <Text style={{ fontSize: 13, fontWeight: on ? '700' : '600', color: on ? '#FFFFFF' : p.sub }} numberOfLines={1}>{o.label}</Text>
           </PressScale>
         );
       })}
@@ -422,7 +422,7 @@ export const refreshAutoRideStatus = async () => {
 export function AutoHero({ title, subtitle, kicker = 'Zenvy Auto · verified drivers' }: { title: string; subtitle: string; kicker?: string }) {
   return (
     <LinearGradient colors={AUTO_GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
-      <Text style={{ fontSize: 12, fontWeight: '800', color: 'rgba(255,255,255,0.85)', letterSpacing: 0.4, textTransform: 'uppercase' }}>{kicker}</Text>
+      <Text style={{ fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.85)' }}>{kicker}</Text>
       <Text style={{ fontSize: 20, fontWeight: '800', color: '#fff', marginTop: 4 }}>{title}</Text>
       <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 5, lineHeight: 18 }}>{subtitle}</Text>
     </LinearGradient>
@@ -455,7 +455,8 @@ export const s = StyleSheet.create({
   hint: { fontSize: 12, marginTop: 6 },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, minHeight: 38, justifyContent: 'center', alignItems: 'center' },
   tabs: { flexDirection: 'row', borderRadius: 14, borderWidth: 1, padding: 4, gap: 4 },
-  tab: { flex: 1, minHeight: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  // Width follows the label (equal widths cut "On charge" / "My bookings" to "On char…" on a 360 px phone).
+  tab: { flexGrow: 1, flexShrink: 1, flexBasis: 'auto', minHeight: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 14, padding: 12, marginBottom: 12 },
   track: { width: 42, height: 24, borderRadius: 12, padding: 3, justifyContent: 'center' },
   knob: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff' },

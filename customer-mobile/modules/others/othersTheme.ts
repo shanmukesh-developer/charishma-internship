@@ -22,13 +22,15 @@ export interface Accent {
   tint: { light: string; dark: string };
 }
 
+// Tailoring, print and laundry live under the Tech & repairs pill, so they wear its purple (owner rule:
+// each Others section keeps one accent; green is Food's, blue is PG / Co-Ride / Auto's).
 export const ACCENTS: Record<OthersSection, Accent> = {
   food: { solid: '#1E8E3E', deep: '#146C2E', ink: { light: '#1E8E3E', dark: '#5CCB85' }, tint: { light: '#E7F4EA', dark: 'rgba(76,193,122,0.14)' } },
   services: { solid: '#5B4CF0', deep: '#3B2FC4', ink: { light: '#5B4CF0', dark: '#A49BFF' }, tint: { light: '#EFEDFF', dark: 'rgba(164,155,255,0.15)' } },
   repairs: { solid: '#5B4CF0', deep: '#3B2FC4', ink: { light: '#5B4CF0', dark: '#A49BFF' }, tint: { light: '#EFEDFF', dark: 'rgba(164,155,255,0.15)' } },
-  tailoring: { solid: '#17784A', deep: '#0F5A36', ink: { light: '#17784A', dark: '#5FD49A' }, tint: { light: '#E7F5EE', dark: 'rgba(95,212,154,0.15)' } },
-  print: { solid: '#0F766E', deep: '#0A554F', ink: { light: '#0F766E', dark: '#4FD1C5' }, tint: { light: '#E3F4F2', dark: 'rgba(79,209,197,0.15)' } },
-  laundry: { solid: '#2563EB', deep: '#1E40AF', ink: { light: '#2563EB', dark: '#7CA8FF' }, tint: { light: '#EAF1FF', dark: 'rgba(124,168,255,0.15)' } },
+  tailoring: { solid: '#5B4CF0', deep: '#3B2FC4', ink: { light: '#5B4CF0', dark: '#A49BFF' }, tint: { light: '#EFEDFF', dark: 'rgba(164,155,255,0.15)' } },
+  print: { solid: '#5B4CF0', deep: '#3B2FC4', ink: { light: '#5B4CF0', dark: '#A49BFF' }, tint: { light: '#EFEDFF', dark: 'rgba(164,155,255,0.15)' } },
+  laundry: { solid: '#5B4CF0', deep: '#3B2FC4', ink: { light: '#5B4CF0', dark: '#A49BFF' }, tint: { light: '#EFEDFF', dark: 'rgba(164,155,255,0.15)' } },
   pg: { solid: '#2563EB', deep: '#1E40AF', ink: { light: '#2563EB', dark: '#60A5FA' }, tint: { light: '#EBF2FF', dark: 'rgba(96,165,250,0.14)' } },
   coride: { solid: '#2563EB', deep: '#1E40AF', ink: { light: '#2563EB', dark: '#7CA8FF' }, tint: { light: '#EAF1FF', dark: 'rgba(124,168,255,0.15)' } },
   auto: { solid: '#2563EB', deep: '#1E40AF', ink: { light: '#2563EB', dark: '#7CA8FF' }, tint: { light: '#EAF1FF', dark: 'rgba(124,168,255,0.15)' } },

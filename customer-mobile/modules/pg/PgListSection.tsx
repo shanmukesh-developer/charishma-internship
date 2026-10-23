@@ -66,10 +66,12 @@ const openDesk = (text: string) => Linking.openURL(desk(text)).catch(() => Alert
 
 type Tile = { key: string; icon: LucideIcon; title: string; detail: string; filters: Partial<Filters> };
 
-export function PgListSection({ pgs, home, loading, error, onRetry, onRequestTop }: {
+export function PgListSection({ pgs, home, loading, error, onRetry, onRequestTop, focusSearchTick = 0 }: {
   pgs: PgListItem[]; home?: PgHome | null; loading: boolean; error: string | null; onRetry: () => void;
   /** Called after switching between the PG home and the listing, so the parent can scroll the section's top into view. */
   onRequestTop?: () => void;
+  /** Bumped by the Others header search: open the PG home and focus "Area or PG name". */
+  focusSearchTick?: number;
 }) {
   const p = usePgPalette();
   const router = useRouter();
@@ -96,6 +98,17 @@ export function PgListSection({ pgs, home, loading, error, onRetry, onRequestTop
   const reset = () => { setQuery(''); setFilters(NO_FILTERS); };
   const open = (id: string) => router.push(`/pg/${id}` as any);
   const showList = () => setView('list');
+
+  const searchRef = useRef<TextInput>(null);
+  // Only a press after this screen mounted counts (a remount keeps the last value and must not focus).
+  const seenTickRef = useRef(focusSearchTick);
+  useEffect(() => {
+    if (focusSearchTick === seenTickRef.current) return;
+    seenTickRef.current = focusSearchTick;
+    setView('home');
+    const t = setTimeout(() => searchRef.current?.focus(), 60);
+    return () => clearTimeout(t);
+  }, [focusSearchTick]);
 
   // Home <-> listing: ask the parent (Others scroll view) to bring the section's top back into view.
   const firstViewRef = useRef(true);
@@ -133,7 +146,8 @@ export function PgListSection({ pgs, home, loading, error, onRetry, onRequestTop
     const out: Tile[] = [];
     const nearKm = count({ distance: '1' }) ? '1' : '3';
     const near = count({ distance: nearKm });
-    if (near) out.push({ key: 'near', icon: IconGraduation, title: 'Near campus', detail: `${plural(near, 'PG')} · ${nearKm} km`, filters: { distance: nearKm, sort: 'near' } });
+    // Named by its distance: the "Near campus" rail below is a different list (within 2 km).
+    if (near) out.push({ key: 'near', icon: IconGraduation, title: `Within ${nearKm} km`, detail: plural(near, 'PG'), filters: { distance: nearKm, sort: 'near' } });
     const budgetKey = count({ budget: '6000' }) ? '6000' : '8000';
     const cheap = count({ budget: budgetKey });
     if (cheap) out.push({ key: 'budget', icon: IconWallet, title: 'Budget friendly', detail: `Up to ${inr(Number(budgetKey))}`, filters: { budget: budgetKey, sort: 'price' } });
@@ -229,6 +243,7 @@ export function PgListSection({ pgs, home, loading, error, onRetry, onRequestTop
           <View style={[st.field, { backgroundColor: p.sunken }]}>
             <IconMapPin size={ICON.size} color={p.accent} strokeWidth={ICON.stroke} />
             <TextInput
+              ref={searchRef}
               value={query}
               onChangeText={setQuery}
               placeholder="Area or PG name"

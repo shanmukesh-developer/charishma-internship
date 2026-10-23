@@ -4,7 +4,7 @@
  * screen-local state only: the ride lists, API calls and confirmations stay in app/(tabs)/others.tsx
  * and arrive here as props. Zenvy Auto renders its own section (passed in) while it is switched on.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput } from 'react-native';
 import { PressScale, FadeInUp } from '../others/motion';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -50,6 +50,8 @@ export interface CoRideHubProps {
   /** Open "Post a ride" as a host with seats (rider) or as a student asking for a lift (passenger). */
   onPost: (role: 'rider' | 'passenger') => void;
   onSignIn: () => void;
+  /** Bumped by the Others header search: focus this screen's destination search. */
+  focusSearchTick?: number;
 }
 
 export default function CoRideHub(props: CoRideHubProps) {
@@ -57,7 +59,7 @@ export default function CoRideHub(props: CoRideHubProps) {
     myId, karma, autoRideOn, autoSection, corideTab, setCorideTab, rides, loadingRides, rideError, onRetryRides,
     myRides, myRideGroups, loadingMyRides, myRidesError, onRetryMyRides, myJoinStatus, rideActionBusy,
     vehicleFilter, setVehicleFilter, goingTo, setGoingTo, onJoin, onApprove, onDecline, onComplete, onCancel,
-    onWhatsApp, onSafety, onPost, onSignIn,
+    onWhatsApp, onSafety, onPost, onSignIn, focusSearchTick = 0,
   } = props;
   const p = useCoRidePalette();
   const [query, setQuery] = useState('');
@@ -67,6 +69,20 @@ export default function CoRideHub(props: CoRideHubProps) {
 
   const mode: 'pool' | 'auto' = corideTab === 'auto' ? 'auto' : 'pool';
   const q = query.trim().toLowerCase();
+
+  // The search finds lifts (Co-ride pool) by destination or pickup; typing or the header search opens
+  // the lifts list, also from Auto or My rides, so the box is never a dead control.
+  const searchRef = useRef<TextInput>(null);
+  // Only a press after this screen mounted counts (a remount keeps the last value and must not focus).
+  const seenTickRef = useRef(focusSearchTick);
+  useEffect(() => {
+    if (focusSearchTick === seenTickRef.current) return;
+    seenTickRef.current = focusSearchTick;
+    if (corideTab !== 'browse') setCorideTab('browse');
+    const t = setTimeout(() => searchRef.current?.focus(), 60);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusSearchTick]);
 
   // Find a lift = students offering seats; Give a lift = students asking for one.
   const kindRides = useMemo(() => rides.filter((r) => (kind === 'give' ? r.creatorRole === 'passenger' : r.creatorRole !== 'passenger')), [rides, kind]);
@@ -87,9 +103,10 @@ export default function CoRideHub(props: CoRideHubProps) {
     <View style={[s.search, { backgroundColor: p.surface }, p.shadow]}>
       <Ionicons name="search" size={18} color={p.sub} />
       <TextInput
+        ref={searchRef}
         value={query}
-        onChangeText={(t) => { setQuery(t); if (mode === 'auto') return; if (corideTab !== 'browse') setCorideTab('browse'); }}
-        placeholder="Search a destination or pickup"
+        onChangeText={(t) => { setQuery(t); if (corideTab !== 'browse') setCorideTab('browse'); }}
+        placeholder={mode === 'auto' ? 'Search lifts by destination' : 'Search a destination or pickup'}
         placeholderTextColor={p.muted}
         style={[s.searchInput, { color: p.text }]}
         maxLength={60}
@@ -183,10 +200,11 @@ export default function CoRideHub(props: CoRideHubProps) {
               </LinearGradient>
             </PressScale>
             <PressScale onPress={() => onPost('rider')} accessibilityRole="button" accessibilityLabel="Give a lift? Offer seats and share the fuel cost" style={{ flex: 1 }}>
-              <View style={[s.quick, { backgroundColor: p.isDark ? 'rgba(52,211,153,0.14)' : '#E3F6EC' }]}>
-                <Text style={[s.quickTitle, { color: p.isDark ? '#A7F3D0' : '#065F46' }]}>Give a lift?</Text>
-                <Text style={[s.quickSub, { color: p.isDark ? '#6EE7B7' : '#047857' }]}>Offer seats, share the fuel cost</Text>
-                <View style={[s.quickArrow, { backgroundColor: p.isDark ? '#047857' : '#FFFFFF' }]}><Ionicons name="arrow-forward" size={16} color={p.isDark ? '#FFFFFF' : '#047857'} /></View>
+              {/* Co-Ride blue (soft), the partner of the solid "Need a lift?" card: one accent per section */}
+              <View style={[s.quick, { backgroundColor: p.accentSoft }]}>
+                <Text style={[s.quickTitle, { color: p.accent }]}>Give a lift?</Text>
+                <Text style={[s.quickSub, { color: p.sub }]}>Offer seats, share the fuel cost</Text>
+                <View style={[s.quickArrow, { backgroundColor: p.isDark ? p.button : '#FFFFFF' }]}><Ionicons name="arrow-forward" size={16} color={p.isDark ? '#FFFFFF' : p.accent} /></View>
               </View>
             </PressScale>
           </View>
