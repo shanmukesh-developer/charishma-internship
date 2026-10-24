@@ -217,7 +217,7 @@ const mergeInto = (prev: CartItem[], line: CartItem): CartItem[] => {
   if (existing) {
     return prev.map((i) =>
       i.cartKey === line.cartKey
-        ? { ...i, quantity: Math.min(MAX_ITEM_QTY, i.quantity + line.quantity) }
+        ? { ...i, quantity: Math.min(MAX_ITEM_QTY, i.quantity + line.quantity), addedAt: line.addedAt }
         : i
     );
   }
@@ -667,7 +667,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       Alert.alert('That’s the limit', `You can order up to ${MAX_ITEM_QTY} of one item per order.`);
       qty = MAX_ITEM_QTY;
     }
-    setCart((prev) => prev.map((i) => (i.cartKey === cartKey ? { ...i, quantity: qty } : i)));
+    // A higher quantity counts as an add (lastAddedAt drives each page's "added" bar).
+    setCart((prev) => prev.map((i) => (i.cartKey === cartKey ? { ...i, quantity: qty, ...(qty > i.quantity ? { addedAt: Date.now() } : {}) } : i)));
   }, [setCart]);
 
   const updateCustomName = useCallback((cartKey: string, name: string) => {

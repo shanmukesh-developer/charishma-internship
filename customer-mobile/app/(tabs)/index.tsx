@@ -11,7 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SHADOWS, RADIUS, surfaceLift, surfaceShadow, LIGHT_HAIRLINE } from '../../constants/theme';
 import { API_URL, ENDPOINTS } from '../../constants/api';
 import { useAuth } from '../../context/AuthContext';
-import { useCartState } from '../../context/CartContext';
+import { useCartState, type BasketKind } from '../../context/CartContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useDietary } from '../../context/DietaryContext';
 import { apiFetch } from '../../utils/auth';
@@ -270,16 +270,24 @@ const hasDietTag = (r: any, kw: string): boolean => {
     availableMenu(r).some((i: any) => (i.name || '').toLowerCase().includes(kw) || (i.category || '').toLowerCase().includes(kw) || has(i.tags));
 };
 
-/** Floating "N items added" bar: reads the basket totals itself so an ADD doesn't re-render the whole Home screen. */
-const HomeFloatingCart = React.memo(function HomeFloatingCart({ isDark, txt, onOpen }: { isDark: boolean; txt: string; onOpen: () => void }) {
-  const { totalItems, totalPrice } = useCartState();
+/**
+ * Floating "N items added" bar: reads the basket totals itself so an ADD doesn't re-render the whole Home screen.
+ * Owner rule: every page keeps to its own basket. Home shows the bar only for a basket the student added to ON Home
+ * during this visit (lastAddedAt after Home gained focus), never items added on a stall, restaurant or store page.
+ */
+const HomeFloatingCart = React.memo(function HomeFloatingCart({ isDark, txt, onOpen, focusedAt }: { isDark: boolean; txt: string; onOpen: (kind: BasketKind) => void; focusedAt: number }) {
+  const { basketCounts, basketTotals, lastAddedBasket, lastAddedAt } = useCartState();
+  const kind = lastAddedBasket;
+  if (!kind || !(lastAddedAt >= focusedAt)) return null;
+  const totalItems = basketCounts[kind];
+  const totalPrice = basketTotals[kind];
   if (!(totalItems > 0)) return null;
   return (
     <View style={s.floatingCartWrap} pointerEvents="box-none">
       <TouchableOpacity
         activeOpacity={0.92}
         style={[s.floatingCartBar, { backgroundColor: isDark ? '#1C1917' : '#FFFFFF', borderColor: isDark ? COLORS.gold : COLORS.red }]}
-        onPress={onOpen}
+        onPress={() => onOpen(kind)}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
           <View style={[s.floatingCartBadge, { backgroundColor: isDark ? COLORS.gold : COLORS.red }]}>
@@ -687,7 +695,10 @@ export default function HomeScreen() {
 
   const cardBg = isDark ? 'rgba(255, 255, 255, 0.08)' : colors.card;
   const txt = colors.text;
-  const openBasket = useCallback(() => router.push('/(tabs)/basket' as any), [router]);
+  const openBasket = useCallback((kind: BasketKind) => router.push(`/(tabs)/basket?basket=${kind}` as any), [router]);
+  // When Home last came into focus: its "added" bar only counts adds made on Home after this moment.
+  const [homeFocusedAt, setHomeFocusedAt] = useState(() => Date.now());
+  useFocusEffect(useCallback(() => { setHomeFocusedAt(Date.now()); }, []));
   const txtSec = colors.textSecondary;
   const border = isDark ? COLORS.borderGold : colors.border;
   const bg = colors.bg;
@@ -1572,7 +1583,7 @@ export default function HomeScreen() {
       <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 
       {/* ── FLOATING BOTTOM BASKET BAR (its own component: a basket change re-renders only it) ── */}
-      <HomeFloatingCart isDark={isDark} txt={txt} onOpen={openBasket} />
+      <HomeFloatingCart isDark={isDark} txt={txt} onOpen={openBasket} focusedAt={homeFocusedAt} />
 
       {/* ── Floating chat button: opens Campus (same place as the Campus pill) ── */}
       <FloatingPulse color={COLORS.red} style={s.fabBtnWrap}>
