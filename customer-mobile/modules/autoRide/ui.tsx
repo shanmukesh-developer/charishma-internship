@@ -357,6 +357,8 @@ export function useNow(ms = 1000, enabled = true) {
  * user's own room), when any trip's public listing changed (`data:changed` type 'auto_trip'), and after a
  * reconnect. Payloads are ids only; screens refetch through REST.
  */
+const RECONNECT_REFETCH_MS = 15000;
+
 export function useAutoRideLive(onChange: (e: { kind?: string; id?: string | null; status?: string }) => void, enabled = true) {
   const ref = useRef(onChange);
   ref.current = onChange;
@@ -374,7 +376,17 @@ export function useAutoRideLive(onChange: (e: { kind?: string; id?: string | nul
     const onAuto = (e: any) => fire(e && typeof e === 'object' ? e : {});
     const onData = (e: any) => { if (e && e.type === 'auto_trip') fire({ kind: 'trip', id: e.id }); };
     let connectedOnce = socket.connected;
-    const onConnect = () => { if (connectedOnce) fire({ kind: 'reconnect' }); connectedOnce = true; };
+    // A flapping connection (bad network, proxy without websockets) reconnects every few seconds; refetching on
+    // each one sent hundreds of requests. Catch up at most once per RECONNECT_REFETCH_MS; real nudges are not limited.
+    let lastReconnectFire = 0;
+    const onConnect = () => {
+      const now = Date.now();
+      if (connectedOnce && now - lastReconnectFire >= RECONNECT_REFETCH_MS) {
+        lastReconnectFire = now;
+        fire({ kind: 'reconnect' });
+      }
+      connectedOnce = true;
+    };
     socket.on('autoride:changed', onAuto);
     socket.on('data:changed', onData);
     socket.on('connect', onConnect);

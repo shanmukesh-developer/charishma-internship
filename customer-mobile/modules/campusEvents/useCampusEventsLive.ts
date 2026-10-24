@@ -26,7 +26,13 @@ export function useCampusEventsLive(onChange: (e: CampusEventLiveEvent) => void,
     const onMine = (e: any) => fire(e && typeof e === 'object' ? e : {});
     const onData = (e: any) => { if (e && e.type === 'campus_event') fire({ kind: 'event', id: e.id || null }); };
     let connectedOnce = socket.connected;
-    const onConnect = () => { if (connectedOnce) fire({ kind: 'reconnect' }); connectedOnce = true; };
+    // Catch up after a reconnect at most once per 15 s: a flapping connection must not turn into a request storm.
+    let lastReconnectFire = 0;
+    const onConnect = () => {
+      const now = Date.now();
+      if (connectedOnce && now - lastReconnectFire >= 15000) { lastReconnectFire = now; fire({ kind: 'reconnect' }); }
+      connectedOnce = true;
+    };
     socket.on('campus_event:changed', onMine);
     socket.on('data:changed', onData);
     socket.on('connect', onConnect);
