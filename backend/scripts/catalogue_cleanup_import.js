@@ -12,6 +12,9 @@
 // v3 (data/catalogue_cleanup_v3_2026-10-24.json, marker CATALOGUE_CLEANUP_V3_DONE): the owner asked for a
 // Pickles category in Others > Food & groceries; the catalogue had none, so v3 adds reviewed pickle
 // products to the campus grocery store with the `create` op.
+// v4 (data/catalogue_cleanup_v4_2026-10-24.json, marker CATALOGUE_CLEANUP_V4_DONE): the owner asked for a
+// Gifts & toys category; toys already exist (Toy Mania) but gifts did not, so v4 adds reviewed, shelf-stable
+// gift items (category Gifts) to Toy Mania with the same `create` op. Runs after v3.
 //
 // Each data file lists explicit, reviewed operations keyed by row id, built from a read-only snapshot of
 // the live public catalogue. Rules:
@@ -38,8 +41,10 @@ const V2_DATA_PATH = path.join(__dirname, '..', 'data', 'catalogue_cleanup_v2_20
 const V2_MARKER = 'CATALOGUE_CLEANUP_V2_DONE';
 const V3_DATA_PATH = path.join(__dirname, '..', 'data', 'catalogue_cleanup_v3_2026-10-24.json');
 const V3_MARKER = 'CATALOGUE_CLEANUP_V3_DONE';
+const V4_DATA_PATH = path.join(__dirname, '..', 'data', 'catalogue_cleanup_v4_2026-10-24.json');
+const V4_MARKER = 'CATALOGUE_CLEANUP_V4_DONE';
 /** Every version, oldest first (runCatalogueCleanups runs them in this order). */
-const VERSIONS = [DATA_PATH, V2_DATA_PATH, V3_DATA_PATH];
+const VERSIONS = [DATA_PATH, V2_DATA_PATH, V3_DATA_PATH, V4_DATA_PATH];
 const OPS = new Set(['rename', 'setCategory', 'setPrice', 'setOriginalPrice', 'clearOriginalPrice', 'setWeight', 'setBrand', 'setImage', 'setDescription', 'hide']);
 const VAULT_OPS = new Set(['rename']);
 const MAX_DESCRIPTION = 500;
@@ -316,7 +321,7 @@ const runCatalogueCleanup = async ({ dataPath = DATA_PATH } = {}) => {
   return result;
 };
 
-/** Runs every clean-up version in order (v1, v2, then v3); each one is skipped once its marker exists. */
+/** Runs every clean-up version in order (v1, v2, v3, then v4); each one is skipped once its marker exists. */
 const runCatalogueCleanups = async () => {
   const out = {};
   for (const dataPath of VERSIONS) {
@@ -326,7 +331,7 @@ const runCatalogueCleanups = async () => {
   return out;
 };
 
-module.exports = { runCatalogueCleanup, runCatalogueCleanups, buildUpdate, buildVaultUpdate, buildCreate, DATA_PATH, DEFAULT_MARKER, V2_DATA_PATH, V2_MARKER, V3_DATA_PATH, V3_MARKER, VERSIONS };
+module.exports = { runCatalogueCleanup, runCatalogueCleanups, buildUpdate, buildVaultUpdate, buildCreate, DATA_PATH, DEFAULT_MARKER, V2_DATA_PATH, V2_MARKER, V3_DATA_PATH, V3_MARKER, V4_DATA_PATH, V4_MARKER, VERSIONS };
 
 // CLI: node scripts/catalogue_cleanup_import.js  (uses the same DATABASE_URL as the server)
 if (require.main === module) {

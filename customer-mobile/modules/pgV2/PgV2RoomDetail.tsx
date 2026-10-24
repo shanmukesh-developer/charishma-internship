@@ -3,9 +3,10 @@
  * room type: beds, bath, AC, balcony, furnishing, plus the building's Wi-Fi), Room Photos and
  * "Request to Book". Room size is not stored yet, so it is not shown.
  */
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, useWindowDimensions, Animated, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import StatusBarScrim from '../../components/StatusBarScrim';
 import type { LucideIcon } from 'lucide-react-native';
 import { PG2, GUTTER, W, shadow } from './pgV2Theme';
 import { Tap, FloatBtn, Photo, SectionTitle, PrimaryButton, EmptyState, Loading, Pill, k } from './PgV2Kit';
@@ -38,6 +39,9 @@ export default function PgV2RoomDetail() {
   const { width } = useWindowDimensions();
   const { pg, state } = usePgDetail(id);
   const [index, setIndex] = useState(0);
+  // The photo sits under the status bar; once the sheet scrolls up to it, white goes behind the clock.
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const photoH = Math.round(width * 0.66) + insets.top;
 
   if (state === 'loading') return <View style={st.page}><Loading /></View>;
   const t = pg ? pg.roomTypes.find((x) => x.key === nav.route.roomKey) || pg.roomTypes[0] : null;
@@ -58,9 +62,10 @@ export default function PgV2RoomDetail() {
 
   return (
     <View style={st.page}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 110 + insets.bottom }}>
+      <Animated.ScrollView contentContainerStyle={{ paddingBottom: 110 + insets.bottom }} scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: Platform.OS !== 'web' })}>
         <View>
-          <Photo photo={photos[index]} style={{ width, height: Math.round(width * 0.66) + insets.top }} radius={0} priority="high" />
+          <Photo photo={photos[index]} style={{ width, height: photoH }} radius={0} priority="high" />
           <View style={[st.float, { top: insets.top + 12 }]}>
             <FloatBtn icon={IArrowLeft} label="Back" onPress={nav.back} />
             <View style={st.floatTitle}><Text style={st.floatTitleText}>Room Details</Text></View>
@@ -91,7 +96,8 @@ export default function PgV2RoomDetail() {
           </ScrollView>
           {t.deposit ? <Text style={[k.small, { marginTop: 18 }]}>Security deposit {`₹${Math.round(t.deposit).toLocaleString('en-IN')}`}</Text> : null}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
+      <StatusBarScrim color="#FFFFFF" scrollY={scrollY} from={photoH - insets.top - 62} to={photoH - insets.top - 22} />
       <View style={[st.bar, { paddingBottom: insets.bottom + 14 }]}>
         <PrimaryButton label={full ? 'Room full' : 'Request to Book'} disabled={full} onPress={() => nav.push({ name: 'booking', pgId: pg.id, roomKey: t.key })} />
       </View>

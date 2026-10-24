@@ -1,5 +1,8 @@
 /**
  * Food & groceries v2: home (green header, notice, hero, categories and the home shelves).
+ * The header scrolls with the page under the edge-to-edge status bar. StatusBarScrim keeps an opaque
+ * header-green backdrop behind the clock at all times (same colour as the header top, so the page at rest
+ * looks unchanged), so the header and the section pills never show under the clock and the status icons.
  * Others → Food & groceries (modules/foodV2).
  */
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
@@ -29,6 +32,8 @@ import { useFoodV2States } from './FoodV2States';
 import { HomeHeader, HomeBandHero, CategoryTiles } from './FoodV2HomeTop';
 import { useFoodScale } from './FoodV2Scale';
 import { Icon } from './FoodV2Icons';
+import StatusBarScrim from '../../components/StatusBarScrim';
+import { FOOD_HEADER } from './FoodV2SectionHeader';
 
 export default function FoodV2Home() {
   const { router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark } = useFoodV2();
@@ -57,6 +62,7 @@ export default function FoodV2Home() {
     const aisles = ESSENTIAL_AISLES.filter(a => shelfItems(a, catalogue).length > 0);
 
     return (
+      <View style={{ flex: 1 }}>
       <ScrollView key={homeKey} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: shopCount > 0 ? sc.barSpace : 32 + sc.insets.bottom }} keyboardShouldPersistTaps="handled">
         <HomeHeader />
         {isLoading ? (
@@ -111,7 +117,8 @@ export default function FoodV2Home() {
             {/* ── Toys & sports ── */}
             {toyTiles.length > 0 && (
               <View style={s.sec}>
-                {head('Toys & sports', { sub: upTo(toyItems) || fromPrice(toyItems), onAll: () => openListing('Toys') })}
+                {/* See all opens the same listing as the Gifts & toys tile (the main entry), not a second toys list */}
+                {head('Toys & sports', { sub: upTo(toyItems) || fromPrice(toyItems), onAll: () => openListing('Gifts & toys') })}
                 <View style={s.tileWrap}>{toyTiles.map(t => miniTile(t.title, sentence(t.title), null, t.img, () => openListing(t.title), w3))}</View>
               </View>
             )}
@@ -158,6 +165,8 @@ export default function FoodV2Home() {
           </>
         )}
       </ScrollView>
+      <StatusBarScrim color={FOOD_HEADER.top} />
+      </View>
     );
   };
 

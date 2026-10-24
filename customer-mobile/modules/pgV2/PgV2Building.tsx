@@ -4,9 +4,10 @@
  * Building figures come from the listing: total rooms (admin field), and beds occupied / vacant across
  * the rooms listed for booking. A figure without data is left out.
  */
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, Share, useWindowDimensions } from 'react-native';
+import React, { useRef } from 'react';
+import { View, Text, ScrollView, StyleSheet, Share, useWindowDimensions, Animated, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import StatusBarScrim from '../../components/StatusBarScrim';
 import type { LucideIcon } from 'lucide-react-native';
 import { PG2, R, GUTTER, W, genderTone, shadow } from './pgV2Theme';
 import { Tap, FloatBtn, Photo, Verified, Rating, SectionTitle, PrimaryButton, EmptyState, Loading, k } from './PgV2Kit';
@@ -64,6 +65,9 @@ export default function PgV2Building() {
   const { width } = useWindowDimensions();
   const { saved, toggleSaved } = usePgV2();
   const { pg, state } = usePgDetail(id);
+  // The photo sits under the status bar; once the sheet scrolls up to it, white goes behind the clock.
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const photoH = Math.round(width * 0.64) + insets.top;
 
   if (state === 'loading') return <View style={st.page}><Loading /></View>;
   if (!pg) return <View style={[st.page, { paddingTop: insets.top + 40 }]}><EmptyState icon={IBuilding} title="This PG isn't available" body="It may have been removed. Pick another building." action="Back" onAction={nav.back} /></View>;
@@ -78,8 +82,9 @@ export default function PgV2Building() {
 
   return (
     <View style={st.page}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 110 + insets.bottom }}>
-        <Photo photo={buildingPhoto(pg)} style={{ width, height: Math.round(width * 0.64) + insets.top }} radius={0} priority="high" />
+      <Animated.ScrollView contentContainerStyle={{ paddingBottom: 110 + insets.bottom }} scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: Platform.OS !== 'web' })}>
+        <Photo photo={buildingPhoto(pg)} style={{ width, height: photoH }} radius={0} priority="high" />
         <View style={[st.floatRow, { top: insets.top + 12 }]}>
           <FloatBtn icon={IArrowLeft} label="Back" onPress={nav.back} />
           <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -130,7 +135,8 @@ export default function PgV2Building() {
             <LinkRow icon={IBuilding} title="PG Overview" sub="Photos, rooms, amenities and mess" onPress={() => nav.push({ name: 'overview', pgId: pg.id })} />
           </View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
+      <StatusBarScrim color="#FFFFFF" scrollY={scrollY} from={photoH - insets.top - 64} to={photoH - insets.top - 24} />
       <View style={[st.bar, { paddingBottom: insets.bottom + 14 }]}>
         <PrimaryButton label="View Rooms" trailing={IArrowRight} onPress={() => nav.push({ name: 'rooms', pgId: pg.id })} />
       </View>

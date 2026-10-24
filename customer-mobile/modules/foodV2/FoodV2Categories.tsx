@@ -1,5 +1,5 @@
 /**
- * Food & groceries v2: all categories ("Shop by category" > View all). The six main category tiles,
+ * Food & groceries v2: all categories ("Shop by category" > View all). The seven main category tiles (balanced rows),
  * then every other aisle and shelf that has products, as a plain list. Each opens its listing.
  * Others → Food & groceries (modules/foodV2).
  */
@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { PressScale } from '../../modules/others/motion';
 import { FOOD } from './foodV2Theme';
-import { TILES, ESSENTIAL_AISLES, LIST_TITLES, chipLabel, shelfItems } from './FoodV2Data';
+import { TILES, ESSENTIAL_AISLES, LIST_TITLES, chipLabel, shelfItems, tileRows } from './FoodV2Data';
 import { s } from './FoodV2Styles';
 import { useFoodV2 } from './useFoodV2';
 import { TILE_ART } from './FoodV2Art';
@@ -23,7 +23,7 @@ const MORE: { key: string; label: string }[] = [
   { key: 'Organic', label: 'Organic' },
   { key: 'Monsoon Wellness Picks', label: LIST_TITLES['Monsoon Wellness Picks'] },
   { key: 'Seeds', label: 'Seeds' },
-  { key: 'Toys', label: LIST_TITLES.Toys },
+  // Toys are the Gifts & toys tile now (one entry, no duplicate row here).
   { key: 'Electronics', label: 'Chargers and gadgets' },
 ];
 
@@ -32,7 +32,7 @@ export default function FoodV2Categories() {
   const sc = useFoodScale();
   const cols = sc.tileCols;
   // the white inset sits 8 px in from each side (s.inset)
-  const w = Math.floor((pageW - 16 - 32 - 10 * (cols - 1)) / cols);
+  const widthFor = (n: number) => Math.floor((pageW - 16 - 32 - 10 * (n - 1)) / n);
   const tiles = TILES.filter(t => shelfItems(t.key, catalogue).length > 0);
   const more = [
     ...MORE.map(m => ({ ...m, n: shelfItems(m.key, catalogue).length })),
@@ -51,9 +51,11 @@ export default function FoodV2Categories() {
       </LinearGradient>
       <View style={[s.inset, { backgroundColor: c.page }]}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 16, paddingBottom: shopCount > 0 ? sc.barSpace : 32 + sc.insets.bottom }}>
-          <View style={st.grid}>
-            {tiles.map(t => {
+          {tileRows(tiles, cols).map((row, ri) => (
+          <View key={ri} style={[st.grid, ri > 0 && { marginTop: 10 }]}>
+            {row.map(t => {
               const art = TILE_ART[t.key];
+              const w = widthFor(row.length);
               return (
                 <PressScale key={t.key} onPress={() => openListing(t.key)} scaleTo={0.97} style={{ width: w }} accessibilityRole="button" accessibilityLabel={t.label}>
                   <View style={[st.tile, { backgroundColor: c.card }, shadow]}>
@@ -66,6 +68,7 @@ export default function FoodV2Categories() {
               );
             })}
           </View>
+          ))}
           {more.length > 0 && (
             <View style={{ marginTop: 22 }}>
               <Text style={[s.headTitle, { color: c.title, paddingHorizontal: 16, marginBottom: 8 }]} accessibilityRole="header">More aisles</Text>
@@ -87,7 +90,7 @@ export default function FoodV2Categories() {
 }
 
 const st = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 16 },
+  grid: { flexDirection: 'row', gap: 10, paddingHorizontal: 16 },
   tile: { borderRadius: 12, paddingBottom: 12 },
   plate: { height: 84, margin: 6, marginBottom: 0, borderRadius: 10, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   cut: { width: '86%', height: '92%' },

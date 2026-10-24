@@ -13,7 +13,7 @@ import Svg, { Defs, Ellipse, G, Path, RadialGradient, Rect, Stop } from 'react-n
 import { Image } from 'expo-image';
 import { PressScale } from '../../modules/others/motion';
 import { FOOD } from './foodV2Theme';
-import { SEARCH, SEARCH_HINTS, TILES, fmtShortClock } from './FoodV2Data';
+import { SEARCH, SEARCH_HINTS, TILES, fmtShortClock, tileRows } from './FoodV2Data';
 import { s } from './FoodV2Styles';
 import { useFoodV2 } from './useFoodV2';
 import { useFoodV2Ui, Enter } from './FoodV2Ui';
@@ -141,16 +141,14 @@ export function HomeBandHero() {
   );
 }
 
-/** Shop by category: 3 + 3 tiles (3 + 2 while a shelf is empty), cut-out subjects on tinted plates. */
+/** Shop by category: 3 + 2 + 2 tiles (tileRows; 3 + 3 / 3 + 2 while a shelf is empty), cut-out subjects on tinted plates. */
 export function CategoryTiles() {
   const { isDark, pageW, c, shadow, hasShelf, openListing, push } = useFoodV2();
   const { head } = useFoodV2Ui();
   const sc = useFoodScale();
   const tiles = TILES.filter(t => hasShelf(t.key));
   if (!tiles.length) return null;
-  const rows = sc.tileCols === 2
-    ? tiles.reduce((acc: typeof tiles[], t, i) => { if (i % 2 === 0) acc.push([t]); else acc[acc.length - 1].push(t); return acc; }, [])
-    : tiles.length === 5 ? [tiles.slice(0, 3), tiles.slice(3)] : tiles.length === 4 ? [tiles.slice(0, 2), tiles.slice(2)] : tiles.length === 6 ? [tiles.slice(0, 3), tiles.slice(3)] : [tiles];
+  const rows = tileRows(tiles, sc.tileCols);
   return (
     <View style={[s.sec, { marginTop: 30 }]}>
       {head('Shop by category', { onAll: () => push({ name: 'categories' }), arrow: true })}

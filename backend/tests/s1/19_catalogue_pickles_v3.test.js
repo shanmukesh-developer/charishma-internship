@@ -65,7 +65,7 @@ test('v3 data file: own marker, about 12 reviewed pickles, whole-rupee prices, M
   assert.strictEqual(data.version, 3);
   assert.strictEqual(data.marker, V3_MARKER);
   assert.ok(![DEFAULT_MARKER, V2_MARKER].includes(V3_MARKER));
-  assert.strictEqual(VERSIONS[VERSIONS.length - 1], V3_DATA_PATH, 'v3 runs last');
+  assert.strictEqual(VERSIONS[2], V3_DATA_PATH, 'v3 runs third (after v1, v2; before v4)');
   assert.strictEqual(data.stores.length, 1);
   assert.strictEqual(store.storeName, 'Kirana & Late-Night Mart');
   assert.ok(picks.length >= 10 && picks.length <= 14, `${picks.length} pickles`);

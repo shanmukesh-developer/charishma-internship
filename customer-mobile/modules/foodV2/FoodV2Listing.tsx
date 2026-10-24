@@ -28,7 +28,7 @@ import { chipsFor, inChip } from './FoodV2Chips';
 import { Icon, GROUP_ICON } from './FoodV2Icons';
 import { useFoodScale } from './FoodV2Scale';
 
-const AISLE_ICON: Record<string, string> = { all: 'grid', rice: 'wheat', atta: 'package', dal: 'bean', pickles: 'flame', oil: 'droplet', snacks: 'cookie', bev: 'cup-soda', other: 'basket-outline' };
+const AISLE_ICON: Record<string, string> = { all: 'grid', rice: 'wheat', atta: 'package', dal: 'bean', pickles: 'flame', oil: 'droplet', snacks: 'cookie', bev: 'cup-soda', gifts: 'gift', other: 'basket-outline' };
 const BANNER_H = 120;
 /** Space under the banner (part of the block that slides away). */
 const BANNER_GAP = 22;

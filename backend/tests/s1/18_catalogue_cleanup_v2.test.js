@@ -3,7 +3,7 @@
 // the repair descriptions and renames Today's deals so each name says what the claim really gives, in
 // one transaction per store / for the deals, and writes GlobalConfig CATALOGUE_CLEANUP_V2_DONE; a re-run
 // is a no-op; a row an admin edited is skipped untouched; v2 runs on its own whether or not v1 already
-// ran (and never touches v1's marker); runCatalogueCleanups runs v1, v2 then v3; DISABLE_CATALOGUE_CLEANUP
+// ran (and never touches v1's marker); runCatalogueCleanups runs v1, v2, v3 then v4; DISABLE_CATALOGUE_CLEANUP
 // switches it off. Never touches a real database or the network.
 process.env.NODE_ENV = 'test';
 delete process.env.DATABASE_URL;
@@ -175,14 +175,14 @@ test('v2 runs whether or not v1 already ran; runCatalogueCleanups runs both vers
   await M.GlobalConfig.create({ key: DEFAULT_MARKER, value: { doneAt: 'earlier' }, description: 'v1 done' });
   process.env.DISABLE_CATALOGUE_CLEANUP = 'true';
   try {
-    assert.deepStrictEqual(await runCatalogueCleanups(), { v1: { skipped: 'disabled' }, v2: { skipped: 'disabled' }, v3: { skipped: 'disabled' } });
+    assert.deepStrictEqual(await runCatalogueCleanups(), { v1: { skipped: 'disabled' }, v2: { skipped: 'disabled' }, v3: { skipped: 'disabled' }, v4: { skipped: 'disabled' } });
     assert.strictEqual((await M.VaultItem.findByPk(deals[0].id)).name, deals[0].expect.name);
   } finally { delete process.env.DISABLE_CATALOGUE_CLEANUP; }
   const all = await runCatalogueCleanups();
   assert.deepStrictEqual(all.v1, { skipped: 'already done' });
   assert.strictEqual(all.v2.applied, items.length + deals.length);
   assert.ok(await M.GlobalConfig.findOne({ where: { key: V2_MARKER } }));
-  assert.deepStrictEqual(await runCatalogueCleanups(), { v1: { skipped: 'already done' }, v2: { skipped: 'already done' }, v3: { skipped: 'already done' } });
+  assert.deepStrictEqual(await runCatalogueCleanups(), { v1: { skipped: 'already done' }, v2: { skipped: 'already done' }, v3: { skipped: 'already done' }, v4: { skipped: 'already done' } });
 });
 
 test('malformed ops are refused: an empty or very long description, a vault op other than rename', () => {

@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Platform, useWindowDimensions } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, ScrollView, Platform, useWindowDimensions, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PressScale, BounceOnChange } from '../../modules/others/motion';
@@ -10,6 +10,7 @@ import * as Haptics from 'expo-haptics';
 import { CachedImage as Image } from '../../components/SafeImage';
 import { formatINR, isAmount, plural } from '../../utils/format';
 import { useTopInset } from '../../utils/useTopInset';
+import StatusBarScrim from '../../components/StatusBarScrim';
 import FoodV2Gallery from './FoodV2Gallery';
 import { demoGallery } from './demoGallery';
 import { s, MAX_QTY, PRODUCT_FALLBACK_IMG, WISHLIST_KEY, NON_FOOD, specValue, sentence, tidy, discountOf } from './FoodV2ProductStyles';
@@ -60,6 +61,9 @@ export default function FoodV2ProductView(p: Props) {
   const pageW = Math.min(winW, 600);
   const [imgIndex, setImgIndex] = useState(0);
   const [pickQty, setPickQty] = useState(1);
+  // The photos sit under the status bar; once they scroll away the page colour goes behind the clock.
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const galleryH = Math.round(Math.min(340, Math.max(280, pageW * 0.82))) + topPad;
 
   const m = isDark ? 'dark' : 'light';
   const c = {
@@ -217,7 +221,8 @@ export default function FoodV2ProductView(p: Props) {
 
   return (
     <View style={[s.root, { backgroundColor: c.bg }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
+      <Animated.ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }} scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: Platform.OS !== 'web' })}>
         {/* ── Gallery: 2–5 photos (own photo first; demo photos are preview-only, see demoGallery.ts) ── */}
         <FoodV2Gallery images={gallery} topPad={topPad} isSaved={p.isSaved} name={product.name} onBack={p.onBack} onShare={p.onShare} onToggleSaved={p.onToggleSaved} />
 
@@ -416,7 +421,8 @@ export default function FoodV2ProductView(p: Props) {
             </View>
           ))}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
+      <StatusBarScrim color={c.bg} scrollY={scrollY} from={galleryH - topPad - 48} to={galleryH - topPad} />
     </View>
   );
 }

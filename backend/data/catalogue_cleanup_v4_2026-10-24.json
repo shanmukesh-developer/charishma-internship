@@ -1,0 +1,245 @@
+{
+  "version": 4,
+  "marker": "CATALOGUE_CLEANUP_V4_DONE",
+  "snapshot": "GET /api/catalogue/items?type=toys&limit=200 on 2026-10-24 at about 5:05 PM IST (read only): 19 items, all in Toy Mania (the only TOYS store), none in a Gifts category; GET /api/catalogue/types lists no separate gift store",
+  "notes": "Owner request (24 Oct 2026): a Gifts & toys category in Others > Food & groceries. Toys already exist (Toy Mania); gifts did not, so v4 adds 12 reviewed gift items to Toy Mania with the create op (no id, a single create op each; skipped when the store does not exist or already has an item with the same name, trimmed, any case, hidden items included). Nothing is changed or deleted. Category Gifts; brand and size go to specs.brand / specs.weight (the size line shown under the name); specs.addedBy is catalogue-cleanup-v4. Shelf-stable gifts only, no fresh flowers. Prices are whole rupees, MRP only on the boxed gifts (all under 30% off). Photos are generic Unsplash photos (Unsplash licence: free commercial use), no brand pack shots, each checked by eye: photo-1554894872-1a01c75f7513 birthday greeting card; photo-1549032305-e816fabf0dd2 thank you greeting card; photo-1548741487-18d363dc4469 chocolate gift box; photo-1543158181-1274e5362710 dry fruit gift box; photo-1725721685456-65707da925f3 mini gift hamper; photo-1551373884-8a0750074df7 white photo frame; photo-1650959858546-d09833d5317b plain white ceramic mug; photo-1687363714985-990685339050 keychain gift set; photo-1764385827344-079d60aa9b8d gift wrap sheets; photo-1763154045697-62961f67dee1 satin ribbon roll; photo-1603905179139-db12ab535ca9 scented candle; photo-1652501595862-1d06fe543544 mini soft teddy.",
+  "stores": [
+    {
+      "storeId": "cf1a41c6-3dac-41c2-a96c-b6eb1d2e522f",
+      "storeName": "Toy Mania",
+      "items": [
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Birthday Greeting Card",
+                "brand": "Toy Mania",
+                "weight": "1 card + envelope",
+                "price": 99,
+                "category": "Gifts",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1554894872-1a01c75f7513?w=600&q=80&auto=format&fit=crop",
+                "description": "Folded birthday card with a floral print, blank inside for your own message."
+              },
+              "reason": "owner request: Gifts & toys category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Thank You Greeting Card",
+                "brand": "Toy Mania",
+                "weight": "1 card + envelope",
+                "price": 79,
+                "category": "Gifts",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1549032305-e816fabf0dd2?w=600&q=80&auto=format&fit=crop",
+                "description": "Plain thank-you card with a hand-lettered front, blank inside."
+              },
+              "reason": "owner request: Gifts & toys category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Chocolate Gift Box",
+                "brand": "Toy Mania",
+                "weight": "12 pcs",
+                "price": 349,
+                "originalPrice": 399,
+                "category": "Gifts",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1548741487-18d363dc4469?w=600&q=80&auto=format&fit=crop",
+                "description": "Twelve assorted milk and dark chocolates in a rigid gift box."
+              },
+              "reason": "owner request: Gifts & toys category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Dry Fruit Gift Box",
+                "brand": "Toy Mania",
+                "weight": "250 g",
+                "price": 499,
+                "originalPrice": 549,
+                "category": "Gifts",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1543158181-1274e5362710?w=600&q=80&auto=format&fit=crop",
+                "description": "Almonds, cashews, raisins and pistachios packed in a gift box."
+              },
+              "reason": "owner request: Gifts & toys category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Mini Gift Hamper",
+                "brand": "Toy Mania",
+                "weight": "1 hamper",
+                "price": 699,
+                "originalPrice": 799,
+                "category": "Gifts",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1725721685456-65707da925f3?w=600&q=80&auto=format&fit=crop",
+                "description": "A small ready-made gift basket, wrapped in net and tied with a ribbon."
+              },
+              "reason": "owner request: Gifts & toys category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "White Photo Frame",
+                "brand": "Toy Mania",
+                "weight": "5 x 7 in",
+                "price": 249,
+                "category": "Gifts",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1551373884-8a0750074df7?w=600&q=80&auto=format&fit=crop",
+                "description": "Table-top photo frame with a glass front and a stand at the back."
+              },
+              "reason": "owner request: Gifts & toys category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Plain White Ceramic Mug",
+                "brand": "Toy Mania",
+                "weight": "330 ml",
+                "price": 149,
+                "category": "Gifts",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1650959858546-d09833d5317b?w=600&q=80&auto=format&fit=crop",
+                "description": "Plain white ceramic mug, ready for a name or photo print."
+              },
+              "reason": "owner request: Gifts & toys category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Keychain Gift Set",
+                "brand": "Toy Mania",
+                "weight": "3 pcs",
+                "price": 129,
+                "category": "Gifts",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1687363714985-990685339050?w=600&q=80&auto=format&fit=crop",
+                "description": "Three clear acrylic keychains with metal rings."
+              },
+              "reason": "owner request: Gifts & toys category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Gift Wrap Sheets",
+                "brand": "Toy Mania",
+                "weight": "5 sheets",
+                "price": 69,
+                "category": "Gifts",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1764385827344-079d60aa9b8d?w=600&q=80&auto=format&fit=crop",
+                "description": "Five sheets of printed gift wrap, 50 x 70 cm each."
+              },
+              "reason": "owner request: Gifts & toys category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Satin Ribbon Roll",
+                "brand": "Toy Mania",
+                "weight": "10 m",
+                "price": 49,
+                "category": "Gifts",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1763154045697-62961f67dee1?w=600&q=80&auto=format&fit=crop",
+                "description": "Satin ribbon for tying gifts and decorating."
+              },
+              "reason": "owner request: Gifts & toys category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Scented Candle",
+                "brand": "Toy Mania",
+                "weight": "150 g",
+                "price": 299,
+                "category": "Gifts",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1603905179139-db12ab535ca9?w=600&q=80&auto=format&fit=crop",
+                "description": "Soy wax candle in a ceramic cup with a wooden wick, lightly scented."
+              },
+              "reason": "owner request: Gifts & toys category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Mini Soft Teddy",
+                "brand": "Toy Mania",
+                "weight": "20 cm",
+                "price": 199,
+                "category": "Gifts",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1652501595862-1d06fe543544?w=600&q=80&auto=format&fit=crop",
+                "description": "Small plush teddy bear with a ribbon bow."
+              },
+              "reason": "owner request: Gifts & toys category"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

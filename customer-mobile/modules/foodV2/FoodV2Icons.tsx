@@ -7,7 +7,7 @@ import React from 'react';
 import {
   Apple, ArrowLeft, ArrowRight, Bell, Check, ChevronLeft, ChevronRight, Clock, Cookie, CupSoda, Croissant, Heart,
   Leaf, Minus, Plug, Plus, Puzzle, Search, Server, Share, ShoppingBasket, ShoppingCart, Sparkles, Sprout, Star,
-  Store, TriangleAlert, WifiOff, X, CircleX, Wheat, Bean, Droplet, Flame, Package, LayoutGrid, Milk, Truck, type LucideIcon,
+  Store, TriangleAlert, WifiOff, X, CircleX, Wheat, Bean, Droplet, Flame, Package, LayoutGrid, Milk, Truck, Gift, type LucideIcon,
 } from 'lucide-react-native';
 
 const MAP: Record<string, LucideIcon> = {
@@ -20,7 +20,7 @@ const MAP: Record<string, LucideIcon> = {
   // category placeholders
   apple: Apple, cookie: Cookie, 'cup-soda': CupSoda, croissant: Croissant, sparkles: Sparkles, puzzle: Puzzle,
   sprout: Sprout, plug: Plug,
-  wheat: Wheat, bean: Bean, droplet: Droplet, flame: Flame, package: Package, grid: LayoutGrid, milk: Milk, truck: Truck,
+  wheat: Wheat, bean: Bean, droplet: Droplet, flame: Flame, package: Package, grid: LayoutGrid, milk: Milk, truck: Truck, gift: Gift,
 };
 /** Filled variants (saved heart, rating star). */
 const FILLED = new Set(['heart', 'star']);
@@ -33,5 +33,5 @@ export function Icon({ name, size = 20, color = '#FFFFFF', strokeWidth = 1.75 }:
 /** Placeholder icon per product group (image failed to load). */
 export const GROUP_ICON: Record<string, string> = {
   Groceries: 'basket-outline', Snacks: 'cookie', Beverages: 'cup-soda', Fresh: 'apple', Bakery: 'croissant',
-  'Personal care': 'sparkles', Toys: 'puzzle', Seeds: 'sprout', Electronics: 'plug',
+  'Personal care': 'sparkles', 'Gifts & toys': 'gift', Seeds: 'sprout', Electronics: 'plug',
 };

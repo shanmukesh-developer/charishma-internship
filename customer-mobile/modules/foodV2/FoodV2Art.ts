@@ -17,6 +17,10 @@
  *   towels     photo-1639298108944-76a403a7c38d  two folded towels
  *   pickles    photo-1601702538934-efffab67ab65  mango pickle in a ceramic pot, lid and a raw mango (tile, 24 Oct)
  *   pickleJar  photo-1617854307432-13950e24ba07  glass jar of mixed pickle under a cloth lid (Pickles banner)
+ *   gifts      photo-1602734846297-9299fc2d4703 + photo-1640253621150-d75179c58838  brown teddy in front of a red
+ *              gift box tied with twine (tile, 24 Oct; the box's stray tag and a mask drip removed by hand)
+ *   giftPair   photo-1633683788767-ac390c4bf988 + photo-1669994814741-fa5a07c97c67  green parcel tied with twine
+ *              in front of a navy box with a silver bow (Gifts & toys banner)
  */
 export const CUT = {
   hero: require('./assets/food-v2-hero-veg-basket-cutout-2026-10-23.webp'),
@@ -33,6 +37,8 @@ export const CUT = {
   towels: require('./assets/food-v2-banner-health-towels-cutout-2026-10-23.webp'),
   pickles: require('./assets/food-v2-tile-pickles-mango-pot-cutout-2026-10-24.webp'),
   pickleJar: require('./assets/food-v2-banner-pickles-mixed-jar-cutout-2026-10-24.webp'),
+  gifts: require('./assets/food-v2-tile-gifts-toys-box-teddy-cutout-2026-10-24.webp'),
+  giftPair: require('./assets/food-v2-banner-gifts-toys-wrapped-pair-cutout-2026-10-24.webp'),
 };
 
 /** Category tile -> cut-out and its soft plate tint (light, dark). */
@@ -43,6 +49,7 @@ export const TILE_ART: Record<string, { art: any; tint: [string, string] }> = {
   'Bakery & breakfast': { art: CUT.bakery, tint: ['#E6F1FB', 'rgba(96,165,250,0.12)'] },
   'Health & care': { art: CUT.health, tint: ['#F0EAFB', 'rgba(167,139,250,0.13)'] },
   Pickles: { art: CUT.pickles, tint: ['#DFF4EE', 'rgba(45,212,191,0.12)'] },
+  'Gifts & toys': { art: CUT.gifts, tint: ['#FCE8EE', 'rgba(244,114,182,0.12)'] },
 };
 
 /** Listing banner -> cut-out, drawn in the hero style (large, overflowing right / bottom, glow behind).
@@ -55,6 +62,7 @@ export const BANNER_ART: Record<string, any> = {
   'Bakery & breakfast': CUT.croissants,
   'Health & care': CUT.health,
   Pickles: CUT.pickles,
+  'Gifts & toys': CUT.gifts,
 };
 
 /** Listing banner slides (2–4 cut-outs, cross-fading every 3.5 s; no brand logos). */
@@ -66,4 +74,5 @@ export const BANNER_SLIDES: Record<string, any[]> = {
   'Bakery & breakfast': [CUT.croissants, CUT.bakery],
   'Health & care': [CUT.health, CUT.towels],
   Pickles: [CUT.pickles, CUT.pickleJar],
+  'Gifts & toys': [CUT.gifts, CUT.giftPair],
 };

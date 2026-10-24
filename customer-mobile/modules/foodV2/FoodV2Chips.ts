@@ -3,7 +3,7 @@
  * used as categories, like "Cadbury" or "Coca Cola") map into a short, clean set per shelf.
  * A product belongs to the first chip it matches (category first, then name), chips without
  * products are hidden, and labels stay short so they never truncate.
- * FILTER_CHIPS shelves (Pickles) use overlapping filters instead: a product can sit under several
+ * FILTER_CHIPS shelves (Pickles, Gifts & toys) use overlapping filters instead: a product can sit under several
  * (Veg and Mango), and a chip that would show nothing, or exactly what All shows, is hidden.
  * Others → Food & groceries (modules/foodV2).
  */
@@ -21,6 +21,14 @@ export const FILTER_CHIPS: Record<string, FilterChip[]> = {
     { label: 'Gongura', test: p => /gongura/i.test(p.name) },
     { label: 'Lemon', test: p => /lemon|\blime\b|nimbu|nimmakaya/i.test(p.name) },
     { label: 'Mixed', test: p => /\bmixed\b|mix veg/i.test(p.name) },
+  ],
+  // A chocolate gift box is under both Gift boxes and Chocolates.
+  'Gifts & toys': [
+    { label: 'Soft toys', test: p => /teddy|plush|soft toy|stuffed/i.test(p.name) },
+    { label: 'Games & puzzles', test: p => /\bgames?\b|chess|\buno\b|puzzle|jigsaw|\bcube\b|ludo|carrom|abacus/i.test(p.name) },
+    { label: 'Gift boxes', test: p => /gift box|hamper|gift set/i.test(p.name) },
+    { label: 'Cards & wrap', test: p => /greeting card|gift wrap|wrapping|ribbon|gift bag|gift tag/i.test(p.name) },
+    { label: 'Chocolates', test: p => /chocolate|truffle/i.test(p.name) },
   ],
 };
 
