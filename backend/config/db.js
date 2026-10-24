@@ -19,6 +19,8 @@ const { initCommunityPostLikeModel } = require('../models/CommunityPostLike');
 const { initTicketModel } = require('../models/Ticket');
 const { initBikePoolModel } = require('../models/BikePool');
 const { initPoolRequestModel } = require('../models/PoolRequest');
+const { initRideTemplateModel } = require('../models/RideTemplate');
+const { initRideTemplateRunModel } = require('../models/RideTemplateRun');
 const { initPGHostelModel } = require('../models/PGHostel');
 const { initPGRoomModel } = require('../models/PGRoom');
 const { initPGBookingModel } = require('../models/PGBooking');
@@ -76,6 +78,9 @@ const initializeAllModels = (instance) => {
   initTicketModel(instance);
   initBikePoolModel(instance);
   initPoolRequestModel(instance);
+  // Co-Ride regular rides (RideTemplates) + their once-per-date publish log (RideTemplateRuns).
+  initRideTemplateModel(instance);
+  initRideTemplateRunModel(instance);
   initPGHostelModel(instance);
   initPGRoomModel(instance);
   initPGBookingModel(instance);
@@ -195,6 +200,10 @@ const initializeAllModels = (instance) => {
     PoolRequest.belongsTo(BikePool, { foreignKey: 'poolId', as: 'pool' });
     BikePool.hasMany(PoolRequest, { foreignKey: 'poolId', as: 'requests' });
     PoolRequest.belongsTo(User, { foreignKey: 'passengerId', as: 'passenger' });
+  }
+  const RideTemplate = instance.models.RideTemplate;
+  if (RideTemplate && User) {
+    RideTemplate.belongsTo(User, { foreignKey: 'creatorId', as: 'creator' });
   }
 
   const PGHostel = instance.models.PGHostel;
@@ -916,6 +925,8 @@ async function ensureOrderIdempotencyIndex(db) {
   // cannot be built; the routes also guard in code, so this only logs.
   const uniques = [
     ['pool_requests_pool_passenger_unique', 'CREATE UNIQUE INDEX IF NOT EXISTS "pool_requests_pool_passenger_unique" ON "PoolRequests" ("poolId", "passengerId");'],
+    // Co-Ride regular rides: one publish per template per IST date (also declared on the model).
+    ['ride_template_runs_template_date', 'CREATE UNIQUE INDEX IF NOT EXISTS "ride_template_runs_template_date" ON "RideTemplateRuns" ("templateId", "rideDate");'],
   ];
   for (const [name, sql] of uniques) {
     try {

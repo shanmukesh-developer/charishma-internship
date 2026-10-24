@@ -736,7 +736,13 @@ const updateUserProfile = async (req, res) => {
       if (!img.ok) return sendImageError(res, img);
       user.profileImage = img.value;
     }
-    if (req.body.gender !== undefined) user.gender = trimmed(req.body.gender, 40);
+    if (req.body.gender !== undefined) {
+      // Fixed list (Co-Ride women-only rides rely on it); case-insensitive, blank = Prefer not to say.
+      const { normalizeGender, GENDERS } = require('../utils/coRide');
+      const g = normalizeGender(req.body.gender);
+      if (g === undefined) return res.status(400).json({ code: 'INVALID_GENDER', message: `Gender must be one of: ${GENDERS.join(', ')}.` });
+      user.gender = g;
+    }
     if (req.body.genderPreference !== undefined) user.genderPreference = trimmed(req.body.genderPreference, 40);
 
     await user.save();

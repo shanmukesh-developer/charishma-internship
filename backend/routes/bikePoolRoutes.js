@@ -7,6 +7,8 @@ const { Op } = require('sequelize');
 
 const { getPoolRequestModel } = require('../models/PoolRequest');
 const { sendServerError } = require('../utils/httpErrors');
+const { isFemale, rodeTogetherBefore, WOMEN_ONLY_HOST_MSG, WOMEN_ONLY_JOIN_MSG } = require('../utils/coRide');
+const rateLimit = require('express-rate-limit');
 
 // Non-UUID ids answer 404 instead of a Postgres error (B23).
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -40,7 +42,7 @@ const finishSeatTaken = async (poolId, passengerId) => {
 
 // Create a new bike pool post
 router.post('/posts', protect, async (req, res) => {
-  const { creatorRole, origin, destination, departureTime, rideVibe, vehicleType, availableSeats, autoApprove, stopovers, vehicleInfo, notes, isRecurring, recurringDays, estimatedFuelCost } = req.body;
+  const { creatorRole, origin, destination, departureTime, rideVibe, vehicleType, availableSeats, autoApprove, stopovers, vehicleInfo, notes, isRecurring, recurringDays, estimatedFuelCost, womenOnly, autoAcceptKnown } = req.body;
 
   if (!creatorRole || !origin || !destination || !departureTime) {
     return res.status(400).json({ message: 'Role, origin, destination, and departure time are required.' });
@@ -74,6 +76,8 @@ router.post('/posts', protect, async (req, res) => {
   if (String(origin).length > 120 || String(destination).length > 120 || (notes && String(notes).length > 300)) {
     return res.status(400).json({ message: 'Please keep places under 120 characters and notes under 300.' });
   }
+  if (womenOnly != null && typeof womenOnly !== 'boolean') return res.status(400).json({ message: 'womenOnly must be true or false.' });
+  if (autoAcceptKnown != null && typeof autoAcceptKnown !== 'boolean') return res.status(400).json({ message: 'autoAcceptKnown must be true or false.' });
 
   try {
     const BikePool = getBikePoolModel();
@@ -82,6 +86,10 @@ router.post('/posts', protect, async (req, res) => {
 
     if (!currentUser) {
       return res.status(404).json({ message: 'User not found' });
+    }
+    // Women-only rides: only a host whose profile gender is Female may post one.
+    if (womenOnly === true && !isFemale(currentUser)) {
+      return res.status(403).json({ code: 'WOMEN_ONLY_HOST', message: WOMEN_ONLY_HOST_MSG });
     }
 
     const newPost = await BikePool.create({
@@ -95,6 +103,8 @@ router.post('/posts', protect, async (req, res) => {
       vehicleType: vehicleType || 'Bike',
       availableSeats: seats,
       autoApprove: autoApprove === true,
+      autoAcceptKnown: autoAcceptKnown === true,
+      womenOnly: womenOnly === true,
       isRecurring: isRecurring === true,
       recurringDays: Array.isArray(recurringDays) ? recurringDays.map((d) => String(d).slice(0, 10)) : [],
       stopovers: Array.isArray(stopovers) ? stopovers.map((x) => cleanStr(x, 80)).filter(Boolean) : [],
@@ -148,6 +158,8 @@ router.get('/posts', protect, async (req, res) => {
     const filteredPools = availablePools.filter(pool => {
       const creator = pool.creator;
       if (!creator) return false;
+      // Women-only rides are not shown to riders who could not join them.
+      if (pool.womenOnly && !isFemale(currentUser)) return false;
 
       const creatorGender = creator.gender || 'Prefer not to say';
       const creatorPref = creator.genderPreference || 'Any';
@@ -206,6 +218,11 @@ router.post('/posts/:id/join', protect, async (req, res) => {
       return res.status(404).json({ message: 'User not found.' });
     }
 
+    // Women-only ride: the rider's profile gender must be Female.
+    if (pool.womenOnly && !isFemale(currentUser)) {
+      return res.status(403).json({ code: 'WOMEN_ONLY', message: WOMEN_ONLY_JOIN_MSG });
+    }
+
     // Gender Matching Checks
     const creatorGender = pool.creator.gender || 'Prefer not to say';
     const creatorPref = pool.creator.genderPreference || 'Any';
@@ -260,7 +277,9 @@ router.post('/posts/:id/join', protect, async (req, res) => {
       }
     }
 
-    if (pool.autoApprove) {
+    // autoAcceptKnown: someone who completed a ride with this host before is let in at once.
+    const knownRider = !pool.autoApprove && pool.autoAcceptKnown ? await rodeTogetherBefore(pool.creatorId, currentUser.id) : false;
+    if (pool.autoApprove || knownRider) {
       // Take the seat atomically: two students tapping at once can never overbook.
       const taken = await takeSeat(pool.id);
       if (!taken) {
@@ -270,7 +289,7 @@ router.post('/posts/:id/join', protect, async (req, res) => {
       await PoolRequest.update({ status: 'Approved' }, { where: { id: requestId } });
       await finishSeatTaken(pool.id, currentUser.id);
       await pool.reload();
-      return res.json({ message: 'Successfully joined ride!', pool });
+      return res.json({ message: 'Successfully joined ride!', pool, autoAccepted: knownRider ? 'known' : 'auto' });
     } else {
       return res.json({ message: 'Request sent to host for approval.', pool });
     }
@@ -559,6 +578,93 @@ router.get('/my-rides', protect, async (req, res) => {
   } catch (err) {
     console.error('[BIKEPOOL_MYRIDES_ERROR]', err);
     sendServerError(res, err, '[BIKEPOOLROUTES_ERROR]');
+  }
+});
+
+// ─── Passenger / host SOS ───────────────────────────────────
+// POST /api/bikepool/posts/:id/sos { lat?, lon?, note? } -> 201 { ok, ticketId, emergencyNumber, locationShared, message }
+// Only the host or an approved rider of the ride (403 NOT_ON_RIDE otherwise). Creates a Critical support
+// ticket (admin Tickets list), tells the admin panel live and pushes every admin device
+// (utils/adminAlert.pushAdmins, as the Auto driver SOS does). 5 per 10 minutes per user (429 after).
+const sosLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  keyGenerator: (req) => `user:${req.user && req.user.id}`,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: false,
+  message: { code: 'SOS_RATE_LIMIT', message: 'Your SOS alerts were sent. If you are in danger call 112 now.' },
+  ...require('../utils/sharedRateLimit').expressStore('coride.sos'),
+});
+const coord = (v, lim) => {
+  if (v === undefined || v === null || v === '' || typeof v === 'boolean') return null;
+  const n = Number(v);
+  return Number.isFinite(n) && Math.abs(n) <= lim ? Math.round(n * 1e6) / 1e6 : null;
+};
+// Authorise first: only participants are counted by the limiter.
+const sosParticipant = async (req, res, next) => {
+  try {
+    const pool = await getBikePoolModel().findByPk(req.params.id);
+    if (!pool) return res.status(404).json({ message: 'Bike pool listing not found.' });
+    const me = String(req.user.id);
+    let role = String(pool.creatorId) === me ? 'host' : null;
+    if (!role) {
+      const approved = await getPoolRequestModel().findOne({ where: { poolId: pool.id, passengerId: me, status: 'Approved' } });
+      if (approved) role = 'rider';
+    }
+    if (!role) return res.status(403).json({ code: 'NOT_ON_RIDE', message: 'Only the host or an approved rider of this ride can send an SOS.' });
+    req.sosPool = pool;
+    req.sosRole = role;
+    return next();
+  } catch (err) {
+    return sendServerError(res, err, '[BIKEPOOL_SOS_ERROR]');
+  }
+};
+router.post('/posts/:id/sos', protect, sosParticipant, sosLimiter, async (req, res) => {
+  try {
+    const pool = req.sosPool;
+    const body = req.body || {};
+    const User = getUserModel();
+    const lat = coord(body.lat, 90);
+    const lon = coord(body.lon, 180);
+    const located = lat !== null && lon !== null;
+    const note = typeof body.note === 'string' ? body.note.replace(/[<>]/g, '').trim().slice(0, 300) : '';
+    const caller = await User.findByPk(req.user.id, { attributes: ['id', 'name', 'phone'] });
+    const host = req.sosRole === 'host' ? caller : await User.findByPk(pool.creatorId, { attributes: ['id', 'name', 'phone'] });
+    const approved = await getPoolRequestModel().findAll({ where: { poolId: pool.id, status: 'Approved' }, attributes: ['passengerId'] });
+    const riders = approved.length ? await User.findAll({ where: { id: { [Op.in]: approved.map((r) => r.passengerId) } }, attributes: ['id', 'name', 'phone'] }) : [];
+    const who = (u) => (u ? `${u.name || 'Student'}${u.phone ? ` (${u.phone})` : ''}` : 'unknown');
+    const where = located ? ` Location: ${lat},${lon} (https://www.google.com/maps/search/?api=1&query=${lat},${lon}).` : ' No live location shared.';
+    const description = [
+      `SOS from the Co-Ride ${req.sosRole} ${who(caller)}${note ? `: ${note}` : '.'}${where}`,
+      `Ride ${pool.id}: ${pool.origin} → ${pool.destination}, departure ${new Date(pool.departureTime).toISOString()}, ${pool.vehicleType || 'Bike'}${pool.vehicleInfo ? ` (${pool.vehicleInfo})` : ''}, status ${pool.status}.`,
+      `Host: ${who(host)}. Riders: ${riders.length ? riders.map(who).join(', ') : 'none'}.`,
+    ].join('\n').slice(0, 2000);
+    const { getTicketModel } = require('../models/Ticket');
+    const ticket = await getTicketModel().create({
+      userId: req.user.id,
+      subject: `🚨 Co-Ride SOS (${req.sosRole})`,
+      description,
+      priority: 'Critical',
+      status: 'Open',
+      slaBreachAt: new Date(Date.now() + 15 * 60 * 1000),
+    });
+    try { require('../utils/realtime').notifyAdmin('ticket', 'created', ticket.id); } catch { /* best effort */ }
+    const io = req.app && typeof req.app.get === 'function' ? req.app.get('io') : null;
+    console.error(`[CRITICAL SOS] Co-Ride ${req.sosRole} ${req.user.id} on ride ${pool.id}${located ? ` at ${lat},${lon}` : ''}`);
+    // Fire-and-forget (never blocks the reply); pushAdmins never throws.
+    Promise.resolve(require('../utils/adminAlert').pushAdmins(
+      '🚨 Co-Ride SOS',
+      `${who(caller)} pressed SOS on the ride ${pool.origin} → ${pool.destination}${note ? `: ${note}` : ''}. Call them now.`,
+      { type: 'CORIDE_SOS', ticketId: String(ticket.id), poolId: String(pool.id), userId: String(req.user.id) },
+      { io },
+    )).catch(() => {});
+    return res.status(201).json({
+      ok: true, ticketId: ticket.id, emergencyNumber: '112', locationShared: located,
+      message: 'ZCS has been alerted and will call you back. If anyone is in danger call 112 now.',
+    });
+  } catch (err) {
+    return sendServerError(res, err, '[BIKEPOOL_SOS_ERROR]');
   }
 });
 

@@ -193,6 +193,20 @@ const runCampusEvents = async () => {
   }
 };
 
+// Co-Ride regular rides: publish each due template's ride ~150 min before departure (IST), once per
+// (template, date) via the RideTemplateRuns unique index, and the 15-min-before reminder
+// (services/coRideTemplates.js).
+const runCoRideTemplates = async () => {
+  try {
+    const r = await require('../services/coRideTemplates').runCoRideTemplateJobs();
+    if (r && (r.published || r.reminded)) console.log('[CORIDE_TEMPLATES_JOB]', JSON.stringify(r));
+    return r;
+  } catch (err) {
+    console.warn('[CORIDE_TEMPLATES_JOB] Error:', err.message);
+    return { error: err.message };
+  }
+};
+
 // + C9: order chat (OrderMessages) older than ORDER_CHAT_RETENTION_DAYS (default 90) is deleted in the same tick.
 const runRetention = async () => {
   const out = await require('../cron/retentionCron').runRetention();
@@ -291,6 +305,7 @@ const JOBS = [
   { name: 'rentals.lifecycle', schedule: { everyMs: 2 * MIN, firstMs: 40 * SEC }, run: runRentals, quietWhenIdle: true, emits: true },
   { name: 'autoRide.lifecycle', schedule: { everyMs: 30 * SEC, firstMs: 50 * SEC }, run: runAutoRide, quietWhenIdle: true, emits: true },
   { name: 'campusEvents.lifecycle', schedule: { everyMs: 60 * SEC, firstMs: 55 * SEC }, run: runCampusEvents, quietWhenIdle: true, emits: true },
+  { name: 'coride.templates', schedule: { everyMs: 5 * MIN, firstMs: 70 * SEC }, run: runCoRideTemplates, quietWhenIdle: true },
   { name: 'wall.finalize', schedule: { cron: '*/5 * * * *' }, run: () => require('../cron/wallCron').runWallFinalizeJob(), quietWhenIdle: true },
   { name: 'wall.mediaCleanup', schedule: { cron: '0 3 * * *', timezone: IST }, run: () => require('../cron/wallCron').runWallMediaCleanupJob(), timeoutMs: 30 * MIN },
   { name: 'retention.chatPulse', schedule: { cron: '23 * * * *', onceAfterMs: 3 * MIN }, run: runRetention, timeoutMs: 30 * MIN },

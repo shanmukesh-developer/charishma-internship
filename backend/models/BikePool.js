@@ -18,6 +18,12 @@ const initBikePoolModel = (sequelize) => {
     vehicleType: { type: DataTypes.STRING, defaultValue: 'Bike' }, // 'Bike', 'Car', 'Auto'
     availableSeats: { type: DataTypes.INTEGER, defaultValue: 1 },
     autoApprove: { type: DataTypes.BOOLEAN, defaultValue: false },
+    // Auto-approve a join request from someone who completed a ride with this host before.
+    autoAcceptKnown: { type: DataTypes.BOOLEAN, defaultValue: false },
+    // Only riders whose profile gender is Female may join (host must be Female to set it).
+    womenOnly: { type: DataTypes.BOOLEAN, defaultValue: false },
+    // Set when the ride was published from a RideTemplate (regular ride); null for a one-off post.
+    templateId: { type: DataTypes.UUID, allowNull: true },
     isRecurring: { type: DataTypes.BOOLEAN, defaultValue: false },
     recurringDays: {
       type: DataTypes.TEXT,

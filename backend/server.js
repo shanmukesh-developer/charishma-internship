@@ -1277,6 +1277,8 @@ const initializeApp = async () => {
     app.use('/api/orders', require('./routes/orderRoutes'));
     app.use('/api/delivery', require('./routes/deliveryPartnerRoutes'));
     app.use('/api/search', require('./routes/searchRoutes'));
+    // Co-Ride regular rides (templates) first: /api/bikepool/templates/*.
+    app.use('/api/bikepool/templates', require('./routes/rideTemplateRoutes'));
     app.use('/api/bikepool', require('./routes/bikePoolRoutes'));
     app.use('/api/pg', require('./routes/pgRoutes'));
     app.use('/api/mega-basket', require('./routes/megaBasketRoutes'));
