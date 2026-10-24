@@ -1,0 +1,63 @@
+/**
+ * Co-Ride v2 tokens (owner reference, 24 Oct 2026). Colours sampled from the reference with PIL:
+ * a blue primary (#1D4ED8 to #2563EB), light blue tints, white cards, a mint tint for Shared auto,
+ * navy ink. Light theme only (the app default); dark mode comes after the owner's OK.
+ * Weights stay light: titles 600, labels 500, body 400 (never bold, never ALL CAPS).
+ */
+import { Platform, type ViewStyle } from 'react-native';
+
+export const CR = {
+  primary: '#1D5FE8',
+  primaryDeep: '#1D4ED8',
+  primarySoft: '#2563EB',
+  primaryLight: '#3B82F6',
+  ink: '#0B1A4A',
+  ink2: '#33415C',
+  muted: '#6E7B96',
+  faint: '#A3ADC2',
+  line: '#E6EBF4',
+  lineSoft: '#EEF2F8',
+  page: '#F5F8FD',
+  heroTop: '#E3EEFC',
+  heroBottom: '#F2F7FE',
+  card: '#FFFFFF',
+  field: '#F3F5F9',
+  tint: '#E7F0FE',
+  tint2: '#D8E7FD',
+  tintInk: '#1D4ED8',
+  mint: '#E3F5EF',
+  mintLine: '#CDEBDF',
+  mintInk: '#1F8A62',
+  green: '#1F8A57',
+  greenSoft: '#E3F4EA',
+  amber: '#B45309',
+  amberSoft: '#FDF3E2',
+  red: '#C2413A',
+  redSoft: '#FCECEB',
+  star: '#F5B83A',
+  whatsapp: '#1FA855',
+} as const;
+
+export const R = { sm: 10, md: 14, lg: 16, xl: 20, pill: 999 } as const;
+export const GUTTER = 16;
+export const W = { title: '600', label: '500', body: '400' } as const;
+
+export const shadow = (level: 1 | 2 = 1): ViewStyle => Platform.select({
+  web: { boxShadow: level === 1 ? '0 3px 14px rgba(20,44,110,0.06)' : '0 10px 28px rgba(20,44,110,0.12)' } as ViewStyle,
+  default: {
+    shadowColor: '#142C6E',
+    shadowOpacity: level === 1 ? 0.07 : 0.13,
+    shadowRadius: level === 1 ? 12 : 20,
+    shadowOffset: { width: 0, height: level === 1 ? 4 : 8 },
+    elevation: level === 1 ? 2 : 5,
+  },
+}) as ViewStyle;
+
+export type Tone = 'neutral' | 'blue' | 'green' | 'amber' | 'red';
+export const toneColors = (t: Tone) => (
+  t === 'blue' ? { bg: CR.tint, fg: CR.tintInk }
+    : t === 'green' ? { bg: CR.greenSoft, fg: CR.green }
+      : t === 'amber' ? { bg: CR.amberSoft, fg: CR.amber }
+        : t === 'red' ? { bg: CR.redSoft, fg: CR.red }
+          : { bg: CR.lineSoft, fg: CR.ink2 }
+);

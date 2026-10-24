@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import React, { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, useWindowDimensions, Platform, TextInput, ActivityIndicator, Alert, Modal, Linking, Animated, Vibration, RefreshControl, BackHandler, Share } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, useWindowDimensions, Platform, TextInput, ActivityIndicator, Alert, Modal, Animated, Vibration, RefreshControl, BackHandler, Share } from 'react-native';
 import { PressScale, BounceOnChange, FadeInUp, StateCard, SlowLoadHint } from '../../modules/others/motion';
 import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
 // expo-image (memory + disk cache, downsampled CDN URLs) in place of react-native's Image
@@ -30,16 +30,13 @@ import { reloadPgV2List } from '../../modules/pgV2/pgV2Data';
 import { PG_HEADER as PG_V2_HEADER, PG_HINTS as PG_V2_HINTS } from '../../modules/pgV2/PgV2Home';
 import { useLiveSync, hasType } from '../../utils/useLiveSync';
 import RentalsSection from '../../modules/rentals/RentalsSection';
-import AutoRideSection from '../../modules/autoRide/AutoRideSection';
 import { useAutoRideStatus } from '../../modules/autoRide/ui';
 import CampusEventsSection from '../../modules/campusEvents/CampusEventsSection';
 import { useCampusEventsStatus } from '../../modules/campusEvents/ui';
-import CoRideHub from '../../modules/coride/CoRideHub';
+import { CoRideV2OthersSection } from '../../modules/corideV2/CoRideV2Screen';
 import SectionHeader, { FOOD_HEADER, type HeaderColors } from '../../modules/foodV2/FoodV2SectionHeader';
 import { useUnreadDot } from '../../modules/foodV2/FoodV2HomeTop';
 import { ACCENTS as OTHERS_ACCENTS, PILL_ACCENT, shadow as othersShadow, TYPE as OTHERS_TYPE, RADIUS as OTHERS_RADIUS, STATUS as OTHERS_STATUS, SURFACE as OTHERS_SURFACE } from '../../modules/others/othersTheme';
-import PostRideSheet, { maxSeatsFor } from '../../modules/coride/PostRideSheet';
-import { fmtRideWhen, groupMyRides, topDestinations, sameDestination, inr } from '../../modules/coride/coRideFormat';
 import { useTopInset } from '../../utils/useTopInset';
 import FoodV2Screen from '../../modules/foodV2/FoodV2Screen';
 
@@ -258,7 +255,7 @@ const SECTION_HEADER: Record<string, HeaderColors> = {
   food: FOOD_HEADER,
   services: { top: '#211A6B', bottom: '#2D2491', pillOnBg: '#EFEDFF', pillOnInk: '#3B2FC4' },
   pg: PG_V2_HEADER, // PG v2 indigo; its bottom colour continues into the PG v2 hero
-  coride: { top: '#0E2A66', bottom: '#15398C', pillOnBg: '#EAF1FF', pillOnInk: '#1E40AF' },
+  coride: { top: '#1E3FAE', bottom: '#2563EB', pillOnBg: '#FFFFFF', pillOnInk: '#1D4ED8' }, // Co-Ride v2 blue
   promos: { top: '#2A1670', bottom: '#381F94', pillOnBg: '#EFEBFF', pillOnInk: '#4B2BC8' },
   neutral: { top: '#1B2433', bottom: '#263247', pillOnBg: '#F1F3F6', pillOnInk: '#1E293B' },
 };
@@ -558,7 +555,7 @@ export default function OthersScreen() {
   const { user, setUser, refreshUser } = useAuth();
   const router = useRouter();
   const unreadDot = useUnreadDot();
-  const { tab, sub } = useLocalSearchParams<{ tab: string; sub?: string }>();
+  const { tab, sub, seg } = useLocalSearchParams<{ tab: string; sub?: string; seg?: string }>();
   const [activeTab, setActiveTab] = useState('food');
   const [groceryMode, setGroceryMode] = useState<'home' | 'categories'>('home');
   const [selectedBBOption, setSelectedBBOption] = useState('Fresh');
@@ -1143,42 +1140,17 @@ export default function OthersScreen() {
   // PG stays data lives in modules/pgV2 (shared session store); refresh goes through reloadPgV2List.
 
   // ── Co-Ride States ──
-  const [corideTab, setCorideTab] = useState<'browse' | 'my-rides' | 'auto'>('browse');
-  // Zenvy Auto-Ride (verified drivers): its sub-tab exists only while GET /api/auto-ride/status says enabled.
+  // Zenvy Auto-Ride: GET /api/auto-ride/status (the Deals carousel shows the auto promo only while it is on).
   const autoRideStatus = useAutoRideStatus(!!(user?._id || user?.id));
   const autoRideOn = !!autoRideStatus?.enabled;
+  // Old links into the auto tab (others?tab=coride&sub=auto[&seg=...]) open the Co-Ride v2 auto screens.
   useEffect(() => {
-    if ((tab === 'coride' || tab === 'rides') && sub === 'auto') setCorideTab('auto');
-  }, [tab, sub]);
-  const [rides, setRides] = useState<any[]>([]);
-  const [myRides, setMyRides] = useState<any[]>([]);
-  const [loadingRides, setLoadingRides] = useState(false);
-  const [loadingMyRides, setLoadingMyRides] = useState(false);
-  const [rideError, setRideError] = useState<string | null>(null);
-  const [myRidesError, setMyRidesError] = useState<string | null>(null);
-  const [rideActionBusy, setRideActionBusy] = useState<string | null>(null);
-  const rideBusyRef = useRef(false);
-
-  // Co-Ride Filter States
-  const [vehicleFilter, setVehicleFilter] = useState<'All' | 'Bike' | 'Car' | 'Auto'>('All');
-  // "Going to" quick filter: one of the destinations in the loaded rides (client-side only).
-  const [goingTo, setGoingTo] = useState<string | null>(null);
-
-  // Co-Ride Create Modal State
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [creatorRole, setCreatorRole] = useState<'rider' | 'passenger'>('rider');
-  const [origin, setOrigin] = useState('');
-  const [destination, setDestination] = useState('');
-  const [departureTime, setDepartureTime] = useState('');
-  const [departureDate, setDepartureDate] = useState<Date | null>(null);
-  const [vehicleType, setVehicleType] = useState('Bike');
-  const [availableSeats, setAvailableSeats] = useState('1');
-  const [estimatedFuelCost, setEstimatedFuelCost] = useState('0');
-  const [notes, setNotes] = useState('');
-  const [rideVibe, setRideVibe] = useState('Any');
-  const [autoApprove, setAutoApprove] = useState(false);
-  const [submittingRide, setSubmittingRide] = useState(false);
-  const submittingRideRef = useRef(false); // a double tap lands before the state flips (two rides posted)
+    if ((tab === 'coride' || tab === 'rides') && sub === 'auto') {
+      const more = seg === 'bookings' || seg === 'shared' || seg === 'full' || seg === 'pickups';
+      router.push((more ? `/coride/auto-more?seg=${seg}` : '/coride/auto') as any);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, sub, seg]);
 
   // Ordering hours (real: GET /api/orders/serviceability)
   const [serviceability, setServiceability] = useState<{ open: boolean; reopensAt?: string; closesAt?: string } | null>(null);
@@ -1223,17 +1195,6 @@ export default function OthersScreen() {
   const allShopsClosed = catalogueStatus === 'ready' && inStock.length > 0 && closedItemShare === 1;
   const someShopsClosed = catalogueStatus === 'ready' && closedItemShare >= 0.3 && closedItemShare < 1;
 
-  const promptLogin = (title: string, message: string) => {
-    Alert.alert(title, message, [
-      { text: 'Not now', style: 'cancel' },
-      { text: 'Sign in', onPress: () => router.push('/login' as any) },
-    ]);
-  };
-
-  const openExternal = (url: string, name: string) => {
-    Linking.openURL(url).catch(() => Alert.alert(`Couldn't open ${name}`, 'Please try again, or open the app directly.'));
-  };
-
   const fetchServiceability = useCallback(async () => {
     try {
       const res = await apiFetch(`${API_URL}/api/orders/serviceability`);
@@ -1250,46 +1211,6 @@ export default function OthersScreen() {
   // silent = live-sync background refresh: keep the current list, no skeleton, no error card
   const fetchPGs = useCallback(async (opts?: { silent?: boolean }) => {
     await reloadPgV2List({ silent: !!opts?.silent });
-  }, []);
-
-  // Load Co-Ride lists
-  const fetchRides = useCallback(async () => {
-    setLoadingRides(true);
-    try {
-      const res = await apiFetch(ENDPOINTS.bikepoolPosts);
-      const data = await readJson(res);
-      if (!isMountedRef.current) return;
-      if (res.ok) {
-        setRides(Array.isArray(data) ? data : []);
-        setRideError(null);
-      } else {
-        setRideError(friendlyError(res, data, 'We could not load rides right now.'));
-      }
-    } catch {
-      if (isMountedRef.current) setRideError(NETWORK_ERROR_MESSAGE);
-    } finally {
-      if (isMountedRef.current) setLoadingRides(false);
-    }
-  }, []);
-
-  // Load User commutes
-  const fetchMyRides = useCallback(async () => {
-    setLoadingMyRides(true);
-    try {
-      const res = await apiFetch(ENDPOINTS.bikepoolMyRides);
-      const data = await readJson(res);
-      if (!isMountedRef.current) return;
-      if (res.ok) {
-        setMyRides(Array.isArray(data) ? data : []);
-        setMyRidesError(null);
-      } else {
-        setMyRidesError(friendlyError(res, data, 'We could not load your rides right now.'));
-      }
-    } catch {
-      if (isMountedRef.current) setMyRidesError(NETWORK_ERROR_MESSAGE);
-    } finally {
-      if (isMountedRef.current) setLoadingMyRides(false);
-    }
   }, []);
 
   // Load whatever the visible tab needs (on focus, on tab change and on pull-to-refresh).
@@ -1311,10 +1232,9 @@ export default function OthersScreen() {
     // both screens on every open) for state the food tab never shows.
     if (activeTab === 'services') { run('servicePrices', fetchServicePrices); run('catalogue', fetchCatalogue); }
     else if (activeTab === 'pg') run('pg', () => fetchPGs());
-    else if (activeTab === 'coride' && myId) { run('rides', fetchRides, false); run('myRides', fetchMyRides, false); }
     else if (activeTab === 'promos') { run('rewards', fetchRewards, false); run('vault', fetchVault); }
     return Promise.all(jobs);
-  }, [activeTab, myId, fetchServiceability, fetchCatalogue, fetchServicePrices, fetchPGs, fetchRides, fetchMyRides, fetchRewards, fetchVault]);
+  }, [activeTab, myId, fetchServiceability, fetchCatalogue, fetchServicePrices, fetchPGs, fetchRewards, fetchVault]);
 
   useFocusEffect(
     useCallback(() => {
@@ -1343,200 +1263,6 @@ export default function OthersScreen() {
       if (isMountedRef.current) setRefreshing(false);
     }
   }, [loadActiveTab]);
-
-  // ── Co-Ride actions (confirmations + one action at a time) ──
-  const runRideAction = async (rideId: string, request: () => Promise<Response>, successTitle: string, fallback: string, successBody?: string) => {
-    if (rideBusyRef.current) return;
-    rideBusyRef.current = true;
-    setRideActionBusy(rideId);
-    try {
-      const res = await request();
-      const data = await readJson(res);
-      if (!isMountedRef.current) return;
-      if (res.ok) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        // Completing a ride awards Karma: keep the banner in step with the server.
-        if (Number.isFinite(Number(data?.karmaPoints))) setUser({ karmaPoints: Number(data.karmaPoints) } as any);
-        Alert.alert(successTitle, successBody || data?.message || 'Done.');
-        fetchRides();
-        fetchMyRides();
-      } else {
-        Alert.alert('Could not update the ride', friendlyError(res, data, fallback));
-      }
-    } catch {
-      if (isMountedRef.current) Alert.alert('Could not update the ride', NETWORK_ERROR_MESSAGE);
-    } finally {
-      rideBusyRef.current = false;
-      if (isMountedRef.current) setRideActionBusy(null);
-    }
-  };
-
-  const fuelText = (ride: any) => {
-    const fuel = Number(ride.estimatedFuelCost) || 0;
-    return fuel > 0 ? `${inr(fuel)} in total, shared by everyone on the ride` : 'No fuel split';
-  };
-
-  const handleJoinRide = (ride: any) => {
-    if (!myId) { promptLogin('Sign in to join rides', 'Co-rides are only for signed-in students.'); return; }
-    const together = ride.creatorRole === 'passenger';
-    Alert.alert(
-      together ? 'Ride together?' : 'Join this ride?',
-      `Route: ${ride.origin} → ${ride.destination}\nLeaves: ${fmtRideWhen(ride.departureTime).label}\n${ride.vehicleType === 'Auto' ? 'Fare' : 'Fuel'}: ${fuelText(ride)}\n${together ? 'Posted by' : 'Host'}: ${ride.creator?.name || 'A campus student'}`,
-      [
-        { text: 'Not now', style: 'cancel' },
-        {
-          text: ride.autoApprove ? 'Join ride' : 'Request to join',
-          onPress: () => runRideAction(
-            ride.id,
-            () => apiFetch(ENDPOINTS.bikepoolJoin(ride.id), { method: 'POST' }),
-            ride.autoApprove ? 'You’re on this ride' : 'Request sent',
-            'Could not join this ride.',
-            ride.autoApprove
-              ? 'You are on this ride. Open My rides to message the host on WhatsApp.'
-              : 'The host will review your request. You can follow it in My rides.'
-          ),
-        },
-      ]
-    );
-  };
-
-  const handleCompleteRide = (rideId: string) => {
-    Alert.alert('Mark this ride as completed?', 'Do this once everyone has reached. Everyone on the ride earns Karma points.', [
-      { text: 'Not yet', style: 'cancel' },
-      { text: 'Complete ride', onPress: () => runRideAction(rideId, () => apiFetch(ENDPOINTS.bikepoolComplete(rideId), { method: 'POST' }), 'Ride completed', 'Could not complete this ride.') },
-    ]);
-  };
-
-  const handleCancelRide = (rideId: string, kind: 'host' | 'leave' | 'withdraw') => {
-    const copy = kind === 'host'
-      ? { title: 'Cancel this ride?', body: 'Everyone who joined or requested will be released.', cta: 'Cancel ride' }
-      : kind === 'leave'
-        ? { title: 'Leave this ride?', body: 'Your seat will be offered to other students.', cta: 'Leave ride' }
-        : { title: 'Withdraw your request?', body: 'The host will no longer see your request.', cta: 'Withdraw' };
-    Alert.alert(copy.title, copy.body, [
-      { text: 'Keep', style: 'cancel' },
-      { text: copy.cta, style: 'destructive', onPress: () => runRideAction(rideId, () => apiFetch(ENDPOINTS.bikepoolCancel(rideId), { method: 'POST' }), 'Done', 'Could not update this ride.') },
-    ]);
-  };
-
-  const handleApproveRequest = (rideId: string, requestId: string) => {
-    runRideAction(rideId, () => apiFetch(`${API_URL}/api/bikepool/posts/${rideId}/requests/${requestId}/approve`, { method: 'POST' }), 'Rider approved', 'Could not approve this request.');
-  };
-
-  const handleRejectRequest = (rideId: string, requestId: string) => {
-    runRideAction(rideId, () => apiFetch(`${API_URL}/api/bikepool/posts/${rideId}/requests/${requestId}/reject`, { method: 'POST' }), 'Request declined', 'Could not decline this request.');
-  };
-
-  const contactOnWhatsApp = (phone: any) => {
-    const digits = String(phone || '').replace(/\D/g, '');
-    if (!digits) {
-      Alert.alert('Contact unavailable', 'This student has not shared a phone number.');
-      return;
-    }
-    const intl = digits.length === 10 ? `91${digits}` : digits;
-    openExternal(`https://wa.me/${intl}`, 'WhatsApp');
-  };
-
-  const handleSOS = () => {
-    Alert.alert('Need help?', 'Call for help right away.', [
-      { text: 'Call 112 (Emergency)', style: 'destructive', onPress: () => openExternal('tel:112', 'the dialer') },
-      { text: 'Call Zenvy Support', onPress: () => openExternal(`tel:+${ZENVY_SUPPORT_PHONE}`, 'the dialer') },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  };
-
-  const openCreateRide = () => {
-    if (!myId) { promptLogin('Sign in to post a ride', 'Co-rides are only for signed-in students.'); return; }
-    setShowCreateModal(true);
-  };
-
-  const handleCreateRide = async () => {
-    if (submittingRide || submittingRideRef.current) return;
-    const o = origin.trim();
-    const d = destination.trim();
-    const n = notes.trim();
-    if (!o || !d || !departureTime.trim()) {
-      Alert.alert('A few details missing', 'Please add where you start, where you are going and when you leave.');
-      return;
-    }
-
-    let parsedDate = departureDate ? new Date(departureDate) : new Date(departureTime);
-    if (isNaN(parsedDate.getTime())) {
-      // Time only, e.g. "18:30" or "6:30 PM"
-      const timeMatch = departureTime.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
-      if (timeMatch) {
-        let hours = parseInt(timeMatch[1], 10);
-        const minutes = parseInt(timeMatch[2], 10);
-        const meridiem = timeMatch[3]?.toUpperCase();
-        if (meridiem === 'PM' && hours < 12) hours += 12;
-        if (meridiem === 'AM' && hours === 12) hours = 0;
-        parsedDate = new Date();
-        parsedDate.setHours(hours, minutes, 0, 0);
-        if (parsedDate.getTime() < Date.now()) parsedDate.setDate(parsedDate.getDate() + 1);
-      }
-    }
-
-    if (isNaN(parsedDate.getTime())) {
-      Alert.alert('Check the departure time', 'Pick a quick option or type a time like "18:30" or "6:30 PM".');
-      return;
-    }
-    if (parsedDate.getTime() < Date.now() - 5 * 60 * 1000) {
-      Alert.alert('That time has passed', 'Please pick a departure time in the future.');
-      return;
-    }
-
-    // Bike 1 seat, car up to 4 (the server accepts 1 to 6).
-    const seats = Math.min(maxSeatsFor(vehicleType), Math.max(1, parseInt(availableSeats, 10) || 1));
-    const fuel = Math.min(5000, Math.max(0, Math.round(Number(estimatedFuelCost) || 0)));
-
-    submittingRideRef.current = true;
-    setSubmittingRide(true);
-    try {
-      const res = await apiFetch(ENDPOINTS.bikepoolPosts, {
-        method: 'POST',
-        body: JSON.stringify({
-          creatorRole,
-          origin: o,
-          destination: d,
-          departureTime: parsedDate.toISOString(),
-          vehicleType,
-          availableSeats: seats,
-          estimatedFuelCost: fuel,
-          notes: n,
-          rideVibe,
-          autoApprove,
-        })
-      });
-      const data = await readJson(res);
-      if (!isMountedRef.current) return;
-      if (res.ok) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        Alert.alert('Ride posted', autoApprove
-          ? 'Students heading the same way can now join your ride.'
-          : 'Students heading the same way can now request to join. You approve who rides with you.');
-        setShowCreateModal(false);
-        setOrigin('');
-        setDestination('');
-        setDepartureTime('');
-        setDepartureDate(null);
-        setAvailableSeats('1');
-        setEstimatedFuelCost('0');
-        setNotes('');
-        setRideVibe('Any');
-        setAutoApprove(false);
-        setCorideTab('my-rides');
-        fetchRides();
-        fetchMyRides();
-      } else {
-        Alert.alert('Could not post the ride', friendlyError(res, data, 'Please check the details and try again.'));
-      }
-    } catch {
-      if (isMountedRef.current) Alert.alert('Could not post the ride', NETWORK_ERROR_MESSAGE);
-    } finally {
-      submittingRideRef.current = false;
-      if (isMountedRef.current) setSubmittingRide(false);
-    }
-  };
 
   // ── Mega Basket: quick list & custom shopping requests ──
   const handleSmartAutoFill = () => {
@@ -1647,21 +1373,6 @@ export default function OthersScreen() {
     doAdd();
   };
 
-  // Filter available ride posts
-  const vehicleRides = rides.filter(ride => vehicleFilter === 'All' || ride.vehicleType === vehicleFilter);
-  const rideDestinations = useMemo(() => topDestinations(vehicleRides), [vehicleRides]);
-  const filteredRides = goingTo ? vehicleRides.filter(ride => sameDestination(ride.destination, goingTo)) : vehicleRides;
-  const myRideGroups = useMemo(() => groupMyRides(myRides, myId), [myRides, myId]);
-  // Rides I already asked to join (from My Rides), so Browse does not offer "Request to join" twice.
-  const myJoinStatus = useMemo(() => {
-    const map: Record<string, string> = {};
-    myRides.forEach(r => {
-      const mine = (Array.isArray(r.requests) ? r.requests : []).find((q: any) => String(q.passengerId) === myId);
-      if (mine && (mine.status === 'Pending' || mine.status === 'Approved')) map[String(r.id)] = mine.status;
-    });
-    return map;
-  }, [myRides, myId]);
-
   // ── Saved items (stored on this device; cleared on logout) ──
   type SavedItem = { id: string; title: string; subtitle: string; price: string; image: string; targetRoute: string };
   const [favoritesModalVisible, setFavoritesModalVisible] = useState(false);
@@ -1696,7 +1407,6 @@ export default function OthersScreen() {
   useEffect(() => {
     if (lastUserRef.current === myId) return;
     lastUserRef.current = myId;
-    setRides([]); setMyRides([]); setRideError(null); setMyRidesError(null);
     setCoupons([]); setSpinsLeft(0); setSpinNextIn(null); setRewardsStatus(myId ? 'loading' : 'ready');
   }, [myId]);
 
@@ -1836,8 +1546,8 @@ export default function OthersScreen() {
       case 's3': router.push('/category/print' as any); break;
       case 'p1':
       case 'p2': scrollViewRef.current?.scrollTo({ y: 300, animated: true }); break;
-      case 'c1': openCreateRide(); break;
-      case 'c4': setCorideTab('auto'); break;
+      case 'c1': router.push('/coride/post?role=rider' as any); break;
+      case 'c4': router.push('/coride/auto' as any); break;
       case 'r1': router.push('/rentals' as any); break;
       case 'r2': router.push('/rentals/new' as any); break;
       case 'o1': scrollViewRef.current?.scrollTo({ y: 250, animated: true }); break;
@@ -1999,7 +1709,9 @@ export default function OthersScreen() {
           if (activeTab === 'services') { router.push('/category/repairs' as any); return; }
           // PG stays: the header search is the one PG search; it opens PG Buildings focused.
           if (activeTab === 'pg') { router.push('/pg/list?focus=1' as any); return; }
-          if (activeTab === 'coride' || activeTab === 'events') {
+          // Co-Ride: the header search opens Find a lift with the destination focused.
+          if (activeTab === 'coride') { router.push('/coride/find?focus=1' as any); return; }
+          if (activeTab === 'events') {
             scrollViewRef.current?.scrollTo({ y: 0, animated: true });
             setSectionSearchTick((n) => n + 1);
             return;
@@ -2091,44 +1803,8 @@ export default function OthersScreen() {
         {/* ── PG STAYS TAB (modules/pgV2): hero, filters, My bookings and buildings near campus ── */}
         {activeTab === 'pg' && <PgV2OthersSection />}
 
-        {/* ── CO-RIDE TAB ── modules/coride/CoRideHub: rides home, student bike and car pool, and Zenvy Auto */}
-        {activeTab === 'coride' && (
-          <View style={{ paddingHorizontal: 16, paddingBottom: 24 }}>
-            <CoRideHub
-              myId={myId}
-              karma={Number(user?.karmaPoints) || 0}
-              autoRideOn={autoRideOn}
-              autoSection={<AutoRideSection />}
-              corideTab={corideTab}
-              setCorideTab={setCorideTab}
-              rides={rides}
-              loadingRides={loadingRides}
-              rideError={rideError}
-              onRetryRides={fetchRides}
-              myRides={myRides}
-              myRideGroups={myRideGroups}
-              loadingMyRides={loadingMyRides}
-              myRidesError={myRidesError}
-              onRetryMyRides={fetchMyRides}
-              myJoinStatus={myJoinStatus}
-              rideActionBusy={rideActionBusy}
-              vehicleFilter={vehicleFilter}
-              setVehicleFilter={setVehicleFilter}
-              goingTo={goingTo}
-              setGoingTo={setGoingTo}
-              onJoin={handleJoinRide}
-              onApprove={handleApproveRequest}
-              onDecline={handleRejectRequest}
-              onComplete={handleCompleteRide}
-              onCancel={handleCancelRide}
-              onWhatsApp={contactOnWhatsApp}
-              onSafety={handleSOS}
-              onPost={(role) => { setCreatorRole(role); openCreateRide(); }}
-              onSignIn={() => router.push('/login' as any)}
-              focusSearchTick={sectionSearchTick}
-            />
-          </View>
-        )}
+        {/* ── CO-RIDE TAB (modules/corideV2): hero, route, pool / auto, leaving now, routes, quick actions, rides ── */}
+        {activeTab === 'coride' && <CoRideV2OthersSection />}
 
         {/* ── DEALS & SPINS TAB ── */}
         {activeTab === 'promos' && (
@@ -2692,35 +2368,6 @@ export default function OthersScreen() {
         </View>
       </Modal>
 
-      {/* ── POST A RIDE SHEET (modules/coride/PostRideSheet; state + submit stay here) ── */}
-      <PostRideSheet
-        visible={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        creatorRole={creatorRole}
-        setCreatorRole={setCreatorRole}
-        origin={origin}
-        setOrigin={setOrigin}
-        destination={destination}
-        setDestination={setDestination}
-        departureTime={departureTime}
-        setDepartureTime={setDepartureTime}
-        setDepartureDate={setDepartureDate}
-        vehicleType={vehicleType}
-        setVehicleType={setVehicleType}
-        availableSeats={availableSeats}
-        setAvailableSeats={setAvailableSeats}
-        estimatedFuelCost={estimatedFuelCost}
-        setEstimatedFuelCost={setEstimatedFuelCost}
-        notes={notes}
-        setNotes={setNotes}
-        rideVibe={rideVibe}
-        setRideVibe={setRideVibe}
-        autoApprove={autoApprove}
-        setAutoApprove={setAutoApprove}
-        submitting={submittingRide}
-        onSubmit={handleCreateRide}
-        onOpenAuto={() => { setShowCreateModal(false); setCorideTab('auto'); }}
-      />
     </View>
   );
 }

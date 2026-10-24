@@ -14,6 +14,7 @@ import { useLiveSync } from '../utils/useLiveSync';
 import { campusHrefForNotification } from '../modules/campus/campusLinks';
 import { rentalHrefForNotification } from '../modules/rentals/rentalLinks';
 import { autoRideHrefForNotification } from '../modules/autoRide/autoRideLinks';
+import { corideHrefForNotification } from '../modules/corideV2/coRideLinks';
 import { campusEventHrefForNotification } from '../modules/campusEvents/campusEventLinks';
 import { safeId } from '../utils/ids';
 import { Ionicons } from '@expo/vector-icons';
@@ -267,6 +268,9 @@ export default function NotificationsScreen() {
     } else if (campusEventHrefForNotification(n.type, n.data)) {
       // Campus Events registrations, tickets, team invitations, event updates and organizer reviews
       router.push(campusEventHrefForNotification(n.type, n.data) as any);
+    } else if (corideHrefForNotification(n.type, n.data)) {
+      // Co-Ride regular rides, reminders and cancellations
+      router.push(corideHrefForNotification(n.type, n.data) as any);
     } else if (autoRideHrefForNotification(n.type, n.data)) {
       // Zenvy Auto-Ride bookings, full-auto requests and trip updates
       router.push(autoRideHrefForNotification(n.type, n.data) as any);

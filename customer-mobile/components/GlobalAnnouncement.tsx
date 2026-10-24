@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { campusHrefForNotification } from '../modules/campus/campusLinks';
 import { rentalHrefForNotification } from '../modules/rentals/rentalLinks';
 import { autoRideHrefForNotification } from '../modules/autoRide/autoRideLinks';
+import { corideHrefForNotification } from '../modules/corideV2/coRideLinks';
 import { campusEventHrefForNotification } from '../modules/campusEvents/campusEventLinks';
 
 let Notifications: any = null;
@@ -232,7 +233,11 @@ export default function GlobalAnnouncement() {
         const rentalHref = rentalHrefForNotification(data.type, data);
         const autoRideHref = autoRideHrefForNotification(data.type, data);
         const campusEventHref = campusEventHrefForNotification(data.type, data);
-        if (campusEventHref) {
+        const corideHref = corideHrefForNotification(data.type, data);
+        if (corideHref) {
+          // Co-Ride: regular ride live / reminders / cancellations (data.path or data.poolId)
+          go(corideHref);
+        } else if (campusEventHref) {
           // Zenvy Campus Events: registrations, tickets, team invitations, event updates, organizer reviews
           go(campusEventHref);
         } else if (autoRideHref) {
