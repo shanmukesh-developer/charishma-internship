@@ -10,7 +10,7 @@ import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { StatusBar as RNStatusBar } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { AuthProvider } from '../context/AuthContext';
@@ -67,7 +67,9 @@ function SettleSignal({ onSettled }: { onSettled: () => void }) {
 
 const AppTree = React.memo(function AppTree({ isDark, onSettled }: { isDark: boolean; onSettled: () => void }) {
   return (
-    <SafeAreaProvider>
+    // initialWindowMetrics: real status-bar / notch insets from the first frame (without it every inset reads 0
+    // until the provider has measured, and headers drew under the clock on launch).
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <GestureHandlerRootView style={{ flex: 1, backgroundColor: isDark ? '#0A0A0B' : '#F5F5F7' }}>
         {/* Real keyboard insets for every screen (Android edge-to-edge ignores adjustResize). */}
         <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
