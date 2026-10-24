@@ -25,8 +25,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Clipboard from '@react-native-clipboard/clipboard';
 import SafeImage from '../../components/SafeImage';
 import ShimmerLoader from '../../components/ShimmerLoader';
-import { PgListSection } from '../../modules/pg/PgListSection';
-import type { PgHome } from '../../modules/pg/pgApi';
+import { PgV2OthersSection } from '../../modules/pgV2/PgV2Route';
+import { reloadPgV2List } from '../../modules/pgV2/pgV2Data';
+import { PG_HEADER as PG_V2_HEADER, PG_HINTS as PG_V2_HINTS } from '../../modules/pgV2/PgV2Home';
 import { useLiveSync, hasType } from '../../utils/useLiveSync';
 import RentalsSection from '../../modules/rentals/RentalsSection';
 import AutoRideSection from '../../modules/autoRide/AutoRideSection';
@@ -247,7 +248,7 @@ const FOOD_HERO_IMG = 'https://images.unsplash.com/photo-1540420773420-3366772f4
 /** Tech & repairs search hints (the header search opens the repairs page with its search). */
 const SERVICE_SEARCH_HINTS = ["Search for 'laptop screen'", "Search for 'phone battery'", "Search for 'keyboard repair'", "Search for 'fan cleaning'"];
 /** PG stays and Co-Ride: the header search focuses the section's own search box (never the grocery search). */
-const PG_SEARCH_HINTS = ['Search PGs by area or name', "Search for 'girls PG'", "Search for 'Neerukonda'"];
+const PG_SEARCH_HINTS = PG_V2_HINTS;
 const CORIDE_SEARCH_HINTS = ['Search lifts by destination', "Search for 'Vijayawada'", "Search for 'Guntur'"];
 const EVENTS_SEARCH_HINTS = ['Search events and venues', "Search for 'hackathon'", "Search for 'cricket'"];
 /** Sections without a search of their own (Deals, Rentals): the search says what it searches. */
@@ -256,7 +257,7 @@ const STORE_SEARCH_HINTS = ['Search the campus store'];
 const SECTION_HEADER: Record<string, HeaderColors> = {
   food: FOOD_HEADER,
   services: { top: '#211A6B', bottom: '#2D2491', pillOnBg: '#EFEDFF', pillOnInk: '#3B2FC4' },
-  pg: { top: '#0E2A66', bottom: '#15398C', pillOnBg: '#EBF2FF', pillOnInk: '#1E40AF' },
+  pg: PG_V2_HEADER, // PG v2 indigo; its bottom colour continues into the PG v2 hero
   coride: { top: '#0E2A66', bottom: '#15398C', pillOnBg: '#EAF1FF', pillOnInk: '#1E40AF' },
   promos: { top: '#2A1670', bottom: '#381F94', pillOnBg: '#EFEBFF', pillOnInk: '#4B2BC8' },
   neutral: { top: '#1B2433', bottom: '#263247', pillOnBg: '#F1F3F6', pillOnInk: '#1E293B' },
@@ -575,8 +576,6 @@ export default function OthersScreen() {
   const [storeSearchOnOpen, setStoreSearchOnOpen] = useState(false);
   // Stable, so the memoized Food & groceries screen is not re-rendered by this screen's own renders.
   const onStoreSearchOpened = useCallback(() => setStoreSearchOnOpen(false), []);
-  /** Y of the PG section inside the Others scroll view (PgListSection asks to scroll back to it). */
-  const pgSectionYRef = useRef(0);
 
   useEffect(() => {
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
@@ -1141,11 +1140,7 @@ export default function OthersScreen() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // ── PG States ──
-  const [pgs, setPgs] = useState<any[]>([]);
-  const [loadingPgs, setLoadingPgs] = useState(false);
-  const [pgError, setPgError] = useState<string | null>(null);
-  // PG list page extras (promotions, room tours, rails) from GET /api/pg/home; null on older servers.
-  const [pgHome, setPgHome] = useState<PgHome | null>(null);
+  // PG stays data lives in modules/pgV2 (shared session store); refresh goes through reloadPgV2List.
 
   // ── Co-Ride States ──
   const [corideTab, setCorideTab] = useState<'browse' | 'my-rides' | 'auto'>('browse');
@@ -1254,27 +1249,7 @@ export default function OthersScreen() {
   // Load PG lists
   // silent = live-sync background refresh: keep the current list, no skeleton, no error card
   const fetchPGs = useCallback(async (opts?: { silent?: boolean }) => {
-    const silent = !!opts?.silent;
-    if (!silent) setLoadingPgs(true);
-    try {
-      // One request for the whole PG page; the plain list is the fallback for an older server.
-      let res = await apiFetch(`${API_URL}/api/pg/home`);
-      let data = await readJson(res);
-      const home = res.ok && data && Array.isArray(data.pgs) ? (data as PgHome) : null;
-      if (!home && res.status === 404) { res = await apiFetch(ENDPOINTS.pgList); data = await readJson(res); }
-      if (!isMountedRef.current) return;
-      if (res.ok) {
-        setPgs(home ? home.pgs : Array.isArray(data) ? data : []);
-        setPgHome(home);
-        setPgError(null);
-      } else if (!silent) {
-        setPgError(friendlyError(res, data, 'We could not load PG stays right now.'));
-      }
-    } catch {
-      if (isMountedRef.current && !silent) setPgError(NETWORK_ERROR_MESSAGE);
-    } finally {
-      if (isMountedRef.current && !silent) setLoadingPgs(false);
-    }
+    await reloadPgV2List({ silent: !!opts?.silent });
   }, []);
 
   // Load Co-Ride lists
@@ -2022,7 +1997,9 @@ export default function OthersScreen() {
         searchLabel={activeTab === 'services' ? 'Search repairs' : activeTab === 'pg' ? 'Search PGs by area or name' : activeTab === 'coride' ? 'Search lifts by destination' : activeTab === 'events' ? 'Search events and venues' : 'Search the campus store'}
         onSearch={() => {
           if (activeTab === 'services') { router.push('/category/repairs' as any); return; }
-          if (activeTab === 'pg' || activeTab === 'coride' || activeTab === 'events') {
+          // PG stays: the header search is the one PG search; it opens PG Buildings focused.
+          if (activeTab === 'pg') { router.push('/pg/list?focus=1' as any); return; }
+          if (activeTab === 'coride' || activeTab === 'events') {
             scrollViewRef.current?.scrollTo({ y: 0, animated: true });
             setSectionSearchTick((n) => n + 1);
             return;
@@ -2111,21 +2088,8 @@ export default function OthersScreen() {
         {/* ── CAMPUS EVENTS TAB: discovery, registrations, tickets (only while the server enables it) ── */}
         {activeTab === 'events' && campusEventsOn && <CampusEventsSection focusSearchTick={sectionSearchTick} />}
 
-        {/* ── PG STAYS TAB (modules/pg) ── */}
-        {activeTab === 'pg' && (
-          <View onLayout={(e) => { pgSectionYRef.current = e.nativeEvent.layout.y; }}>
-            <PgListSection
-              pgs={pgs}
-              home={pgHome}
-              loading={loadingPgs}
-              error={pgError}
-              onRetry={() => fetchPGs()}
-              // PG home <-> listing: bring the section's top back into view.
-              onRequestTop={() => scrollViewRef.current?.scrollTo({ y: Math.max(0, pgSectionYRef.current - 8), animated: false })}
-              focusSearchTick={sectionSearchTick}
-            />
-          </View>
-        )}
+        {/* ── PG STAYS TAB (modules/pgV2): hero, filters, My bookings and buildings near campus ── */}
+        {activeTab === 'pg' && <PgV2OthersSection />}
 
         {/* ── CO-RIDE TAB ── modules/coride/CoRideHub: rides home, student bike and car pool, and Zenvy Auto */}
         {activeTab === 'coride' && (
