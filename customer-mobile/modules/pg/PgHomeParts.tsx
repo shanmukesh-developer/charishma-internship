@@ -12,6 +12,7 @@ import { View, Text, StyleSheet, FlatList, ScrollView, useWindowDimensions, type
 import { inr, plural, type PgListItem, type PgPromotion, type PgTour } from './pgApi';
 import { usePgPalette, PgImage, Press, ICON, TYPE, IconPlay, IconChevronRight, s as ui } from './ui';
 import { PgRailCard, RAIL_CARD_W } from './PgListCard';
+import { useScreenActive } from '../../utils/useAppActive';
 
 const AUTO_MS = 5000;
 const RESUME_MS = 6000;
@@ -40,10 +41,12 @@ export function FeaturedCarousel({ promos, onOpenPg, onPlay, onBookVisit }: {
   const [index, setIndex] = useState(0);
   const indexRef = useRef(0);
   const pausedUntil = useRef(0);
+  // Auto-advance only while this screen is on view and the app is in the foreground.
+  const on = useScreenActive();
 
   const pause = () => { pausedUntil.current = Date.now() + RESUME_MS; };
   useEffect(() => {
-    if (promos.length < 2) return;
+    if (promos.length < 2 || !on) return;
     const t = setInterval(() => {
       if (Date.now() < pausedUntil.current) return;
       const next = (indexRef.current + 1) % promos.length;
@@ -52,7 +55,7 @@ export function FeaturedCarousel({ promos, onOpenPg, onPlay, onBookVisit }: {
       setIndex(next);
     }, AUTO_MS);
     return () => clearInterval(t);
-  }, [promos.length, step]);
+  }, [promos.length, step, on]);
   useEffect(() => { if (index >= promos.length) { indexRef.current = 0; setIndex(0); } }, [promos.length, index]);
 
   const onEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {

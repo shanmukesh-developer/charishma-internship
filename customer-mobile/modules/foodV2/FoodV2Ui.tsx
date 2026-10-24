@@ -23,7 +23,8 @@ import { FOOD } from './foodV2Theme';
 import { FOOD_IMG, StorefrontArt, ShoppingBasketArt, WaveArt, LoadingDots } from './FoodV2Kit';
 import { IonName, Item, SHOP_TYPES, CATALOGUE_CACHE_KEY, FALLBACK_IMG, MEGA_BASKET_VENDOR, WISHLIST_KEY, toItem, toList, groupIN, fmt, fmtMrp, sentence, offLabel, fmtShortClock, squash, Shelf, SHELVES, shelfItems, SEARCH, SEARCH_HINTS, TILES, Hero, HEROES, LIST_TITLES, AISLES, aisleOf, SHORT_CHIP, chipLabel, FRESH_CATS, GROUP_ORDER, groupOf, BRANDS, TOY_TILES, HEALTH_TILES, ESSENTIAL_AISLES, HERO_BG, LHERO_BG, POPULAR_REQUESTS, Route, DemoState, Saved } from './FoodV2Data';
 import { s } from './FoodV2Styles';
-import { useFoodV2 } from './useFoodV2';
+import { useFoodV2, type FoodV2RowActions } from './useFoodV2';
+import { useScreenActive } from '../../utils/useAppActive';
 import { Icon } from './FoodV2Icons';
 import Thumb from './FoodV2Thumb';
 import FoodV2BasketBar from './FoodV2BasketBar';
@@ -43,8 +44,101 @@ export const ROW_H = 134;
 /** Gap below each listing row (part of the row's FlatList slot). */
 export const ROW_GAP = 10;
 
+type RowColors = { card: string; line: string; slate: string; mint: string; mintInk: string; title: string; name: string; price: string; was: string; off: string };
+
+/** One line: price, struck MRP (whole rupees) and % off; never wraps under the add control. */
+function PriceLine({ p, c, big = false }: { p: Item; c: RowColors; big?: boolean }) {
+  const off = offLabel(p);
+  return (
+    <Text style={st.priceLine} numberOfLines={1}>
+      <Text style={[big ? s.priceBig : s.price, { color: c.price }]}>{fmt(p.price)}</Text>
+      {!!p.originalPrice && <Text style={[s.was, { color: c.was }]}>{'  '}{fmtMrp(p.originalPrice)}</Text>}
+      {!!off && <Text style={[s.off, { color: c.off }]}>{'  '}{off}</Text>}
+    </Text>
+  );
+}
+
+/** "+", a mint − 1 + stepper once in the basket, or "Opens 9 am" while the shop is closed. */
+function AddControlView({ p, q, closed, compact, isDark, c, greenGlow, actions }: {
+  p: Item; q: number; closed: string | null; compact: boolean; isDark: boolean; c: RowColors; greenGlow: any; actions: FoodV2RowActions;
+}) {
+  if (!p.isAvailable) return <Text style={[s.soldText, { color: c.slate }]}>Sold out</Text>;
+  if (!p.orderable && q === 0) {
+    const label = closed || 'Closed now';
+    return (
+      <View style={s.closedWrap}>
+        <View style={[s.closedPill, { borderColor: c.line, backgroundColor: c.card }]} accessibilityLabel={label}>
+          <Text style={[s.closedText, { color: c.slate }]} numberOfLines={1}>{label}</Text>
+        </View>
+        {!compact && (
+          <PressScale style={[s.plus, { backgroundColor: isDark ? '#3F3F46' : '#C3CDCA' }]} onPress={() => actions.addProduct(p)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`${p.name}: ${label}`}>
+            <Icon name="add" size={18} color="#FFFFFF" />
+          </PressScale>
+        )}
+      </View>
+    );
+  }
+  if (q > 0) {
+    return (
+      <View style={s.stepper}>
+        <PressScale style={[s.stepBtn, { backgroundColor: c.mint }]} onPress={() => actions.decProduct(p.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 2 }} accessibilityRole="button" accessibilityLabel={`Remove one ${p.name}. ${q} in basket`}>
+          <Icon name="remove" size={15} color={c.mintInk} />
+        </PressScale>
+        <View style={[s.stepBtn, { backgroundColor: c.mint }]}><BounceOnChange value={q}><Text style={[s.stepQty, { color: c.title }]}>{q}</Text></BounceOnChange></View>
+        <BounceOnChange value={q}>
+          <PressScale style={[s.stepBtn, { backgroundColor: c.mint }]} onPress={() => actions.addProduct(p)} hitSlop={{ top: 6, bottom: 6, left: 2, right: 6 }} accessibilityRole="button" accessibilityLabel={`Add one more ${p.name}. ${q} in basket`}>
+            <Icon name="add" size={15} color={c.mintInk} />
+          </PressScale>
+        </BounceOnChange>
+      </View>
+    );
+  }
+  return (
+    <PressScale style={[s.plus, { backgroundColor: FOOD.primary }, greenGlow]} onPress={() => actions.addProduct(p)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`Add ${p.name} to basket`}>
+      <Icon name="add" size={18} color="#FFFFFF" />
+    </PressScale>
+  );
+}
+
+type ProductRowProps = {
+  p: Item; q: number; isSaved: boolean; closed: string | null; plate: number; flat: boolean; isDark: boolean;
+  c: RowColors; shadow: any; greenGlow: any; savedSample: boolean; actions: FoodV2RowActions; onOpen?: () => void;
+};
+/**
+ * Product row (listings, search, saved sheet): photo, name, size, price line, heart, then "+" / stepper.
+ * Memoized on what it shows (quantity, saved, closed label, theme): typing in search, a toast or a basket
+ * change elsewhere used to re-render every visible row with its photo, icons and press animations.
+ * onOpen is read from a ref (callers pass a fresh closure each render).
+ */
+const ProductRow = React.memo(function ProductRow({ p, q, isSaved, closed, plate, flat, isDark, c, shadow, greenGlow, savedSample, actions, onOpen }: ProductRowProps) {
+  const openRef = useRef(onOpen);
+  openRef.current = onOpen;
+  const open = useCallback(() => { if (openRef.current) openRef.current(); else actions.openProduct(p); }, [actions, p]);
+  return (
+    <View style={[s.row, { backgroundColor: c.card, height: Math.max(ROW_H, plate + 24) }, flat ? { borderRadius: 0, borderBottomWidth: 1, borderBottomColor: c.line } : shadow]}>
+      <PressScale onPress={open} accessibilityRole="button" accessibilityLabel={`${p.name}${p.weight ? `, ${p.weight}` : ''}, ${fmt(p.price)}${!p.isAvailable ? ', sold out' : ''}. Open details`}>
+        <Thumb uri={p.image} size={plate} isDark={isDark} group={groupOf(p)} dim={!p.isAvailable} />
+      </PressScale>
+      <View style={st.rowCol}>
+        <PressScale style={st.rowText} onPress={open} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Text style={[s.rowName, st.rowName, { color: c.name }]} numberOfLines={2}>{p.name}</Text>
+          {/* size line always has its slot, so look-alike names still differ by size */}
+          <Text style={[s.rowMeta, st.rowMeta, { color: c.slate }]} numberOfLines={1}>{p.weight || ' '}</Text>
+          <PriceLine p={p} c={c} />
+        </PressScale>
+        <View style={st.rowCtl}><AddControlView p={p} q={q} closed={closed} compact={false} isDark={isDark} c={c} greenGlow={greenGlow} actions={actions} /></View>
+      </View>
+      <PressScale style={s.rowHeart} onPress={() => { if (!savedSample) actions.toggleSaved(p); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={isSaved ? `Remove ${p.name} from saved items` : `Save ${p.name}`}>
+        <Icon name={isSaved ? 'heart' : 'heart-outline'} size={16} strokeWidth={1.5} color={isSaved ? FOOD.primary : c.was} />
+      </PressScale>
+    </View>
+  );
+}, (a, b) => a.p === b.p && a.q === b.q && a.isSaved === b.isSaved && a.closed === b.closed && a.plate === b.plate
+  && a.flat === b.flat && a.isDark === b.isDark && a.c === b.c && a.shadow === b.shadow && a.greenGlow === b.greenGlow
+  && a.savedSample === b.savedSample && a.actions === b.actions && !a.onOpen === !b.onOpen);
+
 export function useFoodV2Ui() {
-  const { router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark } = useFoodV2();
+  const { router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark, rowActions } = useFoodV2();
   /** Plain header icon (no circle): lucide 22 / 1.6 in a 44 px tap area; gold count pill or unread dot. */
   const headerBtn = (icon: IonName, label: string, onPress: () => void, badge = 0, dot = false) => (
     <PressScale style={s.hdrBtn} scaleTo={0.92} haptic onPress={onPress} accessibilityRole="button" accessibilityLabel={badge ? `${label}, ${badge} item${badge === 1 ? '' : 's'}` : label}>
@@ -85,83 +179,19 @@ export function useFoodV2Ui() {
   );
 
   /** "+", a mint − 1 + stepper once in the basket, or "Opens 9 am" while the shop is closed. */
-  const addControl = (p: Item, compact = false) => {
-    const q = qtyOf(p.id);
-    if (!p.isAvailable) return <Text style={[s.soldText, { color: c.slate }]}>Sold out</Text>;
-    if (!p.orderable && q === 0) {
-      const label = closedLabel(p) || 'Closed now';
-      return (
-        <View style={s.closedWrap}>
-          <View style={[s.closedPill, { borderColor: c.line, backgroundColor: c.card }]} accessibilityLabel={label}>
-            <Text style={[s.closedText, { color: c.slate }]} numberOfLines={1}>{label}</Text>
-          </View>
-          {!compact && (
-            <PressScale style={[s.plus, { backgroundColor: isDark ? '#3F3F46' : '#C3CDCA' }]} onPress={() => addProduct(p)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`${p.name}: ${label}`}>
-              <Icon name="add" size={18} color="#FFFFFF" />
-            </PressScale>
-          )}
-        </View>
-      );
-    }
-    if (q > 0) {
-      return (
-        <View style={s.stepper}>
-          <PressScale style={[s.stepBtn, { backgroundColor: c.mint }]} onPress={() => decProduct(p.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 2 }} accessibilityRole="button" accessibilityLabel={`Remove one ${p.name}. ${q} in basket`}>
-            <Icon name="remove" size={15} color={c.mintInk} />
-          </PressScale>
-          <View style={[s.stepBtn, { backgroundColor: c.mint }]}><BounceOnChange value={q}><Text style={[s.stepQty, { color: c.title }]}>{q}</Text></BounceOnChange></View>
-          <BounceOnChange value={q}>
-            <PressScale style={[s.stepBtn, { backgroundColor: c.mint }]} onPress={() => addProduct(p)} hitSlop={{ top: 6, bottom: 6, left: 2, right: 6 }} accessibilityRole="button" accessibilityLabel={`Add one more ${p.name}. ${q} in basket`}>
-              <Icon name="add" size={15} color={c.mintInk} />
-            </PressScale>
-          </BounceOnChange>
-        </View>
-      );
-    }
-    return (
-      <PressScale style={[s.plus, { backgroundColor: FOOD.primary }, greenGlow]} onPress={() => addProduct(p)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`Add ${p.name} to basket`}>
-        <Icon name="add" size={18} color="#FFFFFF" />
-      </PressScale>
-    );
-  };
+  const addControl = (p: Item, compact = false) => (
+    <AddControlView p={p} q={qtyOf(p.id)} closed={closedLabel(p)} compact={compact} isDark={isDark} c={c} greenGlow={greenGlow} actions={rowActions} />
+  );
 
   /** One line: price, struck MRP (whole rupees) and % off; never wraps under the add control. */
-  const priceRow = (p: Item, big = false) => {
-    const off = offLabel(p);
-    return (
-      <Text style={st.priceLine} numberOfLines={1}>
-        <Text style={[big ? s.priceBig : s.price, { color: c.price }]}>{fmt(p.price)}</Text>
-        {!!p.originalPrice && <Text style={[s.was, { color: c.was }]}>{'  '}{fmtMrp(p.originalPrice)}</Text>}
-        {!!off && <Text style={[s.off, { color: c.off }]}>{'  '}{off}</Text>}
-      </Text>
-    );
-  };
+  const priceRow = (p: Item, big = false) => <PriceLine p={p} c={c} big={big} />;
 
-  /** Product row (listings, search, saved sheet): photo, name, size, price line, heart, then "+" / stepper. */
-  const productRow = (p: Item, opts?: { plate?: number; flat?: boolean; onOpen?: () => void }) => {
-    const plate = opts?.plate || 76;
-    const isSaved = savedIds.has(p.id) || (savedSample && sampleSaved.some(f => f.id === p.id));
-    const open = opts?.onOpen || (() => openProduct(p));
-    return (
-      <View key={p.id} style={[s.row, { backgroundColor: c.card, height: Math.max(ROW_H, plate + 24) }, opts?.flat ? { borderRadius: 0, borderBottomWidth: 1, borderBottomColor: c.line } : shadow]}>
-        <PressScale onPress={open} accessibilityRole="button" accessibilityLabel={`${p.name}${p.weight ? `, ${p.weight}` : ''}, ${fmt(p.price)}${!p.isAvailable ? ', sold out' : ''}. Open details`}>
-          <Thumb uri={p.image} size={plate} isDark={isDark} group={groupOf(p)} dim={!p.isAvailable} />
-        </PressScale>
-        <View style={st.rowCol}>
-          <PressScale style={st.rowText} onPress={open} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <Text style={[s.rowName, st.rowName, { color: c.name }]} numberOfLines={2}>{p.name}</Text>
-            {/* size line always has its slot, so look-alike names still differ by size */}
-            <Text style={[s.rowMeta, st.rowMeta, { color: c.slate }]} numberOfLines={1}>{p.weight || ' '}</Text>
-            {priceRow(p)}
-          </PressScale>
-          <View style={st.rowCtl}>{addControl(p)}</View>
-        </View>
-        <PressScale style={s.rowHeart} onPress={() => { if (!savedSample) toggleSaved(p); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={isSaved ? `Remove ${p.name} from saved items` : `Save ${p.name}`}>
-          <Icon name={isSaved ? 'heart' : 'heart-outline'} size={16} strokeWidth={1.5} color={isSaved ? FOOD.primary : c.was} />
-        </PressScale>
-      </View>
-    );
-  };
+  /** Product row (listings, search, saved sheet): the memoized ProductRow above. */
+  const productRow = (p: Item, opts?: { plate?: number; flat?: boolean; onOpen?: () => void }) => (
+    <ProductRow key={p.id} p={p} q={qtyOf(p.id)} isSaved={savedIds.has(p.id) || (savedSample && sampleSaved.some(f => f.id === p.id))}
+      closed={closedLabel(p)} plate={opts?.plate || 76} flat={!!opts?.flat} isDark={isDark} c={c} shadow={shadow} greenGlow={greenGlow}
+      savedSample={!!savedSample} actions={rowActions} onOpen={opts?.onOpen} />
+  );
 
   /** Product card (saved grid): photo plate with a heart, name, price and % off, "+" on the plate. */
   const productCard = (p: Item, w: number) => {
@@ -214,13 +244,15 @@ export function Enter({ index, children }: { index: number; children: React.Reac
   return <FadeInUp index={index}>{children}</FadeInUp>;
 }
 
-/** Rotating search hint index (every 2.5 s). */
+/** Rotating search hint index (every 2.5 s, only while the screen is on view and the app is open). */
 export function useHint() {
   const [i, setI] = useState(0);
+  const on = useScreenActive();
   useEffect(() => {
+    if (!on) return;
     const t = setInterval(() => setI(v => v + 1), 2500);
     return () => clearInterval(t);
-  }, []);
+  }, [on]);
   return i;
 }
 

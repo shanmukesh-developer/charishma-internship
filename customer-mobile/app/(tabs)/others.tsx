@@ -445,8 +445,19 @@ const SHELVES: Record<string, Shelf> = {
 /** Listing page key for "search the whole campus store" (header search on Food & groceries). */
 const SEARCH_SHELF = '__search';
 
+/** Shelves computed once per catalogue array (render-time callers ask for the same shelves again and again). */
+const shelfCache = new WeakMap<CatalogueItem[], Map<string, CatalogueItem[]>>();
 const shelfItems = (name: string | null, items: CatalogueItem[]): CatalogueItem[] => {
   if (!name) return [];
+  let byName = shelfCache.get(items);
+  if (!byName) { byName = new Map(); shelfCache.set(items, byName); }
+  const hit = byName.get(name);
+  if (hit) return hit;
+  const out = computeShelf(name, items);
+  byName.set(name, out);
+  return out;
+};
+const computeShelf = (name: string, items: CatalogueItem[]): CatalogueItem[] => {
   const shelf = SHELVES[name] || { categories: [name], keywords: [name] };
   const cats = (shelf.categories || []).map(c => c.toLowerCase());
   const keys = (shelf.keywords || []).map(k => k.toLowerCase());
@@ -561,6 +572,8 @@ export default function OthersScreen() {
   const [sectionSearchTick, setSectionSearchTick] = useState(0);
   // Deals / Rentals header search: open Food & groceries on its search screen (the store search lives there).
   const [storeSearchOnOpen, setStoreSearchOnOpen] = useState(false);
+  // Stable, so the memoized Food & groceries screen is not re-rendered by this screen's own renders.
+  const onStoreSearchOpened = useCallback(() => setStoreSearchOnOpen(false), []);
   /** Y of the PG section inside the Others scroll view (PgListSection asks to scroll back to it). */
   const pgSectionYRef = useRef(0);
 
@@ -1317,8 +1330,10 @@ export default function OthersScreen() {
       jobs.push(job());
     };
     run('serviceability', fetchServiceability);
-    if (activeTab === 'food') run('catalogue', fetchCatalogue);
-    else if (activeTab === 'services') { run('servicePrices', fetchServicePrices); run('catalogue', fetchCatalogue); }
+    // Food & groceries (modules/foodV2) loads, caches and shows its own catalogue. This screen used to
+    // download the same four store lists again in parallel (8 requests, two parses, ~10 re-renders of
+    // both screens on every open) for state the food tab never shows.
+    if (activeTab === 'services') { run('servicePrices', fetchServicePrices); run('catalogue', fetchCatalogue); }
     else if (activeTab === 'pg') run('pg', () => fetchPGs());
     else if (activeTab === 'coride' && myId) { run('rides', fetchRides, false); run('myRides', fetchMyRides, false); }
     else if (activeTab === 'promos') { run('rewards', fetchRewards, false); run('vault', fetchVault); }
@@ -1338,8 +1353,7 @@ export default function OthersScreen() {
     onChange: (events) => {
       const catalogueChanged = hasType(events, 'store', 'product');
       if (catalogueChanged) fetchServiceability();
-      if (activeTab === 'food' && catalogueChanged) fetchCatalogue();
-      else if (activeTab === 'services' && catalogueChanged) { fetchServicePrices(); fetchCatalogue(); }
+      if (activeTab === 'services' && catalogueChanged) { fetchServicePrices(); fetchCatalogue(); }
       else if (activeTab === 'pg' && hasType(events, 'pg')) fetchPGs({ silent: true });
       else if (activeTab === 'promos' && hasType(events, 'coupon')) fetchRewards();
     },
@@ -1988,7 +2002,7 @@ export default function OthersScreen() {
   if (activeTab === 'food') {
     return (
       <View style={{ flex: 1, backgroundColor: isDark ? '#09090B' : '#FFFFFF' }}>
-        <FoodV2Screen forceDark={isDark} sections={visibleTabs} onSection={selectTab} openSearch={storeSearchOnOpen} onSearchOpened={() => setStoreSearchOnOpen(false)} />
+        <FoodV2Screen forceDark={isDark} sections={visibleTabs} onSection={selectTab} openSearch={storeSearchOnOpen} onSearchOpened={onStoreSearchOpened} />
       </View>
     );
   }

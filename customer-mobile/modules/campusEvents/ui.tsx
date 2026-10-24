@@ -6,6 +6,7 @@
  * an icon and words, and every touch target is at least 44 px.
  */
 import React, { useEffect, useMemo, useState } from 'react';
+import { useAppActive } from '../../utils/useAppActive';
 import {
   View, Text, TouchableOpacity, TextInput, ActivityIndicator, ScrollView, StyleSheet, Platform,
   type TextInputProps, type ViewStyle, type StyleProp,
@@ -389,11 +390,15 @@ export function Hero({ title, subtitle, kicker = 'Zenvy Campus Events', right }:
 /** Re-renders every `ms` (countdowns). */
 export function useNow(ms = 1000, enabled = true) {
   const [now, setNow] = useState(() => Date.now());
+  // Paused while the app is in the background (no 1 s re-renders nobody sees); jumps to the current
+  // time as soon as the app is back.
+  const appActive = useAppActive();
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !appActive) return;
+    setNow(Date.now());
     const t = setInterval(() => setNow(Date.now()), ms);
     return () => clearInterval(t);
-  }, [ms, enabled]);
+  }, [ms, enabled, appActive]);
   return now;
 }
 

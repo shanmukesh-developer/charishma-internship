@@ -9,6 +9,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, PanResponder, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { useReducedMotion } from '../../modules/others/motion';
+import { useScreenActive } from '../../utils/useAppActive';
 
 export default function BannerSlider({ slides, style, dotsStyle, every = 3500 /* 2.6 s hold + 0.9 s transition */ }: {
   slides: any[]; style: StyleProp<ViewStyle>; dotsStyle: StyleProp<ViewStyle>; every?: number;
@@ -18,6 +19,8 @@ export default function BannerSlider({ slides, style, dotsStyle, every = 3500 /*
   const [index, setIndex] = useState(0);
   const paused = useRef(false);
   const resumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Auto-slide only while the screen is on view and the app is in the foreground.
+  const on = useScreenActive();
   const vals = useMemo(() => list.map((_, i) => new Animated.Value(i === 0 ? 1 : 0)), [list.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const go = (next: number) => {
@@ -31,7 +34,7 @@ export default function BannerSlider({ slides, style, dotsStyle, every = 3500 /*
   };
 
   useEffect(() => {
-    if (list.length < 2) return;
+    if (list.length < 2 || !on) return;
     const t = setInterval(() => { if (!paused.current) go(index + 1); }, every);
     return () => clearInterval(t);
   }); // re-armed each render so it always advances from the current index

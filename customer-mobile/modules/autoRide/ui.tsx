@@ -6,6 +6,7 @@
  * Emoji that older call sites pass as icons are dropped here, so every screen reads calm and consistent.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useAppActive } from '../../utils/useAppActive';
 import {
   View, Text, StyleSheet, Platform, ActivityIndicator, ScrollView, TextInput,
   type StyleProp, type ViewStyle, type TextInputProps,
@@ -339,11 +340,15 @@ export function AutoTile({ size = 56 }: { size?: number }) {
 /** Re-renders every `ms` (countdowns). */
 export function useNow(ms = 1000, enabled = true) {
   const [now, setNow] = useState(() => Date.now());
+  // Paused while the app is in the background (no 1 s re-renders nobody sees); jumps to the current
+  // time as soon as the app is back.
+  const appActive = useAppActive();
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !appActive) return;
+    setNow(Date.now());
     const t = setInterval(() => setNow(Date.now()), ms);
     return () => clearInterval(t);
-  }, [ms, enabled]);
+  }, [ms, enabled, appActive]);
   return now;
 }
 

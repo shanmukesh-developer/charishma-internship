@@ -40,6 +40,44 @@ Alert.alert = (title, message, buttons, options) => {
   }
 };
 
+// Module-level so the root navigator's options never change identity.
+const ROOT_STACK_OPTIONS = { headerShown: false, animation: 'fade', freezeOnBlur: true } as const;
+
+/**
+ * Everything below the intro, memoized on the theme only. AppContainer re-renders when the intro ends,
+ * the icon font finishes loading or the saved theme arrives; without this memo each of those re-rendered
+ * every mounted screen (Home included) while it was still painting its first frames.
+ */
+const AppTree = React.memo(function AppTree({ isDark }: { isDark: boolean }) {
+  return (
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: isDark ? '#0A0A0B' : '#F5F5F7' }}>
+        {/* Real keyboard insets for every screen (Android edge-to-edge ignores adjustResize). */}
+        <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
+        <WorldTransitionProvider>
+          {/* Force update: a retired version sees only the Update screen; a newer release shows a banner. */}
+          <UpdateGate>
+          <AuthProvider>
+          <CartProvider>
+            <Stack screenOptions={ROOT_STACK_OPTIONS} />
+            <WorldTransitionOverlay />
+            <GlobalAnnouncement />
+            {/* C4: one-time, non-blocking "We've updated our Terms" sheet */}
+            <TermsUpdateSheet />
+            <ThemedAlert />
+            <OfflineBanner />
+            {/* Backend cold start: calm "waking up" banner while apiFetch retries (utils/serverWake.ts) */}
+            <ServerWakeBanner />
+          </CartProvider>
+        </AuthProvider>
+          </UpdateGate>
+        </WorldTransitionProvider>
+        </KeyboardProvider>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
+  );
+});
+
 function AppContainer() {
   const { isDark, isThemeReady } = useTheme();
   // The Zenvy intro plays on every app start (cold launch). It is dark on its own, so it shows from the
@@ -118,32 +156,8 @@ function AppContainer() {
 
   return (
     <View style={{ flex: 1 }}>
-    <SafeAreaProvider>
-      <GestureHandlerRootView style={{ flex: 1, backgroundColor: isDark ? '#0A0A0B' : '#F5F5F7' }}>
-        {/* Real keyboard insets for every screen (Android edge-to-edge ignores adjustResize). */}
-        <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
-        <WorldTransitionProvider>
-          {/* Force update: a retired version sees only the Update screen; a newer release shows a banner. */}
-          <UpdateGate>
-          <AuthProvider>
-          <CartProvider>
-            <Stack screenOptions={{ headerShown: false, animation: 'fade', freezeOnBlur: true }} />
-            <WorldTransitionOverlay />
-            <GlobalAnnouncement />
-            {/* C4: one-time, non-blocking "We've updated our Terms" sheet */}
-            <TermsUpdateSheet />
-            <ThemedAlert />
-            <OfflineBanner />
-            {/* Backend cold start: calm "waking up" banner while apiFetch retries (utils/serverWake.ts) */}
-            <ServerWakeBanner />
-          </CartProvider>
-        </AuthProvider>
-          </UpdateGate>
-        </WorldTransitionProvider>
-        </KeyboardProvider>
-      </GestureHandlerRootView>
-    </SafeAreaProvider>
-    {introLayer}
+      <AppTree isDark={isDark} />
+      {introLayer}
     </View>
   );
 }

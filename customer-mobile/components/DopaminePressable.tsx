@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useState } from 'react';
+import React, { useRef, useCallback, useMemo } from 'react';
 import { TouchableOpacity, Animated, ViewStyle, Platform, View, StyleSheet } from 'react-native';
 import { playSound } from '../utils/sounds';
 
@@ -52,14 +52,20 @@ export default function DopaminePressable({
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const tiltX = useRef(new Animated.Value(0)).current;
   const tiltY = useRef(new Animated.Value(0)).current;
-  const [layout, setLayout] = useState({ width: 0, height: 0 });
+  // Size for the tilt maths lives in a ref: it used to be state, so every tilt card re-rendered once
+  // more right after mounting (and again on every size change) just to store its own size.
+  const layoutRef = useRef({ width: 0, height: 0 });
 
   const handleLayout = useCallback((e: any) => {
     const { width, height } = e.nativeEvent.layout;
-    setLayout({ width, height });
+    layoutRef.current = { width, height };
   }, []);
 
+  // All springs here (scale and tilt) run on the native driver: they only drive transforms, so the UI
+  // thread animates them and a busy JS thread can't make a press feel late. (The tilt springs were
+  // JS-driven, which also forced the press scale onto JS on iOS.)
   const handleTouch = useCallback((e: any) => {
+    const layout = layoutRef.current;
     if (!tilt || Platform.OS === 'web' || !layout.width || !layout.height) return;
     const { locationX, locationY } = e.nativeEvent;
 
@@ -77,23 +83,23 @@ export default function DopaminePressable({
     Animated.parallel([
       Animated.spring(tiltX, {
         toValue: normX,
-        useNativeDriver: false,
+        useNativeDriver: true,
         tension: 140,
         friction: 12,
       }),
       Animated.spring(tiltY, {
         toValue: normY,
-        useNativeDriver: false,
+        useNativeDriver: true,
         tension: 140,
         friction: 12,
       }),
     ]).start();
-  }, [tilt, layout]);
+  }, [tilt]);
 
-  // The 3D tilt is iOS-only (Android drops the rotation), so Android keeps the native-driver press scale
-  // and skips the per-finger-move JS springs entirely (they caused scroll/tap stutter on card grids).
+  // The 3D tilt is iOS-only (Android drops the rotation), so Android skips the per-finger-move springs.
   const tiltOn = tilt && Platform.OS === 'ios';
-  const useNative = !tiltOn;
+  // react-native-web has no native animated module (it falls back to JS on its own).
+  const useNative = Platform.OS !== 'web';
 
   const handlePressIn = useCallback((e: any) => {
     Animated.spring(scaleAnim, {
@@ -118,23 +124,23 @@ export default function DopaminePressable({
       bounciness: springBounciness + 2,
     }).start();
 
-    if (tilt) {
+    if (tiltOn) { // the tilt values are only on screen on iOS
       Animated.parallel([
         Animated.spring(tiltX, {
           toValue: 0,
-          useNativeDriver: false,
+          useNativeDriver: useNative,
           tension: 160,
           friction: 10,
         }),
         Animated.spring(tiltY, {
           toValue: 0,
-          useNativeDriver: false,
+          useNativeDriver: useNative,
           tension: 160,
           friction: 10,
         }),
       ]).start();
     }
-  }, [springSpeed, springBounciness, tilt, useNative]);
+  }, [springSpeed, springBounciness, tiltOn, useNative]);
 
   // Throttle sound to prevent audio system overload on rapid taps
   const lastSoundRef = useRef(0);
@@ -149,22 +155,23 @@ export default function DopaminePressable({
     onPress?.();
   }, [onPress, sound]);
 
-  // Interpolations for 3D rotation
-  const rotateX = tiltY.interpolate({
-    inputRange: [-1, 1],
-    outputRange: ['8deg', '-8deg'], // top touch tilts forward, bottom backward
-  });
-
-  const rotateY = tiltX.interpolate({
-    inputRange: [-1, 1],
-    outputRange: ['-8deg', '8deg'], // left touch tilts left, right tilts right
-  });
-
-  const transformStyle = [
-    ...(Platform.OS !== 'android' ? [{ perspective: 400 }] : []),
-    { scale: scaleAnim },
-    ...(tiltOn ? [{ rotateX }, { rotateY }] : []),
-  ];
+  // Interpolations for 3D rotation and the transform, built once (new animated nodes on every render
+  // made each card's animated style re-attach on every parent render).
+  const transformStyle = useMemo(() => {
+    const rotateX = tiltY.interpolate({
+      inputRange: [-1, 1],
+      outputRange: ['8deg', '-8deg'], // top touch tilts forward, bottom backward
+    });
+    const rotateY = tiltX.interpolate({
+      inputRange: [-1, 1],
+      outputRange: ['-8deg', '8deg'], // left touch tilts left, right tilts right
+    });
+    return [
+      ...(Platform.OS !== 'android' ? [{ perspective: 400 }] : []),
+      { scale: scaleAnim },
+      ...(tiltOn ? [{ rotateX }, { rotateY }] : []),
+    ];
+  }, [tiltOn, tiltX, tiltY, scaleAnim]);
 
   // AnimatedTouchable is now hoisted to module scope for performance
 

@@ -38,12 +38,15 @@ export const isTokenExpired = (token: string): boolean => {
 // A token an older build left in AsyncStorage is moved into SecureStore on first read, then deleted there.
 // Web has no SecureStore: the browser build keeps using AsyncStorage (localStorage), as before.
 let memoryToken: string | null = null;
+/** Set when the last SecureStore read threw (keystore hiccup): that answer is not cached, the next call retries. */
+let nativeReadFailed = false;
 
 const readNativeToken = async (): Promise<string | null> => {
   let secure: string | null = null;
   try {
     secure = await SecureStore.getItemAsync(TOKEN_KEY);
   } catch {
+    nativeReadFailed = true;
     return memoryToken;
   }
   if (secure) return secure;
@@ -61,14 +64,55 @@ const readNativeToken = async (): Promise<string | null> => {
   return legacy;
 };
 
-export const getToken = async (): Promise<string | null> => {
-  let token: string | null = null;
-  if (Platform.OS === 'web') {
-    try { token = await AsyncStorage.getItem(TOKEN_KEY); } catch { token = null; }
-  } else {
-    token = await readNativeToken();
+// The token is read from storage ONCE per app run and then served from memory. Every apiFetch used to
+// do a SecureStore (Android Keystore) decrypt plus a JWT decode; a screen that fires 5-10 requests
+// queued 5-10 keystore reads before its first request left. setToken / removeToken keep this in step.
+/** Expiry moment of the cached token (ms); Infinity when it has no readable exp, 0 when malformed. */
+const expiryOf = (token: string): number => {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return 0;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload && payload.exp ? payload.exp * 1000 : Infinity;
+  } catch {
+    return Infinity; // same rule as isTokenExpired: let the backend verify it
   }
-  if (token && isTokenExpired(token)) {
+};
+let tokenCache: { value: string | null; expAt: number } | undefined;
+/** Bumped by every set / remove, so a storage read that started earlier never overwrites it. */
+let tokenGen = 0;
+let tokenRead: Promise<string | null> | null = null;
+const cacheToken = (value: string | null) => { tokenCache = { value, expAt: value ? expiryOf(value) : Infinity }; };
+
+const readStoredToken = (): Promise<string | null> => {
+  if (!tokenRead) {
+    const gen = tokenGen;
+    tokenRead = (async () => {
+      let token: string | null = null;
+      nativeReadFailed = false;
+      if (Platform.OS === 'web') {
+        try { token = await AsyncStorage.getItem(TOKEN_KEY); } catch { token = null; }
+      } else {
+        token = await readNativeToken();
+      }
+      if (gen === tokenGen && !nativeReadFailed) cacheToken(token);
+      return gen === tokenGen ? token : (tokenCache ? tokenCache.value : token);
+    })().finally(() => { tokenRead = null; });
+  }
+  return tokenRead;
+};
+
+export const getToken = async (): Promise<string | null> => {
+  let token: string | null;
+  let expired: boolean;
+  if (tokenCache) {
+    token = tokenCache.value;
+    expired = !!token && Date.now() >= tokenCache.expAt;
+  } else {
+    token = await readStoredToken();
+    expired = !!token && isTokenExpired(token);
+  }
+  if (token && expired) {
     await removeToken();
     await removeUser();
     emitSessionInvalid('expired');
@@ -78,6 +122,8 @@ export const getToken = async (): Promise<string | null> => {
 };
 
 export const setToken = async (token: string): Promise<void> => {
+  tokenGen += 1;
+  cacheToken(token);
   if (Platform.OS === 'web') {
     await AsyncStorage.setItem(TOKEN_KEY, token);
     return;
@@ -92,6 +138,8 @@ export const setToken = async (token: string): Promise<void> => {
 };
 
 export const removeToken = async (): Promise<void> => {
+  tokenGen += 1;
+  cacheToken(null);
   memoryToken = null;
   if (Platform.OS !== 'web') {
     try { await SecureStore.deleteItemAsync(TOKEN_KEY); } catch {}

@@ -264,32 +264,25 @@ interface AnimatedCounterProps {
 }
 
 export function AnimatedCounter({ target, duration = 1500, prefix = '', suffix = '', style }: AnimatedCounterProps) {
-  const animValue = useRef(new Animated.Value(0)).current;
   const [displayValue, setDisplayValue] = React.useState(0);
 
+  // A number in a Text can't run on the native driver, so instead of a JS-driven Animated.timing (a JS
+  // callback every frame, throttled to a re-render every 40 ms) the same ease-out count runs on one
+  // 40 ms timer: the same steps on screen, without the per-frame animation loop.
   useEffect(() => {
     if (isReduceMotionOn()) {
       setDisplayValue(Math.round(target));
       return;
     }
-    animValue.setValue(0);
-    let lastTime = 0;
-    const listener = animValue.addListener(({ value }) => {
-      const now = Date.now();
-      if (now - lastTime > 40 || value === target) {
-        lastTime = now;
-        setDisplayValue(Math.round(value));
-      }
-    });
-
-    Animated.timing(animValue, {
-      toValue: target,
-      duration,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false, // Required for value listener
-    }).start();
-
-    return () => animValue.removeListener(listener);
+    const start = Date.now();
+    const ease = Easing.out(Easing.cubic);
+    setDisplayValue(0);
+    const t = setInterval(() => {
+      const k = Math.min(1, (Date.now() - start) / Math.max(1, duration));
+      setDisplayValue(Math.round(target * ease(k)));
+      if (k >= 1) clearInterval(t);
+    }, 40);
+    return () => clearInterval(t);
   }, [target]);
 
   return (

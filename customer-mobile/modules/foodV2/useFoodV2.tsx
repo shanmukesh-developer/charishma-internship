@@ -16,12 +16,20 @@ import { PressScale, BounceOnChange, FadeInUp, SlowLoadHint } from '../../module
 import { useCart, isCustomRequest } from '../../context/CartContext';
 import { apiFetch, readJson } from '../../utils/auth';
 import { API_URL } from '../../constants/api';
-import { readCache } from '../../utils/swrCache';
+import { readCache, writeCache } from '../../utils/swrCache';
 import { useConnectionState } from '../../utils/offlineStatus';
 import { useTopInset } from '../../utils/useTopInset';
 import { FOOD } from './foodV2Theme';
 import { FOOD_IMG, StorefrontArt, ShoppingBasketArt, WaveArt, LoadingDots } from './FoodV2Kit';
 import { IonName, Item, SHOP_TYPES, CATALOGUE_CACHE_KEY, FALLBACK_IMG, MEGA_BASKET_VENDOR, WISHLIST_KEY, toItem, toList, groupIN, fmt, sentence, offLabel, fmtShortClock, squash, Shelf, SHELVES, shelfItems, SEARCH, SEARCH_HINTS, TILES, Hero, HEROES, LIST_TITLES, AISLES, aisleOf, SHORT_CHIP, chipLabel, FRESH_CATS, GROUP_ORDER, groupOf, BRANDS, TOY_TILES, HEALTH_TILES, ESSENTIAL_AISLES, HERO_BG, LHERO_BG, POPULAR_REQUESTS, Route, DemoState, Saved } from './FoodV2Data';
+
+const GREEN_GLOW = Platform.select<any>({
+  web: { boxShadow: '0px 2px 8px rgba(7,132,63,0.28)' },
+  default: { shadowColor: FOOD.primary, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 3 },
+});
+
+/** Row actions with a fixed identity (they call the latest closures), so memoized rows never re-render for them. */
+export type FoodV2RowActions = { addProduct: (p: Item) => void; decProduct: (id: string) => void; toggleSaved: (p: Item) => void; openProduct: (p: Item | string) => void };
 
 export type FoodV2Ctx = ReturnType<typeof useFoodV2State>;
 const Ctx = React.createContext<FoodV2Ctx | null>(null);
@@ -49,20 +57,19 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
-  const c = {
+  // Colours and shadows keep one identity per theme, so memoized rows (FoodV2Ui ProductRow) can skip
+  // re-rendering when nothing they show changed.
+  const c = useMemo(() => ({
     page: FOOD.page[m], surface: FOOD.surface[m], card: FOOD.card[m], plate: FOOD.plate[m], title: FOOD.title[m],
     name: FOOD.name[m], price: FOOD.price[m], slate: FOOD.slate[m], was: FOOD.was[m], off: FOOD.off[m], line: FOOD.line[m],
     mint: FOOD.mint[m], mintInk: FOOD.mintInk[m], chip: FOOD.chip[m], side: FOOD.side[m], field: FOOD.field[m], soft: FOOD.soft[m],
     tile: isDark ? FOOD.card.dark : '#F7FBFA', link: isDark ? FOOD.off.dark : '#2F9A58',
-  };
-  const shadow = isDark ? { borderWidth: 1, borderColor: FOOD.line.dark } : Platform.select<any>({
+  }), [m, isDark]);
+  const shadow = useMemo(() => (isDark ? { borderWidth: 1, borderColor: FOOD.line.dark } : Platform.select<any>({
     web: { boxShadow: '0px 1px 2px rgba(16,40,30,0.05), 0px 4px 14px rgba(16,40,30,0.07)' },
     default: { shadowColor: '#0F2A1E', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 2 },
-  });
-  const greenGlow = Platform.select<any>({
-    web: { boxShadow: '0px 2px 8px rgba(7,132,63,0.28)' },
-    default: { shadowColor: FOOD.primary, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 3 },
-  });
+  })), [isDark]);
+  const greenGlow = GREEN_GLOW;
 
   // ── Navigation (internal stack) and the dev strip's forced states ──
   const [stack, setStack] = useState<Route[]>([{ name: 'home' }]);
@@ -103,24 +110,30 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
   const fetchCatalogue = useCallback(async () => {
     setStatus(prev => (prev === 'ready' ? prev : 'loading'));
     try {
+      // Store hours from every response are applied in ONE update with the items. Each response used to
+      // set them on arrival: four extra full re-renders of the store, each rebuilding the catalogue.
+      const hours: Record<string, { isOpen: boolean; opensAt: string | null }> = {};
       const settled = await Promise.allSettled(SHOP_TYPES.map(async t => {
         const res = await apiFetch(`${API_URL}/api/catalogue/items?type=${encodeURIComponent(t)}&limit=200`);
         if (!res.ok) throw new Error(`catalogue ${res.status}`);
         const data = await readJson(res);
-        const hours: Record<string, { isOpen: boolean; opensAt: string | null }> = {};
         (Array.isArray(data?.stores) ? data.stores : []).forEach((st: any) => {
           const sid = String(st?.id || st?._id || '');
           if (sid) hours[sid] = { isOpen: st.isOpen !== false, opensAt: typeof st.opensAt === 'string' ? st.opensAt : null };
         });
-        if (mounted.current && Object.keys(hours).length) setStoreHours(prev => ({ ...prev, ...hours }));
         return Array.isArray(data?.items) ? data.items : [];
       }));
+      if (mounted.current && Object.keys(hours).length) setStoreHours(prev => ({ ...prev, ...hours }));
       const ok = settled.filter((r): r is PromiseFulfilledResult<any[]> => r.status === 'fulfilled');
       if (!ok.length) throw new Error('catalogue unavailable');
       if (!mounted.current) return;
       fromNet.current = true;
-      setCatalogue(toList(ok.map(r => r.value).flat()));
+      const raw = ok.map(r => r.value).flat();
+      setCatalogue(toList(raw));
       setStatus('ready');
+      // This screen now owns the store catalogue cache (Others no longer downloads a second copy while
+      // Food & groceries is open). Only a complete answer is cached, as before.
+      if (ok.length === settled.length) writeCache(CATALOGUE_CACHE_KEY, raw);
     } catch {
       if (mounted.current) setStatus(prev => (prev === 'ready' ? prev : 'error'));
     }
@@ -246,6 +259,16 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
   // Product pages use the app route (app/products/[id].tsx renders FoodV2ProductView for shop items).
   const openProduct = (p: Item | string) => router.push(`/products/${typeof p === 'string' ? p : p.id}` as any);
 
+  // Stable row actions (see FoodV2RowActions): the closures above change every render, these never do.
+  const live = useRef({ addProduct, decProduct, toggleSaved, openProduct });
+  live.current = { addProduct, decProduct, toggleSaved, openProduct };
+  const rowActions = useMemo<FoodV2RowActions>(() => ({
+    addProduct: (p) => live.current.addProduct(p),
+    decProduct: (id) => live.current.decProduct(id),
+    toggleSaved: (p) => live.current.toggleSaved(p),
+    openProduct: (p) => live.current.openProduct(p),
+  }), []);
+
   // ── Derived home data ──
   const inStock = catalogue.filter(p => p.isAvailable);
   const closedShare = inStock.length ? inStock.filter(p => !p.orderable).length / inStock.length : 0;
@@ -277,5 +300,5 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
   const savedChips = ['All', ...GROUP_ORDER.filter(g => savedCounts[g]), ...(savedCounts.Other ? ['Other'] : [])];
 
 
-  return { sections, onSection, toast, setToast, router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, reqLines, addReqLine, updateReqLine, removeReqLine, setFirstReqName, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark };
+  return { sections, onSection, toast, setToast, router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, reqLines, addReqLine, updateReqLine, removeReqLine, setFirstReqName, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark, rowActions };
 }

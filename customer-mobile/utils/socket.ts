@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { AppState } from 'react-native';
 import { SOCKET_URL } from '../constants/api';
 import { getToken } from './auth';
 import { reportSocketError, socketVersionAuth } from './forceUpdate';
@@ -103,6 +104,43 @@ export const connectSocket = (): Socket => {
   }
   return s;
 };
+
+// ── Background pause ────────────────────────────────────────────────────────
+// The shared socket used to stay up (and keep its endless reconnect loop running every 2-10 s) while
+// the app sat in the background, waking the JS thread and the radio for nothing: pushes cover the
+// background. 30 s after the app leaves the screen it is closed; on return it reconnects, rooms are
+// re-joined on 'connect' and useLiveSync refetches the visible screen (its normal reconnect path).
+const BACKGROUND_DISCONNECT_MS = 30000;
+let backgroundTimer: ReturnType<typeof setTimeout> | null = null;
+let pausedForBackground = false;
+try {
+  AppState.addEventListener('change', (state) => {
+    if (state === 'background') {
+      if (backgroundTimer || !_socket || !(_socket.connected || _socket.active)) return;
+      backgroundTimer = setTimeout(() => {
+        backgroundTimer = null;
+        const s = _socket;
+        if (!s || AppState.currentState !== 'background' || !(s.connected || s.active)) return;
+        pausedForBackground = true;
+        clearManualRetry();
+        s.disconnect();
+      }, BACKGROUND_DISCONNECT_MS);
+      return;
+    }
+    if (state !== 'active') return;
+    if (backgroundTimer) { clearTimeout(backgroundTimer); backgroundTimer = null; }
+    if (pausedForBackground) {
+      pausedForBackground = false;
+      const s = _socket;
+      if (s && !s.connected && !s.active) {
+        manualRetries = 0;
+        s.connect();
+      }
+    }
+  });
+} catch {
+  // AppState unavailable (tests): the socket simply stays as it is.
+}
 
 export const refreshSocketAuth = () => {
   const s = getSocket();

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, getThemeColors, DARK_THEME, LIGHT_THEME } from '../constants/theme';
 
@@ -50,20 +50,25 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const toggleTheme = () => {
+  // Stable identity: a fresh function (and value object) on every provider render re-rendered every
+  // useTheme() screen in the app even when nothing about the theme changed.
+  const toggleTheme = useCallback(() => {
     // Functional update so two quick taps never save a stale value.
     setTheme(prev => {
       const next: Theme = prev === 'dark' ? 'light' : 'dark';
       AsyncStorage.setItem('zenvy_theme_mode', next).catch(() => {});
       return next;
     });
-  };
+  }, []);
 
   const isDark = theme === 'dark';
-  const colors = getThemeColors(isDark);
+  const value = useMemo<ThemeContextType>(
+    () => ({ theme, toggleTheme, isDark, activeColors: COLORS, colors: getThemeColors(isDark), isThemeReady }),
+    [theme, toggleTheme, isDark, isThemeReady],
+  );
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, isDark, activeColors: COLORS, colors, isThemeReady }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

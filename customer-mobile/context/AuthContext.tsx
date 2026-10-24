@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo, ReactNode } from 'react';
 import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getUser, setUser as saveUser, removeToken, removeUser, getToken, onSessionInvalid, refreshSessionIfNeeded } from '../utils/auth';
@@ -97,8 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadUser = async () => {
     try {
-      const stored = await getUser();
-      const token = await getToken();
+      // Both reads at once (they used to run one after the other before the first screen knew the user).
+      const [stored, token] = await Promise.all([getUser(), getToken()]);
       if (stored && token) {
         setUserState(normalizeUserId(stored));
       } else {
@@ -111,7 +111,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   };
 
-  const setUser = (u: Partial<User> | null) => {
+  // Stable identities (useCallback) and a memoized provider value: an unrelated provider render no
+  // longer re-renders every useAuth() screen, and consumers' effects / memos keyed on these stay put.
+  const setUser = useCallback((u: Partial<User> | null) => {
     if (u) {
       // Auth responses are flat and carry `token` / flow flags: never persist those in the user object.
       const { token: _token, isNewUser: _isNew, registrationToken: _reg, needsPhone: _np, message: _msg, success: _ok, ...clean } = u as any;
@@ -132,6 +134,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           merged.id = String(anyId);
           merged._id = String(anyId);
         }
+        // A profile refresh that changed nothing keeps the same object: no re-render of every useAuth()
+        // screen (Home, Others, Profile, the cart provider...) and no storage write.
+        if (prev && JSON.stringify(prev) === JSON.stringify(merged)) return prev;
         saveUser(merged).catch(() => {});
         return merged;
       });
@@ -139,9 +144,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUserState(null);
       removeUser().catch(() => {});
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     // 1. Detach this phone's push token and end the server session BEFORE the JWT is cleared
     //    (fire-and-forget: logout must work offline too).
     try {
@@ -195,9 +200,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.warn('[LOGOUT] GoogleSignin signOut failed:', e);
     }
-  };
+  }, []);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       const tokenAtStart = await getToken();
       if (!tokenAtStart) {
@@ -225,7 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const stored = await getUser();
       if (stored) setUserState(normalizeUserId(stored));
     }
-  };
+  }, [setUser, logout]);
 
   // Session expired / revoked while the app is open: drop the stale profile (expired) or re-check
   // it against /profile, which logs out on a real 401 (throttled so a burst of 401s checks once).
@@ -271,8 +276,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [currentUserId, isLoading]);
 
+  const value = useMemo(() => ({ user, isLoading, setUser, logout, refreshUser }), [user, isLoading, setUser, logout, refreshUser]);
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, setUser, logout, refreshUser }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

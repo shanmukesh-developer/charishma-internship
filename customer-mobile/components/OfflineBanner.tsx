@@ -4,10 +4,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { API_URL } from '../constants/api';
 import { lastServerResponseAt } from '../utils/serverWake';
 import { setOfflineStatus } from '../utils/offlineStatus';
+import { useAppActive } from '../utils/useAppActive';
 
 export default function OfflineBanner() {
   const insets = useSafeAreaInsets();
   const [isOffline, setIsOffline] = useState(false);
+  // The 15 s connectivity check (a ping to Zenvy and to a public endpoint) ran in the background too.
+  // It now stops while the app is in the background and checks once straight away on return.
+  const appActive = useAppActive();
   // Publish the verdict app-wide (utils/offlineStatus) so screens can show an offline state.
   useEffect(() => { setOfflineStatus(isOffline); }, [isOffline]);
   const slideAnim = useRef(new Animated.Value(-100)).current;
@@ -62,6 +66,7 @@ export default function OfflineBanner() {
   }, [pulseAnim, isOffline]);
 
   useEffect(() => {
+    if (!appActive) return;
     let active = true;
     let timerId: any = null;
 
@@ -103,7 +108,7 @@ export default function OfflineBanner() {
       active = false;
       if (timerId) clearTimeout(timerId);
     };
-  }, [isOffline, slideAnim]);
+  }, [isOffline, slideAnim, appActive]);
 
   if (Platform.OS === 'web') return null;
   if (!isOffline) return null;

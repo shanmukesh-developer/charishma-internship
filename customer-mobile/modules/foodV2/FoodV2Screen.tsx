@@ -34,11 +34,14 @@ import FoodV2Categories from './FoodV2Categories';
 import { AddedToast } from './FoodV2Motion';
 
 /** Others → Food & groceries. `sections` / `onSection` drive the section pills in the green header;
- * `openSearch` opens the store search (then `onSearchOpened` is called once). */
-export default function FoodV2Screen(props: { forceDark?: boolean; sections?: { key: string; label: string }[]; onSection?: (key: string) => void; openSearch?: boolean; onSearchOpened?: () => void }) {
+ * `openSearch` opens the store search (then `onSearchOpened` is called once).
+ * Memoized: the 3,000-line Others screen re-renders on every keystroke / basket change of its own, and
+ * each of those used to re-render the whole store (home shelves, rows, header) for nothing. */
+function FoodV2Screen(props: { forceDark?: boolean; sections?: { key: string; label: string }[]; onSection?: (key: string) => void; openSearch?: boolean; onSearchOpened?: () => void }) {
   const ctx = useFoodV2State(props);
   return <FoodV2Provider value={ctx}><FoodV2Body /></FoodV2Provider>;
 }
+export default React.memo(FoodV2Screen);
 
 function FoodV2Body() {
   const { toast, c, route, shopCount, isLoading, isFailed, isEmpty } = useFoodV2();

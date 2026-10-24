@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { playSound, resumeAudio } from '../utils/sounds';
 
@@ -32,7 +32,12 @@ const WorldTransitionContext = createContext<WorldTransitionContextType>({
   triggerTransition: () => {}
 });
 
+/** The trigger alone, in its own context: it never changes, so a screen that only starts transitions
+ *  (Home) is not re-rendered 3 times (covering / uncovering / idle) while the overlay animates. */
+const WorldTransitionTriggerContext = createContext<(path: string, world: WorldType) => void>(() => {});
+
 export const useWorldTransition = () => useContext(WorldTransitionContext);
+export const useWorldTransitionTrigger = () => useContext(WorldTransitionTriggerContext);
 
 export function WorldTransitionProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -88,9 +93,13 @@ export function WorldTransitionProvider({ children }: { children: React.ReactNod
     }, 450);    // Reduced from 600ms
   }, [router]);
 
+  const value = useMemo(() => ({ isTransitioning, targetWorld, phase, triggerTransition }), [isTransitioning, targetWorld, phase, triggerTransition]);
+
   return (
-    <WorldTransitionContext.Provider value={{ isTransitioning, targetWorld, phase, triggerTransition }}>
-      {children}
-    </WorldTransitionContext.Provider>
+    <WorldTransitionTriggerContext.Provider value={triggerTransition}>
+      <WorldTransitionContext.Provider value={value}>
+        {children}
+      </WorldTransitionContext.Provider>
+    </WorldTransitionTriggerContext.Provider>
   );
 }

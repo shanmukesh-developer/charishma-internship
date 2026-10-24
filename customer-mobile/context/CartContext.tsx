@@ -152,6 +152,8 @@ export type CartState = Omit<CartContextType, keyof CartActions>;
 
 const CartActionsContext = createContext<CartActions | undefined>(undefined);
 const CartStateContext = createContext<CartState | undefined>(undefined);
+/** Just the item count (tab bar badge / navigator): changes only when the count does, not on every basket edit. */
+const CartCountContext = createContext<number>(0);
 
 export const MAX_ITEM_QTY = 20;
 // Codes from older builds (4-8 characters) still work; new rooms get 10 characters (server accepts 4-12).
@@ -484,7 +486,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadState = async () => {
       try {
-        const saved = await AsyncStorage.getItem('zenvy_cart');
+        // One storage round trip for both keys (they used to be read one after the other on launch).
+        const pairs = await AsyncStorage.multiGet(['zenvy_cart', 'zenvy_collab_session']);
+        const saved = pairs.find(([k]) => k === 'zenvy_cart')?.[1] ?? null;
+        const savedCollab = pairs.find(([k]) => k === 'zenvy_collab_session')?.[1] ?? null;
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
@@ -521,7 +526,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        const savedCollab = await AsyncStorage.getItem('zenvy_collab_session');
         if (savedCollab) {
           const { code, role } = JSON.parse(savedCollab);
           if (code && ROOM_CODE_RE.test(code)) {
@@ -738,9 +742,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <CartActionsContext.Provider value={actions}>
-      <CartStateContext.Provider value={state}>
-        {children}
-      </CartStateContext.Provider>
+      <CartCountContext.Provider value={totalItems}>
+        <CartStateContext.Provider value={state}>
+          {children}
+        </CartStateContext.Provider>
+      </CartCountContext.Provider>
     </CartActionsContext.Provider>
   );
 }
@@ -758,6 +764,9 @@ export const useCartState = (): CartState => {
   if (!context) throw new Error('useCartState must be used within CartProvider');
   return context;
 };
+
+/** Items across all three baskets. Re-renders only when that number changes (not on price / line edits). */
+export const useCartTotalItems = (): number => useContext(CartCountContext);
 
 /** Everything (state + actions). Re-renders on every basket change; prefer useCartActions where it is enough. */
 export const useCart = (): CartContextType => {

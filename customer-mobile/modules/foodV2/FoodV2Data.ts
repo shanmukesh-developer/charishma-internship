@@ -90,8 +90,25 @@ export const SHELVES: Record<string, Shelf> = {
   'Sweet Indulgences': { categories: ['Sweet Indulgences', 'Cadbury'] },
   'Detergents & Cleaning': { categories: ['Detergents & Cleaning', 'Surf Excel'] },
 };
+/**
+ * One shelf, computed once per catalogue. The home screen alone asks for ~45 shelves on every render
+ * (tiles, brands, health, aisles, toys...), each a full pass over the catalogue with lower-casing and
+ * regex tests; with this cache a re-render (a tap, the basket, a toast) costs map lookups only.
+ * Keyed on the catalogue array itself, so a new catalogue (fetch, store hours) starts a fresh cache.
+ * The returned arrays are shared: callers must not mutate them (they all filter / slice / map).
+ */
+const shelfCache = new WeakMap<Item[], Map<string, Item[]>>();
 export const shelfItems = (name: string | null, items: Item[]): Item[] => {
   if (!name) return [];
+  let byName = shelfCache.get(items);
+  if (!byName) { byName = new Map(); shelfCache.set(items, byName); }
+  const hit = byName.get(name);
+  if (hit) return hit;
+  const out = computeShelf(name, items);
+  byName.set(name, out);
+  return out;
+};
+const computeShelf = (name: string, items: Item[]): Item[] => {
   const shelf = SHELVES[name] || { categories: [name], keywords: [name] };
   const cats = (shelf.categories || []).map(c => c.toLowerCase());
   const keys = (shelf.keywords || []).map(k => k.toLowerCase());

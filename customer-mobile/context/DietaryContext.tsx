@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type DietMode = 'all' | 'veg' | 'egg' | 'eggarian' | 'non-veg' | 'nonveg';
@@ -130,15 +130,18 @@ export function DietaryProvider({ children }: { children: React.ReactNode }) {
     return true;
   }, [dietPrefs]);
 
+  // Memoized: an inline object re-rendered every useDietary() screen on each provider render.
+  const value = useMemo<DietaryContextType>(() => ({
+    dietMode: dietPrefs.mode,
+    dietPrefs,
+    setDietMode,
+    updateDietPrefs,
+    isItemAllowed,
+    reload: loadPrefs,
+  }), [dietPrefs, setDietMode, updateDietPrefs, isItemAllowed, loadPrefs]);
+
   return (
-    <DietaryContext.Provider value={{
-      dietMode: dietPrefs.mode,
-      dietPrefs,
-      setDietMode,
-      updateDietPrefs,
-      isItemAllowed,
-      reload: loadPrefs,
-    }}>
+    <DietaryContext.Provider value={value}>
       {children}
     </DietaryContext.Provider>
   );

@@ -24,7 +24,7 @@ import CampusLiveTicker from '../../components/CampusLiveTicker';
 import CampusBitesSection from '../../components/CampusBitesSection';
 import { isLocalVendor } from '../../utils/localVendor';
 import RecentlyViewed from '../../components/RecentlyViewed';
-import { useWorldTransition } from '../../context/WorldTransitionContext';
+import { useWorldTransitionTrigger } from '../../context/WorldTransitionContext';
 import AmbientBackground from '../../components/AmbientBackground';
 import DopaminePressable, { CardPressable, ActionPressable } from '../../components/DopaminePressable';
 import { StaggeredSection, RestaurantCardSkeleton, PulseGlow, BounceIn, FloatingPulse } from '../../components/AnimatedSection';
@@ -310,7 +310,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user, refreshUser } = useAuth();
   const { isDark, toggleTheme, colors } = useTheme();
-  const { triggerTransition } = useWorldTransition();
+  const triggerTransition = useWorldTransitionTrigger();
   const scrollRef = useRef<ScrollView>(null);
   // The promo carousel pauses its auto-advance and card animations once it is scrolled off-screen
   // The carousel sits below the stores: it animates only while some of it is on screen.

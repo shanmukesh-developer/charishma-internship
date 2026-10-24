@@ -4,14 +4,14 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
-import { useCartState } from '../../context/CartContext';
+import { useCartTotalItems } from '../../context/CartContext';
 import { Ionicons } from '@expo/vector-icons';
 import { playSound, resumeAudio } from '../../utils/sounds';
 import { plural } from '../../utils/format';
 
 /** Basket count bubble: the only part of the tab bar that re-renders when the basket changes. */
 const CartBadge = React.memo(function CartBadge({ isDark }: { isDark: boolean }) {
-  const { totalItems } = useCartState();
+  const totalItems = useCartTotalItems();
   if (!(totalItems > 0)) return null;
   return (
     <View style={[styles.cartBadge, { borderColor: isDark ? '#09090B' : '#FFFFFF' }]}>
@@ -54,7 +54,7 @@ const TAB_LISTENERS = {
 export default function TabLayout() {
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { totalItems } = useCartState();
+  const totalItems = useCartTotalItems();
 
   // Theme-aware tab bar style, memoized so the navigator's options stay referentially stable.
   const screenOptions = useMemo(() => ({

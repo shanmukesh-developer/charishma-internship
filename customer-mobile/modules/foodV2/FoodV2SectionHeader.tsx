@@ -11,6 +11,7 @@ import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { Image } from 'expo-image';
 import { PressScale } from '../../modules/others/motion';
 import { Icon } from './FoodV2Icons';
+import { useScreenActive } from '../../utils/useAppActive';
 
 export type HeaderAction = { icon: string; label: string; onPress: () => void; badge?: number; dot?: boolean };
 export type HeaderColors = { top: string; bottom: string; pillOnBg: string; pillOnInk: string };
@@ -20,15 +21,21 @@ export const FOOD_HEADER: HeaderColors = { top: '#0B3D24', bottom: '#0F5132', pi
 const EMBLEM = require('./assets/food-v2-brand-gold-z-emblem-2026-10-23.webp');
 const SIDE = 16;
 
-/** Rotating hint index (every 2.5 s). */
-function useHintIndex() {
+/**
+ * Rotating search hint (every 2.5 s). Its own small component: the tick used to re-render the whole
+ * header (gradient, SVG light, emblem, pills) every 2.5 s, also while the tab was hidden or the app
+ * was in the background. Now only this one Text updates, and only while the screen is on view.
+ */
+const RotatingHint = React.memo(function RotatingHint({ hints }: { hints: string[] }) {
   const [i, setI] = useState(0);
+  const on = useScreenActive();
   useEffect(() => {
+    if (!on || hints.length < 2) return;
     const t = setInterval(() => setI(v => v + 1), 2500);
     return () => clearInterval(t);
-  }, []);
-  return i;
-}
+  }, [on, hints.length]);
+  return <Text style={st.searchHint} numberOfLines={1}>{hints.length ? hints[i % hints.length] : 'Search'}</Text>;
+});
 
 /** One soft light from the top-right (about 10% white). */
 function HeaderLight({ width, height }: { width: number; height: number }) {
@@ -64,7 +71,6 @@ export default function SectionHeader({ topPad, pageW, compact, colors, subtitle
   pills: [string, string][]; active: string; onPill: (key: string) => void;
   onBack?: () => void; actions: HeaderAction[];
 }) {
-  const hint = useHintIndex();
   const railRef = useRef<ScrollView>(null);
   const railW = useRef(0);
   const pillPos = useRef<Record<string, { x: number; w: number }>>({});
@@ -103,7 +109,7 @@ export default function SectionHeader({ topPad, pageW, compact, colors, subtitle
       </View>
       <PressScale style={[st.search, { marginHorizontal: side }]} onPress={onSearch} scaleTo={0.99} accessibilityRole="search" accessibilityLabel={searchLabel}>
         <Icon name="search" size={20} color="#1F3B4D" />
-        <Text style={st.searchHint} numberOfLines={1}>{hints.length ? hints[hint % hints.length] : 'Search'}</Text>
+        <RotatingHint hints={hints} />
       </PressScale>
       <ScrollView ref={railRef} horizontal style={st.hScroll} showsHorizontalScrollIndicator={false} contentContainerStyle={st.pillRail}
         onLayout={e => { railW.current = e.nativeEvent.layout.width; reveal(); }} accessibilityRole="tablist">
