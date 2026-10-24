@@ -26,6 +26,7 @@ import { s } from './FoodV2Styles';
 import { useFoodV2 } from './useFoodV2';
 import { PulseBlock } from './FoodV2Motion';
 import { Icon } from './FoodV2Icons';
+import { BUTTON_ROLE } from '../../utils/pressRole';
 
 export function useFoodV2States() {
   const { router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark } = useFoodV2();
@@ -65,7 +66,7 @@ export function useFoodV2States() {
             : <Icon name="warning-outline" size={46} color="#E5484D" />}
         <Text style={[s.stateTitle, { color: c.title }]} accessibilityRole="header">{copy.title}</Text>
         <Text style={[s.stateText, { color: c.slate }]}>{copy.text}</Text>
-        <PressScale style={[s.stateBtn, { backgroundColor: FOOD.cta }]} onPress={onRetry} accessibilityRole="button" accessibilityLabel="Retry">
+        <PressScale style={[s.stateBtn, { backgroundColor: FOOD.cta }]} onPress={onRetry} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Retry">
           <Text style={s.stateBtnText}>Retry</Text>
         </PressScale>
       </View>
@@ -77,7 +78,7 @@ export function useFoodV2States() {
       <StorefrontArt width={Math.min(220, pageW - 120)} />
       <Text style={s.stockTitle} accessibilityRole="header">The store is stocking up</Text>
       <Text style={s.stockText}>We'll be back soon with fresh products. Meanwhile, you can start a shopping list and we'll get it for you.</Text>
-      <PressScale onPress={() => push({ name: 'mega' })} accessibilityRole="button" style={s.brightWrap}>
+      <PressScale onPress={() => push({ name: 'mega' })} accessibilityRole={BUTTON_ROLE} style={s.brightWrap}>
         <LinearGradient colors={FOOD.bright} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.brightBtn}>
           <Text style={s.brightText}>Start a shopping list</Text>
         </LinearGradient>

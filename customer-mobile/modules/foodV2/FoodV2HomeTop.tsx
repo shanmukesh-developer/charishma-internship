@@ -23,6 +23,7 @@ import { FloatY, ShineSweep } from './FoodV2Motion';
 import { Icon } from './FoodV2Icons';
 import { useFoodScale } from './FoodV2Scale';
 import { apiFetch } from '../../utils/auth';
+import { BUTTON_ROLE } from '../../utils/pressRole';
 
 /** Gold dot on the bell only when the signed-in student has unread notifications (GET, read-only). */
 export function useUnreadDot() {
@@ -128,7 +129,7 @@ export function HomeBandHero() {
           {/* wraps freely (no "…"): the card grows if a small phone needs a fourth line */}
           <Text style={[s.heroTitle, { fontSize: inside ? Math.min(sc.hero.title, 20) : sc.hero.title, lineHeight: Math.round((inside ? Math.min(sc.hero.title, 20) : sc.hero.title) * 1.25) }]} accessibilityRole="header">Campus essentials delivered to you</Text>
           <Text style={[s.heroSub, { fontSize: sc.hero.sub, lineHeight: Math.round(sc.hero.sub * 1.45) }]}>Fresh groceries · Tasty snacks · Daily needs</Text>
-          <PressScale style={s.brightWrapSm} onPress={() => openListing('All Groceries')} accessibilityRole="button" accessibilityLabel="Shop now: open the whole campus store">
+          <PressScale style={s.brightWrapSm} onPress={() => openListing('All Groceries')} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Shop now: open the whole campus store">
             <LinearGradient colors={FOOD.bright} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.heroBtn}>
               <Text style={[s.heroBtnText, { fontSize: sc.f(14) }]} numberOfLines={1}>Shop now</Text>
               <Icon name="arrow-forward" size={15} color="#FFFFFF" />
@@ -160,7 +161,7 @@ export function CategoryTiles() {
             const tint = art ? art.tint[isDark ? 1 : 0] : c.tile;
             return (
               <Enter key={t.key} index={ri * 3 + ti}>
-                <PressScale onPress={() => openListing(t.key)} scaleTo={0.97} style={{ width: w }} accessibilityRole="button" accessibilityLabel={t.label}>
+                <PressScale onPress={() => openListing(t.key)} scaleTo={0.97} style={{ width: w }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={t.label}>
                   <View style={[st.tile, { backgroundColor: c.card }, shadow]}>
                     <View style={[st.plate, { backgroundColor: tint }]}>
                       <Svg width={w - 12} height={18} style={st.plateShadow} pointerEvents="none">

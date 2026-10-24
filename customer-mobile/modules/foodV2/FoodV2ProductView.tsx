@@ -16,6 +16,7 @@ import { demoGallery } from './demoGallery';
 import { s, MAX_QTY, PRODUCT_FALLBACK_IMG, WISHLIST_KEY, NON_FOOD, specValue, sentence, tidy, discountOf } from './FoodV2ProductStyles';
 import { Icon } from './FoodV2Icons';
 import { fmtShortClock } from './FoodV2Data';
+import { BUTTON_ROLE } from '../../utils/pressRole';
 
 /** The seller name used everywhere in Food & groceries (header, basket tab, saved items). */
 const SELLER_LABEL = 'Campus store';
@@ -272,11 +273,11 @@ export default function FoodV2ProductView(p: Props) {
           <View style={s.actionRow}>
             {canAdd && !p.customizable && (
               <View style={[s.stepper, { backgroundColor: c.mint }]}>
-                <PressScale style={s.stepBtn} onPress={dec} disabled={inCart === 0 && pickQty <= 1} accessibilityRole="button" accessibilityLabel={inCart > 0 ? 'Remove one' : 'One less'}>
+                <PressScale style={s.stepBtn} onPress={dec} disabled={inCart === 0 && pickQty <= 1} accessibilityRole={BUTTON_ROLE} accessibilityLabel={inCart > 0 ? 'Remove one' : 'One less'}>
                   <Icon name="remove" size={20} color={inCart === 0 && pickQty <= 1 ? c.was : c.mintInk} />
                 </PressScale>
                 <BounceOnChange value={qtyShown}><Text style={[s.stepQty, { color: c.title }]}>{qtyShown}</Text></BounceOnChange>
-                <PressScale style={s.stepBtn} onPress={inc} disabled={qtyShown >= MAX_QTY} accessibilityRole="button" accessibilityLabel={inCart > 0 ? 'Add one more' : 'One more'}>
+                <PressScale style={s.stepBtn} onPress={inc} disabled={qtyShown >= MAX_QTY} accessibilityRole={BUTTON_ROLE} accessibilityLabel={inCart > 0 ? 'Add one more' : 'One more'}>
                   <Icon name="add" size={20} color={qtyShown >= MAX_QTY ? c.was : c.mintInk} />
                 </PressScale>
               </View>
@@ -286,12 +287,12 @@ export default function FoodV2ProductView(p: Props) {
                 <Text style={s.ctaText}>{!product.isAvailable ? 'Sold out' : storeClosed ? closedText : 'Unavailable'}</Text>
               </View>
             ) : inCart > 0 ? (
-              <PressScale style={[s.cta, { backgroundColor: FOOD.cta }]} onPress={p.onOpenBasket} accessibilityRole="button" accessibilityLabel={`View basket, ${plural(inCart, 'item')} of this product`}>
+              <PressScale style={[s.cta, { backgroundColor: FOOD.cta }]} onPress={p.onOpenBasket} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`View basket, ${plural(inCart, 'item')} of this product`}>
                 <Text style={s.ctaText}>View basket</Text>
                 <Icon name="arrow-forward" size={17} color="#FFFFFF" />
               </PressScale>
             ) : (
-              <PressScale style={[s.cta, { backgroundColor: FOOD.cta }]} onPress={add} accessibilityRole="button">
+              <PressScale style={[s.cta, { backgroundColor: FOOD.cta }]} onPress={add} accessibilityRole={BUTTON_ROLE}>
                 <Text style={s.ctaText}>{p.customizable ? 'Customise and add' : 'Add to basket'}</Text>
               </PressScale>
             )}
@@ -313,7 +314,7 @@ export default function FoodV2ProductView(p: Props) {
             </View>
           )}
           {!!storeName && (
-            <PressScale style={s.soldBy} onPress={p.onOpenStore} disabled={!product.restaurantId} accessibilityRole="button" accessibilityLabel={`Sold by the ${SELLER_LABEL}, packed by ${storeName}. Open the store`}>
+            <PressScale style={s.soldBy} onPress={p.onOpenStore} disabled={!product.restaurantId} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`Sold by the ${SELLER_LABEL}, packed by ${storeName}. Open the store`}>
               <Icon name="storefront-outline" size={15} color={FOOD.primary} />
               <Text style={[s.soldByText, { color: c.slate, flex: 1 }]} numberOfLines={2}>Sold by <Text style={{ color: c.name, fontWeight: '500' }}>{SELLER_LABEL}</Text>{storeName && storeName !== SELLER_LABEL ? ` · ${storeName}` : ''}</Text>
               <Icon name="chevron-forward" size={15} color={c.slate} />
@@ -347,10 +348,10 @@ export default function FoodV2ProductView(p: Props) {
                 const relSaved = savedIds.includes(relId);
                 return (
                   <View key={relId} style={[s.moreCard, shadow, { width: relCardW, backgroundColor: c.card }]}>
-                    <PressScale style={[s.morePlate, { backgroundColor: isDark ? FOOD.plate.dark : FOOD.plate.light }]} onPress={() => p.onOpenProduct(relId)} accessibilityRole="button" accessibilityLabel={`${rel.name}. Open details`}>
+                    <PressScale style={[s.morePlate, { backgroundColor: isDark ? FOOD.plate.dark : FOOD.plate.light }]} onPress={() => p.onOpenProduct(relId)} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`${rel.name}. Open details`}>
                       <Image source={{ uri: relImg }} style={s.moreImg} resizeMode="contain" />
                     </PressScale>
-                    <PressScale style={s.moreHeart} onPress={() => toggleRelatedSaved(rel, relId, relImg)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={relSaved ? `Remove ${rel.name} from saved items` : `Save ${rel.name}`}>
+                    <PressScale style={s.moreHeart} onPress={() => toggleRelatedSaved(rel, relId, relImg)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={relSaved ? `Remove ${rel.name} from saved items` : `Save ${rel.name}`}>
                       <Icon name={relSaved ? 'heart' : 'heart-outline'} size={18} color={relSaved ? FOOD.primary : c.slate} />
                     </PressScale>
                     <Text style={[s.moreName, { color: c.name }]} numberOfLines={2}>{rel.name}</Text>
@@ -360,11 +361,11 @@ export default function FoodV2ProductView(p: Props) {
                       <View style={{ flex: 1 }} />
                       {relCanAdd && (relQty > 0 ? (
                         <View style={[s.miniStepper, { backgroundColor: FOOD.primary }]}>
-                          <PressScale style={s.miniBtn} onPress={() => { tap(); p.onUpdateQuantity(relId, relQty - 1); }} accessibilityRole="button" accessibilityLabel={`Remove one ${rel.name}`}>
+                          <PressScale style={s.miniBtn} onPress={() => { tap(); p.onUpdateQuantity(relId, relQty - 1); }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`Remove one ${rel.name}`}>
                             <Icon name="remove" size={14} color="#FFFFFF" />
                           </PressScale>
                           <Text style={s.miniQty}>{relQty}</Text>
-                          <PressScale style={s.miniBtn} onPress={() => { tap(); p.onUpdateQuantity(relId, Math.min(MAX_QTY, relQty + 1)); }} accessibilityRole="button" accessibilityLabel={`Add one more ${rel.name}`}>
+                          <PressScale style={s.miniBtn} onPress={() => { tap(); p.onUpdateQuantity(relId, Math.min(MAX_QTY, relQty + 1)); }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`Add one more ${rel.name}`}>
                             <Icon name="add" size={14} color="#FFFFFF" />
                           </PressScale>
                         </View>
@@ -373,7 +374,7 @@ export default function FoodV2ProductView(p: Props) {
                           style={[s.plus, { backgroundColor: FOOD.primary }]}
                           onPress={() => { tap(); p.onAdd({ id: relId, name: rel.name, price: Number(rel.price), image: p.getImageUri(rel.imageUrl || rel.image) || '', restaurantId: product.restaurantId, restaurantName: storeName }); }}
                           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                          accessibilityRole="button"
+                          accessibilityRole={BUTTON_ROLE}
                           accessibilityLabel={`Add ${rel.name} to basket`}
                         >
                           <Icon name="add" size={17} color="#FFFFFF" />
@@ -406,7 +407,7 @@ export default function FoodV2ProductView(p: Props) {
                 </View>
               )}
             </View>
-            <PressScale style={[s.rateBtn, { borderColor: FOOD.primary }]} onPress={p.onRate} accessibilityRole="button">
+            <PressScale style={[s.rateBtn, { borderColor: FOOD.primary }]} onPress={p.onRate} accessibilityRole={BUTTON_ROLE}>
               <Text style={[s.rateBtnText, { color: isDark ? FOOD.off.dark : FOOD.primary }]}>Rate this item</Text>
             </PressScale>
           </View>

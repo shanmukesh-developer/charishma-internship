@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { PressScale, useReducedMotion } from '../../modules/others/motion';
 import { FOOD } from './foodV2Theme';
 import { Icon } from './FoodV2Icons';
+import { BUTTON_ROLE } from '../../utils/pressRole';
 
 export function FloatY({ children, distance = 3, period = 3000, style }: { children: React.ReactNode; distance?: number; period?: number; style?: StyleProp<ViewStyle> }) {
   const reduce = useReducedMotion();
@@ -109,7 +110,7 @@ export function SlideChips({ items, active, onSelect, chipBg, textColor, moreKey
           );
         })}
         {!!moreKey && !!onMore && (
-          <PressScale onPress={onMore} scaleTo={0.95} accessibilityRole="button" accessibilityLabel="More categories" style={[st.chip, { backgroundColor: chipBg }]}>
+          <PressScale onPress={onMore} scaleTo={0.95} accessibilityRole={BUTTON_ROLE} accessibilityLabel="More categories" style={[st.chip, { backgroundColor: chipBg }]}>
             <Text style={[st.chipText, { color: textColor }]}>More</Text>
             <Icon name="chevron-forward" size={13} color={textColor} />
           </PressScale>

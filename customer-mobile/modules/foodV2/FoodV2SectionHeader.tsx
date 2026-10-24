@@ -12,6 +12,7 @@ import { Image } from 'expo-image';
 import { PressScale } from '../../modules/others/motion';
 import { Icon } from './FoodV2Icons';
 import { useScreenActive } from '../../utils/useAppActive';
+import { BUTTON_ROLE } from '../../utils/pressRole';
 
 export type HeaderAction = { icon: string; label: string; onPress: () => void; badge?: number; dot?: boolean };
 export type HeaderColors = { top: string; bottom: string; pillOnBg: string; pillOnInk: string };
@@ -57,7 +58,7 @@ function HeaderLight({ width, height }: { width: number; height: number }) {
 function HeaderButton({ a }: { a: HeaderAction }) {
   const badge = a.badge || 0;
   return (
-    <PressScale style={st.hdrBtn} scaleTo={0.92} haptic onPress={a.onPress} accessibilityRole="button" accessibilityLabel={badge ? `${a.label}, ${badge} item${badge === 1 ? '' : 's'}` : a.label}>
+    <PressScale style={st.hdrBtn} scaleTo={0.92} haptic onPress={a.onPress} accessibilityRole={BUTTON_ROLE} accessibilityLabel={badge ? `${a.label}, ${badge} item${badge === 1 ? '' : 's'}` : a.label}>
       <Icon name={a.icon} size={22} strokeWidth={1.6} color="rgba(255,255,255,0.95)" />
       {badge > 0 && <View style={st.badge}><Text style={st.badgeText}>{badge > 99 ? '99+' : badge}</Text></View>}
       {!!a.dot && badge === 0 && <View style={st.dot} />}
@@ -92,7 +93,7 @@ export default function SectionHeader({ topPad, pageW, compact, colors, subtitle
       <HeaderLight width={pageW} height={topPad + 220} />
       <View style={[st.brandRow, { paddingLeft: onBack ? side - 10 : side, paddingRight: side }]}>
         {!!onBack && (
-          <PressScale style={st.hdrBtn} scaleTo={0.92} onPress={onBack} accessibilityRole="button" accessibilityLabel="Back to Home">
+          <PressScale style={st.hdrBtn} scaleTo={0.92} onPress={onBack} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Back to Home">
             <Icon name="arrow-back" size={22} strokeWidth={1.6} color="#FFFFFF" />
           </PressScale>
         )}

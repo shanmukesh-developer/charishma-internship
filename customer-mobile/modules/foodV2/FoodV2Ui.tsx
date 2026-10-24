@@ -28,6 +28,7 @@ import { useScreenActive } from '../../utils/useAppActive';
 import { Icon } from './FoodV2Icons';
 import Thumb from './FoodV2Thumb';
 import FoodV2BasketBar from './FoodV2BasketBar';
+import { BUTTON_ROLE } from '../../utils/pressRole';
 
 const st = StyleSheet.create({
   rowCol: { flex: 1, minWidth: 0, alignSelf: 'stretch', justifyContent: 'space-between' },
@@ -71,7 +72,7 @@ function AddControlView({ p, q, closed, compact, isDark, c, greenGlow, actions }
           <Text style={[s.closedText, { color: c.slate }]} numberOfLines={1}>{label}</Text>
         </View>
         {!compact && (
-          <PressScale style={[s.plus, { backgroundColor: isDark ? '#3F3F46' : '#C3CDCA' }]} onPress={() => actions.addProduct(p)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`${p.name}: ${label}`}>
+          <PressScale style={[s.plus, { backgroundColor: isDark ? '#3F3F46' : '#C3CDCA' }]} onPress={() => actions.addProduct(p)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`${p.name}: ${label}`}>
             <Icon name="add" size={18} color="#FFFFFF" />
           </PressScale>
         )}
@@ -81,12 +82,12 @@ function AddControlView({ p, q, closed, compact, isDark, c, greenGlow, actions }
   if (q > 0) {
     return (
       <View style={s.stepper}>
-        <PressScale style={[s.stepBtn, { backgroundColor: c.mint }]} onPress={() => actions.decProduct(p.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 2 }} accessibilityRole="button" accessibilityLabel={`Remove one ${p.name}. ${q} in basket`}>
+        <PressScale style={[s.stepBtn, { backgroundColor: c.mint }]} onPress={() => actions.decProduct(p.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 2 }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`Remove one ${p.name}. ${q} in basket`}>
           <Icon name="remove" size={15} color={c.mintInk} />
         </PressScale>
         <View style={[s.stepBtn, { backgroundColor: c.mint }]}><BounceOnChange value={q}><Text style={[s.stepQty, { color: c.title }]}>{q}</Text></BounceOnChange></View>
         <BounceOnChange value={q}>
-          <PressScale style={[s.stepBtn, { backgroundColor: c.mint }]} onPress={() => actions.addProduct(p)} hitSlop={{ top: 6, bottom: 6, left: 2, right: 6 }} accessibilityRole="button" accessibilityLabel={`Add one more ${p.name}. ${q} in basket`}>
+          <PressScale style={[s.stepBtn, { backgroundColor: c.mint }]} onPress={() => actions.addProduct(p)} hitSlop={{ top: 6, bottom: 6, left: 2, right: 6 }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`Add one more ${p.name}. ${q} in basket`}>
             <Icon name="add" size={15} color={c.mintInk} />
           </PressScale>
         </BounceOnChange>
@@ -94,7 +95,7 @@ function AddControlView({ p, q, closed, compact, isDark, c, greenGlow, actions }
     );
   }
   return (
-    <PressScale style={[s.plus, { backgroundColor: FOOD.primary }, greenGlow]} onPress={() => actions.addProduct(p)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`Add ${p.name} to basket`}>
+    <PressScale style={[s.plus, { backgroundColor: FOOD.primary }, greenGlow]} onPress={() => actions.addProduct(p)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`Add ${p.name} to basket`}>
       <Icon name="add" size={18} color="#FFFFFF" />
     </PressScale>
   );
@@ -116,7 +117,7 @@ const ProductRow = React.memo(function ProductRow({ p, q, isSaved, closed, plate
   const open = useCallback(() => { if (openRef.current) openRef.current(); else actions.openProduct(p); }, [actions, p]);
   return (
     <View style={[s.row, { backgroundColor: c.card, height: Math.max(ROW_H, plate + 24) }, flat ? { borderRadius: 0, borderBottomWidth: 1, borderBottomColor: c.line } : shadow]}>
-      <PressScale onPress={open} accessibilityRole="button" accessibilityLabel={`${p.name}${p.weight ? `, ${p.weight}` : ''}, ${fmt(p.price)}${!p.isAvailable ? ', sold out' : ''}. Open details`}>
+      <PressScale onPress={open} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`${p.name}${p.weight ? `, ${p.weight}` : ''}, ${fmt(p.price)}${!p.isAvailable ? ', sold out' : ''}. Open details`}>
         <Thumb uri={p.image} size={plate} isDark={isDark} group={groupOf(p)} dim={!p.isAvailable} />
       </PressScale>
       <View style={st.rowCol}>
@@ -128,7 +129,7 @@ const ProductRow = React.memo(function ProductRow({ p, q, isSaved, closed, plate
         </PressScale>
         <View style={st.rowCtl}><AddControlView p={p} q={q} closed={closed} compact={false} isDark={isDark} c={c} greenGlow={greenGlow} actions={actions} /></View>
       </View>
-      <PressScale style={s.rowHeart} onPress={() => { if (!savedSample) actions.toggleSaved(p); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={isSaved ? `Remove ${p.name} from saved items` : `Save ${p.name}`}>
+      <PressScale style={s.rowHeart} onPress={() => { if (!savedSample) actions.toggleSaved(p); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={isSaved ? `Remove ${p.name} from saved items` : `Save ${p.name}`}>
         <Icon name={isSaved ? 'heart' : 'heart-outline'} size={16} strokeWidth={1.5} color={isSaved ? FOOD.primary : c.was} />
       </PressScale>
     </View>
@@ -141,7 +142,7 @@ export function useFoodV2Ui() {
   const { router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark, rowActions } = useFoodV2();
   /** Plain header icon (no circle): lucide 22 / 1.6 in a 44 px tap area; gold count pill or unread dot. */
   const headerBtn = (icon: IonName, label: string, onPress: () => void, badge = 0, dot = false) => (
-    <PressScale style={s.hdrBtn} scaleTo={0.92} haptic onPress={onPress} accessibilityRole="button" accessibilityLabel={badge ? `${label}, ${badge} item${badge === 1 ? '' : 's'}` : label}>
+    <PressScale style={s.hdrBtn} scaleTo={0.92} haptic onPress={onPress} accessibilityRole={BUTTON_ROLE} accessibilityLabel={badge ? `${label}, ${badge} item${badge === 1 ? '' : 's'}` : label}>
       <Icon name={icon} size={22} strokeWidth={1.6} color="rgba(255,255,255,0.95)" />
       {badge > 0 && <View style={s.hdrBadge}><Text style={s.hdrBadgeText}>{badge > 99 ? '99+' : badge}</Text></View>}
       {dot && badge === 0 && <View style={s.hdrDot} />}
@@ -170,7 +171,7 @@ export function useFoodV2Ui() {
         {!!opts?.sub && <Text style={[s.headSub, { color: c.off }]}>{opts.sub}</Text>}
       </View>
       {!!opts?.onAll && (
-        <PressScale style={s.linkBtn} onPress={opts.onAll} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`${opts.label || 'View all'}: ${title}`}>
+        <PressScale style={s.linkBtn} onPress={opts.onAll} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`${opts.label || 'View all'}: ${title}`}>
           <Text style={[s.link, { color: c.link }]}>{opts.label || 'View all'}</Text>
           <Icon name={opts.arrow ? 'arrow-forward' : 'chevron-forward'} size={15} color={c.link} />
         </PressScale>
@@ -200,10 +201,10 @@ export function useFoodV2Ui() {
     return (
       <View key={p.id} style={[s.card, { width: w, backgroundColor: c.card }, shadow]}>
         <View>
-          <PressScale onPress={() => openProduct(p)} accessibilityRole="button" accessibilityLabel={`${p.name}, ${fmt(p.price)}. Open details`}>
+          <PressScale onPress={() => openProduct(p)} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`${p.name}, ${fmt(p.price)}. Open details`}>
             <Thumb uri={p.image} size="100%" isDark={isDark} group={groupOf(p)} dim={!p.isAvailable} />
           </PressScale>
-          <PressScale style={s.cardHeart} onPress={() => { if (!savedSample) toggleSaved(p); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={isSaved ? `Remove ${p.name} from saved items` : `Save ${p.name}`}>
+          <PressScale style={s.cardHeart} onPress={() => { if (!savedSample) toggleSaved(p); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={isSaved ? `Remove ${p.name} from saved items` : `Save ${p.name}`}>
             <Icon name={isSaved ? 'heart' : 'heart-outline'} size={16} strokeWidth={1.5} color={isSaved ? FOOD.primary : c.was} />
           </PressScale>
         </View>
@@ -221,7 +222,7 @@ export function useFoodV2Ui() {
 
   /** White tile: photo on top, label (and an optional green line) below. */
   const miniTile = (key: string, label: string, sub: string | null, img: string, onPress: () => void, w: number, contain = false) => (
-    <PressScale key={key} onPress={onPress} style={{ width: w }} accessibilityRole="button" accessibilityLabel={sub ? `${label}, ${sub}` : label}>
+    <PressScale key={key} onPress={onPress} style={{ width: w }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={sub ? `${label}, ${sub}` : label}>
       <View style={[s.mini, { backgroundColor: c.card }, shadow]}>
         <View style={[s.miniImg, { backgroundColor: contain ? c.plate : c.tile }]}>
           <Image source={{ uri: img }} style={contain ? s.miniImgContain : StyleSheet.absoluteFill} resizeMode={contain ? 'contain' : 'cover'} />

@@ -34,6 +34,7 @@ import { useFoodScale } from './FoodV2Scale';
 import { Icon } from './FoodV2Icons';
 import StatusBarScrim from '../../components/StatusBarScrim';
 import { FOOD_HEADER } from './FoodV2SectionHeader';
+import { BUTTON_ROLE } from '../../utils/pressRole';
 
 export default function FoodV2Home() {
   const { router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark } = useFoodV2();
@@ -81,7 +82,7 @@ export default function FoodV2Home() {
             {/* ── Can't find something? ── */}
             <View style={s.sec}>
               {head("Can't find something?")}
-              <PressScale style={[s.sendList, { backgroundColor: c.soft }]} onPress={() => push({ name: 'mega' })} accessibilityRole="button" accessibilityLabel="Send a list: type what you need and a shopper will buy it for you">
+              <PressScale style={[s.sendList, { backgroundColor: c.soft }]} onPress={() => push({ name: 'mega' })} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Send a list: type what you need and a shopper will buy it for you">
                 <View style={[s.sendIcon, { backgroundColor: FOOD.primary }]}><Icon name="basket-outline" size={22} color="#FFFFFF" /></View>
                 <View style={{ flex: 1 }}>
                   <Text style={[s.sendTitle, { color: c.title }]}>Send a list</Text>
@@ -105,7 +106,7 @@ export default function FoodV2Home() {
                 {head('Shop by brand')}
                 <ScrollView horizontal style={s.hScroll} showsHorizontalScrollIndicator={false} contentContainerStyle={s.brandRail}>
                   {BRANDS.filter(b => hasShelf(b.name)).map(b => (
-                    <PressScale key={b.name} onPress={() => openListing(b.name)} style={s.brand} accessibilityRole="button" accessibilityLabel={`Shop ${b.name}`}>
+                    <PressScale key={b.name} onPress={() => openListing(b.name)} style={s.brand} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`Shop ${b.name}`}>
                       <View style={[s.brandCircle, { backgroundColor: c.card }, shadow]}><Image source={{ uri: b.img }} style={s.brandImg} resizeMode="cover" /></View>
                       <Text style={[s.brandName, { color: c.slate }]} numberOfLines={1}>{b.name}</Text>
                     </PressScale>
@@ -154,7 +155,7 @@ export default function FoodV2Home() {
             {aisles.length > 0 && (
               <View style={s.sec}>
                 {head('Daily essentials, snacks and home needs', { onAll: () => openListing('All Groceries') })}
-                <PressScale style={s.banner} onPress={() => openListing('All Groceries')} accessibilityRole="button" accessibilityLabel="Daily essentials, snacks and home needs">
+                <PressScale style={s.banner} onPress={() => openListing('All Groceries')} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Daily essentials, snacks and home needs">
                   <Image source={{ uri: FOOD_IMG.essentials }} style={StyleSheet.absoluteFill} resizeMode="cover" />
                 </PressScale>
                 <ScrollView horizontal style={s.hScroll} showsHorizontalScrollIndicator={false} contentContainerStyle={[s.chipRail, { paddingTop: 12 }]}>

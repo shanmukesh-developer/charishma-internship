@@ -16,6 +16,7 @@ import { fmt } from './FoodV2Data';
 import { useFoodV2 } from './useFoodV2';
 import { useFoodScale, BAR_H, BAR_GAP } from './FoodV2Scale';
 import { Icon } from './FoodV2Icons';
+import { BUTTON_ROLE } from '../../utils/pressRole';
 
 export default function FoodV2BasketBar() {
   const router = useRouter();
@@ -55,7 +56,7 @@ export default function FoodV2BasketBar() {
 
   return (
     <Animated.View style={[st.wrap, { left: sc.gutter, right: sc.gutter, bottom: BAR_GAP + Math.max(sc.insets.bottom, 0), transform: [{ translateY: y }] }]} pointerEvents="box-none">
-      <PressScale onPress={() => router.push('/(tabs)/basket?basket=store' as any)} scaleTo={0.98} accessibilityRole="button" accessibilityLabel={`View basket: ${label}${saving > 0 ? `, you save ${fmt(saving)}` : ''}`} style={st.shadow}>
+      <PressScale onPress={() => router.push('/(tabs)/basket?basket=store' as any)} scaleTo={0.98} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`View basket: ${label}${saving > 0 ? `, you save ${fmt(saving)}` : ''}`} style={st.shadow}>
         <LinearGradient colors={['#0F5132', '#12643C']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.bar}>
           {thumbs.length > 0 && (
             <View style={[st.thumbs, { width: 28 + (thumbs.length - 1) * 18 + (more ? 22 : 0) }]}>

@@ -27,6 +27,7 @@ import { useFoodV2 } from './useFoodV2';
 import { useFoodV2Ui, Enter, useHint } from './FoodV2Ui';
 import { useFoodV2States } from './FoodV2States';
 import { Icon } from './FoodV2Icons';
+import { BUTTON_ROLE } from '../../utils/pressRole';
 
 export default function FoodV2Saved({ sheet = false }: { sheet?: boolean }) {
   const { router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark } = useFoodV2();
@@ -40,13 +41,13 @@ export default function FoodV2Saved({ sheet = false }: { sheet?: boolean }) {
       </View>
       <Text style={[s.emptyTitle, { color: c.title }]}>No saved items yet</Text>
       <Text style={[s.emptyText, { color: c.slate }]}>Tap the heart icon on any product to save it here.</Text>
-      <PressScale style={[s.emptyBtn, { backgroundColor: FOOD.primary }]} onPress={() => { setSavedSheet(false); reset({ name: 'home' }); }} accessibilityRole="button">
+      <PressScale style={[s.emptyBtn, { backgroundColor: FOOD.primary }]} onPress={() => { setSavedSheet(false); reset({ name: 'home' }); }} accessibilityRole={BUTTON_ROLE}>
         <Text style={s.emptyBtnText}>Browse the campus store</Text>
       </PressScale>
     </View>
   );
   const savedFallback = (f: Saved, w?: number) => (
-    <PressScale key={f.id} onPress={() => router.push(f.targetRoute as any)} style={[w ? s.card : s.row, { backgroundColor: c.card, width: w }, shadow]} accessibilityRole="button" accessibilityLabel={`${f.title}, ${f.price}. Open details`}>
+    <PressScale key={f.id} onPress={() => router.push(f.targetRoute as any)} style={[w ? s.card : s.row, { backgroundColor: c.card, width: w }, shadow]} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`${f.title}, ${f.price}. Open details`}>
       <View style={w ? [s.cardPlate, { backgroundColor: c.plate }] : [s.rowPlate, { width: 74, height: 74, backgroundColor: c.plate }]}>
         <Image source={{ uri: f.image || FALLBACK_IMG }} style={w ? s.cardImg : s.rowImg} resizeMode="contain" />
       </View>
@@ -64,7 +65,7 @@ export default function FoodV2Saved({ sheet = false }: { sheet?: boolean }) {
       <View style={{ flex: 1, backgroundColor: FOOD.headerDeep[0] }}>
         <LinearGradient colors={FOOD.headerDeep} style={{ paddingTop: topPad }}>
           <View style={s.listHead}>
-            <PressScale onPress={pop} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Back" style={s.backBtn}>
+            <PressScale onPress={pop} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Back" style={s.backBtn}>
               <Icon name="arrow-back" size={24} color="#FFFFFF" />
             </PressScale>
             <Text style={s.listTitle} accessibilityRole="header">Saved items</Text>
@@ -96,7 +97,7 @@ export default function FoodV2Saved({ sheet = false }: { sheet?: boolean }) {
         <View style={[s.sheet, { backgroundColor: c.card }]}>
           <View style={s.sheetHead}>
             <Text style={[s.sheetTitle, { color: c.title }]} accessibilityRole="header">Saved items</Text>
-            <PressScale onPress={() => setSavedSheet(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Close">
+            <PressScale onPress={() => setSavedSheet(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Close">
               <Icon name="close" size={24} color={c.slate} />
             </PressScale>
           </View>

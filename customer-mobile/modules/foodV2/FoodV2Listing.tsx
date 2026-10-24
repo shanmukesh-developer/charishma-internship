@@ -27,6 +27,7 @@ import BannerSlider from './FoodV2BannerSlider';
 import { chipsFor, inChip } from './FoodV2Chips';
 import { Icon, GROUP_ICON } from './FoodV2Icons';
 import { useFoodScale } from './FoodV2Scale';
+import { BUTTON_ROLE } from '../../utils/pressRole';
 
 const AISLE_ICON: Record<string, string> = { all: 'grid', rice: 'wheat', atta: 'package', dal: 'bean', pickles: 'flame', oil: 'droplet', snacks: 'cookie', bev: 'cup-soda', gifts: 'gift', other: 'basket-outline' };
 const BANNER_H = 120;
@@ -94,7 +95,7 @@ export default function FoodV2Listing({ shelf }: { shelf: string }) {
       <Icon name={q ? 'search-outline' : 'basket-outline'} size={34} color={FOOD.primary} />
       <Text style={[s.emptyTitle, { color: c.title }]}>{q ? 'No matches' : 'Nothing here yet'}</Text>
       <Text style={[s.emptyText, { color: c.slate }]}>{q ? `Nothing matches "${query.trim()}". Request it and a shopper will buy it for you.` : 'Request it and a shopper will buy it for you.'}</Text>
-      <PressScale style={[s.emptyBtn, { backgroundColor: FOOD.primary }]} onPress={() => push({ name: 'mega' })} accessibilityRole="button">
+      <PressScale style={[s.emptyBtn, { backgroundColor: FOOD.primary }]} onPress={() => push({ name: 'mega' })} accessibilityRole={BUTTON_ROLE}>
         <Text style={s.emptyBtnText}>Start a shopping list</Text>
       </PressScale>
     </View>
@@ -153,7 +154,7 @@ export default function FoodV2Listing({ shelf }: { shelf: string }) {
           : list;
   /** Clear (x) with a full 44 px tap area. */
   const clearBtn = (color: string, icon: string, size: number) => (
-    <PressScale style={st.clear} onPress={() => setQuery('')} accessibilityRole="button" accessibilityLabel="Clear search">
+    <PressScale style={st.clear} onPress={() => setQuery('')} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Clear search">
       <Icon name={icon} size={size} color={color} />
     </PressScale>
   );
@@ -164,7 +165,7 @@ export default function FoodV2Listing({ shelf }: { shelf: string }) {
       <View style={{ flex: 1, backgroundColor: FOOD.headerDeep[0], overflow: 'hidden' }}>
         <LinearGradient colors={FOOD.headerDeep} style={{ paddingTop: topPad }}>
           <View style={s.srchHead}>
-            <PressScale onPress={pop} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Back" style={s.backBtn}>
+            <PressScale onPress={pop} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Back" style={s.backBtn}>
               <Icon name="arrow-back" size={22} color="#FFFFFF" />
             </PressScale>
             <View style={s.srchField}>
@@ -196,7 +197,7 @@ export default function FoodV2Listing({ shelf }: { shelf: string }) {
     <View style={{ flex: 1, backgroundColor: c.page, overflow: 'hidden' }}>
       <LinearGradient colors={FOOD.header} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ paddingTop: topPad, zIndex: 3 }}>
         <View style={[s.listHead, { paddingBottom: 8 }]}>
-          <PressScale onPress={pop} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Back" style={s.backBtn}>
+          <PressScale onPress={pop} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Back" style={s.backBtn}>
             <Icon name="arrow-back" size={22} color="#FFFFFF" />
           </PressScale>
           <Text style={s.listTitle} numberOfLines={1} accessibilityRole="header">{title}</Text>

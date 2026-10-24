@@ -15,6 +15,7 @@ import { s } from './FoodV2Styles';
 import { useFoodV2 } from './useFoodV2';
 import { CUT } from './FoodV2Art';
 import { Icon } from './FoodV2Icons';
+import { BUTTON_ROLE } from '../../utils/pressRole';
 
 export default function FoodV2MegaBasket() {
   const { isDark, topPad, pageW, c, pop, reqLines, addReqLine, updateReqLine, removeReqLine, setFirstReqName, addRequest } = useFoodV2();
@@ -26,7 +27,7 @@ export default function FoodV2MegaBasket() {
       {/* Fixed header: the back arrow never scrolls away */}
       <View style={[st.head, { paddingTop: topPad }]}>
         <View style={s.listHead}>
-          <PressScale onPress={pop} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Back" style={s.backBtn}>
+          <PressScale onPress={pop} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Back" style={s.backBtn}>
             <Icon name="arrow-back" size={22} color="#FFFFFF" />
           </PressScale>
           <Text style={s.listTitle} numberOfLines={1} accessibilityRole="header">Send a list</Text>
@@ -41,7 +42,7 @@ export default function FoodV2MegaBasket() {
               <View style={st.lineTop}>
                 <Text style={[st.lineNo, { color: c.slate }]}>Item {i + 1}</Text>
                 {(reqLines.length > 1 || !!l.name) && (
-                  <PressScale style={st.remove} onPress={() => removeReqLine(l.key)} accessibilityRole="button" accessibilityLabel={`Remove item ${i + 1}`}>
+                  <PressScale style={st.remove} onPress={() => removeReqLine(l.key)} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`Remove item ${i + 1}`}>
                     <Icon name="close" size={16} color={c.slate} />
                   </PressScale>
                 )}
@@ -63,12 +64,12 @@ export default function FoodV2MegaBasket() {
             </View>
           ))}
           {reqLines.length < 15 && (
-            <PressScale style={[st.addLine, { borderColor: isDark ? 'rgba(127,220,163,0.4)' : '#9FD3B2' }]} onPress={addReqLine} accessibilityRole="button" accessibilityLabel="Add another item">
+            <PressScale style={[st.addLine, { borderColor: isDark ? 'rgba(127,220,163,0.4)' : '#9FD3B2' }]} onPress={addReqLine} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Add another item">
               <Icon name="add" size={18} color={isDark ? '#7FDCA3' : FOOD.primary} />
               <Text style={[st.addLineText, { color: isDark ? '#7FDCA3' : FOOD.primary }]}>Add another item</Text>
             </PressScale>
           )}
-          <PressScale style={[s.megaBtn, { backgroundColor: FOOD.cta }]} onPress={addRequest} accessibilityRole="button" accessibilityLabel="Send list: add these items to your basket">
+          <PressScale style={[s.megaBtn, { backgroundColor: FOOD.cta }]} onPress={addRequest} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Send list: add these items to your basket">
             <Text style={s.megaBtnText}>{filled > 1 ? `Send list · ${filled} items` : 'Send list'}</Text>
           </PressScale>
           <Text style={[s.megaHint, { color: c.slate }]}>Prices are optional. You approve the real bill before paying (cash on delivery).</Text>
@@ -76,7 +77,7 @@ export default function FoodV2MegaBasket() {
         <Text style={s.megaPop}>Popular requests</Text>
         <View style={s.megaGrid}>
           {POPULAR_REQUESTS.map(r => (
-            <PressScale key={r} style={[s.megaChip, { width: halfW, backgroundColor: isDark ? FOOD.card.dark : '#F4F8F6' }]} onPress={() => setFirstReqName(r)} accessibilityRole="button" accessibilityLabel={`Add ${r} to the list`}>
+            <PressScale key={r} style={[s.megaChip, { width: halfW, backgroundColor: isDark ? FOOD.card.dark : '#F4F8F6' }]} onPress={() => setFirstReqName(r)} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`Add ${r} to the list`}>
               <Icon name="add" size={15} color={FOOD.primary} />
               <Text style={[s.megaChipText, { color: c.title }]} numberOfLines={1}>{r}</Text>
             </PressScale>

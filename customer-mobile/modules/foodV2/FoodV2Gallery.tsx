@@ -10,6 +10,7 @@ import { Image } from 'expo-image';
 import { PressScale } from '../../modules/others/motion';
 import { FOOD } from './foodV2Theme';
 import { Icon } from './FoodV2Icons';
+import { BUTTON_ROLE } from '../../utils/pressRole';
 
 export default function FoodV2Gallery({ images, topPad, isSaved, onBack, onShare, onToggleSaved, name }: {
   images: string[]; topPad: number; isSaved: boolean; name: string;
@@ -37,14 +38,14 @@ export default function FoodV2Gallery({ images, topPad, isSaved, onBack, onShare
           ))}
         </ScrollView>
         <View style={[st.topRow, { top: topPad + 8 }]} pointerEvents="box-none">
-          <PressScale style={st.round} onPress={onBack} accessibilityRole="button" accessibilityLabel="Go back">
+          <PressScale style={st.round} onPress={onBack} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Go back">
             <Icon name="arrow-back" size={22} color="#FFFFFF" />
           </PressScale>
           <View style={{ flex: 1 }} />
-          <PressScale style={st.round} onPress={onShare} accessibilityRole="button" accessibilityLabel="Share">
+          <PressScale style={st.round} onPress={onShare} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Share">
             <Icon name="share-outline" size={18} color="#FFFFFF" />
           </PressScale>
-          <PressScale style={st.round} onPress={onToggleSaved} accessibilityRole="button" accessibilityLabel={isSaved ? 'Remove from saved' : 'Save item'}>
+          <PressScale style={st.round} onPress={onToggleSaved} accessibilityRole={BUTTON_ROLE} accessibilityLabel={isSaved ? 'Remove from saved' : 'Save item'}>
             <Icon name={isSaved ? 'heart' : 'heart-outline'} size={19} color="#FFFFFF" />
           </PressScale>
         </View>
@@ -61,7 +62,7 @@ export default function FoodV2Gallery({ images, topPad, isSaved, onBack, onShare
       {images.length > 1 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={st.strip}>
           {images.map((uri, i) => (
-            <PressScale key={`t-${uri}-${i}`} onPress={() => jump(i)} style={[st.thumb, i === index && st.thumbOn]} accessibilityRole="button" accessibilityLabel={`Show photo ${i + 1}`}>
+            <PressScale key={`t-${uri}-${i}`} onPress={() => jump(i)} style={[st.thumb, i === index && st.thumbOn]} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`Show photo ${i + 1}`}>
               <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" />
             </PressScale>
           ))}
@@ -77,7 +78,7 @@ export default function FoodV2Gallery({ images, topPad, isSaved, onBack, onShare
               </View>
             ))}
           </ScrollView>
-          <PressScale style={[st.round, st.close, { top: topPad + 8 }]} onPress={() => setViewer(null)} accessibilityRole="button" accessibilityLabel="Close photos">
+          <PressScale style={[st.round, st.close, { top: topPad + 8 }]} onPress={() => setViewer(null)} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Close photos">
             <Icon name="close" size={22} color="#FFFFFF" />
           </PressScale>
         </View>

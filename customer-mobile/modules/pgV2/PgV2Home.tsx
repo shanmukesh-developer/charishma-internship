@@ -22,6 +22,7 @@ import { usePgV2, placeText, rentFromText, gKey, inBudget, BUDGETS } from './pgV
 import { useNav, type BudgetKey } from './pgV2Nav';
 import { useHeroSlider, HeroSlides, HeroDots } from './PgV2HeroSlider';
 import type { PgListItem } from '../../modules/pg/pgApi';
+import { BUTTON_ROLE } from '../../utils/pressRole';
 
 /** One violet shared by the header's bottom edge and the hero: no seam where they meet. */
 export const HERO_BASE = '#6352D8';
@@ -92,7 +93,7 @@ export function PgV2HomeBody() {
             const on = gender === t.g;
             const n = countFor(t.g);
             return (
-              <PressScale key={t.g} haptic scaleTo={0.97} onPress={() => setGender(on ? null : t.g)} accessibilityRole="button" accessibilityState={{ selected: on }}
+              <PressScale key={t.g} haptic scaleTo={0.97} onPress={() => setGender(on ? null : t.g)} accessibilityRole={BUTTON_ROLE} accessibilityState={{ selected: on }}
                 accessibilityLabel={`${t.label}, ${n} PGs`} style={[st.tile, { width: tileW }, on && st.tileOn]}>
                 <t.icon size={20} color={on ? PG2.primary : SLATE} strokeWidth={1.6} />
                 <Text style={[st.tileText, on && { color: PG2.primary }]} numberOfLines={1}>{t.label}</Text>
@@ -106,7 +107,7 @@ export function PgV2HomeBody() {
           {BUDGETS.map((b) => {
             const on = budget === b.key;
             return (
-              <PressScale key={b.key} haptic onPress={() => setBudget(b.key)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={b.label} style={[st.budget, on && st.budgetOn]}>
+              <PressScale key={b.key} haptic onPress={() => setBudget(b.key)} accessibilityRole={BUTTON_ROLE} accessibilityState={{ selected: on }} accessibilityLabel={b.label} style={[st.budget, on && st.budgetOn]}>
                 <Text style={[st.budgetText, on && { color: PG2.primary, fontWeight: W.label }]}>{b.label}</Text>
               </PressScale>
             );

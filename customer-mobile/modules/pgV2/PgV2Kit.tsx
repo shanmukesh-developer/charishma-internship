@@ -11,6 +11,7 @@ import { PG2, R, GUTTER, W, shadow, genderTone, type GenderKey } from './pgV2The
 import { IArrowLeft, IBadgeCheck, IStar, IBuilding, STROKE } from './PgV2Icons';
 import type { V2Photo } from './pgV2Photos';
 import { ratingText, type ReviewSummary } from '../../modules/pg/pgApi';
+import { pressRole } from '../../utils/pressRole';
 
 /** Pressable with a quiet pressed state and a 44 px minimum target. */
 export function Tap({ children, onPress, style, label, disabled, role = 'button', selected }: {
@@ -21,7 +22,7 @@ export function Tap({ children, onPress, style, label, disabled, role = 'button'
     <Pressable
       onPress={onPress}
       disabled={disabled || !onPress}
-      accessibilityRole={role}
+      accessibilityRole={pressRole(role)}
       accessibilityLabel={label}
       accessibilityState={{ disabled: !!disabled, selected }}
       style={({ pressed }) => [{ opacity: disabled ? 0.45 : pressed ? 0.72 : 1 }, style]}

@@ -15,6 +15,7 @@ import { useFoodV2 } from './useFoodV2';
 import { TILE_ART } from './FoodV2Art';
 import { Icon } from './FoodV2Icons';
 import { useFoodScale } from './FoodV2Scale';
+import { BUTTON_ROLE } from '../../utils/pressRole';
 
 /** Other shelves shown under the tiles (key -> label), only when they have products. */
 const MORE: { key: string; label: string }[] = [
@@ -42,7 +43,7 @@ export default function FoodV2Categories() {
     <View style={{ flex: 1, backgroundColor: FOOD.headerDeep[0] }}>
       <LinearGradient colors={FOOD.headerDeep} style={{ paddingTop: topPad }}>
         <View style={s.listHead}>
-          <PressScale onPress={pop} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Back" style={s.backBtn}>
+          <PressScale onPress={pop} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Back" style={s.backBtn}>
             <Icon name="arrow-back" size={22} color="#FFFFFF" />
           </PressScale>
           <Text style={s.listTitle} numberOfLines={1} accessibilityRole="header">All categories</Text>
@@ -57,7 +58,7 @@ export default function FoodV2Categories() {
               const art = TILE_ART[t.key];
               const w = widthFor(row.length);
               return (
-                <PressScale key={t.key} onPress={() => openListing(t.key)} scaleTo={0.97} style={{ width: w }} accessibilityRole="button" accessibilityLabel={t.label}>
+                <PressScale key={t.key} onPress={() => openListing(t.key)} scaleTo={0.97} style={{ width: w }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={t.label}>
                   <View style={[st.tile, { backgroundColor: c.card }, shadow]}>
                     <View style={[st.plate, { backgroundColor: art ? art.tint[isDark ? 1 : 0] : c.tile }]}>
                       {art ? <Image source={art.art} style={st.cut} contentFit="contain" accessibilityElementsHidden /> : <Image source={{ uri: t.img }} style={StyleSheet.absoluteFill} contentFit="cover" />}
@@ -74,7 +75,7 @@ export default function FoodV2Categories() {
               <Text style={[s.headTitle, { color: c.title, paddingHorizontal: 16, marginBottom: 8 }]} accessibilityRole="header">More aisles</Text>
               <View style={[st.list, { backgroundColor: c.card }, shadow]}>
                 {more.map((m, i) => (
-                  <PressScale key={m.key} onPress={() => openListing(m.key)} style={[st.row, i > 0 && { borderTopWidth: 1, borderTopColor: c.line }]} accessibilityRole="button" accessibilityLabel={`${m.label}, ${m.n} item${m.n === 1 ? '' : 's'}`}>
+                  <PressScale key={m.key} onPress={() => openListing(m.key)} style={[st.row, i > 0 && { borderTopWidth: 1, borderTopColor: c.line }]} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`${m.label}, ${m.n} item${m.n === 1 ? '' : 's'}`}>
                     <Text style={[st.rowText, { color: c.name }]} numberOfLines={1}>{m.label}</Text>
                     <Text style={[st.rowCount, { color: c.slate }]}>{m.n}</Text>
                     <Icon name="chevron-forward" size={16} color={c.slate} />
