@@ -87,9 +87,10 @@ const ScalePressable = ({ children, onPress, style, activeOpacity = 0.85, access
 type IonName = React.ComponentProps<typeof Ionicons>['name'];
 
 const TABS: { key: string; label: string; icon: IonName }[] = [
+  // Owner order (24 Oct): PG stays right after Food & groceries.
   { key: 'food', label: 'Food & groceries', icon: 'basket-outline' },
-  { key: 'services', label: 'Tech & repairs', icon: 'construct-outline' },
   { key: 'pg', label: 'PG stays', icon: 'business-outline' },
+  { key: 'services', label: 'Tech & repairs', icon: 'construct-outline' },
   { key: 'coride', label: 'Co-Ride', icon: 'bicycle-outline' },
   { key: 'rentals', label: 'Rentals', icon: 'car-outline' },
   // Campus Events: shown only while GET /api/campus-events/status says enabled (see visibleTabs).

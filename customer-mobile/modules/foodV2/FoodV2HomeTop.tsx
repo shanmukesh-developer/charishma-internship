@@ -38,7 +38,7 @@ export function useUnreadDot() {
   return dot;
 }
 
-const PILLS: [string, string][] = [['food', 'Food & groceries'], ['services', 'Tech & repairs'], ['pg', 'PG'], ['coride', 'Co-Ride'], ['promos', 'Deals & spin']];
+const PILLS: [string, string][] = [['food', 'Food & groceries'], ['pg', 'PG stays'], ['services', 'Tech & repairs'], ['coride', 'Co-Ride'], ['promos', 'Deals & spin']];
 
 /** Luxury header palette (owner feedback): deep emerald, one soft light, fine grain, gold hairline. */
 export const LUX = { top: '#0B3D24', bottom: '#0F5132', gold: '#C9A24A', goldSoft: 'rgba(201,162,74,0.35)', badge: '#E9C46A' };
