@@ -38,6 +38,7 @@ import { storeEtaMins, storeEtaText } from '../../utils/storeEta';
 import { isNewStore as isNewStoreRule } from '../../utils/storeBadge';
 import { syncFavorites, toggleFavoriteStore, onFavoritesChange, isFavoriteIn } from '../../utils/favorites';
 import { useTopInset } from '../../utils/useTopInset';
+import { useIntroDone } from '../../utils/introGate';
 
 const VaultTimerBadge = ({ pulseAnim }: { pulseAnim: any }) => {
   const [vaultTimer, setVaultTimer] = useState('00:00:00');
@@ -303,6 +304,8 @@ const HomeFloatingCart = React.memo(function HomeFloatingCart({ isDark, txt, onO
 });
 
 export default function HomeScreen() {
+  // Home's full content is drawn once the launch intro is done (utils/introGate); its data still loads meanwhile.
+  const introDone = useIntroDone();
   // Real status-bar inset, never less than the old fixed padding (utils/useTopInset)
   const topPad = useTopInset();
   // Keyboard lift only while Home is the visible tab (it stays mounted under other screens).
@@ -699,6 +702,9 @@ export default function HomeScreen() {
   const lift = surfaceLift(isDark);
   const liftSm = surfaceLift(isDark, true);
   const shadowSm = surfaceShadow(isDark, true);
+
+  // Behind the intro: a plain page (the intro covers it). The full Home is drawn as the intro's title holds still.
+  if (!introDone) return <View style={[s.container, { paddingTop: topPad, backgroundColor: bg }]} />;
 
   return (
     <KeyboardAvoidingView style={[s.container, { paddingTop: topPad, backgroundColor: bg }]} enabled={homeFocused}>

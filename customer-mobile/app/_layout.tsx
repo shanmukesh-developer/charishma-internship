@@ -1,7 +1,7 @@
 import 'react-native-gesture-handler';
 import React from 'react';
 import { Stack } from 'expo-router';
-import { Platform, View, StyleSheet, Alert, ActivityIndicator, LogBox } from 'react-native';
+import { Platform, View, StyleSheet, Alert, ActivityIndicator, LogBox, InteractionManager } from 'react-native';
 
 // Web preview only: react-native-web renders nested touchables as nested <button>s and logs a
 // dev warning. It never happens on Android/iOS, so keep it out of the preview overlay.
@@ -20,6 +20,7 @@ import { DietaryProvider } from '../context/DietaryContext';
 import { WorldTransitionProvider } from '../context/WorldTransitionContext';
 import WorldTransitionOverlay from '../components/WorldTransitionOverlay';
 import IntroOverlay from '../components/IntroOverlay';
+import { markIntroDone } from '../utils/introGate';
 import GlobalAnnouncement from '../components/GlobalAnnouncement';
 import TermsUpdateSheet from '../components/TermsUpdateSheet';
 import ThemedAlert, { showGlobalAlert } from '../components/ThemedAlert';
@@ -48,7 +49,23 @@ const ROOT_STACK_OPTIONS = { headerShown: false, animation: 'fade', freezeOnBlur
  * the icon font finishes loading or the saved theme arrives; without this memo each of those re-rendered
  * every mounted screen (Home included) while it was still painting its first frames.
  */
-const AppTree = React.memo(function AppTree({ isDark }: { isDark: boolean }) {
+/**
+ * Tells the intro when the app behind it has finished its first mount (after interactions plus two frames), so
+ * the intro's motion starts on an idle UI thread instead of stuttering through the mount.
+ */
+function SettleSignal({ onSettled }: { onSettled: () => void }) {
+  React.useEffect(() => {
+    let raf1 = 0;
+    let raf2 = 0;
+    const task = InteractionManager.runAfterInteractions(() => {
+      raf1 = requestAnimationFrame(() => { raf2 = requestAnimationFrame(onSettled); });
+    });
+    return () => { task.cancel(); cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); };
+  }, [onSettled]);
+  return null;
+}
+
+const AppTree = React.memo(function AppTree({ isDark, onSettled }: { isDark: boolean; onSettled: () => void }) {
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1, backgroundColor: isDark ? '#0A0A0B' : '#F5F5F7' }}>
@@ -68,6 +85,7 @@ const AppTree = React.memo(function AppTree({ isDark }: { isDark: boolean }) {
             <OfflineBanner />
             {/* Backend cold start: calm "waking up" banner while apiFetch retries (utils/serverWake.ts) */}
             <ServerWakeBanner />
+            <SettleSignal onSettled={onSettled} />
           </CartProvider>
         </AuthProvider>
           </UpdateGate>
@@ -130,12 +148,17 @@ function AppContainer() {
   }, []);
 
   const handleIntroComplete = React.useCallback(() => {
+    markIntroDone();
     setShowIntro(false);
   }, []);
+  // Safety net: Home waits for the intro (utils/introGate); if the intro ever fails to finish, never leave it blank.
+  React.useEffect(() => { const t = setTimeout(markIntroDone, 9000); return () => clearTimeout(t); }, []);
+  const [appSettled, setAppSettled] = React.useState(false);
+  const handleSettled = React.useCallback(() => setAppSettled(true), []);
 
   // Intro on top of everything; after it, a dark cover only if the saved theme is somehow still loading.
   const introLayer = showIntro ? (
-    <IntroOverlay ready={(fontsLoaded || !!fontError) && isThemeReady} onComplete={handleIntroComplete} />
+    <IntroOverlay ready={(fontsLoaded || !!fontError) && isThemeReady} start={appSettled} onComplete={handleIntroComplete} />
   ) : !isThemeReady ? (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: '#0A0A0B', zIndex: 999999 }]} />
   ) : null;
@@ -156,7 +179,7 @@ function AppContainer() {
 
   return (
     <View style={{ flex: 1 }}>
-      <AppTree isDark={isDark} />
+      <AppTree isDark={isDark} onSettled={handleSettled} />
       {introLayer}
     </View>
   );

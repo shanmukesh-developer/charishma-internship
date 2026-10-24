@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Animated, Platform, Easing, TouchableOpacity, S
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import { useReduceMotion } from '../utils/reduceMotion';
+import { markIntroDone } from '../utils/introGate';
 
 // ZCS (Zenvy Community and Services) cold-start intro: a film-studio style logo reveal.
 
@@ -20,7 +21,8 @@ const GOLD = '#D4AF37';
 const TITLE_DONE = 2600;
 const SEQ_END = 3350;   // choreography finished; exit starts here if the app is ready
 const EXIT_MS = 600;    // push-in and fade into the app  →  minimum on screen ≈ 3.95 s
-const HOLD_CAP = 3900;  // from mount: exit starts by now whatever happens (app not ready, delayed start)  →  ≤ ≈ 4.5 s
+const START_CAP = 2200; // from mount: the choreography starts by now even if the app never reports it has settled
+const HOLD_CAP = 5200;  // from mount: exit starts by now whatever happens (app not ready, delayed start)  →  ≤ ≈ 4.5 s
 const SKIP_EXIT_MS = 180; // tap / Skip: near-instant fade (the app is usable from the tap)
 const RM_HOLD = 250;    // reduce motion: static logo…
 const RM_FADE = 350;    // …then a plain fade (≈ 600 ms total)
@@ -47,6 +49,12 @@ interface IntroOverlayProps {
   onComplete: () => void;
   /** The app underneath has rendered (fonts + saved theme). The intro waits for it after the sequence, up to HOLD_CAP. */
   ready?: boolean;
+  /**
+   * The app tree behind the intro has finished its first mount. Measured on a Vivo V2439: mounting the app froze the
+   * UI thread for up to 0.6 s at a time during the first ~2 s, so motion started then stuttered. The choreography now
+   * starts only once this is true (or after START_CAP); until then the intro holds its first frame (black).
+   */
+  start?: boolean;
 }
 
 // ── Keyframe helpers ── Native-driver interpolations are piecewise linear (no easing), so curves are
@@ -200,13 +208,20 @@ function GoldLetter({ ch, g }: { ch: string; g: Geometry }) {
 
 type Phase = 'intro' | 'hold' | 'still' | 'frozen' | 'exit';
 
-export default function IntroOverlay({ onComplete, ready = true }: IntroOverlayProps) {
+export default function IntroOverlay({ onComplete, ready = true, start = true }: IntroOverlayProps) {
   // From the first exit frame the overlay stops catching touches (the app underneath is usable).
   const [exiting, setExiting] = useState(false);
   const [still, setStill] = useState(false);
   const phase = useRef<Phase>('intro');
   const readyRef = useRef(ready);
   readyRef.current = ready;
+  const [startNow, setStartNow] = useState(start);
+  useEffect(() => { if (start) setStartNow(true); }, [start]);
+  useEffect(() => {
+    if (startNow) return;
+    const t0 = setTimeout(() => setStartNow(true), START_CAP);
+    return () => clearTimeout(t0);
+  }, [startNow]);
 
   // onComplete runs once, whichever path ends the intro.
   const doneRef = useRef(false);
@@ -215,6 +230,7 @@ export default function IntroOverlay({ onComplete, ready = true }: IntroOverlayP
   const finish = useCallback(() => {
     if (doneRef.current) return;
     doneRef.current = true;
+    markIntroDone();
     onCompleteRef.current();
   }, []);
 
@@ -266,13 +282,28 @@ export default function IntroOverlay({ onComplete, ready = true }: IntroOverlayP
       return;
     }
 
+    if (!startNow) return; // hold the first (black) frame until the app behind has mounted
     const seq = Animated.timing(t, { toValue: SEQ_END, duration: SEQ_END, easing: Easing.linear, useNativeDriver: ND });
     // Start after the first two frames: the overlay (and the app behind it) mounts first, so no frames drop at t=0.
     let raf2 = 0;
+    let settleRaf1 = 0;
+    let settleRaf2 = 0;
+    let settleRaf3 = 0;
+    let settleTimer: ReturnType<typeof setTimeout> | null = null;
     const raf1 = requestAnimationFrame(() => { raf2 = requestAnimationFrame(() => seq.start(onSeqEnd)); });
     function onSeqEnd({ finished }: { finished: boolean }) {
       if (!finished || phase.current !== 'intro') return;
-      if (readyRef.current) { beginExit(EXIT_MS); return; }
+      if (readyRef.current) {
+        // Let Home draw its full content now, behind the finished (still) title, then fade out once it has painted
+        // (after the JS render and two frames). A stall on a still frame is invisible; a stall during motion is not.
+        markIntroDone();
+        settleRaf1 = requestAnimationFrame(() => {
+          settleTimer = setTimeout(() => {
+            settleRaf2 = requestAnimationFrame(() => { settleRaf3 = requestAnimationFrame(() => beginExit(EXIT_MS)); });
+          }, 60);
+        });
+        return;
+      }
       // Slow phone: the app is still rendering. The glow breathes gently until it is (or until the cap).
       phase.current = 'hold';
       breathLoop.current = Animated.loop(Animated.sequence([
@@ -287,12 +318,16 @@ export default function IntroOverlay({ onComplete, ready = true }: IntroOverlayP
       clearTimeout(cap);
       cancelAnimationFrame(raf1);
       cancelAnimationFrame(raf2);
+      cancelAnimationFrame(settleRaf1);
+      cancelAnimationFrame(settleRaf2);
+      cancelAnimationFrame(settleRaf3);
+      if (settleTimer) clearTimeout(settleTimer);
       if (safety.current) clearTimeout(safety.current);
       seq.stop();
       breathLoop.current?.stop();
       exitAnim.current?.stop();
     };
-  }, [t, exit, breath, beginExit]);
+  }, [t, exit, breath, beginExit, startNow]);
 
   // The app became ready during the hold: leave now.
   useEffect(() => {
