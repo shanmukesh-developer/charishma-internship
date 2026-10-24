@@ -141,7 +141,7 @@ export function HomeBandHero() {
   );
 }
 
-/** Shop by category: 3 + 2 tiles, cut-out subjects on tinted plates. */
+/** Shop by category: 3 + 3 tiles (3 + 2 while a shelf is empty), cut-out subjects on tinted plates. */
 export function CategoryTiles() {
   const { isDark, pageW, c, shadow, hasShelf, openListing, push } = useFoodV2();
   const { head } = useFoodV2Ui();

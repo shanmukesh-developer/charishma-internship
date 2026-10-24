@@ -15,6 +15,8 @@
  *   cookies    photo-1592065201038-52c9da2a6194  stack of cookies
  *   chocolate  photo-1720029106261-0d0396bb270d  chocolate pieces with almonds (unbranded)
  *   towels     photo-1639298108944-76a403a7c38d  two folded towels
+ *   pickles    photo-1601702538934-efffab67ab65  mango pickle in a ceramic pot, lid and a raw mango (tile, 24 Oct)
+ *   pickleJar  photo-1617854307432-13950e24ba07  glass jar of mixed pickle under a cloth lid (Pickles banner)
  */
 export const CUT = {
   hero: require('./assets/food-v2-hero-veg-basket-cutout-2026-10-23.webp'),
@@ -29,6 +31,8 @@ export const CUT = {
   cookies: require('./assets/food-v2-banner-snacks-cookie-stack-cutout-2026-10-23.webp'),
   chocolate: require('./assets/food-v2-banner-snacks-chocolate-pile-cutout-2026-10-23.webp'),
   towels: require('./assets/food-v2-banner-health-towels-cutout-2026-10-23.webp'),
+  pickles: require('./assets/food-v2-tile-pickles-mango-pot-cutout-2026-10-24.webp'),
+  pickleJar: require('./assets/food-v2-banner-pickles-mixed-jar-cutout-2026-10-24.webp'),
 };
 
 /** Category tile -> cut-out and its soft plate tint (light, dark). */
@@ -38,6 +42,7 @@ export const TILE_ART: Record<string, { art: any; tint: [string, string] }> = {
   'Snacks & beverages': { art: CUT.snacks, tint: ['#FFF6D9', 'rgba(250,204,21,0.11)'] },
   'Bakery & breakfast': { art: CUT.bakery, tint: ['#E6F1FB', 'rgba(96,165,250,0.12)'] },
   'Health & care': { art: CUT.health, tint: ['#F0EAFB', 'rgba(167,139,250,0.13)'] },
+  Pickles: { art: CUT.pickles, tint: ['#DFF4EE', 'rgba(45,212,191,0.12)'] },
 };
 
 /** Listing banner -> cut-out, drawn in the hero style (large, overflowing right / bottom, glow behind).
@@ -49,6 +54,7 @@ export const BANNER_ART: Record<string, any> = {
   'Snacks & beverages': CUT.snacks,
   'Bakery & breakfast': CUT.croissants,
   'Health & care': CUT.health,
+  Pickles: CUT.pickles,
 };
 
 /** Listing banner slides (2–4 cut-outs, cross-fading every 3.5 s; no brand logos). */
@@ -59,4 +65,5 @@ export const BANNER_SLIDES: Record<string, any[]> = {
   'Snacks & beverages': [CUT.snacks, CUT.cookies, CUT.chocolate],
   'Bakery & breakfast': [CUT.croissants, CUT.bakery],
   'Health & care': [CUT.health, CUT.towels],
+  Pickles: [CUT.pickles, CUT.pickleJar],
 };

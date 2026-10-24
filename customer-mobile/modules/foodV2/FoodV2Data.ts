@@ -89,6 +89,7 @@ export const SHELVES: Record<string, Shelf> = {
   'Tea & Coffee': { categories: ['Tea & Coffee', 'Nescafe'] },
   'Sweet Indulgences': { categories: ['Sweet Indulgences', 'Cadbury'] },
   'Detergents & Cleaning': { categories: ['Detergents & Cleaning', 'Surf Excel'] },
+  Pickles: { categories: ['Pickles'], keywords: ['pickle'] },
 };
 /**
  * One shelf, computed once per catalogue. The home screen alone asks for ~45 shelves on every render
@@ -139,6 +140,7 @@ export const TILES: { key: string; label: string; img: string }[] = [
   { key: 'Snacks & beverages', label: 'Snacks & beverages', img: FOOD_IMG.tileSnacks },
   { key: 'Bakery & breakfast', label: 'Bakery & breakfast', img: FOOD_IMG.tileBakery },
   { key: 'Health & care', label: 'Health & personal care', img: FOOD_IMG.tileHealth },
+  { key: 'Pickles', label: 'Pickles', img: 'https://images.unsplash.com/photo-1601702538934-efffab67ab65?w=360&q=80&auto=format&fit=crop' },
 ];
 
 export type Hero = { title: string; sub?: string; img: string; sidebar?: boolean };
@@ -153,6 +155,7 @@ export const HEROES: Record<string, Hero> = {
   Deals: { title: 'Best deals', sub: "Today's biggest savings", img: FOOD_IMG.heroDeals },
   Seeds: { title: 'Grow your own greens', sub: 'Seeds for your balcony garden', img: FOOD_IMG.heroSeeds },
   Electronics: { title: 'Chargers and gadgets', sub: 'Cables · Adapters · Study tech', img: FOOD_IMG.heroElectronics },
+  Pickles: { title: 'Taste of home', sub: 'Avakaya · Gongura · Lemon · More', img: 'https://images.unsplash.com/photo-1601702538934-efffab67ab65?w=480&q=80&auto=format&fit=crop' },
 };
 export const LIST_TITLES: Record<string, string> = {
   'All Groceries': 'All groceries', Toys: 'Toys & games', 'Monsoon Wellness Picks': 'Wellness picks',
@@ -164,6 +167,7 @@ export const AISLES: { key: string; label: string; re: RegExp }[] = [
   { key: 'rice', label: 'Rice & Grains', re: /rice|grain|poha|oats|rava|suji|millet|basmati/i },
   { key: 'atta', label: 'Atta & Flour', re: /atta|flour|maida|besan/i },
   { key: 'dal', label: 'Pulses & Dal', re: /\bdals?\b|pulse|lentil|chana|rajma|moong|toor/i },
+  { key: 'pickles', label: 'Pickles', re: /pickle|achar/i },
   { key: 'oil', label: 'Oil & Masala', re: /oil|ghee|masala|spice|salt|sugar|jaggery|chilli|turmeric/i },
   { key: 'snacks', label: 'Snacks', re: /snack|chip|namkeen|biscuit|cookie|lays|kurkure/i },
   { key: 'bev', label: 'Beverages', re: /drink|juice|tea|coffee|beverage|cola|soda|nescafe/i },

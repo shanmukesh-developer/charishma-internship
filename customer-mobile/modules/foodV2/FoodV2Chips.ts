@@ -3,11 +3,26 @@
  * used as categories, like "Cadbury" or "Coca Cola") map into a short, clean set per shelf.
  * A product belongs to the first chip it matches (category first, then name), chips without
  * products are hidden, and labels stay short so they never truncate.
+ * FILTER_CHIPS shelves (Pickles) use overlapping filters instead: a product can sit under several
+ * (Veg and Mango), and a chip that would show nothing, or exactly what All shows, is hidden.
  * Others → Food & groceries (modules/foodV2).
  */
 import type { Item } from './FoodV2Data';
 
 type ChipDef = { label: string; cat: RegExp; name?: RegExp };
+type FilterChip = { label: string; test: (p: Item) => boolean };
+
+/** Overlapping filter chips (diet + kind), in the order shown. */
+export const FILTER_CHIPS: Record<string, FilterChip[]> = {
+  Pickles: [
+    { label: 'Veg', test: p => p.isVegetarian },
+    { label: 'Non-veg', test: p => !p.isVegetarian },
+    { label: 'Mango', test: p => /mango|ava?kaa?ya|avakai|maavidi/i.test(p.name) },
+    { label: 'Gongura', test: p => /gongura/i.test(p.name) },
+    { label: 'Lemon', test: p => /lemon|\blime\b|nimbu|nimmakaya/i.test(p.name) },
+    { label: 'Mixed', test: p => /\bmixed\b|mix veg/i.test(p.name) },
+  ],
+};
 
 export const CHIP_MAP: Record<string, ChipDef[]> = {
   'Snacks & beverages': [
@@ -62,8 +77,26 @@ export function chipOf(shelf: string, p: Item): string {
   return byName ? byName.label : '';
 }
 
+/** Is the product under this chip on this shelf ('All' holds everything). */
+export function inChip(shelf: string, p: Item, label: string): boolean {
+  if (label === 'All') return true;
+  const filters = FILTER_CHIPS[shelf];
+  if (filters) {
+    const f = filters.find(d => d.label === label);
+    return !!f && f.test(p);
+  }
+  return chipOf(shelf, p) === label;
+}
+
 /** Curated chips that have products, in the curated order. */
 export function chipsFor(shelf: string, items: Item[]): string[] {
+  const filters = FILTER_CHIPS[shelf];
+  if (filters) {
+    return filters.filter(f => {
+      const n = items.filter(f.test).length;
+      return n > 0 && n < items.length;
+    }).map(f => f.label);
+  }
   const defs = CHIP_MAP[shelf];
   if (!defs) return [];
   const used = new Set(items.map(p => chipOf(shelf, p)).filter(Boolean));

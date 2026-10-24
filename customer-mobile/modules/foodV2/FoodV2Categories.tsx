@@ -1,5 +1,5 @@
 /**
- * Food & groceries v2: all categories ("Shop by category" > View all). The five main category tiles,
+ * Food & groceries v2: all categories ("Shop by category" > View all). The six main category tiles,
  * then every other aisle and shelf that has products, as a plain list. Each opens its listing.
  * Others → Food & groceries (modules/foodV2).
  */

@@ -24,11 +24,11 @@ import { useFoodV2States } from './FoodV2States';
 import { SlideChips } from './FoodV2Motion';
 import { BANNER_ART, BANNER_SLIDES } from './FoodV2Art';
 import BannerSlider from './FoodV2BannerSlider';
-import { chipOf, chipsFor } from './FoodV2Chips';
+import { chipsFor, inChip } from './FoodV2Chips';
 import { Icon, GROUP_ICON } from './FoodV2Icons';
 import { useFoodScale } from './FoodV2Scale';
 
-const AISLE_ICON: Record<string, string> = { all: 'grid', rice: 'wheat', atta: 'package', dal: 'bean', oil: 'droplet', snacks: 'cookie', bev: 'cup-soda', other: 'basket-outline' };
+const AISLE_ICON: Record<string, string> = { all: 'grid', rice: 'wheat', atta: 'package', dal: 'bean', pickles: 'flame', oil: 'droplet', snacks: 'cookie', bev: 'cup-soda', other: 'basket-outline' };
 const BANNER_H = 120;
 /** Space under the banner (part of the block that slides away). */
 const BANNER_GAP = 22;
@@ -69,7 +69,7 @@ export default function FoodV2Listing({ shelf }: { shelf: string }) {
   }
   const chipList = side.length ? [] : isSearch ? groups : chipsFor(shelf, base);
   const effChip = chip === 'All' || chipList.includes(chip) ? chip : 'All';
-  const chipMatch = (p: Item) => effChip === 'All' || (isSearch ? groupOf(p) === effChip : chipOf(shelf, p) === effChip);
+  const chipMatch = (p: Item) => effChip === 'All' || (isSearch ? groupOf(p) === effChip : inChip(shelf, p, effChip));
   const filtered = queried.filter(chipMatch);
   const effAisle = side.some(a => a.key === aisle) ? aisle : 'all';
   const visible = side.length ? filtered.filter(p => effAisle === 'all' || sideOf(p) === effAisle) : filtered;

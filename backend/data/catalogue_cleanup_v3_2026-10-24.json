@@ -1,0 +1,247 @@
+{
+  "version": 3,
+  "marker": "CATALOGUE_CLEANUP_V3_DONE",
+  "snapshot": "GET /api/catalogue/items?type=grocery&limit=200 on 2026-10-24 at about 12:05 PM IST (read only): 123 grocery items in 4 stores, none with 'pickle' in the name or category",
+  "notes": "Owner request (24 Oct 2026): a Pickles category in Others > Food & groceries. Each entry below has no id and a single create op; it adds a new MenuItem to the store, and is skipped when the store does not exist or already has an item with the same name (trimmed, any case, hidden items included). Nothing is changed or deleted. Brand and weight go to specs.brand / specs.weight; specs.addedBy is catalogue-cleanup-v3. Prices are whole rupees, MRP only where the pack usually carries a discount (all under 30% off). Photos are generic Unsplash photos (Unsplash licence: free commercial use), not brand pack shots: photo-1601702538934-efffab67ab65 mango pickle in a ceramic pot with a raw mango; photo-1617854307432-13950e24ba07 a glass jar of mixed pickle under a cloth lid; photo-1764312899300-e680811f58fb red chilli pickle in a white bowl; photo-1659694459412-02735752031f two glass jars of dark pickle.",
+  "stores": [
+    {
+      "storeId": "b088cf51-1063-41ec-abf0-79df74272074",
+      "storeName": "Kirana & Late-Night Mart",
+      "items": [
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Priya Avakaya Mango Pickle",
+                "brand": "Priya",
+                "weight": "300 g",
+                "price": 135,
+                "originalPrice": 150,
+                "category": "Pickles",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1601702538934-efffab67ab65?w=600&q=80&auto=format&fit=crop",
+                "description": "Andhra-style raw mango pieces in mustard, red chilli and gingelly oil."
+              },
+              "reason": "owner request: Pickles category; avakaya is the best-known Andhra pickle"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Priya Gongura Pickle",
+                "brand": "Priya",
+                "weight": "300 g",
+                "price": 140,
+                "category": "Pickles",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1659694459412-02735752031f?w=600&q=80&auto=format&fit=crop",
+                "description": "Tangy sorrel-leaf pickle with red chilli and garlic, Andhra style."
+              },
+              "reason": "owner request: Pickles category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Priya Tomato Pickle",
+                "brand": "Priya",
+                "weight": "300 g",
+                "price": 125,
+                "category": "Pickles",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1764312899300-e680811f58fb?w=600&q=80&auto=format&fit=crop",
+                "description": "Ripe tomatoes cooked down with tamarind, red chilli and spices."
+              },
+              "reason": "owner request: Pickles category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Mother's Recipe Lemon Pickle",
+                "brand": "Mother's Recipe",
+                "weight": "400 g",
+                "price": 120,
+                "originalPrice": 135,
+                "category": "Pickles",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1617854307432-13950e24ba07?w=600&q=80&auto=format&fit=crop",
+                "description": "Lemon pieces in a spiced oil masala, sour and mildly hot."
+              },
+              "reason": "owner request: Pickles category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Mother's Recipe Garlic Pickle",
+                "brand": "Mother's Recipe",
+                "weight": "400 g",
+                "price": 155,
+                "originalPrice": 175,
+                "category": "Pickles",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1659694459412-02735752031f?w=600&q=80&auto=format&fit=crop",
+                "description": "Whole garlic cloves in a red chilli and mustard oil masala."
+              },
+              "reason": "owner request: Pickles category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Nilon's Mixed Vegetable Pickle",
+                "brand": "Nilon's",
+                "weight": "400 g",
+                "price": 99,
+                "originalPrice": 115,
+                "category": "Pickles",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1617854307432-13950e24ba07?w=600&q=80&auto=format&fit=crop",
+                "description": "Mango, lime, carrot and green chilli pieces in a spiced oil masala."
+              },
+              "reason": "owner request: Pickles category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Nilon's Amla Pickle",
+                "brand": "Nilon's",
+                "weight": "400 g",
+                "price": 125,
+                "category": "Pickles",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1617854307432-13950e24ba07?w=600&q=80&auto=format&fit=crop",
+                "description": "Indian gooseberry pieces in a mildly spiced oil masala."
+              },
+              "reason": "owner request: Pickles category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Ruchi Ginger Pickle",
+                "brand": "Ruchi",
+                "weight": "300 g",
+                "price": 115,
+                "category": "Pickles",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1617854307432-13950e24ba07?w=600&q=80&auto=format&fit=crop",
+                "description": "Fresh ginger with tamarind and jaggery, sweet, sour and hot."
+              },
+              "reason": "owner request: Pickles category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Ruchi Red Chilli Pickle",
+                "brand": "Ruchi",
+                "weight": "300 g",
+                "price": 110,
+                "originalPrice": 125,
+                "category": "Pickles",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1764312899300-e680811f58fb?w=600&q=80&auto=format&fit=crop",
+                "description": "Ground red chillies with tamarind and garlic. Very hot."
+              },
+              "reason": "owner request: Pickles category"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Homemade Avakaya Mango Pickle",
+                "brand": "Campus kitchen",
+                "weight": "250 g",
+                "price": 149,
+                "category": "Pickles",
+                "isVegetarian": true,
+                "dietType": "veg",
+                "imageUrl": "https://images.unsplash.com/photo-1601702538934-efffab67ab65?w=600&q=80&auto=format&fit=crop",
+                "description": "Made in small batches, home style: raw mango with mustard, chilli and gingelly oil."
+              },
+              "reason": "owner request: Pickles category, a homemade option"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Homemade Boneless Chicken Pickle",
+                "brand": "Campus kitchen",
+                "weight": "250 g",
+                "price": 299,
+                "category": "Pickles",
+                "isVegetarian": false,
+                "dietType": "nonveg",
+                "imageUrl": "https://images.unsplash.com/photo-1659694459412-02735752031f?w=600&q=80&auto=format&fit=crop",
+                "description": "Boneless chicken pieces fried and pickled in a red chilli and garlic masala, Andhra style."
+              },
+              "reason": "owner request: Pickles category, one of at most two non-veg pickles"
+            }
+          ]
+        },
+        {
+          "ops": [
+            {
+              "op": "create",
+              "to": {
+                "name": "Homemade Prawn Pickle",
+                "brand": "Campus kitchen",
+                "weight": "250 g",
+                "price": 349,
+                "category": "Pickles",
+                "isVegetarian": false,
+                "dietType": "nonveg",
+                "imageUrl": "https://images.unsplash.com/photo-1659694459412-02735752031f?w=600&q=80&auto=format&fit=crop",
+                "description": "Prawns fried and pickled in a spiced red chilli masala, coastal Andhra style."
+              },
+              "reason": "owner request: Pickles category, one of at most two non-veg pickles"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
