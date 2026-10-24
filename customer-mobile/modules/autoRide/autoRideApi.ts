@@ -24,6 +24,12 @@ export type PrivateStatus = 'REQUESTED' | 'ACCEPTED' | 'DECLINED' | 'CONFLICT' |
 export type SeatState = 'AVAILABLE' | 'HELD' | 'BOOKED' | 'UNAVAILABLE' | 'MINE' | 'MINE_HELD';
 /** Layout cell: 'D' = driver seat (never bookable), null = gap, number = passenger seat. */
 export type LayoutCell = 'D' | number | null;
+/** Who is looking at a seat map (front-seat rule): MALE, NOT_MALE, or UNKNOWN ('Prefer not to say' in the profile). */
+export type SeatViewer = 'MALE' | 'NOT_MALE' | 'UNKNOWN';
+/** "Are you booking for a boy?" answer sent with a hold when the profile gender is unknown. */
+export type RiderGender = 'Male' | 'Female' | 'Other';
+/** Server layout: rows front to back + the seats beside the driver only boys may book. */
+export interface SeatLayoutData { rows: LayoutCell[][]; maleOnlySeats?: number[] }
 
 export interface ExtraCharges { amount: number; note: string | null }
 
@@ -98,9 +104,12 @@ export interface SeatMap extends TripStatusBlock {
   tripId: string;
   seatSelectionEnabled: boolean;
   seatFare: number;
-  layout: { rows: LayoutCell[][] };
-  seats: { seatNo: number; state: SeatState }[];
+  layout: SeatLayoutData;
+  /** maleOnly = beside the driver (boys only); forYou = this passenger can book this free seat. */
+  seats: { seatNo: number; state: SeatState; maleOnly?: boolean; forYou?: boolean }[];
   legend: SeatState[];
+  viewer?: SeatViewer;
+  summary?: { available: number; availableForYou: number; onlyFrontSeatsLeft: boolean };
 }
 
 /** serialize.bookingCustomer() */
@@ -128,6 +137,9 @@ export interface Booking {
   cancelReason: string | null;
   boardingPin: string | null;
   trip: Trip | null;
+  /** ZCS Auto at the stand: reach the auto and check in before this, or the seat is released (null = no clock). */
+  arriveBy?: string | null;
+  arrivalWindowMinutes?: number | null;
   driverPhone: string | null;
   pickupInstructions: string | null;
 }
@@ -168,7 +180,14 @@ export interface RouteFull extends RouteBrief {
 }
 
 /** One auto in a stand's line on the board (position 1 = on charge); every one of them takes bookings. */
-export type ChargeAuto = Trip & { position: number; seatMap: Pick<SeatMap, 'layout' | 'seats' | 'legend'> };
+export type ChargeAuto = Trip & {
+  position: number;
+  seatMap: Pick<SeatMap, 'layout' | 'seats' | 'legend' | 'viewer' | 'summary'>;
+  /** Free seats THIS passenger can book (the seats beside the driver are for boys only). */
+  seatsForYou?: number;
+  /** Free seats are left, but only the boys-only front seats. */
+  onlyFrontSeatsLeft?: boolean;
+};
 /** GET /on-charge: one stand (pickup point + destination) with the auto on charge and the autos waiting behind. */
 export interface ChargeLine {
   key: string;
@@ -263,7 +282,7 @@ export const autoRideApi = {
   trip: (id: string) => call<{ trip: Trip; serverTime: string }>(`${AR}/trips/${enc(id)}`),
   seats: (id: string) => call<SeatMap>(`${AR}/trips/${enc(id)}/seats`),
   /** 201 created / 200 duplicate (same key, or an existing hold of mine on this trip). */
-  hold: (tripId: string, body: { seatCount: number; seatNumbers?: number[] }, idempotencyKey: string) =>
+  hold: (tripId: string, body: { seatCount: number; seatNumbers?: number[]; riderGender?: RiderGender }, idempotencyKey: string) =>
     post<{ booking: Booking; created: boolean; duplicate: boolean }>(`${AR}/trips/${enc(tripId)}/holds`, { ...body, idempotencyKey }, idempotencyKey),
   /** Confirming an already-confirmed booking answers 200 duplicate: safe to retry. */
   confirm: (bookingId: string, paymentMethod: PaymentMethod, idempotencyKey?: string) =>
@@ -405,6 +424,8 @@ export const errorCopy = (e: any): { title: string; message: string } => {
   switch (code) {
     case 'FEATURE_OFF': return { title: 'Zenvy Auto is not open yet', message: msg };
     case 'SEAT_TAKEN': return { title: 'Seat just taken', message: msg };
+    case 'FRONT_SEAT_MALE_ONLY': return { title: 'Boys only', message: msg };
+    case 'NO_SUITABLE_SEAT': return { title: 'Only front seats left', message: msg };
     case 'HOLD_EXPIRED': return { title: 'Hold expired', message: msg };
     case 'TRIP_PRIVATE': return { title: 'Booked as a full auto', message: msg };
     case 'TRIP_FULL': return { title: 'This auto is full', message: msg };

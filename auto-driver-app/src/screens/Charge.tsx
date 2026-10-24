@@ -3,7 +3,9 @@
 // the app bookings, the fare (changeable until a student books), the line, and the two decisions: Depart (the
 // auto on charge any time once someone is in, a waiting auto only when full) and Leave the line.
 // Seat counts always come from the server (walk-ins are real seat rows); live via socket nudges + 10 s refresh.
-import React, { useState } from 'react';
+// Each app booking shows its arrival countdown (server arriveBy): a student not checked in by then is released as a
+// no-show by the server; the driver can check them in, or mark a no-show early once they have been warned.
+import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { color, font, radius, space } from '../theme';
 import { Badge, Button, Card, ErrorStrip, Sheet, SkeletonCard } from '../ui/kit';
@@ -49,6 +51,28 @@ function SeatSplit({ trip }: { trip: Trip }) {
 }
 
 interface Loaded { trip: Trip; line: LineEntry[]; seats: SeatMapResponse; bookings: BookingDriver[] }
+
+const mmss = (ms: number) => {
+  const sec = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+};
+
+/** "Arrives within 12:40" for one confirmed app booking (ticks every second; the server releases the seat at 0). */
+function ArrivalCountdown({ arriveBy }: { arriveBy: string }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const left = new Date(arriveBy).getTime() - now;
+  const urgent = left <= 5 * 60 * 1000;
+  return (
+    <Text style={[font.small, { color: urgent ? color.alert : color.warning, fontWeight: '800', fontVariant: ['tabular-nums'] }]}
+      accessibilityLabel={left > 0 ? `Must check in within ${mmss(left)}` : 'Time is up, the seat is being released'}>
+      {left > 0 ? `Check in within ${mmss(left)}` : 'Not here: seat being released'}
+    </Text>
+  );
+}
 
 function Hero({ trip }: { trip: Trip }) {
   const walkIn = trip.walkInSeats || 0;
@@ -202,6 +226,16 @@ export default function ChargeScreen({ navigation, route }: ScreenProps<'Charge'
   const walkIn = trip.walkInSeats || 0;
   const busySeat = busy && busy.startsWith('seat:') ? Number(busy.slice(5)) : null;
 
+  const noShow = (b: BookingDriver) => {
+    Alert.alert(`${b.passengerName} did not come?`, `Booking ${b.bookingCode}. Their seat${b.seatCount === 1 ? '' : 's'} (${b.seatNumbers.join(', ')}) go back on sale. The app releases it by itself when the countdown ends.`, [
+      { text: 'Keep waiting', style: 'cancel' },
+      { text: 'Release seat', style: 'destructive', onPress: async () => {
+        setBusy(`noshow:${b.id}`);
+        try { await driverApi.noShow(tripId, b.id); toast.show(`Seat ${b.seatNumbers.join(', ')} is free again (no-show).`, 'success'); } catch (e) { toast.show(errorMessage(e), 'error'); } finally { setBusy(null); q.reload(); }
+      } },
+    ]);
+  };
+
   const onSeat = (n: number, st: DriverSeatState) => {
     if (st === 'AVAILABLE') change('add', n);
     else if (st === 'WALK_IN') change('remove', n);
@@ -255,7 +289,7 @@ export default function ChargeScreen({ navigation, route }: ScreenProps<'Charge'
 
           <SectionTitle text="Seats" />
           <Card>
-            <SeatMap rows={rows} states={states} labels={labels} onSeatPress={editable ? onSeat : undefined} busySeat={busySeat} />
+            <SeatMap rows={rows} maleOnlySeats={(seats.layout || trip.seatLayout || { rows: [] }).maleOnlySeats} states={states} labels={labels} onSeatPress={editable ? onSeat : undefined} busySeat={busySeat} />
             {editable ? <Text style={[font.small, { color: color.textMuted, textAlign: 'center', marginTop: space.xs }]}>Tap a free seat to fill it, or a walk-in seat to free it.</Text> : null}
           </Card>
 
@@ -267,6 +301,11 @@ export default function ChargeScreen({ navigation, route }: ScreenProps<'Charge'
                 <Text style={[font.small, { color: color.textSecondary }]}>
                   {b.bookingCode}{b.seatNumbers.length ? ` · seat ${b.seatNumbers.join(', ')}` : ''}{b.cashToCollect ? ` · collect ${rupees(b.cashToCollect)}` : ''}
                 </Text>
+                {b.status === 'CONFIRMED' && b.arriveBy ? <ArrivalCountdown arriveBy={b.arriveBy} /> : null}
+                {b.status === 'CONFIRMED' && b.arriveBy ? (
+                  <Button label="Did not come" icon="person-remove" variant="rejectOutline" size="secondary" loading={busy === `noshow:${b.id}`} disabled={!!busy}
+                    onPress={() => noShow(b)} style={{ marginTop: space.xs, alignSelf: 'flex-start' }} />
+                ) : null}
               </View>
               <Badge
                 text={b.status === 'BOARDED' ? 'Checked in' : b.status === 'HELD' ? 'Booking' : 'Booked'}

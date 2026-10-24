@@ -53,8 +53,47 @@ const runAutoRideMigrations = async (sequelize) => {
       console.warn(`⚠️ [AUTORIDE_MIGRATION_WARN] ${label}: ${err.message}`);
     }
   }
+  try {
+    const n = await backfillSeatLayouts(sequelize);
+    if (n) console.log(`✅ [AUTORIDE_MIGRATION] ${n} seat layouts set to the real auto layout (boys-only front seats).`);
+  } catch (err) {
+    warn++;
+    console.warn(`⚠️ [AUTORIDE_MIGRATION_WARN] seat layouts: ${err.message}`);
+  }
   if (warn === 0) console.log(`✅ [AUTORIDE_MIGRATION] ${ok} index checks ok.`);
   return { ok, warn };
 };
 
-module.exports = { runAutoRideMigrations, INDEXES };
+/**
+ * Front-seat rule backfill (idempotent): approved vehicles and active trips with no seat layout, or one stored
+ * before the rule (no maleOnlySeats), get the real layout (services/layout.normalizeLayout: 8 seats ->
+ * [1, D, 2] | 3 4 5 | 6 7 8 with seats 1 and 2 boys only). Rows that already carry maleOnlySeats are left alone.
+ * Ended trips are not rewritten (readers normalise them anyway). Returns the number of rows written.
+ */
+const backfillSeatLayouts = async (sequelize) => {
+  const { normalizeLayout } = require('./services/layout');
+  const { Op } = require('sequelize');
+  const Vehicle = sequelize.models.AutoVehicle;
+  const Trip = sequelize.models.AutoTrip;
+  const stale = (l) => !l || typeof l !== 'object' || !Array.isArray(l.rows) || !Array.isArray(l.maleOnlySeats);
+  let n = 0;
+  if (Vehicle) {
+    const rows = await Vehicle.findAll({ where: { approvedCapacity: { [Op.gt]: 0 } }, attributes: ['id', 'seatLayout', 'approvedCapacity'] });
+    for (const v of rows) {
+      if (!stale(v.seatLayout)) continue;
+      await Vehicle.update({ seatLayout: normalizeLayout(v.seatLayout, v.approvedCapacity) }, { where: { id: v.id } });
+      n++;
+    }
+  }
+  if (Trip) {
+    const rows = await Trip.findAll({ where: { status: { [Op.in]: E.ACTIVE_TRIP_STATUSES } }, attributes: ['id', 'seatLayout', 'capacity'] });
+    for (const t of rows) {
+      if (!stale(t.seatLayout)) continue;
+      await Trip.update({ seatLayout: normalizeLayout(t.seatLayout, t.capacity) }, { where: { id: t.id } });
+      n++;
+    }
+  }
+  return n;
+};
+
+module.exports = { runAutoRideMigrations, backfillSeatLayouts, INDEXES };

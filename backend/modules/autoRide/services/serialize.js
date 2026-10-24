@@ -8,6 +8,8 @@
 //  - tripStatus() is the ONE status block both apps get (customer and driver endpoints return the
 //    same object for the same trip).
 const E = require('../enums');
+const arrival = require('./arrival');
+const { normalizeLayout } = require('./layout');
 
 const T = E.TRIP_STATUS;
 const B = E.BOOKING_STATUS;
@@ -194,7 +196,8 @@ const tripDriver = (req, trip, ctx = {}) => ({
   extraCharges: extraChargesOf(trip),
   seatSelectionEnabled: !!trip.seatSelectionEnabled,
   privateBookingEnabled: !!trip.privateBookingEnabled,
-  seatLayout: trip.seatLayout || null,
+  // Always the real layout ({ rows, maleOnlySeats }), also for trips stored before the front-seat rule.
+  seatLayout: normalizeLayout(trip.seatLayout, trip.capacity),
   bookingOpensAt: iso(trip.bookingOpensAt),
   operatingDate: trip.operatingDate || null,
   periodKey: trip.periodKey || null,
@@ -248,16 +251,24 @@ const bookingCustomer = (req, b, ctx = {}) => {
     // Driver phone: only while this booking is confirmed / boarded and the trip has not ended.
     driverPhone: confirmed && tripLive && ctx.driver ? ctx.driver.phone : null,
     pickupInstructions: confirmed && ctx.pickup ? `Be at ${ctx.pickup.name}${ctx.pickup.landmark ? ` (${ctx.pickup.landmark})` : ''} before departure and show booking code ${b.bookingCode} + your PIN to the driver.` : null,
+    // Union queue arrival window: reach the auto and check in before this (null = no clock running, e.g. the auto
+    // is still waiting in line, or the booking is not a confirmed seat on an auto at the stand).
+    arriveBy: trip && ctx.arrivalWindowMinutes ? arrival.deadlineIso(b, trip, ctx.arrivalWindowMinutes) : null,
+    arrivalWindowMinutes: ctx.arrivalWindowMinutes || null,
   };
 };
 
-/** Booking as the driver may see it: first name, code, seats. No phone, no user id, no PIN. */
-const bookingDriver = (b, user) => ({
+/**
+ * Booking as the driver may see it: first name, code, seats. No phone, no user id, no PIN, no gender.
+ * opts { trip, arrivalWindowMinutes }: adds arriveBy (the passenger's arrival deadline on an auto at the stand).
+ */
+const bookingDriver = (b, user, opts = {}) => ({
   ...bookingCommon(b),
   passengerName: firstName(user && user.name),
   passengerCount: Number(b.passengerCount) || Number(b.seatCount),
   cashToCollect: b.paymentMethod === E.PAYMENT_METHODS.CASH && [B.CONFIRMED, B.BOARDED].includes(b.status) && !b.cashCollectedAt ? Number(b.amount) : 0,
   cashCollectedAt: iso(b.cashCollectedAt),
+  arriveBy: opts.trip && opts.arrivalWindowMinutes ? arrival.deadlineIso(b, opts.trip, opts.arrivalWindowMinutes) : null,
 });
 
 const bookingAdmin = (b, { user, trip } = {}) => ({
@@ -313,7 +324,7 @@ const vehicleSelf = (req, v) => ({
   registrationNumber: v.registrationNumber,
   make: v.make || null, model: v.model || null, year: v.year || null, fuel: v.fuel || null, colour: v.colour || null,
   rcSeatingCapacity: v.rcSeatingCapacity, requestedCapacity: v.requestedCapacity, approvedCapacity: v.approvedCapacity || null,
-  seatLayout: v.seatLayout || null,
+  seatLayout: v.seatLayout ? normalizeLayout(v.seatLayout, v.approvedCapacity || v.rcSeatingCapacity) : null,
   permitNumber: v.permitNumber || null,
   permitExpiresOn: v.permitExpiresOn || null, insuranceExpiresOn: v.insuranceExpiresOn || null,
   fitnessExpiresOn: v.fitnessExpiresOn || null, pucExpiresOn: v.pucExpiresOn || null,

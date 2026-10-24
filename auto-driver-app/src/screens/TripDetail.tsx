@@ -187,7 +187,7 @@ export default function TripDetailScreen({ navigation, route }: ScreenProps<'Tri
             <Badge text={`${trip.boardedSeats} BOARDED`} fg={color.boarded} bg={color.boardedTint} />
           </View>
           <Card>
-            <SeatMap rows={(q.data!.seats.layout || trip.seatLayout || { rows: [] }).rows} states={seatInfo.states} labels={seatInfo.labels} />
+            <SeatMap rows={(q.data!.seats.layout || trip.seatLayout || { rows: [] }).rows} maleOnlySeats={(q.data!.seats.layout || trip.seatLayout || { rows: [] }).maleOnlySeats} states={seatInfo.states} labels={seatInfo.labels} />
           </Card>
           <Text style={[font.small, { color: color.textMuted }]}>Seats and bookings are managed by Zenvy. Held seats are released automatically if the passenger does not confirm.</Text>
         </>

@@ -256,6 +256,10 @@ const DEFAULT_SETTINGS = {
   // Union queue: an auto on charge (or waiting in line) that has not left after this many hours is closed by
   // the lifecycle job (every booking refunded in full), so a forgotten auto never blocks the line.
   chargeMaxHours: 6,
+  // Union queue: a confirmed seat must be checked in within this many minutes of the LATER of its confirmation and
+  // the moment its auto went on charge (front of the line); otherwise the lifecycle job marks it NO_SHOW and frees
+  // the seat. The passenger gets a warning 5 minutes before (services/arrival.js).
+  arrivalWindowMinutes: 15,
 };
 
 module.exports = {

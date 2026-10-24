@@ -135,7 +135,7 @@ test('driver signs up with the existing OTP flow, uploads private documents, reg
   const ap = await api('POST', `/api/admin/auto-ride/vehicles/${v.body.vehicle.id}/approve`, admin.token, {});
   assert.equal(ap.status, 200, JSON.stringify(ap.body));
   assert.equal(ap.body.vehicle.approvedCapacity, 8);
-  assert.deepEqual(ap.body.vehicle.seatLayout, { rows: [['D', 1], [2, 3, 4], [5, 6, 7, 8]] }, 'default 8-seat layout');
+  assert.deepEqual(ap.body.vehicle.seatLayout, { rows: [[1, 'D', 2], [3, 4, 5], [6, 7, 8]], maleOnlySeats: [1, 2] }, 'default 8-seat layout: 1 | driver | 2, then 3 4 5, 6 7 8 (seats 1 and 2 boys only)');
   const logs = await H.ctx.M('VerificationLog').findAll({ where: { action: ['AUTO_DRIVER_VERIFIED', 'AUTO_VEHICLE_APPROVED'] } });
   assert.equal(logs.length, 2);
   const notes = await H.notificationsFor(reg.body.driver.id);

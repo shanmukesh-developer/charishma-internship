@@ -57,7 +57,7 @@ test('F2 /status + /settings/public expose the public limits; settings keep seat
   assert.deepEqual(off.body.paymentMethods, []);
   assert.deepEqual(off.body.settings, {
     maxSeatsPerBooking: 4, holdMinutes: 5, refundBeforeDriverConfirmPct: 100, refundAfterDriverConfirmPct: 0,
-    maxAdvanceDays: 7, platformMaxCapacity: 8, privateRespondMinutes: 10, walletEnabled: false,
+    maxAdvanceDays: 7, platformMaxCapacity: 8, privateRespondMinutes: 10, arrivalWindowMinutes: 15, walletEnabled: false,
   }, 'available while the feature is off');
   await H.setFlag(true);
   const pub = await api('GET', '/api/auto-ride/settings/public', u.token);

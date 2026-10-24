@@ -172,11 +172,25 @@ export function ConfirmDialog({ open, title, body, confirmLabel, tone = 'bad', r
   );
 }
 
-/** Top-down seat grid (front row first). 'D' = driver, null = gap. Optional per-seat states. */
+/** Steering wheel line icon for the driver cell. */
+function SteeringIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="2" /><path d="M3.8 10.5h6.3M13.9 10.5h6.3M12 14v6.4" />
+    </svg>
+  );
+}
+
+/**
+ * Top-down seat grid (front row first). 'D' = driver (steering wheel), null = gap. Seats in layout.maleOnlySeats
+ * (default: the seats beside the driver) carry a "Boys" tag. Optional per-seat states.
+ */
 export function SeatGrid({ layout, seatState, onCellClick, editable }: {
   layout: SeatLayout | null | undefined; seatState?: Record<number, string>; onCellClick?: (r: number, c: number) => void; editable?: boolean;
 }) {
   if (!layout || !Array.isArray(layout.rows) || !layout.rows.length) return <p className="text-xs text-fg-muted">No seat layout yet.</p>;
+  const driverRow = layout.rows.find((r) => r.includes('D'));
+  const male = new Set(layout.maleOnlySeats ?? (driverRow ? driverRow.filter((c): c is number => typeof c === 'number') : []));
   const cellCls = (c: LayoutCell) => {
     if (c === 'D') return 'border-line-strong bg-surface-3 text-fg-muted';
     if (c === null) return 'border-dashed border-line text-fg-subtle';
@@ -186,19 +200,21 @@ export function SeatGrid({ layout, seatState, onCellClick, editable }: {
     return 'border-accent/30 bg-accent-soft text-accent-text';
   };
   return (
-    <div className="inline-block rounded-t-2xl border border-line bg-surface-2 px-4 pb-4 pt-3" aria-label="Seat layout">
+    <div className="inline-block rounded-t-[2rem] border border-line bg-surface-2 px-4 pb-4 pt-3" aria-label="Seat layout">
       <p className="mb-2 text-center text-xs text-fg-muted">Front</p>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {layout.rows.map((row, ri) => (
           <div key={ri} className="flex justify-center gap-2">
             {row.map((c, ci) => {
               const fixed = c === 'D';
-              const content = c === 'D' ? 'D' : c === null ? '·' : c;
-              const title = c === 'D' ? 'Driver seat (fixed)' : c === null ? 'Gap' : `Seat ${c}${seatState?.[c] ? ` · ${label(seatState[c])}` : ''}`;
+              const boys = typeof c === 'number' && male.has(c);
+              const content = c === 'D' ? <span className="flex flex-col items-center leading-none"><SteeringIcon /><span className="mt-0.5 text-[9px]">Driver</span></span> : c === null ? '·' : c;
+              const title = c === 'D' ? 'Driver seat (fixed)' : c === null ? 'Gap' : `Seat ${c}${boys ? ' · boys only' : ''}${seatState?.[c] ? ` · ${label(seatState[c])}` : ''}`;
+              const tag = boys ? <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 border border-info/30 bg-surface px-1 text-[9px] font-semibold leading-3 text-info-text">Boys</span> : null;
               return editable && !fixed && onCellClick ? (
-                <button key={ci} type="button" title={`${title} · click to toggle`} onClick={() => onCellClick(ri, ci)} className={cn('flex h-10 w-10 items-center justify-center rounded-md border text-sm font-medium hover:ring-2 hover:ring-accent/30', cellCls(c))}>{content}</button>
+                <button key={ci} type="button" title={`${title} · click to toggle`} onClick={() => onCellClick(ri, ci)} className={cn('relative flex h-11 w-11 items-center justify-center rounded-md border text-sm font-medium hover:ring-2 hover:ring-accent/30', cellCls(c))}>{content}{tag}</button>
               ) : (
-                <span key={ci} title={title} className={cn('flex h-10 w-10 items-center justify-center rounded-md border text-sm font-medium', cellCls(c))}>{content}</span>
+                <span key={ci} title={title} className={cn('relative flex h-11 w-11 items-center justify-center rounded-md border text-sm font-medium', cellCls(c))}>{content}{tag}</span>
               );
             })}
           </div>

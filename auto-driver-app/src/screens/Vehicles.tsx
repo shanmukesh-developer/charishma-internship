@@ -25,7 +25,7 @@ const normReg = (v: string) => v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0
 export function LayoutPreview({ layout }: { layout: SeatLayout }) {
   const states: Record<number, 'AVAILABLE'> = {};
   layout.rows.flat().forEach((c) => { if (typeof c === 'number') states[c] = 'AVAILABLE'; });
-  return <SeatMap rows={layout.rows} states={states} />;
+  return <SeatMap rows={layout.rows} maleOnlySeats={layout.maleOnlySeats} states={states} />;
 }
 
 export function VehiclesScreen({ navigation }: ScreenProps<'Vehicles'>) {

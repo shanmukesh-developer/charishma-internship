@@ -14,6 +14,8 @@ const clock = require('../services/clock');
 const { readFlag, publicSettings } = require('../services/flag');
 const { istDayStartOf } = require('../../../utils/istTime');
 const chargeLine = require('../services/chargeLine');
+const seatRule = require('../services/layout');
+const { readSettings } = require('../services/flag');
 
 const T = E.TRIP_STATUS;
 const B = E.BOOKING_STATUS;
@@ -168,6 +170,11 @@ const detail = async (req, res) => {
  * Seat map (read-only: stale holds shown as available; the next write expires them). Walk-in seats (people who
  * sat in without the app) are BOOKED for customers and WALK_IN for the driver (opts.driver), whose free seats
  * stay AVAILABLE while walk-ins can still be added (the auto is at the stand).
+ * Front-seat rule: layout.maleOnlySeats and seat.maleOnly mark the seats beside the driver (boys only). For a
+ * customer, seat.forYou says whether THEY can book that free seat, viewer is MALE | NOT_MALE | UNKNOWN (profile
+ * gender; UNKNOWN = 'Prefer not to say': the app asks "Are you booking for a boy?" before a front seat) and
+ * summary counts { available, availableForYou, onlyFrontSeatsLeft }. UNKNOWN counts like NOT_MALE (the safe side).
+ * opts.viewerGender: the customer's profile gender when the caller already has it.
  */
 const seatMapFor = async (trip, userId, opts = {}) => {
   const { Seat, Booking } = M();
@@ -185,12 +192,29 @@ const seatMapFor = async (trip, userId, opts = {}) => {
   const closed = opts.driver
     ? !E.WALK_IN_STATUSES.includes(trip.status) || trip.mode === E.MODE.PRIVATE
     : !E.BOOKABLE_STATUSES.includes(trip.status) || trip.mode === E.MODE.PRIVATE || (chargeLine.isCharge(trip) && ![E.QUEUE_STATE.ON_CHARGE, E.QUEUE_STATE.WAITING].includes(trip.queueState));
+  const layout = seatRule.normalizeLayout(trip.seatLayout, trip.capacity);
+  const maleOnly = new Set(layout.maleOnlySeats);
+  const legend = ['AVAILABLE', 'HELD', 'BOOKED', 'UNAVAILABLE', ...(opts.driver ? ['WALK_IN'] : ['MINE', 'MINE_HELD'])];
+  if (opts.driver) {
+    const seats = Array.from({ length: Number(trip.capacity) || 0 }, (_, i) => {
+      const n = i + 1;
+      return { seatNo: n, state: state.get(n) || (closed ? 'UNAVAILABLE' : 'AVAILABLE'), maleOnly: maleOnly.has(n) };
+    });
+    return { layout, seats, legend };
+  }
+  const gender = seatRule.knownGender(opts.viewerGender !== undefined ? opts.viewerGender : userId ? await alloc.profileGenderOf(userId) : null);
+  const viewer = gender === seatRule.MALE ? 'MALE' : gender ? 'NOT_MALE' : 'UNKNOWN';
   const seats = Array.from({ length: Number(trip.capacity) || 0 }, (_, i) => {
     const n = i + 1;
-    return { seatNo: n, state: state.get(n) || (closed ? 'UNAVAILABLE' : 'AVAILABLE') };
+    const st = state.get(n) || (closed ? 'UNAVAILABLE' : 'AVAILABLE');
+    return { seatNo: n, state: st, maleOnly: maleOnly.has(n), forYou: st === 'AVAILABLE' && (viewer === 'MALE' || !maleOnly.has(n)) };
   });
-  const legend = ['AVAILABLE', 'HELD', 'BOOKED', 'UNAVAILABLE', ...(opts.driver ? ['WALK_IN'] : ['MINE', 'MINE_HELD'])];
-  return { layout: trip.seatLayout || require('../services/layout').defaultLayout(trip.capacity), seats, legend };
+  const available = seats.filter((x) => x.state === 'AVAILABLE').length;
+  const availableForYou = seats.filter((x) => x.forYou).length;
+  return {
+    layout, seats, legend, viewer,
+    summary: { available, availableForYou, onlyFrontSeatsLeft: viewer !== 'MALE' && available > 0 && availableForYou === 0 },
+  };
 };
 
 /**
@@ -208,6 +232,7 @@ const chargeBoard = async (req, userId, filter = {}) => {
   const pickWhere = { routeId: { [Op.in]: routes.map((r) => r.id) }, isActive: { [Op.not]: false } };
   if (filter.pickupPointId) pickWhere.id = filter.pickupPointId;
   const pickups = routes.length ? await Pickup.findAll({ where: pickWhere, order: [['sequence', 'ASC'], ['name', 'ASC']] }) : [];
+  const viewerGender = userId ? await alloc.profileGenderOf(userId) : null;
   const lines = [];
   for (const r of routes) {
     for (const p of pickups.filter((x) => String(x.routeId) === String(r.id))) {
@@ -215,7 +240,11 @@ const chargeBoard = async (req, userId, filter = {}) => {
       const front = inLine.find((t) => t.queueState === E.QUEUE_STATE.ON_CHARGE) || null;
       const waiting = inLine.filter((t) => t.queueState === E.QUEUE_STATE.WAITING);
       const ctx = await tripContext(inLine, userId);
-      const card = async (t, position) => ({ ...S.tripCustomer(req, t, ctx(t)), position, seatMap: await seatMapFor(t, userId) });
+      const card = async (t, position) => {
+        const seatMap = await seatMapFor(t, userId, { viewerGender });
+        // Seats THIS customer can book (the seats beside the driver are for boys only).
+        return { ...S.tripCustomer(req, t, ctx(t)), position, seatMap, seatsForYou: seatMap.summary.availableForYou, onlyFrontSeatsLeft: seatMap.summary.onlyFrontSeatsLeft };
+      };
       const onCharge = front ? await card(front, 1) : null;
       const waitingAutos = [];
       for (const [i, t] of waiting.entries()) waitingAutos.push(await card(t, (front ? 2 : 1) + i));
@@ -261,31 +290,60 @@ const presentBooking = async (req, b) => {
   const [driver, vehicle, route, pickup] = trip ? await Promise.all([
     Driver.findByPk(trip.driverId), Vehicle.findByPk(trip.vehicleId), Route.findByPk(trip.routeId), Pickup.findByPk(trip.pickupPointId),
   ]) : [];
-  return S.bookingCustomer(req, b, { trip, driver, vehicle, route, pickup });
+  const { arrivalWindowMinutes } = await readSettings();
+  return S.bookingCustomer(req, b, { trip, driver, vehicle, route, pickup, arrivalWindowMinutes });
+};
+
+/**
+ * A 409 front-seat / no-suitable-seat refusal names the next auto in the same line this customer can book
+ * (nextTripId), so the board can offer it. Never throws.
+ */
+const withNextSuitable = async (err, tripId, gender) => {
+  try {
+    if (!err || !['NO_SUITABLE_SEAT', 'FRONT_SEAT_MALE_ONLY'].includes(err.code)) return err;
+    const trip = await M().Trip.findByPk(tripId);
+    if (!trip || !chargeLine.isCharge(trip)) return err;
+    const line = await chargeLine.lineTrips(trip.pickupPointId, trip.routeId);
+    const after = line.slice(line.findIndex((x) => String(x.id) === String(trip.id)) + 1);
+    for (const c of after) {
+      if (!E.BOOKABLE_STATUSES.includes(c.status) || c.mode !== E.MODE.SHARED) continue;
+      const taken = await alloc.liveSeatNumbers(c.id);
+      const free = Array.from({ length: Number(c.capacity) || 0 }, (_, i) => i + 1).filter((n) => !taken.has(n));
+      if (seatRule.seatsForRider(free, seatRule.maleOnlySeatsOf(c), gender).length) {
+        err.extra = { ...(err.extra || {}), nextTripId: c.id };
+        break;
+      }
+    }
+  } catch { /* the refusal still goes out as it is */ }
+  return err;
 };
 
 const requirePhone = async (userId) => {
   const { getUserModel } = require('../../../models/User');
-  const u = await getUserModel().findByPk(userId, { attributes: ['id', 'phone', 'isActive'] });
+  const u = await getUserModel().findByPk(userId, { attributes: ['id', 'phone', 'isActive', 'gender'] });
   if (!u || u.isActive === false) throw fail(403, 'ACCOUNT_SUSPENDED', 'Your account is suspended.');
   if (!u.phone) throw fail(403, 'PHONE_REQUIRED', 'Add and verify your mobile number in your profile to book an auto.');
   return u;
 };
 
-// POST /api/auto-ride/trips/:id/holds { seatCount, seatNumbers? }  (Idempotency-Key header optional)
+// POST /api/auto-ride/trips/:id/holds { seatCount, seatNumbers?, riderGender? }  (Idempotency-Key header optional)
+// riderGender ('Male' | 'Female' | 'Other'): the answer to "Are you booking for a boy?", taken ONLY when the profile
+// gender is unknown ('Prefer not to say'); a known profile gender always wins. Kept on the booking, never the profile.
 const createHold = async (req, res) => {
   const tripId = String(req.params.id || '');
   if (!isUuid(tripId)) throw fail(404, 'NOT_FOUND', 'This auto trip was not found.');
   const body = req.body || {};
   hit('hold', req.user.id);
-  await requirePhone(req.user.id);
+  const u = await requirePhone(req.user.id);
+  const rider = seatRule.resolveRider(u.gender, body.riderGender);
   const key = readIdempotencyKey(req, body.idempotencyKey) || null;
   const seatNumbers = Array.isArray(body.seatNumbers) ? body.seatNumbers.slice(0, E.LIMITS.ABSOLUTE_MAX_CAPACITY) : undefined;
   const seatCount = body.seatCount !== undefined ? body.seatCount : (seatNumbers ? seatNumbers.length : 1);
   let r;
   try {
-    r = await alloc.hold({ tripId, userId: req.user.id, seatCount, seatNumbers, idempotencyKey: key });
+    r = await alloc.hold({ tripId, userId: req.user.id, seatCount, seatNumbers, idempotencyKey: key, riderGender: rider.gender, riderGenderSource: rider.source });
   } catch (err) {
+    await withNextSuitable(err, tripId, rider.gender);
     // A refused retry key (409 IDEMPOTENCY_KEY_REUSED) may have expired stale holds on the way: tell them.
     for (const b of (err && err.expiredHolds) || []) notify.bookingEvent(b, { title: 'Seat hold expired', body: 'Your held seats were released because the booking was not confirmed in time.', type: 'AUTO_HOLD_EXPIRED' });
     if (err && err.expiredHolds && err.expiredHolds.length) notify.tripChanged(tripId);
@@ -390,7 +448,8 @@ const myBookings = async (req, res) => {
   const rows = await Booking.findAll({ where, order: [['createdAt', 'DESC']], limit: 100 });
   const trips = await byIds(Trip, rows.map((b) => b.tripId));
   const ctx = await tripContext([...trips.values()], null);
-  res.json({ bookings: rows.map((b) => { const t = trips.get(String(b.tripId)); return S.bookingCustomer(req, b, t ? { trip: t, ...ctx(t) } : {}); }) });
+  const { arrivalWindowMinutes } = await readSettings();
+  res.json({ bookings: rows.map((b) => { const t = trips.get(String(b.tripId)); return S.bookingCustomer(req, b, t ? { trip: t, ...ctx(t), arrivalWindowMinutes } : {}); }) });
 };
 
 // GET /api/auto-ride/bookings/:id   (own bookings only; anything else is 404 so ids cannot be probed)

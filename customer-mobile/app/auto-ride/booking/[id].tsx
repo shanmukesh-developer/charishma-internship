@@ -1,5 +1,7 @@
 // Zenvy Auto-Ride: one booking of mine. Booking code + boarding PIN, seats, trip status timeline, driver contact
 // (only when the server returns it), pickup instructions, cancel (refund info from the server) and report a problem.
+// ZCS Auto at the stand: a live "Reach the auto in 12:40" countdown (server arriveBy); a seat not checked in by then
+// is released by the server as a no-show.
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Alert, Linking, Modal, TouchableOpacity } from 'react-native';
 import { PressScale } from '../../../modules/others/motion';
@@ -24,7 +26,7 @@ export default function AutoBookingScreen() {
   const [report, setReport] = useState(false);
   const [category, setCategory] = useState<string>('OTHER');
   const [desc, setDesc] = useState('');
-  const now = useNow(1000, b?.status === 'HELD');
+  const now = useNow(1000, b?.status === 'HELD' || (b?.status === 'CONFIRMED' && !!b?.arriveBy));
   const settings = useAutoRideStatus()?.settings || null;
 
   const load = useCallback(async () => {
@@ -57,6 +59,8 @@ export default function AutoBookingScreen() {
   const canCancel = (b.status === 'HELD' || b.status === 'CONFIRMED') && !!tripStatus && !['BOARDING', 'IN_PROGRESS', 'COMPLETED', ...EXCEPTION_STATUSES].includes(tripStatus);
   const afterDriverConfirm = tripStatus === 'DRIVER_CONFIRMED';
   const holdLeft = b.holdExpiresAt ? new Date(b.holdExpiresAt).getTime() - now : 0;
+  const arriveLeft = b.status === 'CONFIRMED' && b.arriveBy ? new Date(b.arriveBy).getTime() - now : null;
+  const arriveUrgent = arriveLeft !== null && arriveLeft <= 5 * 60 * 1000;
 
   const doCancel = () => {
     const held = b.status === 'HELD';
@@ -127,6 +131,20 @@ export default function AutoBookingScreen() {
 
         {(b.status === 'CONFIRMED' || b.status === 'BOARDED') ? (
           <Card style={{ alignItems: 'center' }}>
+            {arriveLeft !== null ? (
+              <View style={{ alignItems: 'center', marginBottom: 12 }}>
+                <View accessibilityLiveRegion="polite" accessibilityLabel={arriveLeft > 0 ? `Reach the auto in ${mmss(arriveLeft)}` : 'Your time to reach the auto is up'}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: arriveUrgent ? p.dangerSoft : p.warnSoft }}>
+                  <Ionicons name="time-outline" size={15} color={arriveUrgent ? p.danger : p.warn} />
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: arriveUrgent ? p.danger : p.warn, fontVariant: ['tabular-nums'] }}>
+                    {arriveLeft > 0 ? `Reach the auto in ${mmss(arriveLeft)}` : 'Releasing your seat'}
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 12, color: p.sub, textAlign: 'center', marginTop: 6, maxWidth: 300 }}>
+                  Check in with the driver within {b.arrivalWindowMinutes || 15} minutes of booking, or your seat is released.
+                </Text>
+              </View>
+            ) : null}
             <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 1 }}>BOOKING CODE</Text>
             <Text selectable style={{ fontSize: 28, fontWeight: '900', color: p.text, letterSpacing: 4, marginTop: 2 }}>{b.bookingCode}</Text>
             {b.boardingPin ? (

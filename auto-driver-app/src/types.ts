@@ -43,7 +43,8 @@ export interface DriverSelf {
 
 /** Layout cell: 'D' driver seat, null gap, number = passenger seat. */
 export type LayoutCell = number | 'D' | null;
-export interface SeatLayout { rows: LayoutCell[][] }
+/** rows front to back (real auto: [1, 'D', 2], [3, 4, 5], [6, 7, 8]); maleOnlySeats = seats the app sells to boys only. */
+export interface SeatLayout { rows: LayoutCell[][]; maleOnlySeats?: number[] }
 
 export interface Vehicle {
   id: string;
@@ -217,13 +218,15 @@ export interface BookingDriver {
   passengerCount: number;
   cashToCollect: number;
   cashCollectedAt: string | null;
+  /** At the stand: the student must be checked in before this, or the server releases the seat (no-show). */
+  arriveBy?: string | null;
 }
 
 export type SeatState = 'AVAILABLE' | 'HELD' | 'BOOKED' | 'UNAVAILABLE' | 'MINE' | 'MINE_HELD' | 'WALK_IN';
 export interface SeatMapResponse extends TripStatusBlock {
   tripId: string;
   layout: SeatLayout;
-  seats: { seatNo: number; state: SeatState }[];
+  seats: { seatNo: number; state: SeatState; maleOnly?: boolean }[];
   legend: string[];
 }
 

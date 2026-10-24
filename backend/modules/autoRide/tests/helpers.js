@@ -131,10 +131,12 @@ const nextPhone = () => `9${String(100000000 + (++seq) + (process.pid % 1000) * 
 const userToken = (u) => jwt.sign({ id: u.id, role: u.role || 'student', tv: Number(u.tokenVersion) || 0 }, process.env.JWT_SECRET);
 const driverToken = (d) => jwt.sign({ id: d.id, role: 'auto_driver', tv: Number(d.tokenVersion) || 0 }, process.env.JWT_SECRET);
 
-const mkUser = async ({ name = 'Test Student', role = 'student', wallet = 0, phone } = {}) => {
+// gender: the front-seat rule (seats beside the driver are for boys only) reads the profile gender. Fixtures default
+// to 'Male' so suites written before the rule keep every seat; the seat-rule suite passes 'Female' / 'Prefer not to say'.
+const mkUser = async ({ name = 'Test Student', role = 'student', wallet = 0, phone, gender = 'Male' } = {}) => {
   const User = ctx.M('User');
   const p = phone || nextPhone();
-  const u = await User.create({ name, phone: p, role, isActive: true, password: `x-test-only-${p}`, email: `${p}@test.local`, walletBalance: wallet });
+  const u = await User.create({ name, phone: p, role, isActive: true, password: `x-test-only-${p}`, email: `${p}@test.local`, walletBalance: wallet, gender });
   u.token = userToken(u);
   return u;
 };

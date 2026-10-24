@@ -16,6 +16,7 @@ const FIELDS: { key: NumericSettingKey; name: string; hint: string }[] = [
   { key: 'noShowGraceMinutes', name: 'No-show grace (minutes)', hint: 'An auto still not boarding this long after departure time is closed as no-show' },
   { key: 'autoCompleteHours', name: 'Auto-complete (hours)', hint: 'Trips still in progress are completed after this' },
   { key: 'chargeMaxHours', name: 'Time on charge (hours)', hint: 'An auto on charge that has not left after this long is closed and the next auto moves up' },
+  { key: 'arrivalWindowMinutes', name: 'Arrival window (minutes)', hint: 'A passenger who booked an auto at the stand must check in within this time (from booking, or from when the auto went on charge if later); otherwise the seat is released as a no-show. Warned 5 minutes before' },
   { key: 'customerRefundBeforeConfirmPct', name: 'Refund % before driver confirms', hint: 'Wallet refund when a passenger cancels before departure is confirmed' },
   { key: 'customerRefundAfterConfirmPct', name: 'Refund % after driver confirms', hint: 'Wallet refund when a passenger cancels after confirmation' },
 ];

@@ -1,6 +1,9 @@
 // Zenvy Auto-Ride: one shared auto. Details + live seat map -> choose seats -> hold (countdown) -> review the
 // server's fare breakdown -> confirm (cash to driver; wallet only when the server offers it) -> booking code + PIN.
 // Holds are released when the passenger backs out or leaves the screen. Idempotency keys make retries safe.
+// Front-seat rule: seats beside the driver are for boys only (server-enforced). For a girl they are locked on the map
+// (a press says why) and never counted as hers; a 'Prefer not to say' profile is asked "Are you booking for a boy?"
+// before a front seat or a quick booking, and the answer goes with this hold only (riderGender).
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Alert, Linking, BackHandler, StyleSheet } from 'react-native';
 import { PressScale } from '../../../modules/others/motion';
@@ -9,13 +12,13 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import SafeImage from '../../../components/SafeImage';
 import {
   autoRideApi, AutoRideError, newIdempotencyKey, errorCopy, inr, fmtDeparture, fmtClock, fromNow, mmss, queueLabel,
-  PAYMENT_LABEL, type Trip, type SeatMap as SeatMapData, type Booking, type PaymentMethod, type SeatState,
+  PAYMENT_LABEL, type Trip, type SeatMap as SeatMapData, type Booking, type PaymentMethod, type SeatState, type RiderGender,
 } from '../../../modules/autoRide/autoRideApi';
 import {
   AHeader, usePalette, Card, Btn, Badge, StateView, Notice, Row, Stepper, StatusChip, VerifiedBadge, useAutoRideLive, useNow,
   refreshAutoRideStatus, AUTO_HOME, AutoTile,
 } from '../../../modules/autoRide/ui';
-import SeatMap from '../../../modules/autoRide/SeatMap';
+import SeatMap, { askRiderGender, FRONT_SEAT_NOTE } from '../../../modules/autoRide/SeatMap';
 
 /** Seats-per-booking limit: GET /status settings.maxSeatsPerBooking, or learned from an INVALID_INPUT { max } answer. */
 let learnedMaxPerBooking: number | null = null;
@@ -46,6 +49,8 @@ export default function AutoTripScreen() {
   const [retry, setRetry] = useState<null | { kind: 'hold' | 'confirm'; message: string }>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [maxPerBooking, setMaxPerBooking] = useState<number | null>(learnedMaxPerBooking);
+  // "Are you booking for a boy?" answer (profile gender unknown only); kept for this booking, never saved.
+  const [rider, setRider] = useState<RiderGender | null>(null);
 
   const holdKey = useRef<string | null>(null);
   const confirmKey = useRef<string | null>(null);
@@ -160,15 +165,33 @@ export default function AutoTripScreen() {
 
   const states: Record<number, SeatState> = {};
   map.seats.forEach((x) => { states[x.seatNo] = x.state; });
-  const free = map.seats.filter((x) => x.state === 'AVAILABLE').length;
+  const viewer = map.viewer || 'UNKNOWN';
+  const maleOnly = new Set(map.layout.maleOnlySeats || map.seats.filter((x) => x.maleOnly).map((x) => x.seatNo));
+  // Riders who are not boys never count the seats beside the driver (an UNKNOWN who said "a girl" neither).
+  const notBoy = viewer === 'NOT_MALE' || (viewer === 'UNKNOWN' && !!rider && rider !== 'Male');
+  const freeAll = map.seats.filter((x) => x.state === 'AVAILABLE').length;
+  const free = notBoy ? map.seats.filter((x) => x.state === 'AVAILABLE' && !maleOnly.has(x.seatNo)).length : freeAll;
+  const onlyFrontLeft = notBoy && freeAll > 0 && free === 0;
   const maxAllowed = Math.max(0, Math.min(free, trip.capacity, maxPerBooking || learnedMaxPerBooking || trip.capacity));
   const pickMode = map.seatSelectionEnabled;
   const seatCount = pickMode ? selected.length : Math.min(count, Math.max(1, maxAllowed));
   const canBook = trip.sharedBookingAllowed && maxAllowed > 0 && !trip.myBookingId;
   const mineConfirmed = trip.myBookingId && trip.myBookingStatus && trip.myBookingStatus !== 'HELD';
 
-  const toggle = (n: number) => {
+  const toggle = async (n: number) => {
     if (step !== 'select') return;
+    if (!selected.includes(n) && maleOnly.has(n) && viewer !== 'MALE') {
+      let answer = rider;
+      if (viewer === 'UNKNOWN' && !answer) {
+        answer = await askRiderGender();
+        if (!answer) return;
+        setRider(answer);
+      }
+      if (viewer === 'NOT_MALE' || answer !== 'Male') {
+        Alert.alert(`Seat ${n} is for boys only`, FRONT_SEAT_NOTE);
+        return;
+      }
+    }
     setSelected((cur) => {
       if (cur.includes(n)) return cur.filter((x) => x !== n);
       if (cur.length >= maxAllowed) {
@@ -190,6 +213,15 @@ export default function AutoTripScreen() {
     }
     setRetry(null);
     switch (err.code) {
+      case 'FRONT_SEAT_MALE_ONLY':
+      case 'NO_SUITABLE_SEAT': {
+        // Server front-seat rule: drop the front seats from the pick; a refused confirm already gave the hold back.
+        setSelected((cur) => cur.filter((n) => !maleOnly.has(n)));
+        if (kind === 'confirm' || err.data?.released) { setHold(null); holdKey.current = null; confirmKey.current = null; setStep('select'); }
+        await load();
+        Alert.alert(title, message);
+        return;
+      }
       case 'SEAT_TAKEN': {
         const clash: number[] = Array.isArray(err.data?.seats) ? err.data.seats.map(Number) : [];
         setSelected((cur) => (clash.length ? cur.filter((n) => !clash.includes(n)) : cur));
@@ -258,11 +290,19 @@ export default function AutoTripScreen() {
   const doHold = async (fresh = false) => {
     if (busy) return;
     if (seatCount < 1) { Alert.alert('Pick a seat', pickMode ? 'Tap the seats you want on the map.' : 'Choose how many seats.'); return; }
+    let answer = rider;
+    if (viewer === 'UNKNOWN' && !answer && !pickMode) {
+      // Quick booking: the server never auto-assigns a front seat to someone it does not know is a boy; ask once.
+      answer = await askRiderGender();
+      if (!answer) return;
+      setRider(answer);
+    }
+    const riderBody = viewer === 'UNKNOWN' && answer ? { riderGender: answer } : {};
     if (fresh || !holdKey.current) holdKey.current = newIdempotencyKey();
     setBusy('hold');
     setRetry(null);
     try {
-      const r = await autoRideApi.hold(id, pickMode ? { seatCount, seatNumbers: selected } : { seatCount }, holdKey.current);
+      const r = await autoRideApi.hold(id, pickMode ? { seatCount, seatNumbers: selected, ...riderBody } : { seatCount, ...riderBody }, holdKey.current);
       const b = r.booking;
       if (b.status === 'CONFIRMED' || b.status === 'BOARDED') { router.replace(`/auto-ride/booking/${b.id}` as any); return; }
       if (b.status !== 'HELD') {
@@ -463,12 +503,16 @@ export default function AutoTripScreen() {
           <Text style={{ fontSize: 13, color: p.sub, marginTop: 4, marginBottom: 14, lineHeight: 18 }}>
             {step === 'review' ? 'These seats are held for you until the timer runs out.' : pickMode ? 'Tap free seats to select them. The driver seat cannot be booked.' : 'Seats are assigned automatically on this auto; choose how many you need.'}
           </Text>
-          <SeatMap rows={map.layout.rows} states={states} selected={step === 'select' ? selected : []} onToggle={toggle} selectable={pickMode && step === 'select' && canBook} />
+          <SeatMap rows={map.layout.rows} maleOnlySeats={map.layout.maleOnlySeats} viewer={notBoy ? 'NOT_MALE' : viewer === 'UNKNOWN' && rider === 'Male' ? 'MALE' : viewer}
+            states={states} selected={step === 'select' ? selected : []} onToggle={toggle} selectable={pickMode && step === 'select' && canBook} />
+          {step === 'select' && onlyFrontLeft && !trip.myBookingId ? (
+            <Notice tone="warn">Only front seats left (boys only). Go back and book the next auto in the line.</Notice>
+          ) : null}
 
           {step === 'select' && canBook ? (
             <View style={[ts.seatSummary, { borderTopColor: p.border }]}>
               <Text style={{ fontSize: 13, color: p.sub, textAlign: 'center', marginBottom: 10 }}>
-                {free} seat{free === 1 ? '' : 's'} available{pickMode && selected.length ? ` · ${selected.length} selected (${selected.join(', ')})` : ''}
+                {freeAll} seat{freeAll === 1 ? '' : 's'} left{free < freeAll ? ` · ${free} for you` : ''}{pickMode && selected.length ? ` · ${selected.length} selected (${selected.join(', ')})` : ''}
               </Text>
               {pickMode ? null : <Stepper value={seatCount} min={1} max={Math.max(1, maxAllowed)} onChange={setCount} label="Seats" />}
               <View style={{ marginTop: pickMode ? 0 : 12 }}>

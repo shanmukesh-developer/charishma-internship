@@ -42,7 +42,8 @@ export interface Driver {
 }
 
 export type LayoutCell = 'D' | number | null;
-export interface SeatLayout { rows: LayoutCell[][] }
+/** rows front to back ('D' = driver, null = gap); maleOnlySeats = seats only boys may book (beside the driver). */
+export interface SeatLayout { rows: LayoutCell[][]; maleOnlySeats?: number[] }
 
 export interface Vehicle {
   id: string; driverId: string; registration: string | null; registrationNumber: string; make: string | null; model: string | null;
@@ -147,6 +148,8 @@ export interface Settings {
   reminderMinutes: number; noShowGraceMinutes: number; autoCompleteHours: number;
   customerRefundBeforeConfirmPct: number; customerRefundAfterConfirmPct: number;
   chargeMaxHours: number;
+  /** Union queue: minutes a confirmed passenger has to reach the auto and check in before the seat is released. */
+  arrivalWindowMinutes: number;
 }
 export type NumericSettingKey = Exclude<keyof Settings, 'enabled' | 'walletEnabled' | 'devOverride'>;
 /** Same ranges as services/flag.js writeSettings (whole numbers). */
@@ -154,7 +157,7 @@ export const SETTING_RANGES: Record<NumericSettingKey, [number, number]> = {
   platformMaxCapacity: [1, LIMITS.ABSOLUTE_MAX_CAPACITY], holdMinutes: [1, 30], privateRespondMinutes: [2, 120],
   maxSeatsPerBooking: [1, LIMITS.ABSOLUTE_MAX_CAPACITY], maxAdvanceDays: [0, 30], reminderMinutes: [0, 120],
   noShowGraceMinutes: [5, 240], autoCompleteHours: [1, 48], customerRefundBeforeConfirmPct: [0, 100], customerRefundAfterConfirmPct: [0, 100],
-  chargeMaxHours: [1, 24],
+  chargeMaxHours: [1, 24], arrivalWindowMinutes: [5, 60],
 };
 
 export interface AuditEntry { id: string | number; adminId: string; actor?: { id: string; name: string | null }; targetId: string; action: string; details: unknown; at: string | null }
@@ -221,9 +224,20 @@ export const autoRideApi = {
 
 // ── Seat layout helpers (same rules as backend/modules/autoRide/services/layout.js) ──────────────
 
-/** Default arrangement: driver row (+1 seat beside the driver when capacity >= 4), benches of <= 4. */
+/** Passenger seats on the driver's bench (the seats beside the driver). */
+export function seatsBesideDriver(rows: LayoutCell[][]): number[] {
+  const row = rows.find((r) => r.includes('D'));
+  return row ? row.filter((c): c is number => typeof c === 'number').sort((a, b) => a - b) : [];
+}
+
+/**
+ * Default arrangement: the real ZCS 8-seat auto is 1 | driver | 2, then 3 4 5, then 6 7 8 (seats 1 and 2 boys only).
+ * Other capacities: driver row (+1 seat beside the driver when capacity >= 4), benches of <= 4; the seats beside the
+ * driver are boys only. Same as backend services/layout.js defaultLayout.
+ */
 export function defaultLayout(capacity: number): SeatLayout {
   const cap = Math.max(1, Math.min(LIMITS.ABSOLUTE_MAX_CAPACITY, Number(capacity) || 1));
+  if (cap === 8) return { rows: [[1, 'D', 2], [3, 4, 5], [6, 7, 8]], maleOnlySeats: [1, 2] };
   const front = cap >= 4 ? 1 : 0;
   const rows: LayoutCell[][] = [front ? ['D', 1] : ['D']];
   const rem = cap - front;
@@ -236,13 +250,34 @@ export function defaultLayout(capacity: number): SeatLayout {
     for (let i = 0; i < size && next <= cap; i++) row.push(next++);
     if (row.length) rows.push(row);
   }
-  return { rows };
+  return { rows, maleOnlySeats: seatsBesideDriver(rows) };
 }
 
-/** Renumbers passenger seats 1..n in reading order (front to back, left to right); 'D' and gaps stay. */
+/**
+ * Renumbers passenger seats 1..n in reading order (front to back, left to right); 'D' and gaps stay. Boys-only marks
+ * follow their place; a new seat on the driver's bench is boys only by default.
+ */
 export function renumberLayout(layout: SeatLayout): SeatLayout {
   let n = 0;
-  return { rows: layout.rows.map((r) => r.map((c) => (c === 'D' || c === null ? c : ++n))) };
+  const male = new Set(layout.maleOnlySeats ?? seatsBesideDriver(layout.rows));
+  const maleOnlySeats: number[] = [];
+  const rows = layout.rows.map((r) => {
+    const driverRow = r.includes('D');
+    return r.map((c) => {
+      if (c === 'D' || c === null) return c;
+      const next = ++n;
+      if ((c === 0 && driverRow) || (c !== 0 && male.has(c))) maleOnlySeats.push(next);
+      return next;
+    });
+  });
+  return { rows, maleOnlySeats };
+}
+
+/** Toggles the boys-only mark of one seat. */
+export function toggleMaleOnly(layout: SeatLayout, seat: number): SeatLayout {
+  const cur = new Set(layout.maleOnlySeats ?? seatsBesideDriver(layout.rows));
+  if (cur.has(seat)) cur.delete(seat); else cur.add(seat);
+  return { rows: layout.rows, maleOnlySeats: [...cur].sort((a, b) => a - b) };
 }
 
 /** Client-side mirror of validateLayout; returns a problem or null. */

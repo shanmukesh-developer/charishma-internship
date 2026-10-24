@@ -9,6 +9,9 @@
 //  6. passenger safety net: CONFIRMED bookings on a trip already IN_PROGRESS -> NO_SHOW
 //  7. IN_PROGRESS for longer than autoCompleteHours -> COMPLETED (system)
 //  8. REFUND_PENDING bookings -> retried (exactly once each, payments.processRefund)
+// 10. union queue arrival window (services/arrival.js): a confirmed app seat not checked in within
+//     arrivalWindowMinutes (15) of the later of its confirmation and its auto going on charge -> NO_SHOW, seat freed
+//     (allocation.expireArrivals, in the trip lock); a warning push warnLeadMinutes (5) before, sent once.
 //  9. union queue: a line with waiting autos but nobody on charge gets its front auto back (crash safety net).
 //     Autos on charge have no reminder (no departure time); one still on charge chargeMaxHours after it reached
 //     the front is closed by step 5 like any trip that never left. Waiting autos never expire while waiting.
@@ -41,7 +44,7 @@ const runAutoRideJobs = async (now = clock.now()) => {
   const { transitionTrip } = require('./services/stateMachine');
   const { readSettings } = require('./services/flag');
   const settings = await readSettings();
-  const out = { linesHealed: 0, holdsExpired: 0, opened: 0, privateExpired: 0, reminders: 0, driverNoShow: 0, systemCancelled: 0, passengerNoShow: 0, autoCompleted: 0, refunds: 0, errors: 0 };
+  const out = { arrivalWarned: 0, arrivalNoShow: 0, linesHealed: 0, holdsExpired: 0, opened: 0, privateExpired: 0, reminders: 0, driverNoShow: 0, systemCancelled: 0, passengerNoShow: 0, autoCompleted: 0, refunds: 0, errors: 0 };
   const safe = async (fn) => {
     try { await fn(); } catch (err) { out.errors++; console.warn('[AUTORIDE_JOB_WARN]', err.message); }
   };
@@ -128,6 +131,54 @@ const runAutoRideJobs = async (now = clock.now()) => {
       } else out.systemCancelled++;
     });
   }
+
+  // 10. Arrival window of union queue autos at the stand (after the trip-level closes above, so an auto closed by
+  //     step 5 is not double-handled).
+  await safe(async () => {
+    const arrival = require('./services/arrival');
+    const windowMin = settings.arrivalWindowMinutes;
+    const leadMin = arrival.warnLeadMinutes(windowMin);
+    const nowMs = now.getTime();
+    const trips = await Trip.findAll({ where: { dispatchMode: E.DISPATCH_MODE.ON_CHARGE, status: { [Op.in]: arrival.STAND }, chargeStartedAt: { [Op.ne]: null } }, limit: 300 });
+    const live = trips.filter((tr) => arrival.windowApplies(tr));
+    if (!live.length) return;
+    const Pickup = getModel('AutoPickupPoint');
+    const pickups = new Map((await Pickup.findAll({ where: { id: { [Op.in]: [...new Set(live.map((tr) => String(tr.pickupPointId)))] } }, attributes: ['id', 'name'] })).map((p) => [String(p.id), p]));
+    for (const trip of live) {
+      await safe(async () => {
+        const rows = await Booking.findAll({ where: { tripId: trip.id, status: B.CONFIRMED, type: E.BOOKING_TYPE.SHARED } });
+        let due = false;
+        for (const b of rows) {
+          const deadline = arrival.deadlineMs(b, trip, windowMin);
+          if (deadline === null) continue;
+          if (deadline <= nowMs) { due = true; continue; }
+          if (b.arrivalWarnedAt || deadline - leadMin * 60 * 1000 > nowMs) continue;
+          // Exactly once per booking (conditional write; a second process / run finds it set).
+          const [n] = await Booking.update({ arrivalWarnedAt: now }, { where: { id: b.id, status: B.CONFIRMED, arrivalWarnedAt: null } });
+          if (!n) continue;
+          out.arrivalWarned++;
+          const left = Math.max(1, Math.round((deadline - nowMs) / 60000));
+          const stand = (pickups.get(String(trip.pickupPointId)) || {}).name || 'the stand';
+          notify.toCustomers([b.userId], 'Reach your auto', `Your auto at ${stand} is waiting · ${left} min left to reach, or your seat will be released.`, { type: 'AUTO_ARRIVAL_WARNING', bookingId: b.id, tripId: trip.id });
+        }
+        if (!due) return;
+        const r = await alloc.expireArrivals(trip.id, { windowMinutes: windowMin, now });
+        if (!r.expired.length) return;
+        out.arrivalNoShow += r.expired.length;
+        const freed = [];
+        for (const x of r.expired) {
+          freed.push(...x.seatNumbers);
+          notify.toCustomers([x.booking.userId], 'Seat released', `Your seat was released because you didn't arrive in ${windowMin} minutes.`, { type: 'AUTO_ARRIVAL_NO_SHOW', bookingId: x.booking.id, tripId: trip.id });
+          notify.nudgeCustomers([x.booking.userId], 'booking', x.booking.id, x.booking.status);
+        }
+        const nums = freed.sort((a, c) => a - c);
+        if (nums.length) {
+          notify.toDriver(r.trip.driverId, 'Seat free again', `${nums.length === 1 ? `Seat ${nums[0]} is` : `Seats ${nums.join(', ')} are`} free again (no-show)`, { type: 'AUTO_ARRIVAL_NO_SHOW', tripId: trip.id, seats: nums });
+        }
+        notify.tripEvent(r.trip, {});
+      });
+    }
+  });
 
   // 6. Passenger no-show safety net.
   const running = await Trip.findAll({ where: { status: T.IN_PROGRESS }, attributes: ['id'], limit: 200 });

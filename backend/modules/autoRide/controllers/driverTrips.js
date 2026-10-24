@@ -194,7 +194,12 @@ const bookings = async (req, res) => {
   const ids = [...new Set(rows.map((b) => String(b.userId)))];
   const users = ids.length ? await getUserModel().findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'name'] }) : [];
   const byId = new Map(users.map((u) => [String(u.id), u]));
-  res.json({ trip: { id: trip.id, ...S.tripStatus(trip) }, bookings: rows.map((b) => S.bookingDriver(b, byId.get(String(b.userId)))) });
+  const { arrivalWindowMinutes } = await readSettings();
+  res.json({
+    trip: { id: trip.id, ...S.tripStatus(trip) },
+    arrivalWindowMinutes,
+    bookings: rows.map((b) => S.bookingDriver(b, byId.get(String(b.userId)), { trip, arrivalWindowMinutes })),
+  });
 };
 
 // GET /api/auto-ride/driver/trips/:id/seats

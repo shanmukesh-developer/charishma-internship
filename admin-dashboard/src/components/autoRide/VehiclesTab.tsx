@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import {
-  autoRideApi, defaultLayout, layoutProblem, renumberLayout, LIMITS, VEHICLE_DOC_KEYS, VEHICLE_STATUSES, REQUIRED_VEHICLE_DOCS,
+  autoRideApi, defaultLayout, layoutProblem, renumberLayout, toggleMaleOnly, seatsBesideDriver, LIMITS, VEHICLE_DOC_KEYS, VEHICLE_STATUSES, REQUIRED_VEHICLE_DOCS,
   type SeatLayout, type Vehicle,
 } from '@/lib/autoRideApi';
 import { useLoader, type Lookups } from './hooks';
@@ -140,7 +140,9 @@ function ApprovePanel({ v, platformMax, onDone }: { v: Vehicle; platformMax: num
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [capN, capOk]);
   const problem = capOk ? layoutProblem(layout, capN) : null;
-  const edit = (fn: (rows: SeatLayout['rows']) => SeatLayout['rows']) => setLayout((l) => renumberLayout({ rows: fn(l.rows.map((r) => [...r])) }));
+  const edit = (fn: (rows: SeatLayout['rows']) => SeatLayout['rows']) => setLayout((l) => renumberLayout({ rows: fn(l.rows.map((r) => [...r])), maleOnlySeats: l.maleOnlySeats }));
+  const seatNos = layout.rows.flat().filter((c): c is number => typeof c === 'number').sort((a, b) => a - b);
+  const maleOnly = new Set(layout.maleOnlySeats ?? seatsBesideDriver(layout.rows));
   const toggleCell = (ri: number, ci: number) => edit((rows) => { rows[ri][ci] = rows[ri][ci] === null ? 0 : null; return rows; });
   const today = istToday();
   const expired = (['permitExpiresOn', 'insuranceExpiresOn', 'fitnessExpiresOn', 'pucExpiresOn'] as const).filter((k) => v[k] && String(v[k]).slice(0, 10) < today);
@@ -159,6 +161,18 @@ function ApprovePanel({ v, platformMax, onDone }: { v: Vehicle; platformMax: num
           <SeatGrid layout={layout} editable onCellClick={toggleCell} />
           <div className="space-y-2 text-xs text-fg-muted">
             <p>Click a seat to turn it into a gap (or back). Seats are renumbered front to back, left to right. The driver seat is fixed.</p>
+            <div className="space-y-1">
+              <p className="font-semibold text-fg">Boys-only seats</p>
+              <p>Seats beside the driver are for boys only (girls cannot sit there). Only boys can book a marked seat in the app; the driver can still mark any seat for a walk-in.</p>
+              <div className="flex flex-wrap gap-1.5" role="group" aria-label="Boys-only seats">
+                {seatNos.map((n) => (
+                  <button key={n} type="button" aria-pressed={maleOnly.has(n)} onClick={() => setLayout((l) => toggleMaleOnly(l, n))}
+                    className={`min-w-9 border px-2 py-1 text-xs font-semibold ${maleOnly.has(n) ? 'border-info/40 bg-info-soft text-info-text' : 'border-line bg-surface text-fg-muted hover:bg-surface-2'}`}>
+                    {n}{maleOnly.has(n) ? ' · Boys' : ''}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="flex flex-wrap gap-2">
               <Btn onClick={() => edit((rows) => (rows.length < LIMITS.MAX_LAYOUT_ROWS ? [...rows, [0]] : rows))}>+ Row</Btn>
               <Btn onClick={() => edit((rows) => (rows.length > 1 ? rows.slice(0, -1) : rows))}>− Last row</Btn>

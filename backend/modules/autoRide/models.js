@@ -67,7 +67,8 @@ const initAutoRideModels = (sequelize) => {
     requestedCapacity: { type: DataTypes.INTEGER, allowNull: true },
     // Set ONLY by an admin at approval: <= rcSeatingCapacity and <= the platform max setting.
     approvedCapacity: { type: DataTypes.INTEGER, allowNull: true },
-    // { rows: [['D', 1], [2, 3, 4], ...] } 'D' = driver (not bookable), null = gap. Admin-set.
+    // { rows: [[1, 'D', 2], [3, 4, 5], [6, 7, 8]], maleOnlySeats: [1, 2] } 'D' = driver (not bookable), null = gap,
+    // maleOnlySeats = seats beside the driver only boys may book. Admin-set; services/layout.normalizeLayout reads it.
     seatLayout: json(null),
     permitNumber: { type: DataTypes.STRING(40), allowNull: true },
     permitExpiresOn: { type: DataTypes.DATEONLY, allowNull: true },
@@ -149,6 +150,7 @@ const initAutoRideModels = (sequelize) => {
     mode: { type: DataTypes.STRING(10), allowNull: false, defaultValue: 'SHARED' },
     // Snapshot at publish (<= vehicle.approvedCapacity <= platform max). Never read from the client later.
     capacity: { type: DataTypes.INTEGER, allowNull: false },
+    // Snapshot of the vehicle layout at publish, with its maleOnlySeats (the front-seat rule uses this one).
     seatLayout: json(null),
     seatSelectionEnabled: { type: DataTypes.BOOLEAN, allowNull: true, defaultValue: true },
     privateBookingEnabled: { type: DataTypes.BOOLEAN, allowNull: true, defaultValue: false },
@@ -238,6 +240,11 @@ const initAutoRideModels = (sequelize) => {
     idempotencyKey: { type: DataTypes.STRING(100), allowNull: true },
     privateRequestId: { type: DataTypes.UUID, allowNull: true },
     passengerCount: { type: DataTypes.INTEGER, allowNull: true },
+    // Front-seat rule: the passenger's answer for THIS booking ('Male' | 'Female' | 'Other'), only kept when the
+    // profile gender is unknown ('Prefer not to say'). Never written to the profile, never shown to the driver.
+    riderGender: { type: DataTypes.STRING(20), allowNull: true },
+    // Union queue arrival window: when the "5 min left to reach the auto" push went out (sent once).
+    arrivalWarnedAt: { type: DataTypes.DATE, allowNull: true },
     purpose: { type: DataTypes.STRING(200), allowNull: true },
     confirmedAt: { type: DataTypes.DATE, allowNull: true },
     boardedAt: { type: DataTypes.DATE, allowNull: true },

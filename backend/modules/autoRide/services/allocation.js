@@ -16,7 +16,14 @@
 //    cancelled or unavailable, its confirmed bookings move to the next auto with room (moveLineBookings).
 //  - walk-ins: the driver fills / frees seats for people who sat in without the app. They are real seat rows
 //    (one WALK_IN booking per trip, status BOARDED), so they count towards FULL like any booking and an app
-//    student can never be sold them; the driver can never free a seat an app student booked.
+//    student can never be sold them; the driver can never free a seat an app student booked. The driver may
+//    mark any seat (the front-seat rule below is the app's; the driver decides physically).
+//  - front-seat rule (services/layout.js): the seats beside the driver (trip.seatLayout.maleOnlySeats, 1 and 2 in
+//    the real auto) are for boys only. A rider who is not 'Male' (profile gender, or the per-booking riderGender
+//    when the profile says 'Prefer not to say') can never hold / confirm them (409 FRONT_SEAT_MALE_ONLY), is never
+//    auto-assigned them (409 NO_SUITABLE_SEAT when only they are left) and is never moved onto them.
+//  - arrival window (union queue): a CONFIRMED seat not checked in arrivalWindowMinutes after the later of its
+//    confirmation and the moment its auto went on charge is marked NO_SHOW by the lifecycle job (expireArrivals).
 const { Op } = require('sequelize');
 const { getModel } = require('../index');
 const E = require('../enums');
@@ -27,6 +34,7 @@ const { syncAvailability, transitionTrip } = require('./stateMachine');
 const payments = require('./payments');
 const { readSettings } = require('./flag');
 const chargeLine = require('./chargeLine');
+const seatRule = require('./layout');
 
 const T = E.TRIP_STATUS;
 const B = E.BOOKING_STATUS;
@@ -131,7 +139,7 @@ const replayHoldKey = (prior, tripId) => {
   return { booking: prior, created: false, replay: true };
 };
 
-const hold = async ({ tripId, userId, seatCount, seatNumbers, idempotencyKey }) => {
+const hold = async ({ tripId, userId, seatCount, seatNumbers, idempotencyKey, riderGender = null, riderGenderSource = 'UNKNOWN' }) => {
   const settings = await readSettings();
   const { Booking, Seat } = M();
   if (idempotencyKey) {
@@ -182,6 +190,9 @@ const hold = async ({ tripId, userId, seatCount, seatNumbers, idempotencyKey }) 
       }
       const taken = await liveSeatNumbers(trip.id, t);
       const free = seatList(trip).filter((n) => !taken.has(n));
+      const maleOnly = seatRule.maleOnlySeatsOf(trip);
+      // Seats this rider may take (boys: every free seat, lowest first, so the back rows stay free for girls).
+      const freeForMe = seatRule.seatsForRider(free, maleOnly, riderGender);
       let chosen;
       if (Array.isArray(seatNumbers) && seatNumbers.length) {
         if (!trip.seatSelectionEnabled) throw fail(400, 'SEAT_SELECTION_OFF', 'Seats are assigned automatically on this auto.', { field: 'seatNumbers' });
@@ -189,13 +200,25 @@ const hold = async ({ tripId, userId, seatCount, seatNumbers, idempotencyKey }) 
         if (want.length !== count || want.some((n) => !Number.isInteger(n) || n < 1 || n > cap)) {
           throw fail(400, 'INVALID_INPUT', `Pick ${count} different seat${count === 1 ? '' : 's'} between 1 and ${cap}.`, { field: 'seatNumbers' });
         }
+        const front = seatRule.isMale(riderGender) ? [] : want.filter((n) => maleOnly.includes(n));
+        if (front.length) throw seatRule.frontSeatError(front, { maleOnlySeats: maleOnly, genderUnknown: riderGender === null, availableForYou: freeForMe });
         const clash = want.filter((n) => taken.has(n));
-        if (clash.length) throw fail(409, 'SEAT_TAKEN', `Seat ${clash.join(', ')} was just taken. Pick another seat.`, { seats: clash, available: free });
+        if (clash.length) throw fail(409, 'SEAT_TAKEN', `Seat ${clash.join(', ')} was just taken. Pick another seat.`, { seats: clash, available: freeForMe });
         chosen = want.sort((a, b) => a - b);
       } else {
         if (free.length === 0) throw fail(409, 'TRIP_FULL', chargeLine.isCharge(trip) ? 'All seats on this auto are taken or being booked right now. Try again in a minute.' : 'All seats on this auto are taken.');
-        if (free.length < count) throw fail(409, 'NOT_ENOUGH_SEATS', `Only ${free.length} seat${free.length === 1 ? '' : 's'} left on this auto.`, { available: free.length });
-        chosen = free.slice(0, count);
+        if (freeForMe.length === 0) {
+          throw fail(409, 'NO_SUITABLE_SEAT', 'No suitable seat on this auto. Only the front seats beside the driver are left, and they are for boys only.', {
+            available: free.length, availableForYou: 0, onlyFrontSeatsLeft: true, maleOnlySeats: maleOnly, genderUnknown: riderGender === null,
+          });
+        }
+        if (freeForMe.length < count) {
+          const msg = free.length >= count
+            ? `Only ${freeForMe.length} seat${freeForMe.length === 1 ? '' : 's'} left for you on this auto. The seats beside the driver are for boys only.`
+            : `Only ${free.length} seat${free.length === 1 ? '' : 's'} left on this auto.`;
+          throw fail(409, 'NOT_ENOUGH_SEATS', msg, { available: free.length, availableForYou: freeForMe.length });
+        }
+        chosen = freeForMe.slice(0, count);
       }
       const now = clock.nowMs();
       const holdExpiresAt = new Date(Math.min(now + settings.holdMinutes * 60 * 1000, new Date(trip.departureAt).getTime()));
@@ -216,6 +239,8 @@ const hold = async ({ tripId, userId, seatCount, seatNumbers, idempotencyKey }) 
         fareBreakdown: { seats: count, seatFare: fare, total: money(fare * count) },
         passengerCount: count,
         idempotencyKey: idempotencyKey || null,
+        // Only the per-booking answer is kept (a known profile gender is read from the profile each time).
+        riderGender: riderGenderSource === 'BOOKING' ? riderGender : null,
       }, { transaction: t });
       await Seat.bulkCreate(chosen.map((seatNo) => ({ tripId: trip.id, seatNo, bookingId: booking.id, status: S.HELD, holdExpiresAt })), { transaction: t });
       await recomputeCounters(trip, t);
@@ -246,6 +271,7 @@ const confirm = async ({ bookingId, userId, paymentMethod }) => {
   const first = await Booking.findByPk(bookingId);
   if (!first || String(first.userId) !== String(userId)) throw fail(404, 'NOT_FOUND', 'Booking not found.');
   const method = await payments.pickMethod(paymentMethod);
+  const profileGender = await profileGenderOf(userId);
   const out = await withTripLock(first.tripId, async (t, trip) => {
     const b = await Booking.findByPk(bookingId, lockOpt(t));
     if (E.CONFIRMED_BOOKING_STATUSES.includes(b.status)) return { booking: b, trip, already: true };
@@ -260,6 +286,16 @@ const confirm = async ({ bookingId, userId, paymentMethod }) => {
     }
     const okStatus = E.BOOKABLE_STATUSES.includes(trip.status) || (trip.status === T.DELAYED && E.BOOKABLE_STATUSES.includes(trip.statusBeforeDelay));
     if (!okStatus || trip.mode !== E.MODE.SHARED) throw fail(409, 'BOOKING_CLOSED', 'Booking is closed for this auto.', { status: trip.status });
+    // Front-seat rule, again at confirm (the profile may have changed since the hold): the hold is given back.
+    const gender = seatRule.knownGender(profileGender) || seatRule.knownGender(b.riderGender);
+    const maleOnly = seatRule.maleOnlySeatsOf(trip);
+    const front = seatRule.isMale(gender) ? [] : (Array.isArray(b.seatNumbers) ? b.seatNumbers : []).map(Number).filter((n) => maleOnly.includes(n));
+    if (front.length) {
+      await cancelOneInTx(b, trip, { by: 'system', reason: 'Seat beside the driver is for boys only', t, pct: 0 });
+      await recomputeCounters(trip, t);
+      await syncAvailability(trip, { t });
+      return { frontRefused: front, booking: b, trip };
+    }
     const pay = await payments.charge({ userId, amount: b.amount, method, t, ref: { type: 'AUTO_BOOKING', id: b.id } });
     const now = clock.now();
     const [n] = await Booking.update(
@@ -283,7 +319,19 @@ const confirm = async ({ bookingId, userId, paymentMethod }) => {
     return res;
   });
   if (out.gone) throw fail(410, 'HOLD_EXPIRED', 'Your seat hold expired and the seats were released. Please book again.', { bookingId });
+  if (out.frontRefused) throw seatRule.frontSeatError(out.frontRefused, { bookingId, released: true });
   return out;
+};
+
+/** The stored profile gender of a customer (null when there is no User model / row). */
+const profileGenderOf = async (userId) => {
+  try {
+    const User = require('../../../models/User').getUserModel();
+    const u = User ? await User.findByPk(userId, { attributes: ['id', 'gender'] }) : null;
+    return u ? u.gender : null;
+  } catch {
+    return null;
+  }
 };
 
 /**
@@ -539,18 +587,35 @@ const markNoShow = async ({ tripId, driverId, bookingId }) => {
   const { Booking } = M();
   // S1: a passenger can be marked no-show only noShowGraceMinutes after the departure time (late passengers
   // keep their seat; starting the trip still closes unboarded bookings as before).
-  const graceMin = Number((await readSettings()).noShowGraceMinutes) || 0;
+  const settings = await readSettings();
+  const graceMin = Number(settings.noShowGraceMinutes) || 0;
+  const arrival = require('./arrival');
   return withTripLock(tripId, async (t, trip) => {
     if (String(trip.driverId) !== String(driverId)) throw fail(404, 'NOT_FOUND', 'Trip not found.');
-    if (![T.DRIVER_CONFIRMED, T.BOARDING].includes(trip.status)) throw fail(409, 'INVALID_STATE', 'Passengers can be marked no-show only after you confirm departure.');
-    if (new Date(trip.departureAt).getTime() + graceMin * 60 * 1000 > clock.nowMs()) throw fail(409, 'TOO_EARLY', `Wait ${graceMin} minutes after the departure time before marking a passenger as no-show.`, { graceMinutes: graceMin });
+    // Union queue at the stand: the arrival window runs per booking; the driver may release the seat early, once
+    // the student has been warned (window minus the warning lead, e.g. 10 of 15 minutes) and still is not there.
+    const atStand = arrival.windowApplies(trip);
+    if (!atStand) {
+      if (![T.DRIVER_CONFIRMED, T.BOARDING].includes(trip.status)) throw fail(409, 'INVALID_STATE', 'Passengers can be marked no-show only after you confirm departure.');
+      if (new Date(trip.departureAt).getTime() + graceMin * 60 * 1000 > clock.nowMs()) throw fail(409, 'TOO_EARLY', `Wait ${graceMin} minutes after the departure time before marking a passenger as no-show.`, { graceMinutes: graceMin });
+    }
     const b = await Booking.findByPk(bookingId, lockOpt(t));
     if (!b || String(b.tripId) !== String(trip.id)) throw fail(404, 'NOT_FOUND', 'Booking not found.');
     if (b.status !== B.CONFIRMED) throw fail(409, 'INVALID_STATE', `This booking is ${b.status.toLowerCase()}.`);
+    if (atStand) {
+      const win = settings.arrivalWindowMinutes;
+      const start = arrival.startMs(b, trip);
+      const earliest = start === null ? null : start + (win - arrival.warnLeadMinutes(win)) * 60 * 1000;
+      if (earliest === null || earliest > clock.nowMs()) {
+        const wait = earliest === null ? win - arrival.warnLeadMinutes(win) : Math.max(1, Math.ceil((earliest - clock.nowMs()) / 60000));
+        throw fail(409, 'TOO_EARLY', `Give the student time to reach the auto. You can mark a no-show in ${wait} minute${wait === 1 ? '' : 's'}; the seat is released by itself after ${win} minutes.`, { minutesLeft: wait });
+      }
+    }
     const now = clock.now();
     await Booking.update({ status: B.NO_SHOW, noShowAt: now, paymentStatus: b.paymentMethod === E.PAYMENT_METHODS.WALLET ? E.PAYMENT_STATUS.NOT_REFUNDED : E.PAYMENT_STATUS.NONE }, { where: { id: b.id, status: B.CONFIRMED }, transaction: t });
     await releaseSeatsOf([b.id], t);
     await recomputeCounters(trip, t);
+    if (atStand) await syncAvailability(trip, { t, actor: 'system' }); // a FULL auto at the stand is open again
     return { booking: await Booking.findByPk(b.id, { transaction: t }), trip };
   });
 };
@@ -589,13 +654,22 @@ const moveLineBookings = async (from, t) => {
   }
   const now = clock.now();
   const moved = [];
+  // Front-seat rule: a booking whose rider is not a boy never lands on the seats beside the driver.
+  const genders = new Map();
+  try {
+    const User = require('../../../models/User').getUserModel();
+    const ids = [...new Set(bookings.map((b) => String(b.userId)))];
+    const users = User && ids.length ? await User.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'gender'], transaction: t }) : [];
+    for (const u of users) genders.set(String(u.id), u.gender);
+  } catch { /* unknown gender = not a boy (the safe side) */ }
   for (const b of bookings) {
     let target = null;
     let seats = null;
+    const rider = seatRule.knownGender(genders.get(String(b.userId))) || seatRule.knownGender(b.riderGender);
     for (const c of cands) {
       if (!open(c)) continue;
       const taken = await liveSeatNumbers(c.id, t);
-      const free = seatList(c).filter((n) => !taken.has(n));
+      const free = seatRule.seatsForRider(seatList(c).filter((n) => !taken.has(n)), seatRule.maleOnlySeatsOf(c), rider);
       if (free.length < Number(b.seatCount)) continue;
       // One live booking per student per auto (unique index): a student already on that auto stays put.
       const clash = await Booking.findOne({ where: { tripId: c.id, userId: b.userId, status: { [Op.in]: E.LIVE_BOOKING_STATUSES } }, attributes: ['id'], transaction: t });
@@ -698,6 +772,41 @@ const walkIn = async ({ tripId, driverId, action, seatNo }) => {
   });
 };
 
+// ── Union queue arrival window ───────────────────────────────────────────────
+
+/**
+ * Inside the trip lock: every CONFIRMED app seat booking of this auto whose arrival deadline (services/arrival.js)
+ * has passed becomes NO_SHOW (same columns as the driver's no-show: wallet NOT_REFUNDED, cash NONE), its seats are
+ * released, the counters recomputed and the availability synced (a FULL auto is open again). Idempotent: a
+ * booking already boarded / ended is untouched. Returns { trip, expired: [{ booking, seatNumbers }] }.
+ */
+const expireArrivals = async (tripId, { windowMinutes, now = clock.now() } = {}) => {
+  const { Booking } = M();
+  const arrival = require('./arrival');
+  return withTripLock(tripId, async (t, trip) => {
+    if (!arrival.windowApplies(trip)) return { trip, expired: [] };
+    const rows = await Booking.findAll({ where: { tripId: trip.id, status: B.CONFIRMED, type: E.BOOKING_TYPE.SHARED }, transaction: t });
+    const expired = [];
+    for (const b of rows) {
+      const due = arrival.deadlineMs(b, trip, windowMinutes);
+      if (due === null || due > now.getTime()) continue;
+      const [n] = await Booking.update({
+        status: B.NO_SHOW, noShowAt: now, cancelledBy: 'system', cancelReason: `Did not arrive within ${windowMinutes} minutes`,
+        paymentStatus: b.paymentMethod === E.PAYMENT_METHODS.WALLET ? E.PAYMENT_STATUS.NOT_REFUNDED : E.PAYMENT_STATUS.NONE,
+      }, { where: { id: b.id, status: B.CONFIRMED }, transaction: t });
+      if (!n) continue;
+      await releaseSeatsOf([b.id], t);
+      b.status = B.NO_SHOW;
+      expired.push({ booking: b, seatNumbers: (Array.isArray(b.seatNumbers) ? b.seatNumbers : []).map(Number) });
+    }
+    if (expired.length) {
+      await recomputeCounters(trip, t);
+      await syncAvailability(trip, { t, actor: 'system' });
+    }
+    return { trip, expired };
+  });
+};
+
 /** Lifecycle helper: expire stale holds of one trip in its lock. */
 const expireTripHolds = (tripId) => withTripLock(tripId, async (t, trip) => {
   const expired = await expireStaleHolds(trip, t);
@@ -711,5 +820,5 @@ const expireTripHolds = (tripId) => withTripLock(tripId, async (t, trip) => {
 module.exports = {
   hold, confirm, cancelByCustomer, cancelOneInTx, closeTripBookings, recomputeCounters, expireStaleHolds, expireTripHolds,
   releaseSeatsOf, liveSeatNumbers, createPrivateRequest, acceptPrivateRequest, declinePrivateRequest, cancelPrivateRequest,
-  checkIn, markNoShow, assertBookable, transitionTrip, privateFare, walkIn, moveLineBookings,
+  checkIn, markNoShow, assertBookable, transitionTrip, privateFare, walkIn, moveLineBookings, expireArrivals, profileGenderOf,
 };

@@ -7,6 +7,11 @@
  * GET /api/auto-ride/on-charge. Cash to the driver at boarding; no payment picker.
  * If an auto fills while the student is booking, the server answers AUTO_JUST_FILLED; the board refreshes,
  * says "This auto just filled. The next auto is on charge now" and offers the next auto in the same card.
+ * Front-seat rule: seats 1 and 2 beside the driver are for boys only (server-enforced). Seat counts show what THIS
+ * passenger can book ("5 left · 3 for you"); when only the front seats are left for a girl the card says
+ * "Only front seats left (boys only)" and offers the next auto with a seat for her. A passenger whose profile
+ * gender is 'Prefer not to say' is asked once on this board "Are you booking for a boy?"; the answer goes with each
+ * hold (riderGender) and is never saved to the profile.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Alert, StyleSheet } from 'react-native';
@@ -14,14 +19,20 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { FadeInUp } from '../others/motion';
 import { readCache, writeCache } from '../../utils/swrCache';
-import { autoRideApi, AutoRideError, errorCopy, inr, newIdempotencyKey, type ChargeAuto, type ChargeLine, type SeatState } from './autoRideApi';
+import { autoRideApi, AutoRideError, errorCopy, inr, newIdempotencyKey, type ChargeAuto, type ChargeLine, type SeatState, type RiderGender } from './autoRideApi';
 import { usePalette, Card, Btn, StateView, Notice, Stepper, AutoTile, VerifiedBadge, useAutoRideLive } from './ui';
-import SeatMap from './SeatMap';
+import SeatMap, { askRiderGender } from './SeatMap';
 
 const BOARD_KEY = 'autoride:on-charge';
 const POLL_MS = 15000;
 /** Codes meaning "this auto can no longer take your booking; another one can". */
 const MOVED_ON = ['AUTO_JUST_FILLED', 'AUTO_OFF_CHARGE', 'WAITING_IN_LINE', 'TRIP_FULL', 'BOOKING_CLOSED'];
+/** Codes of the front-seat rule (seats beside the driver are for boys only). */
+const FRONT_ONLY = ['NO_SUITABLE_SEAT', 'FRONT_SEAT_MALE_ONLY'];
+const FRONT_ONLY_NOTE = 'Only front seats left (boys only). Book the next auto below.';
+
+/** Seats this passenger can book on an auto (falls back to all free seats on an older server). */
+const forYou = (a: ChargeAuto) => (typeof a.seatsForYou === 'number' ? a.seatsForYou : a.remainingSeats);
 
 const seatsWord = (n: number) => `${n} seat${n === 1 ? '' : 's'}`;
 
@@ -34,6 +45,8 @@ export default function ChargeBoard({ onUnavailable }: { onUnavailable?: () => v
   const [maxPer, setMaxPer] = useState(4);
   const [error, setError] = useState<AutoRideError | null>(null);
   const [notices, setNotices] = useState<Record<string, string>>({});
+  // "Are you booking for a boy?" (profile gender unknown): asked once on this board, sent with each hold.
+  const riderRef = useRef<RiderGender | null>(null);
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
 
@@ -92,7 +105,7 @@ export default function ChargeBoard({ onUnavailable }: { onUnavailable?: () => v
       ) : (
         (lines || []).map((l, i) => (
           <FadeInUp key={l.key} index={i}>
-            <LineCard line={l} maxPer={maxPer} notice={notices[l.key] || null} onMovedOn={onMovedOn} clearNotice={clearNotice} reload={load} />
+            <LineCard line={l} maxPer={maxPer} notice={notices[l.key] || null} onMovedOn={onMovedOn} clearNotice={clearNotice} reload={load} riderRef={riderRef} />
           </FadeInUp>
         ))
       )}
@@ -100,13 +113,21 @@ export default function ChargeBoard({ onUnavailable }: { onUnavailable?: () => v
   );
 }
 
-function LineCard({ line, maxPer, notice, onMovedOn, clearNotice, reload }: {
+function LineCard({ line, maxPer, notice, onMovedOn, clearNotice, reload, riderRef }: {
   line: ChargeLine; maxPer: number; notice: string | null;
   onMovedOn: (key: string, message: string) => void; clearNotice: (key: string) => void; reload: () => void;
+  riderRef: React.MutableRefObject<RiderGender | null>;
 }) {
   const p = usePalette();
   const front = line.onCharge;
   const waiting = line.waitingAutos || [];
+  const all = [...(front ? [front] : []), ...waiting];
+  /** The next auto behind `a` with a seat for this passenger (offered when only boys-only seats are left on `a`). */
+  const nextFor = (a: ChargeAuto) => {
+    const i = all.findIndex((x) => x.id === a.id);
+    return all.slice(i + 1).find((x) => forYou(x) > 0 && x.sharedBookingAllowed && !x.myBookingId) || null;
+  };
+  const common = { line, maxPer, onMovedOn, clearNotice, reload, riderRef };
   const shownFare = front ? front.seatFare : line.seatFare;
   return (
     <Card style={{ padding: 0, overflow: 'hidden' }}>
@@ -128,7 +149,7 @@ function LineCard({ line, maxPer, notice, onMovedOn, clearNotice, reload }: {
       {notice ? <View style={{ paddingHorizontal: 14 }}><Notice tone="info">{notice}</Notice></View> : null}
 
       {front ? (
-        <AutoBlock auto={front} line={line} maxPer={maxPer} full onMovedOn={onMovedOn} clearNotice={clearNotice} reload={reload} />
+        <AutoBlock auto={front} full next={nextFor(front)} {...common} />
       ) : (
         <View style={[st.empty, { backgroundColor: p.card2 }]}>
           <Ionicons name="time-outline" size={18} color={p.muted} />
@@ -153,7 +174,7 @@ function LineCard({ line, maxPer, notice, onMovedOn, clearNotice, reload }: {
         </View>
       ) : null}
       {waiting.map((w) => (
-        <AutoBlock key={w.id} auto={w} line={line} maxPer={maxPer} onMovedOn={onMovedOn} clearNotice={clearNotice} reload={reload} />
+        <AutoBlock key={w.id} auto={w} next={nextFor(w)} {...common} />
       ))}
     </Card>
   );
@@ -163,27 +184,40 @@ function LineCard({ line, maxPer, notice, onMovedOn, clearNotice, reload }: {
  * One bookable auto. full = the auto on charge (pill, big seat count, seat map); otherwise a compact row for an
  * auto waiting in line (#2, #3 ...) with its seats left and Book.
  */
-function AutoBlock({ auto: t, line, maxPer, full, onMovedOn, clearNotice, reload }: {
-  auto: ChargeAuto; line: ChargeLine; maxPer: number; full?: boolean;
+function AutoBlock({ auto: t, line, maxPer, full, next, onMovedOn, clearNotice, reload, riderRef }: {
+  auto: ChargeAuto; line: ChargeLine; maxPer: number; full?: boolean; next: ChargeAuto | null;
   onMovedOn: (key: string, message: string) => void; clearNotice: (key: string) => void; reload: () => void;
+  riderRef: React.MutableRefObject<RiderGender | null>;
 }) {
   const p = usePalette();
   const router = useRouter();
   const [count, setCount] = useState(1);
   const [busy, setBusy] = useState(false);
   const remaining = t.remainingSeats;
-  const maxHere = Math.max(1, Math.min(maxPer, remaining || 1));
+  const viewer = t.seatMap?.viewer || 'UNKNOWN';
+  const mineFree = forYou(t);
+  // What this passenger can book: a girl never counts the boys-only front seats; an unknown passenger may be a boy.
+  const bookable = viewer === 'NOT_MALE' ? mineFree : remaining;
+  const frontOnly = !!t.onlyFrontSeatsLeft;
+  const maxHere = Math.max(1, Math.min(maxPer, bookable || 1));
   useEffect(() => { if (count > maxHere) setCount(maxHere); }, [count, maxHere]);
   useEffect(() => { setCount(1); }, [t.id]);
   const mine = !!t.myBookingId;
-  const canBook = !mine && remaining > 0 && t.sharedBookingAllowed;
+  const canBook = !mine && bookable > 0 && t.sharedBookingAllowed;
 
-  const book = async () => {
+  const book = async (target: ChargeAuto = t, seats = count) => {
     if (busy) return;
+    // Profile gender unknown: ask once, before the first quick booking on this board.
+    if ((target.seatMap?.viewer || 'UNKNOWN') === 'UNKNOWN' && !riderRef.current) {
+      const answer = await askRiderGender();
+      if (!answer) return;
+      riderRef.current = answer;
+    }
     setBusy(true);
     let heldId: string | null = null;
     try {
-      const h = await autoRideApi.hold(t.id, { seatCount: count }, newIdempotencyKey());
+      const rider = (target.seatMap?.viewer || 'UNKNOWN') === 'UNKNOWN' && riderRef.current ? { riderGender: riderRef.current } : {};
+      const h = await autoRideApi.hold(target.id, { seatCount: seats, ...rider }, newIdempotencyKey());
       const b = h.booking;
       if (b.status === 'CONFIRMED' || b.status === 'BOARDED') { router.push(`/auto-ride/booking/${b.id}` as any); return; }
       heldId = b.id;
@@ -199,6 +233,8 @@ function AutoBlock({ auto: t, line, maxPer, full, onMovedOn, clearNotice, reload
       if (MOVED_ON.includes(code)) {
         // The server says whether the next auto is already on charge ("This auto just filled. The next auto is on charge now.").
         onMovedOn(line.key, e.message || 'This auto is no longer taking bookings.');
+      } else if (FRONT_ONLY.includes(code)) {
+        onMovedOn(line.key, FRONT_ONLY_NOTE);
       } else if (code === 'NOT_ENOUGH_SEATS') {
         Alert.alert('Not enough seats', e.message);
         reload();
@@ -211,11 +247,12 @@ function AutoBlock({ auto: t, line, maxPer, full, onMovedOn, clearNotice, reload
     }
   };
 
-  const ask = () => {
+  const ask = (target: ChargeAuto = t, seats = count) => {
+    const front = target.id === line.onCharge?.id;
     Alert.alert(
-      `Book ${seatsWord(count)}?`,
-      `${full ? 'The auto on charge' : `Auto number ${t.position} in line`}, to ${line.destination || 'the destination'} from ${line.pickup?.name || 'the stand'}. ${inr(t.seatFare * count)}, paid to the driver in cash when you board.`,
-      [{ text: 'Not now', style: 'cancel' }, { text: 'Book', onPress: book }],
+      `Book ${seatsWord(seats)}?`,
+      `${front ? 'The auto on charge' : `Auto number ${target.position} in line`}, to ${line.destination || 'the destination'} from ${line.pickup?.name || 'the stand'}. ${inr(target.seatFare * seats)}, paid to the driver in cash when you board.`,
+      [{ text: 'Not now', style: 'cancel' }, { text: 'Book', onPress: () => { book(target, seats); } }],
     );
   };
 
@@ -240,6 +277,12 @@ function AutoBlock({ auto: t, line, maxPer, full, onMovedOn, clearNotice, reload
       <View style={{ alignItems: 'flex-end' }}>
         <Text style={[full ? st.left : st.leftSmall, { color: remaining ? p.text : p.danger }]}>{remaining}</Text>
         <Text style={{ fontSize: 12, color: p.muted }}>of {t.capacity} left</Text>
+        {viewer !== 'MALE' && remaining > 0 && mineFree < remaining ? (
+          <Text style={{ fontSize: 12, color: mineFree ? p.sub : p.danger, fontWeight: '600', marginTop: 1 }}
+            accessibilityLabel={`${remaining} seats left, ${mineFree} for you. The seats beside the driver are for boys only.`}>
+            {mineFree} for you
+          </Text>
+        ) : null}
       </View>
     </View>
   );
@@ -257,23 +300,40 @@ function AutoBlock({ auto: t, line, maxPer, full, onMovedOn, clearNotice, reload
             <Btn label="+" kind="secondary" small disabled={count >= maxHere} onPress={() => setCount(Math.min(maxHere, count + 1))} />
           </View>
         ) : null}
-        <Btn label={`Book ${seatsWord(count)}`} small={!full} loading={busy} onPress={ask} style={{ flex: 1 }} />
+        <Btn label={`Book ${seatsWord(count)}`} small={!full} loading={busy} onPress={() => ask()} style={{ flex: 1 }} />
       </View>
       {t.seatSelectionEnabled ? (
         <Btn label="Choose my seats" kind="ghost" small style={{ marginTop: 4 }} onPress={() => router.push(`/auto-ride/trip/${t.id}?book=1` as any)} />
       ) : null}
     </View>
-  ) : (
+  ) : null;
+  // Only the boys-only front seats are left (for a girl, or for a passenger who has not said).
+  const frontNote = !mine && frontOnly && remaining > 0 ? (
+    <View style={{ marginTop: 10 }}>
+      <View style={[st.frontNote, { backgroundColor: p.card2 }]}>
+        <Ionicons name="lock-closed-outline" size={15} color={p.muted} />
+        <Text style={{ flex: 1, fontSize: 13, color: p.text, lineHeight: 18 }}>Only front seats left (boys only)</Text>
+      </View>
+      {next ? (
+        <Btn label={`Book auto #${next.position} instead`} kind="secondary" small style={{ marginTop: 8 }} loading={busy} onPress={() => ask(next, 1)} />
+      ) : (
+        <Text style={{ fontSize: 13, color: p.sub, marginTop: 6 }}>No other auto in this line has a back seat free yet. Check again in a minute.</Text>
+      )}
+    </View>
+  ) : null;
+  const closedNote = !mine && !canBook && !frontNote ? (
     <Text style={{ fontSize: 13, color: p.sub, marginTop: 10 }}>
       {remaining > 0 ? 'Seats are being booked right now. Check again in a minute.' : 'This auto is full.'}
     </Text>
-  );
+  ) : null;
 
   if (!full) {
     return (
       <View style={[st.compact, { borderTopColor: p.border }]}>
         {driverRow}
         {actions}
+        {frontNote}
+        {closedNote}
       </View>
     );
   }
@@ -289,10 +349,12 @@ function AutoBlock({ auto: t, line, maxPer, full, onMovedOn, clearNotice, reload
       </View>
       {t.seatMap ? (
         <View style={{ marginTop: 14 }}>
-          <SeatMap rows={t.seatMap.layout.rows} states={states} selected={[]} selectable={false} />
+          <SeatMap rows={t.seatMap.layout.rows} maleOnlySeats={t.seatMap.layout.maleOnlySeats} viewer={viewer} states={states} selected={[]} selectable={false} />
         </View>
       ) : null}
       {actions}
+      {frontNote}
+      {closedNote}
     </View>
   );
 }
@@ -309,5 +371,6 @@ const st = StyleSheet.create({
   leftSmall: { fontSize: 18, fontWeight: '700', fontVariant: ['tabular-nums'] },
   waitHead: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth },
   compact: { paddingHorizontal: 14, paddingBottom: 12, borderTopWidth: StyleSheet.hairlineWidth },
+  frontNote: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
   empty: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginHorizontal: 14, marginBottom: 14, borderRadius: 12, padding: 12 },
 });

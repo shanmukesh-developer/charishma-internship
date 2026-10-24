@@ -152,7 +152,7 @@ const putOnCharge = async ({ driverId, pickupPointId, routeId, vehicleId, seatFa
     const tr = await Trip.create({
       driverId, vehicleId: vehicle.id, routeId: route.id, pickupPointId: pickup.id, destinationLabel: route.destinationLabel, stops: [],
       departureAt, originalDepartureAt: departureAt, status: T.DRAFT, mode: E.MODE.SHARED, capacity,
-      seatLayout: layoutForTrip(vehicle.seatLayout, capacity), seatSelectionEnabled: true, privateBookingEnabled: false,
+      seatLayout: layoutForTrip(vehicle.seatLayout, capacity, vehicle.approvedCapacity), seatSelectionEnabled: true, privateBookingEnabled: false,
       seatFare: fare, minSeatsToDepart: 1, seatsHeld: 0, seatsConfirmed: 0, seatsBoarded: 0, seatsWalkIn: 0,
       dispatchMode: E.DISPATCH_MODE.ON_CHARGE, lineSeq: seq, operatingDate: istDate(now), periodKey: chargeLine.LINE_PERIOD, queueNumber: seq,
     }, { transaction: t });
@@ -185,7 +185,7 @@ const publish = async ({ tripId, driverId }) => {
     const q = await queue.nextQueueNumber({ pickupPointId: tr.pickupPointId, routeId: tr.routeId, departureAt: tr.departureAt, route, t });
     await transitionTrip(tr, T.PUBLISHED, {
       actor: 'driver', actorId: driverId, t, note: `Queue #${q.queueNumber}`,
-      set: { ...q, seatLayout: layoutForTrip(vehicle.seatLayout, tr.capacity), originalDepartureAt: tr.departureAt, seatsHeld: 0, seatsConfirmed: 0, seatsBoarded: 0 },
+      set: { ...q, seatLayout: layoutForTrip(vehicle.seatLayout, tr.capacity, vehicle.approvedCapacity), originalDepartureAt: tr.departureAt, seatsHeld: 0, seatsConfirmed: 0, seatsBoarded: 0 },
     });
     if (!tr.bookingOpensAt || new Date(tr.bookingOpensAt).getTime() <= clock.nowMs()) {
       await transitionTrip(tr, T.OPEN_FOR_BOOKING, { actor: 'system', t, note: 'Booking open' });
