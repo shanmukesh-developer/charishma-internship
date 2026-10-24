@@ -87,7 +87,7 @@ export function Screen({
 }
 
 export function SectionTitle({ text }: { text: string }) {
-  return <Text style={[font.label, { color: color.textMuted, marginTop: space.xs }]}>{text.toUpperCase()}</Text>;
+  return <Text style={[font.label, { color: color.textMuted, marginTop: space.xs }]}>{text}</Text>;
 }
 
 export function Field({

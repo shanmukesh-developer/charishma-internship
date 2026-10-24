@@ -74,7 +74,7 @@ export function HistoryScreen({ navigation }: ScreenProps<'History'>) {
             <Card style={{ gap: 4 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
                 <Text style={[font.h3, { color: color.text, flex: 1 }]} numberOfLines={1}>{t.route ? `${t.route.origin} → ${t.destination || t.route.destination}` : t.destination}</Text>
-                <Badge text={t.statusLabel.toUpperCase()} fg={tone.fg} bg={tone.bg} />
+                <Badge text={t.statusLabel} fg={tone.fg} bg={tone.bg} />
               </View>
               <Text style={[font.body, { color: color.textSecondary }]}>{dayIst(t.departureAt)} · {timeIst(t.departureAt)}{t.queueNumber ? ` · Queue #${t.queueNumber}` : ''}</Text>
               <Text style={[font.body, { color: color.textSecondary }]}>{t.boardedSeats} boarded · {t.confirmedSeats}/{t.capacity} confirmed · {rupees(t.seatFare)} per seat</Text>

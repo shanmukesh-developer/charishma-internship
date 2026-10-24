@@ -52,7 +52,7 @@ function PasswordField({ label, value, onChange, onSubmit, error }: { label: str
   const [show, setShow] = useState(false);
   return (
     <View style={{ gap: space.xxs }}>
-      <Text style={[font.label, { color: color.textSecondary }]}>{label.toUpperCase()}</Text>
+      <Text style={[font.label, { color: color.textSecondary }]}>{label}</Text>
       <View style={[styles.inputRow, error ? { borderColor: color.alert } : null]}>
         <TextInput
           value={value}

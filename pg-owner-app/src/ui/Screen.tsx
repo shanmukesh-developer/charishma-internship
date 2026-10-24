@@ -74,7 +74,7 @@ export function Screen({
 export function SectionTitle({ text, right }: { text: string; right?: React.ReactNode }) {
   return (
     <View style={[styles.sectionRow]}>
-      <Text style={[font.label, { color: color.textMuted, flex: 1 }]}>{text.toUpperCase()}</Text>
+      <Text style={[font.label, { color: color.textMuted, flex: 1 }]}>{text}</Text>
       {right}
     </View>
   );
@@ -85,7 +85,7 @@ export function Field({
 }: TextInputProps & { label: string; error?: string | null; hint?: string; prefix?: string; style?: StyleProp<ViewStyle> }) {
   return (
     <View style={[{ gap: space.xxs }, style]}>
-      <Text style={[font.label, { color: color.textSecondary }]}>{label.toUpperCase()}</Text>
+      <Text style={[font.label, { color: color.textSecondary }]}>{label}</Text>
       <View style={[styles.inputRow, multiline ? { alignItems: 'flex-start', paddingVertical: space.xs } : null, error ? { borderColor: color.alert } : null]}>
         {prefix ? <Text style={[font.h3, { color: color.textSecondary }]}>{prefix}</Text> : null}
         <TextInput

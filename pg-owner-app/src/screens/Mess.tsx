@@ -245,7 +245,7 @@ function HolidaySheet({ visible, meals, taken, onClose, onAdd }: {
               return (
                 <Pressable key={d} onPress={() => setDate(d)} accessibilityRole="radio" accessibilityState={{ selected: on, disabled: used }} disabled={used}
                   style={[st.dateChip, on && { backgroundColor: color.primary, borderColor: color.primary }, used && { opacity: 0.35 }]}>
-                  <Text style={[font.label, { color: on ? color.textInverse : color.textMuted }]}>{weekday(d).toUpperCase()}</Text>
+                  <Text style={[font.label, { color: on ? color.textInverse : color.textMuted }]}>{weekday(d)}</Text>
                   <Text style={[font.h3, { color: on ? color.textInverse : color.text }]}>{Number(d.slice(8, 10))}</Text>
                   <Text style={[font.label, { color: on ? color.textInverse : color.textMuted }]}>{dateLabel(d).split(' ')[1]}</Text>
                 </Pressable>

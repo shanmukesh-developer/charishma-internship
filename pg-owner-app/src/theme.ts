@@ -22,7 +22,7 @@ export const font = {
   h3: { fontSize: 16, lineHeight: 22, fontWeight: '700' },
   body: { fontSize: 15, lineHeight: 21, fontWeight: '500' },
   small: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
-  label: { fontSize: 12, lineHeight: 16, fontWeight: '700', letterSpacing: 0.3 },
+  label: { fontSize: 13, lineHeight: 16, fontWeight: '600', letterSpacing: 0.1 },
   button: { fontSize: 16, lineHeight: 20, fontWeight: '700' },
   num: { fontSize: 22, lineHeight: 26, fontWeight: '800', fontVariant: ['tabular-nums'] },
 } satisfies Record<string, TextStyle>;

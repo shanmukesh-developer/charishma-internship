@@ -41,7 +41,7 @@ export function TripSummaryCard({ trip, onPress }: { trip: Trip; onPress?: () =>
     <Pressable onPress={onPress} disabled={!onPress} accessibilityRole="button" accessibilityLabel={`Current trip ${trip.route?.name || ''}, ${trip.statusLabel}`}
       style={({ pressed }) => [styles.trip, pressed && onPress ? { opacity: 0.85 } : null]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
-        <Badge text={trip.statusLabel.toUpperCase()} fg={tone.fg} bg={tone.bg} />
+        <Badge text={trip.statusLabel} fg={tone.fg} bg={tone.bg} />
         {trip.mode === 'PRIVATE' ? <Badge text="FULL AUTO" fg={color.boarded} bg={color.boardedTint} /> : null}
         <View style={{ flex: 1 }} />
         {charge && trip.line ? <Text style={[font.h2, { color: color.text }]}>{trip.onCharge ? 'On charge' : `Waiting · #${trip.line.position}`}</Text>

@@ -26,7 +26,7 @@ export const font = {
   h3: { fontSize: 18, lineHeight: 24, fontWeight: '700' },
   body: { fontSize: 16, lineHeight: 22, fontWeight: '500' },
   small: { fontSize: 14, lineHeight: 20, fontWeight: '500' },
-  label: { fontSize: 13, lineHeight: 16, fontWeight: '800', letterSpacing: 0.4 },
+  label: { fontSize: 13, lineHeight: 16, fontWeight: '600', letterSpacing: 0.1 },
   button: { fontSize: 18, lineHeight: 22, fontWeight: '800' },
 } satisfies Record<string, TextStyle>;
 

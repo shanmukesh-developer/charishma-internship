@@ -5,7 +5,7 @@
     },
     "name": "ZCS PG Partner",
     "slug": "zcs-pg-partner",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -20,7 +20,7 @@
     },
     "android": {
       "package": "com.srm.zenvypgowner",
-      "versionCode": 1,
+      "versionCode": 2,
       "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#0B0A1E",
