@@ -89,7 +89,7 @@ export default function PgV2List() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, flexShrink: 0 }} contentContainerStyle={st.chips}>
         {FILTERS.map((f) => (
           <Chip key={f} label={f} on={filter === f} onPress={() => setFilter(f)} icon={chipIcon(f)}
-            tone={f === 'All' ? undefined : { ...genderTone(f), soft: PG2.lavender }} />
+            />
         ))}
         {budgetLabel ? (
           <Tap onPress={() => setBudget('any')} label={`Clear budget ${budgetLabel}`} style={st.budgetChip}>

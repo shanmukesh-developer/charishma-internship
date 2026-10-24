@@ -13,6 +13,7 @@ import { apiFetch, readJson } from '../../utils/auth';
 import { cleanAmenities } from '../../modules/pg/ui';
 import { genderKey, inr, type MyPgBooking, type PgDetail, type PgListItem, type PgRoomType } from '../../modules/pg/pgApi';
 import type { GenderKey } from './pgV2Theme';
+import { applyDemo } from './pgV2Demo';
 
 export type LoadState = 'loading' | 'ready' | 'error';
 
@@ -105,7 +106,8 @@ export const fetchPgDetail = (id: string): Promise<PgDetail | null> => {
         const res = await apiFetch(ENDPOINTS.pgDetail(id));
         const data = await readJson(res);
         if (!res.ok || !data || !data.id) return null;
-        const pg: PgDetail = { ...data, amenities: cleanAmenities(data.amenities) };
+        // Demo content fills what the listing lacks (pgV2Demo.ts: one switch, real data wins).
+        const pg: PgDetail = applyDemo({ ...data, amenities: cleanAmenities(data.amenities) });
         detailCache.set(id, pg);
         return pg;
       } catch {
@@ -274,3 +276,6 @@ export const inBudget = (pg: PgListItem, key?: string) => {
   if (key === '6to10') return rent > 6000 && rent <= 10000;
   return rent > 10000;
 };
+
+/** "₹7,500" or "₹7,500–9,000" for a room type's rent per bed. */
+export const rentText = (t: PgRoomType) => (t.rentFrom === null ? '' : t.rentTo !== null && t.rentTo !== t.rentFrom ? `${inr(t.rentFrom)}–${inr(t.rentTo).slice(1)}` : inr(t.rentFrom));

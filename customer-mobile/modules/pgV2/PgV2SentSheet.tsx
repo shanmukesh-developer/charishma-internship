@@ -18,9 +18,6 @@ function CheckArt() {
       <View style={st.artMid}>
         <View style={st.artInner}><ICheck size={30} color="#FFFFFF" strokeWidth={2.5} /></View>
       </View>
-      <View style={[st.spark, { top: 6, right: 14 }]} />
-      <View style={[st.spark, { bottom: 12, left: 8, width: 6, height: 6 }]} />
-      <View style={[st.spark, { top: 22, left: 2, width: 5, height: 5, backgroundColor: '#F5A8D8' }]} />
     </View>
   );
 }
@@ -59,7 +56,7 @@ const st = StyleSheet.create({
   sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: '#FFFFFF', borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: GUTTER + 4, paddingTop: 10, alignItems: 'center' },
   grabber: { width: 40, height: 4, borderRadius: 2, backgroundColor: PG2.line, marginBottom: 18 },
   artOuter: { width: 104, height: 104, alignItems: 'center', justifyContent: 'center' },
-  artMid: { width: 92, height: 92, borderRadius: 46, backgroundColor: PG2.lavender, alignItems: 'center', justifyContent: 'center' },
+  artMid: { width: 88, height: 88, borderRadius: 44, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5', alignItems: 'center', justifyContent: 'center' },
   artInner: { width: 62, height: 62, borderRadius: 31, backgroundColor: PG2.primary, alignItems: 'center', justifyContent: 'center' },
   spark: { position: 'absolute', width: 8, height: 8, borderRadius: 4, backgroundColor: '#B7A6FA' },
   title: { marginTop: 14, fontSize: 21, fontWeight: W.title, color: PG2.ink, letterSpacing: -0.3 },

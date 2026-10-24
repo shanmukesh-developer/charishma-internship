@@ -7,7 +7,8 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { PG2, R, GUTTER, W } from './pgV2Theme';
 import { Header, Tap, Segmented, SectionTitle, EmptyState, Loading, k } from './PgV2Kit';
-import { IUtensils, mealIcon, STROKE } from './PgV2Icons';
+import { IUtensils, mealIcon } from './PgV2Icons';
+import { SLATE } from './PgV2Amenities';
 import { usePgDetail } from './pgV2Data';
 import { useNav, usePgIdFor } from './pgV2Nav';
 import { DAY_KEYS, DAY_SHORT, DAY_LONG, FOOD_TAG_LABEL, fmtRange, istNow, mealsForDay, type DayKey, type FoodTag, type MealSlot, type MessTimetable } from '../../modules/pg/pgApi';
@@ -28,13 +29,12 @@ function Timings({ slots }: { slots: MealSlot[] }) {
   const timed = slots.filter((s) => s.start || s.end);
   if (!timed.length) return null;
   return (
-    <View style={{ gap: 8 }}>
+    <View style={st.card}>
       {timed.map((s, i) => {
-        const tone = PG2.meal[i % PG2.meal.length];
         const Icon = mealIcon(s.meal.key || s.meal.label);
         return (
-          <View key={s.meal.key} style={[st.timeRow, { backgroundColor: tone.soft }]}>
-            <Icon size={18} color={tone.ink} strokeWidth={STROKE} />
+          <View key={s.meal.key} style={[st.timeRow, i > 0 && st.hair]}>
+            <Icon size={20} color={SLATE} strokeWidth={1.6} />
             <Text style={st.meal}>{s.meal.label}</Text>
             <Text style={st.time}>{fmtRange(s.start, s.end)}</Text>
           </View>
@@ -50,11 +50,10 @@ function Menu({ slots }: { slots: MealSlot[] }) {
   return (
     <View style={[k.card, { paddingHorizontal: 12 }]}>
       {withMenu.map((s, i) => {
-        const tone = PG2.menuIcon[i % PG2.menuIcon.length];
         const Icon = mealIcon(s.meal.key || s.meal.label);
         return (
-          <View key={s.meal.key} style={[st.menuRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: PG2.line }]}>
-            <View style={[st.menuIcon, { backgroundColor: tone.soft }]}><Icon size={16} color={tone.ink} strokeWidth={STROKE} /></View>
+          <View key={s.meal.key} style={[st.menuRow, i > 0 && st.hair]}>
+            <Icon size={20} color={SLATE} strokeWidth={1.6} />
             <Text style={st.menuMeal}>{s.meal.label}</Text>
             <View style={{ flex: 1, gap: 4 }}>
               {s.cell?.menu ? <Text style={st.menuText}>{s.cell.menu}</Text> : null}
@@ -124,7 +123,9 @@ export default function PgV2Mess() {
 }
 
 const st = StyleSheet.create({
-  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 14, height: 48, borderRadius: R.sm, paddingHorizontal: 14 },
+  card: { backgroundColor: '#FFFFFF', borderRadius: R.md, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5', paddingHorizontal: 14 },
+  hair: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#ECEAF5' },
+  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 14, height: 50 },
   meal: { flex: 1, fontSize: 14, fontWeight: W.label, color: PG2.ink },
   time: { fontSize: 13.5, color: PG2.ink2 },
   menuRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 10 },

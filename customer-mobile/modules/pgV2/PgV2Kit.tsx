@@ -190,7 +190,7 @@ export function SectionTitle({ title, action, onAction, style }: { title: string
 export function EmptyState({ icon: Icon, title, body, action, onAction }: { icon: LucideIcon; title: string; body?: string; action?: string; onAction?: () => void }) {
   return (
     <View style={k.empty}>
-      <View style={k.emptyIcon}><Icon size={26} color={PG2.primary} strokeWidth={STROKE} /></View>
+      <View style={k.emptyIcon}><Icon size={24} color="#475569" strokeWidth={1.6} /></View>
       <Text style={k.emptyTitle}>{title}</Text>
       {body ? <Text style={k.emptyBody}>{body}</Text> : null}
       {action && onAction ? <OutlineButton label={action} onPress={onAction} style={{ marginTop: 16, paddingHorizontal: 22 }} /> : null}
@@ -232,7 +232,7 @@ export const k = StyleSheet.create({
   sectionTitle: { fontSize: 16.5, fontWeight: W.title, color: PG2.ink, letterSpacing: -0.2 },
   sectionAction: { fontSize: 13.5, fontWeight: W.label, color: PG2.primary },
   empty: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 28 },
-  emptyIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: PG2.lavender, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  emptyIcon: { width: 56, height: 56, borderRadius: 28, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   emptyTitle: { fontSize: 16, fontWeight: W.title, color: PG2.ink, textAlign: 'center' },
   emptyBody: { marginTop: 6, fontSize: 13.5, color: PG2.muted, textAlign: 'center', lineHeight: 20 },
   card: { backgroundColor: PG2.card, borderRadius: R.lg, ...shadow(1) },

@@ -8,7 +8,7 @@ import { View, Text, ScrollView, StyleSheet, useWindowDimensions } from 'react-n
 import { PG2, R, GUTTER, W } from './pgV2Theme';
 import { Header, SectionTitle, EmptyState, Loading, k } from './PgV2Kit';
 import { AmenityGroups, normaliseAmenities } from './PgV2Amenities';
-import { IShieldCheck, IBuilding, IUtensils, mealIcon, STROKE } from './PgV2Icons';
+import { IInfo, IBuilding, IUtensils, mealIcon, STROKE } from './PgV2Icons';
 import { usePgDetail } from './pgV2Data';
 import { useNav, usePgIdFor } from './pgV2Nav';
 import { DAY_KEYS, fmtRange, istNow, mealsForDay, type MessTimetable } from '../../modules/pg/pgApi';
@@ -53,7 +53,7 @@ export function FoodNote({ t }: { t: MessTimetable }) {
   if (!line && !notes) return null;
   return (
     <View style={st.note}>
-      <View style={st.noteIcon}><IShieldCheck size={20} color="#FFFFFF" strokeWidth={STROKE} /></View>
+      <View style={st.noteIcon}><IInfo size={20} color="#475569" strokeWidth={1.6} /></View>
       <View style={{ flex: 1 }}>
         {line ? <Text style={st.noteTitle}>{line}</Text> : null}
         {notes ? <Text style={st.noteBody}>{notes}</Text> : null}
@@ -102,9 +102,9 @@ const st = StyleSheet.create({
   timeRow: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 54 },
   meal: { flex: 1, fontSize: 14, color: PG2.ink, fontWeight: W.label },
   time: { fontSize: 14, color: PG2.ink2 },
-  note: { marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: PG2.greenSoft, borderRadius: R.lg, padding: 16 },
-  noteIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#2E9A5E', alignItems: 'center', justifyContent: 'center' },
-  noteTitle: { fontSize: 13.5, fontWeight: W.label, color: PG2.green },
-  noteBody: { marginTop: 3, fontSize: 13, color: PG2.green, lineHeight: 19 },
+  note: { marginTop: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 12, borderRadius: 14, padding: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5', backgroundColor: '#FFFFFF' },
+  noteIcon: { width: 24, alignItems: 'center', paddingTop: 1 },
+  noteTitle: { fontSize: 13.5, fontWeight: W.label, color: PG2.ink },
+  noteBody: { marginTop: 3, fontSize: 13, color: PG2.muted, lineHeight: 19 },
   none: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', borderRadius: R.lg, padding: 16, borderWidth: 1, borderColor: PG2.line },
 });

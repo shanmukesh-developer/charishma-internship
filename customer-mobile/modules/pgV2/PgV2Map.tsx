@@ -18,13 +18,13 @@ import { mapsUrl, type PgDetail } from '../../modules/pg/pgApi';
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
 
 /** Self-contained Leaflet page: one violet pin, a zoom button, OSM attribution. */
-const leafletHtml = (lat: number, lng: number, name: string) => `<!doctype html><html><head>
+export const leafletHtml = (lat: number, lng: number, name: string, zoomBottom = 150) => `<!doctype html><html><head>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>html,body,#m{margin:0;height:100%;background:#EEF0F6}
 .leaflet-control-attribution{font:10px -apple-system,Roboto,sans-serif;background:rgba(255,255,255,.8)!important}
-.zcs-zoom{position:absolute;right:14px;bottom:150px;z-index:500;width:46px;height:46px;border-radius:14px;background:#fff;
+.zcs-zoom{position:absolute;right:14px;bottom:${zoomBottom}px;z-index:500;width:46px;height:46px;border-radius:14px;background:#fff;
 box-shadow:0 6px 18px rgba(40,32,110,.14);display:flex;align-items:center;justify-content:center;font:300 26px sans-serif;color:${PG2.primary};border:0}
 </style></head><body><div id="m"></div><button class="zcs-zoom" aria-label="Zoom in" onclick="map.zoomIn()">+</button><script>
 var map=L.map('m',{zoomControl:false,attributionControl:true}).setView([${lat},${lng}],15);
@@ -33,7 +33,7 @@ var pin='<svg xmlns="http://www.w3.org/2000/svg" width="40" height="52" viewBox=
 L.marker([${lat},${lng}],{title:'${esc(name)}',icon:L.divIcon({html:pin,className:'',iconSize:[40,52],iconAnchor:[20,51]})}).addTo(map);
 </script></body></html>`;
 
-function MapFrame({ html }: { html: string }) {
+export function MapFrame({ html }: { html: string }) {
   if (Platform.OS === 'web') {
     return React.createElement('iframe', { srcDoc: html, title: 'Map', style: { border: 0, width: '100%', height: '100%' } });
   }
@@ -109,8 +109,8 @@ const st = StyleSheet.create({
   name: { fontSize: 15.5, fontWeight: W.title, color: PG2.ink },
   meta: { marginTop: 4, fontSize: 12.5, color: PG2.muted, lineHeight: 18 },
   dir: { marginTop: 14, height: 48, backgroundColor: PG2.page },
-  addr: { backgroundColor: PG2.lavender, borderRadius: R.xl, padding: 18, alignItems: 'flex-start' },
-  addrIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  addr: { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, alignItems: 'flex-start', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5' },
+  addrIcon: { marginBottom: 10 },
   addrLabel: { fontSize: 12.5, color: PG2.lavenderInk, fontWeight: W.label },
   addrText: { marginTop: 4, fontSize: 15, color: PG2.ink, lineHeight: 22, fontWeight: W.label },
 });

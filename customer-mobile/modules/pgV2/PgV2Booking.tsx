@@ -17,7 +17,7 @@ import { useNav, usePgIdFor } from './pgV2Nav';
 import { useAuth } from '../../context/AuthContext';
 import { ZENVY_SUPPORT_WHATSAPP } from '../../constants/api';
 import PgV2SentSheet from './PgV2SentSheet';
-import { rentText } from '../../modules/pg/PgRooms';
+import { rentText } from './pgV2Data';
 import { inr, type PgRoomType } from '../../modules/pg/pgApi';
 
 const istYmd = (offsetDays: number) => new Date(Date.now() + 330 * 60 * 1000 + offsetDays * 86400000).toISOString().slice(0, 10);
@@ -60,7 +60,7 @@ function Picker<T extends string>({ open, title, options, value, onPick, onClose
 function Field({ icon: Icon, label, value, placeholder, onPress }: { icon: LucideIcon; label: string; value: string | null; placeholder: string; onPress: () => void }) {
   return (
     <View style={st.field}>
-      <View style={st.fieldIcon}><Icon size={18} color={PG2.primary} strokeWidth={STROKE} /></View>
+      <View style={st.fieldIcon}><Icon size={20} color="#475569" strokeWidth={1.6} /></View>
       <View style={{ flex: 1 }}>
         <Text style={st.fieldLabel}>{label}</Text>
         <Tap onPress={onPress} label={`${label}: ${value || placeholder}`} style={st.select}>
@@ -112,7 +112,7 @@ export default function PgV2Booking() {
       <Header title="Booking Request" onBack={nav.back} />
       <ScrollView contentContainerStyle={{ paddingBottom: 120 + insets.bottom }}>
         <View style={st.banner}>
-          <View style={st.bannerArt}><IClipboard size={30} color="#FFFFFF" strokeWidth={1.5} /></View>
+          <IClipboard size={24} color="#475569" strokeWidth={1.6} />
           <View style={{ flex: 1 }}>
             <Text style={st.bannerTitle}>Send a booking request{'\n'}to the PG owner</Text>
             <Text style={st.bannerSub}>{pg.name} · We'll notify you when it's confirmed.</Text>
@@ -161,19 +161,18 @@ export default function PgV2Booking() {
 
 const st = StyleSheet.create({
   page: { flex: 1, backgroundColor: PG2.page },
-  banner: { flexDirection: 'row', alignItems: 'center', gap: 16, marginHorizontal: GUTTER, marginTop: 6, marginBottom: 18, padding: 18, borderRadius: R.xl, backgroundColor: PG2.lavender },
-  bannerArt: { width: 64, height: 64, borderRadius: 16, backgroundColor: '#9C84F7', alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-4deg' }] },
-  bannerTitle: { fontSize: 15, lineHeight: 22, fontWeight: W.label, color: PG2.lavenderInk },
+  banner: { flexDirection: 'row', alignItems: 'center', gap: 14, marginHorizontal: GUTTER, marginTop: 6, marginBottom: 18, padding: 16, borderRadius: 14, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5' },
+  bannerTitle: { fontSize: 15, lineHeight: 22, fontWeight: W.label, color: PG2.ink },
   bannerSub: { marginTop: 4, fontSize: 12.5, color: PG2.muted },
   field: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  fieldIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: PG2.lavender, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  fieldIcon: { width: 24, alignItems: 'center', marginTop: 2 },
   fieldLabel: { fontSize: 14, fontWeight: W.label, color: PG2.ink, marginBottom: 8 },
   select: { height: 50, borderRadius: R.md, borderWidth: 1, borderColor: PG2.line, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 8 },
   selectText: { flex: 1, fontSize: 14, color: PG2.ink },
-  summary: { padding: 16, gap: 10, marginLeft: 50 },
+  summary: { padding: 16, gap: 10, marginLeft: 36 },
   sumRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sumValue: { fontSize: 14, fontWeight: W.title, color: PG2.ink },
-  error: { flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: PG2.redSoft, borderRadius: R.md, padding: 12, marginLeft: 50 },
+  error: { flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: PG2.redSoft, borderRadius: R.md, padding: 12, marginLeft: 36 },
   bar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: GUTTER, paddingTop: 12, backgroundColor: 'rgba(250,250,254,0.97)', ...shadow(2) },
   scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,16,60,0.35)' },
   sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: '#FFFFFF', borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingTop: 18, paddingHorizontal: 12 },

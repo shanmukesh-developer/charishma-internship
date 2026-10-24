@@ -21,9 +21,9 @@ export interface V2Photo {
 /** Hero slider: modern blocks with the sky removed locally (magic-wand flood fill), violet glow and ground
  *  shadow baked in. Sources: Unsplash 1748534262365, 1586381084141, 1564471925181 (Unsplash License). */
 const HERO_SLIDES = [
-  require('./assets/pg-v2-hero-slide-cream-balconies-dusk-2026-10-24.webp'),
-  require('./assets/pg-v2-hero-slide-white-wood-blocks-2026-10-24.webp'),
-  require('./assets/pg-v2-hero-slide-white-wood-glass-2026-10-24.webp'),
+  require('./assets/pg-v2-hero-slide-cream-balconies-dusk-v2-2026-10-24.webp'),
+  require('./assets/pg-v2-hero-slide-white-wood-blocks-v2-2026-10-24.webp'),
+  require('./assets/pg-v2-hero-slide-white-wood-glass-v2-2026-10-24.webp'),
 ];
 /** Daylight mid-rise blocks with balconies and greenery (reference style). */
 const BUILDINGS = [
@@ -90,19 +90,26 @@ export const roomPhotos = (pg: Pick<PgDetail, 'id' | 'photos'> | null, t: Pick<P
 
 export const roomCover = (pg: Pick<PgDetail, 'id' | 'photos'> | null, t: Pick<PgRoomType, 'key' | 'sharingType'>) => roomPhotos(pg, t)[0];
 
+const sharingCaption = (n: number) => (n <= 1 ? 'Single room' : n === 2 ? 'Double sharing room' : n === 3 ? 'Triple sharing room' : 'Dormitory');
+
 /** Gallery for a PG: its own categorised photos when it has them, else building, room, washroom, common, mess. */
 export const galleryPhotos = (pg: PgDetail): V2Photo[] => {
   const own = (pg.photos || []).filter((p) => p.category !== 'OTHER');
   if (own.length >= 3) return own.map(real);
-  const firstSharing = pg.roomTypes[0]?.sharingType ?? 2;
-  return [
+  // 6–8 same-type photos: two exteriors, one per room type (plus a second room view), washroom, mess, common area.
+  const sharings = Array.from(new Set(pg.roomTypes.map((t) => t.sharingType)));
+  if (!sharings.length) sharings.push(2);
+  const rooms = sharings.slice(0, 3).map((n) => stock(`g-${pg.id}-room-${n}`, stockRoom(n), sharingCaption(n)));
+  if (rooms.length < 2) rooms.push(stock(`g-${pg.id}-room-alt`, stockRoom(sharings[0], true), sharingCaption(sharings[0])));
+  const list = [
     buildingPhoto(pg),
-    stock(`g-${pg.id}-room`, stockRoom(firstSharing), 'Room'),
+    ...rooms,
     stock(`g-${pg.id}-wash`, WASHROOM, 'Washroom'),
-    stock(`g-${pg.id}-common`, LOUNGE, 'Common area'),
     stock(`g-${pg.id}-mess`, MESS, 'Mess and dining'),
+    stock(`g-${pg.id}-common`, LOUNGE, 'Common area'),
     buildingPhoto(pg, 1),
   ];
+  return list.filter((p, i) => list.findIndex((q) => q.source === p.source) === i);
 };
 
 export const messPhoto = (): V2Photo => stock('mess', MESS, 'Mess and dining');

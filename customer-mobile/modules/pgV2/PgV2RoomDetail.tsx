@@ -14,7 +14,7 @@ import { IArrowLeft, IBed, IBath, ISnow, ISofa, IWifi, IDoor, IBedSingle } from 
 import { roomPhotos } from './pgV2Photos';
 import { usePgDetail, roomTypeName, bedsText, bathText } from './pgV2Data';
 import { useNav, usePgIdFor } from './pgV2Nav';
-import { rentText } from '../../modules/pg/PgRooms';
+import { rentText } from './pgV2Data';
 import type { PgDetail, PgRoomType } from '../../modules/pg/pgApi';
 
 const titleOf = (t: PgRoomType) => {

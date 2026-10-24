@@ -12,7 +12,7 @@ import { IBed, ICheck } from './PgV2Icons';
 import { roomCover } from './pgV2Photos';
 import { usePgV2, usePgDetail, usePgDetails, gKey, roomTypeName, sharingFilterKey, bedsText, bathText } from './pgV2Data';
 import { useNav } from './pgV2Nav';
-import { rentText } from '../../modules/pg/PgRooms';
+import { rentText } from './pgV2Data';
 import type { PgDetail, PgRoomType } from '../../modules/pg/pgApi';
 
 type TypeFilter = 'all' | 'single' | 'double' | 'triple' | 'dorm';

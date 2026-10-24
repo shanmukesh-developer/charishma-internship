@@ -47,7 +47,7 @@ export function AmenityPreview({ names, onMore, max = 6 }: { names: string[]; on
 function LinkRow({ icon: Icon, title, sub, onPress }: { icon: LucideIcon; title: string; sub: string; onPress: () => void }) {
   return (
     <Tap onPress={onPress} label={title} style={st.link}>
-      <View style={st.linkIcon}><Icon size={18} color={PG2.primary} strokeWidth={STROKE} /></View>
+      <View style={st.linkIcon}><Icon size={20} color="#475569" strokeWidth={1.6} /></View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={st.linkTitle}>{title}</Text>
         <Text style={k.small} numberOfLines={1}>{sub}</Text>
@@ -113,7 +113,7 @@ export default function PgV2Building() {
               <View style={st.figRow}>
                 {figures.map((f) => (
                   <View key={f.label} style={[st.fig, width < 400 && st.figCol]}>
-                    <View style={st.figIcon}><f.icon size={19} color={PG2.ink} strokeWidth={STROKE} /></View>
+                    <View style={st.figIcon}><f.icon size={20} color="#475569" strokeWidth={1.6} /></View>
                     <View style={{ flexShrink: 1, minWidth: 0 }}>
                       <Text style={st.figLabel} numberOfLines={1}>{f.label}</Text>
                       <Text style={st.figValue}>{f.value}</Text>
@@ -150,13 +150,13 @@ const st = StyleSheet.create({
   rent: { marginTop: 14, fontSize: 23, fontWeight: W.title, color: PG2.price, letterSpacing: -0.3 },
   rentUnit: { fontSize: 15, fontWeight: W.label, color: PG2.ink },
   figRow: { flexDirection: 'row', gap: 10 },
-  fig: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: PG2.page, borderRadius: R.md, paddingVertical: 10, paddingHorizontal: 10 },
+  fig: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5', paddingVertical: 10, paddingHorizontal: 12 },
   figCol: { flexDirection: 'column', alignItems: 'flex-start' },
-  figIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: PG2.lavender, alignItems: 'center', justifyContent: 'center' },
+  figIcon: { width: 24, height: 24, justifyContent: 'center' },
   figLabel: { fontSize: 11.5, color: PG2.muted },
   figValue: { fontSize: 15, fontWeight: W.title, color: PG2.ink, marginTop: 1 },
-  link: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: R.lg, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: PG2.line },
-  linkIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: PG2.lavender, alignItems: 'center', justifyContent: 'center' },
+  link: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5' },
+  linkIcon: { width: 24, alignItems: 'center', justifyContent: 'center' },
   linkTitle: { fontSize: 14, fontWeight: W.label, color: PG2.ink, marginBottom: 2 },
   bar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: GUTTER, paddingTop: 12, backgroundColor: 'rgba(255,255,255,0.97)', ...shadow(2) },
 });
