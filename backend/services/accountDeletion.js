@@ -53,6 +53,8 @@ const RETAIN = {
   Coupon: {},
   PGBooking: { scrub: true },
   PGHostel: {},
+  // ZCS PG Partner rent ledger (a record of rent the PG owner received): kept for the owner's accounts.
+  PgRentRecord: { scrub: true },
   ServiceBooking: { scrub: true },
   MegaBasket: { scrub: true },
   RentalBooking: { scrub: true },

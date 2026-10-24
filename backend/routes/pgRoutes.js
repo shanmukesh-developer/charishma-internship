@@ -10,6 +10,7 @@ const { getUserModel } = require('../models/User');
 const { Op } = require('sequelize');
 
 const pgContent = require('../utils/pgContent');
+const { changeBookingStatus } = require('../utils/pgBookings');
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Zenvy housing desk WhatsApp number (students can message it from the app). Override on Render.
 const PG_DESK_WHATSAPP = (process.env.PG_DESK_WHATSAPP || '9391955674').replace(/\D/g, '').slice(-10);
@@ -183,6 +184,24 @@ router.post('/:roomId/book', protect, async (req, res) => {
     }
     const checkInDate = new Date(`${checkInYmd}T00:00:00Z`);
 
+    // Optional (shown to the PG owner): planned stay in months and a short note. Never a phone number:
+    // students and owners talk through the ZCS housing desk.
+    let durationMonths = null;
+    if (req.body.durationMonths !== undefined && req.body.durationMonths !== null && req.body.durationMonths !== '') {
+      const n = Number(req.body.durationMonths);
+      if (!Number.isInteger(n) || n < 1 || n > 24) return res.status(400).json({ code: 'INVALID_DURATION', field: 'durationMonths', message: 'Stay length must be 1 to 24 months.' });
+      durationMonths = n;
+    }
+    let note = null;
+    if (req.body.note !== undefined && req.body.note !== null && req.body.note !== '') {
+      if (typeof req.body.note !== 'string') return res.status(400).json({ code: 'INVALID_NOTE', field: 'note', message: 'The note must be text.' });
+      // eslint-disable-next-line no-control-regex
+      const clean = req.body.note.replace(/[\u0000-\u001F\u007F<>]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (clean.length > 300) return res.status(400).json({ code: 'INVALID_NOTE', field: 'note', message: 'The note must be at most 300 characters.' });
+      if (pgContent.PHONE_RE.test(clean)) return res.status(400).json({ code: 'INVALID_NOTE', field: 'note', message: 'Please leave out phone numbers. The ZCS housing desk connects you with the PG.' });
+      note = clean || null;
+    }
+
     if (!room || !room.isActive) return res.status(404).json({ message: 'Room not found.' });
     if (room.availableBeds <= 0) return res.status(400).json({ message: 'No beds available.' });
 
@@ -216,7 +235,9 @@ router.post('/:roomId/book', protect, async (req, res) => {
         hostelId: room.hostelId,
         roomId: room.id,
         checkInDate,
-        status: 'Pending'
+        status: 'Pending',
+        durationMonths,
+        note
       });
     } catch (createErr) {
       if (createErr && createErr.name === 'SequelizeUniqueConstraintError') {
@@ -255,6 +276,10 @@ router.post('/:roomId/book', protect, async (req, res) => {
     await notifyAdminsOfBooking(req, `${userName} requested ${sharingType} room ${room.roomNumber} at ${pgName}.`, {
       id: booking.id, hostelId: room.hostelId, roomId: room.id, userName, pgName, checkInDate: booking.checkInDate
     });
+    // The PG's owner (ZCS PG Partner app), when the listing is linked to an owner account: first name only.
+    await require('../modules/pgOwner/services/notify').toListingOwners(room.hostelId, 'New booking request',
+      `${pgContent.firstNameOf(userName)} asked for a ${sharingType.toLowerCase()} bed at ${pgName} from ${checkIn}.`,
+      { type: 'PG_OWNER_BOOKING', bookingId: String(booking.id), hostelId: String(room.hostelId) });
     let whatsappSent = false;
     try {
       const wa = await sendWhatsAppMessage(PG_DESK_WHATSAPP, whatsappMessage, 'PG_BOOKING');
@@ -444,37 +469,7 @@ router.put('/admin/bookings/:bookingId/status', protect, admin, async (req, res)
   }
 });
 
-// Moves a booking to Confirmed / Cancelled inside a transaction, keeping availableBeds in sync.
-async function changeBookingStatus(bookingId, nextStatus, mayChange) {
-  if (!UUID_RE.test(String(bookingId))) return { status: 404, error: 'Booking not found.' };
-  const { getSequelize } = require('../config/db');
-  return getSequelize().transaction(async (t) => {
-    const PGBooking = getPGBookingModel();
-    const PGRoom = getPGRoomModel();
-    const booking = await PGBooking.findByPk(bookingId, { transaction: t, lock: t.LOCK.UPDATE });
-    if (!booking || !mayChange(booking)) return { status: 404, error: 'Booking not found.' };
-    if (booking.status === nextStatus) return { booking };
-    if (booking.status === 'Cancelled') return { status: 400, error: 'This booking was already cancelled.' };
-    const room = await PGRoom.findByPk(booking.roomId, { transaction: t, lock: t.LOCK.UPDATE });
-    if (nextStatus === 'Confirmed') {
-      // Older duplicate rows (see /admin/bookings/duplicates): never reserve two beds for one student at one PG.
-      const other = await PGBooking.findOne({
-        where: { userId: booking.userId, hostelId: booking.hostelId, status: 'Confirmed', id: { [Op.ne]: booking.id } },
-        transaction: t,
-      });
-      if (other) return { status: 409, error: 'This student already has a confirmed booking at this PG. Cancel this duplicate request instead.' };
-      if (!room || room.availableBeds <= 0) return { status: 400, error: 'No beds left in this room.' };
-      room.availableBeds -= 1;
-      await room.save({ transaction: t });
-    } else if (booking.status === 'Confirmed' && room) {
-      room.availableBeds = Math.min(room.totalBeds || room.availableBeds + 1, room.availableBeds + 1);
-      await room.save({ transaction: t });
-    }
-    booking.status = nextStatus;
-    await booking.save({ transaction: t });
-    return { booking };
-  });
-}
+// Status changes (beds kept in sync) live in utils/pgBookings.js, shared with the ZCS PG Partner app.
 
 // Listing photos: media URLs / hosted https kept, inline base64 moved to the media table (max 12).
 // B27: numbers on PG listings / rooms are validated (a negative rent, 0 beds or more free beds than
@@ -768,10 +763,14 @@ router.put('/:id/mess', protect, admin, async (req, res) => {
     const pg = await loadPgOr404(req, res);
     if (!pg) return;
     let mess;
-    try { mess = pgContent.validateMessTimetable((req.body || {}).messTimetable); } catch (err) {
+    const sentMess = (req.body || {}).messTimetable;
+    try { mess = pgContent.validateMessTimetable(sentMess); } catch (err) {
       if (sendContentError(res, err)) return;
       throw err;
     }
+    // The admin editor does not send the owner's mess holidays (ZCS PG Partner app): keep them.
+    const keptHolidays = pg.messTimetable && Array.isArray(pg.messTimetable.holidays) ? pg.messTimetable.holidays : [];
+    if (mess && sentMess && sentMess.holidays === undefined && keptHolidays.length) mess.holidays = keptHolidays;
     await pg.update({ messTimetable: mess });
     res.json(await afterContentSave(req, pg, 'PG_MESS_UPDATED', { meals: mess ? mess.meals.map((m) => m.key) : [], days: mess ? Object.keys(mess.days) : [] }));
   } catch (err) {
@@ -828,7 +827,7 @@ for (const [path, w] of Object.entries(pgContent.SECTION_WRITERS)) {
 }
 
 // ── Reviews ─────────────────────────────────────────────────────────────────────────────────────
-// Only students who stayed: a Confirmed booking at this PG whose check-in date has arrived. One review
+// Only students who stayed: a Confirmed (or MovedOut) booking at this PG whose check-in date has arrived. One review
 // per booking (unique index on bookingId). Public reads show visible reviews: rating, text, first name, date.
 router.param('reviewId', (req, res, next, id) => (UUID_RE.test(String(id || '')) ? next() : res.status(404).json({ message: 'Review not found.' })));
 router.param('promoId', (req, res, next, id) => (UUID_RE.test(String(id || '')) ? next() : res.status(404).json({ message: 'Promotion not found.' })));
@@ -838,7 +837,7 @@ router.param('promoId', (req, res, next, id) => (UUID_RE.test(String(id || '')) 
 const istTodayStart = () => new Date(new Date(Date.now() + 330 * 60 * 1000).toISOString().slice(0, 10) + 'T00:00:00Z');
 const reviewEligibility = async (userId, hostelId) => {
   const bookings = await getPGBookingModel().findAll({
-    where: { userId, hostelId, status: 'Confirmed', checkInDate: { [Op.lte]: istTodayStart() } },
+    where: { userId, hostelId, status: { [Op.in]: ['Confirmed', 'MovedOut'] }, checkInDate: { [Op.lte]: istTodayStart() } },
     order: [['checkInDate', 'DESC']],
   });
   if (!bookings.length) return { eligibleBookingId: null, reviewed: [] };

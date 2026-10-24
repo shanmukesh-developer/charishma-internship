@@ -143,7 +143,7 @@ test('admin GET/PUT /api/admin/app-versions: auth, validation, partial merge, au
 
   const g = await h.api('GET', '/api/admin/app-versions', { token: adminUser.token });
   assert.equal(g.status, 200);
-  assert.deepEqual(g.body.apps, ['customer', 'rider', 'restaurant', 'vendor', 'autodriver']);
+  assert.deepEqual(g.body.apps, ['customer', 'rider', 'restaurant', 'vendor', 'autodriver', 'pgowner']);
   assert.equal(g.body.packages.vendor, 'com.srm.zenvyvendor');
   assert.equal(g.body.policy.apps.customer.minSupportedVersion, '');
 

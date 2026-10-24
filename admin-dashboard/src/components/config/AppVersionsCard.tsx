@@ -7,7 +7,7 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 import { adminRequest as apiRequest } from '@/lib/api';
 
-type AppKey = 'customer' | 'rider' | 'restaurant' | 'vendor' | 'autodriver';
+type AppKey = 'customer' | 'rider' | 'restaurant' | 'vendor' | 'autodriver' | 'pgowner';
 interface AppPolicy {
   minSupportedVersion: string;
   latestVersion: string;

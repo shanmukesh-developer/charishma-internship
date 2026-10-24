@@ -55,6 +55,7 @@ const { initFriendsModels } = require('../modules/friends');
 const { initRentalsModels } = require('../modules/rentals');
 const { initAutoRideModels } = require('../modules/autoRide');
 const { initCampusEventsModels } = require('../modules/campusEvents');
+const { initPgOwnerModels } = require('../modules/pgOwner');
 
 const initializeAllModels = (instance) => {
   // P1 perf: per-request DB time / query count + pool wait (utils/perfMetrics), dev-only DEV_DB_LATENCY_MS.
@@ -118,6 +119,8 @@ const initializeAllModels = (instance) => {
   initAutoRideModels(instance);
   // Zenvy Campus Events (Ce* tables; off until CAMPUS_EVENTS_ENABLED).
   initCampusEventsModels(instance);
+  // ZCS PG Partner: PG owner accounts, listing links, rent ledger, tenant complaints (pg_* tables).
+  initPgOwnerModels(instance);
 
   // Define Associations
   const Restaurant = instance.models.Restaurant;

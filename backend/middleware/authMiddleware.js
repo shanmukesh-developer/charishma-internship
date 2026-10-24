@@ -66,8 +66,9 @@ const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, secret);
     
     // Check cache first (avoids DB hit for 500+ concurrent users)
-    // S0: an Auto-Ride driver token is never a customer / rider / store session (its own protectDriver).
-    if (String(decoded.role || '').toLowerCase() === 'auto_driver') {
+    // S0: an Auto-Ride driver token is never a customer / rider / store session (its own protectDriver),
+    // and neither is a ZCS PG Partner token (modules/pgOwner protectOwner).
+    if (['auto_driver', 'pg_owner'].includes(String(decoded.role || '').toLowerCase())) {
       return res.status(401).json({ message: 'Not authorized, token failed' });
     }
     const tokenClass = accountClass(decoded.role);

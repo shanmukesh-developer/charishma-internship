@@ -17,7 +17,11 @@ const STATUS_STYLE: Record<string, string> = {
   Pending: 'border-warning/30 bg-warning-soft text-warning-text',
   Confirmed: 'border-success/30 bg-success-soft text-success-text',
   Cancelled: 'border-line text-fg-muted',
+  // Set by the PG owner in the ZCS PG Partner app.
+  Rejected: 'border-danger/30 bg-danger-soft text-danger-text',
+  MovedOut: 'border-line text-fg-muted',
 };
+const STATUS_LABEL: Record<string, string> = { Rejected: 'Declined by owner', MovedOut: 'Moved out' };
 
 /** Booking requests from the app (GET /api/pg/admin/bookings). Confirming takes a bed; cancelling a confirmed one frees it. */
 export function BookingsPanel({ onPendingCount, liveTick = 0, isFresh }: {
@@ -116,6 +120,8 @@ export function BookingsPanel({ onPendingCount, liveTick = 0, isFresh }: {
           <option value="Pending">Pending</option>
           <option value="Confirmed">Confirmed</option>
           <option value="Cancelled">Cancelled</option>
+          <option value="Rejected">Declined by owner</option>
+          <option value="MovedOut">Moved out</option>
           <option value="All">All</option>
         </select>
         <button type="button" disabled={loading} onClick={() => load()} className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-fg-muted hover:text-fg disabled:opacity-50">{loading ? 'Loading…' : 'Refresh'}</button>
@@ -174,12 +180,15 @@ export function BookingsPanel({ onPendingCount, liveTick = 0, isFresh }: {
                   </td>
                   <td className="p-3 text-fg-muted">{formatDate(b.checkInDate)}</td>
                   <td className="p-3 text-fg-muted">{formatDate(b.createdAt, true)}</td>
-                  <td className="p-3"><span className={`rounded border px-2 py-0.5 text-xs font-semibold ${STATUS_STYLE[b.status] || STATUS_STYLE.Cancelled}`}>{b.status}</span></td>
+                  <td className="p-3"><span className={`rounded border px-2 py-0.5 text-xs font-semibold ${STATUS_STYLE[b.status] || STATUS_STYLE.Cancelled}`}>{STATUS_LABEL[b.status] || b.status}</span>
+                    {b.decisionReason && b.status === 'Rejected' && <p className="mt-1 max-w-[220px] text-xs text-fg-muted">{b.decisionReason}</p>}
+                    {b.decidedBy?.startsWith('pg_owner:') && b.status === 'Confirmed' && <p className="mt-1 text-xs text-fg-muted">Accepted by the owner</p>}
+                  </td>
                   <td className="p-3 text-right">
                     {b.status === 'Pending' && (
                       <button type="button" disabled={!!busy[b.id] || !b.room || b.room.availableBeds <= 0} title={b.room && b.room.availableBeds <= 0 ? 'No free beds in this room' : undefined} onClick={() => changeStatus(b, 'Confirmed')} className="rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-on-solid hover:bg-success/90 disabled:opacity-40">Confirm</button>
                     )}
-                    {b.status !== 'Cancelled' && (
+                    {(b.status === 'Pending' || b.status === 'Confirmed') && (
                       <button type="button" disabled={!!busy[b.id]} onClick={() => changeStatus(b, 'Cancelled')} className="ml-2 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-fg-muted hover:border-danger/30 hover:text-danger-text disabled:opacity-40">Cancel</button>
                     )}
                   </td>

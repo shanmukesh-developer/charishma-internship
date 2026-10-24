@@ -1469,6 +1469,12 @@ const initializeApp = async () => {
     app.use('/api/auto-ride/driver', autoRideRoutes.driverRouter);
     app.use('/api/auto-ride', autoRideRoutes.router);
     app.use('/api/admin/auto-ride', autoRideRoutes.adminRouter);
+    // ZCS PG Partner (PG owner app, Plan B accounts made by admins): owner router, tenant complaints,
+    // admin owner accounts (before /api/admin). Owners only touch the PG listings linked to them.
+    const pgOwnerRoutes = require('./modules/pgOwner/routes');
+    app.use('/api/pg-owner', pgOwnerRoutes.ownerRouter);
+    app.use('/api/pg-tenant', pgOwnerRoutes.tenantRouter);
+    app.use('/api/admin/pg-owners', pgOwnerRoutes.adminRouter);
     // Auto-Ride holds / lifecycle: jobs/index.js 'autoRide.lifecycle' (every 30 s).
     // Zenvy Campus Events (Others > Campus Events). Organizer + check-in routers before the student router
     // (which owns /api/campus-events/:id); admin routes before /api/admin. Off for students until GlobalConfig

@@ -16,17 +16,18 @@
  * Empty policy (the default) = nothing is ever blocked. Fails open: a policy that cannot be read blocks nobody.
  */
 const POLICY_KEY = 'APP_VERSION_POLICY';
-const APPS = ['customer', 'rider', 'restaurant', 'vendor', 'autodriver'];
+const APPS = ['customer', 'rider', 'restaurant', 'vendor', 'autodriver', 'pgowner'];
 // Header values the apps may send for the same app.
-const APP_ALIASES = { delivery: 'rider', 'delivery-boy': 'rider', autodriver: 'autodriver', 'auto-driver': 'autodriver', driver: 'autodriver' };
+const APP_ALIASES = { delivery: 'rider', 'delivery-boy': 'rider', autodriver: 'autodriver', 'auto-driver': 'autodriver', driver: 'autodriver', 'pg-owner': 'pgowner', pg_owner: 'pgowner' };
 const PACKAGES = {
   customer: 'com.srm.hostelbites',
   rider: 'com.srm.hostelbitesdelivery',
   restaurant: 'com.anonymous.restaurantmobile',
   vendor: 'com.srm.zenvyvendor',
   autodriver: 'com.srm.zenvyautodriver',
+  pgowner: 'com.srm.zenvypgowner',
 };
-const APP_LABELS = { customer: 'Zenvy', rider: 'Zenvy Rider', restaurant: 'Zenvy Restaurant', vendor: 'Zenvy Vendor', autodriver: 'Zenvy Auto Driver' };
+const APP_LABELS = { customer: 'Zenvy', rider: 'Zenvy Rider', restaurant: 'Zenvy Restaurant', vendor: 'Zenvy Vendor', autodriver: 'Zenvy Auto Driver', pgowner: 'ZCS PG Partner' };
 const playUrl = (pkg) => `https://play.google.com/store/apps/details?id=${pkg}`;
 const DEFAULT_MESSAGE = 'This version of the app is no longer supported. Please update to keep using Zenvy.';
 const MAX_MESSAGE = 300;
@@ -225,6 +226,8 @@ const ALLOW_EXACT = new Set([
   '/api/users/logout',
   '/api/users/fcm-token', '/api/users/fcm-token/remove',
   '/api/delivery/fcm-token', '/api/delivery/fcm-token/remove',
+  // ZCS PG Partner: sign-out (push token removal) and the account deletion request.
+  '/api/pg-owner/fcm-token/remove', '/api/pg-owner/account/deletion-request',
 ]);
 // /api/config = GET /api/config, /api/config/endpoints, /api/config/app-version.
 // /api/users/account = deletion-check + delete (self-service account deletion).

@@ -260,6 +260,46 @@ const videosForRead = (videos) => (Array.isArray(videos) ? videos : [])
 
 // ── Mess timetable ─────────────────────────────────────────────────────────────────────────────
 const MEAL_KEY_RE = /^[a-z][a-z0-9_]{1,19}$/;
+// Mess holidays (set by the PG owner in the ZCS PG Partner app): [{ date: 'YYYY-MM-DD', meals: [] = whole
+// day | ['lunch', ...], note }] (max 31, one per date, sorted by date).
+const MAX_MESS_HOLIDAYS = 31;
+const HOLIDAY_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const validateMessHolidays = (raw, mealKeys) => {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) fail('Mess holidays must be a list.', 'holidays');
+  if (raw.length > MAX_MESS_HOLIDAYS) fail(`At most ${MAX_MESS_HOLIDAYS} mess holidays.`, 'holidays');
+  const out = [];
+  const seen = new Set();
+  raw.forEach((h, i) => {
+    const f = `holidays[${i}]`;
+    if (!isObj(h)) fail('Each mess holiday needs a date.', f);
+    const date = typeof h.date === 'string' ? h.date.trim() : '';
+    const m = HOLIDAY_DATE_RE.exec(date);
+    const probe = m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])) : null;
+    if (!m || !probe || probe.toISOString().slice(0, 10) !== date) fail(`${f}: pick a real date (YYYY-MM-DD).`, `${f}.date`);
+    if (seen.has(date)) fail(`The mess holiday on ${date} is listed twice.`, `${f}.date`);
+    seen.add(date);
+    const meals = [];
+    if (h.meals !== undefined && h.meals !== null) {
+      if (!Array.isArray(h.meals)) fail(`${f}: meals must be a list.`, `${f}.meals`);
+      for (const k of h.meals) {
+        const key = String(k || '').trim().toLowerCase();
+        if (!mealKeys.has(key)) fail(`${f}: "${String(k).slice(0, 20)}" is not one of the meals.`, `${f}.meals`);
+        if (!meals.includes(key)) meals.push(key);
+      }
+    }
+    const note = cleanText(h.note, 120, `${f} note`);
+    if (note && PHONE_RE.test(note)) fail('Phone numbers are not allowed here. Students reach you through the ZCS housing desk.', `${f}.note`);
+    out.push({ date, meals, note });
+  });
+  return out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+};
+/** Holidays from today (IST) on: what students need to see. */
+const upcomingHolidays = (list, now = Date.now()) => {
+  const today = new Date(now + 330 * 60 * 1000).toISOString().slice(0, 10);
+  return (Array.isArray(list) ? list : []).filter((h) => isObj(h) && typeof h.date === 'string' && h.date >= today)
+    .map((h) => ({ date: h.date, meals: Array.isArray(h.meals) ? h.meals.filter((k) => typeof k === 'string') : [], note: typeof h.note === 'string' ? h.note : '' }));
+};
 const validateMessTimetable = (input) => {
   if (input === null || input === undefined) return null;
   if (!isObj(input)) fail('messTimetable must be an object.', 'messTimetable');
@@ -305,9 +345,11 @@ const validateMessTimetable = (input) => {
     if (Object.keys(outRow).length) days[dk] = outRow;
   }
   const notes = cleanText(input.notes, 1000, 'Mess notes', { multiline: true });
-  if (!meals.length && (Object.keys(days).length || notes)) fail('Add at least one meal before writing menus.', 'meals');
+  const holidays = validateMessHolidays(input.holidays, keys);
+  if (!meals.length && (Object.keys(days).length || notes || holidays.length)) fail('Add at least one meal before writing menus.', 'meals');
   if (!meals.length) return null; // cleared
-  return { meals, days, notes };
+  // `holidays` only when there are some (older readers see the same { meals, days, notes } shape).
+  return holidays.length ? { meals, days, notes, holidays } : { meals, days, notes };
 };
 
 // Legacy columns -> timetable shape (real data only; nothing is invented).
@@ -345,7 +387,9 @@ const legacyTimetable = (messMenu, foodTimetable) => {
 const messForRead = (pg) => {
   const t = pg.messTimetable;
   if (isObj(t) && Array.isArray(t.meals) && t.meals.length) {
-    return { meals: t.meals, days: isObj(t.days) ? t.days : {}, notes: typeof t.notes === 'string' ? t.notes : '' };
+    const out = { meals: t.meals, days: isObj(t.days) ? t.days : {}, notes: typeof t.notes === 'string' ? t.notes : '' };
+    const holidays = upcomingHolidays(t.holidays);
+    return holidays.length ? { ...out, holidays } : out;
   }
   return legacyTimetable(pg.messMenu, pg.foodTimetable);
 };
@@ -975,7 +1019,7 @@ const publicPgListItem = (row, rooms = [], opts = {}) => {
 module.exports = {
   PHOTO_CATEGORIES, MAX_PHOTOS, MAX_VIDEOS, DAY_KEYS, FOOD_TAGS, TIMING_TIME_FIELDS,
   PgInputError, parseTime, parseYouTubeId, youtubeThumb, youtubeEmbed, youtubeWatch,
-  validatePhotos, validateVideos, validateMessTimetable, validateTimings,
+  validatePhotos, validateVideos, validateMessTimetable, validateMessHolidays, upcomingHolidays, MAX_MESS_HOLIDAYS, validateTimings,
   photosOf, imagesFromPhotos, videosForRead, messForRead, legacyTimetable, timingsForRead,
   roomTypeKey, buildRoomTypes, publicRoom, publicPg, publicPgListItem, publicContact,
   // v2

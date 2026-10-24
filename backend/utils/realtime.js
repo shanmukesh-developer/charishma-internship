@@ -41,7 +41,9 @@ const ADMIN_TYPES = new Set([...PUBLIC_TYPES, 'order', 'ticket', 'verification',
   // Auto-Ride admin queues (drivers, vehicles, routes, bookings, full-auto requests, incidents)
   'auto_driver', 'auto_vehicle', 'auto_route', 'auto_booking', 'auto_private_request', 'auto_incident',
   // Campus Events admin queues (review queue, organizers, registrations, refunds)
-  'campus_event_admin']);
+  'campus_event_admin',
+  // ZCS PG Partner: owner accounts + tenant complaints (admin /pg page, Owner accounts tab)
+  'pg_owner', 'pg_complaint']);
 const ACTIONS = new Set(['created', 'updated', 'deleted']);
 const CACHE_TYPES = new Set(['store', 'product']);
 

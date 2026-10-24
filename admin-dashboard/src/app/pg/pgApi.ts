@@ -196,9 +196,14 @@ export interface PGRoom {
 
 export interface PGBooking {
   id: string;
-  status: 'Pending' | 'Confirmed' | 'Cancelled' | string;
+  status: 'Pending' | 'Confirmed' | 'Cancelled' | 'Rejected' | 'MovedOut' | string;
   checkInDate: string;
   createdAt: string;
+  // ZCS PG Partner app (owner decisions) and the student's request details.
+  durationMonths?: number | null;
+  note?: string | null;
+  decisionReason?: string | null;
+  decidedBy?: string | null;
   user?: { id: string; name?: string | null; phone?: string | null; email?: string | null } | null;
   hostel?: { id: string; name: string } | null;
   room?: { id: string; roomNumber: string; sharingType: number; availableBeds: number } | null;

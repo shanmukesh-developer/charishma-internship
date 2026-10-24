@@ -1,0 +1,86 @@
+{
+  "expo": {
+    "extra": {
+      "trustedApiHosts": ["hostelbites-backend-jwmt.onrender.com"]
+    },
+    "name": "ZCS PG Partner",
+    "slug": "zcs-pg-partner",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B0A1E"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.srm.zenvypgowner"
+    },
+    "android": {
+      "package": "com.srm.zenvypgowner",
+      "versionCode": 1,
+      "allowBackup": false,
+      "adaptiveIcon": {
+        "backgroundColor": "#0B0A1E",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "blockedPermissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_CONTACTS",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "./plugins/withReleaseSigning",
+        {
+          "prefix": "ZENVY_PGOWNER_UPLOAD",
+          "appLabel": "ZCS PG Partner",
+          "readme": "pg-owner-app/README.md"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ZCS PG Partner uses your photos to add pictures of your PG (rooms, bathrooms, mess, building).",
+          "cameraPermission": "ZCS PG Partner uses the camera to take pictures of your PG for the listing.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#4F46E5",
+          "sounds": [
+            "./assets/sounds/alert.wav"
+          ],
+          "defaultChannel": "delivery-alerts-v2"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0",
+            "usesCleartextTraffic": false,
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "-keep class com.swmansion.reanimated.** { *; }\n-keep class com.facebook.react.turbomodule.** { *; }"
+          }
+        }
+      ]
+    ]
+  }
+}

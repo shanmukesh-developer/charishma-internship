@@ -20,6 +20,7 @@ import { LocationPanel } from './LocationPanel';
 import { FaqPanel } from './FaqPanel';
 import { ReviewsPanel } from './ReviewsPanel';
 import { PromotionsPanel } from './PromotionsPanel';
+import { OwnersPanel } from './OwnersPanel';
 import {
   Badge, Button, DataTable, Drawer, Menu, Notice as NoticeBox, PageHeader, Tabs, Toolbar, useConfirm, type Column,
   IconImage, IconMore, IconPlus, IconRefresh,
@@ -34,7 +35,7 @@ const MANAGE_TABS: [ManageTab, string][] = [
   ['location', 'Location & nearby'], ['faq', 'FAQ'], ['reviews', 'Reviews'],
 ];
 
-type View = 'listings' | 'bookings' | 'promotions';
+type View = 'listings' | 'bookings' | 'promotions' | 'owners';
 
 export default function PGAdminPage() {
   const { isAuthed } = useAdminAuth();
@@ -43,7 +44,7 @@ export default function PGAdminPage() {
   // ?tab=bookings | promotions (the overview's Needs attention list links straight to booking requests).
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get('tab');
-    if (t === 'bookings' || t === 'promotions' || t === 'listings') setView(t);
+    if (t === 'bookings' || t === 'promotions' || t === 'listings' || t === 'owners') setView(t);
   }, []);
   const [pgs, setPgs] = useState<PGHostel[]>([]);
   const [loading, setLoading] = useState(true);
@@ -268,7 +269,7 @@ export default function PGAdminPage() {
     <div className="text-fg">
       <PageHeader
         title="PG and hostels"
-        description="PG listings and their rooms, photos and rules; promotions; and students’ booking requests to confirm."
+        description="PG listings and their rooms, photos and rules; promotions; students’ booking requests; and PG owner accounts for the ZCS PG Partner app."
         actions={view === 'listings' ? (
           <>
             <Button leftIcon={<IconRefresh size={14} />} loading={loading} onClick={() => loadPgs()}>Refresh</Button>
@@ -284,6 +285,7 @@ export default function PGAdminPage() {
             { id: 'listings', label: 'Listings', count: pgs.length || null },
             { id: 'bookings', label: 'Booking requests', count: pendingCount || null, attention: true },
             { id: 'promotions', label: 'Promotions' },
+            { id: 'owners', label: 'Owner accounts' },
           ]}
         />
       </PageHeader>
@@ -298,6 +300,8 @@ export default function PGAdminPage() {
         <BookingsPanel onPendingCount={onPendingCount} liveTick={bookingsTick} isFresh={isFresh} />
       ) : view === 'promotions' ? (
         <PromotionsPanel pgs={pgs} liveTick={promotionsTick} />
+      ) : view === 'owners' ? (
+        <OwnersPanel pgs={pgs} />
       ) : (
         <>
           <Toolbar end={<span className="text-sm text-fg-muted">{pgs.filter(p => p.isActive).length} listed, {pgs.filter(p => !p.isActive).length} hidden</span>} />

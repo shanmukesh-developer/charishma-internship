@@ -11,8 +11,18 @@ const initPGBookingModel = (sequelize) => {
     hostelId: { type: DataTypes.UUID, allowNull: false },
     roomId: { type: DataTypes.UUID, allowNull: false },
     checkInDate: { type: DataTypes.DATE, allowNull: false },
-    status: { type: DataTypes.STRING, defaultValue: 'Pending' }, // 'Pending', 'Confirmed', 'Cancelled'
-    rentPaid: { type: DataTypes.BOOLEAN, defaultValue: false }
+    // 'Pending', 'Confirmed', 'Cancelled', 'Rejected' (declined by the PG owner), 'MovedOut' (utils/pgBookings.js)
+    status: { type: DataTypes.STRING, defaultValue: 'Pending' },
+    rentPaid: { type: DataTypes.BOOLEAN, defaultValue: false },
+    // Added for the ZCS PG Partner app (nullable; config/db.js addMissingColumns adds them on boot).
+    // How long the student plans to stay (months, 1-24) and a short note to the PG (no phone numbers).
+    durationMonths: { type: DataTypes.INTEGER, allowNull: true },
+    note: { type: DataTypes.STRING(300), allowNull: true },
+    // Owner / admin decision: the reason the student sees on a declined request, when and by whom.
+    decisionReason: { type: DataTypes.STRING(300), allowNull: true },
+    decidedAt: { type: DataTypes.DATE, allowNull: true },
+    decidedBy: { type: DataTypes.STRING(64), allowNull: true },
+    movedOutAt: { type: DataTypes.DATE, allowNull: true }
   }, { timestamps: true });
 
   return PGBooking;

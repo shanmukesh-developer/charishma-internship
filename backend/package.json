@@ -22,6 +22,7 @@
     "test:c8": "node tests/c8/run.js",
     "test:s0": "node tests/s0/run.js",
     "test:pg": "node tests/pg/run.js",
+    "test:pgo": "node tests/pgo/run.js",
     "test:c9": "node tests/c9/run.js",
     "test:a5a6": "node tests/a5a6/run.js",
     "test:s1": "node tests/s1/run.js"
