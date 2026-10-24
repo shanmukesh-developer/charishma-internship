@@ -87,6 +87,9 @@ export default function ThemedAlert() {
   const activeSubText = isDark ? COLORS.textSecondary : COLORS.textDarkSecondary;
   const activeBorder = isDark ? COLORS.borderGold : COLORS.borderLight;
 
+  // Long labels stack full width instead of wrapping inside two side-by-side buttons.
+  const stackButtons = buttons.length > 2 || buttons.some((b) => String(b.text || '').length > 14);
+
   return (
     <Modal
       visible={visible}
@@ -114,7 +117,7 @@ export default function ThemedAlert() {
           {message ? <Text style={[styles.message, { color: activeSubText }]}>{message}</Text> : null}
 
           {/* Buttons Row / Column */}
-          <View style={[styles.buttonContainer, buttons.length > 2 && styles.buttonContainerVertical]}>
+          <View style={[styles.buttonContainer, stackButtons && styles.buttonContainerVertical]}>
             {buttons.map((btn, idx) => {
               const isCancel = btn.style === 'cancel';
               const isDestructive = btn.style === 'destructive';
@@ -147,11 +150,11 @@ export default function ThemedAlert() {
                       borderColor: borderCol, 
                       borderWidth: borderCol !== 'transparent' ? 1 : 0 
                     },
-                    buttons.length > 2 && styles.buttonVertical,
+                    stackButtons && styles.buttonVertical,
                   ]}
                 >
-                  <Text style={[styles.buttonText, { color: textCol }]}>
-                    {btn.text?.toUpperCase() || 'OK'}
+                  <Text style={[styles.buttonText, { color: textCol }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+                    {btn.text || 'OK'}
                   </Text>
                 </TouchableOpacity>
               );
@@ -187,17 +190,16 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
+  // Sentence case, calm weights (owner: no ALL CAPS, fonts not too bold).
   title: {
-    fontSize: 15,
-    fontWeight: '900',
-    letterSpacing: 1.5,
+    fontSize: 17,
+    fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 10,
-    textTransform: 'uppercase',
+    marginBottom: 8,
   },
   message: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13.5,
+    fontWeight: '400',
     lineHeight: 18,
     textAlign: 'center',
     marginBottom: 20,
@@ -220,14 +222,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
+  // Explicit grow/shrink/basis: "flex: 0" collapses to 0 height on web (flex-basis 0%) in a column.
   buttonVertical: {
-    flex: 0,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
     width: '100%',
   },
   buttonText: {
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 2,
+    fontSize: 14.5,
+    fontWeight: '600',
     textAlign: 'center',
   },
 });
