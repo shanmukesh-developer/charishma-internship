@@ -1,0 +1,167 @@
+{
+  "version": 1,
+  "marker": "AUTO_ROUTES_V1_DONE",
+  "note": "ZCS Auto union-queue stands seeded once on startup by scripts/auto_routes_seed.js (create-only; a route whose destination already exists is skipped, existing routes are never edited, so admin edits win). Seat fares are the owner-given defaults and ranges (drivers may change the fare within min-max). Full-auto fare bounds are 8x the seat fare bounds. minSeatsToDepartDefault 8 = the platform max capacity, so an auto on charge leaves when full (min(capacity, 8)). The pickup coordinates are approximate (SRM University AP main gate, Neerukonda); the admin can fine-tune lat / lon in Admin > Auto-Ride > Routes.",
+  "routes": [
+    {
+      "name": "SRM AP Main Gate to Mangalagiri",
+      "originLabel": "SRM AP Main Gate",
+      "destinationLabel": "Mangalagiri",
+      "seatFareDefault": 30,
+      "seatFareMin": 25,
+      "seatFareMax": 40,
+      "fullFareMin": 200,
+      "fullFareMax": 320,
+      "operatingPeriods": [
+        {
+          "key": "DAY",
+          "label": "Day",
+          "start": "06:00",
+          "end": "22:00"
+        }
+      ],
+      "minSeatsToDepartDefault": 8,
+      "permittedStops": [],
+      "isActive": true,
+      "sortOrder": 10,
+      "pickupPoints": [
+        {
+          "name": "SRM AP Main Gate",
+          "landmark": "Main gate, Neerukonda",
+          "lat": 16.4636,
+          "lon": 80.5069,
+          "sequence": 0,
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "name": "SRM AP Main Gate to Vijayawada",
+      "originLabel": "SRM AP Main Gate",
+      "destinationLabel": "Vijayawada (Benz Circle)",
+      "seatFareDefault": 100,
+      "seatFareMin": 90,
+      "seatFareMax": 120,
+      "fullFareMin": 720,
+      "fullFareMax": 960,
+      "operatingPeriods": [
+        {
+          "key": "DAY",
+          "label": "Day",
+          "start": "06:00",
+          "end": "22:00"
+        }
+      ],
+      "minSeatsToDepartDefault": 8,
+      "permittedStops": [],
+      "isActive": true,
+      "sortOrder": 20,
+      "pickupPoints": [
+        {
+          "name": "SRM AP Main Gate",
+          "landmark": "Main gate, Neerukonda",
+          "lat": 16.4636,
+          "lon": 80.5069,
+          "sequence": 0,
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "name": "SRM AP Main Gate to Guntur",
+      "originLabel": "SRM AP Main Gate",
+      "destinationLabel": "Guntur",
+      "seatFareDefault": 100,
+      "seatFareMin": 90,
+      "seatFareMax": 120,
+      "fullFareMin": 720,
+      "fullFareMax": 960,
+      "operatingPeriods": [
+        {
+          "key": "DAY",
+          "label": "Day",
+          "start": "06:00",
+          "end": "22:00"
+        }
+      ],
+      "minSeatsToDepartDefault": 8,
+      "permittedStops": [],
+      "isActive": true,
+      "sortOrder": 30,
+      "pickupPoints": [
+        {
+          "name": "SRM AP Main Gate",
+          "landmark": "Main gate, Neerukonda",
+          "lat": 16.4636,
+          "lon": 80.5069,
+          "sequence": 0,
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "name": "SRM AP Main Gate to Tadepalli",
+      "originLabel": "SRM AP Main Gate",
+      "destinationLabel": "Tadepalli",
+      "seatFareDefault": 40,
+      "seatFareMin": 30,
+      "seatFareMax": 50,
+      "fullFareMin": 240,
+      "fullFareMax": 400,
+      "operatingPeriods": [
+        {
+          "key": "DAY",
+          "label": "Day",
+          "start": "06:00",
+          "end": "22:00"
+        }
+      ],
+      "minSeatsToDepartDefault": 8,
+      "permittedStops": [],
+      "isActive": true,
+      "sortOrder": 40,
+      "pickupPoints": [
+        {
+          "name": "SRM AP Main Gate",
+          "landmark": "Main gate, Neerukonda",
+          "lat": 16.4636,
+          "lon": 80.5069,
+          "sequence": 0,
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "name": "SRM AP Main Gate to Undavalli",
+      "originLabel": "SRM AP Main Gate",
+      "destinationLabel": "Undavalli",
+      "seatFareDefault": 80,
+      "seatFareMin": 70,
+      "seatFareMax": 95,
+      "fullFareMin": 560,
+      "fullFareMax": 760,
+      "operatingPeriods": [
+        {
+          "key": "DAY",
+          "label": "Day",
+          "start": "06:00",
+          "end": "22:00"
+        }
+      ],
+      "minSeatsToDepartDefault": 8,
+      "permittedStops": [],
+      "isActive": true,
+      "sortOrder": 50,
+      "pickupPoints": [
+        {
+          "name": "SRM AP Main Gate",
+          "landmark": "Main gate, Neerukonda",
+          "lat": 16.4636,
+          "lon": 80.5069,
+          "sequence": 0,
+          "isActive": true
+        }
+      ]
+    }
+  ]
+}

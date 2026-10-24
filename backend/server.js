@@ -1357,6 +1357,20 @@ const initializeApp = async () => {
       console.warn('⚠️ [CATALOGUE_CLEANUP] not started:', cleanErr.message);
     }
 
+    // 🛺 ZCS Auto union-queue stands, once (GlobalConfig AUTO_ROUTES_V1_DONE): the owner's routes from SRM AP Main
+    // Gate with seat fare default + range and one pickup point each (data/auto_routes_v1_2026-10-24.json). Runs
+    // after connectDB() (sync + Auto-Ride migrations); validated by the admin controller's routeInput / pickupInput,
+    // create-only (a destination that already exists is skipped), so admin edits win. The script logs
+    // "[AUTO_ROUTES_SEED] created N, skipped M". DISABLE_AUTO_ROUTES_SEED=true switches it off.
+    try {
+      const { runAutoRoutesSeed } = require('./scripts/auto_routes_seed');
+      runAutoRoutesSeed()
+        .then((r) => { if (r && r.skipped && typeof r.skipped === 'string') console.log('🛺 [AUTO_ROUTES_SEED]', r.skipped); })
+        .catch((err) => console.warn('⚠️ [AUTO_ROUTES_SEED] failed:', err.message));
+    } catch (autoSeedErr) {
+      console.warn('⚠️ [AUTO_ROUTES_SEED] not started:', autoSeedErr.message);
+    }
+
     // 🧹 Demo-data cleanup (idempotent): switches off the demo riders / students / PG listings that
     // older builds seeded into production. Runs in the background; never deletes anything.
     try {

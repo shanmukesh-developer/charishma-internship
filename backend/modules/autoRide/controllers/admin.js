@@ -703,4 +703,6 @@ module.exports = { createDriver,
   vehicles, vehicleDetail, approveVehicle, rejectVehicle, suspendVehicle, listRoutes, createRoute, updateRoute, createPickup, updatePickup,
   trips, tripDetail, cancelTrip, queues, lines, bookings, cancelBooking, retryRefund, privateRequests, incidents, updateIncident,
   fares, getSettings, putSettings, auditLog,
+  // Input validation shared with scripts/auto_routes_seed.js (the startup seed validates exactly like the admin UI).
+  routeInput, pickupInput,
 };
