@@ -32,8 +32,9 @@ import { useLiveSync, hasType } from '../../utils/useLiveSync';
 import RentalsV2Home from '../../modules/rentalsV2/RentalsV2Screen';
 import { RENTALS_V2_DEMO_CONTENT } from '../../modules/rentalsV2/rentalsV2Demo';
 import { useAutoRideStatus } from '../../modules/autoRide/ui';
-import CampusEventsSection from '../../modules/campusEvents/CampusEventsSection';
 import { useCampusEventsStatus } from '../../modules/campusEvents/ui';
+import EventsV2Home from '../../modules/eventsV2/EventsV2Screen';
+import { EVENTS_V2_DEMO_CONTENT } from '../../modules/eventsV2/eventsV2Demo';
 import { CoRideV2OthersSection } from '../../modules/corideV2/CoRideV2Screen';
 import SectionHeader, { FOOD_HEADER, type HeaderColors } from '../../modules/foodV2/FoodV2SectionHeader';
 import { useUnreadDot } from '../../modules/foodV2/FoodV2HomeTop';
@@ -609,7 +610,9 @@ export default function OthersScreen() {
   const myId = String(user?._id || user?.id || '');
   // Campus Events chip: GET /api/campus-events/status once (cached); hidden while off or on any error.
   const campusEventsStatus = useCampusEventsStatus(!!myId);
-  const campusEventsOn = !!campusEventsStatus?.enabled;
+  // Campus events v2 (modules/eventsV2): while its sample layer is on, the section always shows; with the server
+  // switch off it shows the samples with an "Events open soon" note.
+  const campusEventsOn = !!campusEventsStatus?.enabled || EVENTS_V2_DEMO_CONTENT;
   // Sections with no live listings yet (no PG, no upcoming ride, no rental) are hidden and come back as
   // soon as one is listed (GET /api/config/sections, cached 60 s). Food & groceries, Tech & Repairs and
   // Deals always show; unknown (offline, older server) shows everything.
@@ -627,7 +630,7 @@ export default function OthersScreen() {
     [campusEventsOn, sectionLive],
   );
   useEffect(() => {
-    if (activeTab === 'events' && campusEventsStatus && !campusEventsStatus.enabled) setActiveTab('food');
+    if (activeTab === 'events' && campusEventsStatus && !campusEventsStatus.enabled && !EVENTS_V2_DEMO_CONTENT) setActiveTab('food');
   }, [activeTab, campusEventsStatus]);
   useEffect(() => {
     if (!sectionLive(activeTab)) setActiveTab('food');
@@ -1705,6 +1708,16 @@ export default function OthersScreen() {
     );
   }
 
+  // Campus events v2 (modules/eventsV2): its own night header (twilight campus hero, brand, search, section pills),
+  // glossy category tiles, Quick Access, Upcoming Events and Clubs. Inner screens are app/campus-events/* routes.
+  if (activeTab === 'events') {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#13123A' }}>
+        <EventsV2Home sections={visibleTabs} onSection={selectTab} />
+      </View>
+    );
+  }
+
   return (
     <View style={[s.container, { paddingTop: 0, backgroundColor: bg }]}>
       <AmbientBackground />
@@ -1807,8 +1820,6 @@ export default function OthersScreen() {
         )}
 
 
-        {/* ── CAMPUS EVENTS TAB: discovery, registrations, tickets (only while the server enables it) ── */}
-        {activeTab === 'events' && campusEventsOn && <CampusEventsSection focusSearchTick={sectionSearchTick} />}
 
         {/* ── PG STAYS TAB (modules/pgV2): hero, filters, My bookings and buildings near campus ── */}
         {activeTab === 'pg' && <PgV2OthersSection />}
