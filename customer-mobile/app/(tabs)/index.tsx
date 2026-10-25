@@ -327,8 +327,10 @@ export default function HomeScreen() {
   // The carousel sits below the stores: it animates only while some of it is on screen.
   const carouselTop = useRef(0);
   const carouselHeight = useRef(0);
-  const [carouselVisible, setCarouselVisible] = useState(false);
-  const carouselVisibleRef = useRef(false);
+  // The carousel sits near the top of Home, so it starts visible. (It used to start hidden and only became
+  // visible on the first scroll event: on phones no scroll event fires at launch, so the art never animated.)
+  const [carouselVisible, setCarouselVisible] = useState(true);
+  const carouselVisibleRef = useRef(true);
   // The restaurant grid renders 12 cards first (it sits inside this ScrollView, so it cannot be a
   // virtualized list). It no longer grows on its own while scrolling: a "Show all" button ends it,
   // so Recently viewed and the stalls below stay reachable without scrolling past every store.
