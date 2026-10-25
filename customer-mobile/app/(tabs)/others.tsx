@@ -29,7 +29,8 @@ import { PgV2OthersSection } from '../../modules/pgV2/PgV2Route';
 import { reloadPgV2List } from '../../modules/pgV2/pgV2Data';
 import { PG_HEADER as PG_V2_HEADER, PG_HINTS as PG_V2_HINTS } from '../../modules/pgV2/PgV2Home';
 import { useLiveSync, hasType } from '../../utils/useLiveSync';
-import RentalsSection from '../../modules/rentals/RentalsSection';
+import RentalsV2Home from '../../modules/rentalsV2/RentalsV2Screen';
+import { RENTALS_V2_DEMO_CONTENT } from '../../modules/rentalsV2/rentalsV2Demo';
 import { useAutoRideStatus } from '../../modules/autoRide/ui';
 import CampusEventsSection from '../../modules/campusEvents/CampusEventsSection';
 import { useCampusEventsStatus } from '../../modules/campusEvents/ui';
@@ -616,7 +617,8 @@ export default function OthersScreen() {
   const sectionLive = useCallback((key: string) => {
     const sec = sectionsSWR.data?.sections;
     // Co-Ride always shows: posting a ride is how its listings start, so hiding it while empty was a dead end.
-    const k = key === 'pg' ? 'pg' : key === 'rentals' ? 'rentals' : null;
+    // Rentals too while its sample layer is on (modules/rentalsV2/rentalsV2Demo.ts): "List your vehicle" lives there.
+    const k = key === 'pg' ? 'pg' : key === 'rentals' && !RENTALS_V2_DEMO_CONTENT ? 'rentals' : null;
     if (!k || !sec || !sec[k]) return true;
     return sec[k].live !== false;
   }, [sectionsSWR.data]);
@@ -1693,6 +1695,16 @@ export default function OthersScreen() {
     );
   }
 
+  // Rentals v2 (modules/rentalsV2): its own night header (dusk hero, brand, search, section pills), the
+  // category grid, campus chips and popular rentals. Inner screens are app/rentals/* routes.
+  if (activeTab === 'rentals') {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#141438' }}>
+        <RentalsV2Home sections={visibleTabs} onSection={selectTab} />
+      </View>
+    );
+  }
+
   return (
     <View style={[s.container, { paddingTop: 0, backgroundColor: bg }]}>
       <AmbientBackground />
@@ -1794,8 +1806,6 @@ export default function OthersScreen() {
           </View>
         )}
 
-        {/* ── RENTALS TAB: student vehicles (peer to peer) + rental stores ── */}
-        {activeTab === 'rentals' && <RentalsSection />}
 
         {/* ── CAMPUS EVENTS TAB: discovery, registrations, tickets (only while the server enables it) ── */}
         {activeTab === 'events' && campusEventsOn && <CampusEventsSection focusSearchTick={sectionSearchTick} />}
