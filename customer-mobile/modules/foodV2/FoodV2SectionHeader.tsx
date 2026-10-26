@@ -4,8 +4,8 @@
  * rotating section hints, and the section pills. Each section passes only its own accent colours.
  * Used by Food & groceries (FoodV2HomeTop) and by the other sections in app/(tabs)/others.tsx.
  */
-import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform, type LayoutChangeEvent } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { Image } from 'expo-image';
@@ -13,6 +13,7 @@ import { PressScale } from '../../modules/others/motion';
 import { Icon } from './FoodV2Icons';
 import { useScreenActive } from '../../utils/useAppActive';
 import { BUTTON_ROLE } from '../../utils/pressRole';
+import { usePillReveal } from '../others/SectionPillRail';
 
 export type HeaderAction = { icon: string; label: string; onPress: () => void; badge?: number; dot?: boolean };
 export type HeaderColors = { top: string; bottom: string; pillOnBg: string; pillOnInk: string };
@@ -72,21 +73,8 @@ export default function SectionHeader({ topPad, pageW, compact, colors, subtitle
   pills: [string, string][]; active: string; onPill: (key: string) => void;
   onBack?: () => void; actions: HeaderAction[];
 }) {
-  const railRef = useRef<ScrollView>(null);
-  const railW = useRef(0);
-  const pillPos = useRef<Record<string, { x: number; w: number }>>({});
-  // Keep the first pill fully visible: scroll only when the active pill would be cut off on the right.
-  const reveal = () => {
-    const l = pillPos.current[active];
-    if (!l || !railW.current) return;
-    const overflow = l.x + l.w + SIDE + 24 - railW.current;
-    railRef.current?.scrollTo({ x: overflow > 0 ? overflow : 0, animated: false });
-  };
-  useEffect(() => { reveal(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [active]);
-  const onPillLayout = (k: string) => (e: LayoutChangeEvent) => {
-    pillPos.current[k] = { x: e.nativeEvent.layout.x, w: e.nativeEvent.layout.width };
-    if (k === active) reveal();
-  };
+  // Scroll only when the active pill would be cut off on the right, and then start the row on a whole pill.
+  const { railRef, tail, onRailLayout, onPillLayout } = usePillReveal(active, SIDE);
   const side = compact ? 16 : 20;
   return (
     <LinearGradient colors={[colors.top, colors.bottom]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ paddingTop: topPad, overflow: 'hidden' }}>
@@ -112,8 +100,8 @@ export default function SectionHeader({ topPad, pageW, compact, colors, subtitle
         <Icon name="search" size={20} color="#1F3B4D" />
         <RotatingHint hints={hints} />
       </PressScale>
-      <ScrollView ref={railRef} horizontal style={st.hScroll} showsHorizontalScrollIndicator={false} contentContainerStyle={st.pillRail}
-        onLayout={e => { railW.current = e.nativeEvent.layout.width; reveal(); }} accessibilityRole="tablist">
+      <ScrollView ref={railRef} horizontal style={st.hScroll} showsHorizontalScrollIndicator={false} contentContainerStyle={[st.pillRail, { paddingRight: SIDE + tail }]}
+        onLayout={onRailLayout} accessibilityRole="tablist">
         {pills.map(([k, label]) => {
           const on = k === active;
           return (

@@ -1,6 +1,10 @@
 import * as Haptics from 'expo-haptics';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, RefreshControl, FlatList, Dimensions, Platform, Modal, ActivityIndicator, Alert, Animated, Linking, BackHandler, Vibration } from 'react-native';
+import { useSectionUsage, rankByUsage, recordSectionUse } from '../../utils/sectionUsage';
+import { useCampusEventsStatus } from '../../modules/campusEvents/ui';
+import { RENTALS_V2_DEMO_CONTENT } from '../../modules/rentalsV2/rentalsV2Demo';
+import { EVENTS_V2_DEMO_CONTENT } from '../../modules/eventsV2/eventsV2Demo';
 import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
 // expo-image (memory + disk cache, downsampled CDN URLs) in place of react-native's Image
 import { CachedImage as Image } from '../../components/SafeImage';
@@ -155,19 +159,36 @@ const CLASSICS = [
 ];
 
 
+// Home feature cards: every section, swiped sideways (owner, 26 Oct). Standard order; sections this user opens
+// regularly move to the front (utils/sectionUsage). Tech & repairs sits second from last.
 const CATEGORIES = [
   { key: 'food', label: 'Food' },
   { key: 'basket', label: 'Shopping list' },
+  { key: 'pg', label: 'PG stays' },
+  { key: 'rides', label: 'Co-Ride' },
+  { key: 'rentals', label: 'Rentals' },
+  { key: 'events', label: 'Campus events' },
   { key: 'services', label: 'Tech & Repairs' },
-  { key: 'rides', label: 'Rides' },
+  { key: 'promos', label: 'Deals & spin' },
 ];
+// Usage key per card (the Others section it opens; Shopping list counts on its own).
+const CATEGORY_USAGE_KEY: Record<string, string> = { rides: 'coride' };
+const categoryUsageKeys = (c: { key: string }) => [CATEGORY_USAGE_KEY[c.key] || c.key];
 
+// Licensed photos only: Unsplash (food, basket, services) and the sections' own licensed assets.
 const CATEGORY_IMAGES = {
   food: { uri: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200&q=80' },
   basket: { uri: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&q=80' },
+  pg: require('../../modules/pgV2/assets/pg-v2-building-modern-midrise-greenery-2026-10-24.webp'),
+  rides: require('../../modules/corideV2/assets/coride-v2-owner-tile-auto-rickshaw-2026-10-24.webp'),
+  rentals: require('../../modules/rentalsV2/assets/rv2-demo-bike-ntorq-1-2026-10-25.webp'),
+  events: require('../../modules/eventsV2/assets/ev2-sample-concert-crowd-2026-10-25.webp'),
   services: { uri: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=200&q=80' },
-  rides: { uri: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=200&q=80' },
+  promos: require('../../modules/dealsV2/assets/dv2-sample-deal-donut-stack-2026-10-25.webp'),
 };
+// Three whole cards and a slice of the fourth, so the row reads as swipeable on every width.
+const CAT_GAP = 8;
+const CAT_CARD_W = Math.round((SW - 16 - CAT_GAP * 3) / 3.3);
 
 function getGreeting() {
   const h = istHour();
@@ -376,10 +397,21 @@ export default function HomeScreen() {
   const [loadError, setLoadError] = useState<false | 'server' | 'network'>(false);
   // "Rides" shows only while Co-Ride has an upcoming ride (same check as the Others tab).
   const sectionsSWR = useSWRJson<{ sections?: Record<string, { live?: boolean }> }>('/api/config/sections', { freshMs: 60 * 1000 });
-  const homeCategories = React.useMemo(
-    () => CATEGORIES.filter((c) => c.key !== 'rides' || sectionsSWR.data?.sections?.coride?.live !== false),
-    [sectionsSWR.data],
-  );
+  // Same visibility as the Others pills: a section the server reports as off (no PG listed, Events closed) has
+  // no card; unknown (offline, older server) shows it.
+  const campusEventsStatus = useCampusEventsStatus(!!(user?._id || user?.id));
+  const sectionUsage = useSectionUsage();
+  const homeCategories = React.useMemo(() => {
+    const sec = sectionsSWR.data?.sections;
+    const shown = CATEGORIES.filter((c) => {
+      if (c.key === 'rides') return sec?.coride?.live !== false;
+      if (c.key === 'pg') return sec?.pg?.live !== false;
+      if (c.key === 'rentals') return RENTALS_V2_DEMO_CONTENT || sec?.rentals?.live !== false;
+      if (c.key === 'events') return EVENTS_V2_DEMO_CONTENT || !!campusEventsStatus?.enabled;
+      return true;
+    });
+    return rankByUsage(shown, categoryUsageKeys, sectionUsage);
+  }, [sectionsSWR.data, campusEventsStatus, sectionUsage]);
   // Live count for the "All restaurants" header: food stores in the grid and how many are open now
   const storeCounts = React.useMemo(() => {
     const food = restaurants.filter(isHomeFoodVendor);
@@ -896,11 +928,18 @@ export default function HomeScreen() {
         {/* ── NIGHT CLOSURE (9 PM to 6 AM): say it on Home, not first at checkout ── */}
         <NightClosureBanner style={{ marginTop: 0, marginBottom: 12 }} />
 
-        {/* ── CATEGORIES GRID CONTAINER (EXACT FIT) ── */}
+        {/* ── FEATURE CARDS: every section, swiped sideways; most used first ── */}
         <StaggeredSection delay={200} direction="up">
-        <View style={s.premiumCatGrid}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={s.premiumCatRow}
+          contentContainerStyle={s.premiumCatGrid}
+          snapToInterval={CAT_CARD_W + CAT_GAP}
+          decelerationRate="fast"
+        >
           {homeCategories.map((c, catIdx) => (
-            <BounceIn key={c.key} delay={300 + catIdx * 80} style={{ flex: 1 }}>
+            <BounceIn key={c.key} delay={300 + Math.min(catIdx, 3) * 80} style={{ width: CAT_CARD_W }}>
             <DopaminePressable 
               style={[
                 s.premiumCatBtn, 
@@ -912,17 +951,19 @@ export default function HomeScreen() {
               ]} 
               onPress={() => {
                 if (c.key === 'food') {
+                  recordSectionUse('food');
                   scrollToGrid();
                 } else if (c.key === 'basket') {
+                  recordSectionUse('basket');
                   router.push('/mega-basket' as any);
-                } else if (c.key === 'services') {
-                  router.push({ pathname: '/(tabs)/others', params: { tab: 'services' } } as any);
-                } else if (c.key === 'rides') {
-                  router.push({ pathname: '/(tabs)/others', params: { tab: 'rides' } } as any);
+                } else {
+                  // Others records the visit from its ?tab= link.
+                  router.push({ pathname: '/(tabs)/others', params: { tab: c.key } } as any);
                 }
               }}
               sound="tabSwitch"
               activeScale={0.95}
+              accessibilityLabel={c.label}
             >
               <SafeImage 
                 source={CATEGORY_IMAGES[c.key as keyof typeof CATEGORY_IMAGES]} 
@@ -935,7 +976,7 @@ export default function HomeScreen() {
             </DopaminePressable>
             </BounceIn>
           ))}
-        </View>
+        </ScrollView>
         </StaggeredSection>
 
         {/* ── CLASSICS ── */}
@@ -1767,16 +1808,18 @@ const s = StyleSheet.create({
   heroCarousel: {
     height: 200,
   },
-  premiumCatGrid: {
-    marginHorizontal: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  premiumCatRow: {
     marginTop: 16,
     marginBottom: 20,
-    gap: 8,
+  },
+  premiumCatGrid: {
+    paddingHorizontal: 16,
+    // Room for the cards' shadow inside the scroll row.
+    paddingTop: 2,
+    paddingBottom: 6,
+    gap: CAT_GAP,
   },
   premiumCatBtn: {
-    flex: 1,
     flexDirection: 'column',
     alignItems: 'center',
     borderRadius: 20,

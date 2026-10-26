@@ -35,7 +35,10 @@ import { useAutoRideStatus } from '../../modules/autoRide/ui';
 import { useCampusEventsStatus } from '../../modules/campusEvents/ui';
 import EventsV2Home from '../../modules/eventsV2/EventsV2Screen';
 import { EVENTS_V2_DEMO_CONTENT } from '../../modules/eventsV2/eventsV2Demo';
+import DealsV2Home from '../../modules/dealsV2/DealsV2Screen';
+import { refreshRewards as refreshDealsV2Rewards } from '../../modules/dealsV2/dealsV2Data';
 import { CoRideV2OthersSection } from '../../modules/corideV2/CoRideV2Screen';
+import { recordSectionUse } from '../../utils/sectionUsage';
 import SectionHeader, { FOOD_HEADER, type HeaderColors } from '../../modules/foodV2/FoodV2SectionHeader';
 import { useUnreadDot } from '../../modules/foodV2/FoodV2HomeTop';
 import { ACCENTS as OTHERS_ACCENTS, PILL_ACCENT, shadow as othersShadow, TYPE as OTHERS_TYPE, RADIUS as OTHERS_RADIUS, STATUS as OTHERS_STATUS, SURFACE as OTHERS_SURFACE } from '../../modules/others/othersTheme';
@@ -87,16 +90,18 @@ const ScalePressable = ({ children, onPress, style, activeOpacity = 0.85, access
 type IonName = React.ComponentProps<typeof Ionicons>['name'];
 
 const TABS: { key: string; label: string; icon: IonName }[] = [
-  // Owner order (24 Oct): PG stays right after Food & groceries.
+  // Fixed order (owner: PG stays right after Food & groceries, 24 Oct; Tech & repairs second from last, 26 Oct).
+  // The pills never reorder by usage (owner, 26 Oct); only Home's feature cards do.
   { key: 'food', label: 'Food & groceries', icon: 'basket-outline' },
   { key: 'pg', label: 'PG stays', icon: 'business-outline' },
-  { key: 'services', label: 'Tech & repairs', icon: 'construct-outline' },
   { key: 'coride', label: 'Co-Ride', icon: 'bicycle-outline' },
   { key: 'rentals', label: 'Rentals', icon: 'car-outline' },
   // Campus Events: shown only while GET /api/campus-events/status says enabled (see visibleTabs).
   { key: 'events', label: 'Campus events', icon: 'ticket-outline' },
+  { key: 'services', label: 'Tech & repairs', icon: 'construct-outline' },
   { key: 'promos', label: 'Deals & spin', icon: 'gift-outline' },
 ];
+
 
 const BB_CATEGORIES: { key: string; label: string; icon: IonName }[] = [
   { key: 'Fresh', label: 'Fruits & veggies', icon: 'nutrition-outline' },
@@ -583,6 +588,8 @@ export default function OthersScreen() {
   // Synchronize active tab from navigation parameter (e.g. from Home category pills)
   useEffect(() => {
     if (tab) {
+      // A pill tap or a link into a section counts as using it (orders Home's feature cards).
+      recordSectionUse(tab === 'rides' ? 'coride' : tab === 'stays' ? 'pg' : tab === 'offers' ? 'promos' : tab === 'campus-events' ? 'events' : tab === 'rental' || tab === 'vehicles' ? 'rentals' : tab);
       if (tab === 'rides' || tab === 'coride') {
         setActiveTab('coride');
       } else if (tab === 'services') {
@@ -827,7 +834,8 @@ export default function OthersScreen() {
   // /rewards (Profile, checkout, notifications) lands on this tab; ?tab=promos&sub=spin opens the spin page.
   useEffect(() => {
     if ((tab === 'promos' || tab === 'offers') && sub === 'spin') {
-      setSpinOpen(true);
+      // Deals & spin v2: the spin page is its own route (modules/dealsV2, app/deals/spin).
+      router.push('/deals/spin' as any);
       // One-shot: clear it so a later tab switch back to Deals & spin does not reopen the wheel.
       try { router.setParams({ sub: undefined } as any); } catch {}
     }
@@ -1237,7 +1245,7 @@ export default function OthersScreen() {
     // both screens on every open) for state the food tab never shows.
     if (activeTab === 'services') { run('servicePrices', fetchServicePrices); run('catalogue', fetchCatalogue); }
     else if (activeTab === 'pg') run('pg', () => fetchPGs());
-    else if (activeTab === 'promos') { run('rewards', fetchRewards, false); run('vault', fetchVault); }
+    // Deals & spin v2 (modules/dealsV2) loads its own rewards, coupons and deals.
     return Promise.all(jobs);
   }, [activeTab, myId, fetchServiceability, fetchCatalogue, fetchServicePrices, fetchPGs, fetchRewards, fetchVault]);
 
@@ -1256,7 +1264,7 @@ export default function OthersScreen() {
       if (catalogueChanged) fetchServiceability();
       if (activeTab === 'services' && catalogueChanged) { fetchServicePrices(); fetchCatalogue(); }
       else if (activeTab === 'pg' && hasType(events, 'pg')) fetchPGs({ silent: true });
-      else if (activeTab === 'promos' && hasType(events, 'coupon')) fetchRewards();
+      else if (activeTab === 'promos' && hasType(events, 'coupon')) refreshDealsV2Rewards();
     },
   });
 
@@ -1704,6 +1712,16 @@ export default function OthersScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: '#141438' }}>
         <RentalsV2Home sections={visibleTabs} onSection={selectTab} />
+      </View>
+    );
+  }
+
+  // Deals & spin v2 (modules/dealsV2): its own indigo header (search, section pills), the "Spin. Win. Save." hero
+  // with the real wheel, ZenPoints and wallet, today's deals and your coupons. Inner screens are app/deals/* routes.
+  if (activeTab === 'promos') {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F5F3FF' }}>
+        <DealsV2Home sections={visibleTabs} onSection={selectTab} onSearch={() => { setStoreSearchOnOpen(true); selectTab('food'); }} />
       </View>
     );
   }

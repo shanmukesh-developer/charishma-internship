@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { LayoutChangeEvent, ScrollView, StyleSheet, Text, View, ViewStyle, StyleProp } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PressScale } from './motion';
@@ -11,6 +11,59 @@ import { BUTTON_ROLE } from '../../utils/pressRole';
  */
 export type SectionPill = { key: string; label: string };
 
+/**
+ * Where to scroll a pill rail so the active pill shows in full. The row always starts on a pill boundary, so no
+ * half-cut pill sits at the left edge ("…Ride" before Rentals looked broken); 0 while the active pill already fits.
+ */
+export function pillRevealX(pos: Record<string, { x: number; w: number }>, active: string, railW: number, gap = 8, endRoom = 24) {
+  const p = pos[active];
+  if (!p || !railW) return null;
+  const fits = (x: number) => p.x + p.w - x <= railW - endRoom;
+  if (fits(0)) return 0;
+  // A row starting `gap` before a pill shows none of the pill before it.
+  const starts = Object.values(pos).filter(q => q.x <= p.x).map(q => Math.max(0, q.x - gap)).sort((a, b) => a - b);
+  return starts.find(fits) ?? Math.max(0, p.x - gap);
+}
+
+/**
+ * Pill-rail scrolling shared by every Others header. Near the end of the row a ScrollView cannot scroll far enough
+ * to start on a whole pill (it stops at content end, mid-pill), so the row gets just enough extra room at its end.
+ */
+export function usePillReveal(active: string, side: number) {
+  const railRef = useRef<ScrollView>(null);
+  const railW = useRef(0);
+  const pos = useRef<Record<string, { x: number; w: number }>>({});
+  const [tail, setTail] = useState(0);
+  const tailRef = useRef(0);
+
+  const reveal = (animated: boolean) => {
+    const x = pillRevealX(pos.current, active, railW.current);
+    if (x == null) return;
+    const contentEnd = Math.max(...Object.values(pos.current).map(q => q.x + q.w)) + side;
+    const need = Math.max(0, Math.ceil(x - Math.max(0, contentEnd - railW.current)));
+    // Grow the end room first; the effect below scrolls once it is laid out.
+    if (need !== tailRef.current) { tailRef.current = need; setTail(need); return; }
+    railRef.current?.scrollTo({ x, animated });
+  };
+  useEffect(() => { reveal(true); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [active]);
+  useEffect(() => {
+    if (!tail) return;
+    const id = requestAnimationFrame(() => reveal(false));
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tail]);
+
+  return {
+    railRef,
+    tail,
+    onRailLayout: (e: LayoutChangeEvent) => { railW.current = e.nativeEvent.layout.width; reveal(false); },
+    onPillLayout: (k: string) => (e: LayoutChangeEvent) => {
+      pos.current[k] = { x: e.nativeEvent.layout.x, w: e.nativeEvent.layout.width };
+      reveal(false);
+    },
+  };
+}
+
 export default function SectionPillRail({ sections, active, onSection, side = 16, tone = 'dark', style }: {
   sections: SectionPill[];
   active: string;
@@ -21,34 +74,17 @@ export default function SectionPillRail({ sections, active, onSection, side = 16
   tone?: 'dark' | 'light';
   style?: StyleProp<ViewStyle>;
 }) {
-  const railRef = useRef<ScrollView>(null);
-  const railW = useRef(0);
-  const pos = useRef<Record<string, { x: number; w: number }>>({});
-
-  // Centre the active pill when it would be cut off (left edge stays put when everything fits).
-  const reveal = (animated: boolean) => {
-    const p = pos.current[active];
-    if (!p || !railW.current) return;
-    const end = p.x + p.w + side;
-    if (end <= railW.current && p.x >= 0) return;
-    const x = Math.max(0, p.x + p.w / 2 - railW.current / 2);
-    railRef.current?.scrollTo({ x, animated });
-  };
-  useEffect(() => { reveal(true); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [active]);
-
-  const onPillLayout = (k: string) => (e: LayoutChangeEvent) => {
-    pos.current[k] = { x: e.nativeEvent.layout.x, w: e.nativeEvent.layout.width };
-    if (k === active) reveal(false);
-  };
+  // Bring the active pill into view when it would be cut off, starting the row on a whole pill.
+  const { railRef, tail, onRailLayout, onPillLayout } = usePillReveal(active, side);
 
   const dark = tone === 'dark';
   return (
-    <View style={style} onLayout={(e) => { railW.current = e.nativeEvent.layout.width; reveal(false); }}>
+    <View style={style} onLayout={onRailLayout}>
       <ScrollView
         ref={railRef}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={[st.rail, { paddingHorizontal: side }]}
+        contentContainerStyle={[st.rail, { paddingLeft: side, paddingRight: side + tail }]}
       >
         {sections.map((t) => {
           const on = t.key === active;
