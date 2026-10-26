@@ -655,7 +655,7 @@ export default function OrdersScreen() {
           <Ionicons name="construct-outline" size={44} color={txtSec} style={{ marginBottom: 12 }} />
           <Text style={[st.emptyTitle, { color: txt }]}>No service bookings yet</Text>
           <Text style={[st.emptyDesc, { color: txtSec }]}>
-            Repairs, printouts, laundry and tailoring you book will show up here with their live status.
+            Repairs, laundry and tailoring you book will show up here with their live status.
           </Text>
           <TouchableOpacity style={[st.browseBtn, { backgroundColor: COLORS.red }]} activeOpacity={0.85} onPress={() => router.push({ pathname: '/(tabs)/others', params: { tab: 'services' } } as any)}>
             <Text style={st.browseBtnText}>Browse services</Text>

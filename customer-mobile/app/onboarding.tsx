@@ -78,7 +78,7 @@ const PAGES: Page[] = [
     line: 'Services, student stays, shared rides and campus events.',
     image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=85',
     features: [
-      { icon: 'construct-outline', text: 'Book repairs, prints and other services', where: 'Others' },
+      { icon: 'construct-outline', text: 'Book repairs, laundry and other services', where: 'Others' },
       { icon: 'business-outline', text: 'Explore PGs and request a booking', where: 'Others' },
       { icon: 'bicycle-outline', text: 'Share a ride, rent a vehicle, get event passes', where: 'Others' },
     ],

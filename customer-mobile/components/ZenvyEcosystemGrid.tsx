@@ -8,7 +8,6 @@ import { StaggeredSection } from './AnimatedSection';
 
 const ECOSYSTEM_SERVICES = [
   { id: 'repairs', name: 'Laptop Fix', emoji: '💻', color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.15)', badge: 'DOORSTEP', route: '/others?tab=services' },
-  { id: 'print', name: 'Print & Xerox', emoji: '🖨️', color: '#10B981', bg: 'rgba(16, 185, 129, 0.15)', badge: '24/7', route: '/category/print' },
   { id: 'mattresses', name: 'Mattresses & Bed', emoji: '🛏️', color: '#EC4899', bg: 'rgba(236, 72, 153, 0.15)', badge: 'ROOM SET', route: '/category/mattresses' },
   { id: 'electronics', name: 'Electronics', emoji: '🔌', color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.15)', badge: 'HOT', route: '/category/electronics' },
   { id: 'rides', name: 'Bike pool', emoji: '🏍️', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.15)', badge: 'CO-RIDE', route: '/others?tab=rides' },

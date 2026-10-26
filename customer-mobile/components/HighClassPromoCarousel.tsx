@@ -409,17 +409,6 @@ export default function HighClassPromoCarousel({
         redirectAction: () => router.push({ pathname: '/(tabs)/others', params: { tab: 'rides' } } as any),
       },
       {
-        id: 'print',
-        type: 'print',
-        tagline: '🖨️ 8:57. DUE AT 9.',
-        title1: 'Assignment due 9?',
-        title2: 'Printer: on leave.',
-        description: 'Attach your pages, pick binding, see the estimate before you book.',
-        buttonText: 'Print it →',
-        accentColor: '#38BDF8',
-        redirectAction: () => router.push('/category/print' as any),
-      },
-      {
         id: 'campus-buddy',
         type: 'campus',
         tagline: '🎓 SLEPT IN AGAIN?',

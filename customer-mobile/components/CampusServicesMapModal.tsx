@@ -79,21 +79,6 @@ const CAMPUS_SERVICES_MAP: ServicePillar[] = [
     accentColor: '#3B82F6',
   },
   {
-    id: 'print',
-    icon: '🖨️',
-    title: 'Printouts & Binding',
-    category: 'ACADEMICS & STATIONERY',
-    tagline: 'Assignments, records and project binding',
-    howToAccess: 'Others tab ➔ "Tech & Repairs" ➔ "Printout & Xerox".',
-    keyFeatures: [
-      'Choose B/W or colour, single or double sided',
-      'See the estimate before you book',
-      'Stationery and study kits in the store too'
-    ],
-    image: 'https://images.unsplash.com/photo-1562654501-a0ccc0fc3fb1?w=600&q=80',
-    accentColor: '#8B5CF6',
-  },
-  {
     id: 'pharmacy',
     icon: '💊',
     title: 'Pharmacy Essentials',

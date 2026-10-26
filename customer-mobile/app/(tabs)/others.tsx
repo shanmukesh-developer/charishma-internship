@@ -147,7 +147,7 @@ const PROMOS_FOOD = [
 const PROMOS_SERVICES = [
   { id: 's1', tagline: 'Laptop and phone', title: 'Tech repairs on campus', subtitle: '', desc: 'Screen replacement, fan cleaning, thermal paste and hardware fixes. Book a slot in the app.', btn: 'Book a repair', img: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=1200&q=80' },
   { id: 's2', tagline: 'Campus tailoring', title: 'Uniform and fabric alterations', subtitle: '', desc: 'Lab coat tailoring, fitting alterations, blazer adjustments and stitching requests.', btn: 'Request a tailor', img: 'https://images.unsplash.com/photo-1630930678172-63343537a00a?w=1200&q=80' },
-  { id: 's3', tagline: 'Document hub', title: 'Printing and binding', subtitle: '', desc: 'Project reports, spiral binding, colour charts and assignment prints.', btn: 'Send a print job', img: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=1200&q=80' },
+  { id: 's3', tagline: 'Pickup and drop', title: 'Wash, dry clean and ironing', subtitle: '', desc: 'Daily clothes, bedsheets and blankets picked up from your hostel and brought back clean.', btn: 'Book laundry', img: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=1200&q=80' },
 ];
 
 const PROMOS_PG = [
@@ -1556,7 +1556,7 @@ export default function OthersScreen() {
       case 'f3': router.push('/category/groceries' as any); break;
       case 's1': router.push('/category/repairs' as any); break;
       case 's2': router.push('/category/tailoring' as any); break;
-      case 's3': router.push('/category/print' as any); break;
+      case 's3': router.push('/category/laundry' as any); break;
       case 'p1':
       case 'p2': scrollViewRef.current?.scrollTo({ y: 300, animated: true }); break;
       case 'c1': router.push('/coride/post?role=rider' as any); break;
@@ -1685,7 +1685,6 @@ export default function OthersScreen() {
   const SERVICE_CARDS = [
     { id: 'LAPTOP_REPAIR', title: 'Laptop and phone repairs', tag: 'Book a slot', desc: 'Screen replacement, thermal paste, fan cleaning, SSD upgrades and hardware fixes.', icon: '💻', cat: 'repairs', priceKey: 'repairs', image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600&q=80' },
     { id: 'TAILORING', title: 'Tailoring and stitching', tag: 'Alterations', desc: 'Length shortening, shirt and kurti alterations, lab coat resizing and zip replacement.', icon: '✂️', cat: 'tailoring', priceKey: 'tailoring', image: 'https://images.unsplash.com/photo-1630930678172-63343537a00a?w=600&q=80' },
-    { id: 'PRINTOUT', title: 'Printouts and binding', tag: 'Print jobs', desc: 'B&W and colour printouts, project reports, spiral and hard binding.', icon: '📄', cat: 'print', priceKey: 'print', image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=600&q=80' },
     { id: 'LAUNDRY', title: 'Wash, dry clean and ironing', tag: 'Pickup and drop', desc: 'Daily clothes, bedsheets, blankets and shoe cleaning from your hostel.', icon: '👕', cat: 'laundry', priceKey: 'laundry', image: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=600&q=80' },
     { id: 'MATTRESSES', title: 'Mattresses and room gear', tag: 'Move-in essentials', desc: 'Foam mattresses, pillows, bedsheets, buckets and drying racks.', icon: '📦', cat: 'mattresses', priceKey: 'home', image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80' },
     { id: 'ELECTRONICS', title: 'Chargers and gadgets', tag: 'Tech essentials', desc: 'Laptop adapters, extension boards, calculators and study lamps.', icon: '🔋', cat: 'electronics', priceKey: 'electronics', image: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=600&q=80' },

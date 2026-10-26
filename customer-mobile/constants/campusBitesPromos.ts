@@ -129,13 +129,13 @@ export const CAMPUS_BITES_PROMOS: CampusBitesPromo[] = [
   },
   {
     id: 'xerox-stationery',
-    tag: 'Assignment due?',
-    title: 'Xerox and stationery',
-    subtitle: 'Prints, binding, notebooks.',
+    tag: 'Study supplies',
+    title: 'Stationery',
+    subtitle: 'Notebooks, pens and study supplies.',
     cta: 'Get it done',
     imageUrl: photo('1456735190827-d1262f71b8a3'),
     target: 'stall',
-    match: ['xerox', 'stationery'],
+    match: ['stationery'],
   },
   {
     id: 'how-it-works',
