@@ -1669,7 +1669,7 @@ export default function OthersScreen() {
   if (activeTab === 'promos') {
     return (
       <View style={{ flex: 1, backgroundColor: '#F5F3FF' }}>
-        <DealsV2Home sections={visibleTabs} onSection={selectTab} onSearch={() => { setStoreSearchOnOpen(true); selectTab('food'); }} />
+        <DealsV2Home sections={visibleTabs} onSection={selectTab} />
       </View>
     );
   }

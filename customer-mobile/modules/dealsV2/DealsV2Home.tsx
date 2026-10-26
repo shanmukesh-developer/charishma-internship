@@ -22,7 +22,7 @@ import { useDeals } from './dealsV2Data';
 import { sampleDeals } from './dealsV2Demo';
 import { useNav } from './dealsV2Nav';
 
-export function DealsV2HomeBody({ sections, onSearch }: { sections?: { key: string; label: string }[]; onSearch?: () => void }) {
+export function DealsV2HomeBody({ sections }: { sections?: { key: string; label: string }[] }) {
   const d = useDeals();
   const nav = useNav();
   const router = useRouter();
@@ -39,7 +39,7 @@ export function DealsV2HomeBody({ sections, onSearch }: { sections?: { key: stri
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await d.reload(); setRefreshing(false); }} tintColor={DV.violet} colors={[DV.violet]} />}
     >
-      <HomeTop sections={sections} onSearch={onSearch} />
+      <HomeTop sections={sections} />
       {offline ? (
         <View style={{ paddingHorizontal: 16, marginTop: 14 }}>
           <Notice tone="warn" icon={<IWifiOff size={16} color={DV.amber} strokeWidth={1.8} />}>

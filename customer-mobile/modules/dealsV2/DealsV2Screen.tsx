@@ -9,11 +9,11 @@ import { DealsV2Nav } from './dealsV2Nav';
 import { DealsV2HomeBody } from './DealsV2Home';
 import DealsV2Sheets from './DealsV2Sheets';
 
-function DealsV2Home({ sections, onSection, onSearch }: { sections?: { key: string; label: string }[]; onSection?: (key: string) => void; onSearch?: () => void }) {
+function DealsV2Home({ sections, onSection }: { sections?: { key: string; label: string }[]; onSection?: (key: string) => void }) {
   return (
     <DealsV2Nav isHome onSection={onSection}>
       <View style={{ flex: 1, backgroundColor: DV.page }}>
-        <DealsV2HomeBody sections={sections} onSearch={onSearch} />
+        <DealsV2HomeBody sections={sections} />
         <DealsV2Sheets />
       </View>
     </DealsV2Nav>
