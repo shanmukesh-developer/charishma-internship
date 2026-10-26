@@ -1,68 +1,76 @@
 ﻿/**
- * Category tiles (reference): five glossy gradient pills, each with a 3D-style icon top-left, a label and a
- * small round arrow. Depth = gradient body + soft top highlight + inner bottom shade + a glow behind the icon +
- * a coloured layered shadow. Tapping opens the listing filtered to that category.
+ * "Browse by category" (owner, 26 Oct 2026: the 3D emoji tiles looked unofficial). Portrait photo tiles: a real
+ * category photo (eventsV2Art CATEGORY_PHOTO, Unsplash License), a dark indigo gradient at the foot, the label and
+ * the number of upcoming events in that category (counted from the same list the home shows, samples included
+ * while the demo layer is on). No glow, gloss or motion beyond the one-time fade-in and press feedback.
+ * Tapping opens the listing filtered to that category.
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Defs, Ellipse, RadialGradient, Stop } from 'react-native-svg';
-import { TILES, W, shadow } from './eventsV2Theme';
-import { Press, FadeInUp, usePageW } from './EventsV2Kit';
-import GlossyIcon from './EventsV2Glossy';
-import { IArrowRight } from './EventsV2Icons';
+import { NIGHT, TILES, TILE_CATEGORIES, W, shadow } from './eventsV2Theme';
+import { CATEGORY_PHOTO } from './eventsV2Art';
+import { Press, FadeInUp, SectionHead, usePageW } from './EventsV2Kit';
 import { useNav } from './eventsV2Nav';
-
-function Glow({ color, size }: { color: string; size: number }) {
-  const id = React.useId().replace(/[^a-zA-Z0-9]/g, '');
-  return (
-    <Svg width={size} height={size} style={{ position: 'absolute', left: -size * 0.12, top: -size * 0.14 }} pointerEvents="none">
-      <Defs>
-        <RadialGradient id={`g${id}`} cx="50%" cy="50%" rx="50%" ry="50%">
-          <Stop offset="0" stopColor={color} stopOpacity="1" />
-          <Stop offset="1" stopColor={color} stopOpacity="0" />
-        </RadialGradient>
-      </Defs>
-      <Ellipse cx={size / 2} cy={size / 2} rx={size / 2} ry={size / 2} fill={`url(#g${id})`} />
-    </Svg>
-  );
-}
+import { useEventsV2 } from './eventsV2Data';
 
 export default function CategoryTiles() {
   const nav = useNav();
   const w = usePageW();
-  const tileW = Math.round(Math.max(102, Math.min(120, (w - 32 - 20) / 2.9)));
-  const tileH = Math.round(tileW * 1.02);
+  const d = useEventsV2();
+  // ~2.6 tiles visible, so the row reads as scrollable at 360 / 390 / 430.
+  const tileW = Math.round(Math.max(118, Math.min(150, (w - 32 - 20) / 2.6)));
+  const tileH = Math.round(tileW * 1.25);
+  const counts = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const t of TILES) {
+      const cats = TILE_CATEGORIES[t.key];
+      out[t.key] = cats ? d.all.filter((e) => cats.includes(e.category)).length : d.all.length;
+    }
+    return out;
+  }, [d.all]);
+  const loading = d.mode === 'loading' && !d.all.length;
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 24, gap: 10 }}>
-      {TILES.map((t, i) => (
-        <FadeInUp key={t.key} index={i}>
-          <Press onPress={() => nav.push({ name: 'explore', tile: t.key })} label={t.label} hint="Shows these events" style={[{ width: tileW, height: tileH }, s.tile, shadow(3, t.grad[1])]} scaleTo={0.95}>
-            <LinearGradient colors={[t.grad[0], t.grad[1], t.grad[2]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-            <LinearGradient colors={['rgba(255,255,255,0.42)', 'rgba(255,255,255,0.06)', 'rgba(255,255,255,0)']} locations={[0, 0.4, 1]} style={[StyleSheet.absoluteFill, { height: '58%' }]} />
-            <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(20,6,60,0.28)']} style={[StyleSheet.absoluteFill, { top: '55%' }]} />
-            <Glow color={t.glow} size={tileW * 0.86} />
-            <View style={s.sheen} pointerEvents="none" />
-            <View style={{ position: 'absolute', left: 9, top: 8 }}>
-              <GlossyIcon kind={t.key} size={56} tilt={-6} />
-            </View>
-            <View style={s.foot}>
-              <Text style={[s.label, tileW < 112 ? { fontSize: 12 } : null]} numberOfLines={1}>{t.label}</Text>
-              <View style={s.arrow}><IArrowRight size={12} color={t.grad[2]} strokeWidth={2.2} /></View>
-            </View>
-            <View style={s.rim} pointerEvents="none" />
-          </Press>
-        </FadeInUp>
-      ))}
-    </ScrollView>
+    <View style={{ marginTop: 10 }}>
+      <SectionHead title="Browse by category" />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4, gap: 10 }}>
+        {TILES.map((t, i) => {
+          const n = counts[t.key] || 0;
+          const sub = loading ? ' ' : n ? `${n} event${n === 1 ? '' : 's'}` : 'None yet';
+          return (
+            <FadeInUp key={t.key} index={i}>
+              <Press
+                onPress={() => nav.push({ name: 'explore', tile: t.key })}
+                label={`${t.label}${loading ? '' : `, ${sub}`}`}
+                hint="Shows these events"
+                style={[{ width: tileW, height: tileH }, s.tile, shadow(2)]}
+                scaleTo={0.96}
+              >
+                <Image source={CATEGORY_PHOTO[t.key]} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} accessibilityIgnoresInvertColors />
+                <LinearGradient
+                  colors={['rgba(16,15,51,0)', 'rgba(16,15,51,0.55)', 'rgba(16,15,51,0.94)']}
+                  locations={[0.38, 0.66, 1]}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View style={s.foot}>
+                  <Text style={s.label} numberOfLines={1}>{t.label}</Text>
+                  <Text style={s.count} numberOfLines={1}>{sub}</Text>
+                </View>
+                <View style={s.rim} pointerEvents="none" />
+              </Press>
+            </FadeInUp>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  tile: { borderRadius: 24, overflow: 'hidden' },
-  foot: { position: 'absolute', left: 11, right: 9, bottom: 11, flexDirection: 'row', alignItems: 'center', gap: 4 },
-  label: { flex: 1, color: '#FFFFFF', fontSize: 13.5, fontWeight: W.title, letterSpacing: -0.1, textShadowColor: 'rgba(20,6,60,0.35)', textShadowRadius: 4 },
-  arrow: { width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center' },
-  rim: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.38)' },
-  sheen: { position: 'absolute', right: -30, top: -40, width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(255,255,255,0.14)' },
+  tile: { borderRadius: 18, overflow: 'hidden', backgroundColor: NIGHT.card },
+  foot: { position: 'absolute', left: 12, right: 12, bottom: 12 },
+  label: { color: '#FFFFFF', fontSize: 15, lineHeight: 19, fontWeight: W.title, letterSpacing: -0.1 },
+  count: { color: 'rgba(232,230,255,0.8)', fontSize: 12, lineHeight: 16, marginTop: 2 },
+  rim: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.16)' },
 });

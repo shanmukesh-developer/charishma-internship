@@ -11,11 +11,11 @@ import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View, useWin
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from 'react-native-svg';
 import { PressScale, FadeInUp } from '../others/motion';
-import { ShineSweep, PulseBlock } from '../foodV2/FoodV2Motion';
+import { PulseBlock } from '../foodV2/FoodV2Motion';
 import { BUTTON_ROLE } from '../../utils/pressRole';
 import { useTopInset } from '../../utils/useTopInset';
 import { DAY, NIGHT, RADIUS, W, shadow } from './rentalsV2Theme';
-import { IArrowLeft, IHeart, IPin, IStar, IWifiOff, ICloudOff, ISparkles, ISearch, IChevronDown } from './RentalsV2Icons';
+import { IArrowLeft, IHeart, IPin, IStar, IWifiOff, ICloudOff, IClock, ISearch, IChevronDown } from './RentalsV2Icons';
 import { useNav } from './rentalsV2Nav';
 import { useRentalsV2 } from './rentalsV2Data';
 
@@ -110,12 +110,10 @@ export function Segmented<T extends string>({ items, value, onChange }: { items:
 }
 
 export function CTA({ label, onPress, sub, disabled, busy, style }: { label: string; onPress: () => void; sub?: string; disabled?: boolean; busy?: boolean; style?: StyleProp<ViewStyle> }) {
-  const w = usePageW();
   return (
     <Press onPress={disabled || busy ? undefined : onPress} label={label} style={[st.cta, shadow(3, DAY.accent), disabled ? { opacity: 0.5 } : null, style]}>
       <LinearGradient colors={[DAY.hero[0], DAY.hero[1], DAY.hero[2]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <LinearGradient colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0)']} style={[StyleSheet.absoluteFill, { height: '55%' }]} />
-      {!disabled && !busy ? <ShineSweep width={w} /> : null}
       {busy ? <ActivityIndicator color="#FFFFFF" /> : (
         <View style={{ alignItems: 'center' }}>
           <Text style={st.ctaText}>{label}</Text>
@@ -171,7 +169,7 @@ export function StateBlock({ kind, title, body, action, onAction, style }: { kin
       </View>
     );
   }
-  const Icon = kind === 'offline' ? IWifiOff : kind === 'error' ? ICloudOff : ISparkles;
+  const Icon = kind === 'offline' ? IWifiOff : kind === 'error' ? ICloudOff : kind === 'soon' ? IClock : ISearch;
   const t = title || (kind === 'offline' ? 'You are offline' : kind === 'error' ? 'Could not load rentals' : kind === 'soon' ? 'Coming soon' : 'Nothing here yet');
   const b = body || (kind === 'offline' ? 'Check your internet and try again.' : kind === 'error' ? 'The server is busy. Please try again in a moment.' : '');
   return (

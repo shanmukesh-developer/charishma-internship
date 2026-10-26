@@ -9,14 +9,14 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import SafeImage from '../../components/SafeImage';
 import { dateTile } from '../campusEvents/campusEventsApi';
-import { NIGHT, TILES, W, tileOf } from './eventsV2Theme';
+import { NIGHT, TILES, W, hexA, tileOf } from './eventsV2Theme';
 import GlossyIcon from './EventsV2Glossy';
 import type { EvCard } from './eventsV2Data';
 
 export function Fallback({ e, iconSize = 64, iconRight }: { e: Pick<EvCard, 'category'>; iconSize?: number; iconRight?: boolean }) {
   const t = TILES.find((x) => x.key === tileOf(e.category)) || TILES[0];
   return (
-    <LinearGradient colors={[t.grad[0], t.grad[2], '#1A1450']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { alignItems: iconRight ? 'flex-end' : 'center', justifyContent: iconRight ? 'flex-start' : 'center', padding: iconRight ? 18 : 0 }]}>
+    <LinearGradient colors={[hexA(t.grad[2], 0.95), '#221F5C', NIGHT.page]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { alignItems: iconRight ? 'flex-end' : 'center', justifyContent: iconRight ? 'flex-start' : 'center', padding: iconRight ? 18 : 0 }]}>
       <GlossyIcon kind={t.key} size={iconSize} />
     </LinearGradient>
   );
@@ -41,7 +41,6 @@ export function DateBlock({ iso, style }: { iso: string | null; style?: StylePro
   if (!t) return null;
   return (
     <View style={[s.date, style]} accessibilityLabel={`${t.dow} ${t.day} ${t.mon}`}>
-      <LinearGradient colors={['rgba(255,255,255,0.98)', 'rgba(238,233,255,0.96)']} style={StyleSheet.absoluteFill} />
       <Text style={s.dow}>{t.dow}</Text>
       <Text style={s.day}>{t.day}</Text>
       <Text style={s.mon}>{t.mon}</Text>
@@ -52,18 +51,18 @@ export function DateBlock({ iso, style }: { iso: string | null; style?: StylePro
 export function PricePill({ isFree, label, style }: { isFree: boolean; label: string; style?: StyleProp<ViewStyle> }) {
   return (
     <View style={[s.price, style]} accessibilityLabel={isFree ? 'Free' : `Price ${label}`}>
-      <LinearGradient colors={isFree ? ['#5EE59A', '#1FA463'] : ['#B79BFF', '#7646EA']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      <LinearGradient colors={['rgba(255,255,255,0.35)', 'rgba(255,255,255,0)']} style={[StyleSheet.absoluteFill, { height: '55%' }]} />
+      {isFree ? <View style={s.freeDot} /> : null}
       <Text style={s.priceText}>{isFree ? 'Free' : label}</Text>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  date: { width: 46, paddingVertical: 5, borderRadius: 13, alignItems: 'center', overflow: 'hidden' },
-  dow: { fontSize: 11, color: NIGHT.violetDeep, fontWeight: W.label },
-  day: { fontSize: 19, color: '#16133F', fontWeight: W.hero, lineHeight: 22 },
-  mon: { fontSize: 11, color: '#4B4870', fontWeight: W.label },
-  price: { height: 28, paddingHorizontal: 12, borderRadius: 14, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.45)' },
-  priceText: { color: '#FFFFFF', fontSize: 12.5, fontWeight: W.title },
+  date: { width: 44, paddingTop: 5, paddingBottom: 6, borderRadius: 12, alignItems: 'center', overflow: 'hidden', backgroundColor: '#FFFFFF' },
+  dow: { fontSize: 10.5, color: NIGHT.violetDeep, fontWeight: W.title, letterSpacing: 0.2 },
+  day: { fontSize: 18, color: '#16133F', fontWeight: W.hero, lineHeight: 21 },
+  mon: { fontSize: 10.5, color: '#5A5780', fontWeight: W.label },
+  price: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 26, paddingHorizontal: 10, borderRadius: 13, backgroundColor: 'rgba(16,15,51,0.72)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.28)' },
+  freeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: NIGHT.green },
+  priceText: { color: '#FFFFFF', fontSize: 12, fontWeight: W.title, letterSpacing: 0.1 },
 });

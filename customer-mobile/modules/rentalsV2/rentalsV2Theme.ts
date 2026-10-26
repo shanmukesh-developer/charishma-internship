@@ -19,18 +19,17 @@ export const NIGHT = {
   violet: '#A78BFA',
   violetDeep: '#7C5CF0',
   go: ['#A98BF6', '#7B55EA'] as const,
-  possibilities: '#B28CFF',
-  swash: ['#C4B5FD', '#F0ABFC'] as const,
   pin: '#F5A3D7',
   bellDot: '#FF5A7A',
 };
 
-/** Category cards (home): top-left -> bottom-right glossy gradients, sampled from the board. */
+/** Category cards (home). One product family (owner, 26 Oct: "official colouring"): the four hues share the same
+ * perceptual lightness and chroma (OKLCH L 0.70 → 0.53, C 0.13), so they read as one palette, not a rainbow. */
 export const CARD = {
-  bike: { grad: ['#A68CF8', '#9173ED', '#7F5FE3'] as const, glow: 'rgba(240,120,220,0.55)', ink: '#5B3FD9' },
-  car: { grad: ['#56B8FB', '#3890F1', '#2C6FE6'] as const, glow: 'rgba(120,200,255,0.55)', ink: '#2563EB' },
-  room: { grad: ['#FBA98E', '#EF8888', '#E2667F'] as const, glow: 'rgba(255,200,150,0.55)', ink: '#E05A6E' },
-  flat: { grad: ['#93D7BA', '#73BC9E', '#5AAE84'] as const, glow: 'rgba(200,255,220,0.5)', ink: '#2F9467' },
+  bike: { grad: ['#A18EE8', '#8673CA', '#6F5BB0'] as const, glow: '#E8E4FF', shadow: '#594496', ink: '#6750AB' },
+  car: { grad: ['#64A1EE', '#4985CF', '#316CB5'] as const, glow: '#D7EAFF', shadow: '#17559B', ink: '#2063B0' },
+  room: { grad: ['#E47D6D', '#C56153', '#AA493C'] as const, glow: '#FFDFD8', shadow: '#8F3126', ink: '#A43C2F' },
+  flat: { grad: ['#2EB88F', '#009B74', '#00835D'] as const, glow: '#CFF1E3', shadow: '#006B47', ink: '#007B53' },
 };
 
 export const DAY = {
@@ -42,10 +41,10 @@ export const DAY = {
   faint: '#A8AAC0',
   line: '#ECEAF7',
   lineSoft: '#F3F2FB',
-  accent: '#5B3FE0',
-  accentDeep: '#4A2FCF',
+  accent: '#6246D8',
+  accentDeep: '#4F35C0',
   accentSoft: '#EFEBFF',
-  accentInk: '#5B3FE0',
+  accentInk: '#6246D8',
   star: '#F5B83A',
   green: '#1F8A55',
   greenSoft: '#E5F6EC',
@@ -55,15 +54,15 @@ export const DAY = {
   redSoft: '#FDECEF',
   sample: '#8A6A1E',
   sampleSoft: '#FFF6DF',
-  hero: ['#6D4BF2', '#5B3FE0', '#4528C9'] as const,
+  hero: ['#7E66E0', '#6246D8', '#4F35C0'] as const,
 };
 
-/** Soft tinted plates of the light category cards (explore board). */
+/** Soft tinted plates of the light (inner) screens: the same four hues, very light. */
 export const PLATE = {
-  bike: { bg: ['#F1ECFF', '#E6DEFF'] as const, ink: '#5B3FE0', blob: '#D9CCFF' },
-  car: { bg: ['#EAF4FF', '#DCEBFF'] as const, ink: '#2569D9', blob: '#C7DFFF' },
-  room: { bg: ['#FFF0EA', '#FFE3D9'] as const, ink: '#D9643F', blob: '#FFD2C2' },
-  flat: { bg: ['#E8F8F0', '#D8F1E5'] as const, ink: '#23875A', blob: '#BFE8D3' },
+  bike: { bg: ['#F5F3FF', '#E8E4FF'] as const, ink: '#6750AB', blob: '#DCD5FB' },
+  car: { bg: ['#ECF6FF', '#D7EAFF'] as const, ink: '#2063B0', blob: '#C9E0FB' },
+  room: { bg: ['#FFF1ED', '#FFDFD8'] as const, ink: '#A43C2F', blob: '#F9D0C7' },
+  flat: { bg: ['#E9FAF2', '#CFF1E3'] as const, ink: '#007B53', blob: '#BFE9D6' },
 };
 
 export const RADIUS = { sm: 10, md: 14, lg: 18, xl: 22, pill: 999 } as const;

@@ -1,7 +1,8 @@
 ﻿/**
- * Event cards (reference "Upcoming Events"): big photo with a scrim, the date block top-left, the price pill
- * top-right, the title in bold, venue and time rows with thin icons, tag chips and the
- * violet arrow button. `EventCardV2` is the carousel card; `EventRowCard` the full-width card of the listing.
+ * Event cards: big photo with a soft scrim, the date block top-left, the price pill top-right; below, the category
+ * and organiser on one quiet line, the title, time and venue rows with thin icons, then a footer (seats left or
+ * tags) with the flat violet arrow. Owner, 26 Oct 2026: official, flat accents, no gloss.
+ * `EventCardV2` is the home carousel card; `EventRowCard` the full-width card of the listing.
  */
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -17,10 +18,8 @@ const a11y = (e: EvCard) => [e.title, e.isDemoContent ? 'Sample' : null, e.categ
 
 function ArrowBtn({ size = 34 }: { size?: number }) {
   return (
-    <View style={[{ width: size, height: size, borderRadius: size / 2, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }, shadow(1, '#5B2FD6')]}>
-      <LinearGradient colors={[NIGHT.go[0], NIGHT.go[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      <LinearGradient colors={['rgba(255,255,255,0.35)', 'rgba(255,255,255,0)']} style={[StyleSheet.absoluteFill, { height: '50%' }]} />
-      <View><IArrowRight size={size * 0.47} color="#FFFFFF" strokeWidth={2} /></View>
+    <View style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: NIGHT.violetDeep }}>
+      <IArrowRight size={Math.round(size * 0.47)} color="#FFFFFF" strokeWidth={2} />
     </View>
   );
 }
@@ -46,24 +45,36 @@ function Chips({ e, max = 2 }: { e: EvCard; max?: number }) {
 }
 
 export function EventCardV2({ e, width, onPress, index = 0 }: { e: EvCard; width: number; onPress: () => void; index?: number }) {
+  const cap = capacityLine(e);
+  const org = e.organizer?.club?.name || e.organizer?.name || null;
+  const full = e.registrationState === 'FULL';
   return (
     <FadeInUp index={index}>
       <Press onPress={onPress} label={a11y(e)} hint="Opens event details" style={[s.card, { width }, shadow(2)]} scaleTo={0.975}>
-        <View style={{ height: Math.round(width * 0.56) }}>
-          <EventPhoto e={e} top />
+        <View style={{ height: Math.round(width * 0.58) }}>
+          <EventPhoto e={e} top scrim={false} />
           <DateBlock iso={e.startAt} style={{ position: 'absolute', top: 10, left: 10 }} />
           <View style={{ position: 'absolute', top: 10, right: 10, alignItems: 'flex-end', gap: 6 }}>
             <PricePill isFree={e.price.isFree} label={e.price.label} />
             {e.isDemoContent ? <SampleTag /> : null}
           </View>
-          {e.myStatus ? <View style={{ position: 'absolute', left: 10, bottom: 8 }}><Tag label={REG_STATUS_META[e.myStatus].label} color={NIGHT.green} solid /></View> : null}
+          {e.myStatus ? <View style={{ position: 'absolute', left: 10, bottom: 10 }}><Tag label={REG_STATUS_META[e.myStatus].label} color={NIGHT.green} solid /></View> : null}
         </View>
-        <View style={{ padding: 13, paddingTop: 10 }}>
-          <Text style={s.title} numberOfLines={2}>{e.title}</Text>
-          <View style={{ gap: 5, marginTop: 7 }}><Rows e={e} /></View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 8 }}>
-            <Chips e={e} />
-            <ArrowBtn />
+        <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 }}>
+          <View style={s.metaRow}>
+            <Text style={s.meta} numberOfLines={1}>{[e.categoryLabel, org].filter(Boolean).join(' · ')}</Text>
+            {e.organizer?.club?.verified ? <IBadgeCheck size={13} color={NIGHT.sky} strokeWidth={1.8} /> : null}
+          </View>
+          <Text style={[s.title, { marginTop: 4, minHeight: 42 }]} numberOfLines={2}>{e.title}</Text>
+          <View style={{ gap: 6, marginTop: 8 }}><Rows e={e} /></View>
+          <View style={s.foot}>
+            {cap ? (
+              <View style={[s.row, { flex: 1 }]}>
+                <IArmchair size={13} color={full ? NIGHT.red : NIGHT.green} strokeWidth={1.8} />
+                <Text style={[s.rowText, { color: full ? NIGHT.red : 'rgba(232,230,255,0.86)' }]} numberOfLines={1}>{cap}</Text>
+              </View>
+            ) : <Chips e={e} />}
+            <ArrowBtn size={32} />
           </View>
         </View>
         <View style={s.rim} pointerEvents="none" />
@@ -114,13 +125,16 @@ export function EventRowCard({ e, onPress, index = 0 }: { e: EvCard; onPress: ()
 }
 
 const s = StyleSheet.create({
-  card: { borderRadius: 22, backgroundColor: NIGHT.card, overflow: 'hidden' },
-  rim: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.16)' },
-  title: { fontSize: 17, lineHeight: 21, color: NIGHT.ink, fontWeight: W.display, letterSpacing: -0.2 },
+  card: { borderRadius: 20, backgroundColor: NIGHT.card, overflow: 'hidden' },
+  rim: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.14)' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  meta: { fontSize: 12, color: NIGHT.violet, fontWeight: W.label, flexShrink: 1 },
+  foot: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: NIGHT.line },
+  title: { fontSize: 16.5, lineHeight: 21, color: NIGHT.ink, fontWeight: W.display, letterSpacing: -0.2 },
   onPhoto: { position: 'absolute', left: 13, right: 13, bottom: 10, textShadowColor: 'rgba(10,8,40,0.6)', textShadowRadius: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   rowText: { fontSize: 12.5, color: NIGHT.sub, flexShrink: 1 },
-  chip: { paddingHorizontal: 9, height: 24, borderRadius: 12, backgroundColor: 'rgba(167,139,250,0.16)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(167,139,250,0.42)', justifyContent: 'center' },
-  chipText: { fontSize: 11.5, color: '#DCD2FF', fontWeight: W.label },
+  chip: { paddingHorizontal: 9, height: 24, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.18)', justifyContent: 'center' },
+  chipText: { fontSize: 11.5, color: 'rgba(232,230,255,0.86)', fontWeight: W.label },
   track: { height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.1)', marginTop: 6, overflow: 'hidden' },
 });

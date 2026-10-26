@@ -1,7 +1,7 @@
 /**
  * Campus Events v2 kit (night look on every screen):
  *   Press        press-scale tappable (web-safe role)        NightHeader  back, title, sub, actions (glass)
- *   SectionHead  title + swash + sub + right action           ChipRow      glass chips, violet gradient when on
+ *   SectionHead  title + sub + right action                   ChipRow      glass chips, violet gradient when on
  *   CTA          glossy violet button with a shine sweep      IconSquare   glossy gradient square + thin icon
  *   Glass        dark glass card with a top highlight          Tag          small status pill (colour + words)
  */
@@ -137,8 +137,8 @@ export const st = StyleSheet.create({
   headBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.28)', alignItems: 'center', justifyContent: 'center' },
   headTitle: { fontSize: 18, fontWeight: W.title, color: NIGHT.ink, letterSpacing: -0.2 },
   headSub: { fontSize: 12.5, color: NIGHT.sub, marginTop: 1 },
-  secTitle: { fontSize: 18, fontWeight: W.title, color: NIGHT.ink, letterSpacing: -0.2 },
-  secSub: { fontSize: 12.5, color: NIGHT.sub, marginTop: 4 },
+  secTitle: { fontSize: 19, lineHeight: 24, fontWeight: W.title, color: NIGHT.ink, letterSpacing: -0.3 },
+  secSub: { fontSize: 13, lineHeight: 18, color: NIGHT.faint, marginTop: 2 },
   chip: { height: 36, paddingHorizontal: 15, borderRadius: RADIUS.pill, backgroundColor: NIGHT.glass, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   chipOn: { borderColor: 'transparent' },
   chipText: { fontSize: 13, color: 'rgba(240,238,255,0.9)', fontWeight: W.label },

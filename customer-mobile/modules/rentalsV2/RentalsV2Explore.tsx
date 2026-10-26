@@ -1,8 +1,8 @@
 /**
- * Rentals v2 explore (inner board 1, light): "Hey there, Let's find your perfect rental", a search near campus,
- * four wide tinted category cards with cut-outs and real "From ₹X" prices, and "Why ZCS?" with only what is true
- * today (listings are reviewed, PIN handover, pay at pickup, support). The board's promo banner is left out:
- * there is no real student offer. Typing searches real rentals and PG rooms (samples after them).
+ * Rentals v2 explore (inner board 1, light): the page title, a search near campus, four wide tinted category cards
+ * with cut-outs and real "From ₹X" prices, and "How it works" with only what is true today (vehicle listings are
+ * reviewed, PIN handover, pay at pickup, support). No promo banner: there is no real student offer.
+ * Typing searches real rentals and PG rooms (samples after them).
  */
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -11,22 +11,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { DAY, PLATE, W, shadow, CATEGORY_TITLE, type Category } from './rentalsV2Theme';
 import { EXPLORE_ART } from './rentalsV2Art';
 import { FadeInUp, GroundShadow, Press, StateBlock, usePageW } from './RentalsV2Kit';
-import { FloatY } from '../foodV2/FoodV2Motion';
-import { IArrowLeft, IArrowRight, IBadge, IChat, IHouse, IKey, IReceipt, ISearch, IX, IPin } from './RentalsV2Icons';
+import { IArrowLeft, IArrowRight, IBadge, IChat, IKey, IReceipt, ISearch, IX, IPin } from './RentalsV2Icons';
 import { ItemRow } from './RentalsV2Rows';
 import { CAMPUSES, fromPrice, searchItems, useRentalsV2 } from './rentalsV2Data';
 import { useNav } from './rentalsV2Nav';
 import { useTopInset } from '../../utils/useTopInset';
-import { useAuth } from '../../context/AuthContext';
 
 const SUB: Record<Category, string> = {
-  bike: 'Explore · Ride · Go', car: 'Comfort for every journey', room: 'Safe · Clean · Affordable', flat: '1BHK · 2BHK · Independent',
+  bike: 'Scooters and motorcycles', car: 'Hatchbacks, sedans and SUVs', room: 'Single and shared rooms', flat: '1BHK, 2BHK and houses',
 };
 const WHY = [
-  { Icon: IBadge, label: 'Verified listings', note: 'Every vehicle is reviewed' },
-  { Icon: IKey, label: 'PIN handover', note: 'Pick up with a code' },
-  { Icon: IReceipt, label: 'Pay at pickup', note: 'No advance online' },
-  { Icon: IChat, label: 'Help & support', note: 'We are a tap away' },
+  { Icon: IBadge, label: 'Reviewed listings', note: 'Each vehicle is checked' },
+  { Icon: IKey, label: 'PIN handover', note: 'Pickup and return' },
+  { Icon: IReceipt, label: 'Pay at pickup', note: 'Nothing paid online' },
+  { Icon: IChat, label: 'Support', note: 'Help from ZCS' },
 ];
 
 function WideCard({ kind, index }: { kind: Category; index: number }) {
@@ -52,9 +50,9 @@ function WideCard({ kind, index }: { kind: Category; index: number }) {
           </View>
         </View>
         <GroundShadow width={h * 1.1} height={14} opacity={0.24} color="#2A1F6A" style={{ position: 'absolute', bottom: 8, right: h * 0.22 }} />
-        <FloatY distance={2} period={3800 + index * 250} style={{ width: h * 1.25, height: h * 0.92, marginRight: 8, marginTop: -6 }}>
-          <Image source={EXPLORE_ART[kind]} style={{ width: '100%', height: '100%' }} contentFit="contain" contentPosition="bottom" accessibilityIgnoresInvertColors />
-        </FloatY>
+        <View style={{ width: h * 1.25, height: h * 0.92, marginRight: 8, marginTop: -6 }} pointerEvents="none">
+          <Image source={EXPLORE_ART[kind]} style={{ width: '100%', height: '100%' }} contentFit="contain" contentPosition="bottom" transition={240} accessibilityIgnoresInvertColors />
+        </View>
       </Press>
     </FadeInUp>
   );
@@ -63,7 +61,6 @@ function WideCard({ kind, index }: { kind: Category; index: number }) {
 export default function RentalsV2Explore() {
   const nav = useNav();
   const top = useTopInset(36, 44);
-  const { user } = useAuth();
   const { items, vState, rState, recent, addRecent } = useRentalsV2();
   const route = nav.route.name === 'explore' ? nav.route : { name: 'explore' as const };
   const [q, setQ] = useState(route.q || '');
@@ -71,7 +68,6 @@ export default function RentalsV2Explore() {
   const near = CAMPUSES.find((c) => c.key === route.near);
   const results = useMemo(() => searchItems(items, q), [items, q]);
   const nearList = useMemo(() => (near ? [...items].sort((a, b) => (a.distanceKm ?? 0.8) - (b.distanceKm ?? 0.8)) : []), [items, near]);
-  const first = String(user?.name || '').trim().split(/\s+/)[0];
 
   return (
     <View style={{ flex: 1, backgroundColor: DAY.page }}>
@@ -79,10 +75,9 @@ export default function RentalsV2Explore() {
         <View style={x.head}>
           <Press onPress={nav.back} label="Back" style={x.back}><IArrowLeft size={20} color={DAY.ink} strokeWidth={1.7} /></Press>
           <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={x.hey}>Hey {first || 'there'},</Text>
-            <Text style={x.h1} accessibilityRole="header">Let’s find your perfect rental</Text>
+            <Text style={x.h1} accessibilityRole="header">Rentals</Text>
+            <Text style={x.hey}>Bikes, cars, rooms and flats near campus</Text>
           </View>
-          <LinearGradient colors={['#F1ECFF', '#E2D9FF']} style={x.house}><IHouse size={22} color={DAY.accent} strokeWidth={1.6} /></LinearGradient>
         </View>
 
         <View style={[x.search, shadow(1)]}>
@@ -121,7 +116,7 @@ export default function RentalsV2Explore() {
             <View style={{ gap: 14, marginTop: 18 }}>
               {(['bike', 'car', 'room', 'flat'] as Category[]).map((k, i) => <WideCard key={k} kind={k} index={i} />)}
             </View>
-            <Text style={[x.whyTitle]}>Why ZCS?</Text>
+            <Text style={[x.whyTitle]}>How it works</Text>
             <View style={[x.why, shadow(1)]}>
               {WHY.map((w) => (
                 <View key={w.label} style={x.whyItem} accessibilityLabel={`${w.label}. ${w.note}`}>
@@ -141,9 +136,8 @@ export default function RentalsV2Explore() {
 const x = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
   back: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', ...shadow(1) },
-  hey: { fontSize: 13.5, color: DAY.muted },
-  h1: { fontSize: 20, color: DAY.ink, fontWeight: W.title, letterSpacing: -0.3, marginTop: 1 },
-  house: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  hey: { fontSize: 13, color: DAY.muted, marginTop: 2 },
+  h1: { fontSize: 21, color: DAY.ink, fontWeight: W.title, letterSpacing: -0.3 },
   search: { marginHorizontal: 16, marginTop: 18, height: 52, borderRadius: 16, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 8, gap: 10 },
   input: { flex: 1, fontSize: 14.5, color: DAY.ink, height: '100%', outlineStyle: 'none' } as any,
   clear: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: DAY.lineSoft },

@@ -29,14 +29,14 @@ export const SAMPLE_ART = {
 export type SampleArtKey = keyof typeof SAMPLE_ART;
 
 /**
- * Category tile icons: Microsoft Fluent Emoji, 3D style (github.com/microsoft/fluentui-emoji, assets/<Name>/3D),
- * MIT License, Copyright (c) Microsoft Corporation: commercial use and modification allowed. Shown as images,
- * never as emoji characters. Resized to 160 px WebP. Megaphone, Guitar, Trophy, Light bulb, Raising hands.
+ * Category tiles (owner, 26 Oct 2026: photo tiles instead of the 3D emoji icons). Free photos under the Unsplash
+ * License, cropped to 4:5 and saved as WebP. Credits: unsplash.com/photos/<id>
+ *   all NYrVisodQ2M · cultural uv4h7wIQcHQ · sports HgoKvtKpyHA · workshops kp7qkHTgSKc · clubs sr4xtO90tUM
  */
-export const TILE_ICON = {
-  all: require('./assets/ev2-icon-megaphone-fluent3d-2026-10-25.webp'),
-  cultural: require('./assets/ev2-icon-guitar-fluent3d-2026-10-25.webp'),
-  sports: require('./assets/ev2-icon-trophy-fluent3d-2026-10-25.webp'),
-  workshops: require('./assets/ev2-icon-light-bulb-fluent3d-2026-10-25.webp'),
-  clubs: require('./assets/ev2-icon-raising-hands-fluent3d-2026-10-25.webp'),
+export const CATEGORY_PHOTO = {
+  all: require('./assets/ev2-cat-all-events-stage-audience-2026-10-26.webp'),
+  cultural: require('./assets/ev2-cat-cultural-classical-dancers-2026-10-26.webp'),
+  sports: require('./assets/ev2-cat-sports-track-race-2026-10-26.webp'),
+  workshops: require('./assets/ev2-cat-workshops-students-laptop-2026-10-26.webp'),
+  clubs: require('./assets/ev2-cat-clubs-student-group-2026-10-26.webp'),
 } satisfies Record<string, ImageSourcePropType>;

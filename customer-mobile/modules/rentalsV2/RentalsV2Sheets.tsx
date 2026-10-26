@@ -15,7 +15,7 @@ import { rentalsApi, istDate, istDayLabel, istInstant, fmtTime, wordsOf, type Qu
 import { DAY, W, PLATE } from './rentalsV2Theme';
 import { CTA, Press } from './RentalsV2Kit';
 import { Options, Sheet, SheetLabel } from './RentalsV2Sheet';
-import { ICheck, ISparkles, IInfo } from './RentalsV2Icons';
+import { ICheck, IInfo } from './RentalsV2Icons';
 import { ItemThumb } from './RentalsV2Rows';
 import { inr, useRentalsV2, type RItem } from './rentalsV2Data';
 import { useNav, type Duration } from './rentalsV2Nav';
@@ -147,7 +147,7 @@ function SampleSheet({ item }: { item: RItem }) {
       </View>}>
       <View style={{ alignItems: 'center', paddingTop: 4 }}>
         <ItemThumb item={item} w={180} h={120} radius={22} />
-        <View style={b.tag}><ISparkles size={13} color={DAY.sample} strokeWidth={1.8} /><Text style={b.tagText}>Sample listing</Text></View>
+        <View style={b.tag}><IInfo size={13} color={DAY.sample} strokeWidth={1.8} /><Text style={b.tagText}>Sample listing</Text></View>
         <Text style={b.title}>{item.title}</Text>
         <Text style={b.body}>This is a sample listing. Real rentals near campus are coming soon. Tap “Notify me” to hear when they’re live.</Text>
       </View>

@@ -38,7 +38,7 @@ export const NIGHT = {
   bellDot: '#FF5A7A',
 };
 
-/** Category tiles (home): glossy top-left -> bottom-right gradients + the glow behind the 3D icon. */
+/** Category keys + one harmonised hue each (fallback plates, the listing banner, club initials). The home tiles are photos (eventsV2Art CATEGORY_PHOTO). */
 export type TileKey = 'all' | 'cultural' | 'sports' | 'workshops' | 'clubs';
 export const TILES: { key: TileKey; label: string; grad: readonly [string, string, string]; glow: string }[] = [
   // One harmonised set (owner, 26 Oct: "official colouring"): the same saturation and lightness for every hue,

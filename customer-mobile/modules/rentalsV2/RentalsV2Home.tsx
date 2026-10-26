@@ -10,12 +10,12 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { NIGHT, W } from './rentalsV2Theme';
 import { HomeTop } from './RentalsV2HomeTop';
-import { CategoryGrid, NearCampus, PopularWeek, g } from './RentalsV2HomeGrid';
+import { PopularWeek, g } from './RentalsV2HomeGrid';
+import { CategoryGrid, NearCampus } from './RentalsV2CategoryCards';
 import { FadeInUp, Press } from './RentalsV2Kit';
-import { IArrowRight, IChevronRight, IIdCard, IKey, IReceipt, ISparkles } from './RentalsV2Icons';
+import { IArrowRight, IChevronRight, IIdCard, IKey, IReceipt } from './RentalsV2Icons';
 import { reloadAll, useRentalsV2 } from './rentalsV2Data';
 import { useNav } from './rentalsV2Nav';
-import { ShineSweep } from '../foodV2/FoodV2Motion';
 
 function YourRentals() {
   const nav = useNav();
@@ -52,13 +52,12 @@ function YourRentals() {
       {featureOff ? <Text style={[g.campusKm, { marginTop: 10, paddingHorizontal: 6 }]}>Student vehicle rentals are paused right now. Your existing trips still work.</Text> : null}
       <FadeInUp index={3}>
         <Press onPress={listVehicle} label="List your vehicle" style={h.list}>
-          <LinearGradient colors={['#7C5CF0', '#5B3FE0', '#3F27B8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={['#8673CA', '#6F5BB0', '#594496']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           <LinearGradient colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0)']} style={[StyleSheet.absoluteFill, { height: '55%' }]} />
-          <ShineSweep width={360} every={5200} />
-          <View style={h.listIcon}><ISparkles size={20} color="#FFFFFF" strokeWidth={1.6} /></View>
+          <View style={h.listIcon}><IKey size={20} color="#FFFFFF" strokeWidth={1.6} /></View>
           <View style={{ flex: 1 }}>
             <Text style={h.listTitle}>List your vehicle</Text>
-            <Text style={h.listSub} numberOfLines={2}>{elig && !elig.eligible ? 'Verify your college first, then earn from your bike or car' : 'Rent out or lend to verified students · you set the price'}</Text>
+            <Text style={h.listSub} numberOfLines={2}>{elig && !elig.eligible ? 'Verify your college email or ID first' : 'Rent out or lend your bike or car to verified students'}</Text>
           </View>
           <View style={h.listGo}><IArrowRight size={15} color="#5B3FE0" strokeWidth={2} /></View>
         </Press>

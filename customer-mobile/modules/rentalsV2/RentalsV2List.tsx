@@ -8,21 +8,20 @@ import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { DAY, W, shadow, CATEGORY_TITLE, type Category } from './rentalsV2Theme';
+import { CARD, DAY, W, shadow, CATEGORY_TITLE, type Category } from './rentalsV2Theme';
 import { PROMO_ART } from './rentalsV2Art';
 import { ChipRow, CTA, DayHeader, FadeInUp, GroundShadow, HeaderIcon, StateBlock, usePageW } from './RentalsV2Kit';
-import { FloatY } from '../foodV2/FoodV2Motion';
-import { IFilter, ISparkles } from './RentalsV2Icons';
+import { IFilter } from './RentalsV2Icons';
 import { ItemRow } from './RentalsV2Rows';
 import { Options, Sheet, SheetLabel } from './RentalsV2Sheet';
 import { useRentalsV2, type RItem } from './rentalsV2Data';
 import { useNav, type Duration } from './rentalsV2Nav';
 
 const HERO: Record<Category, { h: string; sub: string }> = {
-  bike: { h: 'Ride More,\nWorry Less', sub: 'Scooters and bikes from verified students near campus' },
-  car: { h: 'Drive Comfort,\nExplore More', sub: 'Hatchbacks to SUVs for trips, airport runs and weekends' },
-  room: { h: 'Your Space,\nYour Peace', sub: 'Single and shared rooms in PG stays near SRM AP' },
-  flat: { h: 'Modern Homes,\nBetter Living', sub: '1BHK, 2BHK and independent houses around campus' },
+  bike: { h: 'Bikes and scooters\nnear campus', sub: 'Listed by verified students. Pay at pickup.' },
+  car: { h: 'Cars for trips\nand travel', sub: 'Hatchbacks, sedans and SUVs near SRM AP.' },
+  room: { h: 'Rooms in PG stays\nnear SRM AP', sub: 'Single and shared rooms. No payment in the app.' },
+  flat: { h: 'Flats around\nMangalagiri', sub: '1BHK, 2BHK and independent houses.' },
 };
 export const CHIPS: Record<Category, { key: string; label: string }[]> = {
   bike: [{ key: 'all', label: 'All' }, { key: 'scooter', label: 'Scooter' }, { key: 'sports', label: 'Sports' }, { key: 'premium', label: 'Premium' }],
@@ -85,22 +84,21 @@ export default function RentalsV2List() {
       } />
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         <FadeInUp>
-          <View style={[l.hero, { height: heroH }, shadow(3, DAY.accent)]}>
+          <View style={[l.hero, { height: heroH }, shadow(3, CARD[cat].shadow)]}>
             <View style={[StyleSheet.absoluteFill, { borderRadius: 24, overflow: 'hidden' }]}>
-              <LinearGradient colors={[DAY.hero[0], DAY.hero[1], DAY.hero[2]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+              <LinearGradient colors={[CARD[cat].grad[0], CARD[cat].grad[1], CARD[cat].grad[2]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
               <View style={[l.ring, { width: heroH * 1.5, height: heroH * 1.5, borderRadius: heroH, right: -heroH * 0.45, top: -heroH * 0.3 }]} />
               <View style={[l.ring, { width: heroH * 0.9, height: heroH * 0.9, borderRadius: heroH, right: heroH * 0.2, top: heroH * 0.35, backgroundColor: 'rgba(255,255,255,0.08)' }]} />
               <LinearGradient colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0)']} style={[StyleSheet.absoluteFill, { height: '50%' }]} />
             </View>
             <View style={{ flex: 1, paddingLeft: 18, paddingVertical: 16, justifyContent: 'center', zIndex: 2 }}>
-              <View style={l.kicker}><ISparkles size={12} color="#FFFFFF" strokeWidth={1.8} /><Text style={l.kickerText}>Near campus</Text></View>
               <Text style={l.heroH}>{HERO[cat].h}</Text>
               <Text style={l.heroSub} numberOfLines={2}>{HERO[cat].sub}</Text>
             </View>
             <GroundShadow width={heroH * 1.1} height={16} opacity={0.4} color="#12053F" style={{ position: 'absolute', bottom: 10, right: heroH * 0.15 }} />
-            <FloatY distance={3} period={4000} style={{ width: pw * 0.44, height: heroH * 0.9, marginRight: 4, marginTop: -16 }}>
-              <Image source={PROMO_ART[cat]} style={{ width: '100%', height: '100%' }} contentFit="contain" contentPosition="bottom" accessibilityIgnoresInvertColors />
-            </FloatY>
+            <View style={{ width: pw * 0.44, height: heroH * 0.9, marginRight: 4, marginTop: -16 }} pointerEvents="none">
+              <Image source={PROMO_ART[cat]} style={{ width: '100%', height: '100%' }} contentFit="contain" contentPosition="bottom" transition={240} accessibilityIgnoresInvertColors />
+            </View>
           </View>
         </FadeInUp>
 
@@ -148,9 +146,7 @@ export default function RentalsV2List() {
 const l = StyleSheet.create({
   hero: { marginHorizontal: 16, marginTop: 6, borderRadius: 24, flexDirection: 'row', alignItems: 'center' },
   ring: { position: 'absolute', backgroundColor: 'rgba(255,255,255,0.10)' },
-  kicker: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', paddingHorizontal: 9, height: 22, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.18)', marginBottom: 8 },
-  kickerText: { color: '#FFFFFF', fontSize: 11, fontWeight: W.label },
-  heroH: { color: '#FFFFFF', fontSize: 20, lineHeight: 24, fontWeight: W.title, letterSpacing: -0.3 },
+  heroH: { color: '#FFFFFF', fontSize: 19, lineHeight: 23, fontWeight: W.hero, letterSpacing: -0.3 },
   heroSub: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 6, lineHeight: 16 },
   dot: { position: 'absolute', top: 4, right: 4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: DAY.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   dotText: { color: '#FFFFFF', fontSize: 10, fontWeight: W.title },
