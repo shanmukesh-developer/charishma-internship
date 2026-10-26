@@ -191,7 +191,7 @@ const hold = async ({ tripId, userId, seatCount, seatNumbers, idempotencyKey, ri
       const taken = await liveSeatNumbers(trip.id, t);
       const free = seatList(trip).filter((n) => !taken.has(n));
       const maleOnly = seatRule.maleOnlySeatsOf(trip);
-      // Seats this rider may take (boys: every free seat, lowest first, so the back rows stay free for girls).
+      // Seats this rider may take, in give-out order (boys: back rows first, the boys-only front seats last).
       const freeForMe = seatRule.seatsForRider(free, maleOnly, riderGender);
       let chosen;
       if (Array.isArray(seatNumbers) && seatNumbers.length) {

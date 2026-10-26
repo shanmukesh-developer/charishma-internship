@@ -167,7 +167,9 @@ function AutoBlock({ auto: t, line, front, next, onNote }: { auto: ChargeAuto; l
   };
 
   const book = async (target: ChargeAuto, seats: number, seatNumbers?: number[]) => {
-    if ((target.seatMap?.viewer || 'UNKNOWN') === 'UNKNOWN' && !riderAnswer) {
+    // Only the seats beside the driver depend on who rides: chosen back seats (3-8) never ask "boy or girl?".
+    const backSeatsOnly = !!seatNumbers?.length && seatNumbers.every((n) => !maleOnly.has(n));
+    if ((target.seatMap?.viewer || 'UNKNOWN') === 'UNKNOWN' && !riderAnswer && !backSeatsOnly) {
       const a = await askRiderGender();
       if (!a) return;
       riderAnswer = a;

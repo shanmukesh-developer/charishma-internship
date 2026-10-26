@@ -43,10 +43,10 @@ export const FRONT_SEAT_NOTE = 'Seats beside the driver are for boys only. Pleas
 export const askRiderGender = (): Promise<RiderGender | null> => new Promise((resolve) => {
   let done = false;
   const end = (v: RiderGender | null) => { if (!done) { done = true; resolve(v); } };
-  Alert.alert('Are you booking for a boy?', 'Front seats beside the driver are for boys only.', [
-    { text: 'Cancel', style: 'cancel', onPress: () => end(null) },
-    { text: 'No, a girl', onPress: () => end('Female') },
+  Alert.alert('Are you booking for a boy?', 'The two seats beside the driver are for boys only. Boys can sit in any seat.', [
     { text: 'Yes, a boy', onPress: () => end('Male') },
+    { text: 'No, a girl', onPress: () => end('Female') },
+    { text: 'Cancel', style: 'cancel', onPress: () => end(null) },
   ], { cancelable: true, onDismiss: () => end(null) });
 });
 

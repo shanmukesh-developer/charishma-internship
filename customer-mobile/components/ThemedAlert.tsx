@@ -144,13 +144,14 @@ export default function ThemedAlert() {
                   key={idx}
                   onPress={() => handlePress(btn.onPress)}
                   style={[
-                    styles.button,
-                    { 
-                      backgroundColor: btnBg, 
-                      borderColor: borderCol, 
-                      borderWidth: borderCol !== 'transparent' ? 1 : 0 
+                    // Stacked buttons carry no flex at all: "flex: 1" in a column let Android shrink the last of
+                    // three buttons to nothing ("Yes, a boy" was missing from "Are you booking for a boy?").
+                    stackButtons ? styles.buttonVertical : styles.button,
+                    {
+                      backgroundColor: btnBg,
+                      borderColor: borderCol,
+                      borderWidth: borderCol !== 'transparent' ? 1 : 0
                     },
-                    stackButtons && styles.buttonVertical,
                   ]}
                 >
                   <Text style={[styles.buttonText, { color: textCol }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
@@ -222,12 +223,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
-  // Explicit grow/shrink/basis: "flex: 0" collapses to 0 height on web (flex-basis 0%) in a column.
+  // A full-width stacked button: fixed height, never grown or shrunk (web treated "flex: 0" as basis 0%).
   buttonVertical: {
+    height: 48,
+    width: '100%',
     flexGrow: 0,
     flexShrink: 0,
-    flexBasis: 'auto',
-    width: '100%',
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
   },
   buttonText: {
     fontSize: 14.5,

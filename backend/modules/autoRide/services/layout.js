@@ -152,11 +152,16 @@ const isMale = (gender) => gender === MALE;
 /** 409 FRONT_SEAT_MALE_ONLY for these seats. */
 const frontSeatError = (seats, extra = {}) => fail(409, 'FRONT_SEAT_MALE_ONLY', FRONT_SEAT_MESSAGE, { seats, ...extra });
 
-/** Seats of `free` this rider may take (boys: all; anyone else: not the boys-only seats). */
+/**
+ * Seats of `free` this rider may take, in the order they are given out when the rider does not pick one.
+ * Boys: every seat, back rows first and the boys-only seats beside the driver last (owner, 26 Oct 2026);
+ * anyone else: not the boys-only seats.
+ */
 const seatsForRider = (free, maleOnly, gender) => {
-  if (isMale(gender)) return free;
   const block = new Set(maleOnly);
-  return free.filter((n) => !block.has(n));
+  const back = free.filter((n) => !block.has(n));
+  if (isMale(gender)) return [...back, ...free.filter((n) => block.has(n))];
+  return back;
 };
 
 module.exports = {

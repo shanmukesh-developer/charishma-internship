@@ -23,7 +23,10 @@ for (const [label, queueOn] of modes) {
   test(`last-seat race, 20 parallel holds (${label})`, async () => {
     locks.setInProcessQueue(true);
     const t = await H.mkTrip({ capacity: 6, seatFare: 33 });
-    for (let i = 0; i < 5; i++) await H.book(t.trip.id, { seatCount: 1 });
+    const takenBefore = [];
+    for (let i = 0; i < 5; i++) takenBefore.push(...((await H.book(t.trip.id, { seatCount: 1 })).booking.seatNumbers || []));
+    // The one seat nobody holds yet (boys get the back rows first, the front seats last).
+    const lastFree = [1, 2, 3, 4, 5, 6].filter((n) => !takenBefore.includes(n));
     const users = await Promise.all(Array.from({ length: 20 }, () => H.mkUser()));
     locks.setInProcessQueue(queueOn);
     const rs = await Promise.all(users.map((u) => api('POST', `/api/auto-ride/trips/${t.trip.id}/holds`, u.token, { seatCount: 1 })));
@@ -32,7 +35,7 @@ for (const [label, queueOn] of modes) {
     assert.equal(codes.filter((c) => c === 201).length, 1, `exactly one winner: ${codes.join(',')}`);
     assert.ok(codes.every((c) => c === 201 || c === 409), `only 201 / 409: ${codes.join(',')}`);
     const winner = rs.find((r) => r.status === 201);
-    assert.deepEqual(winner.body.booking.seatNumbers, [6]);
+    assert.deepEqual(winner.body.booking.seatNumbers, lastFree);
     const { problems, trip } = await H.checkInvariants(t.trip.id);
     assert.deepEqual(problems, []);
     assert.equal(trip.seatsHeld + trip.seatsConfirmed, 6);

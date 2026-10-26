@@ -186,6 +186,19 @@ test('auto-assign ("Book 1 seat") never gives seat 1 or 2 to a female / unknown 
   assert.equal((await tripRow(trip.id)).status, 'FULL');
 });
 
+test('auto-assign for a boy (owner, 26 Oct): back rows first (3, 4, ...), the boys-only front seats 1 and 2 only when the back is full; a boy may still pick seat 1 himself', async () => {
+  const { trip } = await onChargeTrip(8);
+  const b1 = await H.book(trip.id, { user: await H.mkUser({ gender: 'Male' }), seatCount: 1 });
+  assert.deepEqual(b1.booking.seatNumbers, [3], 'a back seat, not seat 1');
+  const b2 = await H.book(trip.id, { user: await H.mkUser({ gender: 'Male' }), seatCount: 2 });
+  assert.deepEqual(b2.booking.seatNumbers, [4, 5]);
+  const pick = await H.book(trip.id, { user: await H.mkUser({ gender: 'Male' }), seatNumbers: [1] });
+  assert.equal(pick.confirm.status, 200, 'a boy can choose seat 1');
+  assert.deepEqual(pick.booking.seatNumbers, [1]);
+  const b3 = await H.book(trip.id, { user: await H.mkUser({ gender: 'Male' }), seatCount: 4 });
+  assert.deepEqual(b3.booking.seatNumbers, [6, 7, 8, 2], 'the front seat comes last');
+});
+
 test('auto-assign with a smaller margin: 3 free (1, 2, 8) -> a girl asking for 2 gets NOT_ENOUGH_SEATS "left for you"', async () => {
   const { dv, trip } = await onChargeTrip(8);
   for (const n of [3, 4, 5, 6, 7]) assert.equal((await walk(dv, trip.id, 'add', n)).status, 200);
