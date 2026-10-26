@@ -6,8 +6,9 @@
  *    "Book auto #N instead" (the next auto in line with a seat for this passenger);
  *  - profile gender unknown: askRiderGender() once, sent as riderGender with the hold (never saved);
  *  - FRONT_SEAT_MALE_ONLY / NO_SUITABLE_SEAT and "moved on" codes refresh the board with a note;
- *  - the auto on charge with seat selection on (trip.seatSelectionEnabled): tap seats on the map to choose
- *    them (sent as seatNumbers); with none tapped, the server picks the best free seats for the count;
+ *  - the auto on charge with seat selection on (trip.seatSelectionEnabled): tapped seats are HELD on the server
+ *    at once (others see them as being booked), Book confirms that hold; with none tapped, the server picks the
+ *    best free seats for the count;
  *    an auto waiting in line opens the seat picker (app/auto-ride/trip/[id]?book=1) from "Choose seats";
  *  - success opens app/auto-ride/booking/[id] (PIN and the "Reach the auto in mm:ss" countdown).
  */
@@ -21,13 +22,14 @@ import { RouteRail } from './CoRideV2RideCard';
 import { SeatStepper } from './CoRideV2AutoParts';
 import SeatMap, { askRiderGender, FRONT_SEAT_NOTE } from '../../modules/autoRide/SeatMap';
 import { useCoRide } from './coRideV2Data';
-import { inr, errorCopy, type ChargeAuto, type ChargeLine, type SeatState, type RiderGender } from '../../modules/autoRide/autoRideApi';
+import { inr, errorCopy, autoRideApi, newIdempotencyKey, type ChargeAuto, type ChargeLine, type SeatState, type SeatViewer, type RiderGender } from '../../modules/autoRide/autoRideApi';
 
 const MOVED_ON = ['AUTO_JUST_FILLED', 'AUTO_OFF_CHARGE', 'WAITING_IN_LINE', 'TRIP_FULL', 'BOOKING_CLOSED'];
 const FRONT_ONLY = ['NO_SUITABLE_SEAT', 'FRONT_SEAT_MALE_ONLY'];
 const seatsWord = (n: number) => `${n} seat${n === 1 ? '' : 's'}`;
 const seatList = (ns: number[]) => `seat${ns.length === 1 ? '' : 's'} ${ns.join(', ')}`;
 const SEAT_CHANGED = ['SEAT_TAKEN', 'INVALID_INPUT', 'SEAT_SELECTION_OFF'];
+const HOLD_ENDED = ['HOLD_EXPIRED', 'BOOKING_NOT_HELD', 'BOOKING_EXPIRED'];
 const forYou = (a: ChargeAuto) => (typeof a.seatsForYou === 'number' ? a.seatsForYou : a.remainingSeats);
 const seatStates = (t: ChargeAuto) => { const m: Record<number, SeatState> = {}; (t.seatMap?.seats || []).forEach((x) => { m[x.seatNo] = x.state; }); return m; };
 
@@ -38,35 +40,121 @@ function AutoBlock({ auto: t, line, front, next, onNote }: { auto: ChargeAuto; l
   const d = useCoRide();
   const router = useRouter();
   const [count, setCount] = useState(1);
+  // Redraws the board once "who is riding?" is answered (the answer lives in riderAnswer, for this app session).
+  const [, setAnswered] = useState(0);
   const remaining = t.remainingSeats;
-  const viewer = t.seatMap?.viewer || 'UNKNOWN';
-  const mineFree = forYou(t);
-  const bookable = viewer === 'NOT_MALE' ? mineFree : remaining;
-  const max = Math.max(1, Math.min(d.autoMaxSeats, bookable || 1));
-  useEffect(() => { if (count > max) setCount(max); }, [count, max]);
-  const mine = !!t.myBookingId;
-  const canBook = !mine && bookable > 0 && t.sharedBookingAllowed;
-  const frontOnly = !mine && !!t.onlyFrontSeatsLeft && remaining > 0;
-  // Seat choice on the auto on charge (the seat map is only drawn there).
+  const rawViewer: SeatViewer = t.seatMap?.viewer || 'UNKNOWN';
+  // Boys can book every seat; only the two seats beside the driver are closed to girls. A profile without a gender
+  // answers once; after "a boy" the board counts every seat for him, after "a girl" only the back rows.
+  const viewer: SeatViewer = rawViewer === 'UNKNOWN' && riderAnswer ? (riderAnswer === 'Male' ? 'MALE' : 'NOT_MALE') : rawViewer;
   const states = seatStates(t);
   const maleOnly = new Set(t.seatMap?.layout?.maleOnlySeats || []);
+  const myHeldSeats = Object.keys(states).map(Number).filter((n) => states[n] === 'MINE_HELD').sort((x, y) => x - y);
+  const heldByMe = !!t.myBookingId && t.myBookingStatus === 'HELD';
+  const freeSeats = Object.keys(states).map(Number).filter((n) => states[n] === 'AVAILABLE');
+  const mineFree = t.seatMap ? (viewer === 'MALE' ? freeSeats.length : freeSeats.filter((n) => !maleOnly.has(n)).length) : forYou(t);
+  // Seats this rider can still take here, counting the ones they are holding right now.
+  const bookable = (viewer === 'NOT_MALE' ? mineFree : remaining) + (heldByMe ? myHeldSeats.length : 0);
+  const max = Math.max(1, Math.min(d.autoMaxSeats, bookable || 1));
+  useEffect(() => { if (count > max) setCount(max); }, [count, max]);
+  const mine = !!t.myBookingId && !heldByMe;
+  const canBook = !mine && bookable > 0 && t.sharedBookingAllowed;
+  const frontOnly = !mine && !heldByMe && !!t.onlyFrontSeatsLeft && remaining > 0;
+  // Seat choice on the auto on charge (the seat map is only drawn there).
   const pickMode = !!front && !!t.seatSelectionEnabled && canBook && !!t.seatMap?.layout?.rows?.length;
-  const maxPick = Math.max(1, Math.min(d.autoMaxSeats, remaining || 1));
+  const maxPick = max;
   const [picked, setPicked] = useState<number[]>([]);
-  // A chosen seat someone else just took (live board refresh) is dropped from the choice.
+
+  // Tapped seats are HELD on the server at once (POST holds with seatNumbers), so every other rider's board shows
+  // them as "being booked" and nobody else can take them. Changing the choice releases the old hold and holds the
+  // new seats; the hold ends by itself after a few minutes, on Book it is confirmed, on leaving it is released.
+  const holdRef = useRef<{ id: string; seats: number[]; at: number } | null>(null);
+  const wantRef = useRef<number[] | null>(null);
+  const syncRef = useRef<Promise<void> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userPicked = useRef(false);
+  const same = (x: number[], y: number[]) => x.length === y.length && x.every((n, i) => n === y[i]);
+
+  const runSync = (): Promise<void> => {
+    if (syncRef.current) return syncRef.current;
+    syncRef.current = (async () => {
+      try {
+        while (wantRef.current) {
+          const want = wantRef.current;
+          wantRef.current = null;
+          const cur = holdRef.current;
+          if (cur && same(cur.seats, want)) continue;
+          if (cur) { holdRef.current = null; await autoRideApi.release(cur.id).catch(() => {}); }
+          if (!want.length) continue;
+          try {
+            const gender = rawViewer === 'UNKNOWN' && riderAnswer ? { riderGender: riderAnswer } : {};
+            const h = await autoRideApi.hold(t.id, { seatCount: want.length, seatNumbers: want, ...gender }, newIdempotencyKey());
+            if (h.booking?.status === 'HELD') holdRef.current = { id: h.booking.id, seats: want, at: Date.now() };
+          } catch (e: any) {
+            wantRef.current = null;
+            const gone: number[] = (e?.data?.seats || e?.data?.details?.seats || []).map(Number);
+            setPicked((p0) => (gone.length ? p0.filter((n) => !gone.includes(n)) : []));
+            onNote(e?.code === 'SEAT_TAKEN' ? (e.message || 'That seat was just taken. Pick another seat.')
+              : e?.code === 'RATE_LIMITED' ? 'You changed seats many times. Wait a minute, then pick again.'
+                : (e?.message || 'Could not hold that seat. Please try again.'));
+          }
+        }
+      } finally {
+        syncRef.current = null;
+        d.reloadAuto();
+      }
+    })();
+    return syncRef.current;
+  };
+  const flushHold = async () => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; wantRef.current = picked; }
+    if (wantRef.current || syncRef.current) await runSync();
+  };
+  // A short pause after the last tap, so quick taps make one hold, not several.
   useEffect(() => {
-    setPicked((cur) => { const keep = cur.filter((n) => states[n] === 'AVAILABLE'); return keep.length === cur.length ? cur : keep; });
+    if (!pickMode || !userPicked.current) return;
+    userPicked.current = false;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => { timerRef.current = null; wantRef.current = picked; runSync(); }, 450);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [picked, pickMode]);
+  // Leaving the board (or the auto leaving the charge) releases a hold that was never booked.
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const h = holdRef.current;
+    holdRef.current = null;
+    if (h) autoRideApi.release(h.id).catch(() => {});
+  }, []);
+  useEffect(() => {
+    // Reopened with a hold of mine on this auto: show those seats as my choice.
+    if (pickMode && heldByMe && !holdRef.current && !syncRef.current && myHeldSeats.length) {
+      holdRef.current = { id: String(t.myBookingId), seats: myHeldSeats, at: Date.now() };
+      setPicked(myHeldSeats);
+      return;
+    }
+    // My hold ended elsewhere (expired after a few minutes): clear the choice. A hold just made waits for the board.
+    if (holdRef.current && !heldByMe && !syncRef.current && Date.now() - holdRef.current.at > 8000) {
+      holdRef.current = null;
+      setPicked([]);
+      onNote('Your seat hold ended. Pick your seats again.');
+      return;
+    }
+    // A chosen seat someone else just took is dropped from the choice.
+    setPicked((cur) => { const keep = cur.filter((n) => states[n] === 'AVAILABLE' || states[n] === 'MINE_HELD'); return keep.length === cur.length ? cur : keep; });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t]);
+
   const toggle = async (n: number) => {
     if (!picked.includes(n) && maleOnly.has(n) && viewer !== 'MALE') {
-      if (viewer === 'UNKNOWN' && !riderAnswer) {
+      if (viewer === 'UNKNOWN') {
         const a = await askRiderGender();
         if (!a) return;
         riderAnswer = a;
+        setAnswered((x) => x + 1);
       }
       if (viewer === 'NOT_MALE' || riderAnswer !== 'Male') { Alert.alert(`Seat ${n} is for boys only`, FRONT_SEAT_NOTE); return; }
     }
+    userPicked.current = true;
     setPicked((cur) => {
       if (cur.includes(n)) return cur.filter((x) => x !== n);
       if (cur.length >= maxPick) {
@@ -74,7 +162,7 @@ function AutoBlock({ auto: t, line, front, next, onNote }: { auto: ChargeAuto; l
         Alert.alert('Seat limit', `You can book up to ${seatsWord(maxPick)} on this auto.`);
         return cur;
       }
-      return [...cur, n].sort((a, b) => a - b);
+      return [...cur, n].sort((x, y) => x - y);
     });
   };
 
@@ -83,11 +171,21 @@ function AutoBlock({ auto: t, line, front, next, onNote }: { auto: ChargeAuto; l
       const a = await askRiderGender();
       if (!a) return;
       riderAnswer = a;
+      setAnswered((x) => x + 1);
     }
     const riderGender = (target.seatMap?.viewer || 'UNKNOWN') === 'UNKNOWN' ? riderAnswer : null;
-    const r = await d.act('bookAuto', { auto: target, count: seats, riderGender, seatNumbers });
-    if (r.ok) { setPicked([]); if (r.data?.id) router.push(`/auto-ride/booking/${r.data.id}` as any); return; }
+    // Chosen seats: finish holding them, then confirm that hold (no second hold for the same seats).
+    let heldId: string | undefined;
+    if (seatNumbers?.length && target.id === t.id) {
+      await flushHold();
+      if (holdRef.current && same(holdRef.current.seats, seatNumbers)) heldId = holdRef.current.id;
+      else return; // the seats could not be held (a note says why); the choice was updated
+    }
+    const r = await d.act('bookAuto', { auto: target, count: seats, riderGender, seatNumbers, heldId });
+    if (r.ok) { holdRef.current = null; setPicked([]); if (r.data?.id) router.push(`/auto-ride/booking/${r.data.id}` as any); return; }
+    if (heldId) holdRef.current = null;
     if (r.code && SEAT_CHANGED.includes(r.code)) { setPicked([]); onNote(r.message || 'That seat was just taken. Pick another seat.'); }
+    else if (r.code && HOLD_ENDED.includes(r.code)) { setPicked([]); onNote('Your seat hold ended. Pick your seats again.'); }
     else if (r.code && MOVED_ON.includes(r.code)) onNote(r.message || 'This auto is no longer taking bookings.');
     else if (r.code && FRONT_ONLY.includes(r.code)) onNote(r.message || 'Only front seats left (boys only). Book the next auto below.');
     else { const c = errorCopy({ code: r.code, message: r.message }); Alert.alert(c.title, c.message); }
@@ -131,7 +229,7 @@ function AutoBlock({ auto: t, line, front, next, onNote }: { auto: ChargeAuto; l
               <SeatMap rows={t.seatMap.layout.rows} maleOnlySeats={t.seatMap.layout.maleOnlySeats} viewer={viewer} states={states} selected={pickMode ? picked : []} selectable={pickMode} onToggle={pickMode ? toggle : undefined} />
               {pickMode ? (
                 <Text style={[st.meta, { textAlign: 'center', marginTop: 8 }]}>
-                  {picked.length ? `You chose ${seatList(picked)}. Tap a seat again to remove it.` : 'Tap a free seat to choose it, or just book and we give you the best free seat.'}
+                  {picked.length ? `${seatList(picked)} held for you for a few minutes. Others see ${picked.length === 1 ? 'it' : 'them'} as being booked. Tap again to remove.` : 'Tap a free seat to hold it, or just book and we give you the best free seat.'}
                 </Text>
               ) : null}
             </View>
