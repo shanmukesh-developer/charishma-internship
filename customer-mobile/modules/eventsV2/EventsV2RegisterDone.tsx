@@ -5,13 +5,11 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { FloatY } from '../foodV2/FoodV2Motion';
 import { fmtWhen, inr, PAYMENT_STATUS_LABEL, REG_STATUS_META, type EventDetail, type Registration } from '../campusEvents/campusEventsApi';
 import { useCampusEventsStatus } from '../campusEvents/ui';
 import { NIGHT, W, shadow } from './eventsV2Theme';
 import { CTA, Press, Tag } from './EventsV2Kit';
 import { Notice } from './EventsV2States';
-import { Sparkle } from './EventsV2Decor';
 import { ICheck, IHourglass, IListChecks } from './EventsV2Icons';
 import { useNav } from './eventsV2Nav';
 
@@ -27,16 +25,13 @@ export default function RegisterDone({ result, ev }: { result: { registration: R
   return (
     <View>
       <View style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 18 }}>
-        <FloatY distance={4} period={3200}>
+        <View>
           <View style={[s.badge, shadow(3, ok ? '#138A55' : '#5B2FD6')]}>
             <LinearGradient colors={ok ? ['#6EE7B7', '#10935F'] : [NIGHT.go[0], NIGHT.go[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
             <LinearGradient colors={['rgba(255,255,255,0.4)', 'rgba(255,255,255,0)']} style={[StyleSheet.absoluteFill, { height: '50%' }]} />
             <View><Icon size={38} color="#FFFFFF" strokeWidth={2.2} /></View>
           </View>
-          <Sparkle size={16} style={{ position: 'absolute', right: -14, top: 0 }} />
-          <Sparkle size={10} color="#F0ABFC" style={{ position: 'absolute', left: -12, bottom: 8 }} />
-          <Sparkle size={8} color="#FDE68A" style={{ position: 'absolute', right: -4, bottom: -6 }} />
-        </FloatY>
+        </View>
         <Text style={s.head} accessibilityRole="header">{headline}</Text>
         <Text style={s.sub}>{ev.title}</Text>
       </View>
@@ -67,7 +62,7 @@ export default function RegisterDone({ result, ev }: { result: { registration: R
 
 const s = StyleSheet.create({
   badge: { width: 84, height: 84, borderRadius: 42, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)' },
-  head: { color: NIGHT.ink, fontSize: 24, fontWeight: W.display, fontStyle: 'italic', marginTop: 16, textAlign: 'center' },
+  head: { color: NIGHT.ink, fontSize: 24, fontWeight: W.display, marginTop: 16, textAlign: 'center' },
   sub: { color: NIGHT.sub, fontSize: 13.5, marginTop: 4, textAlign: 'center' },
   stub: { borderRadius: 22, padding: 18, alignItems: 'center', overflow: 'visible', marginBottom: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.18)' },
   codeLabel: { color: NIGHT.faint, fontSize: 12 },

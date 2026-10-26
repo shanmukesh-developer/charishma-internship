@@ -9,12 +9,10 @@ import React from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PressScale, FadeInUp } from '../others/motion';
-import { ShineSweep } from '../foodV2/FoodV2Motion';
 import { BUTTON_ROLE } from '../../utils/pressRole';
 import { useTopInset } from '../../utils/useTopInset';
 import { NIGHT, RADIUS, W, hexA, shadow } from './eventsV2Theme';
 import { IArrowLeft } from './EventsV2Icons';
-import { Swash } from './EventsV2Decor';
 import { useNav } from './eventsV2Nav';
 
 export { FadeInUp };
@@ -54,7 +52,6 @@ export function SectionHead({ title, sub, right, style }: { title: string; sub?:
     <View style={[{ flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 16, marginBottom: 12 }, style]}>
       <View style={{ flex: 1 }}>
         <Text style={st.secTitle} accessibilityRole="header">{title}</Text>
-        <Swash width={Math.min(150, title.length * 9)} height={8} style={{ marginTop: 1, marginLeft: 2 }} />
         {sub ? <Text style={st.secSub}>{sub}</Text> : null}
       </View>
       {right}
@@ -86,7 +83,6 @@ export function CTA({ label, onPress, sub, disabled, busy, style, tone = 'violet
     <Press onPress={disabled || busy ? undefined : onPress} label={label} disabled={disabled} style={[st.cta, glass ? st.ctaGlass : shadow(3, '#3A1C9E'), disabled ? { opacity: 0.5 } : null, style]}>
       {!glass ? <LinearGradient colors={['#A585FA', '#7C55EC', '#6233D8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} /> : null}
       {!glass ? <LinearGradient colors={['rgba(255,255,255,0.26)', 'rgba(255,255,255,0)']} style={[StyleSheet.absoluteFill, { height: '52%' }]} /> : null}
-      {!glass && !disabled && !busy ? <ShineSweep width={w} /> : null}
       {busy ? <ActivityIndicator color="#FFFFFF" /> : (
         <View style={{ alignItems: 'center' }}>
           <Text style={st.ctaText} numberOfLines={1}>{label}</Text>

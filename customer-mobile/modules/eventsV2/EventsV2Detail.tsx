@@ -183,7 +183,7 @@ export default function EventsV2Detail() {
 
 const s = StyleSheet.create({
   heroFoot: { position: 'absolute', left: 16, right: 16, bottom: 14 },
-  title: { color: '#FFFFFF', fontSize: 26, lineHeight: 31, fontWeight: W.display, fontStyle: 'italic', letterSpacing: -0.4, marginTop: 12, textShadowColor: 'rgba(10,8,40,0.6)', textShadowRadius: 10 },
+  title: { color: '#FFFFFF', fontSize: 26, lineHeight: 31, fontWeight: W.display, letterSpacing: -0.4, marginTop: 12, textShadowColor: 'rgba(10,8,40,0.6)', textShadowRadius: 10 },
   chip: { paddingHorizontal: 9, height: 24, borderRadius: 12, backgroundColor: 'rgba(19,18,58,0.55)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.35)', justifyContent: 'center' },
   chipText: { color: '#FFFFFF', fontSize: 11.5, fontWeight: W.label },
   floatHead: { position: 'absolute', left: 0, right: 0, top: 0 },

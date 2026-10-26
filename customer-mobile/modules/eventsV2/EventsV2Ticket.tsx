@@ -14,7 +14,6 @@ import { NIGHT, W, shadow } from './eventsV2Theme';
 import { CTA, NightHeader, SampleTag, Tag, usePageW } from './EventsV2Kit';
 import { EventPhoto } from './EventsV2Media';
 import { Notice, StateBlock } from './EventsV2States';
-import { Sparkle } from './EventsV2Decor';
 import { useNav } from './eventsV2Nav';
 import { demoEvent, demoEvents, isSampleId } from './eventsV2Demo';
 
@@ -83,8 +82,6 @@ export default function EventsV2Ticket() {
               <Text style={s.title} numberOfLines={2}>{ev?.title}</Text>
               <Text style={s.holder}>{t.holder}</Text>
             </View>
-            <Sparkle size={14} style={{ position: 'absolute', left: 18, top: 16 }} />
-            <Sparkle size={9} color="#F0ABFC" style={{ position: 'absolute', left: 40, top: 34 }} />
           </View>
           <View style={s.qrWrap}>
             <TicketQR token={t.qrToken} status={t.status} code={t.ticketCode} size={qr} />
@@ -122,7 +119,7 @@ const s = StyleSheet.create({
   ticket: { borderRadius: 26, backgroundColor: NIGHT.card, marginBottom: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.18)' },
   band: { height: 150, borderTopLeftRadius: 26, borderTopRightRadius: 26, overflow: 'hidden' },
   kind: { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: W.label },
-  title: { color: '#FFFFFF', fontSize: 21, lineHeight: 25, fontWeight: W.display, fontStyle: 'italic', marginTop: 2 },
+  title: { color: '#FFFFFF', fontSize: 21, lineHeight: 25, fontWeight: W.display, marginTop: 2 },
   holder: { color: 'rgba(255,255,255,0.9)', fontSize: 13, marginTop: 3 },
   qrWrap: { alignItems: 'center', paddingTop: 18, paddingHorizontal: 16 },
   codeLabel: { color: NIGHT.faint, fontSize: 12, marginTop: 14 },

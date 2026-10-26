@@ -1,12 +1,12 @@
 /**
- * "Upcoming Events" (reference): title with a swash, "Don't miss what's happening on campus", the "This Week ⌄"
+ * "Upcoming Events" (reference): title, a plain subtitle, the "This Week ⌄"
  * dropdown and the horizontally scrolling photo cards; then the Clubs row (real clubs with events, plus the
  * sample clubs while the demo layer is on).
  */
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { NIGHT, W, shadow } from './eventsV2Theme';
+import { NIGHT, TILES, W, shadow } from './eventsV2Theme';
 import { Press, SectionHead, usePageW, FadeInUp, SampleTag } from './EventsV2Kit';
 import { EventCardV2 } from './EventsV2Cards';
 import { StateBlock } from './EventsV2States';
@@ -15,11 +15,11 @@ import { useNav, type WhenKey } from './eventsV2Nav';
 import { inNextDays, useEventsV2, type EvCard } from './eventsV2Data';
 
 const RANGES: { key: WhenKey; label: string; days: number | null }[] = [
-  { key: 'week', label: 'This Week', days: 7 },
-  { key: 'month', label: 'This Month', days: 30 },
-  { key: 'any', label: 'All Upcoming', days: null },
+  { key: 'week', label: 'This week', days: 7 },
+  { key: 'month', label: 'This month', days: 30 },
+  { key: 'any', label: 'All upcoming', days: null },
 ];
-const AVATAR: readonly [string, string][] = [['#B39BFF', '#6234D9'], ['#FFC48A', '#E2581A'], ['#8FD3FF', '#1E50D6'], ['#9BEFB4', '#168A47'], ['#FFA8D8', '#B5175E']];
+const AVATAR: readonly [string, string][] = TILES.map((t) => [t.grad[0], t.grad[2]] as [string, string]);
 
 export function Upcoming() {
   const nav = useNav();
@@ -36,7 +36,7 @@ export function Upcoming() {
     <View style={{ marginTop: 26, zIndex: 5 }}>
       <SectionHead
         title="Upcoming Events"
-        sub="Don't miss what's happening on campus"
+        sub="What is on at SRM AP"
         right={(
           <View>
             <Press onPress={() => setOpen((v) => !v)} label={`${r.label}, change range`} style={s.drop} scaleTo={0.95}>
@@ -77,7 +77,7 @@ export function Clubs() {
   if (!d.clubs.length) return null;
   return (
     <View style={{ marginTop: 22 }}>
-      <SectionHead title="Clubs on Campus" sub="Follow what your clubs are hosting" />
+      <SectionHead title="Clubs on Campus" sub="Clubs with upcoming events" />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
         {d.clubs.map((c, i) => {
           const g = AVATAR[i % AVATAR.length];

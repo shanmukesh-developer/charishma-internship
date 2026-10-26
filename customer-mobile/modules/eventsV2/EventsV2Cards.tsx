@@ -1,6 +1,6 @@
 ﻿/**
  * Event cards (reference "Upcoming Events"): big photo with a scrim, the date block top-left, the price pill
- * top-right, the title in the bold italic display, venue and time rows with thin icons, tag chips and the
+ * top-right, the title in bold, venue and time rows with thin icons, tag chips and the
  * violet arrow button. `EventCardV2` is the carousel card; `EventRowCard` the full-width card of the listing.
  */
 import React from 'react';
@@ -116,7 +116,7 @@ export function EventRowCard({ e, onPress, index = 0 }: { e: EvCard; onPress: ()
 const s = StyleSheet.create({
   card: { borderRadius: 22, backgroundColor: NIGHT.card, overflow: 'hidden' },
   rim: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.16)' },
-  title: { fontSize: 17, lineHeight: 21, color: NIGHT.ink, fontWeight: W.display, fontStyle: 'italic', letterSpacing: -0.2 },
+  title: { fontSize: 17, lineHeight: 21, color: NIGHT.ink, fontWeight: W.display, letterSpacing: -0.2 },
   onPhoto: { position: 'absolute', left: 13, right: 13, bottom: 10, textShadowColor: 'rgba(10,8,40,0.6)', textShadowRadius: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   rowText: { fontSize: 12.5, color: NIGHT.sub, flexShrink: 1 },

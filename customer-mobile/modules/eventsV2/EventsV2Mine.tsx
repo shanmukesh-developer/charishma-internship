@@ -112,7 +112,7 @@ export default function EventsV2Mine() {
 
 const s = StyleSheet.create({
   thumb: { width: 84, height: 96, borderRadius: 14, overflow: 'hidden' },
-  title: { color: NIGHT.ink, fontSize: 15, fontWeight: W.display, fontStyle: 'italic', lineHeight: 19 },
+  title: { color: NIGHT.ink, fontSize: 15, fontWeight: W.display, lineHeight: 19 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rowText: { color: NIGHT.sub, fontSize: 12, flexShrink: 1 },
   code: { color: NIGHT.faint, fontSize: 11.5 },

@@ -25,7 +25,7 @@ interface Seed {
 
 const SEEDS: Seed[] = [
   { slug: 'cricket-cup', art: 'cricket', title: 'Inter-Hostel Cricket Cup Finals', category: 'TOURNAMENT', categoryLabel: 'Sports', tags: ['Sports', 'Tournament'], club: 'Sports Council', day: 4, start: '16:00', hours: 3, venue: 'Main Cricket Ground', price: 0, capacity: 300, left: 112,
-    about: 'The two best hostel sides meet under the evening sky for the cup. Bring your hostel colours, grab a spot on the stands and cheer them home. Free entry for every student.',
+    about: 'Final of the inter-hostel cricket cup, 20 overs a side. Seating on the stands is open to all students. Entry is free.',
     agenda: [{ time: '3:30 PM', label: 'Gates open, warm-up' }, { time: '4:00 PM', label: 'First innings (20 overs)' }, { time: '5:45 PM', label: 'Second innings' }, { time: '7:00 PM', label: 'Trophy and player of the match' }] },
   { slug: 'design-sprint', art: 'design', title: 'Figma to Prototype Design Sprint', category: 'WORKSHOP', categoryLabel: 'Workshop', tags: ['Workshop', 'Design'], club: 'Design Club', day: 2, start: '10:00', hours: 4, venue: 'Innovation Hub, Level 2', price: 149, capacity: 60, left: 18,
     about: 'A hands-on sprint: research a campus problem, sketch flows on paper, then build a clickable prototype in Figma with mentors from the Design Club.',
@@ -37,7 +37,7 @@ const SEEDS: Seed[] = [
   { slug: 'founders-talk', art: 'talk', title: 'Founders Talk: Dorm to Startup', category: 'TALK', categoryLabel: 'Talk', tags: ['Talk', 'Startups'], club: 'E-Cell', day: 5, start: '18:00', hours: 2, venue: 'Admin Block Auditorium', price: 99, capacity: 250, left: 88,
     about: 'Three alumni founders on building their first product in a hostel room, raising a first cheque and the mistakes they would skip. Open Q&A at the end.' },
   { slug: 'riverside-beats', art: 'concert', title: 'Riverside Beats Fest Night', category: 'CULTURAL', categoryLabel: 'Cultural', tags: ['Fest', 'Music'], club: 'Cultural Committee', day: 6, start: '19:00', hours: 4, venue: 'Open Air Theatre', price: 299, capacity: 600, left: 212,
-    about: 'The headline night of the fest: student bands open, then a live DJ set with full stage lights. Wristbands at the gate with your ticket QR.' },
+    about: 'Closing night of the fest: student bands, followed by a DJ set. Wristbands are issued at the gate against your ticket QR.' },
   { slug: 'photo-walk', art: 'photo', title: 'Golden Hour Photo Walk', category: 'CLUB', categoryLabel: 'Club activity', tags: ['Club', 'Photography'], club: 'Photography Club', day: 8, start: '16:45', hours: 2, venue: 'Starts at the Central Lawn', price: 0, capacity: 40, left: 9,
     about: 'Walk the campus at golden hour with the Photography Club. Phones are welcome: we cover composition, light and quick edits.', equipment: 'Any camera or phone' },
   { slug: 'sunset-jam', art: 'jam', title: 'Sunset Jam Session', category: 'CLUB', categoryLabel: 'Club activity', tags: ['Club', 'Music'], club: 'Music Club', day: 9, start: '17:30', hours: 2, venue: 'Food Court Lawn', price: 0, capacity: 70, left: 26,

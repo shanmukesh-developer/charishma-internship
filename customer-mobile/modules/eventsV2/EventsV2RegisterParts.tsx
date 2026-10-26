@@ -117,7 +117,7 @@ const s = StyleSheet.create({
   seg: { flex: 1, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' },
   stepText: { color: NIGHT.sub, fontSize: 12, marginTop: 7 },
   thumb: { width: 78, height: 78, borderRadius: 14, overflow: 'hidden' },
-  sumTitle: { color: NIGHT.ink, fontSize: 15, fontWeight: W.display, fontStyle: 'italic' },
+  sumTitle: { color: NIGHT.ink, fontSize: 15, fontWeight: W.display },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rowText: { color: NIGHT.sub, fontSize: 12, flexShrink: 1 },
   check: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: NIGHT.line, backgroundColor: NIGHT.glass, marginBottom: 10, minHeight: 54 },

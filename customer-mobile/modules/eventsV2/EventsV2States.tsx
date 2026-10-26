@@ -5,12 +5,11 @@
 import React from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { PulseBlock, FloatY } from '../foodV2/FoodV2Motion';
+import { PulseBlock } from '../foodV2/FoodV2Motion';
 import { FadeInUp } from '../others/motion';
 import { NIGHT, W, hexA, shadow } from './eventsV2Theme';
 import { Press } from './EventsV2Kit';
-import { ICloudOff, ISparkles, IWifiOff, ICalendar, IUser, IInfo } from './EventsV2Icons';
-import { Sparkle } from './EventsV2Decor';
+import { ICloudOff, IWifiOff, ICalendar, IUser, IInfo } from './EventsV2Icons';
 
 export type StateKind = 'loading' | 'empty' | 'offline' | 'error' | 'soon' | 'signin';
 
@@ -33,21 +32,19 @@ export function Skeleton({ rows = 3, style }: { rows?: number; style?: StyleProp
 
 export function StateBlock({ kind, title, body, action, onAction, style }: { kind: StateKind; title?: string; body?: string; action?: string; onAction?: () => void; style?: StyleProp<ViewStyle> }) {
   if (kind === 'loading') return <Skeleton style={style} />;
-  const Icon = kind === 'offline' ? IWifiOff : kind === 'error' ? ICloudOff : kind === 'soon' ? ICalendar : kind === 'signin' ? IUser : ISparkles;
+  const Icon = kind === 'offline' ? IWifiOff : kind === 'error' ? ICloudOff : kind === 'soon' ? ICalendar : kind === 'signin' ? IUser : ICalendar;
   const t = title || (kind === 'offline' ? 'You are offline' : kind === 'error' ? 'Could not load events' : kind === 'soon' ? 'Events open soon' : kind === 'signin' ? 'Sign in to see your campus' : 'Nothing here yet');
   const b = body || (kind === 'offline' ? 'Check your internet and try again.' : kind === 'error' ? 'The server is busy. Please try again in a moment.' : '');
   return (
     <FadeInUp style={[s.state, shadow(2), style]}>
       <LinearGradient colors={['rgba(255,255,255,0.09)', 'rgba(255,255,255,0.02)']} style={StyleSheet.absoluteFill} />
-      <FloatY distance={3} period={3600}>
+      <View>
         <View style={s.plate}>
           <LinearGradient colors={[NIGHT.go[0], NIGHT.go[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           <LinearGradient colors={['rgba(255,255,255,0.35)', 'rgba(255,255,255,0)']} style={[StyleSheet.absoluteFill, { height: '50%' }]} />
           <View><Icon size={26} color="#FFFFFF" strokeWidth={1.6} /></View>
         </View>
-        <Sparkle size={12} style={{ position: 'absolute', right: -10, top: -4 }} />
-        <Sparkle size={8} color="#F0ABFC" style={{ position: 'absolute', left: -9, bottom: 4 }} />
-      </FloatY>
+      </View>
       <Text style={s.title}>{t}</Text>
       {b ? <Text style={s.body}>{b}</Text> : null}
       {action && onAction ? (

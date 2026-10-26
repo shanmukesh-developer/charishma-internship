@@ -6,11 +6,9 @@ import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FloatY } from '../foodV2/FoodV2Motion';
 import { NIGHT, W, shadow, tileOf } from './eventsV2Theme';
 import { CTA, Press } from './EventsV2Kit';
 import GlossyIcon from './EventsV2Glossy';
-import { Sparkle } from './EventsV2Decor';
 import { useNav } from './eventsV2Nav';
 
 export default function EventsV2Sheets() {
@@ -24,11 +22,9 @@ export default function EventsV2Sheets() {
         <View style={[s.sheet, shadow(3), { paddingBottom: Math.max(insets.bottom, 12) + 14 }]} accessibilityViewIsModal>
           <LinearGradient colors={['#2A2668', '#1A1848']} style={StyleSheet.absoluteFill} />
           <View style={s.grab} />
-          <FloatY distance={3} period={3600} style={{ alignSelf: 'center', marginTop: 6 }}>
+          <View style={{ alignSelf: 'center', marginTop: 6 }}>
             <GlossyIcon kind={tileOf(sh.ev.category)} size={74} />
-            <Sparkle size={12} style={{ position: 'absolute', right: -8, top: 4 }} />
-            <Sparkle size={8} color="#F0ABFC" style={{ position: 'absolute', left: -6, bottom: 12 }} />
-          </FloatY>
+          </View>
           <Text style={s.title} accessibilityRole="header">This is a sample event</Text>
           <Text style={s.body}>
             {`"${sh.ev.title}" shows how Campus Events works. Registration and tickets open for real events as soon as your clubs publish them. Nothing was booked and nothing was charged.`}

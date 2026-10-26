@@ -27,3 +27,16 @@ export const SAMPLE_ART = {
   mic: require('./assets/ev2-sample-open-mic-2026-10-25.webp'),
 } satisfies Record<string, ImageSourcePropType>;
 export type SampleArtKey = keyof typeof SAMPLE_ART;
+
+/**
+ * Category tile icons: Microsoft Fluent Emoji, 3D style (github.com/microsoft/fluentui-emoji, assets/<Name>/3D),
+ * MIT License, Copyright (c) Microsoft Corporation: commercial use and modification allowed. Shown as images,
+ * never as emoji characters. Resized to 160 px WebP. Megaphone, Guitar, Trophy, Light bulb, Raising hands.
+ */
+export const TILE_ICON = {
+  all: require('./assets/ev2-icon-megaphone-fluent3d-2026-10-25.webp'),
+  cultural: require('./assets/ev2-icon-guitar-fluent3d-2026-10-25.webp'),
+  sports: require('./assets/ev2-icon-trophy-fluent3d-2026-10-25.webp'),
+  workshops: require('./assets/ev2-icon-light-bulb-fluent3d-2026-10-25.webp'),
+  clubs: require('./assets/ev2-icon-raising-hands-fluent3d-2026-10-25.webp'),
+} satisfies Record<string, ImageSourcePropType>;

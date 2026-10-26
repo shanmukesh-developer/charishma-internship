@@ -7,13 +7,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
-import { FloatY } from '../foodV2/FoodV2Motion';
 import { NIGHT, TILES, W, shadow, type TileKey } from './eventsV2Theme';
 import { ChipRow, NightHeader, Press } from './EventsV2Kit';
 import { EventRowCard } from './EventsV2Cards';
 import { Notice, StateBlock } from './EventsV2States';
 import GlossyIcon from './EventsV2Glossy';
-import { Sparkle, Swash } from './EventsV2Decor';
 import { ICalendar, ISearch, IX } from './EventsV2Icons';
 import { useNav, type PriceKey, type WhenKey } from './eventsV2Nav';
 import { useEventsV2List } from './useEventsV2List';
@@ -37,16 +35,13 @@ function Banner({ tile, count }: { tile: TileKey; count: number | null }) {
       <LinearGradient colors={[t.grad[0], t.grad[1], t.grad[2]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <LinearGradient colors={['rgba(255,255,255,0.34)', 'rgba(255,255,255,0)']} style={[StyleSheet.absoluteFill, { height: '55%' }]} />
       <View style={{ flex: 1, paddingRight: 8 }}>
-        <Text style={s.bannerTitle}>{tile === 'all' ? 'All Events' : `${t.label} events`}</Text>
-        <Swash width={96} height={8} colors={['#FFFFFF', 'rgba(255,255,255,0.4)']} style={{ marginTop: 1 }} />
+        <Text style={s.bannerTitle}>{tile === 'all' ? 'All events' : `${t.label} events`}</Text>
         <Text style={s.bannerSub} numberOfLines={2}>{BLURB[tile]}</Text>
         {count != null ? <Text style={s.bannerCount}>{count} event{count === 1 ? '' : 's'}</Text> : null}
       </View>
-      <FloatY distance={3} period={3600}>
+      <View>
         <GlossyIcon kind={tile} size={84} />
-        <Sparkle size={12} style={{ position: 'absolute', right: 0, top: 2 }} />
-        <Sparkle size={8} style={{ position: 'absolute', left: 2, bottom: 10 }} />
-      </FloatY>
+      </View>
       <View style={s.bannerRim} pointerEvents="none" />
     </View>
   );
@@ -118,7 +113,7 @@ export default function EventsV2Explore() {
 
 const s = StyleSheet.create({
   banner: { flexDirection: 'row', alignItems: 'center', borderRadius: 24, padding: 16, paddingRight: 10, overflow: 'hidden', minHeight: 116, marginBottom: 14 },
-  bannerTitle: { color: '#FFFFFF', fontSize: 21, fontWeight: W.display, fontStyle: 'italic', letterSpacing: -0.3 },
+  bannerTitle: { color: '#FFFFFF', fontSize: 21, fontWeight: W.display, letterSpacing: -0.3 },
   bannerSub: { color: 'rgba(255,255,255,0.92)', fontSize: 12.5, lineHeight: 17, marginTop: 4 },
   bannerCount: { color: '#FFFFFF', fontSize: 12, fontWeight: W.label, marginTop: 6, opacity: 0.9 },
   bannerRim: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },

@@ -86,7 +86,7 @@ const s = StyleSheet.create({
   perf: { width: 16, alignItems: 'center', justifyContent: 'space-evenly', paddingVertical: 10 },
   dot: { width: 3, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.28)' },
   notch: { position: 'absolute', left: 92 + 8 - 11, width: 22, height: 22, borderRadius: 11, backgroundColor: NIGHT.page },
-  title: { color: NIGHT.ink, fontSize: 15, fontWeight: W.display, fontStyle: 'italic', lineHeight: 19 },
+  title: { color: NIGHT.ink, fontSize: 15, fontWeight: W.display, lineHeight: 19 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rowText: { color: NIGHT.sub, fontSize: 12, flexShrink: 1 },
 });
