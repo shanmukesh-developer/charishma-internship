@@ -3,12 +3,13 @@
  * same numbers without re-downloading). Everything money-like is real and read-only here:
  *   GET /api/rewards/spin-eligibility  spinsAvailable, nextMilestoneIn, completedOrders, spinsUsed, prizes (server table)
  *   GET /api/rewards/coupons           the student's usable coupons (unused and not expired; server labels)
+ *   GET /api/rewards/coupons/history   used and expired coupons of the last 90 days (the Used / Expired tabs)
  *   GET /api/vault                     today's deals (claiming gives a real coupon; see claimDeal)
  * ZenPoints, wallet balance, streak and referral code come from the signed-in user (AuthContext).
  * The real spin rule (backend/controllers/rewardController.js): spins = floor(delivered orders / 2) - spins used.
  * Writes (use-spin, vault claim) live in useSpin / claimDeal and only run on a tap by the student.
  */
-import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { API_URL, ENDPOINTS } from '../../constants/api';
 import { apiFetch, readJson } from '../../utils/auth';
@@ -19,6 +20,7 @@ export type Coupon = {
   expiryDate?: string | null; expiresInDays?: number | null; minOrderValue?: number | null;
   restaurantId?: string | null; menuItemId?: string | null; vaultItemId?: string | null; createdAt?: string;
 };
+export type PastCoupon = Coupon & { status: 'used' | 'expired'; usedAt?: string | null };
 export type Elig = { completedOrders: number; spinsUsed: number; spinsAvailable: number; nextMilestoneIn: number | null; prizes: Prize[] };
 export type Status = 'idle' | 'loading' | 'ready' | 'error' | 'offline';
 
@@ -162,3 +164,26 @@ export const couponTitle = (c: Coupon) => {
   return v > 0 ? `Flat ₹${Math.round(v)} off` : (c.label || 'Coupon');
 };
 export const couponMin = (c: Coupon) => (Number(c.minOrderValue) > 0 ? Math.round(Number(c.minOrderValue)) : 0);
+
+/**
+ * Used and expired coupons (last 90 days) for the coupons page tabs. Loaded when the page opens and on `reload`;
+ * a different account never sees the previous one's list.
+ */
+export function useCouponHistory(uid: string) {
+  const [h, setH] = useState<{ uid: string; status: Status; used: PastCoupon[]; expired: PastCoupon[] }>({ uid, status: 'idle', used: [], expired: [] });
+  const load = useCallback(async () => {
+    if (!uid) { setH({ uid, status: 'ready', used: [], expired: [] }); return; }
+    setH((p) => (p.uid === uid && p.status === 'ready' ? p : { uid, status: 'loading', used: [], expired: [] }));
+    try {
+      const res = await apiFetch(`${API_URL}/api/rewards/coupons/history`);
+      const data = await readJson(res);
+      if (!res.ok || !data) throw new Error('history');
+      setH({ uid, status: 'ready', used: Array.isArray(data.used) ? data.used : [], expired: Array.isArray(data.expired) ? data.expired : [] });
+    } catch (err) {
+      setH((p) => (p.uid === uid && p.status === 'ready' ? p : { uid, status: isNetwork(err) ? 'offline' : 'error', used: [], expired: [] }));
+    }
+  }, [uid]);
+  useEffect(() => { load(); }, [load]);
+  const cur = h.uid === uid ? h : { uid, status: 'loading' as Status, used: [], expired: [] };
+  return { ...cur, reload: load };
+}

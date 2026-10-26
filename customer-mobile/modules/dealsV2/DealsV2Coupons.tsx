@@ -1,7 +1,8 @@
 /**
  * /deals/coupons and /deals/coupon/:code in the Deals v2 look.
- *   Coupons       the student's real usable coupons as perforated tickets (GET /api/rewards/coupons returns only
- *                 unused, unexpired ones, so there are no Used / Expired tabs), with loading, empty and offline states
+ *   Coupons       three tabs: Active (the real usable coupons, GET /api/rewards/coupons, with Apply), Used and
+ *                 Expired (GET /api/rewards/coupons/history, last 90 days, greyed, no Apply); loading, empty and
+ *                 offline states per tab
  *   CouponDetail  one coupon: a large ticket, the code with Copy, the real terms (minimum order, validity, store
  *                 limit, stall orders, one use) and Apply (checkout ?coupon=CODE)
  */
@@ -17,30 +18,65 @@ import { Skeleton, StateBlock } from './DealsV2States';
 import { IconPlate } from './DealsV2Decor';
 import { ICheck, ICopy, IInfo, ITicketPercent, ITruck } from './DealsV2Icons';
 import { useApplyCoupon } from './DealsV2Sheets';
-import { couponMin, couponTitle, useDeals } from './dealsV2Data';
+import { couponMin, couponTitle, useCouponHistory, useDeals } from './dealsV2Data';
 import { useNav } from './dealsV2Nav';
+
+type Tab = 'active' | 'used' | 'expired';
 
 export function Coupons() {
   const d = useDeals();
   const nav = useNav();
   const apply = useApplyCoupon();
+  const hist = useCouponHistory(d.uid);
+  const [tab, setTab] = useState<Tab>('active');
   const [refreshing, setRefreshing] = useState(false);
   const n = d.coupons.length;
+  const past = tab === 'used' ? hist.used : hist.expired;
+  const tabs: [Tab, string][] = [['active', n ? `Active (${n})` : 'Active'], ['used', 'Used'], ['expired', 'Expired']];
   return (
     <View style={{ flex: 1 }}>
       <PageHeader title="Your coupons" sub={d.signedIn ? (n ? `${n} ready to use at checkout` : 'Coupons you win or claim show up here') : 'Sign in to see your coupons'} />
+      {d.signedIn ? (
+        <View style={s.tabs} accessibilityRole="tablist">
+          {tabs.map(([k, label]) => {
+            const on = k === tab;
+            return (
+              <Press key={k} onPress={() => setTab(k)} label={label} style={[s.tab, on ? s.tabOn : null]} scaleTo={0.96}>
+                <Text style={[s.tabText, on ? s.tabTextOn : null]} numberOfLines={1}>{label}</Text>
+              </Press>
+            );
+          })}
+        </View>
+      ) : null}
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 60, gap: 12 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await d.reload(); setRefreshing(false); }} tintColor={DV.violet} colors={[DV.violet]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await Promise.all([d.reload(), hist.reload()]); setRefreshing(false); }} tintColor={DV.violet} colors={[DV.violet]} />}
       >
         {!d.signedIn ? <StateBlock kind="signin" body="Your coupons are saved to your account." action="Sign in" onAction={() => nav.go('/login')} style={{ marginHorizontal: 0 }} /> : null}
-        {d.signedIn && d.status === 'loading' && n === 0 ? <Skeleton rows={3} style={{ paddingHorizontal: 0 }} /> : null}
-        {d.signedIn && (d.status === 'error' || d.status === 'offline') && n === 0 ? <StateBlock kind={d.status} action="Try again" onAction={() => d.reload()} style={{ marginHorizontal: 0 }} /> : null}
-        {d.signedIn && d.status === 'ready' && n === 0 ? (
-          <StateBlock kind="empty" title="No coupons yet" body="Spin the wheel or claim one of today's deals and your coupons show up here." action="See the wheel" onAction={() => nav.push({ name: 'spin' })} style={{ marginHorizontal: 0 }} />
+        {d.signedIn && tab === 'active' ? (
+          <>
+            {d.status === 'loading' && n === 0 ? <Skeleton rows={3} style={{ paddingHorizontal: 0 }} /> : null}
+            {(d.status === 'error' || d.status === 'offline') && n === 0 ? <StateBlock kind={d.status} action="Try again" onAction={() => d.reload()} style={{ marginHorizontal: 0 }} /> : null}
+            {d.status === 'ready' && n === 0 ? (
+              <StateBlock kind="empty" title="No coupons yet" body="Spin the wheel or claim one of today's deals and your coupons show up here." action="See the wheel" onAction={() => nav.push({ name: 'spin' })} style={{ marginHorizontal: 0 }} />
+            ) : null}
+            {d.coupons.map((c) => <Ticket key={c.code} coupon={c} onApply={() => apply(c)} onPress={() => nav.push({ name: 'coupon', code: c.code })} />)}
+            {n > 0 ? <Text style={s.foot}>Each coupon works once. Used and expired ones move to their own tabs.</Text> : null}
+          </>
         ) : null}
-        {d.coupons.map((c) => <Ticket key={c.code} coupon={c} onApply={() => apply(c)} onPress={() => nav.push({ name: 'coupon', code: c.code })} />)}
-        {n > 0 ? <Text style={s.foot}>Used and expired coupons drop off this list. Each coupon works once.</Text> : null}
+        {d.signedIn && tab !== 'active' ? (
+          <>
+            {(hist.status === 'loading' || hist.status === 'idle') && past.length === 0 ? <Skeleton rows={3} style={{ paddingHorizontal: 0 }} /> : null}
+            {(hist.status === 'error' || hist.status === 'offline') && past.length === 0 ? <StateBlock kind={hist.status} action="Try again" onAction={() => hist.reload()} style={{ marginHorizontal: 0 }} /> : null}
+            {hist.status === 'ready' && past.length === 0 ? (
+              <StateBlock kind="empty" title={tab === 'used' ? 'No used coupons' : 'No expired coupons'} body={tab === 'used' ? 'Coupons you use at checkout in the last 90 days show up here.' : 'Coupons that ran out in the last 90 days show up here.'} style={{ marginHorizontal: 0 }} />
+            ) : null}
+            {past.map((c) => (
+              <Ticket key={c.code} coupon={c} muted note={c.status === 'used' ? (c.usedAt ? `Used on ${shortDate(c.usedAt)}` : 'Used') : `Expired on ${shortDate(c.expiryDate)}`} />
+            ))}
+            {past.length > 0 ? <Text style={s.foot}>Showing the last 90 days.</Text> : null}
+          </>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -121,6 +157,11 @@ export function CouponDetail({ code }: { code: string }) {
 
 const s = StyleSheet.create({
   foot: { fontSize: 12, color: DV.faint, textAlign: 'center', marginTop: 6 },
+  tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 14 },
+  tab: { flex: 1, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: DV.line },
+  tabOn: { backgroundColor: DV.violet, borderColor: DV.violet },
+  tabText: { fontSize: 13.5, fontWeight: W.label, color: DV.sub },
+  tabTextOn: { color: '#FFFFFF' },
   hero: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 24, overflow: 'hidden', minHeight: 120 },
   heroTitle: { color: '#FFFFFF', fontSize: 24, fontWeight: W.display, letterSpacing: -0.3 },
   heroSub: { color: 'rgba(242,238,255,0.9)', fontSize: 13, marginTop: 4 },

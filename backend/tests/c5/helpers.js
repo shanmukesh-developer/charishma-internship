@@ -86,6 +86,7 @@ const setup = async () => {
   app.use('/api/delivery', r('routes/deliveryPartnerRoutes'));
   app.use('/api/features', r('routes/featureRoutes'));
   app.use('/api/admin', r('routes/adminRoutes'));
+  app.use('/api/rewards', r('routes/rewardRoutes'));
   const server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
   ctx.server = server;
   ctx.base = `http://127.0.0.1:${server.address().port}`;

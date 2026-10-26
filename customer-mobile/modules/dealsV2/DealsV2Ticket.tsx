@@ -28,12 +28,13 @@ export function couponValidity(c: Coupon) {
   return 'No expiry';
 }
 
-export function Ticket({ coupon, onApply, onPress, page = DV.page, muted, style }: { coupon: Coupon; onApply?: () => void; onPress?: () => void; page?: string; muted?: boolean; style?: StyleProp<ViewStyle> }) {
+/** `note` replaces the validity chip (the Used / Expired tabs: "Used on 24 Oct", "Expired on 20 Oct"). */
+export function Ticket({ coupon, onApply, onPress, page = DV.page, muted, note, style }: { coupon: Coupon; onApply?: () => void; onPress?: () => void; page?: string; muted?: boolean; note?: string; style?: StyleProp<ViewStyle> }) {
   const free = coupon.type === 'FREEDEL';
   const Icon = free ? ITruck : ITicketPercent;
-  const soon = coupon.expiresInDays !== null && coupon.expiresInDays !== undefined && coupon.expiresInDays <= 1;
+  const soon = !note && coupon.expiresInDays !== null && coupon.expiresInDays !== undefined && coupon.expiresInDays <= 1;
   return (
-    <Press onPress={onPress} label={`${couponTitle(coupon)}. ${couponCondition(coupon)}. ${couponValidity(coupon)}. Open details`} style={[s.wrap, shadow(2), muted ? { opacity: 0.6 } : null, style]} scaleTo={0.98}>
+    <Press onPress={onPress} label={`${couponTitle(coupon)}. ${couponCondition(coupon)}. ${note || couponValidity(coupon)}.${onPress ? ' Open details' : ''}`} style={[s.wrap, shadow(2), muted ? { opacity: 0.6 } : null, style]} scaleTo={0.98}>
       <View style={s.ticket}>
         <View style={s.stub}>
           <LinearGradient colors={free ? ['#9C7BFF', '#5B34D8'] : [DV.go[0], DV.go[2]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
@@ -58,7 +59,7 @@ export function Ticket({ coupon, onApply, onPress, page = DV.page, muted, style 
             <Text style={s.cond} numberOfLines={1}>{couponCondition(coupon)}</Text>
             <View style={[s.chip, soon ? { backgroundColor: DV.amberSoft, borderColor: 'rgba(183,121,31,0.3)' } : null]}>
               <IClock size={12} color={soon ? DV.amber : DV.violetDeep} strokeWidth={1.8} />
-              <Text style={[s.chipText, soon ? { color: DV.amber } : null]} numberOfLines={1}>{couponValidity(coupon)}</Text>
+              <Text style={[s.chipText, soon ? { color: DV.amber } : null]} numberOfLines={1}>{note || couponValidity(coupon)}</Text>
             </View>
           </View>
           {onApply ? (

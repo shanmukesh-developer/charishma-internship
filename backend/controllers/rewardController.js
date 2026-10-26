@@ -157,6 +157,55 @@ const getUserCoupons = async (req, res) => {
   }
 };
 
+const couponLabel = (json) => {
+  const value = Number(json.value) || 0;
+  return json.type === 'FREEDEL' ? 'Free delivery' : (value > 0 ? `₹${value} off` : '20% off (up to ₹50)');
+};
+
+// Used and expired coupons of the last 90 days (newest first, at most 50), for the "Used" and "Expired" tabs.
+// A coupon's last change is the moment it was used (orderController claims it with isUsed: true).
+const getCouponHistory = async (req, res) => {
+  try {
+    const { getCouponModel } = require('../models/Coupon');
+    const Coupon = getCouponModel();
+    const { Op } = require('sequelize');
+    const now = new Date();
+    const since = new Date(now.getTime() - 90 * 86400000);
+    const rows = await Coupon.findAll({
+      where: {
+        userId: req.user.id,
+        [Op.or]: [
+          { isUsed: true, updatedAt: { [Op.gte]: since } },
+          { isUsed: false, expiryDate: { [Op.lte]: now, [Op.gte]: since } },
+        ],
+      },
+      order: [['updatedAt', 'DESC']],
+      limit: 50,
+    });
+    const items = rows.map((c) => {
+      const json = c.toJSON();
+      const used = !!json.isUsed;
+      return {
+        id: json.id,
+        code: json.code,
+        type: json.type,
+        value: Number(json.value) || 0,
+        label: couponLabel(json),
+        minOrderValue: json.minOrderValue,
+        status: used ? 'used' : 'expired',
+        usedAt: used ? json.updatedAt : null,
+        expiryDate: json.expiryDate,
+      };
+    });
+    // Newest event first: used coupons by use time, expired ones by expiry time.
+    const at = (i) => new Date(i.status === 'used' ? i.usedAt : i.expiryDate).getTime();
+    items.sort((a, b) => at(b) - at(a));
+    res.json({ used: items.filter((i) => i.status === 'used'), expired: items.filter((i) => i.status === 'expired') });
+  } catch (error) {
+    sendServerError(res, error, '[REWARDCONTROLLER_ERROR]');
+  }
+};
+
 const validateCoupon = async (req, res) => {
   try {
     const { code } = req.body;
@@ -188,5 +237,6 @@ module.exports = {
   useSpin,
   getLeaderboard,
   getUserCoupons,
+  getCouponHistory,
   validateCoupon
 };

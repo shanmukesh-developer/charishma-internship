@@ -104,7 +104,7 @@ export default function DealsV2Spin() {
           <View style={s.rule}>
             <View><IInfo size={16} color="#C4B5FD" strokeWidth={1.8} /></View>
             <Text style={s.ruleText}>
-              {`You earn a spin for every ${ORDERS_PER_SPIN} delivered orders. ZCS picks the prize when you spin. ZenPoints are added to your balance at once; a free-delivery coupon goes to Your coupons and lasts 7 days. Free delivery comes up on every 15th spin.`}
+              {`You earn a spin for every ${ORDERS_PER_SPIN} delivered orders. ZCS picks the prize when you spin. ZenPoints are added to your balance at once; a free-delivery coupon goes to Your coupons and lasts 7 days.`}
             </Text>
           </View>
         </View>
