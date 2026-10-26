@@ -56,7 +56,11 @@ interface Order {
   deliveryAddress?: string | null;
   deliveryInstructions?: string[] | string | null;
   hostelGateDelivery?: boolean;
+  /** Delivery slot label ("Tue 27 Oct, 12:30–1:00 PM"); older orders: 'ASAP'. */
   deliverySlot?: string | null;
+  /** Delivery slot window (null on orders placed before slots). */
+  slotStart?: string | null;
+  slotEnd?: string | null;
   cancellationReason?: string | null;
   estDuration?: number | string | null;
   deliveryPartnerId?: string | null;
@@ -67,6 +71,13 @@ interface Order {
 }
 
 type Notice = { kind: 'success' | 'error'; text: string } | null;
+
+/** "Tue 27 Oct, 12:30–1:00 PM" for slot orders; older orders keep their free-text slot unless it is 'ASAP'. */
+const slotText = (o: Pick<Order, 'deliverySlot' | 'slotStart'>): string | null => {
+  const s = (o.deliverySlot || '').trim();
+  if (!s || (/^asap$/i.test(s) && !o.slotStart)) return null;
+  return s;
+};
 
 const STATUS_FILTERS = ['All', 'Pending', 'Accepted', 'Preparing', 'ReadyForPickup', 'Picking', 'PickedUp', 'ArrivedAtGate', 'OutForDelivery', 'Delivered', 'Cancelled'];
 const STATUS_LABELS: Record<string, string> = {
@@ -535,6 +546,13 @@ export default function OrdersPage() {
         </div>
       ),
     },
+    {
+      key: 'slot',
+      header: 'Delivery slot',
+      hideBelow: 'lg',
+      sortValue: o => (o.slotStart ? new Date(o.slotStart) : new Date(0)),
+      cell: o => <span className="whitespace-nowrap text-xs text-fg">{slotText(o) || <span className="text-fg-muted">–</span>}</span>,
+    },
     { key: 'total', header: 'Total', align: 'right', sortValue: o => grandTotal(o), cell: o => <span className="font-medium tabular-nums text-fg">{rupees(grandTotal(o))}</span> },
     { key: 'payment', header: 'Payment', hideBelow: 'lg', sortValue: o => o.paymentMethod || '', cell: o => <PaymentCell order={o} /> },
     {
@@ -569,8 +587,8 @@ export default function OrdersPage() {
               leftIcon={<IconDownload size={14} />}
               disabled={visibleOrders.length === 0}
               onClick={() => downloadCsv(`zenvy_orders_page${currentPage}_${new Date().toISOString().slice(0, 10)}.csv`,
-                ['Order ID', 'Placed (IST)', 'Customer', 'Phone', 'Store', 'Status', 'Payment', 'Payment status', 'Total (INR)', 'Delivered by'],
-                visibleOrders.map(o => [orderId(o), formatDateTime(o.createdAt), o.user?.name || '', o.user?.phone || '', o.restaurant?.name || '', statusLabel(o.status), o.paymentMethod || '', o.paymentStatus || '', grandTotal(o), isVendorOrder(o) ? 'Stall' : 'Zenvy rider']))}
+                ['Order ID', 'Placed (IST)', 'Customer', 'Phone', 'Store', 'Delivery slot', 'Status', 'Payment', 'Payment status', 'Total (INR)', 'Delivered by'],
+                visibleOrders.map(o => [orderId(o), formatDateTime(o.createdAt), o.user?.name || '', o.user?.phone || '', o.restaurant?.name || '', slotText(o) || '', statusLabel(o.status), o.paymentMethod || '', o.paymentStatus || '', grandTotal(o), isVendorOrder(o) ? 'Stall' : 'Zenvy rider']))}
             >
               Export page (CSV)
             </Button>
@@ -707,7 +725,7 @@ export default function OrdersPage() {
                   value: (
                     <>
                       <span className="whitespace-pre-line">{selectedOrder.deliveryAddress || (selectedOrder.hostelGateDelivery ? 'Hostel gate' : 'No address on file')}</span>
-                      {selectedOrder.deliverySlot && <span className="block text-fg-muted">Slot: {selectedOrder.deliverySlot}</span>}
+                      {slotText(selectedOrder) && <span className="block font-medium text-fg">Delivery slot: {slotText(selectedOrder)}</span>}
                       {formatEta(selectedOrder.estDuration) && <span className="block text-fg-muted">Kitchen time: {formatEta(selectedOrder.estDuration)}</span>}
                     </>
                   ),

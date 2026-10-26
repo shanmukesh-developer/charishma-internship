@@ -45,7 +45,13 @@ const initOrderModel = (sequelize) => {
       type: DataTypes.ENUM('COD', 'UPI', 'Card', 'Wallet'),
       allowNull: false
     },
+    // Delivery slot (utils/deliverySlots): deliverySlot = "Tue 27 Oct, 12:30–1:00 PM" (older rows: 'ASAP'),
+    // slotStart / slotEnd = the slot window. Null on orders placed before slots (and with the kill switch).
     deliverySlot: { type: DataTypes.STRING },
+    slotStart: { type: DataTypes.DATE, allowNull: true },
+    slotEnd: { type: DataTypes.DATE, allowNull: true },
+    // When the 'orders.slotDispatch' job released a held-back slot order to riders (null = not yet / not needed).
+    slotDispatchedAt: { type: DataTypes.DATE, allowNull: true },
     deliveryAddress: { type: DataTypes.TEXT },
     // Customer's delivery notes, e.g. ["Call on arrival", "No plastic cutlery"] (also kept in deliveryAddress for older rider apps)
     deliveryInstructions: { type: DataTypes.JSON, allowNull: true },

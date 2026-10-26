@@ -44,6 +44,8 @@ const shapeStore = (store, itemCount) => {
     opensAt: open.opensAt || null,
     closedReason: open.isOpen ? null : (open.message || null),
     campusClosed: !!open.campusClosed,
+    // Delivery slots: closed now but orderable for the next slot (new keys; services are booked, not slotted).
+    ...require('../utils/deliverySlots').slotListingFields(store, { skip: isServiceVendorType(s.vendorType) }),
     logoUrl: s.logoUrl || null,
     packagingFee: Number(s.packagingFee) || 0,
     minOrderValue: Number(s.minOrderValue) || 0,
@@ -96,7 +98,9 @@ const shapeItem = (item, store) => {
     storeName: store ? store.name : null,
     vendorType: store ? store.vendorType : null,
     // CampusBites stalls are ordered in Zenvy (cash to the stall, the stall delivers).
-    orderable: inStock && !bookingOnly && !!store && store.isActive !== false && !(stall && store.isOffline) && open.isOpen,
+    orderable: inStock && !bookingOnly && !!store && store.isActive !== false && !(stall && store.isOffline)
+      // Delivery slots: a store closed right now still takes orders for its next open slot.
+      && (open.isOpen || require('../utils/deliverySlots').slotListingFields(store).takesSlotOrders),
     directOrderOnly: false,
     ...(stall ? { fulfilment: 'VENDOR', paymentMethods: ['COD'] } : {})
   };

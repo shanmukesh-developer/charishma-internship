@@ -22,6 +22,9 @@ const initMenuItemModel = (sequelize) => {
     isAvailable: { type: DataTypes.BOOLEAN, defaultValue: true },
     outOfStockUntil: { type: DataTypes.DATE, allowNull: true },
     isEliteOnly: { type: DataTypes.BOOLEAN, defaultValue: false },
+    // Specialized cake (custom / designer): booking closes 2½ hours before the delivery slot instead of the
+    // 2 hours of a normal cake (utils/deliverySlots). Switched on by the store or an admin.
+    isSpecializedCake: { type: DataTypes.BOOLEAN, defaultValue: false },
     customCommission: { type: DataTypes.FLOAT },
     specs: { type: DataTypes.JSON, defaultValue: {} },
     ownerName: { type: DataTypes.STRING },

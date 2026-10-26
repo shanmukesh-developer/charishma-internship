@@ -24,11 +24,16 @@ const istClock = (d) => {
 };
 
 // Where clause for "stall order open longer than `hours`" (also used by the admin orders filter / counts).
-const stuckStallWhere = (hours = STUCK_HOURS, now = Date.now()) => ({
-  fulfilment: 'VENDOR',
-  status: { [Op.in]: STUCK_STATUSES },
-  createdAt: { [Op.lt]: new Date(now - hours * 3600 * 1000) },
-});
+// Delivery slots: a slot order is counted from the END of its slot (a next-day order is not "stuck" overnight).
+const stuckStallWhere = (hours = STUCK_HOURS, now = Date.now()) => {
+  const cutoff = new Date(now - hours * 3600 * 1000);
+  return {
+    fulfilment: 'VENDOR',
+    status: { [Op.in]: STUCK_STATUSES },
+    createdAt: { [Op.lt]: cutoff },
+    [Op.or]: [{ slotEnd: null }, { slotEnd: { [Op.lt]: cutoff } }],
+  };
+};
 
 // One run at a time in this process (SQLite has no advisory lock, and two overlapping SQLite write
 // transactions fail with SQLITE_BUSY): a call while a run is in flight returns 0.

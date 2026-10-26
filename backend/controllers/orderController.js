@@ -13,6 +13,7 @@ const { getHaversineDistance } = require('../utils/distance');
 const realtime = require('../utils/realtime');
 const walletLedger = require('../utils/walletLedger');
 const { pushNearestRiders, riderPayout, refreshRiderCurrentOrder } = require('../utils/riderDispatch');
+const deliverySlots = require('../utils/deliverySlots');
 
 // Money transactions (wallet debit / refund, coupon claim). IMMEDIATE takes the SQLite write lock up
 // front: a DEFERRED transaction that reads then writes fails with SQLITE_BUSY when a parallel request
@@ -164,7 +165,7 @@ const quoteOrder = async (req, res) => {
     const walletBalance = money(user.walletBalance);
     res.json({
       ...quote,
-      serviceability: getCampusServiceability(),
+      serviceability: getCampusServiceability(deliverySlots.now()),
       paymentMethods: quote.paymentMethods || ['COD', 'Wallet'],
       walletBalance,
       // Stalls and rider-purchase stores are COD only (createOrder refuses Wallet for them).
@@ -182,7 +183,28 @@ const quoteOrder = async (req, res) => {
 const getServiceability = async (req, res) => {
   // storeAcceptTimeoutMin (new key): tracking says how long the store has to accept before the order is
   // cancelled for free.
-  res.json({ ...getCampusServiceability(), paymentMethods: ['COD', 'Wallet'], storeAcceptTimeoutMin: storeAcceptTimeoutMinutes() });
+  await deliverySlots.loadConfig();
+  res.json({ ...getCampusServiceability(deliverySlots.now()), paymentMethods: ['COD', 'Wallet'], storeAcceptTimeoutMin: storeAcceptTimeoutMinutes() });
+};
+
+// @desc    Delivery slots (today + tomorrow, IST) for a kind of order, before there is a basket to quote
+//          (the shopping list, the Home hint). The checkout uses the quote's deliverySlots (items + store hours).
+// @route   GET /api/orders/delivery-slots?type=food|store|vendor|list|cake|specialized_cake[&storeId=]
+const getDeliverySlots = async (req, res) => {
+  try {
+    await deliverySlots.loadConfig();
+    if (!deliverySlots.slotsEnabled()) return res.json({ enabled: false, slots: [], nextSlot: null, defaultSlotId: null });
+    let store = null;
+    const storeId = String((req.query || {}).storeId || '').trim();
+    if (storeId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(storeId)) {
+      store = await getRestaurantModel().findByPk(storeId);
+    }
+    const lead = deliverySlots.leadForType((req.query || {}).type);
+    res.json({ ...deliverySlots.slotsForOrder({ store, lead, at: deliverySlots.now() }), type: String((req.query || {}).type || 'food') });
+  } catch (err) {
+    console.error('[DELIVERY_SLOTS_ERROR]', err);
+    res.status(500).json({ message: 'We could not load the delivery slots right now. Please try again.' });
+  }
 };
 
 // @desc    Create a new order
@@ -210,7 +232,8 @@ const createOrder = async (req, res) => {
     }
 
     // ── Campus ordering hours (9 PM – 6 AM IST closed) ──
-    const serviceability = getCampusServiceability();
+    await deliverySlots.loadConfig();
+    const serviceability = getCampusServiceability(deliverySlots.now());
     if (!serviceability.open) {
       return res.status(403).json({ message: serviceability.message, code: 'ORDERING_CLOSED', reopensAt: serviceability.reopensAt });
     }
@@ -306,6 +329,19 @@ const createOrder = async (req, res) => {
       }
     }
 
+    // ── Delivery slot (utils/deliverySlots): re-checked here against the cutoff + store hours ──
+    // New apps send the slot id ('2026-10-27|S1'); a slot that closed meanwhile is refused with the open
+    // ones so the app can ask again. Older builds send 'ASAP' / nothing: the earliest open slot is assigned.
+    let slotCols = { deliverySlot: String(deliverySlot || 'ASAP').replace(/[<>]/g, '').slice(0, 80) };
+    if (quote.deliverySlots) {
+      const picked = deliverySlots.resolveSlot(deliverySlot, quote.deliverySlots);
+      if (!picked.ok) {
+        if (idemClaimed) recentOrderKeys.delete(idemKey);
+        return res.status(picked.status).json(picked.body);
+      }
+      slotCols = deliverySlots.slotColumns(picked.slot);
+    }
+
     const Restaurant = getRestaurantModel();
     const restaurant = await Restaurant.findByPk(quote.store.id);
     // Rider-purchase store: marked offline, or has no partner login (nobody can tap Accept), so the
@@ -388,7 +424,7 @@ const createOrder = async (req, res) => {
           },
           distance: distanceKm,
           estDuration: null, // set by the restaurant when it accepts
-          deliverySlot: String(deliverySlot || 'ASAP').replace(/[<>]/g, '').slice(0, 80),
+          ...slotCols,
           deliveryAddress: address,
           // Customer's pin for rider navigation (dropCoords, assigned rider only). Null when not sent.
           dropLat: hasCoords ? lat : null,
@@ -475,7 +511,7 @@ const createOrder = async (req, res) => {
       earnings: `₹${riderPayout(createdOrder)}`,
       distance: createdOrder.distance,
       createdAt: createdOrder.createdAt,
-      deliverySlot: createdOrder.deliverySlot
+      ...deliverySlots.slotFields(createdOrder),
     };
     io.to('admin-room').emit('admin_newOrder', {
       id: createdOrder.id.toString(),
@@ -486,7 +522,8 @@ const createOrder = async (req, res) => {
       finalPrice: createdOrder.finalPrice,
       paymentMethod: createdOrder.paymentMethod,
       paymentStatus: createdOrder.paymentStatus,
-      createdAt: createdOrder.createdAt
+      createdAt: createdOrder.createdAt,
+      ...deliverySlots.slotFields(createdOrder),
     });
     require('../utils/realtime').notifyAdmin('order', 'created', createdOrder.id, { storeId: createdOrder.restaurantId });
 
@@ -506,6 +543,8 @@ const createOrder = async (req, res) => {
       deliveryAddress: createdOrder.deliveryAddress,
       deliveryInstructions: createdOrder.deliveryInstructions || null,
       estDuration: createdOrder.estDuration || null,
+      // Delivery slot: the kitchen gets slot orders at once (to plan) with the slot shown on the card.
+      ...deliverySlots.slotFields(createdOrder),
     };
 
     if (isVendorOrder) {
@@ -732,6 +771,7 @@ const getOrderById = async (req, res) => {
       orderData.riderOtherOrders = otherOrders;
     }
 
+    orderData.storeAcceptBy = storeAcceptBy(orderData);
     await signOrderMedia(req, orderData);
     res.json({ ...orderData, _id: order.id });
   } catch (error) {
@@ -750,7 +790,16 @@ const MY_ORDER_FIELDS = [
   'isSurge', 'hostelGateDelivery', 'rating', 'review', 'deliveryPin', 'refundedAt',
   'isPurchasingApprovedByCustomer', 'itemPhotoUrl', 'billProofUrl', 'billAmount', 'isBillApproved',
   'category', 'isMultiRestaurant', 'createdAt', 'updatedAt', 'receiptNumber',
+  // Delivery slot window (utils/deliverySlots); deliverySlot above holds its label.
+  'slotStart', 'slotEnd',
 ];
+// When the store must have accepted a Pending order (slot orders: counted from an hour before the slot,
+// so a night order for tomorrow is not cancelled at night). Null once the order is past Pending.
+const storeAcceptBy = (o) => {
+  if (!o || o.status !== 'Pending') return null;
+  const t = deliverySlots.acceptAnchorMs(o) + storeAcceptTimeoutMinutes() * 60 * 1000;
+  return Number.isFinite(t) ? new Date(t).toISOString() : null;
+};
 // Never sent to the customer / rider on the single-order view either (admin only).
 const ORDER_INTERNAL_FIELDS = ['deliveryPinAttempts', 'upiUTR', 'upiScreenshot', 'upiStatus', 'payoutSettled', 'riderPayoutSettled',
   // C6 settlement internals (commission snapshot, payout statements).
@@ -765,6 +814,7 @@ function customerOrderJson(o) {
   return {
     ...out,
     _id: json.id,
+    storeAcceptBy: storeAcceptBy(json),
     restaurantName: json.restaurant ? json.restaurant.name : null,
     restaurantImage: json.restaurant ? json.restaurant.imageUrl : null
   };
@@ -773,6 +823,7 @@ function customerOrderJson(o) {
 function ownerOrderJson(order) {
   const j = order && typeof order.toJSON === 'function' ? order.toJSON() : { ...(order || {}) };
   for (const k of ORDER_INTERNAL_FIELDS) delete j[k];
+  j.storeAcceptBy = storeAcceptBy(j);
   return j;
 }
 
@@ -1156,8 +1207,11 @@ const autoCancelStalePendingOrders = async (io) => {
   const PENDING_TIMEOUT_MINUTES = storeAcceptTimeoutMinutes();
   const pendingCutoff = new Date(Date.now() - PENDING_TIMEOUT_MINUTES * 60 * 1000);
   const unclaimedCutoff = new Date(Date.now() - UNCLAIMED_TIMEOUT_MINUTES * 60 * 1000);
+  // Delivery slots: a Pending slot order's clock starts an hour before its slot (or when placed, if later), so
+  // a night order for tomorrow waits for the kitchen to open; an unclaimed slot order is cancelled only once
+  // its slot started SLOT_UNCLAIMED_GRACE_MIN ago (riders see it from DISPATCH_WINDOW_MIN before the start).
   const stalePending = await Order.findAll({
-    where: { status: 'Pending', deliveryPartnerId: null, createdAt: { [Op.lt]: pendingCutoff } },
+    where: { status: 'Pending', deliveryPartnerId: null, ...deliverySlots.acceptAnchorBeforeWhere(pendingCutoff) },
     order: [['createdAt', 'ASC']],
     limit: 50,
   });
@@ -1166,9 +1220,12 @@ const autoCancelStalePendingOrders = async (io) => {
       status: { [Op.in]: UNCLAIMED_STATUSES },
       deliveryPartnerId: null,
       // Stall orders are delivered by the stall itself: never "no rider" cancelled.
-      [Op.and]: [{ [Op.or]: [{ fulfilment: null }, { fulfilment: { [Op.ne]: 'VENDOR' } }] }],
       createdAt: { [Op.lt]: unclaimedCutoff },
-      [Op.or]: [{ acceptedAt: null }, { acceptedAt: { [Op.lt]: unclaimedCutoff } }],
+      [Op.and]: [
+        { [Op.or]: [{ fulfilment: null }, { fulfilment: { [Op.ne]: 'VENDOR' } }] },
+        { [Op.or]: [{ acceptedAt: null }, { acceptedAt: { [Op.lt]: unclaimedCutoff } }] },
+        deliverySlots.slotGracePassedWhere(new Date()),
+      ],
     },
     order: [['createdAt', 'ASC']],
     limit: 50,
@@ -1284,6 +1341,60 @@ const releaseStalledRiderClaims = async (io) => {
     );
   }
   return released.length;
+};
+
+// Delivery slots: a slot order that became claimable before its rider window (DISPATCH_WINDOW_MIN before the
+// slot start) was held back from riders (utils/realtime.deliveryRequest and pushNearestRiders skip it, and the
+// pool / claim filter it out). Runs every minute ('orders.slotDispatch', single runner): once the window opens
+// the order is marked (slotDispatchedAt, conditional, so a repeat or a second process never pushes twice) and
+// the riders are told (live pool event + nearest-rider push). Orders that became claimable inside the window
+// were dispatched on the spot (store accept / admin): those are only marked.
+const SLOT_DISPATCH_STATUSES = ['Accepted', 'Preparing', 'ReadyForPickup'];
+const releaseDueSlotOrders = async ({ now = deliverySlots.now() } = {}) => {
+  const Order = getOrderModel();
+  if (!Order) return { released: 0, marked: 0 };
+  const at = new Date(now);
+  const due = await Order.findAll({
+    where: {
+      status: { [Op.in]: SLOT_DISPATCH_STATUSES },
+      deliveryPartnerId: null,
+      slotDispatchedAt: null,
+      slotStart: {
+        [Op.ne]: null,
+        [Op.lte]: new Date(at.getTime() + deliverySlots.DISPATCH_WINDOW_MIN * 60 * 1000),
+        [Op.gt]: new Date(at.getTime() - 6 * 60 * 60 * 1000),
+      },
+      [Op.and]: [{ [Op.or]: [{ fulfilment: null }, { fulfilment: { [Op.ne]: 'VENDOR' } }] }],
+    },
+    attributes: ['id', 'restaurantId', 'slotStart', 'acceptedAt', 'createdAt', 'distance', 'deliverySlot'],
+    order: [['slotStart', 'ASC']],
+    limit: 100,
+  });
+  let released = 0;
+  let marked = 0;
+  for (const order of due) {
+    const [n] = await Order.update({ slotDispatchedAt: at }, { where: { id: order.id, slotDispatchedAt: null, deliveryPartnerId: null }, silent: true });
+    if (!n) continue;
+    const opensAt = deliverySlots.dispatchOpensAt(order).getTime();
+    const claimableSince = new Date(order.acceptedAt || order.createdAt).getTime();
+    if (Number.isFinite(claimableSince) && claimableSince >= opensAt) { marked++; continue; } // dispatched on the spot
+    released++;
+    realtime.deliveryRequest(order.id);
+    try {
+      const restaurant = await getRestaurantModel().findByPk(order.restaurantId);
+      await pushNearestRiders({
+        restaurant,
+        orderId: order.id,
+        limit: 5,
+        title: '🛵 New order ready!',
+        body: `${restaurant?.name || 'A store'} has an order for the ${order.deliverySlot || 'next'} slot.`,
+        data: { distance: order.distance },
+      });
+    } catch (err) {
+      console.warn('[SLOT_DISPATCH_PUSH_WARN]', order.id, err.message);
+    }
+  }
+  return { released, marked };
 };
 
 const cancelOrder = async (req, res) => {
@@ -2153,4 +2264,4 @@ const approveBill = async (req, res) => {
   }
 };
 
-module.exports = { pushCustomer, pushStoreCancelled, customerOrderJson, restaurantUpdateOrderStatus, autoCancelStalePendingOrders, releaseStalledRiderClaims, cancelAndRefund, createOrder, quoteOrder, getServiceability, getOrderById, getMyOrders, rateOrder, getAllOrders, cancelOrder, updateOrderStatus, getSurgeStatus, restaurantAcceptOrder, verifyUPIPayment, restaurantReadyOrder, getOrderStats, uploadItemPhoto, approvePurchase, uploadBillProof, approveBill };
+module.exports = { pushCustomer, pushStoreCancelled, customerOrderJson, restaurantUpdateOrderStatus, autoCancelStalePendingOrders, releaseStalledRiderClaims, releaseDueSlotOrders, cancelAndRefund, createOrder, quoteOrder, getServiceability, getDeliverySlots, getOrderById, getMyOrders, rateOrder, getAllOrders, cancelOrder, updateOrderStatus, getSurgeStatus, restaurantAcceptOrder, verifyUPIPayment, restaurantReadyOrder, getOrderStats, uploadItemPhoto, approvePurchase, uploadBillProof, approveBill };

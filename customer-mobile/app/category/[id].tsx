@@ -87,7 +87,13 @@ interface CatalogueItem {
   inStock: boolean;
 }
 
-interface StoreInfo { id: string; name: string; isOpen: boolean; opensAt: string | null; closedReason: string | null; fssaiLicenseNumber: string | null; campusClosed?: boolean }
+interface StoreInfo {
+  id: string; name: string; isOpen: boolean; opensAt: string | null; closedReason: string | null; fssaiLicenseNumber: string | null; campusClosed?: boolean;
+  /** Delivery slots: closed right now but taking orders for its next slot (server takesSlotOrders). */
+  takesSlotOrders?: boolean; nextSlotLabel?: string | null; nextSlotClosesAt?: string | null;
+}
+/** Can the basket take this store's items now (open, or orderable for a later slot)? */
+const storeOrderable = (st: StoreInfo | undefined) => !st || st.isOpen || st.takesSlotOrders === true;
 
 /** "7:00 AM" from the store's HH:MM opening time, or null when it is missing. */
 const formatOpensAt = (hhmm: string | null) => (hhmm && /^\d{1,2}:\d{2}$/.test(hhmm) ? formatClock(hhmm) : null);
@@ -162,6 +168,9 @@ function CategoryDetailScreen() {
         opensAt: st.opensAt || null,
         closedReason: st.closedReason || null,
         campusClosed: !!st.campusClosed,
+        takesSlotOrders: st.takesSlotOrders === true,
+        nextSlotLabel: typeof st.nextSlotLabel === 'string' ? st.nextSlotLabel : null,
+        nextSlotClosesAt: typeof st.nextSlotClosesAt === 'string' ? st.nextSlotClosesAt : null,
         fssaiLicenseNumber: typeof st.fssaiLicenseNumber === 'string' && st.fssaiLicenseNumber ? st.fssaiLicenseNumber : null,
       };
     });
@@ -277,7 +286,7 @@ function CategoryDetailScreen() {
       return;
     }
     const store = stores[item.storeId];
-    if (store && !store.isOpen) {
+    if (store && !storeOrderable(store)) {
       const opens = formatOpensAt(store.opensAt);
       Alert.alert(`${store.name || 'This store'} is closed`, store.closedReason || (opens ? `It opens at ${opens}.` : 'Check back later.'));
       return;
@@ -390,7 +399,7 @@ function CategoryDetailScreen() {
   const renderCard = ({ item }: { item: CatalogueItem }) => {
     const isService = isServiceCategory || item.bookingOnly;
     const line = isService ? undefined : lineFor(item.id);
-    const storeClosed = !isService && !!stores[item.storeId] && !stores[item.storeId].isOpen;
+    const storeClosed = !isService && !!stores[item.storeId] && !storeOrderable(stores[item.storeId]);
     const soldOut = !item.inStock;
     const actionLabel = isService ? (soldOut ? 'Paused' : 'Book') : soldOut ? 'Sold out' : storeClosed ? 'Closed' : 'Add';
     const price = priceText(item, isService);
@@ -542,7 +551,9 @@ function CategoryDetailScreen() {
         <View style={[s.banner, { backgroundColor: isDark ? 'rgba(99,102,241,0.14)' : 'rgba(99,102,241,0.08)' }]}>
           <Ionicons name="time-outline" size={18} color={txtSec} />
           <Text style={[s.bannerText, { color: txt }]}>
-            {closedStore.closedReason || `${closedStore.name || 'This store'} is closed${opensAt ? ` and opens at ${opensAt}` : ''}. You can browse now and order when it opens.`}
+            {closedStore.takesSlotOrders && closedStore.nextSlotLabel
+              ? `${closedStore.name || 'This store'} is closed right now. You can order for ${closedStore.nextSlotLabel}${closedStore.nextSlotClosesAt ? ` (order by ${closedStore.nextSlotClosesAt})` : ''}.`
+              : closedStore.closedReason || `${closedStore.name || 'This store'} is closed${opensAt ? ` and opens at ${opensAt}` : ''}. You can browse now and order when it opens.`}
           </Text>
         </View>
       )}

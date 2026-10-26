@@ -28,6 +28,9 @@ interface MegaBasket {
   shoppingFee: number;
   deliveryFee: number;
   deliveryAddress: string;
+  /** Delivery slot label ("Tue 27 Oct, 4:30–5:30 PM"); null on lists made before slots. */
+  deliverySlot?: string | null;
+  slotStart?: string | null;
   paymentMethod: string;
   paymentStatus: string;
   upiUTR?: string | null;
@@ -196,7 +199,7 @@ export default function MegaBasketAdminPage() {
         </div>
       ),
     },
-    { key: 'delivery', header: 'Delivery', hideBelow: 'xl', cell: b => <span className="line-clamp-2 max-w-[260px] text-sm text-fg-muted">{b.deliveryAddress || [b.user?.hostelBlock, b.user?.roomNumber].filter(Boolean).join(', ') || 'Not specified'}</span> },
+    { key: 'delivery', header: 'Delivery', hideBelow: 'xl', cell: b => <span className="line-clamp-2 max-w-[260px] text-sm text-fg-muted">{b.deliverySlot && <span className="block font-medium text-fg">{b.deliverySlot}</span>}{b.deliveryAddress || [b.user?.hostelBlock, b.user?.roomNumber].filter(Boolean).join(', ') || 'Not specified'}</span> },
     { key: 'items', header: 'Items', align: 'right', hideBelow: 'lg', sortValue: b => (b.items || []).length, cell: b => <span className="tabular-nums">{(b.items || []).reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)}</span> },
     { key: 'status', header: 'Status', sortValue: b => STATUSES.indexOf(b.status), cell: b => <StatusPill status={b.status} label={STATUS_LABELS[b.status] || humanize(b.status)} tone={statusTone(b.status)} /> },
     {
@@ -265,6 +268,7 @@ export default function MegaBasketAdminPage() {
               items={[
                 { label: 'Customer', value: <>{open.user?.name || 'Student'}<span className="block text-fg-muted">{open.user?.phone ? formatPhone(open.user.phone) : 'Phone unavailable'}</span></> },
                 { label: 'Delivery', value: open.deliveryAddress || [open.user?.hostelBlock, open.user?.roomNumber].filter(Boolean).join(', ') || 'Not specified' },
+                ...(open.deliverySlot ? [{ label: 'Delivery slot', value: open.deliverySlot }] : []),
                 { label: 'Payment', value: paymentText(open) },
                 { label: 'Shopper', value: open.deliveryPartner?.name ? <>{open.deliveryPartner.name}{open.deliveryPartner.phone && <span className="block text-fg-muted">{formatPhone(open.deliveryPartner.phone)}</span>}</> : 'Unassigned' },
               ]}

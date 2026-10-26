@@ -54,6 +54,12 @@ const RIDER_PUSH_ANDROID = Object.freeze({ priority: 'high', notification: { sou
 // Push NEW_ORDER to the `limit` best-placed riders. Never throws.
 const pushNearestRiders = async ({ restaurant, orderId, title, body, limit = 5, excludeRiderId = null, data = {} }) => {
   try {
+    // Delivery slots: a slot order is not offered to riders hours early. Held back until DISPATCH_WINDOW_MIN
+    // before the slot start, when the 'orders.slotDispatch' job pushes it (utils/deliverySlots).
+    if (orderId) {
+      const slotOrder = await require('../models/Order').getOrderModel().findByPk(orderId, { attributes: ['id', 'slotStart'] });
+      if (slotOrder && !require('./deliverySlots').isDispatchDue(slotOrder)) return 0;
+    }
     let ranked = await rankOnlineRiders(restaurant, { excludeRiderId });
     // A rider already carrying the maximum orders cannot claim this one: do not ring them, and do not let
     // them take one of the `limit` push slots from riders who can.

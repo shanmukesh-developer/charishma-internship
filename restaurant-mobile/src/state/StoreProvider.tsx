@@ -649,6 +649,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       isVegetarian: input.diet === 'veg',
       dietType: input.diet,
       originalPrice: input.originalPrice,
+      isSpecializedCake: input.isSpecializedCake,
     };
     // Stock: always on create; on edit only when it changed (keeps an "out of stock until" timer intact).
     if (!editing || input.isAvailable !== editing.isAvailable) body.isAvailable = input.isAvailable;

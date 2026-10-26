@@ -16,6 +16,7 @@ import { StaggeredSection, BounceIn, FloatingPulse, PulseGlow } from '../../comp
 import { ActionPressable } from '../../components/DopaminePressable';
 import { isVendorFulfilled } from '../../utils/localVendor';
 import { formatINR, formatISTDate, formatISTDateTime, plural } from '../../utils/format';
+import { orderSlotLabel } from '../../utils/deliverySlots';
 import { Ionicons } from '@expo/vector-icons';
 import { plainDiscountLabel } from '../../utils/billLabel';
 import { useTopInset } from '../../utils/useTopInset';
@@ -959,6 +960,9 @@ export default function OrdersScreen() {
                   </Text>
                   <Text style={[st.restaurantName, { color: txt }]} numberOfLines={1}>{restaurantName}</Text>
                   <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>{[plural(orderItems.length, 'item'), formatISTDate(o.createdAt)].filter(Boolean).join(' · ')}</Text>
+                  {!!orderSlotLabel(o) && o.status !== 'Cancelled' && (
+                    <Text style={{ fontSize: 12, color: txt, fontWeight: '700', marginTop: 2 }} numberOfLines={1}>Delivery: {orderSlotLabel(o)}</Text>
+                  )}
                 </View>
                 <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 2 }}>

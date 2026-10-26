@@ -53,6 +53,7 @@ export interface RiderOrder {
   distanceKm: number | null;
   createdAt: string | null;
   deliveredAt: string | null;
+  /** Delivery slot the customer booked ("Wed 28 Oct, 12:30–1:00 PM"); null on older ASAP orders. */
   deliverySlot: string | null;
   hasDeliveryPin: boolean;
   pinLocked: boolean;

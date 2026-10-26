@@ -94,6 +94,17 @@ const runAutoCancel = async ({ io }) => {
   return out;
 };
 
+// Delivery slots: slot orders held back from riders are released DISPATCH_WINDOW_MIN before their slot
+// (controllers/orderController.releaseDueSlotOrders; utils/deliverySlots).
+const runSlotDispatch = async () => {
+  try {
+    return await require('../controllers/orderController').releaseDueSlotOrders();
+  } catch (e) {
+    console.warn('[SLOT_DISPATCH] Error:', e.message);
+    return { released: 0, error: e.message };
+  }
+};
+
 // Stall orders open for hours are FLAGGED (never cancelled): admin + stall told once (utils/stallStuckJob).
 const runStallStuck = async ({ io }) => {
   try {
@@ -299,6 +310,7 @@ const notTest = () => process.env.NODE_ENV !== 'test';
 const JOBS = [
   { name: 'community.expiryCleanup', schedule: { everyMs: 60 * MIN, firstMs: 0 }, run: runExpiryCleanup, emits: true },
   { name: 'orders.autoCancel', schedule: { everyMs: 2 * MIN, firstMs: 30 * SEC }, run: runAutoCancel, quietWhenIdle: true, emits: true },
+  { name: 'orders.slotDispatch', schedule: { everyMs: 1 * MIN, firstMs: 35 * SEC }, run: runSlotDispatch, quietWhenIdle: true, emits: true },
   { name: 'orders.stallStuck', schedule: { everyMs: 15 * MIN, firstMs: 60 * SEC }, run: runStallStuck, emits: true },
   { name: 'stores.featuredExpiry', schedule: { everyMs: 10 * MIN, firstMs: 45 * SEC }, run: runFeaturedExpiry, quietWhenIdle: true },
   { name: 'menu.autoRestore', schedule: { everyMs: 30 * SEC }, run: runMenuAutoRestore, quietWhenIdle: true, emits: true },

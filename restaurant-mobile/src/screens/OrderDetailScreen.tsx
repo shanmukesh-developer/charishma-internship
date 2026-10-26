@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SUPPORT_PHONE } from '../config';
 import { useOrderSheets } from '../components/AcceptReject';
 import {
-  callNumber, CampusTag, Elapsed, ItemLines, NoteCallout, OrderActions, PastLine, PaymentBadge, PrepLine, RiderLine,
+  callNumber, CampusTag, Elapsed, ItemLines, NoteCallout, OrderActions, PastLine, PaymentBadge, PrepLine, RiderLine, SlotLine,
 } from '../components/orderParts';
 import { clockIST, rupees } from '../lib/model';
 import { useStore } from '../state/StoreProvider';
@@ -70,6 +70,8 @@ export default function OrderDetailScreen({ orderId, onBack }: { orderId: string
             <Button label="Call customer" icon="call" variant="secondary" size="secondary" onPress={() => callNumber(order.customerPhone)} />
           ) : null}
         </Card>
+
+        <SlotLine order={order} />
 
         <Card style={{ gap: space.sm }}>
           <Text style={[font.label, { color: color.textMuted }]}>ITEMS ({order.itemCount})</Text>

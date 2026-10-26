@@ -8,6 +8,7 @@ import { socketVersionAuth } from '../utils/forceUpdate';
 import { useLiveSync, affectsAny } from '../utils/useLiveSync';
 import { useAuth } from './AuthContext';
 import { isLocalVendorType, isLocalVendor } from '../utils/localVendor';
+import type { DeliverySlotsInfo } from '../utils/deliverySlots';
 
 export interface Customizations {
   size?: string;
@@ -809,6 +810,8 @@ export interface OrderQuote {
   paymentMethods?: string[];
   walletBalance?: number;
   canPayWithWallet?: boolean;
+  /** Delivery slots for this basket (lead from its items, store hours applied). Null when slots are off. */
+  deliverySlots?: DeliverySlotsInfo | null;
 }
 
 export interface QuoteError {
@@ -949,9 +952,46 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
   };
 }
 
+/** GET /api/orders/delivery-slots?type= — slots for an order with no basket quote (the shopping list). */
+export function useDeliverySlots(type: 'food' | 'store' | 'vendor' | 'list', enabled: boolean = true) {
+  const [info, setInfo] = useState<DeliverySlotsInfo | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [nonce, setNonce] = useState(0);
+  const refresh = useCallback(() => setNonce((n) => n + 1), []);
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      try {
+        const res = await apiFetch(`${API_URL}/api/orders/delivery-slots?type=${type}`);
+        const data = await res.json().catch(() => null);
+        if (!cancelled && res.ok && data && Array.isArray(data.slots)) setInfo(data.enabled === false ? null : data);
+      } catch {
+        // Unknown: the order call assigns the earliest open slot itself.
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [type, enabled, nonce]);
+  return { info, loading, refresh };
+}
+
+export interface ServiceabilityState {
+  open: boolean;
+  reopensAt?: string;
+  message?: string;
+  storeAcceptTimeoutMin?: number;
+  /** Delivery slots: ordering stays open at night (the order goes to the next slot). */
+  night?: boolean;
+  slotsEnabled?: boolean;
+  nextSlot?: { id: string; label: string; timeLabel: string; startISO: string; closesAtLabel: string; day: 'today' | 'tomorrow' };
+}
+
 /** GET /api/orders/serviceability — is campus ordering open right now? */
 export function useServiceability() {
-  const [state, setState] = useState<{ open: boolean; reopensAt?: string; message?: string; storeAcceptTimeoutMin?: number } | null>(null);
+  const [state, setState] = useState<ServiceabilityState | null>(null);
   const [nonce, setNonce] = useState(0);
   const refresh = useCallback(() => setNonce((n) => n + 1), []);
 

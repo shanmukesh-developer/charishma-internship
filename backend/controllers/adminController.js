@@ -202,6 +202,8 @@ exports.getRestaurants = async (req, res) => {
         opensAt: openState.opensAt || null,
         closedReason: openState.isOpen ? null : (openState.message || null),
         campusClosed: !!openState.campusClosed,
+        // Delivery slots: closed now but orderable for the next slot (new keys).
+        ...require('../utils/deliverySlots').slotListingFields(r),
         menu: menuByRestaurant[r.id] || []
       };
     });
@@ -283,6 +285,8 @@ exports.getRestaurantById = async (req, res) => {
       opensAt: openState.opensAt || null,
       closedReason: openState.isOpen ? null : (openState.message || null),
       campusClosed: !!openState.campusClosed,
+      // Delivery slots: closed now but orderable for the next slot (new keys).
+      ...require('../utils/deliverySlots').slotListingFields(restaurant),
       ...stallExtra,
       menu: sortMenuItems(menu).map(m => {
         const mObj = stripItemSecrets(m.toJSON());
@@ -338,6 +342,8 @@ exports.getMenuItemById = async (req, res) => {
     // Service stores (laundry, print, repairs, tailoring) are booked, never ordered, flag or not.
     const bookingOnly = !!specs.bookingOnly || (!!restaurant && isServiceVendorType(restaurant.vendorType));
     const stall = isLocalVendorStore(restaurant);
+    // Delivery slots: a store closed right now still takes orders for its next open slot.
+    const slotInfo = require('../utils/deliverySlots').slotListingFields(restaurant, { skip: !restaurant || bookingOnly });
     res.json({
       ...itemObj,
       _id: item.id,
@@ -352,14 +358,15 @@ exports.getMenuItemById = async (req, res) => {
       isAvailable: inStock,
       bookingOnly,
       // CampusBites stalls are ordered in Zenvy: cash to the stall, the stall delivers it.
-      orderable: inStock && !bookingOnly && !!restaurant && restaurant.isActive !== false && !(stall && restaurant.isOffline) && openState.isOpen,
+      orderable: inStock && !bookingOnly && !!restaurant && restaurant.isActive !== false && !(stall && restaurant.isOffline) && (openState.isOpen || slotInfo.takesSlotOrders),
       directOrderOnly: false,
       ...(stall ? { fulfilment: 'VENDOR', paymentMethods: ['COD'], whatsappNumber: restaurant.whatsappNumber || null } : {}),
       restaurantName: restaurant ? restaurant.name : null,
       restaurantId: restaurant ? restaurant.id : null,
       vendorType: restaurant ? restaurant.vendorType : null,
       storeIsOpen: openState.isOpen,
-      storeClosedReason: openState.isOpen ? null : (openState.message || null)
+      storeClosedReason: openState.isOpen ? null : (openState.message || null),
+      ...slotInfo,
     });
   } catch (error) {
     console.error('[GET_PRODUCT_ERROR]', error);
@@ -453,7 +460,9 @@ const RESTAURANT_FIELDS = [
 const MENU_ITEM_FIELDS = [
   'name', 'price', 'description', 'imageUrl', 'category', 'tags', 'isVegetarian', 'isAvailable',
   'outOfStockUntil', 'isEliteOnly', 'customCommission', 'specs', 'ownerName', 'ownerPhone',
-  'dietType', 'originalPrice'
+  'dietType', 'originalPrice',
+  // Delivery slots: a specialized cake books 2½ hours before the slot (utils/deliverySlots).
+  'isSpecializedCake'
 ];
 const DIET_TYPES = ['veg', 'nonveg', 'egg'];
 // 10-digit Indian mobile from any common spelling (+91…, 91…, spaces). null when empty; false when invalid.
@@ -588,7 +597,7 @@ const pickMenuItemFields = (body = {}, existing = null) => {
   if (out.imageUrl !== undefined) out.imageUrl = String(out.imageUrl || '').trim() || null;
   if (out.category !== undefined) out.category = String(out.category || '').trim() || null;
   if (out.tags !== undefined) out.tags = cleanTags(out.tags);
-  for (const key of ['isVegetarian', 'isAvailable', 'isEliteOnly']) if (out[key] !== undefined) out[key] = toBool(out[key]);
+  for (const key of ['isVegetarian', 'isAvailable', 'isEliteOnly', 'isSpecializedCake']) if (out[key] !== undefined) out[key] = toBool(out[key]);
   if (out.outOfStockUntil === '') out.outOfStockUntil = null;
   if (out.isAvailable === true) out.outOfStockUntil = null;
   if (out.dietType !== undefined) {

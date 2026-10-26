@@ -24,6 +24,7 @@ import {
   BASKET_ORDER_TITLES,
   BasketKind,
   useServiceability,
+  useDeliverySlots,
   isCustomRequest,
   toOrderLine,
   friendlyNetworkMessage,
@@ -42,6 +43,8 @@ import DopaminePressable, { ActionPressable } from '../components/DopaminePressa
 import { stallErrorMessage, stallPayCopy } from '../utils/localVendor';
 import { cleanBlock, cleanRoom as cleanRoomNo, saveHostelToProfile } from '../utils/hostel';
 import FssaiLine from '../components/FssaiLine';
+import DeliverySlotPicker from '../components/DeliverySlotPicker';
+import { pickSlot } from '../utils/deliverySlots';
 import { Ionicons } from '@expo/vector-icons';
 import { formatINR, formatClock, plural } from '../utils/format';
 import { plainDiscountLabel } from '../utils/billLabel';
@@ -72,6 +75,9 @@ interface OrderSnapshot {
   deliveryAddress: string;
   basketAddress: string;
   deliveryNotes: string[];
+  /** Delivery slot id ('2026-10-27|S1') + its label; null when the server runs without slots. */
+  deliverySlot: string | null;
+  slotLabel: string | null;
 }
 
 /** An order request whose outcome we never heard (timeout / dropped connection). */
@@ -229,6 +235,22 @@ export default function CheckoutScreen() {
     (reopensAt
       ? `Campus stores are closed for the night. Ordering opens again at ${formatClock(reopensAt)}.`
       : 'Campus stores are closed for the night. Ordering opens again in the morning.');
+
+  // ── Delivery slot (server: utils/deliverySlots) ──
+  // The food / store / stall order takes its slots from the quote (lead from the items, store hours). A
+  // shopping list on its own asks GET /api/orders/delivery-slots?type=list. One pick covers both: a slot open
+  // for the order is open for the list too (the list's lead is never longer).
+  const { info: listSlots, loading: listSlotsLoading, refresh: refreshListSlots } = useDeliverySlots('list', hasCustom && !hasOrder);
+  const slotInfo = hasOrder ? (quote?.deliverySlots ?? null) : (hasCustom ? listSlots : null);
+  const slotsOn = !!slotInfo && Array.isArray(slotInfo.slots) && slotInfo.slots.length > 0;
+  const [slotId, setSlotId] = useState<string | null>(null);
+  const [slotNote, setSlotNote] = useState<string | null>(null);
+  useEffect(() => {
+    // Keep the pick while it is still open; otherwise the earliest open slot.
+    setSlotId((prev) => pickSlot(slotInfo, prev));
+  }, [slotInfo]);
+  const selectedSlot = slotsOn ? (slotInfo!.slots.find((x) => x.id === slotId && x.open) || null) : null;
+  const refreshSlots = () => { if (hasOrder) refreshQuote(); else refreshListSlots(); };
 
   // Latest bill, read by the confirm dialog's button (its closure is from an earlier render).
   const quoteRef = useRef<OrderQuote | null>(quote);
@@ -467,6 +489,7 @@ export default function CheckoutScreen() {
     address.trim(),
     landmark.trim(),
     deliveryNotes,
+    selectedSlot ? selectedSlot.id : null,
   ]);
   const liveSigRef = useRef(attemptSig);
   liveSigRef.current = attemptSig;
@@ -486,6 +509,8 @@ export default function CheckoutScreen() {
       deliveryAddress: buildDeliveryAddress(),
       basketAddress: buildDeliveryAddress(true),
       deliveryNotes,
+      deliverySlot: selectedSlot ? selectedSlot.id : null,
+      slotLabel: selectedSlot ? selectedSlot.label : null,
     };
   };
 
@@ -532,6 +557,10 @@ export default function CheckoutScreen() {
     }
     if (address.trim().length < 3) {
       Alert.alert('Where should we deliver?', `Add your hostel block and room number (e.g. Ganga, Room 304) so ${isStallOrder ? stallName : 'the rider'} can find you.`);
+      return;
+    }
+    if (slotsOn && !selectedSlot) {
+      Alert.alert('Pick a delivery slot', 'Choose when we should deliver your order.');
       return;
     }
     if (hasOrder && (!quote || quoteLoading)) {
@@ -584,6 +613,7 @@ export default function CheckoutScreen() {
       lines.push(`Shopping list (${customLines.length}) · est. ${formatINR(customEstimate)} + fees, cash on delivery`);
     }
     lines.push(`Deliver to: ${campusLabel} - ${address.trim()}`);
+    if (snap.slotLabel) lines.push(`Delivery: ${snap.slotLabel}`);
 
     confirmOpenRef.current = true;
     const release = () => { confirmOpenRef.current = false; };
@@ -664,7 +694,8 @@ export default function CheckoutScreen() {
               paymentMethod: snap.paymentMethod,
               deliveryAddress: snap.deliveryAddress,
               campus: snap.campus,
-              deliverySlot: 'ASAP',
+              // Slot id from the picker; 'ASAP' only when the server runs without slots (it then assigns none).
+              deliverySlot: snap.deliverySlot || 'ASAP',
               ...(snap.deliveryNotes.length ? { deliveryInstructions: snap.deliveryNotes } : {}),
               idempotencyKey: key,
               ...(snap.couponCode ? { couponCode: snap.couponCode } : {}),
@@ -689,6 +720,14 @@ export default function CheckoutScreen() {
           if (code === 'PRICE_CHANGED') {
             refreshQuote();
             confirmNewPrice(snap, message, data?.quote);
+            return;
+          }
+          if (code === 'SLOT_CLOSED') {
+            // The slot closed while the customer was checking out: fresh slots, the next open one picked.
+            refreshQuote();
+            if (data?.nextSlot?.id) setSlotId(String(data.nextSlot.id));
+            setSlotNote(data?.nextSlot?.label ? `Booking for that slot has closed. We picked ${data.nextSlot.label} instead.` : 'Booking for that slot has closed. Pick another slot.');
+            Alert.alert('That slot has closed', `${message} Check the delivery slot and tap Place order again.`);
             return;
           }
           if (code === 'ITEMS_UNAVAILABLE' || code === 'BOOKING_ONLY_ITEMS') offerRemoveUnavailable(message, data);
@@ -735,6 +774,7 @@ export default function CheckoutScreen() {
           })),
           deliveryAddress: snap.basketAddress,
           paymentMethod: 'COD',
+          ...(snap.deliverySlot ? { deliverySlot: snap.deliverySlot } : {}),
         };
         const basketSig = JSON.stringify(basketBody);
         if (!basketKeyRef.current || basketKeyRef.current.sig !== basketSig) {
@@ -754,6 +794,12 @@ export default function CheckoutScreen() {
             placedBasket = true;
             const keys = new Set(listLines.map((l) => l.cartKey));
             setCart((prev) => prev.filter((i) => !keys.has(i.cartKey)));
+          } else if (data?.code === 'SLOT_CLOSED') {
+            refreshSlots();
+            if (data?.nextSlot?.id) setSlotId(String(data.nextSlot.id));
+            setSlotNote(data?.nextSlot?.label ? `Booking for that slot has closed. We picked ${data.nextSlot.label} instead.` : 'Booking for that slot has closed. Pick another slot.');
+            Alert.alert(placedOrderId ? 'Order placed, shopping list not sent' : 'That slot has closed',
+              placedOrderId ? `${data.message} Your shopping list is still in your basket. Pick a slot and send it again.` : `${data.message} Check the delivery slot and tap Place order again.`);
           } else {
             const message = (data && typeof data.message === 'string' && data.message) || 'We could not send your shopping list.';
             Alert.alert(placedOrderId ? 'Order placed, shopping list not sent' : 'Shopping list not sent',
@@ -1178,6 +1224,21 @@ export default function CheckoutScreen() {
                   <Text style={s.emptyCouponsSub}>Spin the wheel in Rewards to win one ›</Text>
                 </TouchableOpacity>
               )}
+            </View>
+          </StaggeredSection>
+        )}
+
+        {/* Delivery slot: Today / Tomorrow (server slots; picking one is required) */}
+        {(slotsOn || (hasCustom && !hasOrder && listSlotsLoading)) && (
+          <StaggeredSection delay={260} direction="up">
+            <View style={{ marginTop: 24 }}>
+              <DeliverySlotPicker
+                info={slotsOn ? slotInfo : null}
+                selectedId={selectedSlot ? selectedSlot.id : null}
+                onSelect={(id) => { setSlotId(id); setSlotNote(null); Haptics.selectionAsync().catch(() => {}); }}
+                loading={hasOrder ? quoteLoading : listSlotsLoading}
+                note={slotNote}
+              />
             </View>
           </StaggeredSection>
         )}

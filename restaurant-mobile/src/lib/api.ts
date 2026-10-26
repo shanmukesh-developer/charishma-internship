@@ -116,6 +116,8 @@ export interface MenuItemBody {
   isAvailable?: boolean;
   /** Sent only to drop an old "egg" tag when the dish is no longer egg. */
   tags?: string[];
+  /** Specialized cake: orders close 2½ hours before the delivery slot (normal cakes 2 hours). */
+  isSpecializedCake?: boolean;
 }
 
 /**

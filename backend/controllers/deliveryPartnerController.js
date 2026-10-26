@@ -130,7 +130,8 @@ const riderOrderPayload = (order, restaurant, customer, { revealCustomer }) => {
     distance: Number.isFinite(distance) && distance > 0 ? distance : null,
     status: order.status,
     createdAt: order.createdAt,
-    deliverySlot: order.deliverySlot || null,
+    // Delivery slot (deliverySlot = "Tue 27 Oct, 12:30–1:00 PM" + slotStart / slotEnd / slotLabel).
+    ...require('../utils/deliverySlots').slotFields(order),
     // Rider-purchase store (offline, or no partner login): the rider buys the items at the counter.
     buyAtStore: require('../utils/riderPurchase').isRiderPurchaseStore(restaurant, 'riderOrderPayload'),
     // When the kitchen marked the food ready (B28): the rider app shows a "Ready" chip.
@@ -366,7 +367,7 @@ const claimForRider = async (riderId, orderId, opts = {}) => {
   // Atomic Claim: Only orders already accepted by restaurant/system can be claimed
   const [updatedRows] = await Order.update(
     { deliveryPartnerId: riderId },
-    { where: { id: orderId, deliveryPartnerId: null, status: { [Op.in]: CLAIMABLE_STATUSES }, ...NOT_STALL_ORDER }, ...tx }
+    { where: { id: orderId, deliveryPartnerId: null, status: { [Op.in]: CLAIMABLE_STATUSES }, [Op.and]: [...NOT_STALL_ORDER[Op.and], require('../utils/deliverySlots').dispatchDueWhere()] }, ...tx }
   );
   return { activeCount, updatedRows };
 };
@@ -432,6 +433,16 @@ const acceptOrderLocked = async (req, res) => {
           ...riderOrderPayload(current, restaurant, customer, { revealCustomer: true }),
           hasDeliveryPin: !!current.deliveryPin,
           alreadyClaimed: true,
+        });
+      }
+      // A slot order before its rider window (DISPATCH_WINDOW_MIN before the slot start) is not claimable yet.
+      const slots = require('../utils/deliverySlots');
+      if (current && !current.deliveryPartnerId && !slots.isDispatchDue(current)) {
+        const opens = slots.dispatchOpensAt(current);
+        return res.status(409).json({
+          code: 'SLOT_NOT_OPEN',
+          message: `This order is for the ${current.deliverySlot || 'later'} slot. Riders can take it from ${slots.timeLabel(opens)}.`,
+          riderVisibleFrom: opens.toISOString(),
         });
       }
       return res.status(400).json({ message: 'Order was already claimed by another rider or is not yet accepted by the merchant.' });
@@ -520,7 +531,9 @@ const getPendingOrders = async (req, res) => {
       where: { 
         status: { [Op.in]: ['Accepted', 'Preparing', 'ReadyForPickup'] },
         deliveryPartnerId: null,
-        ...NOT_STALL_ORDER
+        // Not a stall order, and (delivery slots) a slot order shows in the pool only from DISPATCH_WINDOW_MIN
+        // before its slot start.
+        [Op.and]: [...NOT_STALL_ORDER[Op.and], require('../utils/deliverySlots').dispatchDueWhere()],
       }, 
       order: [['createdAt', 'DESC']],
       limit: 100

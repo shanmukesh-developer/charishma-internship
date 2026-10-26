@@ -75,6 +75,20 @@ export function ItemLines({ order, showPrices, max }: { order: Order; showPrices
   );
 }
 
+/** The delivery slot the customer booked: the kitchen plans the order for this window. */
+export function SlotLine({ order }: { order: Order }) {
+  if (!order.slotLabel) return null;
+  return (
+    <View style={styles.slot} accessibilityLabel={`Delivery slot ${order.slotLabel}`}>
+      <Ionicons name="time" size={20} color={color.info} />
+      <View style={{ flex: 1 }}>
+        <Text style={[font.label, { color: color.info }]}>DELIVERY SLOT</Text>
+        <Text style={[font.body, { color: color.text, fontWeight: '700' }]}>{order.slotLabel}</Text>
+      </View>
+    </View>
+  );
+}
+
 export function NoteCallout({ order }: { order: Order }) {
   if (!order.instructions.length) return null;
   return (
@@ -184,6 +198,7 @@ const styles = StyleSheet.create({
   qty: { minWidth: 32, height: 28, borderRadius: radius.sm, backgroundColor: color.text, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   sub: { marginLeft: 40 },
   callout: { flexDirection: 'row', gap: space.xs, backgroundColor: color.warningTint, borderRadius: radius.md, padding: space.sm, borderWidth: 1, borderColor: color.cashBorder },
+  slot: { flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.infoTint, borderRadius: radius.md, padding: space.sm, borderWidth: 1, borderColor: color.info },
   rider: { flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.infoTint, borderRadius: radius.md, paddingLeft: space.sm, paddingRight: 4, minHeight: 52 },
   prep: { flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.surfaceAlt, borderRadius: radius.md, padding: space.xs, minHeight: 40 },
   actions: { flexDirection: 'row', gap: space.sm },

@@ -32,7 +32,7 @@ import { useWorldTransitionTrigger } from '../../context/WorldTransitionContext'
 import AmbientBackground from '../../components/AmbientBackground';
 import DopaminePressable, { CardPressable, ActionPressable } from '../../components/DopaminePressable';
 import { StaggeredSection, RestaurantCardSkeleton, PulseGlow, BounceIn, FloatingPulse } from '../../components/AnimatedSection';
-import NightClosureBanner from '../../components/NightClosureBanner';
+import NightClosureBanner, { NextSlotHint } from '../../components/NightClosureBanner';
 import { featuredLabel } from '../../utils/promoLabel';
 import ZenvyEcosystemGrid from '../../components/ZenvyEcosystemGrid';
 import SafeImage from '../../components/SafeImage';
@@ -927,6 +927,8 @@ export default function HomeScreen() {
 
         {/* ── NIGHT CLOSURE (9 PM to 6 AM): say it on Home, not first at checkout ── */}
         <NightClosureBanner style={{ marginTop: 0, marginBottom: 12 }} />
+        {/* Delivery slots: the next slot and its booking cutoff, one quiet line (day only) */}
+        <NextSlotHint style={{ marginTop: 0, marginBottom: 10 }} />
 
         {/* ── FEATURE CARDS: every section, swiped sideways; most used first ── */}
         <StaggeredSection delay={200} direction="up">

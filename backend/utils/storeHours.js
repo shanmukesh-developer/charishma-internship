@@ -133,12 +133,27 @@ const getStoreOpenState = (restaurant, now = new Date()) => {
 };
 
 // Campus-wide ordering window (production only): no orders 9 PM – 6 AM IST.
+// With delivery slots (utils/deliverySlots, the default) ordering stays open at night: an order placed now is
+// delivered in the next open slot, so the window only reports night: true and the next slot (older app builds
+// read open: true and place their 'ASAP' order, which the server puts in that slot). DELIVERY_SLOTS=off brings
+// the old closure back.
 const NIGHT_START_HOUR = 21;
 const NIGHT_END_HOUR = 6;
 const getCampusServiceability = (now = new Date()) => {
   const isProduction = require('./env').isProduction();
   const hour = Math.floor(istMinutesNow(now) / 60);
-  const closed = isProduction && (hour >= NIGHT_START_HOUR || hour < NIGHT_END_HOUR);
+  const night = hour >= NIGHT_START_HOUR || hour < NIGHT_END_HOUR;
+  const slots = require('./deliverySlots');
+  if (slots.slotsEnabled()) {
+    const n = slots.slotsForOrder({ at: now }).nextSlot;
+    return {
+      open: true,
+      night,
+      slotsEnabled: true,
+      ...(n ? { nextSlot: { id: n.id, label: n.label, timeLabel: n.timeLabel, startISO: n.startISO, closesAtLabel: n.closesAtLabel, day: n.day } } : {}),
+    };
+  }
+  const closed = isProduction && night;
   if (!closed) return { open: true };
   return {
     open: false,
@@ -150,8 +165,10 @@ const getCampusServiceability = (now = new Date()) => {
 // Public store listing / detail: a store is shown closed during the campus night window too (Home and
 // store pages used to say "Open" at 10 PM). Only the public catalogue responses use this; the partner
 // apps keep the store's own state. Adds campusClosed (new key; older apps ignore it).
+// With delivery slots there is no campus night closure (orders are for the next slot): the store's own state.
 const withCampusWindow = (openState, now = new Date()) => {
   const campus = getCampusServiceability(now);
+  if (campus.slotsEnabled) return { ...openState, campusClosed: false };
   if (campus.open) return { ...openState, campusClosed: false };
   return {
     ...openState,

@@ -674,6 +674,9 @@ const connectDB = async () => {
       await require('../utils/financeMigrations').runFinanceMigrations(sequelize);
       // C8: unique index on Orders.receiptNumber (additive, idempotent; no data written). Never throws.
       await require('../utils/receipts').runReceiptMigrations(sequelize);
+      // Delivery slots: index on Orders / MegaBaskets slotStart for the rider dispatch job (additive,
+      // idempotent; the columns come from the models via addMissingColumns). Never throws.
+      await require('../utils/deliverySlots').runDeliverySlotMigrations(sequelize);
     } else {
       // Production: no sync({ alter: true }) on every boot. Sequelize v6 alter re-adds UNIQUE
       // constraints each run (duplicate *_key indexes pile up), slows startup (API is 503 until
@@ -736,6 +739,9 @@ const connectDB = async () => {
       await require('../utils/financeMigrations').runFinanceMigrations(sequelize);
       // C8: unique index on Orders.receiptNumber (additive, idempotent; no data written). Never throws.
       await require('../utils/receipts').runReceiptMigrations(sequelize);
+      // Delivery slots: index on Orders / MegaBaskets slotStart for the rider dispatch job (additive,
+      // idempotent; the columns come from the models via addMissingColumns). Never throws.
+      await require('../utils/deliverySlots').runDeliverySlotMigrations(sequelize);
       
       // Auto-check for empty DB to help user identify missing data
       const Restaurant = sequelize.models.Restaurant;
@@ -783,6 +789,15 @@ const connectDB = async () => {
         ['Users', 'tokenVersion', 'INTEGER DEFAULT 0'],
         ['DeliveryPartners', 'tokenVersion', 'INTEGER DEFAULT 0'],
         ['Orders', 'refundedAt', 'TIMESTAMP WITH TIME ZONE'],
+        // 2026-10-26 delivery slots (utils/deliverySlots): slot window on orders / shopping lists, the
+        // rider release marker, and the specialized-cake flag (2½ h booking lead).
+        ['Orders', 'slotStart', 'TIMESTAMP WITH TIME ZONE'],
+        ['Orders', 'slotEnd', 'TIMESTAMP WITH TIME ZONE'],
+        ['Orders', 'slotDispatchedAt', 'TIMESTAMP WITH TIME ZONE'],
+        ['MegaBaskets', 'deliverySlot', 'VARCHAR(255)'],
+        ['MegaBaskets', 'slotStart', 'TIMESTAMP WITH TIME ZONE'],
+        ['MegaBaskets', 'slotEnd', 'TIMESTAMP WITH TIME ZONE'],
+        ['MenuItems', 'isSpecializedCake', 'BOOLEAN DEFAULT false'],
       ];
       for (const [table, col, type] of pgNewCols) {
         try {

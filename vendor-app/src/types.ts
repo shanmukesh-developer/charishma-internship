@@ -74,6 +74,9 @@ export interface Order {
   /** Full customer name (owning vendor only). */
   customerName: string | null;
   customerPhone: string | null;
+  /** Delivery slot the customer booked ("Wed 28 Oct, 12:30–1:00 PM"); null on older ASAP orders. */
+  slotLabel: string | null;
+  slotStart: string | null;
   /** Card built from a socket event before the full order was fetched. */
   partial?: boolean;
 }

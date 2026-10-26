@@ -107,7 +107,7 @@ const createBasket = async (req, res) => {
     return existing ? res.status(200).json({ ...existing.toJSON(), duplicate: true }) : null;
   };
   try {
-    const { items, deliveryAddress, paymentMethod, upiUTR } = req.body || {};
+    const { items, deliveryAddress, paymentMethod, upiUTR, deliverySlot } = req.body || {};
     // Survives restarts: the key is stored on the basket itself.
     if (basketKey) {
       const stored = await getMegaBasketModel().findOne({
@@ -141,10 +141,20 @@ const createBasket = async (req, res) => {
       });
     }
 
-    // Same campus ordering hours as regular orders (riders are off at night).
-    const serviceability = require('../utils/storeHours').getCampusServiceability();
+    // Same campus ordering hours as regular orders (riders are off at night). With delivery slots ordering is
+    // open at night too: the list is delivered in the chosen slot (shopping-list lead, 1 hour before the slot).
+    const slotsLib = require('../utils/deliverySlots');
+    await slotsLib.loadConfig();
+    const serviceability = require('../utils/storeHours').getCampusServiceability(slotsLib.now());
     if (!serviceability.open) {
       return res.status(403).json({ message: serviceability.message, code: 'ORDERING_CLOSED', reopensAt: serviceability.reopensAt });
+    }
+    // New apps send the slot id; older builds send nothing -> the earliest open slot. A closed slot -> 409.
+    let slotCols = {};
+    if (slotsLib.slotsEnabled()) {
+      const picked = slotsLib.resolveSlot(deliverySlot, slotsLib.slotsForOrder({ lead: slotsLib.leadForType('list'), at: slotsLib.now() }));
+      if (!picked.ok) return res.status(picked.status).json(picked.body);
+      slotCols = slotsLib.slotColumns(picked.slot);
     }
 
     const User = getUserModel();
@@ -198,6 +208,7 @@ const createBasket = async (req, res) => {
       shoppingFee,
       deliveryFee,
       deliveryAddress: deliveryAddress.replace(/[<>]/g, '').trim().slice(0, 500),
+      ...slotCols,
       deliveryPin,
       upiUTR: null,
       paymentMethod: 'COD',
@@ -235,7 +246,8 @@ const createBasket = async (req, res) => {
         address: createdBasket.deliveryAddress,
         estimatedTotal: createdBasket.estimatedTotal,
         paymentMethod: createdBasket.paymentMethod,
-        status: createdBasket.status
+        status: createdBasket.status,
+        ...require('../utils/deliverySlots').slotFields(createdBasket),
       });
     }
 
@@ -323,7 +335,8 @@ const getPendingBaskets = async (req, res) => {
     const User = getUserModel();
 
     const baskets = await MegaBasket.findAll({
-      where: { status: 'PaidEstimate', deliveryPartnerId: null },
+      // Delivery slots: a list shows in the rider pool from DISPATCH_WINDOW_MIN before its slot start.
+      where: { status: 'PaidEstimate', deliveryPartnerId: null, ...require('../utils/deliverySlots').dispatchDueWhere() },
       include: [
         { model: MegaBasketItem, as: 'items' },
         { model: User, as: 'user', attributes: ['hostelBlock'] }
@@ -345,6 +358,7 @@ const getPendingBaskets = async (req, res) => {
         createdAt: j.createdAt,
         updatedAt: j.updatedAt,
         area: j.user ? j.user.hostelBlock || null : null,
+        ...require('../utils/deliverySlots').slotFields(j),
         user: { hostelBlock: j.user ? j.user.hostelBlock || null : null },
         items: (j.items || []).map((i) => ({ id: i.id, name: i.name, quantity: i.quantity, unit: i.unit, priceEstimated: i.priceEstimated, status: i.status })),
       };
@@ -367,10 +381,15 @@ const claimBasket = async (req, res) => {
     if (basket.status !== 'PaidEstimate' || basket.deliveryPartnerId) {
       return res.status(400).json({ message: 'Basket already claimed or not ready' });
     }
+    const slotsLib = require('../utils/deliverySlots');
+    if (!slotsLib.isDispatchDue(basket)) {
+      const opens = slotsLib.dispatchOpensAt(basket);
+      return res.status(409).json({ code: 'SLOT_NOT_OPEN', message: `This list is for the ${basket.deliverySlot} slot. Riders can take it from ${slotsLib.timeLabel(opens)}.`, riderVisibleFrom: opens.toISOString() });
+    }
 
     const [claimed] = await MegaBasket.update(
       { deliveryPartnerId: req.user.id, status: 'PartnerAssigned' },
-      { where: { id: basket.id, status: 'PaidEstimate', deliveryPartnerId: null } }
+      { where: { id: basket.id, status: 'PaidEstimate', deliveryPartnerId: null, ...require('../utils/deliverySlots').dispatchDueWhere() } }
     );
     if (claimed === 0) return res.status(400).json({ message: 'Another rider just claimed this basket.' });
     basket.set({ deliveryPartnerId: req.user.id, status: 'PartnerAssigned' });
@@ -772,7 +791,8 @@ const expireStaleBaskets = async (io) => {
   const cutoff = new Date(Date.now() - BASKET_TIMEOUT_MINUTES * 60 * 1000);
   const OPEN = ['Created', 'PaidEstimate'];
   const stale = await MegaBasket.findAll({
-    where: { status: { [Op.in]: OPEN }, deliveryPartnerId: null, createdAt: { [Op.lt]: cutoff } },
+    // Delivery slots: a list for a later slot is only cancelled once its slot started SLOT_UNCLAIMED_GRACE_MIN ago.
+    where: { status: { [Op.in]: OPEN }, deliveryPartnerId: null, createdAt: { [Op.lt]: cutoff }, ...require('../utils/deliverySlots').slotGracePassedWhere(new Date()) },
     attributes: ['id', 'userId'],
     limit: 50,
   });

@@ -3,7 +3,7 @@ import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SUPPORT_PHONE } from '../config';
 import {
-  AddressBlock, CollectLine, CustomerBlock, DoneLine, Elapsed, ItemLines, NoteCallout, OrderActions, useOrderSheets,
+  AddressBlock, CollectLine, CustomerBlock, DoneLine, Elapsed, ItemLines, NoteCallout, OrderActions, SlotLine, useOrderSheets,
 } from '../components/orderParts';
 import { clockIST, rupees } from '../lib/model';
 import { useStore } from '../state/StoreProvider';
@@ -61,6 +61,7 @@ export default function OrderDetailScreen({ orderId, onBack }: { orderId: string
         <Card style={{ gap: space.sm }}>
           <CustomerBlock order={order} />
           <AddressBlock order={order} />
+          <SlotLine order={order} />
         </Card>
 
         <Card style={{ gap: space.sm }}>

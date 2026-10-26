@@ -195,7 +195,11 @@ export function normalizeOrder(raw: any): RiderOrder {
     distanceKm: distance !== null && distance > 0 ? distance : null,
     createdAt: cleanText(raw?.createdAt),
     deliveredAt: cleanText(raw?.deliveredAt),
-    deliverySlot: cleanText(raw?.deliverySlot),
+    // Server label of the booked delivery slot; older orders say 'ASAP' (no slot to show).
+    deliverySlot: (() => {
+      const s = cleanText(raw?.slotLabel) || cleanText(raw?.deliverySlot);
+      return s && !/^asap$/i.test(s) ? s : null;
+    })(),
     hasDeliveryPin: raw?.hasDeliveryPin !== false,
     pinLocked: raw?.pinLocked === true,
     buyAtStore: raw?.buyAtStore === true,

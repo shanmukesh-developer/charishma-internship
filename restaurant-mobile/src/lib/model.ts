@@ -130,6 +130,14 @@ export function campusOf(address: unknown): string | null {
   return null;
 }
 
+/** Delivery slot of an order payload: the server label, or nothing for older 'ASAP' orders. */
+export function slotOf(raw: any): { slotLabel: string | null; slotStart: string | null } {
+  const label = typeof raw?.slotLabel === 'string' && raw.slotLabel.trim() ? raw.slotLabel.trim()
+    : typeof raw?.deliverySlot === 'string' && raw.deliverySlot.trim() && !/^asap$/i.test(raw.deliverySlot.trim()) ? raw.deliverySlot.trim() : null;
+  const start = raw?.slotStart ? String(raw.slotStart) : null;
+  return { slotLabel: label, slotStart: start };
+}
+
 export function normalizeOrder(raw: any): Order | null {
   const id = raw?.id || raw?._id;
   if (!id || typeof id !== 'string') return null;
@@ -174,6 +182,7 @@ export function normalizeOrder(raw: any): Order | null {
     deliveryPartnerId: raw.deliveryPartnerId || null,
     customerName: firstName(raw.user?.name),
     customerPhone: typeof raw.user?.phone === 'string' && raw.user.phone.trim() ? raw.user.phone : null,
+    ...slotOf(raw),
     riderName: typeof raw.deliveryPartner?.name === 'string' ? raw.deliveryPartner.name : null,
     riderPhone: typeof raw.deliveryPartner?.phone === 'string' && raw.deliveryPartner.phone.trim() ? raw.deliveryPartner.phone : null,
     partial: !!raw.__partial,
@@ -196,6 +205,7 @@ export function normalizeMenuItem(raw: any): MenuItem | null {
     tags: Array.isArray(raw.tags) ? raw.tags.filter((t: unknown): t is string => typeof t === 'string') : [],
     dietType: raw.dietType === 'veg' || raw.dietType === 'nonveg' || raw.dietType === 'egg' ? raw.dietType : null,
     originalPrice: mrpOf(raw),
+    isSpecializedCake: raw.isSpecializedCake === true,
   };
 }
 

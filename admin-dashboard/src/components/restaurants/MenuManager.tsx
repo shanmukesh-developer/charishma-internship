@@ -427,6 +427,7 @@ function ItemRow({ p, fresh, busy, selected, onSelect, canUp, canDown, onMove, o
             {off > 0 && <><span className="line-through">₹{mrp.toLocaleString('en-IN')}</span><span className="text-success-text">{off}% off</span></>}
             {typeof specs.weight === 'string' && specs.weight && <span>· {specs.weight}</span>}
             {p.isEliteOnly && <Chip tone="violet">Elite</Chip>}
+            {p.isSpecializedCake && <Chip tone="amber">Specialized cake</Chip>}
             {!!specs.bookingOnly && <Chip tone="sky">Booking</Chip>}
             {!img && <span className="text-warning-text">· add a photo</span>}
           </span>
@@ -472,7 +473,7 @@ function ItemEditor({ initial, storeName, categories, bookingOnly, nextSortOrder
   const specs = readSpecs(initial?.specs);
   const blank = () => ({
     name: '', price: '', mrp: '', weight: '', category: categories[0] || '', description: '', imageUrl: '',
-    isAvailable: true, diet: 'veg' as DietType, isEliteOnly: false, tags: [] as string[],
+    isAvailable: true, diet: 'veg' as DietType, isEliteOnly: false, isSpecializedCake: false, tags: [] as string[],
   });
   const [form, setForm] = useState(() => initial ? {
     name: initial.name || '',
@@ -485,6 +486,7 @@ function ItemEditor({ initial, storeName, categories, bookingOnly, nextSortOrder
     isAvailable: initial.isAvailable ?? true,
     diet: dietOf(initial),
     isEliteOnly: !!initial.isEliteOnly,
+    isSpecializedCake: !!initial.isSpecializedCake,
     tags: (initial.tags || []).map(String),
   } : blank());
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -524,6 +526,7 @@ function ItemEditor({ initial, storeName, categories, bookingOnly, nextSortOrder
         dietType: form.diet,
         isVegetarian: form.diet === 'veg',
         isEliteOnly: form.isEliteOnly,
+        isSpecializedCake: form.isSpecializedCake,
         tags: form.tags,
         // MRP: column + specs.originalPrice are kept in step by the server; null clears it.
         originalPrice: form.mrp.trim() === '' ? null : Number(form.mrp),
@@ -602,6 +605,7 @@ function ItemEditor({ initial, storeName, categories, bookingOnly, nextSortOrder
           <div className="grid gap-4 rounded-xl border border-line p-4 sm:grid-cols-2">
             <Toggle checked={form.isAvailable} onChange={isAvailable => set({ isAvailable })} label="In stock" description="Off shows SOLD OUT in the app." />
             <Toggle tone="amber" checked={form.isEliteOnly} onChange={isEliteOnly => set({ isEliteOnly })} label="Elite members only" description="Only Zenvy Elite customers can add it." />
+            <Toggle tone="amber" checked={form.isSpecializedCake} onChange={isSpecializedCake => set({ isSpecializedCake })} label="Specialized cake" description="Custom or designer cake: orders close 2½ hours before the delivery slot (normal cakes 2 hours)." />
           </div>
           {error && <Callout tone="red">{error}</Callout>}
         </div>

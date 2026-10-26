@@ -3,6 +3,9 @@
 // stubbed Firebase / pushes / mail / server module, a fake socket.io that records emits. Never touches a
 // real database or the network (FAST2SMS_API_KEY is unset, so no SMS can go out).
 process.env.NODE_ENV = 'test';
+// Delivery slots (utils/deliverySlots) gate riders and the store-accept clock by the time of day: these suites
+// test the pre-slot flows, so slots are off unless a run asks for them (tests/slots turns them on itself).
+if (process.env.DELIVERY_SLOTS === undefined) process.env.DELIVERY_SLOTS = 'off';
 process.env.JWT_SECRET = 'c9-partner-test-secret-not-for-prod';
 process.env.OTP_SECRET = 'c9-partner-test-otp-secret';
 process.env.ACCOUNT_DELETE_SKIP_FIREBASE = '1';

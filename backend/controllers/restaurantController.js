@@ -337,6 +337,7 @@ const getRestaurants = async (req, res) => {
       const openState = getStoreOpenState(r);
       rJson.isOpen = openState.isOpen;
       rJson.opensAt = openState.opensAt || null;
+      Object.assign(rJson, require('../utils/deliverySlots').slotListingFields(r));
       rJson.menu = (menuByStore.get(r.id) || [])
         .map(m => {
           const item = m.toJSON();
@@ -602,6 +603,8 @@ const pickItemInput = (body = {}, existing = null) => {
     out.isAvailable = true;
   }
   if (body.isEliteOnly !== undefined) out.isEliteOnly = body.isEliteOnly === true || body.isEliteOnly === 'true';
+  // Delivery slots: a specialized (custom / designer) cake books 2½ hours before the slot.
+  if (body.isSpecializedCake !== undefined) out.isSpecializedCake = body.isSpecializedCake === true || body.isSpecializedCake === 'true';
   if (body.tags !== undefined) {
     const tags = cleanItemTags(body.tags);
     if (tags === false) throw new ItemInputError('Tags must be a list of short words.');
@@ -815,6 +818,7 @@ const getLocalVendors = async (req, res) => {
       vJson.closesAt = vJson.isOpen ? (open.closesAt || null) : null;
       vJson.hoursToday = todayHoursText(v);
       vJson.closedReason = vJson.isOpen ? null : (open.message || `${v.name} is not taking orders on Zenvy right now.`);
+      Object.assign(vJson, require('../utils/deliverySlots').slotListingFields(v, { skip: !!v.isOffline }));
       vJson.fulfilment = 'VENDOR';
       vJson.paymentMethods = ['COD'];
       const rated = ratingByVendor.get(String(v.id));

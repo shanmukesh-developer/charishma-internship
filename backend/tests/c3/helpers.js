@@ -2,6 +2,9 @@
 // the real config / admin routers on an ephemeral port, a real socket.io server with the real socketGate.
 // Never touches a real database or the network.
 process.env.NODE_ENV = 'test';
+// Delivery slots (utils/deliverySlots) gate riders and the store-accept clock by the time of day: these suites
+// test the pre-slot flows, so slots are off unless a run asks for them (tests/slots turns them on itself).
+if (process.env.DELIVERY_SLOTS === undefined) process.env.DELIVERY_SLOTS = 'off';
 process.env.JWT_SECRET = 'c3-force-update-test-secret-not-for-prod';
 delete process.env.DATABASE_URL;
 delete process.env.RENDER;

@@ -1,5 +1,5 @@
 const express = require('express');
-const { createOrder, quoteOrder, getServiceability, getOrderById, getMyOrders, rateOrder, cancelOrder, getAllOrders, updateOrderStatus, getSurgeStatus, restaurantAcceptOrder, verifyUPIPayment, restaurantReadyOrder, getOrderStats, uploadItemPhoto, approvePurchase, uploadBillProof, approveBill, restaurantUpdateOrderStatus } = require('../controllers/orderController');
+const { createOrder, quoteOrder, getServiceability, getDeliverySlots, getOrderById, getMyOrders, rateOrder, cancelOrder, getAllOrders, updateOrderStatus, getSurgeStatus, restaurantAcceptOrder, verifyUPIPayment, restaurantReadyOrder, getOrderStats, uploadItemPhoto, approvePurchase, uploadBillProof, approveBill, restaurantUpdateOrderStatus } = require('../controllers/orderController');
 const { protect, admin } = require('../middleware/authMiddleware');
 const router = express.Router();
 
@@ -32,6 +32,8 @@ const orderValidation = [
 router.post('/quote', protect, quoteOrder);            // server bill for a basket (no side effects)
 // is campus ordering open right now? (clock-based, no DB: cached briefly for the ETag / 304)
 router.get('/serviceability', require('../utils/responseCache').cacheGet('serviceability', { ttlMs: 15 * 1000 }), getServiceability);
+// delivery slots (today + tomorrow, IST) for a kind of order: shopping list, Home hint (clock + cached config)
+router.get('/delivery-slots', getDeliverySlots);
 router.post('/', protect, orderValidation, validate, createOrder);
 router.get('/', protect, admin, getAllOrders);
 router.get('/myorders', protect, getMyOrders);

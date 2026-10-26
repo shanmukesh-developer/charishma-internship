@@ -32,7 +32,12 @@ interface Draft {
   isAvailable: boolean;
   /** MRP text ('' = none). */
   mrp: string;
+  /** Specialized (custom / designer) cake: 2½ h booking lead before the delivery slot. */
+  isSpecializedCake: boolean;
 }
+
+// Same keyword rule as the server's cake detection (backend/utils/pricingSchema.js 'cake').
+const CAKE_RE = /cake|pastry|brownie|cupcake|cheesecake|gateau|truffle/i;
 
 type Field = 'name' | 'price' | 'category' | 'mrp';
 
@@ -41,7 +46,7 @@ const DESC_MAX = 300;
 
 function draftFor(mode: FormMode | null): Draft {
   if (!mode || mode.kind === 'add') {
-    return { name: '', price: '', category: mode?.category || '', diet: 'veg', description: '', imageUrl: null, isAvailable: true, mrp: '' };
+    return { name: '', price: '', category: mode?.category || '', diet: 'veg', description: '', imageUrl: null, isAvailable: true, mrp: '', isSpecializedCake: false };
   }
   const it = mode.item;
   return {
@@ -53,6 +58,7 @@ function draftFor(mode: FormMode | null): Draft {
     imageUrl: it.imageUrl,
     isAvailable: mode.kind === 'duplicate' ? true : it.isAvailable,
     mrp: it.originalPrice ? String(it.originalPrice) : '',
+    isSpecializedCake: !!it.isSpecializedCake,
   };
 }
 
@@ -192,6 +198,7 @@ export function ItemForm({ mode, categories, onClose, onSave, onDelete, onDuplic
       description: draft.description.trim(),
       imageUrl: draft.imageUrl,
       isAvailable: draft.isAvailable,
+      isSpecializedCake: draft.isSpecializedCake,
       // Same as the price: no MRP strike-through. Empty = clear it.
       originalPrice: (() => {
         const mrp = draft.mrp.trim() ? parsePrice(draft.mrp) : null;
@@ -424,6 +431,18 @@ export function ItemForm({ mode, categories, onClose, onSave, onDelete, onDuplic
             <Chip label="In stock" selected={draft.isAvailable} tone="green" onPress={() => set('isAvailable', true)} style={{ flex: 1 }} />
             <Chip label="Out of stock" selected={!draft.isAvailable} tone="red" onPress={() => set('isAvailable', false)} style={{ flex: 1 }} />
           </View>
+
+          {/* Cakes: how early customers must order before the delivery slot */}
+          {draft.isSpecializedCake || CAKE_RE.test(`${draft.name} ${draft.category}`) ? (
+            <>
+              <Text style={styles.label}>CAKE TYPE</Text>
+              <View style={{ flexDirection: 'row', gap: space.xs }}>
+                <Chip label="Normal cake" selected={!draft.isSpecializedCake} onPress={() => set('isSpecializedCake', false)} style={{ flex: 1 }} />
+                <Chip label="Specialized cake" selected={draft.isSpecializedCake} onPress={() => set('isSpecializedCake', true)} style={{ flex: 1 }} />
+              </View>
+              <Text style={styles.hint}>{draft.isSpecializedCake ? 'Customers must order 2½ hours before the delivery slot.' : 'Customers must order 2 hours before the delivery slot.'}</Text>
+            </>
+          ) : null}
 
           {/* Delete (edit only) */}
           {editing ? (

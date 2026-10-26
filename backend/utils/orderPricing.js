@@ -252,10 +252,27 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
   if (isStall && couponCode) {
     throw new PricingError(400, 'COUPON_NOT_FOR_STALL', `Coupons can't be used on ${store.name} orders — you pay the stall in cash. Remove the coupon to continue.`);
   }
+  const slotsLib = require('./deliverySlots');
+  await slotsLib.loadConfig();
+  const slotNow = slotsLib.now();
   const openState = isStall && store.isOffline
     ? { isOpen: false, message: `${store.name} is not taking orders on Zenvy right now.` }
-    : getStoreOpenState(store);
-  if (!openState.isOpen) {
+    : getStoreOpenState(store, slotNow);
+  // Delivery slots: the store must be open at the START of a bookable slot, not necessarily right now (an
+  // order at 10 PM for tomorrow's 12:30 slot is fine). The lead time comes from the items (cakes take longer).
+  // A store that is off (inactive, an offline stall, its own "closed" switch) has no open slot at all.
+  let deliverySlots = null;
+  if (slotsLib.slotsEnabled()) {
+    deliverySlots = isStall && store.isOffline
+      ? { ...slotsLib.slotsForOrder({ items: lines.map((l) => l.dbItem), at: slotNow }), slots: [], nextSlot: null, defaultSlotId: null }
+      : slotsLib.slotsForOrder({ items: lines.map((l) => l.dbItem), store, at: slotNow });
+    if (!deliverySlots.nextSlot) {
+      const message = !openState.isOpen
+        ? openState.message
+        : `${store.name} is not taking orders for today's or tomorrow's delivery slots.`;
+      throw new PricingError(400, 'STORE_CLOSED', message, { storeId: store.id, opensAt: openState.opensAt || null });
+    }
+  } else if (!openState.isOpen) {
     throw new PricingError(400, 'STORE_CLOSED', openState.message, { storeId: store.id, opensAt: openState.opensAt || null });
   }
 
@@ -371,6 +388,9 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
     totalDiscount,
     finalPrice,
     coupon: coupon ? { code: coupon.code, type: coupon.type, discount: sumOf(['coupon']) } : null,
+    // Delivery slots for this basket (utils/deliverySlots.slotsForOrder): lead, today + tomorrow, default.
+    // Null when slots are switched off.
+    deliverySlots,
     // Split used for the Order columns
     batchDiscount: sumOf(['batch']),
     perkDiscount: sumOf(['perk_delivery', 'perk_order']),

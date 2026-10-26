@@ -34,6 +34,7 @@ import { isVendorFulfilled, vendorCallNumber, callVendor, stallPayCopy } from '.
 import { Ionicons } from '@expo/vector-icons';
 import { formatINR } from '../../utils/format';
 import { useServiceability } from '../../context/CartContext';
+import { orderSlotLabel, istClockLabel as formatSlotClock } from '../../utils/deliverySlots';
 import { useTopInset } from '../../utils/useTopInset';
 
 
@@ -83,6 +84,12 @@ interface OrderInfo {
   paymentMethod?: string;
   paymentStatus?: string;
   estDuration?: number | null;
+  /** Delivery slot (server: utils/deliverySlots): label + window; 'ASAP' / null on older orders. */
+  deliverySlot?: string | null;
+  slotStart?: string | null;
+  slotEnd?: string | null;
+  /** When the store must have accepted a Pending order (slot orders: from an hour before the slot). */
+  storeAcceptBy?: string | null;
   rating?: number | null;
   refundedToWallet?: number;
   cancellationReason?: string | null;
@@ -220,7 +227,12 @@ export default function TrackingScreen() {
   const stallLabel = storeName || 'the stall';
   const stallCallable = isVendorOrder && !!vendorCallNumber(orderInfo?.restaurant);
   const callStall = () => { if (orderInfo?.restaurant) callVendor(orderInfo.restaurant); };
-  const estMinutes = orderInfo?.estDuration && orderInfo.estDuration > 0 ? orderInfo.estDuration : null;
+  // Slot orders are delivered in their slot: the kitchen's prep minutes are not an arrival time.
+  const slotLabel = orderSlotLabel(orderInfo);
+  const estMinutes = !slotLabel && orderInfo?.estDuration && orderInfo.estDuration > 0 ? orderInfo.estDuration : null;
+  // Pending slot order placed early: the store has until an hour before the slot (+ the usual minutes).
+  const acceptByMs = orderInfo?.storeAcceptBy ? new Date(orderInfo.storeAcceptBy).getTime() : NaN;
+  const acceptByLater = Number.isFinite(acceptByMs) && acceptByMs - Date.now() > 20 * 60 * 1000;
 
   // Share the order status (text only: never the delivery PIN, no link to a page that does not exist)
   const handleShareTracking = async () => {
@@ -757,7 +769,7 @@ export default function TrackingScreen() {
                   : `Delivered by ${stallLabel}.`
                 ) : <>
                 {status === 1 && `Waiting for ${storeName || 'the store'} to accept`}
-                {status === 2 && (rider ? `${rider.name || 'Your rider'} will pick up your order` : 'Order confirmed — assigning a rider')}
+                {status === 2 && (rider ? `${rider.name || 'Your rider'} will pick up your order` : slotLabel ? 'Order confirmed. A rider is assigned shortly before your slot.' : 'Order confirmed — assigning a rider')}
                 {status === 3 && (orderInfo?.status === 'Picking'
                   ? 'Your rider is at the store picking up your order'
                   : orderInfo?.status === 'ReadyForPickup'
@@ -773,6 +785,9 @@ export default function TrackingScreen() {
                   {riderDistanceText ? `${rider?.name || 'Your rider'} is ${riderDistanceText}` : 'Live rider location on'}
                   {fixAgeSec !== null ? (fixAgeSec < 15 ? ' · live' : ` · updated ${fixAgeSec}s ago`) : ''}
                 </Text>
+              )}
+              {!!slotLabel && orderInfo?.status !== 'Cancelled' && (
+                <Text style={{ fontSize: 12, fontWeight: '700', color: txt, marginTop: 6 }}>Delivery: {slotLabel}</Text>
               )}
             </View>
             {status === 5 ? (
@@ -1012,7 +1027,9 @@ export default function TrackingScreen() {
             <View style={{ flex: 1 }}>
               <Text style={[s.waitStoreTitle, { color: txt }]}>Waiting for the store to accept</Text>
               <Text style={[s.waitStoreSub, { color: txtSec }]}>
-                {`If the store doesn't accept within ${Number(serviceability?.storeAcceptTimeoutMin) > 0 ? Number(serviceability?.storeAcceptTimeoutMin) : 7} minutes, we cancel the order for you. Nothing is charged. You can also cancel now for free.`}
+                {acceptByLater
+                  ? `The store confirms your order before your slot. If it doesn't accept by ${formatSlotClock(acceptByMs)}, we cancel the order for you. Nothing is charged. You can also cancel now for free.`
+                  : `If the store doesn't accept within ${Number(serviceability?.storeAcceptTimeoutMin) > 0 ? Number(serviceability?.storeAcceptTimeoutMin) : 7} minutes, we cancel the order for you. Nothing is charged. You can also cancel now for free.`}
               </Text>
             </View>
           </View>
@@ -1081,6 +1098,9 @@ export default function TrackingScreen() {
                   {formatINR(Number(orderInfo.finalPrice ?? orderInfo.totalPrice ?? 0) || 0)}
                 </Text>
               </View>
+              {!!slotLabel && (
+                <Text style={[s.summaryAddress, { color: txt }]} numberOfLines={1}>Delivery: {slotLabel}</Text>
+              )}
               {!!(orderInfo.deliveryAddress || orderInfo.address) && (
                 <Text style={[s.summaryAddress, { color: txtSec }]} numberOfLines={2}>
                   {orderInfo.deliveryAddress || orderInfo.address}

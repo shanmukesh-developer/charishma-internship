@@ -52,16 +52,27 @@ const remindPendingStoreOrders = async ({ now = Date.now(), push = null } = {}) 
     const Order = getOrderModel();
     if (!Order) return 0;
     const timeoutMs = storeAcceptTimeoutMinutes() * 60 * 1000;
-    const rows = await Order.findAll({
+    // Delivery slots: a slot order's accept clock starts an hour before its slot (utils/deliverySlots
+    // acceptAnchorMs), so a night order for tomorrow is reminded when the kitchen has to act, not at night.
+    const slots = require('./deliverySlots');
+    const beforeSlotMs = slots.STORE_ACCEPT_BEFORE_SLOT_MIN * 60 * 1000;
+    const rows = (await Order.findAll({
       where: {
         status: 'Pending',
         deliveryPartnerId: null,
         restaurantId: { [Op.ne]: null },
-        createdAt: { [Op.gt]: new Date(now - timeoutMs + LAST_MINUTE_MS), [Op.lte]: new Date(now - FIRST_AFTER_MS) },
+        createdAt: { [Op.lte]: new Date(now - FIRST_AFTER_MS) },
+        [Op.or]: [
+          { createdAt: { [Op.gt]: new Date(now - timeoutMs + LAST_MINUTE_MS) } },
+          { slotStart: { [Op.gt]: new Date(now - timeoutMs + LAST_MINUTE_MS + beforeSlotMs) } },
+        ],
       },
-      attributes: ['id', 'restaurantId', 'items', 'finalPrice', 'paymentMethod', 'createdAt'],
+      attributes: ['id', 'restaurantId', 'items', 'finalPrice', 'paymentMethod', 'createdAt', 'slotStart', 'deliverySlot'],
       order: [['createdAt', 'ASC']],
       limit: 100,
+    })).filter((o) => {
+      const anchor = slots.acceptAnchorMs(o);
+      return now - anchor >= FIRST_AFTER_MS && anchor + timeoutMs - now > LAST_MINUTE_MS;
     });
     const send = push || require('./storePush').pushToStore;
     let count = 0;
@@ -69,9 +80,10 @@ const remindPendingStoreOrders = async ({ now = Date.now(), push = null } = {}) 
       const id = String(o.id);
       const s = sent.get(id) || { count: 0, at: 0 };
       if (s.count >= max || now - s.at < REMINDER_GAP_MS) continue;
-      const leftMin = Math.max(1, Math.ceil((new Date(o.createdAt).getTime() + timeoutMs - now) / 60000));
+      const leftMin = Math.max(1, Math.ceil((slots.acceptAnchorMs(o) + timeoutMs - now) / 60000));
       const n = itemCount(o.items);
-      const body = `${n} item${n === 1 ? '' : 's'} · ₹${rupees(o.finalPrice)}${o.paymentMethod === 'COD' ? ' (cash)' : ''}. Accept it in the next ${leftMin} min or it will be cancelled.`;
+      const slotText = o.slotStart ? ` For ${o.deliverySlot}.` : '';
+      const body = `${n} item${n === 1 ? '' : 's'} · ₹${rupees(o.finalPrice)}${o.paymentMethod === 'COD' ? ' (cash)' : ''}.${slotText} Accept it in the next ${leftMin} min or it will be cancelled.`;
       sent.set(id, { count: s.count + 1, at: now });
       try {
         await send(o.restaurantId, 'Order still waiting', body, { orderId: id, type: 'NEW_ORDER', reminder: '1' }, { tag: `order-${id}` });

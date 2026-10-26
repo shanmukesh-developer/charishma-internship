@@ -117,6 +117,7 @@ export function DeliveryScreen({ orderId, onClose }: { orderId: string; onClose:
           <Place kind="store" title={order.restaurantName} address={order.restaurantAddress} />
           <View style={styles.chips}>
             {order.buyAtStore ? <Badge tone="amber" icon="cart-outline" label="BUY AT STORE" /> : null}
+            {order.deliverySlot ? <Badge tone="blue" icon="clock-outline" label={`SLOT ${order.deliverySlot}`} /> : null}
             {kitchen ? <Badge tone={kitchen.ready ? 'green' : 'blue'} icon={kitchen.ready ? 'check-circle' : 'chef-hat'} label={kitchen.text} /> : null}
             {dist ? <Badge tone="grey" icon="map-marker-distance" label={`${dist} away`} /> : null}
           </View>
@@ -176,6 +177,7 @@ export function DeliveryScreen({ orderId, onClose }: { orderId: string; onClose:
         <CashBox order={order} />
         <Card style={{ gap: S.md }}>
           <Place kind="drop" title={custName} address={order.dropAddress} />
+          {order.deliverySlot ? <Badge tone="blue" icon="clock-outline" label={`SLOT ${order.deliverySlot}`} /> : null}
         </Card>
         <Instructions items={order.instructions} />
         <ActionPair

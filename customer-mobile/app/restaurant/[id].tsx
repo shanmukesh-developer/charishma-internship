@@ -388,6 +388,9 @@ export default function RestaurantDetail() {
   const deliveryTimeText = isLocalVendor ? null : storeEtaText(restaurant);
   const heroImg = restaurant.imageUrl || restaurant.image || null;
   const isOpen = restaurant.isOpen !== false;
+  // Delivery slots (server takesSlotOrders): a store closed right now still takes orders for its next slot.
+  const takesSlotOrders = !isOpen && restaurant.takesSlotOrders === true;
+  const orderable = isOpen || takesSlotOrders;
   const opensAtText = formatOpensAt(restaurant.opensAt);
   const closedText = restaurant.closedReason || (opensAtText ? `Closed now — opens at ${opensAtText}` : 'Closed right now');
 
@@ -406,7 +409,7 @@ export default function RestaurantDetail() {
   };
 
   const blockedReason = (item: any): string | null => {
-    if (!isOpen) return closedText;
+    if (!orderable) return closedText;
     if (stallOffline) return `${restaurant.name} is not taking orders on Zenvy right now.`;
     if (item.isAvailable === false) return `${item.name} is sold out right now.`;
     if (item.isEliteOnly && !isUserElite) return `${item.name} is for Zenvy Elite members.`;
@@ -594,11 +597,16 @@ export default function RestaurantDetail() {
         )}
 
         {/* Campus night closure (9 PM to 6 AM): one clear banner, from the store's flag or the campus check */}
-        <NightClosureBanner reopensAt={restaurant.campusClosed ? (restaurant.opensAt || '06:00') : undefined} />
+        {/* A store taking orders for its next slot says so itself below (one note, not two). */}
+        <NightClosureBanner reopensAt={restaurant.campusClosed ? (restaurant.opensAt || '06:00') : takesSlotOrders ? null : undefined} />
         {!isOpen && !restaurant.campusClosed && (
           <View style={[st.noticeBar, { backgroundColor: isDark ? 'rgba(99,102,241,0.14)' : 'rgba(99,102,241,0.08)', borderColor: 'rgba(99,102,241,0.3)' }]}>
-            <Ionicons name="moon-outline" size={16} color="#6366F1" />
-            <Text style={{ flex: 1, color: txt, fontSize: 12, fontWeight: '700' }}>{String(closedText).replace(/[.\s]+$/, '')}. You can browse the menu and order when it opens.</Text>
+            <Ionicons name={takesSlotOrders ? 'time-outline' : 'moon-outline'} size={16} color="#6366F1" />
+            <Text style={{ flex: 1, color: txt, fontSize: 12, fontWeight: '700' }}>
+              {takesSlotOrders && restaurant.nextSlotLabel
+                ? `Closed right now. You can order for ${restaurant.nextSlotLabel}${restaurant.nextSlotClosesAt ? ` (order by ${restaurant.nextSlotClosesAt})` : ''}.`
+                : `${String(closedText).replace(/[.\s]+$/, '')}. You can browse the menu and order when it opens.`}
+            </Text>
           </View>
         )}
 
@@ -745,8 +753,8 @@ export default function RestaurantDetail() {
                       soldOut={soldOut}
                       customizable={customizable}
                       isAdded={isAdded}
-                      blocked={!isOpen || eliteLocked || stallOffline}
-                      closed={!isOpen || stallOffline}
+                      blocked={!orderable || eliteLocked || stallOffline}
+                      closed={!orderable || stallOffline}
                       eliteLocked={eliteLocked}
                       tint={brand ? accent : '#EF4F5F'}
                       onAdd={() => handleAddToCart(item)}

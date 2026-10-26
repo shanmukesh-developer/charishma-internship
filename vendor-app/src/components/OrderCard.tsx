@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { color, font, mono, radius, shadow, space } from '../theme';
 import {
-  AddressBlock, CollectLine, CustomerBlock, DoneLine, Elapsed, ItemLines, NoteCallout, OrderActions,
+  AddressBlock, CollectLine, CustomerBlock, DoneLine, Elapsed, ItemLines, NoteCallout, OrderActions, SlotLine,
 } from './orderParts';
 import type { Order } from '../types';
 
@@ -29,6 +29,7 @@ function OrderCardBase({ order, onOpen, onReject, onCancel }: {
       </Pressable>
 
       <CustomerBlock order={order} compact />
+      <SlotLine order={order} />
       <ItemLines order={order} max={done ? 3 : undefined} />
       <NoteCallout order={order} />
       {!done ? <AddressBlock order={order} /> : null}

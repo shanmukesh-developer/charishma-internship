@@ -124,6 +124,13 @@ function profilePlace(v: string | null, address: string): string | null {
   return new RegExp(`(^|[^A-Za-z0-9])${esc}($|[^A-Za-z0-9])`, 'i').test(address) ? v.toUpperCase() : null;
 }
 
+/** Delivery slot of an order payload: the server label, or nothing for older 'ASAP' orders. */
+export function slotOf(raw: any): { slotLabel: string | null; slotStart: string | null } {
+  const label = typeof raw?.slotLabel === 'string' && raw.slotLabel.trim() ? raw.slotLabel.trim()
+    : typeof raw?.deliverySlot === 'string' && raw.deliverySlot.trim() && !/^asap$/i.test(raw.deliverySlot.trim()) ? raw.deliverySlot.trim() : null;
+  return { slotLabel: label, slotStart: raw?.slotStart ? String(raw.slotStart) : null };
+}
+
 export function normalizeOrder(raw: any): Order | null {
   const id = raw?.id || raw?._id;
   if (!id || typeof id !== 'string') return null;
@@ -176,6 +183,7 @@ export function normalizeOrder(raw: any): Order | null {
     cancelledBy: cancelledByOf(raw.cancelledBy),
     customerName,
     customerPhone,
+    ...slotOf(raw),
     partial: !!raw.__partial,
   };
 }

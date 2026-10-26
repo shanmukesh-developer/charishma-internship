@@ -6,7 +6,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { COLORS, SHADOWS, RADIUS } from '../constants/theme';
 import { ENDPOINTS, API_URL } from '../constants/api';
 import { apiFetch } from '../utils/auth';
-import { newIdempotencyKey } from '../context/CartContext';
+import { newIdempotencyKey, useDeliverySlots } from '../context/CartContext';
+import DeliverySlotPicker from '../components/DeliverySlotPicker';
+import { pickSlot, orderSlotLabel } from '../utils/deliverySlots';
 import { connectSocket } from '../utils/socket';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -34,6 +36,10 @@ interface MegaBasket {
   shoppingFee: number;
   deliveryFee: number;
   deliveryAddress: string;
+  /** Delivery slot label + window (server: utils/deliverySlots); null on lists made before slots. */
+  deliverySlot?: string | null;
+  slotStart?: string | null;
+  slotEnd?: string | null;
   deliveryPin?: string;
   paymentMethod: 'COD';
   paymentStatus: 'Pending' | 'Completed';
@@ -301,6 +307,13 @@ export default function MegaBasketScreen() {
   const deliveryFee = serverFees ? serverFees.delivery : latestFees ? latestFees.delivery : FALLBACK_DELIVERY_FEE;
   const grandTotal = subtotal + shoppingFee + deliveryFee;
 
+  // Delivery slot for the list (shopping-list lead: 1 hour before the slot). Required when the server has slots.
+  const { info: slotInfo, loading: slotsLoading, refresh: refreshSlots } = useDeliverySlots('list', true);
+  const [slotId, setSlotId] = useState<string | null>(null);
+  const [slotNote, setSlotNote] = useState<string | null>(null);
+  useEffect(() => { setSlotId((prev) => pickSlot(slotInfo, prev)); }, [slotInfo]);
+  const selectedSlot = slotInfo?.slots?.find((x) => x.id === slotId && x.open) || null;
+
   const handlePlaceOrder = async () => {
     if (placingRef.current) return;
     if (!user) {
@@ -315,6 +328,10 @@ export default function MegaBasketScreen() {
       Alert.alert('Where should we deliver?', 'Add your hostel block and room number.');
       return;
     }
+    if (slotInfo && slotInfo.slots.length > 0 && !selectedSlot) {
+      Alert.alert('Pick a delivery slot', 'Choose when your shopper should deliver.');
+      return;
+    }
 
     placingRef.current = true;
     setPlacing(true);
@@ -322,6 +339,7 @@ export default function MegaBasketScreen() {
       items: items.map(({ name, quantity, unit, priceEstimated }) => ({ name, quantity, unit, priceEstimated })),
       deliveryAddress: deliveryAddress.trim(),
       paymentMethod: 'COD',
+      ...(selectedSlot ? { deliverySlot: selectedSlot.id } : {}),
     };
     const sig = JSON.stringify(body);
     if (!placeKeyRef.current || placeKeyRef.current.sig !== sig) {
@@ -344,7 +362,14 @@ export default function MegaBasketScreen() {
         setBaskets(prev => [{ ...data, items: Array.isArray(data.items) ? data.items : [] }, ...prev.filter(b => b.id !== data.id)]);
         setSelectedBasketId(String(data.id));
         setActiveTab('list');
-        Alert.alert('Shopping list sent', 'A shopper will pick it up soon. You will approve the real shop prices before they buy.');
+        setSlotNote(null);
+        const when = orderSlotLabel(data);
+        Alert.alert('Shopping list sent', `${when ? `Delivery: ${when}. ` : ''}A shopper will pick it up before the slot. You will approve the real shop prices before they buy.`);
+      } else if (data?.code === 'SLOT_CLOSED') {
+        refreshSlots();
+        if (data?.nextSlot?.id) setSlotId(String(data.nextSlot.id));
+        setSlotNote(data?.nextSlot?.label ? `Booking for that slot has closed. We picked ${data.nextSlot.label} instead.` : 'Booking for that slot has closed. Pick another slot.');
+        Alert.alert('That slot has closed', `${data.message} Check the delivery slot and send the list again.`);
       } else {
         Alert.alert('Not placed yet', (res.status < 500 && data && typeof data.message === 'string' && data.message) || "We couldn't send your shopping list. Please try again.");
       }
@@ -619,6 +644,18 @@ export default function MegaBasketScreen() {
                   onChangeText={setDeliveryAddress}
                 />
 
+                {(slotInfo || slotsLoading) && (
+                  <View style={{ marginTop: 14 }}>
+                    <DeliverySlotPicker
+                      info={slotInfo}
+                      selectedId={selectedSlot ? selectedSlot.id : null}
+                      onSelect={(id) => { setSlotId(id); setSlotNote(null); }}
+                      loading={slotsLoading}
+                      note={slotNote}
+                    />
+                  </View>
+                )}
+
                 <Text style={[s.inputLabel, { marginTop: 12 }]}>Payment</Text>
                 <View style={[s.listItem, { borderColor: border }]}>
                   <Ionicons name="cash-outline" size={18} color="#22c55e" style={{ marginRight: 10 }} />
@@ -668,6 +705,10 @@ export default function MegaBasketScreen() {
                       <Text style={s.statusBadgeText}>{getStatusLabel(selectedBasket.status)}</Text>
                     </View>
                   </View>
+
+                  {!!orderSlotLabel(selectedBasket) && (
+                    <Text style={[s.listItemName, { color: txt, marginTop: 8 }]}>Delivery: {orderSlotLabel(selectedBasket)}</Text>
+                  )}
 
                   {/* Shopper (the status itself is in the badge above) */}
                   {selectedBasket.deliveryPartner && (
@@ -826,6 +867,9 @@ export default function MegaBasketScreen() {
                             <Text style={[s.basketItemsText, { color: txtSec }]} numberOfLines={1}>
                               {basket.items.map(i => `${i.quantity} × ${i.name}`).join(', ')}
                             </Text>
+                            {!!orderSlotLabel(basket) && (
+                              <Text style={[s.basketItemsText, { color: txt }]} numberOfLines={1}>Delivery: {orderSlotLabel(basket)}</Text>
+                            )}
                             <View style={s.basketFooterRow}>
                               <Text style={{ fontSize: 12, color: '#888' }}>{formatISTDate(basket.createdAt)}</Text>
                               <Text style={s.basketPrice}>{basket.actualTotal != null ? '' : 'Est. '}{money(basketTotal(basket))}</Text>

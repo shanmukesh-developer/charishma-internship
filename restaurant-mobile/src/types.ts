@@ -68,6 +68,10 @@ export interface Order {
   deliveryPartnerId: string | null;
   customerName: string | null;
   customerPhone: string | null;
+  /** Delivery slot the customer booked ("Wed 28 Oct, 12:30–1:00 PM"); null on older ASAP orders. */
+  slotLabel: string | null;
+  /** Slot start (ISO). Riders see the order from 45 min before it. */
+  slotStart: string | null;
   riderName: string | null;
   riderPhone: string | null;
   /** Card built from a socket event before the full order was fetched. */
@@ -90,6 +94,8 @@ export interface MenuItem {
   originalPrice: number | null;
   /** Free-form server tags. Older egg dishes were marked with an "egg" tag before dietType existed. */
   tags: string[];
+  /** Specialized (custom / designer) cake: customers must order 2½ hours before the delivery slot. */
+  isSpecializedCake: boolean;
 }
 
 export type Diet = 'veg' | 'nonveg' | 'egg';
@@ -105,6 +111,8 @@ export interface ItemInput {
   isAvailable: boolean;
   /** MRP; null = none. */
   originalPrice: number | null;
+  /** Specialized cake (2½ h booking lead before the delivery slot). */
+  isSpecializedCake: boolean;
 }
 
 export type ConnStatus = 'connecting' | 'online' | 'reconnecting' | 'offline';

@@ -5,7 +5,7 @@ import { rupees } from '../lib/model';
 import { color, font, mono, radius, shadow, space } from '../theme';
 import { IconButton } from '../ui/kit';
 import {
-  callNumber, CampusTag, Elapsed, ItemLines, NoteCallout, OrderActions, PastLine, PaymentBadge, PrepLine, RiderLine,
+  callNumber, CampusTag, Elapsed, ItemLines, NoteCallout, OrderActions, PastLine, PaymentBadge, PrepLine, RiderLine, SlotLine,
 } from './orderParts';
 import type { Order } from '../types';
 
@@ -33,6 +33,7 @@ function OrderCardBase({ order, onOpen, onAccept, onReject }: {
           <PaymentBadge order={order} />
         </View>
 
+        <SlotLine order={order} />
         <ItemLines order={order} max={order.stage === 'past' ? 3 : undefined} />
         <NoteCallout order={order} />
 

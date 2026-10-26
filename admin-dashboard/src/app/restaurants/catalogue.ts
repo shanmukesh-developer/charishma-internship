@@ -131,6 +131,8 @@ export interface Product {
   isAvailable: boolean;
   outOfStockUntil?: string | null;
   isEliteOnly?: boolean;
+  /** Specialized (custom / designer) cake: booking closes 2½ hours before the delivery slot (normal cakes 2 h). */
+  isSpecializedCake?: boolean;
   isVegetarian?: boolean;
   /** 'veg' | 'nonveg' | 'egg'. null on older rows: fall back to isVegetarian. */
   dietType?: DietType | null;

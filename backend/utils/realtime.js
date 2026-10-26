@@ -217,10 +217,13 @@ const deliveryRequest = (orderId) => {
     .then(() => {
       const { getOrderModel } = require('../models/Order');
       const Order = getOrderModel();
-      return Order ? Order.findByPk(id, { attributes: ['id', 'fulfilment'] }) : null;
+      return Order ? Order.findByPk(id, { attributes: ['id', 'fulfilment', 'slotStart'] }) : null;
     })
     .then((order) => {
       if (order && order.fulfilment === 'VENDOR') return;
+      // Delivery slots: riders hear about a slot order only from DISPATCH_WINDOW_MIN before the slot start;
+      // the 'orders.slotDispatch' job (jobs/index.js) sends this event when that window opens.
+      if (order && !require('./deliverySlots').isDispatchDue(order)) return;
       emitToRiders(DELIVERY_REQUEST_EVENT, id);
     })
     .catch((err) => console.error('[REALTIME_DELIVERY_REQUEST_ERROR]', err.message));

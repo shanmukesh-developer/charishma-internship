@@ -229,6 +229,7 @@ function ActiveCard({ order, syncing, onOpen }: { order: RiderOrder; syncing: bo
       </Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.sm }}>
         {order.buyAtStore && idx <= 1 ? <Badge tone="amber" icon="cart-outline" label="BUY AT STORE" /> : null}
+        {order.deliverySlot ? <Badge tone="blue" icon="clock-outline" label={`SLOT ${order.deliverySlot}`} /> : null}
         {store ? <PillText text={store.text} ready={store.ready} /> : null}
         <PaymentPill order={order} />
       </View>
@@ -352,6 +353,12 @@ function OfferCard({
             {order.dropAddress ?? order.dropArea ?? 'Shown after you accept'}
           </Text>
         </View>
+        {order.deliverySlot ? (
+          <View style={{ gap: S.xs }}>
+            <Text style={[T.label, { color: C.muted }]}>DELIVERY SLOT</Text>
+            <Text style={[T.body, { color: C.ink, fontWeight: '700' }]}>{order.deliverySlot}</Text>
+          </View>
+        ) : null}
         <ItemsLine order={order} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.sm }}>
           <PaymentPill order={order} />
@@ -396,6 +403,9 @@ function SmallOffer({
       <Text style={[T.small, { color: C.ink2 }]} numberOfLines={1}>
         {[distance ? `${distance} to pickup` : null, order.dropAddress ?? order.dropArea].filter(Boolean).join(' · ') || 'Drop shown after you accept'}
       </Text>
+      {order.deliverySlot ? (
+        <Text style={[T.small, { color: C.ink, fontWeight: '700' }]} numberOfLines={1}>Slot: {order.deliverySlot}</Text>
+      ) : null}
       <PaymentPill order={order} />
       <View style={{ flexDirection: 'row', gap: S.sm }}>
         <Btn title="Skip" variant="outline" size="mid" onPress={onSkip} style={{ flex: 1 }} />
