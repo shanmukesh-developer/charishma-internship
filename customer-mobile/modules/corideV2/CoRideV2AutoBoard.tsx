@@ -200,7 +200,11 @@ function AutoBlock({ auto: t, line, front, next, onNote }: { auto: ChargeAuto; l
       [{ text: 'Not now', style: 'cancel' }, { text: 'Book', onPress: () => { book(target, seats, seatNumbers); } }],
     );
   };
-  const filled = t.capacity ? Math.min(1, (t.capacity - remaining) / t.capacity) : 0;
+  // "N of 8 left" matches the seat map: the server counts a seat held by anyone (this rider too) as not left, and a
+  // seat tapped here that is still being held (the short pause before the hold) is not counted as left either.
+  const pendingPicks = pickMode ? picked.filter((n) => states[n] === 'AVAILABLE').length : 0;
+  const shownLeft = Math.max(0, remaining - pendingPicks);
+  const filled = t.capacity ? Math.min(1, (t.capacity - shownLeft) / t.capacity) : 0;
   const busy = d.busy === String(t.id) || (!!next && d.busy === String(next.id));
 
   return (
@@ -216,7 +220,7 @@ function AutoBlock({ auto: t, line, front, next, onNote }: { auto: ChargeAuto; l
           <Text style={st.meta} numberOfLines={1}>{t.vehicle?.registration || 'Auto number shows when you book'}{!front && line.onCharge && line.onCharge.seatFare !== t.seatFare ? ` · ${inr(t.seatFare)} per seat` : ''}</Text>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
-          <Text style={[front ? st.leftBig : st.left, { color: remaining ? CR.ink : CR.red }]}>{remaining}</Text>
+          <Text style={[front ? st.leftBig : st.left, { color: shownLeft ? CR.ink : CR.red }]}>{shownLeft}</Text>
           <Text style={st.meta}>of {t.capacity} left</Text>
           {viewer !== 'MALE' && remaining > 0 && mineFree < remaining ? (
             <Text style={[st.meta, { color: mineFree ? CR.ink2 : CR.red, fontWeight: W.label }]} accessibilityLabel={`${mineFree} seats for you. The seats beside the driver are for boys only.`}>{mineFree} for you</Text>

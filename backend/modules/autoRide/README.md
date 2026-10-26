@@ -103,6 +103,16 @@ How the autos outside SRM AP really work: autos line up at a stand one by one, a
   - Customers: `GET /api/auto-ride/on-charge` (the auto on charge, then each waiting auto, all bookable).
   - Admin: `GET /api/admin/auto-ride/lines`.
 
+## Boarding, Start and late check-in
+
+The driver checks each student in with the booking code + PIN (`POST /driver/trips/:id/check-in`). Nobody is dropped without the driver deciding it:
+
+- **Depart / Start boarding:** each passenger not checked in gets their own push, "Show PIN 1234 to the driver now". One already checked in is told they are in.
+- **Start** (`actions/start { safetyConfirmed: true, noShowConfirmed: [bookingId, ...] }`): while a booked passenger who is not named in `noShowConfirmed` is not checked in, it answers 409 `PASSENGERS_NOT_CHECKED_IN { passengers: [{ bookingId, firstName, seats, seatCount, code }] }` and changes nothing. Only the named passengers become `NO_SHOW`. They are told "Your auto left without checking you in", with their PIN and what to do.
+- **Driver app 1.0.6 and older** send no `noShowConfirmed`. They get the same refusal; the app shows its message, which names the passengers and says "tap Start trip again to leave without them". A second Start within 3 minutes for the same passengers leaves them (the refusal is recorded as an `AutoTripEvent` with `meta.kind = START_REFUSED`).
+- **Late check-in:** for 30 minutes (`LIMITS.LATE_CHECKIN_MINUTES`) after a booking was marked `NO_SHOW` (by Start, the arrival window or the driver), and while its auto is at the stand, leaving or on the way, the driver can still check it in with the code + PIN. The booking goes back to `BOARDED`, `noShowAt` is cleared, the payment status is restored and the passenger is told "You are checked in". The booking gets its own seats back when they are free, else another free seat that fits the rider; when none is free the answer is 409 `SEAT_NOW_TAKEN`. After the window the answer is 409 `LATE_CHECK_IN_CLOSED`. Payloads carry `lateCheckInUntil` (customer and driver), and the customer still sees the PIN until then.
+- There is no passenger self check-in: the PIN shown to the driver is the proof.
+
 ## Tests
 
 ```
@@ -110,7 +120,7 @@ cd backend
 npm run test:autoride
 ```
 
-This runs 97 `node:test` cases on a temporary SQLite database. They cover the owner's 25 acceptance scenarios plus race and invariant tests (20 parallel holds for the last seat, 20 parallel publishes, private vs shared races, every transition × action), role isolation, the kill switch, privacy and rate limits, and the union queue (`chargeLine.test.js`: line order, booking waiting autos, driver fare, promotion, walk-ins, depart, moving bookings with full / partial / no room, lifecycle, and races with the in-process queue on and off).
+This runs 119 `node:test` cases on a temporary SQLite database. They cover the owner's 25 acceptance scenarios plus race and invariant tests (20 parallel holds for the last seat, 20 parallel publishes, private vs shared races, every transition × action), boarding (`boarding.test.js`: Start refusing with the list, noShowConfirmed, the 1.0.6 two-tap, late check-in, the PIN push, the board seat count), role isolation, the kill switch, privacy and rate limits, and the union queue (`chargeLine.test.js`: line order, booking waiting autos, driver fare, promotion, walk-ins, depart, moving bookings with full / partial / no room, lifecycle, and races with the in-process queue on and off).
 
 ## Known limits (v1)
 

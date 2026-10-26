@@ -20,7 +20,7 @@ import { ACTION_TARGET, TERMINAL, actionsFor } from '../lib/tripRules';
 import { countdown, dateTimeIst, rupees, timeIst } from '../lib/format';
 import { TRIP_POLL_MS } from '../config';
 import { TripSummaryCard, atStand } from './Home';
-import type { BookingDriver, DriverAction, Trip, TripStatus } from '../types';
+import type { BookingDriver, DriverAction, NotCheckedIn, Trip, TripStatus } from '../types';
 import type { ScreenProps } from '../nav';
 
 type Tab = 'status' | 'seats' | 'bookings';
@@ -28,7 +28,7 @@ type Tab = 'status' | 'seats' | 'bookings';
 const ACTION_COPY: Record<string, { label: string; icon: any; confirmTitle: string; confirmBody: string; ok: string }> = {
   'confirm-departure': { label: 'Confirm departure', icon: 'checkmark-done', confirmTitle: 'Is the auto ready to leave?', confirmBody: 'Passengers are told you confirmed. Seats that are still being booked (not paid) are released and booking closes.', ok: 'Departure confirmed.' },
   'start-boarding': { label: 'Start boarding', icon: 'enter', confirmTitle: 'Start boarding?', confirmBody: 'Passengers are told to show their booking code and PIN.', ok: 'Boarding started.' },
-  start: { label: 'Start trip', icon: 'play', confirmTitle: 'Safety check', confirmBody: 'Everyone seated? Nobody on the footboard or outside the auto? Passengers who did not board are marked as missed.', ok: 'Trip started. Drive safe.' },
+  start: { label: 'Start trip', icon: 'play', confirmTitle: 'Safety check', confirmBody: 'Everyone seated? Nobody on the footboard or outside the auto?', ok: 'Trip started. Drive safe.' },
   arrive: { label: 'Arrived at destination', icon: 'flag', confirmTitle: 'Arrived?', confirmBody: 'Mark that you reached the destination.', ok: 'Arrival marked.' },
   complete: { label: 'Complete trip', icon: 'checkmark-circle', confirmTitle: 'Complete the trip?', confirmBody: 'All passengers got down? The trip cannot be restarted after this.', ok: 'Trip completed.' },
   resume: { label: 'Back on schedule', icon: 'play-forward', confirmTitle: 'Resume the trip?', confirmBody: 'Passengers are told you are back on schedule.', ok: 'Trip resumed.' },
@@ -38,6 +38,76 @@ const ACTION_BODY: Partial<Record<DriverAction, Record<string, unknown>>> = {
   start: { safetyConfirmed: true },
 };
 const DELAYS = [5, 10, 15, 20, 30, 45, 60];
+/** The trip screen shows who is checked in from Depart / Confirm departure until the trip ends. */
+const CHECK_IN_LIST: TripStatus[] = ['DRIVER_CONFIRMED', 'BOARDING', 'IN_PROGRESS'];
+const seatsText = (nums: number[], count: number) => (nums.length ? `seat${nums.length === 1 ? '' : 's'} ${nums.join(', ')}` : `${count} seat${count === 1 ? '' : 's'}`);
+
+/**
+ * Who is in the auto: every booked passenger with their seats, "Checked in", or a Check in button (code + PIN).
+ * On the way it lists only those marked not here who can still be checked in late.
+ */
+function CheckInList({ bookings, onCheckIn, running }: { bookings: BookingDriver[]; onCheckIn: (code: string) => void; running: boolean }) {
+  const booked = bookings.filter((b) => ['CONFIRMED', 'BOARDED'].includes(b.status) || (b.status === 'NO_SHOW' && !!b.lateCheckInUntil));
+  const inCount = booked.filter((b) => b.status === 'BOARDED').length;
+  const late = booked.filter((b) => b.status === 'NO_SHOW');
+  const rows = running ? late : booked;
+  if (!rows.length) return null;
+  return (
+    <Card style={{ gap: space.sm }}>
+      <Text style={[font.h3, { color: color.text }]}>{running ? 'Not checked in' : `Check in passengers · ${inCount} of ${booked.length} in`}</Text>
+      <Text style={[font.small, { color: color.textMuted }]}>
+        {running ? 'Marked not here. If one of them is in the auto, check them in with their code and PIN.' : 'Ask each passenger for the booking code and PIN in their app. Passengers not checked in are not on this trip.'}
+      </Text>
+      {rows.map((b) => (
+        <View key={b.id} style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xxs }}>
+          <View style={{ flex: 1 }}>
+            <Text style={[font.body, { color: color.text, fontWeight: '700' }]}>{b.passengerName} · {seatsText(b.seatNumbers, b.seatCount)}</Text>
+            <Text style={[font.small, { color: color.textSecondary }]}>
+              {b.bookingCode}{b.cashToCollect ? ` · collect ${rupees(b.cashToCollect)}` : ''}{b.status === 'NO_SHOW' && b.lateCheckInUntil ? ` · can check in until ${timeIst(b.lateCheckInUntil)}` : ''}
+            </Text>
+          </View>
+          {b.status === 'BOARDED'
+            ? <Badge text="Checked in" fg={color.boarded} bg={color.boardedTint} />
+            : <Button label="Check in" icon="qr-code" variant="accept" size="secondary" onPress={() => onCheckIn(b.bookingCode)} />}
+        </View>
+      ))}
+    </Card>
+  );
+}
+
+/** Before Start: each booked passenger not checked in, with Check in or Not here. Start only when all are decided. */
+function StartSheet({ list, visible, notHere, onToggle, onCheckIn, onClose, onStart }: {
+  list: NotCheckedIn[]; visible: boolean; notHere: string[]; onToggle: (id: string) => void; onCheckIn: (code: string) => void; onClose: () => void; onStart: () => void;
+}) {
+  const left = list.filter((x) => !notHere.includes(x.bookingId)).length;
+  return (
+    <Sheet visible={visible} onClose={onClose} title={list.length ? 'Not checked in yet' : 'Everyone is checked in'}>
+      <View style={{ gap: space.md }}>
+        {list.length ? (
+          <Text style={[font.body, { color: color.textSecondary }]}>These passengers booked your auto. Check them in with their code and PIN, or mark them as not here.</Text>
+        ) : null}
+        {list.map((x) => {
+          const off = notHere.includes(x.bookingId);
+          return (
+            <View key={x.bookingId} style={{ gap: space.xs, padding: space.sm, borderRadius: radius.md, borderWidth: 2, borderColor: off ? color.alert : color.border, backgroundColor: color.surface }}>
+              <Text style={[font.h3, { color: color.text }]}>{x.firstName} · {seatsText(x.seats, x.seatCount)}</Text>
+              <Text style={[font.small, { color: color.textSecondary }]}>{x.code}{off ? ' · marked not here' : ''}</Text>
+              <View style={{ flexDirection: 'row', gap: space.xs }}>
+                <Button label="Check in" icon="qr-code" variant="accept" size="secondary" style={{ flex: 1 }} onPress={() => onCheckIn(x.code)} />
+                <Button label={off ? 'Undo' : 'Not here'} icon={off ? 'arrow-undo' : 'person-remove'} variant={off ? 'secondary' : 'rejectOutline'} size="secondary" style={{ flex: 1 }} onPress={() => onToggle(x.bookingId)} />
+              </View>
+            </View>
+          );
+        })}
+        <Button
+          label={left ? `${left} still to check in or mark` : list.length ? `Start without ${list.length === 1 ? 'them' : `these ${list.length}`}` : 'Start trip'}
+          icon="play" variant="accept" disabled={left > 0} onPress={onStart}
+        />
+        {list.length ? <Text style={[font.small, { color: color.textMuted }]}>If you mark someone by mistake, you can still check them in with their PIN for 30 minutes after you start.</Text> : null}
+      </View>
+    </Sheet>
+  );
+}
 
 export default function TripDetailScreen({ navigation, route }: ScreenProps<'TripDetail'>) {
   const { tripId } = route.params;
@@ -46,6 +116,10 @@ export default function TripDetailScreen({ navigation, route }: ScreenProps<'Tri
   const [busy, setBusy] = useState<string | null>(null);
   const [uncertain, setUncertain] = useState<{ action: DriverAction; from: TripStatus; at: number } | null>(null);
   const [sheet, setSheet] = useState<'delay' | 'cancel' | null>(null);
+  // Start with booked passengers not checked in: who they are (from the bookings, or the server's 409 list) and
+  // which of them the driver marked "Not here". Start goes out only when every one of them is checked in or marked.
+  const [startList, setStartList] = useState<NotCheckedIn[] | null>(null);
+  const [notHere, setNotHere] = useState<string[]>([]);
   const [now, setNow] = useState(serverNow());
   useEffect(() => { const t = setInterval(() => setNow(serverNow()), 1000); return () => clearInterval(t); }, []);
 
@@ -74,6 +148,11 @@ export default function TripDetailScreen({ navigation, route }: ScreenProps<'Tri
       if (e instanceof NetworkError) {
         setUncertain({ action, from, at: Date.now() });
         toast.show('Not confirmed by Zenvy (no internet). Checking the trip before you try again.', 'error');
+      } else if (e instanceof ApiError && e.code === 'PASSENGERS_NOT_CHECKED_IN' && Array.isArray(e.data?.passengers)) {
+        // Someone booked is still not checked in (or was just added): show them, nothing was changed.
+        const list = e.data.passengers as NotCheckedIn[];
+        setNotHere((cur) => cur.filter((id) => list.some((x) => x.bookingId === id)));
+        setStartList(list);
       } else {
         toast.show(errorMessage(e), 'error');
       }
@@ -98,9 +177,26 @@ export default function TripDetailScreen({ navigation, route }: ScreenProps<'Tri
     toast.show(reached ? 'Zenvy got your last change. The trip is up to date.' : 'Zenvy did not get your last change. You can try again now.', reached ? 'success' : 'info');
   }, [trip, uncertain, fresh, toast]);
 
-  const ask = (action: DriverAction) => {
+  const ask = (action: DriverAction, body: Record<string, unknown> = {}) => {
     const c = ACTION_COPY[action];
-    Alert.alert(c.confirmTitle, c.confirmBody, [{ text: 'No', style: 'cancel' }, { text: 'Yes', onPress: () => { run(action); } }]);
+    Alert.alert(c.confirmTitle, c.confirmBody, [{ text: 'No', style: 'cancel' }, { text: 'Yes', onPress: () => { run(action, body); } }]);
+  };
+  // Start: anyone booked who is not checked in is shown first (Check in / Not here); the server checks it again.
+  const askStart = () => {
+    const pending = (q.data?.bookings || []).filter((b) => b.status === 'CONFIRMED').map((b): NotCheckedIn => ({
+      bookingId: b.id, firstName: b.passengerName, seats: b.seatNumbers, seatCount: b.seatCount, code: b.bookingCode,
+    }));
+    if (pending.length) {
+      setNotHere((cur) => cur.filter((id) => pending.some((x) => x.bookingId === id)));
+      setStartList(pending);
+      return;
+    }
+    ask('start', { noShowConfirmed: [] });
+  };
+  const startLeaving = () => {
+    const ids = (startList || []).map((x) => x.bookingId).filter((id) => notHere.includes(id));
+    setStartList(null);
+    ask('start', { noShowConfirmed: ids });
   };
 
   if (q.loading && !q.data) return <Screen title="Trip" onBack={() => navigation.goBack()}><SkeletonCard lines={4} /><SkeletonCard /></Screen>;
@@ -127,7 +223,7 @@ export default function TripDetailScreen({ navigation, route }: ScreenProps<'Tri
       footer={!terminal && tab === 'status' && primary ? (
         primary === 'check-in'
           ? <Button label="Check in a passenger" icon="qr-code" size="huge" variant="accept" onPress={() => navigation.navigate('CheckIn', { tripId: trip.id })} />
-          : <Button label={ACTION_COPY[primary].label} icon={ACTION_COPY[primary].icon} size="huge" variant="accept" loading={busy === primary || !!uncertain} disabled={!!busy || !!uncertain} onPress={() => ask(primary as DriverAction)} />
+          : <Button label={ACTION_COPY[primary].label} icon={ACTION_COPY[primary].icon} size="huge" variant="accept" loading={busy === primary || !!uncertain} disabled={!!busy || !!uncertain} onPress={() => (primary === 'start' ? askStart() : ask(primary as DriverAction))} />
       ) : undefined}
     >
       <View style={{ flexDirection: 'row', gap: space.xs }}>
@@ -150,7 +246,10 @@ export default function TripDetailScreen({ navigation, route }: ScreenProps<'Tri
           {trip.status === 'BOARDING' && !trip.boardedSeats ? <Banner tone="info" text="Check in at least one passenger (booking code + PIN) before you start." /> : null}
           {trip.cancelReason ? <Banner tone="error" text={`Reason: ${trip.cancelReason}`} /> : null}
           {trip.delayReason && trip.status === 'DELAYED' ? <Banner tone="warn" text={`Delay reason: ${trip.delayReason}`} /> : null}
-          {primary === 'start' ? <Button label="Check in another passenger" icon="qr-code" variant="secondary" onPress={() => navigation.navigate('CheckIn', { tripId: trip.id })} /> : null}
+          {CHECK_IN_LIST.includes(trip.status) ? (
+            <CheckInList bookings={bookings} onCheckIn={(code) => navigation.navigate('CheckIn', { tripId: trip.id, code })} running={trip.status === 'IN_PROGRESS'} />
+          ) : null}
+          {primary === 'start' ? <Button label="Check in by booking code" icon="keypad" variant="secondary" onPress={() => navigation.navigate('CheckIn', { tripId: trip.id })} /> : null}
 
           <Card style={{ gap: 2 }}>
             <KeyValue k="Seat fare" v={rupees(trip.seatFare)} />
@@ -197,6 +296,15 @@ export default function TripDetailScreen({ navigation, route }: ScreenProps<'Tri
         <BookingsList bookings={bookings} now={now} canNoShow={!!acts?.noShow} tripId={trip.id} onChanged={q.reload} />
       ) : null}
 
+      <StartSheet
+        list={(startList || []).filter((x) => !bookings.some((b) => b.id === x.bookingId && b.status !== 'CONFIRMED'))}
+        visible={!!startList}
+        notHere={notHere}
+        onToggle={(id) => setNotHere((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]))}
+        onCheckIn={(code) => { setStartList(null); navigation.navigate('CheckIn', { tripId: trip.id, code }); }}
+        onClose={() => setStartList(null)}
+        onStart={startLeaving}
+      />
       <DelaySheet visible={sheet === 'delay'} onClose={() => setSheet(null)} busy={busy === 'delay'} onSubmit={async (minutes, reason) => { if (await run('delay', { minutes, reason })) setSheet(null); }} />
       <CancelSheet visible={sheet === 'cancel'} onClose={() => setSheet(null)} busy={busy === 'cancel' || busy === 'unavailable'} canDriver={!!acts?.driverUnavailable} canVehicle={!!acts?.vehicleUnavailable}
         passengers={trip.confirmedSeats + trip.heldSeats}

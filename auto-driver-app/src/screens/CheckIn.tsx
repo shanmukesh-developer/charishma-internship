@@ -15,12 +15,17 @@ import { useLoad } from '../state/useLoad';
 import { useDriverEvents } from '../state/SocketProvider';
 import { driverApi } from '../api/driverApi';
 import { ApiError, NetworkError, errorMessage } from '../lib/http';
-import { rupees } from '../lib/format';
+import { rupees, timeIst } from '../lib/format';
 import { LIMITS } from '../config';
 import type { BookingDriver } from '../types';
 import type { ScreenProps } from '../nav';
 
 const cleanCode = (v: string) => v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+// Where the server takes a check-in: boarding, on the way (a late passenger), and a union queue auto at the stand.
+const CHECK_IN_STATUSES = ['BOARDING', 'IN_PROGRESS'];
+const STAND_STATUSES = ['OPEN_FOR_BOOKING', 'DEPARTURE_THRESHOLD_REACHED', 'FULL', 'DRIVER_CONFIRMED'];
+/** Booked and not in yet: confirmed, or marked not here but still in the late check-in time. */
+export const toCheckIn = (b: BookingDriver) => b.status === 'CONFIRMED' || (b.status === 'NO_SHOW' && !!b.lateCheckInUntil);
 
 export default function CheckInScreen({ navigation, route }: ScreenProps<'CheckIn'>) {
   const { tripId } = route.params;
@@ -30,7 +35,7 @@ export default function CheckInScreen({ navigation, route }: ScreenProps<'CheckI
     return { trip: t.trip, bookings: b.bookings };
   }, [tripId]);
   useDriverEvents(() => q.reload(), (e) => e.kind === 'booking' || e.id === tripId);
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(cleanCode(route.params.code || ''));
   const [pin, setPin] = useState('');
   const [cash, setCash] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -38,7 +43,7 @@ export default function CheckInScreen({ navigation, route }: ScreenProps<'CheckI
   const [attemptsLeft, setAttemptsLeft] = useState<number | null>(null);
   const [locked, setLocked] = useState<string | null>(null);
   const [shake, setShake] = useState(0);
-  const [done, setDone] = useState<BookingDriver | null>(null);
+  const [done, setDone] = useState<(BookingDriver & { late?: boolean; seatsChanged?: boolean }) | null>(null);
 
   const match = useMemo(() => (q.data?.bookings || []).find((b) => b.bookingCode === code) || null, [q.data, code]);
   useEffect(() => { setAttemptsLeft(null); setLocked(null); setError(null); }, [code]);
@@ -50,7 +55,7 @@ export default function CheckInScreen({ navigation, route }: ScreenProps<'CheckI
     try {
       const r = await driverApi.checkIn(tripId, code, pin, !!(match && match.cashToCollect > 0 && cash));
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      setDone(r.booking);
+      setDone({ ...r.booking, late: !!r.late, seatsChanged: !!r.seatsChanged });
       if (r.duplicate) toast.show('Already checked in.', 'info');
       q.reload();
     } catch (e) {
@@ -70,9 +75,10 @@ export default function CheckInScreen({ navigation, route }: ScreenProps<'CheckI
   if (q.loading && !q.data) return <Screen title="Check in" onBack={() => navigation.goBack()}><SkeletonCard /></Screen>;
   if (!q.data) return <Screen title="Check in" onBack={() => navigation.goBack()}><ErrorStrip text={q.error || 'Could not load.'} onRetry={q.refresh} busy={q.refreshing} /></Screen>;
   const trip = q.data.trip;
-  const waiting = q.data.bookings.filter((b) => b.status === 'CONFIRMED');
+  const waiting = q.data.bookings.filter(toCheckIn);
+  const open = CHECK_IN_STATUSES.includes(trip.status) || (trip.dispatchMode === 'ON_CHARGE' && STAND_STATUSES.includes(trip.status));
 
-  if (trip.status !== 'BOARDING') {
+  if (!open) {
     return (
       <Screen title="Check in" onBack={() => navigation.goBack()} stationary>
         <Banner tone="warn" text={trip.status === 'DRIVER_CONFIRMED' ? 'Start boarding on the trip screen first, then check passengers in.' : `Check-in is only during boarding. Trip status: ${trip.statusLabel}.`} />
@@ -94,6 +100,7 @@ export default function CheckInScreen({ navigation, route }: ScreenProps<'CheckI
           <Text style={[font.h3, { color: color.openDark }]}>{done.passengerCount} passenger{done.passengerCount === 1 ? '' : 's'}{done.seatNumbers.length ? ` · seat ${done.seatNumbers.join(', ')}` : ''}</Text>
           {done.cashCollectedAt ? <Badge text={`CASH ${rupees(done.amount)} COLLECTED`} fg={color.openDark} bg={color.surface} /> : null}
         </Card>
+        {done.late ? <Banner tone="ok" text={done.seatsChanged ? `Checked in late. Their old seat was taken, so they now have seat ${done.seatNumbers.join(', ')}.` : 'Checked in late. Their not-here mark is cleared.'} /> : null}
         <Text style={[font.body, { color: color.textSecondary, textAlign: 'center' }]}>Boarded {trip.boardedSeats} of {trip.confirmedSeats} confirmed seats.</Text>
       </Screen>
     );
@@ -112,7 +119,7 @@ export default function CheckInScreen({ navigation, route }: ScreenProps<'CheckI
       {match ? (
         <Card style={{ gap: 2 }}>
           <Text style={[font.h3, { color: color.text }]}>{match.passengerName} · {match.passengerCount} passenger{match.passengerCount === 1 ? '' : 's'}</Text>
-          <Text style={[font.body, { color: color.textSecondary }]}>{match.seatNumbers.length ? `Seat ${match.seatNumbers.join(', ')}` : `${match.seatCount} seats`} · {match.status === 'BOARDED' ? 'already boarded' : match.status.toLowerCase()}</Text>
+          <Text style={[font.body, { color: color.textSecondary }]}>{match.seatNumbers.length ? `Seat ${match.seatNumbers.join(', ')}` : `${match.seatCount} seats`} · {match.status === 'BOARDED' ? 'already checked in' : match.status === 'NO_SHOW' ? (match.lateCheckInUntil ? `marked not here, can still check in until ${timeIst(match.lateCheckInUntil)}` : 'marked not here') : 'booked, not checked in'}</Text>
         </Card>
       ) : code.length >= 8 ? <Banner tone="warn" text="No booking with this code on this trip. Check the code with the passenger." /> : null}
       {match && match.cashToCollect > 0 ? (

@@ -296,7 +296,10 @@ test('depart before full: the next auto goes on charge, bookings are NOT moved, 
   const mine = await bookingRow(st.booking.id);
   assert.equal(String(mine.tripId), String(ta.id));
   assert.equal(mine.status, 'BOARDED');
-  const go = await api('POST', `/api/auto-ride/driver/trips/${ta.id}/actions/start`, a.token, { safetyConfirmed: true });
+  // `other` never checked in: Start names them first (never a silent no-show); the driver marks them not here.
+  const refused = await api('POST', `/api/auto-ride/driver/trips/${ta.id}/actions/start`, a.token, { safetyConfirmed: true, noShowConfirmed: [] });
+  assert.equal(refused.body.code, 'PASSENGERS_NOT_CHECKED_IN');
+  const go = await api('POST', `/api/auto-ride/driver/trips/${ta.id}/actions/start`, a.token, { safetyConfirmed: true, noShowConfirmed: [other.booking.id] });
   assert.equal(go.body.trip.status, 'IN_PROGRESS');
   const done = await api('POST', `/api/auto-ride/driver/trips/${ta.id}/actions/complete`, a.token, {});
   assert.equal(done.body.trip.status, 'COMPLETED');

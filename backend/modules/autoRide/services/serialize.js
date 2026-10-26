@@ -9,6 +9,7 @@
 //    same object for the same trip).
 const E = require('../enums');
 const arrival = require('./arrival');
+const lateCheckIn = require('./lateCheckIn');
 const { normalizeLayout } = require('./layout');
 
 const T = E.TRIP_STATUS;
@@ -168,7 +169,8 @@ const tripCustomer = (req, trip, ctx = {}) => {
     extraCharges: trip.privateBookingEnabled && trip.fullAutoFare ? extraChargesOf(trip) : null,
     fullAutoTotal: trip.privateBookingEnabled && trip.fullAutoFare ? Math.round((Number(trip.fullAutoFare) + (Number(trip.extraChargesAmount) > 0 ? Number(trip.extraChargesAmount) : 0)) * 100) / 100 : null,
     seatSelectionEnabled: !!trip.seatSelectionEnabled,
-    sharedBookingAllowed: bookable(trip) && st.remainingSeats > 0,
+    // The viewer's own hold keeps it bookable for them even when it took the last free seat (Book confirms it).
+    sharedBookingAllowed: bookable(trip) && (st.remainingSeats > 0 || (!!ctx.myBooking && ctx.myBooking.status === B.HELD)),
     privateBookingAllowed: !!trip.privateBookingEnabled && !!trip.fullAutoFare && bookable(trip)
       && (Number(trip.seatsConfirmed) || 0) + (Number(trip.seatsHeld) || 0) === 0,
     queueNote: isChargeTrip(trip)
@@ -176,6 +178,10 @@ const tripCustomer = (req, trip, ctx = {}) => {
       : 'Queue order shows when autos checked in; the departure order can differ.',
     myBookingId: ctx.myBooking ? ctx.myBooking.id : null,
     myBookingStatus: ctx.myBooking ? ctx.myBooking.status : null,
+    // Journey steps on the passenger's booking screen (leaving -> on the way -> reached).
+    boardingAt: iso(trip.boardingAt),
+    startedAt: iso(trip.startedAt),
+    arrivedAt: iso(trip.arrivedAt),
   };
 };
 
@@ -237,6 +243,8 @@ const bookingCustomer = (req, b, ctx = {}) => {
   const trip = ctx.trip;
   const confirmed = [B.CONFIRMED, B.BOARDED].includes(b.status);
   const tripLive = trip && !E.TERMINAL_TRIP_STATUSES.includes(trip.status);
+  // Marked not here, but the driver can still check them in with this PIN until lateCheckInUntil.
+  const lateUntil = trip ? lateCheckIn.untilIso(b, trip) : null;
   return {
     ...bookingCommon(b),
     seatFare: b.seatFare === null || b.seatFare === undefined ? null : Number(b.seatFare),
@@ -245,8 +253,10 @@ const bookingCustomer = (req, b, ctx = {}) => {
     refundedAt: iso(b.refundedAt),
     cancelledBy: b.cancelledBy || null,
     cancelReason: b.cancelReason || null,
+    noShowAt: iso(b.noShowAt),
+    lateCheckInUntil: lateUntil,
     // Shown to the driver at boarding; only ever in the passenger's own payloads.
-    boardingPin: b.status === B.CONFIRMED ? b.boardingPin : null,
+    boardingPin: b.status === B.CONFIRMED || lateUntil ? b.boardingPin : null,
     trip: trip ? tripCustomer(req, trip, { ...ctx, myBooking: b }) : null,
     // Driver phone: only while this booking is confirmed / boarded and the trip has not ended.
     driverPhone: confirmed && tripLive && ctx.driver ? ctx.driver.phone : null,
@@ -262,14 +272,20 @@ const bookingCustomer = (req, b, ctx = {}) => {
  * Booking as the driver may see it: first name, code, seats. No phone, no user id, no PIN, no gender.
  * opts { trip, arrivalWindowMinutes }: adds arriveBy (the passenger's arrival deadline on an auto at the stand).
  */
-const bookingDriver = (b, user, opts = {}) => ({
-  ...bookingCommon(b),
-  passengerName: firstName(user && user.name),
-  passengerCount: Number(b.passengerCount) || Number(b.seatCount),
-  cashToCollect: b.paymentMethod === E.PAYMENT_METHODS.CASH && [B.CONFIRMED, B.BOARDED].includes(b.status) && !b.cashCollectedAt ? Number(b.amount) : 0,
-  cashCollectedAt: iso(b.cashCollectedAt),
-  arriveBy: opts.trip && opts.arrivalWindowMinutes ? arrival.deadlineIso(b, opts.trip, opts.arrivalWindowMinutes) : null,
-});
+const bookingDriver = (b, user, opts = {}) => {
+  // A passenger marked not here who can still be checked in (code + PIN) until this time (services/lateCheckIn.js).
+  const lateUntil = opts.trip ? lateCheckIn.untilIso(b, opts.trip) : null;
+  return {
+    ...bookingCommon(b),
+    passengerName: firstName(user && user.name),
+    passengerCount: Number(b.passengerCount) || Number(b.seatCount),
+    cashToCollect: b.paymentMethod === E.PAYMENT_METHODS.CASH && ([B.CONFIRMED, B.BOARDED].includes(b.status) || lateUntil) && !b.cashCollectedAt ? Number(b.amount) : 0,
+    cashCollectedAt: iso(b.cashCollectedAt),
+    arriveBy: opts.trip && opts.arrivalWindowMinutes ? arrival.deadlineIso(b, opts.trip, opts.arrivalWindowMinutes) : null,
+    noShowAt: iso(b.noShowAt),
+    lateCheckInUntil: lateUntil,
+  };
+};
 
 const bookingAdmin = (b, { user, trip } = {}) => ({
   ...bookingCommon(b),

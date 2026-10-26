@@ -140,7 +140,7 @@ export default function ChargeScreen({ navigation, route }: ScreenProps<'Charge'
   };
 
   const depart = () => {
-    Alert.alert('Depart now?', 'Your auto leaves the stand and the next auto goes on charge. Students who booked stay on your auto.', [
+    Alert.alert('Depart now?', 'Your auto leaves the stand and the next auto goes on charge. Students who booked stay on your auto: check each one in with their booking code and PIN, then start the trip.', [
       { text: 'Not yet', style: 'cancel' },
       {
         text: 'Depart',
@@ -302,9 +302,15 @@ export default function ChargeScreen({ navigation, route }: ScreenProps<'Charge'
                   {b.bookingCode}{b.seatNumbers.length ? ` · seat ${b.seatNumbers.join(', ')}` : ''}{b.cashToCollect ? ` · collect ${rupees(b.cashToCollect)}` : ''}
                 </Text>
                 {b.status === 'CONFIRMED' && b.arriveBy ? <ArrivalCountdown arriveBy={b.arriveBy} /> : null}
-                {b.status === 'CONFIRMED' && b.arriveBy ? (
-                  <Button label="Did not come" icon="person-remove" variant="rejectOutline" size="secondary" loading={busy === `noshow:${b.id}`} disabled={!!busy}
-                    onPress={() => noShow(b)} style={{ marginTop: space.xs, alignSelf: 'flex-start' }} />
+                {b.status === 'CONFIRMED' ? (
+                  <View style={{ flexDirection: 'row', gap: space.xs, marginTop: space.xs }}>
+                    <Button label="Check in" icon="qr-code" variant="accept" size="secondary" disabled={!!busy}
+                      onPress={() => navigation.navigate('CheckIn', { tripId, code: b.bookingCode })} />
+                    {b.arriveBy ? (
+                      <Button label="Did not come" icon="person-remove" variant="rejectOutline" size="secondary" loading={busy === `noshow:${b.id}`} disabled={!!busy}
+                        onPress={() => noShow(b)} />
+                    ) : null}
+                  </View>
                 ) : null}
               </View>
               <Badge

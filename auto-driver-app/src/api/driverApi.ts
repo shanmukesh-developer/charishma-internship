@@ -131,7 +131,9 @@ export const driverApi = {
    *  CAPACITY_NOT_ALLOWED / DEPARTURE_TOO_SOON / DEPARTURE_TOO_FAR / OUTSIDE_OPERATING_HOURS. */
   publish: (id: string) => apiFetch<{ trip: Trip }>(`${D}/trips/${enc(id)}/publish`, { method: 'POST' }),
   /**
-   * POST /trips/:id/actions/:action. Bodies: confirm-departure { ready: true }, start { safetyConfirmed: true },
+   * POST /trips/:id/actions/:action. Bodies: confirm-departure { ready: true },
+   * start { safetyConfirmed: true, noShowConfirmed: [bookingId...] } (409 PASSENGERS_NOT_CHECKED_IN { passengers }
+   * while a booked passenger not named in noShowConfirmed is not checked in),
    * delay { minutes 5..120, reason? }, cancel { reason >= 3 chars }, unavailable { kind: DRIVER|VEHICLE, reason },
    * depart {} (union queue: leave the stand now; 409 AUTO_EMPTY / WAITING_IN_LINE).
    * 409 INVALID_TRANSITION { from, to } for anything the state machine does not allow.
@@ -140,9 +142,13 @@ export const driverApi = {
     apiFetch<{ trip: Trip; bookingsCancelled?: number; bookingsMoved?: number }>(`${D}/trips/${enc(id)}/actions/${action}`, { method: 'POST', body }),
   bookings: (id: string) => apiFetch<{ trip: TripStatusBlock & { id: string }; bookings: BookingDriver[] }>(`${D}/trips/${enc(id)}/bookings`),
   seats: (id: string) => apiFetch<SeatMapResponse>(`${D}/trips/${enc(id)}/seats`),
-  /** 400 WRONG_PIN { attemptsLeft }, 429 PIN_LOCKED { attemptsLeft: 0, lockedUntil } (15 min), 404 NOT_FOUND, 409 NOT_BOARDING / NOT_CONFIRMED. */
+  /**
+   * 400 WRONG_PIN { attemptsLeft }, 429 PIN_LOCKED { attemptsLeft: 0, lockedUntil } (15 min), 404 NOT_FOUND, 409 NOT_BOARDING /
+   * NOT_CONFIRMED. Also works on the way (IN_PROGRESS) and for a passenger marked not here less than 30 minutes ago
+   * (late: true; seatsChanged when their seat had been given away), else 409 LATE_CHECK_IN_CLOSED / SEAT_NOW_TAKEN.
+   */
   checkIn: (id: string, bookingCode: string, pin: string, cashCollected: boolean) =>
-    apiFetch<{ booking: BookingDriver; trip: TripStatusBlock & { id: string }; duplicate: boolean }>(`${D}/trips/${enc(id)}/check-in`, { method: 'POST', body: { bookingCode, pin, cashCollected } }),
+    apiFetch<{ booking: BookingDriver; trip: TripStatusBlock & { id: string }; duplicate: boolean; late?: boolean; seatsChanged?: boolean }>(`${D}/trips/${enc(id)}/check-in`, { method: 'POST', body: { bookingCode, pin, cashCollected } }),
   /** 409 TOO_EARLY before departure, INVALID_STATE before confirm-departure. */
   noShow: (tripId: string, bookingId: string) =>
     apiFetch<{ booking: BookingDriver; trip: TripStatusBlock & { id: string } }>(`${D}/trips/${enc(tripId)}/bookings/${enc(bookingId)}/no-show`, { method: 'POST' }),

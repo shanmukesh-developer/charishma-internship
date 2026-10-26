@@ -220,7 +220,14 @@ export interface BookingDriver {
   cashCollectedAt: string | null;
   /** At the stand: the student must be checked in before this, or the server releases the seat (no-show). */
   arriveBy?: string | null;
+  /** When the booking was marked not here (NO_SHOW). */
+  noShowAt?: string | null;
+  /** Marked not here, but can still be checked in late (code + PIN) until this time. */
+  lateCheckInUntil?: string | null;
 }
+
+/** 409 PASSENGERS_NOT_CHECKED_IN from Start: booked passengers who are not checked in. */
+export interface NotCheckedIn { bookingId: string; firstName: string; seats: number[]; seatCount: number; code: string }
 
 export type SeatState = 'AVAILABLE' | 'HELD' | 'BOOKED' | 'UNAVAILABLE' | 'MINE' | 'MINE_HELD' | 'WALK_IN';
 export interface SeatMapResponse extends TripStatusBlock {

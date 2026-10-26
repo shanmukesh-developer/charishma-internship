@@ -536,9 +536,32 @@ const cancelPrivateRequest = async ({ requestId, userId }) => {
 
 // ── Boarding ────────────────────────────────────────────────────────────────
 
-/** Driver checks a passenger in with booking code + PIN (5 wrong tries -> 15 min lock). */
+/**
+ * Seats to give back to a NO_SHOW booking being checked in late (inside t): its own seats when they are all still
+ * free, else the first free seats this rider may take (front-seat rule), else null.
+ */
+const reclaimSeats = async (b, trip, t) => {
+  const taken = await liveSeatNumbers(trip.id, t);
+  const own = (Array.isArray(b.seatNumbers) ? b.seatNumbers : []).map(Number).filter((n) => Number.isInteger(n) && n >= 1 && n <= (Number(trip.capacity) || 0));
+  const count = Math.max(1, Number(b.seatCount) || own.length || 1);
+  if (own.length === count && own.every((n) => !taken.has(n))) return { seats: own.sort((x, y) => x - y), same: true };
+  if (b.type !== E.BOOKING_TYPE.SHARED) return null; // a full-auto booking needs every seat back
+  const gender = seatRule.knownGender(await profileGenderOf(b.userId)) || seatRule.knownGender(b.riderGender);
+  const free = seatRule.seatsForRider(seatList(trip).filter((n) => !taken.has(n)), seatRule.maleOnlySeatsOf(trip), gender);
+  return free.length >= count ? { seats: free.slice(0, count).sort((x, y) => x - y), same: false } : null;
+};
+
+/**
+ * Driver checks a passenger in with booking code + PIN (5 wrong tries -> 15 min lock).
+ * Normal: a CONFIRMED booking while boarding (or, on a union queue auto, while it is at the stand / leaving).
+ * Late (services/lateCheckIn.js): a booking marked NO_SHOW less than LIMITS.LATE_CHECKIN_MINUTES ago, while its auto
+ * is at the stand, leaving or on the way (IN_PROGRESS): the same PIN check, then BOARDED again with its seats
+ * reclaimed (another free seat when its own was given away; 409 SEAT_NOW_TAKEN when none is free), the no-show
+ * record cleared and the payment status restored. Returns { booking, trip, already?, late?, seatsChanged? }.
+ */
 const checkIn = async ({ tripId, driverId, bookingCode, pin, cashCollected }) => {
   const { Booking, Seat } = M();
+  const late = require('./lateCheckIn');
   const code = String(bookingCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
   const p = String(pin || '').replace(/\D/g, '').slice(0, 6);
   if (!code) throw fail(400, 'INVALID_INPUT', 'Enter the passenger\'s booking code.', { field: 'bookingCode' });
@@ -547,11 +570,16 @@ const checkIn = async ({ tripId, driverId, bookingCode, pin, cashCollected }) =>
     if (String(trip.driverId) !== String(driverId)) throw fail(404, 'NOT_FOUND', 'Trip not found.');
     // Union queue: students sit in the auto while it fills at the stand, so it can check them in while on charge.
     const atStand = chargeLine.isCharge(trip) && [T.OPEN_FOR_BOOKING, T.DEPARTURE_THRESHOLD_REACHED, T.FULL, T.DRIVER_CONFIRMED].includes(trip.status);
-    if (trip.status !== T.BOARDING && !atStand) throw fail(409, 'NOT_BOARDING', 'Start boarding first, then check passengers in.');
+    const running = trip.status === T.IN_PROGRESS;
+    if (trip.status !== T.BOARDING && !atStand && !running) throw fail(409, 'NOT_BOARDING', 'Start boarding first, then check passengers in.');
     const b = await Booking.findOne({ where: { tripId: trip.id, bookingCode: code }, ...lockOpt(t) });
     if (!b) return { wrong: 'NO_BOOKING' };
     if (b.status === B.BOARDED) return { booking: b, trip, already: true };
-    if (b.status !== B.CONFIRMED) throw fail(409, 'NOT_CONFIRMED', `This booking is ${b.status.toLowerCase()}.`);
+    const lateOk = b.status === B.NO_SHOW && late.untilMs(b, trip) !== null;
+    if (b.status === B.NO_SHOW && !lateOk) {
+      throw fail(409, 'LATE_CHECK_IN_CLOSED', `This booking was marked as not here more than ${E.LIMITS.LATE_CHECKIN_MINUTES} minutes ago, so it can no longer be checked in. The passenger can use Report a problem in the app.`);
+    }
+    if (b.status !== B.CONFIRMED && !lateOk) throw fail(409, 'NOT_CONFIRMED', `This booking is ${b.status.toLowerCase().replace(/_/g, ' ')}.`);
     if (b.pinLockedUntil && new Date(b.pinLockedUntil).getTime() > clock.nowMs()) {
       return { locked: true, until: b.pinLockedUntil };
     }
@@ -563,6 +591,25 @@ const checkIn = async ({ tripId, driverId, bookingCode, pin, cashCollected }) =>
     }
     const now = clock.now();
     const cash = b.paymentMethod === E.PAYMENT_METHODS.CASH && cashCollected === true;
+    if (lateOk) {
+      const got = await reclaimSeats(b, trip, t);
+      if (!got) {
+        return { refusedLate: fail(409, 'SEAT_NOW_TAKEN', `The PIN is right, but the seat${Number(b.seatCount) === 1 ? '' : 's'} of this booking ${Number(b.seatCount) === 1 ? 'was' : 'were'} given to someone else after it was marked as not here, and no other free seat fits. Ask the passenger to book again, or use Report a problem.`, { seatCount: Number(b.seatCount) }) };
+      }
+      const paid = b.paymentMethod === E.PAYMENT_METHODS.WALLET && Number(b.walletDebited) > 0;
+      const [n] = await Booking.update({
+        status: B.BOARDED, boardedAt: now, pinAttempts: 0, pinLockedUntil: null, noShowAt: null, cancelledBy: null, cancelReason: null,
+        seatNumbers: got.seats,
+        paymentStatus: paid ? E.PAYMENT_STATUS.PAID : cash ? E.PAYMENT_STATUS.CASH_COLLECTED : b.cashCollectedAt ? E.PAYMENT_STATUS.CASH_COLLECTED : E.PAYMENT_STATUS.CASH_DUE,
+        ...(cash ? { cashCollectedAt: now } : {}),
+      }, { where: { id: b.id, status: B.NO_SHOW }, transaction: t });
+      if (!n) throw fail(409, 'BOOKING_CHANGED', 'This booking changed just now. Please try again.');
+      await Seat.bulkCreate(got.seats.map((seatNo) => ({ tripId: trip.id, seatNo, bookingId: b.id, status: S.BOARDED })), { transaction: t });
+      await recomputeCounters(trip, t);
+      if (atStand) await syncAvailability(trip, { t, actor: 'system' });
+      await require('./stateMachine').logEvent(trip, { actor: 'driver', actorId: driverId, t, note: `Late check-in ${b.bookingCode} (seat ${got.seats.join(', ')})`, meta: { kind: 'LATE_CHECK_IN', bookingId: b.id, seats: got.seats, sameSeats: got.same } });
+      return { booking: await Booking.findByPk(b.id, { transaction: t }), trip, late: true, seatsChanged: !got.same };
+    }
     await Booking.update({
       status: B.BOARDED, boardedAt: now, pinAttempts: 0, pinLockedUntil: null,
       ...(cash ? { cashCollectedAt: now, paymentStatus: E.PAYMENT_STATUS.CASH_COLLECTED } : {}),
@@ -571,6 +618,7 @@ const checkIn = async ({ tripId, driverId, bookingCode, pin, cashCollected }) =>
     await recomputeCounters(trip, t);
     return { booking: await Booking.findByPk(b.id, { transaction: t }), trip };
   });
+  if (out.refusedLate) throw out.refusedLate;
   if (out.locked) {
     const until = out.until ? new Date(out.until) : new Date(clock.nowMs() + E.LIMITS.PIN_LOCK_MS);
     throw fail(429, 'PIN_LOCKED', 'Too many wrong PINs for this booking. Try again in 15 minutes or ask the passenger to contact support.', {

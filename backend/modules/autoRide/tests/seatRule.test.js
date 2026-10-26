@@ -161,7 +161,7 @@ test('auto-assign ("Book 1 seat") never gives seat 1 or 2 to a female / unknown 
   const girl2 = await H.mkUser({ gender: 'Female' });
   const map = await api('GET', `/api/auto-ride/trips/${trip.id}/seats`, girl2.token);
   assert.equal(map.body.viewer, 'NOT_MALE');
-  assert.deepEqual(map.body.summary, { available: 2, availableForYou: 0, onlyFrontSeatsLeft: true });
+  assert.deepEqual(map.body.summary, { available: 2, availableForYou: 0, heldByYou: 0, onlyFrontSeatsLeft: true });
   assert.deepEqual(map.body.seats.filter((s) => s.state === 'AVAILABLE').map((s) => [s.seatNo, s.maleOnly, s.forYou]), [[1, true, false], [2, true, false]]);
   const line = (await api('GET', `/api/auto-ride/on-charge?pickupPointId=${pickup.id}`, girl2.token)).body.lines[0];
   assert.equal(line.onCharge.remainingSeats, 2);
@@ -180,7 +180,7 @@ test('auto-assign ("Book 1 seat") never gives seat 1 or 2 to a female / unknown 
 
   const boy = await H.mkUser({ gender: 'Male' });
   const bm = await api('GET', `/api/auto-ride/trips/${trip.id}/seats`, boy.token);
-  assert.deepEqual(bm.body.summary, { available: 2, availableForYou: 2, onlyFrontSeatsLeft: false });
+  assert.deepEqual(bm.body.summary, { available: 2, availableForYou: 2, heldByYou: 0, onlyFrontSeatsLeft: false });
   const b = await H.book(trip.id, { user: boy, seatCount: 2 });
   assert.deepEqual(b.booking.seatNumbers, [1, 2]);
   assert.equal((await tripRow(trip.id)).status, 'FULL');

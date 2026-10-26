@@ -282,10 +282,21 @@ const checkIn = async (req, res) => {
   const trip = await ownTrip(req);
   const body = req.body || {};
   const r = await alloc.checkIn({ tripId: trip.id, driverId: req.driver.id, bookingCode: body.bookingCode, pin: body.pin, cashCollected: body.cashCollected === true });
-  if (!r.already) notify.bookingEvent(r.booking, { title: 'You are checked in ✅', body: 'Have a safe ride with Zenvy Auto-Ride.', type: 'AUTO_BOARDED' });
+  if (!r.already) {
+    const nums = Array.isArray(r.booking.seatNumbers) ? r.booking.seatNumbers : [];
+    const seatTxt = nums.length ? ` Seat${nums.length === 1 ? '' : 's'} ${nums.join(', ')}.` : '';
+    notify.bookingEvent(r.booking, {
+      title: 'You are checked in',
+      body: r.late
+        ? `The driver checked you in.${seatTxt} The missed auto note is cleared. Have a safe ride.`
+        : `The driver checked you in.${seatTxt} Have a safe ride.`,
+      type: 'AUTO_BOARDED',
+    });
+    notify.tripEvent(r.trip, {});
+  }
   const { getUserModel } = require('../../../models/User');
   const u = await getUserModel().findByPk(r.booking.userId, { attributes: ['id', 'name'] });
-  res.json({ booking: S.bookingDriver(r.booking, u), trip: { id: r.trip.id, ...S.tripStatus(r.trip) }, duplicate: !!r.already });
+  res.json({ booking: S.bookingDriver(r.booking, u, { trip: r.trip }), trip: { id: r.trip.id, ...S.tripStatus(r.trip) }, duplicate: !!r.already, late: !!r.late, seatsChanged: !!r.seatsChanged });
 };
 
 // POST /api/auto-ride/driver/trips/:id/bookings/:bookingId/no-show
@@ -294,7 +305,7 @@ const noShow = async (req, res) => {
   const bookingId = String(req.params.bookingId || '');
   if (!isUuid(bookingId)) throw fail(404, 'NOT_FOUND', 'Booking not found.');
   const r = await alloc.markNoShow({ tripId: trip.id, driverId: req.driver.id, bookingId });
-  notify.bookingEvent(r.booking, { title: 'Marked as no-show', body: 'The driver marked you as not at the pickup point. Contact support if this is wrong.', type: 'AUTO_NO_SHOW' });
+  notify.bookingEvent(r.booking, { title: 'The driver marked you as not here', body: `If you are at the auto, ask the driver to check you in with your PIN (within ${E.LIMITS.LATE_CHECKIN_MINUTES} minutes). If this is wrong, open the booking and tap Report a problem.`, type: 'AUTO_NO_SHOW' });
   notify.tripEvent(r.trip, {});
   res.json({ booking: S.bookingDriver(r.booking, null), trip: { id: r.trip.id, ...S.tripStatus(r.trip) } });
 };

@@ -13,7 +13,7 @@ export type RootStack = {
   PutOnCharge: undefined;
   Charge: { tripId: string };
   TripDetail: { tripId: string; tab?: 'status' | 'seats' | 'bookings' };
-  CheckIn: { tripId: string };
+  CheckIn: { tripId: string; code?: string };
   Requests: undefined;
   Notifications: undefined;
   History: undefined;

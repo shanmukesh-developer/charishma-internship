@@ -168,7 +168,7 @@ const runAutoRideJobs = async (now = clock.now()) => {
         const freed = [];
         for (const x of r.expired) {
           freed.push(...x.seatNumbers);
-          notify.toCustomers([x.booking.userId], 'Seat released', `Your seat was released because you didn't arrive in ${windowMin} minutes.`, { type: 'AUTO_ARRIVAL_NO_SHOW', bookingId: x.booking.id, tripId: trip.id });
+          notify.toCustomers([x.booking.userId], 'Seat released', `Your seat was released because you didn't arrive in ${windowMin} minutes. If you are at the auto, ask the driver to check you in with your PIN.`, { type: 'AUTO_ARRIVAL_NO_SHOW', bookingId: x.booking.id, tripId: trip.id });
           notify.nudgeCustomers([x.booking.userId], 'booking', x.booking.id, x.booking.status);
         }
         const nums = freed.sort((a, c) => a - c);
@@ -186,8 +186,11 @@ const runAutoRideJobs = async (now = clock.now()) => {
     await safe(async () => {
       const r = await withTripLock(row.id, async (t, tr) => {
         if (tr.status !== T.IN_PROGRESS) return [];
-        const missed = await Booking.findAll({ where: { tripId: tr.id, status: B.CONFIRMED }, transaction: t });
-        for (const b of missed) await Booking.update({ status: B.NO_SHOW, noShowAt: now }, { where: { id: b.id, status: B.CONFIRMED }, transaction: t });
+        // Start refuses while booked passengers are not checked in, so this only catches rows written by older code.
+        const missed = await Booking.findAll({ where: { tripId: tr.id, status: B.CONFIRMED, type: { [Op.ne]: E.BOOKING_TYPE.WALK_IN } }, transaction: t });
+        for (const b of missed) {
+          await Booking.update({ status: B.NO_SHOW, noShowAt: now, paymentStatus: b.paymentMethod === E.PAYMENT_METHODS.WALLET ? E.PAYMENT_STATUS.NOT_REFUNDED : E.PAYMENT_STATUS.NONE }, { where: { id: b.id, status: B.CONFIRMED }, transaction: t });
+        }
         if (missed.length) {
           await alloc.releaseSeatsOf(missed.map((b) => b.id), t);
           await alloc.recomputeCounters(tr, t);
@@ -195,6 +198,11 @@ const runAutoRideJobs = async (now = clock.now()) => {
         return missed;
       });
       out.passengerNoShow += r.length;
+      // Same honest copy as Start: they can still be checked in late with their PIN.
+      for (const b of r) {
+        notify.toCustomers([b.userId], actions.missedNotice.title, actions.missedNotice.body(b), { type: 'AUTO_NO_SHOW', bookingId: b.id, tripId: row.id });
+        notify.nudgeCustomers([b.userId], 'booking', b.id, B.NO_SHOW);
+      }
     });
   }
 

@@ -67,7 +67,7 @@ test('not checked in 15 minutes after booking -> NO_SHOW, seat freed, counters u
   assert.deepEqual((await H.checkInvariants(trip.id)).problems, []);
   const seats = await api('GET', `/api/auto-ride/driver/trips/${trip.id}/seats`, dv.token);
   assert.equal(seats.body.seats[3].state, 'AVAILABLE', 'seat 4 free again');
-  assert.ok((await titles(b.user.id)).includes("Seat released: Your seat was released because you didn't arrive in 15 minutes."));
+  assert.ok((await titles(b.user.id)).includes("Seat released: Your seat was released because you didn't arrive in 15 minutes. If you are at the auto, ask the driver to check you in with your PIN."));
   assert.ok((await titles(dv.driver.id)).some((t) => t.endsWith('Seat 4 is free again (no-show)')));
 
   // Idempotent: another run (and a direct call) changes nothing.

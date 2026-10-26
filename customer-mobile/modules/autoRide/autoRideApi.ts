@@ -98,6 +98,10 @@ export interface Trip extends TripStatusBlock {
   queueNote: string;
   myBookingId: string | null;
   myBookingStatus: BookingStatus | null;
+  /** Journey steps on the booking screen: boarding started, trip started, arrived at the destination. */
+  boardingAt?: string | null;
+  startedAt?: string | null;
+  arrivedAt?: string | null;
 }
 
 export interface SeatMap extends TripStatusBlock {
@@ -109,7 +113,7 @@ export interface SeatMap extends TripStatusBlock {
   seats: { seatNo: number; state: SeatState; maleOnly?: boolean; forYou?: boolean }[];
   legend: SeatState[];
   viewer?: SeatViewer;
-  summary?: { available: number; availableForYou: number; onlyFrontSeatsLeft: boolean };
+  summary?: { available: number; availableForYou: number; heldByYou?: number; onlyFrontSeatsLeft: boolean };
 }
 
 /** serialize.bookingCustomer() */
@@ -136,6 +140,10 @@ export interface Booking {
   cancelledBy: string | null;
   cancelReason: string | null;
   boardingPin: string | null;
+  /** When the booking was marked not here (NO_SHOW). */
+  noShowAt?: string | null;
+  /** Marked not here, but the driver can still check them in with the code + PIN until this time. */
+  lateCheckInUntil?: string | null;
   trip: Trip | null;
   /** ZCS Auto at the stand: reach the auto and check in before this, or the seat is released (null = no clock). */
   arriveBy?: string | null;
@@ -187,6 +195,8 @@ export type ChargeAuto = Trip & {
   seatsForYou?: number;
   /** Free seats are left, but only the boys-only front seats. */
   onlyFrontSeatsLeft?: boolean;
+  /** Seats this passenger is holding on this auto right now (not counted in remainingSeats; Book confirms them). */
+  heldByYou?: number;
 };
 /** GET /on-charge: one stand (pickup point + destination) with the auto on charge and the autos waiting behind. */
 export interface ChargeLine {
@@ -371,7 +381,7 @@ export const BOOKING_STATUS_META: Record<BookingStatus, { label: string; color: 
   COMPLETED: { label: 'Completed', color: '#10B981', icon: '🏁' },
   CANCELLED: { label: 'Cancelled', color: '#64748B', icon: '✕' },
   EXPIRED: { label: 'Hold expired', color: '#64748B', icon: '⌛' },
-  NO_SHOW: { label: 'No-show', color: '#EF4444', icon: '🚫' },
+  NO_SHOW: { label: 'Not checked in', color: '#EF4444', icon: '🚫' },
   REFUND_PENDING: { label: 'Refund pending', color: '#F59E0B', icon: '↺' },
   REFUNDED: { label: 'Refunded', color: '#6366F1', icon: '↺' },
 };

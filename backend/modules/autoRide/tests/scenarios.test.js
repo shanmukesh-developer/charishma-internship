@@ -146,11 +146,16 @@ test('S8 driver confirms departure, boards with code + PIN, starts and completes
   assert.equal(ci.body.booking.boardingPin, undefined, 'PIN never in driver payloads');
   assert.equal(ci.body.booking.paymentStatus, 'CASH_COLLECTED');
   assert.equal((await api('POST', `/api/auto-ride/driver/trips/${t.trip.id}/actions/start`, t.token, {})).status, 400, 'safety check required');
-  s = await api('POST', `/api/auto-ride/driver/trips/${t.trip.id}/actions/start`, t.token, { safetyConfirmed: true });
+  // Start never drops the unboarded passenger silently: refused with the list, then the driver marks them not here.
+  s = await api('POST', `/api/auto-ride/driver/trips/${t.trip.id}/actions/start`, t.token, { safetyConfirmed: true, noShowConfirmed: [] });
+  assert.equal(s.status, 409);
+  assert.equal(s.body.code, 'PASSENGERS_NOT_CHECKED_IN');
+  assert.deepEqual(s.body.passengers.map((x) => x.bookingId), [b.booking.id]);
+  s = await api('POST', `/api/auto-ride/driver/trips/${t.trip.id}/actions/start`, t.token, { safetyConfirmed: true, noShowConfirmed: [b.booking.id] });
   assert.equal(s.status, 200);
   assert.equal(s.body.trip.status, 'IN_PROGRESS');
   const missed = await api('GET', `/api/auto-ride/bookings/${b.booking.id}`, b.user.token);
-  assert.equal(missed.body.booking.status, 'NO_SHOW', 'unboarded passenger marked no-show at start');
+  assert.equal(missed.body.booking.status, 'NO_SHOW', 'passenger the driver marked as not here is no-show at start');
   assert.equal((await api('POST', `/api/auto-ride/driver/trips/${t.trip.id}/actions/arrive`, t.token, {})).status, 200);
   s = await api('POST', `/api/auto-ride/driver/trips/${t.trip.id}/actions/complete`, t.token, {});
   assert.equal(s.body.trip.status, 'COMPLETED');

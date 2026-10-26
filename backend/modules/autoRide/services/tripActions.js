@@ -295,6 +295,58 @@ const endTrip = async ({ tripId, to, actor, actorId, reason, driverId }) => {
   return out;
 };
 
+const seatText = (nums, count) => (nums.length ? `seat${nums.length === 1 ? '' : 's'} ${nums.join(', ')}` : `${count} seat${count === 1 ? '' : 's'}`);
+
+/** The 409 PASSENGERS_NOT_CHECKED_IN refusal naming each booked passenger who is not checked in. */
+const notCheckedInError = async (rows, t, { legacy }) => {
+  const S = require('./serialize');
+  let names = new Map();
+  try {
+    const User = require('../../../models/User').getUserModel();
+    const ids = [...new Set(rows.map((b) => String(b.userId)))];
+    const users = User && ids.length ? await User.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'name'], transaction: t }) : [];
+    names = new Map(users.map((u) => [String(u.id), u.name]));
+  } catch { /* first names fall back to "Passenger" */ }
+  const passengers = rows.map((b) => {
+    const seats = (Array.isArray(b.seatNumbers) ? b.seatNumbers : []).map(Number);
+    return { bookingId: b.id, firstName: S.firstName(names.get(String(b.userId))), seats, seatCount: Number(b.seatCount) || seats.length, code: b.bookingCode };
+  });
+  const list = passengers.map((x) => `${x.firstName} (${seatText(x.seats, x.seatCount)})`).join(', ');
+  const n = passengers.length;
+  const message = `${n === 1 ? '1 passenger is' : `${n} passengers are`} not checked in yet: ${list}. Check them in with their booking code and PIN. `
+    + (legacy ? 'If they are not in the auto, tap Start trip again to leave without them.' : 'If they are not in the auto, mark them as not here.');
+  return fail(409, 'PASSENGERS_NOT_CHECKED_IN', message, { passengers, confirmAgain: !!legacy });
+};
+
+/**
+ * Start's decision on booked passengers who are not checked in. Returns { missed: true } (mark every row in
+ * `unboarded` NO_SHOW), or { refuse: error }. See ACTIONS.start.
+ */
+const missedDecision = async ({ trip, unboarded, body, driverId, t }) => {
+  if (!unboarded.length) return { missed: true };
+  const ids = unboarded.map((b) => String(b.id));
+  if (Object.hasOwn(body, 'noShowConfirmed')) {
+    if (!Array.isArray(body.noShowConfirmed)) throw fail(400, 'INVALID_INPUT', 'noShowConfirmed must be a list of booking ids.', { field: 'noShowConfirmed' });
+    const named = new Set(body.noShowConfirmed.slice(0, 50).map(String));
+    const pending = unboarded.filter((b) => !named.has(String(b.id)));
+    return pending.length ? { refuse: await notCheckedInError(pending, t, { legacy: false }) } : { missed: true };
+  }
+  // Driver app 1.0.6 and older: no list. A refusal for this exact set of passengers less than
+  // LEGACY_START_CONFIRM_MS ago (recorded below, committed with the refusal) means the driver saw the names and
+  // tapped Start again.
+  const Event = getModel('AutoTripEvent');
+  const nowMs = clock.nowMs();
+  const key = [...ids].sort().join(',');
+  const recent = await Event.findAll({ where: { tripId: trip.id }, order: [['createdAt', 'DESC']], limit: 20, transaction: t });
+  const prior = recent.find((e) => {
+    const m = e.meta || {};
+    return m.kind === 'START_REFUSED' && m.legacy === true && m.key === key && Number(m.at) <= nowMs && nowMs - Number(m.at) <= E.LIMITS.LEGACY_START_CONFIRM_MS;
+  });
+  if (prior) return { missed: true, legacy: true };
+  await logEvent(trip, { actor: 'driver', actorId: driverId, t, note: `Start refused: ${ids.length} booked passenger${ids.length === 1 ? '' : 's'} not checked in`, meta: { kind: 'START_REFUSED', legacy: true, key, at: nowMs } });
+  return { refuse: await notCheckedInError(unboarded, t, { legacy: true }) };
+};
+
 /** Driver trip actions. */
 const ACTIONS = {
   'confirm-departure': async ({ trip, t, driverId, body }) => {
@@ -312,21 +364,33 @@ const ACTIONS = {
   },
   'start-boarding': async ({ trip, t, driverId }) => {
     await transitionTrip(trip, T.BOARDING, { actor: 'driver', actorId: driverId, t });
-    return { notice: { title: 'Boarding has started', body: 'Show your booking code and PIN to the driver to board.', type: 'AUTO_BOARDING' } };
+    return { notice: { title: 'Boarding has started', body: 'Show your booking code and PIN to the driver to board.', type: 'AUTO_BOARDING', perBooking: showPinNow(false) } };
   },
+  // Start never drops a passenger silently. Booked passengers who are not checked in make Start answer
+  // 409 PASSENGERS_NOT_CHECKED_IN { passengers: [{ bookingId, firstName, seats, seatCount, code }] }; the driver checks
+  // them in, or sends Start again with noShowConfirmed: [bookingId, ...] naming exactly the ones who are not here
+  // (only those become NO_SHOW; anyone not named keeps the refusal). Driver app 1.0.6 and older send no list: they
+  // get the same refusal (its message is shown as the error toast) and a second Start within
+  // LIMITS.LEGACY_START_CONFIRM_MS for the same passengers leaves them. Every NO_SHOW can be undone by a late
+  // check-in (code + PIN) for LIMITS.LATE_CHECKIN_MINUTES (services/lateCheckIn.js).
   start: async ({ trip, t, driverId, body }) => {
     if (body.safetyConfirmed !== true) throw fail(400, 'SAFETY_CHECK_REQUIRED', 'Confirm the safety check (safetyConfirmed: true) before starting.', { field: 'safetyConfirmed' });
+    if (!E.canTransition(trip.status, T.IN_PROGRESS, 'driver')) throw require('./stateMachine').invalid(trip.status, T.IN_PROGRESS);
     if (trip.status === T.BOARDING && !(Number(trip.seatsBoarded) > 0)) throw fail(409, 'NOBODY_BOARDED', 'Check at least one passenger in before starting the trip.');
-    await transitionTrip(trip, T.IN_PROGRESS, { actor: 'driver', actorId: driverId, t, set: { safetyConfirmedAt: clock.now() } });
-    // Confirmed passengers who never boarded missed the auto.
     const { Booking } = M();
-    const missed = await Booking.findAll({ where: { tripId: trip.id, status: B.CONFIRMED }, transaction: t });
-    for (const b of missed) {
-      await Booking.update({ status: B.NO_SHOW, noShowAt: clock.now(), paymentStatus: b.paymentMethod === E.PAYMENT_METHODS.WALLET ? E.PAYMENT_STATUS.NOT_REFUNDED : E.PAYMENT_STATUS.NONE }, { where: { id: b.id, status: B.CONFIRMED }, transaction: t });
+    const unboarded = await Booking.findAll({ where: { tripId: trip.id, status: B.CONFIRMED, type: { [Op.ne]: E.BOOKING_TYPE.WALK_IN } }, order: [['createdAt', 'ASC']], transaction: t });
+    const decision = await missedDecision({ trip, unboarded, body, driverId, t });
+    if (decision.refuse) return { refused: decision.refuse };
+    await transitionTrip(trip, T.IN_PROGRESS, { actor: 'driver', actorId: driverId, t, set: { safetyConfirmedAt: clock.now() }, meta: unboarded.length ? { notHere: unboarded.map((b) => b.id), legacyConfirm: !!decision.legacy } : {} });
+    const now = clock.now();
+    const missed = [];
+    for (const b of unboarded) {
+      const [n] = await Booking.update({ status: B.NO_SHOW, noShowAt: now, paymentStatus: b.paymentMethod === E.PAYMENT_METHODS.WALLET ? E.PAYMENT_STATUS.NOT_REFUNDED : E.PAYMENT_STATUS.NONE }, { where: { id: b.id, status: B.CONFIRMED }, transaction: t });
+      if (n) missed.push(b);
     }
     await alloc.releaseSeatsOf(missed.map((b) => b.id), t);
     await alloc.recomputeCounters(trip, t);
-    return { notice: { title: 'Your trip has started', body: 'Have a safe ride! Use Report a problem in the app if anything feels wrong.', type: 'AUTO_TRIP_STARTED', statuses: [B.BOARDED] }, missed };
+    return { notice: { title: 'Your trip has started', body: 'Have a safe ride. Use Report a problem in the app if anything feels wrong.', type: 'AUTO_TRIP_STARTED', statuses: [B.BOARDED] }, missed };
   },
   arrive: async ({ trip, t, driverId }) => {
     if (trip.status !== T.IN_PROGRESS) throw fail(409, 'INVALID_TRANSITION', 'Mark arrival during the trip.', { from: trip.status });
@@ -357,7 +421,7 @@ const ACTIONS = {
     for (const b of holds) await alloc.cancelOneInTx(b, trip, { by: 'system', reason: 'The auto departed', t, pct: 0 });
     await alloc.recomputeCounters(trip, t);
     await transitionTrip(trip, T.BOARDING, { actor: 'driver', actorId: driverId, t });
-    return { notice: { title: 'Your auto is leaving now', body: 'Show your booking code and PIN to the driver if you have not checked in yet.', type: 'AUTO_DEPARTURE_CONFIRMED' }, released: holds };
+    return { notice: { title: 'Your auto is leaving now', body: 'Show your booking code and PIN to the driver if you have not checked in yet.', type: 'AUTO_DEPARTURE_CONFIRMED', perBooking: showPinNow(true) }, released: holds };
   },
   delay: async ({ trip, t, driverId, body }) => {
     if (chargeLine.isCharge(trip)) throw fail(409, 'NOT_FOR_CHARGE', 'An auto on charge has no departure time to delay. It leaves when full or when you tap Depart.');
@@ -390,12 +454,37 @@ const runAction = async ({ tripId, driverId, action, body = {} }) => {
     const r = await fn({ trip, t, driverId, body });
     return { trip, ...r };
   });
+  // A refusal that recorded something (Start: the legacy confirm marker) is thrown only after its commit.
+  if (out.refused) throw out.refused;
   if (out.notice) {
-    notify.tripEvent(out.trip, { title: out.notice.title, body: out.notice.body, type: out.notice.type, statuses: out.notice.statuses });
+    notify.tripEvent(out.trip, { title: out.notice.title, body: out.notice.body, type: out.notice.type, statuses: out.notice.statuses, perBooking: out.notice.perBooking });
   } else notify.tripEvent(out.trip, {});
   for (const b of out.released || []) notify.toCustomers([b.userId], 'Seat hold released', chargeLine.isCharge(out.trip) ? 'The auto left before you confirmed. The next auto in line takes bookings now.' : 'The driver confirmed departure before you confirmed. Please pick another auto.', { type: 'AUTO_HOLD_RELEASED', bookingId: b.id });
-  for (const b of out.missed || []) notify.toCustomers([b.userId], 'You missed your auto', 'The trip started without you. Contact support if this is wrong.', { type: 'AUTO_NO_SHOW', bookingId: b.id });
+  for (const b of out.missed || []) {
+    notify.toCustomers([b.userId], missedNotice.title, missedNotice.body(b), { type: 'AUTO_NO_SHOW', bookingId: b.id, tripId: out.trip.id });
+    notify.nudgeCustomers([b.userId], 'booking', b.id, B.NO_SHOW);
+  }
   return out;
+};
+
+/** The push a passenger gets when the auto left without checking them in (start, lifecycle safety net). */
+const missedNotice = {
+  title: 'Your auto left without checking you in',
+  body: (b) => `If you are on it, ask the driver to check you in with your PIN${b && b.boardingPin ? ` ${b.boardingPin}` : ''} (within ${E.LIMITS.LATE_CHECKIN_MINUTES} minutes). If you missed it, open the booking and tap Report a problem.`,
+};
+
+/**
+ * Per-passenger push when the auto is leaving / boarding: a passenger not checked in yet is told to show their PIN
+ * now (the PIN is in their own push only, never the driver's); one already checked in is told they are in.
+ */
+const showPinNow = (leaving) => (row) => {
+  const lead = leaving ? 'Your auto is leaving now.' : 'Boarding has started.';
+  if (row.status === B.CONFIRMED) {
+    const pin = row.pin ? `PIN ${row.pin}` : 'your PIN';
+    return { title: `Show ${pin} to the driver now`, body: `${lead} Show booking code ${row.code} and ${pin} to the driver so you are checked in. Anyone not checked in is left behind.` };
+  }
+  if (row.status === B.BOARDED) return { title: leaving ? 'Your auto is leaving now' : 'Boarding has started', body: 'You are checked in. Have a safe ride.' };
+  return null;
 };
 
 /** Earnings from recorded money only: cash the driver marked collected + wallet payments, minus refunds. */
@@ -422,4 +511,4 @@ const earnings = async (driverId, from, to) => {
   return { cashCollected: money(cash), walletPayments: money(wallet), total: money(cash + wallet), note: 'Only payments recorded in Zenvy (cash you marked collected at check-in, wallet payments).' };
 };
 
-module.exports = { publish, publishChecks, putOnCharge, changeFare, routeSeatFare, runAction, endTrip, earnings, ACTIONS };
+module.exports = { publish, publishChecks, putOnCharge, changeFare, routeSeatFare, runAction, endTrip, earnings, ACTIONS, missedNotice };

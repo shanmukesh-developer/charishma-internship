@@ -2,6 +2,10 @@
 // (only when the server returns it), pickup instructions, cancel (refund info from the server) and report a problem.
 // ZCS Auto at the stand: a live "Reach the auto in 12:40" countdown (server arriveBy); a seat not checked in by then
 // is released by the server as a no-show.
+// The journey (modules/autoRide/BookingJourney): one "what to do now" card + the steps Booked -> Go to the auto ->
+// Show your PIN to the driver -> Checked in -> On the way -> Reached, from the server's booking + trip state. When
+// the auto is leaving and they are not checked in: "Show PIN 1234 to the driver now". Not checked in (NO_SHOW): what
+// happened and what to do (the driver can still check them in with the PIN for a while; else Report a problem).
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, Alert, Linking, Modal, TouchableOpacity } from 'react-native';
 import { PressScale } from '../../../modules/others/motion';
@@ -13,6 +17,7 @@ import {
   PAYMENT_STATUS_LABEL, TIMELINE, EXCEPTION_STATUSES, INCIDENT_CATEGORIES, type Booking,
 } from '../../../modules/autoRide/autoRideApi';
 import { AHeader, usePalette, Card, Btn, Badge, StateView, Notice, Row, Field, Chips, StatusChip, VerifiedBadge, useAutoRideLive, useAutoRideStatus, useNow, AUTO_HOME, AutoTile } from '../../../modules/autoRide/ui';
+import { currentStep, JourneyNow, JourneySteps, MissedCard } from '../../../modules/autoRide/BookingJourney';
 
 export default function AutoBookingScreen() {
   const params = useLocalSearchParams<{ id: string | string[] }>();
@@ -26,7 +31,7 @@ export default function AutoBookingScreen() {
   const [report, setReport] = useState(false);
   const [category, setCategory] = useState<string>('OTHER');
   const [desc, setDesc] = useState('');
-  const now = useNow(1000, b?.status === 'HELD' || (b?.status === 'CONFIRMED' && !!b?.arriveBy));
+  const now = useNow(1000, b?.status === 'HELD' || (b?.status === 'CONFIRMED' && !!b?.arriveBy) || (b?.status === 'NO_SHOW' && !!b?.lateCheckInUntil));
   const settings = useAutoRideStatus()?.settings || null;
 
   const load = useCallback(async () => {
@@ -61,6 +66,12 @@ export default function AutoBookingScreen() {
   const holdLeft = b.holdExpiresAt ? new Date(b.holdExpiresAt).getTime() - now : 0;
   const arriveLeft = b.status === 'CONFIRMED' && b.arriveBy ? new Date(b.arriveBy).getTime() - now : null;
   const arriveUrgent = arriveLeft !== null && arriveLeft <= 5 * 60 * 1000;
+  const step = currentStep(b);
+  const reportMissed = () => {
+    setCategory('OTHER');
+    if (!desc.trim()) setDesc('I was in the auto, but the driver did not check me in.');
+    setReport(true);
+  };
 
   const doCancel = () => {
     const held = b.status === 'HELD';
@@ -128,6 +139,8 @@ export default function AutoBookingScreen() {
         {b.status === 'HELD' ? (
           <Notice tone="warn">⏳ Seats held, not booked yet{holdLeft > 0 ? `: confirm within ${mmss(holdLeft)}` : ' (expired)'}. <Text style={{ fontWeight: '900', color: p.accent }} onPress={() => router.push(`/auto-ride/trip/${b.tripId}` as any)}>Finish booking ›</Text></Notice>
         ) : null}
+        {step ? <JourneyNow b={b} step={step} now={now} /> : null}
+        {b.status === 'NO_SHOW' ? <MissedCard b={b} now={now} onReport={reportMissed} /> : null}
 
         {(b.status === 'CONFIRMED' || b.status === 'BOARDED') ? (
           <Card style={{ alignItems: 'center' }}>
@@ -182,8 +195,9 @@ export default function AutoBookingScreen() {
           </Card>
         ) : null}
 
-        {/* Trip status timeline (from the server's trip status) */}
-        {t && !exception ? (
+        {/* The journey steps; other bookings (hold, ...) keep the plain trip status timeline */}
+        {t && !exception && step ? <JourneySteps b={b} step={step} /> : null}
+        {t && !exception && !step && b.status !== 'NO_SHOW' ? (
           <Card>
             <Text style={{ fontSize: 14, fontWeight: '900', color: p.text, marginBottom: 10 }}>Trip status</Text>
             {TIMELINE.map((x, i) => {

@@ -171,14 +171,18 @@ export function CoRideV2Provider({ children }: { children: React.ReactNode }) {
     });
   }, [myId]);
 
+  // Reloads overlap (a hold's own reload + live socket nudges): only the newest board answer is shown, so an older
+  // answer from before a hold can never land last and show the held seat as free ("8 of 8 left").
+  const autoSeq = useRef(0);
   const reloadAuto = useCallback(() => {
+    const mine = ++autoSeq.current;
     autoRideApi.status().then((s) => {
       if (!alive.current) return;
       setAutoOn(!!s.enabled); cache.autoOn = !!s.enabled;
       if (!s.enabled) return;
       autoRideApi.routes().then((r) => { cache.routes = r.routes || []; if (alive.current) setAutoRoutes(cache.routes); }).catch(() => {});
       autoRideApi.onCharge().then((b) => {
-        if (!alive.current) return;
+        if (!alive.current || mine !== autoSeq.current) return;
         cache.lines = b.lines || []; cache.maxSeats = Math.max(1, Number(b.maxSeatsPerBooking) || 1);
         setAutoLines(cache.lines); setAutoMaxSeats(cache.maxSeats); setAutoError(null);
       }).catch((e: any) => alive.current && setAutoError(e?.message || 'Could not load the autos.'));

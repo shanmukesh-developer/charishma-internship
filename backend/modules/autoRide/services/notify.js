@@ -54,21 +54,26 @@ const tripChanged = (tripId) => realtime.publish('auto_trip', 'updated', tripId)
 /** Customer ids holding a live / confirmed booking on a trip (for broadcast-to-passengers). */
 const passengersOf = async (tripId, statuses) => [...new Set((await passengerBookings(tripId, statuses)).map((r) => r.userId))];
 
-/** [{ userId, bookingId }] of the trip's bookings in `statuses` (one row per booking). */
+/**
+ * [{ userId, bookingId, status, code, pin }] of the trip's bookings in `statuses` (one row per booking). pin is the
+ * passenger's own boarding PIN: only ever used for that passenger's own push (perBooking below).
+ */
 const passengerBookings = async (tripId, statuses) => {
   const Booking = getModel('AutoBooking');
   if (!Booking) return [];
   const { Op } = require('sequelize');
   // WALK_IN rows (people who sat in without the app) belong to no customer.
-  const rows = await Booking.findAll({ where: { tripId, status: { [Op.in]: statuses }, type: { [Op.ne]: 'WALK_IN' } }, attributes: ['id', 'userId'], order: [['createdAt', 'ASC']] });
-  return rows.map((r) => ({ userId: String(r.userId), bookingId: String(r.id) }));
+  const rows = await Booking.findAll({ where: { tripId, status: { [Op.in]: statuses }, type: { [Op.ne]: 'WALK_IN' } }, attributes: ['id', 'userId', 'status', 'bookingCode', 'boardingPin'], order: [['createdAt', 'ASC']] });
+  return rows.map((r) => ({ userId: String(r.userId), bookingId: String(r.id), status: r.status, code: r.bookingCode, pin: r.boardingPin || null }));
 };
 
 /**
  * Trip-wide event: every passenger in `statuses` + the driver, plus socket nudges + public refresh.
  * Each passenger's push carries THEIR bookingId (one push per booking), so a tap opens their booking.
+ * perBooking(row) -> { title, body } | null: per-passenger copy (e.g. "Show PIN 1234 to the driver now"); null
+ * falls back to title / body.
  */
-const tripEvent = (trip, { title, body, driverTitle, driverBody, type, statuses }) => {
+const tripEvent = (trip, { title, body, driverTitle, driverBody, type, statuses, perBooking }) => {
   track(Promise.resolve().then(async () => {
     const { CONFIRMED_BOOKING_STATUSES } = require('../enums');
     const rows = await passengerBookings(trip.id, statuses || CONFIRMED_BOOKING_STATUSES);
@@ -76,7 +81,8 @@ const tripEvent = (trip, { title, body, driverTitle, driverBody, type, statuses 
     for (const r of rows) {
       if (seen.has(r.userId)) continue; // one live booking per passenger per trip; never two pushes
       seen.add(r.userId);
-      if (title) toCustomers([r.userId], title, body, { type, tripId: trip.id, bookingId: r.bookingId });
+      const own = title && typeof perBooking === 'function' ? perBooking(r) : null;
+      if (title) toCustomers([r.userId], own ? own.title : title, own ? own.body : body, { type, tripId: trip.id, bookingId: r.bookingId });
     }
     nudgeCustomers([...seen], 'trip', trip.id, trip.status);
     if (driverTitle) toDriver(trip.driverId, driverTitle, driverBody || '', { type, tripId: trip.id });

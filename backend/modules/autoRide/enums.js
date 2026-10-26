@@ -235,6 +235,10 @@ const LIMITS = {
   MAX_VEHICLE_PHOTOS: 4,
   PIN_MAX_ATTEMPTS: 5,
   PIN_LOCK_MS: 15 * 60 * 1000,
+  /** A passenger marked NO_SHOW can still be checked in (code + PIN) this long after, while the auto runs. */
+  LATE_CHECKIN_MINUTES: 30,
+  /** Driver app 1.0.6 and older (no noShowConfirmed list): a second Start this soon after a refusal leaves them. */
+  LEGACY_START_CONFIRM_MS: 3 * 60 * 1000,
   MAX_OPEN_HOLDS_PER_USER: 3,
   MAX_OPEN_PRIVATE_REQUESTS_PER_USER: 3,
   MAX_LAYOUT_ROWS: 6,

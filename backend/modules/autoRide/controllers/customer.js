@@ -211,9 +211,10 @@ const seatMapFor = async (trip, userId, opts = {}) => {
   });
   const available = seats.filter((x) => x.state === 'AVAILABLE').length;
   const availableForYou = seats.filter((x) => x.forYou).length;
+  const heldByYou = seats.filter((x) => x.state === 'MINE_HELD').length;
   return {
     layout, seats, legend, viewer,
-    summary: { available, availableForYou, onlyFrontSeatsLeft: viewer !== 'MALE' && available > 0 && availableForYou === 0 },
+    summary: { available, availableForYou, heldByYou, onlyFrontSeatsLeft: viewer !== 'MALE' && available > 0 && availableForYou === 0 },
   };
 };
 
@@ -242,8 +243,19 @@ const chargeBoard = async (req, userId, filter = {}) => {
       const ctx = await tripContext(inLine, userId);
       const card = async (t, position) => {
         const seatMap = await seatMapFor(t, userId, { viewerGender });
-        // Seats THIS customer can book (the seats beside the driver are for boys only).
-        return { ...S.tripCustomer(req, t, ctx(t)), position, seatMap, seatsForYou: seatMap.summary.availableForYou, onlyFrontSeatsLeft: seatMap.summary.onlyFrontSeatsLeft };
+        const base = S.tripCustomer(req, t, ctx(t));
+        // "N of 8 left" is counted from this same seat map, so it always matches the seats drawn: a seat held by
+        // anyone (the viewer included) is not left; a stale hold the next write expires is shown free and counted
+        // free. The viewer's own held seats stay bookable for them (heldByYou; Book confirms that hold).
+        // (A map closed to booking draws free seats as UNAVAILABLE: the counter answer stays then.)
+        const closedMap = seatMap.seats.some((x) => x.state === 'UNAVAILABLE');
+        const left = base.mode === E.MODE.PRIVATE ? 0 : closedMap ? base.remainingSeats : seatMap.summary.available;
+        const mineHeld = seatMap.summary.heldByYou;
+        return {
+          ...base, position, seatMap, remainingSeats: left, heldByYou: mineHeld,
+          sharedBookingAllowed: base.sharedBookingAllowed || (mineHeld > 0 && base.myBookingStatus === B.HELD),
+          seatsForYou: seatMap.summary.availableForYou, onlyFrontSeatsLeft: seatMap.summary.onlyFrontSeatsLeft,
+        };
       };
       const onCharge = front ? await card(front, 1) : null;
       const waitingAutos = [];
