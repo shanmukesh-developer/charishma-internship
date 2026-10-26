@@ -145,12 +145,6 @@ const PROMOS_FOOD = [
   { id: 'f3', tagline: 'Night canteen and pantry', title: 'Your hostel grocery run', subtitle: '', desc: 'Snacks, dairy, instant noodles and drinks from the campus mart.', btn: 'Explore', img: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=900&q=80' },
 ];
 
-const PROMOS_SERVICES = [
-  { id: 's1', tagline: 'Laptop and phone', title: 'Tech repairs on campus', subtitle: '', desc: 'Screen replacement, fan cleaning, thermal paste and hardware fixes. Book a slot in the app.', btn: 'Book a repair', img: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=1200&q=80' },
-  { id: 's2', tagline: 'Campus tailoring', title: 'Uniform and fabric alterations', subtitle: '', desc: 'Lab coat tailoring, fitting alterations, blazer adjustments and stitching requests.', btn: 'Request a tailor', img: 'https://images.unsplash.com/photo-1630930678172-63343537a00a?w=1200&q=80' },
-  { id: 's3', tagline: 'Pickup and drop', title: 'Wash, dry clean and ironing', subtitle: '', desc: 'Daily clothes, bedsheets and blankets picked up from your hostel and brought back clean.', btn: 'Book laundry', img: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=1200&q=80' },
-];
-
 const PROMOS_PG = [
   { id: 'p1', tagline: 'Student stays', title: 'PG residences near campus', subtitle: '', desc: 'Compare rent, sharing type and distance from campus, then request a bed right here.', btn: 'Browse stays', img: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80' },
   { id: 'p2', tagline: 'Book in the app', title: 'Request a bed, we confirm it', subtitle: '', desc: 'Send a booking request and the housing team confirms it with you.', btn: 'View listings', img: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80' },
@@ -174,7 +168,6 @@ const PROMOS_RENTALS = [
 
 const TAB_PROMOS: Record<string, typeof PROMOS_FOOD> = {
   food: PROMOS_FOOD,
-  services: PROMOS_SERVICES,
   pg: PROMOS_PG,
   coride: PROMOS_CORIDE,
   rentals: PROMOS_RENTALS,
@@ -251,7 +244,6 @@ const LISTING_HEROES: Record<string, ListingHero> = {
 const FOOD_HERO_IMG = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&q=70';
 
 /** Tech & repairs search hints (the header search opens the repairs page with its search). */
-const SERVICE_SEARCH_HINTS = ["Search for 'laptop screen'", "Search for 'phone battery'", "Search for 'keyboard repair'", "Search for 'fan cleaning'"];
 /** PG stays and Co-Ride: the header search focuses the section's own search box (never the grocery search). */
 const PG_SEARCH_HINTS = PG_V2_HINTS;
 const CORIDE_SEARCH_HINTS = ['Search lifts by destination', "Search for 'Vijayawada'", "Search for 'Guntur'"];
@@ -342,7 +334,6 @@ const SHOP_TYPES = ['grocery', 'toys', 'seeds', 'electronics'];
 const OTHERS_CATALOGUE_KEY = 'others:catalogue';
 /** Re-focusing the tab within this window reuses what is on screen (live sync covers edits). */
 const FOCUS_REFRESH_MS = 60000;
-const SERVICE_TYPES = ['repairs', 'tailoring', 'print', 'laundry', 'home'];
 const PRODUCT_FALLBACK_IMG = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80';
 // Custom "please buy this for me" requests keep using the Mega Basket shopping flow (POST /api/mega-basket).
 const MEGA_BASKET_VENDOR = 'mega-basket-vendor';
@@ -658,7 +649,6 @@ export default function OthersScreen() {
   // ── Store catalogue (real products & prices from the server) ──
   const [catalogue, setCatalogue] = useState<CatalogueItem[]>([]);
   const [catalogueStatus, setCatalogueStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [serviceFromPrice, setServiceFromPrice] = useState<Record<string, number>>({});
 
   const catalogueFromNetRef = useRef(false);
   // Stale-while-revalidate: the last good catalogue paints at once, the network refresh follows.
@@ -703,36 +693,6 @@ export default function OthersScreen() {
     } catch (err) {
       console.warn('[OTHERS_CATALOGUE]', err);
       if (isMountedRef.current) setCatalogueStatus(prev => (prev === 'ready' ? prev : 'error'));
-    }
-  }, []);
-
-  // "From ₹X" on the service cards, from the real booking catalogue: one small cached call
-  // (GET /api/catalogue/min-prices). A server without that endpoint yet falls back to the item lists.
-  const fetchServicePrices = useCallback(async () => {
-    try {
-      const res = await apiFetch(`${API_URL}/api/catalogue/min-prices?types=${encodeURIComponent(SERVICE_TYPES.join(','))}`);
-      const data = res.ok ? await readJson(res) : null;
-      if (data && typeof data === 'object' && !Array.isArray(data)) {
-        const entries = SERVICE_TYPES
-          .map(t => [t, Number((data as any)[t])] as const)
-          .filter(([, v]) => Number.isFinite(v) && v > 0);
-        if (isMountedRef.current) setServiceFromPrice(Object.fromEntries(entries));
-        return;
-      }
-    } catch (err) {
-      console.warn('[OTHERS_SERVICE_MIN_PRICES]', err);
-    }
-    try {
-      const entries = await Promise.all(SERVICE_TYPES.map(async t => {
-        const res = await apiFetch(`${API_URL}/api/catalogue/items?type=${encodeURIComponent(t)}&limit=200`);
-        if (!res.ok) return [t, 0] as const;
-        const data = await readJson(res);
-        const prices = (Array.isArray(data?.items) ? data.items : []).map((i: any) => Number(i.price)).filter((n: number) => Number.isFinite(n) && n > 0);
-        return [t, prices.length ? Math.min(...prices) : 0] as const;
-      }));
-      if (isMountedRef.current) setServiceFromPrice(Object.fromEntries(entries.filter(([, v]) => v > 0)));
-    } catch (err) {
-      console.warn('[OTHERS_SERVICE_PRICES]', err);
     }
   }, []);
 
@@ -1244,11 +1204,10 @@ export default function OthersScreen() {
     // Food & groceries (modules/foodV2) loads, caches and shows its own catalogue. This screen used to
     // download the same four store lists again in parallel (8 requests, two parses, ~10 re-renders of
     // both screens on every open) for state the food tab never shows.
-    if (activeTab === 'services') { run('servicePrices', fetchServicePrices); run('catalogue', fetchCatalogue); }
-    else if (activeTab === 'pg') run('pg', () => fetchPGs());
+    if (activeTab === 'pg') run('pg', () => fetchPGs());
     // Deals & spin v2 (modules/dealsV2) loads its own rewards, coupons and deals.
     return Promise.all(jobs);
-  }, [activeTab, myId, fetchServiceability, fetchCatalogue, fetchServicePrices, fetchPGs, fetchRewards, fetchVault]);
+  }, [activeTab, myId, fetchServiceability, fetchPGs]);
 
   useFocusEffect(
     useCallback(() => {
@@ -1263,8 +1222,7 @@ export default function OthersScreen() {
     onChange: (events) => {
       const catalogueChanged = hasType(events, 'store', 'product');
       if (catalogueChanged) fetchServiceability();
-      if (activeTab === 'services' && catalogueChanged) { fetchServicePrices(); fetchCatalogue(); }
-      else if (activeTab === 'pg' && hasType(events, 'pg')) fetchPGs({ silent: true });
+      if (activeTab === 'pg' && hasType(events, 'pg')) fetchPGs({ silent: true });
       else if (activeTab === 'promos' && hasType(events, 'coupon')) refreshDealsV2Rewards();
     },
   });
@@ -1555,9 +1513,6 @@ export default function OthersScreen() {
       case 'f1': router.push('/category/stationary' as any); break;
       case 'f2': setSelectedCategoryName('Fitness ready'); break;
       case 'f3': router.push('/category/groceries' as any); break;
-      case 's1': router.push('/category/repairs' as any); break;
-      case 's2': router.push('/category/tailoring' as any); break;
-      case 's3': router.push('/category/laundry' as any); break;
       case 'p1':
       case 'p2': scrollViewRef.current?.scrollTo({ y: 300, animated: true }); break;
       case 'c1': router.push('/coride/post?role=rider' as any); break;
@@ -1617,11 +1572,6 @@ export default function OthersScreen() {
   const groceryGrid = useMemo(() => GROCERY_CATEGORIES
     .map(section => ({ ...section, items: section.items.filter(i => shelfItems(i.name, catalogue).length > 0) }))
     .filter(section => section.items.length > 0), [catalogue]);
-  const electronicsFrom = useMemo(() => {
-    const prices = shelfItems('Electronics', catalogue).map(i => i.price).filter(p => p > 0);
-    return prices.length ? Math.min(...prices) : 0;
-  }, [catalogue]);
-
   const sheetProducts = selectedCategoryName === SEARCH_SHELF ? catalogue : selectedCategoryName ? shelfItems(selectedCategoryName, catalogue) : [];
   // Sub-category chips from the products' own categories (most stocked first), only when there are 2+.
   const listChips = useMemo(() => {
@@ -1678,18 +1628,6 @@ export default function OthersScreen() {
       style={{ marginHorizontal: 16, marginTop: 12 }}
     />
   );
-
-  const SERVICE_CARD_ICON: Record<string, IonName> = {
-    repairs: 'laptop-outline', tailoring: 'cut-outline', print: 'print-outline', laundry: 'shirt-outline',
-    mattresses: 'bed-outline', electronics: 'hardware-chip-outline',
-  };
-  const SERVICE_CARDS = [
-    { id: 'LAPTOP_REPAIR', title: 'Laptop and phone repairs', tag: 'Book a slot', desc: 'Screen replacement, thermal paste, fan cleaning, SSD upgrades and hardware fixes.', icon: '💻', cat: 'repairs', priceKey: 'repairs', image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600&q=80' },
-    { id: 'TAILORING', title: 'Tailoring and stitching', tag: 'Alterations', desc: 'Length shortening, shirt and kurti alterations, lab coat resizing and zip replacement.', icon: '✂️', cat: 'tailoring', priceKey: 'tailoring', image: 'https://images.unsplash.com/photo-1630930678172-63343537a00a?w=600&q=80' },
-    { id: 'LAUNDRY', title: 'Wash, dry clean and ironing', tag: 'Pickup and drop', desc: 'Daily clothes, bedsheets, blankets and shoe cleaning from your hostel.', icon: '👕', cat: 'laundry', priceKey: 'laundry', image: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=600&q=80' },
-    { id: 'MATTRESSES', title: 'Mattresses and room gear', tag: 'Move-in essentials', desc: 'Foam mattresses, pillows, bedsheets, buckets and drying racks.', icon: '📦', cat: 'mattresses', priceKey: 'home', image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80' },
-    { id: 'ELECTRONICS', title: 'Chargers and gadgets', tag: 'Tech essentials', desc: 'Laptop adapters, extension boards, calculators and study lamps.', icon: '🔋', cat: 'electronics', priceKey: 'electronics', image: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=600&q=80' },
-  ];
 
   const wheelDisplayPrizes = spinPrizes.length ? spinPrizes : WHEEL_PRIZE_MIRROR;
   const wheelSectors = spinPrizes.map((p, i) => ({ label: p.label, ...WHEEL_STYLES[i % WHEEL_STYLES.length] }));
@@ -1756,10 +1694,9 @@ export default function OthersScreen() {
         compact={SW < 360}
         colors={SECTION_HEADER[activeTab] || SECTION_HEADER.neutral}
         subtitle={SECTION_SUBTITLE[activeTab] || 'Campus services'}
-        hints={activeTab === 'services' ? SERVICE_SEARCH_HINTS : activeTab === 'pg' ? PG_SEARCH_HINTS : activeTab === 'coride' ? CORIDE_SEARCH_HINTS : activeTab === 'events' ? EVENTS_SEARCH_HINTS : STORE_SEARCH_HINTS}
-        searchLabel={activeTab === 'services' ? 'Search repairs' : activeTab === 'pg' ? 'Search PGs by area or name' : activeTab === 'coride' ? 'Search lifts by destination' : activeTab === 'events' ? 'Search events and venues' : 'Search the campus store'}
+        hints={activeTab === 'pg' ? PG_SEARCH_HINTS : activeTab === 'coride' ? CORIDE_SEARCH_HINTS : activeTab === 'events' ? EVENTS_SEARCH_HINTS : STORE_SEARCH_HINTS}
+        searchLabel={activeTab === 'pg' ? 'Search PGs by area or name' : activeTab === 'coride' ? 'Search lifts by destination' : activeTab === 'events' ? 'Search events and venues' : 'Search the campus store'}
         onSearch={() => {
-          if (activeTab === 'services') { router.push('/category/repairs' as any); return; }
           // PG stays: the header search is the one PG search; it opens PG Buildings focused.
           if (activeTab === 'pg') { router.push('/pg/list?focus=1' as any); return; }
           // Co-Ride: the header search opens Find a lift with the destination focused.
@@ -1797,57 +1734,6 @@ export default function OthersScreen() {
               <PromoCarousel offers={carouselOffers} containerStyle={s.heroCarousel} accent={PILL_ACCENT[activeTab] ? OTHERS_ACCENTS[PILL_ACCENT[activeTab]!].solid : undefined} />
             </View>
           )}
-
-        {/* ── TECH & REPAIRS & SERVICES TAB ── */}
-        {activeTab === 'services' && (
-          <View style={{ paddingHorizontal: 16 }}>
-            <View style={{ marginBottom: 14, marginTop: 4 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: isDark ? OTHERS_ACCENTS.services.ink.dark : OTHERS_ACCENTS.services.ink.light }}>Campus services</Text>
-              <Text style={{ ...OTHERS_TYPE.heading, color: txt, marginTop: 2 }}>Book it from your hostel</Text>
-            </View>
-
-            {SERVICE_CARDS.map(srv => {
-              const from = srv.priceKey === 'electronics' ? electronicsFrom : (serviceFromPrice[srv.priceKey] || 0);
-              return (
-                <ScalePressable
-                  key={srv.id}
-                  style={[{ borderRadius: 16, backgroundColor: cardSurface, marginBottom: 12, overflow: 'hidden' }, othersShadow(isDark)]}
-                  onPress={() => router.push(`/category/${srv.cat}` as any)}
-                >
-                  <View style={{ flexDirection: 'row', padding: 14, gap: 14 }}>
-                    <View style={{ width: 90, height: 90, borderRadius: 16, overflow: 'hidden' }}>
-                      <Image source={{ uri: srv.image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" accessibilityElementsHidden />
-                    </View>
-
-                    <View style={{ flex: 1, justifyContent: 'space-between' }}>
-                      <View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                          <View style={{ backgroundColor: isDark ? OTHERS_ACCENTS.services.tint.dark : OTHERS_ACCENTS.services.tint.light, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 }}>
-                            <Text style={{ fontSize: 12, fontWeight: '700', color: isDark ? OTHERS_ACCENTS.services.ink.dark : OTHERS_ACCENTS.services.ink.light }}>{srv.tag}</Text>
-                          </View>
-                          {from > 0 && <Text style={{ fontSize: 13, fontWeight: '800', color: txt, flexShrink: 1, marginLeft: 8, textAlign: 'right' }} numberOfLines={1}>{srv.cat === 'repairs' ? `${fmtPrice(from)} inspection` : `From ${fmtPrice(from)}`}</Text>}
-                        </View>
-                        <Text style={{ fontSize: 14, fontWeight: '700', color: txt, lineHeight: 18, letterSpacing: -0.2 }}>{srv.title}</Text>
-                        <Text style={{ fontSize: 12, color: txtSec, lineHeight: 16, marginTop: 5 }} numberOfLines={2} ellipsizeMode="tail">{srv.desc}</Text>
-                        {/* The ₹99 is the doorstep inspection (catalogue item); the partner's quote replaces it and nothing is charged for a declined quote. */}
-                        {srv.cat === 'repairs' && from > 0 && <Text style={{ fontSize: 12, color: txtSec, lineHeight: 16, marginTop: 4, fontWeight: '600' }} numberOfLines={1}>You approve the quote before any work</Text>}
-                      </View>
-
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 10 }}>
-                        <LinearGradient colors={[OTHERS_ACCENTS.services.deep, OTHERS_ACCENTS.services.solid]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }}>
-                          <Text style={{ fontSize: 13, fontWeight: '700', color: '#FFF' }}>{['repairs', 'tailoring', 'print', 'laundry'].includes(srv.cat) ? 'Book now' : 'Shop now'}</Text>
-                          <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
-                        </LinearGradient>
-                      </View>
-                    </View>
-                  </View>
-                </ScalePressable>
-              );
-            })}
-          </View>
-        )}
-
-
 
         {/* ── PG STAYS TAB (modules/pgV2): hero, filters, My bookings and buildings near campus ── */}
         {activeTab === 'pg' && <PgV2OthersSection />}
