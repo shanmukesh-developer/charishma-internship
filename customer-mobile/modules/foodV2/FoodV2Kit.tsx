@@ -10,33 +10,35 @@ import { Animated, Easing, View, type StyleProp, type ViewStyle } from 'react-na
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient as SvgLinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useReducedMotion } from '../../modules/others/motion';
 import { FOOD } from './foodV2Theme';
+import { cdnWidthFor } from '../../components/SafeImage';
 
-const U = (id: string, w: number) => `https://images.unsplash.com/photo-${id}?w=${w}&q=80&auto=format&fit=crop`;
+// `dp` is the width the photo is drawn at; the request is sized for this phone's screen density.
+const U = (id: string, dp: number) => `https://images.unsplash.com/photo-${id}?w=${cdnWidthFor(dp)}&q=80&auto=format&fit=crop`;
 
 /** Hero, tile and banner photos (all Unsplash; see the report for the list to replace). */
 export const FOOD_IMG = {
   // Home hero: vegetables on a dark background, faded into the dark-green card.
-  homeHero: U('1518843875459-f738682238a6', 640),
-  // Category tiles (shown about 110-175 px wide)
-  tileGroceries: U('1609842947419-ba4f04d5d60f', 360),
-  tileFresh: U('1597362925123-77861d3fbac7', 360),
-  tileSnacks: U('1708746333830-6a40a841e810', 360),
-  tileBakery: U('1709798288301-719572ca8e98', 480),
-  tileHealth: U('1517278862943-719c3d4315b3', 480),
-  tileToys: U('1594787318286-3d835c1d207f', 360),
-  // Listing banners (shown about 190 x 120)
-  heroGroceries: U('1787287247567-940708347940', 480),
-  heroFresh: U('1590779033100-9f60a05a013d', 480),
-  heroSnacks: U('1621939514649-280e2ee25f60', 480),
-  heroBakery: U('1709798289100-7b46217e0325', 480),
-  heroHealth: U('1517278862943-719c3d4315b3', 480),
-  heroToys: U('1594787318286-3d835c1d207f', 480),
-  heroDeals: U('1610832958506-aa56368176cf', 480),
-  heroSeeds: U('1592924357228-91a4daadcfea', 480),
-  heroElectronics: U('1583863788434-e58a36330cf0', 480),
-  heroAll: U('1542838132-92c53300491e', 480),
+  homeHero: U('1518843875459-f738682238a6', 360),
+  // Category tiles (drawn about 110-175 pt wide)
+  tileGroceries: U('1609842947419-ba4f04d5d60f', 180),
+  tileFresh: U('1597362925123-77861d3fbac7', 180),
+  tileSnacks: U('1708746333830-6a40a841e810', 180),
+  tileBakery: U('1709798288301-719572ca8e98', 180),
+  tileHealth: U('1517278862943-719c3d4315b3', 180),
+  tileToys: U('1594787318286-3d835c1d207f', 180),
+  // Listing banners (drawn about 190 x 120 pt)
+  heroGroceries: U('1787287247567-940708347940', 200),
+  heroFresh: U('1590779033100-9f60a05a013d', 200),
+  heroSnacks: U('1621939514649-280e2ee25f60', 200),
+  heroBakery: U('1709798289100-7b46217e0325', 200),
+  heroHealth: U('1517278862943-719c3d4315b3', 200),
+  heroToys: U('1594787318286-3d835c1d207f', 200),
+  heroDeals: U('1610832958506-aa56368176cf', 200),
+  heroSeeds: U('1592924357228-91a4daadcfea', 200),
+  heroElectronics: U('1583863788434-e58a36330cf0', 200),
+  heroAll: U('1542838132-92c53300491e', 200),
   // Home "Daily essentials, snacks and home needs" banner
-  essentials: U('1534723452862-4c874018d66d', 800),
+  essentials: U('1534723452862-4c874018d66d', 380),
 };
 
 /** useId gives ":r1:"-style ids; SVG url(#id) references need plain characters. */

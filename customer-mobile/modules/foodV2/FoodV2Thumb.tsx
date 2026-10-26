@@ -10,7 +10,7 @@ import { View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { FOOD } from './foodV2Theme';
 import { Icon, GROUP_ICON } from './FoodV2Icons';
-import { optimizeImageUri } from '../../components/SafeImage';
+import { cdnWidthFor, optimizeImageUri } from '../../components/SafeImage';
 
 export default function Thumb({ uri, size, isDark, group, dim = false, radius = 12 }: {
   uri: string | null; size: number | string; isDark: boolean; group: string; dim?: boolean; radius?: number;
@@ -25,9 +25,9 @@ export default function Thumb({ uri, size, isDark, group, dim = false, radius = 
       </View>
     );
   }
-  // CDN photos (Unsplash) are asked for at ~3x the plate size: catalogue links carry w=600, about four
-  // times the bytes (and decode memory) a 76 px plate needs. Other hosts are unchanged.
-  const src = optimizeImageUri(uri, typeof size === 'number' ? Math.min(600, Math.round(size * 3)) : 400) || uri;
+  // CDN photos (Unsplash) are asked for at the plate size times this screen's density (catalogue links
+  // carry w=600, several times what a 76 pt plate needs). Other hosts are unchanged.
+  const src = optimizeImageUri(uri, cdnWidthFor(typeof size === 'number' ? size : 140)) || uri;
   return (
     <View style={[st.plate, box, { backgroundColor: isDark ? '#FFFFFF' : '#FFFFFF', borderColor: isDark ? 'transparent' : '#E7EDEA' }]}>
       <Image

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, StyleProp, ImageStyle, ImageSourcePropType } from 'react-native';
+import { View, StyleSheet, StyleProp, ImageStyle, ImageSourcePropType, PixelRatio, type LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image, ImageProps } from 'expo-image';
 
@@ -41,7 +41,19 @@ export function ImagePlaceholder({ style, icon = 'image-outline' }: { style?: St
 }
 
 /**
- * Ask image CDNs for a phone-sized rendition (a raw Unsplash/Pexels URL is a multi-MB original).
+ * Pixel width to ask a CDN for, for an image shown `dp` points wide: the points times the screen density
+ * (capped at 3x), rounded up to 100 px so nearby sizes share one cached file. Asking for a fixed 400 px made
+ * every photo wider than ~145 pt look soft on a 2.75x phone (owner, 26 Oct: "quality of the images has to be great").
+ */
+export function cdnWidthFor(dp: number): number {
+  const px = Math.max(1, dp) * Math.min(PixelRatio.get() || 2, 3);
+  return Math.min(2000, Math.max(100, Math.ceil(px / 100) * 100));
+}
+
+const isResizableCdn = (u: string) => u.includes('images.unsplash.com') || u.includes('images.pexels.com');
+
+/**
+ * Ask image CDNs for a rendition `width` pixels wide (a raw Unsplash/Pexels URL is a multi-MB original).
  * Other hosts are returned unchanged.
  */
 export function optimizeImageUri(uriString?: string | null, width = 400): string {
@@ -50,7 +62,7 @@ export function optimizeImageUri(uriString?: string | null, width = 400): string
   const w = Math.max(64, Math.round(width));
   if (uriString.includes('images.unsplash.com')) {
     const base = uriString.split('?')[0];
-    return `${base}?auto=format&fit=crop&w=${w}&q=70`;
+    return `${base}?auto=format&fit=crop&w=${w}&q=80`;
   }
   if (uriString.includes('images.pexels.com')) {
     const base = uriString.split('?')[0];
@@ -81,7 +93,7 @@ interface SafeImageProps extends Omit<ImageProps, 'source' | 'style' | 'onError'
   fallback?: React.ReactNode;
   /** Fade-in on load, ms. */
   fadeInDuration?: number;
-  /** Width requested from Unsplash/Pexels (default 400; use ~800 for full-width heroes). */
+  /** Display width in points when the style has no numeric width and the image should not wait for layout. */
   maxWidth?: number;
   onError?: (e: any) => void;
   /** Icon of the neutral placeholder shown when there is no photo (stores, dishes, places). */
@@ -107,6 +119,16 @@ export default function SafeImage({
   const rawUri = isStockPlaceholder(givenUri) ? '' : givenUri;
   const personImage = !!givenUri && getSmartFallback(givenUri) === null;
   const [hasError, setHasError] = useState(false);
+  // The CDN rendition is sized to the width the image is drawn at (numeric style width, else its layout).
+  const flatStyle: any = StyleSheet.flatten(style as any) || {};
+  const styleW = typeof flatStyle.width === 'number' ? flatStyle.width : 0;
+  const [layoutW, setLayoutW] = useState(0);
+  const onLayout = styleW ? undefined : (e: LayoutChangeEvent) => {
+    const w = Math.round(e.nativeEvent.layout.width);
+    // Only grow: a list re-layout must never swap a sharp image for a smaller one.
+    if (w > layoutW) setLayoutW(w);
+  };
+  const drawW = styleW || layoutW;
 
   useEffect(() => { setHasError(false); }, [rawUri]);
 
@@ -131,10 +153,14 @@ export default function SafeImage({
   let imgSource: any;
   if (typeof source === 'number') imgSource = source;
   else if (failed) imgSource = { uri: resolvedFallback };
-  else imgSource = { uri: optimizeImageUri(rawUri, maxWidth) };
+  // A CDN photo whose drawn width is not known yet waits one layout pass (no low-res request first).
+  else if (isResizableCdn(rawUri) && !drawW) imgSource = null;
+  else imgSource = { uri: optimizeImageUri(rawUri, cdnWidthFor(drawW || maxWidth)) };
+
+  if (!imgSource) return <View style={[style as any, styles.container]} onLayout={onLayout} />;
 
   return (
-    <View style={[style as any, styles.container]}>
+    <View style={[style as any, styles.container]} onLayout={onLayout}>
       <Image
         cachePolicy="memory-disk"
         contentFit="cover"
@@ -169,7 +195,7 @@ const styles = StyleSheet.create({
 type CachedImageProps = Omit<ImageProps, 'source' | 'style'> & {
   source?: ImageSourcePropType | { uri?: string | null } | null;
   style?: StyleProp<ImageStyle>;
-  /** Width requested from Unsplash/Pexels (default 400). */
+  /** Display width in points for a non-CDN-resizable case with no measured width (default: a full phone width). */
   maxWidth?: number;
   /** Icon of the neutral placeholder shown when the photo is missing or fails to load. */
   placeholderIcon?: IconName;
@@ -179,9 +205,11 @@ type CachedImageProps = Omit<ImageProps, 'source' | 'style'> & {
  * Drop-in for react-native's <Image> in lists: expo-image with memory + disk cache and
  * downsampled CDN URLs. Honors resizeMode given as a prop or inside style.
  */
-export function CachedImage({ source, style, maxWidth = 400, resizeMode, contentFit, placeholderIcon, onError, ...props }: CachedImageProps) {
+export function CachedImage({ source, style, maxWidth = 360, resizeMode, contentFit, placeholderIcon, onError, ...props }: CachedImageProps) {
   const uri = source && typeof source === 'object' && !Array.isArray(source) && 'uri' in source ? String(source.uri || '') : null;
   const [failed, setFailed] = useState(false);
+  // Sized like SafeImage: numeric style width, else the drawn width (one layout pass before a CDN request).
+  const [layoutW, setLayoutW] = useState(0);
   useEffect(() => { setFailed(false); }, [uri]);
   // A missing / broken / shared stock photo: a neutral placeholder instead of an empty or repeated picture.
   if (uri !== null && (failed || !uri.trim() || isStockPlaceholder(uri))) {
@@ -190,9 +218,16 @@ export function CachedImage({ source, style, maxWidth = 400, resizeMode, content
   const flat: any = StyleSheet.flatten(style) || {};
   const mode = resizeMode || flat.resizeMode;
   const fit = contentFit || (mode === 'contain' ? 'contain' : mode === 'stretch' ? 'fill' : mode === 'center' ? 'none' : 'cover');
+  const styleW = typeof flat.width === 'number' ? flat.width : 0;
+  const drawW = styleW || layoutW;
   let src: any = source;
-  if (source && typeof source === 'object' && !Array.isArray(source) && 'uri' in source) {
-    src = { uri: optimizeImageUri(source.uri || '', maxWidth) || undefined };
+  if (uri !== null) {
+    src = isResizableCdn(uri) && !drawW ? null : { uri: optimizeImageUri(uri, cdnWidthFor(drawW || maxWidth)) || undefined };
   }
-  return <Image cachePolicy="memory-disk" transition={150} {...props} contentFit={fit} source={src} style={style as any} onError={(e) => { setFailed(true); onError?.(e); }} />;
+  const onLayout = styleW ? (props as any).onLayout : (e: LayoutChangeEvent) => {
+    const w = Math.round(e.nativeEvent.layout.width);
+    if (w > layoutW) setLayoutW(w);
+    (props as any).onLayout?.(e);
+  };
+  return <Image cachePolicy="memory-disk" transition={150} {...props} onLayout={onLayout} contentFit={fit} source={src} style={style as any} onError={(e) => { setFailed(true); onError?.(e); }} />;
 }
