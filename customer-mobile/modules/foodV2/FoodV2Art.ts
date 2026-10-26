@@ -23,14 +23,14 @@
  *              in front of a navy box with a silver bow (Gifts & toys banner)
  */
 export const CUT = {
-  hero: require('./assets/food-v2-hero-veg-basket-cutout-2026-10-23.webp'),
-  groceries: require('./assets/food-v2-tile-groceries-paper-bags-clean-cutout-2026-10-23.webp'),
-  fresh: require('./assets/food-v2-tile-fruits-veg-pile-cutout-2026-10-23.webp'),
+  hero: require('./assets/food-v2-hero-veg-basket-cutout-hd-2026-10-26.webp'),
+  groceries: require('./assets/food-v2-tile-groceries-paper-bags-clean-cutout-hd-2026-10-26.webp'),
+  fresh: require('./assets/food-v2-tile-fruits-veg-pile-cutout-hd-2026-10-26.webp'),
   oranges: require('./assets/food-v2-banner-fresh-oranges-bowl-cutout-2026-10-23.webp'),
   snacks: require('./assets/food-v2-banner-snacks-popcorn-juice-cutout-2026-10-23.webp'),
-  bakery: require('./assets/food-v2-tile-bakery-bread-basket-cutout-2026-10-23.webp'),
+  bakery: require('./assets/food-v2-tile-bakery-bread-basket-cutout-hd-2026-10-26.webp'),
   croissants: require('./assets/food-v2-banner-bakery-croissants-cutout-2026-10-23.webp'),
-  health: require('./assets/food-v2-tile-health-care-bottles-clean-cutout-2026-10-23.webp'),
+  health: require('./assets/food-v2-tile-health-care-bottles-clean-cutout-hd-2026-10-26.webp'),
   peaches: require('./assets/food-v2-banner-fresh-peach-basket-cutout-2026-10-23.webp'),
   cookies: require('./assets/food-v2-banner-snacks-cookie-stack-cutout-2026-10-23.webp'),
   chocolate: require('./assets/food-v2-banner-snacks-chocolate-pile-cutout-2026-10-23.webp'),

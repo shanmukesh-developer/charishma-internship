@@ -10,21 +10,21 @@
 import type { ImageSourcePropType } from 'react-native';
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-export const HERO_CAMPUS_DUSK: ImageSourcePropType = require('./assets/ev2-home-hero-campus-dusk-2026-10-25.webp');
+export const HERO_CAMPUS_DUSK: ImageSourcePropType = require('./assets/ev2-home-hero-campus-dusk-hd-2026-10-26.webp');
 export const ZCS_EMBLEM: ImageSourcePropType = require('../foodV2/assets/food-v2-brand-gold-z-emblem-2026-10-23.webp');
 
 export const SAMPLE_ART = {
-  cricket: require('./assets/ev2-sample-cricket-2026-10-25.webp'),
-  concert: require('./assets/ev2-sample-concert-crowd-2026-10-25.webp'),
-  design: require('./assets/ev2-sample-design-workshop-2026-10-25.webp'),
-  hackathon: require('./assets/ev2-sample-hackathon-2026-10-25.webp'),
-  dance: require('./assets/ev2-sample-dance-night-2026-10-25.webp'),
-  quiz: require('./assets/ev2-sample-quiz-2026-10-25.webp'),
-  talk: require('./assets/ev2-sample-startup-talk-2026-10-25.webp'),
-  football: require('./assets/ev2-sample-football-2026-10-25.webp'),
-  photo: require('./assets/ev2-sample-photo-walk-2026-10-25.webp'),
-  jam: require('./assets/ev2-sample-music-jam-2026-10-25.webp'),
-  mic: require('./assets/ev2-sample-open-mic-2026-10-25.webp'),
+  cricket: require('./assets/ev2-sample-cricket-hd-2026-10-26.webp'),
+  concert: require('./assets/ev2-sample-concert-crowd-hd-2026-10-26.webp'),
+  design: require('./assets/ev2-sample-design-workshop-hd-2026-10-26.webp'),
+  hackathon: require('./assets/ev2-sample-hackathon-hd-2026-10-26.webp'),
+  dance: require('./assets/ev2-sample-dance-night-hd-2026-10-26.webp'),
+  quiz: require('./assets/ev2-sample-quiz-hd-2026-10-26.webp'),
+  talk: require('./assets/ev2-sample-startup-talk-hd-2026-10-26.webp'),
+  football: require('./assets/ev2-sample-football-hd-2026-10-26.webp'),
+  photo: require('./assets/ev2-sample-photo-walk-hd-2026-10-26.webp'),
+  jam: require('./assets/ev2-sample-music-jam-hd-2026-10-26.webp'),
+  mic: require('./assets/ev2-sample-open-mic-hd-2026-10-26.webp'),
 } satisfies Record<string, ImageSourcePropType>;
 export type SampleArtKey = keyof typeof SAMPLE_ART;
 

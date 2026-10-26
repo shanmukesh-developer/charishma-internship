@@ -179,12 +179,12 @@ const categoryUsageKeys = (c: { key: string }) => [CATEGORY_USAGE_KEY[c.key] || 
 const CATEGORY_IMAGES = {
   food: { uri: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200&q=80' },
   basket: { uri: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&q=80' },
-  pg: require('../../modules/pgV2/assets/pg-v2-building-modern-midrise-greenery-2026-10-24.webp'),
+  pg: require('../../modules/pgV2/assets/pg-v2-building-modern-midrise-greenery-hd-2026-10-26.webp'),
   rides: require('../../modules/corideV2/assets/coride-v2-owner-tile-auto-rickshaw-2026-10-24.webp'),
-  rentals: require('../../modules/rentalsV2/assets/rv2-demo-bike-ntorq-1-2026-10-25.webp'),
-  events: require('../../modules/eventsV2/assets/ev2-sample-concert-crowd-2026-10-25.webp'),
+  rentals: require('../../modules/rentalsV2/assets/rv2-demo-bike-ntorq-1-hd-2026-10-26.webp'),
+  events: require('../../modules/eventsV2/assets/ev2-sample-concert-crowd-hd-2026-10-26.webp'),
   services: { uri: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=200&q=80' },
-  promos: require('../../modules/dealsV2/assets/dv2-sample-deal-donut-stack-2026-10-25.webp'),
+  promos: require('../../modules/dealsV2/assets/dv2-sample-deal-donut-stack-hd-2026-10-26.webp'),
 };
 // Three whole cards and a slice of the fourth, so the row reads as swipeable on every width.
 const CAT_GAP = 8;

@@ -29,12 +29,12 @@ export interface SampleDeal {
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 const SAMPLES: SampleDeal[] = [
-  { id: 'sample-samosa', isSample: true, name: 'Samosa and chai for two', store: 'Campus canteen', tag: '₹30 off', minOrder: 149, left: 18, art: require('./assets/dv2-sample-deal-samosa-chai-2026-10-25.webp') },
-  { id: 'sample-penne', isSample: true, name: 'Penne arrabbiata bowl', store: 'Night kitchen', tag: '₹50 off', minOrder: 299, left: 9, art: require('./assets/dv2-sample-deal-penne-arrabbiata-2026-10-25.webp') },
-  { id: 'sample-coffee', isSample: true, name: 'Two cold coffees', store: 'Library café', tag: 'Free delivery', minOrder: 199, left: 24, art: require('./assets/dv2-sample-deal-coffee-cheers-2026-10-25.webp') },
-  { id: 'sample-donuts', isSample: true, name: 'Box of four glazed donuts', store: 'Campus bakery', tag: '₹40 off', minOrder: 249, left: 6, streak: 3, art: require('./assets/dv2-sample-deal-donut-stack-2026-10-25.webp') },
-  { id: 'sample-brownie', isSample: true, name: 'Fudge brownie box', store: 'Campus bakery', tag: '₹60 off', minOrder: 349, left: 12, art: require('./assets/dv2-sample-deal-brownie-drizzle-2026-10-25.webp') },
-  { id: 'sample-salad', isSample: true, name: 'Rainbow salad bowl', store: 'Fresh bowls', tag: '₹35 off', minOrder: 199, left: 15, art: require('./assets/dv2-sample-deal-salad-bowl-2026-10-25.webp') },
+  { id: 'sample-samosa', isSample: true, name: 'Samosa and chai for two', store: 'Campus canteen', tag: '₹30 off', minOrder: 149, left: 18, art: require('./assets/dv2-sample-deal-samosa-chai-hd-2026-10-26.webp') },
+  { id: 'sample-penne', isSample: true, name: 'Penne arrabbiata bowl', store: 'Night kitchen', tag: '₹50 off', minOrder: 299, left: 9, art: require('./assets/dv2-sample-deal-penne-arrabbiata-hd-2026-10-26.webp') },
+  { id: 'sample-coffee', isSample: true, name: 'Two cold coffees', store: 'Library café', tag: 'Free delivery', minOrder: 199, left: 24, art: require('./assets/dv2-sample-deal-coffee-cheers-hd-2026-10-26.webp') },
+  { id: 'sample-donuts', isSample: true, name: 'Box of four glazed donuts', store: 'Campus bakery', tag: '₹40 off', minOrder: 249, left: 6, streak: 3, art: require('./assets/dv2-sample-deal-donut-stack-hd-2026-10-26.webp') },
+  { id: 'sample-brownie', isSample: true, name: 'Fudge brownie box', store: 'Campus bakery', tag: '₹60 off', minOrder: 349, left: 12, art: require('./assets/dv2-sample-deal-brownie-drizzle-hd-2026-10-26.webp') },
+  { id: 'sample-salad', isSample: true, name: 'Rainbow salad bowl', store: 'Fresh bowls', tag: '₹35 off', minOrder: 199, left: 15, art: require('./assets/dv2-sample-deal-salad-bowl-hd-2026-10-26.webp') },
 ];
 
 export const sampleDeals = (): SampleDeal[] => (DEALS_V2_DEMO_CONTENT ? SAMPLES : []);

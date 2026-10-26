@@ -27,22 +27,22 @@ const HERO_SLIDES = [
 ];
 /** Daylight mid-rise blocks with balconies and greenery (reference style). */
 const BUILDINGS = [
-  require('./assets/pg-v2-building-white-balconies-plants-day-2026-10-24.webp'),
-  require('./assets/pg-v2-building-pink-trees-day-wide-2026-10-24.webp'),
-  require('./assets/pg-v2-building-modern-midrise-greenery-2026-10-24.webp'),
-  require('./assets/pg-v2-building-hostel-block-trees-2026-10-24.webp'),
-  require('./assets/pg-v2-building-classic-balconies-trees-2026-10-24.webp'),
-  require('./assets/pg-v2-building-balconies-courtyard-2026-10-24.webp'),
+  require('./assets/pg-v2-building-white-balconies-plants-day-hd-2026-10-26.webp'),
+  require('./assets/pg-v2-building-pink-trees-day-wide-hd-2026-10-26.webp'),
+  require('./assets/pg-v2-building-modern-midrise-greenery-hd-2026-10-26.webp'),
+  require('./assets/pg-v2-building-hostel-block-trees-hd-2026-10-26.webp'),
+  require('./assets/pg-v2-building-classic-balconies-trees-hd-2026-10-26.webp'),
+  require('./assets/pg-v2-building-balconies-courtyard-hd-2026-10-26.webp'),
 ];
-const ROOM_SINGLE = require('./assets/pg-v2-room-single-desk-window-2026-10-24.webp');
-const ROOM_SINGLE_2 = require('./assets/pg-v2-room-single-bright-chair-2026-10-24.webp');
-const ROOM_DOUBLE = require('./assets/pg-v2-room-double-two-beds-2026-10-24.webp');
-const ROOM_DOUBLE_2 = require('./assets/pg-v2-room-double-wood-wardrobe-2026-10-24.webp');
-const ROOM_TRIPLE = require('./assets/pg-v2-room-triple-three-beds-2026-10-24.webp');
-const ROOM_DORM = require('./assets/pg-v2-room-dorm-white-bunks-2026-10-24.webp');
-const WASHROOM = require('./assets/pg-v2-washroom-clean-2026-10-24.webp');
-const MESS = require('./assets/pg-v2-mess-dining-bright-2026-10-24.webp');
-const LOUNGE = require('./assets/pg-v2-common-lounge-warm-2026-10-24.webp');
+const ROOM_SINGLE = require('./assets/pg-v2-room-single-desk-window-hd-2026-10-26.webp');
+const ROOM_SINGLE_2 = require('./assets/pg-v2-room-single-bright-chair-hd-2026-10-26.webp');
+const ROOM_DOUBLE = require('./assets/pg-v2-room-double-two-beds-hd-2026-10-26.webp');
+const ROOM_DOUBLE_2 = require('./assets/pg-v2-room-double-wood-wardrobe-hd-2026-10-26.webp');
+const ROOM_TRIPLE = require('./assets/pg-v2-room-triple-three-beds-hd-2026-10-26.webp');
+const ROOM_DORM = require('./assets/pg-v2-room-dorm-white-bunks-hd-2026-10-26.webp');
+const WASHROOM = require('./assets/pg-v2-washroom-clean-hd-2026-10-26.webp');
+const MESS = require('./assets/pg-v2-mess-dining-bright-hd-2026-10-26.webp');
+const LOUNGE = require('./assets/pg-v2-common-lounge-warm-hd-2026-10-26.webp');
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 const stock = (key: string, source: ImageSourcePropType, caption: string): V2Photo => ({ key, source, caption, isRepresentativePhoto: true });
