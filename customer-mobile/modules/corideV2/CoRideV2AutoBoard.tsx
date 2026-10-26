@@ -6,6 +6,9 @@
  *    "Book auto #N instead" (the next auto in line with a seat for this passenger);
  *  - profile gender unknown: askRiderGender() once, sent as riderGender with the hold (never saved);
  *  - FRONT_SEAT_MALE_ONLY / NO_SUITABLE_SEAT and "moved on" codes refresh the board with a note;
+ *  - the auto on charge with seat selection on (trip.seatSelectionEnabled): tap seats on the map to choose
+ *    them (sent as seatNumbers); with none tapped, the server picks the best free seats for the count;
+ *    an auto waiting in line opens the seat picker (app/auto-ride/trip/[id]?book=1) from "Choose seats";
  *  - success opens app/auto-ride/booking/[id] (PIN and the "Reach the auto in mm:ss" countdown).
  */
 import React, { useEffect, useRef, useState } from 'react';
@@ -16,13 +19,15 @@ import { Pill, PrimaryButton, OutlineButton, Card } from './CoRideV2Kit';
 import { IBadge, ITicket, IUsers, ILock, STROKE } from './CoRideV2Icons';
 import { RouteRail } from './CoRideV2RideCard';
 import { SeatStepper } from './CoRideV2AutoParts';
-import SeatMap, { askRiderGender } from '../../modules/autoRide/SeatMap';
+import SeatMap, { askRiderGender, FRONT_SEAT_NOTE } from '../../modules/autoRide/SeatMap';
 import { useCoRide } from './coRideV2Data';
 import { inr, errorCopy, type ChargeAuto, type ChargeLine, type SeatState, type RiderGender } from '../../modules/autoRide/autoRideApi';
 
 const MOVED_ON = ['AUTO_JUST_FILLED', 'AUTO_OFF_CHARGE', 'WAITING_IN_LINE', 'TRIP_FULL', 'BOOKING_CLOSED'];
 const FRONT_ONLY = ['NO_SUITABLE_SEAT', 'FRONT_SEAT_MALE_ONLY'];
 const seatsWord = (n: number) => `${n} seat${n === 1 ? '' : 's'}`;
+const seatList = (ns: number[]) => `seat${ns.length === 1 ? '' : 's'} ${ns.join(', ')}`;
+const SEAT_CHANGED = ['SEAT_TAKEN', 'INVALID_INPUT', 'SEAT_SELECTION_OFF'];
 const forYou = (a: ChargeAuto) => (typeof a.seatsForYou === 'number' ? a.seatsForYou : a.remainingSeats);
 const seatStates = (t: ChargeAuto) => { const m: Record<number, SeatState> = {}; (t.seatMap?.seats || []).forEach((x) => { m[x.seatNo] = x.state; }); return m; };
 
@@ -42,26 +47,57 @@ function AutoBlock({ auto: t, line, front, next, onNote }: { auto: ChargeAuto; l
   const mine = !!t.myBookingId;
   const canBook = !mine && bookable > 0 && t.sharedBookingAllowed;
   const frontOnly = !mine && !!t.onlyFrontSeatsLeft && remaining > 0;
+  // Seat choice on the auto on charge (the seat map is only drawn there).
+  const states = seatStates(t);
+  const maleOnly = new Set(t.seatMap?.layout?.maleOnlySeats || []);
+  const pickMode = !!front && !!t.seatSelectionEnabled && canBook && !!t.seatMap?.layout?.rows?.length;
+  const maxPick = Math.max(1, Math.min(d.autoMaxSeats, remaining || 1));
+  const [picked, setPicked] = useState<number[]>([]);
+  // A chosen seat someone else just took (live board refresh) is dropped from the choice.
+  useEffect(() => {
+    setPicked((cur) => { const keep = cur.filter((n) => states[n] === 'AVAILABLE'); return keep.length === cur.length ? cur : keep; });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t]);
+  const toggle = async (n: number) => {
+    if (!picked.includes(n) && maleOnly.has(n) && viewer !== 'MALE') {
+      if (viewer === 'UNKNOWN' && !riderAnswer) {
+        const a = await askRiderGender();
+        if (!a) return;
+        riderAnswer = a;
+      }
+      if (viewer === 'NOT_MALE' || riderAnswer !== 'Male') { Alert.alert(`Seat ${n} is for boys only`, FRONT_SEAT_NOTE); return; }
+    }
+    setPicked((cur) => {
+      if (cur.includes(n)) return cur.filter((x) => x !== n);
+      if (cur.length >= maxPick) {
+        if (maxPick === 1) return [n];
+        Alert.alert('Seat limit', `You can book up to ${seatsWord(maxPick)} on this auto.`);
+        return cur;
+      }
+      return [...cur, n].sort((a, b) => a - b);
+    });
+  };
 
-  const book = async (target: ChargeAuto, seats: number) => {
+  const book = async (target: ChargeAuto, seats: number, seatNumbers?: number[]) => {
     if ((target.seatMap?.viewer || 'UNKNOWN') === 'UNKNOWN' && !riderAnswer) {
       const a = await askRiderGender();
       if (!a) return;
       riderAnswer = a;
     }
     const riderGender = (target.seatMap?.viewer || 'UNKNOWN') === 'UNKNOWN' ? riderAnswer : null;
-    const r = await d.act('bookAuto', { auto: target, count: seats, riderGender });
-    if (r.ok) { if (r.data?.id) router.push(`/auto-ride/booking/${r.data.id}` as any); return; }
-    if (r.code && MOVED_ON.includes(r.code)) onNote(r.message || 'This auto is no longer taking bookings.');
+    const r = await d.act('bookAuto', { auto: target, count: seats, riderGender, seatNumbers });
+    if (r.ok) { setPicked([]); if (r.data?.id) router.push(`/auto-ride/booking/${r.data.id}` as any); return; }
+    if (r.code && SEAT_CHANGED.includes(r.code)) { setPicked([]); onNote(r.message || 'That seat was just taken. Pick another seat.'); }
+    else if (r.code && MOVED_ON.includes(r.code)) onNote(r.message || 'This auto is no longer taking bookings.');
     else if (r.code && FRONT_ONLY.includes(r.code)) onNote(r.message || 'Only front seats left (boys only). Book the next auto below.');
     else { const c = errorCopy({ code: r.code, message: r.message }); Alert.alert(c.title, c.message); }
   };
-  const ask = (target: ChargeAuto, seats: number) => {
+  const ask = (target: ChargeAuto, seats: number, seatNumbers?: number[]) => {
     const isFront = target.id === line.onCharge?.id;
     Alert.alert(
-      `Book ${seatsWord(seats)}?`,
+      seatNumbers?.length ? `Book ${seatList(seatNumbers)}?` : `Book ${seatsWord(seats)}?`,
       `${isFront ? 'The auto on charge' : `Auto number ${target.position} in line`}, to ${line.destination || 'the destination'} from ${line.pickup?.name || 'the stand'}. ${inr((target.seatFare || 0) * seats)}, paid to the driver in cash when you board.`,
-      [{ text: 'Not now', style: 'cancel' }, { text: 'Book', onPress: () => { book(target, seats); } }],
+      [{ text: 'Not now', style: 'cancel' }, { text: 'Book', onPress: () => { book(target, seats, seatNumbers); } }],
     );
   };
   const filled = t.capacity ? Math.min(1, (t.capacity - remaining) / t.capacity) : 0;
@@ -92,7 +128,12 @@ function AutoBlock({ auto: t, line, front, next, onNote }: { auto: ChargeAuto; l
           <View style={st.bar}><View style={[st.barFill, { width: `${Math.round(filled * 100)}%`, backgroundColor: filled >= 1 ? CR.red : CR.primary }]} /></View>
           {t.seatMap?.layout?.rows?.length ? (
             <View style={{ marginTop: 16 }}>
-              <SeatMap rows={t.seatMap.layout.rows} maleOnlySeats={t.seatMap.layout.maleOnlySeats} viewer={viewer} states={seatStates(t)} selected={[]} selectable={false} />
+              <SeatMap rows={t.seatMap.layout.rows} maleOnlySeats={t.seatMap.layout.maleOnlySeats} viewer={viewer} states={states} selected={pickMode ? picked : []} selectable={pickMode} onToggle={pickMode ? toggle : undefined} />
+              {pickMode ? (
+                <Text style={[st.meta, { textAlign: 'center', marginTop: 8 }]}>
+                  {picked.length ? `You chose ${seatList(picked)}. Tap a seat again to remove it.` : 'Tap a free seat to choose it, or just book and we give you the best free seat.'}
+                </Text>
+              ) : null}
             </View>
           ) : null}
         </>
@@ -101,9 +142,16 @@ function AutoBlock({ auto: t, line, front, next, onNote }: { auto: ChargeAuto; l
         <OutlineButton label="View my booking" icon={ITicket} small style={{ marginTop: 12 }} onPress={() => router.push(`/auto-ride/booking/${t.myBookingId}` as any)} />
       ) : canBook ? (
         <View style={[st.row, { gap: 10, marginTop: 14 }]}>
-          {max > 1 ? <SeatStepper value={count} max={max} onChange={setCount} /> : null}
-          <PrimaryButton label={`Book ${seatsWord(count)} · ${inr((t.seatFare || 0) * count)}`} onPress={() => ask(t, count)} busy={busy} small style={{ flex: 1 }} />
+          {max > 1 && !picked.length ? <SeatStepper value={count} max={max} onChange={setCount} /> : null}
+          {picked.length ? (
+            <PrimaryButton label={`Book ${seatList(picked)} · ${inr((t.seatFare || 0) * picked.length)}`} onPress={() => ask(t, picked.length, picked)} busy={busy} small style={{ flex: 1 }} />
+          ) : (
+            <PrimaryButton label={`Book ${seatsWord(count)} · ${inr((t.seatFare || 0) * count)}`} onPress={() => ask(t, count)} busy={busy} small style={{ flex: 1 }} />
+          )}
         </View>
+      ) : null}
+      {canBook && !front && t.seatSelectionEnabled ? (
+        <OutlineButton label="Choose seats" small style={{ marginTop: 8 }} onPress={() => router.push(`/auto-ride/trip/${t.id}?book=1` as any)} />
       ) : null}
       {frontOnly ? (
         <View style={{ marginTop: 12 }}>

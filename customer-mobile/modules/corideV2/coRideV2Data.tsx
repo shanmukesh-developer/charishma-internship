@@ -217,7 +217,7 @@ export function CoRideV2Provider({ children }: { children: React.ReactNode }) {
         // could not be confirmed is released at once (unless the network dropped: the retry reuses it).
         let heldId: string | null = null;
         try {
-          const h = await autoRideApi.hold(args.auto.id, { seatCount: args.count, ...(args.riderGender ? { riderGender: args.riderGender } : {}) }, newIdempotencyKey());
+          const h = await autoRideApi.hold(args.auto.id, { seatCount: args.count, ...(args.seatNumbers?.length ? { seatNumbers: args.seatNumbers } : {}), ...(args.riderGender ? { riderGender: args.riderGender } : {}) }, newIdempotencyKey());
           let b: Booking = h.booking;
           if (b.status === 'HELD') { heldId = b.id; b = (await autoRideApi.confirm(b.id, 'CASH', newIdempotencyKey())).booking; heldId = null; }
           reloadAuto();
