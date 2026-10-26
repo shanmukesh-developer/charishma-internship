@@ -44,6 +44,7 @@ import { useUnreadDot } from '../../modules/foodV2/FoodV2HomeTop';
 import { ACCENTS as OTHERS_ACCENTS, PILL_ACCENT, shadow as othersShadow, TYPE as OTHERS_TYPE, RADIUS as OTHERS_RADIUS, STATUS as OTHERS_STATUS, SURFACE as OTHERS_SURFACE } from '../../modules/others/othersTheme';
 import { useTopInset } from '../../utils/useTopInset';
 import FoodV2Screen from '../../modules/foodV2/FoodV2Screen';
+import ServicesV2Home from '../../modules/servicesV2/ServicesV2Home';
 
 const { width: SW, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SH = SCREEN_HEIGHT;
@@ -1711,6 +1712,16 @@ export default function OthersScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: '#141438' }}>
         <RentalsV2Home sections={visibleTabs} onSection={selectTab} />
+      </View>
+    );
+  }
+
+  // Tech & repairs v2 (modules/servicesV2): its own navy header (search, section pills), the repairs hero, quick
+  // categories and real services / store items. Lists are app/category/*, details app/services/*.
+  if (activeTab === 'services') {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F4F5FB' }}>
+        <ServicesV2Home sections={visibleTabs} onSection={selectTab} />
       </View>
     );
   }

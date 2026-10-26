@@ -31,6 +31,9 @@ import { ShimmerCard } from '../../components/ShimmerLoader';
 import ServiceBookingSheet from '../../modules/services/ServiceBookingSheet';
 import ServicesHome from '../../modules/services/ServicesHome';
 import { resolveServiceForm } from '../../modules/services/serviceForms';
+import ServicesV2List from '../../modules/servicesV2/ServicesV2List';
+import ServicesV2Products from '../../modules/servicesV2/ServicesV2Products';
+import { isProductShelf, isServiceShelf } from '../../modules/servicesV2/servicesV2Data';
 import { formatClock, formatINR, plural } from '../../utils/format';
 
 const { width: SW } = Dimensions.get('window');
@@ -95,9 +98,11 @@ export default function CategoryRoute() {
   const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
   const requestedId = String(rawId || 'electronics').toLowerCase().trim();
   const categoryId = CATEGORY_ALIASES[requestedId] || requestedId;
-  if (categoryId === 'repairs' || categoryId === 'tailoring' || categoryId === 'print' || categoryId === 'laundry') {
-    return <ServicesHome key={categoryId} categoryId={categoryId} />;
-  }
+  // Tech & repairs v2 (modules/servicesV2): service lists and the Room essentials / Chargers & gadgets shelves.
+  if (isServiceShelf(categoryId)) return <ServicesV2List key={categoryId} shelf={categoryId} />;
+  if (isProductShelf(categoryId)) return <ServicesV2Products key={categoryId} shelf={categoryId} />;
+  // Print stays on the older page so links from past print bookings still open (Printouts left the app).
+  if (categoryId === 'print') return <ServicesHome key={categoryId} categoryId={categoryId} />;
   return <CategoryDetailScreen />;
 }
 

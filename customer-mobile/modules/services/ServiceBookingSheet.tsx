@@ -117,6 +117,9 @@ interface Props {
   /** All services on the shelf (the device / issue / list steps pick from these). */
   catalogue?: BookableItem[];
   start?: FlowStart;
+  /** Answers already given on a screen before the flow (Tech & repairs v2 detail: brand and model). Applied when
+   * the flow opens straight at `item`; every field stays editable. */
+  prefill?: Answers;
 }
 
 type Step = 'device' | 'issue' | 'list' | 'details' | 'booking' | 'success';
@@ -142,7 +145,7 @@ const fitIcon = (v: string): IconName => (/measure/i.test(v) ? 'body-outline' : 
 const fabricIcon = (v: string): IconName => (/have/i.test(v) ? 'bag-handle-outline' : /provide/i.test(v) ? 'color-palette-outline' : 'chatbubbles-outline');
 const handoverFileIcon = (v: string): IconName => (/pdf/i.test(v) ? 'document-attach-outline' : /photo/i.test(v) ? 'image-outline' : /pen/i.test(v) ? 'save-outline' : 'call-outline');
 
-export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle, rates, onClose, onServiceUnavailable, catalogue = [], start }: Props) {
+export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle, rates, onClose, onServiceUnavailable, catalogue = [], start, prefill }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -229,7 +232,7 @@ export default function ServiceBookingSheet({ visible, item, shelfId, shelfTitle
     const startItem = firstStep === 'details' ? item : null;
     setCur(startItem);
     setDevice(startItem ? deviceOfForm(resolveServiceForm(shelfId, startItem.name)) : null);
-    resetAnswers(startItem);
+    resetAnswers(startItem, startItem && prefill ? prefill : {});
     setHandoverValue(handover.options[0].value);
     const d = dayChips();
     setDays(d);
