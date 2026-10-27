@@ -119,14 +119,47 @@ export async function unregisterDriverPush(): Promise<void> {
 
 export interface PushData { screen?: string; type?: string; tripId?: string; bookingId?: string; requestId?: string; vehicleId?: string }
 
+/** Taps already routed (notification ids), so the launch tap and the listener never route the same tap twice. */
+const handledTaps = new Set<string>();
+let launchTapChecked = false;
+
 /** Pushes received while open (`received`) or tapped (`tapped`). */
 export function onDriverPush(cb: (data: PushData, tapped: boolean) => void): () => void {
   if (!isNative) return () => {};
   try {
     const recv = Notifications.addNotificationReceivedListener((n) => cb((n.request.content.data as any) || {}, false));
-    const tap = Notifications.addNotificationResponseReceivedListener((r) => cb((r.notification.request.content.data as any) || {}, true));
+    const tap = Notifications.addNotificationResponseReceivedListener((r) => {
+      const key = r.notification.request.identifier;
+      if (key) {
+        if (handledTaps.has(key)) return;
+        handledTaps.add(key);
+      }
+      cb((r.notification.request.content.data as any) || {}, true);
+    });
     return () => { recv.remove(); tap.remove(); };
   } catch {
     return () => {};
+  }
+}
+
+/**
+ * The tap that launched a killed app is not delivered to listeners registered later (the listener above
+ * mounts only after the saved session loads). Read it once per app run; null when the app was not opened
+ * from a notification or the tap was already routed.
+ */
+export async function takeLaunchPushTap(): Promise<PushData | null> {
+  if (!isNative || launchTapChecked) return null;
+  launchTapChecked = true;
+  try {
+    const r = await Notifications.getLastNotificationResponseAsync();
+    if (!r) return null;
+    const key = r.notification.request.identifier;
+    if (key) {
+      if (handledTaps.has(key)) return null;
+      handledTaps.add(key);
+    }
+    return (r.notification.request.content.data as any) || {};
+  } catch {
+    return null;
   }
 }

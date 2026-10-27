@@ -2,7 +2,7 @@
 // Signed in -> one stack; the first screen is Home when verified, else the Verification hub (the stack is
 // re-keyed when the status changes). Push taps open the right screen; the offline queue (safe actions
 // only) is flushed on every reconnect.
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer, DefaultTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -13,7 +13,7 @@ import { ToastProvider, useToast } from './src/ui/Toast';
 import { SESSION_EXPIRED, SessionProvider, useSession } from './src/state/SessionProvider';
 import { SocketProvider, useSocket } from './src/state/SocketProvider';
 import { flushQueue } from './src/lib/offlineQueue';
-import { onDriverPush } from './src/lib/push';
+import { onDriverPush, takeLaunchPushTap, type PushData } from './src/lib/push';
 import { color } from './src/theme';
 import type { RootStack } from './src/nav';
 import { LoginScreen, RegisterScreen } from './src/screens/Auth';
@@ -61,17 +61,38 @@ function QueueRunner() {
 }
 
 /** Push tap -> screen (data from modules/autoRide/services/notify.js: type, tripId, requestId, vehicleId). */
-function PushRouter() {
+function routePush(data: PushData) {
+  if (data.requestId || data.type === 'AUTO_PRIVATE_REQUEST') navRef.navigate('Requests');
+  else if (data.tripId && data.type === 'AUTO_ON_CHARGE') navRef.navigate('Charge', { tripId: String(data.tripId) });
+  else if (data.tripId) navRef.navigate('TripDetail', { tripId: String(data.tripId) });
+  else if (data.vehicleId) navRef.navigate('Vehicles');
+  else navRef.navigate('Notifications');
+}
+
+/**
+ * A tap before the navigator is ready is kept and routed on ready; the tap that launched a killed app is
+ * read once (takeLaunchPushTap) because the listener mounts too late to receive it.
+ */
+function PushRouter({ navReady }: { navReady: boolean }) {
   const { refreshMe } = useSession();
+  const pending = useRef<PushData | null>(null);
   useEffect(() => onDriverPush((data, tapped) => {
     if (data.type && /DRIVER_|VEHICLE_/.test(data.type)) refreshMe();
-    if (!tapped || !navRef.isReady()) return;
-    if (data.requestId || data.type === 'AUTO_PRIVATE_REQUEST') navRef.navigate('Requests');
-    else if (data.tripId && data.type === 'AUTO_ON_CHARGE') navRef.navigate('Charge', { tripId: String(data.tripId) });
-    else if (data.tripId) navRef.navigate('TripDetail', { tripId: String(data.tripId) });
-    else if (data.vehicleId) navRef.navigate('Vehicles');
-    else navRef.navigate('Notifications');
+    if (!tapped) return;
+    if (!navRef.isReady()) { pending.current = data; return; }
+    routePush(data);
   }), [refreshMe]);
+  useEffect(() => {
+    if (!navReady) return;
+    if (pending.current) { const d = pending.current; pending.current = null; routePush(d); }
+    let alive = true;
+    takeLaunchPushTap().then((d) => {
+      if (!alive || !d || !navRef.isReady()) return;
+      if (d.type && /DRIVER_|VEHICLE_/.test(d.type)) refreshMe();
+      routePush(d);
+    });
+    return () => { alive = false; };
+  }, [navReady, refreshMe]);
   return null;
 }
 
@@ -108,6 +129,8 @@ function Root() {
   const { ready, token, suspended, signOut, refreshMe } = useSession();
   const signOutRef = useRef(signOut);
   signOutRef.current = signOut;
+  const [navReady, setNavReady] = useState(false);
+  useEffect(() => { if (!token || suspended) setNavReady(false); }, [token, suspended]);
   if (!ready) return <Splash />;
   if (!token) {
     return (
@@ -123,8 +146,8 @@ function Root() {
   return (
     <SocketProvider token={token} onAuthError={(m) => { if (/suspended/i.test(m)) refreshMe(); else signOutRef.current(SESSION_EXPIRED); }}>
       <QueueRunner />
-      <PushRouter />
-      <NavigationContainer theme={navTheme} ref={navRef}>
+      <PushRouter navReady={navReady} />
+      <NavigationContainer theme={navTheme} ref={navRef} onReady={() => setNavReady(true)}>
         <SignedIn />
       </NavigationContainer>
     </SocketProvider>

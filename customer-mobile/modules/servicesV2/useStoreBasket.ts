@@ -8,7 +8,7 @@ import { Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useCart, isCustomRequest } from '../../context/CartContext';
 import { formatClock } from '../../utils/format';
-import type { ShelfItem, ShelfStore } from './servicesV2Data';
+import { storeTakesOrders, type ShelfItem, type ShelfStore } from './servicesV2Data';
 
 const opensAtText = (hhmm: string | null) => (hhmm && /^\d{1,2}:\d{2}$/.test(hhmm) ? formatClock(hhmm) : null);
 
@@ -23,7 +23,7 @@ export function useStoreBasket() {
       Alert.alert('Sold out', `${item.name} is out of stock right now. Please check back soon.`);
       return;
     }
-    if (store && !store.isOpen) {
+    if (store && !storeTakesOrders(store)) {
       const opens = opensAtText(store.opensAt);
       Alert.alert(`${store.name || 'This store'} is closed`, store.closedReason || (opens ? `It opens at ${opens}. You can browse now and add items once it opens.` : 'You can browse now and add items once it opens again.'));
       return;

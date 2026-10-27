@@ -34,6 +34,7 @@ import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { formatINR, isAmount, plural } from '../../utils/format';
 import FoodV2ProductView from '../../modules/foodV2/FoodV2ProductView';
+import { takesSlotOrders } from '../../utils/storeOpenNow';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -304,6 +305,9 @@ export default function ProductDetailScreen() {
         isVaultItem: !!data.isVaultItem,
         storeIsOpen: data.storeIsOpen !== false,
         storeClosedReason: data.storeClosedReason || null,
+        // Delivery slots: the store is closed now but takes orders for its next slot (orderable already says so).
+        takesSlotOrders: data.takesSlotOrders === true,
+        nextSlotLabel: typeof data.nextSlotLabel === 'string' ? data.nextSlotLabel : null,
         specRows: buildSpecRows(specs),
         specs: specs && typeof specs === 'object' ? specs : null,
         tags: Array.isArray(data.tags) ? data.tags.filter((t: any) => typeof t === 'string') : [],
@@ -810,7 +814,7 @@ export default function ProductDetailScreen() {
                 const relQty = cart.find((i: any) => i.cartKey === relId)?.quantity || 0;
                 const relImg = getRealImageUri(rel.imageUrl || rel.image);
                 // The related dish's own availability (this product being sold out must not block its neighbours)
-                const relCanAdd = !!product.restaurantId && !product.isVaultItem && !directOrder && rel.orderable !== false && store?.isOpen !== false && !(rel.isEliteOnly && !(user as any)?.isElite);
+                const relCanAdd = !!product.restaurantId && !product.isVaultItem && !directOrder && rel.orderable !== false && (store?.isOpen !== false || takesSlotOrders(store)) && !(rel.isEliteOnly && !(user as any)?.isElite);
                 const relPayload = {
                   id: relId,
                   name: rel.name,

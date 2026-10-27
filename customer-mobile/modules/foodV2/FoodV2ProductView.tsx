@@ -17,6 +17,7 @@ import { s, MAX_QTY, PRODUCT_FALLBACK_IMG, WISHLIST_KEY, NON_FOOD, specValue, se
 import { Icon } from './FoodV2Icons';
 import { fmtShortClock } from './FoodV2Data';
 import { BUTTON_ROLE } from '../../utils/pressRole';
+import { takesSlotOrders } from '../../utils/storeOpenNow';
 
 /** The seller name used everywhere in Food & groceries (header, basket tab, saved items). */
 const SELLER_LABEL = 'Campus store';
@@ -135,8 +136,12 @@ export default function FoodV2ProductView(p: Props) {
   const plateW = Math.round(Math.min(pageW * 0.56, 260));
   const storeName: string = p.store?.name || product.restaurantName || '';
   // The item's own flag follows the store's hours only; the store (GET /api/users/restaurants/:id) also
-  // applies the campus night window. Either one closed = show "Opens 6 am" and block adding.
-  const storeClosed = !!product.isAvailable && (p.store?.isOpen === false || product.storeIsOpen === false);
+  // applies the campus night window. Either one closed = show "Opens 6 am" and block adding, unless the store
+  // takes orders for its next delivery slot (server takesSlotOrders, as on the store page).
+  const slotOrder = product.takesSlotOrders === true || takesSlotOrders(p.store);
+  const slotLabel: string | null = product.nextSlotLabel || p.store?.nextSlotLabel || null;
+  const storeShut = !!product.isAvailable && (p.store?.isOpen === false || product.storeIsOpen === false);
+  const storeClosed = storeShut && !slotOrder;
   const opensAt = fmtShortClock(p.store?.opensAt);
   const closedText = opensAt ? `Opens ${opensAt}` : 'Closed now';
   const canAdd = p.canAdd && !storeClosed;
@@ -257,7 +262,7 @@ export default function FoodV2ProductView(p: Props) {
 
           <View style={[s.metaItem, { marginTop: 8 }]}>
             <Icon name="truck" size={14} color={c.slate} />
-            <Text style={[s.deliver, { color: c.slate, flex: 1 }]}>{p.store?.time ? `Delivered in about ${p.store.time}` : 'Delivered to your hostel'} · Cash or Wallet</Text>
+            <Text style={[s.deliver, { color: c.slate, flex: 1 }]}>{storeShut && slotOrder && slotLabel ? `Next delivery: ${slotLabel}` : p.store?.time ? `Delivered in about ${p.store.time}` : 'Delivered to your hostel'} · Cash or Wallet</Text>
           </View>
           {/* The fee is set on the server and can change with offers or Elite, so it is never guessed here. */}
           <Text style={[s.deliver, { color: c.slate, marginTop: 4, marginLeft: 19 }]}>Delivery fee shown in basket</Text>
@@ -343,7 +348,7 @@ export default function FoodV2ProductView(p: Props) {
                 const relId = String(rel.id || rel._id);
                 const relImg = p.getImageUri(rel.imageUrl || rel.image) || PRODUCT_FALLBACK_IMG;
                 const relQty = p.cart.find((i: any) => i.cartKey === relId)?.quantity || 0;
-                const relCanAdd = !!product.restaurantId && rel.orderable !== false && p.store?.isOpen !== false;
+                const relCanAdd = !!product.restaurantId && rel.orderable !== false && (p.store?.isOpen !== false || takesSlotOrders(p.store));
                 const relOff = discountOf(Number(rel.price), Number(rel.originalPrice));
                 const relSaved = savedIds.includes(relId);
                 return (

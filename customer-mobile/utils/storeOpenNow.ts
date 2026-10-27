@@ -79,3 +79,11 @@ export function liveOpenState(store: any, now: Date = new Date()): LiveOpenState
     ? { isOpen: true, opensAt: null, closesAt: String(hours.end) }
     : { isOpen: false, opensAt: String(hours.start), closesAt: null };
 }
+
+/**
+ * Delivery slots (server utils/deliverySlots.js slotListingFields): a store that is closed right now can still
+ * take an order for its next delivery slot (takesSlotOrders, with nextSlotLabel "Today 4:30–5:30 PM").
+ * The server re-checks the slot at checkout, so this only decides whether Add is offered.
+ */
+export const takesSlotOrders = (store: any): boolean =>
+  !!store && store.isActive !== false && store.isOffline !== true && store.takesSlotOrders === true;

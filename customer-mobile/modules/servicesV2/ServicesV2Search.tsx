@@ -12,7 +12,7 @@ import { TV, W } from './servicesV2Theme';
 import { BasketBar, FadeIn, Press, SearchField, SectionHead, StateBlock, TopBar } from './ServicesV2Kit';
 import { ProductRow, ServiceRow } from './ServicesV2Rows';
 import { IChevronRight } from './ServicesV2Icons';
-import { SHELF_META, detailPath, matchesQuery, shelfPath, useShelf, type ProductShelf, type ServiceShelf } from './servicesV2Data';
+import { SHELF_META, detailPath, matchesQuery, shelfPath, storeTakesOrders, useShelf, type ProductShelf, type ServiceShelf } from './servicesV2Data';
 import { useServicesV2Booking } from './useServicesV2Booking';
 import { useStoreBasket } from './useStoreBasket';
 
@@ -56,7 +56,7 @@ function ProductGroup({ shelf, data, q }: { shelf: ProductShelf; data: Shelf; q:
           const store = data.stores[it.storeId];
           return (
             <FadeIn key={it.id} index={i}>
-              <ProductRow shelf={shelf} item={it} qty={line?.quantity || 0} storeClosed={!!store && !store.isOpen}
+              <ProductRow shelf={shelf} item={it} qty={line?.quantity || 0} storeClosed={!storeTakesOrders(store)}
                 onOpen={() => router.push(`/products/${it.id}` as any)} onAdd={() => basket.add(it, store, SHELF_META[shelf].title)}
                 onMinus={() => line && basket.setQty(line.cartKey, line.quantity - 1)} onPlus={() => line && basket.setQty(line.cartKey, line.quantity + 1)} />
             </FadeIn>

@@ -19,6 +19,7 @@ import { API_URL } from '../../constants/api';
 import { readCache, writeCache } from '../../utils/swrCache';
 import { useConnectionState } from '../../utils/offlineStatus';
 import { useTopInset } from '../../utils/useTopInset';
+import { takesSlotOrders } from '../../utils/storeOpenNow';
 import { FOOD } from './foodV2Theme';
 import { FOOD_IMG, StorefrontArt, ShoppingBasketArt, WaveArt, LoadingDots } from './FoodV2Kit';
 import { IonName, Item, SHOP_TYPES, CATALOGUE_CACHE_KEY, FALLBACK_IMG, MEGA_BASKET_VENDOR, WISHLIST_KEY, toItem, toList, groupIN, fmt, sentence, offLabel, fmtShortClock, squash, Shelf, SHELVES, shelfItems, SEARCH, SEARCH_HINTS, TILES, Hero, HEROES, LIST_TITLES, AISLES, aisleOf, SHORT_CHIP, chipLabel, FRESH_CATS, GROUP_ORDER, groupOf, BRANDS, TOY_TILES, HEALTH_TILES, ESSENTIAL_AISLES, HERO_BG, LHERO_BG, POPULAR_REQUESTS, Route, DemoState, Saved } from './FoodV2Data';
@@ -29,7 +30,9 @@ const GREEN_GLOW = Platform.select<any>({
 });
 
 /** Row actions with a fixed identity (they call the latest closures), so memoized rows never re-render for them. */
-export type FoodV2RowActions = { addProduct: (p: Item) => void; decProduct: (id: string) => void; toggleSaved: (p: Item) => void; openProduct: (p: Item | string) => void };
+/** A store's hours from the catalogue (takesSlotOrders: closed now, but orders go to its next delivery slot). */
+type StoreHours = { isOpen: boolean; opensAt: string | null; takesSlotOrders: boolean; nextSlotLabel: string | null };
+export type FoodV2RowActions = {addProduct: (p: Item) => void; decProduct: (id: string) => void; toggleSaved: (p: Item) => void; openProduct: (p: Item | string) => void };
 
 export type FoodV2Ctx = ReturnType<typeof useFoodV2State>;
 const Ctx = React.createContext<FoodV2Ctx | null>(null);
@@ -94,11 +97,15 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
   // ── Catalogue ──
   const [rawCatalogue, setCatalogue] = useState<Item[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [storeHours, setStoreHours] = useState<Record<string, { isOpen: boolean; opensAt: string | null }>>({});
+  const [storeHours, setStoreHours] = useState<Record<string, StoreHours>>({});
   // The item list's `orderable` follows the store's own hours only; the store list also applies the
   // campus night window (9 pm – 6 am). A store the server lists as closed makes its items closed too,
-  // so cards say "Opens 6 am" and block adding instead of "In stock".
-  const catalogue = useMemo(() => rawCatalogue.map(p => (p.orderable && storeHours[p.restaurantId]?.isOpen === false ? { ...p, orderable: false } : p)), [rawCatalogue, storeHours]);
+  // so cards say "Opens 6 am" and block adding instead of "In stock" - unless the store takes orders for
+  // its next delivery slot (server takesSlotOrders): then its items stay orderable, as on the store page.
+  const catalogue = useMemo(() => rawCatalogue.map(p => {
+    const st = storeHours[p.restaurantId];
+    return p.orderable && st && !st.isOpen && !st.takesSlotOrders ? { ...p, orderable: false } : p;
+  }), [rawCatalogue, storeHours]);
   const fromNet = useRef(false);
   useEffect(() => {
     readCache<any[]>(CATALOGUE_CACHE_KEY).then(cached => {
@@ -112,14 +119,14 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
     try {
       // Store hours from every response are applied in ONE update with the items. Each response used to
       // set them on arrival: four extra full re-renders of the store, each rebuilding the catalogue.
-      const hours: Record<string, { isOpen: boolean; opensAt: string | null }> = {};
+      const hours: Record<string, StoreHours> = {};
       const settled = await Promise.allSettled(SHOP_TYPES.map(async t => {
         const res = await apiFetch(`${API_URL}/api/catalogue/items?type=${encodeURIComponent(t)}&limit=200`);
         if (!res.ok) throw new Error(`catalogue ${res.status}`);
         const data = await readJson(res);
         (Array.isArray(data?.stores) ? data.stores : []).forEach((st: any) => {
           const sid = String(st?.id || st?._id || '');
-          if (sid) hours[sid] = { isOpen: st.isOpen !== false, opensAt: typeof st.opensAt === 'string' ? st.opensAt : null };
+          if (sid) hours[sid] = { isOpen: st.isOpen !== false, opensAt: typeof st.opensAt === 'string' ? st.opensAt : null, takesSlotOrders: takesSlotOrders(st), nextSlotLabel: typeof st.nextSlotLabel === 'string' ? st.nextSlotLabel : null };
         });
         return Array.isArray(data?.items) ? data.items : [];
       }));
@@ -274,7 +281,7 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
   const closedShare = inStock.length ? inStock.filter(p => !p.orderable).length / inStock.length : 0;
   const allClosed = status === 'ready' && inStock.length > 0 && closedShare === 1;
   const someClosed = status === 'ready' && closedShare >= 0.3 && closedShare < 1;
-  const earliestOpen = Object.values(storeHours).filter(s => !s.isOpen).map(s => s.opensAt).filter(Boolean).sort()[0] || null;
+  const earliestOpen = Object.values(storeHours).filter(s => !s.isOpen && !s.takesSlotOrders).map(s => s.opensAt).filter(Boolean).sort()[0] || null;
   const hasShelf = (name: string) => status !== 'ready' || shelfItems(name, catalogue).length > 0;
   const dealShelf = useMemo(() => shelfItems('Deals', catalogue), [catalogue]);
   const topDeal = dealShelf[0] || null;

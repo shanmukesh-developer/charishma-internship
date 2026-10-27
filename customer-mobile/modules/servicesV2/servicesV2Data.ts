@@ -13,6 +13,7 @@ import { apiFetch } from '../../utils/auth';
 import { peekCache, readCache, writeCache } from '../../utils/swrCache';
 import { useLiveSync } from '../../utils/useLiveSync';
 import { formatINR } from '../../utils/format';
+import { takesSlotOrders } from '../../utils/storeOpenNow';
 import { resolveServiceForm } from '../services/serviceForms';
 import { TAILOR_GROUPS, deviceOfForm, groupItems, servicePriceLabel } from '../services/serviceFlow';
 
@@ -47,7 +48,13 @@ export interface ShelfItem {
   ratingCount: number;
 }
 
-export interface ShelfStore { id: string; name: string; isOpen: boolean; opensAt: string | null; closedReason: string | null; campusClosed: boolean; fssaiLicenseNumber: string | null }
+export interface ShelfStore {
+  id: string; name: string; isOpen: boolean; opensAt: string | null; closedReason: string | null; campusClosed: boolean; fssaiLicenseNumber: string | null;
+  /** Delivery slots: closed now, but orders go to its next delivery slot (server takesSlotOrders). */
+  takesSlotOrders: boolean;
+}
+/** Can a store's items be added now (open, or taking orders for its next delivery slot)? */
+export const storeTakesOrders = (st: ShelfStore | undefined): boolean => !st || st.isOpen || st.takesSlotOrders;
 
 export type LoadStatus = 'loading' | 'ready' | 'error' | 'offline' | 'waking';
 
@@ -111,7 +118,7 @@ const toStores = (data: any): Record<string, ShelfStore> => {
   const out: Record<string, ShelfStore> = {};
   (Array.isArray(data?.stores) ? data.stores : []).forEach((st: any) => {
     const id = String(st?.id || st?._id || '');
-    if (id) out[id] = { id, name: String(st.name || ''), isOpen: st.isOpen !== false, opensAt: typeof st.opensAt === 'string' ? st.opensAt : null, closedReason: st.closedReason || null, campusClosed: !!st.campusClosed, fssaiLicenseNumber: typeof st.fssaiLicenseNumber === 'string' && st.fssaiLicenseNumber.trim() ? st.fssaiLicenseNumber.trim() : null };
+    if (id) out[id] = { id, name: String(st.name || ''), isOpen: st.isOpen !== false, opensAt: typeof st.opensAt === 'string' ? st.opensAt : null, closedReason: st.closedReason || null, campusClosed: !!st.campusClosed, takesSlotOrders: takesSlotOrders(st), fssaiLicenseNumber: typeof st.fssaiLicenseNumber === 'string' && st.fssaiLicenseNumber.trim() ? st.fssaiLicenseNumber.trim() : null };
   });
   return out;
 };

@@ -10,6 +10,7 @@ import { useDietary } from '../context/DietaryContext';
 import DopaminePressable, { CardPressable, ActionPressable } from './DopaminePressable';
 import SafeImage from './SafeImage';
 import { storeEtaMins } from '../utils/storeEta';
+import { takesSlotOrders } from '../utils/storeOpenNow';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -133,7 +134,8 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
           restaurantId: res._id || res.id,
           rating: Number(res.rating) || 0,
           deliveryTime: storeEtaMins(res),
-          storeOpen: res.isOpen !== false,
+          // Open now, or closed but taking orders for its next delivery slot (server takesSlotOrders).
+          storeOpen: res.isOpen !== false || takesSlotOrders(res),
         };
       })
     ).filter(item => {

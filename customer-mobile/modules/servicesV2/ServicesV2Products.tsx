@@ -16,7 +16,7 @@ import { BarIcon, BasketBar, ChipRow, FadeIn, HeroCard, SearchField, SkeletonRow
 import { ProductRow } from './ServicesV2Rows';
 import { IClock, ISearch, IBag } from './ServicesV2Icons';
 import { SHELF_HERO } from './servicesV2Art';
-import { SHELF_META, chipsFor, matchesQuery, useShelf, type ProductShelf } from './servicesV2Data';
+import { SHELF_META, chipsFor, matchesQuery, storeTakesOrders, useShelf, type ProductShelf } from './servicesV2Data';
 import { useStoreBasket } from './useStoreBasket';
 
 export default function ServicesV2Products({ shelf }: { shelf: ProductShelf }) {
@@ -32,7 +32,7 @@ export default function ServicesV2Products({ shelf }: { shelf: ProductShelf }) {
   const chips = useMemo(() => chipsFor(shelf, items), [shelf, items]);
   const active = chips.find((c) => c.key === chip) || chips[0];
   const shown = useMemo(() => items.filter((i) => active.test(i) && matchesQuery(i, q)), [items, active, q]);
-  const closedStore = useMemo(() => Object.values(stores).find((s) => !s.isOpen && !s.campusClosed) || null, [stores]);
+  const closedStore = useMemo(() => Object.values(stores).find((s) => !storeTakesOrders(s) && !s.campusClosed) || null, [stores]);
   const opens = closedStore?.opensAt && /^\d{1,2}:\d{2}$/.test(closedStore.opensAt) ? formatClock(closedStore.opensAt) : null;
 
   return (
@@ -88,7 +88,7 @@ export default function ServicesV2Products({ shelf }: { shelf: ProductShelf }) {
                       shelf={shelf}
                       item={it}
                       qty={line?.quantity || 0}
-                      storeClosed={!!store && !store.isOpen}
+                      storeClosed={!storeTakesOrders(store)}
                       onOpen={() => router.push(`/products/${it.id}` as any)}
                       onAdd={() => basket.add(it, store, meta.title)}
                       onMinus={() => line && basket.setQty(line.cartKey, line.quantity - 1)}

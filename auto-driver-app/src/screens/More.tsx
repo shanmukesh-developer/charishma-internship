@@ -33,7 +33,9 @@ export function NotificationsScreen({ navigation }: ScreenProps<'Notifications'>
   }, [q.data?.unread]);
   const open = (n: DriverNotification) => {
     const tripId = n.data && typeof n.data.tripId === 'string' ? n.data.tripId : null;
+    // Same targets as a push tap (App.tsx routePush): an on-charge alert opens the stand view.
     if (n.type === 'AUTO_PRIVATE_REQUEST' || (n.data && n.data.requestId)) navigation.navigate('Requests');
+    else if (tripId && n.type === 'AUTO_ON_CHARGE') navigation.navigate('Charge', { tripId });
     else if (tripId) navigation.navigate('TripDetail', { tripId });
     else if (n.type && /VEHICLE/.test(n.type)) navigation.navigate('Vehicles');
   };

@@ -121,7 +121,7 @@ export default function HomeScreen({ navigation }: ScreenProps<'Home'>) {
     if (h?.currentTrip) {
       Alert.alert('You have an active trip', 'Finish or cancel the current trip before starting a new one.', [
         { text: 'OK', style: 'cancel' },
-        { text: 'Open current trip', onPress: () => navigation.navigate('TripDetail', { tripId: h.currentTrip!.id }) },
+        { text: 'Open current trip', onPress: () => openTrip(h.currentTrip!) },
       ]);
       return;
     }

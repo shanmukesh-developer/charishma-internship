@@ -72,6 +72,13 @@ export const orderSlotLabel = (o: { deliverySlot?: string | null; slotStart?: st
   const fromWindow = slotWindowLabel(o.slotStart, o.slotEnd);
   if (fromWindow) return fromWindow;
   const s = String(o.deliverySlot || '').trim();
+  // A bare slot id ("2026-10-27|S1") is never shown raw.
+  const id = /^(\d{4})-(\d{2})-(\d{2})\|S([123])$/.exec(s);
+  if (id) {
+    const day = new Date(Date.UTC(+id[1], +id[2] - 1, +id[3], 6));
+    const date = day.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' });
+    return `${date}, ${['12:30–1:00 PM', '4:30–5:30 PM', '8:30–9:30 PM'][+id[4] - 1]}`;
+  }
   return s && !/^asap$/i.test(s) ? s : null;
 };
 

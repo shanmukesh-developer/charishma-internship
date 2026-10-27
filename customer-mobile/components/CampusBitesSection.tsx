@@ -18,7 +18,7 @@ import { useLiveSync } from '../utils/useLiveSync';
 import { useCartActions, useCartState } from '../context/CartContext';
 import { isCustomizable } from './CustomizeDrawer';
 import CampusBitesAdWindow from './CampusBitesAdWindow';
-import { liveOpenState } from '../utils/storeOpenNow';
+import { liveOpenState, takesSlotOrders } from '../utils/storeOpenNow';
 
 /**
  * CampusBites: food stalls near campus (Restaurant rows with vendorType LOCAL_VENDOR / LOCAL / STALL).
@@ -96,19 +96,29 @@ const hoursShort = (vendor: any): string | null => {
   return hoursText(vendor);
 };
 
-/** Status line: "Open · closes 9:00 PM" / "Closed · opens 10:00 AM" (the server decides open / closed). */
+/**
+ * Status line: "Open · closes 9:00 PM" / "Closed · opens 10:00 AM" (the server decides open / closed). A closed
+ * stall that takes orders for its next delivery slot says when that order arrives: "Order for Today 4:30–5:30 PM".
+ */
 const statusLine = (vendor: any, open: boolean): string => {
   if (open) {
     const at = fmtTime(liveOpenState(vendor).closesAt);
     return at ? `Open · closes ${at}` : 'Open now';
   }
+  if (takesSlotOrders(vendor) && vendor.nextSlotLabel) return `Order for ${vendor.nextSlotLabel}`;
   return closedLabel(vendor);
 };
 
-/** Up to two menu categories, in menu order: "Fresh Juices, Shakes". */
+/** Extras sold with a dish ("Add-ons: Extra Garlic Sauce"): never what the stall is about. */
+const ADD_ON_CATEGORY = /^(add[\s-]?ons?|extras?|dips?|sauces?)$/i;
+const isAddOn = (m: any) => ADD_ON_CATEGORY.test(String(m?.category || '').trim());
+/** Main dishes first, add-ons last (the server sorts categories A-Z, so "Add-ons" would lead). */
+const mainsFirst = (items: any[]): any[] => [...items.filter((m) => !isAddOn(m)), ...items.filter(isAddOn)];
+
+/** Up to two menu categories, in menu order: "Fresh Juices, Shakes" (add-on categories only when nothing else). */
 const menuCategories = (vendor: any): string => {
   const seen: string[] = [];
-  for (const m of Array.isArray(vendor.menu) ? vendor.menu : []) {
+  for (const m of mainsFirst(Array.isArray(vendor.menu) ? vendor.menu : [])) {
     const c = String(m?.category || '').trim();
     if (c && !seen.some((x) => x.toLowerCase() === c.toLowerCase())) seen.push(c);
     if (seen.length === 2) break;
@@ -202,12 +212,12 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
     return allVendors
       .filter((r) => selectedCampus === 'ALL' || campusOf(r)?.code === selectedCampus)
       .map((r) => {
-        if (!q) return { vendor: r, dishes: availableMenu(r).slice(0, PREVIEW_DISHES), dishMatches: 0 };
+        if (!q) return { vendor: r, dishes: mainsFirst(availableMenu(r)).slice(0, PREVIEW_DISHES), dishMatches: 0 };
         const stallHit = [r.name, r.stallDescription, r.description, r.location, campusOf(r)?.name, ...(Array.isArray(r.tags) ? r.tags : [])]
           .some((t) => String(t || '').toLowerCase().includes(q));
         const hits = availableMenu(r).filter(matchDish);
         if (!stallHit && !hits.length) return null;
-        return { vendor: r, dishes: (hits.length ? hits : availableMenu(r)).slice(0, PREVIEW_DISHES), dishMatches: hits.length };
+        return { vendor: r, dishes: mainsFirst(hits.length ? hits : availableMenu(r)).slice(0, PREVIEW_DISHES), dishMatches: hits.length };
       })
       .filter(Boolean)
       // Open stalls first (stable: the server's featured / rating order is kept inside each group).
@@ -438,6 +448,8 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
           const vid = idOf(vendor);
           const isPremium = vendor.subscriptionTier === 'premium';
           const isOpen = isVendorOpen(vendor);
+          // Closed right now but taking orders for its next delivery slot (server takesSlotOrders).
+          const orderable = isOpen || takesSlotOrders(vendor);
           const vendorImg = vendor.imageUrl || vendor.logoUrl || vendor.image || null;
           const campus = campusPills.length >= 2 ? campusOf(vendor) : null; // only when stalls span campuses
           const ratingCount = Number(vendor.ratingCount) || 0;
@@ -504,9 +516,9 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
                 </View>
               </View>
 
-              {/* Dishes: 2-3 popular (or matching) ones. Closed stall: dimmed, no buttons. */}
+              {/* Dishes: 2-3 popular (or matching) ones. Stall not taking orders: dimmed, no buttons. */}
               {dishes.length > 0 ? (
-                <View style={[s.dishList, { borderTopColor: border }, !isOpen && { opacity: 0.55 }]}>
+                <View style={[s.dishList, { borderTopColor: border }, !orderable && { opacity: 0.55 }]}>
                   {dishes.map((m: any) => {
                     const mId = idOf(m);
                     const justAdded = addedKey === mId;
@@ -523,12 +535,12 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
                         ) : <View style={s.dietSpacer} />}
                         <Text style={[s.dishName, { color: txt }]} numberOfLines={1}>{m.name}</Text>
                         <Text style={[s.dishPrice, { color: txt }]}>₹{Number(m.price) || 0}</Text>
-                        {isOpen && (
+                        {orderable && (
                           <TouchableOpacity
                             style={[s.addBtn, { borderColor: accent }, justAdded && { backgroundColor: accent }]}
                             accessibilityLabel={`Add ${m.name} from ${vendor.name || 'the stall'} to your basket`}
                             hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-                            onPress={() => addStallItem(vendor, m, isOpen)}
+                            onPress={() => addStallItem(vendor, m, orderable)}
                           >
                             <StallAddLabel itemId={mId} justAdded={justAdded} color={accent} />
                           </TouchableOpacity>

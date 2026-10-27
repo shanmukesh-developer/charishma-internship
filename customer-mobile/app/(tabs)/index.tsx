@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, RefreshControl, FlatList, Dimensions, Platform, Modal, ActivityIndicator, Alert, Animated, Linking, BackHandler, Vibration } from 'react-native';
+import { takesSlotOrders } from '../../utils/storeOpenNow';
 import { useSectionUsage, rankByUsage, recordSectionUse } from '../../utils/sectionUsage';
 import { useCampusEventsStatus } from '../../modules/campusEvents/ui';
 import { RENTALS_V2_DEMO_CONTENT } from '../../modules/rentalsV2/rentalsV2Demo';
@@ -415,7 +416,8 @@ export default function HomeScreen() {
   // Live count for the "All restaurants" header: food stores in the grid and how many are open now
   const storeCounts = React.useMemo(() => {
     const food = restaurants.filter(isHomeFoodVendor);
-    return { total: food.length, open: food.filter(isRestaurantOpenNow).length };
+    // Delivery slots: a closed store that takes orders for the next slot still counts as taking orders.
+    return { total: food.length, open: food.filter(isRestaurantOpenNow).length, slot: food.filter((r: any) => !isRestaurantOpenNow(r) && takesSlotOrders(r)).length };
   }, [restaurants]);
   // "Under 20 min" only when the server has measured delivery times (utils/storeEta)
   const hasMeasuredEta = React.useMemo(() => restaurants.some((r: any) => !!storeEtaMins(r)), [restaurants]);
@@ -1096,11 +1098,11 @@ export default function HomeScreen() {
             <View
               style={[s.livePill, { backgroundColor: storeCounts.open > 0 ? (isDark ? 'rgba(16,185,129,0.14)' : '#ECFDF5') : (isDark ? 'rgba(245,158,11,0.14)' : '#FFFBEB'), borderColor: storeCounts.open > 0 ? (isDark ? 'rgba(16,185,129,0.35)' : 'transparent') : (isDark ? 'rgba(245,158,11,0.35)' : 'transparent') }, surfaceShadow(isDark, true)]}
               accessible
-              accessibilityLabel={storeCounts.open > 0 ? `${storeCounts.open} of ${storeCounts.total} restaurants open now` : 'All restaurants are closed right now'}
+              accessibilityLabel={storeCounts.open > 0 ? `${storeCounts.open} of ${storeCounts.total} restaurants open now` : storeCounts.slot > 0 ? 'Restaurants are taking orders for the next delivery slot' : 'All restaurants are closed right now'}
             >
               <LiveDot color={storeCounts.open > 0 ? '#10B981' : '#F59E0B'} active={homeFocused && storeCounts.open > 0} />
               <Text maxFontSizeMultiplier={1.3} style={[s.livePillText, { color: storeCounts.open > 0 ? (isDark ? '#34D399' : '#047857') : (isDark ? '#FBBF24' : '#B45309') }]}>
-                {storeCounts.open > 0 ? `${storeCounts.open} open now` : 'Closed right now'}
+                {storeCounts.open > 0 ? `${storeCounts.open} open now` : storeCounts.slot > 0 ? 'Order for the next slot' : 'Closed right now'}
               </Text>
             </View>
           )}
@@ -1216,6 +1218,8 @@ export default function HomeScreen() {
 
             // Open/Closed status from the server (vendor toggle + operating hours, IST)
             const isOpen = isRestaurantOpenNow(r);
+            // Closed now but taking orders for the next delivery slot: no dimming, the chip says so.
+            const slotOrders = !isOpen && takesSlotOrders(r);
             const opensAtLabel = !isOpen ? formatOpensAt(r.opensAt) : null;
 
             const activeOffer: string | null = r.promoOffer || null;
@@ -1327,9 +1331,9 @@ export default function HomeScreen() {
                     <View style={s.timeChip}><Text style={s.timeText}>{time}</Text></View>
                   )}
                   {!isOpen && (
-                    <View style={s.timeChip}><Text style={s.timeText}>{opensAtLabel ? `Opens ${opensAtLabel}` : 'Closed now'}</Text></View>
+                    <View style={s.timeChip}><Text style={s.timeText}>{slotOrders ? 'Order for next slot' : opensAtLabel ? `Opens ${opensAtLabel}` : 'Closed now'}</Text></View>
                   )}
-                  {!isOpen && (
+                  {!isOpen && !slotOrders && (
                     <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.38)', borderRadius: 16 }]} />
                   )}
                   {activeOffer && (
