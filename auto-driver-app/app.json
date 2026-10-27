@@ -5,7 +5,7 @@
     },
     "name": "ZCS Auto Driver",
     "slug": "zenvy-auto-driver",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,7 @@
     },
     "android": {
       "package": "com.srm.zenvyautodriver",
-      "versionCode": 8,
+      "versionCode": 9,
       "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#0B0D12",
