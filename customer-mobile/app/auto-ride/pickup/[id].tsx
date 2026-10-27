@@ -37,7 +37,7 @@ export default function PickupQueueScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: p.bg }}>
         <AHeader title="Pickup point" />
-        {error ? <StateView kind={off || error.status === 404 ? 'empty' : 'error'} icon={off ? '🛺' : '📍'} title={off ? 'Zenvy Auto is not open yet' : error.status === 404 ? 'Pickup point not found' : error.isNetwork ? 'You seem to be offline' : 'Could not load'}
+        {error ? <StateView kind={off || error.status === 404 ? 'empty' : 'error'} icon={off ? '🛺' : '📍'} title={off ? 'ZCS Auto is not open yet' : error.status === 404 ? 'Pickup point not found' : error.isNetwork ? 'You seem to be offline' : 'Could not load'}
           message={error.message} actionLabel={off || error.status === 404 ? 'Back' : 'Retry'} onAction={off || error.status === 404 ? () => router.replace(`${AUTO_HOME}&seg=pickups` as any) : load} /> : <StateView kind="loading" />}
       </View>
     );
@@ -48,7 +48,7 @@ export default function PickupQueueScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: p.bg }}>
-      <AHeader title={pt.name} subtitle={pt.landmark || 'Zenvy auto stand'} />
+      <AHeader title={pt.name} subtitle={pt.landmark || 'ZCS auto stand'} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}>
         {mapsUrl ? <Btn label="Open in Maps" icon="🗺️" kind="secondary" onPress={() => Linking.openURL(mapsUrl).catch(() => Alert.alert('Could not open maps'))} style={{ marginBottom: 12 }} /> : null}
         <Chips wrap={false} value={date} onChange={(v: string) => setDate(v)} options={[0, 1, 2].map((i) => ({ key: istDate(i), label: istDayLabel(istDate(i)) }))} />

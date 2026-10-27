@@ -324,7 +324,7 @@ exports.getMenuItemById = async (req, res) => {
         image: v.imageUrl || v.image,
         isVaultItem: true,
         orderable: false,
-        restaurantName: 'Zenvy Daily Deals',
+        restaurantName: 'ZCS Daily Deals',
         restaurantId: null
       });
     }
@@ -1898,7 +1898,7 @@ exports.batchUpdateOrders = async (req, res) => {
           }
         } else {
           const { cancelAndRefund } = require('./orderController');
-          const { cancelled, refunded } = await cancelAndRefund(order, { reason: 'Cancelled by Zenvy support', onlyFromStatuses: [targetStatus], by: 'support' });
+          const { cancelled, refunded } = await cancelAndRefund(order, { reason: 'Cancelled by ZCS support', onlyFromStatuses: [targetStatus], by: 'support' });
           if (!cancelled) continue;
           updatedCount++;
           emitStatus(order, { id: order.id, status: 'Cancelled', reason: 'ADMIN_CANCELLED', refundedToWallet: refunded });
@@ -1913,10 +1913,10 @@ exports.batchUpdateOrders = async (req, res) => {
           }
           realtime.notifyAdmin('order', 'updated', order.id);
           const oc = require('./orderController');
-          if (order.restaurantId) oc.pushStoreCancelled(order.restaurantId, order, 'An order was cancelled by Zenvy support.');
+          if (order.restaurantId) oc.pushStoreCancelled(order.restaurantId, order, 'An order was cancelled by ZCS support.');
           oc.pushCustomer(order, 'Order cancelled', refunded > 0
-            ? `Zenvy support cancelled your order. ₹${refunded} is back in your Wallet.`
-            : 'Zenvy support cancelled your order. You have not been charged.');
+            ? `ZCS support cancelled your order. ₹${refunded} is back in your Wallet.`
+            : 'ZCS support cancelled your order. You have not been charged.');
         }
       } catch (e) {
         console.error('[BATCH_ORDER_UPDATE_ERROR]', order.id, e.message);
@@ -2836,7 +2836,7 @@ const ADMIN_MAX_ACTIVE_ORDERS = Math.max(1, parseInt(process.env.RIDER_MAX_ACTIV
  * cancel / other change landed first (nothing done), true when the rider was removed.
  * opts: { io, reason, extraWhere }
  */
-const releaseOrderRider = async (order, { io = null, reason = 'Removed by Zenvy support', extraWhere = null } = {}) => {
+const releaseOrderRider = async (order, { io = null, reason = 'Removed by ZCS support', extraWhere = null } = {}) => {
   const Order = getOrderModel();
   const oldRiderId = order.deliveryPartnerId || null;
   if (!oldRiderId) return false;
@@ -2905,7 +2905,7 @@ exports.assignOrderRider = async (req, res) => {
     }
     if (!newRiderId) {
       // Remove the rider: shared with the pickup-timeout job (same write, sockets and pushes).
-      const released = await releaseOrderRider(order, { io: req.app.get('io'), reason: 'Removed by Zenvy support' });
+      const released = await releaseOrderRider(order, { io: req.app.get('io'), reason: 'Removed by ZCS support' });
       if (!released) return res.status(409).json({ message: 'This order was just updated (claimed, picked up or cancelled). Refresh and try again.', code: 'ORDER_CHANGED' });
       await logAuditAction(req, order.id, 'ORDER_RIDER_UNASSIGNED', { from: oldRiderId, to: null });
       return res.json({ message: 'Rider removed. The order is back with the riders.', orderId: order.id, status: order.status, riderId: null });
@@ -2939,7 +2939,7 @@ exports.assignOrderRider = async (req, res) => {
       io.to(String(order.id)).emit('statusUpdated', payload);
       io.to('admin-room').emit('statusUpdated', payload);
       if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('statusUpdated', payload);
-      if (!newRiderId) io.to('admin-room').emit('order_unassigned', { orderId: order.id, reason: 'Removed by Zenvy support' });
+      if (!newRiderId) io.to('admin-room').emit('order_unassigned', { orderId: order.id, reason: 'Removed by ZCS support' });
     }
     realtime.notifyAdmin('order', 'updated', order.id);
     const restaurant = order.restaurantId ? await getRestaurantModel().findByPk(order.restaurantId, { attributes: ['id', 'name', 'location'] }) : null;
@@ -2947,7 +2947,7 @@ exports.assignOrderRider = async (req, res) => {
       if (newRiderId) {
         const tokens = (Array.isArray(rider.fcmTokens) ? rider.fcmTokens : []).map((t) => (typeof t === 'string' ? t : t && t.token)).filter(Boolean);
         if (tokens.length) {
-          await require('../utils/push').sendPushToTokens(tokens, '🛵 Order assigned to you', `Zenvy support gave you an order from ${restaurant?.name || 'a store'}.`, { orderId: String(order.id), type: 'ORDER_ASSIGNED' }, {
+          await require('../utils/push').sendPushToTokens(tokens, '🛵 Order assigned to you', `ZCS support gave you an order from ${restaurant?.name || 'a store'}.`, { orderId: String(order.id), type: 'ORDER_ASSIGNED' }, {
             persist: false,
             android: { priority: 'high', notification: { sound: 'alert', channelId: require('../utils/riderDispatch').RIDER_NEW_ORDER_CHANNEL } },
           });

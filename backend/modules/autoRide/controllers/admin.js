@@ -147,7 +147,7 @@ const verifyDriver = async (req, res) => {
   if (!n) throw fail(409, 'INVALID_STATE', 'Someone else already reviewed this driver.');
   await d.reload();
   await audit(req, d.id, 'AUTO_DRIVER_VERIFIED', { phoneLast4: String(d.phone).slice(-4) });
-  notify.toDriver(d.id, 'You are verified ✅', 'Your Zenvy Auto Driver account is verified. Go online and publish your first trip.', { type: 'AUTO_DRIVER_VERIFIED' });
+  notify.toDriver(d.id, 'You are verified ✅', 'Your ZCS Auto Driver account is verified. Go online and publish your first trip.', { type: 'AUTO_DRIVER_VERIFIED' });
   notify.nudgeDriver(d.id, 'driver', d.id, d.status);
   notify.admin('auto_driver', 'updated', d.id);
   res.json({ driver: S.driverAdmin(req, d) });
@@ -194,7 +194,7 @@ const unsuspendDriver = async (req, res) => {
   const prev = [D.PENDING_DOCS, D.PENDING_REVIEW, D.VERIFIED, D.REJECTED].includes(d.statusBeforeSuspension) ? d.statusBeforeSuspension : (d.submittedAt ? D.PENDING_REVIEW : D.PENDING_DOCS);
   await d.update({ status: prev, statusBeforeSuspension: null, suspendedReason: null, reviewedBy: req.user.id, reviewedAt: clock.now() });
   await audit(req, d.id, 'AUTO_DRIVER_REACTIVATED', { status: prev });
-  notify.toDriver(d.id, 'Account reactivated', 'Your Zenvy Auto Driver account is active again. Please sign in.', { type: 'AUTO_DRIVER_REACTIVATED' });
+  notify.toDriver(d.id, 'Account reactivated', 'Your ZCS Auto Driver account is active again. Please sign in.', { type: 'AUTO_DRIVER_REACTIVATED' });
   notify.admin('auto_driver', 'updated', d.id);
   res.json({ driver: S.driverAdmin(req, d) });
 };
@@ -440,7 +440,7 @@ const cancelTrip = async (req, res) => {
   const t = await byId(M().Trip, req.params.id, 'Trip');
   const out = await actions.endTrip({ tripId: t.id, to: T.CANCELLED, actor: 'admin', actorId: req.user.id, reason });
   await audit(req, t.id, 'AUTO_TRIP_CANCELLED', { reason, bookingsCancelled: out.cancelled.length });
-  notify.toDriver(t.driverId, 'Trip cancelled by Zenvy', reason, { type: 'AUTO_TRIP_CANCELLED', tripId: t.id });
+  notify.toDriver(t.driverId, 'Trip cancelled by ZCS', reason, { type: 'AUTO_TRIP_CANCELLED', tripId: t.id });
   res.json({ trip: { ...S.tripDriver(req, out.trip, {}), driverId: out.trip.driverId }, bookingsCancelled: out.cancelled.length });
 };
 const queues = async (req, res) => {
@@ -550,7 +550,7 @@ const cancelBooking = async (req, res) => {
   });
   if (out.booking.status === B.REFUND_PENDING) { await payments.processRefund(out.booking.id); await out.booking.reload(); }
   await audit(req, out.booking.id, 'AUTO_BOOKING_CANCELLED', { reason, refund: money(out.booking.refundAmount) });
-  notify.bookingEvent(out.booking, { title: 'Auto booking cancelled by Zenvy', body: reason, type: 'AUTO_BOOKING_CANCELLED', driverTitle: 'Booking cancelled', driverBody: `${out.booking.bookingCode} was cancelled by Zenvy.` });
+  notify.bookingEvent(out.booking, { title: 'Auto booking cancelled by ZCS', body: reason, type: 'AUTO_BOOKING_CANCELLED', driverTitle: 'Booking cancelled', driverBody: `${out.booking.bookingCode} was cancelled by ZCS.` });
   notify.tripEvent(out.trip, {});
   res.json({ booking: S.bookingAdmin(out.booking, {}) });
 };
@@ -620,8 +620,8 @@ const updateIncident = async (req, res) => {
   const closed = ['RESOLVED', 'DISMISSED'].includes(status);
   await row.update({ status, adminNote: note, ...(closed ? { resolvedBy: req.user.id, resolvedAt: clock.now() } : { resolvedBy: null, resolvedAt: null }) });
   await audit(req, row.id, 'AUTO_INCIDENT_STATUS', { status });
-  if (closed && row.reporterType === 'CUSTOMER') notify.toCustomers([row.reporterId], 'Your auto report was reviewed', note ? `Zenvy team: ${note}` : 'The Zenvy team has reviewed your report.', { type: 'AUTO_INCIDENT_UPDATE', incidentId: row.id });
-  if (closed && row.reporterType === 'DRIVER') notify.toDriver(row.reporterId, 'Your report was reviewed', note ? `Zenvy team: ${note}` : 'The Zenvy team has reviewed your report.', { type: 'AUTO_INCIDENT_UPDATE', incidentId: row.id });
+  if (closed && row.reporterType === 'CUSTOMER') notify.toCustomers([row.reporterId], 'Your auto report was reviewed', note ? `ZCS team: ${note}` : 'The ZCS team has reviewed your report.', { type: 'AUTO_INCIDENT_UPDATE', incidentId: row.id });
+  if (closed && row.reporterType === 'DRIVER') notify.toDriver(row.reporterId, 'Your report was reviewed', note ? `ZCS team: ${note}` : 'The ZCS team has reviewed your report.', { type: 'AUTO_INCIDENT_UPDATE', incidentId: row.id });
   notify.admin('auto_incident', 'updated', row.id);
   res.json({ incident: S.incident(row) });
 };

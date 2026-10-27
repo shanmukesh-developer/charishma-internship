@@ -44,7 +44,7 @@ export function Wordmark({ className, compact = false }: { className?: string; c
       <span className="flex h-7 w-7 items-center justify-center rounded-md bg-fg text-[15px] font-semibold leading-none text-bg" aria-hidden>Z</span>
       {!compact && (
         <span className="flex items-baseline gap-1.5">
-          <span className="text-[15px] font-semibold tracking-[-0.01em] text-fg">Zenvy</span>
+          <span className="text-[15px] font-semibold tracking-[-0.01em] text-fg">ZCS</span>
           <span className="text-sm text-fg-subtle">Admin</span>
         </span>
       )}
@@ -203,9 +203,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   // Document title follows the page name from the navigation model.
   useEffect(() => {
-    if (isLoginPage) { document.title = 'Sign in · Zenvy Admin'; return; }
+    if (isLoginPage) { document.title = 'Sign in · ZCS Admin'; return; }
     const hit = findNavItem(pathname);
-    document.title = hit ? `${hit.item.label} · Zenvy Admin` : 'Zenvy Admin';
+    document.title = hit ? `${hit.item.label} · ZCS Admin` : 'ZCS Admin';
   }, [pathname, isLoginPage]);
 
   const themeItems = useThemeMenuItems();
@@ -215,7 +215,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   if (auth.status === 'checking') {
-    return <AuthScreen busy title="Checking your session" detail="Confirming your admin access with the Zenvy server." />;
+    return <AuthScreen busy title="Checking your session" detail="Confirming your admin access with the ZCS server." />;
   }
 
   if (auth.status === 'error') {
@@ -248,7 +248,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const sidebarInner = (
     <>
       <div className="flex h-14 shrink-0 items-center justify-between px-4">
-        <Link href="/" aria-label="Zenvy Admin overview"><Wordmark /></Link>
+        <Link href="/" aria-label="ZCS Admin overview"><Wordmark /></Link>
         <IconButton label="Close menu" className="lg:hidden" onClick={() => setNavOpen(false)}><IconX size={16} /></IconButton>
       </div>
       <div className="px-3 pb-3">

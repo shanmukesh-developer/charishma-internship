@@ -142,7 +142,7 @@ const validateCompliance = (body, current, { actor = 'admin', now = new Date() }
     // Write-only fields (the UI only ever sees PAN masked): '' means "unchanged", null clears.
     if (WRITE_ONLY_FIELDS.includes(key) && typeof b[key] === 'string' && !b[key].trim()) continue;
     if (actor !== 'admin' && ADMIN_ONLY_FIELDS.includes(key)) {
-      throw new ComplianceInputError('PAN and payout details can only be changed by Zenvy support. Please contact support.', key, 'ADMIN_ONLY_FIELD');
+      throw new ComplianceInputError('PAN and payout details can only be changed by ZCS support. Please contact support.', key, 'ADMIN_ONLY_FIELD');
     }
     const value = normalizeField(key, b[key]);
     if (key === 'bankAccountNumber') {

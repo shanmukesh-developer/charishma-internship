@@ -160,7 +160,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       {/* C9: a render error shows a calm "Something went wrong — Restart" screen instead of a crash. */}
-      <ErrorBoundary appName="Zenvy Auto Driver">
+      <ErrorBoundary appName="ZCS Auto Driver">
         <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
           <StatusBar style="dark" />
           <ToastProvider>

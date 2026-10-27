@@ -161,8 +161,8 @@ function TripDetail({ id, tick, onChanged }: { id: string; tick: number; onChang
           reason={{ label: 'Reason (passengers and the driver see this)', min: 5 }}
           body={<>
             <p>{fx.live.length ? `${fx.live.length} live booking${fx.live.length === 1 ? '' : 's'} will be cancelled and every passenger notified.` : 'No live bookings on this trip.'}</p>
-            {fx.wallet.length > 0 && <p className="font-semibold text-success-text">{fx.wallet.length} wallet booking{fx.wallet.length === 1 ? '' : 's'}: {inr(fx.walletTotal)} refunded in full to Zenvy Wallet.</p>}
-            {fx.cash.length > 0 && <p>{fx.cash.length} cash booking{fx.cash.length === 1 ? '' : 's'}: nothing was paid to Zenvy, nothing to refund.</p>}
+            {fx.wallet.length > 0 && <p className="font-semibold text-success-text">{fx.wallet.length} wallet booking{fx.wallet.length === 1 ? '' : 's'}: {inr(fx.walletTotal)} refunded in full to ZCS Wallet.</p>}
+            {fx.cash.length > 0 && <p>{fx.cash.length} cash booking{fx.cash.length === 1 ? '' : 's'}: nothing was paid to ZCS, nothing to refund.</p>}
             {fx.held.length > 0 && <p>{fx.held.length} seat hold{fx.held.length === 1 ? '' : 's'} released.</p>}
             <p className="text-xs text-fg-muted">This cannot be undone.</p>
           </>}

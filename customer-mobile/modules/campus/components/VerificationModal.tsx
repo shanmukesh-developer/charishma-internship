@@ -93,7 +93,7 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
     setStatusError(null);
     try {
       const token = await getToken();
-      if (!token) throw new CampusApiError('Sign in to your Zenvy account to verify.', 401, 'AUTH');
+      if (!token) throw new CampusApiError('Sign in to your ZCS account to verify.', 401, 'AUTH');
       const s = await fetchVerificationStatus();
       if (!mounted.current) return;
       setStatus(s);

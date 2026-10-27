@@ -570,7 +570,7 @@ router.patch('/:id/status', protect, async (req, res) => {
     const isAdmin = isAdminUser(req.user);
     const isAssignedPartner = !!(booking.assignedPartnerId && booking.assignedPartnerId === req.user.id);
     if (!isAdmin && !isAssignedPartner) {
-      return res.status(403).json({ success: false, message: 'Only the Zenvy team or the assigned partner can update this booking.' });
+      return res.status(403).json({ success: false, message: 'Only the ZCS team or the assigned partner can update this booking.' });
     }
 
     const { status, quotedAmount, finalAmount, driverDetails, assignedPartnerId } = req.body || {};
@@ -623,7 +623,7 @@ router.patch('/:id/status', protect, async (req, res) => {
     // CONFIRMED / IN_PROGRESS / READY with a higher price), which used to skip the student's approval.
     if (raises && (PRICE_LOCKED_AFTER_APPROVAL.includes(current) || PRICE_LOCKED_AFTER_APPROVAL.includes(nextStatus))) {
       if (current === 'READY_FOR_DELIVERY') {
-        return res.status(400).json({ success: false, code: 'PRICE_LOCKED', message: 'The price cannot be raised after the job is ready. Contact Zenvy support.' });
+        return res.status(400).json({ success: false, code: 'PRICE_LOCKED', message: 'The price cannot be raised after the job is ready. Contact ZCS support.' });
       }
       nextStatus = 'DIAGNOSED_QUOTED';
       needsReapproval = true;

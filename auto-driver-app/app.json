@@ -3,7 +3,7 @@
     "extra": {
       "trustedApiHosts": ["hostelbites-backend-jwmt.onrender.com"]
     },
-    "name": "Zenvy Auto Driver",
+    "name": "ZCS Auto Driver",
     "slug": "zenvy-auto-driver",
     "version": "1.0.7",
     "orientation": "portrait",
@@ -49,8 +49,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Zenvy Auto Driver uses your photos to upload your licence, vehicle papers and auto photos for verification.",
-          "cameraPermission": "Zenvy Auto Driver uses the camera to photograph your licence, vehicle papers and auto for verification.",
+          "photosPermission": "ZCS Auto Driver uses your photos to upload your licence, vehicle papers and auto photos for verification.",
+          "cameraPermission": "ZCS Auto Driver uses the camera to photograph your licence, vehicle papers and auto for verification.",
           "microphonePermission": false
         }
       ],

@@ -234,7 +234,7 @@ const runAutoRideJobs = async (now = clock.now()) => {
       const amt = await payments.processRefund(b.id);
       if (amt > 0) {
         out.refunds++;
-        notify.toCustomers([b.userId], 'Refund done', `₹${amt} is back in your Zenvy Wallet.`, { type: 'AUTO_REFUND', bookingId: b.id });
+        notify.toCustomers([b.userId], 'Refund done', `₹${amt} is back in your ZCS Wallet.`, { type: 'AUTO_REFUND', bookingId: b.id });
       }
     });
   }

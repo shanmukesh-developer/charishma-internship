@@ -329,7 +329,7 @@ export default function RegisterScreen() {
       <ServerWakeupOverlay
         visible={showWakeup}
         onWakeupComplete={() => setShowWakeup(false)}
-        offlineText="Still can't reach Zenvy. Check your internet and try again."
+        offlineText="Still can't reach ZCS. Check your internet and try again."
       />
 
       {/* Background Slideshow with Parallax Shift */}
@@ -376,7 +376,7 @@ export default function RegisterScreen() {
               <View style={s.iconBadge}>
                 <Text style={s.logoIcon}>✨</Text>
               </View>
-              <Text style={s.brand}>ZENVY</Text>
+              <Text style={s.brand}>ZCS</Text>
               <Text style={s.tagline}>Create your account</Text>
             </StaggeredSection>
           </Animated.View>
@@ -469,7 +469,7 @@ export default function RegisterScreen() {
                     <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '700', marginTop: 4 }}>{referralError}</Text>
                   ) : (
                     <Text style={{ color: isDark ? COLORS.textMuted : '#6B7280', fontSize: 12, fontWeight: '600', marginTop: 4 }}>
-                      You and your friend both get 50 ZenPoints.
+                      You and your friend both get 50 ZCS Points.
                     </Text>
                   )}
                 </>

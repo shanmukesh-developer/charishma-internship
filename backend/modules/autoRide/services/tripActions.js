@@ -56,16 +56,16 @@ const publishChecks = async (trip, driverId, opts = {}) => {
   const { Driver, Vehicle, Route, Pickup, Trip } = M();
   const settings = await readSettings();
   const driver = await Driver.findByPk(driverId);
-  if (!driver || driver.status !== E.DRIVER_STATUS.VERIFIED) throw fail(403, 'DRIVER_NOT_VERIFIED', 'Your driver account must be verified by Zenvy before you can publish trips.');
+  if (!driver || driver.status !== E.DRIVER_STATUS.VERIFIED) throw fail(403, 'DRIVER_NOT_VERIFIED', 'Your driver account must be verified by ZCS before you can publish trips.');
   if (!driver.isOnline) throw fail(409, 'DRIVER_OFFLINE', charge ? 'Go online first, then put your auto on charge.' : 'Go online first, then publish your trip.');
   const vehicle = await Vehicle.findByPk(trip.vehicleId);
   if (!vehicle || String(vehicle.driverId) !== String(driverId)) throw fail(404, 'NOT_FOUND', 'Vehicle not found.');
-  if (vehicle.status !== E.VEHICLE_STATUS.APPROVED || !vehicle.approvedCapacity) throw fail(403, 'VEHICLE_NOT_APPROVED', 'This auto has not been approved by Zenvy yet.');
+  if (vehicle.status !== E.VEHICLE_STATUS.APPROVED || !vehicle.approvedCapacity) throw fail(403, 'VEHICLE_NOT_APPROVED', 'This auto has not been approved by ZCS yet.');
   const depart = new Date(trip.departureAt);
   const day = istDate(charge ? clock.now() : depart);
   if (expired(driver.licenceExpiresOn, day)) throw fail(409, 'LICENCE_EXPIRED', 'Your driving licence on file has expired. Upload the renewed licence.');
   for (const [k, label] of [['permitExpiresOn', 'permit'], ['insuranceExpiresOn', 'insurance'], ['fitnessExpiresOn', 'fitness certificate'], ['pucExpiresOn', 'PUC certificate']]) {
-    if (expired(vehicle[k], day)) throw fail(409, 'VEHICLE_PAPERS_EXPIRED', `The vehicle ${label} expires before this trip. Renew it and ask Zenvy to update the vehicle.`, { field: k });
+    if (expired(vehicle[k], day)) throw fail(409, 'VEHICLE_PAPERS_EXPIRED', `The vehicle ${label} expires before this trip. Renew it and ask ZCS to update the vehicle.`, { field: k });
   }
   const cap = Number(trip.capacity) || 0;
   const maxCap = Math.min(Number(vehicle.approvedCapacity) || 0, settings.platformMaxCapacity);
@@ -404,7 +404,7 @@ const ACTIONS = {
     await transitionTrip(trip, T.COMPLETED, { actor: 'driver', actorId: driverId, t });
     const { Booking } = M();
     await Booking.update({ status: B.COMPLETED, completedAt: clock.now() }, { where: { tripId: trip.id, status: B.BOARDED }, transaction: t });
-    return { notice: { title: 'Trip completed ✅', body: 'Thanks for riding with Zenvy Auto-Ride.', type: 'AUTO_TRIP_COMPLETED', statuses: [B.COMPLETED] } };
+    return { notice: { title: 'Trip completed ✅', body: 'Thanks for riding with ZCS Auto-Ride.', type: 'AUTO_TRIP_COMPLETED', statuses: [B.COMPLETED] } };
   },
   // Union queue: the auto leaves now (before or when full). Holds still open are released, then boarding starts
   // at once so students not yet checked in can still be checked in before Start.
@@ -508,7 +508,7 @@ const earnings = async (driverId, from, to) => {
       wallet += (Number(b.walletDebited) || 0) - ([B.REFUNDED, B.REFUND_PENDING].includes(b.status) ? Number(b.refundAmount) || 0 : 0);
     }
   }
-  return { cashCollected: money(cash), walletPayments: money(wallet), total: money(cash + wallet), note: 'Only payments recorded in Zenvy (cash you marked collected at check-in, wallet payments).' };
+  return { cashCollected: money(cash), walletPayments: money(wallet), total: money(cash + wallet), note: 'Only payments recorded in ZCS (cash you marked collected at check-in, wallet payments).' };
 };
 
 module.exports = { publish, publishChecks, putOnCharge, changeFare, routeSeatFare, runAction, endTrip, earnings, ACTIONS, missedNotice };

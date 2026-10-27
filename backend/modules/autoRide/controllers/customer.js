@@ -88,7 +88,7 @@ const pickupPoints = async (req, res) => {
   res.json({
     pickupPoints: rows.filter((p) => { const r = rmap.get(String(p.routeId)); return r && r.isActive !== false; })
       .map((p) => ({ ...S.pickupBrief(p), route: S.routeBrief(rmap.get(String(p.routeId))) })),
-    note: 'Locations are the stands set by Zenvy. Live auto locations are not shown.',
+    note: 'Locations are the stands set by ZCS. Live auto locations are not shown.',
   });
 };
 
@@ -404,7 +404,7 @@ const confirmOnce = async (req, id) => {
     const paid = b.paymentMethod === E.PAYMENT_METHODS.WALLET;
     notify.bookingEvent(b, {
       title: 'Auto seat booked ✅',
-      body: `Booking ${b.bookingCode}: ${b.seatCount} seat${b.seatCount === 1 ? '' : 's'}, ₹${b.amount} ${paid ? 'paid from your Zenvy Wallet' : 'to pay the driver in cash'}.`,
+      body: `Booking ${b.bookingCode}: ${b.seatCount} seat${b.seatCount === 1 ? '' : 's'}, ₹${b.amount} ${paid ? 'paid from your ZCS Wallet' : 'to pay the driver in cash'}.`,
       type: 'AUTO_BOOKING_CONFIRMED',
       driverTitle: 'New booking', driverBody: `${b.seatCount} seat${b.seatCount === 1 ? '' : 's'} booked (${b.bookingCode}).`,
     });
@@ -442,7 +442,7 @@ const cancelBooking = async (req, res) => {
   const refund = Number(b.refundAmount) || 0;
   notify.bookingEvent(b, {
     title: 'Auto booking cancelled',
-    body: refund > 0 ? `₹${refund} ${b.status === B.REFUNDED ? 'is back in' : 'will be refunded to'} your Zenvy Wallet.` : `Booking ${b.bookingCode} is cancelled.`,
+    body: refund > 0 ? `₹${refund} ${b.status === B.REFUNDED ? 'is back in' : 'will be refunded to'} your ZCS Wallet.` : `Booking ${b.bookingCode} is cancelled.`,
     type: 'AUTO_BOOKING_CANCELLED',
     driverTitle: 'Booking cancelled', driverBody: `${b.bookingCode} cancelled ${b.seatCount} seat${b.seatCount === 1 ? '' : 's'}.`,
   });
@@ -526,7 +526,7 @@ const reportIncident = async (req, res) => {
   const priority = E.HIGH_PRIORITY_CATEGORIES.includes(category) ? E.INCIDENT_PRIORITY.HIGH : E.INCIDENT_PRIORITY.NORMAL;
   const row = await M().Incident.create({ tripId: b.tripId, bookingId: b.id, reporterType: 'CUSTOMER', reporterId: req.user.id, category, priority, description });
   notify.admin('auto_incident', 'created', row.id);
-  res.status(201).json({ incident: S.incident(row), message: category === 'SAFETY' || category === 'HARASSMENT' ? 'Reported. If you are in danger call 112 now.' : 'Reported. The Zenvy team will look into it.' });
+  res.status(201).json({ incident: S.incident(row), message: category === 'SAFETY' || category === 'HARASSMENT' ? 'Reported. If you are in danger call 112 now.' : 'Reported. The ZCS team will look into it.' });
 };
 
 module.exports = {

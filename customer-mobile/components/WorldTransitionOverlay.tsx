@@ -345,7 +345,7 @@ export default function WorldTransitionOverlay() {
           </View>
         </View>
 
-        <Text style={s.gatewayLabel}>Zenvy</Text>
+        <Text style={s.gatewayLabel}>ZCS</Text>
         <Text style={s.worldTitle}>{theme.label}</Text>
 
         {/* Gold Line Divider */}

@@ -80,7 +80,7 @@ export default function AutoBookingScreen() {
     const walletNote = b.paymentMethod === 'WALLET'
       ? (pct !== null && pct !== undefined
         ? `${pct >= 100 ? 'You get the full' : pct <= 0 ? 'No' : `You get ${pct}% of the`} wallet payment${pct > 0 ? ` back (${inr((b.amount * pct) / 100)})` : ' is refunded'}${afterDriverConfirm ? ' because the driver has already confirmed departure' : ''}.`
-        : (afterDriverConfirm ? 'The driver has already confirmed departure, so the refund may be reduced under the Zenvy refund policy.' : 'Your wallet payment is refunded under the Zenvy refund policy.'))
+        : (afterDriverConfirm ? 'The driver has already confirmed departure, so the refund may be reduced under the ZCS refund policy.' : 'Your wallet payment is refunded under the ZCS refund policy.'))
       : 'This is a cash booking, so nothing is charged.';
     Alert.alert(held ? 'Release held seats?' : 'Cancel this booking?', held ? 'The seats go back to other passengers.' : `${walletNote} The seats go back to other passengers.`, [
       { text: 'Keep', style: 'cancel' },
@@ -93,7 +93,7 @@ export default function AutoBookingScreen() {
             const nb = r.booking;
             if (!held) {
               Alert.alert('Booking cancelled', nb.refundAmount > 0
-                ? `${inr(nb.refundAmount)} ${nb.status === 'REFUNDED' ? 'is back in' : 'will be refunded to'} your Zenvy Wallet.`
+                ? `${inr(nb.refundAmount)} ${nb.status === 'REFUNDED' ? 'is back in' : 'will be refunded to'} your ZCS Wallet.`
                 : nb.paymentStatus ? PAYMENT_STATUS_LABEL[nb.paymentStatus] || 'Done.' : 'Done.');
             }
           } catch (e: any) {
@@ -132,9 +132,9 @@ export default function AutoBookingScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: p.bg }}>
-      <AHeader title={`Booking ${b.bookingCode}`} subtitle={b.type === 'PRIVATE' ? 'Full auto · Zenvy Auto' : 'Shared auto · Zenvy Auto'} right={<Badge label={m.label} color={m.color} />} />
+      <AHeader title={`Booking ${b.bookingCode}`} subtitle={b.type === 'PRIVATE' ? 'Full auto · ZCS Auto' : 'Shared auto · ZCS Auto'} right={<Badge label={m.label} color={m.color} />} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={p.accent} />}>
-        {exception ? <Notice tone="danger">⚠️ {t?.statusLabel}. {b.cancelReason || ''} {b.refundAmount > 0 ? `Refund: ${inr(b.refundAmount)} to your Zenvy Wallet.` : ''}</Notice> : null}
+        {exception ? <Notice tone="danger">⚠️ {t?.statusLabel}. {b.cancelReason || ''} {b.refundAmount > 0 ? `Refund: ${inr(b.refundAmount)} to your ZCS Wallet.` : ''}</Notice> : null}
         {tripStatus === 'DELAYED' ? <Notice tone="warn">⚠️ The auto is delayed{t?.delayMinutes ? ` by ${t.delayMinutes} min` : ''}. New departure: {fmtDeparture(t?.departureAt)}.</Notice> : null}
         {b.status === 'HELD' ? (
           <Notice tone="warn">⏳ Seats held, not booked yet{holdLeft > 0 ? `: confirm within ${mmss(holdLeft)}` : ' (expired)'}. <Text style={{ fontWeight: '900', color: p.accent }} onPress={() => router.push(`/auto-ride/trip/${b.tripId}` as any)}>Finish booking ›</Text></Notice>
@@ -241,7 +241,7 @@ export default function AutoBookingScreen() {
         {canCancel ? (
           <>
             <Text style={{ fontSize: 12, color: p.muted, marginBottom: 8 }}>
-              {b.status === 'HELD' ? 'Releasing a hold is free.' : b.paymentMethod === 'WALLET' ? 'Cancel before the driver confirms departure for the best refund; the server applies the Zenvy refund policy.' : 'Cash booking: cancelling costs nothing. You cannot cancel once boarding starts.'}
+              {b.status === 'HELD' ? 'Releasing a hold is free.' : b.paymentMethod === 'WALLET' ? 'Cancel before the driver confirms departure for the best refund; the server applies the ZCS refund policy.' : 'Cash booking: cancelling costs nothing. You cannot cancel once boarding starts.'}
             </Text>
             <Btn label={b.status === 'HELD' ? 'Release seats' : 'Cancel booking'} kind="danger" onPress={doCancel} loading={busy === 'cancel'} />
           </>
@@ -259,7 +259,7 @@ export default function AutoBookingScreen() {
             </View>
             <Chips value={category} onChange={(v: string) => setCategory(v)} options={INCIDENT_CATEGORIES.map((c) => ({ key: c.key, label: c.label }))} />
             <View style={{ height: 12 }} />
-            <Field label="What happened?" value={desc} onChangeText={(x) => setDesc(x.slice(0, 2000))} multiline placeholder="Tell the Zenvy team what happened" />
+            <Field label="What happened?" value={desc} onChangeText={(x) => setDesc(x.slice(0, 2000))} multiline placeholder="Tell the ZCS team what happened" />
             {category === 'SAFETY' || category === 'HARASSMENT' ? <Notice tone="danger">If you are in danger, call 112 now.</Notice> : null}
             <Btn label="Send report" onPress={sendReport} loading={busy === 'report'} />
           </View>

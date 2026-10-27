@@ -583,7 +583,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       if (e instanceof api.OpenToggleUnsupported) {
         setOpenToggleSupported(false);
-        const msg = 'Opening and closing from the app is not available yet. Call Zenvy support to change it.';
+        const msg = 'Opening and closing from the app is not available yet. Call ZCS support to change it.';
         toast.show(msg, 'info');
         return { ok: false, error: msg };
       }

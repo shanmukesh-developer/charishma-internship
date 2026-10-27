@@ -104,7 +104,7 @@ const organizerEdit = async (req, ev0, body) => {
     await audit.fromReq(req, { eventId: ev0.id, action: 'event.edit_draft', details: { fields: Object.keys(fields) } }, null, 'organizer');
     return { event: ev0, pending: [] };
   }
-  if (ev0.status === ES.SUBMITTED) throw fail(409, 'EVENT_UNDER_REVIEW', 'This event is with the Zenvy team for review. Withdraw it to edit.');
+  if (ev0.status === ES.SUBMITTED) throw fail(409, 'EVENT_UNDER_REVIEW', 'This event is with the ZCS team for review. Withdraw it to edit.');
   if (![ES.APPROVED, ES.PUBLISHED, ES.UNPUBLISHED].includes(ev0.status)) throw fail(409, 'EVENT_CLOSED', 'This event can no longer be edited.');
   const cosmetic = {};
   const material = {};
@@ -196,7 +196,7 @@ const cancelEvent = async (req, eventId, { by, reason }) => {
   });
   for (const reg of out.ended) if (reg.paymentStatus === E.PAYMENT_STATUS.REFUND_PENDING) outcomes.refundNow(reg);
   if (recipients.length) notify.toUsers(recipients, 'Event cancelled', `${out.event.title} was cancelled: ${why.slice(0, 120)}`, { type: N.EVENT_CANCELLED, eventId: out.event.id });
-  if (by !== 'organizer') notify.toOrganizer(out.event, 'Your event was cancelled', `${out.event.title} was cancelled by Zenvy: ${why.slice(0, 120)}`, N.EVENT_CANCELLED);
+  if (by !== 'organizer') notify.toOrganizer(out.event, 'Your event was cancelled', `${out.event.title} was cancelled by ZCS: ${why.slice(0, 120)}`, N.EVENT_CANCELLED);
   notify.eventChanged(out.event.id);
   return out.event;
 };

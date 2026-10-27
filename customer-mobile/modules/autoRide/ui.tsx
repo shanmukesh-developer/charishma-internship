@@ -294,7 +294,7 @@ export function VerifiedBadge({ verified }: { verified: boolean }) {
   const p = usePalette();
   if (!verified) return null;
   return (
-    <View style={[s.verified, { backgroundColor: p.accentSoft }]} accessibilityLabel="Verified Zenvy Auto driver">
+    <View style={[s.verified, { backgroundColor: p.accentSoft }]} accessibilityLabel="Verified ZCS Auto driver">
       <Ionicons name="shield-checkmark" size={12} color={p.accent} />
       <Text style={{ fontSize: 11, fontWeight: '800', color: p.accent }}>Verified</Text>
     </View>
@@ -436,7 +436,7 @@ export const refreshAutoRideStatus = async () => {
   return statusMem;
 };
 
-export function AutoHero({ title, subtitle, kicker = 'Zenvy Auto · verified drivers' }: { title: string; subtitle: string; kicker?: string }) {
+export function AutoHero({ title, subtitle, kicker = 'ZCS Auto · verified drivers' }: { title: string; subtitle: string; kicker?: string }) {
   return (
     <LinearGradient colors={AUTO_GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
       <Text style={{ fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.85)' }}>{kicker}</Text>

@@ -407,7 +407,7 @@ export default function AdminHome() {
     if (batchRunning) return;
     if (!(await confirm({
       title: 'Accept all pending orders?',
-      description: 'Every pending Zenvy-delivered order is accepted on behalf of its store and sent to riders. Stall orders (the stall confirms and delivers them itself) and legacy UPI orders whose payment is not verified are skipped; handle those on the Orders page. Use this only when stores cannot accept in their app. It cannot be undone.',
+      description: 'Every pending ZCS-delivered order is accepted on behalf of its store and sent to riders. Stall orders (the stall confirms and delivers them itself) and legacy UPI orders whose payment is not verified are skipped; handle those on the Orders page. Use this only when stores cannot accept in their app. It cannot be undone.',
       confirmLabel: 'Accept all pending',
       tone: 'danger',
     }))) return;
@@ -1018,7 +1018,7 @@ export default function AdminHome() {
             <div className="space-y-4 p-4">
               <p className="text-sm text-fg-muted">
                 Pending orders that nobody accepts are cancelled and refunded automatically after the server timeout (15 minutes by default).
-                If stores can be reached by phone but cannot use their app, accept all pending Zenvy-delivered orders at once. Stall orders and unverified UPI orders are skipped.
+                If stores can be reached by phone but cannot use their app, accept all pending ZCS-delivered orders at once. Stall orders and unverified UPI orders are skipped.
               </p>
               <Button variant="secondary" onClick={handleAcceptAllPending} loading={batchRunning}>
                 {batchRunning ? 'Accepting…' : 'Accept all pending orders'}

@@ -281,7 +281,7 @@ exports.sendFriendRequest = async (req, res) => {
     }
 
     if (!recipientId) return res.status(400).json({ message: 'recipientId or valid friendCode is required.' });
-    if (!isUuid(recipientId)) return res.status(404).json({ code: 'USER_NOT_FOUND', message: 'This student is not on Zenvy.' });
+    if (!isUuid(recipientId)) return res.status(404).json({ code: 'USER_NOT_FOUND', message: 'This student is not on ZCS.' });
 
     if (recipientId === req.user.id) {
       return res.status(400).json({ message: 'That is your own friend code.' });
@@ -290,7 +290,7 @@ exports.sendFriendRequest = async (req, res) => {
     const recipient = await User.findByPk(recipientId, { attributes: ['id', 'isActive', 'role'] });
     // Only students are on Friends: admin / rider / restaurant accounts can never be requested.
     if (!recipient || recipient.isActive === false || recipient.role !== 'student') {
-      return res.status(404).json({ code: 'USER_NOT_FOUND', message: 'This student is not on Zenvy.' });
+      return res.status(404).json({ code: 'USER_NOT_FOUND', message: 'This student is not on ZCS.' });
     }
 
     // Check + create under the pair lock: A→B and B→A at the same moment cannot both insert (B7).

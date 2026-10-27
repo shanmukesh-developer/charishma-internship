@@ -29,11 +29,11 @@ const formatOrderMessage = (order, type = 'CUSTOMER_CONFIRMATION') => {
     }
   }
   const items = parsedItems.map(i => `• ${i.name || 'Item'} x${i.quantity || 1}`).join('\n');
-  const restaurant = order.restaurant?.name || 'Zenvy Partner';
+  const restaurant = order.restaurant?.name || 'ZCS Partner';
   const trackUrl = require('./publicUrl').orderTrackingUrl(order._id || order.id || '');
 
   if (type === 'CUSTOMER_CONFIRMATION') {
-    return `🛍️ *Order Confirmed!* #${orderId}\n\nHi! Your order from *${restaurant}* is now being prepared.\n\n*Items:*\n${items}\n\n*Total:* ₹${order.finalPrice || order.totalPrice}\n\n📍 *Tracking:* ${trackUrl}\n\n_Thank you for choosing Zenvy!_`;
+    return `🛍️ *Order Confirmed!* #${orderId}\n\nHi! Your order from *${restaurant}* is now being prepared.\n\n*Items:*\n${items}\n\n*Total:* ₹${order.finalPrice || order.totalPrice}\n\n📍 *Tracking:* ${trackUrl}\n\n_Thank you for choosing ZCS!_`;
   }
 
   if (type === 'STATUS_UPDATE') {
@@ -48,10 +48,10 @@ const formatOrderMessage = (order, type = 'CUSTOMER_CONFIRMATION') => {
   }
 
   if (type === 'RIDER_ALERT') {
-    return `🛵 *New Delivery Request!* #${orderId}\n\nPickup: *${restaurant}*\nDrop: *${order.deliveryAddress}*\n\n💰 *Earnings:* ₹${order.deliveryFee}\n\n_Open Zenvy Rider app to accept immediately!_`;
+    return `🛵 *New Delivery Request!* #${orderId}\n\nPickup: *${restaurant}*\nDrop: *${order.deliveryAddress}*\n\n💰 *Earnings:* ₹${order.deliveryFee}\n\n_Open ZCS Rider app to accept immediately!_`;
   }
 
-  return `🔔 *Zenvy Alert:* Order #${orderId} - ${order.status}`;
+  return `🔔 *ZCS Alert:* Order #${orderId} - ${order.status}`;
 };
 
 /**

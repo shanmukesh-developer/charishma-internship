@@ -65,7 +65,7 @@ export default function AutoRideSection() {
   return (
     <View>
       <Tabs
-        label="Zenvy Auto"
+        label="ZCS Auto"
         // Pickup points is not a tab: no tab looks selected while it is open.
         value={seg}
         onChange={(v) => { ease(); setSeg(v); }}
@@ -82,7 +82,7 @@ export default function AutoRideSection() {
         <View style={[st.linkIcon, { backgroundColor: p.accentSoft }]}><Ionicons name={seg === 'pickups' ? 'arrow-back' : 'location-outline'} size={18} color={p.accent} /></View>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 14, fontWeight: '700', color: p.text }}>{seg === 'pickups' ? 'Back to autos' : 'Pickup points and live queues'}</Text>
-          {seg !== 'pickups' ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 1 }}>Stands set by Zenvy, with the autos waiting at each</Text> : null}
+          {seg !== 'pickups' ? <Text style={{ fontSize: 12, color: p.sub, marginTop: 1 }}>Stands set by ZCS, with the autos waiting at each</Text> : null}
         </View>
         {seg !== 'pickups' ? <Ionicons name="chevron-forward" size={18} color={p.muted} /> : null}
       </PressScale>
@@ -160,7 +160,7 @@ function TripSearch({ mode, routes, error: routesError, reload: reloadRoutes }: 
   useEffect(() => { if (time && !timeOptions.includes(time)) setTime(''); }, [time, timeOptions]);
 
   if (error && error.code === 'FEATURE_OFF') {
-    return <StateView kind="empty" icon="🛺" title="Zenvy Auto is not open yet" message={error.message} />;
+    return <StateView kind="empty" icon="🛺" title="ZCS Auto is not open yet" message={error.message} />;
   }
   // No routes yet: a search form with nothing to pick from is a dead end; say so calmly instead.
   if (routes && routes.length === 0) {
@@ -479,13 +479,13 @@ function PickupPoints() {
 
   if (!data && !error) return <StateView kind="loading" message="Loading pickup points…" />;
   if (error && !data) {
-    if (error.code === 'FEATURE_OFF') return <StateView kind="empty" icon="🛺" title="Zenvy Auto is not open yet" message={error.message} />;
+    if (error.code === 'FEATURE_OFF') return <StateView kind="empty" icon="🛺" title="ZCS Auto is not open yet" message={error.message} />;
     return <StateView kind="error" title={error.isNetwork ? 'You seem to be offline' : 'Could not load'} message={error.message} actionLabel="Retry" onAction={load} />;
   }
   return (
     <View>
-      <Notice tone="info">{data?.note || 'Pickup stands set by Zenvy.'} Your phone's location is not used.</Notice>
-      {groups.length === 0 ? <StateView kind="empty" icon="location-outline" title="No pickup points yet" message="Zenvy has not set up auto stands yet." /> : null}
+      <Notice tone="info">{data?.note || 'Pickup stands set by ZCS.'} Your phone's location is not used.</Notice>
+      {groups.length === 0 ? <StateView kind="empty" icon="location-outline" title="No pickup points yet" message="ZCS has not set up auto stands yet." /> : null}
       {groups.map((g) => (
         <View key={g.route?.id || 'none'} style={{ marginBottom: 8 }}>
           <Text style={{ fontSize: 15, fontWeight: '800', color: p.text, marginBottom: 8 }}>

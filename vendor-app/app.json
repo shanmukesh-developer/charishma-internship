@@ -3,7 +3,7 @@
     "extra": {
       "trustedApiHosts": ["hostelbites-backend-jwmt.onrender.com"]
     },
-    "name": "Zenvy Vendor",
+    "name": "ZCS Vendor",
     "slug": "zenvy-vendor",
     "version": "1.0.4",
     "orientation": "portrait",
@@ -47,8 +47,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Zenvy Vendor uses your photos to add pictures of your items.",
-          "cameraPermission": "Zenvy Vendor uses the camera to take pictures of your items.",
+          "photosPermission": "ZCS Vendor uses your photos to add pictures of your items.",
+          "cameraPermission": "ZCS Vendor uses the camera to take pictures of your items.",
           "microphonePermission": false
         }
       ],

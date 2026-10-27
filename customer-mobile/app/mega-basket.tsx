@@ -161,7 +161,7 @@ export default function MegaBasketScreen() {
         setBasketsError((data && typeof data.message === 'string' && data.message) || "We couldn't load your shopping lists.");
       }
     } catch {
-      if (mountedRef.current) setBasketsError("Can't reach Zenvy right now. Check your internet and try again.");
+      if (mountedRef.current) setBasketsError("Can't reach ZCS right now. Check your internet and try again.");
     } finally {
       if (mountedRef.current) setLoadingBaskets(false);
     }
@@ -402,7 +402,7 @@ export default function MegaBasketScreen() {
         fetchBaskets({ silent: true });
       }
     } catch {
-      Alert.alert('Connection problem', "Can't reach Zenvy right now. Check your internet and try again.");
+      Alert.alert('Connection problem', "Can't reach ZCS right now. Check your internet and try again.");
     } finally {
       approvingRef.current = false;
       if (mountedRef.current) setApprovingPrice(false);

@@ -260,8 +260,8 @@ export default function UserManagement() {
       return;
     }
     if (!(await confirm(suspend
-      ? { title: `Suspend ${user.name || user.phone || 'this user'}?`, description: 'They will not be able to use Zenvy until they are reactivated.', confirmLabel: 'Suspend', tone: 'danger' }
-      : { title: `Reactivate ${user.name || user.phone || 'this user'}?`, description: 'They can use Zenvy again straight away.', confirmLabel: 'Reactivate' }))) return;
+      ? { title: `Suspend ${user.name || user.phone || 'this user'}?`, description: 'They will not be able to use ZCS until they are reactivated.', confirmLabel: 'Suspend', tone: 'danger' }
+      : { title: `Reactivate ${user.name || user.phone || 'this user'}?`, description: 'They can use ZCS again straight away.', confirmLabel: 'Reactivate' }))) return;
     runAction(
       user,
       () => fetch(`${API_URL}/api/admin/users/${user._id}/ban`, {
@@ -476,7 +476,7 @@ export default function UserManagement() {
                   <p className="text-xs text-fg-muted">
                     {detailProtected
                       ? (detailIsSelf ? 'You cannot suspend your own account.' : 'Admin accounts cannot be suspended from the dashboard.')
-                      : detail.isActive ? 'Suspending stops them from using Zenvy until reactivated.' : 'Reactivating lets them use Zenvy again.'}
+                      : detail.isActive ? 'Suspending stops them from using ZCS until reactivated.' : 'Reactivating lets them use ZCS again.'}
                   </p>
                 </div>
                 {!detailProtected && (

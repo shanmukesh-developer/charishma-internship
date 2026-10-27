@@ -146,7 +146,7 @@ export default function ForgotPasswordScreen() {
 
         <View style={s.logoWrap}>
           <Text style={s.logo}>✨</Text>
-          <Text style={s.brand}>ZENVY</Text>
+          <Text style={s.brand}>ZCS</Text>
           <Text style={s.tagline}>Reset password</Text>
         </View>
 

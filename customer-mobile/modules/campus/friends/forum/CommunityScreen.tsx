@@ -160,7 +160,7 @@ export const CommunityScreen: React.FC<{ id: string; initial?: ForumCommunity | 
       {pending ? (
         <View style={styles.pending} accessibilityRole="alert">
           <Text style={[FT.h3, { color: FriendsColors.warn }]}>Waiting for approval</Text>
-          <Text style={FT.small}>The Zenvy team reviews new communities. You can post once it is approved.</Text>
+          <Text style={FT.small}>The ZCS team reviews new communities. You can post once it is approved.</Text>
         </View>
       ) : null}
       {community.description ? <Text style={FT.muted}>{community.description}</Text> : null}

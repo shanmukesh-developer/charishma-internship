@@ -18,13 +18,13 @@ import { ORDERS_PER_SPIN, type Prize } from './dealsV2Data';
 export function Balances({ zenPoints, wallet, onPoints, onWallet }: { zenPoints: number; wallet: number; onPoints: () => void; onWallet: () => void }) {
   return (
     <View style={s.row}>
-      <Press onPress={onPoints} label={`ZenPoints ${zenPoints}. Open your points`} style={[s.cardWrap, shadow(2, '#B57A0E')]}>
+      <Press onPress={onPoints} label={`ZCS Points ${zenPoints}. Open your points`} style={[s.cardWrap, shadow(2, '#B57A0E')]}>
         <View style={[s.card, { borderColor: DV.creamLine }]}>
           <LinearGradient colors={[DV.cream[0], DV.cream[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           <LinearGradient colors={['rgba(255,255,255,0.7)', 'rgba(255,255,255,0)']} style={[StyleSheet.absoluteFill, { height: '45%' }]} />
           <View style={s.top}>
             <Coin size={38} />
-            <Text style={[s.label, { color: DV.creamInk }]}>ZenPoints</Text>
+            <Text style={[s.label, { color: DV.creamInk }]}>ZCS Points</Text>
           </View>
           <View style={s.valueRow}>
             <Text style={[s.value, { color: '#5A3600' }]} numberOfLines={1} adjustsFontSizeToFit>{zenPoints.toLocaleString('en-IN')}</Text>
@@ -58,7 +58,7 @@ export function SignInCard({ onSignIn }: { onSignIn: () => void }) {
       <IconPlate size={38}><IUser size={19} color="#FFFFFF" strokeWidth={1.7} /></IconPlate>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={s.rowTitle}>Sign in for your rewards</Text>
-        <Text style={s.rowSub}>See your spins, ZenPoints, coupons and wallet.</Text>
+        <Text style={s.rowSub}>See your spins, ZCS Points, coupons and wallet.</Text>
       </View>
       <Press onPress={onSignIn} label="Sign in" style={s.smallPill} scaleTo={0.94}>
         <LinearGradient colors={[DV.go[0], DV.go[2]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />

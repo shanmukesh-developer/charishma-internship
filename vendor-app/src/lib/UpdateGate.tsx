@@ -93,8 +93,8 @@ export default function UpdateGate({ children }: { children: React.ReactNode }) 
       <View style={styles.blocked} accessibilityRole="alert">
         <View style={styles.card}>
           <Text style={styles.badge}>UPDATE REQUIRED</Text>
-          <Text style={styles.title}>{p ? p.appName : 'Zenvy'} needs an update</Text>
-          <Text style={styles.message}>{p ? p.message : 'This version of the app is no longer supported. Please update to keep using Zenvy.'}</Text>
+          <Text style={styles.title}>{p ? p.appName : 'ZCS'} needs an update</Text>
+          <Text style={styles.message}>{p ? p.message : 'This version of the app is no longer supported. Please update to keep using ZCS.'}</Text>
           {!!client && !!client.version && (
             <Text style={styles.meta}>
               You have version {client.version}
@@ -104,7 +104,7 @@ export default function UpdateGate({ children }: { children: React.ReactNode }) 
           <Pressable style={({ pressed }) => [styles.primary, pressed && styles.pressed]} onPress={onUpdate} accessibilityRole="button" accessibilityLabel="Update the app">
             <Text style={styles.primaryText}>Update</Text>
           </Pressable>
-          {openFailed && <Text style={styles.error}>Could not open the store. Search for &quot;{p ? p.appName : 'Zenvy'}&quot; in the Play Store.</Text>}
+          {openFailed && <Text style={styles.error}>Could not open the store. Search for &quot;{p ? p.appName : 'ZCS'}&quot; in the Play Store.</Text>}
           <Pressable style={({ pressed }) => [styles.secondary, pressed && styles.pressed]} onPress={onRetry} disabled={retrying} accessibilityRole="button" accessibilityLabel="Check again">
             {retrying ? <ActivityIndicator color="#E5E7EB" /> : <Text style={styles.secondaryText}>Retry</Text>}
           </Pressable>

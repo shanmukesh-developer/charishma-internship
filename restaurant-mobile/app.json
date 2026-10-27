@@ -3,7 +3,7 @@
     "extra": {
       "trustedApiHosts": ["hostelbites-backend-jwmt.onrender.com"]
     },
-    "name": "Zenvy Restaurant",
+    "name": "ZCS Restaurant",
     "slug": "restaurant-mobile",
     "version": "1.0.3",
     "orientation": "portrait",
@@ -47,8 +47,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Zenvy Restaurant uses your photos to add pictures of your dishes.",
-          "cameraPermission": "Zenvy Restaurant uses the camera to take pictures of your dishes.",
+          "photosPermission": "ZCS Restaurant uses your photos to add pictures of your dishes.",
+          "cameraPermission": "ZCS Restaurant uses the camera to take pictures of your dishes.",
           "microphonePermission": false
         }
       ],

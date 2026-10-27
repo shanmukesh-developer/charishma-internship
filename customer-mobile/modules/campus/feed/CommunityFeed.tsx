@@ -454,7 +454,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
   const promptSignIn = () => {
     Alert.alert(
       'Sign in to join in',
-      'Sign in to your Zenvy account to post, reply, vote or send wishes.',
+      'Sign in to your ZCS account to post, reply, vote or send wishes.',
       [
         { text: 'Not now', style: 'cancel' },
         { text: 'Sign In', onPress: () => router.push('/login' as any) }

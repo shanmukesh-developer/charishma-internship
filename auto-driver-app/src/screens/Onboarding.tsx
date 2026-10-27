@@ -17,11 +17,11 @@ import { DRIVER_DOC_KEYS, REQUIRED_DRIVER_DOCS, type DriverStatus, type VehicleS
 import type { ScreenProps } from '../nav';
 
 export const STATUS_COPY: Record<DriverStatus, { title: string; body: string; fg: string; bg: string }> = {
-  PENDING_DOCS: { title: 'Add your details', body: 'Upload your documents and add your auto. Then send them to Zenvy for checking.', fg: color.warning, bg: color.warningTint },
-  PENDING_REVIEW: { title: 'Zenvy is checking', body: 'Your documents are with the Zenvy team. You can take bookings as soon as you are verified.', fg: color.info, bg: color.infoTint },
+  PENDING_DOCS: { title: 'Add your details', body: 'Upload your documents and add your auto. Then send them to ZCS for checking.', fg: color.warning, bg: color.warningTint },
+  PENDING_REVIEW: { title: 'ZCS is checking', body: 'Your documents are with the ZCS team. You can take bookings as soon as you are verified.', fg: color.info, bg: color.infoTint },
   VERIFIED: { title: 'Verified', body: 'You can go online and publish trips.', fg: color.openDark, bg: color.openTint },
   REJECTED: { title: 'Changes needed', body: 'Fix the points below and send again.', fg: color.alertDark, bg: color.alertTint },
-  SUSPENDED: { title: 'Account suspended', body: 'Please contact Zenvy support.', fg: color.alertDark, bg: color.alertTint },
+  SUSPENDED: { title: 'Account suspended', body: 'Please contact ZCS support.', fg: color.alertDark, bg: color.alertTint },
 };
 
 export const VEHICLE_BADGE: Record<VehicleStatus, { text: string; fg: string; bg: string }> = {
@@ -89,7 +89,7 @@ export function VerificationScreen({ navigation }: ScreenProps<'Verification'>) 
       <ListRow icon="person" title="2. Licence and emergency contact" sub={d.licenceNumber ? `Licence ${d.licenceNumber}` : 'Licence number, expiry date, emergency contact'} onPress={() => navigation.navigate('Profile')} />
       <ListRow icon="car" title="3. Your auto" sub={me.vehicles.length ? me.vehicles.map((v) => `${v.registration || v.registrationNumber}: ${VEHICLE_BADGE[v.status].text.toLowerCase()}`).join(' · ') : 'Add registration, seats and papers'} onPress={() => navigation.navigate('Vehicles')} />
       <SectionTitle text="More" />
-      <ListRow icon="key" title="Change password" sub="Set your own password if Zenvy gave you a temporary one" onPress={() => navigation.navigate('Profile')} />
+      <ListRow icon="key" title="Change password" sub="Set your own password if ZCS gave you a temporary one" onPress={() => navigation.navigate('Profile')} />
       <ListRow icon="notifications" title="Notifications" onPress={() => navigation.navigate('Notifications')} />
       <ListRow icon="help-buoy" title="Help and support" onPress={() => navigation.navigate('Support')} />
       <ListRow icon="settings" title="Settings" onPress={() => navigation.navigate('Settings')} />
@@ -104,7 +104,7 @@ export function DocumentsScreen({ navigation }: ScreenProps<'Documents'>) {
     const doIt = async () => { await driverApi.putDocuments({ [key]: path }); await refreshMe(); };
     if (d?.status === 'VERIFIED') {
       await new Promise<void>((resolve, reject) => {
-        Alert.alert('Send for checking again?', 'Changing a document after verification sends your account back to Zenvy for checking. You will go offline until then.', [
+        Alert.alert('Send for checking again?', 'Changing a document after verification sends your account back to ZCS for checking. You will go offline until then.', [
           { text: 'Keep old one', style: 'cancel', onPress: () => reject(new Error('Not changed.')) },
           { text: 'Change it', style: 'destructive', onPress: () => { doIt().then(resolve, reject); } },
         ]);
@@ -113,7 +113,7 @@ export function DocumentsScreen({ navigation }: ScreenProps<'Documents'>) {
   };
   return (
     <Screen title="Documents" onBack={() => navigation.goBack()} refreshing={meLoading} onRefresh={refreshMe}>
-      <Banner tone="info" text="Only Zenvy's verification team can see these. We never ask for Aadhaar." />
+      <Banner tone="info" text="Only ZCS's verification team can see these. We never ask for Aadhaar." />
       {!d ? (meError ? <ErrorStrip text={meError} onRetry={refreshMe} busy={meLoading} /> : <SkeletonCard />) : DRIVER_DOC_KEYS.map((k) => (
         <DocSlot
           key={k}
@@ -130,9 +130,9 @@ export function DocumentsScreen({ navigation }: ScreenProps<'Documents'>) {
 
 export function SuspendedScreen({ message, onSignOut }: { message: string; onSignOut: () => void }) {
   return (
-    <Screen title="Zenvy Auto Driver">
+    <Screen title="ZCS Auto Driver">
       <EmptyState icon="ban" title="Account suspended" body={message} />
-      <Button label="Call Zenvy support" icon="call" onPress={() => call(`+${SUPPORT_PHONE}`)} />
+      <Button label="Call ZCS support" icon="call" onPress={() => call(`+${SUPPORT_PHONE}`)} />
       <Button label="Sign out" icon="log-out" variant="secondary" onPress={onSignOut} />
       <View style={{ alignItems: 'center' }}><Badge text="SUSPENDED" fg={color.alertDark} bg={color.alertTint} /></View>
     </Screen>

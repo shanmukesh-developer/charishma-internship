@@ -17,11 +17,11 @@ export function SplashScreen() {
   const insets = useInsets();
   return (
     <View style={[styles.center, { backgroundColor: C.bg, paddingTop: insets.top }]}>
-      <Image source={logo} style={styles.logo} accessibilityLabel="Zenvy Rider" />
-      <Text style={[T.h2, { color: C.ink }]}>Zenvy Rider</Text>
+      <Image source={logo} style={styles.logo} accessibilityLabel="ZCS Rider" />
+      <Text style={[T.h2, { color: C.ink }]}>ZCS Rider</Text>
       {phase === 'splash-error' ? (
         <View style={{ gap: S.md, alignItems: 'stretch', paddingHorizontal: S.xl, alignSelf: 'stretch' }}>
-          <Text style={[T.body, { color: C.ink2, textAlign: 'center' }]}>Can't reach Zenvy. Check your internet and try again.</Text>
+          <Text style={[T.body, { color: C.ink2, textAlign: 'center' }]}>Can't reach ZCS. Check your internet and try again.</Text>
           <Btn title="Try again" icon="refresh" onPress={retryBoot} />
         </View>
       ) : (
@@ -68,9 +68,9 @@ export function LoginScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: C.bg }}>
       <ScrollView contentContainerStyle={[styles.loginWrap, { paddingTop: insets.top + S.xl, paddingBottom: insets.bottom + S.xl }]} keyboardShouldPersistTaps="handled">
         <View style={{ alignItems: 'center', gap: S.sm }}>
-          <Image source={logo} style={styles.logo} accessibilityLabel="Zenvy Rider" />
-          <Text style={[T.h1, { color: C.ink }]}>Zenvy Rider</Text>
-          <Text style={[T.body, { color: C.ink2, textAlign: 'center' }]}>Log in with the number your Zenvy fleet admin registered.</Text>
+          <Image source={logo} style={styles.logo} accessibilityLabel="ZCS Rider" />
+          <Text style={[T.h1, { color: C.ink }]}>ZCS Rider</Text>
+          <Text style={[T.body, { color: C.ink2, textAlign: 'center' }]}>Log in with the number your ZCS fleet admin registered.</Text>
         </View>
 
         <View style={{ gap: S.sm }}>
@@ -132,7 +132,7 @@ export function LoginScreen() {
         <LegalLine />
         <View style={styles.help}>
           <Text style={[T.body, { color: C.ink, fontWeight: '800' }]}>Forgot password?</Text>
-          <Text style={[T.small, { color: C.ink2 }]}>Ask your Zenvy admin to reset it. They will send you a new password.</Text>
+          <Text style={[T.small, { color: C.ink2 }]}>Ask your ZCS admin to reset it. They will send you a new password.</Text>
           <View style={{ flexDirection: 'row', gap: S.sm }}>
             <Btn title="Call" icon="phone" variant="outline" size="mid" onPress={() => links.callNumber(`+${SUPPORT_PHONE}`)} style={{ flex: 1 }} />
             <Btn
@@ -143,7 +143,7 @@ export function LoginScreen() {
               onPress={() =>
                 links.whatsapp(
                   SUPPORT_PHONE,
-                  `Hi Zenvy, I am a rider and I forgot my password. Please reset it.${/^[6-9]\d{9}$/.test(phone) ? ` My number is ${phone}.` : ''}`,
+                  `Hi ZCS, I am a rider and I forgot my password. Please reset it.${/^[6-9]\d{9}$/.test(phone) ? ` My number is ${phone}.` : ''}`,
                 )
               }
               style={{ flex: 1 }}
@@ -167,7 +167,7 @@ export function PendingScreen() {
         {profile?.name ? `Hi ${profile.name.split(' ')[0]}, almost there` : 'Almost there'}
       </Text>
       <Text style={[T.body, { color: C.ink2, textAlign: 'center' }]}>
-        Zenvy is checking your documents. You can go online as soon as you are approved.
+        ZCS is checking your documents. You can go online as soon as you are approved.
       </Text>
       <View style={{ alignSelf: 'stretch', gap: S.md, marginTop: S.md }}>
         <Btn
@@ -181,7 +181,7 @@ export function PendingScreen() {
             }
           }}
         />
-        <Btn title="Call Zenvy" icon="phone" variant="outline" size="mid" onPress={() => links.callNumber(`+${SUPPORT_PHONE}`)} />
+        <Btn title="Call ZCS" icon="phone" variant="outline" size="mid" onPress={() => links.callNumber(`+${SUPPORT_PHONE}`)} />
         <Btn title="Log out" icon="logout" variant="soft" size="mid" onPress={logout} />
       </View>
     </View>

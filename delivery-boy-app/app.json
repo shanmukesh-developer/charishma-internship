@@ -5,7 +5,7 @@
         "hostelbites-backend-jwmt.onrender.com"
       ]
     },
-    "name": "Zenvy Rider",
+    "name": "ZCS Rider",
     "slug": "zenvy-rider",
     "version": "1.0.8",
     "runtimeVersion": {
@@ -82,8 +82,8 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Zenvy Rider uses your location to show the customer where their order is and to measure distance to the store.",
-          "locationAlwaysAndWhenInUsePermission": "While you are on duty or delivering, Zenvy Rider keeps sharing your location when you switch to Google Maps, so the customer's live map keeps moving.",
+          "locationWhenInUsePermission": "ZCS Rider uses your location to show the customer where their order is and to measure distance to the store.",
+          "locationAlwaysAndWhenInUsePermission": "While you are on duty or delivering, ZCS Rider keeps sharing your location when you switch to Google Maps, so the customer's live map keeps moving.",
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }

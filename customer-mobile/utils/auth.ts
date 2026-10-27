@@ -317,8 +317,8 @@ export const readJson = async (res: Response): Promise<any | null> => {
   }
 };
 
-export const SERVER_BUSY_MESSAGE = 'Zenvy is waking up. Please try again in a few seconds.';
-export const NETWORK_ERROR_MESSAGE = "Can't reach Zenvy right now. Check your internet and try again.";
+export const SERVER_BUSY_MESSAGE = 'ZCS is waking up. Please try again in a few seconds.';
+export const NETWORK_ERROR_MESSAGE = "Can't reach ZCS right now. Check your internet and try again.";
 
 /** Error thrown by postAuth when the request never reached the server (offline / timeout). */
 export class NetworkError extends Error {

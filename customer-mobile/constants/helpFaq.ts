@@ -30,10 +30,10 @@ export const HELP_FAQ: FaqSection[] = [
     items: [
       {
         q: 'How can I pay?',
-        a: 'Pay with cash on delivery or with your Zenvy Wallet. Card and UPI payments are not available in the app.',
+        a: 'Pay with cash on delivery or with your ZCS Wallet. Card and UPI payments are not available in the app.',
       },
       {
-        q: 'What is the Zenvy Wallet?',
+        q: 'What is the ZCS Wallet?',
         a: 'Your Wallet holds refunds, rewards and credits. You can use the balance at checkout. Profile shows your balance and Wallet history.',
       },
     ],
@@ -86,7 +86,7 @@ export const HELP_FAQ: FaqSection[] = [
     items: [
       {
         q: 'What is Campus?',
-        a: 'Campus is the student side of Zenvy, opened from the Campus button on Home. It has Chats, Friends (Pulse, Spaces, Forum, Tasks and Connect), Around campus (Lost and found, rides and rooms) and Me.',
+        a: 'Campus is the student side of ZCS, opened from the Campus button on Home. It has Chats, Friends (Pulse, Spaces, Forum, Tasks and Connect), Around campus (Lost and found, rides and rooms) and Me.',
       },
       {
         q: 'Why should I verify my student ID?',
@@ -111,8 +111,8 @@ export const HELP_FAQ: FaqSection[] = [
     title: 'Contact us',
     items: [
       {
-        q: 'How do I reach Zenvy support?',
-        a: 'Raise a ticket in the Support centre and reply there when support answers. For a live order that needs help now, call or message the Zenvy helpline from the Support centre.',
+        q: 'How do I reach ZCS support?',
+        a: 'Raise a ticket in the Support centre and reply there when support answers. For a live order that needs help now, call or message the ZCS helpline from the Support centre.',
       },
     ],
   },

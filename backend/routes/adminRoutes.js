@@ -81,9 +81,9 @@ router.post('/mail/test', async (req, res) => {
   const to = String(req.body?.to || '').trim();
   const result = await sendMail({
     to,
-    subject: 'Zenvy test email',
-    text: 'This is a test email from Zenvy. If you can read this, email delivery (Brevo) is working.',
-    html: '<div style="font-family:Arial,sans-serif;font-size:15px;line-height:22px"><h2 style="margin:0 0 12px">Zenvy test email</h2><p>If you can read this, email delivery (Brevo) is working. College verification codes will arrive the same way.</p></div>',
+    subject: 'ZCS test email',
+    text: 'This is a test email from ZCS. If you can read this, email delivery (Brevo) is working.',
+    html: '<div style="font-family:Arial,sans-serif;font-size:15px;line-height:22px"><h2 style="margin:0 0 12px">ZCS test email</h2><p>If you can read this, email delivery (Brevo) is working. College verification codes will arrive the same way.</p></div>',
   });
   res.status(result.ok ? 200 : 502).json(result);
 });

@@ -57,7 +57,7 @@ const classifyMediaError = (raw?: string): CallFailure => {
   if (/permission|notallowed|denied|not allowed|notfound|could not start|notreadable/i.test(m)) {
     return {
       kind: 'permission',
-      message: 'Zenvy needs microphone (and camera for video) access to make calls. Allow it in Settings and try again.',
+      message: 'ZCS needs microphone (and camera for video) access to make calls. Allow it in Settings and try again.',
     };
   }
   return {

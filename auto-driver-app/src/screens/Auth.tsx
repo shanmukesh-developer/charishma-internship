@@ -38,8 +38,8 @@ function Shell({ children, subtitle }: { children: React.ReactNode; subtitle: st
     <View style={{ flex: 1, backgroundColor: color.bg }}>
       <KeyboardAwareScrollView contentContainerStyle={[styles.wrap, { paddingTop: insets.top + space.xl, paddingBottom: insets.bottom + space.xl }]}>
         <View style={{ alignItems: 'center', gap: space.xs }}>
-          <Image source={logo} style={styles.logo} accessibilityLabel="Zenvy Auto Driver" />
-          <Text style={[font.h1, { color: color.text }]}>Zenvy Auto Driver</Text>
+          <Image source={logo} style={styles.logo} accessibilityLabel="ZCS Auto Driver" />
+          <Text style={[font.h1, { color: color.text }]}>ZCS Auto Driver</Text>
           <Text style={[font.body, { color: color.textSecondary, textAlign: 'center' }]}>{subtitle}</Text>
         </View>
         {children}
@@ -98,7 +98,7 @@ export function LoginScreen({ navigation }: ScreenProps<'Login'>) {
       await setSavedPhone(p);
       await signIn(r.token, r.driver);
     } catch (e) {
-      if (e instanceof NetworkError) setError('No internet, or Zenvy is waking up. Try again in a moment.');
+      if (e instanceof NetworkError) setError('No internet, or ZCS is waking up. Try again in a moment.');
       else setError(errorMessage(e));
     } finally {
       setBusy(false);
@@ -106,7 +106,7 @@ export function LoginScreen({ navigation }: ScreenProps<'Login'>) {
   };
 
   return (
-    <Shell subtitle="Log in with the number your Zenvy admin registered.">
+    <Shell subtitle="Log in with the number your ZCS admin registered.">
       {notice ? <Banner tone="warn" text={notice} /> : null}
       <Field label="Mobile number" prefix="+91" value={phone} onChangeText={(v) => { setPhone(digits(v)); setError(null); }}
         keyboardType="phone-pad" autoComplete="tel" placeholder="10-digit mobile" maxLength={14} />
@@ -115,14 +115,14 @@ export function LoginScreen({ navigation }: ScreenProps<'Login'>) {
       <Button label="Sign in" icon="log-in" onPress={submit} loading={busy} disabled={!valid} />
       <LegalLine />
       <Button label="New driver? Sign up with your mobile number" variant="ghost" size="secondary" onPress={() => navigation.navigate('Register')} />
-      <Button label="Forgot password? Call Zenvy" icon="call" variant="ghost" size="secondary" onPress={() => call(`+${SUPPORT_PHONE}`)} />
+      <Button label="Forgot password? Call ZCS" icon="call" variant="ghost" size="secondary" onPress={() => call(`+${SUPPORT_PHONE}`)} />
     </Shell>
   );
 }
 
 type Step = 'phone' | 'otp' | 'details';
 
-const NO_SMS_MESSAGE = "We couldn't send a code to this number. Ask your Zenvy admin to create your account, then sign in with your number and password.";
+const NO_SMS_MESSAGE = "We couldn't send a code to this number. Ask your ZCS admin to create your account, then sign in with your number and password.";
 
 export function RegisterScreen({ navigation }: ScreenProps<'Register'>) {
   const { signIn } = useSession();
@@ -213,7 +213,7 @@ export function RegisterScreen({ navigation }: ScreenProps<'Register'>) {
         setResendAt(Date.now() + (Number(e.data?.retryAfter) || 60) * 1000);
         setStep('otp');
       }
-      if (e instanceof NetworkError) setError('No internet, or Zenvy is waking up. Try again in a moment.');
+      if (e instanceof NetworkError) setError('No internet, or ZCS is waking up. Try again in a moment.');
       else if (e instanceof ApiError) setError(errorMessage(e));
       else setError(e instanceof Error && e.message ? e.message : errorMessage(e));
     } finally {
@@ -276,7 +276,7 @@ export function RegisterScreen({ navigation }: ScreenProps<'Register'>) {
         setStep('otp');
       }
       if (code === 'PHONE_TAKEN') setTaken(true);
-      if (e instanceof NetworkError) setError('No internet, or Zenvy is waking up. Try again in a moment.');
+      if (e instanceof NetworkError) setError('No internet, or ZCS is waking up. Try again in a moment.');
       else setError(errorMessage(e));
     } finally {
       setBusy(false);

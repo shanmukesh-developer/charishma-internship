@@ -307,10 +307,10 @@ export const CHARGES_STATUS_LABEL: Record<ChargesStatus, string> = {
   PENDING: 'Waiting for your answer',
   ACCEPTED: 'Accepted',
   AUTO_ACCEPTED: 'Accepted (no answer in time)',
-  DISPUTED: 'Disputed: Zenvy team reviewing',
-  UPHELD: 'Upheld by Zenvy',
-  REDUCED: 'Reduced by Zenvy',
-  VOIDED: 'Cancelled by Zenvy',
+  DISPUTED: 'Disputed: ZCS team reviewing',
+  UPHELD: 'Upheld by ZCS',
+  REDUCED: 'Reduced by ZCS',
+  VOIDED: 'Cancelled by ZCS',
 };
 
 /** `icon` is an Ionicons glyph name (rendered with <Ionicons />, never as text). */

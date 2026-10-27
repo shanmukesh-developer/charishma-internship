@@ -476,7 +476,7 @@ const acceptPrivateRequest = async ({ requestId, driverId }) => {
       throw err;
     });
     if (pay.failed) {
-      await Private.update({ status: PR.DECLINED, respondedAt: clock.now(), declineReason: 'Not enough Zenvy Wallet balance.' }, { where: { id: r.id, status: PR.REQUESTED }, transaction: t });
+      await Private.update({ status: PR.DECLINED, respondedAt: clock.now(), declineReason: 'Not enough ZCS Wallet balance.' }, { where: { id: r.id, status: PR.REQUESTED }, transaction: t });
       r.status = PR.DECLINED;
       return { request: r, trip, paymentFailed: true };
     }

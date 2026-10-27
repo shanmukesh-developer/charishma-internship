@@ -51,7 +51,7 @@ router.post('/referral/apply', protect, async (req, res) => {
     console.log(`[REFERRAL] ${currentUser.name} used code ${referralCode} (referrer: ${referrer.name})`);
 
     res.json({
-      message: 'Referral applied! Both of you earned 50 ZenPoints 🎉',
+      message: 'Referral applied! Both of you earned 50 ZCS Points 🎉',
       yourPoints: currentUser.zenPoints,
       referrerName: referrer.name
     });
@@ -254,7 +254,7 @@ const giftError = (msg) => Object.assign(new Error(msg), { expose: true });
 // stored value). Gifts are OFF unless WALLET_TRANSFERS_ENABLED=true. Checked before the idempotency
 // claim, so nothing is reserved or charged; older apps show the message in their error alert.
 const walletTransfersEnabled = () => String(process.env.WALLET_TRANSFERS_ENABLED || '').toLowerCase() === 'true';
-const TRANSFER_DISABLED_BODY = Object.freeze({ code: 'TRANSFER_DISABLED', message: 'Wallet transfers are turned off. Your wallet balance can be used for orders in Zenvy.' });
+const TRANSFER_DISABLED_BODY = Object.freeze({ code: 'TRANSFER_DISABLED', message: 'Wallet transfers are turned off. Your wallet balance can be used for orders in ZCS.' });
 router.post('/gift', protect, async (req, res, next) => {
   if (!walletTransfersEnabled()) return res.status(403).json({ ...TRANSFER_DISABLED_BODY });
   return next();
@@ -325,7 +325,7 @@ router.post('/gift', protect, async (req, res, next) => {
       }
 
       const recipient = await User.findOne({ where: { phone: recipientPhone }, transaction: t, lock: true });
-      if (!recipient) throw giftError('No Zenvy account uses that phone number.');
+      if (!recipient) throw giftError('No ZCS account uses that phone number.');
       if (recipient.id === sender.id) throw giftError('Cannot gift yourself');
 
       // C5: both sides move through the wallet ledger (GIFT_SENT / GIFT_RECEIVED) in this transaction.
@@ -483,8 +483,8 @@ const runAbandonedCartNudge = async () => {
     if (tokens && Array.isArray(tokens) && tokens.length > 0) {
       await sendPushToTokens(
         tokens,
-        '🍽️ Missing your Zenvy meals?',
-        `Hey ${(user.name || 'there').split(' ')[0]}! Your favourite campus spots are open. Order now and earn ZenPoints!`,
+        '🍽️ Missing your ZCS meals?',
+        `Hey ${(user.name || 'there').split(' ')[0]}! Your favourite campus spots are open. Order now and earn ZCS Points!`,
         { type: 'abandoned_cart' },
         { recipients: [user.id] }
       );

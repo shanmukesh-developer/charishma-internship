@@ -24,7 +24,7 @@ const html = (o: { keyId: string; orderId: string; amountPaise: number; currency
   try {
     var rzp = new Razorpay({
       key: ${JSON.stringify(o.keyId)}, order_id: ${JSON.stringify(o.orderId)}, amount: ${Number(o.amountPaise)}, currency: ${JSON.stringify(o.currency)},
-      name: 'Zenvy Campus Events', description: ${JSON.stringify(o.title.slice(0, 80))},
+      name: 'ZCS Campus Events', description: ${JSON.stringify(o.title.slice(0, 80))},
       handler: function(){ send({ type: 'done' }); },
       modal: { ondismiss: function(){ send({ type: 'dismissed' }); } },
       theme: { color: '#7C3AED' }
@@ -103,7 +103,7 @@ export default function PayOnline({ visible, registrationId, title, onClose }: {
         ) : (
           <View style={{ flex: 1, padding: 24, justifyContent: 'center' }}>
             {phase === 'order' ? <><ActivityIndicator color={p.accent} size="large" /><Text style={{ color: p.sub, textAlign: 'center', marginTop: 10 }}>Preparing your payment…</Text></> : null}
-            {phase === 'verifying' ? <><ActivityIndicator color={p.accent} size="large" /><Text style={{ color: p.text, textAlign: 'center', marginTop: 12, fontWeight: '800' }}>Checking with the payment provider…</Text><Text style={{ color: p.sub, textAlign: 'center', marginTop: 6 }}>Your place is confirmed only when Razorpay confirms the payment to Zenvy.</Text></> : null}
+            {phase === 'verifying' ? <><ActivityIndicator color={p.accent} size="large" /><Text style={{ color: p.text, textAlign: 'center', marginTop: 12, fontWeight: '800' }}>Checking with the payment provider…</Text><Text style={{ color: p.sub, textAlign: 'center', marginTop: 6 }}>Your place is confirmed only when Razorpay confirms the payment to ZCS.</Text></> : null}
             {phase === 'confirmed' ? <><Ionicons name="checkmark-circle" size={56} color={p.success} style={{ alignSelf: 'center' }} /><Text style={{ color: p.text, textAlign: 'center', fontSize: 18, fontWeight: '900', marginTop: 8 }}>Payment confirmed</Text>{last.current ? <Text style={{ color: p.sub, textAlign: 'center', marginTop: 4 }}>{inr(last.current.payment.total)} received.</Text> : null}</> : null}
             {phase === 'failed' ? <Notice tone="danger" icon="close-circle-outline">{msg || 'The payment failed or was cancelled. You were not charged twice; you can try again while your place is held.'}</Notice> : null}
             {phase === 'pending' ? <Notice tone="warn" icon="time-outline">We have not heard back from the payment provider yet. If money left your account, your place is confirmed automatically when it arrives (or refunded if the place is gone). Check My registrations in a few minutes.</Notice> : null}

@@ -35,7 +35,7 @@ type Filter = 'active' | 'all' | TicketStatus;
 // Quick replies reflect how Zenvy works today: COD + Wallet only, and the delivery PIN lives in the customer's app.
 const QUICK_REPLIES_FALLBACK = [
   { label: 'Expedited', text: 'Sorry for the delay. We have flagged your order as urgent with our campus delivery team.' },
-  { label: 'Wallet refund', text: 'We have reviewed your order and refunded the amount to your Zenvy Wallet. You can see it in the Wallet section of the app.' },
+  { label: 'Wallet refund', text: 'We have reviewed your order and refunded the amount to your ZCS Wallet. You can see it in the Wallet section of the app.' },
   { label: 'Rider at gate', text: 'Your delivery partner is waiting at the hostel gate. Please share the delivery PIN shown on your order tracking screen to receive the order.' },
   { label: 'Need details', text: 'Thanks for reaching out. Could you share a few more details (order time, item names, a photo if relevant) so we can sort this out?' },
 ];

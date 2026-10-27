@@ -52,7 +52,7 @@ const STEP_META: Record<StepKey, { title: string; sub: string }> = {
   branding: { title: 'Branding', sub: 'Cover photo, logo, colours' },
   hours: { title: 'Hours & delivery', sub: 'Weekly hours, delivery time' },
   login: { title: 'Partner login', sub: 'App sign-in: phone + password' },
-  commission: { title: 'Commission & payouts', sub: 'What Zenvy keeps' },
+  commission: { title: 'Commission & payouts', sub: 'What ZCS keeps' },
   review: { title: 'Review & publish', sub: 'Preview and go live' },
 };
 
@@ -143,8 +143,8 @@ function validateStep(step: StepKey, s: WizardState, mode: 'create' | 'edit'): E
     const pw = s.password.trim();
     if (s.loginPhone.trim() && !isValidIndianMobile(s.loginPhone)) e.loginPhone = 'Use a 10-digit Indian mobile number starting with 6–9.';
     if (pw && pw.length < 6) e.password = 'At least 6 characters (12+ recommended).';
-    else if (mode === 'create' && local && !pw) e.password = 'Generate a password so the stall can sign in to the Zenvy Vendor app and take orders.';
-    else if (mode === 'create' && !local && !s.managedByZenvy && !pw) e.password = 'Generate a password so the partner can sign in, or switch on "Managed by Zenvy".';
+    else if (mode === 'create' && local && !pw) e.password = 'Generate a password so the stall can sign in to the ZCS Vendor app and take orders.';
+    else if (mode === 'create' && !local && !s.managedByZenvy && !pw) e.password = 'Generate a password so the partner can sign in, or switch on "Managed by ZCS".';
   }
   if (step === 'commission' && !local) {
     const n = Number(s.commissionRate);
@@ -448,11 +448,11 @@ export function StoreWizard({ mode, initial, startStep, stores, onClose, onSaved
 
 const STEP_HELP: Record<StepKey, string> = {
   basics: 'Who is this partner? The type decides how customers buy from them.',
-  location: 'Where riders pick up (or the stall sets off from), and how customers or Zenvy reach the store.',
+  location: 'Where riders pick up (or the stall sets off from), and how customers or ZCS reach the store.',
   branding: 'Photos sell. A clear cover photo is the single biggest boost to orders.',
   hours: 'When customers can order, and the bill rules. Outside these hours the app shows "Closed — opens at …".',
-  login: 'How the partner signs in to accept orders: the Zenvy Restaurant app, or Zenvy Vendor for stalls.',
-  commission: 'What Zenvy keeps from each order. Payouts are settled from the Finance page.',
+  login: 'How the partner signs in to accept orders: the ZCS Restaurant app, or ZCS Vendor for stalls.',
+  commission: 'What ZCS keeps from each order. Payouts are settled from the Finance page.',
   review: 'Check everything once. Save as a draft to add the menu first, or publish straight away.',
 };
 
@@ -512,7 +512,7 @@ function BasicsStep({ s, set, errors, stores, editingId }: StepProps & { stores:
       </fieldset>
 
       {isLocalVendorType(s.vendorType) && (
-        <Callout tone="amber" title="Stall orders in Zenvy">Customers order the stall&apos;s items in Zenvy and pay the stall cash on delivery. The stall gets the order (customer name, phone and room) in the Zenvy Vendor app and delivers it itself. No Zenvy rider, no delivery PIN, no coupons.</Callout>
+        <Callout tone="amber" title="Stall orders in ZCS">Customers order the stall&apos;s items in ZCS and pay the stall cash on delivery. The stall gets the order (customer name, phone and room) in the ZCS Vendor app and delivers it itself. No ZCS rider, no delivery PIN, no coupons.</Callout>
       )}
       {isBookingOnlyStore(s.vendorType) && (
         <Callout tone="sky" title="Booking-only service">Customers book this service from the app; it is never added to the basket.</Callout>
@@ -616,7 +616,7 @@ function LocationStep({ s, set, errors, stores }: StepProps & { stores: Store[] 
         required={isLocalVendorType(s.vendorType)}
         optional={!isLocalVendorType(s.vendorType)}
         error={errors.whatsapp}
-        help={isLocalVendorType(s.vendorType) ? 'Customers can WhatsApp or call the stall about their order. The vendor can also sign in to Zenvy Vendor with this number.' : 'Zenvy support and riders use it to reach the store. Not shown to customers for regular stores.'}
+        help={isLocalVendorType(s.vendorType) ? 'Customers can WhatsApp or call the stall about their order. The vendor can also sign in to ZCS Vendor with this number.' : 'ZCS support and riders use it to reach the store. Not shown to customers for regular stores.'}
         aside={wa.length === 10 && isValidIndianMobile(wa) ? <a className="text-xs font-semibold text-success-text hover:underline" href={`https://wa.me/91${wa}`} target="_blank" rel="noreferrer">Test on WhatsApp ↗</a> : null}
       >
         {({ id, msgId, invalid }) => (
@@ -650,7 +650,7 @@ function BrandingStep({ s, set, errors }: StepProps) {
           checked={s.brandOn}
           onChange={brandOn => set({ brandOn })}
           label="Use brand colours"
-          description="For chains and well-known brands. The store page in the app switches to the brand's colours. Leave off for a standard Zenvy-styled page."
+          description="For chains and well-known brands. The store page in the app switches to the brand's colours. Leave off for a standard ZCS-styled page."
         />
         {s.brandOn && (
           <div>
@@ -728,7 +728,7 @@ function LoginStep({ s, set, errors, mode, initial }: StepProps & { mode: 'creat
   const strength = passwordStrength(s.password);
   const id = initial ? storeId(initial) : null;
   const local = isLocalVendorType(s.vendorType);
-  const app = local ? 'Zenvy Vendor' : 'Zenvy Restaurant';
+  const app = local ? 'ZCS Vendor' : 'ZCS Restaurant';
   const effectivePhone = s.loginPhone.trim() ? tenDigits(s.loginPhone) : local ? tenDigits(s.whatsapp) : '';
   const phoneOk = !!effectivePhone && isValidIndianMobile(effectivePhone);
   return (
@@ -738,8 +738,8 @@ function LoginStep({ s, set, errors, mode, initial }: StepProps & { mode: 'creat
           <Toggle
             checked={s.managedByZenvy}
             onChange={managedByZenvy => set({ managedByZenvy })}
-            label="Managed by Zenvy (no partner app)"
-            description="For shops without a smartphone. Orders skip the kitchen-accept step and the Zenvy team / rider handles them. You can still set a password later."
+            label="Managed by ZCS (no partner app)"
+            description="For shops without a smartphone. Orders skip the kitchen-accept step and the ZCS team / rider handles them. You can still set a password later."
           />
         </section>
       )}
@@ -773,7 +773,7 @@ function LoginStep({ s, set, errors, mode, initial }: StepProps & { mode: 'creat
             error={errors.password}
             help={mode === 'edit'
               ? `Leave empty to keep the current password${initial?.hasPassword === false ? ' (none is set yet)' : ''}. A new one works immediately, the old one stops working, and phones already signed in are signed out.`
-              : 'Generate a strong one. It is shown once after saving so you can share it; Zenvy only stores a hash.'}
+              : 'Generate a strong one. It is shown once after saving so you can share it; ZCS only stores a hash.'}
             aside={s.password ? <span className={cx('text-xs font-semibold', strength.score >= 3 ? 'text-success-text' : strength.score === 2 ? 'text-warning-text' : 'text-danger-text')}>{strength.label}</span> : null}
           >
             {({ id: fid, msgId, invalid }) => (
@@ -821,7 +821,7 @@ function CommissionStep({ s, set, errors }: StepProps) {
           { value: 'flat', label: '₹ fixed per order' },
         ]} />
       </div>
-      <Field label={s.commissionType === 'flat' ? 'Amount per order (₹)' : 'Commission (%)'} required error={errors.commissionRate} help="Charged on the item subtotal only. The rider fee and Zenvy coupons never reduce the partner's share.">
+      <Field label={s.commissionType === 'flat' ? 'Amount per order (₹)' : 'Commission (%)'} required error={errors.commissionRate} help="Charged on the item subtotal only. The rider fee and ZCS coupons never reduce the partner's share.">
         {({ id, msgId, invalid }) => (
           <div className="flex flex-wrap items-center gap-2">
             <input id={id} aria-describedby={msgId} aria-invalid={invalid} inputMode="decimal" className={cx(INPUT, 'max-w-[140px]')} value={s.commissionRate} onChange={e => set({ commissionRate: e.target.value })} />
@@ -840,10 +840,10 @@ function CommissionStep({ s, set, errors }: StepProps) {
         </div>
         <dl className="mt-4 grid gap-3 sm:grid-cols-3">
           <div className="rounded-lg bg-surface-2/60 p-3"><dt className="text-xs text-fg-muted">Customer pays (items)</dt><dd className="mt-1 text-lg font-semibold">{formatINR(order)}</dd></div>
-          <div className="rounded-lg bg-surface-2/60 p-3"><dt className="text-xs text-fg-muted">Zenvy keeps</dt><dd className="mt-1 text-lg font-semibold text-warning-text">{formatINR(commission)}</dd></div>
+          <div className="rounded-lg bg-surface-2/60 p-3"><dt className="text-xs text-fg-muted">ZCS keeps</dt><dd className="mt-1 text-lg font-semibold text-warning-text">{formatINR(commission)}</dd></div>
           <div className="rounded-lg bg-success-soft p-3"><dt className="text-xs text-success-text">Partner receives</dt><dd className="mt-1 text-lg font-semibold text-success-text">{formatINR(order - commission)}</dd></div>
         </dl>
-        <p className="mt-3 text-xs text-fg-muted">Payments are Cash on Delivery or Zenvy Wallet. Delivered orders are settled to the partner from Finance → Payouts.</p>
+        <p className="mt-3 text-xs text-fg-muted">Payments are Cash on Delivery or ZCS Wallet. Delivered orders are settled to the partner from Finance → Payouts.</p>
       </section>
     </div>
   );
@@ -859,8 +859,8 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
     { ok: !!s.whatsapp, text: 'Contact number', step: 'location', optional: !local },
     { ok: !!s.lat && !!s.lon, text: 'Map pin for riders', step: 'location', optional: true },
     local
-      ? { ok: !!s.password || (mode === 'edit' && !!initial?.hasPassword), text: 'Stall can sign in to Zenvy Vendor', step: 'login' as StepKey }
-      : { ok: s.managedByZenvy || !!s.password || (mode === 'edit' && !!initial?.hasPassword), text: 'Partner can sign in (or managed by Zenvy)', step: 'login' as StepKey },
+      ? { ok: !!s.password || (mode === 'edit' && !!initial?.hasPassword), text: 'Stall can sign in to ZCS Vendor', step: 'login' as StepKey }
+      : { ok: s.managedByZenvy || !!s.password || (mode === 'edit' && !!initial?.hasPassword), text: 'Partner can sign in (or managed by ZCS)', step: 'login' as StepKey },
   ];
   const loginPhone = s.loginPhone.trim() ? `+91 ${formatWhatsapp(s.loginPhone)}` : local && s.whatsapp ? `WhatsApp number (+91 ${formatWhatsapp(s.whatsapp)})` : 'Not set';
   const password = s.password ? 'Will be set (shown once after saving)' : mode === 'edit' ? (initial?.hasPassword ? 'Unchanged' : 'Not set') : 'Not set';
@@ -874,8 +874,8 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
     { step: 'branding', items: [['Cover photo', s.imageUrl ? 'Added' : 'Missing'], ['Logo', s.logoUrl ? 'Added' : 'None'], ['Brand colours', s.brandOn ? 'On' : 'Off']] },
     { step: 'hours', items: [['Hours', summarizeWeekly(s.weekly)], ['Accepting orders', s.isOpenNow ? 'Yes' : 'Paused'], ...(local ? [] : [['Delivery time', s.deliveryTime ? `${s.deliveryTime} min` : 'Hidden'] as [string, ReactNode]]), ...fees] },
     { step: 'login', items: local
-      ? [['App', 'Zenvy Vendor'], ['Login phone', loginPhone], ['Password', password], ['Payment', 'Cash on delivery to the stall']]
-      : [['Mode', s.managedByZenvy ? 'Managed by Zenvy' : 'Zenvy Restaurant app'], ['Login phone', loginPhone], ['Password', password]] },
+      ? [['App', 'ZCS Vendor'], ['Login phone', loginPhone], ['Password', password], ['Payment', 'Cash on delivery to the stall']]
+      : [['Mode', s.managedByZenvy ? 'Managed by ZCS' : 'ZCS Restaurant app'], ['Login phone', loginPhone], ['Password', password]] },
     ...(local ? [] : [
       { step: 'commission' as StepKey, items: [['Commission', s.commissionType === 'flat' ? `₹${s.commissionRate} per order` : `${s.commissionRate}% of order`]] as [string, ReactNode][] },
     ]),
@@ -924,7 +924,7 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
           </section>
         ))}
         {mode === 'create' ? (
-          <Callout tone="sky"><b>Save as draft</b> keeps the store hidden while you add the menu. <b>Publish now</b> makes it visible to customers immediately and it starts taking orders during its hours{local ? ' (the stall accepts and delivers them in Zenvy Vendor)' : ''}.</Callout>
+          <Callout tone="sky"><b>Save as draft</b> keeps the store hidden while you add the menu. <b>Publish now</b> makes it visible to customers immediately and it starts taking orders during its hours{local ? ' (the stall accepts and delivers them in ZCS Vendor)' : ''}.</Callout>
         ) : (
           <p className="text-xs text-fg-muted">Saving keeps the store {initial?.isActive ? 'live' : 'hidden'}; switch it on or off from the store list or the store page.</p>
         )}
@@ -938,7 +938,7 @@ function SuccessPanel({ result, mode, onOpenStore, onClose }: { result: WizardRe
   const id = storeId(result.store);
   const [ack, setAck] = useState(!result.password);
   const local = isLocalVendorType(result.store.vendorType);
-  const app = local ? 'Zenvy Vendor' : 'Zenvy Restaurant';
+  const app = local ? 'ZCS Vendor' : 'ZCS Restaurant';
   const phone = tenDigits(result.store.partnerPhone || result.store.phone || (local ? result.store.whatsappNumber : '') || '');
   // WhatsApp link text never carries the password: a wa.me URL lands in browser history and link logs.
   const waText = `${app} app login\nStore: ${result.store.name}${phone ? `\nPhone: ${phone}` : ''}\nStore ID: ${id}\nOpen the ${app} app and sign in with ${phone ? 'your phone number' : 'the Store ID'}. Your password follows in a separate message.`;

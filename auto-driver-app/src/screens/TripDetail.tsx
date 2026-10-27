@@ -147,7 +147,7 @@ export default function TripDetailScreen({ navigation, route }: ScreenProps<'Tri
     } catch (e) {
       if (e instanceof NetworkError) {
         setUncertain({ action, from, at: Date.now() });
-        toast.show('Not confirmed by Zenvy (no internet). Checking the trip before you try again.', 'error');
+        toast.show('Not confirmed by ZCS (no internet). Checking the trip before you try again.', 'error');
       } else if (e instanceof ApiError && e.code === 'PASSENGERS_NOT_CHECKED_IN' && Array.isArray(e.data?.passengers)) {
         // Someone booked is still not checked in (or was just added): show them, nothing was changed.
         const list = e.data.passengers as NotCheckedIn[];
@@ -174,7 +174,7 @@ export default function TripDetailScreen({ navigation, route }: ScreenProps<'Tri
         : a === 'resume' ? trip.status !== 'DELAYED'
           : trip.status === ACTION_TARGET[a as keyof typeof ACTION_TARGET];
     setUncertain(null);
-    toast.show(reached ? 'Zenvy got your last change. The trip is up to date.' : 'Zenvy did not get your last change. You can try again now.', reached ? 'success' : 'info');
+    toast.show(reached ? 'ZCS got your last change. The trip is up to date.' : 'ZCS did not get your last change. You can try again now.', reached ? 'success' : 'info');
   }, [trip, uncertain, fresh, toast]);
 
   const ask = (action: DriverAction, body: Record<string, unknown> = {}) => {
@@ -232,7 +232,7 @@ export default function TripDetailScreen({ navigation, route }: ScreenProps<'Tri
         ))}
       </View>
       {q.error ? <ErrorStrip text={`Showing the last loaded status. ${q.error}`} onRetry={q.refresh} busy={q.refreshing} /> : null}
-      {uncertain ? <Banner tone="warn" title="Waiting for Zenvy" text="Your last tap may not have reached Zenvy. Checking the trip with Zenvy before you can tap again (pull down to retry)." /> : null}
+      {uncertain ? <Banner tone="warn" title="Waiting for ZCS" text="Your last tap may not have reached ZCS. Checking the trip with ZCS before you can tap again (pull down to retry)." /> : null}
 
       {tab === 'status' ? (
         <>
@@ -288,7 +288,7 @@ export default function TripDetailScreen({ navigation, route }: ScreenProps<'Tri
           <Card>
             <SeatMap rows={(q.data!.seats.layout || trip.seatLayout || { rows: [] }).rows} maleOnlySeats={(q.data!.seats.layout || trip.seatLayout || { rows: [] }).maleOnlySeats} states={seatInfo.states} labels={seatInfo.labels} />
           </Card>
-          <Text style={[font.small, { color: color.textMuted }]}>Seats and bookings are managed by Zenvy. Held seats are released automatically if the passenger does not confirm.</Text>
+          <Text style={[font.small, { color: color.textMuted }]}>Seats and bookings are managed by ZCS. Held seats are released automatically if the passenger does not confirm.</Text>
         </>
       ) : null}
 

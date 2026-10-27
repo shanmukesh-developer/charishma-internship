@@ -363,14 +363,14 @@ export const mmss = (ms: number) => {
 };
 export const queueLabel = (n: number | null | undefined) => (n ? `Auto ${String(n).padStart(2, '0')}` : 'Auto');
 
-export const PAYMENT_LABEL: Record<PaymentMethod, string> = { CASH: 'Cash to driver', WALLET: 'Zenvy Wallet' };
+export const PAYMENT_LABEL: Record<PaymentMethod, string> = { CASH: 'Cash to driver', WALLET: 'ZCS Wallet' };
 export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
   NONE: 'Nothing paid',
   CASH_DUE: 'Pay the driver in cash at boarding',
   CASH_COLLECTED: 'Cash paid to the driver',
-  PAID: 'Paid from Zenvy Wallet',
+  PAID: 'Paid from ZCS Wallet',
   REFUND_PENDING: 'Refund in progress',
-  REFUNDED: 'Refunded to Zenvy Wallet',
+  REFUNDED: 'Refunded to ZCS Wallet',
   NOT_REFUNDED: 'Not refunded (cancellation policy)',
 };
 
@@ -432,7 +432,7 @@ export const errorCopy = (e: any): { title: string; message: string } => {
   const code = e?.code;
   const msg = e?.message || 'Please try again.';
   switch (code) {
-    case 'FEATURE_OFF': return { title: 'Zenvy Auto is not open yet', message: msg };
+    case 'FEATURE_OFF': return { title: 'ZCS Auto is not open yet', message: msg };
     case 'SEAT_TAKEN': return { title: 'Seat just taken', message: msg };
     case 'FRONT_SEAT_MALE_ONLY': return { title: 'Boys only', message: msg };
     case 'NO_SUITABLE_SEAT': return { title: 'Only front seats left', message: msg };

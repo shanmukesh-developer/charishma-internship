@@ -50,7 +50,7 @@ const MANAGED_KEYS: string[] = [...RETENTION.map(r => r.key), 'CAMPUS_SPOTS_DEFA
 const MANAGED_ELSEWHERE: Record<string, { label: string; href: string }> = {
   VEHICLE_RENTALS_ENABLED: { label: 'Vehicle rentals on/off', href: '/rentals' },
   CAMPUS_WHISPERS_ENABLED: { label: 'Campus Whispers on/off', href: '/friends' },
-  AFTER_DARK_ENABLED: { label: 'Zenvy After Dark on/off', href: '/friends' },
+  AFTER_DARK_ENABLED: { label: 'ZCS After Dark on/off', href: '/friends' },
 };
 const MAX_RETENTION_DAYS = 3650;
 
@@ -60,7 +60,7 @@ const FEATURE_SWITCHES = [
   { key: 'CAMPUS_EVENTS_ENABLED', label: 'Campus events', href: '/campus-events?tab=settings', where: 'Open Events settings', what: 'On: students can browse events, register and get tickets, and organisers can submit events. Off: browsing, registration and submissions close; existing tickets stay readable and check-in keeps working.' },
   { key: 'VEHICLE_RENTALS_ENABLED', label: 'Vehicle rentals', href: '/rentals', where: 'Open Rentals', what: 'On: students can list their vehicles and book other students’ vehicles. Off: the rentals section is closed in the app.' },
   { key: 'CAMPUS_WHISPERS_ENABLED', label: 'Campus Whispers', href: '/friends', where: 'Open Friends app', what: 'On: students can post and read anonymous campus whispers. Off: whispers are hidden and new posts are refused.' },
-  { key: 'AFTER_DARK_ENABLED', label: 'Zenvy After Dark', href: '/friends', where: 'Open Friends app', what: 'On: the late-night lounge chats and rooms open in the app. Off: they are closed.' },
+  { key: 'AFTER_DARK_ENABLED', label: 'ZCS After Dark', href: '/friends', where: 'Open Friends app', what: 'On: the late-night lounge chats and rooms open in the app. Off: they are closed.' },
 ] as const;
 
 

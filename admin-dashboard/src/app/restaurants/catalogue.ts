@@ -156,8 +156,8 @@ export type VendorGroup = 'Food' | 'Shops' | 'Services' | 'Campus';
 
 /** Canonical store types the backend understands (see backend/utils/vendorTypes.js). */
 export const VENDOR_TYPES: { value: string; label: string; group: VendorGroup; hint: string }[] = [
-  { value: 'RESTAURANT', label: 'Restaurant', group: 'Food', hint: 'Cooked food. Orders, payment and Zenvy riders.' },
-  { value: 'LOCAL_VENDOR', label: 'Local stall (CampusBites)', group: 'Campus', hint: 'Customers order in Zenvy and pay the stall cash. The stall delivers with the Zenvy Vendor app; no rider.' },
+  { value: 'RESTAURANT', label: 'Restaurant', group: 'Food', hint: 'Cooked food. Orders, payment and ZCS riders.' },
+  { value: 'LOCAL_VENDOR', label: 'Local stall (CampusBites)', group: 'Campus', hint: 'Customers order in ZCS and pay the stall cash. The stall delivers with the ZCS Vendor app; no rider.' },
   { value: 'GROCERY', label: 'Grocery / Kirana', group: 'Shops', hint: 'Packaged goods, Mega Basket and late-night mart.' },
   { value: 'PHARMACY', label: 'Pharmacy', group: 'Shops', hint: 'Medicines and health essentials.' },
   { value: 'STATIONERY', label: 'Stationery', group: 'Shops', hint: 'Books, pens, study kits.' },

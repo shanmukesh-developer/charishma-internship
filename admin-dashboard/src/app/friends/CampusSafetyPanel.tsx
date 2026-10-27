@@ -34,7 +34,7 @@ const errText = (e: unknown, fallback: string) => (e instanceof Error && e.messa
 
 const SWITCH_INFO: Record<keyof Switches, { label: string; blurb: string }> = {
   whispers: { label: 'Campus Whispers', blurb: 'Anonymous campus board (Pulse > Campus Whispers). Off: list, post and react answer "paused"; the card disappears from the app.' },
-  afterDark: { label: 'Zenvy After Dark', blurb: 'Legacy late-night lounge chats and rooms (/api/chat, /api/rooms, after-dark sockets).' },
+  afterDark: { label: 'ZCS After Dark', blurb: 'Legacy late-night lounge chats and rooms (/api/chat, /api/rooms, after-dark sockets).' },
 };
 
 const STATUS_TONE: Record<string, 'success' | 'warning' | 'danger' | 'neutral'> = {

@@ -515,7 +515,7 @@ export default function LoginScreen() {
         <ServerWakeupOverlay
           visible={showWakeup}
           onWakeupComplete={() => setShowWakeup(false)}
-          offlineText="Still can't reach Zenvy. Check your internet and try again."
+          offlineText="Still can't reach ZCS. Check your internet and try again."
         />
       )}
 
@@ -570,7 +570,7 @@ export default function LoginScreen() {
               </View>
             </BounceIn>
             <StaggeredSection delay={400} direction="down">
-              <Text style={s.brand}>ZENVY</Text>
+              <Text style={s.brand}>ZCS</Text>
               <Text style={s.tagline}>Campus food and more</Text>
             </StaggeredSection>
           </Animated.View>
@@ -753,7 +753,7 @@ export default function LoginScreen() {
                   >
                     <Text style={{ fontSize: 13 }}>🗺️</Text>
                     <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? '#FFF' : '#334155' }}>
-                      New here? <Text style={{ color: '#3B82F6', fontWeight: '900' }}>See what Zenvy does ➔</Text>
+                      New here? <Text style={{ color: '#3B82F6', fontWeight: '900' }}>See what ZCS does ➔</Text>
                     </Text>
                   </TouchableOpacity>
                 </>

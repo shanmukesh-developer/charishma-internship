@@ -257,7 +257,7 @@ function StoresScreen() {
         run: async () => { const saved = await patchStore(storeId(store), { isActive: true }); merge(saved); setConfirm(null); toast.success(`${store.name} is live.`); },
       });
     } else {
-      quickPatch(store, { isActive: true }, `${store.name} is live${local && !store.hasPassword ? '. Set a Zenvy Vendor password so the stall can take orders' : ''}.`, { isActive: false });
+      quickPatch(store, { isActive: true }, `${store.name} is live${local && !store.hasPassword ? '. Set a ZCS Vendor password so the stall can take orders' : ''}.`, { isActive: false });
     }
   };
   const toggleOpen = (store: Store) => {
@@ -382,10 +382,10 @@ function StoresScreen() {
                 <span className="truncate font-medium text-fg hover:underline">{store.name}</span>
                 <Chip tone={STATUS_TONE[status]} dot title={status === 'closed' && store.closedReason ? store.closedReason : STATUS_META[status].help}>{status === 'closed' && store.isOpenNow === false ? 'Paused' : STATUS_META[status].label}</Chip>
                 {store.isFeatured && <Chip tone="amber">{store.featuredBadge || 'Featured'}</Chip>}
-                {store.isOffline && !local && <Chip title="No partner app; Zenvy handles orders">Managed</Chip>}
-                {local && <Chip tone="sky" title="Customers pay the stall cash; the stall delivers with Zenvy Vendor">Stall, cash</Chip>}
+                {store.isOffline && !local && <Chip title="No partner app; ZCS handles orders">Managed</Chip>}
+                {local && <Chip tone="sky" title="Customers pay the stall cash; the stall delivers with ZCS Vendor">Stall, cash</Chip>}
                 <FssaiChip store={store} />
-                {!store.hasPassword && !(store.isOffline && !local) && <Chip tone="amber" title={local ? 'The stall cannot see its orders until it can sign in to Zenvy Vendor' : 'The partner cannot sign in to accept orders'}>No login</Chip>}
+                {!store.hasPassword && !(store.isOffline && !local) && <Chip tone="amber" title={local ? 'The stall cannot see its orders until it can sign in to ZCS Vendor' : 'The partner cannot sign in to accept orders'}>No login</Chip>}
               </span>
               <span className="mt-0.5 block truncate text-xs text-fg-muted">{vendorLabel(store.vendorType)} · {[store.location, store.campus].filter(Boolean).join(' · ')}</span>
               <span className="block truncate text-xs text-fg-subtle">{summarizeWeekly(weeklyFromStore(store.operatingHours))}{!local && store.deliveryTime ? ` · ${store.deliveryTime} min` : ''}</span>

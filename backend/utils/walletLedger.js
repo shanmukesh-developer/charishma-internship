@@ -324,8 +324,8 @@ const reconcileStatus = () => ({ ...reconcileState });
 const LABELS = {
   ORDER_PAYMENT: 'Order payment',
   ORDER_REFUND: 'Order refund',
-  ADMIN_CREDIT: 'Added by Zenvy support',
-  ADMIN_DEBIT: 'Deducted by Zenvy support',
+  ADMIN_CREDIT: 'Added by ZCS support',
+  ADMIN_DEBIT: 'Deducted by ZCS support',
   TIP_SENT: 'Tip to your rider',
   TIP_RECEIVED: 'Tip from a customer',
   TIP_PAYOUT: 'Tips paid out',

@@ -829,7 +829,7 @@ export const toOrderLine = (i: CartItem) => ({
   ...(i.customizations && Object.keys(i.customizations).length > 0 ? { customizations: i.customizations } : {}),
 });
 
-export const friendlyNetworkMessage = "We couldn't reach Zenvy. Check your internet and try again.";
+export const friendlyNetworkMessage = "We couldn't reach ZCS. Check your internet and try again.";
 
 /**
  * Live bill for one basket (default: the active one) from POST /api/orders/quote. Custom Mega Basket requests are not part of it.

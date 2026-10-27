@@ -126,7 +126,7 @@ router.post('/delete', protect, async (req, res) => {
     res.cookie('token', '', { httpOnly: true, secure: true, sameSite: 'none', expires: new Date(0) });
     res.json({
       success: true,
-      message: 'Your Zenvy account has been deleted. Order and payment records are kept without your personal details, as the law requires.',
+      message: 'Your ZCS account has been deleted. Order and payment records are kept without your personal details, as the law requires.',
     });
   } catch (err) {
     console.error('[ACCOUNT_DELETE_ERROR]', err.message);

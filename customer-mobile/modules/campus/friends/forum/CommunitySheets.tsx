@@ -64,7 +64,7 @@ export const RulesSheet: React.FC<{ community: ForumCommunity | null; visible: b
           ))}
         </View>
       ) : (
-        <Text style={FT.muted}>Moderated by the Zenvy Friends team.</Text>
+        <Text style={FT.muted}>Moderated by the ZCS Friends team.</Text>
       )}
     </FriendsSheet>
   );
@@ -106,7 +106,7 @@ export const RequestCommunitySheet: React.FC<{ visible: boolean; onClose: () => 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       onRequested(r.community);
       onClose();
-      Alert.alert('Request sent', 'The Zenvy team reviews new communities. You will be its owner once it is approved.');
+      Alert.alert('Request sent', 'The ZCS team reviews new communities. You will be its owner once it is approved.');
     } catch (e: any) {
       setError(blockedDetails(e) || forumErrorMessage(e, "Couldn't send the request."));
     } finally {
@@ -115,7 +115,7 @@ export const RequestCommunitySheet: React.FC<{ visible: boolean; onClose: () => 
   };
 
   return (
-    <FriendsSheet visible={visible} onClose={onClose} title="Request a community" subtitle="Reviewed by the Zenvy team before it goes live" icon={<Plus size={18} color={FriendsColors.accent} />}>
+    <FriendsSheet visible={visible} onClose={onClose} title="Request a community" subtitle="Reviewed by the ZCS team before it goes live" icon={<Plus size={18} color={FriendsColors.accent} />}>
       <Text style={styles.label}>Name</Text>
       <TextInput
         style={fui.input}

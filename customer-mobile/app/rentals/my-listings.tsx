@@ -88,9 +88,9 @@ export default function MyListings() {
                   {l.ratingCount > 0 ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}><Stars value={l.ratingAvg} size={11} /><Text style={{ fontSize: 12, color: p.sub }}>{tripsLabel(l.tripCount)}</Text></View> : null}
                 </View>
               </TouchableOpacity>
-              {l.status === 'REJECTED' && l.rejectionReason ? <Text style={{ color: p.danger, fontSize: 12, marginTop: 10 }}>Zenvy: {l.rejectionReason}</Text> : null}
+              {l.status === 'REJECTED' && l.rejectionReason ? <Text style={{ color: p.danger, fontSize: 12, marginTop: 10 }}>ZCS: {l.rejectionReason}</Text> : null}
               {(l.status === 'DRAFT' || l.status === 'REJECTED') && l.missing && l.missing.length ? <Text style={{ color: p.warn, fontSize: 12, marginTop: 8 }}>Still needed: {l.missing.map((m) => (m === 'price' && l.plateType ? wordsOf(l).price : MISSING_LABEL[m] || m)).join(', ')}</Text> : null}
-              {l.status === 'PENDING_REVIEW' ? <Text style={{ color: p.sub, fontSize: 12, marginTop: 8 }}>Zenvy is checking your documents. You will get a notification.</Text> : null}
+              {l.status === 'PENDING_REVIEW' ? <Text style={{ color: p.sub, fontSize: 12, marginTop: 8 }}>ZCS is checking your documents. You will get a notification.</Text> : null}
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
                 <Btn label="Edit" small kind="secondary" onPress={() => router.push(`/rentals/new?id=${l.id}` as any)} />
                 {(l.status === 'DRAFT' || l.status === 'REJECTED') && (!l.missing || !l.missing.length) ? <Btn label="Send for review" small loading={busy === `${l.id}:submit`} onPress={() => act(l, 'submit')} /> : null}

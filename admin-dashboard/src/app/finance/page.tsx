@@ -264,7 +264,7 @@ export default function FinanceConsole() {
     <div>
       <PageHeader
         title="Payments and payouts"
-        description="What Zenvy earned, what stores and riders are owed, cash riders hold, and refunds for cancelled orders."
+        description="What ZCS earned, what stores and riders are owed, cash riders hold, and refunds for cancelled orders."
         meta={report ? <Badge tone="accent">Commission all time: {rupees(report.totalCommission)}</Badge> : undefined}
       >
         <Tabs

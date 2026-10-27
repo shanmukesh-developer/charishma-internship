@@ -9,7 +9,7 @@
 // Never logs the API key, the recipient's code or the message body.
 
 const BREVO_URL = 'https://api.brevo.com/v3/smtp/email';
-const DEFAULT_FROM = 'Zenvy <projectshanmukh@gmail.com>';
+const DEFAULT_FROM = 'ZCS <projectshanmukh@gmail.com>';
 const TIMEOUT_MS = () => Math.max(1000, Number(process.env.MAIL_TIMEOUT_MS) || 10000); // A5: env-tunable, default 10 s (unchanged)
 
 const isMailerConfigured = () => !!String(process.env.BREVO_API_KEY || '').trim();
@@ -55,7 +55,7 @@ const sendMail = async ({ to, subject, html, text }) => {
       body: JSON.stringify({
         sender: parseSender(process.env.MAIL_FROM),
         to: [{ email: recipient }],
-        subject: String(subject || 'Zenvy').slice(0, 200),
+        subject: String(subject || 'ZCS').slice(0, 200),
         htmlContent: html || undefined,
         textContent: text || undefined,
       }),
@@ -91,25 +91,25 @@ const sendVerificationCode = async ({ to, code, name, campusName, minutes = 10 }
   const hi = escapeHtml(hiPlain);
   const campus = campusName ? ` for ${escapeHtml(campusName)}` : '';
   const digits = String(code);
-  const subject = `${digits} is your Zenvy campus verification code`;
+  const subject = `${digits} is your ZCS campus verification code`;
   const text = [
     hiPlain,
     '',
-    `Your Zenvy Campus verification code${campusName ? ` for ${campusName}` : ''} is: ${digits}`,
+    `Your ZCS Campus verification code${campusName ? ` for ${campusName}` : ''} is: ${digits}`,
     '',
     `It expires in ${minutes} minutes and can be used once.`,
     'If you did not ask for this, you can ignore this email. Never share this code with anyone.',
     '',
-    'Team Zenvy',
+    'Team ZCS',
   ].join('\n');
   const html = `<!doctype html><html><body style="margin:0;padding:0;background:#f4f4f7;font-family:Arial,Helvetica,sans-serif;color:#1d1d1f">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f7;padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:460px;background:#ffffff;border-radius:16px;padding:28px">
-<tr><td style="font-size:20px;font-weight:bold;color:#ff5a1f;padding-bottom:16px">Zenvy Campus</td></tr>
+<tr><td style="font-size:20px;font-weight:bold;color:#ff5a1f;padding-bottom:16px">ZCS Campus</td></tr>
 <tr><td style="font-size:15px;line-height:22px;padding-bottom:8px">${hi}</td></tr>
 <tr><td style="font-size:15px;line-height:22px;padding-bottom:20px">Use this code to verify your college email${campus}:</td></tr>
 <tr><td align="center" style="padding-bottom:20px"><div style="display:inline-block;font-size:32px;letter-spacing:8px;font-weight:bold;background:#fff3ec;color:#1d1d1f;border-radius:12px;padding:14px 22px">${escapeHtml(digits)}</div></td></tr>
-<tr><td style="font-size:13px;line-height:20px;color:#555">It expires in ${Number(minutes) || 10} minutes and works once. If you did not ask for this, ignore this email. Never share this code with anyone, Zenvy will never ask for it.</td></tr>
+<tr><td style="font-size:13px;line-height:20px;color:#555">It expires in ${Number(minutes) || 10} minutes and works once. If you did not ask for this, ignore this email. Never share this code with anyone, ZCS will never ask for it.</td></tr>
 </table></td></tr></table></body></html>`;
   return sendMail({ to, subject, html, text });
 };

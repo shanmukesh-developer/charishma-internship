@@ -95,7 +95,7 @@ const weeklyOpenState = (weekly, name, now) => {
 
 // → { isOpen, reason?, opensAt?, closesAt?, message? }
 const getStoreOpenState = (restaurant, now = new Date()) => {
-  if (!restaurant) return { isOpen: false, reason: 'not_found', message: 'This store is no longer on Zenvy.' };
+  if (!restaurant) return { isOpen: false, reason: 'not_found', message: 'This store is no longer on ZCS.' };
   const name = restaurant.name || 'This store';
   if (restaurant.isActive === false) {
     return { isOpen: false, reason: 'inactive', message: `${name} is not taking orders right now.` };
@@ -104,7 +104,7 @@ const getStoreOpenState = (restaurant, now = new Date()) => {
   // shows its open state (stall page, vendor app, store detail) must say so too, not "open".
   // (For a restaurant isOffline means "rider buys at the counter" and changes nothing here.)
   if (restaurant.isOffline === true && vendorTypes().isLocalVendorStore(restaurant)) {
-    return { isOpen: false, reason: 'offline', message: `${name} is not taking orders on Zenvy right now.` };
+    return { isOpen: false, reason: 'offline', message: `${name} is not taking orders on ZCS right now.` };
   }
   const hours = readHours(restaurant);
   const start = hours ? toMinutes(hours.start) : null;

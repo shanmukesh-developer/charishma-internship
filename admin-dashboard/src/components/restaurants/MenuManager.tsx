@@ -224,7 +224,7 @@ export function MenuManager({ store }: { store: Store }) {
 
   return (
     <div className="space-y-4">
-      {local && <Callout tone="amber">Stall menu: customers order these in Zenvy and pay the stall cash on delivery. The stall can also mark items in or out of stock from Zenvy Vendor.</Callout>}
+      {local && <Callout tone="amber">Stall menu: customers order these in ZCS and pay the stall cash on delivery. The stall can also mark items in or out of stock from ZCS Vendor.</Callout>}
       {bookingOnly && <Callout tone="sky">Booking-only service: these prices are what service bookings are charged (print jobs use the per-page and binding rows).</Callout>}
 
       {/* Toolbar */}
@@ -604,7 +604,7 @@ function ItemEditor({ initial, storeName, categories, bookingOnly, nextSortOrder
           </Field>
           <div className="grid gap-4 rounded-xl border border-line p-4 sm:grid-cols-2">
             <Toggle checked={form.isAvailable} onChange={isAvailable => set({ isAvailable })} label="In stock" description="Off shows SOLD OUT in the app." />
-            <Toggle tone="amber" checked={form.isEliteOnly} onChange={isEliteOnly => set({ isEliteOnly })} label="Elite members only" description="Only Zenvy Elite customers can add it." />
+            <Toggle tone="amber" checked={form.isEliteOnly} onChange={isEliteOnly => set({ isEliteOnly })} label="Elite members only" description="Only ZCS Elite customers can add it." />
             <Toggle tone="amber" checked={form.isSpecializedCake} onChange={isSpecializedCake => set({ isSpecializedCake })} label="Specialized cake" description="Custom or designer cake: orders close 2½ hours before the delivery slot (normal cakes 2 hours)." />
           </div>
           {error && <Callout tone="red">{error}</Callout>}

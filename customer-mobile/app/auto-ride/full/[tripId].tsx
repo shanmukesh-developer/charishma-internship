@@ -79,7 +79,7 @@ export default function FullAutoRequestScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: p.bg }}>
         <AHeader title="Book full auto" />
-        {error ? <StateView kind={off || error.status === 404 ? 'empty' : 'error'} icon={off ? '🛺' : undefined} title={off ? 'Zenvy Auto is not open yet' : error.status === 404 ? 'Auto not found' : 'Could not load'} message={error.message}
+        {error ? <StateView kind={off || error.status === 404 ? 'empty' : 'error'} icon={off ? '🛺' : undefined} title={off ? 'ZCS Auto is not open yet' : error.status === 404 ? 'Auto not found' : 'Could not load'} message={error.message}
           actionLabel={off || error.status === 404 ? 'Back to autos' : 'Retry'} onAction={off || error.status === 404 ? () => router.replace(AUTO_HOME as any) : load} /> : <StateView kind="loading" />}
       </View>
     );
@@ -123,7 +123,7 @@ export default function FullAutoRequestScreen() {
           <View style={{ height: 14 }} />
           <Field label="Purpose (optional)" value={purpose} onChangeText={(t) => setPurpose(t.slice(0, 200))} placeholder="e.g. Group trip to Vijayawada station" maxLength={200} hint={`${purpose.length}/200 · shared with the driver`} />
           <Text style={{ fontSize: 12, fontWeight: '900', color: p.sub, letterSpacing: 0.8, marginBottom: 6 }}>CONTACT (FROM YOUR PROFILE)</Text>
-          <Text style={{ fontSize: 13, color: p.text, fontWeight: '700' }}>{name || 'Your Zenvy account'}{phone ? ` · ${phone}` : ''}</Text>
+          <Text style={{ fontSize: 13, color: p.text, fontWeight: '700' }}>{name || 'Your ZCS account'}{phone ? ` · ${phone}` : ''}</Text>
           {!phone ? <Text style={{ fontSize: 12, color: p.danger, marginTop: 4 }}>A verified mobile number on your profile is needed to book.</Text> : <Text style={{ fontSize: 12, color: p.muted, marginTop: 2 }}>Your number is not shown to the driver; they see your first name only.</Text>}
         </Card>
 
@@ -152,7 +152,7 @@ export default function FullAutoRequestScreen() {
 
         <Notice tone="info">
           How it works: the driver must accept your request (they get a few minutes to answer). Nothing is booked or charged until they accept. If someone books a seat first, the request cannot be served and you are told at once.
-          {'\n'}Cancellation: you can cancel a waiting request any time. After acceptance you can cancel until the driver confirms departure{payment === 'WALLET' ? '; wallet refunds follow the Zenvy refund policy shown on the booking' : '; cash is paid only at boarding'}.
+          {'\n'}Cancellation: you can cancel a waiting request any time. After acceptance you can cancel until the driver confirms departure{payment === 'WALLET' ? '; wallet refunds follow the ZCS refund policy shown on the booking' : '; cash is paid only at boarding'}.
         </Notice>
 
         {retry ? <Notice tone="warn">📶 {retry} Tap Retry: it is safe, you will not send two requests.</Notice> : null}

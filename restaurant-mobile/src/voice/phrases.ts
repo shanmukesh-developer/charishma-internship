@@ -59,7 +59,7 @@ export function phrase(e: VoiceEvent, lang: VoiceLang): string {
       if (lang === 'hi') {
         return `${c ? `${c} से` : 'ज़ेनवी पर'} नया ऑर्डर आया है. ${n} आइटम, ${total} रुपये.`;
       }
-      return `New order${c ? ` from ${c}` : ' on Zenvy'}. ${n} item${n === 1 ? '' : 's'}, ${total} rupees.`;
+      return `New order${c ? ` from ${c}` : ' on ZCS'}. ${n} item${n === 1 ? '' : 's'}, ${total} rupees.`;
     }
     case 'accepted':
       if (lang === 'te') return `ఆర్డర్ యాక్సెప్ట్ చేశారు. ${e.mins} నిమిషాల్లో రెడీ చేయండి.`;
@@ -114,7 +114,7 @@ export function phrase(e: VoiceEvent, lang: VoiceLang): string {
     case 'test':
       if (lang === 'te') return 'జెన్వీ వాయిస్ పని చేస్తోంది. కొత్త ఆర్డర్ వస్తే ఇలా చెబుతాను.';
       if (lang === 'hi') return 'ज़ेनवी आवाज़ चालू है. नया ऑर्डर आने पर ऐसे बताऊंगी.';
-      return 'Zenvy voice is working. I will announce new orders like this.';
+      return 'ZCS voice is working. I will announce new orders like this.';
   }
 }
 
@@ -124,7 +124,7 @@ export function orderNotification(orderNum: string, amount: string, lang: VoiceL
     return { title: `🔔 ज़ेनवी नया ऑर्डर! (₹${amount})`, body: `ऑर्डर #${orderNum}. खोलकर स्वीकार करें.` };
   }
   if (lang === 'en') {
-    return { title: `🔔 New Zenvy order! (₹${amount})`, body: `Order #${orderNum}. Open the app to accept.` };
+    return { title: `🔔 New ZCS order! (₹${amount})`, body: `Order #${orderNum}. Open the app to accept.` };
   }
   return { title: `🔔 జెన్వీ కొత్త ఆర్డర్! (₹${amount})`, body: `ఆర్డర్ #${orderNum}. యాప్ తెరిచి యాక్సెప్ట్ చేయండి.` };
 }

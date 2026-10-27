@@ -140,7 +140,7 @@ export default function HomeScreen({ navigation }: ScreenProps<'Home'>) {
     <View style={{ flex: 1, backgroundColor: color.bg }}>
       <View style={[styles.head, { paddingTop: insets.top + space.xs }]}>
         <View style={{ flex: 1 }}>
-          <Text style={[font.small, { color: color.textMuted }]}>Zenvy Auto Driver</Text>
+          <Text style={[font.small, { color: color.textMuted }]}>ZCS Auto Driver</Text>
           <Text style={[font.h2, { color: color.text }]} numberOfLines={1}>{firstName ? `Hi ${firstName}` : 'Hi'}</Text>
         </View>
         <View>
@@ -167,7 +167,7 @@ export default function HomeScreen({ navigation }: ScreenProps<'Home'>) {
             </Pressable>
             {pendingOffline ? <Banner tone="warn" text="Going offline is waiting for internet. It is sent automatically." /> : null}
             {h.alerts.map((a, i) => <Banner key={`${a.type}-${i}`} tone={a.type === 'VERIFICATION' ? 'warn' : 'info'} text={a.message} />)}
-            {me && !me.featureEnabled ? <Banner tone="info" text="Auto-Ride bookings are switched off by Zenvy right now. You cannot publish trips until it opens." /> : null}
+            {me && !me.featureEnabled ? <Banner tone="info" text="Auto-Ride bookings are switched off by ZCS right now. You cannot publish trips until it opens." /> : null}
             {pushState === 'unavailable' || pushState === 'blocked' ? (
               <Banner tone="warn" text={pushState === 'blocked' ? 'Notifications are blocked. Allow them in phone Settings to hear about bookings while the app is closed.' : 'This phone cannot get push alerts in this app build. Keep the app open to see new bookings.'} />
             ) : null}

@@ -131,7 +131,7 @@ const EN: Record<PhraseKey, Builder> = {
     const amt = spokenAmount(a.amount);
     return amt ? `You received a ${amt} rupees tip.` : 'You received a tip.';
   },
-  test: () => 'Zenvy voice is working. 10 rupees credited to your account.',
+  test: () => 'ZCS voice is working. 10 rupees credited to your account.',
 };
 
 const TABLE: Record<VoiceLang, Record<PhraseKey, Builder>> = { te: TE, hi: HI, en: EN };

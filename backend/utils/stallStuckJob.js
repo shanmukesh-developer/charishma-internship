@@ -104,8 +104,8 @@ const flagStuckStallOrdersOnce = async (io, { now = Date.now() } = {}) => {
   for (const [rid, list] of byStore) {
     const first = list[0];
     const body = list.length === 1
-      ? `An order from ${istClock(first.createdAt)} is still open. Mark it Delivered if you handed it over, or call Zenvy support.`
-      : `${list.length} orders (oldest ${istClock(first.createdAt)}) are still open. Mark them Delivered if handed over, or call Zenvy support.`;
+      ? `An order from ${istClock(first.createdAt)} is still open. Mark it Delivered if you handed it over, or call ZCS support.`
+      : `${list.length} orders (oldest ${istClock(first.createdAt)}) are still open. Mark them Delivered if handed over, or call ZCS support.`;
     await pushToStore(rid, 'Order still open', body, { type: 'ORDER_STUCK', orderId: String(first.id) });
   }
   try {

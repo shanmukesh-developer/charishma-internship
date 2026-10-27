@@ -894,7 +894,7 @@ const rateOrder = async (req, res) => {
       const { getProductReviewModel } = require('../models/ProductReview');
       const ProductReview = getProductReviewModel();
       const MenuItem = getMenuItemModel();
-      const firstName = user && user.name ? String(user.name).trim().split(/\s+/)[0] : 'Zenvy customer';
+      const firstName = user && user.name ? String(user.name).trim().split(/\s+/)[0] : 'ZCS customer';
       const seen = new Set();
       for (const item of normalizeItems(order.items)) {
         const pId = item.menuItemId || item.id || item._id;
@@ -972,7 +972,7 @@ const rateOrder = async (req, res) => {
         // Owner (20 Oct 2026): tips are cash only, paid to the rider by hand. Wallet tips move wallet money
         // to a person, which the non-transferable wallet rule does not allow. WALLET_TIPS_ENABLED=true restores them.
         if (tip > 0 && !walletTipsEnabled()) {
-          tipError = 'Tips are paid in cash to your rider. Nothing was taken from your Zenvy Wallet.';
+          tipError = 'Tips are paid in cash to your rider. Nothing was taken from your ZCS Wallet.';
         } else if (tip > 0) {
           try {
             const { getSequelize } = require('../config/db');
@@ -1464,12 +1464,12 @@ const cancelOrder = async (req, res) => {
       // The assigned rider must stop (they may not be in the order room right now).
       if (order.deliveryPartnerId) io.to(`rider_${order.deliveryPartnerId}`).emit('orderCancelled', { orderId: order.id });
     }
-    if (order.restaurantId) pushStoreCancelled(order.restaurantId, order, ownerCancel ? 'The customer cancelled an order.' : 'An order was cancelled by Zenvy support.');
+    if (order.restaurantId) pushStoreCancelled(order.restaurantId, order, ownerCancel ? 'The customer cancelled an order.' : 'An order was cancelled by ZCS support.');
     // Support cancelled it: the customer may not have the app open (the auto-cancel and store-decline paths push too).
     if (!ownerCancel) {
       pushCustomer(order, 'Order cancelled', refunded > 0
-        ? `Zenvy support cancelled your order${reason ? `: ${reason}` : '.'} ₹${refunded} is back in your Wallet.`
-        : `Zenvy support cancelled your order${reason ? `: ${reason}` : '.'} You have not been charged.`);
+        ? `ZCS support cancelled your order${reason ? `: ${reason}` : '.'} ₹${refunded} is back in your Wallet.`
+        : `ZCS support cancelled your order${reason ? `: ${reason}` : '.'} You have not been charged.`);
     }
 
     res.json({
@@ -2166,7 +2166,7 @@ const uploadBillProof = async (req, res) => {
     // A bill far below what the customer ordered needs support to review it (refund abuse guard).
     const subtotal = Number(order.totalPrice) || 0;
     if (subtotal > 0 && billAmount < subtotal * 0.5) {
-      return res.status(400).json({ code: 'BILL_TOO_LOW', message: 'This bill is much lower than the order. Please contact Zenvy support to adjust it.' });
+      return res.status(400).json({ code: 'BILL_TOO_LOW', message: 'This bill is much lower than the order. Please contact ZCS support to adjust it.' });
     }
     const { storeImageRef, sendImageError } = require('../utils/imageStore');
     const img = await storeImageRef(rawBill, { req, ownerId: req.user.id, purpose: 'bill' });

@@ -189,7 +189,7 @@ const loginMfa = async (req, res) => {
     if (!user || !isAdminRole(user.role) || (Number(user.tokenVersion) || 0) !== (Number(decoded.tv) || 0)) {
       return res.status(401).json({ code: 'MFA_TOKEN_INVALID', message: 'Sign in again with your phone and password.' });
     }
-    if (user.isActive === false) return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'This account has been suspended. Please contact Zenvy support.' });
+    if (user.isActive === false) return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'This account has been suspended. Please contact ZCS support.' });
     const row = await getRow(user.id);
     if (!row || !row.enabled) return res.status(401).json({ code: 'MFA_TOKEN_INVALID', message: 'Sign in again with your phone and password.' });
     if (row.mfaJti !== decoded.jti) return res.status(401).json({ code: 'MFA_TOKEN_USED', message: 'This sign-in step was already used. Sign in again.' });
@@ -247,7 +247,7 @@ const setup = async (req, res) => {
   const account = `${String(req.user.name || 'admin').replace(/[:]/g, ' ').trim().slice(0, 30) || 'admin'}${phone ? ` (${phone.slice(-4)})` : ''}`;
   await audit(req.user.id, 'ADMIN_2FA_SETUP_STARTED', {}, req);
   res.set('Cache-Control', 'no-store');
-  res.json({ otpauthUri: T.otpauthUri({ secretB32, account }), secret: secretB32.replace(/(.{4})/g, '$1 ').trim(), issuer: 'Zenvy Admin', account, digits: T.DIGITS, period: T.STEP_SECONDS, expiresInMinutes: PENDING_TTL_MS / 60000 });
+  res.json({ otpauthUri: T.otpauthUri({ secretB32, account }), secret: secretB32.replace(/(.{4})/g, '$1 ').trim(), issuer: 'ZCS Admin', account, digits: T.DIGITS, period: T.STEP_SECONDS, expiresInMinutes: PENDING_TTL_MS / 60000 });
 };
 
 const enable = async (req, res) => {

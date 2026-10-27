@@ -90,7 +90,7 @@ const callerLine = (b: any): string => {
   const onMine = mine.length === 10 ? ` on ${mine.slice(0, 5)} ${mine.slice(5)}` : '';
   if (name && phone.length === 10) return `${name} (${phone.slice(0, 5)} ${phone.slice(5)}) will call you${onMine}.`;
   if (name) return `${name} will call you${onMine}.`;
-  return `The partner or the Zenvy team will call you${onMine} to confirm the details.`;
+  return `The partner or the ZCS team will call you${onMine} to confirm the details.`;
 };
 
 /** One short reference for orders and bookings: the last 6 characters of the id. */
@@ -214,7 +214,7 @@ export default function OrdersScreen() {
     const targetRestaurantId = order.restaurantId || order.restaurant?.id;
     const targetRestaurantName = order.restaurantName || order.restaurant?.name || 'this store';
     if (!targetRestaurantId) {
-      Alert.alert('Reorder unavailable', 'This store is no longer on Zenvy.');
+      Alert.alert('Reorder unavailable', 'This store is no longer on ZCS.');
       return;
     }
 
@@ -741,7 +741,7 @@ export default function OrdersScreen() {
                   </View>
                 ))}
                 <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', marginTop: 6 }}>
-                  {b.paymentMethod === 'Wallet' ? 'Pay from Zenvy Wallet' : 'Pay in cash when the job is done'}
+                  {b.paymentMethod === 'Wallet' ? 'Pay from ZCS Wallet' : 'Pay in cash when the job is done'}
                 </Text>
                 {b.status === 'DIAGNOSED_QUOTED' && (
                   <ActionPressable style={{ borderRadius: 16, overflow: 'hidden', marginTop: 12 }} onPress={() => { if (!busy) acceptQuote(b); }} sound="click">
@@ -927,7 +927,7 @@ export default function OrdersScreen() {
           const orderItems: any[] = parseItems(o.items);
           const breakdown = parseBreakdown(o.priceBreakdown);
           const charged = amountCharged(o);
-          const restaurantName = o.restaurantName || o.restaurant?.name || (o.category === 'Mega Basket' ? 'Shopping list' : 'Zenvy order');
+          const restaurantName = o.restaurantName || o.restaurant?.name || (o.category === 'Mega Basket' ? 'Shopping list' : 'ZCS order');
           const needsRating = o.status === 'Delivered' && o.rating == null;
           // Customer cancels carry no reason (or the default one); store / system cancels explain themselves.
           const cancelReason = o.status === 'Cancelled' && typeof o.cancellationReason === 'string'
@@ -944,7 +944,7 @@ export default function OrdersScreen() {
                 ...(Number(o.batchDiscount) > 0 ? [{ label: 'Shared delivery discount', amount: Number(o.batchDiscount) }] : []),
                 ...(Number(o.gateDiscount) > 0 ? [{ label: 'Member discount', amount: Number(o.gateDiscount) }] : []),
               ];
-          const paymentLabel = o.paymentMethod === 'Wallet' ? 'Paid from Zenvy Wallet' : o.paymentMethod === 'COD' ? 'Cash on Delivery' : null;
+          const paymentLabel = o.paymentMethod === 'Wallet' ? 'Paid from ZCS Wallet' : o.paymentMethod === 'COD' ? 'Cash on Delivery' : null;
 
           return (
             <StaggeredSection key={o._id || o.id} delay={idx * 80} direction="up">

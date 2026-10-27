@@ -59,7 +59,7 @@ export default function TodayScreen() {
       ) : null}
       <View style={styles.grid}>
         <Tile label="Cash orders" value={String(s.codN)} caption={`${rupees(s.codAmt)} · rider collects`} tint={color.cash} />
-        <Tile label="Paid orders" value={String(s.preN)} caption={`${rupees(s.preAmt)} · Zenvy Wallet`} tint={color.prepaid} />
+        <Tile label="Paid orders" value={String(s.preN)} caption={`${rupees(s.preAmt)} · ZCS Wallet`} tint={color.prepaid} />
       </View>
       <View style={styles.grid}>
         <Tile label="Cancelled" value={String(s.cancelled)} caption={s.missed ? `${s.missed} not accepted in time` : 'Rejected or cancelled'} tint={s.cancelled ? color.alert : undefined} />

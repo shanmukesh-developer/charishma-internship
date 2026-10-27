@@ -157,7 +157,7 @@ const PROMOS_CORIDE = [
 ];
 
 const PROMOS_OFFERS = [
-  { id: 'o1', tagline: 'Order rewards', title: 'Spin the reward wheel', subtitle: '', desc: 'Every 2 delivered orders earn a spin. Win ZenPoints or a free-delivery coupon.', btn: 'Spin the wheel', img: 'https://images.unsplash.com/photo-1596451190630-186aff535bf2?w=900&q=80' },
+  { id: 'o1', tagline: 'Order rewards', title: 'Spin the reward wheel', subtitle: '', desc: 'Every 2 delivered orders earn a spin. Win ZCS Points or a free-delivery coupon.', btn: 'Spin the wheel', img: 'https://images.unsplash.com/photo-1596451190630-186aff535bf2?w=900&q=80' },
   { id: 'o2', tagline: 'Your coupons', title: 'Ready to use at checkout', subtitle: '', desc: 'Coupons you have won show up here with their expiry date.', btn: 'See my coupons', img: 'https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=900&q=80' },
 ];
 
@@ -1749,7 +1749,7 @@ export default function OthersScreen() {
               <View style={s.dlHeroText}>
                 <Text style={s.dlHeroTitle} accessibilityRole="header">Deals & spin</Text>
                 <Text style={s.dlHeroTag}>Spin. Win. Save.</Text>
-                <Text style={s.dlHeroSub}>Every 2 delivered orders earn a spin. Win ZenPoints or a free-delivery coupon.</Text>
+                <Text style={s.dlHeroSub}>Every 2 delivered orders earn a spin. Win ZCS Points or a free-delivery coupon.</Text>
                 <PressScale style={s.dlHeroBtn} onPress={() => setSpinOpen(true)} accessibilityRole="button" accessibilityLabel="Spin now">
                   <Ionicons name="sync-circle-outline" size={16} color={dp.heroB} />
                   <Text style={[s.dlHeroBtnText, { color: dp.heroB }]}>{!myId || spinsLeft > 0 ? 'Spin now' : 'See the wheel'}</Text>
@@ -1773,7 +1773,7 @@ export default function OthersScreen() {
                   <View style={[s.dlStatIcon, { backgroundColor: dp.tint }]}>
                     <Ionicons name="diamond-outline" size={18} color={dp.ink} />
                   </View>
-                  <Text style={[s.dlStatLabel, { color: txtSec }]}>ZenPoints</Text>
+                  <Text style={[s.dlStatLabel, { color: txtSec }]}>ZCS Points</Text>
                   <Text style={[s.dlStatValue, { color: txt }]}>{zenPoints.toLocaleString('en-IN')}</Text>
                 </View>
                 <PressScale
@@ -1799,7 +1799,7 @@ export default function OthersScreen() {
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={[s.dlCardTitle, { color: txt }]}>Sign in for your rewards</Text>
-                  <Text style={[s.dlCardSub, { color: txtSec }]}>See your spins, ZenPoints, coupons and wallet.</Text>
+                  <Text style={[s.dlCardSub, { color: txtSec }]}>See your spins, ZCS Points, coupons and wallet.</Text>
                 </View>
                 <PressScale style={[s.dlSmallBtn, { backgroundColor: dp.solid }]} onPress={() => router.push('/login' as any)} accessibilityRole="button">
                   <Text style={s.dlSmallBtnText}>Sign in</Text>
@@ -1963,8 +1963,8 @@ export default function OthersScreen() {
                     <Ionicons name="gift-outline" size={20} color={dp.ink} />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={[s.dlCardTitle, { color: txt }]}>Invite friends, earn ZenPoints</Text>
-                    <Text style={[s.dlCardSub, { color: txtSec }]}>When a friend signs up with your code, you both get 50 ZenPoints.</Text>
+                    <Text style={[s.dlCardTitle, { color: txt }]}>Invite friends, earn ZCS Points</Text>
+                    <Text style={[s.dlCardSub, { color: txtSec }]}>When a friend signs up with your code, you both get 50 ZCS Points.</Text>
                   </View>
                 </View>
                 <View style={s.dlReferRow}>
@@ -1985,7 +1985,7 @@ export default function OthersScreen() {
                     onPress={async () => {
                       const name = (user as any)?.name?.split(' ')[0] || 'Your friend';
                       try {
-                        await Share.share({ message: `${name} invited you: campus food and essentials delivered to your hostel. Sign up with code ${(user as any).referralCode} and you both get 50 ZenPoints.` });
+                        await Share.share({ message: `${name} invited you: campus food and essentials delivered to your hostel. Sign up with code ${(user as any).referralCode} and you both get 50 ZCS Points.` });
                       } catch {}
                     }}
                     accessibilityRole="button"
@@ -2094,7 +2094,7 @@ export default function OthersScreen() {
                 </View>
               )}
               <Text style={s.spTitle}>Spin the wheel</Text>
-              <Text style={s.spSub}>Win ZenPoints or a free-delivery coupon</Text>
+              <Text style={s.spSub}>Win ZCS Points or a free-delivery coupon</Text>
 
               <View style={[s.spWheelWrap, { width: spinWheelSize + 24, height: spinWheelSize + 24 }]}>
                 <View style={[s.spGlow, { width: spinWheelSize + 24, height: spinWheelSize + 24, borderRadius: (spinWheelSize + 24) / 2 }]} />
@@ -2152,7 +2152,7 @@ export default function OthersScreen() {
                 <View style={s.spNoteIcon}>
                   <Ionicons name="information-circle-outline" size={20} color="#F6C453" />
                 </View>
-                <Text style={s.spNoteText}>Every 2 delivered orders earn a spin. ZenPoints are added to your balance at once; a coupon shows up in Your coupons.</Text>
+                <Text style={s.spNoteText}>Every 2 delivered orders earn a spin. ZCS Points are added to your balance at once; a coupon shows up in Your coupons.</Text>
               </View>
             </ScrollView>
           </LinearGradient>
@@ -2186,7 +2186,7 @@ export default function OthersScreen() {
               <View style={[s.wonPrize, { backgroundColor: isDark ? 'rgba(246,196,83,0.10)' : '#FFF8E6', borderColor: '#F6C453' }]}>
                 <Text style={[s.wonPrizeText, { color: txt }]}>{stripEmoji(wheelResult.display) || wheelResult.display}</Text>
                 <Text style={[s.wonPrizeSub, { color: txtSec }]}>
-                  {wheelResult.coupon ? 'Your coupon is ready to use at checkout.' : 'Added to your ZenPoints balance.'}
+                  {wheelResult.coupon ? 'Your coupon is ready to use at checkout.' : 'Added to your ZCS Points balance.'}
                 </Text>
               </View>
             )}

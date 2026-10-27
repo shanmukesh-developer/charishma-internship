@@ -25,7 +25,7 @@ const prizeChips = (prizes: Prize[]) => {
   return prizes.map((p) => {
     const free = p.type === 'coupon' || /free/i.test(String(p.label));
     const pts = String(p.label).match(/(\d+)/);
-    return { free, text: free ? 'Free delivery' : pts ? `${pts[1]} ZenPoints` : stripEmoji(p.display || p.label) };
+    return { free, text: free ? 'Free delivery' : pts ? `${pts[1]} ZCS Points` : stripEmoji(p.display || p.label) };
   }).filter((c) => (seen.has(c.text) ? false : (seen.add(c.text), true)))
     .sort((a, b) => (a.free ? -1 : b.free ? 1 : (parseInt(a.text, 10) || 0) - (parseInt(b.text, 10) || 0)));
 };
@@ -67,7 +67,7 @@ export default function DealsV2Spin() {
         ) : null}
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: 48, alignItems: 'center' }} showsVerticalScrollIndicator={false}>
-        <Text style={s.sub}>Win ZenPoints or a free-delivery coupon</Text>
+        <Text style={s.sub}>Win ZCS Points or a free-delivery coupon</Text>
 
         <View style={{ width: stageW, height: size + stageW * 0.2, marginTop: 18 }}>
           <Podium width={stageW} style={{ position: 'absolute', left: 0, bottom: -stageW * 0.08 }} />
@@ -104,7 +104,7 @@ export default function DealsV2Spin() {
           <View style={s.rule}>
             <View><IInfo size={16} color="#C4B5FD" strokeWidth={1.8} /></View>
             <Text style={s.ruleText}>
-              {`You earn a spin for every ${ORDERS_PER_SPIN} delivered orders. ZCS picks the prize when you spin. ZenPoints are added to your balance at once; a free-delivery coupon goes to Your coupons and lasts 7 days.`}
+              {`You earn a spin for every ${ORDERS_PER_SPIN} delivered orders. ZCS picks the prize when you spin. ZCS Points are added to your balance at once; a free-delivery coupon goes to Your coupons and lasts 7 days.`}
             </Text>
           </View>
         </View>
@@ -113,7 +113,7 @@ export default function DealsV2Spin() {
           <View style={s.dev}>
             <Text style={s.devText}>Dev build only: preview the result sheet with a sample payload (no spin is used)</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-              <Press onPress={() => nav.openSheet({ kind: 'result', result: { display: '50 ZenPoints', type: 'points', coupon: null, sample: true } })} label="Preview a points result" style={s.devBtn}><Text style={s.devBtnText}>Points result</Text></Press>
+              <Press onPress={() => nav.openSheet({ kind: 'result', result: { display: '50 ZCS Points', type: 'points', coupon: null, sample: true } })} label="Preview a points result" style={s.devBtn}><Text style={s.devBtnText}>Points result</Text></Press>
               <Press onPress={() => nav.openSheet({ kind: 'result', result: { display: 'Free Delivery', type: 'coupon', coupon: { code: 'ZF-SAMPLE', type: 'FREEDEL', expiryDate: new Date(Date.now() + 7 * 86400000).toISOString() }, sample: true } })} label="Preview a coupon result" style={s.devBtn}><Text style={s.devBtnText}>Coupon result</Text></Press>
               <Press onPress={() => nav.openSheet({ kind: 'nospin', nextIn: 1 })} label="Preview no spins" style={s.devBtn}><Text style={s.devBtnText}>No spins</Text></Press>
             </View>

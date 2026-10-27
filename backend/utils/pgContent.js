@@ -487,7 +487,7 @@ const txt = (v, max, label, path, opts = {}) => {
   const raw = v === undefined || v === null ? '' : (typeof v === 'string' ? v.replace(EMOJI_RE, '') : v);
   let s;
   try { s = cleanText(raw, max, label, opts); } catch (e) { e.field = path; throw e; }
-  if (s && PHONE_RE.test(s)) fail(`${label}: phone numbers are not shown on listings. Students contact staff through the Zenvy housing desk.`, path);
+  if (s && PHONE_RE.test(s)) fail(`${label}: phone numbers are not shown on listings. Students contact staff through the ZCS housing desk.`, path);
   return s;
 };
 const intIn = (v, min, max, label, path) => {

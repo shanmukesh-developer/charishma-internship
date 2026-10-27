@@ -91,7 +91,7 @@ export function StorePreviewCard({ data, showToggle = true }: { data: PreviewDat
         </div>
       </div>
       {data.isLocal && (
-        <p className="text-xs text-fg-muted">Local stalls appear in the CampusBites section. Customers order in Zenvy and pay cash; the stall gets the order in Zenvy Vendor{data.whatsappNumber ? ` and can be reached on ${formatWhatsapp(data.whatsappNumber)}` : ''}.</p>
+        <p className="text-xs text-fg-muted">Local stalls appear in the CampusBites section. Customers order in ZCS and pay cash; the stall gets the order in ZCS Vendor{data.whatsappNumber ? ` and can be reached on ${formatWhatsapp(data.whatsappNumber)}` : ''}.</p>
       )}
       {data.brand && (
         <div className="flex items-center gap-2 text-xs text-fg-muted">

@@ -64,7 +64,7 @@ const PUSH_ASK_AGAIN_MS = 3 * 24 * 60 * 60 * 1000;
 const askBeforePushPermission = () => new Promise<boolean>((resolve) => {
   Alert.alert(
     'Get order and rider updates',
-    'Zenvy sends a notification when the store accepts your order, when the rider is at your gate, and when a quote is ready. No ads.',
+    'ZCS sends a notification when the store accepts your order, when the rider is at your gate, and when a quote is ready. No ads.',
     [
       { text: 'Not now', style: 'cancel', onPress: () => resolve(false) },
       { text: 'Turn on', onPress: () => resolve(true) },
@@ -303,7 +303,7 @@ export default function GlobalAnnouncement() {
         if (data?.type === 'call' || data?.source === 'zenvy_socket') return; // socket toasts are saved below
         saveToHistory({
           id: notification?.request?.identifier || `${Date.now()}-${Math.random()}`,
-          title: title || '📢 Zenvy',
+          title: title || '📢 ZCS',
           body: body || '',
           type: data?.type || 'info',
           ...(data?.orderId ? { orderId: String(data.orderId) } : {}),
@@ -353,7 +353,7 @@ export default function GlobalAnnouncement() {
         }
         processedMessage = processedMessage.replace(/{{username}}/g, userName);
       }
-      const title = data.type === 'emergency' ? '🚨 Zenvy Alert' : data.type === 'promo' ? '🎉 Zenvy Update' : '📢 Zenvy Announcement';
+      const title = data.type === 'emergency' ? '🚨 ZCS Alert' : data.type === 'promo' ? '🎉 ZCS Update' : '📢 ZCS Announcement';
 
       // In the background the toast is invisible: show a system notification instead
       if (AppState.currentState !== 'active') {

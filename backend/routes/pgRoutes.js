@@ -124,7 +124,7 @@ router.get('/home', responseCache.cacheGet('pg_home', { ttlMs: 60 * 1000 }), asy
     const rails = [
       rail('near', 'Near campus', items.filter((x) => Number(x.distanceFromCollege) <= 2)),
       rail('verified', 'Verified', items.filter((x) => x.isVerified)),
-      rail('new', 'New on Zenvy', items.filter((x) => x.createdAt && now - new Date(x.createdAt).getTime() <= NEW_DAYS * 86400000)
+      rail('new', 'New on ZCS', items.filter((x) => x.createdAt && now - new Date(x.createdAt).getTime() <= NEW_DAYS * 86400000)
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))),
       // "Up to": the rail includes ₹6,000 itself (same words as the app's budget filter).
       rail('budget', 'Up to ₹6,000', items.filter((x) => rent(x) <= 6000).sort((a, b) => rent(a) - rent(b))),
@@ -248,7 +248,7 @@ router.post('/:roomId/book', protect, async (req, res) => {
       pgBookingInFlight.delete(pgKey);
     }
 
-    const userName = user?.name || req.user.name || 'Zenvy Student';
+    const userName = user?.name || req.user.name || 'ZCS Student';
     const userPhone = user?.phone || user?.mobile || req.user.phone || 'Not Provided';
     const userEmail = user?.email || req.user.email || 'Not Provided';
     const userHostel = user?.hostelBlock ? `${user.hostelBlock}, Room ${user.roomNumber || user.roomNo || ''}` : user?.address || 'SRM Campus';
@@ -270,7 +270,7 @@ router.post('/:roomId/book', protect, async (req, res) => {
       `• Rent per Bed: *₹${rentAmount}/mo*\n` +
       `• Scheduled Check-In: *${checkIn}*\n` +
       `• Booking ID: #${(booking.id || '').substring(0, 8).toUpperCase()}\n\n` +
-      `⚡ _Sent automatically via Zenvy Super Ecosystem._`;
+      `⚡ _Sent automatically via ZCS Super Ecosystem._`;
 
     // Real notifications: admin push + live dashboard alert. WhatsApp only when a provider is configured.
     await notifyAdminsOfBooking(req, `${userName} requested ${sharingType} room ${room.roomNumber} at ${pgName}.`, {
@@ -292,7 +292,7 @@ router.post('/:roomId/book', protect, async (req, res) => {
     const whatsappUrl = `https://wa.me/91${PG_DESK_WHATSAPP}?text=${encodeURIComponent(whatsappMessage)}`;
 
     res.status(201).json({
-      message: 'Booking request received. The Zenvy housing team will confirm it with you.',
+      message: 'Booking request received. The ZCS housing team will confirm it with you.',
       booking,
       whatsappSent,
       whatsappUrl,
@@ -896,7 +896,7 @@ router.post('/reviews/:reviewId/report', protect, async (req, res) => {
     reports.push({ userId: req.user.id, reason, at: new Date().toISOString() });
     await review.update({ reports: reports.slice(-100), reportCount: reports.length });
     realtime.notifyAdmin('pg', 'updated', review.hostelId, { scope: 'reviews' });
-    res.json({ message: 'Thanks. The Zenvy team will review it.' });
+    res.json({ message: 'Thanks. The ZCS team will review it.' });
   } catch (err) {
     sendServerError(res, err, '[PG_REVIEW_REPORT_ERROR]');
   }

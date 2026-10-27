@@ -51,7 +51,7 @@ export default function RequestsScreen({ navigation }: ScreenProps<'Requests'>) 
   const list = q.data?.requests || [];
   return (
     <Screen title="Full auto requests" onBack={() => navigation.goBack()} refreshing={q.refreshing} onRefresh={q.refresh} stationary>
-      {me && !me.featureEnabled ? <Banner tone="warn" text="Auto-Ride is switched off by Zenvy right now, so requests cannot be accepted." /> : null}
+      {me && !me.featureEnabled ? <Banner tone="warn" text="Auto-Ride is switched off by ZCS right now, so requests cannot be accepted." /> : null}
       <View style={{ flexDirection: 'row', gap: space.xs }}>
         <Chip label="Waiting" selected={tab === 'open'} onPress={() => setTab('open')} style={{ flex: 1 }} />
         <Chip label="All" selected={tab === 'all'} onPress={() => setTab('all')} style={{ flex: 1 }} />
@@ -84,7 +84,7 @@ export default function RequestsScreen({ navigation }: ScreenProps<'Requests'>) 
           </Card>
         );
       })}
-      <Text style={[font.small, { color: color.textMuted }]}>Times shown are Zenvy server times (IST). Now: {dateTimeIst(new Date(serverNow()).toISOString())}</Text>
+      <Text style={[font.small, { color: color.textMuted }]}>Times shown are ZCS server times (IST). Now: {dateTimeIst(new Date(serverNow()).toISOString())}</Text>
       <DeclineSheet req={declining} onClose={() => setDeclining(null)} onDone={() => { setDeclining(null); q.reload(); }} />
     </Screen>
   );

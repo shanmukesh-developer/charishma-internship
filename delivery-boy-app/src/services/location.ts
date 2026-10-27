@@ -117,7 +117,7 @@ if (!TaskManager.isTaskDefined(BG_TASK)) {
  */
 export const BACKGROUND_DISCLOSURE_TITLE = 'Allow location in the background?';
 export const BACKGROUND_DISCLOSURE_TEXT =
-  'Zenvy Rider collects your location to assign nearby orders and share live location with customers during deliveries, ' +
+  'ZCS Rider collects your location to assign nearby orders and share live location with customers during deliveries, ' +
   'even when the app is closed or not in use (for example while you navigate in Google Maps). It is used only while you are ' +
   'on duty or delivering, a notification shows whenever it is on, and it stops when you go offline. ' +
   'On the next screen choose "Allow all the time".';
@@ -217,11 +217,11 @@ async function startBackgroundUpdates(my: number): Promise<void> {
       activityType: Location.ActivityType.OtherNavigation,
       showsBackgroundLocationIndicator: true,
       foregroundService: {
-        notificationTitle: 'Zenvy Rider is on duty',
+        notificationTitle: 'ZCS Rider is on duty',
         notificationBody:
           want === 'active'
             ? 'Sharing your live location with the customer while you deliver.'
-            : 'Sharing your location with Zenvy while you are on duty.',
+            : 'Sharing your location with ZCS while you are on duty.',
         notificationColor: '#C9A84C',
         killServiceOnDestroy: true,
       },

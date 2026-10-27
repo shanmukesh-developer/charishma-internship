@@ -64,11 +64,11 @@ export function useOpenToggle() {
           <Button label="Stay open" variant="secondary" size="secondary" onPress={() => setConfirm(false)} disabled={saving} />
         </View>
       </Sheet>
-      <Sheet visible={info !== null} onClose={() => setInfo(null)} title="Paused by Zenvy">
+      <Sheet visible={info !== null} onClose={() => setInfo(null)} title="Paused by ZCS">
         <Text style={[font.body, { color: color.textSecondary, marginBottom: space.md }]}>
-          Zenvy has paused your shop, so customers can't order right now. Call Zenvy support to turn it back on.
+          ZCS has paused your shop, so customers can't order right now. Call ZCS support to turn it back on.
         </Text>
-        <Button label="Call Zenvy support" icon="call" onPress={callSupport} />
+        <Button label="Call ZCS support" icon="call" onPress={callSupport} />
       </Sheet>
     </>
   );
@@ -97,7 +97,7 @@ function OpenPill() {
         disabled={saving}
         accessibilityRole="switch"
         accessibilityState={{ checked: on, busy: saving }}
-        accessibilityLabel={paused ? 'Shop paused by Zenvy. Tap for support' : live ? 'Shop open. Tap to close' : on ? 'Switched on but outside hours' : 'Shop closed. Tap to open'}
+        accessibilityLabel={paused ? 'Shop paused by ZCS. Tap for support' : live ? 'Shop open. Tap to close' : on ? 'Switched on but outside hours' : 'Shop closed. Tap to open'}
         style={({ pressed }) => [styles.pill, { backgroundColor: live ? color.open : on ? color.warning : color.closed }, pressed && { opacity: 0.85 }]}
       >
         {saving ? <ActivityIndicator color={color.textInverse} style={{ flex: 1 }} /> : (
@@ -117,7 +117,7 @@ function OpenPill() {
 /** One-line description of the shop's live state. */
 export function shopLine(store: ReturnType<typeof useStore>['store']): { text: string; tint: string } {
   if (!store) return { text: 'Checking status…', tint: color.textMuted };
-  if (store.isActive === false) return { text: 'Paused by Zenvy — contact support', tint: color.alertDark };
+  if (store.isActive === false) return { text: 'Paused by ZCS — contact support', tint: color.alertDark };
   if (store.isOpen) return { text: 'Open · taking orders', tint: color.openDark };
   if (store.isOpenNow) {
     // Switch ON but closed: outside the hours (opensAt), or something Zenvy set (offline stall, closed today).
@@ -168,7 +168,7 @@ export function ConnBanner() {
     <View style={[styles.banner, { backgroundColor: color.warningTint }]} accessibilityLiveRegion="polite">
       <ActivityIndicator color={color.warning} />
       <Text style={[font.body, { color: color.warning, fontWeight: '800', flex: 1 }]}>
-        {conn === 'connecting' ? 'Connecting to Zenvy…' : 'Reconnecting…'}
+        {conn === 'connecting' ? 'Connecting to ZCS…' : 'Reconnecting…'}
       </Text>
     </View>
   );
@@ -180,10 +180,10 @@ export function PushOffBanner() {
   if (pushState !== 'blocked' && pushState !== 'unavailable' && pushState !== 'muted') return null;
   const fixable = pushState === 'blocked' || pushState === 'muted';
   const text = pushState === 'blocked'
-    ? 'Do not close this app. Notifications are blocked, so new orders ring only while Zenvy is open. Tap to fix.'
+    ? 'Do not close this app. Notifications are blocked, so new orders ring only while ZCS is open. Tap to fix.'
     : pushState === 'muted'
-      ? 'The "New orders" sound is off in your phone settings, so a new order may not ring when Zenvy is closed. Tap to turn it on.'
-      : 'Do not close this app. Alerts with the app closed are not available on this phone, so new orders ring only while Zenvy is open.';
+      ? 'The "New orders" sound is off in your phone settings, so a new order may not ring when ZCS is closed. Tap to turn it on.'
+      : 'Do not close this app. Alerts with the app closed are not available on this phone, so new orders ring only while ZCS is open.';
   return (
     <Pressable
       onPress={fixable ? () => { openNotificationSettings(pushState); } : undefined}

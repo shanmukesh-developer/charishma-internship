@@ -58,7 +58,7 @@ export const UpiSheet: React.FC<{
       setError('Enter a valid amount in rupees, or leave it empty.');
       return;
     }
-    const url = buildUpiLink({ upiId: id, name: payeeName, amountInr: amt || null, note: `Zenvy task: ${taskTitle}` });
+    const url = buildUpiLink({ upiId: id, name: payeeName, amountInr: amt || null, note: `ZCS task: ${taskTitle}` });
     try {
       await Linking.openURL(url);
       onClose();
@@ -68,7 +68,7 @@ export const UpiSheet: React.FC<{
   };
 
   return (
-    <FriendsSheet visible={visible} onClose={onClose} title="Pay with a UPI app" subtitle="Optional. Zenvy is not part of the payment." icon={<IndianRupee size={18} color={FriendsColors.gold} />}>
+    <FriendsSheet visible={visible} onClose={onClose} title="Pay with a UPI app" subtitle="Optional. ZCS is not part of the payment." icon={<IndianRupee size={18} color={FriendsColors.gold} />}>
       <PaymentNoticeCard text={notice} compact />
       <Text style={taskUi.label}>Helper's UPI id</Text>
       <TextInput
@@ -85,7 +85,7 @@ export const UpiSheet: React.FC<{
         keyboardType="email-address"
         accessibilityLabel="Helper's UPI id. Stays on your phone."
       />
-      <Text style={[FT.small, { marginTop: 4 }]}>Stays on your phone. Zenvy never stores it.</Text>
+      <Text style={[FT.small, { marginTop: 4 }]}>Stays on your phone. ZCS never stores it.</Text>
       <Text style={taskUi.label}>Amount (₹)</Text>
       <TextInput
         style={fui.input}

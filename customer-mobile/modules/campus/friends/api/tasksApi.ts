@@ -60,7 +60,7 @@ export const TASK_LIMITS = {
 
 /** Exact text from the owner's spec. The server sends it on every task; this copy is the offline fallback. */
 export const PAYMENT_NOTICE =
-  'Zenvy does not collect, hold, escrow, or guarantee payments between students. Any payment is arranged directly between the participating users. Verify the recipient and amount before making a payment.';
+  'ZCS does not collect, hold, escrow, or guarantee payments between students. Any payment is arranged directly between the participating users. Verify the recipient and amount before making a payment.';
 
 // ── DTOs ──────────────────────────────────────────────────────────────────────
 export interface TaskMedia {

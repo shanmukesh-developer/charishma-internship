@@ -59,7 +59,7 @@ export default function JoinTeamScreen() {
     <View style={{ flex: 1, backgroundColor: p.bg }}>
       <EHeader title="Join a team" onBack={() => (router.canGoBack() ? router.back() : router.replace(CE_HOME as any))} />
       {!signedIn ? (
-        <StateView kind="empty" icon="lock-closed-outline" title="Sign in to join" message="Team join links work for verified students signed in to Zenvy." actionLabel="Sign in" onAction={() => router.push('/login' as any)} />
+        <StateView kind="empty" icon="lock-closed-outline" title="Sign in to join" message="Team join links work for verified students signed in to ZCS." actionLabel="Sign in" onAction={() => router.push('/login' as any)} />
       ) : !valid || previewState === 'invalid' ? (
         <StateView kind="error" icon="link-outline" title="This link is not valid" message="It may have expired or been replaced. Ask your captain to share the join link again." actionLabel="Campus Events" onAction={() => router.replace(CE_HOME as any)} />
       ) : previewState === 'loading' ? (

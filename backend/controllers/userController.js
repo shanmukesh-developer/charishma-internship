@@ -130,7 +130,7 @@ const legalStatus = async (user) => {
 /** Issues a session for `user` and sends `{ ...sanitizeUser(user), token }`. */
 const sendSession = async (res, user, status = 200, { skipCookie = false, mfaVerified = false, extra = {} } = {}) => {
   if (user.isActive === false) {
-    return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'This account has been suspended. Please contact Zenvy support.' });
+    return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'This account has been suspended. Please contact ZCS support.' });
   }
   // S1: admin 2-step sign-in. An admin with 2FA on gets a short single-use challenge instead of a session
   // (POST /api/users/login/mfa finishes it); with ADMIN_2FA_REQUIRED and no 2FA yet the session has no
@@ -432,10 +432,10 @@ const registerUser = async (req, res) => {
 
     // Cheap checks first so a mistake never burns the user's OTP
     if (await User.findOne({ where: { phone: cleanPhone } })) {
-      return res.status(409).json({ code: 'PHONE_TAKEN', message: 'This number already has a Zenvy account. Please log in instead.' });
+      return res.status(409).json({ code: 'PHONE_TAKEN', message: 'This number already has a ZCS account. Please log in instead.' });
     }
     if (cleanEmail && await User.findOne({ where: { email: cleanEmail } })) {
-      return res.status(409).json({ code: 'EMAIL_TAKEN', message: 'This email is already linked to another Zenvy account. Use a different one or leave it blank.' });
+      return res.status(409).json({ code: 'EMAIL_TAKEN', message: 'This email is already linked to another ZCS account. Use a different one or leave it blank.' });
     }
     const cleanReferral = typeof referralCode === 'string' ? referralCode.trim().toUpperCase() : '';
     if (cleanReferral && !(await User.findOne({ where: { referralCode: cleanReferral } }))) {
@@ -496,7 +496,7 @@ const registerUser = async (req, res) => {
     return sendSession(res, createdUser, 201, { skipCookie });
   } catch (error) {
     if (error.code === 'PHONE_TAKEN') {
-      return res.status(409).json({ code: 'PHONE_TAKEN', message: 'This number already has a Zenvy account. Please log in instead.' });
+      return res.status(409).json({ code: 'PHONE_TAKEN', message: 'This number already has a ZCS account. Please log in instead.' });
     }
     if (error.name === 'SequelizeUniqueConstraintError') {
       return res.status(409).json({ code: 'ALREADY_EXISTS', message: 'An account with these details already exists. Please log in instead.' });
@@ -528,7 +528,7 @@ const authUser = async (req, res) => {
           isNewUser: true,
           phone: cleanPhone,
           registrationToken: signRegistrationToken(cleanPhone),
-          message: 'Number verified! Tell us your name to create your Zenvy account.'
+          message: 'Number verified! Tell us your name to create your ZCS account.'
         });
       }
       return sendSession(res, user);
@@ -543,7 +543,7 @@ const authUser = async (req, res) => {
       return res.status(401).json({ message: 'Invalid phone or password' });
     }
     if (!user) {
-      return res.status(401).json({ code: 'ACCOUNT_NOT_FOUND', message: 'No Zenvy account uses this number. Create one to get started.' });
+      return res.status(401).json({ code: 'ACCOUNT_NOT_FOUND', message: 'No ZCS account uses this number. Create one to get started.' });
     }
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
@@ -867,7 +867,7 @@ const googleComplete = async (req, res) => {
 
     const linkedHasRealPhone = linked && isValidMobile(linked.phone);
     if (linked && !linkedHasRealPhone && phoneUser && phoneUser.id !== linked.id) {
-      return res.status(409).json({ code: 'PHONE_TAKEN', message: 'This number already has a Zenvy account. Log in with it using OTP or password.' });
+      return res.status(409).json({ code: 'PHONE_TAKEN', message: 'This number already has a ZCS account. Log in with it using OTP or password.' });
     }
     if (linkedHasRealPhone && linked.phone !== cleanPhone) {
       return res.status(409).json({ code: 'GOOGLE_ALREADY_LINKED', message: 'This Google account is already linked to a different mobile number.' });
@@ -967,10 +967,10 @@ const sendOtp = async (req, res) => {
 
     const User = getUserModel();
     if ((purpose === 'reset_password' || purpose === 'delete_account') && !(await User.findOne({ where: { phone: cleanPhone } }))) {
-      return res.status(404).json({ code: 'ACCOUNT_NOT_FOUND', message: 'No Zenvy account uses this number.' });
+      return res.status(404).json({ code: 'ACCOUNT_NOT_FOUND', message: 'No ZCS account uses this number.' });
     }
     if (purpose === 'change_phone' && await User.findOne({ where: { phone: cleanPhone } })) {
-      return res.status(409).json({ code: 'PHONE_TAKEN', message: 'This number is already linked to another Zenvy account.' });
+      return res.status(409).json({ code: 'PHONE_TAKEN', message: 'This number is already linked to another ZCS account.' });
     }
 
     // One send at a time per phone: the cooldown / daily-cap checks below are read-then-create,
@@ -1113,18 +1113,18 @@ const sendEmailOtp = async (req, res) => {
     let bind = null;
     if (purpose === 'auth') {
       if (account) {
-        return res.status(409).json({ code: 'PHONE_TAKEN', message: 'This number already has a Zenvy account. Log in with your password, or reset it.' });
+        return res.status(409).json({ code: 'PHONE_TAKEN', message: 'This number already has a ZCS account. Log in with your password, or reset it.' });
       }
       const cleanEmail = cleanEmailInput(body.email);
       if (!cleanEmail) return res.status(400).json({ code: 'INVALID_EMAIL', message: 'Enter a valid email address to get the code.' });
       if (await User.findOne({ where: { email: cleanEmail } })) {
-        return res.status(409).json({ code: 'EMAIL_TAKEN', message: 'This email is already linked to another Zenvy account.' });
+        return res.status(409).json({ code: 'EMAIL_TAKEN', message: 'This email is already linked to another ZCS account.' });
       }
       to = cleanEmail;
       storedPurpose = EMAIL_AUTH_PURPOSE;
       bind = cleanEmail;
     } else {
-      if (!account) return res.status(404).json({ code: 'ACCOUNT_NOT_FOUND', message: 'No Zenvy account uses this number.' });
+      if (!account) return res.status(404).json({ code: 'ACCOUNT_NOT_FOUND', message: 'No ZCS account uses this number.' });
       to = String(account.email || '').trim().toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
         return res.status(404).json({ code: 'NO_EMAIL_ON_FILE', message: "This account has no email address, so we can't email a code. Please try the SMS code again later." });
@@ -1173,28 +1173,28 @@ const sendEmailOtp = async (req, res) => {
     const { record } = reserved;
 
     const minutes = Math.round(OTP_TTL_MS / 60000);
-    const what = purpose === 'reset_password' ? 'reset your Zenvy password'
-      : purpose === 'delete_account' ? 'confirm deleting your Zenvy account'
-        : 'verify your new Zenvy account';
+    const what = purpose === 'reset_password' ? 'reset your ZCS password'
+      : purpose === 'delete_account' ? 'confirm deleting your ZCS account'
+        : 'verify your new ZCS account';
     const text = [
       'Hi,',
       '',
-      `Your Zenvy code is: ${code}`,
+      `Your ZCS code is: ${code}`,
       `Use it to ${what}. It expires in ${minutes} minutes and works once.`,
       '',
-      'If you did not ask for this, ignore this email. Never share this code with anyone. Zenvy will never ask for it.',
+      'If you did not ask for this, ignore this email. Never share this code with anyone. ZCS will never ask for it.',
       '',
-      'Team Zenvy',
+      'Team ZCS',
     ].join('\n');
     const html = `<!doctype html><html><body style="margin:0;padding:24px 12px;background:#f4f4f7;font-family:Arial,Helvetica,sans-serif;color:#1d1d1f">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:460px;background:#ffffff;border-radius:16px;padding:28px">
-<tr><td style="font-size:20px;font-weight:bold;padding-bottom:16px">Zenvy</td></tr>
+<tr><td style="font-size:20px;font-weight:bold;padding-bottom:16px">ZCS</td></tr>
 <tr><td style="font-size:15px;line-height:22px;padding-bottom:20px">Use this code to ${what}:</td></tr>
 <tr><td align="center" style="padding-bottom:20px"><div style="display:inline-block;font-size:32px;letter-spacing:8px;font-weight:bold;background:#f4f4f7;border-radius:12px;padding:14px 22px">${code}</div></td></tr>
-<tr><td style="font-size:13px;line-height:20px;color:#555">It expires in ${minutes} minutes and works once. If you did not ask for this, ignore this email. Never share this code with anyone. Zenvy will never ask for it.</td></tr>
+<tr><td style="font-size:13px;line-height:20px;color:#555">It expires in ${minutes} minutes and works once. If you did not ask for this, ignore this email. Never share this code with anyone. ZCS will never ask for it.</td></tr>
 </table></td></tr></table></body></html>`;
-    const sent = await mailer.sendMail({ to, subject: `${code} is your Zenvy code`, html, text });
+    const sent = await mailer.sendMail({ to, subject: `${code} is your ZCS code`, html, text });
     if (!sent || !sent.ok) {
       await record.destroy().catch(() => {});
       console.error(`[SEND_EMAIL_OTP] Mail failed for ${maskPhone(cleanPhone)}:`, sent && sent.reason);
@@ -1239,7 +1239,7 @@ const verifyOtp = async (req, res) => {
         isNewUser: true,
         phone: cleanPhone,
         registrationToken: signRegistrationToken(cleanPhone),
-        message: 'Number verified! Tell us your name to create your Zenvy account.'
+        message: 'Number verified! Tell us your name to create your ZCS account.'
       });
     }
     return sendSession(res, user);
@@ -1267,7 +1267,7 @@ const refreshUserToken = async (req, res) => {
     const user = await getUserModel().findByPk(req.user.id, { attributes: ['id', 'role', 'isActive', 'tokenVersion'] });
     if (!user) return res.status(401).json({ code: 'ACCOUNT_NOT_FOUND', message: 'Please sign in again.' });
     if (user.isActive === false) {
-      return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'This account has been suspended. Please contact Zenvy support.' });
+      return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'This account has been suspended. Please contact ZCS support.' });
     }
     if (String(user.role || '').toLowerCase() === 'admin') {
       return res.status(403).json({ code: 'ADMIN_REFRESH_NOT_ALLOWED', message: 'Admin sessions cannot be extended. Please sign in again.' });

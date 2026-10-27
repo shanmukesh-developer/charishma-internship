@@ -380,7 +380,7 @@ export default function HighClassPromoCarousel({
         tagline: '🍛 MESS: DAL. AGAIN.',
         title1: "Mess said 'dal'.",
         title2: "Stomach said 'no'.",
-        description: 'Order from campus kitchens. Pay cash at the door or Zenvy Wallet.',
+        description: 'Order from campus kitchens. Pay cash at the door or ZCS Wallet.',
         buttonText: 'Feed me →',
         accentColor: '#F97316',
         // index.tsx: 'free-cash' → scrollToGrid() (the restaurant grid on Home)
@@ -458,7 +458,7 @@ export default function HighClassPromoCarousel({
         tagline: '🎡 BROKE BY THE 25TH?',
         title1: '2 orders delivered',
         title2: '= 1 spin. Simple.',
-        description: 'Spin for ZenPoints or free delivery. The server picks the prize.',
+        description: 'Spin for ZCS Points or free delivery. The server picks the prize.',
         buttonText: 'See rewards →',
         accentColor: '#F43F5E',
         redirectAction: () => router.push('/rewards' as any),
@@ -473,7 +473,7 @@ export default function HighClassPromoCarousel({
         const id = String(r._id || r.id);
         const rating = Number(r.rating);
         const dt = storeEtaMins(r) || 0;
-        const promo = typeof r.promoOffer === 'string' && r.promoOffer.trim() ? r.promoOffer.trim() : 'On Zenvy now.';
+        const promo = typeof r.promoOffer === 'string' && r.promoOffer.trim() ? r.promoOffer.trim() : 'On ZCS now.';
         return {
           id: `feat-${id}`,
           type: 'featured_restaurant' as const,
@@ -686,7 +686,7 @@ export default function HighClassPromoCarousel({
       accessibilityRole={n > 1 ? 'adjustable' : undefined}
       accessibilityLabel={
         n > 1
-          ? `Zenvy highlights, slide ${realActive + 1} of ${n}: ${slides[realActive]?.title1 ?? ''} ${slides[realActive]?.title2 ?? ''}. ${(slides[realActive]?.buttonText ?? '').replace('→', '').trim()}`
+          ? `ZCS highlights, slide ${realActive + 1} of ${n}: ${slides[realActive]?.title1 ?? ''} ${slides[realActive]?.title2 ?? ''}. ${(slides[realActive]?.buttonText ?? '').replace('→', '').trim()}`
           : undefined
       }
       accessibilityHint={n > 1 ? 'Swipe up or down to change slide. Double tap to open.' : undefined}

@@ -18,8 +18,8 @@ const DEFAULT_TICKER_ITEMS: TickerItem[] = [
   { id: '1', icon: '🍛', tag: 'TOP PICK', tagColor: '#F59E0B', text: 'Tap a cuisine below to see campus dishes' },
   { id: '2', icon: '🛵', tag: 'TRACKING', tagColor: '#10B981', text: 'Track your rider live from the Orders tab' },
   { id: '3', icon: '⏰', tag: 'HOURS', tagColor: '#8B5CF6', text: 'Campus ordering is open 6 AM to 9 PM every day' },
-  { id: '4', icon: '💵', tag: 'PAYMENTS', tagColor: '#3B82F6', text: 'Pay with Cash on Delivery or your Zenvy Wallet' },
-  { id: '5', icon: '🎉', tag: 'SAVER', tagColor: '#EF4444', text: 'Free delivery with 200+ ZenPoints or a Platinum+ badge' },
+  { id: '4', icon: '💵', tag: 'PAYMENTS', tagColor: '#3B82F6', text: 'Pay with Cash on Delivery or your ZCS Wallet' },
+  { id: '5', icon: '🎉', tag: 'SAVER', tagColor: '#EF4444', text: 'Free delivery with 200+ ZCS Points or a Platinum+ badge' },
 ];
 
 export default function CampusLiveTicker() {

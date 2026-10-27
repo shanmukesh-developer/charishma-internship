@@ -26,16 +26,16 @@ const isLocalVendor = (r: any) => !!r && (typeof r.isLocalVendor === 'boolean' ?
 function friendly(e: unknown, serverWaking: boolean): string {
   if (e instanceof ApiError) {
     if (e.status === 401) {
-      if (/no password/i.test(e.message)) return 'Your password is not set yet. Call Zenvy support to set it.';
+      if (/no password/i.test(e.message)) return 'Your password is not set yet. Call ZCS support to set it.';
       return 'Wrong phone number or password. Check and try again.';
     }
-    if (e.status === 403) return e.message || 'This account is not allowed to log in here. Call Zenvy support.';
+    if (e.status === 403) return e.message || 'This account is not allowed to log in here. Call ZCS support.';
     // The account lock lasts 15 minutes (the server says so); the network limiter is shorter.
     if (e.status === 423 || e.status === 429) return /minutes/i.test(e.message) ? e.message : 'Too many tries. Please wait a minute and try again.';
     if (e.status === 400) return 'Enter your phone number and password.';
     return e.message;
   }
-  if (e instanceof NetworkError) return serverWaking ? 'Zenvy is waking up. Please try again in a few seconds.' : e.message;
+  if (e instanceof NetworkError) return serverWaking ? 'ZCS is waking up. Please try again in a few seconds.' : e.message;
   return 'Something went wrong. Please try again.';
 }
 
@@ -92,7 +92,7 @@ export default function LoginScreen() {
       const data = await login(id, password);
       if (!data?.token || !data?.restaurant) throw new Error('bad response');
       if (!isLocalVendor(data.restaurant)) {
-        setError('This is a restaurant account. Please use the Zenvy Restaurant app.');
+        setError('This is a restaurant account. Please use the ZCS Restaurant app.');
         return;
       }
       // Saved as 10 digits: the field already shows +91 in front ("+91 +91 98765…" otherwise).
@@ -111,7 +111,7 @@ export default function LoginScreen() {
   };
 
   const call = () => Linking.openURL(`tel:+${SUPPORT_PHONE}`).catch(() => {});
-  const wa = () => Linking.openURL(`https://wa.me/${SUPPORT_PHONE}?text=${encodeURIComponent('Hi Zenvy, I need help logging in to the Zenvy Vendor app.')}`).catch(() => {});
+  const wa = () => Linking.openURL(`https://wa.me/${SUPPORT_PHONE}?text=${encodeURIComponent('Hi ZCS, I need help logging in to the ZCS Vendor app.')}`).catch(() => {});
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: color.bg }}>
@@ -121,7 +121,7 @@ export default function LoginScreen() {
       >
         <View style={styles.brand}>
           <Image source={require('../../assets/icon.png')} style={styles.logo} accessibilityIgnoresInvertColors />
-          <Text style={[font.h1, { color: color.text }]}>Zenvy Vendor</Text>
+          <Text style={[font.h1, { color: color.text }]}>ZCS Vendor</Text>
           <Text style={[font.body, { color: color.textSecondary, textAlign: 'center' }]}>For campus stalls — tea, tiffin, juice and more</Text>
         </View>
 
@@ -208,12 +208,12 @@ export default function LoginScreen() {
             <View style={[styles.dot, { backgroundColor: server === 'up' ? color.open : color.warning }]} />
           )}
           <Text style={[font.small, { color: color.textMuted }]}>
-            {server === 'checking' ? 'Checking Zenvy…' : server === 'up' ? 'Zenvy is online' : 'Zenvy is waking up — first login can take ~30 s'}
+            {server === 'checking' ? 'Checking ZCS…' : server === 'up' ? 'ZCS is online' : 'ZCS is waking up — first login can take ~30 s'}
           </Text>
         </View>
 
         <View style={styles.help}>
-          <Text style={[font.body, { color: color.textSecondary, textAlign: 'center' }]}>Forgot password or want to join Zenvy?</Text>
+          <Text style={[font.body, { color: color.textSecondary, textAlign: 'center' }]}>Forgot password or want to join ZCS?</Text>
           <View style={{ flexDirection: 'row', gap: space.sm }}>
             <Button label="Call" icon="call" variant="secondary" size="secondary" onPress={call} style={{ flex: 1 }} />
             <Button label="WhatsApp" icon="logo-whatsapp" variant="secondary" size="secondary" onPress={wa} style={{ flex: 1 }} />

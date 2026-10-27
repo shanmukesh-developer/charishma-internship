@@ -247,7 +247,7 @@ app.use(cors({
       callback(null, true);
     } else {
       // 403 (not a 500 "server error") for a refused browser origin.
-      const err = new Error('This origin is not allowed to call the Zenvy API.');
+      const err = new Error('This origin is not allowed to call the ZCS API.');
       err.status = 403;
       err.code = 'CORS_REFUSED';
       callback(err);
@@ -827,7 +827,7 @@ const initializeApp = async () => {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zenvy Secure Auth Gateway</title>
+  <title>ZCS Secure Auth Gateway</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -1025,7 +1025,7 @@ const initializeApp = async () => {
       <div class="logo-container">
         ✨
       </div>
-      <h1>ZENVY <span>SECURE</span></h1>
+      <h1>ZCS <span>SECURE</span></h1>
       <p id="subtitle" class="subtitle">Authenticating session...</p>
     </div>
 
@@ -1434,7 +1434,7 @@ const initializeApp = async () => {
         const { getUserModel } = require('./models/User');
         const User = getUserModel();
         if (User && !(await User.findOne({ where: { phone: adminPhone } }))) {
-          await User.create({ name: process.env.ADMIN_NAME || 'Zenvy Admin', phone: adminPhone, password: adminPassword, role: 'admin' });
+          await User.create({ name: process.env.ADMIN_NAME || 'ZCS Admin', phone: adminPhone, password: adminPassword, role: 'admin' });
           console.log('👤 [ADMIN_BOOTSTRAP] Admin account created from ADMIN_PHONE.');
         }
       } else if (process.env.ADMIN_PHONE || process.env.ADMIN_PASSWORD) {
@@ -1625,7 +1625,7 @@ const initializeApp = async () => {
 
     // Basic Health Check
     app.get('/', (req, res) => {
-      res.status(200).json({ status: 'success', message: 'Zenvy API (PostgreSQL) is running...', version: '2.0.1' });
+      res.status(200).json({ status: 'success', message: 'ZCS API (PostgreSQL) is running...', version: '2.0.1' });
     });
 
     // Unknown API routes get a JSON 404 (never an HTML error page), then the global error handler
@@ -2094,7 +2094,7 @@ const initializeApp = async () => {
         } catch (e) {
           console.warn('[SOCKET_NAME_LOOKUP_WARN]', e.message);
         }
-        socket.data.displayName = name || (socketRole() === 'rider' ? 'Your rider' : socketRole() === 'admin' ? 'Zenvy Support' : 'Customer');
+        socket.data.displayName = name || (socketRole() === 'rider' ? 'Your rider' : socketRole() === 'admin' ? 'ZCS Support' : 'Customer');
         return socket.data.displayName;
       };
 
@@ -2130,12 +2130,12 @@ const initializeApp = async () => {
       const afterDarkClosed = () => {
         // C2: admin kill switch (cached GlobalConfig AFTER_DARK_ENABLED) closes it whatever the hour.
         if (!require('./utils/featureSwitches').peek('afterDark')) {
-          socket.emit('after_dark_closed', { open: false, enabled: false, message: 'Zenvy After Dark is paused right now.' });
+          socket.emit('after_dark_closed', { open: false, enabled: false, message: 'ZCS After Dark is paused right now.' });
           return true;
         }
         if (isAfterDarkNow()) return false;
         const s = afterDarkStatus();
-        socket.emit('after_dark_closed', { ...s, message: `Zenvy After Dark opens at ${s.opensAt} IST.` });
+        socket.emit('after_dark_closed', { ...s, message: `ZCS After Dark opens at ${s.opensAt} IST.` });
         return true;
       };
 
@@ -2307,7 +2307,7 @@ const initializeApp = async () => {
                   const { sendPushToTokens } = require('./utils/push');
                   await sendPushToTokens(
                     receiver.fcmTokens,
-                    `📞 Incoming Zenvy Call`,
+                    `📞 Incoming ZCS Call`,
                     `${userName} is calling you...`,
                     {
                       type: 'call',

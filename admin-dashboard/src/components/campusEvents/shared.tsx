@@ -66,7 +66,7 @@ export function QuestionList({ questions }: { questions: Question[] }) {
   const flagged = questions.filter((q) => sensitiveQuestion(q.label)).length;
   return (
     <div className="space-y-2">
-      {flagged > 0 && <p role="alert" className="border border-danger/30 bg-danger-soft p-2 text-sm font-semibold text-danger-text">⚠ {flagged} question{flagged === 1 ? '' : 's'} may ask for a phone, ID / Aadhaar / roll number or bank details. Zenvy already verifies students: ask the organizer to remove {flagged === 1 ? 'it' : 'them'}.</p>}
+      {flagged > 0 && <p role="alert" className="border border-danger/30 bg-danger-soft p-2 text-sm font-semibold text-danger-text">⚠ {flagged} question{flagged === 1 ? '' : 's'} may ask for a phone, ID / Aadhaar / roll number or bank details. ZCS already verifies students: ask the organizer to remove {flagged === 1 ? 'it' : 'them'}.</p>}
       <ol className="list-decimal space-y-1 pl-5 text-sm">
         {questions.map((q) => {
           const bad = sensitiveQuestion(q.label);

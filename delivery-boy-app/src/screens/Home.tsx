@@ -59,7 +59,7 @@ export function HomeScreen() {
       >
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <Text style={[T.small, { color: C.muted }]}>Zenvy Rider</Text>
+            <Text style={[T.small, { color: C.muted }]}>ZCS Rider</Text>
             <Text style={[T.h2, { color: C.ink }]} numberOfLines={1}>
               Hi, {name}
             </Text>
@@ -433,7 +433,7 @@ function WaitingCard() {
         </View>
       </View>
       <Text style={[T.h3, { color: C.ink }]}>Looking for orders…</Text>
-      <Text style={[T.body, { color: C.muted, textAlign: 'center' }]}>You will hear a sound when an order comes. Keep Zenvy Rider allowed in the background.</Text>
+      <Text style={[T.body, { color: C.muted, textAlign: 'center' }]}>You will hear a sound when an order comes. Keep ZCS Rider allowed in the background.</Text>
     </Card>
   );
 }

@@ -85,11 +85,11 @@ export function ProfileScreen() {
         <Card style={{ gap: S.sm }}>
           <Label>DOCUMENTS</Label>
           {p.isApproved ? (
-            <Badge tone="green" icon="check-decagram" label="Verified by Zenvy" />
+            <Badge tone="green" icon="check-decagram" label="Verified by ZCS" />
           ) : (
             <Badge tone="amber" icon="clock-outline" label="Waiting for verification" />
           )}
-          <Text style={[T.small, { color: C.ink2 }]}>Your licence and ID are checked by the Zenvy fleet team. Call support to update them.</Text>
+          <Text style={[T.small, { color: C.ink2 }]}>Your licence and ID are checked by the ZCS fleet team. Call support to update them.</Text>
         </Card>
 
         <Card style={{ paddingVertical: S.xs }}>
@@ -118,7 +118,7 @@ export function ProfileScreen() {
 
         <Card style={{ paddingVertical: S.xs }}>
           <Row icon="lifebuoy" label="Help & support" value="Raise a ticket, see replies" onPress={() => r.setOverlay({ kind: 'support' })} />
-          <Row icon="phone-outline" label="Call Zenvy" value="Talk to the fleet team" onPress={() => links.callNumber(`+${SUPPORT_PHONE}`)} />
+          <Row icon="phone-outline" label="Call ZCS" value="Talk to the fleet team" onPress={() => links.callNumber(`+${SUPPORT_PHONE}`)} />
           <Row icon="lock-reset" label="Change password" onPress={() => setPwd(true)} />
           <Row icon="account-remove-outline" label="Delete account" value="Close your rider account" onPress={() => setDeleting(true)} />
         </Card>
@@ -131,7 +131,7 @@ export function ProfileScreen() {
 
         <Btn title="Emergency 112" icon="phone-alert" variant="red" size="mid" onPress={() => links.callNumber('112')} />
         <Btn title="Log out" icon="logout" variant="outline" size="mid" textColor={C.red} onPress={() => setConfirmLogout(true)} />
-        {version ? <Text style={[T.small, { color: C.muted, textAlign: 'center' }]}>Zenvy Rider {version}</Text> : null}
+        {version ? <Text style={[T.small, { color: C.muted, textAlign: 'center' }]}>ZCS Rider {version}</Text> : null}
       </View>
 
       <EditProfileSheet visible={edit} onClose={() => setEdit(false)} />
@@ -340,7 +340,7 @@ function DeleteAccountSheet({ visible, onClose }: { visible: boolean; onClose: (
       if (e instanceof ApiError && (e.code === 'SMS_UNAVAILABLE' || e.code === 'SMS_BUDGET')) {
         // SMS is switched off on the server: go back to the password, which always works.
         setUseCode(false);
-        setError('SMS codes are not available right now. Confirm with your password, or call Zenvy support and we will close your account.');
+        setError('SMS codes are not available right now. Confirm with your password, or call ZCS support and we will close your account.');
       } else {
         setError(errorMessage(e));
       }
@@ -424,7 +424,7 @@ function DeleteAccountSheet({ visible, onClose }: { visible: boolean; onClose: (
             onPress={() => links.callNumber(`+${SUPPORT_PHONE}`)}
             accessibilityRole="button"
           >
-            Forgot your password and no SMS code? Call Zenvy support to close your account.
+            Forgot your password and no SMS code? Call ZCS support to close your account.
           </Text>
         </>
       ) : null}

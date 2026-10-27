@@ -85,7 +85,7 @@ export function RejectPicker({ order, onDone, onBack, onRed }: {
       ) : null}
       {order.paymentMethod === 'Wallet' ? (
         <Text style={[font.small, { color: onRed ? color.textInverse : color.textSecondary }]}>
-          The customer gets {rupees(order.finalPrice)} back in their Zenvy Wallet automatically.
+          The customer gets {rupees(order.finalPrice)} back in their ZCS Wallet automatically.
         </Text>
       ) : null}
       <ActionError text={!b ? actionErrors[order.id] : undefined} onRed={onRed} />

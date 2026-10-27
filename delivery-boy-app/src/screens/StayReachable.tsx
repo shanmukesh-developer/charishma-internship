@@ -54,13 +54,13 @@ export function AlertHealthBanner() {
 }
 
 const AUTOSTART: Record<PhoneBrand, string> = {
-  xiaomi: 'Open Security, then Manage apps, Zenvy Rider and turn on Autostart. Under Battery saver choose No restrictions.',
-  oppo: 'Open Settings, then Apps, Zenvy Rider, Battery usage. Turn on Allow background activity and Allow auto launch.',
-  realme: 'Open Settings, then Apps, Zenvy Rider, Battery usage. Turn on Allow background activity and Allow auto launch.',
-  vivo: 'Open Settings, then Battery, Background power consumption, Zenvy Rider and choose Allow. In i Manager, turn on Autostart for Zenvy Rider.',
-  oneplus: 'Open Settings, then Apps, Zenvy Rider, Battery and choose Unrestricted.',
-  samsung: 'Open Settings, then Battery, Background usage limits, Never sleeping apps and add Zenvy Rider.',
-  other: 'Open Settings, then Apps, Zenvy Rider, Battery and choose Unrestricted. If your phone has Autostart, turn it on for Zenvy Rider.',
+  xiaomi: 'Open Security, then Manage apps, ZCS Rider and turn on Autostart. Under Battery saver choose No restrictions.',
+  oppo: 'Open Settings, then Apps, ZCS Rider, Battery usage. Turn on Allow background activity and Allow auto launch.',
+  realme: 'Open Settings, then Apps, ZCS Rider, Battery usage. Turn on Allow background activity and Allow auto launch.',
+  vivo: 'Open Settings, then Battery, Background power consumption, ZCS Rider and choose Allow. In i Manager, turn on Autostart for ZCS Rider.',
+  oneplus: 'Open Settings, then Apps, ZCS Rider, Battery and choose Unrestricted.',
+  samsung: 'Open Settings, then Battery, Background usage limits, Never sleeping apps and add ZCS Rider.',
+  other: 'Open Settings, then Apps, ZCS Rider, Battery and choose Unrestricted. If your phone has Autostart, turn it on for ZCS Rider.',
 };
 
 function Step({ n, title, body, done, action }: { n: number; title: string; body: string; done?: boolean; action?: React.ReactNode }) {
@@ -100,7 +100,7 @@ export function StayReachableSheet({ visible, onClose }: { visible: boolean; onC
           <Step
             n={2}
             title="Battery: no restrictions"
-            body={`In the list, pick Zenvy Rider and choose "Don't optimise", "Unrestricted" or "No restrictions".`}
+            body={`In the list, pick ZCS Rider and choose "Don't optimise", "Unrestricted" or "No restrictions".`}
             action={<Btn title="Open battery settings" size="small" variant="outline" onPress={openBatterySettings} />}
           />
           <Step
@@ -109,7 +109,7 @@ export function StayReachableSheet({ visible, onClose }: { visible: boolean; onC
             body={AUTOSTART[brand]}
             action={<Btn title="Open app settings" size="small" variant="outline" onPress={openAppSettings} />}
           />
-          <Step n={4} title="Lock the app in recent apps" body="Open recent apps, then press and hold Zenvy Rider (or tap its lock) so the phone does not close it." />
+          <Step n={4} title="Lock the app in recent apps" body="Open recent apps, then press and hold ZCS Rider (or tap its lock) so the phone does not close it." />
         </>
       ) : null}
     </Sheet>
@@ -137,7 +137,7 @@ export function StayReachableCard() {
             <MaterialCommunityIcons name="battery-alert-variant-outline" size={26} color={C.amber} />
             <Text style={[T.h3, { color: C.ink, flex: 1 }]}>Keep hearing new orders</Text>
           </View>
-          <Text style={[T.body, { color: C.ink2 }]}>Your phone may close Zenvy Rider in the background to save battery. It takes 2 minutes to stop that.</Text>
+          <Text style={[T.body, { color: C.ink2 }]}>Your phone may close ZCS Rider in the background to save battery. It takes 2 minutes to stop that.</Text>
           <View style={{ flexDirection: 'row', gap: S.sm }}>
             <Btn title="Later" variant="soft" size="mid" onPress={finish} style={{ flex: 1 }} />
             <Btn

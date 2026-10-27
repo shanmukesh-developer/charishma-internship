@@ -185,7 +185,7 @@ const updateTicket = async (req, res) => {
         const customer = ticket.userId ? await getUserModel().findByPk(ticket.userId, { attributes: ['id', 'fcmTokens'] }) : null;
         if (customer) {
           const { sendPushToTokens } = require('../utils/push');
-          const title = adminResponse && adminResponse !== previousResponse ? '💬 Zenvy Support replied' : '🎫 Support ticket updated';
+          const title = adminResponse && adminResponse !== previousResponse ? '💬 ZCS Support replied' : '🎫 Support ticket updated';
           const body = adminResponse && adminResponse !== previousResponse
             ? String(adminResponse).slice(0, 140)
             : 'Your ticket "' + String(ticket.subject || 'Support request').slice(0, 60) + '" is now ' + ticket.status + '.';
@@ -202,7 +202,7 @@ const updateTicket = async (req, res) => {
             const replied = adminResponse && adminResponse !== previousResponse;
             await sendPushToTokens(
               riderTokens,
-              replied ? 'Zenvy Support replied' : 'Support ticket updated',
+              replied ? 'ZCS Support replied' : 'Support ticket updated',
               replied ? String(adminResponse).slice(0, 140) : 'Your ticket "' + String(ticket.subject || 'Support request').slice(0, 60) + '" is now ' + ticket.status + '.',
               { type: 'SUPPORT_TICKET', ticketId: String(ticket.id), status: String(ticket.status) },
               // Rider app channel (the default 'delivery-alerts-v2' was deleted by the rider app).
@@ -237,7 +237,7 @@ const getAssignees = async (req, res) => {
 const CANNED_KEY = 'SUPPORT_CANNED_REPLIES';
 const DEFAULT_CANNED = [
   { title: 'Expedited', text: 'Sorry for the delay. We have flagged your order as urgent with our campus delivery team.' },
-  { title: 'Wallet refund', text: 'We have reviewed your order and refunded the amount to your Zenvy Wallet. You can see it in the Wallet section of the app.' },
+  { title: 'Wallet refund', text: 'We have reviewed your order and refunded the amount to your ZCS Wallet. You can see it in the Wallet section of the app.' },
   { title: 'Rider at gate', text: 'Your delivery partner is waiting at the hostel gate. Please share the delivery PIN shown on your order tracking screen to receive the order.' },
   { title: 'Need details', text: 'Thanks for reaching out. Could you share a few more details (order time, item names, a photo if relevant) so we can sort this out?' },
 ];

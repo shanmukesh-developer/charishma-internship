@@ -63,7 +63,7 @@ export const ReviewsBrowseScreen: React.FC = () => {
               compact
               icon={<Star size={22} color={FriendsColors.accent} />}
               title={term ? 'No match' : `No ${REVIEW_KIND_META[kind].plural.toLowerCase()} listed yet`}
-              subtitle="Missing something? Start a review and request a page; the Zenvy team adds it after a check."
+              subtitle="Missing something? Start a review and request a page; the ZCS team adds it after a check."
               actionLabel="Write a review"
               onAction={() => nav.openComposer({ type: 'review' })}
             />

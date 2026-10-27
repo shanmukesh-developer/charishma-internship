@@ -273,7 +273,7 @@ export function ComplianceTab({ store, onChanged }: { store: Store; onChanged: (
       {/* Payout */}
       <section className="space-y-4 border-t border-line pt-5" aria-labelledby="payout-title">
         <h3 id="payout-title" className="text-sm font-semibold">Payout</h3>
-        <p className="text-xs text-fg-muted">Only Zenvy admins can change payout details (the store app cannot), so a stolen store login cannot redirect payouts. Confirm any change with the owner directly.</p>
+        <p className="text-xs text-fg-muted">Only ZCS admins can change payout details (the store app cannot), so a stolen store login cannot redirect payouts. Confirm any change with the owner directly.</p>
         <Field label="Payout UPI ID" optional error={errors.payoutUpiId} help="Like name@bank.">
           {ids => input('payoutUpiId', ids, { maxLength: 256 })}
         </Field>

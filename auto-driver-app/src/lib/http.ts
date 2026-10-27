@@ -33,9 +33,9 @@ export class NetworkError extends Error {
 export const UPLOAD_MESSAGES = {
   tooLarge: 'That photo is too large. Please pick a smaller one.',
   session: 'Your session has expired. Please log in again.',
-  waking: 'Zenvy is waking up, please try again in a few seconds.',
+  waking: 'ZCS is waking up, please try again in a few seconds.',
   interrupted: 'The upload was interrupted. Please try again.',
-  unreachable: "Couldn't reach Zenvy. Check your mobile data, then try again.",
+  unreachable: "Couldn't reach ZCS. Check your mobile data, then try again.",
 } as const;
 
 /** 408 (server request timeout) and 502 / 503 / 504 (free Render instance waking up) are worth one retry. */
@@ -49,7 +49,7 @@ export function uploadStatusMessage(status: number, data: any): string {
   if (isWakingStatus(status)) return UPLOAD_MESSAGES.waking;
   return (data && typeof data.message === 'string' && data.message) ||
     (status === 429 ? 'Too many attempts. Please wait a minute and try again.'
-      : status >= 500 ? 'Zenvy is having trouble right now. Please try again in a moment.'
+      : status >= 500 ? 'ZCS is having trouble right now. Please try again in a moment.'
         : 'Upload failed. Please try again.');
 }
 
@@ -140,7 +140,7 @@ async function apiFetchOnce<T = any>(path: string, opts: RequestOptions = {}): P
     if (onNetwork) onNetwork(false);
     throw new NetworkError(
       e?.name === 'AbortError'
-        ? 'Zenvy is slow to answer. Please try again.'
+        ? 'ZCS is slow to answer. Please try again.'
         : 'No internet. Check mobile data and try again.',
       e?.name === 'AbortError',
     );
@@ -164,7 +164,7 @@ async function apiFetchOnce<T = any>(path: string, opts: RequestOptions = {}): P
     if (res.status === 403 && code === 'DRIVER_SUSPENDED' && onSuspended) onSuspended(String(data.message || 'Your driver account is suspended.'));
     const msg = (data && typeof data.message === 'string' && data.message) ||
       (res.status === 429 ? 'Too many attempts. Please wait a minute and try again.'
-        : res.status >= 500 ? 'Zenvy is having trouble right now. Please try again in a moment.'
+        : res.status >= 500 ? 'ZCS is having trouble right now. Please try again in a moment.'
           : 'Request failed. Please try again.');
     throw new ApiError(res.status, msg, data);
   }

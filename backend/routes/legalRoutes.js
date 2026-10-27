@@ -115,7 +115,7 @@ const jurisdictionText = (s) => (s.jurisdictionCity
 // ─── Index ────────────────────────────────────────────────────────────────────
 const INDEX = (f) => page(f, 'Legal', `
 <h1>${esc(f.settings.businessName)} policies</h1>
-<p>These pages explain the rules for using ${esc(f.settings.businessName)} and how we handle your data. They apply to the Zenvy customer app and the Zenvy partner apps (Rider, Restaurant, Vendor and Auto Driver).</p>
+<p>These pages explain the rules for using ${esc(f.settings.businessName)} and how we handle your data. They apply to the ZCS (Zenvy Community and Services) customer app and the ZCS partner apps (Rider, Restaurant, Vendor and Auto Driver).</p>
 <ul>
 ${NAV.map(([href, label]) => `<li><a href="${href}">${esc(label)}</a></li>`).join('\n')}
 </ul>
@@ -159,10 +159,10 @@ const TERMS = (f) => {
 <li>Delivery times are estimates. Please be available at the delivery spot you choose.</li>
 </ul>
 
-<h2>5. Payment: cash on delivery and Zenvy Wallet</h2>
+<h2>5. Payment: cash on delivery and ZCS Wallet</h2>
 <ul>
-<li>You pay for orders by <b>cash on delivery</b> or with your <b>Zenvy Wallet</b> balance. We do not take card or net-banking payments for orders. Where a store or service asks you to pay it directly (for example by UPI), you pay that store, not us.</li>
-<li><b>Zenvy Wallet</b> is in-app credit, not money held for you. It is added by refunds (for example when a wallet-paid order is cancelled) and by credits we choose to give (such as support goodwill). It ${f.walletTransfers ? 'cannot be withdrawn as cash and can only be transferred where the app offers a gift feature, within its limits' : '<b>cannot be withdrawn, cashed out or transferred</b> to another person'}, it earns no interest, and it can only be used to pay for things inside ${biz}.</li>
+<li>You pay for orders by <b>cash on delivery</b> or with your <b>ZCS Wallet</b> balance. We do not take card or net-banking payments for orders. Where a store or service asks you to pay it directly (for example by UPI), you pay that store, not us.</li>
+<li><b>ZCS Wallet</b> is in-app credit, not money held for you. It is added by refunds (for example when a wallet-paid order is cancelled) and by credits we choose to give (such as support goodwill). It ${f.walletTransfers ? 'cannot be withdrawn as cash and can only be transferred where the app offers a gift feature, within its limits' : '<b>cannot be withdrawn, cashed out or transferred</b> to another person'}, it earns no interest, and it can only be used to pay for things inside ${biz}.</li>
 <li>Wallet balance and reward points are forfeited when you delete your account. We may reverse credits given by mistake or obtained by fraud.</li>
 <li>Reward points (zenPoints) and badges are promotional, have no cash value and may change.</li>
 </ul>
@@ -209,7 +209,7 @@ const TERMS = (f) => {
 <h2>11. Auto-Ride (shared autos)</h2>
 <ul>
 <li>Auto-Ride lets you book seats in shared autos driven by independent drivers. Drivers are not our employees. Before a driver can publish trips, we check their driving licence and the vehicle's papers (RC, permit and insurance); this check does not guarantee a driver's conduct.</li>
-<li>Fares are shown before you book and are paid <b>in cash to the driver</b>${f.autoRideWallet ? ', or from your Zenvy Wallet where offered' : ''}. ${biz} does not collect cash fares.</li>
+<li>Fares are shown before you book and are paid <b>in cash to the driver</b>${f.autoRideWallet ? ', or from your ZCS Wallet where offered' : ''}. ${biz} does not collect cash fares.</li>
 <li>A seat is held for ${plural(ar.holdMinutes, 'minute')} while you confirm. You may book up to ${plural(ar.maxSeatsPerBooking, 'seat')} per booking. An auto never carries more passengers than its approved capacity (at most ${ar.platformMaxCapacity}, and never more than its registration certificate allows).</li>
 <li>Be at the pickup point on time. If you do not board within ${plural(ar.noShowGraceMinutes, 'minute')} of departure, your seat can be released.</li>
 <li>In an emergency call 112. Report any safety problem in the app; we may suspend drivers while we look into it.</li>
@@ -218,7 +218,7 @@ const TERMS = (f) => {
 <h2>12. Campus Events</h2>
 <ul>
 <li>Events are created by student organizers, clubs or other organizers, not by us. The organizer is responsible for the event, its content, safety, any entry fee and any refund.</li>
-<li>Most events are free. Where there is an entry fee it is normally <b>paid at the venue</b> to the organizer${f.eventsWallet ? ', or from your Zenvy Wallet where offered' : ''}. Your ticket is a QR code in the app; organizers scan it at entry.</li>
+<li>Most events are free. Where there is an entry fee it is normally <b>paid at the venue</b> to the organizer${f.eventsWallet ? ', or from your ZCS Wallet where offered' : ''}. Your ticket is a QR code in the app; organizers scan it at entry.</li>
 <li>Organizers see your name, your registration answers and your ticket status, but never your phone number or email.</li>
 <li>Cancellation rules for each event are shown on the event page (see our <a href="/legal/refunds">Refund Policy</a>).</li>
 </ul>
@@ -275,7 +275,7 @@ const PRIVACY = (f) => {
 <tr><td>Password (optional)</td><td>Stored only as a one-way hash. Sign-in codes are stored only as a hash and expire after 5 minutes.</td></tr>
 <tr><td>Hostel block, room number, delivery address and instructions</td><td>To deliver your orders.</td></tr>
 <tr><td>Location during orders</td><td>The delivery spot you choose for an order (hostel, gate or a pin on the map), and the live location of the rider delivering it, so you can track the order. Text you type into address search is looked up through OpenStreetMap. The customer app does not read your phone's GPS in the background.</td></tr>
-<tr><td>Orders, wallet and payments</td><td>Items, prices, order history, Zenvy Wallet balance and transactions. Payment is cash on delivery or Zenvy Wallet; we do not collect card or bank details. If a service asks you to pay a store by UPI, we store the UPI reference (UTR) and any payment screenshot you submit.</td></tr>
+<tr><td>Orders, wallet and payments</td><td>Items, prices, order history, ZCS Wallet balance and transactions. Payment is cash on delivery or ZCS Wallet; we do not collect card or bank details. If a service asks you to pay a store by UPI, we store the UPI reference (UTR) and any payment screenshot you submit.</td></tr>
 <tr><td>Terms acceptance</td><td>The version of these policies you accepted and when, as a record of your consent.</td></tr>
 <tr><td>Device and app data</td><td>Device push token, platform and app version (to send notifications and to tell you when an update is required).</td></tr>
 <tr><td>Support tickets and reports</td><td>What you write to us, and reports you file about content or users.</td></tr>
@@ -302,8 +302,8 @@ const PRIVACY = (f) => {
 <h3>Partners (riders, auto drivers, stores and vendors)</h3>
 <table>
 <tr><th>Who</th><th>Data and why</th></tr>
-<tr><td>Riders (Zenvy Rider app)</td><td>Name, phone, password hash, vehicle type and number, photo, emergency contact, and payout and tip records. <b>Background location</b>: while you are on duty or carrying an order, the app shares your location even when it is in the background (every 5-10 seconds with an order, every 30-60 seconds when on duty without one), so customers can track deliveries and orders can be assigned. Only your latest position is stored, not a history. SOS alerts include your location.</td></tr>
-<tr><td>Auto drivers (Zenvy Auto Driver app)</td><td>Name, phone, password hash, emergency contact, <b>driving licence</b> number, expiry and photos, badge, an optional police verification certificate, your photo, and for each vehicle its registration, <b>RC</b>, <b>permit</b>, <b>insurance</b>, fitness and PUC documents. We never collect Aadhaar images. The driver app does not track your location; an SOS alert includes your location only if you allow it.</td></tr>
+<tr><td>Riders (ZCS Rider app)</td><td>Name, phone, password hash, vehicle type and number, photo, emergency contact, and payout and tip records. <b>Background location</b>: while you are on duty or carrying an order, the app shares your location even when it is in the background (every 5-10 seconds with an order, every 30-60 seconds when on duty without one), so customers can track deliveries and orders can be assigned. Only your latest position is stored, not a history. SOS alerts include your location.</td></tr>
+<tr><td>Auto drivers (ZCS Auto Driver app)</td><td>Name, phone, password hash, emergency contact, <b>driving licence</b> number, expiry and photos, badge, an optional police verification certificate, your photo, and for each vehicle its registration, <b>RC</b>, <b>permit</b>, <b>insurance</b>, fitness and PUC documents. We never collect Aadhaar images. The driver app does not track your location; an SOS alert includes your location only if you allow it.</td></tr>
 <tr><td>Stores and vendors</td><td>Business and contact details, menus, prices, opening hours and order history.</td></tr>
 </table>
 <p>We do not use advertising IDs, we do not show ads and we do not sell your data.</p>
@@ -374,7 +374,7 @@ ${f.thirdParties.map((t) => `<li><b>${esc(t.name)}</b>: ${esc(t.what)}.</li>`).j
 <p>We use encryption in transit, hashed passwords and codes, access controls and private storage with short-lived signed links for documents. No system is perfectly secure; if a breach affects you we will notify you and the authorities as the law requires.</p>
 
 <h2>9. Deleting your data</h2>
-<p>You can delete your account at any time in the app: <b>Profile → Delete my account</b>, or see <a href="/legal/delete-account">how to delete your account</a>. When you delete your account we delete your profile, photos, ID card and documents, chats, posts, friends, notifications and push tokens, and we remove your name, number, email, hostel and room from the order and payment records we must keep. Riders and auto drivers can delete their account in their app (Profile / Settings → Delete account); store accounts are closed by the Zenvy team on request. See <a href="/legal/delete-account">how to delete your account</a> for what partner records are kept.</p>
+<p>You can delete your account at any time in the app: <b>Profile → Delete my account</b>, or see <a href="/legal/delete-account">how to delete your account</a>. When you delete your account we delete your profile, photos, ID card and documents, chats, posts, friends, notifications and push tokens, and we remove your name, number, email, hostel and room from the order and payment records we must keep. Riders and auto drivers can delete their account in their app (Profile / Settings → Delete account); store accounts are closed by the ZCS team on request. See <a href="/legal/delete-account">how to delete your account</a> for what partner records are kept.</p>
 
 <h2>10. Changes</h2>
 <p>We will update this page when our practices change and show the new version and date at the top. For significant changes we will ask you to review them in the app.</p>
@@ -394,7 +394,7 @@ const REFUNDS = (f) => {
   const o = f.orders;
   return page(f, 'Cancellation & Refund Policy', `
 <h1>Cancellation &amp; Refund Policy</h1>
-<p>This policy explains when you can cancel and what you get back, feature by feature. ${biz} accepts <b>cash on delivery</b> and <b>Zenvy Wallet</b> payments only, so refunds are made to your Zenvy Wallet; if you paid cash and nothing was delivered, there is nothing to refund. Zenvy Wallet credit is non-withdrawable, non-transferable in-app credit (see the <a href="/legal/terms">Terms</a>).</p>
+<p>This policy explains when you can cancel and what you get back, feature by feature. ${biz} accepts <b>cash on delivery</b> and <b>ZCS Wallet</b> payments only, so refunds are made to your ZCS Wallet; if you paid cash and nothing was delivered, there is nothing to refund. ZCS Wallet credit is non-withdrawable, non-transferable in-app credit (see the <a href="/legal/terms">Terms</a>).</p>
 
 <h2>1. Food, grocery and essentials orders</h2>
 <table>
@@ -407,18 +407,18 @@ const REFUNDS = (f) => {
 <tr><td>The store or we cancel the order</td><td>Full refund to your wallet (wallet-paid).</td></tr>
 <tr><td>Missing, wrong, damaged or unsafe items</td><td>Report it from the order page as soon as possible after delivery, with photos if you can. If we confirm the problem, we credit your wallet for the affected items (and delivery fee where appropriate).</td></tr>
 </table>
-<p><b>Timeline:</b> refunds for cancellations are credited to your Zenvy Wallet immediately when the order is cancelled. Complaints are acknowledged within 24 hours and resolved within 15 days.</p>
+<p><b>Timeline:</b> refunds for cancellations are credited to your ZCS Wallet immediately when the order is cancelled. Complaints are acknowledged within 24 hours and resolved within 15 days.</p>
 <p>Repeatedly refusing cash-on-delivery orders may lead to cash on delivery being turned off for your account.</p>
 
 <h2>2. Auto-Ride (shared autos)</h2>
 <ul>
 <li>Fares are normally paid <b>in cash to the driver</b> when you board. If you paid cash, there is nothing for ${biz} to refund; settle any issue with the driver or contact support.</li>
-${f.autoRideWallet ? `<li>Where you paid from your Zenvy Wallet:
+${f.autoRideWallet ? `<li>Where you paid from your ZCS Wallet:
 <ul>
 <li>You cancel before the trip is confirmed: <b>${ar.customerRefundBeforeConfirmPct}%</b> refund to your wallet.</li>
 <li>You cancel after the trip is confirmed: <b>${ar.customerRefundAfterConfirmPct}%</b> refund to your wallet.</li>
 <li>The driver, ${biz} or the system cancels the trip, or the driver does not turn up: <b>100%</b> refund to your wallet.</li>
-</ul></li>` : `<li>Zenvy Wallet payment for Auto-Ride is currently off. If it is turned on, the refund rules are: cancel before the trip is confirmed: ${ar.customerRefundBeforeConfirmPct}% back to your wallet; after it is confirmed: ${ar.customerRefundAfterConfirmPct}%; trip cancelled by the driver, ${biz} or the system, or driver no-show: 100%.</li>`}
+</ul></li>` : `<li>ZCS Wallet payment for Auto-Ride is currently off. If it is turned on, the refund rules are: cancel before the trip is confirmed: ${ar.customerRefundBeforeConfirmPct}% back to your wallet; after it is confirmed: ${ar.customerRefundAfterConfirmPct}%; trip cancelled by the driver, ${biz} or the system, or driver no-show: 100%.</li>`}
 <li>If you do not board within ${plural(ar.noShowGraceMinutes, 'minute')} of departure, your seat may be released and treated as a cancellation after confirmation.</li>
 </ul>
 
@@ -427,7 +427,7 @@ ${f.autoRideWallet ? `<li>Where you paid from your Zenvy Wallet:
 <li>Most events are free. For paid events the fee is normally <b>paid at the venue</b> to the organizer.</li>
 <li>Unless the event page says otherwise, you can cancel your registration up to <b>${hours(ev.defaultUserCancelUntilHours)}</b> before the event starts, and the refund is <b>${ev.defaultRefundPct}%</b> of what you paid. Each event can set its own cancellation window and refund percentage, shown on the event page before you register.</li>
 <li>If the organizer, ${biz} or the system cancels the event: 100% refund.</li>
-<li>How refunds are paid: wallet payments go back to your Zenvy Wallet${f.thirdParties.some((t) => t.key === 'razorpay') ? '; online (Razorpay) payments go back to the original payment method, normally within 5-7 working days' : ''}; cash paid at the venue is refunded by the organizer in person.</li>
+<li>How refunds are paid: wallet payments go back to your ZCS Wallet${f.thirdParties.some((t) => t.key === 'razorpay') ? '; online (Razorpay) payments go back to the original payment method, normally within 5-7 working days' : ''}; cash paid at the venue is refunded by the organizer in person.</li>
 <li>If you do not pay at the venue for an unpaid reservation, your place may be released.</li>
 </ul>
 
@@ -440,7 +440,7 @@ ${f.autoRideWallet ? `<li>Where you paid from your Zenvy Wallet:
 <li>Other damage, no-show, late return, safety or payment problems: report them in the app. We review reports, may ask both sides for photos and documents, and may restrict accounts, but the final settlement is between the two students. ${biz} is not an insurer.</li>
 </ul>
 
-<h2>5. Zenvy Wallet</h2>
+<h2>5. ZCS Wallet</h2>
 <ul>
 <li>Wallet balance can only be spent inside ${biz}. It cannot be withdrawn to a bank account or as cash${f.walletTransfers ? '' : ', and it cannot be transferred'}.</li>
 <li>Credits given by mistake or obtained through fraud or abuse may be reversed.</li>
@@ -545,11 +545,11 @@ const DELETE = (f) => {
   const biz = esc(s.businessName);
   return page(f, 'Delete your account', `
 <h1>Delete your ${biz} account</h1>
-<p class="muted">Applies to the Zenvy app (com.srm.hostelbites) and the partner apps: Zenvy Rider (com.srm.hostelbitesdelivery), Zenvy Auto Driver (com.srm.zenvyautodriver), Zenvy Restaurant (com.zenvy.restaurant) and Zenvy Vendor (com.srm.zenvyvendor). <a href="#riders">Riders and auto drivers</a> · <a href="#stores">Restaurants and vendors</a></p>
+<p class="muted">Applies to the ZCS app (com.srm.hostelbites) and the partner apps: ZCS Rider (com.srm.hostelbitesdelivery), ZCS Auto Driver (com.srm.zenvyautodriver), ZCS Restaurant (com.zenvy.restaurant) and ZCS Vendor (com.srm.zenvyvendor). <a href="#riders">Riders and auto drivers</a> · <a href="#stores">Restaurants and vendors</a></p>
 
 <h2>Option 1: in the app (fastest)</h2>
 <ol>
-<li>Open Zenvy and sign in.</li>
+<li>Open ZCS and sign in.</li>
 <li>Go to the <b>Profile</b> tab and scroll down.</li>
 <li>Tap <b>Delete my account</b>.</li>
 <li>Read what will be deleted, type <b>DELETE</b>, then enter the SMS code we send to your number.</li>
@@ -557,10 +557,10 @@ const DELETE = (f) => {
 <p>Your account is closed immediately and you are signed out on every device.</p>
 
 <h2>Option 2: by email</h2>
-<p>If you can't use the app, email ${mail(s.contactEmail, 'Delete my Zenvy account')} with the subject "Delete my Zenvy account" from the email linked to your account, or include the mobile number you signed up with. To protect you, we will confirm the request with an SMS code or a reply from that email before deleting. We complete requests within 7 days. Partner accounts can also be deleted by email (see below).</p>
+<p>If you can't use the app, email ${mail(s.contactEmail, 'Delete my ZCS account')} with the subject "Delete my ZCS account" from the email linked to your account, or include the mobile number you signed up with. To protect you, we will confirm the request with an SMS code or a reply from that email before deleting. We complete requests within 7 days. Partner accounts can also be deleted by email (see below).</p>
 
 <div class="box">
-<p><b>Please note:</b> you must not have an order or rental in progress. Any Zenvy Wallet balance and reward points are forfeited when the account is deleted, so please use them first.</p>
+<p><b>Please note:</b> you must not have an order or rental in progress. Any ZCS Wallet balance and reward points are forfeited when the account is deleted, so please use them first.</p>
 </div>
 
 <h2>What is deleted</h2>
@@ -577,20 +577,20 @@ const DELETE = (f) => {
 <li>Safety and moderation records (for example reports about abuse), linked only to an anonymised account, to prevent fraud and abuse.</li>
 </ul>
 
-<h2 id="riders">Zenvy Rider and Zenvy Auto Driver accounts</h2>
+<h2 id="riders">ZCS Rider and ZCS Auto Driver accounts</h2>
 <p>Riders and auto drivers sign up in their app, so they can delete their account in the app too:</p>
 <ol>
-<li><b>Zenvy Rider</b>: open the <b>Profile</b> tab and tap <b>Delete account</b>. <b>Zenvy Auto Driver</b>: open <b>Menu → Settings</b> and tap <b>Delete account</b>.</li>
+<li><b>ZCS Rider</b>: open the <b>Profile</b> tab and tap <b>Delete account</b>. <b>ZCS Auto Driver</b>: open <b>Menu → Settings</b> and tap <b>Delete account</b>.</li>
 <li>Read what will be deleted, type <b>DELETE</b> and confirm with your password or the SMS code we send to your number.</li>
 </ol>
-<p>Or email ${mail(s.contactEmail, 'Delete my Zenvy partner account')} from the mobile number's owner, as above. Before deleting you must finish or hand back any delivery or trip in progress, deposit cash you collected for ${biz}, and receive any money ${biz} still owes you; the app tells you what is left.</p>
+<p>Or email ${mail(s.contactEmail, 'Delete my ZCS partner account')} from the mobile number's owner, as above. Before deleting you must finish or hand back any delivery or trip in progress, deposit cash you collected for ${biz}, and receive any money ${biz} still owes you; the app tells you what is left.</p>
 <ul>
 <li><b>Deleted</b>: name, mobile number, password, profile photo, bio, vehicle number (riders), emergency contact, live and last location, licence number, PSV badge, licence / police verification / document and vehicle photos (drivers), device push tokens, notifications, your order chat messages, support tickets not linked to an order, and sign-in codes. You are signed out on every device at once.</li>
 <li><b>Kept</b>, with your personal details removed: delivery and trip records, cash collected and deposits, earnings, payouts and wallet entries (accounting and tax law, up to 8 years); vehicle registration and capacity linked to past trips, safety incidents, SOS and trip event logs, and support tickets about an order (safety, disputes and fraud prevention). Order chat is deleted after 90 days in any case.</li>
 </ul>
 
-<h2 id="stores">Zenvy Restaurant and Zenvy Vendor accounts</h2>
-<p>Store accounts are created by the ${biz} team, so they are closed by the team: email ${mail(s.contactEmail, 'Close my Zenvy store account')} from the store owner's registered email or mobile number (or use <b>Settings → Delete account</b> in the store app, which opens this page). We confirm the request with the registered owner, settle any payouts, and close the account within 7 days. Order, payout, FSSAI / GST and tax records are kept as the law requires; the store login and device push tokens are removed.</p>
+<h2 id="stores">ZCS Restaurant and ZCS Vendor accounts</h2>
+<p>Store accounts are created by the ${biz} team, so they are closed by the team: email ${mail(s.contactEmail, 'Close my ZCS store account')} from the store owner's registered email or mobile number (or use <b>Settings → Delete account</b> in the store app, which opens this page). We confirm the request with the registered owner, settle any payouts, and close the account within 7 days. Order, payout, FSSAI / GST and tax records are kept as the law requires; the store login and device push tokens are removed.</p>
 `, { showVersion: false });
 };
 

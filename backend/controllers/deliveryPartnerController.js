@@ -244,7 +244,7 @@ const authPartner = async (req, res) => {
     // Deactivated by Zenvy (C1-7: an approved rider the admin switched off). New sign-ups waiting for
     // approval (never approved, no suspendedAt) still log in and see "waiting for approval".
     if (partner.suspendedAt && partner.isApproved !== true) {
-      return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'Your Zenvy rider account has been deactivated. Please contact Zenvy support.' });
+      return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'Your ZCS rider account has been deactivated. Please contact ZCS support.' });
     }
 
     // ── 3. Return partner data and JWT token ────────────────────────────────
@@ -303,7 +303,7 @@ const refreshPartnerToken = async (req, res) => {
     const partner = await getDeliveryPartnerModel().findByPk(req.user.id, { attributes: ['id', 'tokenVersion', 'isApproved', 'suspendedAt', 'accountDeletedAt'] });
     if (!partner || partner.accountDeletedAt) return res.status(401).json({ code: 'ACCOUNT_NOT_FOUND', message: 'Please sign in again.' });
     if (partner.suspendedAt && partner.isApproved !== true) {
-      return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'Your Zenvy rider account has been deactivated. Please contact Zenvy support.' });
+      return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'Your ZCS rider account has been deactivated. Please contact ZCS support.' });
     }
     const claims = require('../middleware/authMiddleware').presentedTokenClaims(req) || {};
     if ((Number(claims.tv) || 0) !== (Number(partner.tokenVersion) || 0)) {
@@ -503,7 +503,7 @@ const acceptOrderLocked = async (req, res) => {
       const rawCustomerTokens = Array.isArray(customer?.fcmTokens) ? customer.fcmTokens : [];
       const customerTokenList = rawCustomerTokens.map(t => typeof t === 'string' ? t : t?.token).filter(Boolean);
       if (customer) {
-        await sendPushToTokens(customerTokenList, 'Order Accepted! 🛵', 'Your Zenvy rider is on the way.', { orderId: updatedOrder.id, type: 'ORDER_UPDATE' }, { recipients: [customer.id] });
+        await sendPushToTokens(customerTokenList, 'Order Accepted! 🛵', 'Your ZCS rider is on the way.', { orderId: updatedOrder.id, type: 'ORDER_UPDATE' }, { recipients: [customer.id] });
       }
     } catch (e) {
       console.error('[ACCEPT_ORDER_ERROR]', e);
@@ -677,7 +677,7 @@ const updateOrderStatus = async (req, res) => {
         if (claimed === 0) {
           return res.status(429).json({
             code: 'PIN_LOCKED',
-            message: 'Too many wrong PINs for this order. Please contact Zenvy support to complete the handover.'
+            message: 'Too many wrong PINs for this order. Please contact ZCS support to complete the handover.'
           });
         }
         if (pin && pin === order.deliveryPin) {
@@ -701,8 +701,8 @@ const updateOrderStatus = async (req, res) => {
             code: 'INVALID_PIN',
             attemptsLeft: left,
             message: left > 0
-              ? `That PIN doesn't match. Ask the customer for the 4-digit PIN shown in their Zenvy app (${left} ${left === 1 ? 'try' : 'tries'} left).`
-              : 'Too many wrong PINs for this order. Please contact Zenvy support to complete the handover.'
+              ? `That PIN doesn't match. Ask the customer for the 4-digit PIN shown in their ZCS app (${left} ${left === 1 ? 'try' : 'tries'} left).`
+              : 'Too many wrong PINs for this order. Please contact ZCS support to complete the handover.'
           });
         }
       }

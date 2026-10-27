@@ -665,7 +665,7 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-        Alert.alert('Close Zenvy?', undefined, [
+        Alert.alert('Close ZCS?', undefined, [
           { text: 'Cancel', onPress: () => null, style: 'cancel' },
           { text: 'Close', onPress: () => BackHandler.exitApp() },
         ]);
@@ -1158,7 +1158,7 @@ export default function HomeScreen() {
             <View style={[s.emptyFilterBox, { backgroundColor: cardBg, borderColor: isDark ? goldBorderColor : COLORS.borderLight }]}>
               <Ionicons name="cloud-offline-outline" size={34} color={txtSec} style={{ marginBottom: 8 }} />
               <Text style={[s.emptyFilterTitle, { color: txt }]}>
-                {loadError === 'server' ? 'Zenvy is still starting up' : "Couldn't load restaurants"}
+                {loadError === 'server' ? 'ZCS is still starting up' : "Couldn't load restaurants"}
               </Text>
               <Text style={[s.emptyFilterSub, { color: txtSec }]}>
                 {loadError === 'server'

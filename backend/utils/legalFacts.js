@@ -32,7 +32,7 @@ const thirdParties = async (env = process.env) => {
   if (appHost && dbName && appHost === dbName) {
     list.push({ key: 'hosting', name: appHost, what: 'application hosting and database: all account, order and community data is stored here' });
   } else {
-    list.push({ key: 'hosting', name: appHost || 'Our cloud hosting provider', what: 'application hosting (servers that run Zenvy) and server logs' });
+    list.push({ key: 'hosting', name: appHost || 'Our cloud hosting provider', what: 'application hosting (servers that run ZCS) and server logs' });
     list.push({ key: 'database', name: dbName || 'Our managed database provider', what: 'database hosting: all account, order and community data is stored here' });
   }
 
@@ -61,7 +61,7 @@ const thirdParties = async (env = process.env) => {
     if (!(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET && env.RAZORPAY_WEBHOOK_SECRET)) return false;
     return require('../modules/campusEvents/services/flag').readOnlineFlag();
   }, false);
-  if (razorpay) list.push({ key: 'razorpay', name: 'Razorpay', what: 'online payment for Campus Events tickets that offer it (Zenvy never sees your card or bank details)' });
+  if (razorpay) list.push({ key: 'razorpay', name: 'Razorpay', what: 'online payment for Campus Events tickets that offer it (ZCS never sees your card or bank details)' });
 
   list.push({ key: 'osm', name: 'OpenStreetMap (Nominatim)', what: 'the address text you type when searching for a delivery location (sent through our server, not linked to your account)' });
   if (String(env.TURN_URLS || '').trim()) list.push({ key: 'turn', name: 'Our call relay (TURN) service', what: 'encrypted audio / video of calls when a direct connection is not possible (relayed live, never recorded)' });

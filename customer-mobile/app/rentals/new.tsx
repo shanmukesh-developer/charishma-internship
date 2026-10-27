@@ -276,7 +276,7 @@ export default function ListVehicle() {
         ))}
       </View>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
-        {rejection && status === 'REJECTED' ? <Notice tone="danger">Zenvy asked for changes: {rejection}</Notice> : null}
+        {rejection && status === 'REJECTED' ? <Notice tone="danger">ZCS asked for changes: {rejection}</Notice> : null}
         {status === 'APPROVED' ? <Notice tone="info">Your vehicle is live. Changing the vehicle details, photos or documents sends it back for a quick review; price and availability changes go live at once.</Notice> : null}
 
         {step === 0 && (
@@ -305,7 +305,7 @@ export default function ListVehicle() {
                 ? 'Private (white plate): you lend your personal vehicle and students borrow it on a non-commercial basis (sharing costs such as fuel), never as a business. Check that your insurance allows another driver; you are responsible for that.'
                 : form.plateType === 'COMMERCIAL_RENTAL'
                   ? 'Commercial (black / yellow plate): students rent it from you. You are responsible for a valid rental permit and insurance.'
-                  : 'Be honest: Zenvy reviews this. Private vehicles are lent and borrowed between students (not rented for profit); commercial-plate vehicles are rented.'}
+                  : 'Be honest: ZCS reviews this. Private vehicles are lent and borrowed between students (not rented for profit); commercial-plate vehicles are rented.'}
             </Text>
           </View>
         )}
@@ -338,7 +338,7 @@ export default function ListVehicle() {
         {step === 2 && (
           <View>
             <SectionTitle>Documents</SectionTitle>
-            <Notice tone="info">Only you and the Zenvy team can see these. Renters and borrowers never see them.</Notice>
+            <Notice tone="info">Only you and the ZCS team can see these. Renters and borrowers never see them.</Notice>
             {docTile('rc', 'Registration certificate (RC)', 'Front side, number clearly visible')}
             {docTile('insurance', 'Insurance', 'Current policy page with validity dates')}
             {docTile('licence', 'Your driving licence', 'Shows you own the vehicle or may rent it out or lend it')}
@@ -362,7 +362,7 @@ export default function ListVehicle() {
               <Field label="₹ per extra km" value={form.extraPerKm} onChangeText={(t) => set('extraPerKm', decimal(t))} keyboardType="decimal-pad" placeholder="Optional" style={{ flex: 1 }} />
             </View>
             <Field label="Fuel policy" value={form.fuelPolicy} onChangeText={(t) => set('fuelPolicy', t.slice(0, 300))} placeholder="Return with the same fuel level" />
-            <Notice tone="success">{isPrivate ? 'Borrowers pay you the agreed cost share and deposit in cash at pickup.' : 'Renters pay you the rent and deposit in cash at pickup.'} Zenvy does not take a cut or hold the money.</Notice>
+            <Notice tone="success">{isPrivate ? 'Borrowers pay you the agreed cost share and deposit in cash at pickup.' : 'Renters pay you the rent and deposit in cash at pickup.'} ZCS does not take a cut or hold the money.</Notice>
           </View>
         )}
 
@@ -416,7 +416,7 @@ export default function ListVehicle() {
               <Row label="Pickup" value={form.pickupLocation || '—'} />
               <Row label="Hours" value={form.fixedHours ? `${form.days.map((d) => DAY_NAMES[Number(d)]).join(', ')} · ${fmtTime(form.openAt)}–${fmtTime(form.closeAt)}` : 'Any time'} />
             </Card>
-            <Notice tone="info">Zenvy checks your documents before the vehicle goes live (usually within a day). You will get a notification.</Notice>
+            <Notice tone="info">ZCS checks your documents before the vehicle goes live (usually within a day). You will get a notification.</Notice>
           </View>
         )}
       </ScrollView>

@@ -53,7 +53,7 @@ export default function OrganizerHome() {
     try {
       await campusEventsApi.applyOrganizer({ displayName: form.displayName.trim(), entityId: form.entityId, note: form.note.trim(), proofText: form.proofText.trim() });
       refreshCampusEventsStatus().catch(() => {});
-      Alert.alert('Application sent', 'The Zenvy team reviews organizer applications. You will get a notification.');
+      Alert.alert('Application sent', 'The ZCS team reviews organizer applications. You will get a notification.');
       load();
     } catch (e: any) {
       if (e?.field === 'displayName') setFormErr(e.message);
@@ -79,8 +79,8 @@ export default function OrganizerHome() {
         <EHeader title="Host an event" />
         <KeyboardAvoidingView style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-            <Notice icon="megaphone-outline">Verified clubs and authorised student organizers can publish events on Zenvy. Every event is reviewed by the Zenvy team before students can see it.</Notice>
-            {o?.status === 'PENDING' ? <Notice tone="warn" icon="time-outline">Your application ({o.displayName}) is with the Zenvy team. We will notify you.</Notice> : null}
+            <Notice icon="megaphone-outline">Verified clubs and authorised student organizers can publish events on ZCS. Every event is reviewed by the ZCS team before students can see it.</Notice>
+            {o?.status === 'PENDING' ? <Notice tone="warn" icon="time-outline">Your application ({o.displayName}) is with the ZCS team. We will notify you.</Notice> : null}
             {o?.status === 'SUSPENDED' ? <Notice tone="danger" icon="ban-outline">Your organizer access is suspended.{o.reviewNote ? ` ${o.reviewNote}` : ''}</Notice> : null}
             {o?.status === 'REJECTED' || o?.status === 'REVOKED' ? <Notice tone="danger" icon="close-circle-outline">Your previous application was {o.status === 'REJECTED' ? 'not approved' : 'revoked'}.{o.reviewNote ? ` ${o.reviewNote}` : ''} You can apply again.</Notice> : null}
             {me.canApply ? (

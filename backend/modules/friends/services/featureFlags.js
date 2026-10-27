@@ -11,7 +11,7 @@ const CONFIG_KEY = 'friends.config';
 const TTL_MS = 30 * 1000;
 
 const DEFAULT_GUIDELINES = [
-  'Zenvy Friends is for verified students of your campus. By joining you agree to:',
+  'ZCS Friends is for verified students of your campus. By joining you agree to:',
   '1. Respect: no harassment, bullying, hate, threats or slurs, including in anonymous posts.',
   '2. Privacy: never share anyone\'s phone number, email, room number, photos or private chats without consent.',
   '3. Academic integrity: no exam-taking, proxy attendance, submitting others\' graded work or fake certificates. Tutoring, explaining and debugging are welcome.',
@@ -19,7 +19,7 @@ const DEFAULT_GUIDELINES = [
   '5. Honest reviews: share your own experience; no unsupported allegations or personal attacks on faculty or students.',
   '6. Reporting: use Report on anything that breaks these rules. A report is reviewed by people; it is not proof by itself.',
   '7. Consequences: content can be removed, and accounts can be warned or restricted from Friends. You can appeal any decision.',
-  'Anonymous posts hide your name from other students, but Zenvy keeps the real author so that safety rules still apply.',
+  'Anonymous posts hide your name from other students, but ZCS keeps the real author so that safety rules still apply.',
 ].join('\n');
 
 const DEFAULTS = Object.freeze({
@@ -172,7 +172,7 @@ const setConfig = async (patch) => {
     row.changed('value', true);
     await row.save();
   } else {
-    await GlobalConfig.create({ key: CONFIG_KEY, value: next, description: 'Zenvy Friends configuration (admin /mod/config)' });
+    await GlobalConfig.create({ key: CONFIG_KEY, value: next, description: 'ZCS Friends configuration (admin /mod/config)' });
   }
   cache = { at: Date.now(), value: merge(next) };
   require('../../../utils/cacheBus').broadcast('flags.friends'); // B1: other instances re-read it

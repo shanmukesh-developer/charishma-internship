@@ -104,7 +104,7 @@ function HoursSheet({ visible, onClose, start, end, weekly }: { visible: boolean
         <Text style={[font.small, { color: color.textMuted }]}>Same open and close time = open all day. Outside these hours customers can't order even if the switch is ON.</Text>
         {weekly ? (
           <Text style={[font.small, { color: color.warning, fontWeight: '700' }]}>
-            Zenvy set different hours for some days. Saving here uses these same hours every day.
+            ZCS set different hours for some days. Saving here uses these same hours every day.
           </Text>
         ) : null}
         {err ? <Text style={[font.body, { color: color.alertDark, fontWeight: '700' }]}>{err}</Text> : null}

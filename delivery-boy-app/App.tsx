@@ -37,7 +37,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       {/* C9: a render error shows a calm "Something went wrong — Restart" screen instead of a crash. */}
-      <ErrorBoundary appName="Zenvy Rider">
+      <ErrorBoundary appName="ZCS Rider">
         {/* Force update: a retired version sees only the Update screen; a newer release shows a banner. */}
         <UpdateGate>
           <RiderProvider>

@@ -111,7 +111,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         if (t && isStallAccount(r)) {
           // A stall session saved by an older build: its orders cannot be completed in this app.
           clearSession();
-          setNotice('This is a stall account. Please log in with the Zenvy Vendor app.');
+          setNotice('This is a stall account. Please log in with the ZCS Vendor app.');
           return;
         }
         tokenRef.current = t;

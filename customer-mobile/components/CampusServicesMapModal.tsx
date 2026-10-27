@@ -42,7 +42,7 @@ const CAMPUS_SERVICES_MAP: ServicePillar[] = [
     howToAccess: 'Home tab ➔ pick a restaurant or a cuisine under Popular dishes.',
     keyFeatures: [
       'Real menus and prices from campus kitchens',
-      'Ordering open 6 AM – 9 PM, Cash on Delivery or Zenvy Wallet',
+      'Ordering open 6 AM – 9 PM, Cash on Delivery or ZCS Wallet',
       'Live order status and a Delivery PIN only you can share'
     ],
     image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80',
@@ -127,12 +127,12 @@ const CAMPUS_SERVICES_MAP: ServicePillar[] = [
     icon: '🎁',
     title: 'Rewards & Daily Deals',
     category: 'PERKS & LOYALTY',
-    tagline: 'ZenPoints, spins and daily deals',
+    tagline: 'ZCS Points, spins and daily deals',
     howToAccess: 'Others tab ➔ "Deals & Spin", or Home ➔ Daily Deals.',
     keyFeatures: [
       'Every 2 delivered orders earn a spin',
       'Daily deals give a coupon valid until midnight',
-      '200+ ZenPoints unlock free delivery'
+      '200+ ZCS Points unlock free delivery'
     ],
     image: 'https://images.unsplash.com/photo-1596451190630-186aff535bf2?w=600&q=80',
     accentColor: '#EC4899',
@@ -235,7 +235,7 @@ export default function CampusServicesMapModal({ visible, onClose }: Props) {
                   </Text>
                   <View style={{ backgroundColor: `${activePillar.accentColor}20`, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
                     <Text style={{ color: activePillar.accentColor, fontSize: 12, fontWeight: '900' }}>
-                      ON ZENVY
+                      On ZCS
                     </Text>
                   </View>
                 </View>

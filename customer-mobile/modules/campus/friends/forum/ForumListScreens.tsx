@@ -237,7 +237,7 @@ export const ModQueueScreen: React.FC<{ communityId?: string | null }> = ({ comm
                   style={[fui.ghostBtn, { flex: 1 }]}
                   onPress={() => {
                     if (item.severity === 'critical') {
-                      Alert.alert('Left to the Zenvy team', 'Reports about threats or self-harm are reviewed by the Zenvy team.');
+                      Alert.alert('Left to the ZCS team', 'Reports about threats or self-harm are reviewed by the ZCS team.');
                       return;
                     }
                     setReason('');

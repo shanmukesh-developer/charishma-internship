@@ -51,9 +51,9 @@ test('otpauth URI for authenticator apps', () => {
   const u = new URL(T.otpauthUri({ secretB32: 'JBSWY3DPEHPK3PXP', account: 'Admin (1234)' }));
   assert.strictEqual(u.protocol, 'otpauth:');
   assert.strictEqual(u.host, 'totp');
-  assert.strictEqual(decodeURIComponent(u.pathname), '/Zenvy Admin:Admin (1234)');
+  assert.strictEqual(decodeURIComponent(u.pathname), '/ZCS Admin:Admin (1234)');
   assert.strictEqual(u.searchParams.get('secret'), 'JBSWY3DPEHPK3PXP');
-  assert.strictEqual(u.searchParams.get('issuer'), 'Zenvy Admin');
+  assert.strictEqual(u.searchParams.get('issuer'), 'ZCS Admin');
   assert.strictEqual(u.searchParams.get('digits'), '6');
   assert.strictEqual(u.searchParams.get('period'), '30');
 });

@@ -65,14 +65,14 @@ export default function LoginScreen() {
       const data = await login(id, password);
       if (!data?.token || !data?.restaurant) throw new Error('bad response');
       if (isStallAccount(data.restaurant)) {
-        setError('This is a stall account. Please log in with the Zenvy Vendor app.');
+        setError('This is a stall account. Please log in with the ZCS Vendor app.');
         return;
       }
       await setSavedId(remember ? id : null);
       await signIn(data.token, data.restaurant);
     } catch (e) {
       if (e instanceof ApiError && e.code === 'USE_VENDOR_APP') {
-        setError('This is a stall account. Please log in with the Zenvy Vendor app.');
+        setError('This is a stall account. Please log in with the ZCS Vendor app.');
       } else if (e instanceof ApiError && e.status === 401 && /invalid credentials/i.test(e.message)) {
         setError('Wrong store login ID or password. Check and try again.');
       } else if (e instanceof ApiError) {
@@ -82,7 +82,7 @@ export default function LoginScreen() {
           setNow(Date.now());
         }
       } else if (e instanceof NetworkError) {
-        setError(server === 'waking' ? 'Zenvy is waking up. Please try again in a few seconds.' : e.message);
+        setError(server === 'waking' ? 'ZCS is waking up. Please try again in a few seconds.' : e.message);
       } else {
         setError('Something went wrong. Please try again.');
       }
@@ -93,7 +93,7 @@ export default function LoginScreen() {
   };
 
   const call = () => Linking.openURL(`tel:+${SUPPORT_PHONE}`).catch(() => {});
-  const wa = () => Linking.openURL(`https://wa.me/${SUPPORT_PHONE}?text=${encodeURIComponent(`Hi Zenvy, I forgot the password for the restaurant partner app. Please reset it.${identifier.trim() ? ` My store login ID: ${identifier.trim()}.` : ''}`)}`).catch(() => {});
+  const wa = () => Linking.openURL(`https://wa.me/${SUPPORT_PHONE}?text=${encodeURIComponent(`Hi ZCS, I forgot the password for the restaurant partner app. Please reset it.${identifier.trim() ? ` My store login ID: ${identifier.trim()}.` : ''}`)}`).catch(() => {});
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: color.bg }}>
@@ -103,7 +103,7 @@ export default function LoginScreen() {
       >
         <View style={styles.brand}>
           <Image source={require('../../assets/icon.png')} style={styles.logo} accessibilityIgnoresInvertColors />
-          <Text style={[font.h1, { color: color.text }]}>Zenvy Partner</Text>
+          <Text style={[font.h1, { color: color.text }]}>ZCS Partner</Text>
           <Text style={[font.body, { color: color.textSecondary }]}>Restaurant login</Text>
         </View>
 
@@ -116,7 +116,7 @@ export default function LoginScreen() {
 
         <View style={styles.card}>
           <Text style={styles.label}>Store login ID</Text>
-          <Text style={[font.small, { color: color.textMuted, marginBottom: space.xxs }]}>From your Zenvy welcome message. Your store name also works.</Text>
+          <Text style={[font.small, { color: color.textMuted, marginBottom: space.xxs }]}>From your ZCS welcome message. Your store name also works.</Text>
           <TextInput
             value={identifier}
             onChangeText={(t) => { setIdentifier(t); setError(null); }}
@@ -128,7 +128,7 @@ export default function LoginScreen() {
             returnKeyType="next"
             onSubmitEditing={() => pwRef.current?.focus()}
             style={styles.input}
-            accessibilityLabel="Store login ID, from your Zenvy welcome message"
+            accessibilityLabel="Store login ID, from your ZCS welcome message"
           />
 
           <Text style={[styles.label, { marginTop: space.md }]}>Password</Text>
@@ -182,13 +182,13 @@ export default function LoginScreen() {
             <View style={[styles.dot, { backgroundColor: server === 'up' ? color.open : color.warning }]} />
           )}
           <Text style={[font.small, { color: color.textMuted }]}>
-            {server === 'checking' ? 'Checking Zenvy…' : server === 'up' ? 'Zenvy is online' : 'Zenvy is waking up — first login can take ~30 s'}
+            {server === 'checking' ? 'Checking ZCS…' : server === 'up' ? 'ZCS is online' : 'ZCS is waking up — first login can take ~30 s'}
           </Text>
         </View>
 
         <View style={styles.help}>
           <Text style={[font.body, { color: color.text, fontWeight: '800', textAlign: 'center' }]}>Forgot password?</Text>
-          <Text style={[font.small, { color: color.textSecondary, textAlign: 'center' }]}>Ask your Zenvy admin to reset it. New partner? Contact us the same way.</Text>
+          <Text style={[font.small, { color: color.textSecondary, textAlign: 'center' }]}>Ask your ZCS admin to reset it. New partner? Contact us the same way.</Text>
           <View style={{ flexDirection: 'row', gap: space.sm }}>
             <Button label="Call" icon="call" variant="secondary" size="secondary" onPress={call} style={{ flex: 1 }} />
             <Button label="WhatsApp" icon="logo-whatsapp" variant="secondary" size="secondary" onPress={wa} style={{ flex: 1 }} />

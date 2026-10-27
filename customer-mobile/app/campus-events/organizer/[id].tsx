@@ -110,7 +110,7 @@ export default function OrganizerEventScreen() {
     ...(ev.status !== 'DRAFT' ? [{ key: 'registrations' as Tab, label: `Registrations${stats ? ` ${stats.total}` : ''}` }, { key: 'updates' as Tab, label: 'Updates' }, { key: 'staff' as Tab, label: 'Check-in staff' }] : []),
   ];
 
-  const submit = () => Alert.alert('Submit for approval?', 'The Zenvy team reviews the event before students can see it. You cannot edit while it is in review (you can withdraw it).', [
+  const submit = () => Alert.alert('Submit for approval?', 'The ZCS team reviews the event before students can see it. You cannot edit while it is in review (you can withdraw it).', [
     { text: 'Not yet', style: 'cancel' }, { text: 'Submit', onPress: () => run('submit', () => campusEventsApi.orgSubmit(id), () => Alert.alert('Submitted', 'You will be notified when it is reviewed.')) },
   ]);
   const cancelEvent = () => setReject({ reg: { id: '__event__' } as Participant, reason: '' });
@@ -140,7 +140,7 @@ export default function OrganizerEventScreen() {
           {tab === 'overview' ? (
             <>
               {params.created === '1' && ev.status === 'DRAFT' ? <Notice tone="success" icon="checkmark-circle-outline">Draft saved.{ev.format === 'SLOT' ? ' Add time slots, then submit it for approval.' : ' Submit it for approval when ready.'}</Notice> : null}
-              {ev.status === 'SUBMITTED' ? <Notice tone="warn" icon="time-outline">In review by the Zenvy team since {fmtWhen(ev.submittedAt)}.</Notice> : null}
+              {ev.status === 'SUBMITTED' ? <Notice tone="warn" icon="time-outline">In review by the ZCS team since {fmtWhen(ev.submittedAt)}.</Notice> : null}
               {ev.status === 'CHANGES_REQUESTED' ? <Notice tone="warn" icon="create-outline">Changes requested{ev.reviewNote ? `: ${ev.reviewNote}` : ''}. Edit and submit again.</Notice> : null}
               {ev.status === 'REJECTED' ? <Notice tone="danger" icon="close-circle-outline">Rejected{ev.rejectionReason ? `: ${ev.rejectionReason}` : ''}. You can edit and resubmit.</Notice> : null}
               {ev.status === 'APPROVED' ? <Notice icon="alarm-outline">Approved. Publishes {ev.publishAt ? fmtWhen(ev.publishAt) : 'soon'}.</Notice> : null}

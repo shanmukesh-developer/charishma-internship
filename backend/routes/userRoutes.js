@@ -170,7 +170,7 @@ router.get('/products/:id/reviews', async (req, res) => {
       // Only a first name is shown — never a hostel block / room or anything from an address.
       allReviews = dbReviews.map(r => ({
         id: r.id,
-        name: r.userName ? String(r.userName).trim().split(/\s+/)[0] : 'Zenvy customer',
+        name: r.userName ? String(r.userName).trim().split(/\s+/)[0] : 'ZCS customer',
         block: null,
         rating: r.rating,
         time: new Date(r.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
@@ -211,7 +211,7 @@ router.get('/products/:id/reviews', async (req, res) => {
           if (ord.rating && !allReviews.some(r => r.orderId === String(ord.id))) {
             allReviews.push({
               id: 'ord-rev-' + ord.id,
-              name: 'Zenvy customer',
+              name: 'ZCS customer',
               block: null,
               rating: ord.rating,
               time: new Date(ord.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
@@ -291,7 +291,7 @@ router.post('/products/:id/reviews', protect, async (req, res) => {
       productName: typeof req.body.productName === 'string' ? req.body.productName.slice(0, 120) : null,
       orderId: String(purchase.id),
       userId: String(req.user.id),
-      userName: user.name ? String(user.name).trim().split(/\s+/)[0] : 'Zenvy customer',
+      userName: user.name ? String(user.name).trim().split(/\s+/)[0] : 'ZCS customer',
       userBlock: null,
       rating: starRating,
       comment: text || null,

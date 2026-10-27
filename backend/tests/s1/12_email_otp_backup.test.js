@@ -23,7 +23,7 @@ const enableMail = () => {
   mailer.isMailerConfigured = () => true;
   mailer.sendMail = async (m) => { mails.push(m); return { ok: true }; };
 };
-const codeOf = (m) => (/Your Zenvy code is: (\d{6})/.exec(m.text) || [])[1];
+const codeOf = (m) => (/Your ZCS code is: (\d{6})/.exec(m.text) || [])[1];
 const send = (body) => H.api('POST', '/api/users/send-email-otp', null, body);
 let n = 0;
 const freshPhone = () => `6${String(300000000 + (++n) * 7919 + (process.pid % 1000)).slice(-9)}`;

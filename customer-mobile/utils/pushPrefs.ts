@@ -11,7 +11,7 @@ export const DEFAULT_PUSH_PREFS: PushPrefs = { orders: true, offers: true, campu
 
 export const PUSH_CATEGORY_ROWS: { key: PushCategory; label: string; desc: string }[] = [
   { key: 'orders', label: 'Orders and deliveries', desc: 'Accepted, out for delivery, delivered, cancelled' },
-  { key: 'offers', label: 'Offers', desc: 'Coupons and deals from Zenvy and stores' },
+  { key: 'offers', label: 'Offers', desc: 'Coupons and deals from ZCS and stores' },
   { key: 'campus', label: 'Campus activity', desc: 'Replies, follows, forum, tasks and Spaces' },
   { key: 'reminders', label: 'Reminders', desc: 'Streak and reorder nudges' },
 ];

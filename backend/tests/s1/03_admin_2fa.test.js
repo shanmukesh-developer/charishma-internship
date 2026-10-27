@@ -38,7 +38,7 @@ test('setup returns an otpauth URI + base32 secret; secret stored encrypted; ena
   assert.deepStrictEqual([st.status, st.body.enabled, st.body.required], [200, false, false]);
   const s = await H.api('POST', '/api/admin/2fa/setup', admin.token, {});
   assert.strictEqual(s.status, 200);
-  assert.match(s.body.otpauthUri, /^otpauth:\/\/totp\/Zenvy%20Admin%3A/);
+  assert.match(s.body.otpauthUri, /^otpauth:\/\/totp\/ZCS%20Admin%3A/);
   const secret = s.body.secret.replace(/\s/g, '');
   assert.match(secret, /^[A-Z2-7]{32}$/);
   assert.ok(s.body.otpauthUri.includes(`secret=${secret}`));

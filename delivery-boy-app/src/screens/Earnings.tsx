@@ -160,11 +160,11 @@ function CashCard({ cash }: { cash: RiderCash }) {
       {status.limitEnabled && status.overLimit && status.message ? <Banner text={status.message} tone="amber" icon="cash-lock" /> : null}
       <Label>CASH WITH YOU</Label>
       <Text style={[T.money, { color: C.cash }]}>{rupees(status.cashHeld)}</Text>
-      <Text style={[T.small, { color: C.muted }]}>COD cash you collected and have not deposited to Zenvy yet.</Text>
+      <Text style={[T.small, { color: C.muted }]}>COD cash you collected and have not deposited to ZCS yet.</Text>
       <View style={{ gap: 4, marginTop: S.sm }}>
         <Line label="Cash you hold" value={rupees(position.cashHeld)} />
-        <Line label="Zenvy owes you (earnings + tips)" value={rupees(position.zenvyOwes)} />
-        <Line label={position.net >= 0 ? 'Net: Zenvy owes you' : 'Net: you owe Zenvy'} value={rupees(Math.abs(position.net))} strong />
+        <Line label="ZCS owes you (earnings + tips)" value={rupees(position.zenvyOwes)} />
+        <Line label={position.net >= 0 ? 'Net: ZCS owes you' : 'Net: you owe ZCS'} value={rupees(Math.abs(position.net))} strong />
       </View>
       {recentDeposits.length ? (
         <View style={{ gap: 4, marginTop: S.sm }}>

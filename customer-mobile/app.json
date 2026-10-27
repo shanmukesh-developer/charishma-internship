@@ -5,7 +5,7 @@
         "hostelbites-backend-jwmt.onrender.com"
       ]
     },
-    "name": "Zenvy – Food Delivery",
+    "name": "ZCS",
     "slug": "zenvy-customer",
     "version": "1.0.19",
     "runtimeVersion": {
@@ -28,9 +28,9 @@
       "bundleIdentifier": "com.srm.hostelbites",
       "buildNumber": "7",
       "infoPlist": {
-        "NSCameraUsageDescription": "Zenvy uses the camera for campus video calls and ID verification.",
-        "NSMicrophoneUsageDescription": "Zenvy uses the microphone for campus voice and video calls.",
-        "NSPhotoLibraryUsageDescription": "Allow Zenvy to access your photos to attach pictures to orders, lost & found posts and chats."
+        "NSCameraUsageDescription": "ZCS uses the camera for campus video calls and ID verification.",
+        "NSMicrophoneUsageDescription": "ZCS uses the microphone for campus voice and video calls.",
+        "NSPhotoLibraryUsageDescription": "Allow ZCS to access your photos to attach pictures to orders, lost & found posts and chats."
       }
     },
     "android": {
@@ -96,9 +96,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Zenvy to access your photos to attach pictures to orders, lost & found posts and chats.",
-          "cameraPermission": "Allow Zenvy to use the camera to take photos and for campus video calls.",
-          "microphonePermission": "Allow Zenvy to use the microphone for campus voice calls and Spaces."
+          "photosPermission": "Allow ZCS to access your photos to attach pictures to orders, lost & found posts and chats.",
+          "cameraPermission": "Allow ZCS to use the camera to take photos and for campus video calls.",
+          "microphonePermission": "Allow ZCS to use the microphone for campus voice calls and Spaces."
         }
       ],
       [

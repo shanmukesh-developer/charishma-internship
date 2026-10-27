@@ -61,7 +61,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       {/* C9: a render error shows a calm "Something went wrong — Restart" screen instead of a crash. */}
-      <ErrorBoundary appName="Zenvy Vendor">
+      <ErrorBoundary appName="ZCS Vendor">
         {/* Real keyboard insets for every screen and sheet (Android edge-to-edge ignores adjustResize). */}
         <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
           <StatusBar style="dark" />

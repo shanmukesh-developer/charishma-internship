@@ -656,13 +656,13 @@ const completeDelivery = async (req, res) => {
       { where: { id: basket.id, [Op.or]: [{ deliveryPinAttempts: null }, { deliveryPinAttempts: { [Op.lt]: MAX_BASKET_PIN_ATTEMPTS } }] } }
     );
     if (claimed === 0) {
-      return res.status(429).json({ code: 'PIN_LOCKED', message: 'Too many wrong PINs for this basket. Please contact Zenvy support to complete the handover.' });
+      return res.status(429).json({ code: 'PIN_LOCKED', message: 'Too many wrong PINs for this basket. Please contact ZCS support to complete the handover.' });
     }
     if (basket.deliveryPin !== String(deliveryPin).trim()) {
       const fresh = await MegaBasket.findByPk(basket.id, { attributes: ['id', 'deliveryPinAttempts'] });
       const used = Number(fresh?.deliveryPinAttempts) || MAX_BASKET_PIN_ATTEMPTS;
       const left = Math.max(0, MAX_BASKET_PIN_ATTEMPTS - used);
-      return res.status(400).json({ code: 'INVALID_PIN', attemptsLeft: left, message: left > 0 ? `That PIN doesn't match. Ask the customer for the 4-digit PIN in their Zenvy app (${left} ${left === 1 ? 'try' : 'tries'} left).` : 'Too many wrong PINs for this basket. Please contact Zenvy support to complete the handover.' });
+      return res.status(400).json({ code: 'INVALID_PIN', attemptsLeft: left, message: left > 0 ? `That PIN doesn't match. Ask the customer for the 4-digit PIN in their ZCS app (${left} ${left === 1 ? 'try' : 'tries'} left).` : 'Too many wrong PINs for this basket. Please contact ZCS support to complete the handover.' });
     }
 
     const [done] = await MegaBasket.update(

@@ -92,7 +92,7 @@ export default function AdminLoginPage() {
       }
       setError(data.message || 'That code did not work. Please try again.');
     } catch {
-      setError('Could not reach the Zenvy server. Check your connection and try again.');
+      setError('Could not reach the ZCS server. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -151,7 +151,7 @@ export default function AdminLoginPage() {
         setError(data.message || data.errors?.[0]?.msg || 'Sign in failed. Please try again.');
       }
     } catch {
-      setError('Could not reach the Zenvy server. Check your connection and try again.');
+      setError('Could not reach the ZCS server. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -166,7 +166,7 @@ export default function AdminLoginPage() {
           <div className="mb-8 flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-md bg-fg text-base font-semibold text-bg" aria-hidden>Z</span>
             <span className="flex items-baseline gap-1.5">
-              <span className="text-lg font-semibold tracking-[-0.01em] text-fg">Zenvy</span>
+              <span className="text-lg font-semibold tracking-[-0.01em] text-fg">ZCS</span>
               <span className="text-sm text-fg-subtle">Admin</span>
             </span>
           </div>
@@ -183,7 +183,7 @@ export default function AdminLoginPage() {
                   <p className="mt-1 text-sm text-fg-muted">
                     {useRecovery
                       ? 'Enter one of your recovery codes. Each code works once.'
-                      : 'Open your authenticator app and enter the 6-digit code for Zenvy Admin.'}
+                      : 'Open your authenticator app and enter the 6-digit code for ZCS Admin.'}
                   </p>
                 </div>
                 <div>
@@ -281,7 +281,7 @@ export default function AdminLoginPage() {
           </div>
 
           <p className="mt-6 text-center text-xs text-fg-subtle">
-            For Zenvy staff only.
+            For ZCS staff only.
           </p>
         </div>
       </div>

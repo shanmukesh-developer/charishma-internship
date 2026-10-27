@@ -269,7 +269,7 @@ export default function RestaurantDetail() {
       }
     } catch {
       if (mountedRef.current && mode !== 'silent') {
-        setLoadError({ notFound: false, message: "Can't reach Zenvy right now. Check your internet and try again." });
+        setLoadError({ notFound: false, message: "Can't reach ZCS right now. Check your internet and try again." });
       }
     } finally {
       if (mountedRef.current) {
@@ -410,9 +410,9 @@ export default function RestaurantDetail() {
 
   const blockedReason = (item: any): string | null => {
     if (!orderable) return closedText;
-    if (stallOffline) return `${restaurant.name} is not taking orders on Zenvy right now.`;
+    if (stallOffline) return `${restaurant.name} is not taking orders on ZCS right now.`;
     if (item.isAvailable === false) return `${item.name} is sold out right now.`;
-    if (item.isEliteOnly && !isUserElite) return `${item.name} is for Zenvy Elite members.`;
+    if (item.isEliteOnly && !isUserElite) return `${item.name} is for ZCS Elite members.`;
     return null;
   };
 
@@ -591,7 +591,7 @@ export default function RestaurantDetail() {
           <View style={[st.noticeBar, { backgroundColor: isDark ? 'rgba(249,115,22,0.12)' : 'rgba(249,115,22,0.08)', borderColor: 'rgba(249,115,22,0.3)' }]}>
             <Ionicons name="storefront-outline" size={16} color="#F97316" />
             <Text style={{ flex: 1, color: txt, fontSize: 12, fontWeight: '700', lineHeight: 16 }}>
-              {stallOffline ? `${restaurant.name} is not taking orders on Zenvy right now.` : `${String(restaurant.name || '').trim() || 'This stall'} delivers this order. Pay them in cash on delivery.`}
+              {stallOffline ? `${restaurant.name} is not taking orders on ZCS right now.` : `${String(restaurant.name || '').trim() || 'This stall'} delivers this order. Pay them in cash on delivery.`}
             </Text>
           </View>
         )}

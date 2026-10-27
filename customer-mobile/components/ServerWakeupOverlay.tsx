@@ -131,10 +131,10 @@ export default function ServerWakeupOverlay({ visible, onWakeupComplete, onRetry
   if (!visible) return null;
 
   const statusConfig = {
-    connecting: { text: 'Zenvy is waking up…', color: COLORS.gold || '#C9A84C' },
-    retrying: { text: 'Zenvy is waking up. This can take a minute or two…', color: '#F59E0B' },
+    connecting: { text: 'ZCS is waking up…', color: COLORS.gold || '#C9A84C' },
+    retrying: { text: 'ZCS is waking up. This can take a minute or two…', color: '#F59E0B' },
     connected: { text: 'Connected. Loading…', color: '#10B981' },
-    offline: { text: offlineText || "Zenvy is taking longer than usual. Please try again in a minute.", color: '#6B7280' },
+    offline: { text: offlineText || "ZCS is taking longer than usual. Please try again in a minute.", color: '#6B7280' },
   };
 
   const { text, color } = statusConfig[status];

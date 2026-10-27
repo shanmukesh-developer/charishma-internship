@@ -72,11 +72,11 @@ const writeRow = async (key, value, description) => {
 };
 
 const writeFlag = async (enabled) => {
-  await writeRow(FLAG_KEY, !!enabled, 'Zenvy Auto-Ride: shared autos seat booking (customers + driver publish)');
+  await writeRow(FLAG_KEY, !!enabled, 'ZCS Auto-Ride: shared autos seat booking (customers + driver publish)');
   return readFlag({ fresh: true });
 };
 const writeWalletFlag = async (enabled) => {
-  await writeRow(WALLET_KEY, !!enabled, 'Zenvy Auto-Ride: allow Zenvy Wallet payments (off = cash only)');
+  await writeRow(WALLET_KEY, !!enabled, 'ZCS Auto-Ride: allow ZCS Wallet payments (off = cash only)');
   return readWalletFlag({ fresh: true });
 };
 
@@ -127,7 +127,7 @@ const writeSettings = async (patch) => {
     const field = patch.maxSeatsPerBooking !== undefined ? 'maxSeatsPerBooking' : 'platformMaxCapacity';
     throw fail(400, 'INVALID_INPUT', `Seats per booking (${next.maxSeatsPerBooking}) cannot be more than the platform max capacity (${next.platformMaxCapacity}).`, { field });
   }
-  await writeRow(SETTINGS_KEY, next, 'Zenvy Auto-Ride settings (capacity cap, hold minutes, refund policy)');
+  await writeRow(SETTINGS_KEY, next, 'ZCS Auto-Ride settings (capacity cap, hold minutes, refund policy)');
   return readSettings({ fresh: true });
 };
 
@@ -157,10 +157,10 @@ const requireCustomer = (opts = {}) => async (req, res, next) => {
   try {
     // S1: rider (delivery partner) and store tokens are not customer accounts either (same rule as Campus Events).
     if (!req.user || !req.user.id || ['auto_driver', 'rider', 'restaurant'].includes(String(req.user.role || '').toLowerCase())) {
-      throw fail(401, 'NOT_AUTHORISED', 'Sign in with your Zenvy account.');
+      throw fail(401, 'NOT_AUTHORISED', 'Sign in with your ZCS account.');
     }
     if (!opts.allowWhenOff && !(await readFlag())) {
-      throw fail(403, 'FEATURE_OFF', 'Zenvy Auto-Ride is not open yet. Please check back soon.');
+      throw fail(403, 'FEATURE_OFF', 'ZCS Auto-Ride is not open yet. Please check back soon.');
     }
     return next();
   } catch (err) {
@@ -170,7 +170,7 @@ const requireCustomer = (opts = {}) => async (req, res, next) => {
 
 /** Driver gate for publish-type actions. */
 const assertOn = async () => {
-  if (!(await readFlag())) throw fail(403, 'FEATURE_OFF', 'Zenvy Auto-Ride is not open for bookings yet. Your trip stays saved as a draft.');
+  if (!(await readFlag())) throw fail(403, 'FEATURE_OFF', 'ZCS Auto-Ride is not open for bookings yet. Your trip stays saved as a draft.');
 };
 
 module.exports = {

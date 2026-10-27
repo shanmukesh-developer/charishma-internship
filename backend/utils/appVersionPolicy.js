@@ -27,9 +27,9 @@ const PACKAGES = {
   autodriver: 'com.srm.zenvyautodriver',
   pgowner: 'com.srm.zenvypgowner',
 };
-const APP_LABELS = { customer: 'Zenvy', rider: 'Zenvy Rider', restaurant: 'Zenvy Restaurant', vendor: 'Zenvy Vendor', autodriver: 'Zenvy Auto Driver', pgowner: 'ZCS PG Partner' };
+const APP_LABELS = { customer: 'ZCS', rider: 'ZCS Rider', restaurant: 'ZCS Restaurant', vendor: 'ZCS Vendor', autodriver: 'ZCS Auto Driver', pgowner: 'ZCS PG Partner' };
 const playUrl = (pkg) => `https://play.google.com/store/apps/details?id=${pkg}`;
-const DEFAULT_MESSAGE = 'This version of the app is no longer supported. Please update to keep using Zenvy.';
+const DEFAULT_MESSAGE = 'This version of the app is no longer supported. Please update to keep using ZCS.';
 const MAX_MESSAGE = 300;
 const MAX_URL = 500;
 const MAX_BUILD = 2100000000; // Play Store versionCode ceiling
@@ -312,7 +312,7 @@ const gate = async (req, res, next) => {
         code: 'UPGRADE_REQUIRED',
         app: null,
         storeUrl: null,
-        message: 'This version of the Zenvy app is no longer supported. Please update it from the Play Store.',
+        message: 'This version of the ZCS app is no longer supported. Please update it from the Play Store.',
       });
     }
     const app = normalizeApp(rawName);
