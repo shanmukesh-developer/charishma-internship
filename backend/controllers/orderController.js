@@ -199,6 +199,10 @@ const getDeliverySlots = async (req, res) => {
     if (storeId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(storeId)) {
       store = await getRestaurantModel().findByPk(storeId);
     }
+    // Local vendors / stalls deliver themselves while open: no slots for them (owner, 27 Oct).
+    if (String((req.query || {}).type || '').toLowerCase() === 'vendor' || (store && require('../utils/vendorTypes').isLocalVendorStore(store))) {
+      return res.json({ enabled: false, slots: [], nextSlot: null, defaultSlotId: null });
+    }
     const lead = deliverySlots.leadForType((req.query || {}).type);
     res.json({ ...deliverySlots.slotsForOrder({ store, lead, at: deliverySlots.now() }), type: String((req.query || {}).type || 'food') });
   } catch (err) {

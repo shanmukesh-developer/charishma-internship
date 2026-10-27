@@ -261,11 +261,11 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
   // Delivery slots: the store must be open at the START of a bookable slot, not necessarily right now (an
   // order at 10 PM for tomorrow's 12:30 slot is fine). The lead time comes from the items (cakes take longer).
   // A store that is off (inactive, an offline stall, its own "closed" switch) has no open slot at all.
+  // Local vendors / stalls deliver themselves, so delivery slots never apply to them (owner, 27 Oct): they are
+  // ordered while open, as before slots.
   let deliverySlots = null;
-  if (slotsLib.slotsEnabled()) {
-    deliverySlots = isStall && store.isOffline
-      ? { ...slotsLib.slotsForOrder({ items: lines.map((l) => l.dbItem), at: slotNow }), slots: [], nextSlot: null, defaultSlotId: null }
-      : slotsLib.slotsForOrder({ items: lines.map((l) => l.dbItem), store, at: slotNow });
+  if (slotsLib.slotsEnabled() && !isStall) {
+    deliverySlots = slotsLib.slotsForOrder({ items: lines.map((l) => l.dbItem), store, at: slotNow });
     if (!deliverySlots.nextSlot) {
       const message = !openState.isOpen
         ? openState.message

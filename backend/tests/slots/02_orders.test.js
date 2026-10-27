@@ -202,3 +202,24 @@ test('GET /api/orders/delivery-slots: per type, with store hours, no sign-in nee
   assert.equal(st.body.slots[0].closedReason, 'store_closed');
   assert.equal(st.body.defaultSlotId, '2026-10-27|S2');
 });
+
+test('local vendors / stalls never use delivery slots (owner, 27 Oct): ordered while open, refused while closed', async () => {
+  const u = await H.mkUser();
+  // 11:45 AM, stall open all day: no slots on the quote, the order is placed as before slots.
+  setNow(IST('2026-10-27T11:45:00'));
+  const { item, store } = await T.mkStore({ name: 'Masala Puri', store: { vendorType: 'LOCAL_VENDOR', password: null, whatsappNumber: '9000000001' } });
+  const q = await quote(u, item);
+  assert.equal(q.status, 200, JSON.stringify(q.body));
+  assert.equal(q.body.deliverySlots ?? null, null, 'a stall quote carries no delivery slots');
+  const r = await place(u, item, { deliverySlot: 'ASAP' });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  assert.ok(!r.body.slotStart, 'no slot window on a stall order');
+  const ds = await H.api('GET', `/api/orders/delivery-slots?type=food&storeId=${store.id}`);
+  assert.equal(ds.body.enabled, false);
+  // 11 PM, stall open 9 AM-10 PM: closed now, so refused (no ordering ahead for a slot).
+  setNow(IST('2026-10-27T23:00:00'));
+  const { item: late } = await T.mkStore({ hours: { start: '09:00', end: '22:00' }, store: { vendorType: 'LOCAL_VENDOR', password: null } });
+  const closed = await quote(u, late);
+  assert.equal(closed.status, 400, JSON.stringify(closed.body));
+  assert.equal(closed.body.code, 'STORE_CLOSED');
+});

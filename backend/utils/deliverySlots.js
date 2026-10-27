@@ -1,14 +1,15 @@
 // Delivery slots: the single source of truth for WHEN a delivery order arrives (owner rule, 26 Oct 2026).
 //
-// Every delivery order (restaurant food, the campus store / groceries basket, local vendor (stall) orders and
+// Every ZCS-delivered order (restaurant food, the campus store / groceries basket and
 // the Mega Basket shopping list) is delivered in one of three daily slots, IST:
 //   S1 12:30–1:00 PM   S2 4:30–5:30 PM   S3 8:30–9:30 PM
 // Booking closes a lead time before the slot START; a basket with mixed items takes the longest lead:
-//   60 min  food, store / groceries, vendor, shopping list
+//   60 min  food, store / groceries, shopping list
 //   120 min normal cakes (the pricingSchema 'cake' keyword rule)
 //   150 min specialized cakes (MenuItem.isSpecializedCake, switched on by the store or admin)
 // A customer can pick today's slots that have not passed their cutoff, plus all three of TOMORROW's slots
-// (always). Nothing beyond tomorrow. Services, Auto rides, Co-Ride, PG and Rentals keep their own timing.
+// (always). Nothing beyond tomorrow. Local vendors / stalls (they deliver themselves), In-Campus Booking pickups,
+// services, Auto rides, Co-Ride, PG and Rentals keep their own timing (owner, 27 Oct).
 //
 // Riders see a slot order only from DISPATCH_WINDOW_MIN before the slot start (the 'orders.slotDispatch' job in
 // jobs/index.js releases orders that were held back). Stores get the order at once so they can plan.
@@ -309,7 +310,8 @@ const slotOrderInfo = (store, at = now()) => {
  * nextSlotClosesAt = "11:30 AM". Services are booked, not delivered in slots: pass skip = true.
  */
 const slotListingFields = (store, { skip = false, at = now() } = {}) => {
-  if (skip || !slotsEnabled()) return { takesSlotOrders: false, nextSlotLabel: null, nextSlotClosesAt: null };
+  // Local vendors / stalls are not slot stores (they deliver themselves while open).
+  if (skip || !slotsEnabled() || require('./vendorTypes').isLocalVendorStore(store)) return { takesSlotOrders: false, nextSlotLabel: null, nextSlotClosesAt: null };
   try {
     const info = slotOrderInfo(store, at);
     return {
