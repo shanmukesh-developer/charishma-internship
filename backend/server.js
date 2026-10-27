@@ -1374,6 +1374,20 @@ const initializeApp = async () => {
       console.warn('⚠️ [AUTO_ROUTES_SEED] not started:', autoSeedErr.message);
     }
 
+    // 🧪 Partner-app test logins, once (GlobalConfig PARTNER_TEST_ACCOUNTS_V1_DONE): one "ZCS Test ..." account per
+    // partner app (rider, restaurant, vendor stall, campus stall, auto driver + approved auto, PG owner + listing),
+    // ready to take orders (data/partner_test_accounts_v1_2026-10-27.json: bcrypt hashes only, never a plaintext
+    // password). Create-only: a phone or store name already in use is skipped, never edited. The marker lists every
+    // created id. DISABLE_PARTNER_TEST_ACCOUNTS=true switches it off.
+    try {
+      const { runPartnerTestAccountsSeed } = require('./scripts/partner_test_accounts_seed');
+      runPartnerTestAccountsSeed()
+        .then((r) => console.log('🧪 [PARTNER_TEST_ACCOUNTS]', JSON.stringify(r)))
+        .catch((err) => console.warn('⚠️ [PARTNER_TEST_ACCOUNTS] failed:', err.message));
+    } catch (ptErr) {
+      console.warn('⚠️ [PARTNER_TEST_ACCOUNTS] not started:', ptErr.message);
+    }
+
     // 🧹 Demo-data cleanup (idempotent): switches off the demo riders / students / PG listings that
     // older builds seeded into production. Runs in the background; never deletes anything.
     try {
