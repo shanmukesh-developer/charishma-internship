@@ -3,6 +3,9 @@
  * button, the floating info card (Open now / real rating, name, description, time and place line, FSSAI), notice
  * bars, in-store search and category pills, Menu / About, item cards with the image and the Add control, and the
  * red "View cart" bar. The cart is this stall's own pickup cart (cbCart), never a delivery basket.
+ * A sample stall (campusBookingDemo.ts, id `sample-cb-...`) is drawn from that file only, in the same look, with a
+ * "Sample" banner and "Sample" tags where Add would be (they open CbSampleSheet). It never calls a campus-booking
+ * endpoint, never listens for live updates, never touches the pickup cart and has no bookings / cart / pay buttons.
  */
 import React, { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -17,6 +20,9 @@ import { cbApi, type CbMenuItem, type CbStall as Stall } from './cbApi';
 import { cbCart, useCbCart } from './cbCart';
 import { COLORS, SHADOWS, hhmm12, inr, surfaceLift, useCbTheme } from './cbTheme';
 import { AddControl, DopaminePressable, EmptyCard, NoticeBar, StaggeredSection, useCbBack, useCbLive } from './cbKit';
+import { isSampleId, sampleStallById, type CbSampleMenuItem } from './campusBookingDemo';
+import CbSampleSheet, { CbSampleTag, type CbSampleNote } from './CbSampleSheet';
+import { BUTTON_ROLE } from '../../utils/pressRole';
 
 const memo = new Map<string, { stall: Stall; menu: CbMenuItem[] }>();
 const NON_FOOD_CATEGORY = /stationery|xerox|print|toiletr|laundry|household|electronic/i;
@@ -27,8 +33,12 @@ export default function CbStall({ id }: { id: string }) {
   const back = useCbBack();
   const topPad = useTopInset();
   const insets = useSafeAreaInsets();
-  const [data, setData] = useState(memo.get(id) || null);
-  const [error, setError] = useState<{ msg: string; gone: boolean } | null>(null);
+  // A sample id never reaches the server: its stall comes from campusBookingDemo.ts, or "not taking bookings".
+  const sampleId = isSampleId(id);
+  const sample = useMemo(() => sampleStallById(id), [id]);
+  const [data, setData] = useState<{ stall: Stall; menu: CbMenuItem[] } | null>(sample || memo.get(id) || null);
+  const [error, setError] = useState<{ msg: string; gone: boolean } | null>(sampleId && !sample ? { msg: 'This sample stall is no longer shown.', gone: true } : null);
+  const [sampleNote, setSampleNote] = useState<CbSampleNote | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<'menu' | 'about'>('menu');
   const [activeCategory, setActiveCategory] = useState('All');
@@ -36,6 +46,7 @@ export default function CbStall({ id }: { id: string }) {
   const cart = useCbCart(id);
 
   const load = useCallback(async (pull = false) => {
+    if (sampleId) return;
     if (pull) setRefreshing(true);
     try {
       const d = await cbApi.stall(id);
@@ -48,9 +59,9 @@ export default function CbStall({ id }: { id: string }) {
     } finally {
       setRefreshing(false);
     }
-  }, [id]);
+  }, [id, sampleId]);
   useFocusEffect(useCallback(() => { void load(); }, [load]));
-  useCbLive((e) => { if (e.kind !== 'booking') void load(); });
+  useCbLive((e) => { if (e.kind !== 'booking') void load(); }, !sampleId);
 
   const menu = data?.menu || [];
   const categories = useMemo(() => {
@@ -85,7 +96,9 @@ export default function CbStall({ id }: { id: string }) {
   }
 
   const { stall } = data;
-  const heroImg = resolveMediaUrl(stall.imageUrl) || resolveMediaUrl(stall.logoUrl);
+  const sampleArt = sample ? sample.stall.art : null;
+  const heroImg = sampleArt ? null : resolveMediaUrl(stall.imageUrl) || resolveMediaUrl(stall.logoUrl);
+  const openSample = (m: CbMenuItem) => setSampleNote({ name: m.name, art: (m as CbSampleMenuItem).art || null, price: m.price, meta: stall.name });
   const closes = hhmm12(stall.closesAt);
   const opens = hhmm12(stall.opensAt);
 
@@ -93,11 +106,13 @@ export default function CbStall({ id }: { id: string }) {
     <View style={[st.container, { backgroundColor: p.page }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={p.accent} colors={[COLORS.red]} />}
+        refreshControl={sample ? undefined : <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={p.accent} colors={[COLORS.red]} />}
       >
         {/* Hero */}
         <View style={st.hero}>
-          {heroImg ? (
+          {sampleArt ? (
+            <SafeImage source={sampleArt} style={st.heroImg} maxWidth={800} placeholderIcon="storefront-outline" />
+          ) : heroImg ? (
             <SafeImage source={{ uri: heroImg }} style={st.heroImg} maxWidth={800} placeholderIcon="storefront-outline" />
           ) : (
             <View style={[st.heroImg, { alignItems: 'center', justifyContent: 'center', backgroundColor: p.isDark ? '#1A1A1F' : '#FDE8EA' }]}>
@@ -108,9 +123,11 @@ export default function CbStall({ id }: { id: string }) {
           <TouchableOpacity style={[st.backBtn, { top: topPad }]} onPress={back} accessibilityRole="button" accessibilityLabel="Back">
             <Text style={{ color: '#fff', fontSize: 18, fontWeight: '900' }}>‹</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[st.sideBtn, { top: topPad }]} onPress={() => router.push('/campus-booking/bookings' as any)} accessibilityRole="button" accessibilityLabel="Your bookings">
-            <Ionicons name="receipt-outline" size={18} color="#6B7280" />
-          </TouchableOpacity>
+          {sample ? null : (
+            <TouchableOpacity style={[st.sideBtn, { top: topPad }]} onPress={() => router.push('/campus-booking/bookings' as any)} accessibilityRole="button" accessibilityLabel="Your bookings">
+              <Ionicons name="receipt-outline" size={18} color="#6B7280" />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Floating info card */}
@@ -120,6 +137,7 @@ export default function CbStall({ id }: { id: string }) {
               <Text style={st.statusBadgeText}>{stall.isOpen ? 'Open now' : 'Closed'}</Text>
             </View>
             {stall.rating ? <Text style={{ color: p.txt, fontSize: 12, fontWeight: '700' }}>{`★ ${stall.rating.toFixed(1)}`}</Text> : null}
+            {sample ? <CbSampleTag /> : null}
           </View>
           <Text style={[st.infoCardName, { color: p.txt }]}>{stall.name}</Text>
           {stall.description ? <Text style={[st.infoCardDesc, { color: p.txtSec }]}>{stall.description}</Text> : null}
@@ -144,10 +162,14 @@ export default function CbStall({ id }: { id: string }) {
               ) : null}
             </View>
           </View>
-          <FssaiLine number={stall.fssaiLicenseNumber} color={p.txtSec} />
+          {sample ? null : <FssaiLine number={stall.fssaiLicenseNumber} color={p.txtSec} />}
         </View>
 
-        <NoticeBar icon="qr-code-outline" text={`Collect at ${stall.name}'s counter with your pickup code. You pay the stall directly by UPI.`} style={{ marginHorizontal: 16, marginTop: 12 }} />
+        {sample ? (
+          <NoticeBar icon="information-circle-outline" text="Sample stall. This shows what's coming to In-Campus Booking. You can't book it yet." style={{ marginHorizontal: 16, marginTop: 12 }} />
+        ) : (
+          <NoticeBar icon="qr-code-outline" text={`Collect at ${stall.name}'s counter with your pickup code. You pay the stall directly by UPI.`} style={{ marginHorizontal: 16, marginTop: 12 }} />
+        )}
         {!stall.isOpen ? (
           <NoticeBar icon="moon-outline" tone="indigo" text={`${String(stall.closedReason || 'Closed right now').replace(/[.\s]+$/, '')}. You can browse the menu and book when it opens.`} style={{ marginHorizontal: 16, marginTop: 12 }} />
         ) : null}
@@ -193,12 +215,21 @@ export default function CbStall({ id }: { id: string }) {
               <Text style={[st.menuSub, { color: p.txtSec }]}>{menuQ ? `${filtered.length} ${filtered.length === 1 ? 'match' : 'matches'} for "${menuSearch.trim()}"` : `${filtered.length} ${filtered.length === 1 ? 'item' : 'items'}`}</Text>
               {!filtered.length ? <EmptyCard icon={menuQ ? 'search-outline' : 'file-tray-outline'} title={menuQ ? 'No matching items' : 'No items here yet'} sub={menuQ ? 'Try another word.' : 'This stall is still adding items. Check back later.'} /> : null}
               {filtered.map((m, i) => {
-                const img = resolveMediaUrl(m.imageUrl);
+                const art = sample ? (m as CbSampleMenuItem).art : null;
+                const img = art ? null : resolveMediaUrl(m.imageUrl);
                 const food = !NON_FOOD_CATEGORY.test(String(m.category || ''));
                 const qty = cart.lines.find((l) => l.menuItemId === m.id)?.quantity || 0;
                 return (
                   <StaggeredSection key={m.id} delay={Math.min(i, 10) * 60} direction="up">
-                    <View style={[st.menuCard, { backgroundColor: p.card, borderColor: p.border }, !m.isAvailable && { opacity: 0.6 }]}>
+                    <TouchableOpacity
+                      activeOpacity={sample ? 0.92 : 1}
+                      disabled={!sample}
+                      onPress={() => openSample(m)}
+                      accessible={!!sample}
+                      accessibilityRole={sample ? BUTTON_ROLE : undefined}
+                      accessibilityLabel={sample ? `${m.name}, ${inr(m.price)}, sample. Opens a note` : undefined}
+                      style={[st.menuCard, { backgroundColor: p.card, borderColor: p.border }, !m.isAvailable && { opacity: 0.6 }]}
+                    >
                       <View style={st.menuInfo}>
                         {food ? (
                           <View style={[st.vegDot, { borderColor: m.isVeg ? '#22C55E' : '#AF3F3F' }]}>
@@ -213,12 +244,17 @@ export default function CbStall({ id }: { id: string }) {
                         {m.description ? <Text style={{ fontSize: 12, color: p.txtSec, marginTop: 2 }} numberOfLines={2}>{m.description}</Text> : null}
                       </View>
                       <View style={st.imgBtnContainer} pointerEvents="box-none">
-                        {img ? <SafeImage source={{ uri: img }} style={st.menuItemImg} placeholderIcon={food ? 'fast-food-outline' : 'cube-outline'} /> : (
+                        {art ? <SafeImage source={art} style={st.menuItemImg} placeholderIcon={food ? 'fast-food-outline' : 'cube-outline'} /> : img ? <SafeImage source={{ uri: img }} style={st.menuItemImg} placeholderIcon={food ? 'fast-food-outline' : 'cube-outline'} /> : (
                           <View style={[st.menuItemImg, { alignItems: 'center', justifyContent: 'center', backgroundColor: p.isDark ? '#1F1F23' : '#F3F4F6' }]}>
                             <Ionicons name={food ? 'restaurant-outline' : 'cube-outline'} size={28} color={p.isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.25)'} />
                           </View>
                         )}
                         <View style={st.floatingAddWrap} pointerEvents="box-none">
+                          {sample ? (
+                            <View style={[st.sampleAddSlot, { backgroundColor: p.card, borderColor: p.border }]}>
+                              <CbSampleTag onPress={() => openSample(m)} label={`${m.name} is a sample. Opens a note`} />
+                            </View>
+                          ) : (
                           <AddControl
                             qty={qty}
                             soldOut={!m.isAvailable}
@@ -226,9 +262,10 @@ export default function CbStall({ id }: { id: string }) {
                             onAdd={() => { if (stall.isOpen) cbCart.change(id, { menuItemId: m.id, name: m.name, price: m.price, isVeg: m.isVeg, category: m.category }, 1); }}
                             onRemove={() => cbCart.change(id, { menuItemId: m.id, name: m.name, price: m.price, isVeg: m.isVeg, category: m.category }, -1)}
                           />
+                          )}
                         </View>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   </StaggeredSection>
                 );
               })}
@@ -238,11 +275,12 @@ export default function CbStall({ id }: { id: string }) {
           <View style={{ padding: 16, paddingBottom: 110 + insets.bottom }}>
             <View style={[st.aboutCard, { backgroundColor: p.card, borderColor: p.border }, surfaceLift(p.isDark)]}>
               {[
+                ...(sample ? [['information-circle-outline', 'Sample stall. It shows what is coming and cannot be booked yet.']] : []),
                 ['time-outline', stall.hoursToday ? `Today: ${stall.hoursToday}` : 'Hours not listed'],
                 ...(stall.location ? [['location-outline', stall.location]] : []),
                 ['hourglass-outline', `Usually ready in about ${stall.prepMinutes} minutes after the stall accepts`],
                 ['storefront-outline', 'Pickup only. Collect at the counter with your pickup code.'],
-                ['qr-code-outline', 'You pay the stall directly by UPI. ZCS does not take or hold the money.'],
+                ...(sample ? [] : [['qr-code-outline', 'You pay the stall directly by UPI. ZCS does not take or hold the money.']]),
                 ['pricetag-outline', `${stall.categoryLabel}${stall.itemCount ? ` · ${stall.itemCount} items` : ''}`],
               ].map(([icon, text]) => (
                 <View key={text} style={st.aboutRow}>
@@ -250,13 +288,14 @@ export default function CbStall({ id }: { id: string }) {
                   <Text style={[st.aboutText, { color: p.txt }]}>{text}</Text>
                 </View>
               ))}
-              <FssaiLine number={stall.fssaiLicenseNumber} storeName={stall.legalName || undefined} color={p.txtSec} />
+              {sample ? null : <FssaiLine number={stall.fssaiLicenseNumber} storeName={stall.legalName || undefined} color={p.txtSec} />}
             </View>
           </View>
         )}
       </ScrollView>
+      <CbSampleSheet note={sampleNote} onClose={() => setSampleNote(null)} />
 
-      {cart.count ? (
+      {!sample && cart.count ? (
         <View style={[st.floatingCartContainer, { bottom: 24 + insets.bottom }]}>
           <DopaminePressable
             style={st.floatingCart}
@@ -316,6 +355,7 @@ const st = StyleSheet.create({
   imgBtnContainer: { width: 90, height: 90, position: 'relative', alignItems: 'center', justifyContent: 'flex-end' },
   menuItemImg: { width: 90, height: 90, borderRadius: 16 },
   floatingAddWrap: { position: 'absolute', bottom: -8, zIndex: 10, width: '100%', alignItems: 'center' },
+  sampleAddSlot: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 4, ...SHADOWS.card },
   aboutCard: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 12 },
   aboutRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   aboutText: { flex: 1, fontSize: 13, fontWeight: '500', lineHeight: 18 },

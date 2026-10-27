@@ -3,6 +3,8 @@
  * (components/CampusBitesSection): header line, chips, search, stall cards with photo, name, menu line, open state,
  * real rating only, up to 3 dishes with Add, and "View menu". Adds go to that stall's own pickup cart (cbCart),
  * never to a delivery basket. Bookings in progress are listed first.
+ * While few real stalls take bookings, sample stalls (campusBookingDemo.ts) follow the real ones, tagged "Sample":
+ * their dishes have a "Sample" tag instead of Add (it opens CbSampleSheet) and their page never calls the server.
  */
 import React, { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -14,7 +16,9 @@ import { resolveMediaUrl } from '../../utils/imageUpload';
 import { cbApi, type CbBooking, type CbCategoryKey, type CbHome as HomeData, type CbStall } from './cbApi';
 import { cbCart, cartTotals, useCbCartTick } from './cbCart';
 import { TYPE, hhmm12, inr, surfaceLift, timeIST, useCbTheme } from './cbTheme';
-import { AddControl, CbHeader, DopaminePressable, EmptyCard, StaggeredSection, StatusTag, VegBox, useCbLive } from './cbKit';
+import { AddControl, CbHeader, DopaminePressable, EmptyCard, NoticeBar, StaggeredSection, StatusTag, VegBox, useCbLive } from './cbKit';
+import { isSampleStall, sampleItemArt, sampleStallsFor } from './campusBookingDemo';
+import CbSampleSheet, { CbSampleTag, type CbSampleNote } from './CbSampleSheet';
 
 let homeMem: HomeData | null = null;
 
@@ -43,6 +47,7 @@ export default function CbHome() {
   const [refreshing, setRefreshing] = useState(false);
   const [chip, setChip] = useState<CbCategoryKey | 'all'>('all');
   const [search, setSearch] = useState('');
+  const [sampleNote, setSampleNote] = useState<CbSampleNote | null>(null);
   useCbCartTick();
 
   const load = useCallback(async (pull = false) => {
@@ -62,12 +67,16 @@ export default function CbHome() {
   useCbLive(() => { void load(); });
 
   const q = search.trim().toLowerCase();
-  const stalls = useMemo(() => {
-    const list = (data?.stalls || []).filter((v) => chip === 'all' || v.category === chip);
-    if (!q) return list;
-    return list.filter((v) => [v.name, v.location, v.menuCategories, v.categoryLabel, ...(v.tags || []), ...(v.preview || []).map((m) => m.name)]
+  const pick = useCallback((list: CbStall[]) => {
+    const inChip = list.filter((v) => chip === 'all' || v.category === chip);
+    if (!q) return inChip;
+    return inChip.filter((v) => [v.name, v.location, v.menuCategories, v.categoryLabel, ...(v.tags || []), ...(v.preview || []).map((m) => m.name)]
       .some((t) => String(t || '').toLowerCase().includes(q)));
-  }, [data, chip, q]);
+  }, [chip, q]);
+  const stalls = useMemo(() => pick(data?.stalls || []), [data, pick]);
+  // Samples only once the real list is known (never while loading or after an error), after the real stalls.
+  const allSamples = useMemo(() => (data ? sampleStallsFor(data.stalls || []) : []), [data]);
+  const samples = useMemo(() => pick(allSamples), [allSamples, pick]);
   const allStalls = data?.stalls || [];
   const openCount = allStalls.filter((v) => v.isOpen).length;
   const latest = cbCart.latest();
@@ -80,7 +89,7 @@ export default function CbHome() {
     <View style={{ flex: 1, backgroundColor: p.page }}>
       <CbHeader
         title="In-Campus Booking"
-        sub={data ? `${allStalls.length} ${allStalls.length === 1 ? 'stall' : 'stalls'} · ${openCount} open now` : 'Campus stalls'}
+        sub={data ? (!allStalls.length && allSamples.length ? 'Sample stalls for now' : `${allStalls.length} ${allStalls.length === 1 ? 'stall' : 'stalls'} · ${openCount} open now`) : 'Campus stalls'}
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)' as any))}
         right={(
           <TouchableOpacity onPress={() => router.push('/campus-booking/bookings' as any)} style={[st.headerIcon, pillStyle]} accessibilityRole="button" accessibilityLabel={`Your bookings${data?.active.length ? `, ${data.active.length} in progress` : ''}`}>
@@ -150,16 +159,30 @@ export default function CbHome() {
 
         {!data && !error ? <EmptyCard loading title="Loading campus stalls" /> : null}
         {!data && error ? <EmptyCard icon="cloud-offline-outline" title="Couldn't load the stalls" sub={error} actionLabel="Try again" onAction={() => load()} /> : null}
-        {data && !allStalls.length ? (
+        {data && !allStalls.length && !allSamples.length ? (
           <EmptyCard title="No stalls take bookings yet" sub="Campus stalls appear here as soon as they start taking In-Campus Bookings." />
         ) : null}
-        {data && allStalls.length > 0 && !stalls.length ? (
+        {data && (allStalls.length > 0 || allSamples.length > 0) && !stalls.length && !samples.length ? (
           <EmptyCard icon="search-outline" title={q ? `No stall or item matches "${search.trim()}"` : 'No stalls in this category yet'} actionLabel="Show all stalls" onAction={() => { setSearch(''); setChip('all'); }} />
         ) : null}
 
         {stalls.map((v, i) => (
           <StaggeredSection key={v.id} delay={Math.min(i, 6) * 60} direction="up">
             <StallCard stall={v} onOpen={() => router.push(`/campus-booking/stall/${v.id}` as any)} />
+          </StaggeredSection>
+        ))}
+
+        {/* Sample stalls (campusBookingDemo.ts): after the real ones, never booked */}
+        {samples.length ? (
+          <NoticeBar
+            icon="information-circle-outline"
+            text={allStalls.length ? "More stalls are coming. The ones tagged Sample show what to expect and can't be booked yet." : "No stall takes bookings yet. The stalls below are samples of what's coming and can't be booked yet."}
+            style={{ marginBottom: 12, marginTop: stalls.length ? 4 : 0 }}
+          />
+        ) : null}
+        {samples.map((v, i) => (
+          <StaggeredSection key={v.id} delay={Math.min(stalls.length + i, 6) * 60} direction="up">
+            <StallCard stall={v} onOpen={() => router.push(`/campus-booking/stall/${v.id}` as any)} onSample={setSampleNote} />
           </StaggeredSection>
         ))}
 
@@ -187,27 +210,34 @@ export default function CbHome() {
           </DopaminePressable>
         </View>
       ) : null}
+      <CbSampleSheet note={sampleNote} onClose={() => setSampleNote(null)} />
     </View>
   );
 }
 
-function StallCard({ stall: v, onOpen }: { stall: CbStall; onOpen: () => void }) {
+function StallCard({ stall: v, onOpen, onSample }: { stall: CbStall; onOpen: () => void; onSample?: (n: CbSampleNote) => void }) {
   const p = useCbTheme();
   useCbCartTick();
-  const img = resolveMediaUrl(v.imageUrl) || resolveMediaUrl(v.logoUrl);
+  const sample = isSampleStall(v) ? v : null;
+  const img = sample ? null : resolveMediaUrl(v.imageUrl) || resolveMediaUrl(v.logoUrl);
   const meta = [v.menuCategories || v.categoryLabel, v.location].filter(Boolean).join(' · ');
   const dishes = v.preview || [];
   const foot = [v.itemCount ? `${v.itemCount} ${v.itemCount === 1 ? 'item' : 'items'}` : null, v.hoursToday].filter(Boolean).join(' · ');
   return (
-    <TouchableOpacity activeOpacity={0.92} style={[st.card, { backgroundColor: p.card, borderColor: p.border }, surfaceLift(p.isDark)]} onPress={onOpen} accessibilityLabel={`${v.name}, ${statusLine(v)}`}>
+    <TouchableOpacity activeOpacity={0.92} style={[st.card, { backgroundColor: p.card, borderColor: p.border }, surfaceLift(p.isDark)]} onPress={onOpen} accessibilityLabel={`${v.name}${sample ? ", sample stall" : ""}, ${statusLine(v)}`}>
       <View style={st.cardTop}>
         <View style={[st.photo, { borderColor: p.border }]}>
-          {img ? <Image source={{ uri: img }} style={st.photoImg} placeholderIcon="storefront-outline" /> : (
+          {sample ? <Image source={sample.art} style={st.photoImg} placeholderIcon="storefront-outline" /> : img ? <Image source={{ uri: img }} style={st.photoImg} placeholderIcon="storefront-outline" /> : (
             <View style={[st.photoImg, st.noImg, { backgroundColor: p.chipBg }]}><Ionicons name="storefront-outline" size={26} color={p.txtSec} /></View>
           )}
         </View>
         <View style={st.info}>
-          <Text style={[st.nameText, { color: p.txt }]} numberOfLines={1}>{v.name}</Text>
+          {sample ? (
+            <View style={st.nameRow}>
+              <Text style={[st.nameText, { color: p.txt, flexShrink: 1 }]} numberOfLines={1}>{v.name}</Text>
+              <CbSampleTag />
+            </View>
+          ) : <Text style={[st.nameText, { color: p.txt }]} numberOfLines={1}>{v.name}</Text>}
           {!!meta && <Text style={[st.metaText, { color: p.txtSec }]} numberOfLines={1}>{meta}</Text>}
           <View style={st.statusRow}>
             <Ionicons name="time-outline" size={13} color={v.isOpen ? p.openInk : p.closedInk} />
@@ -230,7 +260,12 @@ function StallCard({ stall: v, onOpen }: { stall: CbStall; onOpen: () => void })
               {NON_FOOD_CATEGORY.test(String(m.category || '')) ? <View style={{ width: 12 }} /> : <VegBox veg={m.isVeg} />}
               <Text style={[st.dishName, { color: p.txt }]} numberOfLines={1}>{m.name}</Text>
               <Text style={[st.dishPrice, { color: p.txt }]}>{inr(m.price)}</Text>
-              {v.isOpen ? (
+              {sample ? (
+                <CbSampleTag
+                  onPress={() => onSample?.({ name: m.name, art: sampleItemArt(v.id, m.id), price: m.price, meta: v.name })}
+                  label={`${m.name} is a sample. Opens a note`}
+                />
+              ) : v.isOpen ? (
                 <AddControl
                   qty={cbCart.qty(v.id, m.id)}
                   onAdd={() => cbCart.change(v.id, { menuItemId: m.id, name: m.name, price: m.price, isVeg: m.isVeg, category: m.category }, 1)}
@@ -297,6 +332,7 @@ const st = StyleSheet.create({
   noImg: { alignItems: 'center', justifyContent: 'center' },
   info: { flex: 1, minWidth: 0, gap: 3 },
   nameText: { fontSize: 16, fontWeight: '600', letterSpacing: 0.1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 },
   metaText: { fontSize: 13, fontWeight: '400' },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   statusText: { fontSize: 12, fontWeight: '500' },
