@@ -7,7 +7,7 @@
     },
     "name": "ZCS Rider",
     "slug": "zenvy-rider",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -40,7 +40,7 @@
       },
       "package": "com.srm.hostelbitesdelivery",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 9,
+      "versionCode": 10,
       "compileSdkVersion": 36,
       "targetSdkVersion": 36,
       "minSdkVersion": 24,
