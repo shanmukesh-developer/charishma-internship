@@ -5,7 +5,7 @@
     },
     "name": "Zenvy Auto Driver",
     "slug": "zenvy-auto-driver",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,7 @@
     },
     "android": {
       "package": "com.srm.zenvyautodriver",
-      "versionCode": 7,
+      "versionCode": 8,
       "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#0B0D12",
