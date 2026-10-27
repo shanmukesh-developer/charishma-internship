@@ -3,7 +3,7 @@
  * Others → Food & groceries (modules/foodV2).
  */
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Platform, Alert, Modal, useWindowDimensions, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Platform, Alert, Modal, useWindowDimensions, BackHandler, type ImageSourcePropType } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -37,6 +37,8 @@ const st = StyleSheet.create({
   rowMeta: { height: 16, lineHeight: 16 },
   priceLine: { height: 22, lineHeight: 22, marginTop: 6 },
   rowCtl: { height: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
+  sample: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7, backgroundColor: '#FFF6DF', borderWidth: StyleSheet.hairlineWidth, borderColor: '#EED9A4', alignSelf: 'flex-start' },
+  sampleText: { fontSize: 11, lineHeight: 14, color: '#8A6A1E', fontWeight: '500' },
 });
 
 /** Listing rows have one fixed height (FlatList getItemLayout): name (2 lines), size, price line, then the
@@ -46,6 +48,22 @@ export const ROW_H = 134;
 export const ROW_GAP = 10;
 
 type RowColors = { card: string; line: string; slate: string; mint: string; mintInk: string; title: string; name: string; price: string; was: string; off: string };
+
+/** Soft amber "Sample" tag (same tones as the Rentals / Events sample tags). With onPress it is the row's
+ *  control: a 44 px tap area that opens the sample sheet. */
+export function SampleTag({ isDark, onPress, label }: { isDark: boolean; onPress?: () => void; label?: string }) {
+  const tag = (
+    <View style={[st.sample, isDark ? { backgroundColor: 'rgba(255,214,128,0.12)', borderColor: 'rgba(255,214,128,0.28)' } : null]}>
+      <Text style={[st.sampleText, isDark ? { color: '#F3D38A' } : null]}>Sample</Text>
+    </View>
+  );
+  if (!onPress) return <View accessibilityLabel="Sample">{tag}</View>;
+  return (
+    <PressScale onPress={onPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={label || 'Sample. Opens a note'}>
+      {tag}
+    </PressScale>
+  );
+}
 
 /** One line: price, struck MRP (whole rupees) and % off; never wraps under the add control. */
 function PriceLine({ p, c, big = false }: { p: Item; c: RowColors; big?: boolean }) {
@@ -63,6 +81,8 @@ function PriceLine({ p, c, big = false }: { p: Item; c: RowColors; big?: boolean
 function AddControlView({ p, q, closed, compact, isDark, c, greenGlow, actions }: {
   p: Item; q: number; closed: string | null; compact: boolean; isDark: boolean; c: RowColors; greenGlow: any; actions: FoodV2RowActions;
 }) {
+  // A sample (foodV2Demo.ts) shows its "Sample" tag here instead of "+"; the tap opens the sample sheet.
+  if (p.isDemoContent) return <SampleTag isDark={isDark} onPress={() => actions.openProduct(p)} label={`${p.name} is a sample. Opens a note`} />;
   if (!p.isAvailable) return <Text style={[s.soldText, { color: c.slate }]}>Sold out</Text>;
   if (!p.orderable && q === 0) {
     const label = closed || 'Closed now';
@@ -117,8 +137,8 @@ const ProductRow = React.memo(function ProductRow({ p, q, isSaved, closed, plate
   const open = useCallback(() => { if (openRef.current) openRef.current(); else actions.openProduct(p); }, [actions, p]);
   return (
     <View style={[s.row, { backgroundColor: c.card, height: Math.max(ROW_H, plate + 24) }, flat ? { borderRadius: 0, borderBottomWidth: 1, borderBottomColor: c.line } : shadow]}>
-      <PressScale onPress={open} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`${p.name}${p.weight ? `, ${p.weight}` : ''}, ${fmt(p.price)}${!p.isAvailable ? ', sold out' : ''}. Open details`}>
-        <Thumb uri={p.image} size={plate} isDark={isDark} group={groupOf(p)} dim={!p.isAvailable} />
+      <PressScale onPress={open} accessibilityRole={BUTTON_ROLE} accessibilityLabel={p.isDemoContent ? `${p.name}${p.weight ? `, ${p.weight}` : ''}, sample, not for sale yet. Opens a note` : `${p.name}${p.weight ? `, ${p.weight}` : ''}, ${fmt(p.price)}${!p.isAvailable ? ', sold out' : ''}. Open details`}>
+        <Thumb uri={p.image} art={p.art} size={plate} isDark={isDark} group={groupOf(p)} dim={!p.isAvailable} />
       </PressScale>
       <View style={st.rowCol}>
         <PressScale style={st.rowText} onPress={open} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
@@ -129,9 +149,11 @@ const ProductRow = React.memo(function ProductRow({ p, q, isSaved, closed, plate
         </PressScale>
         <View style={st.rowCtl}><AddControlView p={p} q={q} closed={closed} compact={false} isDark={isDark} c={c} greenGlow={greenGlow} actions={actions} /></View>
       </View>
-      <PressScale style={s.rowHeart} onPress={() => { if (!savedSample) actions.toggleSaved(p); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={isSaved ? `Remove ${p.name} from saved items` : `Save ${p.name}`}>
-        <Icon name={isSaved ? 'heart' : 'heart-outline'} size={16} strokeWidth={1.5} color={isSaved ? FOOD.primary : c.was} />
-      </PressScale>
+      {!p.isDemoContent && (
+        <PressScale style={s.rowHeart} onPress={() => { if (!savedSample) actions.toggleSaved(p); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={isSaved ? `Remove ${p.name} from saved items` : `Save ${p.name}`}>
+          <Icon name={isSaved ? 'heart' : 'heart-outline'} size={16} strokeWidth={1.5} color={isSaved ? FOOD.primary : c.was} />
+        </PressScale>
+      )}
     </View>
   );
 }, (a, b) => a.p === b.p && a.q === b.q && a.isSaved === b.isSaved && a.closed === b.closed && a.plate === b.plate
@@ -220,15 +242,16 @@ export function useFoodV2Ui() {
     );
   };
 
-  /** White tile: photo on top, label (and an optional green line) below. */
-  const miniTile = (key: string, label: string, sub: string | null, img: string, onPress: () => void, w: number, contain = false) => (
-    <PressScale key={key} onPress={onPress} style={{ width: w }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={sub ? `${label}, ${sub}` : label}>
+  /** White tile: photo on top, label (and an optional green line) below. `img` may be a bundled photo (samples);
+   *  `sample` shows the "Sample" tag in place of the green line. */
+  const miniTile = (key: string, label: string, sub: string | null, img: string | ImageSourcePropType, onPress: () => void, w: number, contain = false, sample = false) => (
+    <PressScale key={key} onPress={onPress} style={{ width: w }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={sample ? `${label}, sample, not for sale yet. Opens a note` : sub ? `${label}, ${sub}` : label}>
       <View style={[s.mini, { backgroundColor: c.card }, shadow]}>
-        <View style={[s.miniImg, { backgroundColor: contain ? c.plate : c.tile }]}>
-          <Image source={{ uri: img }} style={contain ? s.miniImgContain : StyleSheet.absoluteFill} resizeMode={contain ? 'contain' : 'cover'} />
+        <View style={[s.miniImg, { backgroundColor: contain && !sample ? c.plate : c.tile }]}>
+          <Image source={typeof img === 'string' ? { uri: img } : img} style={contain && !sample ? s.miniImgContain : StyleSheet.absoluteFill} resizeMode={contain && !sample ? 'contain' : 'cover'} />
         </View>
         <Text style={[s.miniLabel, { color: c.name }]} numberOfLines={2}>{label}</Text>
-        {!!sub && <Text style={[s.miniSub, { color: c.off }]} numberOfLines={1}>{sub}</Text>}
+        {sample ? <View style={{ marginTop: 4 }}><SampleTag isDark={isDark} /></View> : !!sub && <Text style={[s.miniSub, { color: c.off }]} numberOfLines={1}>{sub}</Text>}
       </View>
     </PressScale>
   );

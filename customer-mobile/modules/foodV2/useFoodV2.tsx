@@ -161,7 +161,10 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
   useEffect(() => { loadSaved(); }, [loadSaved, route]);
   const savedIds = useMemo(() => new Set(saved.map(f => f.id)), [saved]);
   const persistSaved = (next: Saved[]) => { setSaved(next); AsyncStorage.setItem(WISHLIST_KEY, JSON.stringify(next)).catch(() => {}); };
+  /** Sample sheet (foodV2Demo.ts): the item a sample tap opened, or null. */
+  const [sampleOpen, setSampleOpen] = useState<Item | null>(null);
   const toggleSaved = (p: Item) => {
+    if (p.isDemoContent) return; // samples are never saved
     Haptics.selectionAsync().catch(() => {});
     if (savedIds.has(p.id)) persistSaved(saved.filter(f => f.id !== p.id));
     else persistSaved([{ id: p.id, title: p.name, subtitle: [p.storeName, p.weight].filter(Boolean).join(' • ') || 'Campus store', price: fmt(p.price), image: p.image || FALLBACK_IMG, targetRoute: `/products/${p.id}` }, ...saved]);
@@ -177,6 +180,8 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
     return t ? `Opens ${t}` : 'Closed now';
   };
   const addProduct = (p: Item) => {
+    // Samples never reach the basket: a tap on one opens the sample sheet instead.
+    if (p.isDemoContent) { setSampleOpen(p); return; }
     if (!p.orderable || !p.isAvailable) {
       const opens = closedLabel(p);
       Alert.alert(p.isAvailable ? `${p.storeName || 'This store'} is closed` : 'Sold out', p.isAvailable
@@ -264,7 +269,12 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openSearch]);
   // Product pages use the app route (app/products/[id].tsx renders FoodV2ProductView for shop items).
-  const openProduct = (p: Item | string) => router.push(`/products/${typeof p === 'string' ? p : p.id}` as any);
+  // A sample has no product page (and no server id): it opens the sample sheet.
+  const openProduct = (p: Item | string) => {
+    if (typeof p !== 'string' && p.isDemoContent) { setSampleOpen(p); return; }
+    if (typeof p === 'string' && p.startsWith('sample-food-')) return;
+    router.push(`/products/${typeof p === 'string' ? p : p.id}` as any);
+  };
 
   // Stable row actions (see FoodV2RowActions): the closures above change every render, these never do.
   const live = useRef({ addProduct, decProduct, toggleSaved, openProduct });
@@ -307,5 +317,5 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
   const savedChips = ['All', ...GROUP_ORDER.filter(g => savedCounts[g]), ...(savedCounts.Other ? ['Other'] : [])];
 
 
-  return { sections, onSection, toast, setToast, router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, reqLines, addReqLine, updateReqLine, removeReqLine, setFirstReqName, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark, rowActions };
+  return { sections, onSection, toast, setToast, router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, reqLines, addReqLine, updateReqLine, removeReqLine, setFirstReqName, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark, rowActions, sampleOpen, setSampleOpen };
 }

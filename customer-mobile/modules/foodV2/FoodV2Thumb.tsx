@@ -6,19 +6,21 @@
  * Others → Food & groceries (modules/foodV2).
  */
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, type ImageSourcePropType } from 'react-native';
 import { Image } from 'expo-image';
 import { FOOD } from './foodV2Theme';
 import { Icon, GROUP_ICON } from './FoodV2Icons';
 import { cdnWidthFor, optimizeImageUri } from '../../components/SafeImage';
 
-export default function Thumb({ uri, size, isDark, group, dim = false, radius = 12 }: {
-  uri: string | null; size: number | string; isDark: boolean; group: string; dim?: boolean; radius?: number;
+/** `art`: a bundled photo (sample items, foodV2Demo.ts) used instead of `uri`. */
+export default function Thumb({ uri, art, size, isDark, group, dim = false, radius = 12 }: {
+  uri: string | null; art?: ImageSourcePropType; size: number | string; isDark: boolean; group: string; dim?: boolean; radius?: number;
 }) {
   const [failed, setFailed] = useState(false);
-  const [fit, setFit] = useState<'cover' | 'contain'>('contain');
+  // Bundled sample photos are square photos with their own background: always cover.
+  const [fit, setFit] = useState<'cover' | 'contain'>(art ? 'cover' : 'contain');
   const box = { width: size as any, height: typeof size === 'number' ? size : undefined, aspectRatio: typeof size === 'number' ? undefined : 1, borderRadius: radius };
-  if (!uri || failed) {
+  if ((!uri && !art) || failed) {
     return (
       <View style={[st.plate, box, { backgroundColor: isDark ? 'rgba(76,193,122,0.12)' : '#EEF7F1', borderColor: isDark ? 'transparent' : '#E3EEE7' }]} accessibilityElementsHidden>
         <Icon name={GROUP_ICON[group] || 'basket-outline'} size={typeof size === 'number' ? Math.round(size * 0.36) : 28} color={isDark ? '#7FDCA3' : FOOD.primary} />
@@ -27,11 +29,11 @@ export default function Thumb({ uri, size, isDark, group, dim = false, radius = 
   }
   // CDN photos (Unsplash) are asked for at the plate size times this screen's density (catalogue links
   // carry w=600, several times what a 76 pt plate needs). Other hosts are unchanged.
-  const src = optimizeImageUri(uri, cdnWidthFor(typeof size === 'number' ? size : 140)) || uri;
+  const src = art || !uri ? null : optimizeImageUri(uri, cdnWidthFor(typeof size === 'number' ? size : 140)) || uri;
   return (
     <View style={[st.plate, box, { backgroundColor: isDark ? '#FFFFFF' : '#FFFFFF', borderColor: isDark ? 'transparent' : '#E7EDEA' }]}>
       <Image
-        source={{ uri: src }}
+        source={art || { uri: src as string }}
         cachePolicy="memory-disk"
         style={[fit === 'cover' ? StyleSheet.absoluteFill : st.contain, dim && { opacity: 0.4 }]}
         contentFit={fit}

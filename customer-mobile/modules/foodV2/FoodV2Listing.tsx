@@ -28,6 +28,7 @@ import { chipsFor, inChip } from './FoodV2Chips';
 import { Icon, GROUP_ICON } from './FoodV2Icons';
 import { useFoodScale } from './FoodV2Scale';
 import { BUTTON_ROLE } from '../../utils/pressRole';
+import { samplesFor } from './foodV2Demo';
 
 const AISLE_ICON: Record<string, string> = { all: 'grid', rice: 'wheat', atta: 'package', dal: 'bean', pickles: 'flame', oil: 'droplet', snacks: 'cookie', bev: 'cup-soda', gifts: 'gift', other: 'basket-outline' };
 const BANNER_H = 120;
@@ -46,7 +47,10 @@ export default function FoodV2Listing({ shelf }: { shelf: string }) {
   const sc = useFoodScale();
 
   const isSearch = shelf === SEARCH;
-  const base = isSearch ? catalogue : shelfItems(shelf, catalogue);
+  // Thin shelves end with their sample items (foodV2Demo.ts), after every real product; search never shows samples.
+  const real = isSearch ? catalogue : shelfItems(shelf, catalogue);
+  const samples = isSearch || isLoading || isFailed ? [] : samplesFor(shelf, real);
+  const base = samples.length ? [...real, ...samples] : real;
   const title = isSearch ? 'Search' : TILES.find(t => t.key === shelf)?.label || LIST_TITLES[shelf] || (BRANDS.some(b => b.name === shelf) ? shelf : sentence(shelf));
   const hero = isSearch ? null : HEROES[shelf];
   const q = query.trim().toLowerCase();

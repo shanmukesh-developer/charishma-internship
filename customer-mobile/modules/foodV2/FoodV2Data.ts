@@ -3,6 +3,7 @@
  * Others → Food & groceries (modules/foodV2).
  */
 import React from 'react';
+import type { ImageSourcePropType } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FOOD_IMG } from './FoodV2Kit';
 
@@ -14,6 +15,8 @@ export type Item = {
   weight: string | null; brand: string | null; category: string | null; image: string | null;
   isVegetarian: boolean; isAvailable: boolean; orderable: boolean; bookingOnly: boolean;
   restaurantId: string; storeName: string | null; vendorType: string | null;
+  /** Sample layer only (foodV2Demo.ts): never on a catalogue item, never orderable, never saved or sent. */
+  isDemoContent?: true; art?: ImageSourcePropType;
 };
 export const SHOP_TYPES = ['grocery', 'toys', 'seeds', 'electronics'];
 export const CATALOGUE_CACHE_KEY = 'others:catalogue';

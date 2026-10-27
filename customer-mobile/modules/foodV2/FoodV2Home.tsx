@@ -35,6 +35,7 @@ import { Icon } from './FoodV2Icons';
 import StatusBarScrim from '../../components/StatusBarScrim';
 import { FOOD_HEADER } from './FoodV2SectionHeader';
 import { BUTTON_ROLE } from '../../utils/pressRole';
+import { samplesFor } from './foodV2Demo';
 
 export default function FoodV2Home() {
   const { router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark } = useFoodV2();
@@ -60,6 +61,8 @@ export default function FoodV2Home() {
     const healthTiles = HEALTH_TILES.filter(h => hasShelf(h.name));
     const healthItems = healthTiles.flatMap(h => shelfItems(h.name, catalogue));
     const wellness = shelfItems('Monsoon Wellness Picks', catalogue);
+    // A thin wellness rail ends with its samples (tagged; a tap opens the sample sheet). "From ₹" stays real-only.
+    const wellnessSamples = samplesFor('Monsoon Wellness Picks', wellness);
     const aisles = ESSENTIAL_AISLES.filter(a => shelfItems(a, catalogue).length > 0);
 
     return (
@@ -142,11 +145,12 @@ export default function FoodV2Home() {
             )}
 
             {/* ── Wellness picks (real products) ── */}
-            {wellness.length > 0 && (
+            {wellness.length + wellnessSamples.length > 0 && (
               <View style={s.sec}>
                 {head('Wellness picks', { sub: fromPrice(wellness), onAll: () => openListing('Monsoon Wellness Picks') })}
                 <ScrollView horizontal style={s.hScroll} showsHorizontalScrollIndicator={false} contentContainerStyle={s.tileRail}>
                   {wellness.slice(0, 8).map(p => miniTile(p.id, p.name, fmt(p.price), p.image || FALLBACK_IMG, () => openProduct(p), w3, true))}
+                  {wellnessSamples.slice(0, Math.max(0, 8 - wellness.length)).map(p => miniTile(p.id, p.name, null, p.art || FALLBACK_IMG, () => openProduct(p), w3, true, true))}
                 </ScrollView>
               </View>
             )}
