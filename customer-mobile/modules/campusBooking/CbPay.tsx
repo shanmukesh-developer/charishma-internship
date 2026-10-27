@@ -32,6 +32,8 @@ export default function CbPay({ id }: { id: string }) {
   const [ref, setRef] = useState('');
   const [busy, setBusy] = useState<'submit' | 'cancel' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Which proof the stall side refused as already used for another booking (red outline on that field).
+  const [badField, setBadField] = useState<'ref' | 'shot' | null>(null);
   const [copied, setCopied] = useState(false);
   const [, setTick] = useState(0);
 
@@ -60,6 +62,7 @@ export default function CbPay({ id }: { id: string }) {
     try {
       // Screenshots keep their text sharp at 1600 px on the long edge.
       setShot(await prepareAndUploadImage(asset, 'campus_payment', { maxEdge: 1600, quality: 0.8 }));
+      if (badField === 'shot') { setBadField(null); setError(null); }
     } catch (e) {
       alertUploadError(e, pickShot, 'Screenshot did not upload');
     } finally {
@@ -74,11 +77,22 @@ export default function CbPay({ id }: { id: string }) {
     if (upiRef && !/^[A-Za-z0-9]{6,35}$/.test(upiRef)) { setError('Enter the UPI reference exactly as your UPI app shows it (6 to 35 letters or digits).'); return; }
     setBusy('submit');
     setError(null);
+    setBadField(null);
     try {
       await cbApi.submitProof(b.id, { imageUrl: shot ? shot.url : null, upiRef: upiRef || null });
       router.replace(`/campus-booking/order/${b.id}` as any);
     } catch (e: any) {
-      setError(e?.message || 'Could not send the payment proof. Please try again.');
+      if (e?.code === 'REF_ALREADY_USED') {
+        setBadField('ref');
+        setError(e?.message || 'This UPI reference was already used for another booking. Check the number in your UPI app.');
+      } else if (e?.code === 'SCREENSHOT_ALREADY_USED') {
+        // The same picture cannot be sent twice: drop it so the card asks for this payment's screenshot.
+        setShot(null);
+        setBadField('shot');
+        setError(e?.message || 'This screenshot was already sent for another booking. Upload the screenshot of this payment.');
+      } else {
+        setError(e?.message || 'Could not send the payment proof. Please try again.');
+      }
       if (e?.code === 'BAD_TRANSITION' || e?.code === 'CHANGED') void load();
     } finally {
       setBusy(null);
@@ -174,7 +188,7 @@ export default function CbPay({ id }: { id: string }) {
 
         <StaggeredSection delay={80} direction="up">
           <Text style={[s.sectionTitle, { color: p.txt, marginTop: 24 }]}>After paying, send the proof</Text>
-          <TouchableOpacity onPress={pickShot} activeOpacity={0.9} style={[s.payCardNew, { backgroundColor: p.card, borderColor: shot ? COLORS.red : p.border, borderStyle: shot ? 'solid' : 'dashed' }]} accessibilityRole="button" accessibilityLabel={shot ? 'Change the payment screenshot' : 'Upload payment screenshot'}>
+          <TouchableOpacity onPress={pickShot} activeOpacity={0.9} style={[s.payCardNew, { backgroundColor: p.card, borderColor: shot || badField === 'shot' ? COLORS.red : p.border, borderStyle: shot ? 'solid' : 'dashed' }]} accessibilityRole="button" accessibilityLabel={shot ? 'Change the payment screenshot' : 'Upload payment screenshot'}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               {shot ? <SafeImage source={{ uri: shot.localUri || shot.previewUrl || '' }} style={s.shotThumb} contentFit="cover" placeholderIcon="image-outline" /> : (
                 <Ionicons name={uploading ? 'hourglass-outline' : 'cloud-upload-outline'} size={22} color={COLORS.red} />
@@ -190,13 +204,13 @@ export default function CbPay({ id }: { id: string }) {
           <Text style={[s.sectionTitle, { color: p.txt, marginTop: 20 }]}>Or enter the UPI reference (optional)</Text>
           <TextInput
             value={ref}
-            onChangeText={(t) => { setRef(t.toUpperCase().replace(/[^A-Z0-9 -]/g, '')); setError(null); }}
+            onChangeText={(t) => { setRef(t.toUpperCase().replace(/[^A-Z0-9 -]/g, '')); setError(null); if (badField === 'ref') setBadField(null); }}
             placeholder="For example 412345678901"
             placeholderTextColor={p.txtSec}
             autoCapitalize="characters"
             autoCorrect={false}
             maxLength={40}
-            style={[s.input, { color: p.txt, backgroundColor: p.card, borderColor: p.border }]}
+            style={[s.input, { color: p.txt, backgroundColor: p.card, borderColor: badField === 'ref' ? COLORS.red : p.border }]}
             accessibilityLabel="UPI reference number"
           />
           <Text style={[s.helperText, { color: p.txtSec }]}>Your UPI app shows it as the UTR, UPI Ref No. or Transaction ID.</Text>

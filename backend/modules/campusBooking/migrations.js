@@ -28,6 +28,14 @@ const runCampusBookingMigrations = async (sequelize) => {
   // A retried "Book" tap with the same Idempotency-Key returns the same booking.
   await run('campus_bookings_user_idem_unique',
     'CREATE UNIQUE INDEX IF NOT EXISTS "campus_bookings_user_idem_unique" ON "CampusBookings" ("userId", "idempotencyKey") WHERE "idempotencyKey" IS NOT NULL;');
+  // One payment proof per booking (27 Oct 2026): the same UPI reference / screenshot sent for two bookings at the
+  // same moment both passed the "already used" check (services/bookings.checkProof). The database refuses the
+  // second write now (submitProof answers 409 REF_ALREADY_USED / SCREENSHOT_ALREADY_USED). A re-send on the
+  // same booking keeps its own value, so it never clashes with itself.
+  await run('campus_bookings_proof_ref_unique',
+    'CREATE UNIQUE INDEX IF NOT EXISTS "campus_bookings_proof_ref_unique" ON "CampusBookings" ("proofRef") WHERE "proofRef" IS NOT NULL;');
+  await run('campus_bookings_proof_image_unique',
+    'CREATE UNIQUE INDEX IF NOT EXISTS "campus_bookings_proof_image_unique" ON "CampusBookings" ("proofImageUrl") WHERE "proofImageUrl" IS NOT NULL;');
   // Lifecycle job: open bookings by status and age.
   await run('campus_bookings_status_created',
     'CREATE INDEX IF NOT EXISTS "campus_bookings_status_created" ON "CampusBookings" ("status", "createdAt");');

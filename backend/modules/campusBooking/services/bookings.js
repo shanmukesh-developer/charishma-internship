@@ -197,15 +197,26 @@ const submitProof = async (booking, { userId, imageUrl, upiRef, now = new Date()
     throw fail(409, 'PROOF_LIMIT', 'Payment proof was sent too many times for this booking. Please cancel it and book again, or talk to the stall.');
   }
   const { path, ref } = await checkProof({ userId, bookingId: booking.id, imageUrl, upiRef });
-  return transition(booking, STATUS.PAYMENT_REVIEW, 'student', {
-    proofImageUrl: path,
-    proofRef: ref,
-    proofSubmittedAt: now,
-    proofAttempts: (Number(booking.proofAttempts) || 0) + 1,
-    rejectCode: null,
-    rejectReason: null,
-    rejectedAt: null,
-  });
+  try {
+    return await transition(booking, STATUS.PAYMENT_REVIEW, 'student', {
+      proofImageUrl: path,
+      proofRef: ref,
+      proofSubmittedAt: now,
+      proofAttempts: (Number(booking.proofAttempts) || 0) + 1,
+      rejectCode: null,
+      rejectReason: null,
+      rejectedAt: null,
+    });
+  } catch (err) {
+    // The same proof sent for another booking at the same moment: checkProof above could not see it yet, the
+    // unique indexes (migrations.js campus_bookings_proof_*_unique) refuse the second write.
+    if (!isUniqueErr(err)) throw err;
+    const where = `${err.message || ''} ${(err.parent && (err.parent.constraint || err.parent.detail)) || ''} ${JSON.stringify(err.fields || {})}`;
+    const refClash = ref && (/proofRef|proof_ref/i.test(where) || !path);
+    throw refClash
+      ? fail(409, 'REF_ALREADY_USED', 'This UPI reference was already used for another booking. Check the number in your UPI app.')
+      : fail(409, 'SCREENSHOT_ALREADY_USED', 'This screenshot was already sent for another booking. Upload the screenshot of this payment.');
+  }
 };
 
 const reasonFrom = (table, code, note) => {
@@ -241,14 +252,40 @@ const vendorCollect = async (booking, { code }, now = new Date()) => {
   }
   const typed = normalizePickupCode(code);
   if (typed.length !== 4) throw fail(400, 'CODE_REQUIRED', 'Enter the 4-character pickup code the student shows you.');
+  // Claim one attempt atomically BEFORE comparing (same pattern as the delivery PIN): parallel guesses each
+  // read "0 wrong so far" from the row above and used to write fails = 1, so the 15-minute pause never came.
+  const M = Booking();
+  const max = LIMITS.pickupCodeMaxTries;
+  const [claimed] = await M.update(
+    { pickupCodeFails: M.sequelize.literal('COALESCE("pickupCodeFails", 0) + 1') },
+    {
+      where: {
+        id: booking.id,
+        status: STATUS.READY,
+        [Op.and]: [
+          { [Op.or]: [{ pickupCodeFails: null }, { pickupCodeFails: { [Op.lt]: max } }] },
+          { [Op.or]: [{ pickupCodeLockedUntil: null }, { pickupCodeLockedUntil: { [Op.lte]: now } }] },
+        ],
+      },
+    },
+  );
+  if (!claimed) {
+    const fresh = await M.findByPk(booking.id, { attributes: ['id', 'status', 'pickupCodeLockedUntil'] });
+    if (!fresh || fresh.status !== STATUS.READY) throw fail(409, 'CHANGED', 'This booking was just updated. Showing the latest.', { status: fresh ? fresh.status : null });
+    const until = fresh.pickupCodeLockedUntil && new Date(fresh.pickupCodeLockedUntil) > now ? new Date(fresh.pickupCodeLockedUntil) : new Date(now.getTime() + 15 * 60000);
+    throw fail(429, 'CODE_LOCKED', 'Too many wrong codes. Wait a few minutes, then ask the student for the code again.', { retryAfter: Math.ceil((until - now) / 1000) });
+  }
   if (typed !== String(booking.pickupCode).toUpperCase()) {
-    const fails = (Number(booking.pickupCodeFails) || 0) + 1;
-    const lock = fails >= LIMITS.pickupCodeMaxTries;
-    await Booking().update(
-      { pickupCodeFails: lock ? 0 : fails, pickupCodeLockedUntil: lock ? new Date(now.getTime() + 15 * 60000) : booking.pickupCodeLockedUntil },
-      { where: { id: booking.id } },
-    );
-    throw fail(400, 'WRONG_CODE', lock ? 'Wrong code again. Checking is paused for 15 minutes.' : `That code does not match booking ${booking.ref}. Check it with the student.`, { triesLeft: lock ? 0 : LIMITS.pickupCodeMaxTries - fails });
+    const fresh = await M.findByPk(booking.id, { attributes: ['id', 'pickupCodeFails'] });
+    const fails = Number(fresh && fresh.pickupCodeFails) || max;
+    const lock = fails >= max;
+    if (lock) {
+      await M.update(
+        { pickupCodeFails: 0, pickupCodeLockedUntil: new Date(now.getTime() + 15 * 60000) },
+        { where: { id: booking.id, pickupCodeFails: { [Op.gte]: max } } },
+      );
+    }
+    throw fail(400, 'WRONG_CODE', lock ? 'Wrong code again. Checking is paused for 15 minutes.' : `That code does not match booking ${booking.ref}. Check it with the student.`, { triesLeft: lock ? 0 : max - fails });
   }
   return transition(booking, STATUS.COLLECTED, 'vendor', { collectedAt: now, pickupCodeFails: 0, pickupCodeLockedUntil: null });
 };

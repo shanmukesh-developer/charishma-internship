@@ -824,6 +824,19 @@ router.patch('/:id/status', protect, async (req, res) => {
     if (nextStatus !== current && !(BOOKING_TRANSITIONS[current] || []).includes(nextStatus)) {
       return res.status(400).json({ success: false, code: 'BAD_TRANSITION', message: `A booking that is ${current} cannot move to ${nextStatus}.` });
     }
+    // Only the student (POST /:id/cancel, before collection) or ZCS support cancels a booking. The assigned
+    // rider / partner never does: before collecting it they hand it back to the pool (POST /:id/release), after
+    // collecting it they hold the student's things and must return them (support handles any problem).
+    if (nextStatus === 'CANCELLED' && nextStatus !== current && !isAdmin) {
+      const collected = !RIDER_POOL_STATUSES.includes(current);
+      return res.status(403).json({
+        success: false,
+        code: collected ? 'PARTNER_CANNOT_CANCEL_COLLECTED' : 'PARTNER_CANNOT_CANCEL',
+        message: collected
+          ? 'You already collected the items. Return them to the student, or contact ZCS support if there is a problem.'
+          : 'Hand this pickup back instead, so another rider can take it. Only the student or ZCS support can cancel a booking.',
+      });
+    }
 
     const changes = {};
     if (quotedAmount !== undefined && quotedAmount !== null) {

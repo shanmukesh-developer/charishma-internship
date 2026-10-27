@@ -43,6 +43,8 @@ export default function CampusOrderScreen({ bookingId, onBack }: { bookingId: st
   const [actionErr, setActionErr] = useState<string | null>(null);
   const [sheet, setSheet] = useState<'reject' | 'cancel' | 'code' | null>(null);
   const [zoom, setZoom] = useState(false);
+  // Pickup-code pause (server 429 CODE_LOCKED after too many wrong codes): the hand-over button waits it out.
+  const [codeLockedUntil, setCodeLockedUntil] = useState<number | null>(null);
   const [reasons, setReasons] = useState<{ reject: CbReason[]; cancel: CbReason[] }>({ reject: FALLBACK_REJECT, cancel: FALLBACK_CANCEL });
   const busyRef = useRef(false);
 
@@ -61,7 +63,7 @@ export default function CampusOrderScreen({ bookingId, onBack }: { bookingId: st
   }, []);
   useCampusLive((e) => { if (!e.id || e.id === bookingId) void load(); });
 
-  const run = async (key: string, fn: () => Promise<{ booking: CbVendorBooking }>, done?: string) => {
+  const run = async (key: string, fn: () => Promise<{ booking: CbVendorBooking }>, done?: string, onErr?: (e: unknown) => void) => {
     if (busyRef.current) return false;
     busyRef.current = true;
     setBusy(key);
@@ -74,6 +76,7 @@ export default function CampusOrderScreen({ bookingId, onBack }: { bookingId: st
     } catch (e) {
       setActionErr(errorMessage(e, "Couldn't save. Please try again."));
       if (e instanceof ApiError && (e.code === 'CHANGED' || e.code === 'BAD_TRANSITION')) void load();
+      onErr?.(e);
       return false;
     } finally {
       busyRef.current = false;
@@ -224,7 +227,19 @@ export default function CampusOrderScreen({ bookingId, onBack }: { bookingId: st
           onClose={() => setSheet(null)}
           busy={busy === 'collect'}
           error={actionErr}
-          onSubmit={async (code) => { if (await run('collect', () => campusApi.collect(b.id, code), 'Handed over. Order complete.')) setSheet(null); }}
+          lockedUntil={codeLockedUntil}
+          onSubmit={async (code) => {
+            const ok = await run('collect', () => campusApi.collect(b.id, code), 'Handed over. Order complete.', (e) => {
+              if (!(e instanceof ApiError)) return;
+              if (e.code === 'CODE_LOCKED') {
+                const sec = Number(e.data?.retryAfter);
+                setCodeLockedUntil(Date.now() + (Number.isFinite(sec) && sec > 0 ? sec : 15 * 60) * 1000);
+              } else if (e.code === 'WRONG_CODE' && Number(e.data?.triesLeft) === 0) {
+                setCodeLockedUntil(Date.now() + 15 * 60 * 1000);
+              }
+            });
+            if (ok) { setCodeLockedUntil(null); setSheet(null); }
+          }}
         />
       ) : null}
 
@@ -259,8 +274,17 @@ function ReasonSheet({ title, body, reasons, confirm, onClose, onConfirm, busy, 
   );
 }
 
-function CodeSheet({ refText, onClose, onSubmit, busy, error }: { refText: string; onClose: () => void; onSubmit: (code: string) => void; busy: boolean; error: string | null }) {
+function CodeSheet({ refText, onClose, onSubmit, busy, error, lockedUntil }: { refText: string; onClose: () => void; onSubmit: (code: string) => void; busy: boolean; error: string | null; lockedUntil: number | null }) {
   const [code, setCode] = useState('');
+  // Re-render every 15 s while paused so the countdown moves and the button comes back by itself.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!lockedUntil || lockedUntil <= Date.now()) return undefined;
+    const t = setInterval(() => setNow(Date.now()), 15000);
+    return () => clearInterval(t);
+  }, [lockedUntil]);
+  const waitMin = lockedUntil && lockedUntil > now ? Math.max(1, Math.ceil((lockedUntil - now) / 60000)) : 0;
+  const send = () => { if (code.length === 4 && !waitMin && !busy) onSubmit(code); };
   return (
     <Sheet visible onClose={onClose} title="Enter the pickup code">
       <View style={{ gap: space.sm }}>
@@ -276,10 +300,11 @@ function CodeSheet({ refText, onClose, onSubmit, busy, error }: { refText: strin
           maxLength={4}
           style={[styles.input, styles.codeInput]}
           accessibilityLabel="Pickup code"
-          onSubmitEditing={() => code.length === 4 && onSubmit(code)}
+          onSubmitEditing={send}
         />
         {error ? <Text style={[font.body, { color: color.alertDark, fontWeight: '700' }]} accessibilityLiveRegion="polite">{error}</Text> : null}
-        <Button label="Check code and hand over" variant="accept" icon="checkmark" onPress={() => onSubmit(code)} disabled={code.length !== 4} loading={busy} />
+        {waitMin ? <Text style={[font.body, { color: color.textSecondary }]} accessibilityLiveRegion="polite">Code checking is paused after too many wrong codes. Try again in {waitMin} min{waitMin === 1 ? '' : 's'}.</Text> : null}
+        <Button label={waitMin ? `Paused: try again in ${waitMin} min` : 'Check code and hand over'} variant="accept" icon={waitMin ? 'time-outline' : 'checkmark'} onPress={send} disabled={code.length !== 4 || !!waitMin} loading={busy} />
       </View>
     </Sheet>
   );

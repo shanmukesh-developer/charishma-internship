@@ -51,7 +51,10 @@ const useSpin = async (req, res) => {
     let awardedCoupon = null;
     let prizeIndex = 0;
 
-    await sequelize.transaction(async (t) => {
+    // IMMEDIATE (SQLite: take the write lock first, like the order money transactions) + row lock (Postgres): a
+    // double tap waits for the first spin and then sees "no spins left" instead of failing with a 500.
+    const { Transaction } = require('sequelize');
+    await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async (t) => {
       const user = await User.findByPk(req.user.id, { transaction: t, lock: true });
       if (!user) throw Object.assign(new Error('Your session has expired. Please log in again.'), { status: 401 });
 
@@ -65,8 +68,13 @@ const useSpin = async (req, res) => {
       prizeIndex = spinNumber % FREE_DELIVERY_EVERY === 0 ? 0 : crypto.randomInt(1, SPIN_PRIZES.length);
       const prize = SPIN_PRIZES[prizeIndex];
 
-      user.spinsUsed = spinNumber;
-      if (prize.type === 'points') user.zenPoints = (user.zenPoints || 0) + Number(prize.value);
+      // Conditional on the spin count we read and atomic for the points (never a stale absolute write).
+      const { literal } = require('sequelize');
+      const [n] = await User.update(
+        { spinsUsed: spinNumber, ...(prize.type === 'points' ? { zenPoints: literal(`COALESCE("zenPoints", 0) + ${Number(prize.value)}`) } : {}) },
+        { where: { id: user.id, spinsUsed: user.spinsUsed == null ? null : user.spinsUsed }, transaction: t },
+      );
+      if (!n) throw Object.assign(new Error('That spin was just used. Pull to refresh.'), { status: 409 });
       if (prize.type === 'coupon') {
         const { getCouponModel } = require('../models/Coupon');
         const Coupon = getCouponModel();
@@ -79,8 +87,7 @@ const useSpin = async (req, res) => {
           expiryDate: new Date(Date.now() + SPIN_COUPON_DAYS * 24 * 60 * 60 * 1000)
         }, { transaction: t });
       }
-      await user.save({ transaction: t });
-      updatedUser = user;
+      updatedUser = await User.findByPk(user.id, { transaction: t });
     });
 
     const prize = SPIN_PRIZES[prizeIndex];

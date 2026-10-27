@@ -76,12 +76,14 @@ const summary = async (req, res) => {
   if (!store) throw fail(404, 'NOT_FOUND', 'Stall not found.');
   const since = istDayStart();
   const Booking = B.Booking();
-  const [todayRows, review, inProgress] = await Promise.all([
-    Booking.findAll({ where: { restaurantId: store.id, createdAt: { [Op.gte]: since } }, attributes: ['status', 'amountPaise', 'commissionPaise'], raw: true }),
+  const [todayRows, paid, review, inProgress] = await Promise.all([
+    Booking.findAll({ where: { restaurantId: store.id, createdAt: { [Op.gte]: since } }, attributes: ['status'], raw: true }),
+    // Money by the day the stall confirmed the payment, the same rule as GET /vendor/earnings?range=today (a
+    // booking placed at 11:58 PM and confirmed after midnight used to be in today's earnings but not here).
+    Booking.findAll({ where: { restaurantId: store.id, status: { [Op.in]: PAID_STATUSES }, paymentVerifiedAt: { [Op.gte]: since } }, attributes: ['status', 'amountPaise', 'commissionPaise'], raw: true }),
     Booking.count({ where: { restaurantId: store.id, status: 'PAYMENT_REVIEW' } }),
     Booking.count({ where: { restaurantId: store.id, status: { [Op.in]: ['ACCEPTED', 'PREPARING', 'READY'] } } }),
   ]);
-  const paid = todayRows.filter((b) => PAID_STATUSES.includes(b.status));
   res.set('Cache-Control', 'private, no-store');
   res.json({
     today: {
